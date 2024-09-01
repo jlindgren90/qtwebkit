@@ -54,7 +54,6 @@
 #import "WebView.h"
 #import "WebViewInternal.h"
 #import <Foundation/Foundation.h>
-#import <WebCore/BlockExceptions.h>
 #import <WebCore/ColorChooser.h>
 #import <WebCore/ContextMenu.h>
 #import <WebCore/ContextMenuController.h>
@@ -82,6 +81,7 @@
 #import <WebCore/SerializedCryptoKeyWrap.h>
 #import <WebCore/Widget.h>
 #import <WebCore/WindowFeatures.h>
+#import <wtf/BlockObjCExceptions.h>
 #import <wtf/PassRefPtr.h>
 #import <wtf/Vector.h>
 #import <wtf/text/WTFString.h>
@@ -939,9 +939,9 @@ void WebChromeClient::setUpPlaybackControlsManager(HTMLMediaElement& element)
     [m_webView _setUpPlaybackControlsManagerForMediaElement:element];
 }
 
-void WebChromeClient::clearPlaybackControlsManager(HTMLMediaElement& element)
+void WebChromeClient::clearPlaybackControlsManager()
 {
-    [m_webView _clearPlaybackControlsManagerForMediaElement:element];
+    [m_webView _clearPlaybackControlsManager];
 }
 #endif // PLATFORM(MAC)
 #endif // ENABLE(VIDEO)

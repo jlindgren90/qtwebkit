@@ -65,6 +65,11 @@ enum AutoFillButtonType {
     "AutoFillButtonTypeCredentials"
 };
 
+enum UserInterfaceLayoutDirection {
+    "LTR",
+    "RTL"
+};
+
 [
     ExportMacro=WEBCORE_TESTSUPPORT_EXPORT,
     NoInterfaceObject,
@@ -161,6 +166,7 @@ enum AutoFillButtonType {
     void setAutofilled(HTMLInputElement inputElement, boolean enabled);
     void setShowAutoFillButton(HTMLInputElement inputElement, AutoFillButtonType autoFillButtonType);
     [RaisesException] unsigned long countMatchesForText(DOMString text, unsigned long findOptions, DOMString markMatches);
+    [RaisesException] unsigned long countFindMatches(DOMString text, unsigned long findOptions);
 
     [RaisesException] DOMString autofillFieldName(Element formControlElement);
 
@@ -267,16 +273,10 @@ enum AutoFillButtonType {
     [RaisesException] void setDeviceProximity(DOMString eventType, unrestricted double value, unrestricted double min, unrestricted double max);
 #endif
 
-    // As per spec: http://www.w3.org/TR/WebIDL/#idl-sequence
-    // "Sequences must not be used as the type of an attribute, constant or exception field."
-    // FIXME: this will lead to BUG internals.consoleProfiles !== internals.consoleProfiles as profile will always returns new array.
-    readonly attribute ScriptProfile[] consoleProfiles;
-
     unsigned long numberOfLiveNodes();
     unsigned long numberOfLiveDocuments();
     DOMWindow openDummyInspectorFrontend(DOMString url);
     void closeDummyInspectorFrontend();
-    [RaisesException] void setLegacyJavaScriptProfilingEnabled(boolean enabled);
     [RaisesException] void setInspectorIsUnderTest(boolean isUnderTest);
 
     DOMString counterValue(Element element);
@@ -466,4 +466,10 @@ enum AutoFillButtonType {
 #endif
 
     void setResourceTimingSupport(boolean scalable);
+    
+    boolean isProcessingUserGesture();
+
+    GCObservation observeGC(any observed);
+
+    void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInterfaceLayoutDirection);
 };

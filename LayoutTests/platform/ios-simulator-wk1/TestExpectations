@@ -860,7 +860,7 @@ fast/overflow/child-100percent-height-inside-fixed-container-with-overflow-auto.
 fast/overflow/overflow-focus-ring.html [ Failure ]
 fast/overflow/overflow-update-transform.html [ Failure ]
 fast/overflow/replaced-child-100percent-height-inside-fixed-container-with-overflow-auto.html [ Failure ]
-fast/overflow/scroll-vertical-not-horizontal.html [ Failure ]
+# fast/overflow/scroll-vertical-not-horizontal.html [ Failure ]
 fast/regions/region-styling/region-style-block-background-color2.html [ ImageOnlyFailure ]
 fast/shapes/shape-outside-floats/shape-outside-floats-circle-000.html [ ImageOnlyFailure ]
 fast/shapes/shape-outside-floats/shape-outside-floats-ellipse-000.html [ ImageOnlyFailure ]
@@ -1097,6 +1097,8 @@ http/tests/navigation/target-blank-opener.html [ Failure ]
 http/tests/security/aboutBlank/xss-DENIED-navigate-opener-document-write.html [ Failure ]
 http/tests/security/aboutBlank/xss-DENIED-navigate-opener-javascript-url.html [ Failure ]
 http/tests/security/aboutBlank/xss-DENIED-set-opener.html [ Failure ]
+http/tests/security/canvas-remote-read-remote-video-allowed-anonymous.html [ Failure ]
+http/tests/security/canvas-remote-read-remote-video-allowed-with-credentials.html [ Failure ]
 http/tests/security/contentSecurityPolicy/object-src-url-allowed.html [ Failure ]
 http/tests/security/contentSecurityPolicy/object-src-url-blocked.html [ Failure ]
 http/tests/security/cross-origin-indexeddb-allowed.html [ Failure ]
@@ -1375,3 +1377,10 @@ fast/scrolling/ios/scrolling-content-clip-to-viewport.html [ Failure ]
 fast/scrolling/ios/textarea-scroll-touch.html [ Failure ]
 fast/scrolling/ios/touch-stacking.html [ Failure ]
 fast/scrolling/ios/touch-scroll-visibility-hidden.html [ Skip ]
+
+# dumpPolicyDelegateCallbacks is not supported in DumpRenderTree
+fast/loader/iframe-src-invalid-url.html [ Skip ]
+
+webkit.org/b/157589 fast/text-autosizing/ios/text-autosizing-after-back.html [ Pass Timeout ]
+
+webkit.org/b/158237 fast/scrolling/scroll-container-horizontally.html [ Timeout ]

@@ -67,10 +67,10 @@ WebInspector.LayerTreeDetailsSidebarPanel = class LayerTreeDetailsSidebarPanel e
         if (!this.domNode)
             return;
 
-        WebInspector.layerTreeManager.layersForNode(this.domNode, function(layerForNode, childLayers) {
+        WebInspector.layerTreeManager.layersForNode(this.domNode, (layerForNode, childLayers) => {
             this._unfilteredChildLayers = childLayers;
             this._updateDisplayWithLayers(layerForNode, childLayers);
-        }.bind(this));
+        });
     }
 
     // DOMDetailsSidebarPanel Overrides
@@ -142,8 +142,9 @@ WebInspector.LayerTreeDetailsSidebarPanel = class LayerTreeDetailsSidebarPanel e
         this._dataGrid.addEventListener(WebInspector.DataGrid.Event.SortChanged, this._sortDataGrid, this);
         this._dataGrid.addEventListener(WebInspector.DataGrid.Event.SelectedNodeChanged, this._selectedDataGridNodeChanged, this);
 
-        this.sortColumnIdentifierSetting = new WebInspector.Setting("layer-tree-details-sidebar-panel-sort", "memory");
-        this.sortOrderSetting = new WebInspector.Setting("layer-tree-details-sidebar-panel-sort-order", WebInspector.DataGrid.SortOrder.Descending);
+        this._dataGrid.sortColumnIdentifier = "memory";
+        this._dataGrid.sortOrder = WebInspector.DataGrid.SortOrder.Descending;
+        this._dataGrid.createSettings("layer-tree-details-sidebar-panel");
 
         var element = this._dataGrid.element;
         element.addEventListener("focus", this._dataGridGainedFocus.bind(this), false);
@@ -318,10 +319,10 @@ WebInspector.LayerTreeDetailsSidebarPanel = class LayerTreeDetailsSidebarPanel e
         if (!dataGridNode)
             return;
 
-        this._contentForPopover(dataGridNode.layer, function(content) {
+        this._contentForPopover(dataGridNode.layer, (content) => {
             if (dataGridNode === this._dataGrid.selectedNode)
                 this._updatePopoverForSelectedNode(content);
-        }.bind(this));
+        });
     }
 
     _updatePopoverForSelectedNode(content)
@@ -357,7 +358,7 @@ WebInspector.LayerTreeDetailsSidebarPanel = class LayerTreeDetailsSidebarPanel e
 
         var list = content.appendChild(document.createElement("ul"));
 
-        WebInspector.layerTreeManager.reasonsForCompositingLayer(layer, function(compositingReasons) {
+        WebInspector.layerTreeManager.reasonsForCompositingLayer(layer, (compositingReasons) => {
             if (isEmptyObject(compositingReasons)) {
                 callback(content);
                 return;
@@ -366,7 +367,7 @@ WebInspector.LayerTreeDetailsSidebarPanel = class LayerTreeDetailsSidebarPanel e
             this._populateListOfCompositingReasons(list, compositingReasons);
 
             callback(content);
-        }.bind(this));
+        });
 
         return content;
     }

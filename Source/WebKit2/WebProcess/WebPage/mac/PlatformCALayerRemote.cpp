@@ -56,7 +56,7 @@ PassRefPtr<PlatformCALayerRemote> PlatformCALayerRemote::create(LayerType layerT
 
     context.layerWasCreated(*layer, layerType);
 
-    return layer.release();
+    return WTFMove(layer);
 }
 
 PassRefPtr<PlatformCALayerRemote> PlatformCALayerRemote::create(PlatformLayer *platformLayer, PlatformCALayerClient* owner, RemoteLayerTreeContext& context)
@@ -66,11 +66,11 @@ PassRefPtr<PlatformCALayerRemote> PlatformCALayerRemote::create(PlatformLayer *p
 
 PassRefPtr<PlatformCALayerRemote> PlatformCALayerRemote::create(const PlatformCALayerRemote& other, WebCore::PlatformCALayerClient* owner, RemoteLayerTreeContext& context)
 {
-    RefPtr<PlatformCALayerRemote> layer = adoptRef(new PlatformCALayerRemote(other, owner, context));
+    auto layer = adoptRef(*new PlatformCALayerRemote(other, owner, context));
 
-    context.layerWasCreated(*layer, other.layerType());
+    context.layerWasCreated(layer.get(), other.layerType());
 
-    return layer.release();
+    return WTFMove(layer);
 }
 
 PlatformCALayerRemote::PlatformCALayerRemote(LayerType layerType, PlatformCALayerClient* owner, RemoteLayerTreeContext& context)
@@ -95,12 +95,12 @@ PlatformCALayerRemote::PlatformCALayerRemote(const PlatformCALayerRemote& other,
 
 PassRefPtr<PlatformCALayer> PlatformCALayerRemote::clone(PlatformCALayerClient* owner) const
 {
-    RefPtr<PlatformCALayerRemote> clone = PlatformCALayerRemote::create(*this, owner, *m_context);
+    auto clone = PlatformCALayerRemote::create(*this, owner, *m_context);
 
     updateClonedLayerProperties(*clone);
 
     clone->setClonedLayer(this);
-    return clone.release();
+    return WTFMove(clone);
 }
 
 PlatformCALayerRemote::~PlatformCALayerRemote()
@@ -133,6 +133,9 @@ void PlatformCALayerRemote::updateClonedLayerProperties(PlatformCALayerRemote& c
     clone.setBackgroundColor(backgroundColor());
     clone.setContentsScale(contentsScale());
     clone.setCornerRadius(cornerRadius());
+
+    if (!m_properties.shapePath.isNull())
+        clone.setShapePath(m_properties.shapePath);
 
     if (m_properties.shapeRoundedRect)
         clone.setShapeRoundedRect(*m_properties.shapeRoundedRect);
@@ -350,7 +353,7 @@ void PlatformCALayerRemote::addAnimationForKey(const String& key, PlatformCAAnim
 void PlatformCALayerRemote::removeAnimationForKey(const String& key)
 {
     if (m_animations.remove(key)) {
-        m_properties.addedAnimations.removeFirstMatching([&key] (const std::pair<String, PlatformCAAnimationRemote::Properties>& pair) {
+        m_properties.addedAnimations.removeFirstMatching([&key](auto& pair) {
             return pair.first == key;
         });
     }
@@ -522,6 +525,20 @@ void PlatformCALayerRemote::setContentsHidden(bool value)
 
     m_properties.contentsHidden = value;
     m_properties.notePropertiesChanged(RemoteLayerTreeTransaction::ContentsHiddenChanged);
+}
+
+bool PlatformCALayerRemote::userInteractionEnabled() const
+{
+    return m_properties.userInteractionEnabled;
+}
+
+void PlatformCALayerRemote::setUserInteractionEnabled(bool value)
+{
+    if (m_properties.userInteractionEnabled == value)
+        return;
+    
+    m_properties.userInteractionEnabled = value;
+    m_properties.notePropertiesChanged(RemoteLayerTreeTransaction::UserInteractionEnabledChanged);
 }
 
 void PlatformCALayerRemote::setBackingStoreAttached(bool value)

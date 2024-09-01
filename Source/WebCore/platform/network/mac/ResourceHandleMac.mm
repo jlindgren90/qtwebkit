@@ -28,7 +28,6 @@
 
 #import "AuthenticationChallenge.h"
 #import "AuthenticationMac.h"
-#import "BlockExceptions.h"
 #import "CFNetworkSPI.h"
 #import "CookieStorage.h"
 #import "CredentialStorage.h"
@@ -53,6 +52,7 @@
 #import "SynchronousLoaderClient.h"
 #import "WebCoreSystemInterface.h"
 #import "WebCoreURLResponse.h"
+#import <wtf/BlockObjCExceptions.h>
 #import <wtf/Ref.h>
 #import <wtf/SchedulePair.h>
 #import <wtf/text/Base64.h>
@@ -225,6 +225,12 @@ void ResourceHandle::createNSURLConnection(id delegate, bool shouldUseCredential
 #endif
 #if HAVE(TIMINGDATAOPTIONS)
     [propertyDictionary setObject:@{@"_kCFURLConnectionPropertyTimingDataOptions": @(_TimingDataOptionsEnableW3CNavigationTiming)} forKey:@"kCFURLConnectionURLConnectionProperties"];
+#endif
+    
+#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+    // This is used to signal that to CFNetwork that this connection should be considered
+    // web content for purposes of App Transport Security.
+    [propertyDictionary setObject:@{@"NSAllowsArbitraryLoadsInWebContent": @""} forKey:(NSString *)_kCFURLConnectionPropertyATSContext];
 #endif
     d->m_connection = adoptNS([[NSURLConnection alloc] _initWithRequest:nsRequest delegate:delegate usesCache:usesCache maxContentLength:0 startImmediately:NO connectionProperties:propertyDictionary]);
 }
@@ -440,7 +446,7 @@ void ResourceHandle::platformLoadResourceSynchronously(NetworkingContext* contex
     data.swap(client.mutableData());
 }
 
-void ResourceHandle::willSendRequest(ResourceRequest& request, const ResourceResponse& redirectResponse)
+ResourceRequest ResourceHandle::willSendRequest(ResourceRequest&& request, ResourceResponse&& redirectResponse)
 {
     ASSERT(!redirectResponse.isNull());
 
@@ -489,23 +495,24 @@ void ResourceHandle::willSendRequest(ResourceRequest& request, const ResourceRes
     }
 
     if (d->m_usesAsyncCallbacks) {
-        client()->willSendRequestAsync(this, request, redirectResponse);
-    } else {
-        Ref<ResourceHandle> protect(*this);
-        client()->willSendRequest(this, request, redirectResponse);
-
-        // Client call may not preserve the session, especially if the request is sent over IPC.
-        if (!request.isNull())
-            request.setStorageSession(d->m_storageSession.get());
+        client()->willSendRequestAsync(this, WTFMove(request), WTFMove(redirectResponse));
+        return { };
     }
+
+    Ref<ResourceHandle> protectedThis(*this);
+    auto newRequest = client()->willSendRequest(this, WTFMove(request), WTFMove(redirectResponse));
+
+    // Client call may not preserve the session, especially if the request is sent over IPC.
+    if (!newRequest.isNull())
+        newRequest.setStorageSession(d->m_storageSession.get());
+    return newRequest;
 }
 
-void ResourceHandle::continueWillSendRequest(const ResourceRequest& request)
+void ResourceHandle::continueWillSendRequest(ResourceRequest&& newRequest)
 {
     ASSERT(d->m_usesAsyncCallbacks);
 
     // Client call may not preserve the session, especially if the request is sent over IPC.
-    ResourceRequest newRequest = request;
     if (!newRequest.isNull())
         newRequest.setStorageSession(d->m_storageSession.get());
     [(id)delegate() continueWillSendRequest:newRequest.nsURLRequest(UpdateHTTPBody)];
@@ -614,16 +621,6 @@ bool ResourceHandle::tryHandlePasswordBasedAuthentication(const AuthenticationCh
     }
 
     return false;
-}
-
-void ResourceHandle::didCancelAuthenticationChallenge(const AuthenticationChallenge& challenge)
-{
-    ASSERT(d->m_currentMacChallenge);
-    ASSERT(d->m_currentMacChallenge == challenge.nsURLAuthenticationChallenge());
-    ASSERT(!d->m_currentWebChallenge.isNull());
-
-    if (client())
-        client()->didCancelAuthenticationChallenge(this, challenge);
 }
 
 #if USE(PROTECTION_SPACE_AUTH_CALLBACK)

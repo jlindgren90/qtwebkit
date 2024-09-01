@@ -46,8 +46,8 @@ WebInspector.DebuggerSidebarPanel = class DebuggerSidebarPanel extends WebInspec
         WebInspector.debuggerManager.addEventListener(WebInspector.DebuggerManager.Event.ActiveCallFrameDidChange, this._debuggerActiveCallFrameDidChange, this);
         WebInspector.debuggerManager.addEventListener(WebInspector.DebuggerManager.Event.WaitingToPause, this._debuggerWaitingToPause, this);
 
-        WebInspector.timelineManager.addEventListener(WebInspector.TimelineManager.Event.CapturingWillStart, this._timelineRecordingWillStart, this);
-        WebInspector.timelineManager.addEventListener(WebInspector.TimelineManager.Event.CapturingStopped, this._timelineRecordingStopped, this);        
+        WebInspector.timelineManager.addEventListener(WebInspector.TimelineManager.Event.CapturingWillStart, this._timelineCapturingWillStart, this);
+        WebInspector.timelineManager.addEventListener(WebInspector.TimelineManager.Event.CapturingStopped, this._timelineCapturingStopped, this);
 
         this._timelineRecordingWarningElement = document.createElement("div");
         this._timelineRecordingWarningElement.classList.add("timeline-recording-warning");
@@ -423,29 +423,24 @@ WebInspector.DebuggerSidebarPanel = class DebuggerSidebarPanel extends WebInspec
             this.contentBrowser.contentViewContainer.closeAllContentViews();
         }
 
-        var resource = event.target.mainResource;
-        this._addTreeElementForSourceCodeToTreeOutline(resource, this._scriptsContentTreeOutline);
-        this._addBreakpointsForSourceCode(resource);
-        this._addIssuesForSourceCode(resource);
+        if (!event.data.oldMainResource) {
+            var resource = event.target.mainResource;
+            this._addTreeElementForSourceCodeToTreeOutline(resource, this._scriptsContentTreeOutline);
+            this._addBreakpointsForSourceCode(resource);
+            this._addIssuesForSourceCode(resource);
+        }
     }
 
-    _timelineRecordingWillStart(event)
+    _timelineCapturingWillStart(event)
     {
-        WebInspector.debuggerManager.startDisablingBreakpointsTemporarily();
-
-        if (WebInspector.debuggerManager.paused)
-            WebInspector.debuggerManager.resume();
-
         this._debuggerBreakpointsButtonItem.enabled = false;
         this._debuggerPauseResumeButtonItem.enabled = false;
 
         this.contentView.element.insertBefore(this._timelineRecordingWarningElement, this.contentView.element.firstChild);
     }
 
-    _timelineRecordingStopped(event)
+    _timelineCapturingStopped(event)
     {
-        WebInspector.debuggerManager.stopDisablingBreakpointsTemporarily();
-
         this._debuggerBreakpointsButtonItem.enabled = true;
         this._debuggerPauseResumeButtonItem.enabled = true;
 
@@ -484,12 +479,16 @@ WebInspector.DebuggerSidebarPanel = class DebuggerSidebarPanel extends WebInspec
 
     _scriptRemoved(event)
     {
-        let script = event.data.script;
-        let scriptTreeElement = this._breakpointsContentTreeOutline.getCachedTreeElement(script);
-        if (!scriptTreeElement)
-            return;
+        function removeScript(script, treeOutline)
+        {
+            let scriptTreeElement = treeOutline.getCachedTreeElement(script);
+            if (scriptTreeElement)
+                scriptTreeElement.parent.removeChild(scriptTreeElement);
+        }
 
-        scriptTreeElement.parent.removeChild(scriptTreeElement);
+        let script = event.data.script;
+        removeScript(script, this._breakpointsContentTreeOutline);
+        removeScript(script, this._scriptsContentTreeOutline);
     }
 
     _scriptsCleared(event)
@@ -503,6 +502,8 @@ WebInspector.DebuggerSidebarPanel = class DebuggerSidebarPanel extends WebInspec
         }
 
         this._scriptsContentTreeOutline.removeChildren();
+
+        this._addResourcesRecursivelyForFrame(WebInspector.frameResourceManager.mainFrame);
     }
 
     _breakpointAdded(event)
@@ -687,16 +688,6 @@ WebInspector.DebuggerSidebarPanel = class DebuggerSidebarPanel extends WebInspec
         let treeElement = event.data.selectedElement;
         if (!treeElement)
             return;
-
-        // Deselect any other tree elements to prevent two selections in the sidebar.
-        for (let treeOutline of this.visibleContentTreeOutlines) {
-            if (treeOutline === treeElement.treeOutline)
-                continue;
-
-            let selectedTreeElement = treeOutline.selectedTreeElement;
-            if (selectedTreeElement)
-                selectedTreeElement.deselect();
-        }
 
         if (treeElement instanceof WebInspector.ResourceTreeElement || treeElement instanceof WebInspector.ScriptTreeElement) {
             WebInspector.showSourceCode(treeElement.representedObject);

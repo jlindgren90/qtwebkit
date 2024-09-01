@@ -1,3 +1,1294 @@
+2016-06-24  Filip Pizlo  <fpizlo@apple.com>
+
+        Add a ES6 generator benchmark
+        https://bugs.webkit.org/show_bug.cgi?id=159101
+
+        Rubber stamped by Keith Miller.
+        
+        This adds a Basic interpreter loosely based on ECMA-55:
+        
+        http://www.ecma-international.org/publications/files/ECMA-ST-WITHDRAWN/ECMA-55,%201st%20Edition,%20January%201978.pdf
+        
+        It includes a lexer that is a generator, a parser that uses regular expressions, and an AST
+        walk interpreter where the walking functions for statements are generators that call each
+        other with yield*. This enables the interpreter to look like an AST walk even though it can
+        yield at INPUT and PRINT statements.
+        
+        This also uses for-of, classes, Map, and WeakMap. It also uses deprecated-but-awesome RegExp
+        features like RegExp.lastMatch and RegExp.rightContext. I did it that way because this is
+        how I've always written lexers in dynamic languages; see offlineasm's lex() method in
+        parser.rb for example.
+        
+        The benchmark runs a handful of simple Basic programs. The longest-running one computes
+        prime numbers.
+        
+        Includes a command-line and web harness. On my machine it runs in 2-3 seconds.
+
+        * Basic: Added.
+        * Basic/ast.js: Added.
+        (Basic.NumberApply):
+        (Basic.Variable):
+        (Basic.Const):
+        (Basic.NumberPow):
+        (Basic.NumberMul):
+        (Basic.NumberDiv):
+        (Basic.NumberNeg):
+        (Basic.NumberAdd):
+        (Basic.NumberSub):
+        (Basic.StringVar):
+        (Basic.Equals):
+        (Basic.NotEquals):
+        (Basic.LessThan):
+        (Basic.GreaterThan):
+        (Basic.LessEqual):
+        (Basic.GreaterEqual):
+        (Basic.GoTo):
+        (Basic.GoSub):
+        (Basic.Def):
+        (Basic.Let):
+        (Basic.If):
+        (Basic.Return):
+        (Basic.Stop):
+        (Basic.On):
+        (sideState.shouldStop):
+        (Basic.For):
+        (Basic.Next):
+        (Basic.Print):
+        (Basic.Input):
+        (Basic.Read):
+        (Basic.Restore):
+        (Basic.Dim):
+        (Basic.Randomize):
+        (Basic.End):
+        (Basic.Program):
+        * Basic/basic.js: Added.
+        (prepare):
+        (simulate):
+        * Basic/benchmark.js: Added.
+        (Benchmark):
+        (Benchmark.prototype.runIteration.expect):
+        (Benchmark.prototype.runIteration):
+        (runBenchmark):
+        * Basic/caseless_map.js: Added.
+        (CaselessMap):
+        * Basic/lexer.js: Added.
+        (lex.consumeWhitespace):
+        (lex.consume):
+        (lex):
+        * Basic/lexer_test.js: Added.
+        * Basic/number.js: Added.
+        (NumberValue):
+        (NumberValue.prototype.get value):
+        (NumberValue.prototype.apply):
+        (NumberValue.prototype.leftApply):
+        (NumberValue.prototype.assign):
+        (NumberArray.):
+        (NumberArray):
+        (NumberArray.prototype.apply):
+        (NumberArray.prototype.leftApply):
+        (NumberFunction):
+        (NumberFunction.prototype.apply):
+        (NumberFunction.prototype.leftApply):
+        (NativeFunction):
+        (NativeFunction.prototype.apply):
+        (NativeFunction.prototype.leftApply):
+        * Basic/parser.js: Added.
+        (parse):
+        (parse.pushToken):
+        (parse.peekToken):
+        (parse.consumeKind):
+        (parse.consumeToken):
+        (parse.parseVariable):
+        (parse.parseNumericExpression.parsePrimary):
+        (parse.parseNumericExpression.parseFactor):
+        (parse.parseNumericExpression.parseTerm):
+        (parse.parseNumericExpression):
+        (parse.parseConstant):
+        (parse.parseStringExpression):
+        (parse.isStringExpression):
+        (parse.parseRelationalExpression):
+        (parse.parseNonNegativeInteger):
+        (parse.parseGoToStatement):
+        (parse.parseGoSubStatement):
+        (parse.parseStatement):
+        (parse.parseStatements):
+        * Basic/random.js: Added.
+        (createRNG):
+        (createRNGWithFixedSeed):
+        (createRNGWithRandomSeed):
+        * Basic/state.js: Added.
+        (State):
+        (State.prototype.getValue):
+        (State.prototype.getSideState):
+        (State.prototype.abort):
+        (State.prototype.validate):
+        * Basic/test.html: Added.
+        * Basic/test.js: Added.
+        * Basic/util.js: Added.
+        (this.performance.performance.now.currentTime):
+        (else.this.preciseTime.currentTime):
+        (else.currentTime):
+        * Skipped: Make sure that we don't run Basic yet.
+
+2016-06-21  Jon Lee  <jonlee@apple.com>
+
+        Update canvas size when benchmark begins
+        https://bugs.webkit.org/show_bug.cgi?id=159010
+
+        Reviewed by Dean Jackson.
+
+        Previously we would evaluate the media queries and assign the canvas size to the test
+        on body.onload. Instead, do it once the user starts the benchmark.
+
+        * Animometer/resources/debug-runner/animometer.js: Move benchmarkController.determineCanvasSize()
+        to benchmarkController._startBenchmark.
+        * Animometer/resources/runner/animometer.js: Ditto.
+
+2016-06-21  Jon Lee  <jonlee@apple.com>
+
+        Add new timestamp option
+        https://bugs.webkit.org/show_bug.cgi?id=159006
+
+        Reviewed by Dean Jackson.
+
+        Add a new option to take timestamps from the rAF callback.
+
+        * Animometer/developer.html: Added option.
+        * Animometer/tests/resources/main.js:
+        (Benchmark): Fall back to using the rAF timestamp if performance.now()
+        is not available.
+        (Benchmark._animateLoop): Update how timestamp is set. Prefer to use
+        local var instead of accessing private var.
+
+2016-06-21  Jon Lee  <jonlee@apple.com>
+
+        Improvements to Animometer benchmark
+        https://bugs.webkit.org/show_bug.cgi?id=157738
+
+        Reviewed by Dean Jackson.
+        Provisionally reviewed by Said Abou-Hallawa.
+
+        Update tests.
+
+        * Animometer/tests/master/text.html: Ensure only three text sizes for
+        the three canvases.
+        * Animometer/tests/master/focus.html: Reduce the text size to fit with smaller
+        particle sizes.
+        * Animometer/tests/master/resources/focus.js: Remove the quadratic distribution for
+        particle sizes, and make it linear. Reduce the size variance. Shuffle the math to
+        reduce some calculations per frame. Fix the placement of the particles which might
+        otherwise be culled.
+        * Animometer/tests/master/resources/image-data.js: Reduce the particle size
+        to encourage larger scores.
+
+2016-06-21  Jon Lee  <jonlee@apple.com>
+
+        Improvements to Animometer benchmark
+        https://bugs.webkit.org/show_bug.cgi?id=157738
+
+        Reviewed by Dean Jackson.
+        Provisionally reviewed by Said Abou-Hallawa.
+
+        Include confidence interval for the final score, and store the canvas
+        size in the serialization so that it is accurately shown in results.
+
+        * Animometer/developer.html: Add a "confidence" div.
+        * Animometer/index.html: Ditto. Convert "mean" to "confidence".
+        * Animometer/resources/debug-runner/animometer.js: Look at options, and
+        if the configuration is included, update the body class based on it
+        (similar to what we do when we first load the page). That way, if you
+        drag-and-drop previous results in, that configuration is reflected in
+        the dashboard. Show the full confidence interval.
+
+        * Animometer/resources/debug-runner/animometer.css:
+        * Animometer/resources/debug-runner/animometer.js: Style update.
+        * Animometer/resources/runner/animometer.css:
+
+        * Animometer/resources/runner/animometer.js:
+        (_processData): Propagate the confidence interval values out and calculate
+        the lower and upper bounds. For now, shortcut the aggregate calculation,
+        since we only go through one iteration.
+        (this._processData.calculateScore): Propagate the confidence interval out
+        to be next to the score. Depending on the controller these values are
+        calculated differently.
+        (this._processData._getResultsProperty): Convenience function.
+        (this._processData.get score): Refactor.
+        (this._processData.get scoreLowerBound): Get the aggregate lower bound.
+        (this._processData.get scoreUpperBound): Get the aggregate upper bound.
+        (window.sectionsManager.setSectionScore):
+        (window.benchmarkController._startBenchmark): When the benchmark starts, note
+        the canvas size and add it to options. That way it will be automatically be
+        serialized.
+        (window.benchmarkController.showResults): Include the maximum deviation
+        percentage.
+        * Animometer/resources/runner/lines.svg: Make the background line up with the
+        skew.
+        * Animometer/resources/runner/tests.js:
+        (Headers.details.text): Refactor.
+        * Animometer/resources/statistics.js:
+        (Statistics.largestDeviationPercentage): Convenience function to calculate
+        the deviation percentage on either end and return the largest deviation.
+        * Animometer/resources/strings.js:
+
+        Allow specifying a regression profile to use instead of taking the one
+        with the lowest error.
+
+        Address an issue in the focus test when the regression calculated ends
+        up overestimating the change point, causing a cascade of tougher
+        ramps. The reason behind this is that at max complexity of an initial
+        ramp, the frame length is very high, and it influences the second
+        segment of the piecewise regression strongly, causing it to be very
+        steep. As a result, the first segment, expected to be flat, ends up
+        covering a higher range of complexity. That makes the change point
+        much higher than it should be. To avoid this, we will add a sanity
+        check on the maximum value of the ramp. If the regression's projected
+        value at the maximum complexity of the current ramp is very slow (less
+        than 20 fps), 1) reduce the maximum complexity by 20%, and 2) do not
+        include the regression's change point in the change point estimator.
+        That estimator is used as the midpoint of the next ramp, and including
+        the change point from a poor regression can bake in the error. The
+        controller already knows how to adjust for ramps that are too easy for
+        the system.
+
+        * Animometer/resources/runner/animometer.js:
+        (this._processData.findRegression): Takes a preferred profile and gives that to
+        Regression.
+        (this._processData.calculateScore): With the ramp controller, take the profile
+        of the ramp that was used the most when calculating the ramp's regression. That
+        profile is what is used for the test's score.
+        * Animometer/resources/statistics.js:
+        (Regression.Utilities.createClass): Update to take an options object which can
+        specify a profile to calculate with. Otherwise it will continue to use both and
+        select the one with the lower error.
+        (_calculateRegression): Fix an issue where we claim 0 error if the regression
+        calculation fails due to divide-by-zero. Instead reject that regression calculation
+        by giving it Number.MAX_VALUE.
+        * Animometer/resources/strings.js: New strings for marking a regression as flat
+        or slope.
+        * Animometer/tests/resources/main.js:
+        (RampController): Rename the thresholds for clarity. Add a threshold that, if
+        exceeded, will lower the maximum complexity of the next ramp.
+        (tune): Relax the cdf check to consider whether the interval definitely falls in
+        the desired frame length threshold.
+        (processSamples): Include the profile in the ramp.
+
+        Update ramp controller test. Increase the length of the test to 30 seconds, and extend
+        the interval to 120 ms during sampling. Improve the estimation of the ramp parameters.
+
+        * Animometer/developer.html: Change default to 30 seconds, and don't show the progress bar
+        by default.
+        * Animometer/resources/runner/animometer.js: Change default to 30 seconds.
+        * Animometer/tests/resources/main.js: A number of improvements to the ramp controller, in
+        the order in which they appear in the patch:
+
+        - With a longer test length use longer ramps with longer intervals to get more data at each
+        complexity. Keep the 100 ms interval length during the ramp up phase since we don't need to
+        spend more time there to find the right order of magnitude, but increase it during the
+        ramps to 120 ms.
+        - The ramp linearly interpolates the complexity to render based on its timestamp, but it would
+        never sample the minimum complexity. Instead of lerping max to min complexity from time
+        0 to t where t is the ramp length, instead lerp from 0 to (t - intervalSampleLength) so that
+        we can have at least one interval sample at the min complexity for that ramp.
+        - Some regression calculations only come out with one line segment rather than the two
+        we expect. This could be due to a noisy ramp or the ramp's range is too narrow. If that's the
+        case, influence the minimum complexity of the next ramp towards the lowest bound of 1, so that
+        we ensure that at least part of the ramp is covering a complexity range that the system can
+        handle at full 60.
+        - Remove an assignment to interpolatedFrameLength since that is never subsequently used.
+
+        Update the format used to serialize the results for analysis.
+
+        Each data point used to have named properties for fields like complexity and frame rate.
+        In addition the serialized numbers had rounding errors that took up many characters.
+        Update the format by introducing a new data container called SampleData, which contains a
+        field map. The map maps a string to an array index. Each data point is an array, so, to
+        get a stat, use the field map to get the array index into the data point. This allows future
+        versions to track other data, and reduces the size of the output string by two-thirds.
+
+        * Animometer/resources/extensions.js:
+        (Utilities.toFixedNumber): Add convenience function that truncates the number to a fixed
+        precision, and converts it back to a number.
+        (SampleData): New class that contains sample data and a field map that maps properties to
+        an array index.
+        (get length): Number of data points.
+        (addField): Add a field to the field map.
+        (push): Add a data point.
+        (sort): Sort the data.
+        (slice): Return new SampleData object with sliced data.
+        (forEach): Iterate over the data with provided function.
+        (createDatum):
+        (getFieldInDatum): Returns the data point associated with the field name by looking it up
+        in the field map in the datum provided, which can be the datum object itself (an array) or
+        an index into the data member variable.
+        (setFieldInDatum): Sets the data point associated with the field name.
+        (at): Returns the data point at the provided index.
+        (toArray): Serializes the data where the field map serves as property names for each point.
+
+        * Animometer/resources/debug-runner/graph.js:
+        (updateGraphData): Remove unused _testData. Convert the data to the old array format for the
+        graph to use, since the old format was much easier to work with when displaying the graphs.
+        (onGraphTypeChanged): For some controllers, no alternative score or mean is provided.
+        * Animometer/resources/runner/animometer.css:
+        * Animometer/resources/runner/animometer.js: Refactor to use SampleData. Update JSON output
+        to only go to 3 digits of precision for purposes of reducing the data size.
+        * Animometer/resources/strings.js: Add new strings to put into the field maps.
+        * Animometer/tests/resources/main.js: Refactor to use SampleData.
+
+        * Animometer/developer.html:
+        * Animometer/index.html: Restructure results table for both pages. Add charset attribute to
+        tests.js include.
+        * Animometer/resources/debug-runner/animometer.css: Clear out styles from release runner.
+        * Animometer/resources/debug-runner/graph.js:
+        (onGraphTypeChanged): Update score and mean if bootstrap results are available from the
+        controller, since not all controllers do bootstrapping.
+        * Animometer/resources/debug-runner/tests.js: Update header text.
+        * Animometer/resources/runner/animometer.css: Include confidence interval in results.
+        * Animometer/resources/runner/animometer.js:
+        (ResultsTable._addHeader): Header contents can be HTML, so use innerHTML instead.
+        (ResultsTable._addBody): Add tbody element.
+        (ResultsTable._addTest): Allow a data cell to invoke a JS function to get its contents.
+        (window.benchmarkController.showResults): Add table that includes tests' confidence intervals.
+        * Animometer/resources/runner/tests.js:
+        (Headers.details.text): Add new details table that includes bootstrap confidence interval.
+        The interval can be asymmetric, but for simplicity, report the maximum deviation percentage
+        on either side of the bootstrap median.
+        * Animometer/resources/statistics.js:
+        (bootstrap): Include the confidence percentage in the return object.
+
+        Report canvas size in results.
+
+        * Animometer/developer.html: Add markup to indicate whether a small, medium, or large
+        canvas was used.
+        * Animometer/index.html: Ditto.
+        * Animometer/resources/debug-runner/animometer.js: Call determineCanvasSize().
+        * Animometer/resources/runner/animometer.css: Update styles to set the canvas based on the
+        body class size.
+        * Animometer/resources/runner/animometer.js:
+        (window.benchmarkController.initialize): Update styles to set the canvas based on the
+        body class size.
+        (window.benchmarkController.determineCanvasSize): Run various media queries and set the body
+        class based on the size of the device.
+
+        * Animometer/developer.html: Refactor to include the main CSS file, and redo
+        the layout so that it doesn't rely on flexbox.
+        * Animometer/resources/debug-runner/animometer.css:
+        * Animometer/resources/debug-runner/animometer.js:
+        (updateDisplay): Since various parts of the script alter the body class, we can't
+        replace the className directly. Instead, remove all display-based values and then add
+        the one that was selected.
+        * Animometer/resources/debug-runner/graph.js:
+        (updateGraphData): To set the size of the graph, use window.innerHeight.
+        * Animometer/resources/runner/animometer.js:
+        (window.sectionsManager.showSection): Since various parts of the script alter the body
+        class, we can't replace the className directly. Remove all of the section classes
+        individually and then add the one desired.
+        * Animometer/tests/resources/stage.css: Remove -apple-system as a font to use in the
+        stage.
+
+2016-06-12  Filip Pizlo  <fpizlo@apple.com>
+
+        Fix round-down goof in Air.js's ShuffleCustom.forEachArg
+        https://bugs.webkit.org/show_bug.cgi?id=158674
+
+        Reviewed by Michael Saboff.
+        
+        x / 3 * 3 is not how you round down to multiples of 3 in JavaScript. You need to do
+        Math.floor(x / 3) * 3 instead.
+        
+        This is a benign change, because having extra arguments to a Shuffle is not something we
+        actually take advantage of yet. But I think it's best to match the original C++ code's
+        intent.
+
+        * Air.js/custom.js:
+        (const.ShuffleCustom.forEachArg):
+
+2016-06-11  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, skip Air.js. It got unskipped when I renamed it from JSAir.
+
+        * Skipped:
+
+2016-06-10  Filip Pizlo  <fpizlo@apple.com>
+
+        Make it easy to package Air.js
+        https://bugs.webkit.org/show_bug.cgi?id=158652
+
+        Reviewed by Benjamin Poulain.
+        
+        If you want to give Air.js to someone, you can now do:
+        
+        cd PerformanceTests/Air.js
+        ./make_dist.sh
+        
+        This will create Air.js.tar.gz and a directory called Air.js. If you want to send someone
+        the benchmark, just send either of those things and tell them to look at index.html.
+        
+        You may have to edit make_dist.sh for wherever you have Markdown.pl. You can get that from
+        https://daringfireball.net/projects/markdown/
+
+        * Air.js/make_dist.sh: Added.
+        * Air.js/test.html:
+
+2016-06-10  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, make the link to test.html into an actual link.
+
+        * Air.js/README.md:
+
+2016-06-10  Filip Pizlo  <fpizlo@apple.com>
+
+        Fix some text in Air.js/README.md
+        https://bugs.webkit.org/show_bug.cgi?id=158650
+
+        Reviewed by Benjamin Poulain.
+        
+        I read the text again and found bugs:
+        
+        - We never actually say how to run the benchmark. This change adds a blurb about how to run
+          it.
+
+        - We both say that allocateStack is responsible for the bulk of the running time and that
+          we haven't measured where the bulk of the time is spent. This changes the text to say that
+          it was a goal to make allocateStack be the hottest part of the benchmark, but that we did
+          not measure this.
+
+        * Air.js/README.md:
+
+2016-06-10  Filip Pizlo  <fpizlo@apple.com>
+
+        Air.js should have some documentation
+        https://bugs.webkit.org/show_bug.cgi?id=158648
+
+        Reviewed by Keith Miller.
+        
+        I want to be able to point people at a document if they want to know more about this
+        benchmark.
+
+        * Air.js/README.md: Added.
+
+2016-06-10  Filip Pizlo  <fpizlo@apple.com>
+
+        Rename JSAir to Air.js.
+
+        Rubber stamped by Mark Lam.
+
+        * Air.js: Copied from PerformanceTests/JSAir.
+        * Air.js/airjs-tests.yaml: Copied from PerformanceTests/JSAir/jsair-tests.yaml.
+        * Air.js/benchmark.js: Copied from PerformanceTests/JSAir/benchmark.js.
+        (Benchmark):
+        * Air.js/jsair-tests.yaml: Removed.
+        * Air.js/payload-airjs-ACLj8C.js: Copied from PerformanceTests/JSAir/payload-jsair-ACLj8C.js.
+        * Air.js/payload-jsair-ACLj8C.js: Removed.
+        * Air.js/stress-test.js: Copied from PerformanceTests/JSAir/stress-test.js.
+        * Air.js/test.html: Copied from PerformanceTests/JSAir/test.html.
+        * Air.js/test.js: Copied from PerformanceTests/JSAir/test.js.
+        * JSAir: Removed.
+        * JSAir/all.js: Removed.
+        * JSAir/allocate_stack.js: Removed.
+        * JSAir/arg.js: Removed.
+        * JSAir/basic_block.js: Removed.
+        * JSAir/benchmark.js: Removed.
+        * JSAir/code.js: Removed.
+        * JSAir/custom.js: Removed.
+        * JSAir/frequented_block.js: Removed.
+        * JSAir/insertion_set.js: Removed.
+        * JSAir/inst.js: Removed.
+        * JSAir/jsair-tests.yaml: Removed.
+        * JSAir/liveness.js: Removed.
+        * JSAir/opcode.js: Removed.
+        * JSAir/payload-gbemu-executeIteration.js: Removed.
+        * JSAir/payload-imaging-gaussian-blur-gaussianBlur.js: Removed.
+        * JSAir/payload-jsair-ACLj8C.js: Removed.
+        * JSAir/payload-typescript-scanIdentifier.js: Removed.
+        * JSAir/reg.js: Removed.
+        * JSAir/stack_slot.js: Removed.
+        * JSAir/stress-test.js: Removed.
+        * JSAir/strip-hash.rb: Removed.
+        * JSAir/symbols.js: Removed.
+        * JSAir/test.html: Removed.
+        * JSAir/test.js: Removed.
+        * JSAir/tmp.js: Removed.
+        * JSAir/tmp_base.js: Removed.
+        * JSAir/util.js: Removed.
+
+2016-06-10  Filip Pizlo  <fpizlo@apple.com>
+
+        JSC Stress Test failing: jsair-tests.yaml/test.js.ftl-eager-no-cjit
+        https://bugs.webkit.org/show_bug.cgi?id=158571
+
+        Reviewed by Keith Miller.
+        
+        Introduce a different harness for run-jsc-stress-tests, which runs for a minimum of 10
+        iterations and then tries to do any number of "bonus" iterations until it's been running for
+        two seconds. Since this is the sort of test that isn't really meant to stress anything in
+        particular, I think it's OK if it is time-limited in this way. The worst case is that some
+        of its failures will be flaky, but I think that they would have been flaky anyway given the
+        complexity of the test.
+
+        * JSAir/benchmark.js:
+        (Benchmark):
+        (Benchmark.prototype.runIteration):
+        (benchmark): Deleted.
+        * JSAir/jsair-tests.yaml:
+        * JSAir/stress-test.js: Added.
+        (preciseTime):
+        * JSAir/test.html:
+        * JSAir/test.js:
+
+2016-06-09  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, teach the perf bots not to run JSAir.
+
+        * Skipped:
+
+2016-06-08  Filip Pizlo  <fpizlo@apple.com>
+
+        Use more ES6 features in JSAir
+        https://bugs.webkit.org/show_bug.cgi?id=158497
+
+        Reviewed by Keith Miller.
+        
+        This improves JSAir with the following ES6 features suggested by JoePeck:
+        
+        - String interpolation.
+        - Destructuring inside PatchCustom.
+        - Default arguments.
+        
+        All of these things are on hot paths.
+        
+        Note that I didn't use string interpolation everywhere that I could, only in those places
+        where it made the code more readable. In Ruby, I used the style that if the interpolation
+        expression has any non-trivial stuff (like a ternary operator, a chain of calls, or embedded
+        strings) then it's better to use regular strcat. I think that's what I carried over to here.
+        
+        Note that the previous change (Add result validation to JSAir) also made the Proxy code not
+        dead, though it's not necessarily on the hot path. The Proxy isn't called into frequently
+        but it's used from a function that is otherwise hot, so if calling into the Proxy prevents
+        that function from being optimized then it will hurt so good.
+        
+        I also reenabled tail calls in a few places.
+        
+        This change doesn't seem to change the performance of the benchmark for us. That's expected
+        since these ES6 features are cheap. Note that this claim doesn't include Proxy, which was
+        added in a separate change and that change did make the benchmark overall more expensive.
+
+        * JSAir/allocate_stack.js:
+        (allocateStack):
+        * JSAir/arg.js:
+        (Arg.createBitImm64):
+        (Arg.createAddr):
+        (Arg.createStack):
+        (Arg.logScale):
+        (Arg.createIndex):
+        * JSAir/basic_block.js:
+        (BasicBlock.get headerString):
+        (BasicBlock.prototype.get if):
+        (BasicBlock):
+        * JSAir/benchmark.js:
+        (benchmark):
+        * JSAir/code.js:
+        (Code):
+        (Code.prototype.addBlock):
+        (Code.prototype.addStackSlot):
+        (Code.prototype.newTmp):
+        (Code.prototype.get size):
+        (Code.prototype.get blocks):
+        (Code.prototype.get stackSlots):
+        (Code.prototype.tmps):
+        (Code.prototype.get callArgAreaSize):
+        (Code.prototype.toString):
+        * JSAir/custom.js:
+        (const.PatchCustom.forEachArg):
+        * JSAir/inst.js:
+        (Inst):
+        * JSAir/reg.js:
+        (Reg.prototype.toString):
+        * JSAir/util.js:
+        (symbolName):
+        (lowerSymbolName):
+
+2016-06-07  Filip Pizlo  <fpizlo@apple.com>
+
+        Add result validation to JSAir
+        https://bugs.webkit.org/show_bug.cgi?id=158493
+
+        Reviewed by Saam Barati.
+        
+        This adds the ability to hash a Code in a way that matches the C++ code's hashing of Code.
+        This allows us to check if the Code that JSAir sees is the code that C++ saw. We use this to
+        check the Code before and after allocateStack, and compare against hashes we got from C++.
+        
+        Doing this uncovered bugs. roundUpToMultipleOf wasn't doing anything. allocateStack was not
+        allocating things correctly because I was concatting a Set to an Array, which doesn't really
+        work. Now these bugs are fixed.
+        
+        The checking step adds to the running time so I reduced the number of iterations. The
+        benchmark spends a decent amount of its time computing Code hashes; I think it's around 1/3
+        total. This is probably OK. It's better to verify the results even if the running time is
+        not all in the "core" of the algorithm.
+        
+        Also add a run-jsc-stress-tests yaml file to allow this to run as a test.
+
+        * JSAir/allocate_stack.js:
+        * JSAir/arg.js:
+        (Arg.createImm):
+        (Arg.createBigImm):
+        (Arg.createBitImm):
+        (Arg.createBitImm64):
+        (Arg.createWidth):
+        (Arg.createSpecial):
+        (Arg.prototype.get kind):
+        (Arg.prototype.get isTmp):
+        (Arg.prototype.get isImm):
+        (Arg.prototype.get isSomeImm):
+        (Arg.prototype.get isSomeBigImm):
+        (Arg.prototype.get isCondition):
+        (Arg.prototype.get isWidth):
+        (Arg.prototype.get isSpecial):
+        (Arg.prototype.get isAlive):
+        (Arg.prototype.get tmp):
+        (Arg.prototype.get value):
+        (Arg.prototype.get lowValue):
+        (Arg.prototype.get highValue):
+        (Arg.prototype.get base):
+        (Arg.prototype.get isGP):
+        (Arg.prototype.get isFP):
+        (Arg.prototype.isValidForm):
+        (Arg.prototype.get isInvertible):
+        (Arg.kindCode):
+        (Arg.prototype.hash):
+        (Arg.prototype.toString):
+        (Arg):
+        * JSAir/basic_block.js:
+        (BasicBlock.get successorBlocks):
+        * JSAir/benchmark.js:
+        (benchmark):
+        * JSAir/code.js:
+        (Code.prototype.setFrameSize):
+        (Code.prototype.hash):
+        (Code.prototype.toString):
+        (Code):
+        * JSAir/inst.js:
+        (Inst.prototype.get hasNonArgEffects):
+        (Inst.prototype.hash):
+        (Inst.prototype.toString):
+        (Inst):
+        * JSAir/jsair-tests.yaml: Added.
+        * JSAir/opcode.js:
+        (Inst_forEachArg):
+        (Inst_hasNonArgEffects):
+        (opcodeCode):
+        * JSAir/payload-gbemu-executeIteration.js:
+        (createPayloadGbemuExecuteIteration):
+        * JSAir/payload-imaging-gaussian-blur-gaussianBlur.js:
+        (createPayloadImagingGaussianBlurGaussianBlur):
+        * JSAir/payload-jsair-ACLj8C.js:
+        (createPayloadJSAirACLj8C):
+        * JSAir/payload-typescript-scanIdentifier.js:
+        (createPayloadTypescriptScanIdentifier):
+        * JSAir/reg.js:
+        (Reg.prototype.get isReg):
+        (Reg.prototype.hash):
+        (Reg.prototype.toString):
+        * JSAir/stack_slot.js:
+        (StackSlot.prototype.setOffsetFromFP):
+        (StackSlot.prototype.hash):
+        (StackSlot.prototype.toString):
+        * JSAir/symbols.js:
+        (relCondCode):
+        (resCondCode):
+        (doubleCondCode):
+        * JSAir/test.html:
+        * JSAir/tmp.js:
+        (Tmp.prototype.get isReg):
+        (Tmp.prototype.hash):
+        (Tmp.prototype.toString):
+        * JSAir/util.js:
+        (roundUpToMultipleOf):
+        (symbolName):
+
+2016-06-07  Filip Pizlo  <fpizlo@apple.com>
+
+        Implement Air::allocateStack() in ES6 to see how much of a bad idea that is
+        https://bugs.webkit.org/show_bug.cgi?id=158318
+
+        Reviewed by Saam Barati.
+        
+        This adds a new benchmark for us to play with called JSAir. It's a complete ES6
+        implementation of Air's allocateStack() phase along with all of Air needed to run that
+        phase. This includes things like stack slots, registers, temporaries, basic blocks,
+        instructions, and all of the code for iterating over, inspecting, and modifying those
+        things.
+        
+        To make this work, JSC can now dump Air just before allocateStack() in the form of JS code
+        that creates a Code object that matches exactly what C++ Air saw. This benchmark comprises
+        four Air IRs:
+        
+        - Octane/gbemu's largest function, executeIteration.
+        - Kraken/imaging-gaussian-blur's largest function in OSR entry mode, gaussuanBlur.
+        - Octane/typescript's largest function that is actually hot, scanIdentifier.
+        - JSAir's largest hot function, which is anonymous, so we call it by its hash (ACLj8C).
+        
+        This runs in about 2 seconds on my machine in JSC trunk. It includes both a commandline
+        harness and a web harness. JSAir is almost exactly 100x slower in ES6 in WebKit than the
+        C++ Air::allocateStack() phase on which it is based.
+        
+        JSAir uses the following ES6 features:
+        
+        - Symbol.
+        - for-of.
+        - arrow functions.
+        - Map/Set.
+        - let/const.
+        - classes.
+        
+        All of these things are used in anger and should end up on the hot path. There is also code
+        that uses Proxies, but it ends up being dead.
+        
+        We can improve this even more:
+        I still need to add result validation: https://bugs.webkit.org/show_bug.cgi?id=158493
+        I want to make it use more ES6 features: https://bugs.webkit.org/show_bug.cgi?id=158497
+        
+        * JSAir: Added.
+        * JSAir/all.js: Added.
+        * JSAir/allocate_stack.js: Added.
+        (allocateStack.attemptAssignment):
+        (allocateStack.assign):
+        (allocateStack.interfere):
+        (allocateStack.):
+        (allocateStack):
+        * JSAir/arg.js: Added.
+        (Arg):
+        (Arg.isAnyUse):
+        (Arg.isColdUse):
+        (Arg.isWarmUse):
+        (Arg.cooled):
+        (Arg.isEarlyUse):
+        (Arg.isLateUse):
+        (Arg.isAnyDef):
+        (Arg.isEarlyDef):
+        (Arg.isLateDef):
+        (Arg.isZDef):
+        (Arg.typeForB3Type):
+        (Arg.widthForB3Type):
+        (Arg.conservativeWidth):
+        (Arg.minimumWidth):
+        (Arg.bytes):
+        (Arg.widthForBytes):
+        (Arg.createTmp):
+        (Arg.fromReg):
+        (Arg.createImm):
+        (Arg.createBigImm):
+        (Arg.createBitImm):
+        (Arg.createBitImm64):
+        (Arg.createAddr):
+        (Arg.createStack):
+        (Arg.createCallArg):
+        (Arg.createStackAddr):
+        (Arg.isValidScale):
+        (Arg.logScale):
+        (Arg.createIndex):
+        (Arg.createRelCond):
+        (Arg.createResCond):
+        (Arg.createDoubleCond):
+        (Arg.createWidth):
+        (Arg.prototype.get kind):
+        (Arg.prototype.get isTmp):
+        (Arg.prototype.get isImm):
+        (Arg.prototype.get isBigImm):
+        (Arg.prototype.get isBitImm):
+        (Arg.prototype.get isBitImm64):
+        (Arg.prototype.get isSomeImm):
+        (Arg.prototype.get isAddr):
+        (Arg.prototype.get isStack):
+        (Arg.prototype.get isCallArg):
+        (Arg.prototype.get isIndex):
+        (Arg.prototype.get isMemory):
+        (Arg.prototype.get isStackMemory):
+        (Arg.prototype.get isRelCond):
+        (Arg.prototype.get isResCond):
+        (Arg.prototype.get isDoubleCond):
+        (Arg.prototype.get isCondition):
+        (Arg.prototype.get isWidth):
+        (Arg.prototype.get isAlive):
+        (Arg.prototype.get tmp):
+        (Arg.prototype.get value):
+        (Arg.prototype.get base):
+        (Arg.prototype.get hasOffset):
+        (Arg.prototype.get offset):
+        (Arg.prototype.get stackSlot):
+        (Arg.prototype.get index):
+        (Arg.prototype.get scale):
+        (Arg.prototype.get logScale):
+        (Arg.prototype.get width):
+        (Arg.prototype.get isGPTmp):
+        (Arg.prototype.get isFPTmp):
+        (Arg.prototype.get isGP):
+        (Arg.prototype.get isFP):
+        (Arg.prototype.get hasType):
+        (Arg.prototype.get type):
+        (Arg.prototype.isType):
+        (Arg.prototype.isCompatibleType):
+        (Arg.prototype.get isGPR):
+        (Arg.prototype.get gpr):
+        (Arg.prototype.get isFPR):
+        (Arg.prototype.get fpr):
+        (Arg.prototype.get isReg):
+        (Arg.prototype.get reg):
+        (Arg.isValidImmForm):
+        (Arg.isValidBitImmForm):
+        (Arg.isValidBitImm64Form):
+        (Arg.isValidAddrForm):
+        (Arg.isValidIndexForm):
+        (Arg.prototype.isValidForm):
+        (Arg.prototype.forEachTmpFast):
+        (Arg.prototype.usesTmp):
+        (Arg.prototype.forEachTmp):
+        (Arg.prototype.is):
+        (Arg.prototype.as):
+        (Arg.prototype.forEachFast):
+        (Arg.prototype.forEach):
+        (Arg.extract):
+        (Arg.forEachFast):
+        (Arg.forEach):
+        (Arg.prototype.get condition):
+        (Arg.prototype.get isInvertible):
+        (Arg.prototype.toString):
+        * JSAir/basic_block.js: Added.
+        (BasicBlock):
+        (BasicBlock.prototype.get index):
+        (BasicBlock.prototype.get size):
+        (BasicBlock.prototype.Symbol.iterator):
+        (BasicBlock.prototype.at):
+        (BasicBlock.get last):
+        (BasicBlock.get insts):
+        (BasicBlock.get numSuccessors):
+        (BasicBlock.get successors):
+        (BasicBlock.get successorBlocks.):
+        (BasicBlock.get successorBlocks):
+        (BasicBlock.set get numPredecessors):
+        (BasicBlock.get predecessors):
+        (BasicBlock.get frequency):
+        (BasicBlock.get headerString):
+        (BasicBlock.get footerString):
+        * JSAir/benchmark.js: Added.
+        (benchmark):
+        * JSAir/code.js: Added.
+        (Code):
+        (Code.prototype.addBlock):
+        (Code.prototype.addStackSlot):
+        (Code.prototype.newTmp):
+        (Code.prototype.get size):
+        (Code.prototype.at):
+        (Code.prototype.Symbol.iterator):
+        (Code.prototype.get blocks):
+        (Code.prototype.get stackSlots):
+        (Code.prototype.tmps):
+        (Code.prototype.get callArgAreaSize):
+        (Code.prototype.requestCallArgAreaSize):
+        (Code.prototype.get frameSize):
+        (Code.prototype.setFrameSize):
+        (Code.prototype.toString):
+        * JSAir/custom.js: Added.
+        (const.ShuffleCustom.forEachArg):
+        (const.ShuffleCustom.hasNonArgNonControlEffects):
+        (const.PatchCustom.forEachArg):
+        (const.PatchCustom.hasNonArgNonControlEffects):
+        (const.CCallCustom.forEachArg):
+        (const.CCallCustom.hasNonArgNonControlEffects):
+        (const.ColdCCallCustom.forEachArg):
+        (const.ColdCCallCustom.hasNonArgNonControlEffects):
+        * JSAir/frequented_block.js: Added.
+        (FrequentedBlock):
+        (FrequentedBlock.prototype.toString):
+        * JSAir/insertion_set.js: Added.
+        (Insertion):
+        (Insertion.prototype.get index):
+        (Insertion.prototype.get element):
+        (Insertion.prototype.lessThan):
+        (InsertionSet):
+        (InsertionSet.prototype.appendInsertion):
+        (InsertionSet.prototype.append):
+        (InsertionSet.prototype.execute):
+        * JSAir/inst.js: Added.
+        (Inst):
+        (Inst.prototype.append):
+        (Inst.prototype.clear):
+        (Inst.prototype.get opcode):
+        (Inst.prototype.get args):
+        (Inst.prototype.visitArg):
+        (Inst.prototype.forEachTmpFast):
+        (Inst.prototype.forEachArg):
+        (Inst.prototype.forEachTmp):
+        (Inst.prototype.forEach):
+        (Inst.forEachDef):
+        (Inst.forEachDefWithExtraClobberedRegs):
+        (Inst.prototype.get hasNonArgEffects):
+        (Inst.prototype.toString):
+        * JSAir/liveness.js: Added.
+        (Liveness):
+        (Liveness.prototype.get thing):
+        (Liveness.prototype.get code):
+        (Liveness.prototype.get liveAtHead):
+        (Liveness.prototype.get liveAtTail):
+        (Liveness.prototype.localCalc.LocalCalc):
+        (Liveness.prototype.localCalc.LocalCalc.prototype.get liveSet):
+        (Liveness.prototype.localCalc.LocalCalc.prototype.execute):
+        (Liveness.prototype.localCalc):
+        * JSAir/opcode.js: Added.
+        (Inst_forEachArg):
+        (Inst_hasNonArgEffects):
+        * JSAir/payload-gbemu-executeIteration.js: Added.
+        (createPayloadGbemuExecuteIteration):
+        * JSAir/payload-imaging-gaussian-blur-gaussianBlur.js: Added.
+        (createPayloadImagingGaussianBlurGaussianBlur):
+        * JSAir/payload-jsair-ACLj8C.js: Added.
+        (createPayloadJSAirACLj8C):
+        * JSAir/payload-typescript-scanIdentifier.js: Added.
+        (createPayloadTypescriptScanIdentifier):
+        * JSAir/reg.js: Added.
+        (Reg):
+        (Reg.fromReg):
+        (Reg.prototype.get index):
+        (Reg.prototype.get type):
+        (Reg.prototype.get name):
+        (Reg.prototype.get isCalleeSave):
+        (Reg.prototype.get isReg):
+        (Reg.prototype.toString):
+        (Reg.extract):
+        (Reg.forEachFast):
+        (Reg.forEach):
+        (newGPR):
+        (Reg.gprs.Reg.fprs.Reg.calleeSaveGPRs.Reg.calleeSaveFPRs.Reg.calleeSaves):
+        * JSAir/stack_slot.js: Added.
+        (StackSlot):
+        (StackSlot.prototype.get byteSize):
+        (StackSlot.prototype.get kind):
+        (StackSlot.prototype.get isLocked):
+        (StackSlot.prototype.get isSpill):
+        (StackSlot.prototype.get index):
+        (StackSlot.prototype.ensureSize):
+        (StackSlot.prototype.get alignment):
+        (StackSlot.prototype.get offsetFromFP):
+        (StackSlot.prototype.setOffsetFromFP):
+        (StackSlot.prototype.toString):
+        (StackSlot.extract):
+        (StackSlot.forEachFast):
+        (StackSlot.forEach):
+        * JSAir/symbols.js: Added.
+        * JSAir/test.html: Added.
+        * JSAir/test.js: Added.
+        * JSAir/tmp.js: Added.
+        (Tmp):
+        (Tmp.fromReg):
+        (Tmp.prototype.get index):
+        (Tmp.prototype.get type):
+        (Tmp.prototype.get isReg):
+        (Tmp.prototype.toString):
+        (Tmp.extract):
+        (Tmp.forEachFast):
+        (Tmp.forEach):
+        * JSAir/tmp_base.js: Added.
+        (TmpBase.prototype.get isGP):
+        (TmpBase.prototype.get isFP):
+        (TmpBase.prototype.get isGPR):
+        (TmpBase.prototype.get isFPR):
+        (TmpBase.prototype.get reg):
+        (TmpBase.prototype.get gpr):
+        (TmpBase.prototype.get fpr):
+        (TmpBase):
+        * JSAir/util.js: Added.
+        (isRepresentableAsInt32):
+        (addIndexed):
+        (roundUpToMultipleOf):
+        (symbolName):
+        (mergeIntoSet):
+        (nonEmptyRangesOverlap):
+        (rangesOverlap):
+        (removeAllMatching):
+        (swap):
+        (bubble):
+        (bubbleSort):
+        (currentTime):
+        (else.currentTime):
+
+2016-05-26  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Allow JSBench to use precise time
+        https://bugs.webkit.org/show_bug.cgi?id=158050
+
+        Reviewed by Geoffrey Garen.
+
+        * JSBench/amazon-chrome-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/amazon-chrome/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/amazon-firefox-win/urm.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/amazon-firefox/urm.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/amazon-safari/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/facebook-chrome-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/facebook-chrome/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/facebook-firefox-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/facebook-firefox/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/facebook-safari/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/google-chrome-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/google-chrome/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/google-firefox-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/google-firefox/uem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/google-safari/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/harness.js:
+        (runBenchmark.window.currentTimeInMS):
+        (runBenchmark.else.window.currentTimeInMS):
+        * JSBench/twitter-chrome-win/rem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/twitter-chrome/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/twitter-firefox-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/twitter-firefox/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/twitter-safari/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/yahoo-chrome-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/yahoo-chrome/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/yahoo-firefox-win/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/yahoo-firefox/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+        * JSBench/yahoo-safari/urem.js:
+        (else.window.performance.window.performance.now.currentTimeInMS):
+        (else.else.typeof.preciseTime.string_appeared_here.currentTimeInMS):
+        (else.else.currentTimeInMS):
+        (onload.cb):
+        (onload):
+
+2016-05-25  Geoffrey Garen  <ggaren@apple.com>
+
+        replaceable own properties seem to ignore replacement after property caching
+        https://bugs.webkit.org/show_bug.cgi?id=158091
+
+        Reviewed by Darin Adler.
+
+        * MallocBench/MallocBench.xcodeproj/project.pbxproj:
+        * MallocBench/MallocBench/Benchmark.cpp:
+        * MallocBench/MallocBench/Interpreter.cpp:
+        (Interpreter::doMallocOp):
+        * MallocBench/MallocBench/Interpreter.h:
+        * MallocBench/MallocBench/fastMallocLog.63316.ops: Added.
+        * MallocBench/MallocBench/jetstream.cpp: Added.
+        (benchmark_jetstream):
+        * MallocBench/MallocBench/jetstream.h: Added.
+
+2016-05-25  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, add JSBench to the skipped list for now since it doesn't
+        work currently.
+
+        * Skipped:
+
+2016-05-17  Keith Miller  <keith_miller@apple.com>
+        We should have JSBench in PerformanceTests
+        https://bugs.webkit.org/show_bug.cgi?id=157952
+
+        Rubber-stamped by Saam Barati.
+
+        There are some slight changes to the layout of the test directory
+        to make it work nicely with run-jsc-benchmarks. Before JSBench
+        had each of the browser specific sub-tests in a sub-directory.
+        These have been flattened e.g. amazon/safari/ has become
+        amazon-safari/.
+
+        * JSBench/amazon-chrome-win/urem.html: Added.
+        * JSBench/amazon-chrome-win/urem.js: Added.
+        * JSBench/amazon-chrome/urem.html: Added.
+        * JSBench/amazon-chrome/urem.js: Added.
+        * JSBench/amazon-firefox-win/urm.html: Added.
+        * JSBench/amazon-firefox-win/urm.js: Added.
+        * JSBench/amazon-firefox/urm.html: Added.
+        * JSBench/amazon-firefox/urm.js: Added.
+        * JSBench/amazon-safari/urem.html: Added.
+        * JSBench/amazon-safari/urem.js: Added.
+        * JSBench/browsercheck.js: Added.
+        * JSBench/facebook-chrome-win/urem.html: Added.
+        * JSBench/facebook-chrome-win/urem.js: Added.
+        * JSBench/facebook-chrome/urem.html: Added.
+        * JSBench/facebook-chrome/urem.js: Added.
+        * JSBench/facebook-firefox-win/urem.html: Added.
+        * JSBench/facebook-firefox-win/urem.js: Added.
+        * JSBench/facebook-firefox/urem.html: Added.
+        * JSBench/facebook-firefox/urem.js: Added.
+        * JSBench/facebook-safari/urem.html: Added.
+        * JSBench/facebook-safari/urem.js: Added.
+        * JSBench/google-chrome-win/urem.html: Added.
+        * JSBench/google-chrome-win/urem.js: Added.
+        * JSBench/google-chrome/urem.html: Added.
+        * JSBench/google-chrome/urem.js: Added.
+        * JSBench/google-firefox-win/urem.html: Added.
+        * JSBench/google-firefox-win/urem.js: Added.
+        * JSBench/google-firefox/uem.html: Added.
+        * JSBench/google-firefox/uem.js: Added.
+        * JSBench/google-safari/urem.html: Added.
+        * JSBench/google-safari/urem.js: Added.
+        * JSBench/harness.html: Added.
+        * JSBench/harness.js: Added.
+        * JSBench/harness.py: Added.
+        * JSBench/index.html: Added.
+        * JSBench/reload.html: Added.
+        * JSBench/twitter-chrome-win/rem.html: Added.
+        * JSBench/twitter-chrome-win/rem.js: Added.
+        * JSBench/twitter-chrome/urem.html: Added.
+        * JSBench/twitter-chrome/urem.js: Added.
+        * JSBench/twitter-firefox-win/urem.html: Added.
+        * JSBench/twitter-firefox-win/urem.js: Added.
+        * JSBench/twitter-firefox/urem.html: Added.
+        * JSBench/twitter-firefox/urem.js: Added.
+        * JSBench/twitter-safari/urem.html: Added.
+        * JSBench/twitter-safari/urem.js: Added.
+        * JSBench/yahoo-chrome-win/urem.html: Added.
+        * JSBench/yahoo-chrome-win/urem.js: Added.
+        * JSBench/yahoo-chrome/urem.html: Added.
+        * JSBench/yahoo-chrome/urem.js: Added.
+        * JSBench/yahoo-firefox-win/urem.html: Added.
+        * JSBench/yahoo-firefox-win/urem.js: Added.
+        * JSBench/yahoo-firefox/urem.html: Added.
+        * JSBench/yahoo-firefox/urem.js: Added.
+        * JSBench/yahoo-safari/urem.html: Added.
+        * JSBench/yahoo-safari/urem.js: Added.
+
+2016-05-20  Ryosuke Niwa  <rniwa@webkit.org>
+
+        run-benchmark's results should contain Animometer's debug output
+        https://bugs.webkit.org/show_bug.cgi?id=157941
+
+        Reviewed by Stephanie Lewis.
+
+        Made developer.html support the JSON generated by run-benchmark which stores everything under debugOutput.
+
+        * Animometer/resources/debug-runner/animometer.js:
+        (Utilities.initialize): Unwrap debugOutput in the case run-benchmark's result JSON is used.
+
+2016-05-18  Timothy Hatcher  <timothy@apple.com>
+
+        Make Animometer work in all browsers
+        https://bugs.webkit.org/show_bug.cgi?id=157855
+        rdar://problem/26338521
+
+        Reviewed by Jon Lee.
+
+        * Animometer/resources/runner/logo.svg: Use a symbol instead
+        of putting the id on the root svg. This works in all browsers.
+
 2016-05-07  Timothy Hatcher  <timothy@apple.com>
 
         Update Animometer design

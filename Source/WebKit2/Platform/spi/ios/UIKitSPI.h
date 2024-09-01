@@ -223,6 +223,7 @@ typedef enum {
 + (UIKeyboardImpl *)sharedInstance;
 + (CGSize)defaultSizeForInterfaceOrientation:(UIInterfaceOrientation)orientation;
 - (void)addInputString:(NSString *)string withFlags:(NSUInteger)flags;
+- (void)addInputString:(NSString *)string withFlags:(NSUInteger)flags withInputManagerHint:(NSString *)hint;
 - (BOOL)autocorrectSpellingEnabled;
 - (void)deleteFromInput;
 - (void)deleteFromInputWithFlags:(NSUInteger)flags;
@@ -540,8 +541,8 @@ typedef NS_ENUM(NSInteger, UIWKHandlePosition) {
 - (void)showTextStyleOptions;
 - (void)hideTextStyleOptions;
 
-@property (nonatomic, readonly, retain) UITapGestureRecognizer *singleTapGesture;
-@property (nonatomic, readonly, retain) UILongPressGestureRecognizer *loupeGesture;
+@property (nonatomic, readonly, assign) UILongPressGestureRecognizer *loupeGesture;
+@property (nonatomic, readonly, assign) UITapGestureRecognizer *singleTapGesture;
 @end
 
 @protocol UIWKInteractionViewProtocol

@@ -42,6 +42,7 @@
 #include "DocumentParser.h"
 #include "DocumentWriter.h"
 #include "Event.h"
+#include "EventNames.h"
 #include "ExtensionStyleSheets.h"
 #include "FormState.h"
 #include "FrameLoader.h"
@@ -275,8 +276,8 @@ void DocumentLoader::mainReceivedError(const ResourceError& error)
 // but not loads initiated by child frames' data sources -- that's the WebFrame's job.
 void DocumentLoader::stopLoading()
 {
-    RefPtr<Frame> protectFrame(m_frame);
-    Ref<DocumentLoader> protectLoader(*this);
+    RefPtr<Frame> protectedFrame(m_frame);
+    Ref<DocumentLoader> protectedThis(*this);
 
     // In some rare cases, calling FrameLoader::stopLoading could cause isLoading() to return false.
     // (This can happen when there's a single XMLHttpRequest currently loading and stopLoading causes it
@@ -400,7 +401,7 @@ void DocumentLoader::finishedLoading(double finishTime)
     ASSERT(!m_frame->page()->defersLoading() || InspectorInstrumentation::isDebuggerPaused(m_frame));
 #endif
 
-    Ref<DocumentLoader> protect(*this);
+    Ref<DocumentLoader> protectedThis(*this);
 
     if (m_identifierForLoadWithoutResourceLoader) {
         // A didFinishLoading delegate might try to cancel the load (despite it
@@ -637,7 +638,7 @@ void DocumentLoader::responseReceived(CachedResource* resource, const ResourceRe
 #endif
 
     ASSERT_UNUSED(resource, m_mainResource == resource);
-    Ref<DocumentLoader> protect(*this);
+    Ref<DocumentLoader> protectedThis(*this);
     bool willLoadFallback = m_applicationCacheHost->maybeLoadFallbackForMainResponse(request(), response);
 
     // The memory cache doesn't understand the application cache or its caching rules. So if a main resource is served
@@ -651,10 +652,12 @@ void DocumentLoader::responseReceived(CachedResource* resource, const ResourceRe
     ASSERT(m_identifierForLoadWithoutResourceLoader || m_mainResource);
     unsigned long identifier = m_identifierForLoadWithoutResourceLoader ? m_identifierForLoadWithoutResourceLoader : m_mainResource->identifier();
     ASSERT(identifier);
+    
+    auto url = response.url();
 
-    ContentSecurityPolicy contentSecurityPolicy(SecurityOrigin::create(response.url()), m_frame);
+    ContentSecurityPolicy contentSecurityPolicy(SecurityOrigin::create(url), m_frame);
     contentSecurityPolicy.didReceiveHeaders(ContentSecurityPolicyResponseHeaders(response));
-    if (!contentSecurityPolicy.allowFrameAncestors(*m_frame, response.url())) {
+    if (!contentSecurityPolicy.allowFrameAncestors(*m_frame, url)) {
         stopLoadingAfterXFrameOptionsOrContentSecurityPolicyDenied(identifier, response);
         return;
     }
@@ -663,8 +666,8 @@ void DocumentLoader::responseReceived(CachedResource* resource, const ResourceRe
     auto it = commonHeaders.find(HTTPHeaderName::XFrameOptions);
     if (it != commonHeaders.end()) {
         String content = it->value;
-        if (frameLoader()->shouldInterruptLoadForXFrameOptions(content, response.url(), identifier)) {
-            String message = "Refused to display '" + response.url().stringCenterEllipsizedToLength() + "' in a frame because it set 'X-Frame-Options' to '" + content + "'.";
+        if (frameLoader()->shouldInterruptLoadForXFrameOptions(content, url, identifier)) {
+            String message = "Refused to display '" + url.stringCenterEllipsizedToLength() + "' in a frame because it set 'X-Frame-Options' to '" + content + "'.";
             m_frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, message, identifier);
             stopLoadingAfterXFrameOptionsOrContentSecurityPolicyDenied(identifier, response);
             return;
@@ -713,9 +716,18 @@ void DocumentLoader::responseReceived(CachedResource* resource, const ResourceRe
 #endif
 
     if (m_response.isHttpVersion0_9()) {
+        // Non-HTTP responses are interpreted as HTTP/0.9 which may allow exfiltration of data
+        // from non-HTTP services. Therefore cancel if the request was to a non-default port.
+        if (!isDefaultPortForProtocol(url.port(), url.protocol())) {
+            String message = "Stopped document load from '" + url.string() + "' because it is using HTTP/0.9 on a non-default port.";
+            m_frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, message, identifier);
+            stopLoading();
+            return;
+        }
+
         ASSERT(m_identifierForLoadWithoutResourceLoader || m_mainResource);
         unsigned long identifier = m_identifierForLoadWithoutResourceLoader ? m_identifierForLoadWithoutResourceLoader : m_mainResource->identifier();
-        String message = "Sandboxing '" + response.url().string() + "' because it is using HTTP/0.9.";
+        String message = "Sandboxing '" + url.string() + "' because it is using HTTP/0.9.";
         m_frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, message, identifier);
         frameLoader()->forceSandboxFlags(SandboxScripts | SandboxPlugins);
     }
@@ -805,8 +817,9 @@ void DocumentLoader::continueAfterContentPolicy(PolicyAction policy)
     }
 
     if (!isStopping() && m_substituteData.isValid() && isLoadingMainResource()) {
-        if (m_substituteData.content()->size())
-            dataReceived(0, m_substituteData.content()->data(), m_substituteData.content()->size());
+        auto content = m_substituteData.content();
+        if (content && content->size())
+            dataReceived(nullptr, content->data(), content->size());
         if (isLoadingMainResource())
             finishedLoading(0);
     }
@@ -816,8 +829,8 @@ void DocumentLoader::commitLoad(const char* data, int length)
 {
     // Both unloading the old page and parsing the new page may execute JavaScript which destroys the datasource
     // by starting a new load, so retain temporarily.
-    RefPtr<Frame> protectFrame(m_frame);
-    Ref<DocumentLoader> protectLoader(*this);
+    RefPtr<Frame> protectedFrame(m_frame);
+    Ref<DocumentLoader> protectedThis(*this);
 
     commitIfReady();
     FrameLoader* frameLoader = DocumentLoader::frameLoader();
@@ -841,7 +854,7 @@ ResourceError DocumentLoader::interruptedForPolicyChangeError() const
 void DocumentLoader::stopLoadingForPolicyChange()
 {
     ResourceError error = interruptedForPolicyChangeError();
-    error.setIsCancellation(true);
+    error.setType(ResourceError::Type::Cancellation);
     cancelMainResourceLoad(error);
 }
 
@@ -999,8 +1012,8 @@ void DocumentLoader::detachFromFrame()
     else
         ASSERT_WITH_MESSAGE(m_frame, "detachFromFrame() is being called on a DocumentLoader that has never attached to any Frame");
 #endif
-    RefPtr<Frame> protectFrame(m_frame);
-    Ref<DocumentLoader> protectLoader(*this);
+    RefPtr<Frame> protectedFrame(m_frame);
+    Ref<DocumentLoader> protectedThis(*this);
 
     // It never makes sense to have a document loader that is detached from its
     // frame have any loads active, so kill all the loads.
@@ -1232,10 +1245,10 @@ void DocumentLoader::cancelPendingSubstituteLoad(ResourceLoader* loader)
 }
 
 #if ENABLE(WEB_ARCHIVE) || ENABLE(MHTML)
-bool DocumentLoader::scheduleArchiveLoad(ResourceLoader* loader, const ResourceRequest& request)
+bool DocumentLoader::scheduleArchiveLoad(ResourceLoader& loader, const ResourceRequest& request)
 {
     if (ArchiveResource* resource = archiveResourceForURL(request.url())) {
-        scheduleSubstituteResourceLoad(*loader, *resource);
+        scheduleSubstituteResourceLoad(loader, *resource);
         return true;
     }
 
@@ -1475,7 +1488,7 @@ void DocumentLoader::startLoadingMainResource()
     ASSERT(!timing().fetchStart());
     timing().markFetchStart();
 
-    Ref<DocumentLoader> protect(*this); // willSendRequest() may deallocate the provisional loader (which may be us) if it cancels the load.
+    Ref<DocumentLoader> protectedThis(*this); // willSendRequest() may deallocate the provisional loader (which may be us) if it cancels the load.
     willSendRequest(m_request, ResourceResponse());
 
     // willSendRequest() may lead to our Frame being detached or cancelling the load via nulling the ResourceRequest.
@@ -1555,7 +1568,7 @@ void DocumentLoader::cancelPolicyCheckIfNeeded()
 
 void DocumentLoader::cancelMainResourceLoad(const ResourceError& resourceError)
 {
-    Ref<DocumentLoader> protect(*this);
+    Ref<DocumentLoader> protectedThis(*this);
     ResourceError error = resourceError.isNull() ? frameLoader()->cancelledError(m_request) : resourceError;
 
     m_dataLoadTimer.stop();
@@ -1703,10 +1716,9 @@ void DocumentLoader::installContentFilterUnblockHandler(ContentFilter& contentFi
     String unblockRequestDeniedScript { contentFilter.unblockRequestDeniedScript() };
     if (!unblockRequestDeniedScript.isEmpty() && frame) {
         static_assert(std::is_base_of<ThreadSafeRefCounted<Frame>, Frame>::value, "Frame must be ThreadSafeRefCounted.");
-        StringCapture capturedScript { unblockRequestDeniedScript };
-        unblockHandler.wrapWithDecisionHandler([frame, capturedScript](bool unblocked) {
+        unblockHandler.wrapWithDecisionHandler([frame = WTFMove(frame), script = unblockRequestDeniedScript.isolatedCopy()](bool unblocked) {
             if (!unblocked)
-                frame->script().executeScript(capturedScript.string());
+                frame->script().executeScript(script);
         });
     }
     frameLoader()->client().contentFilterDidBlockLoad(WTFMove(unblockHandler));

@@ -26,7 +26,6 @@
 #include "config.h"
 #include "Editor.h"
 
-#include "BlockExceptions.h"
 #include "CachedImage.h"
 #include "CSSComputedStyleDeclaration.h"
 #include "CSSPrimitiveValueMappings.h"
@@ -39,6 +38,7 @@
 #include "Frame.h"
 #include "FrameLoaderClient.h"
 #include "HTMLConverter.h"
+#include "HTMLImageElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLNames.h"
 #include "HTMLParserIdioms.h"
@@ -58,6 +58,7 @@
 #include "WAKAppKitStubs.h"
 #include "htmlediting.h"
 #include "markup.h"
+#include <wtf/BlockObjCExceptions.h>
 
 SOFT_LINK_FRAMEWORK(AppSupport)
 SOFT_LINK(AppSupport, CPSharedResourcesDirectory, CFStringRef, (void), ())
@@ -493,7 +494,7 @@ bool Editor::WebContentReader::readURL(const URL& url, const String&)
         anchor->appendChild(frame.document()->createTextNode([[(NSURL *)url absoluteString] precomposedStringWithCanonicalMapping]));
 
         auto newFragment = frame.document()->createDocumentFragment();
-        newFragment->appendChild(WTFMove(anchor));
+        newFragment->appendChild(anchor);
         addFragment(WTFMove(newFragment));
         return true;
     }
@@ -579,17 +580,17 @@ RefPtr<DocumentFragment> Editor::createFragmentForImageResourceAndAddResource(Re
     if (!resource)
         return nullptr;
 
-    Ref<Element> imageElement = m_frame.document()->createElement(HTMLNames::imgTag, false);
-
     NSURL *URL = resource->url();
-    imageElement->setAttribute(HTMLNames::srcAttr, [URL isFileURL] ? [URL absoluteString] : resource->url());
+    String resourceURL = [URL isFileURL] ? [URL absoluteString] : resource->url();
 
-    // FIXME: The code in createFragmentAndAddResources calls setDefersLoading(true). Don't we need that here?
     if (DocumentLoader* loader = m_frame.loader().documentLoader())
         loader->addArchiveResource(resource.releaseNonNull());
 
+    auto imageElement = HTMLImageElement::create(*m_frame.document());
+    imageElement->setAttributeWithoutSynchronization(HTMLNames::srcAttr, resourceURL);
+
     auto fragment = m_frame.document()->createDocumentFragment();
-    fragment->appendChild(WTFMove(imageElement));
+    fragment->appendChild(imageElement);
 
     return WTFMove(fragment);
 }

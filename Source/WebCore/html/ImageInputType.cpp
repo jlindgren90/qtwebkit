@@ -185,7 +185,7 @@ unsigned ImageInputType::height() const
         // If the image is available, use its height.
         HTMLImageLoader* imageLoader = element->imageLoader();
         if (imageLoader && imageLoader->image())
-            return imageLoader->image()->imageSizeForRenderer(element->renderer(), 1).height();
+            return imageLoader->image()->imageSizeForRenderer(element->renderer(), 1).height().toUnsigned();
     }
 
     element->document().updateLayout();
@@ -206,7 +206,7 @@ unsigned ImageInputType::width() const
         // If the image is available, use its width.
         HTMLImageLoader* imageLoader = element->imageLoader();
         if (imageLoader && imageLoader->image())
-            return imageLoader->image()->imageSizeForRenderer(element->renderer(), 1).width();
+            return imageLoader->image()->imageSizeForRenderer(element->renderer(), 1).width().toUnsigned();
     }
 
     element->document().updateLayout();

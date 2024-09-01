@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004, 2006, 2008 Apple Inc. All rights reserved.
+ *  Copyright (C) 2004-2016 Apple Inc. All rights reserved.
  *  Copyright (C) 2005-2007 Alexey Proskuryakov <ap@webkit.org>
  *  Copyright (C) 2007, 2008 Julien Chaffraix <jchaffraix@webkit.org>
  *  Copyright (C) 2008, 2011 Google Inc. All rights reserved.
@@ -30,6 +30,7 @@
 #include "DOMFormData.h"
 #include "DOMImplementation.h"
 #include "Event.h"
+#include "EventNames.h"
 #include "ExceptionCode.h"
 #include "File.h"
 #include "HTMLDocument.h"
@@ -480,6 +481,7 @@ void XMLHttpRequest::open(const String& method, const URL& url, bool async, Exce
     m_method = uppercaseKnownHTTPMethod(method);
 
     m_url = url;
+    scriptExecutionContext()->contentSecurityPolicy()->upgradeInsecureRequestIfNeeded(m_url, ContentSecurityPolicy::InsecureRequestType::Load);
 
     m_async = async;
 
@@ -668,7 +670,7 @@ void XMLHttpRequest::sendBytesData(const void* data, size_t length, ExceptionCod
 void XMLHttpRequest::createRequest(ExceptionCode& ec)
 {
     // Only GET request is supported for blob URL.
-    if (m_url.protocolIsBlob() && m_method != "GET") {
+    if (!m_async && m_url.protocolIsBlob() && m_method != "GET") {
         ec = NETWORK_ERR;
         return;
     }
@@ -761,7 +763,7 @@ void XMLHttpRequest::createRequest(ExceptionCode& ec)
 void XMLHttpRequest::abort()
 {
     // internalAbort() calls dropProtection(), which may release the last reference.
-    Ref<XMLHttpRequest> protect(*this);
+    Ref<XMLHttpRequest> protectedThis(*this);
 
     if (!internalAbort())
         return;
@@ -796,7 +798,7 @@ bool XMLHttpRequest::internalAbort()
     // Cancelling m_loader may trigger a window.onload callback which can call open() on the same xhr.
     // This would create internalAbort reentrant call.
     // m_loader is set to null before being cancelled to exit early in any reentrant internalAbort() call.
-    RefPtr<ThreadableLoader> loader = m_loader.release();
+    auto loader = WTFMove(m_loader);
     loader->cancel();
 
     // If window.onload callback calls open() and send() on the same xhr, m_loader is now set to a new value.
@@ -1192,7 +1194,7 @@ void XMLHttpRequest::dispatchErrorEvents(const AtomicString& type)
 void XMLHttpRequest::didReachTimeout()
 {
     // internalAbort() calls dropProtection(), which may release the last reference.
-    Ref<XMLHttpRequest> protect(*this);
+    Ref<XMLHttpRequest> protectedThis(*this);
     if (!internalAbort())
         return;
 

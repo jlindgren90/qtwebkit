@@ -30,10 +30,10 @@
 #import "PlatformCALayerRemote.h"
 #import "RemoteLayerTreeHost.h"
 #import <QuartzCore/QuartzCore.h>
-#import <WebCore/BlockExceptions.h>
 #import <WebCore/PlatformCAFilters.h>
 #import <WebCore/QuartzCoreSPI.h>
 #import <WebCore/ScrollbarThemeMac.h>
+#import <wtf/BlockObjCExceptions.h>
 
 #if PLATFORM(IOS)
 #import <UIKit/UIView.h>
@@ -331,9 +331,9 @@ void RemoteLayerTreePropertyApplier::applyProperties(UIView *view, RemoteLayerTr
                 maskOwnerLayer.mask = maskView.layer;
         }
     }
-    
-    if (properties.changedProperties & RemoteLayerTreeTransaction::ContentsHiddenChanged)
-        view.userInteractionEnabled = !properties.contentsHidden;
+
+    if (properties.changedProperties & (RemoteLayerTreeTransaction::ContentsHiddenChanged | RemoteLayerTreeTransaction::UserInteractionEnabledChanged))
+        view.userInteractionEnabled = !properties.contentsHidden && properties.userInteractionEnabled;
 
     END_BLOCK_OBJC_EXCEPTIONS;
 }

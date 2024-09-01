@@ -26,6 +26,7 @@
 #ifndef JSGenericTypedArrayViewConstructorInlines_h
 #define JSGenericTypedArrayViewConstructorInlines_h
 
+#include "BuiltinNames.h"
 #include "Error.h"
 #include "IteratorOperations.h"
 #include "JSArrayBuffer.h"
@@ -53,7 +54,7 @@ void JSGenericTypedArrayViewConstructor<ViewClass>::finishCreation(VM& vm, JSGlo
     putDirectWithoutTransition(vm, vm.propertyNames->BYTES_PER_ELEMENT, jsNumber(ViewClass::elementSize), DontEnum | ReadOnly | DontDelete);
 
     if (privateAllocator)
-        putDirectBuiltinFunction(vm, globalObject, vm.propertyNames->allocateTypedArrayPrivateName, privateAllocator, DontEnum | DontDelete | ReadOnly);
+        putDirectBuiltinFunction(vm, globalObject, vm.propertyNames->builtinNames().allocateTypedArrayPrivateName(), privateAllocator, DontEnum | DontDelete | ReadOnly);
 }
 
 template<typename ViewClass>
@@ -151,7 +152,9 @@ inline JSObject* constructGenericTypedArrayViewWithArguments(ExecState* exec, St
         if (isTypedView(object->classInfo()->typedArrayStorageType))
             length = jsCast<JSArrayBufferView*>(object)->length();
         else {
-            PropertySlot lengthSlot(object, PropertySlot::InternalMethodType::Get);
+            // This getPropertySlot operation should not be observed by the Proxy.
+            // So we use VMInquiry. And purge the proxy case by isTaintedByProxy() guard.
+            PropertySlot lengthSlot(object, PropertySlot::InternalMethodType::VMInquiry);
             object->getPropertySlot(exec, vm.propertyNames->length, lengthSlot);
 
             JSValue iteratorFunc = object->get(exec, vm.propertyNames->iteratorSymbol);
@@ -166,7 +169,7 @@ inline JSObject* constructGenericTypedArrayViewWithArguments(ExecState* exec, St
 
             if (!iteratorFunc.isUndefined()
                 && (iteratorFunc != object->globalObject()->arrayProtoValuesFunction()
-                    || lengthSlot.isAccessor() || lengthSlot.isCustom()
+                    || lengthSlot.isAccessor() || lengthSlot.isCustom() || lengthSlot.isTaintedByProxy()
                     || hasAnyArrayStorage(object->indexingType()))) {
 
                     CallData callData;

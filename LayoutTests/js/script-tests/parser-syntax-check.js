@@ -147,7 +147,7 @@ valid  ("s: eval(a.apply(), b.call(c[5] - f[7]))");
 invalid("a(");
 invalid("a(5");
 invalid("a(5,");
-invalid("a(5,)");
+valid("a(5,)");
 invalid("a(5,6");
 valid  ("a(b[7], c <d> e.l, new a() > b)");
 invalid("a(b[5)");
@@ -167,7 +167,7 @@ valid  ("function f() {}");
 valid  ("function f(a,b) {}");
 invalid("function () {}");
 invalid("function f(a b) {}");
-invalid("function f(a,) {}");
+valid("function f(a,) {}");
 invalid("function f(a,");
 invalid("function f(a, 1) {}");
 valid  ("function g(arguments, eval) {}");
@@ -740,7 +740,12 @@ invalid("var f = cond ? x=>x.foo; : x=>x + x + x + x + x + x + x");
 invalid("var f = cond ? x=>x.foo : : x=>x + x + x + x + x + x + x");
 invalid("var f = cond ? x=>{x.foo :} : x=>x + x + x + x + x + x + x");
 invalid("var f = cond ? x=>{x.foo } => : x=>x + x + x + x + x + x + x");
-
+valid("class C { constructor() { this._x = 45; } get foo() { return this._x;} } class D extends C { x(y = () => super.foo) { return y(); } }");
+valid("class C { constructor() { this._x = 45; } get foo() { return this._x;} } class D extends C { x(y = () => {return super.foo}) { return y(); } }");
+valid("class C { constructor() { this._x = 45; } get foo() { return this._x;} } class D extends C { x(y = () => {return () => super.foo}) { return y()(); } }");
+valid("class C { constructor() { this._x = 45; } get foo() { return this._x;} } class D extends C { x(y = (y = () => super.foo) => {return y()}) { return y(); } }");
+valid("class C { constructor() { this._x = 45; } get foo() { return this._x;} } class D extends C { constructor(x = () => super.foo) { super(); this._x_f = x; } x() { return this._x_f(); } }");
+valid("class C { constructor() { this._x = 45; } get foo() { return this._x;} } class D extends C { constructor(x = () => super()) { x(); } x() { return super.foo; } }");
 
 try { eval("a.b.c = {};"); } catch(e1) { e=e1; shouldBe("e.line", "1") }
 foo = 'FAIL';

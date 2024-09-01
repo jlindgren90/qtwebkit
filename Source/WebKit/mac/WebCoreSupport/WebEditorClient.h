@@ -51,8 +51,6 @@ public:
     void didCheckSucceed(int sequence, NSArray *results);
 
 private:
-    void pageDestroyed() override;
-
     bool isGrammarCheckingEnabled() override;
     void toggleGrammarChecking() override;
     bool isContinuousSpellCheckingEnabled() override;
@@ -172,7 +170,7 @@ private:
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
     void requestCandidatesForSelection(const WebCore::VisibleSelection&) override;
     void handleRequestedCandidates(NSInteger, NSArray<NSTextCheckingResult *> *);
-    void handleAcceptedCandidate(NSTextCheckingResult *);
+    void handleAcceptedCandidateWithSoftSpaces(WebCore::TextCheckingResult) override;
 #endif
 
     void registerUndoOrRedoStep(PassRefPtr<WebCore::UndoStep>, bool isRedo);

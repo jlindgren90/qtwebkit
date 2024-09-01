@@ -9,6 +9,7 @@
             { "name" : "op_create_scoped_arguments", "length" : 3 },
             { "name" : "op_create_cloned_arguments", "length" : 2 },
             { "name" : "op_create_this", "length" : 5 },
+            { "name" : "op_argument_count", "length" : 2 },
             { "name" : "op_to_this", "length" : 4 },
             { "name" : "op_check_tdz", "length" : 2 },
             { "name" : "op_new_object", "length" : 4 },
@@ -54,15 +55,18 @@
             { "name" : "op_is_boolean", "length" : 3 },
             { "name" : "op_is_number", "length" : 3 },
             { "name" : "op_is_string", "length" : 3 },
+            { "name" : "op_is_jsarray", "length" : 3 },
             { "name" : "op_is_object", "length" : 3 },
             { "name" : "op_is_object_or_null", "length" : 3 },
             { "name" : "op_is_function", "length" : 3 },
             { "name" : "op_in", "length" : 4 },
-            { "name" : "op_try_get_by_id", "length" : 4 },
+            { "name" : "op_get_array_length", "length" : 9 },
             { "name" : "op_get_by_id", "length" : 9  },
+            { "name" : "op_get_by_id_proto_load", "length" : 9 },
+            { "name" : "op_get_by_id_unset", "length" : 9 },
             { "name" : "op_get_by_id_with_this", "length" : 5 },
             { "name" : "op_get_by_val_with_this", "length" : 5 },
-            { "name" : "op_get_array_length", "length" : 9 },
+            { "name" : "op_try_get_by_id", "length" : 4 },
             { "name" : "op_put_by_id", "length" : 9 },
             { "name" : "op_put_by_id_with_this", "length" : 5 },
             { "name" : "op_del_by_id", "length" : 4 },
@@ -99,13 +103,13 @@
             { "name" : "op_new_func_exp", "length" : 4 },
             { "name" : "op_new_generator_func", "length" : 4 },
             { "name" : "op_new_generator_func_exp", "length" : 4 },
-            { "name" : "op_new_arrow_func_exp", "length" : 4 },
             { "name" : "op_set_function_name", "length" : 3 },
             { "name" : "op_call", "length" : 9 },
             { "name" : "op_tail_call", "length" : 9 },
             { "name" : "op_call_eval", "length" : 9 },
             { "name" : "op_call_varargs", "length" : 9 },
             { "name" : "op_tail_call_varargs", "length" : 9 },
+            { "name" : "op_tail_call_forward_arguments", "length" : 9 },
             { "name" : "op_ret", "length" : 2 },
             { "name" : "op_construct", "length" : 9 },
             { "name" : "op_construct_varargs", "length" : 9 },
@@ -123,8 +127,6 @@
             { "name" : "op_throw", "length" : 2 },
             { "name" : "op_throw_static_error", "length" : 3 },
             { "name" : "op_debug", "length" : 3 },
-            { "name" : "op_profile_will_call", "length" : 2 },
-            { "name" : "op_profile_did_call", "length" : 2 },
             { "name" : "op_end", "length" : 2 },
             { "name" : "op_profile_type", "length" : 6 },
             { "name" : "op_profile_control_flow", "length" : 2 },
@@ -143,8 +145,8 @@
             { "name" : "op_save", "length" : 4 },
             { "name" : "op_resume", "length" : 3 },
             { "name" : "op_watchdog", "length" : 1 },
-            { "name" : "op_log_shadow_chicken_prologue", "length" : 1},
-            { "name" : "op_log_shadow_chicken_tail", "length" : 1}
+            { "name" : "op_log_shadow_chicken_prologue", "length" : 2},
+            { "name" : "op_log_shadow_chicken_tail", "length" : 3}
         ]
     },
     {
@@ -166,7 +168,8 @@
             { "name" : "llint_cloop_did_return_from_js_8" },
             { "name" : "llint_cloop_did_return_from_js_9" },
             { "name" : "llint_cloop_did_return_from_js_10" },
-            { "name" : "llint_cloop_did_return_from_js_11" }
+            { "name" : "llint_cloop_did_return_from_js_11" },
+            { "name" : "llint_cloop_did_return_from_js_12" }
         ]
     },
     {

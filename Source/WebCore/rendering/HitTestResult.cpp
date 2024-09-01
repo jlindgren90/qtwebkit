@@ -33,10 +33,12 @@
 #include "HTMLAreaElement.h"
 #include "HTMLAttachmentElement.h"
 #include "HTMLAudioElement.h"
+#include "HTMLEmbedElement.h"
 #include "HTMLImageElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLMediaElement.h"
 #include "HTMLNames.h"
+#include "HTMLObjectElement.h"
 #include "HTMLParserIdioms.h"
 #include "HTMLPlugInImageElement.h"
 #include "HTMLTextAreaElement.h"
@@ -784,22 +786,40 @@ Element* HitTestResult::innerNonSharedElement() const
     return node->parentElement();
 }
 
-#if USE(APPLE_INTERNAL_SDK)
-#include <WebKitAdditions/HitTestResultAdditions.cpp>
-#else
 bool HitTestResult::mediaSupportsEnhancedFullscreen() const
 {
+#if PLATFORM(MAC) && ENABLE(VIDEO) && ENABLE(VIDEO_PRESENTATION_MODE)
+    HTMLMediaElement* mediaElt(mediaElement());
+    return is<HTMLVideoElement>(mediaElt) && mediaElt->supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenModePictureInPicture);
+#else
     return false;
+#endif
 }
 
 bool HitTestResult::mediaIsInEnhancedFullscreen() const
 {
+#if PLATFORM(MAC) && ENABLE(VIDEO) && ENABLE(VIDEO_PRESENTATION_MODE)
+    HTMLMediaElement* mediaElt(mediaElement());
+    return is<HTMLVideoElement>(mediaElt) && mediaElt->fullscreenMode() == HTMLMediaElementEnums::VideoFullscreenModePictureInPicture;
+#else
     return false;
+#endif
 }
 
 void HitTestResult::toggleEnhancedFullscreenForVideo() const
 {
-}
+#if PLATFORM(MAC) && ENABLE(VIDEO) && ENABLE(VIDEO_PRESENTATION_MODE)
+    HTMLMediaElement* mediaElement(this->mediaElement());
+    if (!is<HTMLVideoElement>(mediaElement) || !mediaElement->supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenModePictureInPicture))
+        return;
+
+    HTMLVideoElement& videoElement = downcast<HTMLVideoElement>(*mediaElement);
+    UserGestureIndicator indicator(DefinitelyProcessingUserGesture, &mediaElement->document());
+    if (videoElement.fullscreenMode() == HTMLMediaElementEnums::VideoFullscreenModePictureInPicture)
+        videoElement.exitFullscreen();
+    else
+        videoElement.enterFullscreen(HTMLMediaElementEnums::VideoFullscreenModePictureInPicture);
 #endif
+}
 
 } // namespace WebCore

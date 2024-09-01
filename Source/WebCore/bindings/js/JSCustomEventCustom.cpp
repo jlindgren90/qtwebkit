@@ -40,8 +40,7 @@ JSValue JSCustomEvent::detail(ExecState& state) const
 {
     auto& event = wrapped();
 
-    JSValue detail = event.detail();
-    
+    auto detail = event.detail();
     if (!detail)
         return jsNull();
 

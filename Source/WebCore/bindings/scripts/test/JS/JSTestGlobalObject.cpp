@@ -108,14 +108,6 @@ static const HashTableValue JSTestGlobalObjectPrototypeTableValues[] =
 static const HashTable JSTestGlobalObjectPrototypeTable = { 1, 1, true, JSTestGlobalObjectPrototypeTableValues, JSTestGlobalObjectPrototypeTableIndex };
 const ClassInfo JSTestGlobalObjectPrototype::s_info = { "TestGlobalObjectPrototype", &Base::s_info, &JSTestGlobalObjectPrototypeTable, CREATE_METHOD_TABLE(JSTestGlobalObjectPrototype) };
 
-bool JSTestGlobalObjectPrototype::getOwnPropertySlot(JSObject* object, ExecState* state, PropertyName propertyName, PropertySlot& slot)
-{
-    VM& vm = state->vm();
-    UNUSED_PARAM(vm);
-    auto* thisObject = jsCast<JSTestGlobalObjectPrototype*>(object);
-    return getStaticPropertySlot<JSTestGlobalObjectPrototype, JSObject>(state, JSTestGlobalObjectPrototypeTable, thisObject, propertyName, slot);
-}
-
 const ClassInfo JSTestGlobalObject::s_info = { "TestGlobalObject", &Base::s_info, &JSTestGlobalObjectTable, CREATE_METHOD_TABLE(JSTestGlobalObject) };
 
 JSTestGlobalObject::JSTestGlobalObject(Structure* structure, JSDOMGlobalObject& globalObject, Ref<TestGlobalObject>&& impl)
@@ -123,9 +115,9 @@ JSTestGlobalObject::JSTestGlobalObject(Structure* structure, JSDOMGlobalObject& 
 {
 }
 
-void JSTestGlobalObject::finishCreation(VM& vm)
+void JSTestGlobalObject::finishCreation(VM& vm, JSProxy* proxy)
 {
-    Base::finishCreation(vm);
+    Base::finishCreation(vm, proxy);
 
 #if ENABLE(TEST_FEATURE)
     if (RuntimeEnabledFeatures::sharedFeatures().testFeatureEnabled()) {
@@ -143,15 +135,6 @@ void JSTestGlobalObject::destroy(JSC::JSCell* cell)
 {
     JSTestGlobalObject* thisObject = static_cast<JSTestGlobalObject*>(cell);
     thisObject->JSTestGlobalObject::~JSTestGlobalObject();
-}
-
-bool JSTestGlobalObject::getOwnPropertySlot(JSObject* object, ExecState* state, PropertyName propertyName, PropertySlot& slot)
-{
-    auto* thisObject = jsCast<JSTestGlobalObject*>(object);
-    ASSERT_GC_OBJECT_INHERITS(thisObject, info());
-    if (getStaticPropertySlot<JSTestGlobalObject, Base>(state, JSTestGlobalObjectTable, thisObject, propertyName, slot))
-        return true;
-    return false;
 }
 
 EncodedJSValue jsTestGlobalObjectRegularAttribute(ExecState* state, EncodedJSValue thisValue, PropertyName)
@@ -345,22 +328,11 @@ extern "C" { extern void* _ZTVN7WebCore16TestGlobalObjectE[]; }
 #endif
 #endif
 
-JSC::JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject* globalObject, TestGlobalObject* impl)
+JSC::JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject* globalObject, Ref<TestGlobalObject>&& impl)
 {
-    if (!impl)
-        return jsNull();
-    return createNewWrapper<JSTestGlobalObject>(globalObject, impl);
-}
-
-JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject* globalObject, TestGlobalObject* impl)
-{
-    if (!impl)
-        return jsNull();
-    if (JSValue result = getExistingWrapper<JSTestGlobalObject>(globalObject, impl))
-        return result;
 
 #if ENABLE(BINDING_INTEGRITY)
-    void* actualVTablePointer = *(reinterpret_cast<void**>(impl));
+    void* actualVTablePointer = *(reinterpret_cast<void**>(impl.ptr()));
 #if PLATFORM(WIN)
     void* expectedVTablePointer = reinterpret_cast<void*>(__identifier("??_7TestGlobalObject@WebCore@@6B@"));
 #else
@@ -377,7 +349,12 @@ JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject* globalObject, TestGlobalOb
     // by adding the SkipVTableValidation attribute to the interface IDL definition
     RELEASE_ASSERT(actualVTablePointer == expectedVTablePointer);
 #endif
-    return createNewWrapper<JSTestGlobalObject>(globalObject, impl);
+    return createWrapper<JSTestGlobalObject, TestGlobalObject>(globalObject, WTFMove(impl));
+}
+
+JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestGlobalObject& impl)
+{
+    return wrap(state, globalObject, impl);
 }
 
 TestGlobalObject* JSTestGlobalObject::toWrapped(JSC::JSValue value)

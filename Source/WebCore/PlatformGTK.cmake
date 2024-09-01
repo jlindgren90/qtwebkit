@@ -183,7 +183,6 @@ list(APPEND WebCore_SOURCES
 
     platform/text/hyphen/HyphenationLibHyphen.cpp
 
-    platform/unix/LanguageUnix.cpp
     platform/unix/LoggingUnix.cpp
 )
 
@@ -249,7 +248,7 @@ set(WebCore_USER_AGENT_SCRIPTS
 set(WebCore_USER_AGENT_SCRIPTS_DEPENDENCIES ${WEBCORE_DIR}/platform/gtk/RenderThemeGtk.cpp)
 
 set(WebCore_SDP_PROCESSOR_SCRIPTS ${WEBCORE_DIR}/Modules/mediastream/sdp.js)
-set(WebCore_SDP_PROCESSOR_SCRIPTS_DEPENDENCIES ${WEBCORE_DIR}/platform/mediastream/gtk/SDPProcessorScriptResource.cpp)
+set(WebCore_SDP_PROCESSOR_SCRIPTS_DEPENDENCIES ${WEBCORE_DIR}/platform/mediastream/gtk/SDPProcessorScriptResourceGtk.cpp)
 
 list(APPEND WebCore_LIBRARIES
     ${ATK_LIBRARIES}

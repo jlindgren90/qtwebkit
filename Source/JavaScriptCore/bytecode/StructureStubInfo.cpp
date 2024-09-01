@@ -64,6 +64,11 @@ void StructureStubInfo::initGetByIdSelf(CodeBlock* codeBlock, Structure* baseObj
     u.byIdSelf.offset = offset;
 }
 
+void StructureStubInfo::initArrayLength()
+{
+    cacheType = CacheType::ArrayLength;
+}
+
 void StructureStubInfo::initPutByIdReplace(CodeBlock* codeBlock, Structure* baseObjectStructure, PropertyOffset offset)
 {
     cacheType = CacheType::PutByIdReplace;
@@ -88,6 +93,7 @@ void StructureStubInfo::deref()
     case CacheType::Unset:
     case CacheType::GetByIdSelf:
     case CacheType::PutByIdReplace:
+    case CacheType::ArrayLength:
         return;
     }
 
@@ -103,6 +109,7 @@ void StructureStubInfo::aboutToDie()
     case CacheType::Unset:
     case CacheType::GetByIdSelf:
     case CacheType::PutByIdReplace:
+    case CacheType::ArrayLength:
         return;
     }
 
@@ -135,7 +142,7 @@ AccessGenerationResult StructureStubInfo::addAccessCase(
     } else {
         std::unique_ptr<PolymorphicAccess> access = std::make_unique<PolymorphicAccess>();
         
-        Vector<std::unique_ptr<AccessCase>> accessCases;
+        Vector<std::unique_ptr<AccessCase>, 2> accessCases;
         
         std::unique_ptr<AccessCase> previousCase =
             AccessCase::fromStructureStubInfo(vm, codeBlock, *this);
@@ -258,6 +265,7 @@ bool StructureStubInfo::propagateTransitions(SlotVisitor& visitor)
 {
     switch (cacheType) {
     case CacheType::Unset:
+    case CacheType::ArrayLength:
         return true;
     case CacheType::GetByIdSelf:
     case CacheType::PutByIdReplace:
@@ -276,6 +284,7 @@ bool StructureStubInfo::containsPC(void* pc) const
         return false;
     return u.stub->containsPC(pc);
 }
-#endif
+
+#endif // ENABLE(JIT)
 
 } // namespace JSC

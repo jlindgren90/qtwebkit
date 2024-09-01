@@ -348,10 +348,10 @@ text-underline-style [SkipBuilder]
 text-underline-width [SkipBuilder]
 top [Initial=initialOffset, Converter=LengthOrAuto]
 transition [Longhands=transition-property|transition-duration|transition-timing-function|transition-delay]
-transition-delay [SkipBuilder]
-transition-duration [SkipBuilder]
-transition-property [SkipBuilder]
-transition-timing-function [SkipBuilder]
+transition-delay [AnimationProperty, NameForMethods=Delay]
+transition-duration [AnimationProperty, NameForMethods=Duration]
+transition-property [AnimationProperty, NameForMethods=Property]
+transition-timing-function [AnimationProperty, NameForMethods=TimingFunction]
 
 unicode-bidi
 unicode-range [SkipBuilder]
@@ -468,7 +468,7 @@ filter [ConditionalConverter=FilterOperations]
 -webkit-filter = filter
 align-content [Initial=initialContentAlignment, Converter=ContentAlignmentData]
 -webkit-align-content = align-content
-align-items [Initial=initialSelfAlignment, Converter=SelfOrDefaultAlignmentData]
+align-items [Initial=initialDefaultAlignment, Converter=SelfOrDefaultAlignmentData]
 -webkit-align-items = align-items
 align-self [Initial=initialSelfAlignment, Converter=SelfOrDefaultAlignmentData]
 -webkit-align-self = align-self

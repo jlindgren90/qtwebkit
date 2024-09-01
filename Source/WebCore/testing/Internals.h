@@ -46,6 +46,7 @@ class Document;
 class Element;
 class File;
 class Frame;
+class GCObservation;
 class HTMLImageElement;
 class HTMLInputElement;
 class HTMLLinkElement;
@@ -231,6 +232,7 @@ public:
     void toggleOverwriteModeEnabled(ExceptionCode&);
 
     unsigned countMatchesForText(const String&, unsigned findOptions, const String& markMatches, ExceptionCode&);
+    unsigned countFindMatches(const String&, unsigned findOptions, ExceptionCode&);
 
     unsigned numberOfScrollableAreas(ExceptionCode&);
 
@@ -275,14 +277,11 @@ public:
     void insertAuthorCSS(const String&, ExceptionCode&) const;
     void insertUserCSS(const String&, ExceptionCode&) const;
 
-    const ProfilesArray& consoleProfiles() const;
-
     unsigned numberOfLiveNodes() const;
     unsigned numberOfLiveDocuments() const;
 
     RefPtr<DOMWindow> openDummyInspectorFrontend(const String& url);
     void closeDummyInspectorFrontend();
-    void setLegacyJavaScriptProfilingEnabled(bool enabled, ExceptionCode&);
     void setInspectorIsUnderTest(bool isUnderTest, ExceptionCode&);
 
     String counterValue(Element&);
@@ -490,6 +489,13 @@ public:
     bool webGL2Enabled() const;
     void setWebGL2Enabled(bool);
 #endif
+
+    bool isProcessingUserGesture();
+
+    RefPtr<GCObservation> observeGC(JSC::JSValue);
+
+    enum class UserInterfaceLayoutDirection { LTR, RTL };
+    void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection);
 
 private:
     explicit Internals(Document&);

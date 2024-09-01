@@ -105,8 +105,7 @@ private:
         case BitRShift:
         case BitLShift:
         case BitURShift: {
-            if (Node::shouldSpeculateUntypedForBitOps(node->child1().node(), node->child2().node())
-                && m_graph.hasExitSite(node->origin.semantic, BadType)) {
+            if (Node::shouldSpeculateUntypedForBitOps(node->child1().node(), node->child2().node())) {
                 fixEdge<UntypedUse>(node->child1());
                 fixEdge<UntypedUse>(node->child2());
                 break;
@@ -1333,7 +1332,6 @@ private:
         case PhantomCreateActivation:
         case PhantomDirectArguments:
         case PhantomClonedArguments:
-        case ForwardVarargs:
         case GetMyArgumentByVal:
         case GetMyArgumentByValOutOfBounds:
         case PutHint:
@@ -1463,7 +1461,11 @@ private:
                 fixEdge<OtherUse>(node->child1());
                 node->remove();
             } else if (typeSet->doesTypeConformTo(TypeObject)) {
-                StructureSet set = typeSet->structureSet();
+                StructureSet set;
+                {
+                    ConcurrentJITLocker locker(typeSet->m_lock);
+                    set = typeSet->structureSet(locker);
+                }
                 if (!set.isEmpty()) {
                     fixEdge<CellUse>(node->child1());
                     node->convertToCheckStructure(m_graph.addStructureSet(set));
@@ -1502,6 +1504,16 @@ private:
             break;
         }
 
+        case LogShadowChickenPrologue: {
+            fixEdge<KnownCellUse>(node->child1());
+            break;
+        }
+        case LogShadowChickenTail: {
+            fixEdge<UntypedUse>(node->child1());
+            fixEdge<KnownCellUse>(node->child2());
+            break;
+        }
+
 #if !ASSERT_DISABLED
         // Have these no-op cases here to ensure that nobody forgets to add handlers for new opcodes.
         case SetArgument:
@@ -1510,7 +1522,7 @@ private:
         case DoubleConstant:
         case GetLocal:
         case GetCallee:
-        case GetArgumentCount:
+        case GetArgumentCountIncludingThis:
         case GetRestLength:
         case Flush:
         case PhantomLocal:
@@ -1531,17 +1543,15 @@ private:
         case TailCallForwardVarargs:
         case TailCallForwardVarargsInlinedCaller:
         case LoadVarargs:
+        case ForwardVarargs:
         case ProfileControlFlow:
         case NewObject:
         case NewArrayBuffer:
         case NewRegexp:
-        case ProfileWillCall:
-        case ProfileDidCall:
         case DeleteById:
         case DeleteByVal:
-        case IsArrayObject:
         case IsJSArray:
-        case IsArrayConstructor:
+        case IsTypedArrayView:
         case IsEmpty:
         case IsUndefined:
         case IsBoolean:
@@ -1562,8 +1572,6 @@ private:
         case CheckBadCell:
         case CheckNotEmpty:
         case CheckWatchdogTimer:
-        case LogShadowChickenPrologue:
-        case LogShadowChickenTail:
         case Unreachable:
         case ExtractOSREntryLocal:
         case LoopHint:

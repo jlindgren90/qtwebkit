@@ -36,6 +36,7 @@
 #include "Chrome.h"
 #include "ChromeClient.h"
 #include "Editor.h"
+#include "EventNames.h"
 #include "FormDataList.h"
 #include "Frame.h"
 #include "FrameSelection.h"
@@ -193,16 +194,16 @@ void TextFieldInputType::forwardEvent(Event* event)
     {
         element().document().updateStyleIfNeeded();
 
+        auto* renderer = element().renderer();
         if (element().renderer()) {
-            RenderTextControlSingleLine& renderTextControl = downcast<RenderTextControlSingleLine>(*element().renderer());
             if (event->type() == eventNames().blurEvent) {
-                if (RenderTextControlInnerBlock* innerTextRenderer = innerTextElement()->renderer()) {
-                    if (RenderLayer* innerLayer = innerTextRenderer->layer()) {
-                        ScrollOffset scrollOffset(!renderTextControl.style().isLeftToRightDirection() ? innerLayer->scrollWidth() : 0, 0);
+                if (auto* innerTextRenderer = innerTextElement()->renderer()) {
+                    if (auto* innerLayer = innerTextRenderer->layer()) {
+                        bool isLeftToRightDirection = downcast<RenderTextControlSingleLine>(*renderer).style().isLeftToRightDirection();
+                        ScrollOffset scrollOffset(isLeftToRightDirection ? 0 : innerLayer->scrollWidth(), 0);
                         innerLayer->scrollToOffset(scrollOffset, RenderLayer::ScrollOffsetClamped);
                     }
                 }
-
                 capsLockStateMayHaveChanged();
             } else if (event->type() == eventNames().focusEvent)
                 capsLockStateMayHaveChanged();

@@ -631,8 +631,10 @@ void InspectorCSSAgent::getInlineStylesForNode(ErrorString& errorString, int nod
         return;
 
     inlineStyle = styleSheet->buildObjectForStyle(element->cssomStyle());
-    RefPtr<Inspector::Protocol::CSS::CSSStyle> attributes = buildObjectForAttributesStyle(element);
-    attributesStyle = attributes ? attributes.release() : nullptr;
+    if (auto attributes = buildObjectForAttributesStyle(element))
+        attributesStyle = WTFMove(attributes);
+    else
+        attributesStyle = nullptr;
 }
 
 void InspectorCSSAgent::getComputedStyleForNode(ErrorString& errorString, int nodeId, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::CSS::CSSComputedStyleProperty>>& style)
@@ -794,7 +796,7 @@ InspectorStyleSheet* InspectorCSSAgent::createInspectorStyleSheetForDocument(Doc
     m_creatingViaInspectorStyleSheet = true;
     InlineStyleOverrideScope overrideScope(document);
     ExceptionCode ec = 0;
-    targetNode->appendChild(WTFMove(styleElement), ec);
+    targetNode->appendChild(styleElement, ec);
     m_creatingViaInspectorStyleSheet = false;
     if (ec)
         return nullptr;

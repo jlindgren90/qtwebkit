@@ -35,6 +35,7 @@
 #include "DOMTokenList.h"
 #include "Document.h"
 #include "Event.h"
+#include "EventNames.h"
 #include "EventSender.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -227,7 +228,7 @@ void HTMLLinkElement::process()
         if (m_cachedSheet) {
             removePendingSheet();
             m_cachedSheet->removeClient(this);
-            m_cachedSheet = 0;
+            m_cachedSheet = nullptr;
         }
 
         if (!shouldLoadLink())
@@ -240,9 +241,8 @@ void HTMLLinkElement::process()
             Optional<RenderStyle> documentStyle;
             if (document().hasLivingRenderTree())
                 documentStyle = Style::resolveForDocument(document());
-            RefPtr<MediaQuerySet> media = MediaQuerySet::createAllowingDescriptionSyntax(m_media);
-            MediaQueryEvaluator evaluator(document().frame()->view()->mediaType(), document().frame(), documentStyle ? &*documentStyle : nullptr);
-            mediaQueryMatches = evaluator.eval(media.get());
+            auto media = MediaQuerySet::createAllowingDescriptionSyntax(m_media);
+            mediaQueryMatches = MediaQueryEvaluator { document().frame()->view()->mediaType(), document(), documentStyle ? &*documentStyle : nullptr }.evaluate(media.get());
         }
 
         // Don't hold up render tree construction and script execution on stylesheets
@@ -254,7 +254,7 @@ void HTMLLinkElement::process()
         Optional<ResourceLoadPriority> priority;
         if (!isActive)
             priority = ResourceLoadPriority::VeryLow;
-        CachedResourceRequest request(ResourceRequest(document().completeURL(url)), charset, priority);
+        CachedResourceRequest request(url, charset, priority);
         request.setInitiator(this);
 
         if (document().contentSecurityPolicy()->allowStyleWithNonce(fastGetAttribute(HTMLNames::nonceAttr))) {
@@ -262,9 +262,10 @@ void HTMLLinkElement::process()
             options.setContentSecurityPolicyImposition(ContentSecurityPolicyImposition::SkipPolicyCheck);
             request.setOptions(options);
         }
+        request.setAsPotentiallyCrossOrigin(crossOrigin(), document());
 
         m_cachedSheet = document().cachedResourceLoader().requestCSSStyleSheet(request);
-        
+
         if (m_cachedSheet)
             m_cachedSheet->addClient(this);
         else {
@@ -342,7 +343,7 @@ void HTMLLinkElement::setCSSStyleSheet(const String& href, const URL& baseURL, c
         return;
 
     // Completing the sheet load may cause scripts to execute.
-    Ref<HTMLLinkElement> protect(*this);
+    Ref<HTMLLinkElement> protectedThis(*this);
 
     CSSParserContext parserContext(document(), baseURL, charset);
     auto cachePolicy = frame->loader().subresourceCachePolicy();
@@ -361,7 +362,7 @@ void HTMLLinkElement::setCSSStyleSheet(const String& href, const URL& baseURL, c
         return;
     }
 
-    Ref<StyleSheetContents> styleSheet(StyleSheetContents::create(href, parserContext));
+    auto styleSheet = StyleSheetContents::create(href, parserContext);
     m_sheet = CSSStyleSheet::create(styleSheet.copyRef(), this);
     m_sheet->setMediaQueries(MediaQuerySet::createAllowingDescriptionSyntax(m_media));
     m_sheet->setTitle(title());

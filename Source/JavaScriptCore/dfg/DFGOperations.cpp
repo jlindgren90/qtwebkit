@@ -48,6 +48,7 @@
 #include "JIT.h"
 #include "JITExceptions.h"
 #include "JSCInlines.h"
+#include "JSGenericTypedArrayViewConstructorInlines.h"
 #include "JSLexicalEnvironment.h"
 #include "ObjectConstructor.h"
 #include "Repatch.h"
@@ -57,7 +58,7 @@
 #include "Symbol.h"
 #include "TypeProfilerLog.h"
 #include "TypedArrayInlines.h"
-#include "VM.h"
+#include "VMInlines.h"
 #include <wtf/InlineASM.h>
 
 #if ENABLE(JIT)
@@ -695,22 +696,6 @@ size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, JSGlobalObject*
     if (!input)
         return false;
     return asRegExpObject(base)->test(exec, globalObject, input);
-}
-
-size_t JIT_OPERATION operationIsArrayConstructor(ExecState* exec, EncodedJSValue encodedTarget)
-{
-    VM& vm = exec->vm();
-    NativeCallFrameTracer tracer(&vm, exec);
-
-    return isArrayConstructor(JSValue::decode(encodedTarget));
-}
-
-size_t JIT_OPERATION operationIsArrayObject(ExecState* exec, EncodedJSValue encodedTarget)
-{
-    VM& vm = exec->vm();
-    NativeCallFrameTracer tracer(&vm, exec);
-
-    return isArray(exec, JSValue::decode(encodedTarget));
 }
 
 size_t JIT_OPERATION operationCompareStrictEqCell(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)
@@ -1597,7 +1582,10 @@ JSCell* JIT_OPERATION operationNewObjectWithButterflyWithIndexingHeaderAndVector
 
 void JIT_OPERATION operationProcessTypeProfilerLogDFG(ExecState* exec) 
 {
-    exec->vm().typeProfilerLog()->processLogEntries(ASCIILiteral("Log Full, called from inside DFG."));
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    vm.typeProfilerLog()->processLogEntries(ASCIILiteral("Log Full, called from inside DFG."));
 }
 
 void JIT_OPERATION debugOperationPrintSpeculationFailure(ExecState* exec, void* debugInfoRaw, void* scratch)
@@ -1652,27 +1640,27 @@ EncodedJSValue JIT_OPERATION operationGetDynamicVar(ExecState* exec, JSObject* s
     VM& vm = exec->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
-    const Identifier& ident = Identifier::fromUid(exec, impl);
-    GetPutInfo getPutInfo(getPutInfoBits);
-
-    PropertySlot slot(scope, PropertySlot::InternalMethodType::Get);
-    if (!scope->getPropertySlot(exec, ident, slot)) {
-        if (getPutInfo.resolveMode() == ThrowIfNotFound)
-            vm.throwException(exec, createUndefinedVariableError(exec, ident));
-        return JSValue::encode(jsUndefined());
-    }
-
-    if (scope->isGlobalLexicalEnvironment()) {
-        // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
-        JSValue result = slot.getValue(exec, ident);
-        if (result == jsTDZValue()) {
-            exec->vm().throwException(exec, createTDZError(exec));
-            return JSValue::encode(jsUndefined());
+    Identifier ident = Identifier::fromUid(exec, impl);
+    return JSValue::encode(scope->getPropertySlot(exec, ident, [&] (bool found, PropertySlot& slot) -> JSValue {
+        if (!found) {
+            GetPutInfo getPutInfo(getPutInfoBits);
+            if (getPutInfo.resolveMode() == ThrowIfNotFound)
+                vm.throwException(exec, createUndefinedVariableError(exec, ident));
+            return jsUndefined();
         }
-        return JSValue::encode(result);
-    }
 
-    return JSValue::encode(slot.getValue(exec, ident));
+        if (scope->isGlobalLexicalEnvironment()) {
+            // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
+            JSValue result = slot.getValue(exec, ident);
+            if (result == jsTDZValue()) {
+                exec->vm().throwException(exec, createTDZError(exec));
+                return jsUndefined();
+            }
+            return result;
+        }
+
+        return slot.getValue(exec, ident);
+    }));
 }
 
 void JIT_OPERATION operationPutDynamicVar(ExecState* exec, JSObject* scope, EncodedJSValue value, UniquedStringImpl* impl, unsigned getPutInfoBits)
@@ -1765,6 +1753,7 @@ extern "C" void JIT_OPERATION triggerReoptimizationNow(CodeBlock* codeBlock, OSR
 static bool shouldTriggerFTLCompile(CodeBlock* codeBlock, JITCode* jitCode)
 {
     if (codeBlock->baselineVersion()->m_didFailFTLCompilation) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "abortFTLCompile", ());
         if (Options::verboseOSR())
             dataLog("Deferring FTL-optimization of ", *codeBlock, " indefinitely because there was an FTL failure.\n");
         jitCode->dontOptimizeAnytimeSoon(codeBlock);
@@ -1773,6 +1762,7 @@ static bool shouldTriggerFTLCompile(CodeBlock* codeBlock, JITCode* jitCode)
 
     if (!codeBlock->hasOptimizedReplacement()
         && !jitCode->checkIfOptimizationThresholdReached(codeBlock)) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("counter = ", jitCode->tierUpCounter));
         if (Options::verboseOSR())
             dataLog("Choosing not to FTL-optimize ", *codeBlock, " yet.\n");
         return false;
@@ -1790,12 +1780,14 @@ static void triggerFTLReplacementCompile(VM* vm, CodeBlock* codeBlock, JITCode* 
         worklistState = Worklist::NotKnown;
     
     if (worklistState == Worklist::Compiling) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("still compiling"));
         jitCode->setOptimizationThresholdBasedOnCompilationResult(
             codeBlock, CompilationDeferred);
         return;
     }
     
     if (codeBlock->hasOptimizedReplacement()) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("has replacement"));
         // That's great, we've compiled the code - next time we call this function,
         // we'll enter that replacement.
         jitCode->optimizeSoon(codeBlock);
@@ -1803,6 +1795,7 @@ static void triggerFTLReplacementCompile(VM* vm, CodeBlock* codeBlock, JITCode* 
     }
     
     if (worklistState == Worklist::Compiled) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("compiled and failed"));
         // This means that we finished compiling, but failed somehow; in that case the
         // thresholds will be set appropriately.
         if (Options::verboseOSR())
@@ -1810,6 +1803,7 @@ static void triggerFTLReplacementCompile(VM* vm, CodeBlock* codeBlock, JITCode* 
         return;
     }
 
+    CODEBLOCK_LOG_EVENT(codeBlock, "triggerFTLReplacement", ());
     // We need to compile the code.
     compile(
         *vm, codeBlock->newReplacement(), codeBlock, FTLMode, UINT_MAX,
@@ -1824,7 +1818,7 @@ void JIT_OPERATION triggerTierUpNow(ExecState* exec)
 {
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
-    DeferGC deferGC(vm->heap);
+    DeferGCForAWhile deferGC(vm->heap);
     CodeBlock* codeBlock = exec->codeBlock();
     
     if (codeBlock->jitType() != JITCode::DFGJIT) {
@@ -1845,12 +1839,14 @@ void JIT_OPERATION triggerTierUpNow(ExecState* exec)
 
     if (codeBlock->hasOptimizedReplacement()) {
         if (jitCode->tierUpEntryTriggers.isEmpty()) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("replacement in place, delaying indefinitely"));
             // There is nothing more we can do, the only way this will be entered
             // is through the function entry point.
             jitCode->dontOptimizeAnytimeSoon(codeBlock);
             return;
         }
         if (jitCode->osrEntryBlock() && jitCode->tierUpEntryTriggers.size() == 1) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("trigger in place, delaying indefinitely"));
             // There is only one outer loop and its trigger must have been set
             // when the plan completed.
             // Exiting the inner loop is useless, we can ignore the counter and leave
@@ -1876,12 +1872,14 @@ static char* tierUpCommon(ExecState* exec, unsigned originBytecodeIndex, unsigne
 
     JITCode* jitCode = codeBlock->jitCode()->dfg();
     if (worklistState == Worklist::Compiling) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("still compiling"));
         jitCode->setOptimizationThresholdBasedOnCompilationResult(
             codeBlock, CompilationDeferred);
         return nullptr;
     }
 
     if (worklistState == Worklist::Compiled) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("compiled and failed"));
         // This means that compilation failed and we already set the thresholds.
         if (Options::verboseOSR())
             dataLog("Code block ", *codeBlock, " was compiled but it doesn't have an optimized replacement.\n");
@@ -1892,8 +1890,10 @@ static char* tierUpCommon(ExecState* exec, unsigned originBytecodeIndex, unsigne
     if (originBytecodeIndex == osrEntryBytecodeIndex) {
         unsigned streamIndex = jitCode->bytecodeIndexToStreamIndex.get(originBytecodeIndex);
         if (CodeBlock* entryBlock = jitCode->osrEntryBlock()) {
-            if (void* address = FTL::prepareOSREntry(exec, codeBlock, entryBlock, originBytecodeIndex, streamIndex))
+            if (void* address = FTL::prepareOSREntry(exec, codeBlock, entryBlock, originBytecodeIndex, streamIndex)) {
+                CODEBLOCK_LOG_EVENT(entryBlock, "osrEntry", ("at bc#", originBytecodeIndex));
                 return static_cast<char*>(address);
+            }
         }
     }
 
@@ -1911,14 +1911,17 @@ static char* tierUpCommon(ExecState* exec, unsigned originBytecodeIndex, unsigne
             return nullptr;
 
         if (jitCode->osrEntryRetry < Options::ftlOSREntryRetryThreshold()) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("avoiding OSR entry compile"));
             jitCode->osrEntryRetry++;
             return nullptr;
         }
-    }
+    } else
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("avoiding replacement compile"));
 
     // It's time to try to compile code for OSR entry.
     if (CodeBlock* entryBlock = jitCode->osrEntryBlock()) {
         if (jitCode->osrEntryRetry < Options::ftlOSREntryRetryThreshold()) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("OSR entry failed, OSR entry threshold not met"));
             jitCode->osrEntryRetry++;
             jitCode->setOptimizationThresholdBasedOnCompilationResult(
                 codeBlock, CompilationDeferred);
@@ -1929,6 +1932,7 @@ static char* tierUpCommon(ExecState* exec, unsigned originBytecodeIndex, unsigne
         entryCode->countEntryFailure();
         if (entryCode->entryFailureCount() <
             Options::ftlOSREntryFailureCountForReoptimization()) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("OSR entry failed"));
             jitCode->setOptimizationThresholdBasedOnCompilationResult(
                 codeBlock, CompilationDeferred);
             return nullptr;
@@ -1936,6 +1940,7 @@ static char* tierUpCommon(ExecState* exec, unsigned originBytecodeIndex, unsigne
 
         // OSR entry failed. Oh no! This implies that we need to retry. We retry
         // without exponential backoff and we only do this for the entry code block.
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("OSR entry failed too many times"));
         unsigned osrEntryBytecode = entryBlock->jitCode()->ftlForOSREntry()->bytecodeIndex();
         jitCode->clearOSREntryBlock();
         jitCode->osrEntryRetry = 0;
@@ -1967,6 +1972,7 @@ static char* tierUpCommon(ExecState* exec, unsigned originBytecodeIndex, unsigne
         exec, codeBlock, CodeOrigin(osrEntryBytecodeIndex), streamIndex, mustHandleValues);
     CodeBlock* replacementCodeBlock = codeBlock->newReplacement();
 
+    CODEBLOCK_LOG_EVENT(codeBlock, "triggerFTLOSR", ());
     CompilationResult forEntryResult = compile(
         *vm, replacementCodeBlock, codeBlock, FTLForOSREntryMode, osrEntryBytecodeIndex,
         mustHandleValues, ToFTLForOSREntryDeferredCompilationCallback::create(triggerAddress));
@@ -1975,11 +1981,13 @@ static char* tierUpCommon(ExecState* exec, unsigned originBytecodeIndex, unsigne
         triggerFTLReplacementCompile(vm, codeBlock, jitCode);
 
     if (forEntryResult != CompilationSuccessful) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("OSR ecompilation not successful"));
         jitCode->setOptimizationThresholdBasedOnCompilationResult(
             codeBlock, CompilationDeferred);
         return nullptr;
     }
-
+    
+    CODEBLOCK_LOG_EVENT(jitCode->osrEntryBlock(), "osrEntry", ("at bc#", originBytecodeIndex));
     // It's possible that the for-entry compile already succeeded. In that case OSR
     // entry will succeed unless we ran out of stack. It's not clear what we should do.
     // We signal to try again after a while if that happens.
@@ -1992,7 +2000,7 @@ void JIT_OPERATION triggerTierUpNowInLoop(ExecState* exec, unsigned bytecodeInde
 {
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
-    DeferGC deferGC(vm->heap);
+    DeferGCForAWhile deferGC(vm->heap);
     CodeBlock* codeBlock = exec->codeBlock();
 
     if (codeBlock->jitType() != JITCode::DFGJIT) {
@@ -2016,15 +2024,17 @@ void JIT_OPERATION triggerTierUpNowInLoop(ExecState* exec, unsigned bytecodeInde
         triggerFTLReplacementCompile(vm, codeBlock, jitCode);
 
     // Since we cannot OSR Enter here, the default "optimizeSoon()" is not useful.
-    if (codeBlock->hasOptimizedReplacement())
+    if (codeBlock->hasOptimizedReplacement()) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayFTLCompile", ("OSR in loop failed, deferring"));
         jitCode->setOptimizationThresholdBasedOnCompilationResult(codeBlock, CompilationDeferred);
+    }
 }
 
 char* JIT_OPERATION triggerOSREntryNow(ExecState* exec, unsigned bytecodeIndex)
 {
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
-    DeferGC deferGC(vm->heap);
+    DeferGCForAWhile deferGC(vm->heap);
     CodeBlock* codeBlock = exec->codeBlock();
 
     if (codeBlock->jitType() != JITCode::DFGJIT) {

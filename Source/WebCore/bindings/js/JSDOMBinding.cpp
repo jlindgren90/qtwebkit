@@ -146,7 +146,7 @@ double valueToDate(ExecState* exec, JSValue value)
     return static_cast<DateInstance*>(value.toObject(exec))->internalNumber();
 }
 
-JSC::JSValue jsArray(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, PassRefPtr<DOMStringList> stringList)
+JSC::JSValue jsArray(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, DOMStringList* stringList)
 {
     JSC::MarkedArgumentBuffer list;
     if (stringList) {
@@ -201,7 +201,7 @@ void reportException(ExecState* exec, Exception* exception, CachedScript* cached
         errorMessage = exceptionBase->message() + ": "  + exceptionBase->description();
     else {
         // FIXME: <http://webkit.org/b/115087> Web Inspector: WebCore::reportException should not evaluate JavaScript handling exceptions
-        // If this is a custon exception object, call toString on it to try and get a nice string representation for the exception.
+        // If this is a custom exception object, call toString on it to try and get a nice string representation for the exception.
         errorMessage = exception->value().toString(exec)->value(exec);
 
         // We need to clear any new exception that may be thrown in the toString() call above.
@@ -211,7 +211,7 @@ void reportException(ExecState* exec, Exception* exception, CachedScript* cached
     }
 
     ScriptExecutionContext* scriptExecutionContext = globalObject->scriptExecutionContext();
-    scriptExecutionContext->reportException(errorMessage, lineNumber, columnNumber, exceptionSourceURL, callStack->size() ? callStack : 0, cachedScript);
+    scriptExecutionContext->reportException(errorMessage, lineNumber, columnNumber, exceptionSourceURL, exception, callStack->size() ? callStack : nullptr, cachedScript);
 
     if (exceptionDetails) {
         exceptionDetails->message = errorMessage;
@@ -280,7 +280,7 @@ static JSValue createDOMException(ExecState* exec, ExceptionCode ec, const Strin
     return errorObject;
 }
 
-static JSValue createDOMException(ExecState* exec, ExceptionCode ec, const String& message)
+JSValue createDOMException(ExecState* exec, ExceptionCode ec, const String& message)
 {
     return createDOMException(exec, ec, &message);
 }

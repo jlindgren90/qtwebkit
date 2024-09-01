@@ -56,10 +56,10 @@
 #include "JSGlobalObject.h"
 #include "JumpTable.h"
 #include "LLIntCallLinkInfo.h"
+#include "LLIntPrototypeLoadAdaptiveStructureWatchpoint.h"
 #include "LazyOperandValueProfile.h"
 #include "ObjectAllocationProfile.h"
 #include "Options.h"
-#include "ProfilerCompilation.h"
 #include "ProfilerJettisonReason.h"
 #include "PutPropertySlot.h"
 #include "RegExpObject.h"
@@ -230,7 +230,9 @@ public:
     unsigned lineNumberForBytecodeOffset(unsigned bytecodeOffset);
     unsigned columnNumberForBytecodeOffset(unsigned bytecodeOffset);
     void expressionRangeForBytecodeOffset(unsigned bytecodeOffset, int& divot,
-                                          int& startOffset, int& endOffset, unsigned& line, unsigned& column);
+        int& startOffset, int& endOffset, unsigned& line, unsigned& column) const;
+
+    Optional<unsigned> bytecodeOffsetFromCallSiteIndex(CallSiteIndex);
 
     void getStubInfoMap(const ConcurrentJITLocker&, StubInfoMap& result);
     void getStubInfoMap(StubInfoMap& result);
@@ -260,6 +262,13 @@ public:
     // that there had been inlining. Chances are if you want to use this, you're really
     // looking for a CallLinkInfoMap to amortize the cost of calling this.
     CallLinkInfo* getCallLinkInfoForBytecodeIndex(unsigned bytecodeIndex);
+    
+    // We call this when we want to reattempt compiling something with the baseline JIT. Ideally
+    // the baseline JIT would not add data to CodeBlock, but instead it would put its data into
+    // a newly created JITCode, which could be thrown away if we bail on JIT compilation. Then we
+    // would be able to get rid of this silly function.
+    // FIXME: https://bugs.webkit.org/show_bug.cgi?id=159061
+    void resetJITData();
 #endif // ENABLE(JIT)
 
     void unlinkIncomingCalls();
@@ -339,8 +348,7 @@ public:
     ExecutableBase* ownerExecutable() const { return m_ownerExecutable.get(); }
     ScriptExecutable* ownerScriptExecutable() const { return jsCast<ScriptExecutable*>(m_ownerExecutable.get()); }
 
-    void setVM(VM* vm) { m_vm = vm; }
-    VM* vm() { return m_vm; }
+    VM* vm() const { return m_vm; }
 
     void setThisRegister(VirtualRegister thisRegister) { m_thisRegister = thisRegister; }
     VirtualRegister thisRegister() const { return m_thisRegister; }
@@ -411,11 +419,7 @@ public:
         return valueProfile(index - numberOfArgumentValueProfiles());
     }
 
-    RareCaseProfile* addRareCaseProfile(int bytecodeOffset)
-    {
-        m_rareCaseProfiles.append(RareCaseProfile(bytecodeOffset));
-        return &m_rareCaseProfiles.last();
-    }
+    RareCaseProfile* addRareCaseProfile(int bytecodeOffset);
     unsigned numberOfRareCaseProfiles() { return m_rareCaseProfiles.size(); }
     RareCaseProfile* rareCaseProfileForBytecodeOffset(int bytecodeOffset);
     unsigned rareCaseProfileCountForBytecodeOffset(int bytecodeOffset);
@@ -439,33 +443,20 @@ public:
     ResultProfile* ensureResultProfile(int bytecodeOffset);
     ResultProfile* ensureResultProfile(const ConcurrentJITLocker&, int bytecodeOffset);
     unsigned numberOfResultProfiles() { return m_resultProfiles.size(); }
-    ResultProfile* resultProfileForBytecodeOffset(int bytecodeOffset);
     ResultProfile* resultProfileForBytecodeOffset(const ConcurrentJITLocker&, int bytecodeOffset);
 
-    unsigned specialFastCaseProfileCountForBytecodeOffset(int bytecodeOffset)
-    {
-        ResultProfile* profile = resultProfileForBytecodeOffset(bytecodeOffset);
-        if (!profile)
-            return 0;
-        return profile->specialFastPathCount();
-    }
+    unsigned specialFastCaseProfileCountForBytecodeOffset(const ConcurrentJITLocker&, int bytecodeOffset);
+    unsigned specialFastCaseProfileCountForBytecodeOffset(int bytecodeOffset);
 
-    bool couldTakeSpecialFastCase(int bytecodeOffset)
-    {
-        if (!hasBaselineJITProfiling())
-            return false;
-        unsigned specialFastCaseCount = specialFastCaseProfileCountForBytecodeOffset(bytecodeOffset);
-        return specialFastCaseCount >= Options::couldTakeSlowCaseMinimumCount();
-    }
+    bool couldTakeSpecialFastCase(int bytecodeOffset);
 
     unsigned numberOfArrayProfiles() const { return m_arrayProfiles.size(); }
     const ArrayProfileVector& arrayProfiles() { return m_arrayProfiles; }
-    ArrayProfile* addArrayProfile(unsigned bytecodeOffset)
-    {
-        m_arrayProfiles.append(ArrayProfile(bytecodeOffset));
-        return &m_arrayProfiles.last();
-    }
+    ArrayProfile* addArrayProfile(const ConcurrentJITLocker&, unsigned bytecodeOffset);
+    ArrayProfile* addArrayProfile(unsigned bytecodeOffset);
+    ArrayProfile* getArrayProfile(const ConcurrentJITLocker&, unsigned bytecodeOffset);
     ArrayProfile* getArrayProfile(unsigned bytecodeOffset);
+    ArrayProfile* getOrAddArrayProfile(const ConcurrentJITLocker&, unsigned bytecodeOffset);
     ArrayProfile* getOrAddArrayProfile(unsigned bytecodeOffset);
 
     // Exception handling support
@@ -663,20 +654,17 @@ public:
         m_llintExecuteCounter.deferIndefinitely();
     }
 
-    void jitAfterWarmUp()
-    {
-        m_llintExecuteCounter.setNewThreshold(Options::thresholdForJITAfterWarmUp(), this);
-    }
-
-    void jitSoon()
-    {
-        m_llintExecuteCounter.setNewThreshold(Options::thresholdForJITSoon(), this);
-    }
+    int32_t thresholdForJIT(int32_t threshold);
+    void jitAfterWarmUp();
+    void jitSoon();
 
     const BaselineExecutionCounter& llintExecuteCounter() const
     {
         return m_llintExecuteCounter;
     }
+
+    typedef HashMap<Structure*, Bag<LLIntPrototypeLoadAdaptiveStructureWatchpoint>> StructureWatchpointMap;
+    StructureWatchpointMap& llintGetByIdWatchpointMap() { return m_llintGetByIdWatchpointMap; }
 
     // Functions for controlling when tiered compilation kicks in. This
     // controls both when the optimizing compiler is invoked and when OSR
@@ -834,6 +822,8 @@ public:
         m_steppingMode = SteppingModeDisabled;
         m_numBreakpoints = 0;
     }
+
+    bool wasCompiledWithDebuggingOpcodes() const { return m_unlinkedCode->wasCompiledWithDebuggingOpcodes(); }
     
     // FIXME: Make these remaining members private.
 
@@ -868,6 +858,7 @@ public:
 
     bool m_allTransitionsHaveBeenMarked : 1; // Initialized and used on every GC.
 
+    bool m_didFailJITCompilation : 1;
     bool m_didFailFTLCompilation : 1;
     bool m_hasBeenCompiledWithFTL : 1;
     bool m_isConstructor : 1;
@@ -1017,6 +1008,7 @@ private:
 
     RefCountedArray<LLIntCallLinkInfo> m_llintCallLinkInfos;
     SentinelLinkedList<LLIntCallLinkInfo, BasicRawSentinelNode<LLIntCallLinkInfo>> m_incomingLLIntCalls;
+    StructureWatchpointMap m_llintGetByIdWatchpointMap;
     RefPtr<JITCode> m_jitCode;
 #if ENABLE(JIT)
     std::unique_ptr<RegisterAtOffsetList> m_calleeSaveRegisters;
@@ -1307,6 +1299,14 @@ private:
 };
 #endif
 
+inline void clearLLIntGetByIdCache(Instruction* instruction)
+{
+    instruction[0].u.opcode = LLInt::getOpcode(op_get_by_id);
+    instruction[4].u.pointer = nullptr;
+    instruction[5].u.pointer = nullptr;
+    instruction[6].u.pointer = nullptr;
+}
+
 inline Register& ExecState::r(int index)
 {
     CodeBlock* codeBlock = this->codeBlock();
@@ -1403,6 +1403,9 @@ template <typename Functor> inline void ScriptExecutable::forEachCodeBlock(Funct
         RELEASE_ASSERT_NOT_REACHED();
     }
 }
+
+#define CODEBLOCK_LOG_EVENT(codeBlock, summary, details) \
+    (codeBlock->vm()->logEvent(codeBlock, summary, [&] () { return toCString details; }))
 
 } // namespace JSC
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2014, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2010, 2014-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -183,6 +183,15 @@ void WebInspector::showResources()
     m_frontendConnection->send(Messages::WebInspectorUI::ShowResources(), 0);
 }
 
+void WebInspector::showTimelines()
+{
+    if (!m_page->corePage())
+        return;
+
+    m_page->corePage()->inspectorController().show();
+    m_frontendConnection->send(Messages::WebInspectorUI::ShowTimelines(), 0);
+}
+
 void WebInspector::showMainResourceForFrame(uint64_t frameIdentifier)
 {
     WebFrame* frame = WebProcess::singleton().webFrame(frameIdentifier);
@@ -203,7 +212,6 @@ void WebInspector::startPageProfiling()
     if (!m_page->corePage())
         return;
 
-    m_page->corePage()->inspectorController().show();
     m_frontendConnection->send(Messages::WebInspectorUI::StartPageProfiling(), 0);
 }
 
@@ -212,7 +220,6 @@ void WebInspector::stopPageProfiling()
     if (!m_page->corePage())
         return;
 
-    m_page->corePage()->inspectorController().show();
     m_frontendConnection->send(Messages::WebInspectorUI::StopPageProfiling(), 0);
 }
 

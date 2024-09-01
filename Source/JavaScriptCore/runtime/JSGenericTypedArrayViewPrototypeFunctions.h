@@ -30,7 +30,6 @@
 #include "Error.h"
 #include "ExceptionHelpers.h"
 #include "JSArrayBufferViewInlines.h"
-#include "JSArrayIterator.h"
 #include "JSCBuiltins.h"
 #include "JSCJSValueInlines.h"
 #include "JSFunction.h"
@@ -369,9 +368,6 @@ EncodedJSValue JSC_HOST_CALL genericTypedArrayViewProtoFuncSlice(ExecState* exec
     ViewClass* thisObject = jsCast<ViewClass*>(exec->thisValue());
     if (thisObject->isNeutered())
         return throwVMTypeError(exec, typedArrayBufferHasBeenDetachedErrorMessage);
-
-    if (!exec->argumentCount())
-        return throwVMError(exec, createTypeError(exec, "Expected at least one argument"));
 
     unsigned thisLength = thisObject->length();
 

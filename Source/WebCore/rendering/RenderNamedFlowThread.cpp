@@ -74,10 +74,10 @@ void RenderNamedFlowThread::clearContentElements()
 {
     for (auto& contentElement : m_contentElements) {
         ASSERT(contentElement);
-        ASSERT(contentElement->isNamedFlowContentNode());
+        ASSERT(contentElement->isNamedFlowContentElement());
         ASSERT(&contentElement->document() == &document());
         
-        contentElement->clearIsNamedFlowContentNode();
+        contentElement->clearIsNamedFlowContentElement();
     }
     
     m_contentElements.clear();
@@ -296,26 +296,26 @@ LayoutRect RenderNamedFlowThread::decorationsClipRectForBoxInNamedFlowFragment(c
     flipForWritingModeLocalCoordinates(visualOverflowRect);
 
     // Take the scrolled offset of this object's parents into consideration.
-    IntSize scrolledContentOffset;
+    ScrollPosition scrollPosition;
     RenderBlock* containingBlock = box.containingBlock();
     while (containingBlock && !is<RenderView>(*containingBlock)) {
         if (containingBlock->isRenderNamedFlowThread()) {
             // We've reached the flow thread, take the scrolled offset of the region into consideration.
             ASSERT(containingBlock == this);
-            scrolledContentOffset += fragment.fragmentContainer().scrolledContentOffset();
+            scrollPosition += toIntSize(fragment.fragmentContainer().scrollPosition());
             break;
         }
         
-        scrolledContentOffset += containingBlock->scrolledContentOffset();
+        scrollPosition += toIntSize(containingBlock->scrollPosition());
         containingBlock = containingBlock->containingBlock();
     }
 
-    if (!scrolledContentOffset.isZero()) {
+    if (!scrollPosition.isZero()) {
         if (style().isFlippedBlocksWritingMode())
-            scrolledContentOffset = -scrolledContentOffset;
+            scrollPosition = -scrollPosition;
         
-        visualOverflowRect.inflateX(scrolledContentOffset.width());
-        visualOverflowRect.inflateY(scrolledContentOffset.height());
+        visualOverflowRect.inflateX(scrollPosition.x());
+        visualOverflowRect.inflateY(scrollPosition.y());
     }
     
     // Layers are in physical coordinates so the origin must be moved to the physical top-left of the flowthread.
@@ -497,7 +497,7 @@ void RenderNamedFlowThread::registerNamedFlowContentElement(Element& contentElem
 {
     ASSERT(&contentElement.document() == &document());
 
-    contentElement.setIsNamedFlowContentNode();
+    contentElement.setIsNamedFlowContentElement();
 
     resetMarkForDestruction();
 
@@ -518,10 +518,10 @@ void RenderNamedFlowThread::registerNamedFlowContentElement(Element& contentElem
 void RenderNamedFlowThread::unregisterNamedFlowContentElement(Element& contentElement)
 {
     ASSERT(m_contentElements.contains(&contentElement));
-    ASSERT(contentElement.isNamedFlowContentNode());
+    ASSERT(contentElement.isNamedFlowContentElement());
     ASSERT(&contentElement.document() == &document());
 
-    contentElement.clearIsNamedFlowContentNode();
+    contentElement.clearIsNamedFlowContentElement();
     m_contentElements.remove(&contentElement);
 
     if (canBeDestroyed())
@@ -616,7 +616,7 @@ static bool boxIntersectsRegion(LayoutUnit logicalTopForBox, LayoutUnit logicalB
 // Retrieve the next node to be visited while computing the ranges inside a region.
 static Node* nextNodeInsideContentElement(const Node& currNode, const Element* contentElement)
 {
-    ASSERT(contentElement && contentElement->isNamedFlowContentNode());
+    ASSERT(contentElement && contentElement->isNamedFlowContentElement());
 
     if (currNode.renderer() && currNode.renderer()->isSVGRoot())
         return NodeTraversal::nextSkippingChildren(currNode, contentElement);

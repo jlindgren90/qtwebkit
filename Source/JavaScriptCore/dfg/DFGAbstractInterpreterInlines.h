@@ -1027,9 +1027,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     }
 
     case IsEmpty:
-    case IsArrayObject:
     case IsJSArray:
-    case IsArrayConstructor:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -1037,32 +1035,14 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case IsObject:
     case IsObjectOrNull:
     case IsFunction:
-    case IsRegExpObject: {
+    case IsRegExpObject:
+    case IsTypedArrayView: {
         AbstractValue child = forNode(node->child1());
         if (child.value()) {
             bool constantWasSet = true;
             switch (node->op()) {
-            case IsArrayObject:
-                if (child.value().isObject()) {
-                    if (child.value().getObject()->type() == ArrayType) {
-                        setConstant(node, jsBoolean(true));
-                        break;
-                    }
-
-                    if (child.value().getObject()->type() == ProxyObjectType) {
-                        // We have no way of knowing what type we are proxing yet.
-                        constantWasSet = false;
-                        break;
-                    }
-                }
-
-                setConstant(node, jsBoolean(false));
-                break;
             case IsJSArray:
                 setConstant(node, jsBoolean(child.value().isObject() && child.value().getObject()->type() == ArrayType));
-                break;
-            case IsArrayConstructor:
-                setConstant(node, jsBoolean(child.value().isObject() && child.value().getObject()->classInfo() == ArrayConstructor::info()));
                 break;
             case IsUndefined:
                 setConstant(node, jsBoolean(
@@ -1118,6 +1098,9 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
             case IsEmpty:
                 setConstant(node, jsBoolean(child.value().isEmpty()));
                 break;
+            case IsTypedArrayView:
+                setConstant(node, jsBoolean(child.value().isObject() && isTypedView(child.value().getObject()->classInfo()->typedArrayStorageType)));
+                break;
             default:
                 constantWasSet = false;
                 break;
@@ -1133,7 +1116,6 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         bool constantWasSet = false;
         switch (node->op()) {
         case IsJSArray:
-        case IsArrayObject:
             // We don't have a SpeculatedType for Proxies yet so we can't do better at proving false.
             if (!(child.m_type & ~SpecArray)) {
                 setConstant(node, jsBoolean(true));
@@ -1284,6 +1266,19 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
                 break;
             }
             if (!(child.m_type & SpecObject)) {
+                setConstant(node, jsBoolean(false));
+                constantWasSet = true;
+                break;
+            }
+            break;
+
+        case IsTypedArrayView:
+            if (!(child.m_type & ~SpecTypedArrayView)) {
+                setConstant(node, jsBoolean(true));
+                constantWasSet = true;
+                break;
+            }
+            if (!(child.m_type & SpecTypedArrayView)) {
                 setConstant(node, jsBoolean(false));
                 constantWasSet = true;
                 break;
@@ -2029,7 +2024,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         forNode(node).setType(m_graph, SpecFunction);
         break;
         
-    case GetArgumentCount:
+    case GetArgumentCountIncludingThis:
         forNode(node).setType(SpecInt32Only);
         break;
         
@@ -2844,8 +2839,6 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case LogShadowChickenTail:
         break;
 
-    case ProfileWillCall:
-    case ProfileDidCall:
     case ProfileType:
     case ProfileControlFlow:
     case Phantom:

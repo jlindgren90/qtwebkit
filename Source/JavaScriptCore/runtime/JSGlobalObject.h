@@ -55,6 +55,7 @@ class JSGlobalObjectInspectorController;
 
 namespace JSC {
 
+class ArrayConstructor;
 class ArrayPrototype;
 class BooleanPrototype;
 class ConsoleClient;
@@ -94,7 +95,6 @@ class RegExpPrototype;
 class SourceCode;
 class UnlinkedModuleProgramCodeBlock;
 class VariableEnvironment;
-enum class ThisTDZMode;
 struct ActivationStackNode;
 struct HashTable;
 
@@ -151,9 +151,6 @@ struct GlobalObjectMethodTable {
     typedef bool (*AllowsAccessFromFunctionPtr)(const JSGlobalObject*, ExecState*);
     AllowsAccessFromFunctionPtr allowsAccessFrom;
 
-    typedef bool (*SupportsLegacyProfilingFunctionPtr)(const JSGlobalObject*);
-    SupportsLegacyProfilingFunctionPtr supportsLegacyProfiling;
-
     typedef bool (*SupportsRichSourceInfoFunctionPtr)(const JSGlobalObject*);
     SupportsRichSourceInfoFunctionPtr supportsRichSourceInfo;
 
@@ -163,7 +160,7 @@ struct GlobalObjectMethodTable {
     typedef RuntimeFlags (*JavaScriptRuntimeFlagsFunctionPtr)(const JSGlobalObject*);
     JavaScriptRuntimeFlagsFunctionPtr javaScriptRuntimeFlags;
 
-    typedef void (*QueueTaskToEventLoopFunctionPtr)(const JSGlobalObject*, PassRefPtr<Microtask>);
+    typedef void (*QueueTaskToEventLoopFunctionPtr)(const JSGlobalObject*, Ref<Microtask>&&);
     QueueTaskToEventLoopFunctionPtr queueTaskToEventLoop;
 
     typedef bool (*ShouldInterruptScriptBeforeTimeoutPtr)(const JSGlobalObject*);
@@ -230,6 +227,7 @@ public:
     WriteBarrier<NativeErrorConstructor> m_typeErrorConstructor;
     LazyProperty<JSGlobalObject, NativeErrorConstructor> m_URIErrorConstructor;
     WriteBarrier<ObjectConstructor> m_objectConstructor;
+    WriteBarrier<ArrayConstructor> m_arrayConstructor;
     WriteBarrier<JSPromiseConstructor> m_promiseConstructor;
     WriteBarrier<JSInternalPromiseConstructor> m_internalPromiseConstructor;
 
@@ -251,7 +249,7 @@ public:
     WriteBarrier<JSObject> m_regExpProtoSymbolReplace;
     WriteBarrier<JSObject> m_regExpProtoGlobalGetter;
     WriteBarrier<JSObject> m_regExpProtoUnicodeGetter;
-    LazyProperty<JSGlobalObject, GetterSetter> m_throwTypeErrorArgumentsAndCallerGetterSetter;
+    LazyProperty<JSGlobalObject, GetterSetter> m_throwTypeErrorArgumentsCalleeAndCallerGetterSetter;
 
     WriteBarrier<ModuleLoaderObject> m_moduleLoader;
 
@@ -292,7 +290,7 @@ public:
     WriteBarrier<Structure> m_calleeStructure;
     WriteBarrier<Structure> m_functionStructure;
     LazyProperty<JSGlobalObject, Structure> m_boundFunctionStructure;
-    LazyProperty<JSGlobalObject, Structure> m_boundSlotBaseFunctionStructure;
+    LazyProperty<JSGlobalObject, Structure> m_customGetterSetterFunctionStructure;
     WriteBarrier<Structure> m_getterSetterStructure;
     LazyProperty<JSGlobalObject, Structure> m_nativeStdFunctionStructure;
     LazyProperty<JSGlobalObject, Structure> m_namedFunctionStructure;
@@ -391,7 +389,7 @@ public:
         
 public:
     typedef JSSegmentedVariableObject Base;
-    static const unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | OverridesGetPropertyNames | OverridesToThis;
+    static const unsigned StructureFlags = Base::StructureFlags | HasStaticPropertyTable | OverridesGetOwnPropertySlot | OverridesGetPropertyNames | OverridesToThis;
 
     static JSGlobalObject* create(VM& vm, Structure* structure)
     {
@@ -405,7 +403,6 @@ public:
 
     bool hasDebugger() const;
     bool hasInteractiveDebugger() const;
-    bool hasLegacyProfiler() const;
     const RuntimeFlags& runtimeFlags() const { return m_runtimeFlags; }
 
 protected:
@@ -463,9 +460,12 @@ public:
     // The following accessors return pristine values, even if a script 
     // replaces the global object's associated property.
 
+    GetterSetter* speciesGetterSetter() const { return m_speciesGetterSetter.get(); }
+
     RegExpConstructor* regExpConstructor() const { return m_regExpConstructor.get(); }
 
     ErrorConstructor* errorConstructor() const { return m_errorConstructor.get(); }
+    ArrayConstructor* arrayConstructor() const { return m_arrayConstructor.get(); }
     ObjectConstructor* objectConstructor() const { return m_objectConstructor.get(); }
     JSPromiseConstructor* promiseConstructor() const { return m_promiseConstructor.get(); }
     JSInternalPromiseConstructor* internalPromiseConstructor() const { return m_internalPromiseConstructor.get(); }
@@ -493,14 +493,9 @@ public:
     JSObject* regExpProtoSymbolReplaceFunction() const { return m_regExpProtoSymbolReplace.get(); }
     JSObject* regExpProtoGlobalGetter() const { return m_regExpProtoGlobalGetter.get(); }
     JSObject* regExpProtoUnicodeGetter() const { return m_regExpProtoUnicodeGetter.get(); }
-    GetterSetter* throwTypeErrorGetterSetter()
+    GetterSetter* throwTypeErrorArgumentsCalleeAndCallerGetterSetter()
     {
-        return m_throwTypeErrorGetterSetter.get(this);
-    }
-
-    GetterSetter* throwTypeErrorArgumentsAndCallerGetterSetter()
-    {
-        return m_throwTypeErrorArgumentsAndCallerGetterSetter.get(this);
+        return m_throwTypeErrorArgumentsCalleeAndCallerGetterSetter.get(this);
     }
     
     ModuleLoaderObject* moduleLoader() const { return m_moduleLoader.get(); }
@@ -567,7 +562,7 @@ public:
     Structure* calleeStructure() const { return m_calleeStructure.get(); }
     Structure* functionStructure() const { return m_functionStructure.get(); }
     Structure* boundFunctionStructure() const { return m_boundFunctionStructure.get(this); }
-    Structure* boundSlotBaseFunctionStructure() const { return m_boundSlotBaseFunctionStructure.get(this); }
+    Structure* customGetterSetterFunctionStructure() const { return m_customGetterSetterFunctionStructure.get(this); }
     Structure* getterSetterStructure() const { return m_getterSetterStructure.get(); }
     Structure* nativeStdFunctionStructure() const { return m_nativeStdFunctionStructure.get(this); }
     Structure* namedFunctionStructure() const { return m_namedFunctionStructure.get(this); }
@@ -719,7 +714,6 @@ public:
     const GlobalObjectMethodTable* globalObjectMethodTable() const { return m_globalObjectMethodTable; }
 
     static bool allowsAccessFrom(const JSGlobalObject*, ExecState*) { return true; }
-    static bool supportsLegacyProfiling(const JSGlobalObject*) { return false; }
     static bool supportsRichSourceInfo(const JSGlobalObject*) { return true; }
 
     JS_EXPORT_PRIVATE ExecState* globalExec();
@@ -728,7 +722,7 @@ public:
     static bool shouldInterruptScriptBeforeTimeout(const JSGlobalObject*) { return false; }
     static RuntimeFlags javaScriptRuntimeFlags(const JSGlobalObject*) { return RuntimeFlags(); }
 
-    void queueMicrotask(PassRefPtr<Microtask>);
+    void queueMicrotask(Ref<Microtask>&&);
 
     bool evalEnabled() const { return m_evalEnabled; }
     const String& evalDisabledErrorMessage() const { return m_evalDisabledErrorMessage; }
@@ -775,7 +769,7 @@ public:
     unsigned weakRandomInteger() { return m_weakRandom.getUint32(); }
 
     UnlinkedProgramCodeBlock* createProgramCodeBlock(CallFrame*, ProgramExecutable*, JSObject** exception);
-    UnlinkedEvalCodeBlock* createEvalCodeBlock(CallFrame*, EvalExecutable*, ThisTDZMode, const VariableEnvironment*);
+    UnlinkedEvalCodeBlock* createEvalCodeBlock(CallFrame*, EvalExecutable*, const VariableEnvironment*);
     UnlinkedModuleProgramCodeBlock* createModuleProgramCodeBlock(CallFrame*, ModuleProgramExecutable*);
 
     bool needsSiteSpecificQuirks() const { return m_needsSiteSpecificQuirks; }

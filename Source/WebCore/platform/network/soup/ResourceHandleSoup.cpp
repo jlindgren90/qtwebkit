@@ -136,7 +136,7 @@ public:
     }
 #endif // SOUP_CHECK_VERSION(2, 49, 91)
 
-    void didReceiveResponse(ResourceHandle*, const ResourceResponse& response) override
+    void didReceiveResponse(ResourceHandle*, ResourceResponse&& response) override
     {
         m_response = response;
     }
@@ -146,7 +146,7 @@ public:
         ASSERT_NOT_REACHED();
     }
 
-    void didReceiveBuffer(ResourceHandle*, PassRefPtr<SharedBuffer> buffer, int /* encodedLength */) override
+    void didReceiveBuffer(ResourceHandle*, Ref<SharedBuffer>&& buffer, int /* encodedLength */) override
     {
         // This pattern is suggested by SharedBuffer.h.
         const char* segment;
@@ -464,18 +464,17 @@ static bool shouldRedirectAsGET(SoupMessage* message, URL& newURL, bool crossOri
     return false;
 }
 
-static void continueAfterWillSendRequest(ResourceHandle* handle, const ResourceRequest& request)
+static void continueAfterWillSendRequest(ResourceHandle* handle, ResourceRequest&& request)
 {
     // willSendRequest might cancel the load.
     if (handle->cancelledOrClientless())
         return;
 
-    ResourceRequest newRequest(request);
     ResourceHandleInternal* d = handle->getInternal();
-    if (protocolHostAndPortAreEqual(newRequest.url(), d->m_response.url()))
-        applyAuthenticationToRequest(handle, newRequest, true);
+    if (protocolHostAndPortAreEqual(request.url(), d->m_response.url()))
+        applyAuthenticationToRequest(handle, request, true);
 
-    if (!createSoupRequestAndMessageForHandle(handle, newRequest)) {
+    if (!createSoupRequestAndMessageForHandle(handle, request)) {
         d->client()->cannotShowURL(handle);
         return;
     }
@@ -532,11 +531,12 @@ static void doRedirect(ResourceHandle* handle)
 
     cleanupSoupRequestOperation(handle);
 
+    ResourceResponse responseCopy = d->m_response;
     if (d->client()->usesAsyncCallbacks())
-        d->client()->willSendRequestAsync(handle, newRequest, d->m_response);
+        d->client()->willSendRequestAsync(handle, WTFMove(newRequest), WTFMove(responseCopy));
     else {
-        d->client()->willSendRequest(handle, newRequest, d->m_response);
-        continueAfterWillSendRequest(handle, newRequest);
+        auto request = d->client()->willSendRequest(handle, WTFMove(newRequest), WTFMove(responseCopy));
+        continueAfterWillSendRequest(handle, WTFMove(request));
     }
 
 }
@@ -654,9 +654,9 @@ static void nextMultipartResponsePartCallback(GObject* /*source*/, GAsyncResult*
     d->m_previousPosition = 0;
 
     if (handle->client()->usesAsyncCallbacks())
-        handle->client()->didReceiveResponseAsync(handle.get(), d->m_response);
+        handle->client()->didReceiveResponseAsync(handle.get(), ResourceResponse(d->m_response));
     else {
-        handle->client()->didReceiveResponse(handle.get(), d->m_response);
+        handle->client()->didReceiveResponse(handle.get(), ResourceResponse(d->m_response));
         continueAfterDidReceiveResponse(handle.get());
     }
 }
@@ -718,9 +718,9 @@ static void sendRequestCallback(GObject*, GAsyncResult* result, gpointer data)
         d->m_inputStream = inputStream;
 
     if (d->client()->usesAsyncCallbacks())
-        handle->client()->didReceiveResponseAsync(handle.get(), d->m_response);
+        handle->client()->didReceiveResponseAsync(handle.get(), ResourceResponse(d->m_response));
     else {
-        handle->client()->didReceiveResponse(handle.get(), d->m_response);
+        handle->client()->didReceiveResponse(handle.get(), ResourceResponse(d->m_response));
         continueAfterDidReceiveResponse(handle.get());
     }
 }
@@ -1367,10 +1367,10 @@ static void readCallback(GObject*, GAsyncResult* asyncResult, gpointer data)
         d->m_cancellable.get(), readCallback, handle.get());
 }
 
-void ResourceHandle::continueWillSendRequest(const ResourceRequest& request)
+void ResourceHandle::continueWillSendRequest(ResourceRequest&& request)
 {
     ASSERT(!client() || client()->usesAsyncCallbacks());
-    continueAfterWillSendRequest(this, request);
+    continueAfterWillSendRequest(this, WTFMove(request));
 }
 
 void ResourceHandle::continueDidReceiveResponse()

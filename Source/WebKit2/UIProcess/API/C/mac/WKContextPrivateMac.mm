@@ -59,13 +59,6 @@ void WKContextSetPluginLoadClientPolicy(WKContextRef contextRef, WKPluginLoadCli
 #endif
 }
 
-void WKContextSetPrivateBrowsingPluginLoadClientPolicy(WKContextRef contextRef, WKPluginLoadClientPolicy policy, WKStringRef host, WKStringRef bundleIdentifier, WKStringRef versionString)
-{
-#if ENABLE(NETSCAPE_PLUGIN_API)
-    toImpl(contextRef)->setPrivateBrowsingPluginLoadClientPolicy(toPluginLoadClientPolicy(policy), toWTFString(host), toWTFString(bundleIdentifier), toWTFString(versionString));
-#endif
-}
-
 void WKContextClearPluginClientPolicies(WKContextRef contextRef)
 {
 #if ENABLE(NETSCAPE_PLUGIN_API)
@@ -80,8 +73,8 @@ WKDictionaryRef WKContextCopyPlugInInfoForBundleIdentifier(WKContextRef contextR
     if (plugin.path.isNull())
         return 0;
 
-    RefPtr<API::Dictionary> dictionary = createPluginInformationDictionary(plugin);
-    return toAPI(dictionary.release().leakRef());
+    auto dictionary = createPluginInformationDictionary(plugin);
+    return toAPI(&dictionary.leakRef());
 #else
     return 0;
 #endif

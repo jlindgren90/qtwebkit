@@ -195,20 +195,20 @@ String decodeFromFilename(const String& inputString)
 
 String lastComponentOfPathIgnoringTrailingSlash(const String& path)
 {
-#if PLATFORM(WIN)
-    char pathSeperator = '\\';
+#if OS(WINDOWS)
+    char pathSeparator = '\\';
 #else
-    char pathSeperator = '/';
+    char pathSeparator = '/';
 #endif
 
-    auto position = path.reverseFind(pathSeperator);
+    auto position = path.reverseFind(pathSeparator);
     if (position == notFound)
         return path;
 
     size_t endOfSubstring = path.length() - 1;
     if (position == endOfSubstring) {
         --endOfSubstring;
-        position = path.reverseFind(pathSeperator, endOfSubstring);
+        position = path.reverseFind(pathSeparator, endOfSubstring);
     }
 
     return path.substring(position + 1, endOfSubstring - position);

@@ -54,6 +54,7 @@ private:
     void setCookiesFromDOM(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&, const String&) override;
     bool cookiesEnabled(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&) override;
     String cookieRequestHeaderFieldValue(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&) override;
+    String cookieRequestHeaderFieldValue(WebCore::SessionID, const WebCore::URL& firstParty, const WebCore::URL&) override;
     bool getRawCookies(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&, Vector<WebCore::Cookie>&) override;
     void deleteCookie(const WebCore::NetworkStorageSession&, const WebCore::URL&, const String&) override;
     void addCookie(const WebCore::NetworkStorageSession&, const WebCore::URL&, const WebCore::Cookie&) override;
@@ -64,7 +65,6 @@ private:
     void getWebVisiblePluginInfo(const WebCore::Page*, Vector<WebCore::PluginInfo>&) override;
 #if PLATFORM(MAC)
     void setPluginLoadClientPolicy(WebCore::PluginLoadClientPolicy, const String&, const String&, const String&) override;
-    void setPrivateBrowsingPluginLoadClientPolicy(WebCore::PluginLoadClientPolicy, const String&, const String&, const String&) override;
     void clearPluginClientPolicies() override;
 #endif
 

@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2000 Harri Porten (porten@kde.org)
- *  Copyright (C) 2006, 2007, 2008, 2009, 2011, 2012, 2013 Apple Inc. All Rights Reserved.
+ *  Copyright (C) 2006-2009, 2011-2013, 2016 Apple Inc. All Rights Reserved.
  *  Copyright (C) 2007 Cameron Zwarich (cwzwarich@uwaterloo.ca)
  *  Copyright (C) 2010 Zoltan Herczeg (zherczeg@inf.u-szeged.hu)
  *  Copyright (C) 2012 Mathias Bynens (mathias@qiwi.be)
@@ -939,7 +939,7 @@ template <bool shouldCreateIdentifier> ALWAYS_INLINE JSTokenType Lexer<LChar>::p
             if (isPrivateName)
                 ident = m_vm->propertyNames->lookUpPrivateName(*ident);
             else if (*ident == m_vm->propertyNames->undefinedKeyword)
-                tokenData->ident = &m_vm->propertyNames->undefinedPrivateName;
+                tokenData->ident = &m_vm->propertyNames->builtinNames().undefinedPrivateName();
             if (!ident)
                 return INVALID_PRIVATE_NAME_ERRORTOK;
         }
@@ -1016,7 +1016,7 @@ template <bool shouldCreateIdentifier> ALWAYS_INLINE JSTokenType Lexer<UChar>::p
             if (isPrivateName)
                 ident = m_vm->propertyNames->lookUpPrivateName(*ident);
             else if (*ident == m_vm->propertyNames->undefinedKeyword)
-                tokenData->ident = &m_vm->propertyNames->undefinedPrivateName;
+                tokenData->ident = &m_vm->propertyNames->builtinNames().undefinedPrivateName();
             if (!ident)
                 return INVALID_PRIVATE_NAME_ERRORTOK;
         }
@@ -1568,8 +1568,10 @@ ALWAYS_INLINE bool Lexer<T>::parseBinary(double& returnValue)
         shift();
     }
 
-    if (isASCIIDigit(m_current))
+    if (isASCIIDigit(m_current)) {
+        returnValue = 0;
         return false;
+    }
 
     returnValue = parseIntOverflow(m_buffer8.data(), m_buffer8.size(), 2);
     return true;
@@ -1606,8 +1608,10 @@ ALWAYS_INLINE bool Lexer<T>::parseOctal(double& returnValue)
         shift();
     }
 
-    if (isASCIIDigit(m_current))
+    if (isASCIIDigit(m_current)) {
+        returnValue = 0;
         return false;
+    }
 
     returnValue = parseIntOverflow(m_buffer8.data(), m_buffer8.size(), 8);
     return true;

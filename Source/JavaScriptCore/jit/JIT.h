@@ -194,6 +194,14 @@ namespace JSC {
         static const int patchPutByIdDefaultOffset = 256;
 
     public:
+        JIT(VM*, CodeBlock* = 0);
+        ~JIT();
+
+        void compileWithoutLinking(JITCompilationEffort);
+        CompilationResult link();
+
+        void doMainThreadPreparationBeforeCompile();
+        
         static CompilationResult compile(VM* vm, CodeBlock* codeBlock, JITCompilationEffort effort)
         {
             return JIT(vm, codeBlock).privateCompile(effort);
@@ -256,8 +264,6 @@ namespace JSC {
         JS_EXPORT_PRIVATE static HashMap<CString, double> compileTimeStats();
 
     private:
-        JIT(VM*, CodeBlock* = 0);
-
         void privateCompileMainPass();
         void privateCompileLinkPass();
         void privateCompileSlowCases();
@@ -316,7 +322,7 @@ namespace JSC {
 
         void compileOpCall(OpcodeID, Instruction*, unsigned callLinkInfoIndex);
         void compileOpCallSlowCase(OpcodeID, Instruction*, Vector<SlowCaseEntry>::iterator&, unsigned callLinkInfoIndex);
-        void compileSetupVarargsFrame(Instruction*, CallLinkInfo*);
+        void compileSetupVarargsFrame(OpcodeID, Instruction*, CallLinkInfo*);
         void compileCallEval(Instruction*);
         void compileCallEvalSlowCase(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitPutCallResult(Instruction*);
@@ -482,6 +488,7 @@ namespace JSC {
         void emit_op_call_eval(Instruction*);
         void emit_op_call_varargs(Instruction*);
         void emit_op_tail_call_varargs(Instruction*);
+        void emit_op_tail_call_forward_arguments(Instruction*);
         void emit_op_construct_varargs(Instruction*);
         void emit_op_catch(Instruction*);
         void emit_op_construct(Instruction*);
@@ -490,6 +497,7 @@ namespace JSC {
         void emit_op_create_direct_arguments(Instruction*);
         void emit_op_create_scoped_arguments(Instruction*);
         void emit_op_create_cloned_arguments(Instruction*);
+        void emit_op_argument_count(Instruction*);
         void emit_op_copy_rest(Instruction*);
         void emit_op_get_rest_length(Instruction*);
         void emit_op_check_tdz(Instruction*);
@@ -521,6 +529,7 @@ namespace JSC {
         void emit_op_is_boolean(Instruction*);
         void emit_op_is_number(Instruction*);
         void emit_op_is_string(Instruction*);
+        void emit_op_is_jsarray(Instruction*);
         void emit_op_is_object(Instruction*);
         void emit_op_jeq_null(Instruction*);
         void emit_op_jfalse(Instruction*);
@@ -552,15 +561,12 @@ namespace JSC {
         void emit_op_new_func_exp(Instruction*);
         void emit_op_new_generator_func(Instruction*);
         void emit_op_new_generator_func_exp(Instruction*);
-        void emit_op_new_arrow_func_exp(Instruction*);
         void emit_op_new_object(Instruction*);
         void emit_op_new_regexp(Instruction*);
         void emit_op_not(Instruction*);
         void emit_op_nstricteq(Instruction*);
         void emit_op_dec(Instruction*);
         void emit_op_inc(Instruction*);
-        void emit_op_profile_did_call(Instruction*);
-        void emit_op_profile_will_call(Instruction*);
         void emit_op_profile_type(Instruction*);
         void emit_op_profile_control_flow(Instruction*);
         void emit_op_push_with_scope(Instruction*);
@@ -615,6 +621,7 @@ namespace JSC {
         void emitSlow_op_call_eval(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_call_varargs(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_tail_call_varargs(Instruction*, Vector<SlowCaseEntry>::iterator&);
+        void emitSlow_op_tail_call_forward_arguments(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_construct_varargs(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_construct(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_to_this(Instruction*, Vector<SlowCaseEntry>::iterator&);
@@ -711,7 +718,8 @@ namespace JSC {
         }
         void linkSlowCase(Vector<SlowCaseEntry>::iterator& iter)
         {
-            iter->from.link(this);
+            if (iter->from.isSet())
+                iter->from.link(this);
             ++iter;
         }
         void linkDummySlowCase(Vector<SlowCaseEntry>::iterator& iter)
@@ -906,8 +914,15 @@ namespace JSC {
 
         static bool reportCompileTimes();
         static bool computeCompileTimes();
+        
+        // If you need to check the value of an instruction multiple times and the instruction is
+        // part of a LLInt inline cache, then you want to use this. It will give you the value of
+        // the instruction at the start of JITing.
+        Instruction* copiedInstruction(Instruction*);
 
         Interpreter* m_interpreter;
+        
+        RefCountedArray<Instruction> m_instructions;
 
         Vector<CallRecord> m_calls;
         Vector<Label> m_labels;
@@ -929,6 +944,9 @@ namespace JSC {
         unsigned m_putByIdIndex;
         unsigned m_byValInstructionIndex;
         unsigned m_callLinkInfoIndex;
+        
+        Label m_arityCheck;
+        std::unique_ptr<LinkBuffer> m_linkBuffer;
 
         std::unique_ptr<JITDisassembler> m_disassembler;
         RefPtr<Profiler::Compilation> m_compilation;

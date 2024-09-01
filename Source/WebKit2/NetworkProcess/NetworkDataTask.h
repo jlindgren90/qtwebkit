@@ -33,6 +33,7 @@
 #include <WebCore/ResourceLoaderOptions.h>
 #include <WebCore/ResourceRequest.h>
 #include <WebCore/Timer.h>
+#include <wtf/Function.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -62,16 +63,16 @@ enum class AuthenticationChallengeDisposition {
     RejectProtectionSpace
 };
     
-typedef std::function<void(const WebCore::ResourceRequest&)> RedirectCompletionHandler;
-typedef std::function<void(AuthenticationChallengeDisposition, const WebCore::Credential&)> ChallengeCompletionHandler;
-typedef std::function<void(WebCore::PolicyAction)> ResponseCompletionHandler;
+typedef Function<void(const WebCore::ResourceRequest&)> RedirectCompletionHandler;
+typedef Function<void(AuthenticationChallengeDisposition, const WebCore::Credential&)> ChallengeCompletionHandler;
+typedef Function<void(WebCore::PolicyAction)> ResponseCompletionHandler;
 
 class NetworkDataTaskClient {
 public:
-    virtual void willPerformHTTPRedirection(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, RedirectCompletionHandler) = 0;
-    virtual void didReceiveChallenge(const WebCore::AuthenticationChallenge&, ChallengeCompletionHandler) = 0;
-    virtual void didReceiveResponseNetworkSession(const WebCore::ResourceResponse&, ResponseCompletionHandler) = 0;
-    virtual void didReceiveData(RefPtr<WebCore::SharedBuffer>&&) = 0;
+    virtual void willPerformHTTPRedirection(WebCore::ResourceResponse&&, WebCore::ResourceRequest&&, RedirectCompletionHandler&&) = 0;
+    virtual void didReceiveChallenge(const WebCore::AuthenticationChallenge&, ChallengeCompletionHandler&&) = 0;
+    virtual void didReceiveResponseNetworkSession(WebCore::ResourceResponse&&, ResponseCompletionHandler&&) = 0;
+    virtual void didReceiveData(Ref<WebCore::SharedBuffer>&&) = 0;
     virtual void didCompleteWithError(const WebCore::ResourceError&) = 0;
     virtual void didBecomeDownload() = 0;
     virtual void didSendData(uint64_t totalBytesSent, uint64_t totalBytesExpectedToSend) = 0;
@@ -98,10 +99,10 @@ public:
     ~NetworkDataTask();
     
     void didSendData(uint64_t totalBytesSent, uint64_t totalBytesExpectedToSend);
-    void didReceiveChallenge(const WebCore::AuthenticationChallenge&, ChallengeCompletionHandler);
+    void didReceiveChallenge(const WebCore::AuthenticationChallenge&, ChallengeCompletionHandler&&);
     void didCompleteWithError(const WebCore::ResourceError&);
-    void didReceiveResponse(const WebCore::ResourceResponse&, ResponseCompletionHandler);
-    void didReceiveData(RefPtr<WebCore::SharedBuffer>&&);
+    void didReceiveResponse(WebCore::ResourceResponse&&, ResponseCompletionHandler&&);
+    void didReceiveData(Ref<WebCore::SharedBuffer>&&);
     void didBecomeDownload();
     
     NetworkDataTaskClient* client() const { return m_client; }
@@ -126,14 +127,14 @@ public:
     const WebCore::ResourceRequest& firstRequest() const { return m_firstRequest; }
     WebCore::ResourceRequest currentRequest();
     String suggestedFilename();
-    void willPerformHTTPRedirection(const WebCore::ResourceResponse&, WebCore::ResourceRequest&&, RedirectCompletionHandler);
+    void willPerformHTTPRedirection(WebCore::ResourceResponse&&, WebCore::ResourceRequest&&, RedirectCompletionHandler&&);
     void transferSandboxExtensionToDownload(Download&);
     bool allowsSpecificHTTPSCertificateForHost(const WebCore::AuthenticationChallenge&);
     
 private:
     NetworkDataTask(NetworkSession&, NetworkDataTaskClient&, const WebCore::ResourceRequest&, WebCore::StoredCredentials, WebCore::ContentSniffingPolicy, bool shouldClearReferrerOnHTTPSToHTTPRedirect);
 
-    bool tryPasswordBasedAuthentication(const WebCore::AuthenticationChallenge&, ChallengeCompletionHandler);
+    bool tryPasswordBasedAuthentication(const WebCore::AuthenticationChallenge&, const ChallengeCompletionHandler&);
     
     enum FailureType {
         NoFailure,

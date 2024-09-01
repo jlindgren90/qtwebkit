@@ -91,7 +91,9 @@ public:
     static float convertTextStrokeWidth(StyleResolver&, CSSValue&);
     static LineBoxContain convertLineBoxContain(StyleResolver&, CSSValue&);
     static TextDecorationSkip convertTextDecorationSkip(StyleResolver&, CSSValue&);
+#if ENABLE(CSS_SHAPES)
     static PassRefPtr<ShapeValue> convertShapeValue(StyleResolver&, CSSValue&);
+#endif
 #if ENABLE(CSS_SCROLL_SNAP)
     static std::unique_ptr<ScrollSnapPoints> convertScrollSnapPoints(StyleResolver&, CSSValue&);
     static LengthSize convertSnapCoordinatePair(StyleResolver&, CSSValue&, size_t offset = 0);
@@ -503,7 +505,7 @@ inline RefPtr<ClipPathOperation> StyleBuilderConverter::convertClipPath(StyleRes
         auto& primitiveValue = downcast<CSSPrimitiveValue>(currentValue.get());
         if (primitiveValue.isShape()) {
             ASSERT(!operation);
-            operation = ShapeClipPathOperation::create(basicShapeForValue(styleResolver.state().cssToLengthConversionData(), primitiveValue.getShapeValue()));
+            operation = ShapeClipPathOperation::create(basicShapeForValue(styleResolver.state().cssToLengthConversionData(), *primitiveValue.getShapeValue()));
         } else {
             ASSERT(primitiveValue.getValueID() == CSSValueContentBox
                    || primitiveValue.getValueID() == CSSValueBorderBox
@@ -626,10 +628,8 @@ inline RefPtr<StyleReflection> StyleBuilderConverter::convertReflection(StyleRes
     auto& reflectValue = downcast<CSSReflectValue>(value);
 
     auto reflection = StyleReflection::create();
-    reflection->setDirection(*reflectValue.direction());
-
-    if (reflectValue.offset())
-        reflection->setOffset(reflectValue.offset()->convertToLength<FixedIntegerConversion | PercentConversion | CalculatedConversion>(styleResolver.state().cssToLengthConversionData()));
+    reflection->setDirection(reflectValue.direction());
+    reflection->setOffset(reflectValue.offset().convertToLength<FixedIntegerConversion | PercentConversion | CalculatedConversion>(styleResolver.state().cssToLengthConversionData()));
 
     NinePieceImage mask;
     mask.setMaskDefaults();
@@ -751,7 +751,7 @@ inline PassRefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleReso
     for (auto& currentValue : downcast<CSSValueList>(value)) {
         CSSPrimitiveValue& primitiveValue = downcast<CSSPrimitiveValue>(currentValue.get());
         if (primitiveValue.isShape())
-            shape = basicShapeForValue(styleResolver.state().cssToLengthConversionData(), primitiveValue.getShapeValue());
+            shape = basicShapeForValue(styleResolver.state().cssToLengthConversionData(), *primitiveValue.getShapeValue());
         else if (primitiveValue.getValueID() == CSSValueContentBox
             || primitiveValue.getValueID() == CSSValueBorderBox
             || primitiveValue.getValueID() == CSSValuePaddingBox
@@ -764,7 +764,7 @@ inline PassRefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleReso
     }
 
     if (shape)
-        return ShapeValue::createShapeValue(shape.release(), referenceBox);
+        return ShapeValue::createShapeValue(WTFMove(shape), referenceBox);
 
     if (referenceBox != BoxMissing)
         return ShapeValue::createBoxShapeValue(referenceBox);

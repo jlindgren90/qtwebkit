@@ -85,10 +85,15 @@ public:
         return buffer;
     }
 
+    // Create an image buffer compatible with the context, with suitable resolution for drawing into the buffer and then into this context.
+    static std::unique_ptr<ImageBuffer> createCompatibleBuffer(const FloatSize&, const GraphicsContext&, bool hasAlpha = true);
     static std::unique_ptr<ImageBuffer> createCompatibleBuffer(const FloatSize&, float resolutionScale, ColorSpace, const GraphicsContext&, bool hasAlpha);
 #if PLATFORM(QT) && ENABLE(ACCELERATED_2D_CANVAS)
     static std::unique_ptr<ImageBuffer> createCompatibleBuffer(const IntSize&, ColorSpace, QOpenGLContext*);
 #endif
+
+    static IntSize compatibleBufferSize(const FloatSize&, const GraphicsContext&);
+    bool isCompatibleWithContext(const GraphicsContext&) const;
 
     WEBCORE_EXPORT ~ImageBuffer();
 
@@ -130,6 +135,9 @@ public:
 #if USE(CAIRO)
     NativeImagePtr nativeImage() const;
 #endif
+
+    size_t memoryCost() const;
+    size_t externalMemoryCost() const;
 
     // FIXME: current implementations of this method have the restriction that they only work
     // with textures that are RGB or RGBA format, and UNSIGNED_BYTE type.

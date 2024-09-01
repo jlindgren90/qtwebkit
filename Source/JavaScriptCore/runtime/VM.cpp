@@ -57,6 +57,7 @@
 #include "InferredTypeTable.h"
 #include "Interpreter.h"
 #include "JITCode.h"
+#include "JITWorklist.h"
 #include "JSAPIValueWrapper.h"
 #include "JSArray.h"
 #include "JSCInlines.h"
@@ -188,13 +189,7 @@ VM::VM(VMType vmType, HeapType heapType)
 #if !ENABLE(JIT)
     , m_jsStackLimit(0)
 #endif
-#if ENABLE(FTL_JIT)
-    , m_ftlStackLimit(0)
-    , m_largestFTLStackSize(0)
-#endif
-    , m_inDefineOwnProperty(false)
     , m_codeCache(std::make_unique<CodeCache>())
-    , m_enabledProfiler(nullptr)
     , m_builtinExecutables(std::make_unique<BuiltinExecutables>(*this))
     , m_typeProfilerEnabledCount(0)
     , m_controlFlowProfilerEnabledCount(0)
@@ -320,6 +315,8 @@ VM::VM(VMType vmType, HeapType heapType)
         Ref<Stopwatch> stopwatch = Stopwatch::create();
         stopwatch->start();
         m_samplingProfiler = adoptRef(new SamplingProfiler(*this, WTFMove(stopwatch)));
+        if (Options::samplingProfilerPath())
+            m_samplingProfiler->registerForReportAtExit();
         m_samplingProfiler->start();
     }
 #endif // ENABLE(SAMPLING_PROFILER)
@@ -340,10 +337,16 @@ VM::~VM()
     heap.incrementDeferralDepth();
 
 #if ENABLE(SAMPLING_PROFILER)
-    if (m_samplingProfiler)
+    if (m_samplingProfiler) {
+        m_samplingProfiler->reportDataToOptionFile();
         m_samplingProfiler->shutdown();
+    }
 #endif // ENABLE(SAMPLING_PROFILER)
     
+#if ENABLE(JIT)
+    JITWorklist::instance()->completeAllForVM(*this);
+#endif // ENABLE(JIT)
+
 #if ENABLE(DFG_JIT)
     // Make sure concurrent compilations are done, but don't install them, since there is
     // no point to doing so.
@@ -453,10 +456,11 @@ HeapProfiler& VM::ensureHeapProfiler()
 }
 
 #if ENABLE(SAMPLING_PROFILER)
-void VM::ensureSamplingProfiler(RefPtr<Stopwatch>&& stopwatch)
+SamplingProfiler& VM::ensureSamplingProfiler(RefPtr<Stopwatch>&& stopwatch)
 {
     if (!m_samplingProfiler)
         m_samplingProfiler = adoptRef(new SamplingProfiler(*this, WTFMove(stopwatch)));
+    return *m_samplingProfiler;
 }
 #endif // ENABLE(SAMPLING_PROFILER)
 
@@ -550,15 +554,6 @@ void VM::deleteAllLinkedCode()
 {
     whenIdle([this]() {
         heap.deleteAllCodeBlocks();
-        heap.reportAbandonedObjectGraph();
-    });
-}
-
-void VM::deleteAllRegExpCode()
-{
-    whenIdle([this]() {
-        m_regExpCache->deleteAllCode();
-        heap.reportAbandonedObjectGraph();
     });
 }
 
@@ -665,19 +660,9 @@ inline void VM::updateStackLimit()
     if (m_stackPointerAtVMEntry) {
         ASSERT(wtfThreadData().stack().isGrowingDownward());
         char* startOfStack = reinterpret_cast<char*>(m_stackPointerAtVMEntry);
-#if ENABLE(FTL_JIT)
-        m_stackLimit = wtfThreadData().stack().recursionLimit(startOfStack, Options::maxPerThreadStackUsage(), m_reservedZoneSize + m_largestFTLStackSize);
-        m_ftlStackLimit = wtfThreadData().stack().recursionLimit(startOfStack, Options::maxPerThreadStackUsage(), m_reservedZoneSize + 2 * m_largestFTLStackSize);
-#else
         m_stackLimit = wtfThreadData().stack().recursionLimit(startOfStack, Options::maxPerThreadStackUsage(), m_reservedZoneSize);
-#endif
     } else {
-#if ENABLE(FTL_JIT)
-        m_stackLimit = wtfThreadData().stack().recursionLimit(m_reservedZoneSize + m_largestFTLStackSize);
-        m_ftlStackLimit = wtfThreadData().stack().recursionLimit(m_reservedZoneSize + 2 * m_largestFTLStackSize);
-#else
         m_stackLimit = wtfThreadData().stack().recursionLimit(m_reservedZoneSize);
-#endif
     }
 
 #if PLATFORM(WIN)
@@ -685,16 +670,6 @@ inline void VM::updateStackLimit()
         preCommitStackMemory(m_stackLimit);
 #endif
 }
-
-#if ENABLE(FTL_JIT)
-void VM::updateFTLLargestStackSize(size_t stackSize)
-{
-    if (stackSize > m_largestFTLStackSize) {
-        m_largestFTLStackSize = stackSize;
-        updateStackLimit();
-    }
-}
-#endif
 
 #if ENABLE(DFG_JIT)
 void VM::gatherConservativeRoots(ConservativeRoots& conservativeRoots)
@@ -774,25 +749,6 @@ void VM::addImpureProperty(const String& propertyName)
 {
     if (RefPtr<WatchpointSet> watchpointSet = m_impurePropertyWatchpointSets.take(propertyName))
         watchpointSet->fireAll("Impure property added");
-}
-
-class SetEnabledProfilerFunctor {
-public:
-    bool operator()(CodeBlock* codeBlock) const
-    {
-        if (JITCode::isOptimizingJIT(codeBlock->jitType()))
-            codeBlock->jettison(Profiler::JettisonDueToLegacyProfiler);
-        return false;
-    }
-};
-
-void VM::setEnabledProfiler(LegacyProfiler* profiler)
-{
-    m_enabledProfiler = profiler;
-    if (m_enabledProfiler) {
-        SetEnabledProfilerFunctor functor;
-        heap.forEachCodeBlock(functor);
-    }
 }
 
 static bool enableProfilerWithRespectToCount(unsigned& counter, std::function<void()> doEnableWork)

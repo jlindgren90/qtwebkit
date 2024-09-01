@@ -40,6 +40,7 @@
     [RaisesException] void setFantasyFontFamily(DOMString family, DOMString script);
     [RaisesException] void setPictographFontFamily(DOMString family, DOMString script);
     [RaisesException] void setFontFallbackPrefersPictographs(boolean preferPictographs);
+    [RaisesException] void setWebFontsAlwaysFallBack(boolean enable);
 
     [RaisesException] void setTextAutosizingEnabled(boolean enabled);
     [RaisesException] void setTextAutosizingWindowSizeOverride(long width, long height);
@@ -62,6 +63,7 @@
     [RaisesException] void setEditingBehavior(DOMString behavior);
     [RaisesException] void setShouldConvertPositionStyleOnCopy(boolean convert);
     void setLangAttributeAwareFormControlUIEnabled(boolean enabled);
+    [RaisesException] void setPreferMIMETypeForImages(boolean preferMimeTypeForImage);
 
     // Other switches
     [RaisesException] void setStorageBlockingPolicy(DOMString policy);
@@ -73,6 +75,7 @@
 
     [RaisesException] void setMinimumTimerInterval(unrestricted double intervalInSeconds);
     [RaisesException] void setAllowsInlineMediaPlayback(boolean allows);
+    [RaisesException] void setAllowsInlineMediaPlaybackAfterFullscreen(boolean allows);
     [RaisesException] void setInlineMediaPlaybackRequiresPlaysInlineAttribute(boolean requires);
 
     [RaisesException] void setIndexedDBWorkersEnabled(boolean requires);

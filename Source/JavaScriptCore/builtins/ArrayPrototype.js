@@ -25,6 +25,7 @@
  */
 
 @constructor
+@globalPrivate
 function createArrayIterator(iteratedObject, kind, iterationFunction)
 {
     this.@iteratedObject = iteratedObject;
@@ -226,7 +227,7 @@ function filter(callback /*, thisArg */)
         if (@isArrayConstructor(constructor) && @Array !== constructor)
             constructor = @undefined;
         if (@isObject(constructor)) {
-            constructor = constructor[@symbolSpecies];
+            constructor = constructor.@speciesSymbol;
             if (constructor === null)
                 constructor = @undefined;
         }
@@ -278,7 +279,7 @@ function map(callback /*, thisArg */)
         if (@isArrayConstructor(constructor) && @Array !== constructor)
             constructor = @undefined;
         if (@isObject(constructor)) {
-            constructor = constructor[@symbolSpecies];
+            constructor = constructor.@speciesSymbol;
             if (constructor === null)
                 constructor = @undefined;
         }
@@ -694,22 +695,44 @@ function sort(comparator)
 function concatSlowPath()
 {
     "use strict";
+    if (this == null) {
+        if (this === null)
+            throw new @TypeError("Array.prototype.concat requires that |this| not be null");
+        throw new @TypeError("Array.prototype.concat requires that |this| not be undefined");
+    }
+
+    var currentElement = @Object(this);
+
+    var constructor;
+    if (@isArray(currentElement)) {
+        constructor = currentElement.constructor;
+        // We have this check so that if some array from a different global object
+        // calls this map they don't get an array with the Array.prototype of the
+        // other global object.
+        if (@isArrayConstructor(constructor) && @Array !== constructor)
+            constructor = @undefined;
+        else if (@isObject(constructor)) {
+            constructor = constructor.@speciesSymbol;
+            if (constructor === null)
+                constructor = @Array;
+        }
+    }
+    if (constructor === @undefined)
+        constructor = @Array;
 
     var argCount = arguments.length;
-    var result = new this.species(0);
+    var result = new constructor(0);
     var resultIsArray = @isJSArray(result);
 
-    var currentElement = this.array;
     var resultIndex = 0;
     var argIndex = 0;
 
     do {
-        var spreadable = @isObject(currentElement) && currentElement[@symbolIsConcatSpreadable];
-        if ((spreadable == @undefined && @isArray(currentElement)) || spreadable) {
-            var length = @toLength(currentElement.length);
-            if (resultIsArray && @isJSArray(currentElement)
-                && @appendMemcpy(result, currentElement)) {
-
+        let spreadable = @isObject(currentElement) && currentElement.@isConcatSpreadableSymbol;
+        if ((spreadable === @undefined && @isArray(currentElement)) || spreadable) {
+            let length = @toLength(currentElement.length);
+            if (resultIsArray && @isJSArray(currentElement)) {
+                @appendMemcpy(result, currentElement, resultIndex);
                 resultIndex += length;
             } else {
                 if (length + resultIndex > @MAX_SAFE_INTEGER)
@@ -736,47 +759,17 @@ function concat(first)
 {
     "use strict";
 
-    if (this == null) {
-        if (this === null)
-            throw new @TypeError("Array.prototype.concat requires that |this| not be null");
-        throw new @TypeError("Array.prototype.concat requires that |this| not be undefined");
-    }
+    if (@argumentCount() === 1
+        && @isJSArray(this)
+        && this.@isConcatSpreadableSymbol === @undefined
+        && (!@isObject(first) || first.@isConcatSpreadableSymbol === @undefined)) {
 
-    var array = @Object(this);
-
-    var constructor;
-    if (@isArray(array)) {
-        constructor = array.constructor;
-        // We have this check so that if some array from a different global object
-        // calls this map they don't get an array with the Array.prototype of the
-        // other global object.
-        if (@isArrayConstructor(constructor) && @Array !== constructor)
-            constructor = @undefined;
-        if (@isObject(constructor)) {
-            constructor = constructor[@symbolSpecies];
-            if (constructor === null)
-                constructor = @Array;
-        }
-    }
-    if (constructor === @undefined)
-        constructor = @Array;
-
-    var result;
-    if (arguments.length === 1
-        && constructor === @Array
-        && @isJSArray(array)
-        && @isJSArray(first)
-        // FIXME: these get_by_ids should be "in"s but using "in" here is a 10% regression.
-        // https://bugs.webkit.org/show_bug.cgi?id=155590
-        && array[@symbolIsConcatSpreadable] == @undefined
-        && first[@symbolIsConcatSpreadable] == @undefined) {
-
-        result = @concatMemcpy(array, first);
+        let result = @concatMemcpy(this, first);
         if (result !== null)
             return result;
     }
 
-    return @concatSlowPath.@apply({ array: array, species: constructor }, arguments);
+    return @tailCallForwardArguments(@concatSlowPath, this);
 }
 
 function copyWithin(target, start /*, end */)

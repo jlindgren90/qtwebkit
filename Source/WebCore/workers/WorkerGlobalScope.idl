@@ -28,7 +28,6 @@
     Exposed=Worker,
     CustomProxyToJSObject,
     JSCustomMarkFunction,
-    JSCustomGetOwnPropertySlotAndDescriptor,
     JSLegacyParent=JSWorkerGlobalScopeBase,
 ] interface WorkerGlobalScope : EventTarget {
 
@@ -65,4 +64,4 @@
     [Conditional=INDEXED_DATABASE_IN_WORKERS, EnabledAtRuntime=IndexedDBWorkers] attribute IDBVersionChangeEventConstructor IDBVersionChangeEvent;
 };
 
-WorkerGlobalScope implements WindowTimers;
+WorkerGlobalScope implements WindowOrWorkerGlobalScope;

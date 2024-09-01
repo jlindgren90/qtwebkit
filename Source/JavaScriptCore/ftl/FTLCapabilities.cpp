@@ -160,7 +160,7 @@ inline CapabilityLevel canCompile(Node* node)
     case GetExecutable:
     case GetScope:
     case GetCallee:
-    case GetArgumentCount:
+    case GetArgumentCountIncludingThis:
     case CallObjectConstructor:
     case ToString:
     case CallStringConstructor:
@@ -177,9 +177,7 @@ inline CapabilityLevel canCompile(Node* node)
     case Throw:
     case ThrowReferenceError:
     case Unreachable:
-    case IsArrayObject:
     case IsJSArray:
-    case IsArrayConstructor:
     case IsEmpty:
     case IsUndefined:
     case IsBoolean:
@@ -189,6 +187,7 @@ inline CapabilityLevel canCompile(Node* node)
     case IsObjectOrNull:
     case IsFunction:
     case IsRegExpObject:
+    case IsTypedArrayView:
     case CheckTypeInfoFlags:
     case OverridesHasInstance:
     case InstanceOf:

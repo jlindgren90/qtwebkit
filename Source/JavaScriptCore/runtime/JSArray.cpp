@@ -392,33 +392,42 @@ bool JSArray::setLengthWithArrayStorage(ExecState* exec, unsigned newLength, boo
     return true;
 }
 
-bool JSArray::appendMemcpy(ExecState* exec, VM& vm, JSC::JSArray* otherArray)
+bool JSArray::appendMemcpy(ExecState* exec, VM& vm, unsigned startIndex, JSC::JSArray* otherArray)
 {
     if (!canFastCopy(vm, otherArray))
         return false;
 
     IndexingType type = indexingType();
-    if (type != memCopyWithIndexingType(otherArray->indexingType()))
+    IndexingType copyType = mergeIndexingTypeForCopying(otherArray->indexingType());
+    if (type == ArrayWithUndecided && copyType != NonArray) {
+        if (copyType == ArrayWithInt32)
+            convertUndecidedToInt32(vm);
+        else if (copyType == ArrayWithDouble)
+            convertUndecidedToDouble(vm);
+        else if (copyType == ArrayWithContiguous)
+            convertUndecidedToContiguous(vm);
+        else {
+            ASSERT(copyType == ArrayWithUndecided);
+            return true;
+        }
+    } else if (type != copyType)
         return false;
 
-    unsigned oldLength = length();
     unsigned otherLength = otherArray->length();
-    unsigned newLength = oldLength + otherLength;
+    unsigned newLength = startIndex + otherLength;
     if (newLength >= MIN_SPARSE_ARRAY_INDEX)
         return false;
 
-    if (!ensureLength(vm, newLength))
-        return false;
-    ASSERT(type == indexingType());
-    if (length() != newLength) {
+    if (!ensureLength(vm, newLength)) {
         throwOutOfMemoryError(exec);
         return false;
     }
+    ASSERT(copyType == indexingType());
 
     if (type == ArrayWithDouble)
-        memcpy(butterfly()->contiguousDouble().data() + oldLength, otherArray->butterfly()->contiguousDouble().data(), sizeof(JSValue) * otherLength);
+        memcpy(butterfly()->contiguousDouble().data() + startIndex, otherArray->butterfly()->contiguousDouble().data(), sizeof(JSValue) * otherLength);
     else
-        memcpy(butterfly()->contiguous().data() + oldLength, otherArray->butterfly()->contiguous().data(), sizeof(JSValue) * otherLength);
+        memcpy(butterfly()->contiguous().data() + startIndex, otherArray->butterfly()->contiguous().data(), sizeof(JSValue) * otherLength);
 
     return true;
 }

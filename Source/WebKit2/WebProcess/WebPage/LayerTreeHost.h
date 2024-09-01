@@ -57,7 +57,7 @@ class WebPage;
 
 class LayerTreeHost : public RefCounted<LayerTreeHost> {
 public:
-    static PassRefPtr<LayerTreeHost> create(WebPage*);
+    static RefPtr<LayerTreeHost> create(WebPage&);
     virtual ~LayerTreeHost();
 
     virtual const LayerTreeContext& layerTreeContext() = 0;
@@ -86,7 +86,7 @@ public:
 #endif
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
-    virtual void viewportSizeChanged(const WebCore::IntSize&) = 0;
+    virtual void contentsSizeChanged(const WebCore::IntSize&) = 0;
     virtual void didChangeViewportProperties(const WebCore::ViewportAttributes&) = 0;
 #endif
 
@@ -101,9 +101,9 @@ public:
     virtual void setViewOverlayRootLayer(WebCore::GraphicsLayer*) = 0;
 
 protected:
-    explicit LayerTreeHost(WebPage*);
+    explicit LayerTreeHost(WebPage&);
 
-    WebPage* m_webPage;
+    WebPage& m_webPage;
 };
 
 } // namespace WebKit

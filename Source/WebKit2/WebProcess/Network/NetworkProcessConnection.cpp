@@ -76,7 +76,7 @@ void NetworkProcessConnection::didClose(IPC::Connection&)
     WebProcess::singleton().networkProcessConnectionClosed(this);
 
     Vector<String> dummyFilenames;
-    for (auto handler : m_writeBlobToFileCompletionHandlers.values())
+    for (auto& handler : m_writeBlobToFileCompletionHandlers.values())
         handler(dummyFilenames);
 
     m_writeBlobToFileCompletionHandlers.clear();
@@ -86,12 +86,12 @@ void NetworkProcessConnection::didReceiveInvalidMessage(IPC::Connection&, IPC::S
 {
 }
 
-void NetworkProcessConnection::writeBlobsToTemporaryFiles(const Vector<String>& blobURLs, std::function<void (const Vector<String>& filePaths)> completionHandler)
+void NetworkProcessConnection::writeBlobsToTemporaryFiles(const Vector<String>& blobURLs, Function<void (const Vector<String>& filePaths)>&& completionHandler)
 {
     static uint64_t writeBlobToFileIdentifier;
     uint64_t requestIdentifier = ++writeBlobToFileIdentifier;
 
-    m_writeBlobToFileCompletionHandlers.set(requestIdentifier, completionHandler);
+    m_writeBlobToFileCompletionHandlers.set(requestIdentifier, WTFMove(completionHandler));
 
     WebProcess::singleton().networkConnection()->connection()->send(Messages::NetworkConnectionToWebProcess::WriteBlobsToTemporaryFiles(blobURLs, requestIdentifier), 0);
 }

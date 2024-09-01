@@ -37,10 +37,12 @@
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
+#include "HTMLFieldSetElement.h"
 #include "HTMLFormControlsCollection.h"
 #include "HTMLImageElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLNames.h"
+#include "HTMLObjectElement.h"
 #include "HTMLTableElement.h"
 #include "NodeRareData.h"
 #include "Page.h"
@@ -80,6 +82,7 @@ HTMLFormElement::~HTMLFormElement()
     if (!shouldAutocomplete())
         document().unregisterForDocumentSuspensionCallbacks(this);
 
+    m_defaultButton = nullptr;
     for (auto& associatedElement : m_associatedElements)
         associatedElement->formWillBeDestroyed();
     for (auto& imageElement : m_imageElements)
@@ -230,7 +233,7 @@ bool HTMLFormElement::validateInteractively(Event* event)
     // has !renderer()->needsLayout() assertion.
     document().updateLayoutIgnorePendingStylesheets();
 
-    Ref<HTMLFormElement> protect(*this);
+    Ref<HTMLFormElement> protectedThis(*this);
 
     // Focus on the first focusable control and show a validation message.
     for (auto& control : unhandledInvalidControls) {
@@ -276,10 +279,10 @@ void HTMLFormElement::prepareForSubmission(Event* event)
 
     StringPairVector controlNamesAndValues;
     getTextFieldValues(controlNamesAndValues);
-    RefPtr<FormState> formState = FormState::create(this, controlNamesAndValues, &document(), NotSubmittedByJavaScript);
-    frame->loader().client().dispatchWillSendSubmitEvent(formState.release());
+    auto formState = FormState::create(this, controlNamesAndValues, &document(), NotSubmittedByJavaScript);
+    frame->loader().client().dispatchWillSendSubmitEvent(WTFMove(formState));
 
-    Ref<HTMLFormElement> protect(*this);
+    Ref<HTMLFormElement> protectedThis(*this);
     // Event handling can result in m_shouldSubmit becoming true, regardless of dispatchEvent() return value.
     if (dispatchEvent(Event::create(eventNames().submitEvent, true, true)))
         m_shouldSubmit = true;
@@ -350,7 +353,7 @@ void HTMLFormElement::submit(Event* event, bool activateSubmitButton, bool proce
         firstSuccessfulSubmitButton->setActivatedSubmit(true);
 
     LockHistory lockHistory = processingUserGesture ? LockHistory::No : LockHistory::Yes;
-    Ref<HTMLFormElement> protect(*this); // Form submission can execute arbitary JavaScript.
+    Ref<HTMLFormElement> protectedThis(*this); // Form submission can execute arbitary JavaScript.
     frame->loader().submitForm(FormSubmission::create(this, m_attributes, event, lockHistory, formSubmissionTrigger));
 
     if (needButtonActivation && firstSuccessfulSubmitButton)
@@ -596,6 +599,16 @@ unsigned HTMLFormElement::formElementIndex(FormAssociatedElement* associatedElem
 void HTMLFormElement::registerFormElement(FormAssociatedElement* e)
 {
     m_associatedElements.insert(formElementIndex(e), e);
+
+    if (is<HTMLFormControlElement>(e)) {
+        HTMLFormControlElement& control = downcast<HTMLFormControlElement>(*e);
+        if (control.isSuccessfulSubmitButton()) {
+            if (!m_defaultButton)
+                control.setNeedsStyleRecalc();
+            else
+                resetDefaultButton();
+        }
+    }
 }
 
 void HTMLFormElement::removeFormElement(FormAssociatedElement* e)
@@ -608,6 +621,9 @@ void HTMLFormElement::removeFormElement(FormAssociatedElement* e)
         --m_associatedElementsAfterIndex;
     removeFromPastNamesMap(e);
     m_associatedElements.remove(index);
+
+    if (e == m_defaultButton)
+        resetDefaultButton();
 }
 
 void HTMLFormElement::registerInvalidAssociatedFormControl(const HTMLFormControlElement& formControlElement)
@@ -706,15 +722,38 @@ bool HTMLFormElement::wasUserSubmitted() const
 
 HTMLFormControlElement* HTMLFormElement::defaultButton() const
 {
-    for (auto& associatedElement : m_associatedElements) {
-        if (!is<HTMLFormControlElement>(*associatedElement))
-            continue;
-        HTMLFormControlElement& control = downcast<HTMLFormControlElement>(*associatedElement);
-        if (control.isSuccessfulSubmitButton())
-            return &control;
+    if (!m_defaultButton) {
+        for (auto& associatedElement : m_associatedElements) {
+            if (!is<HTMLFormControlElement>(*associatedElement))
+                continue;
+            HTMLFormControlElement& control = downcast<HTMLFormControlElement>(*associatedElement);
+            if (control.isSuccessfulSubmitButton()) {
+                m_defaultButton = &control;
+                break;
+            }
+        }
+    }
+    return m_defaultButton;
+}
+
+void HTMLFormElement::resetDefaultButton()
+{
+    if (!m_defaultButton) {
+        // Computing the default button is not cheap, we don't want to do it unless needed.
+        // If there was no default button set, the only style to invalidate is the element
+        // being added to the form. This is done explicitely in registerFormElement().
+        return;
     }
 
-    return nullptr;
+    HTMLFormControlElement* oldDefault = m_defaultButton;
+    m_defaultButton = nullptr;
+    defaultButton();
+    if (m_defaultButton != oldDefault) {
+        if (oldDefault)
+            oldDefault->setNeedsStyleRecalc();
+        if (m_defaultButton)
+            m_defaultButton->setNeedsStyleRecalc();
+    }
 }
 
 bool HTMLFormElement::checkValidity()
@@ -725,7 +764,7 @@ bool HTMLFormElement::checkValidity()
 
 bool HTMLFormElement::checkInvalidControlsAndCollectUnhandled(Vector<RefPtr<FormAssociatedElement>>& unhandledInvalidControls)
 {
-    Ref<HTMLFormElement> protect(*this);
+    Ref<HTMLFormElement> protectedThis(*this);
     // Copy m_associatedElements because event handlers called from
     // HTMLFormControlElement::checkValidity() might change m_associatedElements.
     Vector<RefPtr<FormAssociatedElement>> elements;

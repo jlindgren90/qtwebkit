@@ -65,8 +65,9 @@ WebInspector.ProfileView = class ProfileView extends WebInspector.ContentView
         this._dataGrid.element.addEventListener("mouseover", this._mouseOverDataGrid.bind(this));
         this._dataGrid.element.addEventListener("mouseleave", this._mouseLeaveDataGrid.bind(this));
         this._dataGrid.indentWidth = 20;
-        this._dataGrid.sortColumnIdentifierSetting = new WebInspector.Setting("profile-view-sort", "totalTime");
-        this._dataGrid.sortOrderSetting = new WebInspector.Setting("profile-view-sort-order", WebInspector.DataGrid.SortOrder.Descending);
+        this._dataGrid.sortColumnIdentifier = "totalTime";
+        this._dataGrid.sortOrder = WebInspector.DataGrid.SortOrder.Descending;
+        this._dataGrid.createSettings("profile-view");
 
         this.addSubview(this._dataGrid);
     }
@@ -76,6 +77,7 @@ WebInspector.ProfileView = class ProfileView extends WebInspector.ContentView
     get callingContextTree() { return this._callingContextTree; }
     get startTime() { return this._startTime; }
     get endTime() { return this._endTime; }
+    get dataGrid() { return this._dataGrid; }
 
     setStartAndEndTime(startTime, endTime)
     {
@@ -104,6 +106,11 @@ WebInspector.ProfileView = class ProfileView extends WebInspector.ContentView
         if (!this._profileDataGridTree)
             return;
         this._profileDataGridTree.clearFocusNodes();
+    }
+
+    get scrollableElements()
+    {
+        return [this._dataGrid.scrollContainer];
     }
 
     // Protected
@@ -141,7 +148,7 @@ WebInspector.ProfileView = class ProfileView extends WebInspector.ContentView
             this.dispatchEventToListeners(WebInspector.ContentView.Event.SelectionPathComponentsDidChange);
     }
 
-    _repopulateDataGridFromTree(skipRefresh)
+    _repopulateDataGridFromTree()
     {
         this._dataGrid.removeChildren();
         for (let child of this._profileDataGridTree.children)

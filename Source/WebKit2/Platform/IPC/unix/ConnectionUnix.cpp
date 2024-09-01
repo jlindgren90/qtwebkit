@@ -137,10 +137,6 @@ void Connection::platformInitialize(Identifier identifier)
     m_socketDescriptor = identifier;
     m_readBuffer.reserveInitialCapacity(messageMaxSize);
     m_fileDescriptors.reserveInitialCapacity(attachmentMaxAmount);
-
-#if PLATFORM(QT)
-    m_socketNotifier = 0;
-#endif
 }
 
 void Connection::platformInvalidate()
@@ -339,19 +335,17 @@ static ssize_t readBytesFromSocket(int socketDescriptor, Vector<uint8_t>& buffer
         struct cmsghdr* controlMessage;
         for (controlMessage = CMSG_FIRSTHDR(&message); controlMessage; controlMessage = CMSG_NXTHDR(&message, controlMessage)) {
             if (controlMessage->cmsg_level == SOL_SOCKET && controlMessage->cmsg_type == SCM_RIGHTS) {
-                if (controlMessage->cmsg_len < CMSG_LEN(0) || controlMessage->cmsg_len > attachmentMaxAmount) {
-                    ASSERT_NOT_REACHED();
-                    break;
-                }
                 size_t previousFileDescriptorsSize = fileDescriptors.size();
                 size_t fileDescriptorsCount = (controlMessage->cmsg_len - CMSG_LEN(0)) / sizeof(int);
                 fileDescriptors.grow(fileDescriptors.size() + fileDescriptorsCount);
                 memcpy(fileDescriptors.data() + previousFileDescriptorsSize, CMSG_DATA(controlMessage), sizeof(int) * fileDescriptorsCount);
 
                 for (size_t i = 0; i < fileDescriptorsCount; ++i) {
-                    if (!setCloseOnExec(fileDescriptors[previousFileDescriptorsSize + i])) {
-                        ASSERT_NOT_REACHED();
-                        break;
+                    while (fcntl(fileDescriptors[previousFileDescriptorsSize + i], F_SETFD, FD_CLOEXEC) == -1) {
+                        if (errno != EINTR) {
+                            ASSERT_NOT_REACHED();
+                            break;
+                        }
                     }
                 }
                 break;

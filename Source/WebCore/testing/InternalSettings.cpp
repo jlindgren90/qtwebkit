@@ -79,6 +79,7 @@ InternalSettings::Backup::Backup(Settings& settings)
     , m_originalMockScrollbarsEnabled(settings.mockScrollbarsEnabled())
     , m_langAttributeAwareFormControlUIEnabled(RuntimeEnabledFeatures::sharedFeatures().langAttributeAwareFormControlUIEnabled())
     , m_imagesEnabled(settings.areImagesEnabled())
+    , m_preferMIMETypeForImages(settings.preferMIMETypeForImages())
     , m_minimumTimerInterval(settings.minimumDOMTimerInterval())
 #if ENABLE(VIDEO_TRACK)
     , m_shouldDisplaySubtitles(settings.shouldDisplaySubtitles())
@@ -93,6 +94,7 @@ InternalSettings::Backup::Backup(Settings& settings)
     , m_pluginReplacementEnabled(RuntimeEnabledFeatures::sharedFeatures().pluginReplacementEnabled())
     , m_shouldConvertPositionStyleOnCopy(settings.shouldConvertPositionStyleOnCopy())
     , m_fontFallbackPrefersPictographs(settings.fontFallbackPrefersPictographs())
+    , m_webFontsAlwaysFallBack(settings.webFontsAlwaysFallBack())
     , m_backgroundShouldExtendBeyondPage(settings.backgroundShouldExtendBeyondPage())
     , m_storageBlockingPolicy(settings.storageBlockingPolicy())
     , m_scrollingTreeIncludesFrames(settings.scrollingTreeIncludesFrames())
@@ -103,6 +105,7 @@ InternalSettings::Backup::Backup(Settings& settings)
     , m_allowsAirPlayForMediaPlayback(settings.allowsAirPlayForMediaPlayback())
 #endif
     , m_allowsInlineMediaPlayback(settings.allowsInlineMediaPlayback())
+    , m_allowsInlineMediaPlaybackAfterFullscreen(settings.allowsInlineMediaPlaybackAfterFullscreen())
     , m_inlineMediaPlaybackRequiresPlaysInlineAttribute(settings.inlineMediaPlaybackRequiresPlaysInlineAttribute())
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
     , m_indexedDBWorkersEnabled(RuntimeEnabledFeatures::sharedFeatures().indexedDBWorkersEnabled())
@@ -155,6 +158,7 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
     settings.setCanvasUsesAcceleratedDrawing(m_originalCanvasUsesAcceleratedDrawing);
     RuntimeEnabledFeatures::sharedFeatures().setLangAttributeAwareFormControlUIEnabled(m_langAttributeAwareFormControlUIEnabled);
     settings.setImagesEnabled(m_imagesEnabled);
+    settings.setPreferMIMETypeForImages(m_preferMIMETypeForImages);
     settings.setMinimumDOMTimerInterval(m_minimumTimerInterval);
 #if ENABLE(VIDEO_TRACK)
     settings.setShouldDisplaySubtitles(m_shouldDisplaySubtitles);
@@ -168,6 +172,7 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
     settings.setAutoscrollForDragAndDropEnabled(m_autoscrollForDragAndDropEnabled);
     settings.setShouldConvertPositionStyleOnCopy(m_shouldConvertPositionStyleOnCopy);
     settings.setFontFallbackPrefersPictographs(m_fontFallbackPrefersPictographs);
+    settings.setWebFontsAlwaysFallBack(m_webFontsAlwaysFallBack);
     settings.setBackgroundShouldExtendBeyondPage(m_backgroundShouldExtendBeyondPage);
     settings.setStorageBlockingPolicy(m_storageBlockingPolicy);
     settings.setScrollingTreeIncludesFrames(m_scrollingTreeIncludesFrames);
@@ -175,6 +180,7 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
     settings.setTouchEventEmulationEnabled(m_touchEventEmulationEnabled);
 #endif
     settings.setAllowsInlineMediaPlayback(m_allowsInlineMediaPlayback);
+    settings.setAllowsInlineMediaPlaybackAfterFullscreen(m_allowsInlineMediaPlaybackAfterFullscreen);
     settings.setInlineMediaPlaybackRequiresPlaysInlineAttribute(m_inlineMediaPlaybackRequiresPlaysInlineAttribute);
     RuntimeEnabledFeatures::sharedFeatures().setPluginReplacementEnabled(m_pluginReplacementEnabled);
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
@@ -182,6 +188,7 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
 #endif
     settings.setUserInterfaceDirectionPolicy(m_userInterfaceDirectionPolicy);
     settings.setSystemLayoutDirection(m_systemLayoutDirection);
+    Settings::setAllowsAnySSLCertificate(false);
 }
 
 class InternalSettingsWrapper : public Supplement<Page> {
@@ -226,11 +233,12 @@ InternalSettings::InternalSettings(Page* page)
 
 void InternalSettings::resetToConsistentState()
 {
-    page()->setPageScaleFactor(1, IntPoint(0, 0));
+    page()->setPageScaleFactor(1, { 0, 0 });
+    page()->mainFrame().setPageAndTextZoomFactors(1, 1);
     page()->setCanStartMedia(true);
     page()->settings().setForcePendingWebGLPolicy(false);
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-    m_page->settings().setAllowsAirPlayForMediaPlayback(false);
+    page()->settings().setAllowsAirPlayForMediaPlayback(false);
 #endif
 
     m_backup.restoreTo(*settings());
@@ -463,6 +471,12 @@ void InternalSettings::setLangAttributeAwareFormControlUIEnabled(bool enabled)
     RuntimeEnabledFeatures::sharedFeatures().setLangAttributeAwareFormControlUIEnabled(enabled);
 }
 
+void InternalSettings::setPreferMIMETypeForImages(bool preferMIMETypeForImages, ExceptionCode &ec)
+{
+    InternalSettingsGuardForSettings();
+    settings()->setPreferMIMETypeForImages(preferMIMETypeForImages);
+}
+
 void InternalSettings::setImagesEnabled(bool enabled, ExceptionCode& ec)
 {
     InternalSettingsGuardForSettings();
@@ -511,6 +525,12 @@ void InternalSettings::setFontFallbackPrefersPictographs(bool preferPictographs,
     settings()->setFontFallbackPrefersPictographs(preferPictographs);
 }
 
+void InternalSettings::setWebFontsAlwaysFallBack(bool enable, ExceptionCode& ec)
+{
+    InternalSettingsGuardForSettings();
+    settings()->setWebFontsAlwaysFallBack(enable);
+}
+
 void InternalSettings::setPluginReplacementEnabled(bool enabled)
 {
     RuntimeEnabledFeatures::sharedFeatures().setPluginReplacementEnabled(enabled);
@@ -538,6 +558,12 @@ void InternalSettings::setAllowsInlineMediaPlayback(bool allows, ExceptionCode& 
 {
     InternalSettingsGuardForSettings();
     settings()->setAllowsInlineMediaPlayback(allows);
+}
+
+void InternalSettings::setAllowsInlineMediaPlaybackAfterFullscreen(bool allows, ExceptionCode& ec)
+{
+    InternalSettingsGuardForSettings();
+    settings()->setAllowsInlineMediaPlaybackAfterFullscreen(allows);
 }
 
 void InternalSettings::setInlineMediaPlaybackRequiresPlaysInlineAttribute(bool requires, ExceptionCode& ec)
@@ -607,6 +633,11 @@ void InternalSettings::setSystemLayoutDirection(const String& direction, Excepti
         return;
     }
     ec = INVALID_ACCESS_ERR;
+}
+
+void InternalSettings::setAllowsAnySSLCertificate(bool allowsAnyCertificate)
+{
+    Settings::setAllowsAnySSLCertificate(allowsAnyCertificate);
 }
 
 // If you add to this list, make sure that you update the Backup class for test reproducability!

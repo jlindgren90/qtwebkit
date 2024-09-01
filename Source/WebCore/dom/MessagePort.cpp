@@ -28,6 +28,7 @@
 #include "MessagePort.h"
 
 #include "Document.h"
+#include "EventNames.h"
 #include "ExceptionCode.h"
 #include "MessageEvent.h"
 #include "SecurityOrigin.h"
@@ -221,11 +222,11 @@ std::unique_ptr<MessagePortArray> MessagePort::entanglePorts(ScriptExecutionCont
     return portArray;
 }
 
-bool MessagePort::addEventListener(const AtomicString& eventType, RefPtr<EventListener>&& listener, bool useCapture)
+bool MessagePort::addEventListener(const AtomicString& eventType, Ref<EventListener>&& listener, const AddEventListenerOptions& options)
 {
-    if (listener && listener->isAttribute() && eventType == eventNames().messageEvent)
+    if (listener->isAttribute() && eventType == eventNames().messageEvent)
         start();
-    return EventTargetWithInlineData::addEventListener(eventType, WTFMove(listener), useCapture);
+    return EventTargetWithInlineData::addEventListener(eventType, WTFMove(listener), options);
 }
 
 } // namespace WebCore

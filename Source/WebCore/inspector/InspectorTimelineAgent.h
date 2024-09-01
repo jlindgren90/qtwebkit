@@ -41,8 +41,9 @@
 #include <inspector/ScriptDebugListener.h>
 #include <wtf/Vector.h>
 
-namespace JSC {
-class Profile;
+namespace Inspector {
+class InspectorHeapAgent;
+class InspectorScriptProfilerAgent;
 }
 
 namespace WebCore {
@@ -92,7 +93,7 @@ class InspectorTimelineAgent final
     WTF_MAKE_NONCOPYABLE(InspectorTimelineAgent);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    InspectorTimelineAgent(WebAgentContext&, InspectorPageAgent*);
+    InspectorTimelineAgent(WebAgentContext&, Inspector::InspectorScriptProfilerAgent*, Inspector::InspectorHeapAgent*, InspectorPageAgent*);
     virtual ~InspectorTimelineAgent();
 
     void didCreateFrontendAndBackend(Inspector::FrontendRouter*, Inspector::BackendDispatcher*) final;
@@ -100,14 +101,16 @@ public:
 
     void start(ErrorString&, const int* maxCallStackDepth = nullptr) final;
     void stop(ErrorString&) final;
+    void setAutoCaptureEnabled(ErrorString&, bool) final;
+    void setInstruments(ErrorString&, const Inspector::InspectorArray&) final;
 
     int id() const { return m_id; }
 
     void didCommitLoad();
 
     // Methods called from WebCore.
-    void startFromConsole(JSC::ExecState*, const String &title);
-    RefPtr<JSC::Profile> stopFromConsole(JSC::ExecState*, const String& title);
+    void startFromConsole(JSC::ExecState*, const String& title);
+    void stopFromConsole(JSC::ExecState*, const String& title);
 
     // InspectorInstrumentation callbacks.
     void didInstallTimer(int timerId, std::chrono::milliseconds timeout, bool singleShot, Frame*);
@@ -137,6 +140,8 @@ public:
     void didFireAnimationFrame();
     void time(Frame&, const String&);
     void timeEnd(Frame&, const String&);
+    void mainFrameStartedLoading();
+    void mainFrameNavigated();
 
 private:
     // ScriptDebugListener
@@ -148,6 +153,18 @@ private:
     void breakpointActionLog(JSC::ExecState&, const String&) final { }
     void breakpointActionSound(int) final { }
     void breakpointActionProbe(JSC::ExecState&, const Inspector::ScriptBreakpointAction&, unsigned batchId, unsigned sampleId, JSC::JSValue result) final;
+
+    void startProgrammaticCapture();
+    void stopProgrammaticCapture();
+
+    enum class InstrumentState { Start, Stop };
+    void toggleInstruments(InstrumentState);
+    void toggleScriptProfilerInstrument(InstrumentState);
+    void toggleHeapInstrument(InstrumentState);
+    void toggleMemoryInstrument(InstrumentState);
+    void toggleTimelineInstrument(InstrumentState);
+    void disableBreakpoints();
+    void enableBreakpoints();
 
     friend class TimelineRecordStack;
 
@@ -191,16 +208,24 @@ private:
 
     std::unique_ptr<Inspector::TimelineFrontendDispatcher> m_frontendDispatcher;
     RefPtr<Inspector::TimelineBackendDispatcher> m_backendDispatcher;
+    Inspector::InspectorScriptProfilerAgent* m_scriptProfilerAgent;
+    Inspector::InspectorHeapAgent* m_heapAgent;
     InspectorPageAgent* m_pageAgent;
 
     Vector<TimelineRecordEntry> m_recordStack;
+    Vector<TimelineRecordEntry> m_pendingConsoleProfileRecords;
+
     int m_id { 1 };
     int m_maxCallStackDepth { 5 };
 
-    Vector<TimelineRecordEntry> m_pendingConsoleProfileRecords;
-
     bool m_enabled { false };
     bool m_enabledFromFrontend { false };
+    bool m_programmaticCaptureRestoreBreakpointActiveValue { false };
+
+    bool m_autoCaptureEnabled { false };
+    enum class AutoCapturePhase { None, BeforeLoad, FirstNavigation, AfterFirstNavigation };
+    AutoCapturePhase m_autoCapturePhase { AutoCapturePhase::None };
+    Vector<Inspector::Protocol::Timeline::Instrument> m_instruments;
 
 #if PLATFORM(COCOA)
     std::unique_ptr<WebCore::RunLoopObserver> m_frameStartObserver;

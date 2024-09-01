@@ -50,7 +50,7 @@ bool doesGC(Graph& graph, Node* node)
     case LazyJSConstant:
     case Identity:
     case GetCallee:
-    case GetArgumentCount:
+    case GetArgumentCountIncludingThis:
     case GetRestLength:
     case GetLocal:
     case SetLocal:
@@ -150,16 +150,12 @@ bool doesGC(Graph& graph, Node* node)
     case ConstructForwardVarargs:
     case TailCallForwardVarargs:
     case TailCallForwardVarargsInlinedCaller:
-    case ProfileWillCall:
-    case ProfileDidCall:
     case ProfileType:
     case ProfileControlFlow:
     case OverridesHasInstance:
     case InstanceOf:
     case InstanceOfCustom:
-    case IsArrayObject:
     case IsJSArray:
-    case IsArrayConstructor:
     case IsEmpty:
     case IsUndefined:
     case IsBoolean:
@@ -169,6 +165,7 @@ bool doesGC(Graph& graph, Node* node)
     case IsObjectOrNull:
     case IsFunction:
     case IsRegExpObject:
+    case IsTypedArrayView:
     case TypeOf:
     case LogicalNot:
     case ToPrimitive:

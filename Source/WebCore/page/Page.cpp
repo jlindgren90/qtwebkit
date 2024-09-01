@@ -96,7 +96,6 @@
 #include "VisitedLinkStore.h"
 #include "VoidCallback.h"
 #include "Widget.h"
-#include <JavaScriptCore/Profile.h>
 #include <wtf/HashMap.h>
 #include <wtf/RefCountedLeakCounter.h>
 #include <wtf/StdLibExtras.h>
@@ -157,7 +156,7 @@ static void networkStateChanged(bool isOnLine)
 
 static const ViewState::Flags PageInitialViewState = ViewState::IsVisible | ViewState::IsInWindow;
 
-Page::Page(PageConfiguration& pageConfiguration)
+Page::Page(PageConfiguration&& pageConfiguration)
     : m_chrome(std::make_unique<Chrome>(*this, *pageConfiguration.chromeClient))
     , m_dragCaretController(std::make_unique<DragCaretController>())
 #if ENABLE(DRAG_SUPPORT)
@@ -180,7 +179,7 @@ Page::Page(PageConfiguration& pageConfiguration)
     , m_backForwardController(std::make_unique<BackForwardController>(*this, WTFMove(pageConfiguration.backForwardClient)))
     , m_mainFrame(MainFrame::create(*this, pageConfiguration))
     , m_theme(RenderTheme::themeForPage(this))
-    , m_editorClient(*pageConfiguration.editorClient)
+    , m_editorClient(WTFMove(pageConfiguration.editorClient))
     , m_plugInClient(pageConfiguration.plugInClient)
     , m_validationMessageClient(pageConfiguration.validationMessageClient)
     , m_diagnosticLoggingClient(WTFMove(pageConfiguration.diagnosticLoggingClient))
@@ -231,6 +230,7 @@ Page::Page(PageConfiguration& pageConfiguration)
 #endif
     , m_lastSpatialNavigationCandidatesCount(0) // NOTE: Only called from Internals for Spatial Navigation testing.
     , m_forbidPromptsDepth(0)
+    , m_socketProvider(WTFMove(pageConfiguration.socketProvider))
     , m_applicationCacheStorage(*WTFMove(pageConfiguration.applicationCacheStorage))
     , m_databaseProvider(*WTFMove(pageConfiguration.databaseProvider))
     , m_storageNamespaceProvider(*WTFMove(pageConfiguration.storageNamespaceProvider))
@@ -284,7 +284,6 @@ Page::~Page()
         frame->detachFromPage();
     }
 
-    m_editorClient.pageDestroyed();
     if (m_plugInClient)
         m_plugInClient->pageDestroyed();
     if (m_alternativeTextClient)
@@ -373,8 +372,11 @@ Ref<ClientRectList> Page::nonFastScrollableRects()
         document->updateLayout();
 
     Vector<IntRect> rects;
-    if (ScrollingCoordinator* scrollingCoordinator = this->scrollingCoordinator())
-        rects = scrollingCoordinator->absoluteNonFastScrollableRegion().rects();
+    if (ScrollingCoordinator* scrollingCoordinator = this->scrollingCoordinator()) {
+        const EventTrackingRegions& eventTrackingRegions = scrollingCoordinator->absoluteEventTrackingRegions();
+        for (const auto& synchronousEventRegion : eventTrackingRegions.eventSpecificSynchronousDispatchRegions)
+            rects.appendVector(synchronousEventRegion.value.rects());
+    }
 
     Vector<FloatQuad> quads(rects.size());
     for (size_t i = 0; i < rects.size(); ++i)
@@ -413,8 +415,6 @@ void Page::setViewMode(ViewMode viewMode)
 
     m_viewMode = viewMode;
 
-    if (!m_mainFrame)
-        return;
 
     if (m_mainFrame->view())
         m_mainFrame->view()->forceLayout();
@@ -751,7 +751,7 @@ void Page::setDefersLoading(bool defers)
 
 void Page::clearUndoRedoOperations()
 {
-    m_editorClient.clearUndoRedoOperations();
+    m_editorClient->clearUndoRedoOperations();
 }
 
 bool Page::inLowQualityImageInterpolationMode() const
@@ -876,6 +876,7 @@ void Page::setViewScaleFactor(float scale)
 
     m_viewScaleFactor = scale;
     PageCache::singleton().markPagesForDeviceOrPageScaleChanged(*this);
+    PageCache::singleton().markPagesForFullStyleRecalc(*this);
 }
 
 void Page::setDeviceScaleFactor(float scaleFactor)
@@ -893,9 +894,25 @@ void Page::setDeviceScaleFactor(float scaleFactor)
     mainFrame().deviceOrPageScaleFactorChanged();
     PageCache::singleton().markPagesForDeviceOrPageScaleChanged(*this);
 
+    PageCache::singleton().markPagesForFullStyleRecalc(*this);
     GraphicsContext::updateDocumentMarkerResources();
 
     mainFrame().pageOverlayController().didChangeDeviceScaleFactor();
+}
+
+void Page::setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInterfaceLayoutDirection)
+{
+    if (m_userInterfaceLayoutDirection == userInterfaceLayoutDirection)
+        return;
+
+    m_userInterfaceLayoutDirection = userInterfaceLayoutDirection;
+#if ENABLE(MEDIA_CONTROLS_SCRIPT)
+    for (Frame* frame = &mainFrame(); frame; frame = frame->tree().traverseNext()) {
+        if (!frame->document())
+            continue;
+        frame->document()->userInterfaceLayoutDirectionChanged();
+    }
+#endif
 }
 
 void Page::setTopContentInset(float contentInset)
@@ -970,6 +987,7 @@ void Page::setPagination(const Pagination& pagination)
     m_pagination = pagination;
 
     setNeedsRecalcStyleInAllFrames();
+    PageCache::singleton().markPagesForFullStyleRecalc(*this);
 }
 
 void Page::setPaginationLineGridEnabled(bool enabled)
@@ -980,6 +998,7 @@ void Page::setPaginationLineGridEnabled(bool enabled)
     m_paginationLineGridEnabled = enabled;
     
     setNeedsRecalcStyleInAllFrames();
+    PageCache::singleton().markPagesForFullStyleRecalc(*this);
 }
 
 unsigned Page::pageCount() const
@@ -1119,7 +1138,7 @@ const String& Page::userStyleSheet() const
 
 void Page::invalidateStylesForAllLinks()
 {
-    for (Frame* frame = m_mainFrame.get(); frame; frame = frame->tree().traverseNext()) {
+    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext()) {
         if (!frame->document())
             continue;
         frame->document()->visitedLinkState().invalidateStyleForAllLinks();
@@ -1128,7 +1147,7 @@ void Page::invalidateStylesForAllLinks()
 
 void Page::invalidateStylesForLink(LinkHash linkHash)
 {
-    for (Frame* frame = m_mainFrame.get(); frame; frame = frame->tree().traverseNext()) {
+    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext()) {
         if (!frame->document())
             continue;
         frame->document()->visitedLinkState().invalidateStyleForLink(linkHash);
@@ -1137,7 +1156,7 @@ void Page::invalidateStylesForLink(LinkHash linkHash)
 
 void Page::invalidateInjectedStyleSheetCacheInAllFrames()
 {
-    for (Frame* frame = m_mainFrame.get(); frame; frame = frame->tree().traverseNext()) {
+    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext()) {
         Document* document = frame->document();
         if (!document)
             continue;
@@ -1153,7 +1172,7 @@ void Page::setDebugger(JSC::Debugger* debugger)
 
     m_debugger = debugger;
 
-    for (Frame* frame = m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
+    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
         frame->script().attachDebugger(m_debugger);
 }
 
@@ -1496,7 +1515,7 @@ void Page::setIsVisibleInternal(bool isVisible)
     }
 
     Vector<Ref<Document>> documents;
-    for (Frame* frame = m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
+    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
         documents.append(*frame->document());
 
     for (auto& document : documents)
@@ -1875,6 +1894,7 @@ void Page::setVisitedLinkStore(Ref<VisitedLinkStore>&& visitedLinkStore)
     m_visitedLinkStore->addPage(*this);
 
     invalidateStylesForAllLinks();
+    PageCache::singleton().markPagesForFullStyleRecalc(*this);
 }
 
 SessionID Page::sessionID() const
@@ -1993,7 +2013,7 @@ void Page::setAllowsMediaDocumentInlinePlayback(bool flag)
     m_allowsMediaDocumentInlinePlayback = flag;
 
     Vector<Ref<Document>> documents;
-    for (Frame* frame = m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
+    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
         documents.append(*frame->document());
 
     for (auto& document : documents)

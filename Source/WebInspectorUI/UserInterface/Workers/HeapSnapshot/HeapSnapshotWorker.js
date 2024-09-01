@@ -33,17 +33,36 @@ HeapSnapshotWorker = class HeapSnapshotWorker
     {
         this._nextObjectId = 1;
         this._objects = new Map;
+        this._snapshots = [];
 
         self.addEventListener("message", this._handleMessage.bind(this));
     }
 
     // Actions
 
+    clearSnapshots()
+    {
+        this._objects.clear();
+
+        this._snapshots = [];
+    }
+
     createSnapshot(snapshotString, title)
     {
         let objectId = this._nextObjectId++;
         let snapshot = new HeapSnapshot(objectId, snapshotString, title);
+        this._snapshots.push(snapshot);
         this._objects.set(objectId, snapshot);
+
+        if (this._snapshots.length > 1) {
+            setTimeout(() => {
+                let collectionData = snapshot.updateDeadNodesAndGatherCollectionData(this._snapshots);
+                if (!collectionData || !collectionData.affectedSnapshots.length)
+                    return;
+                this.sendEvent("HeapSnapshot.CollectionEvent", collectionData);
+            }, 0);
+        }
+
         return {objectId, snapshot: snapshot.serialize()};
     }
 
@@ -85,8 +104,12 @@ HeapSnapshotWorker = class HeapSnapshotWorker
         if (data.methodName) {
             console.assert(data.objectId, "Must have an objectId to call the method on");
             let object = this._objects.get(data.objectId);
-            let result = object[data.methodName](...data.methodArguments);
-            self.postMessage({callId: data.callId, result});
+            if (!object)
+                self.postMessage({callId: data.callId, error: "No such object."});
+            else {
+                let result = object[data.methodName](...data.methodArguments);
+                self.postMessage({callId: data.callId, result});
+            }
             return;
         }
 

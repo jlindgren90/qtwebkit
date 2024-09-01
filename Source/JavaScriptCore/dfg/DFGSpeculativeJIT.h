@@ -319,6 +319,7 @@ public:
     GeneratedOperandType checkGeneratedTypeForToInt32(Node*);
 
     void addSlowPathGenerator(std::unique_ptr<SlowPathGenerator>);
+    void addSlowPathGenerator(std::function<void()>);
     void runSlowPathGenerators(PCToCodeOriginMapBuilder&);
     
     void compile(Node*);
@@ -339,7 +340,22 @@ public:
     SilentRegisterSavePlan silentSavePlanForFPR(VirtualRegister spillMe, FPRReg source);
     void silentSpill(const SilentRegisterSavePlan&);
     void silentFill(const SilentRegisterSavePlan&, GPRReg canTrample);
-    
+
+    template<typename CollectionType>
+    void silentSpill(const CollectionType& savePlans)
+    {
+        for (unsigned i = 0; i < savePlans.size(); ++i)
+            silentSpill(savePlans[i]);
+    }
+
+    template<typename CollectionType>
+    void silentFill(const CollectionType& savePlans, GPRReg exclude = InvalidGPRReg)
+    {
+        GPRReg canTrample = SpeculativeJIT::pickCanTrample(exclude);
+        for (unsigned i = savePlans.size(); i--;)
+            silentFill(savePlans[i], canTrample);
+    }
+
     template<typename CollectionType>
     void silentSpillAllRegistersImpl(bool doSpill, CollectionType& plans, GPRReg exclude, GPRReg exclude2 = InvalidGPRReg, FPRReg fprExclude = InvalidFPRReg)
     {
@@ -737,10 +753,9 @@ public:
     void compileInstanceOfCustom(Node*);
 
     void compileIsJSArray(Node*);
-    void compileIsArrayConstructor(Node*);
-    void compileIsArrayObject(Node*);
     void compileIsRegExpObject(Node*);
-    
+    void compileIsTypedArrayView(Node*);
+
     void emitCall(Node*);
     
     // Called once a node has completed code generation but prior to setting
@@ -2684,6 +2699,8 @@ public:
     
     void emitInvalidationPoint(Node*);
     
+    void unreachable(Node*);
+    
     // Called when we statically determine that a speculation will fail.
     void terminateSpeculativeExecution(ExitKind, JSValueRegs, Node*);
     void terminateSpeculativeExecution(ExitKind, JSValueRegs, Edge);
@@ -2812,6 +2829,7 @@ public:
     MinifiedGraph* m_minifiedGraph;
     
     Vector<std::unique_ptr<SlowPathGenerator>, 8> m_slowPathGenerators;
+    Vector<std::pair<std::function<void()>, Node*>, 8> m_slowPathLambdas;
     Vector<SilentRegisterSavePlan> m_plans;
     unsigned m_outOfLineStreamIndex { UINT_MAX };
 };

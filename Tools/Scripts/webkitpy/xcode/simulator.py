@@ -40,6 +40,7 @@ If possible, use real CoreSimulator.framework functionality by linking to the fr
 Do not use PyObjC to dlopen the framework.
 """
 
+
 class DeviceType(object):
     """
     Represents a CoreSimulator device type.
@@ -278,9 +279,14 @@ class Simulator(object):
         Simulator.wait_until_device_is_in_state(udid, Simulator.DeviceState.BOOTED, timeout_seconds)
         with timeout(seconds=timeout_seconds):
             while True:
-                state = subprocess.check_output(['xcrun', 'simctl', 'spawn', udid, 'launchctl', 'print', 'system']).strip()
-                if re.search("A[\s]+com.apple.springboard.services", state):
-                    return
+                try:
+                    state = subprocess.check_output(['xcrun', 'simctl', 'spawn', udid, 'launchctl', 'print', 'system']).strip()
+                    if re.search("A[\s]+com.apple.springboard.services", state):
+                        return
+                except subprocess.CalledProcessError:
+                    if Simulator.device_state(udid) != Simulator.DeviceState.BOOTED:
+                        raise RuntimeError('Simuator device quit unexpectedly.')
+                    _log.warn("Error in checking Simulator boot status. Will retry in 1 second.")
                 time.sleep(1)
 
     @staticmethod

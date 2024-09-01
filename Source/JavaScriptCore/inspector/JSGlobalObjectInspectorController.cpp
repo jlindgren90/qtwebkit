@@ -88,24 +88,29 @@ JSGlobalObjectInspectorController::JSGlobalObjectInspectorController(JSGlobalObj
     auto heapAgent = std::make_unique<InspectorHeapAgent>(context);
     auto consoleAgent = std::make_unique<JSGlobalObjectConsoleAgent>(context, heapAgent.get());
     auto debuggerAgent = std::make_unique<JSGlobalObjectDebuggerAgent>(context, consoleAgent.get());
+    auto scriptProfilerAgent = std::make_unique<InspectorScriptProfilerAgent>(context);
 
     m_inspectorAgent = inspectorAgent.get();
     m_debuggerAgent = debuggerAgent.get();
     m_consoleAgent = consoleAgent.get();
-    m_consoleClient = std::make_unique<JSGlobalObjectConsoleClient>(m_consoleAgent);
+    m_consoleClient = std::make_unique<JSGlobalObjectConsoleClient>(m_consoleAgent, m_debuggerAgent, scriptProfilerAgent.get());
 
     m_agents.append(WTFMove(inspectorAgent));
     m_agents.append(WTFMove(runtimeAgent));
     m_agents.append(WTFMove(consoleAgent));
     m_agents.append(WTFMove(debuggerAgent));
     m_agents.append(WTFMove(heapAgent));
-    m_agents.append(std::make_unique<InspectorScriptProfilerAgent>(context));
+    m_agents.append(WTFMove(scriptProfilerAgent));
 
     m_executionStopwatch->start();
 }
 
 JSGlobalObjectInspectorController::~JSGlobalObjectInspectorController()
 {
+#if ENABLE(INSPECTOR_ALTERNATE_DISPATCHERS)
+    if (m_augmentingClient)
+        m_augmentingClient->inspectorControllerDestroyed();
+#endif
 }
 
 void JSGlobalObjectInspectorController::globalObjectDestroyed()

@@ -26,9 +26,11 @@
 
 #pragma once
 
+#include "Base64Utilities.h"
 #include "EventListener.h"
 #include "EventTarget.h"
 #include "ScriptExecutionContext.h"
+#include "URL.h"
 #include "WorkerEventQueue.h"
 #include "WorkerScriptController.h"
 #include <memory>
@@ -57,7 +59,7 @@ namespace IDBClient {
 class IDBConnectionProxy;
 }
 
-class WorkerGlobalScope : public RefCounted<WorkerGlobalScope>, public Supplementable<WorkerGlobalScope>, public ScriptExecutionContext, public EventTargetWithInlineData {
+class WorkerGlobalScope : public RefCounted<WorkerGlobalScope>, public Supplementable<WorkerGlobalScope>, public ScriptExecutionContext, public EventTargetWithInlineData, public Base64Utilities {
 public:
     virtual ~WorkerGlobalScope();
 
@@ -76,6 +78,7 @@ public:
 
 #if ENABLE(INDEXED_DATABASE)
     IDBClient::IDBConnectionProxy* idbConnectionProxy() final;
+    void stopIndexedDatabase();
 #endif
 
     bool shouldBypassMainWorldContentSecurityPolicy() const final { return m_shouldBypassMainWorldContentSecurityPolicy; }
@@ -87,16 +90,16 @@ public:
 
     using ScriptExecutionContext::hasPendingActivity;
 
-    void postTask(Task) override; // Executes the task on context's thread asynchronously.
+    void postTask(Task&&) final; // Executes the task on context's thread asynchronously.
 
     // WorkerGlobalScope
-    WorkerGlobalScope* self() { return this; }
-    WorkerLocation* location() const;
+    WorkerGlobalScope& self() { return *this; }
+    WorkerLocation& location() const;
     void close();
 
     // WorkerUtils
     virtual void importScripts(const Vector<String>& urls, ExceptionCode&);
-    WorkerNavigator* navigator() const;
+    WorkerNavigator& navigator() const;
 
     // Timers
     int setTimeout(std::unique_ptr<ScheduledAction>, int timeout);

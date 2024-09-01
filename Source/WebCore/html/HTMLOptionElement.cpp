@@ -3,7 +3,7 @@
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
  *           (C) 2006 Alexey Proskuryakov (ap@nypop.com)
- * Copyright (C) 2004, 2005, 2006, 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2004, 2005, 2006, 2010, 2016 Apple Inc. All rights reserved.
  * Copyright (C) 2010 Google Inc. All rights reserved.
  * Copyright (C) 2011 Motorola Mobility, Inc.  All rights reserved.
  *
@@ -69,12 +69,12 @@ Ref<HTMLOptionElement> HTMLOptionElement::create(const QualifiedName& tagName, D
 RefPtr<HTMLOptionElement> HTMLOptionElement::createForJSConstructor(Document& document, const String& data, const String& value,
         bool defaultSelected, bool selected, ExceptionCode& ec)
 {
-    RefPtr<HTMLOptionElement> element = adoptRef(new HTMLOptionElement(optionTag, document));
+    Ref<HTMLOptionElement> element = adoptRef(*new HTMLOptionElement(optionTag, document));
 
-    Ref<Text> text = Text::create(document, data.isNull() ? "" : data);
+    auto text = Text::create(document, data.isNull() ? emptyString() : data);
 
     ec = 0;
-    element->appendChild(WTFMove(text), ec);
+    element->appendChild(text, ec);
     if (ec)
         return nullptr;
 
@@ -84,7 +84,7 @@ RefPtr<HTMLOptionElement> HTMLOptionElement::createForJSConstructor(Document& do
         element->setAttribute(selectedAttr, emptyAtom);
     element->setSelected(selected);
 
-    return element;
+    return WTFMove(element);
 }
 
 bool HTMLOptionElement::isFocusable() const
@@ -94,6 +94,11 @@ bool HTMLOptionElement::isFocusable() const
     // Option elements do not have a renderer.
     auto* style = const_cast<HTMLOptionElement&>(*this).computedStyle();
     return style && style->display() != NONE;
+}
+
+bool HTMLOptionElement::matchesDefaultPseudoClass() const
+{
+    return fastHasAttribute(selectedAttr);
 }
 
 String HTMLOptionElement::text() const
@@ -107,7 +112,7 @@ String HTMLOptionElement::text() const
 
 void HTMLOptionElement::setText(const String &text, ExceptionCode& ec)
 {
-    Ref<HTMLOptionElement> protectFromMutationEvents(*this);
+    Ref<HTMLOptionElement> protectedThis(*this);
 
     // Changing the text causes a recalc of a select's items, which will reset the selected
     // index to the first item if the select is single selection with a menu list. We attempt to
@@ -174,6 +179,8 @@ void HTMLOptionElement::parseAttribute(const QualifiedName& name, const AtomicSt
                 renderer()->theme().stateChanged(*renderer(), ControlStates::EnabledState);
         }
     } else if (name == selectedAttr) {
+        setNeedsStyleRecalc();
+
         // FIXME: This doesn't match what the HTML specification says.
         // The specification implies that removing the selected attribute or
         // changing the value of a selected attribute that is already present

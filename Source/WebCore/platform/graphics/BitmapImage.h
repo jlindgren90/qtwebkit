@@ -60,6 +60,12 @@ namespace WebCore {
 
 class Timer;
 
+namespace NativeImage {
+    IntSize size(const NativeImagePtr&);
+    bool hasAlpha(const NativeImagePtr&);
+    Color singlePixelSolidColor(const NativeImagePtr&);
+}
+
 // ================================================
 // FrameData Class
 // ================================================
@@ -67,13 +73,9 @@ class Timer;
 struct FrameData {
 public:
     FrameData()
-        : m_orientation(DefaultImageOrientation)
-        , m_subsamplingLevel(0)
-        , m_duration(0)
-        , m_haveMetadata(false)
+        : m_haveMetadata(false)
         , m_isComplete(false)
         , m_hasAlpha(true)
-        , m_frameBytes(0)
     {
     }
 
@@ -85,15 +87,17 @@ public:
     // Clear the cached image data on the frame, and (optionally) the metadata.
     // Returns whether there was cached image data to clear.
     bool clear(bool clearMetadata);
+    
+    unsigned usedFrameBytes() const { return m_image ? m_frameBytes : 0; }
 
     NativeImagePtr m_image;
-    ImageOrientation m_orientation;
-    SubsamplingLevel m_subsamplingLevel;
-    float m_duration;
+    ImageOrientation m_orientation { DefaultImageOrientation };
+    SubsamplingLevel m_subsamplingLevel { 0 };
+    float m_duration { 0 };
     bool m_haveMetadata : 1;
     bool m_isComplete : 1;
     bool m_hasAlpha : 1;
-    unsigned m_frameBytes;
+    unsigned m_frameBytes { 0 };
 };
 
 // =================================================
@@ -271,21 +275,13 @@ protected:
     // Handle platform-specific data
     void invalidatePlatformData();
 
-    // Checks to see if the image is a 1x1 solid color. We optimize these images and just do a fill rect instead.
-    // This check should happen regardless whether m_checkedForSolidColor is already set, as the frame may have
-    // changed.
-    void checkForSolidColor();
-
-    bool mayFillWithSolidColor() override;
-    Color solidColor() const override;
+    Color singlePixelSolidColor() override;
 
 #if !ASSERT_DISABLED
     bool notSolidColor() override;
 #endif
 
 private:
-    template<typename T> BitmapImage(ImageObserver*, T fromNativeImage);
-
     void clearTimer();
     void startTimer(double delay);
 
@@ -311,7 +307,10 @@ private:
     mutable RetainPtr<CFDataRef> m_tiffRep; // Cached TIFF rep for frame 0. Only built lazily if someone queries for one.
 #endif
 
-    Color m_solidColor;  // If we're a 1x1 solid color, this is the color to use to fill.
+    // The value of this data member is a missing value if we haven’t analyzed to check for a solid color or not, but an invalid
+    // color if we have analyzed and decided it’s not a solid color, and a valid color if we have analyzed and decide that the
+    // solid color optimization applies. The analysis, we do, handles only the case of 1x1 solid color images.
+    Optional<Color> m_solidColor;
 
     unsigned m_decodedSize { 0 }; // The current size of all decoded frames.
     mutable unsigned m_decodedPropertiesSize { 0 }; // The size of data decoded by the source to determine image properties (e.g. size, frame count, etc).
@@ -322,36 +321,16 @@ private:
     double m_progressiveLoadChunkTime { 0 };
     uint16_t m_progressiveLoadChunkCount { 0 };
 #endif
-    bool m_isSolidColor : 1; // Whether or not we are a 1x1 solid image.
-    bool m_checkedForSolidColor : 1; // Whether we've checked the frame for solid color.
-
     bool m_animationFinished : 1; // Whether or not we've completed the entire animation.
 
     bool m_allDataReceived : 1; // Whether or not we've received all our data.
     mutable bool m_haveSize : 1; // Whether or not our |m_size| member variable has the final overall image size yet.
     bool m_sizeAvailable : 1; // Whether or not we can obtain the size of the first image frame yet from ImageIO.
-    mutable bool m_hasUniformFrameSize : 1;
     mutable bool m_haveFrameCount : 1;
     bool m_animationFinishedWhenCatchingUp : 1;
 
     RefPtr<Image> m_cachedImage;
 };
-
-template<typename T>
-inline BitmapImage::BitmapImage(ImageObserver* observer, T fromNativeImage)
-    : Image(observer)
-    , m_frameCount(fromNativeImage ? 1 : 0)
-    , m_isSolidColor(false)
-    , m_checkedForSolidColor(false)
-    , m_animationFinished(fromNativeImage)
-    , m_allDataReceived(fromNativeImage)
-    , m_haveSize(fromNativeImage)
-    , m_sizeAvailable(fromNativeImage)
-    , m_hasUniformFrameSize(true)
-    , m_haveFrameCount(fromNativeImage)
-    , m_animationFinishedWhenCatchingUp(false)
-{
-}
 
 } // namespace WebCore
 

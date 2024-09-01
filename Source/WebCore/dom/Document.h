@@ -38,7 +38,6 @@
 #include "MutationObserver.h"
 #include "PageVisibilityState.h"
 #include "PlatformEvent.h"
-#include "PlatformScreen.h"
 #include "ReferrerPolicy.h"
 #include "Region.h"
 #include "RenderPtr.h"
@@ -54,9 +53,15 @@
 #include <chrono>
 #include <memory>
 #include <wtf/Deque.h>
+#include <wtf/HashCountedSet.h>
 #include <wtf/HashSet.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/WeakPtr.h>
+#include <wtf/text/AtomicStringHash.h>
+
+#if PLATFORM(IOS)
+#include "EventTrackingRegions.h"
+#endif
 
 namespace JSC {
 class ExecState;
@@ -167,6 +172,8 @@ class XPathResult;
 
 enum class ShouldOpenExternalURLsPolicy;
 
+using PlatformDisplayID = uint32_t;
+
 #if ENABLE(XSLT)
 class TransformSource;
 #endif
@@ -275,16 +282,13 @@ enum class SelectionRestorationMode {
     SetDefault,
 };
 
-enum class SelectionRevealMode {
-    Reveal,
-    DoNotReveal
-};
-
 enum class HttpEquivPolicy {
     Enabled,
     DisabledBySettings,
     DisabledByContentDispositionAttachmentSandbox
 };
+
+enum class CustomElementNameValidationStatus { Valid, ConflictsWithBuiltinNames, NoHyphen, ContainsUpperCase };
 
 class Document
     : public ContainerNode
@@ -391,6 +395,8 @@ public:
     RefPtr<Node> importNode(Node& nodeToImport, bool deep, ExceptionCode&);
     WEBCORE_EXPORT RefPtr<Element> createElementNS(const String& namespaceURI, const String& qualifiedName, ExceptionCode&);
     WEBCORE_EXPORT Ref<Element> createElement(const QualifiedName&, bool createdByParser);
+
+    static CustomElementNameValidationStatus validateCustomElementName(const AtomicString&);
 
 #if ENABLE(CSS_GRID_LAYOUT)
     bool isCSSGridLayoutEnabled() const;
@@ -503,7 +509,7 @@ public:
     }
     StyleResolver& userAgentShadowTreeStyleResolver();
 
-    CSSFontSelector& fontSelector();
+    CSSFontSelector& fontSelector() { return m_fontSelector; }
 
     void notifyRemovePendingSheetIfNeeded();
 
@@ -722,10 +728,15 @@ public:
     String selectedStylesheetSet() const;
     void setSelectedStylesheetSet(const String&);
 
-    WEBCORE_EXPORT bool setFocusedElement(Element*, FocusDirection = FocusDirectionNone);
+    enum class FocusRemovalEventsMode { Dispatch, DoNotDispatch };
+    WEBCORE_EXPORT bool setFocusedElement(Element*, FocusDirection = FocusDirectionNone,
+        FocusRemovalEventsMode = FocusRemovalEventsMode::Dispatch);
     Element* focusedElement() const { return m_focusedElement.get(); }
     UserActionElementSet& userActionElements()  { return m_userActionElements; }
     const UserActionElementSet& userActionElements() const { return m_userActionElements; }
+
+    void setFocusNavigationStartingNode(Node*);
+    Element* focusNavigationStartingNode(FocusDirection) const;
 
     void removeFocusedNodeOfSubtree(Node*, bool amongChildrenOnly = false);
     void hoveredElementDidDetach(Element*);
@@ -766,6 +777,7 @@ public:
     void nodeChildrenWillBeRemoved(ContainerNode&);
     // nodeWillBeRemoved is only safe when removing one node at a time.
     void nodeWillBeRemoved(Node&);
+    void removeFocusNavigationNodeOfSubtree(Node&, bool amongChildrenOnly = false);
     enum class AcceptChildOperation { Replace, InsertOrAdd };
     bool canAcceptChild(const Node& newChild, const Node* refChild, AcceptChildOperation) const;
 
@@ -973,7 +985,7 @@ public:
     bool isDNSPrefetchEnabled() const { return m_isDNSPrefetchEnabled; }
     void parseDNSPrefetchControlHeader(const String&);
 
-    void postTask(Task) final; // Executes the task on context's thread asynchronously.
+    void postTask(Task&&) final; // Executes the task on context's thread asynchronously.
 
 #if ENABLE(REQUEST_ANIMATION_FRAME)
     ScriptedAnimationController* scriptedAnimationController() { return m_scriptedAnimationController.get(); }
@@ -1026,6 +1038,9 @@ public:
     void registerForPageScaleFactorChangedCallbacks(HTMLMediaElement*);
     void unregisterForPageScaleFactorChangedCallbacks(HTMLMediaElement*);
     void pageScaleFactorChangedAndStable();
+    void registerForUserInterfaceLayoutDirectionChangedCallbacks(HTMLMediaElement&);
+    void unregisterForUserInterfaceLayoutDirectionChangedCallbacks(HTMLMediaElement&);
+    void userInterfaceLayoutDirectionChanged();
 #endif
 
     void registerForVisibilityStateChangedCallbacks(Element*);
@@ -1087,7 +1102,6 @@ public:
     void enqueueWindowEvent(Ref<Event>&&);
     void enqueueDocumentEvent(Ref<Event>&&);
     void enqueueOverflowEvent(Ref<Event>&&);
-    void enqueueSlotchangeEvent(Ref<Event>&&);
     void enqueuePageshowEvent(PageshowEventPersistence);
     void enqueueHashchangeEvent(const String& oldURL, const String& newURL);
     void enqueuePopstateEvent(RefPtr<SerializedScriptValue>&& stateObject);
@@ -1157,10 +1171,12 @@ public:
     const DocumentTiming& timing() const { return m_documentTiming; }
 #endif
 
+    double monotonicTimestamp() const;
+
 #if ENABLE(REQUEST_ANIMATION_FRAME)
     int requestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback>);
     void cancelAnimationFrame(int id);
-    void serviceScriptedAnimations(double monotonicAnimationStartTime);
+    void serviceScriptedAnimations(double timestamp);
 #endif
 
     void sendWillRevealEdgeEventsIfNeeded(const IntPoint& oldPosition, const IntPoint& newPosition, const IntRect& visibleRect, const IntSize& contentsSize, Element* target = nullptr);
@@ -1467,6 +1483,8 @@ private:
 
     Color m_textColor;
 
+    bool m_focusNavigationStartingNodeIsRemoved;
+    RefPtr<Node> m_focusNavigationStartingNode;
     RefPtr<Element> m_focusedElement;
     RefPtr<Element> m_hoveredElement;
     RefPtr<Element> m_activeElement;
@@ -1590,6 +1608,7 @@ private:
 
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
     HashSet<HTMLMediaElement*> m_pageScaleFactorChangedElements;
+    HashSet<HTMLMediaElement*> m_userInterfaceLayoutDirectionChangedElements;
 #endif
 
     HashSet<Element*> m_visibilityStateCallbackElements;
@@ -1693,12 +1712,12 @@ private:
 
 #if ENABLE(IOS_TEXT_AUTOSIZING)
 public:
-    void addAutoSizingNode(Node*, float size);
-    void validateAutoSizingNodes();
-    void resetAutoSizingNodes();
+    void addAutoSizedNode(Text&, float size);
+    void updateAutoSizedNodes();
+    void clearAutoSizedNodes();
 
 private:
-    typedef HashMap<TextAutoSizingKey, RefPtr<TextAutoSizingValue>, TextAutoSizingHash, TextAutoSizingTraits> TextAutoSizingMap;
+    using TextAutoSizingMap = HashMap<TextAutoSizingKey, std::unique_ptr<TextAutoSizingValue>, TextAutoSizingHash, TextAutoSizingTraits>;
     TextAutoSizingMap m_textAutoSizedNodes;
 #endif
 
@@ -1734,7 +1753,7 @@ private:
     std::unique_ptr<CustomElementDefinitions> m_customElementDefinitions;
 #endif
 
-    RefPtr<CSSFontSelector> m_fontSelector;
+    Ref<CSSFontSelector> m_fontSelector;
 
 #if ENABLE(WEB_REPLAY)
     RefPtr<JSC::InputCursor> m_inputCursor;

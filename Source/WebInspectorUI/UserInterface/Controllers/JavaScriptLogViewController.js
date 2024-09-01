@@ -118,7 +118,7 @@ WebInspector.JavaScriptLogViewController = class JavaScriptLogViewController ext
         consoleSession.element.scrollIntoView();
     }
 
-    appendImmediateExecutionWithResult(text, result, addSpecialUserLogClass, synthetic)
+    appendImmediateExecutionWithResult(text, result, addSpecialUserLogClass, shouldRevealConsole)
     {
         console.assert(result instanceof WebInspector.RemoteObject);
 
@@ -127,7 +127,7 @@ WebInspector.JavaScriptLogViewController = class JavaScriptLogViewController ext
 
         function saveResultCallback(savedResultIndex)
         {
-            let commandResultMessage = new WebInspector.ConsoleCommandResultMessage(result, false, savedResultIndex, synthetic);
+            let commandResultMessage = new WebInspector.ConsoleCommandResultMessage(result, false, savedResultIndex, shouldRevealConsole);
             let commandResultMessageView = new WebInspector.ConsoleMessageView(commandResultMessage);
             this._appendConsoleMessageView(commandResultMessageView, true);
         }
@@ -225,15 +225,23 @@ WebInspector.JavaScriptLogViewController = class JavaScriptLogViewController ext
             if (!result || this._cleared)
                 return;
 
-            let synthetic = false;
-            let commandResultMessage = new WebInspector.ConsoleCommandResultMessage(result, wasThrown, savedResultIndex, synthetic);
+            let shouldRevealConsole = true;
+            let commandResultMessage = new WebInspector.ConsoleCommandResultMessage(result, wasThrown, savedResultIndex, shouldRevealConsole);
             let commandResultMessageView = new WebInspector.ConsoleMessageView(commandResultMessage);
             this._appendConsoleMessageView(commandResultMessageView, true);
         }
 
-        text = appendWebInspectorConsoleEvaluationSourceURL(text);
+        let options = {
+            objectGroup: WebInspector.RuntimeManager.ConsoleObjectGroup,
+            includeCommandLineAPI: true,
+            doNotPauseOnExceptionsAndMuteConsole: false,
+            returnByValue: false,
+            generatePreview: true,
+            saveResult: true,
+            sourceURLAppender: appendWebInspectorConsoleEvaluationSourceURL,
+        };
 
-        WebInspector.runtimeManager.evaluateInInspectedWindow(text, WebInspector.RuntimeManager.ConsoleObjectGroup, true, false, false, true, true, printResult.bind(this));
+        WebInspector.runtimeManager.evaluateInInspectedWindow(text, options, printResult.bind(this));
     }
 
     // Private
@@ -269,9 +277,7 @@ WebInspector.JavaScriptLogViewController = class JavaScriptLogViewController ext
         if (WebInspector.consoleContentView.visible)
             this.renderPendingMessagesSoon();
 
-        // We only auto show the console if the message is a non-synthetic result.
-        // This is when the user evaluated something directly in the prompt.
-        if (!WebInspector.isShowingConsoleTab() && messageView.message && (messageView.message.type === WebInspector.ConsoleMessage.MessageType.Result || messageView.message.synthetic))
+        if (!WebInspector.isShowingConsoleTab() && messageView.message && messageView.message.shouldRevealConsole)
             WebInspector.showSplitConsole();
     }
 

@@ -26,6 +26,7 @@
 #include "Document.h"
 #include "HTMLNames.h"
 #include "NodeRenderStyle.h"
+#include "RenderElement.h"
 #include "RenderStyle.h"
 #include "StyleInheritedData.h"
 #include "StyleResolver.h"
@@ -90,7 +91,7 @@ StringWithDirection HTMLTitleElement::computedTextWithDirection()
 
 void HTMLTitleElement::setText(const String& value)
 {
-    Ref<HTMLTitleElement> protectFromMutationEvents(*this);
+    Ref<HTMLTitleElement> protectedThis(*this);
     
     if (!value.isEmpty() && hasOneChild() && is<Text>(*firstChild())) {
         downcast<Text>(*firstChild()).setData(value);

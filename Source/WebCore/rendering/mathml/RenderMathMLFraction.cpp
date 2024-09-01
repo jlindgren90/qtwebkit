@@ -71,7 +71,7 @@ bool RenderMathMLFraction::isValid() const
 {
     // Verify whether the list of children is valid:
     // <mfrac> numerator denominator </mfrac>
-    RenderBox* child = firstChildBox();
+    auto* child = firstChildBox();
     if (!child)
         return false;
     child = child->nextSiblingBox();
@@ -187,7 +187,7 @@ void RenderMathMLFraction::layoutBlock(bool relayoutChildren, LayoutUnit)
     numerator().layoutIfNeeded();
     denominator().layoutIfNeeded();
 
-    setLogicalWidth(std::max<LayoutUnit>(numerator().logicalWidth(), denominator().logicalWidth()));
+    setLogicalWidth(std::max(numerator().logicalWidth(), denominator().logicalWidth()));
 
     LayoutPoint numeratorLocation(horizontalOffset(numerator(), m_numeratorAlign), verticalOffset);
     numerator().setLocation(numeratorLocation);

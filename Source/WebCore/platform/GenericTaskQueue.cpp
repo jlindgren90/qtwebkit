@@ -31,22 +31,15 @@
 
 namespace WebCore {
 
-TaskDispatcher<Timer>::~TaskDispatcher()
+TaskDispatcher<Timer>::TaskDispatcher()
+    : m_weakPtrFactory(this)
 {
-    Deque<TaskDispatcher<Timer>*> replacementQueue;
-    for (auto* dispatcher : pendingDispatchers()) {
-        if (dispatcher != this)
-            replacementQueue.append(dispatcher);
-    }
-    if (replacementQueue.isEmpty())
-        sharedTimer().stop();
-    pendingDispatchers() = WTFMove(replacementQueue);
 }
 
-void TaskDispatcher<Timer>::postTask(std::function<void()> function)
+void TaskDispatcher<Timer>::postTask(Function<void()>&& function)
 {
     m_pendingTasks.append(WTFMove(function));
-    pendingDispatchers().append(this);
+    pendingDispatchers().append(m_weakPtrFactory.createWeakPtr());
     if (!sharedTimer().isActive())
         sharedTimer().startOneShot(0);
 }
@@ -65,26 +58,26 @@ void TaskDispatcher<Timer>::sharedTimerFired()
 
     // Copy the pending events first because we don't want to process synchronously the new events
     // queued by the JS events handlers that are executed in the loop below.
-    Deque<TaskDispatcher<Timer>*> queuedDispatchers = WTFMove(pendingDispatchers());
+    Deque<WeakPtr<TaskDispatcher<Timer>>> queuedDispatchers = WTFMove(pendingDispatchers());
     while (!queuedDispatchers.isEmpty()) {
-        TaskDispatcher<Timer>* dispatcher = queuedDispatchers.takeFirst();
+        WeakPtr<TaskDispatcher<Timer>> dispatcher = queuedDispatchers.takeFirst();
         if (!dispatcher)
             continue;
         dispatcher->dispatchOneTask();
     }
 }
 
-Deque<TaskDispatcher<Timer>*>& TaskDispatcher<Timer>::pendingDispatchers()
+Deque<WeakPtr<TaskDispatcher<Timer>>>& TaskDispatcher<Timer>::pendingDispatchers()
 {
     ASSERT(isMainThread());
-    static NeverDestroyed<Deque<TaskDispatcher<Timer>*>> dispatchers;
+    static NeverDestroyed<Deque<WeakPtr<TaskDispatcher<Timer>>>> dispatchers;
     return dispatchers.get();
 }
 
 void TaskDispatcher<Timer>::dispatchOneTask()
 {
     ASSERT(!m_pendingTasks.isEmpty());
-    std::function<void()> task = m_pendingTasks.takeFirst();
+    auto task = m_pendingTasks.takeFirst();
     task();
 }
 

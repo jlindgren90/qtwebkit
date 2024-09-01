@@ -28,7 +28,7 @@
 
 #if ENABLE(MEDIA_SOURCE) && USE(AVFOUNDATION)
 
-#import "BlockExceptions.h"
+#import "AVFoundationSPI.h"
 #import "CDMSessionAVContentKeySession.h"
 #import "CDMSessionMediaSourceAVFObjC.h"
 #import "ExceptionCodePlaceholder.h"
@@ -50,6 +50,7 @@
 #import <objc/runtime.h>
 #import <wtf/text/AtomicString.h>
 #import <wtf/text/CString.h>
+#import <wtf/BlockObjCExceptions.h>
 #import <wtf/HashCountedSet.h>
 #import <wtf/MainThread.h>
 #import <wtf/WeakPtr.h>
@@ -96,21 +97,6 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
 @end
 
 #pragma mark -
-#pragma mark AVStreamDataParser
-
-@interface AVStreamDataParser : NSObject
-- (void)setDelegate:(id)delegate;
-- (void)appendStreamData:(NSData *)data;
-- (void)setShouldProvideMediaData:(BOOL)shouldProvideMediaData forTrackID:(CMPersistentTrackID)trackID;
-- (BOOL)shouldProvideMediaDataForTrackID:(CMPersistentTrackID)trackID;
-- (void)providePendingMediaData;
-- (void)processContentKeyResponseData:(NSData *)contentKeyResponseData forTrackID:(CMPersistentTrackID)trackID;
-- (void)processContentKeyResponseError:(NSError *)error forTrackID:(CMPersistentTrackID)trackID;
-- (void)renewExpiringContentKeyResponseDataForTrackID:(CMPersistentTrackID)trackID;
-- (NSData *)streamingContentKeyRequestDataForApp:(NSData *)appIdentifier contentIdentifier:(NSData *)contentIdentifier trackID:(CMPersistentTrackID)trackID options:(NSDictionary *)options error:(NSError **)outError;
-@end
-
-#pragma mark -
 #pragma mark AVSampleBufferDisplayLayer
 
 @interface AVSampleBufferDisplayLayer : CALayer
@@ -140,7 +126,7 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
 #pragma mark -
 #pragma mark WebAVStreamDataParserListener
 
-@interface WebAVStreamDataParserListener : NSObject {
+@interface WebAVStreamDataParserListener : NSObject<AVStreamDataParserOutputHandling> {
     WeakPtr<WebCore::SourceBufferPrivateAVFObjC> _parent;
     AVStreamDataParser* _parser;
 }
@@ -179,12 +165,12 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     UNUSED_PARAM(streamDataParser);
 #endif
     ASSERT(streamDataParser == _parser);
-    RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
+    RetainPtr<WebAVStreamDataParserListener> protectedSelf = self;
 
-    RetainPtr<AVAsset*> strongAsset = asset;
-    callOnMainThread([strongSelf, strongAsset] {
-        if (strongSelf->_parent)
-            strongSelf->_parent->didParseStreamDataAsAsset(strongAsset.get());
+    RetainPtr<AVAsset*> protectedAsset = asset;
+    callOnMainThread([protectedSelf = WTFMove(protectedSelf), protectedAsset = WTFMove(protectedAsset)] {
+        if (protectedSelf->_parent)
+            protectedSelf->_parent->didParseStreamDataAsAsset(protectedAsset.get());
     });
 }
 
@@ -195,12 +181,12 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     UNUSED_PARAM(streamDataParser);
 #endif
     ASSERT(streamDataParser == _parser);
-    RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
+    RetainPtr<WebAVStreamDataParserListener> protectedSelf = self;
 
-    RetainPtr<AVAsset*> strongAsset = asset;
-    callOnMainThread([strongSelf, strongAsset] {
-        if (strongSelf->_parent)
-            strongSelf->_parent->didParseStreamDataAsAsset(strongAsset.get());
+    RetainPtr<AVAsset*> protectedAsset = asset;
+    callOnMainThread([protectedSelf = WTFMove(protectedSelf), protectedAsset = WTFMove(protectedAsset)] {
+        if (protectedSelf->_parent)
+            protectedSelf->_parent->didParseStreamDataAsAsset(protectedAsset.get());
     });
 }
 
@@ -210,28 +196,28 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     UNUSED_PARAM(streamDataParser);
 #endif
     ASSERT(streamDataParser == _parser);
-    RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
+    RetainPtr<WebAVStreamDataParserListener> protectedSelf = self;
 
-    RetainPtr<NSError> strongError = error;
-    callOnMainThread([strongSelf, strongError] {
-        if (strongSelf->_parent)
-            strongSelf->_parent->didFailToParseStreamDataWithError(strongError.get());
+    RetainPtr<NSError> protectedError = error;
+    callOnMainThread([protectedSelf = WTFMove(protectedSelf), protectedError = WTFMove(protectedError)] {
+        if (protectedSelf->_parent)
+            protectedSelf->_parent->didFailToParseStreamDataWithError(protectedError.get());
     });
 }
 
-- (void)streamDataParser:(AVStreamDataParser *)streamDataParser didProvideMediaData:(CMSampleBufferRef)sample forTrackID:(CMPersistentTrackID)trackID mediaType:(NSString *)nsMediaType flags:(NSUInteger)flags
+- (void)streamDataParser:(AVStreamDataParser *)streamDataParser didProvideMediaData:(CMSampleBufferRef)sample forTrackID:(CMPersistentTrackID)trackID mediaType:(NSString *)nsMediaType flags:(AVStreamDataParserOutputMediaDataFlags)flags
 {
 #if ASSERT_DISABLED
     UNUSED_PARAM(streamDataParser);
 #endif
     ASSERT(streamDataParser == _parser);
-    RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
+    RetainPtr<WebAVStreamDataParserListener> protectedSelf = self;
 
-    RetainPtr<CMSampleBufferRef> strongSample = sample;
+    RetainPtr<CMSampleBufferRef> protectedSample = sample;
     String mediaType = nsMediaType;
-    callOnMainThread([strongSelf, strongSample, trackID, mediaType, flags] {
-        if (strongSelf->_parent)
-            strongSelf->_parent->didProvideMediaDataForTrackID(trackID, strongSample.get(), mediaType, flags);
+    callOnMainThread([protectedSelf = WTFMove(protectedSelf), protectedSample = WTFMove(protectedSample), trackID, mediaType, flags] {
+        if (protectedSelf->_parent)
+            protectedSelf->_parent->didProvideMediaDataForTrackID(trackID, protectedSample.get(), mediaType, flags);
     });
 }
 
@@ -241,12 +227,12 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     UNUSED_PARAM(streamDataParser);
 #endif
     ASSERT(streamDataParser == _parser);
-    RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
+    RetainPtr<WebAVStreamDataParserListener> protectedSelf = self;
 
     String mediaType = nsMediaType;
-    callOnMainThread([strongSelf, trackID, mediaType] {
-        if (strongSelf->_parent)
-            strongSelf->_parent->didReachEndOfTrackWithTrackID(trackID, mediaType);
+    callOnMainThread([protectedSelf = WTFMove(protectedSelf), trackID, mediaType] {
+        if (protectedSelf->_parent)
+            protectedSelf->_parent->didReachEndOfTrackWithTrackID(trackID, mediaType);
     });
 }
 
@@ -272,13 +258,12 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     UNUSED_PARAM(streamDataParser);
 #endif
     ASSERT(streamDataParser == _parser);
-    RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
+    RetainPtr<WebAVStreamDataParserListener> protectedSelf = self;
 
-    RetainPtr<NSData> strongData = initData;
     OSObjectPtr<dispatch_semaphore_t> hasSessionSemaphore = adoptOSObject(dispatch_semaphore_create(0));
-    callOnMainThread([strongSelf, strongData, trackID,  hasSessionSemaphore] {
-        if (strongSelf->_parent)
-            strongSelf->_parent->didProvideContentKeyRequestInitializationDataForTrackID(strongData.get(), trackID, hasSessionSemaphore);
+    callOnMainThread([protectedSelf = WTFMove(protectedSelf), protectedInitData = RetainPtr<NSData>(initData), trackID, hasSessionSemaphore] {
+        if (protectedSelf->_parent)
+            protectedSelf->_parent->didProvideContentKeyRequestInitializationDataForTrackID(protectedInitData.get(), trackID, hasSessionSemaphore);
     });
     dispatch_semaphore_wait(hasSessionSemaphore.get(), DISPATCH_TIME_FOREVER);
 }
@@ -382,21 +367,21 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     UNUSED_PARAM(keyPath);
     ASSERT(_parent);
 
-    RetainPtr<WebAVSampleBufferErrorListener> strongSelf = self;
+    RetainPtr<WebAVSampleBufferErrorListener> protectedSelf = self;
     if ([object isKindOfClass:getAVSampleBufferDisplayLayerClass()]) {
         RetainPtr<AVSampleBufferDisplayLayer> layer = (AVSampleBufferDisplayLayer *)object;
         ASSERT(_layers.contains(layer.get()));
 
         if ([keyPath isEqualTo:@"error"]) {
             RetainPtr<NSError> error = [change valueForKey:NSKeyValueChangeNewKey];
-            callOnMainThread([strongSelf, layer, error] {
-                strongSelf->_parent->layerDidReceiveError(layer.get(), error.get());
+            callOnMainThread([protectedSelf = WTFMove(protectedSelf), layer = WTFMove(layer), error = WTFMove(error)] {
+                protectedSelf->_parent->layerDidReceiveError(layer.get(), error.get());
             });
         } else if ([keyPath isEqualTo:@"outputObscuredDueToInsufficientExternalProtection"]) {
             if ([[change valueForKey:NSKeyValueChangeNewKey] boolValue]) {
                 RetainPtr<NSError> error = [NSError errorWithDomain:@"com.apple.WebKit" code:'HDCP' userInfo:nil];
-                callOnMainThread([strongSelf, layer, error] {
-                    strongSelf->_parent->layerDidReceiveError(layer.get(), error.get());
+                callOnMainThread([protectedSelf = WTFMove(protectedSelf), layer = WTFMove(layer), error = WTFMove(error)] {
+                    protectedSelf->_parent->layerDidReceiveError(layer.get(), error.get());
                 });
             }
         } else
@@ -409,8 +394,8 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
         ASSERT(_renderers.contains(renderer.get()));
         ASSERT([keyPath isEqualTo:@"error"]);
 
-        callOnMainThread([strongSelf, renderer, error] {
-            strongSelf->_parent->rendererDidReceiveError(renderer.get(), error.get());
+        callOnMainThread([protectedSelf = WTFMove(protectedSelf), renderer = WTFMove(renderer), error = WTFMove(error)] {
+            protectedSelf->_parent->rendererDidReceiveError(renderer.get(), error.get());
         });
     } else
         ASSERT_NOT_REACHED();
@@ -421,11 +406,11 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     RetainPtr<AVSampleBufferDisplayLayer> layer = (AVSampleBufferDisplayLayer *)[note object];
     RetainPtr<NSError> error = [[note userInfo] valueForKey:AVSampleBufferDisplayLayerFailedToDecodeNotificationErrorKey];
 
-    RetainPtr<WebAVSampleBufferErrorListener> strongSelf = self;
-    callOnMainThread([strongSelf, layer, error] {
-        if (!strongSelf->_parent || !strongSelf->_layers.contains(layer.get()))
+    RetainPtr<WebAVSampleBufferErrorListener> protectedSelf = self;
+    callOnMainThread([protectedSelf = WTFMove(protectedSelf), layer = WTFMove(layer), error = WTFMove(error)] {
+        if (!protectedSelf->_parent || !protectedSelf->_layers.contains(layer.get()))
             return;
-        strongSelf->_parent->layerDidReceiveError(layer.get(), error.get());
+        protectedSelf->_parent->layerDidReceiveError(layer.get(), error.get());
     });
 }
 @end
@@ -697,7 +682,7 @@ bool SourceBufferPrivateAVFObjC::processCodedFrame(int trackID, CMSampleBufferRe
     if (m_client) {
         RefPtr<MediaSample> mediaSample = MediaSampleAVFObjC::create(sampleBuffer, trackID);
         LOG(MediaSourceSamples, "SourceBufferPrivateAVFObjC::processCodedFrame(%p) - sample(%s)", this, toString(*mediaSample).utf8().data());
-        m_client->sourceBufferPrivateDidReceiveSample(this, mediaSample.release());
+        m_client->sourceBufferPrivateDidReceiveSample(this, WTFMove(mediaSample));
     }
 
     return true;

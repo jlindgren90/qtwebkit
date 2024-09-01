@@ -26,7 +26,6 @@
 #import "config.h"
 #import "Editor.h"
 
-#import "BlockExceptions.h"
 #import "CSSPrimitiveValueMappings.h"
 #import "CSSValuePool.h"
 #import "CachedResourceLoader.h"
@@ -45,6 +44,7 @@
 #import "HTMLAttachmentElement.h"
 #import "HTMLConverter.h"
 #import "HTMLElement.h"
+#include "HTMLImageElement.h"
 #import "HTMLNames.h"
 #import "LegacyWebArchive.h"
 #import "MIMETypeRegistry.h"
@@ -57,6 +57,7 @@
 #import "RenderBlock.h"
 #import "RenderImage.h"
 #import "RuntimeApplicationChecks.h"
+#import "Settings.h"
 #import "Sound.h"
 #import "StyleProperties.h"
 #import "Text.h"
@@ -65,6 +66,7 @@
 #import "WebNSAttributedStringExtras.h"
 #import "htmlediting.h"
 #import "markup.h"
+#import <wtf/BlockObjCExceptions.h>
 
 namespace WebCore {
 
@@ -475,6 +477,9 @@ private:
 
 bool Editor::WebContentReader::readWebArchive(SharedBuffer* buffer)
 {
+    if (frame.settings().preferMIMETypeForImages())
+        return false;
+
     if (!frame.document())
         return false;
 
@@ -522,13 +527,13 @@ bool Editor::WebContentReader::readFilenames(const Vector<String>& paths)
 
     for (auto& text : paths) {
 #if ENABLE(ATTACHMENT_ELEMENT)
-        Ref<HTMLAttachmentElement> attachment = HTMLAttachmentElement::create(attachmentTag, document);
+        auto attachment = HTMLAttachmentElement::create(attachmentTag, document);
         attachment->setFile(File::create([[NSURL fileURLWithPath:text] path]).ptr());
-        fragment->appendChild(WTFMove(attachment));
+        fragment->appendChild(attachment);
 #else
-        Ref<HTMLElement> paragraph = createDefaultParagraphElement(document);
+        auto paragraph = createDefaultParagraphElement(document);
         paragraph->appendChild(document.createTextNode(frame.editor().client()->userVisibleString([NSURL fileURLWithPath:text])));
-        fragment->appendChild(WTFMove(paragraph));
+        fragment->appendChild(paragraph);
 #endif
     }
 
@@ -561,12 +566,18 @@ bool Editor::WebContentReader::readHTML(const String& string)
 
 bool Editor::WebContentReader::readRTFD(SharedBuffer& buffer)
 {
+    if (frame.settings().preferMIMETypeForImages())
+        return false;
+
     fragment = frame.editor().createFragmentAndAddResources(adoptNS([[NSAttributedString alloc] initWithRTFD:buffer.createNSData().get() documentAttributes:nullptr]).get());
     return fragment;
 }
 
 bool Editor::WebContentReader::readRTF(SharedBuffer& buffer)
 {
+    if (frame.settings().preferMIMETypeForImages())
+        return false;
+
     fragment = frame.editor().createFragmentAndAddResources(adoptNS([[NSAttributedString alloc] initWithRTF:buffer.createNSData().get() documentAttributes:nullptr]).get());
     return fragment;
 }
@@ -592,7 +603,7 @@ bool Editor::WebContentReader::readURL(const URL& url, const String& title)
     anchor->appendChild(frame.document()->createTextNode([title precomposedStringWithCanonicalMapping]));
 
     fragment = frame.document()->createDocumentFragment();
-    fragment->appendChild(WTFMove(anchor));
+    fragment->appendChild(anchor);
     return true;
 }
 
@@ -624,15 +635,15 @@ RefPtr<DocumentFragment> Editor::createFragmentForImageResourceAndAddResource(Re
     if (!resource)
         return nullptr;
 
-    auto imageElement = document().createElement(HTMLNames::imgTag, false);
-    imageElement->setAttribute(HTMLNames::srcAttr, resource->url().string());
-
-    // FIXME: The code in createFragmentAndAddResources calls setDefersLoading(true). Don't we need that here?
+    String resourceURL = resource->url().string();
     if (DocumentLoader* loader = m_frame.loader().documentLoader())
         loader->addArchiveResource(resource.releaseNonNull());
 
+    auto imageElement = HTMLImageElement::create(*m_frame.document());
+    imageElement->setAttributeWithoutSynchronization(HTMLNames::srcAttr, resourceURL);
+
     auto fragment = document().createDocumentFragment();
-    fragment->appendChild(WTFMove(imageElement));
+    fragment->appendChild(imageElement);
 
     return WTFMove(fragment);
 }

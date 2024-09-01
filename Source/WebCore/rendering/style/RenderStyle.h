@@ -31,20 +31,16 @@
 #include "CSSPrimitiveValue.h"
 #include "CSSPropertyNames.h"
 #include "Color.h"
-#include "ColorSpace.h"
 #include "CounterDirectives.h"
 #include "DataRef.h"
-#include "FontBaseline.h"
 #include "FontDescription.h"
 #include "GraphicsTypes.h"
 #include "Length.h"
 #include "LengthBox.h"
-#include "LengthFunctions.h"
 #include "LengthPoint.h"
 #include "LengthSize.h"
 #include "LineClampValue.h"
 #include "NinePieceImage.h"
-#include "OutlineValue.h"
 #include "Pagination.h"
 #include "RenderStyleConstants.h"
 #include "RoundedRect.h"
@@ -57,7 +53,6 @@
 #include "StyleDeprecatedFlexibleBoxData.h"
 #include "StyleFilterData.h"
 #include "StyleFlexibleBoxData.h"
-#include "StyleInheritedData.h"
 #include "StyleMarqueeData.h"
 #include "StyleMultiColData.h"
 #include "StyleRareInheritedData.h"
@@ -73,7 +68,6 @@
 #include <memory>
 #include <wtf/Forward.h>
 #include <wtf/NeverDestroyed.h>
-#include <wtf/RefCounted.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/Vector.h>
 
@@ -508,10 +502,10 @@ public:
     ContentDistributionType resolvedJustifyContentDistribution(const StyleContentAlignmentData& normalValueBehavior) const;
     ContentPosition resolvedAlignContentPosition(const StyleContentAlignmentData& normalValueBehavior) const;
     ContentDistributionType resolvedAlignContentDistribution(const StyleContentAlignmentData& normalValueBehavior) const;
-    static ItemPosition resolveAlignment(const RenderStyle& parentStyle, const RenderStyle& childStyle, ItemPosition resolvedAutoPositionForRenderer);
-    static OverflowAlignment resolveAlignmentOverflow(const RenderStyle& parentStyle, const RenderStyle& childStyle);
-    static ItemPosition resolveJustification(const RenderStyle& parentStyle, const RenderStyle& childStyle, ItemPosition resolvedAutoPositionForRenderer);
-    static OverflowAlignment resolveJustificationOverflow(const RenderStyle& parentStyle, const RenderStyle& childStyle);
+    StyleSelfAlignmentData resolvedAlignItems(ItemPosition normalValueBehaviour) const;
+    StyleSelfAlignmentData resolvedAlignSelf(const RenderStyle& parentStyle, ItemPosition normalValueBehaviour) const;
+    StyleSelfAlignmentData resolvedJustifyItems(ItemPosition normalValueBehaviour) const;
+    StyleSelfAlignmentData resolvedJustifySelf(const RenderStyle& parentStyle, ItemPosition normalValueBehaviour) const;
 
     enum IsAtShadowBoundary {
         AtShadowBoundary,
@@ -554,7 +548,8 @@ public:
     bool hasMargin() const { return !surround->margin.isZero(); }
     bool hasBorder() const { return surround->border.hasBorder(); }
     bool hasBorderFill() const { return surround->border.hasFill(); }
-    bool hasBorderDecoration() const { return hasBorder() || hasBorderFill(); }
+    bool hasVisibleBorderDecoration() const { return hasVisibleBorder() || hasBorderFill(); }
+    bool hasVisibleBorder() const { return surround->border.hasVisibleBorder(); }
     bool hasPadding() const { return !surround->padding.isZero(); }
     bool hasOffset() const { return !surround->offset.isZero(); }
     bool hasMarginBeforeQuirk() const { return marginBefore().hasQuirk(); }
@@ -757,7 +752,7 @@ public:
     bool hasExplicitlySetDirection() const { return noninherited_flags.hasExplicitlySetDirection(); }
 
     const Length& specifiedLineHeight() const;
-    Length lineHeight() const;
+    WEBCORE_EXPORT Length lineHeight() const;
     int computedLineHeight() const;
 
     EWhiteSpace whiteSpace() const { return static_cast<EWhiteSpace>(inherited_flags._white_space); }
@@ -1833,6 +1828,8 @@ public:
     void setContent(QuoteType, bool add = false);
     void setContentAltText(const String&);
     const String& contentAltText() const;
+    bool hasAttrContent() const { return rareNonInheritedData->m_hasAttrContent; }
+    void setHasAttrContent();
 
     const CounterDirectiveMap* counterDirectives() const;
     CounterDirectiveMap& accessCounterDirectives();
@@ -1859,7 +1856,7 @@ public:
 
 #if ENABLE(IOS_TEXT_AUTOSIZING)
     uint32_t hashForTextAutosizing() const;
-    bool equalForTextAutosizing(const RenderStyle *other) const;
+    bool equalForTextAutosizing(const RenderStyle&) const;
 #endif
 
     StyleDifference diff(const RenderStyle&, unsigned& changedContextSensitiveProperties) const;
@@ -2001,6 +1998,7 @@ public:
     static Length initialFlexBasis() { return Length(Auto); }
     static int initialOrder() { return 0; }
     static StyleSelfAlignmentData initialSelfAlignment() { return StyleSelfAlignmentData(ItemPositionAuto, OverflowAlignmentDefault); }
+    static StyleSelfAlignmentData initialDefaultAlignment() { return StyleSelfAlignmentData(ItemPositionNormal, OverflowAlignmentDefault); }
     static StyleContentAlignmentData initialContentAlignment() { return StyleContentAlignmentData(ContentPositionNormal, ContentDistributionDefault, OverflowAlignmentDefault); }
     static EFlexDirection initialFlexDirection() { return FlowRow; }
     static EFlexWrap initialFlexWrap() { return FlexNoWrap; }
@@ -2345,6 +2343,11 @@ inline void RenderStyle::setHasPseudoStyle(PseudoId pseudo)
 inline void RenderStyle::setHasPseudoStyles(PseudoIdSet pseudoIdSet)
 {
     noninherited_flags.setHasPseudoStyles(pseudoIdSet);
+}
+
+inline bool pseudoElementRendererIsNeeded(const RenderStyle* style)
+{
+    return style && style->display() != NONE && (style->contentData() || style->hasFlowFrom());
 }
 
 } // namespace WebCore

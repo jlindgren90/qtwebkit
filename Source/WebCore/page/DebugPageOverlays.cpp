@@ -54,7 +54,6 @@ protected:
     RegionOverlay(MainFrame&, Color);
 
 private:
-    void pageOverlayDestroyed(PageOverlay&) final;
     void willMoveToPage(PageOverlay&, Page*) final;
     void didMoveToPage(PageOverlay&, Page*) final;
     void drawRect(PageOverlay&, GraphicsContext&, const IntRect& dirtyRect) final;
@@ -132,8 +131,11 @@ bool NonFastScrollableRegionOverlay::updateRegion()
     std::unique_ptr<Region> region = std::make_unique<Region>();
 
     if (Page* page = m_frame.page()) {
-        if (ScrollingCoordinator* scrollingCoordinator = page->scrollingCoordinator())
-            *region = scrollingCoordinator->absoluteNonFastScrollableRegion();
+        if (ScrollingCoordinator* scrollingCoordinator = page->scrollingCoordinator()) {
+            EventTrackingRegions eventTrackingRegions = scrollingCoordinator->absoluteEventTrackingRegions();
+            for (const auto& synchronousEventRegion : eventTrackingRegions.eventSpecificSynchronousDispatchRegions)
+                region->unite(synchronousEventRegion.value);
+        }
     }
 
     bool regionChanged = !m_region || !(*m_region == *region);
@@ -164,10 +166,6 @@ RegionOverlay::~RegionOverlay()
 {
     if (m_overlay)
         m_frame.pageOverlayController().uninstallPageOverlay(m_overlay.get(), PageOverlay::FadeMode::DoNotFade);
-}
-
-void RegionOverlay::pageOverlayDestroyed(PageOverlay&)
-{
 }
 
 void RegionOverlay::willMoveToPage(PageOverlay&, Page* page)

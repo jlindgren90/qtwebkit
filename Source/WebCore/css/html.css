@@ -411,10 +411,6 @@ input::-webkit-textfield-decoration-container {
     content: none !important;
 }
 
-input[type="search"]::-webkit-textfield-decoration-container {
-    direction: ltr;
-}
-
 input::-webkit-clear-button {
     -webkit-appearance: searchfield-cancel-button;
     display: inline-block;
@@ -623,13 +619,13 @@ textarea {
     word-wrap: break-word;
 }
 
-::-webkit-input-placeholder {
+::placeholder {
     -webkit-text-security: none;
     color: darkGray;
     pointer-events: none !important;
 }
 
-input::-webkit-input-placeholder, isindex::-webkit-input-placeholder {
+input::placeholder, isindex::placeholder {
     white-space: pre;
     word-wrap: normal;
     overflow: hidden;
@@ -756,7 +752,7 @@ input[readonly], textarea[readonly] {
     border-color: rgb(188, 188, 188);
 }
 
-textarea::-webkit-input-placeholder {
+textarea::placeholder {
     text-indent: 2px;
 }
 #endif

@@ -27,6 +27,7 @@
 #ifndef DOMWindow_h
 #define DOMWindow_h
 
+#include "Base64Utilities.h"
 #include "ContextDestructionObserver.h"
 #include "EventTarget.h"
 #include "FrameDestructionObserver.h"
@@ -34,6 +35,7 @@
 #include "Supplementable.h"
 #include <functional>
 #include <memory>
+#include <wtf/HashSet.h>
 #include <wtf/Optional.h>
 #include <wtf/WeakPtr.h>
 
@@ -97,6 +99,7 @@ namespace WebCore {
         , public EventTargetWithInlineData
         , public ContextDestructionObserver
         , public FrameDestructionObserver
+        , public Base64Utilities
         , public Supplementable<DOMWindow> {
     public:
         static Ref<DOMWindow> create(Document* document) { return adoptRef(*new DOMWindow(document)); }
@@ -123,7 +126,7 @@ namespace WebCore {
         void suspendForDocumentSuspension();
         void resumeFromDocumentSuspension();
 
-        PassRefPtr<MediaQueryList> matchMedia(const String&);
+        RefPtr<MediaQueryList> matchMedia(const String&);
 
         WEBCORE_EXPORT unsigned pendingUnloadEventListeners() const;
 
@@ -167,7 +170,7 @@ namespace WebCore {
         void print();
         void stop();
 
-        WEBCORE_EXPORT PassRefPtr<DOMWindow> open(const String& urlString, const AtomicString& frameName, const String& windowFeaturesString,
+        WEBCORE_EXPORT RefPtr<DOMWindow> open(const String& urlString, const AtomicString& frameName, const String& windowFeaturesString,
             DOMWindow& activeWindow, DOMWindow& firstWindow);
 
         void showModalDialog(const String& urlString, const String& dialogFeaturesString, DOMWindow& activeWindow, DOMWindow& firstWindow, std::function<void (DOMWindow&)> prepareDialogFunction);
@@ -175,8 +178,6 @@ namespace WebCore {
         void alert(const String& message);
         bool confirm(const String& message);
         String prompt(const String& message, const String& defaultValue);
-        String btoa(const String& stringToEncode, ExceptionCode&);
-        String atob(const String& encodedString, ExceptionCode&);
 
         bool find(const String&, bool caseSensitive, bool backwards, bool wrap, bool wholeWord, bool searchInFrames, bool showDialog) const;
 
@@ -223,19 +224,19 @@ namespace WebCore {
 
         // CSSOM View Module
 
-        PassRefPtr<StyleMedia> styleMedia() const;
+        RefPtr<StyleMedia> styleMedia() const;
 
         // DOM Level 2 Style Interface
 
-        PassRefPtr<CSSStyleDeclaration> getComputedStyle(Element*, const String& pseudoElt) const;
+        RefPtr<CSSStyleDeclaration> getComputedStyle(Element*, const String& pseudoElt) const;
 
         // WebKit extensions
 
-        PassRefPtr<CSSRuleList> getMatchedCSSRules(Element*, const String& pseudoElt, bool authorOnly = true) const;
+        RefPtr<CSSRuleList> getMatchedCSSRules(Element*, const String& pseudoElt, bool authorOnly = true) const;
         double devicePixelRatio() const;
 
-        PassRefPtr<WebKitPoint> webkitConvertPointFromPageToNode(Node*, const WebKitPoint*) const;
-        PassRefPtr<WebKitPoint> webkitConvertPointFromNodeToPage(Node*, const WebKitPoint*) const;
+        RefPtr<WebKitPoint> webkitConvertPointFromPageToNode(Node*, const WebKitPoint*) const;
+        RefPtr<WebKitPoint> webkitConvertPointFromNodeToPage(Node*, const WebKitPoint*) const;
 
         PageConsoleClient* console() const;
 
@@ -248,9 +249,15 @@ namespace WebCore {
         void postMessageTimerFired(PostMessageTimer&);
         void dispatchMessageEventWithOriginCheck(SecurityOrigin* intendedTargetOrigin, Event&, PassRefPtr<Inspector::ScriptCallStack>);
 
-        void scrollBy(int x, int y) const;
-        void scrollTo(int x, int y) const;
-        void scroll(int x, int y) const { scrollTo(x, y); }
+        struct ScrollToOptions {
+            Optional<double> left;
+            Optional<double> top;
+        };
+
+        void scrollBy(const ScrollToOptions&) const;
+        void scrollBy(double x, double y) const;
+        void scrollTo(const ScrollToOptions&) const;
+        void scrollTo(double x, double y) const;
 
         void moveBy(float x, float y) const;
         void moveTo(float x, float y) const;
@@ -273,8 +280,8 @@ namespace WebCore {
 
         // Events
         // EventTarget API
-        bool addEventListener(const AtomicString& eventType, RefPtr<EventListener>&&, bool useCapture) override;
-        bool removeEventListener(const AtomicString& eventType, EventListener*, bool useCapture) override;
+        bool addEventListener(const AtomicString& eventType, Ref<EventListener>&&, const AddEventListenerOptions&) override;
+        bool removeEventListener(const AtomicString& eventType, EventListener&, const ListenerOptions&) override;
         void removeAllEventListeners() override;
 
         using EventTarget::dispatchEvent;
@@ -309,6 +316,7 @@ namespace WebCore {
 #if ENABLE(WEB_TIMING)
         Performance* performance() const;
 #endif
+        double nowTimestamp() const;
 
 #if PLATFORM(IOS)
         void incrementScrollEventListenersCount();

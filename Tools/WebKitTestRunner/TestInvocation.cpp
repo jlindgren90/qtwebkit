@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2011, 2012 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2012 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <WebKit/WKInspector.h>
 #include <WebKit/WKPagePrivate.h>
 #include <WebKit/WKRetainPtr.h>
+#include <WebKit/WKWebsiteDataStoreRef.h>
 #include <climits>
 #include <cstdio>
 #include <wtf/StdLibExtras.h>
@@ -171,13 +172,13 @@ end:
 
     if (m_webProcessIsUnresponsive)
         dumpWebProcessUnresponsiveness();
-    else if (!TestController::singleton().resetStateToConsistentValues(m_options)) {
-        // The process froze while loading about:blank, let's start a fresh one.
-        // It would be nice to report that the previous test froze after dumping results, but we have no way to do that.
-        TestController::singleton().terminateWebContentProcess();
-        // Make sure that we have a process, as invoke() will need one to send bundle messages for the next test.
-        TestController::singleton().reattachPageToWebProcess();
-    }
+    else if (TestController::singleton().resetStateToConsistentValues(m_options))
+        return;
+
+    // The process is unresponsive, so let's start a new one.
+    TestController::singleton().terminateWebContentProcess();
+    // Make sure that we have a process, as invoke() will need one to send bundle messages for the next test.
+    TestController::singleton().reattachPageToWebProcess();
 }
 
 void TestInvocation::dumpWebProcessUnresponsiveness()
@@ -187,12 +188,13 @@ void TestInvocation::dumpWebProcessUnresponsiveness()
 
 void TestInvocation::dumpWebProcessUnresponsiveness(const char* errorMessage)
 {
+    fprintf(stderr, "%s", errorMessage);
     char errorMessageToStderr[1024];
 #if PLATFORM(COCOA)
     pid_t pid = WKPageGetProcessIdentifier(TestController::singleton().mainWebView()->page());
     sprintf(errorMessageToStderr, "#PROCESS UNRESPONSIVE - %s (pid %ld)\n", TestController::webProcessName(), static_cast<long>(pid));
 #else
-    sprintf(errorMessageToStderr, "#PROCESS UNRESPONSIVE - %s", TestController::webProcessName());
+    sprintf(errorMessageToStderr, "#PROCESS UNRESPONSIVE - %s\n", TestController::webProcessName());
 #endif
 
     dump(errorMessage, errorMessageToStderr, true);
@@ -705,6 +707,17 @@ WKRetainPtr<WKTypeRef> TestInvocation::didReceiveSynchronousMessageFromInjectedB
         WKHTTPCookieAcceptPolicy policy = WKBooleanGetValue(accept) ? kWKHTTPCookieAcceptPolicyAlways : kWKHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain;
         // FIXME: This updates the policy in WebProcess and in NetworkProcess asynchronously, which might break some tests' expectations.
         WKCookieManagerSetHTTPCookieAcceptPolicy(WKContextGetCookieManager(TestController::singleton().context()), policy);
+        return nullptr;
+    }
+
+    if (WKStringIsEqualToUTF8CString(messageName, "ImageCountInGeneralPasteboard")) {
+        unsigned count = TestController::singleton().imageCountInGeneralPasteboard();
+        WKRetainPtr<WKUInt64Ref> result(AdoptWK, WKUInt64Create(count));
+        return result;
+    }
+    
+    if (WKStringIsEqualToUTF8CString(messageName, "DeleteAllIndexedDatabases")) {
+        WKWebsiteDataStoreRemoveAllIndexedDatabases(WKContextGetWebsiteDataStore(TestController::singleton().context()));
         return nullptr;
     }
 

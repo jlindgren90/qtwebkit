@@ -21,6 +21,7 @@
 #include "config.h"
 #include "ObjectConstructor.h"
 
+#include "BuiltinNames.h"
 #include "ButterflyInlines.h"
 #include "CopiedSpaceInlines.h"
 #include "Error.h"
@@ -99,10 +100,10 @@ void ObjectConstructor::finishCreation(VM& vm, JSGlobalObject* globalObject, Obj
     // no. of arguments for constructor
     putDirectWithoutTransition(vm, vm.propertyNames->length, jsNumber(1), ReadOnly | DontEnum | DontDelete);
 
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->createPrivateName, objectConstructorCreate, DontEnum, 2);
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->definePropertyPrivateName, objectConstructorDefineProperty, DontEnum, 3);
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->getPrototypeOfPrivateName, objectConstructorGetPrototypeOf, DontEnum, 1);
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->getOwnPropertyNamesPrivateName, objectConstructorGetOwnPropertyNames, DontEnum, 1);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().createPrivateName(), objectConstructorCreate, DontEnum, 2);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().definePropertyPrivateName(), objectConstructorDefineProperty, DontEnum, 3);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().getPrototypeOfPrivateName(), objectConstructorGetPrototypeOf, DontEnum, 1);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().getOwnPropertyNamesPrivateName(), objectConstructorGetOwnPropertyNames, DontEnum, 1);
 }
 
 JSFunction* ObjectConstructor::addDefineProperty(ExecState* exec, JSGlobalObject* globalObject)
@@ -111,11 +112,6 @@ JSFunction* ObjectConstructor::addDefineProperty(ExecState* exec, JSGlobalObject
     JSFunction* definePropertyFunction = JSFunction::create(vm, globalObject, 3, vm.propertyNames->defineProperty.string(), objectConstructorDefineProperty);
     putDirectWithoutTransition(vm, vm.propertyNames->defineProperty, definePropertyFunction, DontEnum);
     return definePropertyFunction;
-}
-
-bool ObjectConstructor::getOwnPropertySlot(JSObject* object, ExecState* exec, PropertyName propertyName, PropertySlot &slot)
-{
-    return getStaticFunctionSlot<JSObject>(exec, objectConstructorTable, jsCast<ObjectConstructor*>(object), propertyName, slot);
 }
 
 // ES 19.1.1.1 Object([value])
@@ -708,12 +704,15 @@ EncodedJSValue JSC_HOST_CALL objectConstructorIs(ExecState* exec)
 // FIXME: Use the enumeration cache.
 JSArray* ownPropertyKeys(ExecState* exec, JSObject* object, PropertyNameMode propertyNameMode, DontEnumPropertiesMode dontEnumPropertiesMode)
 {
+    VM& vm = exec->vm();
     PropertyNameArray properties(exec, propertyNameMode);
-    object->methodTable(exec->vm())->getOwnPropertyNames(object, exec, properties, EnumerationMode(dontEnumPropertiesMode));
-    if (exec->hadException())
+    object->methodTable(vm)->getOwnPropertyNames(object, exec, properties, EnumerationMode(dontEnumPropertiesMode));
+    if (UNLIKELY(vm.exception()))
         return nullptr;
 
     JSArray* keys = constructEmptyArray(exec, 0);
+    if (UNLIKELY(vm.exception()))
+        return nullptr;
 
     switch (propertyNameMode) {
     case PropertyNameMode::Strings: {
@@ -732,7 +731,7 @@ JSArray* ownPropertyKeys(ExecState* exec, JSObject* object, PropertyNameMode pro
             const auto& identifier = properties[i];
             ASSERT(identifier.isSymbol());
             if (!exec->propertyNames().isPrivateName(identifier))
-                keys->push(exec, Symbol::create(exec->vm(), static_cast<SymbolImpl&>(*identifier.impl())));
+                keys->push(exec, Symbol::create(vm, static_cast<SymbolImpl&>(*identifier.impl())));
         }
         break;
     }
@@ -751,7 +750,7 @@ JSArray* ownPropertyKeys(ExecState* exec, JSObject* object, PropertyNameMode pro
 
         // To ensure the order defined in the spec (9.1.12), we append symbols at the last elements of keys.
         for (const auto& identifier : propertySymbols)
-            keys->push(exec, Symbol::create(exec->vm(), static_cast<SymbolImpl&>(*identifier.impl())));
+            keys->push(exec, Symbol::create(vm, static_cast<SymbolImpl&>(*identifier.impl())));
 
         break;
     }

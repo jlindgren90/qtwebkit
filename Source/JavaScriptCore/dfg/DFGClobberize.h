@@ -117,6 +117,17 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         if (inlineCallFrame->isVarargs())
             read(AbstractHeap(Stack, inlineCallFrame->stackOffset + JSStack::ArgumentCount));
     }
+
+    // We don't want to specifically account which nodes can read from the scope
+    // when the debugger is enabled. It's helpful to just claim all nodes do.
+    // Specifically, if a node allocates, this may call into the debugger's machinery.
+    // The debugger's machinery is free to take a stack trace and try to read from
+    // a scope which is expected to be flushed to the stack.
+    if (graph.hasDebuggerEnabled()) {
+        ASSERT(!node->origin.semantic.inlineCallFrame);
+        read(AbstractHeap(Stack, graph.m_codeBlock->scopeRegister()));
+    }
+        
     
     switch (node->op()) {
     case JSConstant:
@@ -154,7 +165,6 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case StringCharCodeAt:
     case CompareStrictEq:
     case IsJSArray:
-    case IsArrayConstructor:
     case IsEmpty:
     case IsUndefined:
     case IsBoolean:
@@ -162,6 +172,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case IsString:
     case IsObject:
     case IsRegExpObject:
+    case IsTypedArrayView:
     case LogicalNot:
     case CheckInBounds:
     case DoubleRep:
@@ -197,7 +208,6 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         write(MathDotRandomState);
         return;
 
-    case IsArrayObject:
     case HasGenericProperty:
     case HasStructureProperty:
     case GetEnumerableLength:
@@ -365,8 +375,6 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case CheckTierUpAtReturn:
     case CheckTierUpAndOSREnter:
     case LoopHint:
-    case ProfileWillCall:
-    case ProfileDidCall:
     case ProfileType:
     case ProfileControlFlow:
     case StoreBarrier:
@@ -501,7 +509,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         def(HeapLocation(StackLoc, AbstractHeap(Stack, JSStack::Callee)), LazyNode(node));
         return;
         
-    case GetArgumentCount:
+    case GetArgumentCountIncludingThis:
         read(AbstractHeap(Stack, JSStack::ArgumentCount));
         def(HeapLocation(StackPayloadLoc, AbstractHeap(Stack, JSStack::ArgumentCount)), LazyNode(node));
         return;

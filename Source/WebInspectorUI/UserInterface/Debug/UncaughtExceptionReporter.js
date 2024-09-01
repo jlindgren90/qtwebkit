@@ -56,6 +56,7 @@ function handleError(error) {
         url: parseURL(error.sourceURL).lastPathComponent,
         lineNumber: error.line,
         columnNumber: error.column,
+        stack: error.stack,
     });
 }
 
@@ -65,6 +66,7 @@ function handleUncaughtException(event) {
         url: parseURL(event.filename).lastPathComponent,
         lineNumber: event.lineno,
         columnNumber: event.colno,
+        stack: typeof event.error === "object" && event.error !== null ? event.error.stack : null,
     });
 }
 
@@ -147,17 +149,36 @@ function createErrorSheet() {
             dismissErrorSheet();
     }
 
-    let inspectedPageURL = "(unknown)";
+    function formattedEntry(entry) {
+        let message = `${entry.message} (at ${entry.url}:${entry.lineNumber}:${entry.columnNumber})`;
+        if (!entry.stack)
+            return message;
+
+        const indent = "    ";
+        let results = [];
+        let lines = entry.stack.split(/\n/g);
+        for (let line of lines) {
+            let atIndex = line.indexOf("@");
+            let slashIndex = Math.max(line.lastIndexOf("/"), atIndex);
+            let functionName = line.substring(0, atIndex) || "?";
+            let location = line.substring(slashIndex + 1, line.length);
+            results.push(`${indent}${functionName} @ ${location}`);
+        }
+
+        return message + "\n" + results.join("\n");
+    }
+
+    let inspectedPageURL = null;
     try {
         inspectedPageURL = WebInspector.frameResourceManager.mainFrame.url;
     } catch (e) { }
 
-    let formattedErrorDetails = window.__uncaughtExceptions.map((entry) => `${entry.message} (at ${entry.url}:${entry.lineNumber}:${entry.columnNumber})`);
+    let formattedErrorDetails = window.__uncaughtExceptions.map((entry) => formattedEntry(entry));
     let detailsForBugReport = formattedErrorDetails.map((line) => ` - ${line}`).join("\n");
     let encodedBugDescription = encodeURIComponent(`-------
 Auto-generated details:
 
-Inspected URL:        ${inspectedPageURL}
+Inspected URL:        ${inspectedPageURL || "(unknown)"}
 Loading completed:    ${!!loadCompleted}
 Frontend User Agent:  ${window.navigator.userAgent}
 Uncaught exceptions:
@@ -172,7 +193,8 @@ ${detailsForBugReport}
 Document any additional information that might be useful in resolving the problem, such as screen shots or other included attachments.
 `);
     let encodedBugTitle = encodeURIComponent(`Uncaught Exception: ${firstException.message}`);
-    let prefilledBugReportLink = `https://bugs.webkit.org/enter_bug.cgi?alias=&assigned_to=webkit-unassigned%40lists.webkit.org&attach_text=&blocked=&bug_file_loc=http%3A%2F%2F&bug_severity=Normal&bug_status=NEW&comment=${encodedBugDescription}&component=Web%20Inspector&contenttypeentry=&contenttypemethod=autodetect&contenttypeselection=text%2Fplain&data=&dependson=&description=&flag_type-1=X&flag_type-3=X&form_name=enter_bug&keywords=&op_sys=All&priority=P2&product=WebKit&rep_platform=All&short_desc=${encodedBugTitle}&version=WebKit%20Nightly%20Build`;
+    let encodedInspectedURL = encodeURIComponent(inspectedPageURL || "http://");
+    let prefilledBugReportLink = `https://bugs.webkit.org/enter_bug.cgi?alias=&assigned_to=webkit-unassigned%40lists.webkit.org&attach_text=&blocked=&bug_file_loc=${encodedInspectedURL}&bug_severity=Normal&bug_status=NEW&comment=${encodedBugDescription}&component=Web%20Inspector&contenttypeentry=&contenttypemethod=autodetect&contenttypeselection=text%2Fplain&data=&dependson=&description=&flag_type-1=X&flag_type-3=X&form_name=enter_bug&keywords=&op_sys=All&priority=P2&product=WebKit&rep_platform=All&short_desc=${encodedBugTitle}&version=WebKit%20Nightly%20Build`;
     let detailsForHTML = formattedErrorDetails.map((line) => `<li>${insertWordBreakCharacters(line)}</li>`).join("\n");
 
     let dismissOptionHTML = !loadCompleted ? "" : `<dt>A frivolous exception will not stop me!</dt>

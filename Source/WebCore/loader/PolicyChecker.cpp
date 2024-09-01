@@ -34,6 +34,7 @@
 #include "ContentSecurityPolicy.h"
 #include "DOMWindow.h"
 #include "DocumentLoader.h"
+#include "EventNames.h"
 #include "FormState.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -98,6 +99,11 @@ void PolicyChecker::checkNavigationPolicy(const ResourceRequest& request, bool d
     }
 
     if (!isAllowedByContentSecurityPolicy(request.url(), m_frame.ownerElement(), didReceiveRedirectResponse)) {
+        if (m_frame.ownerElement()) {
+            // Fire a load event (even though we were blocked by CSP) as timing attacks would otherwise
+            // reveal that the frame was blocked. This way, it looks like any other cross-origin page load.
+            m_frame.ownerElement()->dispatchEvent(Event::create(eventNames().loadEvent, false, false));
+        }
         function(request, 0, false);
         return;
     }

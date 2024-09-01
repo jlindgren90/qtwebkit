@@ -1107,6 +1107,16 @@ Some other editing-related methods still unimplemented:
 }
 #endif
 
+- (BOOL)_requiresUserActionForEditingControlsManager
+{
+    return _data->_impl->requiresUserActionForEditingControlsManager();
+}
+
+- (void)_setRequiresUserActionForEditingControlsManager:(BOOL)requiresUserAction
+{
+    _data->_impl->setRequiresUserActionForEditingControlsManager(requiresUserAction);
+}
+
 - (NSView *)fullScreenPlaceholderView
 {
     return _data->_impl->fullScreenPlaceholderView();
@@ -1423,6 +1433,13 @@ static _WKOverlayScrollbarStyle toAPIScrollbarStyle(WTF::Optional<WebCore::Scrol
 - (BOOL)_automaticallyAdjustsContentInsets
 {
     return _data->_impl->automaticallyAdjustsContentInsets();
+}
+
+- (void)setUserInterfaceLayoutDirection:(NSUserInterfaceLayoutDirection)userInterfaceLayoutDirection
+{
+    [super setUserInterfaceLayoutDirection:userInterfaceLayoutDirection];
+
+    _data->_impl->setUserInterfaceLayoutDirection(userInterfaceLayoutDirection);
 }
 
 @end

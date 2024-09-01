@@ -147,6 +147,7 @@ public:
     virtual String nodeValue() const;
     virtual void setNodeValue(const String&, ExceptionCode&);
     virtual NodeType nodeType() const = 0;
+    virtual size_t approximateMemoryCost() const { return sizeof(*this); }
     ContainerNode* parentNode() const;
     static ptrdiff_t parentNodeMemoryOffset() { return OBJECT_OFFSETOF(Node, m_parentNode); }
     Element* parentElement() const;
@@ -171,10 +172,10 @@ public:
     // These should all actually return a node, but this is only important for language bindings,
     // which will already know and hold a ref on the right node to return. Returning bool allows
     // these methods to be more efficient since they don't need to return a ref
-    WEBCORE_EXPORT bool insertBefore(PassRefPtr<Node> newChild, Node* refChild, ExceptionCode&);
-    bool replaceChild(PassRefPtr<Node> newChild, Node* oldChild, ExceptionCode&);
-    WEBCORE_EXPORT bool removeChild(Node* child, ExceptionCode&);
-    WEBCORE_EXPORT bool appendChild(PassRefPtr<Node> newChild, ExceptionCode&);
+    WEBCORE_EXPORT bool insertBefore(Node& newChild, Node* refChild, ExceptionCode&);
+    bool replaceChild(Node& newChild, Node& oldChild, ExceptionCode&);
+    WEBCORE_EXPORT bool removeChild(Node& child, ExceptionCode&);
+    WEBCORE_EXPORT bool appendChild(Node& newChild, ExceptionCode&);
 
     bool hasChildNodes() const { return firstChild(); }
 
@@ -250,7 +251,6 @@ public:
     bool isDocumentFragment() const { return getFlag(IsDocumentFragmentFlag); }
     bool isShadowRoot() const { return isDocumentFragment() && isTreeScope(); }
 
-    bool isNamedFlowContentNode() const { return getFlag(IsNamedFlowContentNodeFlag); }
     bool hasCustomStyleResolveCallbacks() const { return getFlag(HasCustomStyleResolveCallbacksFlag); }
 
     bool hasSyntheticAttrChildNodes() const { return getFlag(HasSyntheticAttrChildNodesFlag); }
@@ -265,9 +265,8 @@ public:
     ShadowRoot* shadowRoot() const;
     bool isUnclosedNode(const Node&) const;
 
-#if ENABLE(SHADOW_DOM)
     HTMLSlotElement* assignedSlot() const;
-#endif
+    HTMLSlotElement* assignedSlotForBindings() const;
 
 #if ENABLE(CUSTOM_ELEMENTS)
     bool isCustomElement() const { return getFlag(IsCustomElement); }
@@ -340,9 +339,6 @@ public:
 
     bool isLink() const { return getFlag(IsLinkFlag); }
     void setIsLink(bool flag) { setFlag(flag, IsLinkFlag); }
-
-    void setIsNamedFlowContentNode() { setFlag(IsNamedFlowContentNodeFlag); }
-    void clearIsNamedFlowContentNode() { clearFlag(IsNamedFlowContentNodeFlag); }
 
     bool hasEventTargetData() const { return getFlag(HasEventTargetDataFlag); }
     void setHasEventTargetData(bool flag) { setFlag(flag, HasEventTargetDataFlag); }
@@ -509,8 +505,8 @@ public:
     EventTargetInterface eventTargetInterface() const override;
     ScriptExecutionContext* scriptExecutionContext() const final; // Implemented in Document.h
 
-    bool addEventListener(const AtomicString& eventType, RefPtr<EventListener>&&, bool useCapture) override;
-    bool removeEventListener(const AtomicString& eventType, EventListener*, bool useCapture) override;
+    bool addEventListener(const AtomicString& eventType, Ref<EventListener>&&, const AddEventListenerOptions&) override;
+    bool removeEventListener(const AtomicString& eventType, EventListener&, const ListenerOptions&) override;
 
     using EventTarget::dispatchEvent;
     bool dispatchEvent(Event&) override;
@@ -579,6 +575,7 @@ public:
     static int32_t flagIsElement() { return IsElementFlag; }
     static int32_t flagIsHTML() { return IsHTMLFlag; }
     static int32_t flagIsLink() { return IsLinkFlag; }
+    static int32_t flagHasFocusWithin() { return HasFocusWithin; }
     static int32_t flagHasRareData() { return HasRareDataFlag; }
     static int32_t flagIsParsingChildrenFinished() { return IsParsingChildrenFinishedFlag; }
     static int32_t flagChildrenAffectedByFirstChildRulesFlag() { return ChildrenAffectedByFirstChildRulesFlag; }
@@ -609,7 +606,7 @@ protected:
 
         StyleChangeMask = 1 << nodeStyleChangeShift | 1 << (nodeStyleChangeShift + 1) | 1 << (nodeStyleChangeShift + 2),
         IsEditingTextOrUnresolvedCustomElementFlag = 1 << 17,
-        IsNamedFlowContentNodeFlag = 1 << 18,
+        HasFocusWithin = 1 << 18,
         HasSyntheticAttrChildNodesFlag = 1 << 19,
         HasCustomStyleResolveCallbacksFlag = 1 << 20,
         HasEventTargetDataFlag = 1 << 21,
@@ -682,8 +679,6 @@ private:
 
     void refEventTarget() override;
     void derefEventTarget() override;
-
-    Element* ancestorElement() const;
 
     void trackForDebugging();
     void materializeRareData();
@@ -791,9 +786,6 @@ inline void Node::setCustomElementIsResolved()
 }
 
 #endif
-
-Node* commonAncestor(Node&, Node&);
-Node* commonAncestorCrossingShadowBoundary(Node&, Node&);
 
 } // namespace WebCore
 

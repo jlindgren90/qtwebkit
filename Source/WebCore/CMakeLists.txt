@@ -5,6 +5,7 @@ set_property(DIRECTORY . PROPERTY FOLDER "WebCore")
 set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}"
     "${WEBCORE_DIR}/Modules/airplay"
+    "${WEBCORE_DIR}/Modules/applepay"
     "${WEBCORE_DIR}/Modules/battery"
     "${WEBCORE_DIR}/Modules/encryptedmedia"
     "${WEBCORE_DIR}/Modules/fetch"
@@ -224,7 +225,6 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/mediastream/MediaTrackSupportedConstraints.idl
     Modules/mediastream/NavigatorMediaDevices.idl
     Modules/mediastream/NavigatorUserMedia.idl
-    Modules/mediastream/NavigatorUserMediaError.idl
     Modules/mediastream/RTCConfiguration.idl
     Modules/mediastream/RTCDTMFSender.idl
     Modules/mediastream/RTCDTMFToneChangeEvent.idl
@@ -236,6 +236,7 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/mediastream/RTCPeerConnection.idl
     Modules/mediastream/RTCRtpReceiver.idl
     Modules/mediastream/RTCRtpSender.idl
+    Modules/mediastream/RTCRtpTransceiver.idl
     Modules/mediastream/RTCSessionDescription.idl
     Modules/mediastream/RTCStatsReport.idl
     Modules/mediastream/RTCStatsResponse.idl
@@ -591,8 +592,6 @@ set(WebCore_NON_SVG_IDL_FILES
 
     inspector/CommandLineAPIHost.idl
     inspector/InspectorFrontendHost.idl
-    inspector/ScriptProfile.idl
-    inspector/ScriptProfileNode.idl
 
     loader/appcache/DOMApplicationCache.idl
 
@@ -605,6 +604,10 @@ set(WebCore_NON_SVG_IDL_FILES
     page/History.idl
     page/Location.idl
     page/Navigator.idl
+    page/NavigatorConcurrentHardware.idl
+    page/NavigatorID.idl
+    page/NavigatorLanguage.idl
+    page/NavigatorOnLine.idl
     page/Performance.idl
     page/PerformanceEntry.idl
     page/PerformanceEntryList.idl
@@ -618,9 +621,8 @@ set(WebCore_NON_SVG_IDL_FILES
     page/UserMessageHandlersNamespace.idl
     page/WebKitNamespace.idl
     page/WebKitPoint.idl
-    page/WindowBase64.idl
     page/WindowEventHandlers.idl
-    page/WindowTimers.idl
+    page/WindowOrWorkerGlobalScope.idl
     page/WorkerNavigator.idl
 
     plugins/DOMMimeType.idl
@@ -912,6 +914,7 @@ set(WebCore_SOURCES
     Modules/mediastream/MediaDevices.cpp
     Modules/mediastream/MediaDevicesRequest.cpp
     Modules/mediastream/MediaEndpointPeerConnection.cpp
+    Modules/mediastream/MediaEndpointSessionDescription.cpp
     Modules/mediastream/MediaSourceSettings.cpp
     Modules/mediastream/MediaStream.cpp
     Modules/mediastream/MediaStreamEvent.cpp
@@ -922,7 +925,6 @@ set(WebCore_SOURCES
     Modules/mediastream/MediaTrackConstraintSet.cpp
     Modules/mediastream/MediaTrackConstraints.cpp
     Modules/mediastream/NavigatorMediaDevices.cpp
-    Modules/mediastream/NavigatorUserMediaError.cpp
     Modules/mediastream/RTCConfiguration.cpp
     Modules/mediastream/RTCDTMFSender.cpp
     Modules/mediastream/RTCDTMFToneChangeEvent.cpp
@@ -934,6 +936,7 @@ set(WebCore_SOURCES
     Modules/mediastream/RTCPeerConnection.cpp
     Modules/mediastream/RTCRtpReceiver.cpp
     Modules/mediastream/RTCRtpSender.cpp
+    Modules/mediastream/RTCRtpTransceiver.cpp
     Modules/mediastream/RTCSessionDescription.cpp
     Modules/mediastream/RTCStatsReport.cpp
     Modules/mediastream/RTCStatsResponse.cpp
@@ -1048,6 +1051,7 @@ set(WebCore_SOURCES
     accessibility/AccessibilityARIAGridRow.cpp
     accessibility/AccessibilityAttachment.cpp
     accessibility/AccessibilityImageMapLink.cpp
+    accessibility/AccessibilityLabel.cpp
     accessibility/AccessibilityList.cpp
     accessibility/AccessibilityListBox.cpp
     accessibility/AccessibilityListBoxOption.cpp
@@ -1137,6 +1141,7 @@ set(WebCore_SOURCES
     bindings/js/JSDocumentFragmentCustom.cpp
     bindings/js/JSDocumentTypeCustom.cpp
     bindings/js/JSElementCustom.cpp
+    bindings/js/JSErrorEventCustom.cpp
     bindings/js/JSErrorHandler.cpp
     bindings/js/JSEventCustom.cpp
     bindings/js/JSEventListener.cpp
@@ -1197,8 +1202,6 @@ set(WebCore_SOURCES
     bindings/js/JSPopStateEventCustom.cpp
     bindings/js/JSReadableStreamPrivateConstructors.cpp
     bindings/js/JSReadableStreamSourceCustom.cpp
-    bindings/js/JSRTCPeerConnectionCustom.cpp
-    bindings/js/JSRTCSessionDescriptionCustom.cpp
     bindings/js/JSRTCStatsResponseCustom.cpp
     bindings/js/JSSQLResultSetRowListCustom.cpp
     bindings/js/JSSQLTransactionCustom.cpp
@@ -1208,6 +1211,7 @@ set(WebCore_SOURCES
     bindings/js/JSStyleSheetCustom.cpp
     bindings/js/JSStyleSheetListCustom.cpp
     bindings/js/JSSubtleCryptoCustom.cpp
+    bindings/js/JSTextCustom.cpp
     bindings/js/JSTextTrackCueCustom.cpp
     bindings/js/JSTextTrackCustom.cpp
     bindings/js/JSTextTrackListCustom.cpp
@@ -1223,6 +1227,7 @@ set(WebCore_SOURCES
     bindings/js/JSWorkerCustom.cpp
     bindings/js/JSWorkerGlobalScopeBase.cpp
     bindings/js/JSWorkerGlobalScopeCustom.cpp
+    bindings/js/JSXMLDocumentCustom.cpp
     bindings/js/JSXMLHttpRequestCustom.cpp
     bindings/js/JSXPathNSResolverCustom.cpp
     bindings/js/JSXPathResultCustom.cpp
@@ -1397,7 +1402,6 @@ set(WebCore_SOURCES
     dom/BeforeUnloadEvent.cpp
     dom/CDATASection.cpp
     dom/CharacterData.cpp
-    dom/CheckedRadioButtons.cpp
     dom/ChildListMutationScope.cpp
     dom/ChildNodeList.cpp
     dom/ClassCollection.cpp
@@ -1492,6 +1496,7 @@ set(WebCore_SOURCES
     dom/ProgressEvent.cpp
     dom/PseudoElement.cpp
     dom/QualifiedName.cpp
+    dom/RadioButtonGroups.cpp
     dom/Range.cpp
     dom/RegisteredEventListener.cpp
     dom/ScopedEventQueue.cpp
@@ -1890,6 +1895,7 @@ set(WebCore_SOURCES
     inspector/NetworkResourcesData.cpp
     inspector/PageConsoleAgent.cpp
     inspector/PageDebuggerAgent.cpp
+    inspector/PageHeapAgent.cpp
     inspector/PageRuntimeAgent.cpp
     inspector/PageScriptDebugServer.cpp
     inspector/TimelineRecordFactory.cpp
@@ -1901,6 +1907,7 @@ set(WebCore_SOURCES
     loader/ContentFilter.cpp
     loader/CookieJar.cpp
     loader/CrossOriginAccessControl.cpp
+    loader/CrossOriginPreflightChecker.cpp
     loader/CrossOriginPreflightResultCache.cpp
     loader/DocumentLoadTiming.cpp
     loader/DocumentLoader.cpp
@@ -1931,6 +1938,7 @@ set(WebCore_SOURCES
     loader/ResourceLoadStatistics.cpp
     loader/ResourceLoadStatisticsStore.cpp
     loader/ResourceLoader.cpp
+    loader/ResourceTimingInformation.cpp
     loader/SinkDocument.cpp
     loader/SubframeLoader.cpp
     loader/SubresourceLoader.cpp
@@ -1987,6 +1995,7 @@ set(WebCore_SOURCES
 
     page/AutoscrollController.cpp
     page/BarProp.cpp
+    page/Base64Utilities.cpp
     page/CaptionUserPreferences.cpp
     page/Chrome.cpp
     page/ContextMenuContext.cpp
@@ -2099,13 +2108,13 @@ set(WebCore_SOURCES
     platform/ContentType.cpp
     platform/ContextMenu.cpp
     platform/ContextMenuItem.cpp
-    platform/CrossThreadCopier.cpp
     platform/Cursor.cpp
     platform/DateComponents.cpp
     platform/Decimal.cpp
     platform/DisplaySleepDisabler.cpp
     platform/DragData.cpp
     platform/DragImage.cpp
+    platform/EventTrackingRegions.cpp
     platform/FileChooser.cpp
     platform/FileStream.cpp
     platform/FileSystem.cpp
@@ -2144,6 +2153,7 @@ set(WebCore_SOURCES
     platform/URL.cpp
     platform/UUID.cpp
     platform/UserActivity.cpp
+    platform/WebCoreCrossThreadCopier.cpp
     platform/Widget.cpp
 
     platform/animation/Animation.cpp
@@ -2329,7 +2339,6 @@ set(WebCore_SOURCES
     platform/network/CredentialBase.cpp
     platform/network/CredentialStorage.cpp
     platform/network/DNSResolveQueue.cpp
-    platform/network/DataURL.cpp
     platform/network/DataURLDecoder.cpp
     platform/network/FormData.cpp
     platform/network/FormDataBuilder.cpp
@@ -2516,18 +2525,17 @@ set(WebCore_SOURCES
     rendering/line/TrailingObjects.cpp
 
     rendering/mathml/MathMLOperatorDictionary.cpp
+    rendering/mathml/MathOperator.cpp
     rendering/mathml/RenderMathMLBlock.cpp
     rendering/mathml/RenderMathMLFenced.cpp
     rendering/mathml/RenderMathMLFraction.cpp
     rendering/mathml/RenderMathMLMath.cpp
     rendering/mathml/RenderMathMLMenclose.cpp
     rendering/mathml/RenderMathMLOperator.cpp
-    rendering/mathml/RenderMathMLRadicalOperator.cpp
     rendering/mathml/RenderMathMLRoot.cpp
     rendering/mathml/RenderMathMLRow.cpp
     rendering/mathml/RenderMathMLScripts.cpp
     rendering/mathml/RenderMathMLSpace.cpp
-    rendering/mathml/RenderMathMLSquareRoot.cpp
     rendering/mathml/RenderMathMLToken.cpp
     rendering/mathml/RenderMathMLUnderOver.cpp
 
@@ -3415,6 +3423,7 @@ set(WebCoreTestSupport_IDL_INCLUDES
 )
 
 set(WebCoreTestSupport_IDL_FILES
+    testing/GCObservation.idl
     testing/InternalSettings.idl
     testing/Internals.idl
     testing/MallocStatistics.idl
@@ -3433,6 +3442,7 @@ list(APPEND WebCoreTestSupport_SOURCES
     platform/mock/mediasource/MockSourceBufferPrivate.cpp
     platform/mock/mediasource/MockTracks.cpp
 
+    testing/GCObservation.cpp
     testing/InternalSettings.cpp
     testing/Internals.cpp
     testing/MockPageOverlay.cpp
@@ -3487,7 +3497,7 @@ add_custom_command(
     OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/CommandLineAPIModuleSource.h ${DERIVED_SOURCES_WEBCORE_DIR}/CommandLineAPIModuleSource.min.js
     MAIN_DEPENDENCY inspector/CommandLineAPIModuleSource.js
     DEPENDS ${JavaScriptCore_SCRIPTS_DIR}/xxd.pl ${JavaScriptCore_SCRIPTS_DIR}/jsmin.py
-    COMMAND ${CMAKE_COMMAND} -E echo "//# sourceURL=__WebInspectorCommandLineAPIModuleSource__" > ${DERIVED_SOURCES_WEBCORE_DIR}/CommandLineAPIModuleSource.min.js
+    COMMAND ${CMAKE_COMMAND} -E echo "//# sourceURL=__InjectedScript_CommandLineAPIModuleSource.js" > ${DERIVED_SOURCES_WEBCORE_DIR}/CommandLineAPIModuleSource.min.js
     COMMAND ${PYTHON_EXECUTABLE} ${JavaScriptCore_SCRIPTS_DIR}/jsmin.py < ${WEBCORE_DIR}/inspector/CommandLineAPIModuleSource.js >> ${DERIVED_SOURCES_WEBCORE_DIR}/CommandLineAPIModuleSource.min.js
     COMMAND ${PERL_EXECUTABLE} ${JavaScriptCore_SCRIPTS_DIR}/xxd.pl CommandLineAPIModuleSource_js ${DERIVED_SOURCES_WEBCORE_DIR}/CommandLineAPIModuleSource.min.js ${DERIVED_SOURCES_WEBCORE_DIR}/CommandLineAPIModuleSource.h
     VERBATIM)
@@ -3605,7 +3615,6 @@ if (WebCore_USER_AGENT_SCRIPTS)
         WebCore_USER_AGENT_SCRIPTS
         WebCore_USER_AGENT_SCRIPTS_DEPENDENCIES
     )
-    list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/UserAgentScriptsData.cpp)
 endif ()
 
 if (WebCore_SDP_PROCESSOR_SCRIPTS)
@@ -3614,14 +3623,12 @@ if (WebCore_SDP_PROCESSOR_SCRIPTS)
     # WebCore_SDP_PROCESSOR_SCRIPTS_DEPENDENCIES containing the source file that will load the scripts to add the proper
     #   dependency and having them built at the right moment
 
-    add_custom_command(
-        OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.cpp ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScripts.h
-        MAIN_DEPENDENCY ${WEBCORE_DIR}/Scripts/make-js-file-arrays.py
-        DEPENDS ${WebCore_SDP_PROCESSOR_SCRIPTS}
-        COMMAND "PYTHONPATH=${JavaScriptCore_SCRIPTS_DIR}" ${PYTHON_EXECUTABLE} ${WEBCORE_DIR}/Scripts/make-js-file-arrays.py ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScripts.h ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.cpp ${WebCore_SDP_PROCESSOR_SCRIPTS}
-        VERBATIM)
-    list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.cpp)
-    ADD_SOURCE_WEBCORE_DERIVED_DEPENDENCIES(${WebCore_SDP_PROCESSOR_SCRIPTS_DEPENDENCIES} SDPProcessorScriptsData.cpp SDPProcessorScripts.h)
+    MAKE_JS_FILE_ARRAYS(
+        ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.cpp
+        ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScripts.h
+        WebCore_SDP_PROCESSOR_SCRIPTS
+        WebCore_SDP_PROCESSOR_SCRIPTS_DEPENDENCIES
+    )
 endif ()
 
 # Generate plug-in resources

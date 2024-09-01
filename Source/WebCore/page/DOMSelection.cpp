@@ -35,12 +35,9 @@
 #include "ExceptionCode.h"
 #include "Frame.h"
 #include "FrameSelection.h"
-#include "Node.h"
 #include "Range.h"
 #include "TextIterator.h"
-#include "TreeScope.h"
 #include "htmlediting.h"
-#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
@@ -335,7 +332,7 @@ void DOMSelection::extend(Node& node, int offset, ExceptionCode& ec)
     if (!m_frame)
         return;
 
-    if (offset < 0 || offset > (node.offsetInCharacters() ? caretMaxOffset(&node) : static_cast<int>(node.countChildNodes()))) {
+    if (offset < 0 || offset > (node.offsetInCharacters() ? caretMaxOffset(node) : static_cast<int>(node.countChildNodes()))) {
         ec = INDEX_SIZE_ERR;
         return;
     }
@@ -347,14 +344,14 @@ void DOMSelection::extend(Node& node, int offset, ExceptionCode& ec)
     m_frame->selection().setExtent(createLegacyEditingPosition(&node, offset), DOWNSTREAM);
 }
 
-PassRefPtr<Range> DOMSelection::getRangeAt(int index, ExceptionCode& ec)
+RefPtr<Range> DOMSelection::getRangeAt(int index, ExceptionCode& ec)
 {
     if (!m_frame)
-        return 0;
+        return nullptr;
 
     if (index < 0 || index >= rangeCount()) {
         ec = INDEX_SIZE_ERR;
-        return 0;
+        return nullptr;
     }
 
     // If you're hitting this, you've added broken multi-range selection support

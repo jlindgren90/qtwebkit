@@ -131,13 +131,12 @@ typedef const char* optionString;
     v(bool, dumpBytecodeLivenessResults, false, Normal, nullptr) \
     v(bool, validateBytecode, false, Normal, nullptr) \
     v(bool, forceDebuggerBytecodeGeneration, false, Normal, nullptr) \
-    v(bool, forceProfilerBytecodeGeneration, false, Normal, nullptr) \
     \
     v(bool, useFunctionDotArguments, true, Normal, nullptr) \
     v(bool, useTailCalls, true, Normal, nullptr) \
     v(bool, alwaysUseShadowChicken, false, Normal, nullptr) \
     v(unsigned, shadowChickenLogSize, 1000, Normal, nullptr) \
-    v(unsigned, shadowChickenStackSizeLimit, 100000, Normal, nullptr) \
+    v(unsigned, shadowChickenMaxTailDeletedFramesSize, 128, Normal, nullptr) \
     \
     /* dumpDisassembly implies dumpDFGDisassembly. */ \
     v(bool, dumpDisassembly, false, Normal, "dumps disassembly of all JIT compiled code upon compilation") \
@@ -211,6 +210,7 @@ typedef const char* optionString;
     v(bool, useMovHintRemoval, true, Normal, nullptr) \
     v(bool, usePutStackSinking, true, Normal, nullptr) \
     v(bool, useObjectAllocationSinking, true, Normal, nullptr) \
+    v(bool, logExecutableAllocation, false, Normal, nullptr) \
     \
     v(bool, useConcurrentJIT, true, Normal, "allows the DFG / FTL compilation in threads other than the executing JS thread") \
     v(unsigned, numberOfDFGCompilerThreads, computeNumberOfWorkerThreads(2, 2) - 1, Normal, nullptr) \
@@ -300,6 +300,8 @@ typedef const char* optionString;
     v(double, minCopiedBlockUtilization, 0.9, Normal, nullptr) \
     v(double, minMarkedBlockUtilization, 0.9, Normal, nullptr) \
     v(unsigned, slowPathAllocsBetweenGCs, 0, Normal, "force a GC on every Nth slow path alloc, where N is specified by this option") \
+    v(bool, deferGCShouldCollectWithProbability, false, Normal, "If true, we perform a collection based on flipping a coin according the probability in the 'deferGCProbability' option when DeferGC is destructed.") \
+    v(double, deferGCProbability, 1.0, Normal, "Should be a number between 0 and 1. 1 means DeferGC always GCs when it's destructed and GCing is safe. 0.7 means we force GC 70% the time on DeferGC destruction.") \
     \
     v(double, percentCPUPerMBForFullTimer, 0.0003125, Normal, nullptr) \
     v(double, percentCPUPerMBForEdenTimer, 0.0025, Normal, nullptr) \
@@ -327,6 +329,7 @@ typedef const char* optionString;
     v(bool, useSamplingProfiler, false, Normal, nullptr) \
     v(unsigned, sampleInterval, 1000, Normal, "Time between stack traces in microseconds.") \
     v(bool, collectSamplingProfilerDataForJSCShell, false, Normal, "This corresponds to the JSC shell's --sample option.") \
+    v(optionString, samplingProfilerPath, nullptr, Normal, "The path to the directory to write sampiling profiler output to. This probably will not work with WK2 unless the path is in the whitelist.") \
     \
     v(bool, alwaysGeneratePCToCodeOriginMap, false, Normal, "This will make sure we always generate a PCToCodeOriginMap for JITed code.") \
     \
@@ -361,11 +364,18 @@ typedef const char* optionString;
     \
     v(bool, useICStats, false, Normal, nullptr) \
     \
+    v(unsigned, prototypeHitCountForLLIntCaching, 2, Normal, "Number of prototype property hits before caching a prototype in the LLInt. A count of 0 means never cache.") \
+    \
     v(bool, dumpModuleRecord, false, Normal, nullptr) \
     v(bool, dumpModuleLoadingState, false, Normal, nullptr) \
     v(bool, exposeInternalModuleLoader, false, Normal, "expose the internal module loader object to the global space for debugging") \
     \
-    v(bool, useSuperSampler, false, Normal, nullptr)
+    v(bool, dumpAirAsJSBeforeAllocateStack, false, Normal, nullptr) \
+    v(bool, dumpAirAfterAllocateStack, false, Normal, nullptr) \
+    \
+    v(bool, useSuperSampler, false, Normal, nullptr) \
+    \
+    v(bool, reportLLIntStats, false, Configurable, "Reports LLInt statistics")
 
 enum OptionEquivalence {
     SameOption,
@@ -415,7 +425,8 @@ public:
 
     enum class Availability {
         Normal = 0,
-        Restricted
+        Restricted,
+        Configurable
     };
 
     // This typedef is to allow us to eliminate the '_' in the field name in
@@ -423,7 +434,7 @@ public:
     typedef int32_t int32;
 
     // Declare the option IDs:
-    enum OptionID {
+    enum ID {
 #define FOR_EACH_OPTION(type_, name_, defaultValue_, availability_, description_) \
         name_##ID,
         JSC_OPTIONS(FOR_EACH_OPTION)
@@ -464,6 +475,8 @@ public:
     JSC_OPTIONS(FOR_EACH_OPTION)
 #undef FOR_EACH_OPTION
 
+    static bool isAvailable(ID, Availability);
+
 private:
     // For storing for an option value:
     union Entry {
@@ -493,7 +506,7 @@ private:
     static void dumpOptionsIfNeeded();
     static void dumpAllOptions(StringBuilder&, DumpLevel, const char* title,
         const char* separator, const char* optionHeader, const char* optionFooter, DumpDefaultsOption);
-    static void dumpOption(StringBuilder&, DumpLevel, OptionID,
+    static void dumpOption(StringBuilder&, DumpLevel, ID,
         const char* optionHeader, const char* optionFooter, DumpDefaultsOption);
 
     static bool setOptionWithoutAlias(const char* arg);
@@ -510,7 +523,7 @@ private:
 
 class Option {
 public:
-    Option(Options::OptionID id)
+    Option(Options::ID id)
         : m_id(id)
         , m_entry(Options::s_options[m_id])
     {
@@ -521,6 +534,7 @@ public:
     bool operator==(const Option& other) const;
     bool operator!=(const Option& other) const { return !(*this == other); }
     
+    Options::ID id() const { return m_id; }
     const char* name() const;
     const char* description() const;
     Options::Type type() const;
@@ -538,13 +552,13 @@ public:
     
 private:
     // Only used for constructing default Options.
-    Option(Options::OptionID id, Options::Entry& entry)
+    Option(Options::ID id, Options::Entry& entry)
         : m_id(id)
         , m_entry(entry)
     {
     }
     
-    Options::OptionID m_id;
+    Options::ID m_id;
     Options::Entry& m_entry;
 };
 

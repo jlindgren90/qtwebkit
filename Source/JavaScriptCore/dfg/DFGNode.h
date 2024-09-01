@@ -56,7 +56,13 @@
 #include "ValueProfile.h"
 #include <wtf/ListDump.h>
 
-namespace JSC { namespace DFG {
+namespace JSC {
+
+namespace Profiler {
+class ExecutionCounter;
+}
+
+namespace DFG {
 
 class Graph;
 class PromotedLocationDescriptor;
@@ -518,13 +524,12 @@ struct Node {
         children.reset();
     }
     
-    void convertToGetByOffset(StorageAccessData& data, Edge storage)
+    void convertToGetByOffset(StorageAccessData& data, Edge storage, Edge base)
     {
         ASSERT(m_op == GetById || m_op == GetByIdFlush || m_op == MultiGetByOffset);
         m_opInfo = bitwise_cast<uintptr_t>(&data);
-        children.setChild2(children.child1());
-        children.child2().setUseKind(KnownCellUse);
         children.setChild1(storage);
+        children.setChild2(base);
         m_op = GetByOffset;
         m_flags &= ~NodeMustGenerate;
     }
@@ -538,12 +543,12 @@ struct Node {
         ASSERT(m_flags & NodeMustGenerate);
     }
     
-    void convertToPutByOffset(StorageAccessData& data, Edge storage)
+    void convertToPutByOffset(StorageAccessData& data, Edge storage, Edge base)
     {
         ASSERT(m_op == PutById || m_op == PutByIdDirect || m_op == PutByIdFlush || m_op == MultiPutByOffset);
         m_opInfo = bitwise_cast<uintptr_t>(&data);
         children.setChild3(children.child2());
-        children.setChild2(children.child1());
+        children.setChild2(base);
         children.setChild1(storage);
         m_op = PutByOffset;
     }
@@ -743,7 +748,51 @@ struct Node {
         ASSERT(op() == CreateActivation);
         return bitwise_cast<FrozenValue*>(m_opInfo2)->value();
     }
-     
+
+    bool hasArgumentsChild()
+    {
+        switch (op()) {
+        case GetMyArgumentByVal:
+        case GetMyArgumentByValOutOfBounds:
+        case LoadVarargs:
+        case ForwardVarargs:
+        case CallVarargs:
+        case CallForwardVarargs:
+        case ConstructVarargs:
+        case ConstructForwardVarargs:
+        case TailCallVarargs:
+        case TailCallForwardVarargs:
+        case TailCallVarargsInlinedCaller:
+        case TailCallForwardVarargsInlinedCaller:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    Edge& argumentsChild()
+    {
+        switch (op()) {
+        case GetMyArgumentByVal:
+        case GetMyArgumentByValOutOfBounds:
+        case LoadVarargs:
+        case ForwardVarargs:
+            return child1();
+        case CallVarargs:
+        case CallForwardVarargs:
+        case ConstructVarargs:
+        case ConstructForwardVarargs:
+        case TailCallVarargs:
+        case TailCallForwardVarargs:
+        case TailCallVarargsInlinedCaller:
+        case TailCallForwardVarargsInlinedCaller:
+            return child3();
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
+            return child1();
+        }
+    }
+
     bool containsMovHint()
     {
         switch (op()) {
@@ -2293,7 +2342,7 @@ struct Node {
 
 private:
     unsigned m_op : 10; // real type is NodeType
-    unsigned m_flags : 22;
+    unsigned m_flags : 20;
     // The virtual register number (spill location) associated with this .
     VirtualRegister m_virtualRegister;
     // The number of uses of the result of this operation (+1 for 'must generate' nodes, which have side-effects).

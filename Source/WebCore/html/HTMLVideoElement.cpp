@@ -24,13 +24,16 @@
  */
 
 #include "config.h"
+
 #if ENABLE(VIDEO)
+
 #include "HTMLVideoElement.h"
 
 #include "CSSPropertyNames.h"
 #include "Chrome.h"
 #include "ChromeClient.h"
 #include "Document.h"
+#include "EventNames.h"
 #include "Frame.h"
 #include "HTMLImageLoader.h"
 #include "HTMLNames.h"
@@ -87,8 +90,8 @@ void HTMLVideoElement::didAttachRenderers()
         if (!m_imageLoader)
             m_imageLoader = std::make_unique<HTMLImageLoader>(*this);
         m_imageLoader->updateFromElement();
-        if (renderer())
-            downcast<RenderImage>(*renderer()).imageResource().setCachedImage(m_imageLoader->image());
+        if (auto* renderer = this->renderer())
+            renderer->imageResource().setCachedImage(m_imageLoader->image());
     }
 }
 
@@ -121,8 +124,8 @@ void HTMLVideoElement::parseAttribute(const QualifiedName& name, const AtomicStr
                 m_imageLoader = std::make_unique<HTMLImageLoader>(*this);
             m_imageLoader->updateFromElementIgnoringPreviousError();
         } else {
-            if (renderer())
-                downcast<RenderImage>(*renderer()).imageResource().setCachedImage(nullptr);
+            if (auto* renderer = this->renderer())
+                renderer->imageResource().setCachedImage(nullptr);
         }
     }
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -146,9 +149,8 @@ void HTMLVideoElement::parseAttribute(const QualifiedName& name, const AtomicStr
 
 bool HTMLVideoElement::supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenMode videoFullscreenMode) const
 {
-#if USE(APPLE_INTERNAL_SDK)
-#include <WebKitAdditions/HTMLVideoElementSupportsFullscreenAdditions.cpp>
-#endif
+    if (videoFullscreenMode == HTMLMediaElementEnums::VideoFullscreenModePictureInPicture && !mediaSession().allowsPictureInPicture(*this))
+        return false;
 
     Page* page = document().page();
     if (!page) 
@@ -246,8 +248,10 @@ void HTMLVideoElement::setDisplayMode(DisplayMode mode)
             player()->setPoster(poster);
     }
 
-    if (renderer() && displayMode() != oldMode)
-        renderer()->updateFromElement();
+    if (auto* renderer = this->renderer()) {
+        if (displayMode() != oldMode)
+            renderer->updateFromElement();
+    }
 }
 
 void HTMLVideoElement::updateDisplayState()

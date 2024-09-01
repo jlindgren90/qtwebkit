@@ -33,6 +33,7 @@
 #include "WebPageProxy.h"
 #include "_WKOverlayScrollbarStyle.h"
 #include <WebCore/TextIndicatorWindow.h>
+#include <WebCore/UserInterfaceLayoutDirection.h>
 #include <functional>
 #include <wtf/RetainPtr.h>
 #include <wtf/WeakPtr.h>
@@ -79,6 +80,10 @@ OBJC_CLASS _WKThumbnailView;
 - (void)_web_gestureEventWasNotHandledByWebCore:(NSEvent *)event;
 
 - (void)_web_didChangeContentSize:(NSSize)newSize;
+
+@optional
+- (void)_web_didAddMediaControlsManager:(id)controlsManager;
+- (void)_web_didRemoveMediaControlsManager;
 
 @end
 
@@ -478,8 +483,17 @@ public:
 
     bool windowIsFrontWindowUnderMouse(NSEvent *);
 
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200 && USE(APPLE_INTERNAL_SDK)
+    void setRequiresUserActionForEditingControlsManager(bool requiresUserActionForEditingControlsManager) { m_requiresUserActionForEditingControlsManager = requiresUserActionForEditingControlsManager; }
+    bool requiresUserActionForEditingControlsManager() const { return m_requiresUserActionForEditingControlsManager; }
+
+    WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection();
+    void setUserInterfaceLayoutDirection(NSUserInterfaceLayoutDirection);
+
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200 
+    void handleAcceptedCandidate(NSTextCheckingResult *acceptedCandidate);
+#if USE(APPLE_INTERNAL_SDK)
 #import <WebKitAdditions/WebViewImplAdditions.h>
+#endif
 #endif
 
 private:
@@ -514,7 +528,6 @@ private:
 
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
     void handleRequestedCandidates(NSInteger sequenceNumber, NSArray<NSTextCheckingResult *> *candidates);
-    void handleAcceptedCandidate(NSTextCheckingResult *acceptedCandidate);
 #endif
 
     NSView <WebViewImplDelegate> *m_view;
@@ -532,7 +545,6 @@ private:
     bool m_clipsToVisibleRect { false };
     bool m_needsViewFrameInWindowCoordinates;
     bool m_didScheduleWindowAndViewFrameUpdate { false };
-    bool m_isDeferringViewInWindowChanges { false };
     bool m_windowOcclusionDetectionEnabled { true };
 
     bool m_automaticallyAdjustsContentInsets { false };
@@ -633,6 +645,7 @@ private:
 #endif
     NSRange m_softSpaceRange { NSNotFound, 0 };
     bool m_isHandlingAcceptedCandidate { false };
+    bool m_requiresUserActionForEditingControlsManager { false };
 };
     
 } // namespace WebKit

@@ -40,8 +40,11 @@ class RegisterID;
 class Identifier;
 
 #define JSC_COMMON_BYTECODE_INTRINSIC_FUNCTIONS_EACH_NAME(macro) \
+    macro(argumentCount) \
     macro(assert) \
     macro(isObject) \
+    macro(isJSArray) \
+    macro(tailCallForwardArguments) \
     macro(tryGetById) \
     macro(putByValDirect) \
     macro(toString)
@@ -54,16 +57,15 @@ class Identifier;
     macro(arrayIterationKindKeyValue) \
     macro(MAX_STRING_LENGTH) \
     macro(MAX_SAFE_INTEGER) \
+    macro(ModuleFetch) \
+    macro(ModuleTranslate) \
+    macro(ModuleInstantiate) \
+    macro(ModuleResolveDependencies) \
+    macro(ModuleLink) \
+    macro(ModuleReady) \
     macro(promiseStatePending) \
     macro(promiseStateFulfilled) \
     macro(promiseStateRejected) \
-    macro(symbolIsConcatSpreadable) \
-    macro(symbolIterator) \
-    macro(symbolMatch) \
-    macro(symbolReplace) \
-    macro(symbolSearch) \
-    macro(symbolSpecies) \
-    macro(symbolSplit) \
     macro(GeneratorResumeModeNormal) \
     macro(GeneratorResumeModeThrow) \
     macro(GeneratorResumeModeReturn) \

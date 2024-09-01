@@ -33,6 +33,7 @@
 #include "NetworkConnectionToWebProcessMessages.h"
 #include "NetworkProcessConnection.h"
 #include "WebIDBConnectionToClientMessages.h"
+#include "WebIDBResult.h"
 #include "WebProcess.h"
 #include "WebToDatabaseProcessConnection.h"
 #include <WebCore/IDBConnectionToServer.h>
@@ -101,9 +102,9 @@ void WebIDBConnectionToServer::commitTransaction(const IDBResourceIdentifier& tr
     send(Messages::WebIDBConnectionToClient::CommitTransaction(transactionIdentifier));
 }
 
-void WebIDBConnectionToServer::didFinishHandlingVersionChangeTransaction(const IDBResourceIdentifier& transactionIdentifier)
+void WebIDBConnectionToServer::didFinishHandlingVersionChangeTransaction(uint64_t databaseConnectionIdentifier, const IDBResourceIdentifier& transactionIdentifier)
 {
-    send(Messages::WebIDBConnectionToClient::DidFinishHandlingVersionChangeTransaction(transactionIdentifier));
+    send(Messages::WebIDBConnectionToClient::DidFinishHandlingVersionChangeTransaction(databaseConnectionIdentifier, transactionIdentifier));
 }
 
 void WebIDBConnectionToServer::createObjectStore(const IDBRequestData& requestData, const IDBObjectStoreInfo& info)
@@ -181,6 +182,16 @@ void WebIDBConnectionToServer::didFireVersionChangeEvent(uint64_t databaseConnec
     send(Messages::WebIDBConnectionToClient::DidFireVersionChangeEvent(databaseConnectionIdentifier, requestIdentifier));
 }
 
+void WebIDBConnectionToServer::openDBRequestCancelled(const IDBRequestData& requestData)
+{
+    send(Messages::WebIDBConnectionToClient::OpenDBRequestCancelled(requestData));
+}
+
+void WebIDBConnectionToServer::confirmDidCloseFromServer(uint64_t databaseConnectionIdentifier)
+{
+    send(Messages::WebIDBConnectionToClient::ConfirmDidCloseFromServer(databaseConnectionIdentifier));
+}
+
 void WebIDBConnectionToServer::getAllDatabaseNames(const WebCore::SecurityOriginData& topOrigin, const WebCore::SecurityOriginData& openingOrigin, uint64_t callbackID)
 {
     send(Messages::WebIDBConnectionToClient::GetAllDatabaseNames(m_identifier, topOrigin, openingOrigin, callbackID));
@@ -236,20 +247,26 @@ void WebIDBConnectionToServer::didPutOrAdd(const IDBResultData& result)
     m_connectionToServer->didPutOrAdd(result);
 }
 
-void WebIDBConnectionToServer::didGetRecord(const IDBResultData& result)
+static void preregisterSandboxExtensionsIfNecessary(const WebIDBResult& result)
 {
-    m_connectionToServer->didGetRecord(result);
+    auto resultType = result.resultData().type();
+    if (resultType != IDBResultType::GetRecordSuccess && resultType != IDBResultType::OpenCursorSuccess && resultType != IDBResultType::IterateCursorSuccess) {
+        ASSERT(resultType == IDBResultType::Error);
+        return;
+    }
+
+    const auto& filePaths = result.resultData().getResult().value().blobFilePaths();
+
+    ASSERT(filePaths.size() == result.handles().size());
+
+    if (!filePaths.isEmpty())
+        WebProcess::singleton().networkConnection()->connection()->send(Messages::NetworkConnectionToWebProcess::PreregisterSandboxExtensionsForOptionallyFileBackedBlob(filePaths, result.handles()), 0);
 }
 
-void WebIDBConnectionToServer::didGetRecordWithSandboxExtensions(const WebCore::IDBResultData& result, const SandboxExtension::HandleArray& handles)
+void WebIDBConnectionToServer::didGetRecord(const WebIDBResult& result)
 {
-    const auto& filePaths = result.getResult().value().blobFilePaths();
-
-    ASSERT(filePaths.size() == handles.size());
-
-    WebProcess::singleton().networkConnection()->connection()->send(Messages::NetworkConnectionToWebProcess::PreregisterSandboxExtensionsForOptionallyFileBackedBlob(filePaths, handles), 0);
-
-    m_connectionToServer->didGetRecord(result);
+    preregisterSandboxExtensionsIfNecessary(result);
+    m_connectionToServer->didGetRecord(result.resultData());
 }
 
 void WebIDBConnectionToServer::didGetCount(const IDBResultData& result)
@@ -262,14 +279,16 @@ void WebIDBConnectionToServer::didDeleteRecord(const IDBResultData& result)
     m_connectionToServer->didDeleteRecord(result);
 }
 
-void WebIDBConnectionToServer::didOpenCursor(const IDBResultData& result)
+void WebIDBConnectionToServer::didOpenCursor(const WebIDBResult& result)
 {
-    m_connectionToServer->didOpenCursor(result);
+    preregisterSandboxExtensionsIfNecessary(result);
+    m_connectionToServer->didOpenCursor(result.resultData());
 }
 
-void WebIDBConnectionToServer::didIterateCursor(const IDBResultData& result)
+void WebIDBConnectionToServer::didIterateCursor(const WebIDBResult& result)
 {
-    m_connectionToServer->didIterateCursor(result);
+    preregisterSandboxExtensionsIfNecessary(result);
+    m_connectionToServer->didIterateCursor(result.resultData());
 }
 
 void WebIDBConnectionToServer::fireVersionChangeEvent(uint64_t uniqueDatabaseConnectionIdentifier, const IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion)
@@ -277,9 +296,14 @@ void WebIDBConnectionToServer::fireVersionChangeEvent(uint64_t uniqueDatabaseCon
     m_connectionToServer->fireVersionChangeEvent(uniqueDatabaseConnectionIdentifier, requestIdentifier, requestedVersion);
 }
 
-void WebIDBConnectionToServer::didStartTransaction(const IDBResourceIdentifier& transactionIdentifier, const WebCore::IDBError& error)
+void WebIDBConnectionToServer::didStartTransaction(const IDBResourceIdentifier& transactionIdentifier, const IDBError& error)
 {
     m_connectionToServer->didStartTransaction(transactionIdentifier, error);
+}
+
+void WebIDBConnectionToServer::didCloseFromServer(uint64_t databaseConnectionIdentifier, const IDBError& error)
+{
+    m_connectionToServer->didCloseFromServer(databaseConnectionIdentifier, error);
 }
 
 void WebIDBConnectionToServer::notifyOpenDBRequestBlocked(const IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion)

@@ -30,6 +30,7 @@
 
 #import "Download.h"
 #import "DownloadProxyMessages.h"
+#import "Logging.h"
 #import "NetworkProcess.h"
 #import "SessionTracker.h"
 #import "WebCoreArgumentCoders.h"
@@ -109,6 +110,7 @@ NetworkDataTask::NetworkDataTask(NetworkSession& session, NetworkDataTaskClient&
         ASSERT(!m_session->m_dataTaskMapWithoutCredentials.contains([m_task taskIdentifier]));
         m_session->m_dataTaskMapWithoutCredentials.add([m_task taskIdentifier], this);
     }
+    LOG(NetworkSession, "%llu Creating NetworkDataTask with URL %s", [m_task taskIdentifier], nsRequest.URL.absoluteString.UTF8String);
 
 #if HAVE(CFNETWORK_STORAGE_PARTITIONING)
     String storagePartition = WebCore::cookieStoragePartition(request);
@@ -137,7 +139,7 @@ void NetworkDataTask::didSendData(uint64_t totalBytesSent, uint64_t totalBytesEx
         m_client->didSendData(totalBytesSent, totalBytesExpectedToSend);
 }
 
-void NetworkDataTask::didReceiveChallenge(const WebCore::AuthenticationChallenge& challenge, ChallengeCompletionHandler completionHandler)
+void NetworkDataTask::didReceiveChallenge(const WebCore::AuthenticationChallenge& challenge, ChallengeCompletionHandler&& completionHandler)
 {
     // Proxy authentication is handled by CFNetwork internally. We can get here if the user cancels
     // CFNetwork authentication dialog, and we shouldn't ask the client to display another one in that case.
@@ -150,7 +152,7 @@ void NetworkDataTask::didReceiveChallenge(const WebCore::AuthenticationChallenge
         return;
 
     if (m_client)
-        m_client->didReceiveChallenge(challenge, completionHandler);
+        m_client->didReceiveChallenge(challenge, WTFMove(completionHandler));
     else {
         ASSERT_NOT_REACHED();
         completionHandler(AuthenticationChallengeDisposition::PerformDefaultHandling, { });
@@ -163,17 +165,17 @@ void NetworkDataTask::didCompleteWithError(const WebCore::ResourceError& error)
         m_client->didCompleteWithError(error);
 }
 
-void NetworkDataTask::didReceiveResponse(const WebCore::ResourceResponse& response, ResponseCompletionHandler completionHandler)
+void NetworkDataTask::didReceiveResponse(WebCore::ResourceResponse&& response, ResponseCompletionHandler&& completionHandler)
 {
     if (m_client)
-        m_client->didReceiveResponseNetworkSession(response, completionHandler);
+        m_client->didReceiveResponseNetworkSession(WTFMove(response), WTFMove(completionHandler));
     else {
         ASSERT_NOT_REACHED();
         completionHandler(WebCore::PolicyAction::PolicyIgnore);
     }
 }
 
-void NetworkDataTask::didReceiveData(RefPtr<WebCore::SharedBuffer>&& data)
+void NetworkDataTask::didReceiveData(Ref<WebCore::SharedBuffer>&& data)
 {
     if (m_client)
         m_client->didReceiveData(WTFMove(data));
@@ -185,7 +187,7 @@ void NetworkDataTask::didBecomeDownload()
         m_client->didBecomeDownload();
 }
 
-void NetworkDataTask::willPerformHTTPRedirection(const WebCore::ResourceResponse& redirectResponse, WebCore::ResourceRequest&& request, RedirectCompletionHandler completionHandler)
+void NetworkDataTask::willPerformHTTPRedirection(WebCore::ResourceResponse&& redirectResponse, WebCore::ResourceRequest&& request, RedirectCompletionHandler&& completionHandler)
 {
     if (redirectResponse.httpStatusCode() == 307 || redirectResponse.httpStatusCode() == 308) {
         ASSERT(m_lastHTTPMethod == request.httpMethod());
@@ -230,7 +232,7 @@ void NetworkDataTask::willPerformHTTPRedirection(const WebCore::ResourceResponse
     }
     
     if (m_client)
-        m_client->willPerformHTTPRedirection(redirectResponse, request, completionHandler);
+        m_client->willPerformHTTPRedirection(WTFMove(redirectResponse), WTFMove(request), WTFMove(completionHandler));
     else {
         ASSERT_NOT_REACHED();
         completionHandler({ });
@@ -277,7 +279,7 @@ void NetworkDataTask::setPendingDownloadLocation(const WTF::String& filename, co
     m_task.get()._pathToDownloadTaskFile = filename;
 }
 
-bool NetworkDataTask::tryPasswordBasedAuthentication(const WebCore::AuthenticationChallenge& challenge, ChallengeCompletionHandler completionHandler)
+bool NetworkDataTask::tryPasswordBasedAuthentication(const WebCore::AuthenticationChallenge& challenge, const ChallengeCompletionHandler& completionHandler)
 {
     if (!challenge.protectionSpace().isPasswordBased())
         return false;

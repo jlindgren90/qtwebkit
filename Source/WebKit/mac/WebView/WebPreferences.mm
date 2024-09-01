@@ -397,6 +397,7 @@ public:
     bool attachmentElementEnabled = MacApplication::isAppleMail();
 #else
     bool allowsInlineMediaPlayback = WebCore::deviceClass() == MGDeviceClassiPad;
+    bool allowsInlineMediaPlaybackAfterFullscreen = WebCore::deviceClass() != MGDeviceClassiPad;
     bool requiresPlaysInlineAttribute = !allowsInlineMediaPlayback;
     bool attachmentElementEnabled = IOSApplication::isMobileMail();
 #endif
@@ -523,6 +524,7 @@ public:
         [NSNumber numberWithBool:attachmentElementEnabled], WebKitAttachmentElementEnabledPreferenceKey,
 #if !PLATFORM(IOS)
         [NSNumber numberWithBool:YES],  WebKitAllowsInlineMediaPlaybackPreferenceKey,
+        [NSNumber numberWithBool:NO],   WebKitAllowsInlineMediaPlaybackAfterFullscreenPreferenceKey,
         [NSNumber numberWithBool:NO],  WebKitInlineMediaPlaybackRequiresPlaysInlineAttributeKey,
         [NSNumber numberWithBool:YES],  WebKitMediaControlsScaleWithPageZoomPreferenceKey,
         [NSNumber numberWithBool:NO],   WebKitWebAudioEnabledPreferenceKey,
@@ -535,6 +537,7 @@ public:
         [NSNumber numberWithBool:YES],  WebKitMediaDataLoadsAutomaticallyPreferenceKey,
 #else
         [NSNumber numberWithBool:allowsInlineMediaPlayback],   WebKitAllowsInlineMediaPlaybackPreferenceKey,
+        [NSNumber numberWithBool:allowsInlineMediaPlaybackAfterFullscreen],   WebKitAllowsInlineMediaPlaybackAfterFullscreenPreferenceKey,
         [NSNumber numberWithBool:requiresPlaysInlineAttribute], WebKitInlineMediaPlaybackRequiresPlaysInlineAttributeKey,
         [NSNumber numberWithBool:NO],   WebKitMediaControlsScaleWithPageZoomPreferenceKey,
         [NSNumber numberWithUnsignedInt:AudioSession::None],  WebKitAudioSessionCategoryOverride,
@@ -603,9 +606,7 @@ public:
 #if ENABLE(MEDIA_STREAM)
         [NSNumber numberWithBool:NO], WebKitMockCaptureDevicesEnabledPreferenceKey,
 #endif
-#if ENABLE(SHADOW_DOM)
         [NSNumber numberWithBool:YES], WebKitShadowDOMEnabledPreferenceKey,
-#endif
 #if ENABLE(CUSTOM_ELEMENTS)
         [NSNumber numberWithBool:NO], WebKitCustomElementsEnabledPreferenceKey,
 #endif
@@ -2679,6 +2680,16 @@ static NSString *classIBCreatorID = nil;
 - (void)setAttachmentElementEnabled:(BOOL)flag
 {
     [self _setBoolValue:flag forKey:WebKitAttachmentElementEnabledPreferenceKey];
+}
+
+- (BOOL)allowsInlineMediaPlaybackAfterFullscreen
+{
+    return [self _boolValueForKey:WebKitAllowsInlineMediaPlaybackAfterFullscreenPreferenceKey];
+}
+
+- (void)setAllowsInlineMediaPlaybackAfterFullscreen:(BOOL)flag
+{
+    [self _setBoolValue:flag forKey:WebKitAllowsInlineMediaPlaybackAfterFullscreenPreferenceKey];
 }
 
 - (BOOL)mockCaptureDevicesEnabled

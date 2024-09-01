@@ -152,6 +152,7 @@ void EditorState::PostLayoutData::encode(IPC::ArgumentEncoder& encoder) const
     encoder << selectedTextLength;
     encoder << textAlignment;
     encoder << textColor;
+    encoder << enclosingListType;
 #endif
 #if PLATFORM(IOS)
     encoder << caretRectAtEnd;
@@ -186,6 +187,8 @@ bool EditorState::PostLayoutData::decode(IPC::ArgumentDecoder& decoder, PostLayo
     if (!decoder.decode(result.textAlignment))
         return false;
     if (!decoder.decode(result.textColor))
+        return false;
+    if (!decoder.decode(result.enclosingListType))
         return false;
 #endif
 #if PLATFORM(IOS)

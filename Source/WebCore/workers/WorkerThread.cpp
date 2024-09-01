@@ -105,6 +105,9 @@ WorkerThread::WorkerThread(const URL& scriptURL, const String& userAgent, const 
     , m_idbConnectionProxy(connectionProxy)
 #endif
 {
+#if !ENABLE(INDEXED_DATABASE)
+    UNUSED_PARAM(connectionProxy);
+#endif
     std::lock_guard<StaticLock> lock(threadSetMutex);
 
     workerThreads().add(this);
@@ -150,7 +153,7 @@ void WorkerThread::workerThread()
 
     {
         LockHolder lock(m_threadCreationMutex);
-        m_workerGlobalScope = createWorkerGlobalScope(m_startupData->m_scriptURL, m_startupData->m_userAgent, m_startupData->m_contentSecurityPolicyResponseHeaders, m_startupData->m_shouldBypassMainWorldContentSecurityPolicy, m_startupData->m_topOrigin.release());
+        m_workerGlobalScope = createWorkerGlobalScope(m_startupData->m_scriptURL, m_startupData->m_userAgent, m_startupData->m_contentSecurityPolicyResponseHeaders, m_startupData->m_shouldBypassMainWorldContentSecurityPolicy, WTFMove(m_startupData->m_topOrigin));
 
         if (m_runLoop.terminated()) {
             // The worker was terminated before the thread had a chance to run. Since the context didn't exist yet,
@@ -204,6 +207,10 @@ void WorkerThread::stop()
 
         m_runLoop.postTaskAndTerminate({ ScriptExecutionContext::Task::CleanupTask, [] (ScriptExecutionContext& context ) {
             WorkerGlobalScope& workerGlobalScope = downcast<WorkerGlobalScope>(context);
+
+#if ENABLE(INDEXED_DATABASE)
+            workerGlobalScope.stopIndexedDatabase();
+#endif
 
             workerGlobalScope.stopActiveDOMObjects();
             workerGlobalScope.notifyObserversOfStop();

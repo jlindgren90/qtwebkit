@@ -12,6 +12,7 @@
       <dep package="freetype6"/>
       <dep package="harfbuzz"/>
       <dep package="libxml2"/>
+      <dep package="libxslt"/>
       <dep package="gdk-pixbuf"/>
       <dep package="gtk+"/>
       <dep package="glib"/>
@@ -20,6 +21,7 @@
       <dep package="gnome-icon-theme-symbolic"/>
       <dep package="gnome-themes-standard"/>
       <dep package="gtk-doc"/>
+      <dep package="icu"/>
       <dep package="libsoup"/>
       <dep package="atk"/>
       <dep package="gstreamer"/>
@@ -69,6 +71,8 @@
       href="http://people.freedesktop.org"/>
   <repository type="tarball" name="llvm.org"
       href="http://llvm.org"/>
+  <repository type="tarball" name="webkitgtk-jhbuild-mirror"
+      href="http://webkitgtk.org/jhbuild_mirror/"/>
 
   <autotools id="cairo">
     <if condition-set="linux">
@@ -119,6 +123,9 @@
   </autotools>
 
   <autotools id="harfbuzz" autogen-sh="configure">
+    <dependencies>
+      <dep package="icu"/>
+    </dependencies>
     <branch module="software/harfbuzz/release/harfbuzz-0.9.35.tar.bz2"
             version="0.9.35"
             checkoutdir="harfbuzz-0.9.35"
@@ -314,6 +321,15 @@
             md5sum="9c0cfef285d5c4a5c80d00904ddab380"/>
   </autotools>
 
+  <autotools id="libxslt">
+    <branch module="/sources/libxslt-${version}.tar.gz" version="1.1.29"
+            repo="xmlsoft.org"
+            hash="sha256:b5976e3857837e7617b29f2249ebb5eeac34e249208d31f1fbf7a6ba7a4090ce"/>
+    <dependencies>
+      <dep package="libxml2"/>
+    </dependencies>
+  </autotools>
+
   <autotools id="orc" autogenargs="--disable-gtk-doc" autogen-sh="configure">
     <branch module="orc/orc-0.4.17.tar.gz" version="0.4.17"
             repo="gstreamer"
@@ -483,7 +499,17 @@
       <patch file="shared-mime-info-xhtml-magic.patch" strip="1"/>
     </branch>
   </autotools>
-  
+
+  <autotools id="icu"
+             autogen-sh="./source/configure"
+             autogenargs="--disable-samples --enable-weak-threads">
+    <branch module="icu4c-55_1-src.tgz" version="55.1" checkoutdir="icu"
+            repo="webkitgtk-jhbuild-mirror"
+            hash="sha256:e16b22cbefdd354bec114541f7849a12f8fc2015320ca5282ee4fd787571457b">
+      <patch file="icudata-stdlibs.patch" strip="1"/>
+    </branch>
+  </autotools>
+
   <!-- Dependencies listed below this point are not thought to affect test results, and are only
        included because they themselves depend on other dependencies built by jhbuild. -->
 

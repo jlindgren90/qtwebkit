@@ -10,6 +10,7 @@ endif ()
 link_directories(../../WebKitLibraries)
 
 find_library(ACCELERATE_LIBRARY accelerate)
+find_library(APPLICATIONSERVICES_LIBRARY ApplicationServices)
 find_library(AVFOUNDATION_LIBRARY AVFoundation)
 find_library(AUDIOTOOLBOX_LIBRARY AudioToolbox)
 find_library(AUDIOUNIT_LIBRARY AudioUnit)
@@ -52,6 +53,7 @@ list(APPEND WebCore_LIBRARIES
 
 add_definitions(-iframework ${QUARTZ_LIBRARY}/Frameworks)
 add_definitions(-iframework ${AVFOUNDATION_LIBRARY}/Versions/Current/Frameworks)
+add_definitions(-iframework ${APPLICATIONSERVICES_LIBRARY}/Versions/Current/Frameworks)
 
 find_library(DATADETECTORSCORE_FRAMEWORK DataDetectorsCore HINTS /System/Library/PrivateFrameworks)
 if (NOT DATADETECTORSCORE_FRAMEWORK-NOTFOUND)
@@ -359,6 +361,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
     platform/graphics/avfoundation/MediaTimeAVFoundation.cpp
 
+    platform/graphics/avfoundation/objc/AVFoundationMIMETypeCache.mm
     platform/graphics/avfoundation/objc/AudioTrackPrivateAVFObjC.mm
     platform/graphics/avfoundation/objc/AudioTrackPrivateMediaSourceAVFObjC.cpp
     platform/graphics/avfoundation/objc/CDMSessionAVContentKeySession.mm
@@ -461,7 +464,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/opentype/OpenTypeCG.cpp
     platform/graphics/opentype/OpenTypeMathData.cpp
 
-    platform/mac/BlockExceptions.mm
     platform/mac/CursorMac.mm
     platform/mac/DragDataMac.mm
     platform/mac/DragImageMac.mm
@@ -471,7 +473,6 @@ list(APPEND WebCore_SOURCES
     platform/mac/HIDGamepadProvider.cpp
     platform/mac/KeyEventMac.mm
     platform/mac/KillRingMac.mm
-    platform/mac/Language.mm
     platform/mac/LocalCurrentGraphicsContext.mm
     platform/mac/LoggingMac.mm
     platform/mac/NSScrollerImpDetails.mm
@@ -706,12 +707,12 @@ set(WebCore_FORWARDING_HEADERS_FILES
     platform/cf/RunLoopObserver.h
 
     platform/cocoa/MachSendRight.h
+    platform/cocoa/SoftLinking.h
 
     platform/graphics/cocoa/IOSurface.h
 
     platform/graphics/transforms/AffineTransform.h
 
-    platform/mac/SoftLinking.h
     platform/mac/WebCoreSystemInterface.h
 
     platform/network/cf/CertificateInfo.h
@@ -904,9 +905,8 @@ set(ObjC_BINDINGS_NO_MM
     NonElementParentNode
     ParentNode
     URLUtils
-    WindowBase64
     WindowEventHandlers
-    WindowTimers
+    WindowOrWorkerGlobalScope
     WorkerGlobalScopeIndexedDatabase
     WorkerGlobalScopeNotifications
     XPathNSResolver

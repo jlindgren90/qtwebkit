@@ -38,6 +38,7 @@
 #include <WebCore/Pagination.h>
 #include <WebCore/ScrollTypes.h>
 #include <WebCore/SessionID.h>
+#include <WebCore/UserInterfaceLayoutDirection.h>
 #include <WebCore/ViewState.h>
 #include <wtf/HashMap.h>
 #include <wtf/text/WTFString.h>
@@ -136,6 +137,8 @@ struct WebPageCreationParameters {
     bool shouldScaleViewToFitDocument;
 
     HashMap<String, uint64_t> urlSchemeHandlers;
+
+    WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection;
 };
 
 } // namespace WebKit

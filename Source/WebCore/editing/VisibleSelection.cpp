@@ -95,7 +95,7 @@ VisibleSelection::VisibleSelection(const Range& range, EAffinity affinity, bool 
 
 VisibleSelection VisibleSelection::selectionFromContentsOfNode(Node* node)
 {
-    ASSERT(!editingIgnoresContent(node));
+    ASSERT(!editingIgnoresContent(*node));
     return VisibleSelection(firstPositionInNode(node), lastPositionInNode(node), DOWNSTREAM);
 }
 
@@ -125,16 +125,18 @@ void VisibleSelection::setExtent(const VisiblePosition& visiblePosition)
 
 RefPtr<Range> VisibleSelection::firstRange() const
 {
-    if (isNone())
+    if (isNoneOrOrphaned())
         return nullptr;
     Position start = m_start.parentAnchoredEquivalent();
     Position end = m_end.parentAnchoredEquivalent();
+    if (start.isNull() || start.isOrphan() || end.isNull() || end.isOrphan())
+        return nullptr;
     return Range::create(start.anchorNode()->document(), start, end);
 }
 
 RefPtr<Range> VisibleSelection::toNormalizedRange() const
 {
-    if (isNone())
+    if (isNoneOrOrphaned())
         return nullptr;
 
     // Make sure we have an updated layout since this function is called
@@ -144,7 +146,7 @@ RefPtr<Range> VisibleSelection::toNormalizedRange() const
     m_start.anchorNode()->document().updateLayout();
 
     // Check again, because updating layout can clear the selection.
-    if (isNone())
+    if (isNoneOrOrphaned())
         return nullptr;
 
     Position s, e;
@@ -307,7 +309,7 @@ void VisibleSelection::setStartAndEndFromBaseAndExtentRespectingGranularity(Text
                 // the next one) to match TextEdit.
                 end = wordEnd.next();
                 
-                if (Node* table = isFirstPositionAfterTable(end)) {
+                if (auto* table = isFirstPositionAfterTable(end)) {
                     // The paragraph break after the last paragraph in the last cell of a block table ends
                     // at the start of the paragraph after the table.
                     if (isBlock(table))
@@ -534,11 +536,11 @@ void VisibleSelection::adjustSelectionToAvoidCrossingEditingBoundaries()
     if (m_base == m_start && m_base == m_end)
         return;
 
-    Node* baseRoot = highestEditableRoot(m_base);
-    Node* startRoot = highestEditableRoot(m_start);
-    Node* endRoot = highestEditableRoot(m_end);
+    auto* baseRoot = highestEditableRoot(m_base);
+    auto* startRoot = highestEditableRoot(m_start);
+    auto* endRoot = highestEditableRoot(m_end);
     
-    Node* baseEditableAncestor = lowestEditableAncestor(m_base.containerNode());
+    auto* baseEditableAncestor = lowestEditableAncestor(m_base.containerNode());
     
     // The base, start and end are all in the same region.  No adjustment necessary.
     if (baseRoot == startRoot && baseRoot == endRoot)
@@ -573,7 +575,7 @@ void VisibleSelection::adjustSelectionToAvoidCrossingEditingBoundaries()
     
         // The selection ends in editable content or non-editable content inside a different editable ancestor, 
         // move backward until non-editable content inside the same lowest editable ancestor is reached.
-        Node* endEditableAncestor = lowestEditableAncestor(m_end.containerNode());
+        auto* endEditableAncestor = lowestEditableAncestor(m_end.containerNode());
         if (endRoot || endEditableAncestor != baseEditableAncestor) {
             
             Position p = previousVisuallyDistinctCandidate(m_end);
@@ -603,7 +605,7 @@ void VisibleSelection::adjustSelectionToAvoidCrossingEditingBoundaries()
 
         // The selection starts in editable content or non-editable content inside a different editable ancestor, 
         // move forward until non-editable content inside the same lowest editable ancestor is reached.
-        Node* startEditableAncestor = lowestEditableAncestor(m_start.containerNode());      
+        auto* startEditableAncestor = lowestEditableAncestor(m_start.containerNode());
         if (startRoot || startEditableAncestor != baseEditableAncestor) {
             Position p = nextVisuallyDistinctCandidate(m_start);
             Node* shadowAncestor = startRoot ? startRoot->shadowHost() : 0;

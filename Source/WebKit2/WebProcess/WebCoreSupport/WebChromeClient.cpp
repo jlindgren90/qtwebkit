@@ -527,11 +527,6 @@ void WebChromeClient::contentsSizeChanged(Frame* frame, const IntSize& size) con
     if (&frame->page()->mainFrame() != frame)
         return;
 
-#if USE(COORDINATED_GRAPHICS)
-    if (m_page->useFixedLayout())
-        m_page->drawingArea()->layerTreeHost()->sizeDidChange(size);
-#endif
-
     m_page->send(Messages::WebPageProxy::DidChangeContentSize(size));
 
     m_page->drawingArea()->mainFrameContentSizeChanged(size);
@@ -878,9 +873,9 @@ void WebChromeClient::setUpPlaybackControlsManager(WebCore::HTMLMediaElement& me
     m_page->playbackSessionManager().setUpPlaybackControlsManager(mediaElement);
 }
 
-void WebChromeClient::clearPlaybackControlsManager(WebCore::HTMLMediaElement& mediaElement)
+void WebChromeClient::clearPlaybackControlsManager()
 {
-    m_page->playbackSessionManager().clearPlaybackControlsManager(mediaElement);
+    m_page->playbackSessionManager().clearPlaybackControlsManager();
 }
 
 void WebChromeClient::enterVideoFullscreenForVideoElement(WebCore::HTMLVideoElement& videoElement, WebCore::HTMLMediaElementEnums::VideoFullscreenMode mode)

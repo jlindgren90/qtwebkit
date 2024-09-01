@@ -2,7 +2,7 @@
  * Copyright (C) 1999 Lars Knoll (knoll@kde.org)
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2000 Dirk Mueller (mueller@kde.org)
- * Copyright (C) 2004, 2005, 2006, 2007, 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2004, 2005, 2006, 2007, 2010, 2016 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -21,12 +21,13 @@
  *
  */
 
-#ifndef HTMLButtonElement_h
-#define HTMLButtonElement_h
+#pragma once
 
 #include "HTMLFormControlElement.h"
 
 namespace WebCore {
+
+class RenderButton;
 
 class HTMLButtonElement final : public HTMLFormControlElement {
 public:
@@ -37,6 +38,8 @@ public:
     const AtomicString& value() const;
 
     bool willRespondToMouseClickEvents() override;
+
+    RenderButton* renderer() const;
 
 private:
     HTMLButtonElement(const QualifiedName& tagName, Document&, HTMLFormElement*);
@@ -49,7 +52,6 @@ private:
 
     // HTMLFormControlElement always creates one, but buttons don't need it.
     bool alwaysCreateUserAgentShadowRoot() const override { return false; }
-    bool canHaveUserAgentShadowRoot() const final { return true; }
 
     void parseAttribute(const QualifiedName&, const AtomicString&) override;
     bool isPresentationAttribute(const QualifiedName&) const override;
@@ -61,6 +63,7 @@ private:
     bool supportLabels() const override { return true; }
 
     bool isSuccessfulSubmitButton() const override;
+    bool matchesDefaultPseudoClass() const override;
     bool isActivatedSubmit() const override;
     void setActivatedSubmit(bool flag) override;
 
@@ -77,5 +80,3 @@ private:
 };
 
 } // namespace
-
-#endif

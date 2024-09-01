@@ -31,6 +31,7 @@
 #include "CachedResourceHandle.h"
 #include "CachedResourceRequest.h"
 #include "ResourceLoadPriority.h"
+#include "ResourceTimingInformation.h"
 #include "Timer.h"
 #include <wtf/Deque.h>
 #include <wtf/HashMap.h>
@@ -121,8 +122,8 @@ public:
 
     WEBCORE_EXPORT void garbageCollectDocumentResources();
     
-    void incrementRequestCount(const CachedResource*);
-    void decrementRequestCount(const CachedResource*);
+    void incrementRequestCount(const CachedResource&);
+    void decrementRequestCount(const CachedResource&);
     int requestCount() const { return m_requestCount; }
 
     WEBCORE_EXPORT bool isPreloaded(const String& urlString) const;
@@ -144,7 +145,6 @@ private:
     CachedResourceHandle<CachedResource> requestResource(CachedResource::Type, CachedResourceRequest&);
     CachedResourceHandle<CachedResource> revalidateResource(const CachedResourceRequest&, CachedResource*);
     CachedResourceHandle<CachedResource> loadResource(CachedResource::Type, CachedResourceRequest&);
-    void storeResourceTimingInitiatorInformation(const CachedResourceHandle<CachedResource>&, const CachedResourceRequest&);
     void requestPreload(CachedResource::Type, CachedResourceRequest&, const String& charset);
 
     enum RevalidationPolicy { Use, Revalidate, Reload, Load };
@@ -177,11 +177,9 @@ private:
 
     Timer m_garbageCollectDocumentResourcesTimer;
 
-    struct InitiatorInfo {
-        AtomicString name;
-        double startTime;
-    };
-    HashMap<CachedResource*, InitiatorInfo> m_initiatorMap;
+#if ENABLE(WEB_TIMING)
+    ResourceTimingInformation m_resourceTimingInfo;
+#endif
 
     // 29 bits left
     bool m_autoLoadImages : 1;

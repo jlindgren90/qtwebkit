@@ -32,6 +32,7 @@
 #include "IDBServer.h"
 #include "IDBTransactionInfo.h"
 #include "Logging.h"
+#include "ServerOpenDBRequest.h"
 #include "UniqueIDBDatabase.h"
 
 namespace WebCore {
@@ -55,11 +56,13 @@ UniqueIDBDatabaseConnection::UniqueIDBDatabaseConnection(UniqueIDBDatabase& data
     , m_openRequestIdentifier(request.requestData().requestIdentifier())
 {
     m_database.server().registerDatabaseConnection(*this);
+    m_connectionToClient.registerDatabaseConnection(*this);
 }
 
 UniqueIDBDatabaseConnection::~UniqueIDBDatabaseConnection()
 {
     m_database.server().unregisterDatabaseConnection(*this);
+    m_connectionToClient.unregisterDatabaseConnection(*this);
 }
 
 bool UniqueIDBDatabaseConnection::hasNonFinishedTransactions() const
@@ -70,9 +73,14 @@ bool UniqueIDBDatabaseConnection::hasNonFinishedTransactions() const
 void UniqueIDBDatabaseConnection::abortTransactionWithoutCallback(UniqueIDBDatabaseTransaction& transaction)
 {
     ASSERT(m_transactionMap.contains(transaction.info().identifier()));
-    auto takenTransaction = m_transactionMap.take(transaction.info().identifier());
 
-    m_database.abortTransaction(*takenTransaction, [](const IDBError&) { });
+    const auto& transactionIdentifier = transaction.info().identifier();
+    RefPtr<UniqueIDBDatabaseConnection> protectedThis(this);
+
+    m_database.abortTransaction(transaction, [this, protectedThis, transactionIdentifier](const IDBError&) {
+        ASSERT(m_transactionMap.contains(transactionIdentifier));
+        m_transactionMap.remove(transactionIdentifier);
+    });
 }
 
 void UniqueIDBDatabaseConnection::connectionClosedFromClient()
@@ -83,11 +91,25 @@ void UniqueIDBDatabaseConnection::connectionClosedFromClient()
     m_database.connectionClosedFromClient(*this);
 }
 
+void UniqueIDBDatabaseConnection::confirmDidCloseFromServer()
+{
+    LOG(IndexedDB, "UniqueIDBDatabaseConnection::confirmDidCloseFromServer - %s - %" PRIu64, m_openRequestIdentifier.loggingString().utf8().data(), m_identifier);
+
+    m_database.confirmDidCloseFromServer(*this);
+}
+
 void UniqueIDBDatabaseConnection::didFireVersionChangeEvent(const IDBResourceIdentifier& requestIdentifier)
 {
     LOG(IndexedDB, "UniqueIDBDatabaseConnection::didFireVersionChangeEvent - %s - %" PRIu64, m_openRequestIdentifier.loggingString().utf8().data(), m_identifier);
 
     m_database.didFireVersionChangeEvent(*this, requestIdentifier);
+}
+
+void UniqueIDBDatabaseConnection::didFinishHandlingVersionChange(const IDBResourceIdentifier& transactionIdentifier)
+{
+    LOG(IndexedDB, "UniqueIDBDatabaseConnection::didFinishHandlingVersionChange - %s - %" PRIu64, transactionIdentifier.loggingString().utf8().data(), m_identifier);
+
+    m_database.didFinishHandlingVersionChange(*this, transactionIdentifier);
 }
 
 void UniqueIDBDatabaseConnection::fireVersionChangeEvent(const IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion)

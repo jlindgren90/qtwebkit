@@ -737,7 +737,7 @@ private:
             break;
         }
             
-        case GetArgumentCount: {
+        case GetArgumentCountIncludingThis: {
             setPrediction(SpecInt32Only);
             break;
         }
@@ -783,9 +783,7 @@ private:
         case OverridesHasInstance:
         case InstanceOf:
         case InstanceOfCustom:
-        case IsArrayObject:
         case IsJSArray:
-        case IsArrayConstructor:
         case IsEmpty:
         case IsUndefined:
         case IsBoolean:
@@ -794,7 +792,8 @@ private:
         case IsObject:
         case IsObjectOrNull:
         case IsFunction:
-        case IsRegExpObject: {
+        case IsRegExpObject:
+        case IsTypedArrayView: {
             setPrediction(SpecBoolean);
             break;
         }
@@ -979,7 +978,6 @@ private:
         case PhantomClonedArguments:
         case GetMyArgumentByVal:
         case GetMyArgumentByValOutOfBounds:
-        case ForwardVarargs:
         case PutHint:
         case CheckStructureImmediate:
         case MaterializeNewObject:
@@ -1035,8 +1033,6 @@ private:
         case DFG::Jump:
         case Branch:
         case Switch:
-        case ProfileWillCall:
-        case ProfileDidCall:
         case ProfileType:
         case ProfileControlFlow:
         case ThrowReferenceError:
@@ -1064,6 +1060,7 @@ private:
         case ZombieHint:
         case ExitOK:
         case LoadVarargs:
+        case ForwardVarargs:
         case CopyRest:
         case PutDynamicVar:
             break;

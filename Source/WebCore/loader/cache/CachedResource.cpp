@@ -42,6 +42,7 @@
 #include "Logging.h"
 #include "MainFrame.h"
 #include "MemoryCache.h"
+#include "Page.h"
 #include "PlatformStrategies.h"
 #include "ResourceHandle.h"
 #include "SchemeRegistry.h"
@@ -184,7 +185,7 @@ void CachedResource::failBeforeStarting()
     error(CachedResource::LoadError);
 }
 
-void CachedResource::addAdditionalRequestHeaders(CachedResourceLoader& cachedResourceLoader)
+static void addAdditionalRequestHeadersToRequest(ResourceRequest& request, const CachedResourceLoader& cachedResourceLoader)
 {
     // Note: We skip the Content-Security-Policy check here because we check
     // the Content-Security-Policy at the CachedResourceLoader layer so we can
@@ -193,22 +194,28 @@ void CachedResource::addAdditionalRequestHeaders(CachedResourceLoader& cachedRes
     FrameLoader& frameLoader = cachedResourceLoader.frame()->loader();
     String outgoingReferrer;
     String outgoingOrigin;
-    if (m_resourceRequest.httpReferrer().isNull()) {
+    if (request.httpReferrer().isNull()) {
         outgoingReferrer = frameLoader.outgoingReferrer();
         outgoingOrigin = frameLoader.outgoingOrigin();
     } else {
-        outgoingReferrer = m_resourceRequest.httpReferrer();
+        outgoingReferrer = request.httpReferrer();
         outgoingOrigin = SecurityOrigin::createFromString(outgoingReferrer)->toString();
     }
 
-    outgoingReferrer = SecurityPolicy::generateReferrerHeader(cachedResourceLoader.document()->referrerPolicy(), m_resourceRequest.url(), outgoingReferrer);
+    auto referrerPolicy = cachedResourceLoader.document() ? cachedResourceLoader.document()->referrerPolicy() : ReferrerPolicy::Default;
+    outgoingReferrer = SecurityPolicy::generateReferrerHeader(referrerPolicy, request.url(), outgoingReferrer);
     if (outgoingReferrer.isEmpty())
-        m_resourceRequest.clearHTTPReferrer();
+        request.clearHTTPReferrer();
     else
-        m_resourceRequest.setHTTPReferrer(outgoingReferrer);
-    FrameLoader::addHTTPOriginIfNeeded(m_resourceRequest, outgoingOrigin);
+        request.setHTTPReferrer(outgoingReferrer);
+    FrameLoader::addHTTPOriginIfNeeded(request, outgoingOrigin);
 
-    frameLoader.addExtraFieldsToSubresourceRequest(m_resourceRequest);
+    frameLoader.addExtraFieldsToSubresourceRequest(request);
+}
+
+void CachedResource::addAdditionalRequestHeaders(CachedResourceLoader& cachedResourceLoader)
+{
+    addAdditionalRequestHeadersToRequest(m_resourceRequest, cachedResourceLoader);
 }
 
 void CachedResource::load(CachedResourceLoader& cachedResourceLoader, const ResourceLoaderOptions& options)
@@ -217,14 +224,15 @@ void CachedResource::load(CachedResourceLoader& cachedResourceLoader, const Reso
         failBeforeStarting();
         return;
     }
+    Frame& frame = *cachedResourceLoader.frame();
 
     // Prevent new loads if we are in the PageCache or being added to the PageCache.
-    if (cachedResourceLoader.frame()->page() && cachedResourceLoader.frame()->page()->inPageCache()) {
+    if (frame.page() && frame.page()->inPageCache()) {
         failBeforeStarting();
         return;
     }
 
-    FrameLoader& frameLoader = cachedResourceLoader.frame()->loader();
+    FrameLoader& frameLoader = frame.loader();
     if (options.securityCheck() == DoSecurityCheck && (frameLoader.state() == FrameStateProvisional || !frameLoader.activeDocumentLoader() || frameLoader.activeDocumentLoader()->isStopping())) {
         failBeforeStarting();
         return;
@@ -238,7 +246,7 @@ void CachedResource::load(CachedResourceLoader& cachedResourceLoader, const Reso
         // When QuickLook is invoked to convert a document, it returns a unique URL in the
         // NSURLReponse for the main document. To make safeQLURLForDocumentURLAndResourceURL()
         // work, we need to use the QL URL not the original URL.
-        const URL& documentURL = cachedResourceLoader.frame() ? cachedResourceLoader.frame()->loader().documentLoader()->response().url() : cachedResourceLoader.document()->url();
+        const URL& documentURL = frameLoader.documentLoader()->response().url();
         m_resourceRequest.setURL(safeQLURLForDocumentURLAndResourceURL(documentURL, url()));
     }
 #endif
@@ -282,7 +290,7 @@ void CachedResource::load(CachedResourceLoader& cachedResourceLoader, const Reso
         m_fragmentIdentifierForRequest = String();
     }
 
-    m_loader = platformStrategies()->loaderStrategy()->loadResource(cachedResourceLoader.frame(), this, request, options);
+    m_loader = platformStrategies()->loaderStrategy()->loadResource(frame, *this, request, options);
     if (!m_loader) {
         failBeforeStarting();
         return;
@@ -386,7 +394,7 @@ std::chrono::microseconds CachedResource::freshnessLifetime(const ResourceRespon
             // FIXME: We should not cache subresources either, but when we tried this
             // it caused performance and flakiness issues in our test infrastructure.
             if (m_type == MainResource || SchemeRegistry::shouldAlwaysRevalidateURLScheme(protocol))
-                return std::chrono::microseconds::zero();
+                return 0us;
         }
 
         return std::chrono::microseconds::max();
@@ -411,6 +419,15 @@ void CachedResource::redirectReceived(ResourceRequest& request, const ResourceRe
 const ResourceResponse& CachedResource::responseForSameOriginPolicyChecks() const
 {
     return m_redirectResponseForSameOriginPolicyChecks.isNull() ? m_response : m_redirectResponseForSameOriginPolicyChecks;
+}
+
+void CachedResource::setResponse(const ResourceResponse& response)
+{
+    m_response = response;
+    m_response.setType(m_responseType);
+    m_response.setRedirected(m_redirectChainCacheStatus.status != RedirectChainCacheStatus::NoRedirection);
+
+    m_varyingHeaderValues = collectVaryingRequestHeaders(m_resourceRequest, m_response, m_sessionID);
 }
 
 void CachedResource::responseReceived(const ResourceResponse& response)
@@ -757,6 +774,17 @@ CachedResource::RevalidationDecision CachedResource::makeRevalidationDecision(Ca
 bool CachedResource::redirectChainAllowsReuse(ReuseExpiredRedirectionOrNot reuseExpiredRedirection) const
 {
     return WebCore::redirectChainAllowsReuse(m_redirectChainCacheStatus, reuseExpiredRedirection);
+}
+
+bool CachedResource::varyHeaderValuesMatch(const ResourceRequest& request, const CachedResourceLoader& cachedResourceLoader)
+{
+    if (m_varyingHeaderValues.isEmpty())
+        return true;
+
+    ResourceRequest requestWithFullHeaders(request);
+    addAdditionalRequestHeadersToRequest(requestWithFullHeaders, cachedResourceLoader);
+
+    return verifyVaryingRequestHeaders(m_varyingHeaderValues, requestWithFullHeaders, m_sessionID);
 }
 
 unsigned CachedResource::overheadSize() const

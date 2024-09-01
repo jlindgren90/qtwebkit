@@ -38,21 +38,21 @@ using namespace WebCore;
 
 namespace WebKit {
 
-PendingDownload::PendingDownload(const NetworkLoadParameters& parameters, DownloadID downloadID)
-    : m_networkLoad(std::make_unique<NetworkLoad>(*this, parameters))
+PendingDownload::PendingDownload(NetworkLoadParameters&& parameters, DownloadID downloadID)
+    : m_networkLoad(std::make_unique<NetworkLoad>(*this, WTFMove(parameters)))
 {
     m_networkLoad->setPendingDownloadID(downloadID);
     m_networkLoad->setPendingDownload(*this);
 }
 
-void PendingDownload::willSendRedirectedRequest(const WebCore::ResourceRequest&, const WebCore::ResourceRequest& redirectRequest, const WebCore::ResourceResponse& redirectResponse)
+void PendingDownload::willSendRedirectedRequest(WebCore::ResourceRequest&&, WebCore::ResourceRequest&& redirectRequest, WebCore::ResourceResponse&& redirectResponse)
 {
-    send(Messages::DownloadProxy::WillSendRequest(redirectRequest, redirectResponse));
+    send(Messages::DownloadProxy::WillSendRequest(WTFMove(redirectRequest), WTFMove(redirectResponse)));
 };
     
-void PendingDownload::continueWillSendRequest(const WebCore::ResourceRequest& newRequest)
+void PendingDownload::continueWillSendRequest(WebCore::ResourceRequest&& newRequest)
 {
-    m_networkLoad->continueWillSendRequest(newRequest);
+    m_networkLoad->continueWillSendRequest(WTFMove(newRequest));
 }
 
 void PendingDownload::canAuthenticateAgainstProtectionSpaceAsync(const WebCore::ProtectionSpace& protectionSpace)

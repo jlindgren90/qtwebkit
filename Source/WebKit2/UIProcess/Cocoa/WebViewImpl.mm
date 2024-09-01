@@ -90,6 +90,7 @@
 #import <WebCore/WebCoreNSStringExtras.h>
 #import <WebKitSystemInterface.h>
 #import <sys/stat.h>
+#import <wtf/NeverDestroyed.h>
 
 #if USE(APPLE_INTERNAL_SDK)
 #import <WebKitAdditions/WebViewImplIncludes.h>
@@ -1088,7 +1089,7 @@ void WebViewImpl::windowDidChangeBackingProperties(CGFloat oldBackingScaleFactor
 void WebViewImpl::windowDidChangeScreen()
 {
     NSWindow *window = m_targetWindowForMovePreparation ? m_targetWindowForMovePreparation : m_view.window;
-    m_page->windowScreenDidChange((PlatformDisplayID)[[[[window screen] deviceDescription] objectForKey:@"NSScreenNumber"] intValue]);
+    m_page->windowScreenDidChange([[[[window screen] deviceDescription] objectForKey:@"NSScreenNumber"] intValue]);
 }
 
 void WebViewImpl::windowDidChangeLayerHosting()
@@ -1190,7 +1191,7 @@ void WebViewImpl::viewDidMoveToWindow()
         windowDidChangeScreen();
 
         WebCore::ViewState::Flags viewStateChanges = WebCore::ViewState::WindowIsActive | WebCore::ViewState::IsVisible;
-        if (m_isDeferringViewInWindowChanges)
+        if (m_shouldDeferViewInWindowChanges)
             m_viewInWindowChangeWasDeferred = true;
         else
             viewStateChanges |= WebCore::ViewState::IsInWindow;
@@ -1219,7 +1220,7 @@ void WebViewImpl::viewDidMoveToWindow()
             [m_view addGestureRecognizer:m_immediateActionGestureRecognizer.get()];
     } else {
         WebCore::ViewState::Flags viewStateChanges = WebCore::ViewState::WindowIsActive | WebCore::ViewState::IsVisible;
-        if (m_isDeferringViewInWindowChanges)
+        if (m_shouldDeferViewInWindowChanges)
             m_viewInWindowChangeWasDeferred = true;
         else
             viewStateChanges |= WebCore::ViewState::IsInWindow;
@@ -2777,7 +2778,7 @@ void WebViewImpl::draggedImage(NSImage *image, CGPoint endPoint, NSDragOperation
     // Prevent queued mouseDragged events from coming after the drag and fake mouseUp event.
     m_ignoresMouseDraggedEvents = true;
 
-    m_page->dragEnded(WebCore::IntPoint(windowMouseLoc), WebCore::globalPoint(windowMouseLoc, m_view.window), operation);
+    m_page->dragEnded(WebCore::IntPoint(windowMouseLoc), WebCore::IntPoint(WebCore::globalPoint(windowMouseLoc, m_view.window)), operation);
 }
 
 static WebCore::DragApplicationFlags applicationFlagsForDrag(NSView *view, id <NSDraggingInfo> draggingInfo)
@@ -2917,6 +2918,7 @@ void WebViewImpl::registerDraggedTypes()
 {
     auto types = adoptNS([[NSMutableSet alloc] initWithArray:PasteboardTypes::forEditing()]);
     [types addObjectsFromArray:PasteboardTypes::forURL()];
+    [types addObject:PasteboardTypes::WebDummyPboardType];
     [m_view registerForDraggedTypes:[types allObjects]];
 }
 #endif // ENABLE(DRAG_SUPPORT)
@@ -2932,14 +2934,15 @@ void WebViewImpl::dragImageForView(NSView *view, NSImage *image, CGPoint clientP
 {
     // The call below could release the view.
     RetainPtr<NSView> protector(m_view);
-
+    NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
+    [pasteboard setString:@"" forType:PasteboardTypes::WebDummyPboardType];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [view dragImage:image
                  at:NSPointFromCGPoint(clientPoint)
              offset:NSZeroSize
               event:linkDrag ? [NSApp currentEvent] : m_lastMouseDownEvent.get()
-         pasteboard:[NSPasteboard pasteboardWithName:NSDragPboard]
+         pasteboard:pasteboard
              source:m_view
           slideBack:YES];
 #pragma clang diagnostic pop
@@ -4026,7 +4029,29 @@ bool WebViewImpl::windowIsFrontWindowUnderMouse(NSEvent *event)
     return m_view.window.windowNumber != eventWindowNumber;
 }
 
-    
+static WebCore::UserInterfaceLayoutDirection toUserInterfaceLayoutDirection(NSUserInterfaceLayoutDirection direction)
+{
+    switch (direction) {
+    case NSUserInterfaceLayoutDirectionLeftToRight:
+        return WebCore::UserInterfaceLayoutDirection::LTR;
+    case NSUserInterfaceLayoutDirectionRightToLeft:
+        return WebCore::UserInterfaceLayoutDirection::RTL;
+    }
+
+    ASSERT_NOT_REACHED();
+    return WebCore::UserInterfaceLayoutDirection::LTR;
+}
+
+WebCore::UserInterfaceLayoutDirection WebViewImpl::userInterfaceLayoutDirection()
+{
+    return toUserInterfaceLayoutDirection(m_view.userInterfaceLayoutDirection);
+}
+
+void WebViewImpl::setUserInterfaceLayoutDirection(NSUserInterfaceLayoutDirection direction)
+{
+    m_page->setUserInterfaceLayoutDirection(toUserInterfaceLayoutDirection(direction));
+}
+
 } // namespace WebKit
 
 #endif // PLATFORM(MAC)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003, 2006, 2007, 2008, 2009, 2011, 2012, 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2003-2016 Apple Inc. All rights reserved.
  *           (C) 2006 Graham Dennis (graham.dennis@gmail.com)
  *
  * Redistribution and use in source and binary forms, with or without
@@ -143,6 +143,9 @@ public:
     WEBCORE_EXPORT void setImagesEnabled(bool);
     bool areImagesEnabled() const { return m_areImagesEnabled; }
 
+    WEBCORE_EXPORT void setPreferMIMETypeForImages(bool);
+    bool preferMIMETypeForImages() const { return m_preferMIMETypeForImages; }
+
     WEBCORE_EXPORT void setPluginsEnabled(bool);
     bool arePluginsEnabled() const { return m_arePluginsEnabled; }
 
@@ -242,6 +245,9 @@ public:
     WEBCORE_EXPORT void setFontFallbackPrefersPictographs(bool);
     bool fontFallbackPrefersPictographs() const { return m_fontFallbackPrefersPictographs; }
 
+    WEBCORE_EXPORT void setWebFontsAlwaysFallBack(bool);
+    bool webFontsAlwaysFallBack() const { return m_webFontsAlwaysFallBack; }
+
     static bool lowPowerVideoAudioBufferSizeEnabled() { return gLowPowerVideoAudioBufferSizeEnabled; }
     WEBCORE_EXPORT static void setLowPowerVideoAudioBufferSizeEnabled(bool);
 
@@ -283,12 +289,19 @@ public:
     WEBCORE_EXPORT static void setMockCaptureDevicesEnabled(bool);
 #endif
 
+#if ENABLE(APPLE_PAY)
+    bool applePayEnabled() const { return m_applePayEnabled; }
+    void setApplePayEnabled(bool applePayEnabled) { m_applePayEnabled = applePayEnabled; }
+
+    bool applePayCapabilityDisclosureAllowed() const { return m_applePayCapabilityDisclosureAllowed; }
+    void setApplePayCapabilityDisclosureAllowed(bool applePayCapabilityDisclosureAllowed) { m_applePayCapabilityDisclosureAllowed = applePayCapabilityDisclosureAllowed; }
+#endif
+
     WEBCORE_EXPORT void setForcePendingWebGLPolicy(bool);
     bool isForcePendingWebGLPolicy() const { return m_forcePendingWebGLPolicy; }
-    
-#if USE(APPLE_INTERNAL_SDK)
-#import <WebKitAdditions/SettingsGettersAndSetters.h>
-#endif
+
+    WEBCORE_EXPORT static void setAllowsAnySSLCertificate(bool);
+    static bool allowsAnySSLCertificate();
 
 private:
     explicit Settings(Page*);
@@ -314,6 +327,7 @@ private:
     bool m_isJavaEnabledForLocalFiles : 1;
     bool m_loadsImagesAutomatically : 1;
     bool m_areImagesEnabled : 1;
+    bool m_preferMIMETypeForImages : 1;
     bool m_arePluginsEnabled : 1;
     bool m_isScriptEnabled : 1;
     bool m_needsAdobeFrameReloadingQuirk : 1;
@@ -336,6 +350,7 @@ private:
     bool m_hiddenPageDOMTimerThrottlingEnabled : 1;
     bool m_hiddenPageCSSAnimationSuspensionEnabled : 1;
     bool m_fontFallbackPrefersPictographs : 1;
+    bool m_webFontsAlwaysFallBack : 1;
 
     bool m_forcePendingWebGLPolicy : 1;
 
@@ -379,12 +394,14 @@ private:
     static bool gMockCaptureDevicesEnabled;
 #endif
 
+#if ENABLE(APPLE_PAY)
+    bool m_applePayEnabled { false };
+    bool m_applePayCapabilityDisclosureAllowed { true };
+#endif
+
     static bool gLowPowerVideoAudioBufferSizeEnabled;
     static bool gResourceLoadStatisticsEnabledEnabled;
-
-#if USE(APPLE_INTERNAL_SDK)
-#import <WebKitAdditions/SettingsMembers.h>
-#endif
+    static bool gAllowsAnySSLCertificate;
 };
 
 } // namespace WebCore

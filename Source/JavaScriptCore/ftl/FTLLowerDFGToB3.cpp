@@ -159,10 +159,7 @@ public:
         m_out.setFrequency(1);
         
         m_prologue = m_out.newBlock();
-        LBasicBlock stackOverflow = m_out.newBlock();
         m_handleExceptions = m_out.newBlock();
-        
-        LBasicBlock checkArguments = m_out.newBlock();
 
         for (BlockIndex blockIndex = 0; blockIndex < m_graph.numBlocks(); ++blockIndex) {
             m_highBlock = m_graph.block(blockIndex);
@@ -175,7 +172,7 @@ public:
         // Back to prologue frequency for any bocks that get sneakily created in the initialization code.
         m_out.setFrequency(1);
         
-        m_out.appendTo(m_prologue, stackOverflow);
+        m_out.appendTo(m_prologue, m_handleExceptions);
         m_out.initializeConstants(m_proc, m_prologue);
         createPhiVariables();
 
@@ -186,9 +183,6 @@ public:
 
         auto preOrder = m_graph.blocksInPreOrder();
 
-        // We should not create any alloca's after this point, since they will cease to
-        // be mem2reg candidates.
-        
         m_callFrame = m_out.framePointer();
         m_tagTypeNumber = m_out.constInt64(TagTypeNumber);
         m_tagMask = m_out.constInt64(TagMask);
@@ -199,44 +193,54 @@ public:
         m_proc.addFastConstant(m_tagMask->key());
         
         m_out.storePtr(m_out.constIntPtr(codeBlock()), addressFor(JSStack::CodeBlock));
-        
-        m_out.branch(
-            didOverflowStack(), rarely(stackOverflow), usually(checkArguments));
-        
-        m_out.appendTo(stackOverflow, m_handleExceptions);
-        m_out.call(m_out.voidType, m_out.operation(operationThrowStackOverflowError), m_callFrame, m_out.constIntPtr(codeBlock()));
-        m_out.patchpoint(Void)->setGenerator(
-            [=] (CCallHelpers& jit, const StackmapGenerationParams&) {
-                // We are terminal, so we can clobber everything. That's why we don't claim to
-                // clobber scratch.
-                AllowMacroScratchRegisterUsage allowScratch(jit);
-                
-                jit.copyCalleeSavesToVMCalleeSavesBuffer();
-                jit.move(CCallHelpers::TrustedImmPtr(jit.vm()), GPRInfo::argumentGPR0);
-                jit.move(GPRInfo::callFrameRegister, GPRInfo::argumentGPR1);
-                CCallHelpers::Call call = jit.call();
-                jit.jumpToExceptionHandler();
 
-                jit.addLinkTask(
-                    [=] (LinkBuffer& linkBuffer) {
-                        linkBuffer.link(call, FunctionPtr(lookupExceptionHandlerFromCallerFrame));
+        // Stack Overflow Check.
+        unsigned exitFrameSize = m_graph.requiredRegisterCountForExit() * sizeof(Register);
+        MacroAssembler::AbsoluteAddress addressOfStackLimit(vm().addressOfStackLimit());
+        PatchpointValue* stackOverflowHandler = m_out.patchpoint(Void);
+        CallSiteIndex callSiteIndex = callSiteIndexForCodeOrigin(m_ftlState, CodeOrigin(0));
+        stackOverflowHandler->appendSomeRegister(m_callFrame);
+        stackOverflowHandler->clobber(RegisterSet::macroScratchRegisters());
+        stackOverflowHandler->numGPScratchRegisters = 1;
+        stackOverflowHandler->setGenerator(
+            [=] (CCallHelpers& jit, const StackmapGenerationParams& params) {
+                AllowMacroScratchRegisterUsage allowScratch(jit);
+                GPRReg fp = params[0].gpr();
+                GPRReg scratch = params.gpScratch(0);
+
+                unsigned ftlFrameSize = params.proc().frameSize();
+
+                jit.addPtr(MacroAssembler::TrustedImm32(-std::max(exitFrameSize, ftlFrameSize)), fp, scratch);
+                MacroAssembler::Jump stackOverflow = jit.branchPtr(MacroAssembler::Above, addressOfStackLimit, scratch);
+
+                params.addLatePath([=] (CCallHelpers& jit) {
+                    AllowMacroScratchRegisterUsage allowScratch(jit);
+
+                    stackOverflow.link(&jit);
+                    jit.store32(
+                        MacroAssembler::TrustedImm32(callSiteIndex.bits()),
+                        CCallHelpers::tagFor(VirtualRegister(JSStack::ArgumentCount)));
+                    jit.copyCalleeSavesToVMEntryFrameCalleeSavesBuffer();
+
+                    jit.move(GPRInfo::callFrameRegister, GPRInfo::argumentGPR0);
+                    jit.move(CCallHelpers::TrustedImmPtr(jit.codeBlock()), GPRInfo::argumentGPR1);
+                    CCallHelpers::Call throwCall = jit.call();
+
+                    jit.move(CCallHelpers::TrustedImmPtr(jit.vm()), GPRInfo::argumentGPR0);
+                    jit.move(GPRInfo::callFrameRegister, GPRInfo::argumentGPR1);
+                    CCallHelpers::Call lookupExceptionHandlerCall = jit.call();
+                    jit.jumpToExceptionHandler();
+
+                    jit.addLinkTask(
+                        [=] (LinkBuffer& linkBuffer) {
+                            linkBuffer.link(throwCall, FunctionPtr(operationThrowStackOverflowError));
+                            linkBuffer.link(lookupExceptionHandlerCall, FunctionPtr(lookupExceptionHandlerFromCallerFrame));
                     });
+                });
             });
-        m_out.unreachable();
-        
-        m_out.appendTo(m_handleExceptions, checkArguments);
-        Box<CCallHelpers::Label> exceptionHandler = state->exceptionHandler;
-        m_out.patchpoint(Void)->setGenerator(
-            [=] (CCallHelpers& jit, const StackmapGenerationParams&) {
-                CCallHelpers::Jump jump = jit.jump();
-                jit.addLinkTask(
-                    [=] (LinkBuffer& linkBuffer) {
-                        linkBuffer.link(jump, linkBuffer.locationOf(*exceptionHandler));
-                    });
-            });
-        m_out.unreachable();
-        
-        m_out.appendTo(checkArguments, lowBlock(m_graph.block(0)));
+
+        LBasicBlock firstDFGBasicBlock = lowBlock(m_graph.block(0));
+        // Check Arguments.
         availabilityMap().clear();
         availabilityMap().m_locals = Operands<Availability>(codeBlock()->numParameters(), 0);
         for (unsigned i = codeBlock()->numParameters(); i--;) {
@@ -278,8 +282,20 @@ public:
                 break;
             }
         }
-        m_out.jump(lowBlock(m_graph.block(0)));
-        
+        m_out.jump(firstDFGBasicBlock);
+
+        m_out.appendTo(m_handleExceptions, firstDFGBasicBlock);
+        Box<CCallHelpers::Label> exceptionHandler = state->exceptionHandler;
+        m_out.patchpoint(Void)->setGenerator(
+            [=] (CCallHelpers& jit, const StackmapGenerationParams&) {
+                CCallHelpers::Jump jump = jit.jump();
+                jit.addLinkTask(
+                    [=] (LinkBuffer& linkBuffer) {
+                        linkBuffer.link(jump, linkBuffer.locationOf(*exceptionHandler));
+                    });
+            });
+        m_out.unreachable();
+
         for (DFG::BasicBlock* block : preOrder)
             compileBlock(block);
 
@@ -765,8 +781,8 @@ private:
         case GetCallee:
             compileGetCallee();
             break;
-        case GetArgumentCount:
-            compileGetArgumentCount();
+        case GetArgumentCountIncludingThis:
+            compileGetArgumentCountIncludingThis();
             break;
         case GetScope:
             compileGetScope();
@@ -871,14 +887,8 @@ private:
         case IsString:
             compileIsString();
             break;
-        case IsArrayObject:
-            compileIsArrayObject();
-            break;
         case IsJSArray:
             compileIsJSArray();
-            break;
-        case IsArrayConstructor:
-            compileIsArrayConstructor();
             break;
         case IsObject:
             compileIsObject();
@@ -891,6 +901,9 @@ private:
             break;
         case IsRegExpObject:
             compileIsRegExpObject();
+            break;
+        case IsTypedArrayView:
+            compileIsTypedArrayView();
             break;
         case TypeOf:
             compileTypeOf();
@@ -997,6 +1010,9 @@ private:
             break;
         case PutDynamicVar:
             compilePutDynamicVar();
+            break;
+        case Unreachable:
+            compileUnreachable();
             break;
 
         case PhantomLocal:
@@ -1136,10 +1152,10 @@ private:
                 usually(continuation), rarely(intCase));
             
             LBasicBlock lastNext = m_out.appendTo(intCase, continuation);
-            
+
             FTL_TYPE_CHECK(
                 jsValueValue(value), m_node->child1(), SpecBytecodeRealNumber,
-                isNotInt32(value, provenType(m_node->child1()) & ~SpecFullDouble));
+                isNotInt32(value, provenType(m_node->child1()) & ~SpecDoubleReal));
             ValueFromBlock slowResult = m_out.anchor(m_out.intToDouble(unboxInt32(value)));
             m_out.jump(continuation);
             
@@ -4691,7 +4707,7 @@ private:
         setJSValue(m_out.loadPtr(addressFor(JSStack::Callee)));
     }
     
-    void compileGetArgumentCount()
+    void compileGetArgumentCountIncludingThis()
     {
         setInt32(m_out.load32(payloadFor(JSStack::ArgumentCount)));
     }
@@ -5215,7 +5231,7 @@ private:
     {
         Node* node = m_node;
         LValue jsCallee = lowJSValue(m_node->child1());
-        LValue thisArg = lowJSValue(m_node->child3());
+        LValue thisArg = lowJSValue(m_node->child2());
         
         LValue jsArguments = nullptr;
         bool forwarding = false;
@@ -5225,7 +5241,7 @@ private:
         case TailCallVarargs:
         case TailCallVarargsInlinedCaller:
         case ConstructVarargs:
-            jsArguments = lowJSValue(node->child2());
+            jsArguments = lowJSValue(node->child3());
             break;
         case CallForwardVarargs:
         case TailCallForwardVarargs:
@@ -5378,7 +5394,12 @@ private:
                     jit.move(CCallHelpers::TrustedImm32(originalStackHeight / sizeof(EncodedJSValue)), scratchGPR2);
                     
                     CCallHelpers::JumpList slowCase;
-                    emitSetupVarargsFrameFastCase(jit, scratchGPR2, scratchGPR1, scratchGPR2, scratchGPR3, node->child2()->origin.semantic.inlineCallFrame, data->firstVarArgOffset, slowCase);
+                    InlineCallFrame* inlineCallFrame;
+                    if (node->child3())
+                        inlineCallFrame = node->child3()->origin.semantic.inlineCallFrame;
+                    else
+                        inlineCallFrame = node->origin.semantic.inlineCallFrame;
+                    emitSetupVarargsFrameFastCase(jit, scratchGPR2, scratchGPR1, scratchGPR2, scratchGPR3, inlineCallFrame, data->firstVarArgOffset, slowCase);
 
                     CCallHelpers::Jump done = jit.jump();
                     slowCase.link(&jit);
@@ -5522,7 +5543,11 @@ private:
     void compileForwardVarargs()
     {
         LoadVarargsData* data = m_node->loadVarargsData();
-        InlineCallFrame* inlineCallFrame = m_node->child1()->origin.semantic.inlineCallFrame;
+        InlineCallFrame* inlineCallFrame;
+        if (m_node->child1())
+            inlineCallFrame = m_node->child1()->origin.semantic.inlineCallFrame;
+        else
+            inlineCallFrame = m_node->origin.semantic.inlineCallFrame;
         
         LValue length = getArgumentsLength(inlineCallFrame).value;
         LValue lengthIncludingThis = m_out.add(length, m_out.constInt32(1 - data->offset));
@@ -5930,29 +5955,6 @@ private:
         setBoolean(m_out.phi(m_out.boolean, notCellResult, cellResult));
     }
 
-    void compileIsArrayObject()
-    {
-        LValue value = lowJSValue(m_node->child1());
-
-        LBasicBlock cellCase = m_out.newBlock();
-        LBasicBlock notArrayCase = m_out.newBlock();
-        LBasicBlock continuation = m_out.newBlock();
-
-        ValueFromBlock notCellResult = m_out.anchor(m_out.booleanFalse);
-        m_out.branch(isCell(value, provenType(m_node->child1())), unsure(cellCase), unsure(continuation));
-
-        LBasicBlock lastNext = m_out.appendTo(cellCase, notArrayCase);
-        ValueFromBlock arrayResult = m_out.anchor(m_out.booleanTrue);
-        m_out.branch(isArray(value, provenType(m_node->child1())), unsure(continuation), unsure(notArrayCase));
-
-        m_out.appendTo(notArrayCase, continuation);
-        ValueFromBlock notArrayResult = m_out.anchor(vmCall(m_out.boolean, m_out.operation(operationIsArrayObject), m_callFrame, value));
-        m_out.jump(continuation);
-
-        m_out.appendTo(continuation, lastNext);
-        setBoolean(m_out.phi(m_out.boolean, notCellResult, arrayResult, notArrayResult));
-    }
-
     void compileIsJSArray()
     {
         LValue value = lowJSValue(m_node->child1());
@@ -5970,13 +5972,6 @@ private:
 
         m_out.appendTo(continuation, lastNext);
         setBoolean(m_out.phi(m_out.boolean, notCellResult, cellResult));
-    }
-
-    void compileIsArrayConstructor()
-    {
-        LValue value = lowJSValue(m_node->child1());
-
-        setBoolean(vmCall(m_out.boolean, m_out.operation(operationIsArrayConstructor), m_callFrame, value));
     }
 
     void compileIsObject()
@@ -6117,6 +6112,24 @@ private:
         setBoolean(m_out.phi(m_out.boolean, notCellResult, cellResult));
     }
 
+    void compileIsTypedArrayView()
+    {
+        LValue value = lowJSValue(m_node->child1());
+
+        LBasicBlock isCellCase = m_out.newBlock();
+        LBasicBlock continuation = m_out.newBlock();
+
+        ValueFromBlock notCellResult = m_out.anchor(m_out.booleanFalse);
+        m_out.branch(isCell(value, provenType(m_node->child1())), unsure(isCellCase), unsure(continuation));
+
+        LBasicBlock lastNext = m_out.appendTo(isCellCase, continuation);
+        ValueFromBlock cellResult = m_out.anchor(isTypedArrayView(value, provenType(m_node->child1())));
+        m_out.jump(continuation);
+
+        m_out.appendTo(continuation, lastNext);
+        setBoolean(m_out.phi(m_out.boolean, notCellResult, cellResult));
+    }
+
     void compileTypeOf()
     {
         Edge child = m_node->child1();
@@ -6148,8 +6161,8 @@ private:
                 UniquedStringImpl* str = bitwise_cast<UniquedStringImpl*>(string->tryGetValueImpl());
                 B3::PatchpointValue* patchpoint = m_out.patchpoint(Int64);
                 patchpoint->appendSomeRegister(cell);
-                patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
-                patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
+                patchpoint->append(m_tagMask, ValueRep::lateReg(GPRInfo::tagMaskRegister));
+                patchpoint->append(m_tagTypeNumber, ValueRep::lateReg(GPRInfo::tagTypeNumberRegister));
                 patchpoint->clobber(RegisterSet::macroScratchRegisters());
 
                 RefPtr<PatchpointExceptionHandle> exceptionHandle = preparePatchpointForExceptions(patchpoint);
@@ -6193,21 +6206,19 @@ private:
 
                                 jit.addLinkTask(
                                     [=] (LinkBuffer& linkBuffer) {
-                                        CodeLocationCall callReturnLocation =
-                                            linkBuffer.locationOf(slowPathCall);
-                                        stubInfo->patch.deltaCallToDone =
-                                            CCallHelpers::differenceBetweenCodePtr(
-                                                callReturnLocation,
-                                                linkBuffer.locationOf(done));
-                                        stubInfo->patch.deltaCallToJump =
-                                            CCallHelpers::differenceBetweenCodePtr(
-                                                callReturnLocation,
-                                                linkBuffer.locationOf(jump));
-                                        stubInfo->callReturnLocation = callReturnLocation;
-                                        stubInfo->patch.deltaCallToSlowCase =
-                                            CCallHelpers::differenceBetweenCodePtr(
-                                                callReturnLocation,
-                                                linkBuffer.locationOf(slowPathBegin));
+                                        CodeLocationLabel start = linkBuffer.locationOf(jump);
+                                        stubInfo->patch.start = start;
+                                        ptrdiff_t inlineSize = MacroAssembler::differenceBetweenCodePtr(
+                                            start, linkBuffer.locationOf(done));
+                                        RELEASE_ASSERT(inlineSize >= 0);
+                                        stubInfo->patch.inlineSize = inlineSize;
+
+                                        stubInfo->patch.deltaFromStartToSlowPathCallLocation = MacroAssembler::differenceBetweenCodePtr(
+                                            start, linkBuffer.locationOf(slowPathCall));
+
+                                        stubInfo->patch.deltaFromStartToSlowPathStart = MacroAssembler::differenceBetweenCodePtr(
+                                            start, linkBuffer.locationOf(slowPathBegin));
+
                                     });
                             });
                     });
@@ -7099,19 +7110,28 @@ private:
     
     void compileLogShadowChickenPrologue()
     {
-        LValue packet = setupShadowChickenPacket();
-        
+        LValue packet = ensureShadowChickenPacket();
+        LValue scope = lowCell(m_node->child1());
+
         m_out.storePtr(m_callFrame, packet, m_heaps.ShadowChicken_Packet_frame);
         m_out.storePtr(m_out.loadPtr(addressFor(0)), packet, m_heaps.ShadowChicken_Packet_callerFrame);
         m_out.storePtr(m_out.loadPtr(payloadFor(JSStack::Callee)), packet, m_heaps.ShadowChicken_Packet_callee);
+        m_out.storePtr(scope, packet, m_heaps.ShadowChicken_Packet_scope);
     }
     
     void compileLogShadowChickenTail()
     {
-        LValue packet = setupShadowChickenPacket();
+        LValue packet = ensureShadowChickenPacket();
+        LValue thisValue = lowJSValue(m_node->child1());
+        LValue scope = lowCell(m_node->child2());
+        CallSiteIndex callSiteIndex = m_ftlState.jitCode->common.addCodeOrigin(m_node->origin.semantic);
         
         m_out.storePtr(m_callFrame, packet, m_heaps.ShadowChicken_Packet_frame);
         m_out.storePtr(m_out.constIntPtr(ShadowChicken::Packet::tailMarker()), packet, m_heaps.ShadowChicken_Packet_callee);
+        m_out.store64(thisValue, packet, m_heaps.ShadowChicken_Packet_thisValue);
+        m_out.storePtr(scope, packet, m_heaps.ShadowChicken_Packet_scope);
+        m_out.storePtr(m_out.constIntPtr(codeBlock()), packet, m_heaps.ShadowChicken_Packet_codeBlock);
+        m_out.store32(m_out.constInt32(callSiteIndex.bits()), packet, m_heaps.ShadowChicken_Packet_callSiteIndex);
     }
 
     void compileRecordRegExpCachedResult()
@@ -7135,42 +7155,6 @@ private:
         m_out.store32As8(
             m_out.constInt32(0),
             m_out.address(constructor, m_heaps.RegExpConstructor_cachedResult_reified));
-    }
-
-    LValue didOverflowStack()
-    {
-        // This does a very simple leaf function analysis. The invariant of FTL call
-        // frames is that the caller had already done enough of a stack check to
-        // prove that this call frame has enough stack to run, and also enough stack
-        // to make runtime calls. So, we only need to stack check when making calls
-        // to other JS functions. If we don't find such calls then we don't need to
-        // do any stack checks.
-        
-        for (BlockIndex blockIndex = 0; blockIndex < m_graph.numBlocks(); ++blockIndex) {
-            DFG::BasicBlock* block = m_graph.block(blockIndex);
-            if (!block)
-                continue;
-            
-            for (unsigned nodeIndex = block->size(); nodeIndex--;) {
-                Node* node = block->at(nodeIndex);
-                
-                switch (node->op()) {
-                case GetById:
-                case PutById:
-                case Call:
-                case Construct:
-                    return m_out.below(
-                        m_callFrame,
-                        m_out.loadPtr(
-                            m_out.absolute(vm().addressOfFTLStackLimit())));
-                    
-                default:
-                    break;
-                }
-            }
-        }
-        
-        return m_out.booleanFalse;
     }
     
     struct ArgumentsLength {
@@ -7621,8 +7605,8 @@ private:
 
         B3::PatchpointValue* patchpoint = m_out.patchpoint(Int64);
         patchpoint->appendSomeRegister(base);
-        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
-        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
+        patchpoint->append(m_tagMask, ValueRep::lateReg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::lateReg(GPRInfo::tagTypeNumberRegister));
 
         // FIXME: If this is a GetByIdFlush, we might get some performance boost if we claim that it
         // clobbers volatile registers late. It's not necessary for correctness, though, since the
@@ -7653,7 +7637,7 @@ private:
 
                 auto generator = Box<JITGetByIdGenerator>::create(
                     jit.codeBlock(), node->origin.semantic, callSiteIndex,
-                    params.unavailableRegisters(), JSValueRegs(params[1].gpr()),
+                    params.unavailableRegisters(), uid, JSValueRegs(params[1].gpr()),
                     JSValueRegs(params[0].gpr()), type);
 
                 generator->generateFastPath(jit);
@@ -7779,6 +7763,18 @@ private:
         UniquedStringImpl* uid = m_graph.identifiers()[m_node->identifierNumber()];
         setJSValue(vmCall(Void, m_out.operation(operationPutDynamicVar),
             m_callFrame, lowCell(m_node->child1()), lowJSValue(m_node->child2()), m_out.constIntPtr(uid), m_out.constInt32(m_node->getPutInfo())));
+    }
+    
+    void compileUnreachable()
+    {
+        // It's so tempting to assert that AI has proved that this is unreachable. But that's
+        // simply not a requirement of the Unreachable opcode at all. If you emit an opcode that
+        // *you* know will not return, then it's fine to end the basic block with Unreachable
+        // after that opcode. You don't have to also prove to AI that your opcode does not return.
+        // Hence, there is nothing to do here but emit code that will crash, so that we catch
+        // cases where you said Unreachable but you lied.
+        
+        crash();
     }
     
     void compareEqObjectOrOtherToObject(Edge leftChild, Edge rightChild)
@@ -7974,8 +7970,8 @@ private:
         PatchpointValue* patchpoint = m_out.patchpoint(Int64);
         patchpoint->appendSomeRegister(left);
         patchpoint->appendSomeRegister(right);
-        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
-        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
+        patchpoint->append(m_tagMask, ValueRep::lateReg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::lateReg(GPRInfo::tagTypeNumberRegister));
         RefPtr<PatchpointExceptionHandle> exceptionHandle =
             preparePatchpointForExceptions(patchpoint);
         patchpoint->numGPScratchRegisters = 1;
@@ -8030,9 +8026,6 @@ private:
     {
         Node* node = m_node;
         
-        // FIXME: Make this do exceptions.
-        // https://bugs.webkit.org/show_bug.cgi?id=151686
-            
         LValue left = lowJSValue(node->child1());
         LValue right = lowJSValue(node->child2());
 
@@ -8042,8 +8035,8 @@ private:
         PatchpointValue* patchpoint = m_out.patchpoint(Int64);
         patchpoint->appendSomeRegister(left);
         patchpoint->appendSomeRegister(right);
-        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
-        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
+        patchpoint->append(m_tagMask, ValueRep::lateReg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::lateReg(GPRInfo::tagTypeNumberRegister));
         RefPtr<PatchpointExceptionHandle> exceptionHandle =
             preparePatchpointForExceptions(patchpoint);
         patchpoint->numGPScratchRegisters = 1;
@@ -8096,8 +8089,8 @@ private:
         PatchpointValue* patchpoint = m_out.patchpoint(Int64);
         patchpoint->appendSomeRegister(left);
         patchpoint->appendSomeRegister(right);
-        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
-        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
+        patchpoint->append(m_tagMask, ValueRep::lateReg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::lateReg(GPRInfo::tagTypeNumberRegister));
         RefPtr<PatchpointExceptionHandle> exceptionHandle =
             preparePatchpointForExceptions(patchpoint);
         patchpoint->numGPScratchRegisters = 1;
@@ -8388,7 +8381,7 @@ private:
             m_out.phi(m_out.intPtr, fastButterfly, slowButterfly));
     }
     
-    LValue setupShadowChickenPacket()
+    LValue ensureShadowChickenPacket()
     {
         LBasicBlock slowCase = m_out.newBlock();
         LBasicBlock continuation = m_out.newBlock();
@@ -9191,7 +9184,7 @@ private:
         m_out.jump(continuation);
         
         m_out.appendTo(slowPath, continuation);
-        results.append(m_out.anchor(m_out.call(m_out.int32, m_out.operation(toInt32), doubleValue)));
+        results.append(m_out.anchor(m_out.call(m_out.int32, m_out.operation(operationToInt32), doubleValue)));
         m_out.jump(continuation);
         
         m_out.appendTo(continuation, lastNext);
@@ -9220,7 +9213,7 @@ private:
         
         LBasicBlock lastNext = m_out.appendTo(slowPath, continuation);
         ValueFromBlock slowResult = m_out.anchor(
-            m_out.call(m_out.int32, m_out.operation(toInt32), doubleValue));
+            m_out.call(m_out.int32, m_out.operation(operationToInt32), doubleValue));
         m_out.jump(continuation);
         
         m_out.appendTo(continuation, lastNext);
@@ -10106,6 +10099,18 @@ private:
             m_out.load8ZeroExt32(cell, m_heaps.JSCell_typeInfoType),
             m_out.constInt32(ArrayType));
     }
+
+    LValue isTypedArrayView(LValue cell, SpeculatedType type = SpecFullTop)
+    {
+        if (LValue proven = isProvenValue(type & SpecCell, SpecTypedArrayView))
+            return proven;
+        LValue jsType = m_out.sub(
+            m_out.load8ZeroExt32(cell, m_heaps.JSCell_typeInfoType),
+            m_out.constInt32(Int8ArrayType));
+        return m_out.belowOrEqual(
+            jsType,
+            m_out.constInt32(Float64ArrayType - Int8ArrayType));
+    }
     
     LValue isObject(LValue cell, SpeculatedType type = SpecFullTop)
     {
@@ -10838,10 +10843,11 @@ private:
             
             Availability availability = availabilityMap.m_locals[i];
             
-            if (Options::validateFTLOSRExitLiveness()) {
-                DFG_ASSERT(
-                    m_graph, m_node,
-                    (!(availability.isDead() && m_graph.isLiveInBytecode(VirtualRegister(operand), exitOrigin))) || m_graph.m_plan.mode == FTLForOSREntryMode);
+            if (Options::validateFTLOSRExitLiveness()
+                && m_graph.m_plan.mode != FTLForOSREntryMode) {
+                
+                if (availability.isDead() && m_graph.isLiveInBytecode(VirtualRegister(operand), exitOrigin))
+                    DFG_CRASH(m_graph, m_node, toCString("Live bytecode local not available: operand = ", VirtualRegister(operand), ", availability = ", availability, ", origin = ", exitOrigin).data());
             }
             ExitValue exitValue = exitValueForAvailability(arguments, map, availability);
             if (exitValue.hasIndexInStackmapLocations())

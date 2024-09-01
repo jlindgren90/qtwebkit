@@ -277,10 +277,19 @@ PlatformMediaSession* PlatformMediaSessionManager::currentSession()
 
     return m_sessions[0];
 }
+
+PlatformMediaSession* PlatformMediaSessionManager::currentSessionMatching(std::function<bool(const PlatformMediaSession &)> filter)
+{
+    for (auto& session : m_sessions) {
+        if (filter(*session))
+            return session;
+    }
+    return nullptr;
+}
     
 bool PlatformMediaSessionManager::sessionCanLoadMedia(const PlatformMediaSession& session) const
 {
-    return session.state() == PlatformMediaSession::Playing || !session.isHidden() || session.isPlayingToWirelessPlaybackTarget();
+    return session.state() == PlatformMediaSession::Playing || !session.isHidden() || session.shouldOverrideBackgroundLoadingRestriction();
 }
 
 void PlatformMediaSessionManager::applicationWillEnterBackground() const

@@ -53,7 +53,6 @@
 #include "JSPropertyNameEnumerator.h"
 #include "JSStackInlines.h"
 #include "JSWithScope.h"
-#include "LegacyProfiler.h"
 #include "ObjectConstructor.h"
 #include "PolymorphicAccess.h"
 #include "PropertyName.h"
@@ -94,8 +93,10 @@ void JIT_OPERATION operationThrowStackOverflowError(ExecState* exec, CodeBlock* 
 
     VMEntryFrame* vmEntryFrame = vm->topVMEntryFrame;
     CallFrame* callerFrame = exec->callerFrame(vmEntryFrame);
-    if (!callerFrame)
+    if (!callerFrame) {
         callerFrame = exec;
+        vmEntryFrame = vm->topVMEntryFrame;
+    }
 
     NativeCallFrameTracerWithRestore tracer(vm, vmEntryFrame, callerFrame);
     throwStackOverflowError(callerFrame);
@@ -242,13 +243,12 @@ EncodedJSValue JIT_OPERATION operationGetByIdOptimize(ExecState* exec, Structure
 
     JSValue baseValue = JSValue::decode(base);
     LOG_IC((ICEvent::OperationGetByIdOptimize, baseValue.classInfoOrNull(), ident));
-    PropertySlot slot(baseValue, PropertySlot::InternalMethodType::Get);
-    
-    bool hasResult = baseValue.getPropertySlot(exec, ident, slot);
-    if (stubInfo->considerCaching(baseValue.structureOrNull()))
-        repatchGetByID(exec, baseValue, ident, slot, *stubInfo, GetByIDKind::Normal);
-    
-    return JSValue::encode(hasResult? slot.getValue(exec, ident) : jsUndefined());
+
+    return JSValue::encode(baseValue.getPropertySlot(exec, ident, [&] (bool found, PropertySlot& slot) -> JSValue {
+        if (stubInfo->considerCaching(baseValue.structureOrNull()))
+            repatchGetByID(exec, baseValue, ident, slot, *stubInfo, GetByIDKind::Normal);
+        return found ? slot.getValue(exec, ident) : jsUndefined();
+    }));
 }
 
 EncodedJSValue JIT_OPERATION operationInOptimize(ExecState* exec, StructureStubInfo* stubInfo, JSCell* base, UniquedStringImpl* key)
@@ -269,6 +269,8 @@ EncodedJSValue JIT_OPERATION operationInOptimize(ExecState* exec, StructureStubI
     LOG_IC((ICEvent::OperationInOptimize, base->classInfo(), ident));
     PropertySlot slot(base, PropertySlot::InternalMethodType::HasProperty);
     bool result = asObject(base)->getPropertySlot(exec, ident, slot);
+    if (vm->exception())
+        return JSValue::encode(jsUndefined());
     
     RELEASE_ASSERT(accessType == stubInfo->accessType);
     
@@ -1235,24 +1237,22 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
     }
 
     if (!codeBlock->checkIfOptimizationThresholdReached()) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("counter = ", codeBlock->jitExecuteCounter()));
         codeBlock->updateAllPredictions();
         if (Options::verboseOSR())
             dataLog("Choosing not to optimize ", *codeBlock, " yet, because the threshold hasn't been reached.\n");
         return encodeResult(0, 0);
     }
     
-    if (vm.enabledProfiler()) {
-        updateAllPredictionsAndOptimizeAfterWarmUp(codeBlock);
-        return encodeResult(0, 0);
-    }
-
     Debugger* debugger = codeBlock->globalObject()->debugger();
     if (debugger && (debugger->isStepping() || codeBlock->baselineAlternative()->hasDebuggerRequests())) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("debugger is stepping or has requests"));
         updateAllPredictionsAndOptimizeAfterWarmUp(codeBlock);
         return encodeResult(0, 0);
     }
 
     if (codeBlock->m_shouldAlwaysBeInlined) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("should always be inlined"));
         updateAllPredictionsAndOptimizeAfterWarmUp(codeBlock);
         if (Options::verboseOSR())
             dataLog("Choosing not to optimize ", *codeBlock, " yet, because m_shouldAlwaysBeInlined == true.\n");
@@ -1293,6 +1293,7 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
         worklistState = DFG::Worklist::NotKnown;
 
     if (worklistState == DFG::Worklist::Compiling) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("compiling"));
         // We cannot be in the process of asynchronous compilation and also have an optimized
         // replacement.
         RELEASE_ASSERT(!codeBlock->hasOptimizedReplacement());
@@ -1307,6 +1308,7 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
         // CodeBlock::setOptimizationThresholdBasedOnCompilationResult() and we have
         // nothing left to do.
         if (!codeBlock->hasOptimizedReplacement()) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("compiled and failed"));
             codeBlock->updateAllPredictions();
             if (Options::verboseOSR())
                 dataLog("Code block ", *codeBlock, " was compiled but it doesn't have an optimized replacement.\n");
@@ -1329,6 +1331,7 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
         // shouldReoptimizeFromLoopNow() to always return true. But we make it do some
         // additional checking anyway, to reduce the amount of recompilation thrashing.
         if (codeBlock->replacement()->shouldReoptimizeFromLoopNow()) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("should reoptimize from loop now"));
             if (Options::verboseOSR()) {
                 dataLog(
                     "Triggering reoptimization of ", *codeBlock,
@@ -1339,6 +1342,7 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
         }
     } else {
         if (!codeBlock->shouldOptimizeNow()) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("insufficient profiling"));
             if (Options::verboseOSR()) {
                 dataLog(
                     "Delaying optimization for ", *codeBlock,
@@ -1369,20 +1373,24 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
             vm, replacementCodeBlock, nullptr, DFG::DFGMode, bytecodeIndex,
             mustHandleValues, JITToDFGDeferredCompilationCallback::create());
         
-        if (result != CompilationSuccessful)
+        if (result != CompilationSuccessful) {
+            CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("compilation failed"));
             return encodeResult(0, 0);
+        }
     }
     
     CodeBlock* optimizedCodeBlock = codeBlock->replacement();
     ASSERT(JITCode::isOptimizingJIT(optimizedCodeBlock->jitType()));
     
     if (void* dataBuffer = DFG::prepareOSREntry(exec, optimizedCodeBlock, bytecodeIndex)) {
+        CODEBLOCK_LOG_EVENT(optimizedCodeBlock, "osrEntry", ("at bc#", bytecodeIndex));
         if (Options::verboseOSR()) {
             dataLog(
                 "Performing OSR ", *codeBlock, " -> ", *optimizedCodeBlock, ".\n");
         }
 
         codeBlock->optimizeSoon();
+        codeBlock->unlinkedCodeBlock()->setDidOptimize(TrueTriState);
         return encodeResult(vm.getCTIStub(DFG::osrEntryThunkGenerator).code().executableAddress(), dataBuffer);
     }
 
@@ -1406,6 +1414,7 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
     // right now. So, we only trigger reoptimization only upon the more conservative (non-loop)
     // reoptimization trigger.
     if (optimizedCodeBlock->shouldReoptimizeNow()) {
+        CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("should reoptimize now"));
         if (Options::verboseOSR()) {
             dataLog(
                 "Triggering reoptimization of ", *codeBlock, " -> ",
@@ -1419,6 +1428,7 @@ SlowPathReturnType JIT_OPERATION operationOptimize(ExecState* exec, int32_t byte
     // longer and then try again.
     codeBlock->optimizeAfterWarmUp();
     
+    CODEBLOCK_LOG_EVENT(codeBlock, "delayOptimizeToDFG", ("OSR failed"));
     return encodeResult(0, 0);
 }
 #endif
@@ -1544,24 +1554,6 @@ void JIT_OPERATION operationPopScope(ExecState* exec, int32_t scopeReg)
 
     JSScope* scope = exec->uncheckedR(scopeReg).Register::scope();
     exec->uncheckedR(scopeReg) = scope->next();
-}
-
-void JIT_OPERATION operationProfileDidCall(ExecState* exec, EncodedJSValue encodedValue)
-{
-    VM& vm = exec->vm();
-    NativeCallFrameTracer tracer(&vm, exec);
-
-    if (LegacyProfiler* profiler = vm.enabledProfiler())
-        profiler->didExecute(exec, JSValue::decode(encodedValue));
-}
-
-void JIT_OPERATION operationProfileWillCall(ExecState* exec, EncodedJSValue encodedValue)
-{
-    VM& vm = exec->vm();
-    NativeCallFrameTracer tracer(&vm, exec);
-
-    if (LegacyProfiler* profiler = vm.enabledProfiler())
-        profiler->willExecute(exec, JSValue::decode(encodedValue));
 }
 
 int32_t JIT_OPERATION operationInstanceOfCustom(ExecState* exec, EncodedJSValue encodedValue, JSObject* constructor, EncodedJSValue encodedHasInstance)
@@ -1928,6 +1920,14 @@ EncodedJSValue JIT_OPERATION operationInstanceOf(ExecState* exec, EncodedJSValue
     return JSValue::encode(jsBoolean(result));
 }
 
+int32_t JIT_OPERATION operationSizeFrameForForwardArguments(ExecState* exec, EncodedJSValue, int32_t numUsedStackSlots, int32_t)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+    JSStack* stack = &exec->interpreter()->stack();
+    return sizeFrameForForwardArguments(exec, stack, numUsedStackSlots);
+}
+
 int32_t JIT_OPERATION operationSizeFrameForVarargs(ExecState* exec, EncodedJSValue encodedArguments, int32_t numUsedStackSlots, int32_t firstVarArgOffset)
 {
     VM& vm = exec->vm();
@@ -1935,6 +1935,14 @@ int32_t JIT_OPERATION operationSizeFrameForVarargs(ExecState* exec, EncodedJSVal
     JSStack* stack = &exec->interpreter()->stack();
     JSValue arguments = JSValue::decode(encodedArguments);
     return sizeFrameForVarargs(exec, stack, arguments, numUsedStackSlots, firstVarArgOffset);
+}
+
+CallFrame* JIT_OPERATION operationSetupForwardArgumentsFrame(ExecState* exec, CallFrame* newCallFrame, EncodedJSValue, int32_t, int32_t length)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+    setupForwardArgumentsFrame(exec, newCallFrame, length);
+    return newCallFrame;
 }
 
 CallFrame* JIT_OPERATION operationSetupVarargsFrame(ExecState* exec, CallFrame* newCallFrame, EncodedJSValue encodedArguments, int32_t firstVarArgOffset, int32_t length)
@@ -2026,28 +2034,29 @@ EncodedJSValue JIT_OPERATION operationGetFromScope(ExecState* exec, Instruction*
     // ModuleVar is always converted to ClosureVar for get_from_scope.
     ASSERT(getPutInfo.resolveType() != ModuleVar);
 
-    PropertySlot slot(scope, PropertySlot::InternalMethodType::Get);
-    if (!scope->getPropertySlot(exec, ident, slot)) {
-        if (getPutInfo.resolveMode() == ThrowIfNotFound)
-            vm.throwException(exec, createUndefinedVariableError(exec, ident));
-        return JSValue::encode(jsUndefined());
-    }
-
-    JSValue result = JSValue();
-    if (scope->isGlobalLexicalEnvironment()) {
-        // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
-        result = slot.getValue(exec, ident);
-        if (result == jsTDZValue()) {
-            exec->vm().throwException(exec, createTDZError(exec));
-            return JSValue::encode(jsUndefined());
+    return JSValue::encode(scope->getPropertySlot(exec, ident, [&] (bool found, PropertySlot& slot) -> JSValue {
+        if (!found) {
+            if (getPutInfo.resolveMode() == ThrowIfNotFound)
+                vm.throwException(exec, createUndefinedVariableError(exec, ident));
+            return jsUndefined();
         }
-    }
 
-    CommonSlowPaths::tryCacheGetFromScopeGlobal(exec, vm, pc, scope, slot, ident);
+        JSValue result = JSValue();
+        if (scope->isGlobalLexicalEnvironment()) {
+            // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
+            result = slot.getValue(exec, ident);
+            if (result == jsTDZValue()) {
+                vm.throwException(exec, createTDZError(exec));
+                return jsUndefined();
+            }
+        }
 
-    if (!result)
-        result = slot.getValue(exec, ident);
-    return JSValue::encode(result);
+        CommonSlowPaths::tryCacheGetFromScopeGlobal(exec, vm, pc, scope, slot, ident);
+
+        if (!result)
+            return slot.getValue(exec, ident);
+        return result;
+    }));
 }
 
 void JIT_OPERATION operationPutToScope(ExecState* exec, Instruction* bytecodePC)
@@ -2344,9 +2353,6 @@ int32_t JIT_OPERATION operationCheckIfExceptionIsUncatchableAndNotifyProfiler(Ex
     VM& vm = exec->vm();
     NativeCallFrameTracer tracer(&vm, exec);
     RELEASE_ASSERT(!!vm.exception());
-
-    if (LegacyProfiler* profiler = vm.enabledProfiler())
-        profiler->exceptionUnwind(exec);
 
     if (isTerminatedExecutionException(vm.exception())) {
         genericUnwind(&vm, exec);

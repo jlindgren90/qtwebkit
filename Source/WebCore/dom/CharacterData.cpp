@@ -23,6 +23,7 @@
 #include "CharacterData.h"
 
 #include "ElementTraversal.h"
+#include "EventNames.h"
 #include "ExceptionCode.h"
 #include "FrameSelection.h"
 #include "InspectorInstrumentation.h"
@@ -43,7 +44,7 @@ void CharacterData::setData(const String& data)
     if (m_data == nonNullData)
         return;
 
-    Ref<CharacterData> protect(*this);
+    Ref<CharacterData> protectedThis(*this);
 
     unsigned oldLength = length();
 

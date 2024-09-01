@@ -4,7 +4,7 @@
              (C) 1998, 1999 Torben Weis (weis@kde.org)
              (C) 1999 Lars Knoll (knoll@kde.org)
              (C) 1999 Antti Koivisto (koivisto@kde.org)
-   Copyright (C) 2004-2009, 2014-2015 Apple Inc. All rights reserved.
+   Copyright (C) 2004-2009, 2014-2016 Apple Inc. All rights reserved.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -22,8 +22,7 @@
    Boston, MA 02110-1301, USA.
 */
 
-#ifndef FrameView_h
-#define FrameView_h
+#pragma once
 
 #include "AdjustViewSizeOrNot.h"
 #include "Color.h"
@@ -36,6 +35,7 @@
 #include "ScrollView.h"
 #include <memory>
 #include <wtf/Forward.h>
+#include <wtf/Function.h>
 #include <wtf/HashSet.h>
 #include <wtf/ListHashSet.h>
 #include <wtf/text/WTFString.h>
@@ -111,7 +111,7 @@ public:
     void scheduleRelayout();
     void scheduleRelayoutOfSubtree(RenderElement&);
     void unscheduleRelayout();
-    void queuePostLayoutCallback(std::function<void()>);
+    void queuePostLayoutCallback(WTF::Function<void ()>&&);
     bool layoutPending() const;
     bool isInLayout() const { return m_layoutPhase != OutsideLayout; }
     bool isInRenderTreeLayout() const { return m_layoutPhase == InRenderTreeLayout; }
@@ -149,7 +149,7 @@ public:
 #endif
 
 #if ENABLE(REQUEST_ANIMATION_FRAME)
-    WEBCORE_EXPORT void serviceScriptedAnimations(double monotonicAnimationStartTime);
+    WEBCORE_EXPORT void serviceScriptedAnimations();
 #endif
 
     void willRecalcStyle();
@@ -828,7 +828,7 @@ private:
     ScrollPinningBehavior m_scrollPinningBehavior;
 
     IntRect* m_cachedWindowClipRect { nullptr };
-    Vector<std::function<void()>> m_postLayoutCallbackQueue;
+    Vector<WTF::Function<void ()>> m_postLayoutCallbackQueue;
 };
 
 inline void FrameView::incrementVisuallyNonEmptyCharacterCount(unsigned count)
@@ -854,5 +854,3 @@ inline void FrameView::incrementVisuallyNonEmptyPixelCount(const IntSize& size)
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_WIDGET(FrameView, isFrameView())
-
-#endif // FrameView_h

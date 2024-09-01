@@ -992,7 +992,7 @@ void TestController::updateWebViewSizeForTest(const TestInvocation& test)
 
 void TestController::updateWindowScaleForTest(PlatformWebView* view, const TestInvocation& test)
 {
-    view->changeWindowScaleIfNeeded(test.options().isHiDPITest ? 2 : 1);
+    view->changeWindowScaleIfNeeded(test.options().deviceScaleFactor);
 }
 
 void TestController::configureViewForTest(const TestInvocation& test)
@@ -2024,7 +2024,7 @@ void TestController::decidePolicyForNavigationAction(WKFramePolicyListenerRef li
 {
     WKRetainPtr<WKFramePolicyListenerRef> retainedListener { listener };
     const bool shouldIgnore { m_policyDelegateEnabled && !m_policyDelegatePermissive };
-    std::function<void()> decisionFunction = [shouldIgnore, retainedListener]() {
+    auto decisionFunction = [shouldIgnore, retainedListener]() {
         if (shouldIgnore)
             WKFramePolicyListenerIgnore(retainedListener.get());
         else
@@ -2032,7 +2032,7 @@ void TestController::decidePolicyForNavigationAction(WKFramePolicyListenerRef li
     };
 
     if (m_shouldDecideNavigationPolicyAfterDelay)
-        RunLoop::main().dispatch(decisionFunction);
+        RunLoop::main().dispatch(WTFMove(decisionFunction));
     else
         decisionFunction();
 }
@@ -2165,6 +2165,12 @@ void TestController::platformResetStateToConsistentValues()
 {
 
 }
+
+unsigned TestController::imageCountInGeneralPasteboard() const
+{
+    return 0;
+}
+
 #endif
 
 } // namespace WTR

@@ -29,6 +29,8 @@
 #import "Attr.h"
 #import "CSSStyleDeclaration.h"
 #import "DataDetectorsSPI.h"
+#import "ElementAncestorIterator.h"
+#import "ElementTraversal.h"
 #import "FrameView.h"
 #import "HTMLAnchorElement.h"
 #import "HTMLNames.h"
@@ -48,10 +50,6 @@
 #import <wtf/text/StringBuilder.h>
 
 #import "DataDetectorsCoreSoftLink.h"
-
-#if USE(APPLE_INTERNAL_SDK)
-#import <WebKitAdditions/DataDetectorsAdditions.h>
-#endif
 
 namespace WebCore {
 
@@ -233,8 +231,8 @@ static NSString *constructURLStringForResult(DDResultRef currentResult, NSString
     if (((detectionTypes & DataDetectorTypeAddress) && (DDResultCategoryAddress == category))
         || ((detectionTypes & DataDetectorTypeTrackingNumber) && (CFStringCompare(get_DataDetectorsCore_DDBinderTrackingNumberKey(), type, 0) == kCFCompareEqualTo))
         || ((detectionTypes & DataDetectorTypeFlightNumber) && (CFStringCompare(get_DataDetectorsCore_DDBinderFlightInformationKey(), type, 0) == kCFCompareEqualTo))
-#if USE(APPLE_INTERNAL_SDK)
-        || ((detectionTypes & DataDetectorTypeSpotlightSuggestion) && (CFStringCompare(DDBinderSpotlightSourceKey, type, 0) == kCFCompareEqualTo))
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+        || ((detectionTypes & DataDetectorTypeLookupSuggestion) && (CFStringCompare(get_DataDetectorsCore_DDBinderParsecSourceKey(), type, 0) == kCFCompareEqualTo))
 #endif
         || ((detectionTypes & DataDetectorTypePhoneNumber) && (DDResultCategoryPhoneNumber == category))
         || ((detectionTypes & DataDetectorTypeLink) && resultIsURL(currentResult))) {
@@ -248,80 +246,52 @@ static NSString *constructURLStringForResult(DDResultRef currentResult, NSString
     return nil;
 }
 
-static void removeResultLinksFromAnchor(Node* node, Node* nodeParent)
+static void removeResultLinksFromAnchor(Element& element)
 {
     // Perform a depth-first search for anchor nodes, which have the DDURLScheme attribute set to true,
-    // take their children and insert them before the anchor,
-    // and then remove the anchor.
-    
-    if (!node)
+    // take their children and insert them before the anchor, and then remove the anchor.
+
+    // Note that this is not using ElementChildIterator because we potentially prepend children as we iterate over them.
+    for (auto* child = ElementTraversal::firstChild(element); child; child = ElementTraversal::nextSibling(*child))
+        removeResultLinksFromAnchor(*child);
+
+    auto* elementParent = element.parentElement();
+    if (!elementParent)
         return;
     
-    BOOL nodeIsDDAnchor = is<HTMLAnchorElement>(*node) && equalIgnoringASCIICase(downcast<Element>(*node).fastGetAttribute(x_apple_data_detectorsAttr), "true");
-    
-    RefPtr<NodeList> children = node->childNodes();
-    unsigned childCount = children->length();
-    for (size_t i = 0; i < childCount; i++) {
-        Node* child = children->item(i);
-        if (is<Element>(*child))
-            removeResultLinksFromAnchor(child, node);
-    }
-    
-    if (nodeIsDDAnchor && nodeParent) {
-        children = node->childNodes();
-        childCount = children->length();
-        
-        // Iterate over the children and move them all onto the same level as this anchor.
-        // Remove the anchor afterwards.
-        for (size_t i = 0; i < childCount; i++) {
-            Node* child = children->item(0);
-            nodeParent->insertBefore(child, node, ASSERT_NO_EXCEPTION);
-        }
-        nodeParent->removeChild(node, ASSERT_NO_EXCEPTION);
-    }
+    bool elementIsDDAnchor = is<HTMLAnchorElement>(element) && equalIgnoringASCIICase(element.fastGetAttribute(x_apple_data_detectorsAttr), "true");
+    if (!elementIsDDAnchor)
+        return;
+
+    // Iterate over the children and move them all onto the same level as this anchor. Remove the anchor afterwards.
+    while (auto* child = element.firstChild())
+        elementParent->insertBefore(*child, &element);
+
+    elementParent->removeChild(element);
 }
 
 static bool searchForLinkRemovingExistingDDLinks(Node& startNode, Node& endNode, bool& didModifyDOM)
 {
     didModifyDOM = false;
-    Node* node = &startNode;
-    while (node) {
+    for (Node* node = &startNode; node; NodeTraversal::next(*node)) {
         if (is<HTMLAnchorElement>(*node)) {
-            if (!equalIgnoringASCIICase(downcast<Element>(*node).fastGetAttribute(x_apple_data_detectorsAttr), "true"))
+            auto& anchor = downcast<HTMLAnchorElement>(*node);
+            if (!equalIgnoringASCIICase(anchor.fastGetAttribute(x_apple_data_detectorsAttr), "true"))
                 return true;
-            removeResultLinksFromAnchor(node, node->parentElement());
+            removeResultLinksFromAnchor(anchor);
             didModifyDOM = true;
         }
         
         if (node == &endNode) {
             // If we found the end node and no link, return false unless an ancestor node is a link.
             // The only ancestors not tested at this point are in the direct line from self's parent to the top.
-            node = startNode.parentNode();
-            while (node) {
-                if (is<HTMLAnchorElement>(*node)) {
-                    if (!equalIgnoringASCIICase(downcast<Element>(*node).fastGetAttribute(x_apple_data_detectorsAttr), "true"))
-                        return true;
-                    removeResultLinksFromAnchor(node, node->parentElement());
-                    didModifyDOM = true;
-                }
-                node = node->parentNode();
+            for (auto& anchor : ancestorsOfType<HTMLAnchorElement>(startNode)) {
+                if (!equalIgnoringASCIICase(anchor.fastGetAttribute(x_apple_data_detectorsAttr), "true"))
+                    return true;
+                removeResultLinksFromAnchor(anchor);
+                didModifyDOM = true;
             }
             return false;
-        }
-        
-        RefPtr<NodeList> childNodes = node->childNodes();
-        if (childNodes->length())
-            node = childNodes->item(0);
-        else {
-            Node* newNode = node->nextSibling();
-            Node* parentNode = node;
-            while (!newNode) {
-                parentNode = parentNode->parentNode();
-                if (!parentNode)
-                    return false;
-                newNode = parentNode->nextSibling();
-            }
-            node = newNode;
         }
     }
     return false;
@@ -466,7 +436,7 @@ NSArray *DataDetection::detectContentInRange(RefPtr<Range>& contextRange, DataDe
     buildQuery(scanQuery.get(), contextRange.get());
     
 #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
-    if (types & DataDetectorTypeSpotlightSuggestion)
+    if (types & DataDetectorTypeLookupSuggestion)
         softLink_DataDetectorsCore_DDScannerEnableOptionalSource(scanner.get(), DDScannerSourceSpotlight, true);
 #endif
     
@@ -639,7 +609,16 @@ NSArray *DataDetection::detectContentInRange(RefPtr<Range>& contextRange, DataDe
                 if (renderStyle) {
                     auto textColor = renderStyle->visitedDependentColor(CSSPropertyColor);
                     if (textColor.isValid()) {
-                        auto underlineColor = Color(colorWithOverrideAlpha(textColor.rgb(), 0.2));
+                        double h = 0;
+                        double s = 0;
+                        double v = 0;
+                        textColor.getHSV(h, s, v);
+
+                        // Set the alpha of the underline to 46% if the text color is white-ish (defined
+                        // as having a saturation of less than 2% and a value/brightness or greater than
+                        // 98%). Otherwise, set the alpha of the underline to 26%.
+                        double overrideAlpha = (s < 0.02 && v > 0.98) ? 0.46 : 0.26;
+                        auto underlineColor = Color(colorWithOverrideAlpha(textColor.rgb(), overrideAlpha));
 
                         anchorElement->setInlineStyleProperty(CSSPropertyColor, textColor.cssText());
                         anchorElement->setInlineStyleProperty(CSSPropertyWebkitTextDecorationColor, underlineColor.cssText());

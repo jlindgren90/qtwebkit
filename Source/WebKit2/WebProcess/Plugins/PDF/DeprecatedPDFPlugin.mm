@@ -55,6 +55,7 @@
 #import <WebCore/Cursor.h>
 #import <WebCore/DictionaryLookup.h>
 #import <WebCore/DocumentLoader.h>
+#import <WebCore/EventNames.h>
 #import <WebCore/FocusController.h>
 #import <WebCore/FormState.h>
 #import <WebCore/Frame.h>
@@ -524,10 +525,10 @@ PDFPlugin::PDFPlugin(WebFrame* frame)
         m_annotationContainer = document->createElement(divTag, false);
         m_annotationContainer->setAttribute(idAttr, "annotationContainer");
 
-        Ref<Element> annotationStyleElement = document->createElement(styleTag, false);
+        auto annotationStyleElement = document->createElement(styleTag, false);
         annotationStyleElement->setTextContent(annotationStyle, ASSERT_NO_EXCEPTION);
 
-        m_annotationContainer->appendChild(WTFMove(annotationStyleElement));
+        m_annotationContainer->appendChild(annotationStyleElement);
         document->bodyOrFrameset()->appendChild(*m_annotationContainer);
     }
 
@@ -650,7 +651,7 @@ const PluginView* PDFPlugin::pluginView() const
 
 PassRefPtr<Scrollbar> PDFPlugin::createScrollbar(ScrollbarOrientation orientation)
 {
-    RefPtr<Scrollbar> widget = Scrollbar::createNativeScrollbar(*this, orientation, RegularScrollbar);
+    auto widget = Scrollbar::createNativeScrollbar(*this, orientation, RegularScrollbar);
     if (orientation == HorizontalScrollbar) {
         m_horizontalScrollbarLayer = adoptNS([[WKPDFPluginScrollbarLayer alloc] initWithPDFPlugin:this]);
         [m_containerLayer addSublayer:m_horizontalScrollbarLayer.get()];
@@ -666,7 +667,7 @@ PassRefPtr<Scrollbar> PDFPlugin::createScrollbar(ScrollbarOrientation orientatio
         }
     }
     pluginView()->frame()->view()->addChild(widget.get());
-    return widget.release();
+    return widget;
 }
 
 void PDFPlugin::destroyScrollbar(ScrollbarOrientation orientation)
@@ -1617,10 +1618,13 @@ void PDFPlugin::setActiveAnnotation(PDFAnnotation *annotation)
         m_activeAnnotation->commit();
 
     if (annotation) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         if ([annotation isKindOfClass:pdfAnnotationTextWidgetClass()] && static_cast<PDFAnnotationTextWidget *>(annotation).isReadOnly) {
             m_activeAnnotation = nullptr;
             return;
         }
+#pragma clang diagnostic pop
 
         m_activeAnnotation = PDFPluginAnnotation::create(annotation, m_pdfLayerController.get(), this);
         m_activeAnnotation->attach(m_annotationContainer.get());
@@ -1941,8 +1945,11 @@ String PDFPlugin::lookupTextAtLocation(const WebCore::FloatPoint& locationInView
         NSRect bounds = annotation.bounds;
         if (!NSPointInRect(pointInPageSpace, bounds))
             continue;
-        
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         PDFAnnotationLink *linkAnnotation = (PDFAnnotationLink *)annotation;
+#pragma clang diagnostic pop
         NSURL *url = linkAnnotation.URL;
         if (!url)
             continue;

@@ -69,6 +69,7 @@
 #include "WebPreferences.h"
 #include "WebResourceLoadScheduler.h"
 #include "WebScriptWorld.h"
+#include "WebSocketProvider.h"
 #include "WebStorageNamespaceProvider.h"
 #include "WebViewGroup.h"
 #include "WebVisitedLinkStore.h"
@@ -78,7 +79,6 @@
 #include <JavaScriptCore/InitializeThreading.h>
 #include <JavaScriptCore/JSCJSValue.h>
 #include <JavaScriptCore/JSLock.h>
-#include <JavaScriptCore/Profile.h>
 #include <WebCore/AXObjectCache.h>
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/BString.h>
@@ -121,7 +121,6 @@
 #include <WebCore/HitTestResult.h>
 #include <WebCore/IntRect.h>
 #include <WebCore/JSElement.h>
-#include <WebCore/JSScriptProfile.h>
 #include <WebCore/KeyboardEvent.h>
 #include <WebCore/Logging.h>
 #include <WebCore/MIMETypeRegistry.h>
@@ -166,6 +165,7 @@
 #include <bindings/ScriptValue.h>
 #include <wtf/MainThread.h>
 #include <wtf/RAMSize.h>
+#include <wtf/UniqueRef.h>
 
 #if USE(CG)
 #include <CoreGraphics/CGContext.h>
@@ -404,6 +404,7 @@ WebView::WebView()
 {
     JSC::initializeThreading();
     WTF::initializeMainThread();
+    RunLoop::initializeMainRunLoop();
 
     m_backingStoreSize.cx = m_backingStoreSize.cy = 0;
 
@@ -2909,10 +2910,9 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
 
     m_inspectorClient = new WebInspectorClient(this);
 
-    PageConfiguration configuration;
+    PageConfiguration configuration(makeUniqueRef<WebEditorClient>(this), makeUniqueRef<WebSocketProvider>());
     configuration.chromeClient = new WebChromeClient(this);
     configuration.contextMenuClient = new WebContextMenuClient(this);
-    configuration.editorClient = new WebEditorClient(this);
     configuration.dragClient = new WebDragClient(this);
     configuration.inspectorClient = m_inspectorClient;
     configuration.loaderClientForMainFrame = new WebFrameLoaderClient;
@@ -2923,7 +2923,7 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
     configuration.userContentProvider = &m_webViewGroup->userContentController();
     configuration.visitedLinkStore = &m_webViewGroup->visitedLinkStore();
 
-    m_page = new Page(configuration);
+    m_page = new Page(WTFMove(configuration));
     provideGeolocationTo(m_page, new WebGeolocationClient(this));
 
     unsigned layoutMilestones = DidFirstLayout | DidFirstVisuallyNonEmptyLayout;
@@ -3972,7 +3972,7 @@ HRESULT WebView::centerSelectionInVisibleArea(_In_opt_ IUnknown* /* sender */)
     if (!coreFrame)
         return E_UNEXPECTED;
 
-    coreFrame->selection().revealSelection(ScrollAlignment::alignCenterAlways);
+    coreFrame->selection().revealSelection(SelectionRevealMode::Reveal, ScrollAlignment::alignCenterAlways);
     return S_OK;
 }
 
@@ -5034,9 +5034,23 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
         return hr;
     settings.setPluginsEnabled(!!enabled);
 
+    // FIXME: Add preferences for the runtime enabled features.
+
 #if ENABLE(INDEXED_DATABASE)
     RuntimeEnabledFeatures::sharedFeatures().setWebkitIndexedDBEnabled(true);
 #endif
+
+#if ENABLE(FETCH_API)
+    hr = prefsPrivate->fetchAPIEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    RuntimeEnabledFeatures::sharedFeatures().setFetchAPIEnabled(!!enabled);
+#endif
+
+    hr = prefsPrivate->shadowDOMEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled(!!enabled);
 
     hr = preferences->privateBrowsingEnabled(&enabled);
     if (FAILED(hr))
@@ -6772,7 +6786,16 @@ HRESULT WebView::removeUserStyleSheetsFromGroup(_In_ BSTR groupName, _In_opt_ IW
 
 HRESULT WebView::removeAllUserContentFromGroup(_In_ BSTR groupName)
 {
-    return E_NOTIMPL;
+    String group = toString(groupName);
+    if (group.isEmpty())
+        return E_FAIL;
+
+    auto viewGroup = WebViewGroup::get(group);
+    if (!viewGroup)
+        return S_OK;
+
+    viewGroup->userContentController().removeAllUserContent();
+    return S_OK;
 }
 
 HRESULT WebView::invalidateBackingStore(_In_ const RECT* rect)
@@ -6918,6 +6941,11 @@ void WebView::setAcceleratedCompositing(bool accelerated)
             m_backingLayer->setSize(IntRect(clientRect).size());
             m_backingLayer->setNeedsDisplay();
             m_layerTreeHost->setRootChildLayer(PlatformCALayer::platformCALayer(m_backingLayer->platformLayer()));
+
+            TransformationMatrix m;
+            m.scale(deviceScaleFactor());
+            m_backingLayer->setAnchorPoint(FloatPoint3D());
+            m_backingLayer->setTransform(m);
 
             // We aren't going to be using our backing store while we're in accelerated compositing
             // mode. But don't delete it immediately, in case we switch out of accelerated

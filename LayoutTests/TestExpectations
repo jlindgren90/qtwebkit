@@ -17,10 +17,12 @@ editing/pasteboard/gtk [ Skip ]
 tiled-drawing [ Skip ]
 swipe [ Skip ]
 fast/zooming/ios [ Skip ]
+fast/forms/ios [ Skip ]
 fast/viewport/ios [ Skip ]
 fast/events/ios [ Skip ]
 fast/events/touch/ios [ Skip ]
 fast/scrolling/ios [ Skip ]
+media/mac [ Skip ]
 
 fast/forms/attributed-strings.html [ Skip ]
 fast/scrolling/latching [ Skip ]
@@ -52,12 +54,12 @@ http/tests/misc/will-send-request-with-client-provided-http-body.html [ Skip ]
 fast/harness/ui-side-scripts.html [ Skip ]
 fast/harness/concurrent-ui-side-scripts.html [ Skip ]
 
+# This test only makes sense on Mac
+fast/attachment/attachment-subtitle-resize.html
+
 #//////////////////////////////////////////////////////////////////////////////////////////
 # End platform-specific tests.
 #//////////////////////////////////////////////////////////////////////////////////////////
-
-# pending functional patch and per-port verification
-webkit.org/b/109954 css3/line-break [ Skip ]
 
 # media/video-seek-after-end.html is flaky
 webkit.org/b/116293 media/video-seek-after-end.html [ Pass Failure ]
@@ -110,9 +112,6 @@ webkit.org/b/126166 [ Debug ] js/dfg-uint32array-overflow-values.html [ Skip ]
 
 webkit.org/b/127860 [ Debug ] js/function-apply-aliased.html [ Skip ]
 
-# This test verifies dynamic manipulation of the mroot and msqrt elements.
-mathml/roots-removeChild.html [ ImageOnlyFailure ]
-
 # For now we ignore margin/padding/border properties of MathML renderers.
 mathml/presentation/bug97990.html [ Skip ]
 
@@ -144,6 +143,9 @@ webkit.org/b/142208 inspector/timeline/debugger-paused-while-recording.html [ Sk
 webkit.org/b/142208 inspector/timeline/exception-in-injected-script-while-recording.html [ Skip ]
 
 webkit.org/b/137130 inspector/replay [ Skip ]
+
+# This test is fast enough in release but quite slow in debug builds.
+[ Debug ] inspector/debugger/debugger-stack-overflow.html [ Skip ]
 
 # Doesn't work yet, relies on network replay functionality (webkit.org/b/130728, webkit.org/b/129391)
 webkit.org/b/131318 http/tests/inspector/replay/document-last-modified-fallback-value.html [ Skip ]
@@ -776,7 +778,7 @@ webkit.org/b/148922 svg/as-object/svg-in-object-dynamic-attribute-change.html [ 
 webkit.org/b/148925 svg/dom/svg-root-lengths.html [ Pass Failure ]
 
 webkit.org/b/150225 fast/custom-elements [ Failure ]
-webkit.org/b/148695 fast/shadow-dom [ Failure ImageOnlyFailure ]
+webkit.org/b/148695 fast/shadow-dom [ Failure ImageOnlyFailure Timeout ]
 
 # Known failures on CSS Variables Test Suite
 webkit.org/b/150183 fast/css/variables/test-suite/failures/024.html [ ImageOnlyFailure ]
@@ -838,7 +840,6 @@ webkit.org/b/111869 http/tests/security/contentSecurityPolicy/eval-blocked-and-s
 webkit.org/b/153148 http/tests/security/contentSecurityPolicy/eval-allowed-in-report-only-mode-and-sends-report.php
 webkit.org/b/153150 http/tests/security/contentSecurityPolicy/1.1/child-src/frame-fires-load-event-when-blocked.html
 webkit.org/b/153150 http/tests/security/contentSecurityPolicy/1.1/child-src/frame-fires-load-event-when-redirect-blocked.html
-webkit.org/b/153150 http/tests/security/contentSecurityPolicy/frame-src-cross-origin-load.html
 webkit.org/b/153152 http/tests/security/contentSecurityPolicy/manifest-src-allowed.html # Needs testRunner.getManifestThen()
 webkit.org/b/153152 http/tests/security/contentSecurityPolicy/manifest-src-blocked.html # Needs testRunner.getManifestThen()
 webkit.org/b/153155 http/tests/security/contentSecurityPolicy/1.1/scripthash-basic-blocked-error-event.html
@@ -857,6 +858,7 @@ webkit.org/b/154203 http/tests/security/contentSecurityPolicy/1.1/frame-ancestor
 webkit.org/b/154522 http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-base-uri-deny.html
 webkit.org/b/155132 http/tests/security/contentSecurityPolicy/video-with-https-url-allowed-by-csp-media-src-star.html [ Failure ]
 http/tests/security/contentSecurityPolicy/script-src-blocked-error-event.html [ Pass Failure ]
+webkit.org/b/158480 http/tests/websocket/tests/hybi/upgrade-simple-ws.html [ Skip ]
 
 # These state object tests purposefully stress a resource limit, and take multiple seconds to run.
 loader/stateobjects/pushstate-size-iframe.html [ Slow ]
@@ -876,13 +878,6 @@ webkit.org/b/94458 http/tests/security/MessagePort/event-listener-context.html [
 
 # Our IDL parser test harness is not what this test expects
 imported/w3c/web-platform-tests/IndexedDB/interfaces.html [ Skip ]
-
-# W3C IDB tests where the test is wrong (the spec, other browsers, and WebKit all agree)
-# Covered by https://github.com/w3c/web-platform-tests/issues/2456
-imported/w3c/web-platform-tests/IndexedDB/idbindex_get7.htm [ Failure ]
-imported/w3c/web-platform-tests/IndexedDB/idbindex_getKey7.htm [ Failure ]
-imported/w3c/web-platform-tests/IndexedDB/idbindex_openCursor2.htm [ Failure ]
-imported/w3c/web-platform-tests/IndexedDB/idbindex_openKeyCursor3.htm [ Failure ]
 
 # Times out for unexplored reasons                                                             
 storage/indexeddb/database-quota.html [ Skip ]
@@ -912,12 +907,6 @@ webkit.org/b/154619 storage/indexeddb/odd-strings.html [ Skip ]
 # IDB workers test fails - The worker's attempt to open the database creates a new UniqueIDBDatabase
 # Could be a SessionID difference? Something is giving the worker a different namespace.
 storage/indexeddb/dont-commit-on-blocked-private.html [ Failure ]
-
-# IDB workers tests that timeout
-storage/indexeddb/pending-version-change-stuck.html
-storage/indexeddb/pending-version-change-stuck-private.html
-storage/indexeddb/pending-version-change-stuck-works-with-terminate.html
-storage/indexeddb/pending-version-change-stuck-works-with-terminate-private.html
 
 # Test's behavior specific to Legacy IDB with LevelDB backend
 # Modern IDB is spec-compliant without supporting this behavior
@@ -953,7 +942,7 @@ webkit.org/b/155019 mathml/presentation/menclose-notation-attribute-change-value
 ### END OF IndexedDB failures
 ########################################
 
-# RTL Scrollbars are only implemented on certain versions of OS X
+# RTL Scrollbars are only implemented for GTK+ and certain versions of OS X
 fast/scrolling/rtl-scrollbars.html [ ImageOnlyFailure ]
 fast/scrolling/rtl-scrollbars-simple.html [ ImageOnlyFailure ]
 fast/scrolling/rtl-scrollbars-overflow-contents.html [ ImageOnlyFailure ]
@@ -986,3 +975,17 @@ webkit.org/b/156099 http/tests/security/anchor-download-allow-blob.html [ Failur
 webkit.org/b/156100 http/tests/security/anchor-download-block-crossorigin.html [ Failure ]
 
 webkit.org/b/156631 fast/text/font-face-javascript.html [ Pass Crash Failure ]
+
+webkit.org/b/157849 fast/frames/crash-during-iframe-load-stop.html [ Pass Timeout ]
+
+webkit.org/b/158085 http/tests/css/shared-stylesheet-mutation.html [ Pass Failure ]
+
+# PiP tests are only relevant on macOS Sierra and newer.
+media/click-placeholder-not-pausing.html [ WontFix ]
+media/controls/picture-in-picture.html [ WontFix ]
+media/element-containing-pip-video-going-into-fullscreen.html [ WontFix ]
+media/fullscreen-api-enabled-media-with-presentation-mode.html [ WontFix ]
+media/fullscreen-video-going-into-pip.html [ WontFix ]
+media/navigate-with-pip-should-not-crash.html [ WontFix ]
+media/pip-video-going-into-fullscreen.html [ WontFix ]
+media/video-contained-in-fullscreen-element-going-into-pip.html [ WontFix ]

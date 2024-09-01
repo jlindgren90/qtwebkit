@@ -24,8 +24,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebChromeClient_h
-#define WebChromeClient_h
+#pragma once
 
 #include "WebFrame.h"
 #include <WebCore/ChromeClient.h>
@@ -210,7 +209,7 @@ private:
     bool adjustLayerFlushThrottling(WebCore::LayerFlushThrottleState::Flags) override;
 
 #if USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
-    RefPtr<WebCore::DisplayRefreshMonitor> createDisplayRefreshMonitor(PlatformDisplayID) const override;
+    RefPtr<WebCore::DisplayRefreshMonitor> createDisplayRefreshMonitor(WebCore::PlatformDisplayID) const override;
 #endif
 
     CompositingTriggerFlags allowedCompositingTriggers() const override
@@ -245,7 +244,7 @@ private:
 #if (PLATFORM(IOS) && HAVE(AVKIT)) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     bool supportsVideoFullscreen(WebCore::HTMLMediaElementEnums::VideoFullscreenMode) override;
     void setUpPlaybackControlsManager(WebCore::HTMLMediaElement&) override;
-    void clearPlaybackControlsManager(WebCore::HTMLMediaElement&) override;
+    void clearPlaybackControlsManager() override;
     void enterVideoFullscreenForVideoElement(WebCore::HTMLVideoElement&, WebCore::HTMLMediaElementEnums::VideoFullscreenMode) override;
     void exitVideoFullscreenForVideoElement(WebCore::HTMLVideoElement&) override;
 #if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
@@ -346,5 +345,3 @@ private:
 };
 
 } // namespace WebKit
-
-#endif // WebChromeClient_h

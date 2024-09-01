@@ -63,8 +63,6 @@ private:
     void resume() override;
     const char* activeDOMObjectName() const override { return "HTMLMarqueeElement"; }
 
-    bool canHaveUserAgentShadowRoot() const final { return true; }
-
     RenderMarquee* renderMarquee() const;
 };
 

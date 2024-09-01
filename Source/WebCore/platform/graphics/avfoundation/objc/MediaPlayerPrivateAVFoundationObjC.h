@@ -67,6 +67,7 @@ namespace WebCore {
 
 class AudioSourceProviderAVFObjC;
 class AudioTrackPrivateAVFObjC;
+class CDMSessionAVFoundationObjC;
 class InbandMetadataTextTrackPrivateAVF;
 class InbandTextTrackPrivateAVFObjC;
 class MediaSelectionGroupAVFObjC;
@@ -142,12 +143,20 @@ public:
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     void playbackTargetIsWirelessDidChange();
 #endif
-    
+
+#if ENABLE(ENCRYPTED_MEDIA_V2)
+    void outputObscuredDueToInsufficientExternalProtectionChanged(bool);
+#endif
+
 #if ENABLE(AVF_CAPTIONS)
     void notifyTrackModeChanged() override;
     void synchronizeTextTrackState() override;
 #endif
-    
+
+#if ENABLE(ENCRYPTED_MEDIA_V2)
+    void removeSession(CDMSession&);
+#endif
+
     WeakPtr<MediaPlayerPrivateAVFoundationObjC> createWeakPtr() { return m_weakPtrFactory.createWeakPtr(); }
 
 private:
@@ -167,12 +176,14 @@ private:
     void platformPause() override;
     MediaTime currentMediaTime() const override;
     void setVolume(float) override;
+    bool supportsMuting() const override { return true; }
+    void setMuted(bool) override;
     void setClosedCaptionsVisible(bool) override;
     void paint(GraphicsContext&, const FloatRect&) override;
     void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&) override;
     PlatformLayer* platformLayer() const override;
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-    void setVideoFullscreenLayer(PlatformLayer*) override;
+    void setVideoFullscreenLayer(PlatformLayer*, std::function<void()> completionHandler) override;
     void setVideoFullscreenFrame(FloatRect) override;
     void setVideoFullscreenGravity(MediaPlayer::VideoGravity) override;
     void setVideoFullscreenMode(MediaPlayer::VideoFullscreenMode) override;
@@ -391,6 +402,10 @@ private:
     RefPtr<MediaPlaybackTarget> m_playbackTarget { nullptr };
 #endif
 
+#if ENABLE(ENCRYPTED_MEDIA_V2)
+    WeakPtr<CDMSessionAVFoundationObjC> m_session;
+#endif
+
     mutable RetainPtr<NSArray> m_cachedSeekableRanges;
     mutable RetainPtr<NSArray> m_cachedLoadedRanges;
     RetainPtr<NSArray> m_cachedTracks;
@@ -410,6 +425,7 @@ private:
     bool m_haveBeenAskedToCreateLayer;
     bool m_cachedCanPlayFastForward;
     bool m_cachedCanPlayFastReverse;
+    bool m_muted { false };
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     mutable bool m_allowsWirelessVideoPlayback;
     bool m_shouldPlayToPlaybackTarget { false };

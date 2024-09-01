@@ -260,8 +260,8 @@ void HTMLTextAreaElement::updateFocusAppearance(SelectionRestorationMode restora
     } else
         restoreCachedSelection(Element::defaultFocusTextStateChangeIntent());
 
-    if (document().frame() && revealMode == SelectionRevealMode::Reveal)
-        document().frame()->selection().revealSelection();
+    if (document().frame())
+        document().frame()->selection().revealSelection(revealMode);
 }
 
 void HTMLTextAreaElement::defaultEventHandler(Event* event)
@@ -402,7 +402,7 @@ String HTMLTextAreaElement::defaultValue() const
 
 void HTMLTextAreaElement::setDefaultValue(const String& defaultValue)
 {
-    Ref<HTMLTextAreaElement> protectFromMutationEvents(*this);
+    Ref<HTMLTextAreaElement> protectedThis(*this);
 
     // To preserve comments, remove only the text nodes, then add a single text node.
     Vector<Ref<Text>> textNodes;
