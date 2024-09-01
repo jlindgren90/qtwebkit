@@ -62,7 +62,7 @@ WebResourceLoader::~WebResourceLoader()
 
 IPC::Connection* WebResourceLoader::messageSenderConnection()
 {
-    return WebProcess::singleton().networkConnection()->connection();
+    return &WebProcess::singleton().networkConnection().connection();
 }
 
 uint64_t WebResourceLoader::messageSenderDestinationID()
@@ -84,7 +84,7 @@ void WebResourceLoader::willSendRequest(ResourceRequest&& proposedRequest, Resou
 
     if (m_coreLoader->documentLoader()->applicationCacheHost()->maybeLoadFallbackForRedirect(m_coreLoader.get(), proposedRequest, redirectResponse))
         return;
-    // FIXME: Do we need to update NetworkResourceLoader clientCredentialPolicy in case loader policy is DoNotAskClientForCrossOriginCredentials?
+
     m_coreLoader->willSendRequest(WTFMove(proposedRequest), redirectResponse, [protectedThis](ResourceRequest&& request) {
         if (!protectedThis->m_coreLoader)
             return;
@@ -208,18 +208,6 @@ void WebResourceLoader::didReceiveResource(const ShareableResource::Handle& hand
         return;
 
     m_coreLoader->didFinishLoading(finishTime);
-}
-#endif
-
-#if USE(PROTECTION_SPACE_AUTH_CALLBACK)
-void WebResourceLoader::canAuthenticateAgainstProtectionSpace(const ProtectionSpace& protectionSpace)
-{
-    if (!m_coreLoader)
-        return;
-    
-    bool result = m_coreLoader->canAuthenticateAgainstProtectionSpace(protectionSpace);
-    
-    send(Messages::NetworkResourceLoader::ContinueCanAuthenticateAgainstProtectionSpace(result));
 }
 #endif
 

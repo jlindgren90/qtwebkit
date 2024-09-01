@@ -28,8 +28,10 @@
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
 
-#include <functional>
+#include <wtf/Condition.h>
 #include <wtf/FastMalloc.h>
+#include <wtf/Function.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/RunLoop.h>
 
@@ -45,20 +47,17 @@ public:
     };
 
     CompositingRunLoop(std::function<void ()>&&);
+    ~CompositingRunLoop();
 
-    void performTask(NoncopyableFunction<void ()>&&);
-    void performTaskSync(NoncopyableFunction<void ()>&&);
+    void performTask(Function<void ()>&&);
+    void performTaskSync(Function<void ()>&&);
 
     void startUpdateTimer(UpdateTiming = Immediate);
     void stopUpdateTimer();
 
-    void run();
-    void stop();
-
 private:
     void updateTimerFired();
 
-    RunLoop& m_runLoop;
     RunLoop::Timer<CompositingRunLoop> m_updateTimer;
     std::function<void ()> m_updateFunction;
     Lock m_dispatchSyncConditionMutex;

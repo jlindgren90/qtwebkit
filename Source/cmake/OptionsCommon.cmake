@@ -126,7 +126,7 @@ endif ()
 # Use ld.gold if it is available and isn't disabled explicitly
 include(CMakeDependentOption)
 CMAKE_DEPENDENT_OPTION(USE_LD_GOLD "Use GNU gold linker" ON
-                       "NOT CXX_ACCEPTS_MFIX_CORTEX_A53_835769;NOT ARM_TRADITIONAL_DETECTED;NOT WIN32;NOT APPLE" OFF)
+                       "NOT CXX_ACCEPTS_MFIX_CORTEX_A53_835769;NOT ARM_TRADITIONAL_DETECTED" OFF)
 if (USE_LD_GOLD)
     execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
     if ("${LD_VERSION}" MATCHES "GNU gold")
@@ -177,6 +177,11 @@ endif ()
 
 if (UNIX AND NOT APPLE AND NOT ENABLED_COMPILER_SANITIZERS)
     set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined ${CMAKE_SHARED_LINKER_FLAGS}")
+endif ()
+
+if (USE_ARM_LLVM_DISASSEMBLER)
+    find_package(LLVM REQUIRED)
+    SET_AND_EXPOSE_TO_BUILD(HAVE_LLVM TRUE)
 endif ()
 
 # Enable the usage of OpenMP.

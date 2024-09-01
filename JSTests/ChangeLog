@@ -1,63 +1,174 @@
-2017-04-13  Yusuke Suzuki  <utatane.tea@gmail.com>
+2016-08-05  Saam Barati  <sbarati@apple.com>
 
-        [JSC] Date.parse should accept wider range of representation
-        https://bugs.webkit.org/show_bug.cgi?id=170720
+        various math operations don't properly check for an exception after calling toNumber() on the lhs
+        https://bugs.webkit.org/show_bug.cgi?id=160154
 
-        Reviewed by Darin Adler.
+        Reviewed by Mark Lam.
 
-        * stress/date-relaxed.js: Added.
-        (shouldBe):
-        (throw.new.Error):
+        * stress/to-number-throws-correct-exception.js: Added.
+        (test.let.test.runTest.):
+        (test.let.test.runTest.get f):
+        (test.let.test.runTest):
+        (test.let.test):
+        (test):
+        (test2.runTest.):
+        (test2.runTest.get f):
+        (test2.runTest):
+        (test2):
 
-2017-07-05  Yusuke Suzuki  <utatane.tea@gmail.com>
+2016-08-05  Saam Barati  <sbarati@apple.com>
 
-        WTF::StringImpl::copyChars segfaults when built with GCC 7
-        https://bugs.webkit.org/show_bug.cgi?id=173407
+        Assertion failure when accessing TDZ variable in catch through eval
+        https://bugs.webkit.org/show_bug.cgi?id=160554
 
-        Reviewed by Andreas Kling.
+        Reviewed by Mark Lam and Keith Miller.
 
-        * stress/string-repeat-copy-chars-crash.js: Added.
-        (shouldBe):
+        * stress/catch-variables-under-tdz.js: Added.
+        (test):
 
-2016-10-20  Keith Miller  <keith_miller@apple.com>
+2016-08-04  Yusuke Suzuki  <utatane.tea@gmail.com>
 
-        Invalid assertion in arguments elimination
-        https://bugs.webkit.org/show_bug.cgi?id=163740
-        <rdar://problem/27911462>
+        [ES6] JSModuleNamespaceObject's Symbol.iterator function should have name
+        https://bugs.webkit.org/show_bug.cgi?id=160549
 
-        Reviewed by Michael Saboff.
+        Reviewed by Saam Barati.
 
-        * stress/direct-arguments-osr-entry.js: Added.
-        (foo.):
-        (foo):
+        * modules/namespace-object-symbol-iterator-name.js: Added.
+        * test262.yaml:
 
-2016-09-27  Filip Pizlo  <fpizlo@apple.com>
+2016-08-04  Keith Miller  <keith_miller@apple.com>
 
-        B3::lowerMacros forgets to before->updatePredecessorsAfter() when lowering ChillMod on ARM64
-        https://bugs.webkit.org/show_bug.cgi?id=162644
+        ASSERTION FAILED: !hasInstanceValueNode->isCellConstant() || defaultHasInstanceFunction == hasInstanceValueNode->asCell()
+        https://bugs.webkit.org/show_bug.cgi?id=160562
 
-        Reviewed by Keith Miller.
+        Reviewed by Mark Lam.
 
-        * stress/chill-mod-chill-mod.js: Added.
-        (foo):
+        * stress/instanceof-late-constant-folding.js: Added.
+        (Constructor):
+        (value):
+        (body):
 
-2016-08-18  Mark Lam  <mark.lam@apple.com>
+2016-08-04  Caitlin Potter  <caitp@igalia.com>
 
-        ScopedArguments is using the wrong owner object for a write barrier.
-        https://bugs.webkit.org/show_bug.cgi?id=160976
-        <rdar://problem/27328506>
+        [JSC] fix generator-syntax.js JSTest again after yield grammar fix
+        https://bugs.webkit.org/show_bug.cgi?id=160550
 
-        Reviewed by Keith Miller.
+        Reviewed by Yusuke Suzuki.
 
-        * stress/scoped-arguments-write-barrier-should-be-on-scope-object.js: Added.
+        * stress/generator-syntax.js:
+        (testYieldBindingIdentifier):
 
-2016-08-17  Mark Lam  <mark.lam@apple.com>
+2016-08-03  Caitlin Potter  <caitp@igalia.com>
 
-        Remove an invalid assertion in the DFG backend's GetById emitter.
-        https://bugs.webkit.org/show_bug.cgi?id=160925
-        <rdar://problem/27248961>
+        Clarify SyntaxErrors around yield and unskip tests
+        https://bugs.webkit.org/show_bug.cgi?id=158460
+
+        Reviewed by Saam Barati.
+
+        Fix and unskip tests which erroneously asserted that `yield` is not a
+        valid BindingIdentifier, and improve error message for YieldExpressions
+        occuring in Arrow formal parameters.
+
+        * stress/generator-syntax.js:
+        * stress/yield-out-of-generator.js:
+
+2016-08-03  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION(r203368): broke some test262 tests
+        https://bugs.webkit.org/show_bug.cgi?id=160479
+
+        Reviewed by Mark Lam.
+        
+        Added a stress test for this case, since we don't always run test262.
+
+        * stress/freeze-setter.js: Added.
+        (let.o.set foo):
+
+2016-08-03  Saam Barati  <sbarati@apple.com>
+
+        Implement nested rest destructuring w.r.t the ES7 spec
+        https://bugs.webkit.org/show_bug.cgi?id=160423
 
         Reviewed by Filip Pizlo.
 
-        * stress/dfg-get-by-id-should-not-assert-non-null-prediction.js: Added.
+        * stress/destructuring-rest-element.js: Added.
+        (assert):
+        (test):
+        (arr):
+        (eq):
+        (gen):
+        (fakeGen.return.Symbol.iterator):
+        (fakeGen):
+        * stress/rest-elements.js:
+        (testSyntaxError.String.raw):
+        * stress/rest-parameter-is-destructuring.js: Added.
+        (assert):
+        (test):
+        (foo):
+        (bar):
+        * test262.yaml:
 
+2016-08-02  Saam Barati  <sbarati@apple.com>
+
+        Rename Changelog to ChangeLog
+
+        Rubber stamped by Keith Miller.
+
+        * Changelog: Removed.
+
+2016-08-02  Saam Barati  <sbarati@apple.com>
+
+        update a class extending null w.r.t the ES7 spec
+        https://bugs.webkit.org/show_bug.cgi?id=160417
+
+        Reviewed by Keith Miller.
+
+        * Changelog:
+        * stress/class-derived-from-null.js: Added.
+        (assert):
+        (test):
+        (test1.C):
+        (test1):
+        (jsNull):
+        (test2.C):
+        (test2):
+        (test3.C):
+        (test3.D):
+        (test3.E):
+        (test3):
+        (test4.E):
+        (test4):
+        (test5.E):
+        (test5):
+        (test6.Base):
+        (test6.D):
+        (test6.E):
+        (test6.F):
+        (test6.G):
+        (test6):
+        * test262.yaml:
+
+2016-08-01  Filip Pizlo  <fpizlo@apple.com>
+
+        Rationalize varargs stack overflow checks
+        https://bugs.webkit.org/show_bug.cgi?id=160425
+
+        Reviewed by Michael Saboff.
+
+        * stress/arity-check-ftl-throw-more-args.js: Added.
+        (catch):
+
+2016-08-01  Keith Miller  <keith_miller@apple.com>
+
+        We should not keep the JavaScript tests inside the Source/JavaScriptCore/ directory.
+        https://bugs.webkit.org/show_bug.cgi?id=160372
+
+        Rubber stamped by Geoffrey Garen.
+
+        This patch moves all the JavaScript tests from Source/JavaScriptCore/tests to
+        a new top level directory, JSTests. Having the tests in the Source directory
+        was both confusing an inconvenient for people that just want to checkout the
+        source code of WebKit. Since there is no other obvious place to put all the
+        JavaScript tests a new top level directory seemed the most sensible.
+
+        * tests/: Deleted.

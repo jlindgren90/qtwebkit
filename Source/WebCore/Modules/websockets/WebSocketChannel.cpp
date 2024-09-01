@@ -48,8 +48,10 @@
 #include "ResourceRequest.h"
 #include "ScriptExecutionContext.h"
 #include "Settings.h"
+#include "SocketProvider.h"
 #include "SocketStreamError.h"
 #include "SocketStreamHandle.h"
+#include "UserContentProvider.h"
 #include "WebSocketChannelClient.h"
 #include "WebSocketHandshake.h"
 #include <runtime/ArrayBuffer.h>
@@ -64,11 +66,12 @@ namespace WebCore {
 
 const double TCPMaximumSegmentLifetime = 2 * 60.0;
 
-WebSocketChannel::WebSocketChannel(Document& document, WebSocketChannelClient& client)
+WebSocketChannel::WebSocketChannel(Document& document, WebSocketChannelClient& client, SocketProvider& provider)
     : m_document(&document)
     , m_client(&client)
     , m_resumeTimer(*this, &WebSocketChannel::resumeTimerFired)
     , m_closingTimer(*this, &WebSocketChannel::closingTimerFired)
+    , m_socketProvider(provider)
 {
     if (Page* page = document.page())
         m_identifier = page->progress().createUniqueIdentifier();
@@ -81,12 +84,39 @@ WebSocketChannel::~WebSocketChannel()
     LOG(Network, "WebSocketChannel %p dtor", this);
 }
 
-void WebSocketChannel::connect(const URL& url, const String& protocol)
+void WebSocketChannel::connect(const URL& requestedURL, const String& protocol)
 {
     LOG(Network, "WebSocketChannel %p connect()", this);
+
+    URL url = requestedURL;
+    bool allowCookies = true;
+#if ENABLE(CONTENT_EXTENSIONS)
+    if (auto* page = m_document->page()) {
+        if (auto* documentLoader = m_document->loader()) {
+            auto blockedStatus = page->userContentProvider().processContentExtensionRulesForLoad(url, ResourceType::Raw, *documentLoader);
+            if (blockedStatus.blockedLoad) {
+                Ref<WebSocketChannel> protectedThis(*this);
+                callOnMainThread([protectedThis = WTFMove(protectedThis)] {
+                    if (protectedThis->m_client)
+                        protectedThis->m_client->didReceiveMessageError();
+                });
+                return;
+            }
+            if (blockedStatus.madeHTTPS) {
+                ASSERT(url.protocolIs("ws"));
+                url.setProtocol("wss");
+                if (m_client)
+                    m_client->didUpgradeURL();
+            }
+            if (blockedStatus.blockedCookies)
+                allowCookies = false;
+        }
+    }
+#endif
+    
     ASSERT(!m_handle);
     ASSERT(!m_suspended);
-    m_handshake = std::make_unique<WebSocketHandshake>(url, protocol, m_document);
+    m_handshake = std::make_unique<WebSocketHandshake>(url, protocol, m_document, allowCookies);
     m_handshake->reset();
     if (m_deflateFramer.canDeflate())
         m_handshake->addExtensionProcessor(m_deflateFramer.createExtensionProcessor());
@@ -97,7 +127,8 @@ void WebSocketChannel::connect(const URL& url, const String& protocol)
         if (NetworkingContext* networkingContext = frame->loader().networkingContext()) {
             ref();
             Page* page = frame->page();
-            m_handle = SocketStreamHandle::create(m_handshake->url(), this, *networkingContext, (page ? page->usesEphemeralSession() : false));
+            SessionID sessionID = page ? page->sessionID() : SessionID::defaultSessionID();
+            m_handle = m_socketProvider->createSocketStreamHandle(m_handshake->url(), *this, *networkingContext, sessionID);
         }
     }
 }
@@ -106,10 +137,10 @@ String WebSocketChannel::subprotocol()
 {
     LOG(Network, "WebSocketChannel %p subprotocol()", this);
     if (!m_handshake || m_handshake->mode() != WebSocketHandshake::Connected)
-        return "";
+        return emptyString();
     String serverProtocol = m_handshake->serverWebSocketProtocol();
     if (serverProtocol.isNull())
-        return "";
+        return emptyString();
     return serverProtocol;
 }
 
@@ -117,10 +148,10 @@ String WebSocketChannel::extensions()
 {
     LOG(Network, "WebSocketChannel %p extensions()", this);
     if (!m_handshake || m_handshake->mode() != WebSocketHandshake::Connected)
-        return "";
+        return emptyString();
     String extensions = m_handshake->acceptedExtensions();
     if (extensions.isNull())
-        return "";
+        return emptyString();
     return extensions;
 }
 
@@ -223,7 +254,7 @@ void WebSocketChannel::disconnect()
     if (m_identifier && m_document)
         InspectorInstrumentation::didCloseWebSocket(m_document, m_identifier);
     if (m_handshake)
-        m_handshake->clearScriptExecutionContext();
+        m_handshake->clearDocument();
     m_client = nullptr;
     m_document = nullptr;
     if (m_handle)

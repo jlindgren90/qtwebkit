@@ -35,13 +35,14 @@
 #include "CustomProtocolManagerMessages.h"
 #include "DownloadProxy.h"
 #include "DownloadProxyMessages.h"
-#include "Logging.h"
+#include "LogInitialization.h"
 #include "NetworkProcessCreationParameters.h"
 #include "NetworkProcessMessages.h"
 #include "NetworkProcessProxy.h"
 #include "SandboxExtension.h"
 #include "StatisticsData.h"
 #include "TextChecker.h"
+#include "UIGamepadProvider.h"
 #include "WKContextPrivate.h"
 #include "WebAutomationSession.h"
 #include "WebCertificateInfo.h"
@@ -63,7 +64,7 @@
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/Language.h>
 #include <WebCore/LinkHash.h>
-#include <WebCore/Logging.h>
+#include <WebCore/LogInitialization.h>
 #include <WebCore/ResourceRequest.h>
 #include <WebCore/SessionID.h>
 #include <runtime/JSCInlines.h>
@@ -91,6 +92,10 @@
 
 #if USE(SOUP)
 #include "WebSoupCustomProtocolRequestManager.h"
+#endif
+
+#if OS(LINUX)
+#include "MemoryPressureMonitor.h"
 #endif
 
 #ifndef NDEBUG
@@ -201,7 +206,7 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
     addLanguageChangeObserver(this, languageChanged);
 
 #if !LOG_DISABLED
-    WebCore::initializeLoggingChannelsIfNecessary();
+    WebCore::initializeLogChannelsIfNecessary();
     WebKit::initializeLogChannelsIfNecessary();
 #endif // !LOG_DISABLED
 
@@ -255,6 +260,11 @@ WebProcessPool::~WebProcessPool()
 
     if (m_networkProcess)
         m_networkProcess->shutDownProcess();
+
+#if ENABLE(GAMEPAD)
+    if (!m_processesUsingGamepads.isEmpty())
+        UIGamepadProvider::singleton().processPoolStoppedUsingGamepads(*this);
+#endif
 }
 
 void WebProcessPool::initializeClient(const WKContextClientBase* client)
@@ -368,6 +378,11 @@ NetworkProcessProxy& WebProcessPool::ensureNetworkProcess()
     String parentBundleDirectory = this->parentBundleDirectory();
     if (!parentBundleDirectory.isEmpty())
         SandboxExtension::createHandle(parentBundleDirectory, SandboxExtension::ReadOnly, parameters.parentBundleDirectoryExtensionHandle);
+#endif
+
+#if OS(LINUX)
+    if (MemoryPressureMonitor::isEnabled())
+        parameters.memoryPressureMonitorHandle = MemoryPressureMonitor::singleton().createHandle();
 #endif
 
     parameters.shouldUseTestingNetworkSession = m_shouldUseTestingNetworkSession;
@@ -626,6 +641,8 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
 
 #if OS(LINUX)
     parameters.shouldEnableMemoryPressureReliefLogging = true;
+    if (MemoryPressureMonitor::isEnabled())
+        parameters.memoryPressureMonitorHandle = MemoryPressureMonitor::singleton().createHandle();
 #endif
 
     parameters.resourceLoadStatisticsEnabled = resourceLoadStatisticsEnabled();
@@ -719,6 +736,9 @@ void WebProcessPool::processDidFinishLaunching(WebProcessProxy* process)
     if (m_configuration->fullySynchronousModeIsAllowedForTesting())
         process->connection()->allowFullySynchronousModeForTesting();
 
+    if (m_configuration->ignoreSynchronousMessagingTimeoutsForTesting())
+        process->connection()->ignoreTimeoutsForTesting();
+
     m_connectionClient.didCreateConnection(this, process->webConnection());
 }
 
@@ -738,6 +758,11 @@ void WebProcessPool::disconnectProcess(WebProcessProxy* process)
     static_cast<WebContextSupplement*>(supplement<WebGeolocationManagerProxy>())->processDidClose(process);
 
     m_processes.removeFirst(process);
+
+#if ENABLE(GAMEPAD)
+    if (m_processesUsingGamepads.contains(process))
+        processStoppedUsingGamepads(process);
+#endif
 }
 
 WebProcessProxy& WebProcessPool::createNewWebProcessRespectingProcessCountLimit()
@@ -1105,7 +1130,6 @@ void WebProcessPool::clearCachedCredentials()
 void WebProcessPool::terminateDatabaseProcess()
 {
 #if ENABLE(DATABASE_PROCESS)
-    ASSERT(m_processes.isEmpty());
     if (!m_databaseProcess)
         return;
 
@@ -1222,6 +1246,42 @@ void WebProcessPool::didGetStatistics(const StatisticsData& statisticsData, uint
 
     request->completedRequest(requestID, statisticsData);
 }
+
+#if ENABLE(GAMEPAD)
+
+void WebProcessPool::startedUsingGamepads(IPC::Connection& connection)
+{
+    auto* webProcessProxy = WebProcessProxy::fromConnection(&connection);
+    if (!webProcessProxy)
+        return;
+
+    ASSERT(!m_processesUsingGamepads.contains(webProcessProxy));
+    m_processesUsingGamepads.add(webProcessProxy);
+
+    if (m_processesUsingGamepads.size() == 1)
+        UIGamepadProvider::singleton().processPoolStartedUsingGamepads(*this);
+}
+
+void WebProcessPool::stoppedUsingGamepads(IPC::Connection& connection)
+{
+    auto* webProcessProxy = WebProcessProxy::fromConnection(&connection);
+    if (!webProcessProxy)
+        return;
+
+    ASSERT(m_processesUsingGamepads.contains(webProcessProxy));
+    processStoppedUsingGamepads(webProcessProxy);
+}
+
+void WebProcessPool::processStoppedUsingGamepads(WebProcessProxy* webProcessProxy)
+{
+    ASSERT(m_processesUsingGamepads.contains(webProcessProxy));
+    m_processesUsingGamepads.remove(webProcessProxy);
+
+    if (m_processesUsingGamepads.isEmpty())
+        UIGamepadProvider::singleton().processPoolStoppedUsingGamepads(*this);
+}
+
+#endif // ENABLE(GAMEPAD)
 
 void WebProcessPool::garbageCollectJavaScriptObjects()
 {

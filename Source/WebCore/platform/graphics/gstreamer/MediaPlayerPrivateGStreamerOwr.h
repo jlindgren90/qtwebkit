@@ -20,7 +20,7 @@
 #ifndef MediaPlayerPrivateGStreamerOwr_h
 #define MediaPlayerPrivateGStreamerOwr_h
 
-#if ENABLE(MEDIA_STREAM) && USE(GSTREAMER) && USE(OPENWEBRTC)
+#if ENABLE(VIDEO) && ENABLE(MEDIA_STREAM) && USE(GSTREAMER) && USE(OPENWEBRTC)
 
 #include "MediaPlayerPrivateGStreamerBase.h"
 #include "MediaStreamTrackPrivate.h"
@@ -94,11 +94,10 @@ private:
     static bool initializeGStreamerAndGStreamerDebugging();
     void createGSTAudioSinkBin();
     void loadingFailed(MediaPlayer::NetworkState error);
-    bool internalLoad();
     void stop();
+    void maybeHandleChangeMutedState(MediaStreamTrackPrivate&);
 
     bool m_paused { true };
-    bool m_stopped { true };
     RefPtr<MediaStreamTrackPrivate> m_videoTrack;
     RefPtr<MediaStreamTrackPrivate> m_audioTrack;
     GRefPtr<GstElement> m_audioSink;
@@ -109,6 +108,6 @@ private:
 
 } // namespace WebCore
 
-#endif // ENABLE(MEDIA_STREAM) && USE(GSTREAMER) && USE(OPENWEBRTC)
+#endif // ENABLE(VIDEO) && ENABLE(MEDIA_STREAM) && USE(GSTREAMER) && USE(OPENWEBRTC)
 
 #endif // MediaPlayerPrivateGStreamerOwr_h

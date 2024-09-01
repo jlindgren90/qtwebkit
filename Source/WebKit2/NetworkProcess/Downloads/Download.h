@@ -30,6 +30,7 @@
 #include "MessageSender.h"
 #include "SandboxExtension.h"
 #include <WebCore/ResourceRequest.h>
+#include <WebCore/SessionID.h>
 #include <wtf/Noncopyable.h>
 
 #if PLATFORM(COCOA)
@@ -67,7 +68,6 @@ class ResourceResponse;
 
 namespace WebKit {
 
-class DownloadAuthenticationClient;
 class DownloadManager;
 class NetworkSession;
 class WebPage;
@@ -80,7 +80,7 @@ class Download : public IPC::MessageSender {
     WTF_MAKE_NONCOPYABLE(Download); WTF_MAKE_FAST_ALLOCATED;
 public:
 #if USE(NETWORK_SESSION) && PLATFORM(COCOA)
-    Download(DownloadManager&, DownloadID, NSURLSessionDownloadTask*, const String& suggestedFilename = { });
+    Download(DownloadManager&, DownloadID, NSURLSessionDownloadTask*, const WebCore::SessionID& sessionID, const String& suggestedFilename = { });
 #else
     Download(DownloadManager&, DownloadID, const WebCore::ResourceRequest&, const String& suggestedFilename = { });
 #endif
@@ -100,8 +100,8 @@ public:
 #else
     void didStart();
     void didReceiveAuthenticationChallenge(const WebCore::AuthenticationChallenge&);
-#endif
     void didReceiveResponse(const WebCore::ResourceResponse&);
+#endif
     void didReceiveData(uint64_t length);
     bool shouldDecodeSourceDataOfMIMEType(const String& mimeType);
 #if !USE(NETWORK_SESSION)
@@ -117,16 +117,14 @@ public:
     void startTransfer(const String& destination);
 #endif
 
-#if USE(CFNETWORK)
-    DownloadAuthenticationClient* authenticationClient();
-#endif
-
 private:
     // IPC::MessageSender
     IPC::Connection* messageSenderConnection() override;
     uint64_t messageSenderDestinationID() override;
 
     void platformInvalidate();
+
+    bool isAlwaysOnLoggingAllowed() const;
 
     DownloadManager& m_downloadManager;
     DownloadID m_downloadID;
@@ -139,6 +137,7 @@ private:
 #if PLATFORM(COCOA)
 #if USE(NETWORK_SESSION)
     RetainPtr<NSURLSessionDownloadTask> m_download;
+    WebCore::SessionID m_sessionID;
 #else
     RetainPtr<NSURLDownload> m_nsURLDownload;
     RetainPtr<WKDownloadAsDelegate> m_delegate;
@@ -146,7 +145,6 @@ private:
 #endif
 #if USE(CFNETWORK)
     RetainPtr<CFURLDownloadRef> m_download;
-    RefPtr<DownloadAuthenticationClient> m_authenticationClient;
 #endif
 #if PLATFORM(QT)
     QtFileDownloader* m_qtDownloader { nullptr };
@@ -156,6 +154,7 @@ private:
     RefPtr<WebCore::ResourceHandle> m_resourceHandle;
 #endif
     String m_suggestedName;
+    bool m_hasReceivedData { false };
 };
 
 } // namespace WebKit

@@ -214,15 +214,16 @@ void ImageLoader::updateFromElement()
     CachedResourceHandle<CachedImage> newImage = nullptr;
     if (!attr.isNull() && !stripLeadingAndTrailingHTMLSpaces(attr).isEmpty()) {
         ResourceLoaderOptions options = CachedResourceLoader::defaultCachedResourceOptions();
-        options.setContentSecurityPolicyImposition(element().isInUserAgentShadowTree() ? ContentSecurityPolicyImposition::SkipPolicyCheck : ContentSecurityPolicyImposition::DoPolicyCheck);
+        options.contentSecurityPolicyImposition = element().isInUserAgentShadowTree() ? ContentSecurityPolicyImposition::SkipPolicyCheck : ContentSecurityPolicyImposition::DoPolicyCheck;
 
         CachedResourceRequest request(ResourceRequest(document.completeURL(sourceURI(attr))), options);
         request.setInitiator(&element());
 
-        String crossOriginMode = element().fastGetAttribute(HTMLNames::crossoriginAttr);
+        String crossOriginMode = element().attributeWithoutSynchronization(HTMLNames::crossoriginAttr);
         if (!crossOriginMode.isNull()) {
             StoredCredentials allowCredentials = equalLettersIgnoringASCIICase(crossOriginMode, "use-credentials") ? AllowStoredCredentials : DoNotAllowStoredCredentials;
-            updateRequestForAccessControl(request.mutableResourceRequest(), document.securityOrigin(), allowCredentials);
+            ASSERT(document.securityOrigin());
+            updateRequestForAccessControl(request.mutableResourceRequest(), *document.securityOrigin(), allowCredentials);
         }
 
         if (m_loadManually) {
@@ -325,7 +326,7 @@ void ImageLoader::notifyFinished(CachedResource* resource)
     if (!m_hasPendingLoadEvent)
         return;
 
-    if (element().fastHasAttribute(HTMLNames::crossoriginAttr) && !resource->passesSameOriginPolicyCheck(*element().document().securityOrigin())) {
+    if (element().hasAttributeWithoutSynchronization(HTMLNames::crossoriginAttr) && !resource->passesSameOriginPolicyCheck(*element().document().securityOrigin())) {
         clearImageWithoutConsideringPendingLoadEvent();
 
         m_hasPendingErrorEvent = true;
@@ -509,7 +510,7 @@ void ImageLoader::elementDidMoveToNewDocument()
 
 inline void ImageLoader::clearFailedLoadURL()
 {
-    m_failedLoadURL = AtomicString();
+    m_failedLoadURL = nullAtom;
 }
 
 }

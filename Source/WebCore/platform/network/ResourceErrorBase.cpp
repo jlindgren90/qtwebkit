@@ -59,8 +59,9 @@ void ResourceErrorBase::lazyInit() const
 
 void ResourceErrorBase::setType(Type type)
 {
+    // setType should only be used to specialize the error type.
     // FIXME: error type set after init in Qt port
-    // ASSERT(m_type == Type::General || m_type == Type::Null);
+    // ASSERT(m_type == Type::General || m_type == Type::Null || (m_type == Type::Cancellation && type == Type::AccessControl));
     m_type = type;
 }
 

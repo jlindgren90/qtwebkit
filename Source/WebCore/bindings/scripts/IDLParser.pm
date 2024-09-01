@@ -93,6 +93,7 @@ struct( domIterable => {
     keyType => '$',   # Key type for map iterables
     valueType => '$', # Value type for map or set iterables
     functions => '@', # Iterable functions (entries, keys, values, [Symbol.Iterator], forEach)
+    extendedAttributes => '$', # Extended attributes
 });
 
 
@@ -342,26 +343,26 @@ sub identifierRemoveNullablePrefix
 my $nextAttribute_1 = '^(attribute|inherit|readonly)$';
 my $nextPrimitiveType_1 = '^(int|long|short|unsigned)$';
 my $nextPrimitiveType_2 = '^(double|float|unrestricted)$';
-my $nextArgumentList_1 = '^(\(|::|ByteString|DOMString|Date|\[|any|boolean|byte|double|float|in|long|object|octet|optional|sequence|short|unrestricted|unsigned)$';
+my $nextArgumentList_1 = '^(\(|::|ByteString|DOMString|USVString|Date|\[|any|boolean|byte|double|float|in|long|object|octet|optional|sequence|short|unrestricted|unsigned)$';
 my $nextNonAnyType_1 = '^(boolean|byte|double|float|long|octet|short|unrestricted|unsigned)$';
-my $nextInterfaceMember_1 = '^(\(|::|ByteString|DOMString|Date|any|attribute|boolean|byte|creator|deleter|double|float|getter|inherit|legacycaller|long|object|octet|readonly|sequence|serializer|setter|short|static|stringifier|unrestricted|unsigned|void)$';
+my $nextInterfaceMember_1 = '^(\(|::|ByteString|DOMString|USVString|Date|any|attribute|boolean|byte|creator|deleter|double|float|getter|inherit|legacycaller|long|object|octet|readonly|sequence|serializer|setter|short|static|stringifier|unrestricted|unsigned|void)$';
 my $nextAttributeOrOperation_1 = '^(static|stringifier)$';
-my $nextAttributeOrOperation_2 = '^(\(|::|ByteString|DOMString|Date|any|boolean|byte|creator|deleter|double|float|getter|legacycaller|long|object|octet|sequence|setter|short|unrestricted|unsigned|void)$';
+my $nextAttributeOrOperation_2 = '^(\(|::|ByteString|DOMString|USVString|Date|any|boolean|byte|creator|deleter|double|float|getter|legacycaller|long|object|octet|sequence|setter|short|unrestricted|unsigned|void)$';
 my $nextUnrestrictedFloatType_1 = '^(double|float)$';
 my $nextExtendedAttributeRest3_1 = '^(\,|::|\])$';
-my $nextExceptionField_1 = '^(\(|::|ByteString|DOMString|Date|any|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned)$';
-my $nextType_1 = '^(::|ByteString|DOMString|Date|any|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned)$';
+my $nextExceptionField_1 = '^(\(|::|ByteString|DOMString|USVString|Date|any|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned)$';
+my $nextType_1 = '^(::|ByteString|DOMString|USVString|Date|any|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned)$';
 my $nextSpecials_1 = '^(creator|deleter|getter|legacycaller|setter)$';
 my $nextDefinitions_1 = '^(::|callback|dictionary|enum|exception|interface|partial|typedef)$';
-my $nextExceptionMembers_1 = '^(\(|::|ByteString|DOMString|Date|\[|any|boolean|byte|const|double|float|long|object|octet|optional|sequence|short|unrestricted|unsigned)$';
+my $nextExceptionMembers_1 = '^(\(|::|ByteString|DOMString|USVString|Date|\[|any|boolean|byte|const|double|float|long|object|octet|optional|sequence|short|unrestricted|unsigned)$';
 my $nextAttributeRest_1 = '^(attribute|readonly)$';
-my $nextInterfaceMembers_1 = '^(\(|::|ByteString|DOMString|Date|any|attribute|boolean|byte|const|creator|deleter|double|float|getter|inherit|legacycaller|long|object|octet|readonly|sequence|serializer|setter|short|static|stringifier|unrestricted|unsigned|void)$';
-my $nextSingleType_1 = '^(::|ByteString|DOMString|Date|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned)$';
+my $nextInterfaceMembers_1 = '^(\(|::|ByteString|DOMString|USVString|Date|any|attribute|boolean|byte|const|creator|deleter|double|float|getter|inherit|legacycaller|long|object|octet|readonly|sequence|serializer|setter|short|static|stringifier|unrestricted|unsigned|void)$';
+my $nextSingleType_1 = '^(::|ByteString|DOMString|USVString|Date|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned)$';
 my $nextArgumentName_1 = '^(attribute|callback|const|creator|deleter|dictionary|enum|exception|getter|implements|inherit|interface|legacycaller|partial|serializer|setter|static|stringifier|typedef|unrestricted)$';
 my $nextConstValue_1 = '^(false|true)$';
 my $nextConstValue_2 = '^(-|Infinity|NaN)$';
 my $nextDefinition_1 = '^(callback|interface)$';
-my $nextAttributeOrOperationRest_1 = '^(\(|::|ByteString|DOMString|Date|any|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned|void)$';
+my $nextAttributeOrOperationRest_1 = '^(\(|::|ByteString|DOMString|USVString|Date|any|boolean|byte|double|float|long|object|octet|sequence|short|unrestricted|unsigned|void)$';
 my $nextUnsignedIntegerType_1 = '^(long|short)$';
 my $nextDefaultValue_1 = '^(-|Infinity|NaN|false|null|true)$';
 
@@ -682,7 +683,14 @@ sub parseDictionaryMember
             $member->isOptional(0);
         }
         $member->extendedAttributes($extendedAttributeList);
-        $member->type($self->parseType());
+        my $type = $self->parseType();
+        if (typeHasNullableSuffix($type)) {
+            $member->isNullable(1);
+        } else {
+            $member->isNullable(0);
+        }
+        $member->type(typeRemoveNullableSuffix($type));
+
         my $nameToken = $self->getToken();
         $self->assertTokenType($nameToken, IdentifierToken);
         $member->name($nameToken->value);
@@ -1408,6 +1416,7 @@ sub parseOptionalIterableInterface
     push(@{$forEachFunction->parameters}, ($forEachArgument));
 
     my $newDataNode = domIterable->new();
+    $newDataNode->extendedAttributes($extendedAttributeList);
     push(@{$newDataNode->functions}, $symbolIteratorFunction);
     push(@{$newDataNode->functions}, $entriesFunction);
     push(@{$newDataNode->functions}, $keysFunction);
@@ -1964,6 +1973,11 @@ sub parseNonAnyType
         $self->assertTokenValue($self->getToken(), "DOMString", __LINE__);
         return "DOMString" . $self->parseTypeSuffix();
     }
+    if ($next->value() eq "USVString") {
+        $self->assertTokenValue($self->getToken(), "USVString", __LINE__);
+        return "USVString" . $self->parseTypeSuffix();
+    }
+    
     if ($next->value() eq "sequence") {
         $self->assertTokenValue($self->getToken(), "sequence", __LINE__);
         $self->assertTokenValue($self->getToken(), "<", __LINE__);
@@ -2304,7 +2318,6 @@ sub applyExtendedAttributeList
             $constructor->signature->name("Constructor");
             $constructor->signature->extendedAttributes($extendedAttributeList);
             $constructor->parameters($param);
-            $constructor->{overloadedIndex} = $index++;
             push(@{$interface->constructors}, $constructor);
         }
         delete $extendedAttributeList->{"Constructors"};
@@ -2330,7 +2343,6 @@ sub applyExtendedAttributeList
             $customConstructor->signature->name("CustomConstructor");
             $customConstructor->signature->extendedAttributes($extendedAttributeList);
             $customConstructor->parameters($param);
-            $customConstructor->{overloadedIndex} = $index++;
             push(@{$interface->customConstructors}, $customConstructor);
         }
         delete $extendedAttributeList->{"CustomConstructors"};

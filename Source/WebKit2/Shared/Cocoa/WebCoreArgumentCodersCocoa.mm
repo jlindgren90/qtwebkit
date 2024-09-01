@@ -29,7 +29,7 @@
 #if ENABLE(APPLE_PAY)
 
 #import "DataReference.h"
-#import <PassKit/PassKit.h>
+#import <WebCore/PassKitSPI.h>
 #import <WebCore/SoftLinking.h>
 
 #if PLATFORM(MAC)
@@ -41,6 +41,7 @@ SOFT_LINK_FRAMEWORK(PassKit)
 SOFT_LINK_CLASS(PassKit, PKContact);
 SOFT_LINK_CLASS(PassKit, PKPayment);
 SOFT_LINK_CLASS(PassKit, PKPaymentMethod);
+SOFT_LINK_CLASS(PassKit, PKPaymentMerchantSession);
 
 using namespace WebCore;
 
@@ -116,28 +117,35 @@ bool ArgumentCoder<WebCore::PaymentContact>::decode(ArgumentDecoder& decoder, We
 
 void ArgumentCoder<WebCore::PaymentMerchantSession>::encode(ArgumentEncoder& encoder, const WebCore::PaymentMerchantSession& paymentMerchantSession)
 {
-    encoder << paymentMerchantSession.merchantIdentifier;
-    encoder << paymentMerchantSession.sessionIdentifier;
-    encoder << paymentMerchantSession.nonce;
-    encoder << paymentMerchantSession.domainName;
-    encoder << paymentMerchantSession.epochTimestamp;
-    encoder << paymentMerchantSession.signature;
+    auto data = adoptNS([[NSMutableData alloc] init]);
+    auto archiver = adoptNS([[NSKeyedArchiver alloc] initForWritingWithMutableData:data.get()]);
+
+    [archiver setRequiresSecureCoding:YES];
+
+    [archiver encodeObject:paymentMerchantSession.pkPaymentMerchantSession() forKey:NSKeyedArchiveRootObjectKey];
+    [archiver finishEncoding];
+
+    encoder << DataReference(static_cast<const uint8_t*>([data bytes]), [data length]);
 }
 
 bool ArgumentCoder<WebCore::PaymentMerchantSession>::decode(ArgumentDecoder& decoder, WebCore::PaymentMerchantSession& paymentMerchantSession)
 {
-    if (!decoder.decode(paymentMerchantSession.merchantIdentifier))
+    IPC::DataReference dataReference;
+    if (!decoder.decode(dataReference))
         return false;
-    if (!decoder.decode(paymentMerchantSession.sessionIdentifier))
+
+    auto data = adoptNS([[NSData alloc] initWithBytesNoCopy:const_cast<void*>(static_cast<const void*>(dataReference.data())) length:dataReference.size() freeWhenDone:NO]);
+    auto unarchiver = adoptNS([[NSKeyedUnarchiver alloc] initForReadingWithData:data.get()]);
+    [unarchiver setRequiresSecureCoding:YES];
+    @try {
+        PKPaymentMerchantSession *pkPaymentMerchantSession = [unarchiver decodeObjectOfClass:getPKPaymentMerchantSessionClass() forKey:NSKeyedArchiveRootObjectKey];
+        paymentMerchantSession = PaymentMerchantSession(pkPaymentMerchantSession);
+    } @catch (NSException *exception) {
+        LOG_ERROR("Failed to decode PKPaymentMerchantSession: %@", exception);
         return false;
-    if (!decoder.decode(paymentMerchantSession.nonce))
-        return false;
-    if (!decoder.decode(paymentMerchantSession.domainName))
-        return false;
-    if (!decoder.decode(paymentMerchantSession.epochTimestamp))
-        return false;
-    if (!decoder.decode(paymentMerchantSession.signature))
-        return false;
+    }
+
+    [unarchiver finishDecoding];
 
     return true;
 }
@@ -180,9 +188,9 @@ void ArgumentCoder<PaymentRequest>::encode(ArgumentEncoder& encoder, const Payme
 {
     encoder << request.countryCode();
     encoder << request.currencyCode();
-    encoder << request.requiredBillingAddressFields();
+    encoder << request.requiredBillingContactFields();
     encoder << request.billingContact();
-    encoder << request.requiredShippingAddressFields();
+    encoder << request.requiredShippingContactFields();
     encoder << request.shippingContact();
     encoder << request.merchantCapabilities();
     encoder << request.supportedNetworks();
@@ -205,20 +213,20 @@ bool ArgumentCoder<PaymentRequest>::decode(ArgumentDecoder& decoder, PaymentRequ
         return false;
     request.setCurrencyCode(currencyCode);
 
-    PaymentRequest::AddressFields requiredBillingAddressFields;
-    if (!decoder.decode((requiredBillingAddressFields)))
+    PaymentRequest::ContactFields requiredBillingContactFields;
+    if (!decoder.decode((requiredBillingContactFields)))
         return false;
-    request.setRequiredBillingAddressFields(requiredBillingAddressFields);
+    request.setRequiredBillingContactFields(requiredBillingContactFields);
 
     PaymentContact billingContact;
     if (!decoder.decode(billingContact))
         return false;
     request.setBillingContact(billingContact);
 
-    PaymentRequest::AddressFields requiredShippingAddressFields;
-    if (!decoder.decode((requiredShippingAddressFields)))
+    PaymentRequest::ContactFields requiredShippingContactFields;
+    if (!decoder.decode((requiredShippingContactFields)))
         return false;
-    request.setRequiredShippingAddressFields(requiredShippingAddressFields);
+    request.setRequiredShippingContactFields(requiredShippingContactFields);
 
     PaymentContact shippingContact;
     if (!decoder.decode(shippingContact))
@@ -263,23 +271,23 @@ bool ArgumentCoder<PaymentRequest>::decode(ArgumentDecoder& decoder, PaymentRequ
     return true;
 }
 
-void ArgumentCoder<PaymentRequest::AddressFields>::encode(ArgumentEncoder& encoder, const PaymentRequest::AddressFields& addressFields)
+void ArgumentCoder<PaymentRequest::ContactFields>::encode(ArgumentEncoder& encoder, const PaymentRequest::ContactFields& contactFields)
 {
-    encoder << addressFields.postalAddress;
-    encoder << addressFields.phone;
-    encoder << addressFields.email;
-    encoder << addressFields.name;
+    encoder << contactFields.postalAddress;
+    encoder << contactFields.phone;
+    encoder << contactFields.email;
+    encoder << contactFields.name;
 }
 
-bool ArgumentCoder<PaymentRequest::AddressFields>::decode(ArgumentDecoder& decoder, PaymentRequest::AddressFields& addressFields)
+bool ArgumentCoder<PaymentRequest::ContactFields>::decode(ArgumentDecoder& decoder, PaymentRequest::ContactFields& contactFields)
 {
-    if (!decoder.decode(addressFields.postalAddress))
+    if (!decoder.decode(contactFields.postalAddress))
         return false;
-    if (!decoder.decode(addressFields.phone))
+    if (!decoder.decode(contactFields.phone))
         return false;
-    if (!decoder.decode(addressFields.email))
+    if (!decoder.decode(contactFields.email))
         return false;
-    if (!decoder.decode(addressFields.name))
+    if (!decoder.decode(contactFields.name))
         return false;
 
     return true;

@@ -33,11 +33,10 @@
     [Reflect] attribute boolean disabled;
     readonly attribute HTMLFormElement form;
     attribute FileList? files;
-    attribute DOMString formAction;
+    attribute USVString formAction;
 
-    // FIXME: These should not use [TreatNullAs=LegacyNullString].
-    [TreatNullAs=LegacyNullString] attribute DOMString formEnctype;
-    [TreatNullAs=LegacyNullString] attribute DOMString formMethod;
+    attribute DOMString formEnctype;
+    attribute DOMString formMethod;
 
     [Reflect] attribute boolean formNoValidate;
     [Reflect] attribute DOMString formTarget;
@@ -58,7 +57,7 @@
 #else
     [SetterRaisesException] attribute unsigned long size; // Changed string -> long -> unsigned long
 #endif
-    [Reflect, URL] attribute DOMString src;
+    [Reflect, URL] attribute USVString src;
     [Reflect] attribute DOMString step;
     attribute DOMString type; // readonly dropped as part of DOM level 2
     attribute DOMString defaultValue;
@@ -97,9 +96,7 @@
 #if defined(LANGUAGE_OBJECTIVE_C) && LANGUAGE_OBJECTIVE_C
     [Custom] void setSelectionRange(long start, long end);
 #else
-    [Custom] void setSelectionRange(optional long start,
-                                    optional long end,
-                                    optional DOMString direction);
+    [Custom] void setSelectionRange(long start, long end, optional DOMString direction);
 #endif
 
     // Non-standard attributes
@@ -127,8 +124,7 @@
 
     [Conditional=IOS_AUTOCORRECT_AND_AUTOCAPITALIZE] attribute boolean autocorrect;
 
-    // FIXME: This should not use TreatNullAs=LegacyNullString.
-    [Conditional=IOS_AUTOCORRECT_AND_AUTOCAPITALIZE, TreatNullAs=LegacyNullString] attribute DOMString autocapitalize;
+    [Conditional=IOS_AUTOCORRECT_AND_AUTOCAPITALIZE, TreatNullAs=EmptyString] attribute DOMString autocapitalize;
 
     // See http://www.w3.org/TR/html-media-capture/
     [Conditional=MEDIA_CAPTURE, Reflect] attribute boolean capture;

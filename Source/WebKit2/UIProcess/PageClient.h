@@ -249,7 +249,6 @@ public:
     virtual void enterAcceleratedCompositingMode(const LayerTreeContext&) = 0;
     virtual void exitAcceleratedCompositingMode() = 0;
     virtual void updateAcceleratedCompositingMode(const LayerTreeContext&) = 0;
-    virtual void willEnterAcceleratedCompositingMode() = 0;
 
 #if PLATFORM(MAC)
     virtual void pluginFocusOrWindowFocusChanged(uint64_t pluginComplexTextInputIdentifier, bool pluginHasFocusAndWindowHasFocus) = 0;
@@ -289,6 +288,7 @@ public:
     virtual void registerInsertionUndoGrouping() = 0;
 #endif // USE(INSERTION_UNDO_GROUPING)
 #endif // USE(APPKIT)
+    virtual void setEditableElementIsFocused(bool) = 0;
 #endif // PLATFORM(MAC)
 
 #if PLATFORM(IOS)

@@ -39,17 +39,24 @@ using namespace JSC;
 
 namespace Inspector {
 
+struct GarbageCollectionData {
+    Inspector::Protocol::Heap::GarbageCollection::Type type;
+    double startTime;
+    double endTime;
+};
+
 class SendGarbageCollectionEventsTask {
 public:
     SendGarbageCollectionEventsTask(HeapFrontendDispatcher&);
-    void addGarbageCollection(RefPtr<Inspector::Protocol::Heap::GarbageCollection>&&);
+    void addGarbageCollection(GarbageCollectionData&);
     void reset();
 private:
     void timerFired();
 
     HeapFrontendDispatcher& m_frontendDispatcher;
-    Vector<RefPtr<Inspector::Protocol::Heap::GarbageCollection>> m_garbageCollections;
+    Vector<GarbageCollectionData> m_collections;
     RunLoop::Timer<SendGarbageCollectionEventsTask> m_timer;
+    Lock m_mutex;
 };
 
 SendGarbageCollectionEventsTask::SendGarbageCollectionEventsTask(HeapFrontendDispatcher& frontendDispatcher)
@@ -58,9 +65,12 @@ SendGarbageCollectionEventsTask::SendGarbageCollectionEventsTask(HeapFrontendDis
 {
 }
 
-void SendGarbageCollectionEventsTask::addGarbageCollection(RefPtr<Inspector::Protocol::Heap::GarbageCollection>&& garbageCollection)
+void SendGarbageCollectionEventsTask::addGarbageCollection(GarbageCollectionData& collection)
 {
-    m_garbageCollections.append(WTFMove(garbageCollection));
+    {
+        std::lock_guard<Lock> lock(m_mutex);
+        m_collections.append(collection);
+    }
 
     if (!m_timer.isActive())
         m_timer.startOneShot(0);
@@ -68,17 +78,32 @@ void SendGarbageCollectionEventsTask::addGarbageCollection(RefPtr<Inspector::Pro
 
 void SendGarbageCollectionEventsTask::reset()
 {
+    {
+        std::lock_guard<Lock> lock(m_mutex);
+        m_collections.clear();
+    }
+
     m_timer.stop();
-    m_garbageCollections.clear();
 }
 
 void SendGarbageCollectionEventsTask::timerFired()
 {
-    // The timer is stopped on agent destruction, so this method will never be called after agent has been destroyed.
-    for (auto& event : m_garbageCollections)
-        m_frontendDispatcher.garbageCollected(event);
+    Vector<GarbageCollectionData> collectionsToSend;
 
-    m_garbageCollections.clear();
+    {
+        std::lock_guard<Lock> lock(m_mutex);
+        m_collections.swap(collectionsToSend);
+    }
+
+    // The timer is stopped on agent destruction, so this method will never be called after agent has been destroyed.
+    for (auto& collection : collectionsToSend) {
+        auto protocolObject = Inspector::Protocol::Heap::GarbageCollection::create()
+            .setType(collection.type)
+            .setStartTime(collection.startTime)
+            .setEndTime(collection.endTime)
+            .release();
+        m_frontendDispatcher.garbageCollected(WTFMove(protocolObject));
+    }
 }
 
 InspectorHeapAgent::InspectorHeapAgent(AgentContext& context)
@@ -328,11 +353,12 @@ void InspectorHeapAgent::didGarbageCollect(HeapOperation operation)
     // with WebKitLegacy's in process inspector which shares the same
     // VM as the inspected page.
 
-    m_sendGarbageCollectionEventsTask->addGarbageCollection(Inspector::Protocol::Heap::GarbageCollection::create()
-        .setType(protocolTypeForHeapOperation(operation))
-        .setStartTime(m_gcStartTime)
-        .setEndTime(m_environment.executionStopwatch()->elapsedTime())
-        .release());
+    GarbageCollectionData data;
+    data.type = protocolTypeForHeapOperation(operation);
+    data.startTime = m_gcStartTime;
+    data.endTime = m_environment.executionStopwatch()->elapsedTime();
+
+    m_sendGarbageCollectionEventsTask->addGarbageCollection(data);
 
     m_gcStartTime = NAN;
 }

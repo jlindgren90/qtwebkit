@@ -108,7 +108,7 @@ public:
     void clearPageCache();
     unsigned pageCacheSize() const;
 
-    RefPtr<CSSComputedStyleDeclaration> computedStyleIncludingVisitedInfo(Node&) const;
+    RefPtr<CSSComputedStyleDeclaration> computedStyleIncludingVisitedInfo(Element&) const;
 
     Node* ensureShadowRoot(Element& host, ExceptionCode&);
     Node* ensureUserAgentShadowRoot(Element& host);
@@ -274,6 +274,10 @@ public:
 
     void garbageCollectDocumentResources(ExceptionCode&) const;
 
+    void beginSimulatedMemoryPressure();
+    void endSimulatedMemoryPressure();
+    bool isUnderMemoryPressure();
+
     void insertAuthorCSS(const String&, ExceptionCode&) const;
     void insertUserCSS(const String&, ExceptionCode&) const;
 
@@ -415,7 +419,7 @@ public:
     void applicationWillEnterBackground() const;
     void setMediaSessionRestrictions(const String& mediaType, const String& restrictions, ExceptionCode&);
     void setMediaElementRestrictions(HTMLMediaElement&, const String& restrictions);
-    void postRemoteControlCommand(const String&, ExceptionCode&);
+    void postRemoteControlCommand(const String&, float argument, ExceptionCode&);
     bool elementIsBlockingDisplaySleep(HTMLMediaElement&) const;
 #endif
 
@@ -477,7 +481,6 @@ public:
 
     String composedTreeAsText(Node&);
     
-    void setViewportForceAlwaysUserScalable(bool);
     void setLinkPreloadSupport(bool);
     void setResourceTimingSupport(bool);
 

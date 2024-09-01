@@ -341,11 +341,9 @@ static ssize_t readBytesFromSocket(int socketDescriptor, Vector<uint8_t>& buffer
                 memcpy(fileDescriptors.data() + previousFileDescriptorsSize, CMSG_DATA(controlMessage), sizeof(int) * fileDescriptorsCount);
 
                 for (size_t i = 0; i < fileDescriptorsCount; ++i) {
-                    while (fcntl(fileDescriptors[previousFileDescriptorsSize + i], F_SETFD, FD_CLOEXEC) == -1) {
-                        if (errno != EINTR) {
-                            ASSERT_NOT_REACHED();
-                            break;
-                        }
+                    if (!setCloseOnExec(fileDescriptors[previousFileDescriptorsSize + i])) {
+                        ASSERT_NOT_REACHED();
+                        break;
                     }
                 }
                 break;

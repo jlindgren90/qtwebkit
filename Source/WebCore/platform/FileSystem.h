@@ -164,6 +164,7 @@ WEBCORE_EXPORT bool makeAllDirectories(const String& path);
 String homeDirectoryPath();
 WEBCORE_EXPORT String pathGetFileName(const String&);
 WEBCORE_EXPORT String directoryName(const String&);
+WEBCORE_EXPORT bool getVolumeFreeSpace(const String&, uint64_t&);
 
 WEBCORE_EXPORT void setMetadataURL(String& URLString, const String& referrer, const String& path);
 
@@ -220,9 +221,6 @@ String filenameToString(const char*);
 String filenameForDisplay(const String&);
 CString applicationDirectoryPath();
 CString sharedResourcesPath();
-#endif
-#if USE(SOUP) || PLATFORM(QT)
-uint64_t getVolumeFreeSizeForPath(const char*);
 #endif
 
 #if PLATFORM(WIN)

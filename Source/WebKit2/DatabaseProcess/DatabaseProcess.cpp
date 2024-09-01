@@ -246,6 +246,7 @@ void DatabaseProcess::deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<
 #endif
 }
 
+#if ENABLE(SANDBOX_EXTENSIONS)
 void DatabaseProcess::grantSandboxExtensionsForBlobs(const Vector<String>& paths, const SandboxExtension::HandleArray& handles)
 {
     ASSERT(paths.size() == handles.size());
@@ -255,6 +256,7 @@ void DatabaseProcess::grantSandboxExtensionsForBlobs(const Vector<String>& paths
         ASSERT_UNUSED(result, result.isNewEntry);
     }
 }
+#endif
 
 #if ENABLE(INDEXED_DATABASE)
 void DatabaseProcess::prepareForAccessToTemporaryFile(const String& path)
@@ -292,6 +294,7 @@ Vector<RefPtr<WebCore::SecurityOrigin>> DatabaseProcess::indexedDatabaseOrigins(
 
 #endif
 
+#if ENABLE(SANDBOX_EXTENSIONS)
 void DatabaseProcess::getSandboxExtensionsForBlobFiles(const Vector<String>& filenames, std::function<void (SandboxExtension::HandleArray&&)> completionHandler)
 {
     static uint64_t lastRequestID;
@@ -306,6 +309,7 @@ void DatabaseProcess::didGetSandboxExtensionsForBlobFiles(uint64_t requestID, Sa
     if (auto handler = m_sandboxExtensionForBlobsCompletionHandlers.take(requestID))
         handler(WTFMove(handles));
 }
+#endif
 
 #if !PLATFORM(COCOA)
 void DatabaseProcess::initializeProcess(const ChildProcessInitializationParameters&)

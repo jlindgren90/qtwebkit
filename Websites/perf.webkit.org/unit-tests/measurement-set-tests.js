@@ -14,6 +14,15 @@ describe('MeasurementSet', function () {
         MeasurementSet._set = null;
     });
 
+    function waitForMeasurementSet()
+    {
+        return Promise.resolve().then(function () {
+            return Promise.resolve();
+        }).then(function () {
+            return Promise.resolve();
+        });
+    }
+
     describe('findSet', function () {
         it('should create a new MeasurementSet for a new pair of platform and matric', function () {
             assert.notEqual(MeasurementSet.findSet(1, 1, 3000), MeasurementSet.findSet(1, 2, 3000));
@@ -23,6 +32,38 @@ describe('MeasurementSet', function () {
         it('should not create a new MeasurementSet when the same pair of platform and matric are requested', function () {
             assert.equal(MeasurementSet.findSet(1, 1), MeasurementSet.findSet(1, 1));
         });
+    });
+
+    describe('findClusters', function () {
+
+        it('should return clusters that exist', function (done) {
+            var set = MeasurementSet.findSet(1, 1, 1467852503940);
+            var callCount = 0;
+            var promise = set.fetchBetween(1465084800000, 1470268800000, function () {
+                callCount++;
+            });
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].url, '../data/measurement-set-1-1.json');
+
+            requests[0].resolve({
+                'clusterStart': 946684800000,
+                'clusterSize': 5184000000,
+                'formatMap': [],
+                'configurations': {current: []},
+                'startTime': 1465084800000,
+                'endTime': 1470268800000,
+                'lastModified': 1467852503940,
+                'clusterCount': 5,
+                'status': 'OK'});
+
+            promise.then(function () {
+                assert.deepEqual(set.findClusters(0, Date.now()), [1449532800000, 1454716800000, 1459900800000, 1465084800000, 1470268800000]);
+                done();
+            }).catch(function (error) {
+                done(error);
+            });
+        });
+
     });
 
     describe('fetchBetween', function () {
@@ -71,15 +112,6 @@ describe('MeasurementSet', function () {
             });
         });
 
-        function waitForMeasurementSet()
-        {
-            return Promise.resolve().then(function () {
-                return Promise.resolve();
-            }).then(function () {
-                return Promise.resolve();
-            });
-        }
-
         it('should invoke the callback and fetch a secondary cluster when the cached primary cluster is up-to-date and within in the requested range', function (done) {
             var set = MeasurementSet.findSet(1, 1, 3000);
             var callCount = 0;
@@ -126,7 +158,7 @@ describe('MeasurementSet', function () {
                 'startTime': 4000,
                 'endTime': 5000,
                 'lastModified': 5000,
-                'clusterCount': 3,
+                'clusterCount': 4,
                 'status': 'OK'});
 
             var callCount = 0;
@@ -194,7 +226,7 @@ describe('MeasurementSet', function () {
                 'startTime': 4000,
                 'endTime': 5000,
                 'lastModified': 5000,
-                'clusterCount': 3,
+                'clusterCount': 4,
                 'status': 'OK'});
 
             var callCount = 0;
@@ -213,6 +245,34 @@ describe('MeasurementSet', function () {
                 assert.equal(callCount, 0);
                 assert.equal(requests.length, 4);
                 assert.equal(requests[3].url, '../data/measurement-set-1-1-3000.json');
+                done();
+            }).catch(function (error) {
+                done(error);
+            });
+        });
+
+        it('should not request a cluster before the very first cluster', function (done) {
+            var set = MeasurementSet.findSet(1, 1, 5000);
+            set.fetchBetween(0, 3000, function () {
+                assert.notReached();
+            });
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].url, '../data/measurement-set-1-1.json');
+
+            requests[0].resolve({
+                'clusterStart': 2000,
+                'clusterSize': 1000,
+                'formatMap': [],
+                'configurations': {current: []},
+                'startTime': 2000,
+                'endTime': 3000,
+                'lastModified': 5000,
+                'clusterCount': 1,
+                'status': 'OK'});
+
+            var callCount = 0;
+            waitForMeasurementSet().then(function () {
+                assert.equal(requests.length, 1);
                 done();
             }).catch(function (error) {
                 done(error);
@@ -373,7 +433,7 @@ describe('MeasurementSet', function () {
 
                 return waitForMeasurementSet();
             }).then(function () {
-                assert.equal(callCount, 2);
+                assert.equal(callCount, 3);
                 assert.equal(noCacheFetchCount, 2);
                 assert.equal(set._sortedClusters.length, 2);
                 assert.equal(requests.length, 4);
@@ -434,7 +494,7 @@ describe('MeasurementSet', function () {
                 'startTime': 4000,
                 'endTime': 5000,
                 'lastModified': 5000,
-                'clusterCount': 3,
+                'clusterCount': 4,
                 'status': 'OK'});
 
             var callCountFor4000To5000 = 0;
@@ -513,6 +573,170 @@ describe('MeasurementSet', function () {
             }).catch(function (error) {
                 done(error);
             })
+        });
+
+    });
+
+    describe('hasFetchedRange', function () {
+
+        it('should return false when no clusters had been fetched', function () {
+            var set = MeasurementSet.findSet(1, 1, 3000);
+            assert(!set.hasFetchedRange(2000, 3000));
+        });
+
+        it('should return true when a single cluster contains the entire range', function (done) {
+            var set = MeasurementSet.findSet(1, 1, 3000);
+            var promise = set.fetchBetween(2000, 3000);
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].url, '../data/measurement-set-1-1.json');
+
+            requests[0].resolve({
+                'clusterStart': 1000,
+                'clusterSize': 1000,
+                'formatMap': [],
+                'configurations': {current: []},
+                'startTime': 2000,
+                'endTime': 3000,
+                'lastModified': 3000,
+                'clusterCount': 2,
+                'status': 'OK'});
+
+            promise.then(function () {
+                assert(set.hasFetchedRange(2001, 2999));
+                assert(set.hasFetchedRange(2000, 3000));
+                done();
+            }).catch(function (error) {
+                done(error);
+            });
+        });
+
+        it('should return false when the range starts before the fetched cluster', function (done) {
+            var set = MeasurementSet.findSet(1, 1, 3000);
+            var promise = set.fetchBetween(2000, 3000);
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].url, '../data/measurement-set-1-1.json');
+
+            requests[0].resolve({
+                'clusterStart': 1000,
+                'clusterSize': 1000,
+                'formatMap': [],
+                'configurations': {current: []},
+                'startTime': 2000,
+                'endTime': 3000,
+                'lastModified': 3000,
+                'clusterCount': 2,
+                'status': 'OK'});
+
+            promise.then(function () {
+                assert(!set.hasFetchedRange(1500, 3000));
+                done();
+            }).catch(function (error) {
+                done(error);
+            });
+        });
+
+        it('should return false when the range ends after the fetched cluster', function (done) {
+            var set = MeasurementSet.findSet(1, 1, 3000);
+            var promise = set.fetchBetween(2000, 3000);
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].url, '../data/measurement-set-1-1.json');
+
+            requests[0].resolve({
+                'clusterStart': 1000,
+                'clusterSize': 1000,
+                'formatMap': [],
+                'configurations': {current: []},
+                'startTime': 2000,
+                'endTime': 3000,
+                'lastModified': 3000,
+                'clusterCount': 2,
+                'status': 'OK'});
+
+            promise.then(function () {
+                assert(!set.hasFetchedRange(2500, 3500));
+                done();
+            }).catch(function (error) {
+                done(error);
+            });
+        });
+
+        it('should return true when the range is within two fetched clusters', function (done) {
+            var set = MeasurementSet.findSet(1, 1, 5000);
+            var promise = set.fetchBetween(2000, 3000);
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].url, '../data/measurement-set-1-1.json');
+
+            requests[0].resolve({
+                'clusterStart': 1000,
+                'clusterSize': 1000,
+                'formatMap': [],
+                'configurations': {current: []},
+                'startTime': 3000,
+                'endTime': 4000,
+                'lastModified': 5000,
+                'clusterCount': 2,
+                'status': 'OK'});
+
+            waitForMeasurementSet().then(function () {
+                assert.equal(requests.length, 2);
+                assert.equal(requests[1].url, '../data/measurement-set-1-1-3000.json');
+                requests[1].resolve({
+                    'clusterStart': 1000,
+                    'clusterSize': 1000,
+                    'formatMap': [],
+                    'configurations': {current: []},
+                    'startTime': 2000,
+                    'endTime': 3000,
+                    'lastModified': 5000,
+                    'clusterCount': 2,
+                    'status': 'OK'});                
+            }).then(function () {
+                assert(set.hasFetchedRange(2500, 3500));
+                done();
+            }).catch(function (error) {
+                done(error);
+            });
+        });
+
+        it('should return false when there is a cluster missing in the range', function (done) {
+            var set = MeasurementSet.findSet(1, 1, 5000);
+            var promise = set.fetchBetween(2000, 5000);
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].url, '../data/measurement-set-1-1.json');
+
+            requests[0].resolve({
+                'clusterStart': 1000,
+                'clusterSize': 1000,
+                'formatMap': [],
+                'configurations': {current: []},
+                'startTime': 4000,
+                'endTime': 5000,
+                'lastModified': 5000,
+                'clusterCount': 4,
+                'status': 'OK'});
+
+            waitForMeasurementSet().then(function () {
+                assert.equal(requests.length, 3);
+                assert.equal(requests[1].url, '../data/measurement-set-1-1-3000.json');
+                assert.equal(requests[2].url, '../data/measurement-set-1-1-4000.json');
+                requests[1].resolve({
+                    'clusterStart': 1000,
+                    'clusterSize': 1000,
+                    'formatMap': [],
+                    'configurations': {current: []},
+                    'startTime': 2000,
+                    'endTime': 3000,
+                    'lastModified': 5000,
+                    'clusterCount': 2,
+                    'status': 'OK'});
+            }).then(function () {
+                assert(!set.hasFetchedRange(2500, 4500));
+                assert(set.hasFetchedRange(2100, 2300));
+                assert(set.hasFetchedRange(4000, 4800));
+                done();
+            }).catch(function (error) {
+                done(error);
+            });
         });
 
     });
