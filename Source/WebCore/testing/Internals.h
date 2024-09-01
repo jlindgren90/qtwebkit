@@ -66,6 +66,7 @@ class SerializedScriptValue;
 class SourceBuffer;
 class TimeRanges;
 class TypeConversions;
+class WebKitPoint;
 class XMLHttpRequest;
 
 typedef int ExceptionCode;
@@ -188,11 +189,11 @@ public:
 
     void setDelegatesScrolling(bool enabled, ExceptionCode&);
 #if ENABLE(TOUCH_ADJUSTMENT)
-    PassRefPtr<WebKitPoint> touchPositionAdjustedToBestClickableNode(long x, long y, long width, long height, ExceptionCode&);
+    RefPtr<WebKitPoint> touchPositionAdjustedToBestClickableNode(long x, long y, long width, long height, ExceptionCode&);
     Node* touchNodeAdjustedToBestClickableNode(long x, long y, long width, long height, ExceptionCode&);
-    PassRefPtr<WebKitPoint> touchPositionAdjustedToBestContextMenuNode(long x, long y, long width, long height, ExceptionCode&);
+    RefPtr<WebKitPoint> touchPositionAdjustedToBestContextMenuNode(long x, long y, long width, long height, ExceptionCode&);
     Node* touchNodeAdjustedToBestContextMenuNode(long x, long y, long width, long height, ExceptionCode&);
-    PassRefPtr<ClientRect> bestZoomableAreaForTouchPoint(long x, long y, long width, long height, ExceptionCode&);
+    RefPtr<ClientRect> bestZoomableAreaForTouchPoint(long x, long y, long width, long height, ExceptionCode&);
 #endif
 
     int lastSpellCheckRequestSequence(ExceptionCode&);

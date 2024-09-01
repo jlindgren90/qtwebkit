@@ -84,7 +84,7 @@ bool nodeRespondsToTapGesture(Node* node)
         if (element->childrenAffectedByActive() || element->childrenAffectedByHover())
             return true;
     }
-    if (RenderStyle* renderStyle = node->renderStyle()) {
+    if (const RenderStyle* renderStyle = node->renderStyle()) {
         if (renderStyle->affectedByActive() || renderStyle->affectedByHover())
             return true;
     }

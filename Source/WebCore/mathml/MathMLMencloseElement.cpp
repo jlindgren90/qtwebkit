@@ -61,7 +61,7 @@ void MathMLMencloseElement::parseAttribute(const QualifiedName& name, const Atom
             return;
         }
         Vector<String> notationsList;
-        String(value).split(' ', notationsList);
+        value.string().split(' ', notationsList);
         for (auto& notation : notationsList) {
             if (notation == "longdiv") {
                 addNotation(LongDiv);

@@ -548,6 +548,7 @@ void ChromeClientQt::reachedMaxAppCacheSize(int64_t)
 
 void ChromeClientQt::reachedApplicationCacheOriginQuota(SecurityOrigin* origin, int64_t totalSpaceNeeded)
 {
+#if 0 // FIXME: no ApplicationCacheStorage::singleton() any more
     int64_t quota;
     auto& applicationCacheStorage = ApplicationCacheStorage::singleton();
     quint64 defaultOriginQuota = applicationCacheStorage.defaultOriginQuota();
@@ -559,6 +560,7 @@ void ChromeClientQt::reachedApplicationCacheOriginQuota(SecurityOrigin* origin, 
         applicationCacheStorage.storeUpdatedQuotaForOrigin(origin, defaultOriginQuota);
 
     m_webPage->applicationCacheQuotaExceeded(securityOrigin, defaultOriginQuota, static_cast<quint64>(totalSpaceNeeded));
+#endif
 }
 
 #if ENABLE(INPUT_TYPE_COLOR)

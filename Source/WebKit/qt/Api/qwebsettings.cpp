@@ -186,10 +186,6 @@ void QWebSettingsPrivate::apply()
         value = attributes.value(QWebSettings::MediaEnabled, global->attributes.value(QWebSettings::MediaEnabled));
         settings->setMediaEnabled(value);
 
-        value = attributes.value(QWebSettings::CSSRegionsEnabled,
-                                 global->attributes.value(QWebSettings::CSSRegionsEnabled));
-        WebCore::RuntimeEnabledFeatures::sharedFeatures().setCSSRegionsEnabled(value);
-
         value = attributes.value(QWebSettings::HyperlinkAuditingEnabled,
                                  global->attributes.value(QWebSettings::HyperlinkAuditingEnabled));
 
@@ -1200,7 +1196,8 @@ qint64 QWebSettings::offlineStorageDefaultQuota()
 void QWebSettings::setOfflineWebApplicationCachePath(const QString& path)
 {
     WebCore::initializeWebCoreQt();
-    WebCore::ApplicationCacheStorage::singleton().setCacheDirectory(path);
+    // FIXME: no singleton() any more
+    // WebCore::ApplicationCacheStorage::singleton().setCacheDirectory(path);
 }
 
 /*!
@@ -1214,7 +1211,9 @@ void QWebSettings::setOfflineWebApplicationCachePath(const QString& path)
 QString QWebSettings::offlineWebApplicationCachePath()
 {
     WebCore::initializeWebCoreQt();
-    return WebCore::ApplicationCacheStorage::singleton().cacheDirectory();
+    // FIXME: no singleton() any more
+    // return WebCore::ApplicationCacheStorage::singleton().cacheDirectory();
+    return QString();
 }
 
 /*!
@@ -1226,10 +1225,11 @@ QString QWebSettings::offlineWebApplicationCachePath()
 void QWebSettings::setOfflineWebApplicationCacheQuota(qint64 maximumSize)
 {
     WebCore::initializeWebCoreQt();
-    auto& applicationCacheStorage = WebCore::ApplicationCacheStorage::singleton();
-    applicationCacheStorage.empty();
-    applicationCacheStorage.vacuumDatabaseFile();
-    applicationCacheStorage.setMaximumSize(maximumSize);
+    // FIXME: no singleton() any more
+    // auto& applicationCacheStorage = WebCore::ApplicationCacheStorage::singleton();
+    // applicationCacheStorage.empty();
+    // applicationCacheStorage.vacuumDatabaseFile();
+    // applicationCacheStorage.setMaximumSize(maximumSize);
 }
 
 /*!
@@ -1240,7 +1240,9 @@ void QWebSettings::setOfflineWebApplicationCacheQuota(qint64 maximumSize)
 qint64 QWebSettings::offlineWebApplicationCacheQuota()
 {
     WebCore::initializeWebCoreQt();
-    return WebCore::ApplicationCacheStorage::singleton().maximumSize();
+    // FIXME: no singleton() any more
+    // return WebCore::ApplicationCacheStorage::singleton().maximumSize();
+    return 0;
 }
 
 /*!

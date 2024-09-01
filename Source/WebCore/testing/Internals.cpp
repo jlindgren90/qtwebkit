@@ -1344,7 +1344,7 @@ void Internals::setDelegatesScrolling(bool enabled, ExceptionCode& ec)
 }
 
 #if ENABLE(TOUCH_ADJUSTMENT)
-PassRefPtr<WebKitPoint> Internals::touchPositionAdjustedToBestClickableNode(long x, long y, long width, long height, ExceptionCode& ec)
+RefPtr<WebKitPoint> Internals::touchPositionAdjustedToBestClickableNode(long x, long y, long width, long height, ExceptionCode& ec)
 {
     Document* document = contextDocument();
     if (!document || !document->frame()) {
@@ -1382,7 +1382,7 @@ Node* Internals::touchNodeAdjustedToBestClickableNode(long x, long y, long width
     return targetNode;
 }
 
-PassRefPtr<WebKitPoint> Internals::touchPositionAdjustedToBestContextMenuNode(long x, long y, long width, long height, ExceptionCode& ec)
+RefPtr<WebKitPoint> Internals::touchPositionAdjustedToBestContextMenuNode(long x, long y, long width, long height, ExceptionCode& ec)
 {
     Document* document = contextDocument();
     if (!document || !document->frame()) {
@@ -1420,7 +1420,7 @@ Node* Internals::touchNodeAdjustedToBestContextMenuNode(long x, long y, long wid
     return targetNode;
 }
 
-PassRefPtr<ClientRect> Internals::bestZoomableAreaForTouchPoint(long x, long y, long width, long height, ExceptionCode& ec)
+RefPtr<ClientRect> Internals::bestZoomableAreaForTouchPoint(long x, long y, long width, long height, ExceptionCode& ec)
 {
     Document* document = contextDocument();
     if (!document || !document->frame()) {

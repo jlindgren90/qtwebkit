@@ -42,6 +42,8 @@
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
+#undef WindingRule // defined by X11
+
 namespace WebCore {
 
 class CanvasGradient;
