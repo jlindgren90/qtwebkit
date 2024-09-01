@@ -1,5 +1,3 @@
-//@ skip
-// disabled for Qt
 function assert(b) {
     if (!b)
         throw new Error("bad assertion");
