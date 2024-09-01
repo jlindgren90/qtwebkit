@@ -700,7 +700,7 @@ Color BitmapImage::singlePixelSolidColor()
         return Color();
     
     ASSERT(m_frames.size());
-    m_solidColor = NativeImage::singlePixelSolidColor(m_frames[0].m_image.get());
+    m_solidColor = NativeImage::singlePixelSolidColor(m_frames[0].m_image);
     
     ASSERT(m_solidColor);
     return m_solidColor.value();

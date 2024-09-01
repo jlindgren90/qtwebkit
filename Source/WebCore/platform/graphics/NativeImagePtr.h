@@ -54,7 +54,9 @@ public:
     operator bool() const { return !isNull(); }
     bool operator!() const { return isNull(); }
 
+    const QPixmap *operator->() const { return this; }
     QPixmap *operator->() { return this; }
+    const QPixmap &operator*() const { return *this; }
     QPixmap &operator*() { return *this; }
 };
 #elif USE(CAIRO)

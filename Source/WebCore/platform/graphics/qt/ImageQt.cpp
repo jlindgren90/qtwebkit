@@ -140,6 +140,17 @@ bool FrameData::clear(bool clearMetadata)
     return false;
 }
 
+namespace NativeImage {
+
+Color singlePixelSolidColor(const NativeImagePtr& image)
+{
+    if (image->size() != QSize(1, 1))
+        return Color();
+
+    return QColor::fromRgba(image->toImage().pixel(0, 0));
+}
+
+}
 
 // ================================================
 // Image Class
@@ -165,35 +176,6 @@ void Image::drawPattern(GraphicsContext& ctxt, const FloatRect& tileRect, const 
 
     if (imageObserver())
         imageObserver()->didDraw(this);
-}
-
-BitmapImage::BitmapImage(NativeImagePtr &&pixmap, ImageObserver* observer)
-    : Image(observer)
-    , m_currentFrame(0)
-    , m_frames(0)
-    , m_repetitionCount(cAnimationNone)
-    , m_repetitionCountStatus(Unknown)
-    , m_repetitionsComplete(0)
-    , m_decodedSize(0)
-    , m_frameCount(1)
-    , m_isSolidColor(false)
-    , m_checkedForSolidColor(false)
-    , m_animationFinished(true)
-    , m_allDataReceived(true)
-    , m_haveSize(true)
-    , m_sizeAvailable(true)
-    , m_haveFrameCount(true)
-{
-    int width = pixmap->width();
-    int height = pixmap->height();
-    m_decodedSize = width * height * 4;
-    m_size = IntSize(width, height);
-
-    m_frames.grow(1);
-    m_frames[0].m_image = pixmap;
-    m_frames[0].m_hasAlpha = pixmap->hasAlpha();
-    m_frames[0].m_haveMetadata = true;
-    checkForSolidColor();
 }
 
 void BitmapImage::invalidatePlatformData()
@@ -263,8 +245,9 @@ void BitmapImage::draw(GraphicsContext& ctxt, const FloatRect& dst,
     if (!image)
         return;
 
-    if (mayFillWithSolidColor()) {
-        fillWithSolidColor(ctxt, normalizedDst, solidColor(), op);
+    Color color = singlePixelSolidColor();
+    if (color.isValid()) {
+        fillWithSolidColor(ctxt, normalizedDst, color, op);
         return;
     }
 
@@ -294,22 +277,6 @@ void BitmapImage::draw(GraphicsContext& ctxt, const FloatRect& dst,
 
     if (imageObserver())
         imageObserver()->didDraw(this);
-}
-
-void BitmapImage::checkForSolidColor()
-{
-    m_isSolidColor = false;
-    m_checkedForSolidColor = true;
-
-    if (frameCount() > 1)
-        return;
-
-    NativeImagePtr framePixmap = frameImageAtIndex(0);
-    if (!framePixmap || framePixmap->width() != 1 || framePixmap->height() != 1)
-        return;
-
-    m_isSolidColor = true;
-    m_solidColor = QColor::fromRgba(framePixmap->toImage().pixel(0, 0));
 }
 
 #if OS(WINDOWS)
