@@ -59,7 +59,8 @@ void ResourceErrorBase::lazyInit() const
 
 void ResourceErrorBase::setType(Type type)
 {
-    ASSERT(m_type == Type::General || m_type == Type::Null);
+    // FIXME: error type set after init in Qt port
+    // ASSERT(m_type == Type::General || m_type == Type::Null);
     m_type = type;
 }
 

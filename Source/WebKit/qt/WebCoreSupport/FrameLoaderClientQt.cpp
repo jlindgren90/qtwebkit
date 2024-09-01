@@ -825,7 +825,7 @@ WebCore::ResourceError FrameLoaderClientQt::cancelledError(const WebCore::Resour
 {
     ResourceError error = ResourceError("QtNetwork", QNetworkReply::OperationCanceledError, request.url(),
         QCoreApplication::translate("QWebFrame", "Request cancelled", 0));
-    error.setIsCancellation(true);
+    error.setType(ResourceError::Type::Cancellation);
     return error;
 }
 

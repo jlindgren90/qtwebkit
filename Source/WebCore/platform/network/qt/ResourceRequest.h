@@ -84,11 +84,7 @@ class NetworkingContext;
         void doUpdatePlatformHTTPBody() { }
         void doUpdateResourceHTTPBody() { }
 
-        std::unique_ptr<CrossThreadResourceRequestData> doPlatformCopyData(std::unique_ptr<CrossThreadResourceRequestData> data) const { return data; }
-        void doPlatformAdopt(std::unique_ptr<CrossThreadResourceRequestData>) { }
-    };
-
-    struct CrossThreadResourceRequestData : public CrossThreadResourceRequestDataBase {
+        void doPlatformSetAsIsolatedCopy(const ResourceRequest&) { }
     };
 
 } // namespace WebCore
