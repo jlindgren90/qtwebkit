@@ -2612,8 +2612,6 @@ webkit.org/b/149632 fast/forms/textarea-input-event.html [ Skip ]
 
 webkit.org/b/150830 fast/text/woff2.html [ Skip ]
 
-webkit.org/b/162668 fast/text/woff2-totalsfntsize.html [ Skip ]
-
 ################################################################################
 ######################### Start list of UNREVIEWED failures ########################
 ################################################################################
@@ -2817,6 +2815,8 @@ fast/history/history-length.html [ Skip ]
 fast/history/history-subframe-with-name.html [ Skip ]
 fast/history/location-replace-hash.html [ Skip ]
 fast/history/saves-state-after-fragment-nav.html [ Skip ]
+
+fast/html/marquee-scrollamount.html [ Failure ]
 
 fast/images/image-controls-basic.html [ Failure ]
 fast/images/exif-orientation-composited.html [ Failure ]

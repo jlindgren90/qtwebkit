@@ -1,6 +1,7 @@
 <Files acid3.html>
     AddHandler server-parsed .html
 </Files>
-<FilesMatch "^a$">
+<Files "a">
 ForceType "text/css; charset=utf-8"
-</FilesMatch>
+
+</Files>
