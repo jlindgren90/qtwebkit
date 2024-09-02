@@ -49,14 +49,14 @@ QtNetworkRequestData::QtNetworkRequestData(const QNetworkRequest& request, QNetw
     m_replyUuid = QUuid::createUuid().toString();
 }
 
-void QtNetworkRequestData::encode(IPC::ArgumentEncoder& encoder) const
+void QtNetworkRequestData::encode(IPC::Encoder& encoder) const
 {
     encoder << m_scheme;
     encoder << m_urlString;
     encoder << m_replyUuid;
 }
 
-bool QtNetworkRequestData::decode(IPC::ArgumentDecoder& decoder, QtNetworkRequestData& destination)
+bool QtNetworkRequestData::decode(IPC::Decoder& decoder, QtNetworkRequestData& destination)
 {
     if (!decoder.decode(destination.m_scheme))
         return false;

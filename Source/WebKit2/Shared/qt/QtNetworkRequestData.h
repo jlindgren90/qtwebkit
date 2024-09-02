@@ -30,8 +30,8 @@
 #include <wtf/text/WTFString.h>
 
 namespace IPC {
-class ArgumentEncoder;
-class ArgumentDecoder;
+class Encoder;
+class Decoder;
 };
 
 QT_BEGIN_NAMESPACE
@@ -44,8 +44,8 @@ namespace WebKit {
 struct QtNetworkRequestData {
     QtNetworkRequestData();
     QtNetworkRequestData(const QNetworkRequest&, QNetworkReply*);
-    void encode(IPC::ArgumentEncoder&) const;
-    static bool decode(IPC::ArgumentDecoder&, QtNetworkRequestData&);
+    void encode(IPC::Encoder&) const;
+    static bool decode(IPC::Decoder&, QtNetworkRequestData&);
 
     String m_scheme;
     String m_urlString;
