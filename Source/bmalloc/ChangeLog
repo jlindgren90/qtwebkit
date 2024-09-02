@@ -1,3 +1,53 @@
+2016-08-31  Filip Pizlo  <fpizlo@apple.com>
+
+        Butterflies should be allocated in Auxiliary MarkedSpace instead of CopiedSpace and we should rewrite as much of the GC as needed to make this not a regression
+        https://bugs.webkit.org/show_bug.cgi?id=160125
+
+        Reviewed by Geoffrey Garen and Keith Miller.
+        
+        I needed to tryMemalign, so I added such a thing.
+
+        * bmalloc/Allocator.cpp:
+        (bmalloc::Allocator::allocate):
+        (bmalloc::Allocator::tryAllocate):
+        (bmalloc::Allocator::allocateImpl):
+        * bmalloc/Allocator.h:
+        * bmalloc/Cache.h:
+        (bmalloc::Cache::tryAllocate):
+        * bmalloc/bmalloc.h:
+        (bmalloc::api::tryMemalign):
+
+2016-08-30  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, build fix for GCC ports
+
+        std::forward is declared in <utility> header.
+
+        * bmalloc/ScopeExit.h:
+
+2016-08-30  Geoffrey Garen  <ggaren@apple.com>
+
+        bmalloc: speed up the lock slow path
+        https://bugs.webkit.org/show_bug.cgi?id=161058
+
+        Unreviewed roll-in - with regression fixed.
+
+        Revert to using yield() instead of swtch() because very low priority
+        background tasks can cause priority inversion and deadlock. In the
+        network process, that happened with com.apple.WebKit.Cache.Storage.serialBackground.
+
+        Still a big speedup on MallocBench.
+
+        * bmalloc.xcodeproj/project.pbxproj:
+        * bmalloc/ScopeExit.h: Added.
+        (bmalloc::ScopeExit::ScopeExit):
+        (bmalloc::ScopeExit::~ScopeExit):
+        (bmalloc::makeScopeExit):
+        * bmalloc/StaticMutex.cpp:
+        (bmalloc::StaticMutex::lockSlowCase):
+        * bmalloc/StaticMutex.h:
+        (bmalloc::StaticMutex::init):
+
 2016-08-26  Geoffrey Garen  <ggaren@apple.com>
 
         Unreviewed build fix.

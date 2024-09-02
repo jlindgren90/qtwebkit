@@ -116,13 +116,33 @@ CustomElementReactionQueue::~CustomElementReactionQueue()
 
 void CustomElementReactionQueue::enqueueElementUpgrade(Element& element, JSCustomElementInterface& elementInterface)
 {
+    ASSERT(element.tagQName() == elementInterface.name());
     if (auto* queue = CustomElementReactionStack::ensureCurrentQueue())
         queue->m_items.append({CustomElementReactionQueueItem::Type::ElementUpgrade, element, elementInterface});
 }
 
+void CustomElementReactionQueue::enqueueElementUpgradeIfDefined(Element& element)
+{
+    ASSERT(element.inDocument());
+    ASSERT(element.isCustomElementUpgradeCandidate());
+    auto* window = element.document().domWindow();
+    if (!window)
+        return;
+
+    auto* registry = window->customElementRegistry();
+    if (!registry)
+        return;
+
+    auto* elementInterface = registry->findInterface(element);
+    if (!elementInterface)
+        return;
+
+    enqueueElementUpgrade(element, *elementInterface);
+}
+
 void CustomElementReactionQueue::enqueueConnectedCallbackIfNeeded(Element& element)
 {
-    ASSERT(element.isCustomElement());
+    ASSERT(element.isDefinedCustomElement());
     auto* elementInterface = element.customElementInterface();
     ASSERT(elementInterface);
     if (!elementInterface->hasConnectedCallback())
@@ -134,7 +154,7 @@ void CustomElementReactionQueue::enqueueConnectedCallbackIfNeeded(Element& eleme
 
 void CustomElementReactionQueue::enqueueDisconnectedCallbackIfNeeded(Element& element)
 {
-    ASSERT(element.isCustomElement());
+    ASSERT(element.isDefinedCustomElement());
     auto* elementInterface = element.customElementInterface();
     ASSERT(elementInterface);
     if (!elementInterface->hasDisconnectedCallback())
@@ -146,7 +166,7 @@ void CustomElementReactionQueue::enqueueDisconnectedCallbackIfNeeded(Element& el
 
 void CustomElementReactionQueue::enqueueAdoptedCallbackIfNeeded(Element& element, Document& oldDocument, Document& newDocument)
 {
-    ASSERT(element.isCustomElement());
+    ASSERT(element.isDefinedCustomElement());
     auto* elementInterface = element.customElementInterface();
     ASSERT(elementInterface);
     if (!elementInterface->hasAdoptedCallback())
@@ -158,7 +178,7 @@ void CustomElementReactionQueue::enqueueAdoptedCallbackIfNeeded(Element& element
 
 void CustomElementReactionQueue::enqueueAttributeChangedCallbackIfNeeded(Element& element, const QualifiedName& attributeName, const AtomicString& oldValue, const AtomicString& newValue)
 {
-    ASSERT(element.isCustomElement());
+    ASSERT(element.isDefinedCustomElement());
     auto* elementInterface = element.customElementInterface();
     ASSERT(elementInterface);
     if (!elementInterface->observesAttribute(attributeName.localName()))

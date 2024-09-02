@@ -346,7 +346,9 @@ const SymbolType = 7
 const ObjectType = 20
 const FinalObjectType = 21
 const JSFunctionType = 23
-const ArrayType = 29
+const ArrayType = 31
+const DerivedArrayType = 32
+const ProxyObjectType = 116
 
 # The typed array types need to be numbered in a particular order because of the manually written
 # switch statement in get_by_val and put_by_val.
@@ -1068,24 +1070,6 @@ macro functionInitialization(profileArgSkip)
 .argumentProfileDone:
 end
 
-macro allocateJSObject(allocator, structure, result, scratch1, slowCase)
-    const offsetOfFirstFreeCell = 
-        MarkedAllocator::m_freeList + 
-        MarkedBlock::FreeList::head
-
-    # Get the object from the free list.   
-    loadp offsetOfFirstFreeCell[allocator], result
-    btpz result, slowCase
-    
-    # Remove the object from the free list.
-    loadp [result], scratch1
-    storep scratch1, offsetOfFirstFreeCell[allocator]
-
-    # Initialize the object.
-    storep 0, JSObject::m_butterfly[result]
-    storeStructureWithTypeInfo(result, structure, scratch1)
-end
-
 macro doReturn()
     restoreCalleeSavesUsedByLLInt()
     restoreCallerPCAndCFR()
@@ -1305,6 +1289,18 @@ _llint_op_create_cloned_arguments:
     traceExecution()
     callOpcodeSlowPath(_slow_path_create_cloned_arguments)
     dispatch(2)
+
+
+_llint_op_create_this:
+    traceExecution()
+    callOpcodeSlowPath(_slow_path_create_this)
+    dispatch(5)
+
+
+_llint_op_new_object:
+    traceExecution()
+    callOpcodeSlowPath(_llint_slow_path_new_object)
+    dispatch(4)
 
 
 _llint_op_new_func:
@@ -1806,12 +1802,12 @@ _llint_op_instanceof:
 _llint_op_get_by_id_with_this:
     traceExecution()
     callOpcodeSlowPath(_slow_path_get_by_id_with_this)
-    dispatch(5)
+    dispatch(6)
 
 _llint_op_get_by_val_with_this:
     traceExecution()
     callOpcodeSlowPath(_slow_path_get_by_val_with_this)
-    dispatch(5)
+    dispatch(6)
 
 _llint_op_put_by_id_with_this:
     traceExecution()

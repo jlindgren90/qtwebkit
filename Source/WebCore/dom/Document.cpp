@@ -103,7 +103,6 @@
 #include "InspectorInstrumentation.h"
 #include "JSCustomElementInterface.h"
 #include "JSLazyEventListener.h"
-#include "JSModuleLoader.h"
 #include "KeyboardEvent.h"
 #include "Language.h"
 #include "LoaderStrategy.h"
@@ -153,6 +152,7 @@
 #include "SchemeRegistry.h"
 #include "ScopedEventQueue.h"
 #include "ScriptController.h"
+#include "ScriptModuleLoader.h"
 #include "ScriptRunner.h"
 #include "ScriptSourceCode.h"
 #include "ScrollingCoordinator.h"
@@ -242,10 +242,6 @@
 #if ENABLE(REQUEST_ANIMATION_FRAME)
 #include "RequestAnimationFrameCallback.h"
 #include "ScriptedAnimationController.h"
-#endif
-
-#if ENABLE(TEXT_AUTOSIZING)
-#include "TextAutosizer.h"
 #endif
 
 #if ENABLE(TOUCH_EVENTS)
@@ -480,7 +476,7 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
     , m_startTime(std::chrono::steady_clock::now())
     , m_overMinimumLayoutThreshold(false)
     , m_scriptRunner(std::make_unique<ScriptRunner>(*this))
-    , m_moduleLoader(std::make_unique<JSModuleLoader>(*this))
+    , m_moduleLoader(std::make_unique<ScriptModuleLoader>(*this))
     , m_xmlVersion(ASCIILiteral("1.0"))
     , m_xmlStandalone(StandaloneUnspecified)
     , m_hasXMLDeclaration(false)
@@ -554,10 +550,6 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
         setURL(url);
 
     m_cachedResourceLoader->setDocument(this);
-
-#if ENABLE(TEXT_AUTOSIZING)
-    m_textAutosizer = std::make_unique<TextAutosizer>(this);
-#endif
 
     resetLinkColor();
     resetVisitedLinkColor();
@@ -877,17 +869,16 @@ void Document::childrenChanged(const ChildChange& change)
 }
 
 #if ENABLE(CUSTOM_ELEMENTS)
-static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document& document, DOMWindow* window, const QualifiedName& name)
+static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document& document, const QualifiedName& name)
 {
-    if (!window || !RuntimeEnabledFeatures::sharedFeatures().customElementsEnabled())
+    if (!RuntimeEnabledFeatures::sharedFeatures().customElementsEnabled())
         return nullptr;
 
     if (Document::validateCustomElementName(name.localName()) != CustomElementNameValidationStatus::Valid)
         return nullptr;
 
     auto element = HTMLElement::create(name, document);
-    element->setIsUnresolvedCustomElement();
-    window->ensureCustomElementRegistry().addUpgradeCandidate(element.get());
+    element->setIsCustomElementUpgradeCandidate();
     return WTFMove(element);
 }
 #endif
@@ -917,7 +908,7 @@ static RefPtr<Element> createHTMLElementWithNameValidation(Document& document, c
     QualifiedName qualifiedName(nullAtom, localName, xhtmlNamespaceURI);
 
 #if ENABLE(CUSTOM_ELEMENTS)
-    if (auto element = createUpgradeCandidateElement(document, window, qualifiedName))
+    if (auto element = createUpgradeCandidateElement(document, qualifiedName))
         return WTFMove(element);
 #endif
 
@@ -1088,14 +1079,14 @@ static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const Qual
         if (UNLIKELY(registry)) {
             if (auto* elementInterface = registry->findInterface(name)) {
                 auto element = HTMLElement::create(name, document);
-                element->setIsUnresolvedCustomElement();
+                element->setIsCustomElementUpgradeCandidate();
                 CustomElementReactionQueue::enqueueElementUpgrade(element.get(), *elementInterface);
                 return element;
             }
         }
     }
     // FIXME: Should we also check the equality of prefix between the custom element and name?
-    if (auto element = createUpgradeCandidateElement(document, window, name))
+    if (auto element = createUpgradeCandidateElement(document, name))
         return element.releaseNonNull();
 #endif
     return HTMLUnknownElement::create(name, document);
@@ -1344,7 +1335,7 @@ String Document::characterSetWithUTF8Fallback() const
     return UTF8Encoding().domName();
 }
 
-String Document::defaultCharsetForBindings() const
+String Document::defaultCharsetForLegacyBindings() const
 {
     if (Settings* settings = this->settings())
         return settings->defaultTextEncodingName();
@@ -1370,11 +1361,6 @@ void Document::setContentLanguage(const String& language)
 
 void Document::setXMLVersion(const String& version, ExceptionCode& ec)
 {
-    if (!implementation().hasFeature("XML", String())) {
-        ec = NOT_SUPPORTED_ERR;
-        return;
-    }
-
     if (!XMLDocumentParser::supportsXMLVersion(version)) {
         ec = NOT_SUPPORTED_ERR;
         return;
@@ -1383,13 +1369,8 @@ void Document::setXMLVersion(const String& version, ExceptionCode& ec)
     m_xmlVersion = version;
 }
 
-void Document::setXMLStandalone(bool standalone, ExceptionCode& ec)
+void Document::setXMLStandalone(bool standalone)
 {
-    if (!implementation().hasFeature("XML", String())) {
-        ec = NOT_SUPPORTED_ERR;
-        return;
-    }
-
     m_xmlStandalone = standalone ? Standalone : NotStandalone;
 }
 
@@ -1820,9 +1801,7 @@ void Document::scheduleForcedStyleRecalc()
 
 void Document::scheduleStyleRecalc()
 {
-    ASSERT(!m_renderView || !m_renderView->inHitTesting());
-
-    if (m_styleRecalcTimer.isActive() || inPageCache())
+    if (m_styleRecalcTimer.isActive() || pageCacheState() != NotInPageCache)
         return;
 
     ASSERT(childNeedsStyleRecalc() || m_pendingStyleRecalcShouldForce);
@@ -2230,7 +2209,7 @@ void Document::fontsNeedUpdate(FontSelector&)
 {
     if (m_styleResolver)
         m_styleResolver->invalidateMatchedPropertiesCache();
-    if (inPageCache() || !renderView())
+    if (pageCacheState() != NotInPageCache || !renderView())
         return;
     scheduleForcedStyleRecalc();
 }
@@ -3270,7 +3249,7 @@ void Document::processHttpEquiv(const String& equiv, const String& content, bool
     case HTTPHeaderName::Refresh: {
         double delay;
         String urlString;
-        if (frame && parseHTTPRefresh(content, true, delay, urlString)) {
+        if (frame && parseMetaHTTPEquivRefresh(content, delay, urlString)) {
             URL completedURL;
             if (urlString.isEmpty())
                 completedURL = m_url;
@@ -3739,7 +3718,7 @@ static bool isNodeInSubtree(Node* node, Node* container, bool amongChildrenOnly)
 
 void Document::removeFocusedNodeOfSubtree(Node* node, bool amongChildrenOnly)
 {
-    if (!m_focusedElement || this->inPageCache()) // If the document is in the page cache, then we don't need to clear out the focused node.
+    if (!m_focusedElement || pageCacheState() != NotInPageCache) // If the document is in the page cache, then we don't need to clear out the focused node.
         return;
 
     Element* focusedElement = node->treeScope().focusedElement();
@@ -3801,7 +3780,7 @@ bool Document::setFocusedElement(Element* element, FocusDirection direction, Foc
     if (m_focusedElement == newFocusedElement)
         return true;
 
-    if (inPageCache())
+    if (pageCacheState() != NotInPageCache)
         return false;
 
     bool focusChangeBlocked = false;
@@ -4211,7 +4190,7 @@ void Document::takeDOMWindowFrom(Document* document)
     ASSERT(!m_domWindow);
     ASSERT(document->m_domWindow);
     // A valid DOMWindow is needed by CachedFrame for its documents.
-    ASSERT(!document->inPageCache());
+    ASSERT(pageCacheState() == NotInPageCache);
 
     m_domWindow = WTFMove(document->m_domWindow);
     m_domWindow->didSecureTransitionTo(this);
@@ -5083,7 +5062,7 @@ Document& Document::topDocument() const
 {
     // FIXME: This special-casing avoids incorrectly determined top documents during the process
     // of AXObjectCache teardown or notification posting for cached or being-destroyed documents.
-    if (!inPageCache() && !m_renderTreeBeingDestroyed) {
+    if (pageCacheState() == NotInPageCache && !m_renderTreeBeingDestroyed) {
         if (!m_frame)
             return const_cast<Document&>(*this);
         // This should always be non-null.
@@ -5993,7 +5972,7 @@ static void unwrapFullScreenRenderer(RenderFullScreen* fullScreenRenderer, Eleme
 
 void Document::webkitWillEnterFullScreenForElement(Element* element)
 {
-    if (!hasLivingRenderTree() || inPageCache())
+    if (!hasLivingRenderTree() || pageCacheState() != NotInPageCache)
         return;
 
     ASSERT(element);
@@ -6040,7 +6019,7 @@ void Document::webkitDidEnterFullScreenForElement(Element*)
     if (!m_fullScreenElement)
         return;
 
-    if (!hasLivingRenderTree() || inPageCache())
+    if (!hasLivingRenderTree() || pageCacheState() != NotInPageCache)
         return;
 
     m_fullScreenElement->didBecomeFullscreenElement();
@@ -6053,7 +6032,7 @@ void Document::webkitWillExitFullScreenForElement(Element*)
     if (!m_fullScreenElement)
         return;
 
-    if (!hasLivingRenderTree() || inPageCache())
+    if (!hasLivingRenderTree() || pageCacheState() != NotInPageCache)
         return;
 
     m_fullScreenElement->willStopBeingFullscreenElement();
@@ -6064,7 +6043,7 @@ void Document::webkitDidExitFullScreenForElement(Element*)
     if (!m_fullScreenElement)
         return;
 
-    if (!hasLivingRenderTree() || inPageCache())
+    if (!hasLivingRenderTree() || pageCacheState() != NotInPageCache)
         return;
 
     m_fullScreenElement->setContainsFullScreenElementOnAncestorsCrossingFrameBoundaries(false);

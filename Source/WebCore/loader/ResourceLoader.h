@@ -149,6 +149,7 @@ public:
     void unschedule(WTF::SchedulePair&);
 #endif
 
+    const Frame* frame() const { return m_frame.get(); }
     WEBCORE_EXPORT bool isAlwaysOnLoggingAllowed() const;
 
 protected:

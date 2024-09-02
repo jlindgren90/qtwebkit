@@ -60,8 +60,8 @@
 
 using namespace WebCore;
 
-#define RELEASE_LOG_IF_ALLOWED(...) RELEASE_LOG_IF(loadParameters.sessionID.isAlwaysOnLoggingAllowed(), __VA_ARGS__)
-#define RELEASE_LOG_ERROR_IF_ALLOWED(...) RELEASE_LOG_ERROR_IF(loadParameters.sessionID.isAlwaysOnLoggingAllowed(), __VA_ARGS__)
+#define RELEASE_LOG_IF_ALLOWED(fmt, ...) RELEASE_LOG_IF(loadParameters.sessionID.isAlwaysOnLoggingAllowed(), Network, "%p - WebLoaderStrategy::" fmt, this, ##__VA_ARGS__)
+#define RELEASE_LOG_ERROR_IF_ALLOWED(fmt, ...) RELEASE_LOG_ERROR_IF(loadParameters.sessionID.isAlwaysOnLoggingAllowed(), Network, "%p - WebLoaderStrategy::" fmt, this, ##__VA_ARGS__)
 
 namespace WebKit {
 
@@ -113,7 +113,6 @@ static std::chrono::milliseconds maximumBufferingTime(CachedResource* resource)
     case CachedResource::MainResource:
     case CachedResource::RawResource:
     case CachedResource::SVGDocumentResource:
-    case CachedResource::LinkPreload:
 #if ENABLE(LINK_PREFETCH)
     case CachedResource::LinkPrefetch:
     case CachedResource::LinkSubresource:
@@ -143,19 +142,24 @@ void WebLoaderStrategy::scheduleLoad(ResourceLoader& resourceLoader, CachedResou
     WebFrame* webFrame = webFrameLoaderClient ? webFrameLoaderClient->webFrame() : nullptr;
     WebPage* webPage = webFrame ? webFrame->page() : nullptr;
 
+    WebResourceLoader::TrackingParameters trackingParameters;
+    trackingParameters.pageID = webPage ? webPage->pageID() : 0;
+    trackingParameters.frameID = webFrame ? webFrame->frameID() : 0;
+    trackingParameters.resourceID = identifier;
+
 #if ENABLE(WEB_ARCHIVE) || ENABLE(MHTML)
     // If the DocumentLoader schedules this as an archive resource load,
     // then we should remember the ResourceLoader in our records but not schedule it in the NetworkProcess.
     if (resourceLoader.documentLoader()->scheduleArchiveLoad(resourceLoader, resourceLoader.request())) {
         LOG(NetworkScheduling, "(WebProcess) WebLoaderStrategy::scheduleLoad, url '%s' will be handled as an archive resource.", resourceLoader.url().string().utf8().data());
-        m_webResourceLoaders.set(identifier, WebResourceLoader::create(resourceLoader));
+        m_webResourceLoaders.set(identifier, WebResourceLoader::create(resourceLoader, trackingParameters));
         return;
     }
 #endif
 
     if (resourceLoader.documentLoader()->applicationCacheHost()->maybeLoadResource(resourceLoader, resourceLoader.request(), resourceLoader.request().url())) {
         LOG(NetworkScheduling, "(WebProcess) WebLoaderStrategy::scheduleLoad, url '%s' will be loaded from application cache.", resourceLoader.url().string().utf8().data());
-        m_webResourceLoaders.set(identifier, WebResourceLoader::create(resourceLoader));
+        m_webResourceLoaders.set(identifier, WebResourceLoader::create(resourceLoader, trackingParameters));
         return;
     }
 
@@ -214,15 +218,15 @@ void WebLoaderStrategy::scheduleLoad(ResourceLoader& resourceLoader, CachedResou
     ASSERT((loadParameters.webPageID && loadParameters.webFrameID) || loadParameters.clientCredentialPolicy == ClientCredentialPolicy::CannotAskClientForCredentials);
 
     if (!WebProcess::singleton().networkConnection().connection().send(Messages::NetworkConnectionToWebProcess::ScheduleResourceLoad(loadParameters), 0)) {
-        RELEASE_LOG_ERROR_IF_ALLOWED("WebLoaderStrategy::scheduleLoad: Unable to schedule resource with the NetworkProcess with priority = %d, pageID = %llu, frameID = %llu", static_cast<int>(resourceLoader.request().priority()), static_cast<unsigned long long>(loadParameters.webPageID), static_cast<unsigned long long>(loadParameters.webFrameID));
+        RELEASE_LOG_ERROR_IF_ALLOWED("scheduleLoad: Unable to schedule resource with the NetworkProcess (frame = %p, priority = %d, pageID = %llu, frameID = %llu, resourceID = %llu)", resourceLoader.frame(), static_cast<int>(resourceLoader.request().priority()), loadParameters.webPageID, loadParameters.identifier, loadParameters.webFrameID);
         // We probably failed to schedule this load with the NetworkProcess because it had crashed.
         // This load will never succeed so we will schedule it to fail asynchronously.
         scheduleInternallyFailedLoad(resourceLoader);
         return;
     }
 
-    auto webResourceLoader = WebResourceLoader::create(resourceLoader);
-    RELEASE_LOG_IF_ALLOWED("WebLoaderStrategy::scheduleLoad: Resource will be scheduled with the NetworkProcess with priority = %d, pageID = %llu, frameID = %llu, WebResourceLoader = %p", static_cast<int>(resourceLoader.request().priority()), static_cast<unsigned long long>(loadParameters.webPageID), static_cast<unsigned long long>(loadParameters.webFrameID), webResourceLoader.ptr());
+    auto webResourceLoader = WebResourceLoader::create(resourceLoader, trackingParameters);
+    RELEASE_LOG_IF_ALLOWED("scheduleLoad: Resource has been queued for scheduling with the NetworkProcess (frame = %p, priority = %d, pageID = %llu, frameID = %llu, resourceID = %llu, WebResourceLoader = %p)", resourceLoader.frame(), static_cast<int>(resourceLoader.request().priority()), loadParameters.webPageID, loadParameters.webFrameID, loadParameters.identifier, webResourceLoader.ptr());
     m_webResourceLoaders.set(identifier, WTFMove(webResourceLoader));
 }
 
@@ -244,7 +248,7 @@ void WebLoaderStrategy::internallyFailedLoadTimerFired()
 void WebLoaderStrategy::startLocalLoad(WebCore::ResourceLoader& resourceLoader)
 {
     resourceLoader.start();
-    m_webResourceLoaders.set(resourceLoader.identifier(), WebResourceLoader::create(resourceLoader));
+    m_webResourceLoaders.set(resourceLoader.identifier(), WebResourceLoader::create(resourceLoader, { }));
 }
 
 void WebLoaderStrategy::remove(ResourceLoader* resourceLoader)

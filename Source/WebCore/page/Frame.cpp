@@ -110,6 +110,7 @@
 #include <bindings/ScriptValue.h>
 #include <wtf/RefCountedLeakCounter.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/text/StringBuilder.h>
 #include <yarr/RegularExpression.h>
 
 #if PLATFORM(IOS)
@@ -267,11 +268,6 @@ void Frame::setDocument(RefPtr<Document>&& newDocument)
 {
     ASSERT(!newDocument || newDocument->frame() == this);
 
-    if (m_documentIsBeingReplaced)
-        return;
-
-    m_documentIsBeingReplaced = true;
-    
     if (m_doc && m_doc->pageCacheState() != Document::InPageCache)
         m_doc->prepareForDestruction();
 

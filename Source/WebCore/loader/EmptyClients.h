@@ -296,7 +296,7 @@ public:
     void dispatchDidReceiveIcon() override { }
     void dispatchDidStartProvisionalLoad() override { }
     void dispatchDidReceiveTitle(const StringWithDirection&) override { }
-    void dispatchDidCommitLoad() override { }
+    void dispatchDidCommitLoad(Optional<HasInsecureContent>) override { }
     void dispatchDidFailProvisionalLoad(const ResourceError&) override { }
     void dispatchDidFailLoad(const ResourceError&) override { }
     void dispatchDidFinishDocumentLoad() override { }
@@ -466,6 +466,7 @@ public:
     void respondToChangedContents() override { }
     void respondToChangedSelection(Frame*) override { }
     void didChangeSelectionAndUpdateLayout() override { }
+    void updateEditorStateAfterLayoutIfEditabilityChanged() override { }
     void discardedComposition(Frame*) override { }
     void didEndEditing() override { }
     void willWriteSelectionToPasteboard(Range*) override { }

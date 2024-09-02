@@ -94,6 +94,7 @@ inline CapabilityLevel canCompile(Node* node)
     case ArithAbs:
     case ArithSin:
     case ArithCos:
+    case ArithTan:
     case ArithPow:
     case ArithRandom:
     case ArithRound:
@@ -179,16 +180,20 @@ inline CapabilityLevel canCompile(Node* node)
     case Throw:
     case ThrowReferenceError:
     case Unreachable:
-    case IsJSArray:
+    case In:
+    case HasOwnProperty:
+    case IsCellWithType:
+    case MapHash:
+    case GetMapBucket:
+    case LoadFromJSMapBucket:
+    case IsNonEmptyMapBucket:
     case IsEmpty:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
-    case IsString:
     case IsObject:
     case IsObjectOrNull:
     case IsFunction:
-    case IsRegExpObject:
     case IsTypedArrayView:
     case CheckTypeInfoFlags:
     case OverridesHasInstance:
@@ -204,6 +209,7 @@ inline CapabilityLevel canCompile(Node* node)
     case HasStructureProperty:
     case GetDirectPname:
     case GetEnumerableLength:
+    case GetIndexedPropertyStorage:
     case GetPropertyEnumerator:
     case GetEnumeratorStructurePname:
     case GetEnumeratorGenericPname:
@@ -224,6 +230,10 @@ inline CapabilityLevel canCompile(Node* node)
     case ForwardVarargs:
     case Switch:
     case TypeOf:
+    case PutById:
+    case PutByIdDirect:
+    case PutByIdFlush:
+    case PutByIdWithThis:
     case PutGetterById:
     case PutSetterById:
     case PutGetterSetterById:
@@ -247,6 +257,10 @@ inline CapabilityLevel canCompile(Node* node)
     case PutDynamicVar:
     case CompareEq:
     case CompareEqPtr:
+    case CompareLess:
+    case CompareLessEq:
+    case CompareGreater:
+    case CompareGreaterEq:
     case CompareStrictEq:
         // These are OK.
         break;
@@ -257,24 +271,6 @@ inline CapabilityLevel canCompile(Node* node)
         // case because it would prevent us from catching bugs where the FTL backend
         // pipeline failed to optimize out an Identity.
         break;
-    case In:
-        if (node->child2().useKind() == CellUse)
-            break;
-        return CannotCompile;
-    case PutByIdDirect:
-    case PutById:
-    case PutByIdFlush:
-        if (node->child1().useKind() == CellUse)
-            break;
-        return CannotCompile;
-    case PutByIdWithThis:
-        break;
-    case GetIndexedPropertyStorage:
-        if (node->arrayMode().type() == Array::String)
-            break;
-        if (isTypedView(node->arrayMode().typedArrayType()))
-            break;
-        return CannotCompile;
     case CheckArray:
         switch (node->arrayMode().type()) {
         case Array::Int32:
@@ -291,6 +287,7 @@ inline CapabilityLevel canCompile(Node* node)
         break;
     case GetArrayLength:
         switch (node->arrayMode().type()) {
+        case Array::Undecided:
         case Array::Int32:
         case Array::Double:
         case Array::Contiguous:
@@ -364,23 +361,6 @@ inline CapabilityLevel canCompile(Node* node)
             return CannotCompile;
         }
         break;
-    case CompareLess:
-    case CompareLessEq:
-    case CompareGreater:
-    case CompareGreaterEq:
-        if (node->isBinaryUseKind(Int32Use))
-            break;
-        if (node->isBinaryUseKind(Int52RepUse))
-            break;
-        if (node->isBinaryUseKind(DoubleRepUse))
-            break;
-        if (node->isBinaryUseKind(StringIdentUse))
-            break;
-        if (node->isBinaryUseKind(StringUse))
-            break;
-        if (node->isBinaryUseKind(UntypedUse))
-            break;
-        return CannotCompile;
     default:
         // Don't know how to handle anything else.
         return CannotCompile;
@@ -441,6 +421,7 @@ CapabilityLevel canCompile(Graph& graph)
                 case KnownCellUse:
                 case CellOrOtherUse:
                 case ObjectUse:
+                case ArrayUse:
                 case FunctionUse:
                 case ObjectOrOtherUse:
                 case StringUse:
@@ -450,8 +431,12 @@ CapabilityLevel canCompile(Graph& graph)
                 case StringObjectUse:
                 case StringOrStringObjectUse:
                 case SymbolUse:
+                case MapObjectUse:
+                case SetObjectUse:
                 case FinalObjectUse:
                 case RegExpObjectUse:
+                case ProxyObjectUse:
+                case DerivedArrayUse:
                 case NotCellUse:
                 case OtherUse:
                 case MiscUse:

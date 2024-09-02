@@ -99,6 +99,7 @@ list(APPEND WebKit2_SOURCES
     Shared/Cocoa/CompletionHandlerCallChecker.mm
     Shared/Cocoa/DataDetectionResult.mm
     Shared/Cocoa/LoadParametersCocoa.mm
+    Shared/Cocoa/WebKit2InitializeCocoa.mm
     Shared/Cocoa/WKNSArray.mm
     Shared/Cocoa/WKNSData.mm
     Shared/Cocoa/WKNSDictionary.mm
@@ -207,6 +208,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/_WKErrorRecoveryAttempting.mm
     UIProcess/API/Cocoa/_WKExperimentalFeature.mm
     UIProcess/API/Cocoa/_WKProcessPoolConfiguration.mm
+    UIProcess/API/Cocoa/_WKRemoteWebInspectorViewController.mm
     UIProcess/API/Cocoa/_WKSessionState.mm
     UIProcess/API/Cocoa/_WKThumbnailView.mm
     UIProcess/API/Cocoa/_WKUserContentExtensionStore.mm
@@ -262,6 +264,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/mac/PageClientImpl.mm
     UIProcess/mac/RemoteLayerTreeDrawingAreaProxy.mm
     UIProcess/mac/RemoteLayerTreeHost.mm
+    UIProcess/mac/RemoteWebInspectorProxyMac.mm
     UIProcess/mac/SecItemShimProxy.cpp
     UIProcess/mac/ServicesController.mm
     UIProcess/mac/TextCheckerMac.mm
@@ -276,6 +279,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/mac/WKTextFinderClient.mm
     UIProcess/mac/WKTextInputWindowController.mm
     UIProcess/mac/WKViewLayoutStrategy.mm
+    UIProcess/mac/WKWebInspectorWKWebView.mm
     UIProcess/mac/WebColorPickerMac.mm
     UIProcess/mac/WebContextMenuProxyMac.mm
     UIProcess/mac/WebCookieManagerProxyMac.mm
@@ -464,8 +468,6 @@ set(WebKit2_FORWARDING_HEADERS_FILES
 
 list(APPEND WebKit2_MESSAGES_IN_FILES
     Shared/API/Cocoa/RemoteObjectRegistry.messages.in
-
-    Shared/mac/SecItemShim.messages.in
 
     UIProcess/Cocoa/WebVideoFullscreenManagerProxy.messages.in
 

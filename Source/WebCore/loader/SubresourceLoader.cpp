@@ -244,6 +244,9 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
     ASSERT(!response.isNull());
     ASSERT(m_state == Initialized);
 
+    // We want redirect responses to be processed through willSendRequestInternal. The only exception is redirection with no Location headers.
+    ASSERT(response.httpStatusCode() < 300 || response.httpStatusCode() >= 400 || response.httpStatusCode() == 304 || !response.httpHeaderField(HTTPHeaderName::Location));
+
     // Reference the object in this method since the additional processing can do
     // anything including removing the last reference to this object; one example of this is 3266216.
     Ref<SubresourceLoader> protectedThis(*this);
@@ -275,6 +278,14 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
         MemoryCache::singleton().revalidationFailed(*m_resource);
         if (m_frame && m_frame->page())
             m_frame->page()->diagnosticLoggingClient().logDiagnosticMessageWithResult(DiagnosticLoggingKeys::cachedResourceRevalidationKey(), emptyString(), DiagnosticLoggingResultFail, ShouldSample::Yes);
+    }
+
+    String errorDescription;
+    if (!checkResponseCrossOriginAccessControl(response, errorDescription)) {
+        if (m_frame && m_frame->document())
+            m_frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, errorDescription);
+        cancel(ResourceError(String(), 0, request().url(), errorDescription, ResourceError::Type::AccessControl));
+        return;
     }
 
     m_resource->responseReceived(response);
@@ -390,7 +401,6 @@ static void logResourceLoaded(Frame* frame, CachedResource::Type type)
     case CachedResource::SVGDocumentResource:
         resourceType = DiagnosticLoggingKeys::svgDocumentKey();
         break;
-    case CachedResource::LinkPreload:
 #if ENABLE(LINK_PREFETCH)
     case CachedResource::LinkPrefetch:
     case CachedResource::LinkSubresource:
@@ -402,6 +412,15 @@ static void logResourceLoaded(Frame* frame, CachedResource::Type type)
         break;
     }
     frame->page()->diagnosticLoggingClient().logDiagnosticMessageWithValue(DiagnosticLoggingKeys::resourceKey(), DiagnosticLoggingKeys::loadedKey(), resourceType, ShouldSample::Yes);
+}
+
+bool SubresourceLoader::checkResponseCrossOriginAccessControl(const ResourceResponse& response, String& errorDescription)
+{
+    if (!m_resource->isCrossOrigin() || options().mode != FetchOptions::Mode::Cors)
+        return true;
+
+    ASSERT(m_origin);
+    return passesAccessControlCheck(response, options().allowCredentials, *m_origin, errorDescription);
 }
 
 bool SubresourceLoader::checkRedirectionCrossOriginAccessControl(const ResourceRequest& previousRequest, const ResourceResponse& redirectResponse, ResourceRequest& newRequest, String& errorMessage)

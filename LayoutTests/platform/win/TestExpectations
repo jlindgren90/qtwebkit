@@ -105,7 +105,7 @@ http/tests/misc/willCacheResponse-delegate-callback.html [ Skip ]
 # testRunner.setAlwaysAcceptCookies() is not implemented on Windows.
 http/tests/xmlhttprequest/cross-origin-cookie-storage.html [ Skip ]
 
-# TODO No Dashboard compatibility mode on Windows
+# No Dashboard compatibility mode on Windows.
 http/tests/xmlhttprequest/default-content-type-dashboard.html [ Skip ]
 http/tests/xmlhttprequest/svg-created-by-xhr-allowed-in-dashboard.html [ Skip ]
 svg/custom/embedded-svg-allowed-in-dashboard.xml [ Skip ]
@@ -383,9 +383,6 @@ fullscreen/ [ Skip ]
 
 # viewport meta tag support
 fast/viewport/ [ Skip ]
-
-# TODO Text Autosizing is not enabled
-webkit.org/b/84186 fast/text-autosizing [ Skip ]
 
 # Pre-HMTL5 parser quirks only apply to the mac port for now.
 fast/parser/pre-html5-parser-quirks.html [ Skip ]
@@ -867,6 +864,7 @@ webkit.org/b/64731 fast/history/page-cache-media-source-opened.html [ Skip ]
 webkit.org/b/64731 fast/history/page-cache-media-source-closed.html [ Skip ]
 webkit.org/b/64731 fast/history/page-cache-media-source-closed-2.html  [ Skip ]
 webkit.org/b/64731 fast/history/page-cache-removed-source-buffer.html [ Skip ]
+webkit.org/b/161906 imported/w3c/web-platform-tests/media-source [ Skip ]
 
 # These tests are for an obsolete version of the EME spec.
 fast/events/constructors/media-key-event-constructor.html [ Skip ] # [ WontFix ]
@@ -2484,7 +2482,6 @@ fast/images/animated-gif-zooming.html [ Skip ] # Timeout
 webkit.org/b/140211 fast/xsl/sort-locale.xml [ Failure ]
 
 # Image Only Failures
-fast/text-autosizing/narrow-iframe-flattened.html [ ImageOnlyFailure ]
 fast/text/international/synthesized-italic-vertical.html [ ImageOnlyFailure ]
 fast/box-shadow/box-shadow-with-zero-radius.html [ ImageOnlyFailure ]
 webkit.org/b/97026 scrollbars/corner-resizer-window-inactive.html [ ImageOnlyFailure ]

@@ -1160,6 +1160,27 @@ public:
         ASSERT(hasLoadVarargsData());
         return m_opInfo.as<LoadVarargsData*>();
     }
+
+    bool hasQueriedType()
+    {
+        return op() == IsCellWithType;
+    }
+
+    JSType queriedType()
+    {
+        static_assert(std::is_same<uint8_t, std::underlying_type<JSType>::type>::value, "Ensure that uint8_t is the underlying type for JSType.");
+        return static_cast<JSType>(m_opInfo.as<uint32_t>());
+    }
+
+    bool hasSpeculatedTypeForQuery()
+    {
+        return op() == IsCellWithType;
+    }
+
+    SpeculatedType speculatedTypeForQuery()
+    {
+        return speculationFromJSType(queriedType());
+    }
     
     bool hasResult()
     {
@@ -1395,8 +1416,10 @@ public:
         case GetDirectPname:
         case GetById:
         case GetByIdFlush:
+        case GetByIdWithThis:
         case TryGetById:
         case GetByVal:
+        case GetByValWithThis:
         case Call:
         case TailCallInlinedCaller:
         case Construct:
@@ -1419,6 +1442,7 @@ public:
         case StringReplace:
         case StringReplaceRegExp:
         case ToNumber:
+        case LoadFromJSMapBucket:
             return true;
         default:
             return false;
@@ -2055,6 +2079,16 @@ public:
     bool shouldSpeculateArray()
     {
         return isArraySpeculation(prediction());
+    }
+
+    bool shouldSpeculateProxyObject()
+    {
+        return isProxyObjectSpeculation(prediction());
+    }
+
+    bool shouldSpeculateDerivedArray()
+    {
+        return isDerivedArraySpeculation(prediction());
     }
     
     bool shouldSpeculateDirectArguments()

@@ -126,17 +126,14 @@ namespace JSC {
     macro(isBoundFunction) \
     macro(hasInstanceBoundFunction) \
     macro(instanceOf) \
-    macro(isArray) \
+    macro(isArraySlow) \
     macro(isArrayConstructor) \
     macro(isConstructor) \
     macro(isDerivedConstructor) \
-    macro(isRegExpObject) \
     macro(concatMemcpy) \
     macro(appendMemcpy) \
     macro(predictFinalLengthFromArgumunts) \
     macro(print) \
-    macro(isSet) \
-    macro(isMap) \
     macro(regExpCreate) \
     macro(SetIterator) \
     macro(setIteratorNext) \
@@ -160,7 +157,9 @@ namespace JSC {
     macro(regExpTestFast) \
     macro(stringIncludesInternal) \
     macro(stringSplitFast) \
-    macro(stringSubstrInternal)
+    macro(stringSubstrInternal) \
+    macro(makeBoundFunction) \
+    macro(hasOwnLengthProperty) \
 
 
 #define INITIALIZE_PRIVATE_TO_PUBLIC_ENTRY(name) m_privateToPublicMap.add(m_##name##PrivateName.impl(), &m_##name);

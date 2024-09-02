@@ -59,6 +59,7 @@
 #include "RenderElement.h"
 #include "ScriptController.h"
 #include "Settings.h"
+#include "SimulatedClick.h"
 #include "StyleProperties.h"
 #include "SubframeLoader.h"
 #include "Text.h"
@@ -101,7 +102,7 @@ static inline CSSValueID unicodeBidiAttributeForDirAuto(HTMLElement& element)
 
 unsigned HTMLElement::parseBorderWidthAttribute(const AtomicString& value) const
 {
-    if (Optional<int> borderWidth = parseHTMLNonNegativeInteger(value))
+    if (Optional<unsigned> borderWidth = parseHTMLNonNegativeInteger(value))
         return borderWidth.value();
 
     return hasTagName(tableTag) ? 1 : 0;
@@ -698,7 +699,7 @@ void HTMLElement::setSpellcheck(bool enable)
 
 void HTMLElement::click()
 {
-    dispatchSimulatedClickForBindings(nullptr);
+    simulateClick(*this, nullptr, SendNoEvents, DoNotShowPressedLook, SimulatedClickCreationOptions::FromBindings);
 }
 
 void HTMLElement::accessKeyAction(bool sendMouseEvents)

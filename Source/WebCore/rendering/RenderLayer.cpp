@@ -2598,7 +2598,7 @@ void RenderLayer::updateCompositingLayersAfterScroll()
 LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const LayoutRect &visibleRectRelativeToDocument, const LayoutRect &exposeRect, const ScrollAlignment& alignX, const ScrollAlignment& alignY)
 {
     // Determine the appropriate X behavior.
-    ScrollBehavior scrollX;
+    ScrollAlignment::Behavior scrollX;
     LayoutRect exposeRectX(exposeRect.x(), visibleRect.y(), exposeRect.width(), visibleRect.height());
     LayoutUnit intersectWidth = intersection(visibleRect, exposeRectX).width();
     if (intersectWidth == exposeRect.width() || intersectWidth >= MIN_INTERSECT_FOR_REVEAL)
@@ -2609,8 +2609,8 @@ LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const Lay
     else if (intersectWidth == visibleRect.width()) {
         // If the rect is bigger than the visible area, don't bother trying to center. Other alignments will work.
         scrollX = ScrollAlignment::getVisibleBehavior(alignX);
-        if (scrollX == alignCenter)
-            scrollX = noScroll;
+        if (scrollX == ScrollAlignment::Behavior::AlignCenter)
+            scrollX = ScrollAlignment::Behavior::NoScroll;
     } else if (intersectWidth > 0)
         // If the rectangle is partially visible, but not above the minimum threshold, use the specified partial behavior
         scrollX = ScrollAlignment::getPartialBehavior(alignX);
@@ -2618,22 +2618,22 @@ LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const Lay
         scrollX = ScrollAlignment::getHiddenBehavior(alignX);
     // If we're trying to align to the closest edge, and the exposeRect is further right
     // than the visibleRect, and not bigger than the visible area, then align with the right.
-    if (scrollX == alignToClosestEdge && exposeRect.maxX() > visibleRect.maxX() && exposeRect.width() < visibleRect.width())
-        scrollX = alignRight;
+    if (scrollX == ScrollAlignment::Behavior::AlignToClosestEdge && exposeRect.maxX() > visibleRect.maxX() && exposeRect.width() < visibleRect.width())
+        scrollX = ScrollAlignment::Behavior::AlignRight;
 
     // Given the X behavior, compute the X coordinate.
     LayoutUnit x;
-    if (scrollX == noScroll) 
+    if (scrollX == ScrollAlignment::Behavior::NoScroll)
         x = visibleRect.x();
-    else if (scrollX == alignRight)
+    else if (scrollX == ScrollAlignment::Behavior::AlignRight)
         x = exposeRect.maxX() - visibleRect.width();
-    else if (scrollX == alignCenter)
+    else if (scrollX == ScrollAlignment::Behavior::AlignCenter)
         x = exposeRect.x() + (exposeRect.width() - visibleRect.width()) / 2;
     else
         x = exposeRect.x();
 
     // Determine the appropriate Y behavior.
-    ScrollBehavior scrollY;
+    ScrollAlignment::Behavior scrollY;
     LayoutRect exposeRectY(visibleRect.x(), exposeRect.y(), visibleRect.width(), exposeRect.height());
     LayoutUnit intersectHeight = intersection(visibleRectRelativeToDocument, exposeRectY).height();
     if (intersectHeight == exposeRect.height())
@@ -2642,8 +2642,8 @@ LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const Lay
     else if (intersectHeight == visibleRect.height()) {
         // If the rect is bigger than the visible area, don't bother trying to center. Other alignments will work.
         scrollY = ScrollAlignment::getVisibleBehavior(alignY);
-        if (scrollY == alignCenter)
-            scrollY = noScroll;
+        if (scrollY == ScrollAlignment::Behavior::AlignCenter)
+            scrollY = ScrollAlignment::Behavior::NoScroll;
     } else if (intersectHeight > 0)
         // If the rectangle is partially visible, use the specified partial behavior
         scrollY = ScrollAlignment::getPartialBehavior(alignY);
@@ -2651,16 +2651,16 @@ LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const Lay
         scrollY = ScrollAlignment::getHiddenBehavior(alignY);
     // If we're trying to align to the closest edge, and the exposeRect is further down
     // than the visibleRect, and not bigger than the visible area, then align with the bottom.
-    if (scrollY == alignToClosestEdge && exposeRect.maxY() > visibleRect.maxY() && exposeRect.height() < visibleRect.height())
-        scrollY = alignBottom;
+    if (scrollY == ScrollAlignment::Behavior::AlignToClosestEdge && exposeRect.maxY() > visibleRect.maxY() && exposeRect.height() < visibleRect.height())
+        scrollY = ScrollAlignment::Behavior::AlignBottom;
 
     // Given the Y behavior, compute the Y coordinate.
     LayoutUnit y;
-    if (scrollY == noScroll) 
+    if (scrollY == ScrollAlignment::Behavior::NoScroll)
         y = visibleRect.y();
-    else if (scrollY == alignBottom)
+    else if (scrollY == ScrollAlignment::Behavior::AlignBottom)
         y = exposeRect.maxY() - visibleRect.height();
-    else if (scrollY == alignCenter)
+    else if (scrollY == ScrollAlignment::Behavior::AlignCenter)
         y = exposeRect.y() + (exposeRect.height() - visibleRect.height()) / 2;
     else
         y = exposeRect.y();
@@ -5726,7 +5726,8 @@ LayoutRect RenderLayer::selfClipRect() const
     LayoutRect layerBounds;
     ClipRect backgroundRect;
     ClipRect foregroundRect;
-    ClipRectsContext clipRectsContext(clippingRootLayer, PaintingClipRects);
+    auto clipRectType = !m_enclosingPaginationLayer || m_enclosingPaginationLayer == clippingRootLayer ? PaintingClipRects : TemporaryClipRects;
+    ClipRectsContext clipRectsContext(clippingRootLayer, clipRectType);
     calculateRects(clipRectsContext, renderer().view().documentRect(), layerBounds, backgroundRect, foregroundRect, offsetFromAncestor(clippingRootLayer));
     return clippingRootLayer->renderer().localToAbsoluteQuad(FloatQuad(backgroundRect.rect())).enclosingBoundingBox();
 }
@@ -5742,7 +5743,8 @@ LayoutRect RenderLayer::localClipRect(bool& clipExceedsBounds) const
     LayoutRect layerBounds;
     ClipRect backgroundRect;
     ClipRect foregroundRect;
-    ClipRectsContext clipRectsContext(clippingRootLayer, PaintingClipRects);
+    auto clipRectType = !m_enclosingPaginationLayer || m_enclosingPaginationLayer == clippingRootLayer ? PaintingClipRects : TemporaryClipRects;
+    ClipRectsContext clipRectsContext(clippingRootLayer, clipRectType);
     calculateRects(clipRectsContext, LayoutRect::infiniteRect(), layerBounds, backgroundRect, foregroundRect, offsetFromRoot);
 
     LayoutRect clipRect = backgroundRect.rect();
@@ -6464,48 +6466,50 @@ void RenderLayer::repaintIncludingNonCompositingDescendants(RenderLayerModelObje
     }
 }
 
-static bool mayCreateGraphicalGroup(const RenderElement& renderer)
+static bool createsStackingContext(const RenderLayer& layer)
 {
-    bool createsGraphicalGroup = renderer.hasClipPath()
+    auto& renderer = layer.renderer();
+    return renderer.hasTransformRelatedProperty()
+        || renderer.hasClipPath()
         || renderer.hasFilter()
+        || renderer.hasMask()
         || renderer.hasBackdropFilter()
 #if ENABLE(CSS_COMPOSITING)
         || renderer.hasBlendMode()
 #endif
         || renderer.isTransparent()
-        || renderer.hasMask();
-    return createsGraphicalGroup || (renderer.style().willChange() && renderer.style().willChange()->canCreateGraphicalGroup());
+        || renderer.isPositioned()
+        || renderer.style().hasFlowFrom()
+        || renderer.hasReflection()
+        || renderer.style().hasIsolation()
+        || layer.needsCompositedScrolling()
+#if PLATFORM(IOS)
+        || layer.hasAcceleratedTouchScrolling()
+#endif
+        || (renderer.style().willChange() && renderer.style().willChange()->canCreateStackingContext());
 }
 
 bool RenderLayer::shouldBeNormalFlowOnly() const
 {
-    return (renderer().hasOverflowClip()
-        || renderer().hasReflection()
-        || renderer().hasMask()
+    if (createsStackingContext(*this))
+        return false;
+
+    return renderer().hasOverflowClip()
         || renderer().isCanvas()
         || renderer().isVideo()
         || renderer().isEmbeddedObject()
         || renderer().isRenderIFrame()
         || (renderer().style().specifiesColumns() && !isRootLayer())
-        || renderer().isInFlowRenderFlowThread())
-        && !renderer().hasTransformRelatedProperty()
-        && !renderer().isPositioned()
-        && !needsCompositedScrolling()
-        && !renderer().style().hasFlowFrom()
-#if PLATFORM(IOS)
-        && !hasAcceleratedTouchScrolling()
-#endif
-        && !mayCreateGraphicalGroup(renderer());
+        || renderer().isInFlowRenderFlowThread();
 }
 
 bool RenderLayer::shouldBeSelfPaintingLayer() const
 {
-    return !isNormalFlowOnly()
-        || hasOverlayScrollbars()
+    if (!isNormalFlowOnly())
+        return true;
+
+    return hasOverlayScrollbars()
         || needsCompositedScrolling()
-        || isolatesBlending()
-        || renderer().hasReflection()
-        || renderer().hasMask()
         || renderer().isTableRow()
         || renderer().isCanvas()
         || renderer().isVideo()

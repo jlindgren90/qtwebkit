@@ -91,6 +91,7 @@ set(WebKit2_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/vibration"
     "${WEBCORE_DIR}/Modules/webdatabase"
     "${WEBCORE_DIR}/accessibility"
+    "${WEBCORE_DIR}/bindings/generic"
     "${WEBCORE_DIR}/bindings/js"
     "${WEBCORE_DIR}/bindings"
     "${WEBCORE_DIR}/bridge"
@@ -118,6 +119,7 @@ set(WebKit2_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform"
     "${WEBCORE_DIR}/platform/animation"
     "${WEBCORE_DIR}/platform/audio"
+    "${WEBCORE_DIR}/platform/gamepad"
     "${WEBCORE_DIR}/platform/graphics"
     "${WEBCORE_DIR}/platform/graphics/filters"
     "${WEBCORE_DIR}/platform/graphics/harfbuzz"
@@ -333,6 +335,8 @@ set(WebKit2_SOURCES
     Shared/Databases/IndexedDB/IDBUtilities.cpp
     Shared/Databases/IndexedDB/WebIDBResult.cpp
 
+    Shared/Gamepad/GamepadData.cpp
+
     Shared/Plugins/NPIdentifierData.cpp
     Shared/Plugins/NPObjectMessageReceiver.cpp
     Shared/Plugins/NPObjectProxy.cpp
@@ -354,6 +358,7 @@ set(WebKit2_SOURCES
     UIProcess/PageLoadState.cpp
     UIProcess/ProcessAssertion.cpp
     UIProcess/ProcessThrottler.cpp
+    UIProcess/RemoteWebInspectorProxy.cpp
     UIProcess/ResponsivenessTimer.cpp
     UIProcess/StatisticsRequest.cpp
     UIProcess/TextCheckerCompletion.cpp
@@ -385,6 +390,7 @@ set(WebKit2_SOURCES
     UIProcess/WebIconDatabase.cpp
     UIProcess/WebIconDatabaseClient.cpp
     UIProcess/WebInspectorProxy.cpp
+    UIProcess/WebInspectorUtilities.cpp
     UIProcess/WebNavigationState.cpp
     UIProcess/WebOpenPanelResultListenerProxy.cpp
     UIProcess/WebPageDiagnosticLoggingClient.cpp
@@ -487,6 +493,7 @@ set(WebKit2_SOURCES
     UIProcess/Downloads/DownloadProxy.cpp
     UIProcess/Downloads/DownloadProxyMap.cpp
 
+    UIProcess/Gamepad/UIGamepad.cpp
     UIProcess/Gamepad/UIGamepadProvider.cpp
 
     UIProcess/InspectorServer/HTTPRequest.cpp
@@ -642,6 +649,7 @@ set(WebKit2_SOURCES
     WebProcess/WebPage/FindController.cpp
     WebProcess/WebPage/LayerTreeHost.cpp
     WebProcess/WebPage/PageBanner.cpp
+    WebProcess/WebPage/RemoteWebInspectorUI.cpp
     WebProcess/WebPage/TapHighlightController.cpp
     WebProcess/WebPage/VisitedLinkTableController.cpp
     WebProcess/WebPage/WebBackForwardListProxy.cpp
@@ -686,6 +694,7 @@ set(WebKit2_MESSAGES_IN_FILES
     Shared/Plugins/NPObjectMessageReceiver.messages.in
 
     UIProcess/DrawingAreaProxy.messages.in
+    UIProcess/RemoteWebInspectorProxy.messages.in
     UIProcess/VisitedLinkStore.messages.in
     UIProcess/WebBatteryManagerProxy.messages.in
     UIProcess/WebCookieManagerProxy.messages.in
@@ -747,6 +756,7 @@ set(WebKit2_MESSAGES_IN_FILES
 
     WebProcess/WebPage/DrawingArea.messages.in
     WebProcess/WebPage/EventDispatcher.messages.in
+    WebProcess/WebPage/RemoteWebInspectorUI.messages.in
     WebProcess/WebPage/VisitedLinkTableController.messages.in
     WebProcess/WebPage/WebInspector.messages.in
     WebProcess/WebPage/WebInspectorUI.messages.in

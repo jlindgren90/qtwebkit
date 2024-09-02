@@ -38,6 +38,7 @@
 #include "InspectorFrontendRouter.h"
 #include "InspectorHeapAgent.h"
 #include "InspectorScriptProfilerAgent.h"
+#include "JSCInlines.h"
 #include "JSGlobalObject.h"
 #include "JSGlobalObjectConsoleAgent.h"
 #include "JSGlobalObjectConsoleClient.h"
@@ -220,7 +221,9 @@ void JSGlobalObjectInspectorController::reportAPIException(ExecState* exec, Exce
     if (isTerminatedExecutionException(exception))
         return;
 
-    ErrorHandlingScope errorScope(exec->vm());
+    VM& vm = exec->vm();
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+    ErrorHandlingScope errorScope(vm);
 
     RefPtr<ScriptCallStack> callStack = createScriptCallStackFromException(exec, exception, ScriptCallStack::maxCallStackSizeToCapture);
     if (includesNativeCallStackWhenReportingExceptions())
@@ -229,7 +232,7 @@ void JSGlobalObjectInspectorController::reportAPIException(ExecState* exec, Exce
     // FIXME: <http://webkit.org/b/115087> Web Inspector: Should not evaluate JavaScript handling exceptions
     // If this is a custom exception object, call toString on it to try and get a nice string representation for the exception.
     String errorMessage = exception->value().toString(exec)->value(exec);
-    exec->clearException();
+    scope.clearException();
 
     if (JSGlobalObjectConsoleClient::logToSystemConsole()) {
         if (callStack->size()) {

@@ -43,30 +43,33 @@ namespace WebCore {
 
 EncodedJSValue JSC_HOST_CALL constructJSFile(ExecState& exec)
 {
+    VM& vm = exec.vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     auto* constructor = jsCast<DOMConstructorObject*>(exec.callee());
     ASSERT(constructor);
 
     ScriptExecutionContext* context = constructor->scriptExecutionContext();
     if (!context)
-        return throwConstructorScriptExecutionContextUnavailableError(exec, "File");
+        return throwConstructorScriptExecutionContextUnavailableError(exec, scope, "File");
     ASSERT(context->isDocument());
 
     JSValue arg = exec.argument(0);
     if (arg.isUndefinedOrNull())
-        return throwArgumentTypeError(exec, 0, "fileBits", "File", nullptr, "sequence");
+        return throwArgumentTypeError(exec, scope, 0, "fileBits", "File", nullptr, "sequence");
 
     unsigned blobPartsLength = 0;
     JSObject* blobParts = toJSSequence(exec, arg, blobPartsLength);
-    if (exec.hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(jsUndefined());
     ASSERT(blobParts);
 
     arg = exec.argument(1);
     if (arg.isUndefined())
-        return throwArgumentTypeError(exec, 1, "filename", "File", nullptr, "DOMString");
+        return throwArgumentTypeError(exec, scope, 1, "filename", "File", nullptr, "DOMString");
 
     String filename = arg.toWTFString(&exec).replace('/', ':');
-    if (exec.hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(jsUndefined());
 
     String normalizedType;
@@ -76,7 +79,7 @@ EncodedJSValue JSC_HOST_CALL constructJSFile(ExecState& exec)
     if (!arg.isUndefinedOrNull()) {
         JSObject* filePropertyBagObject = arg.getObject();
         if (!filePropertyBagObject)
-            return throwArgumentTypeError(exec, 2, "options", "File", nullptr, "FilePropertyBag");
+            return throwArgumentTypeError(exec, scope, 2, "options", "File", nullptr, "FilePropertyBag");
 
         // Create the dictionary wrapper from the initializer object.
         JSDictionary dictionary(&exec, filePropertyBagObject);
@@ -84,7 +87,7 @@ EncodedJSValue JSC_HOST_CALL constructJSFile(ExecState& exec)
         // Attempt to get the type property.
         String type;
         dictionary.get("type", type);
-        if (exec.hadException())
+        if (UNLIKELY(scope.exception()))
             return JSValue::encode(jsUndefined());
 
         normalizedType = Blob::normalizedContentType(type);
@@ -92,7 +95,7 @@ EncodedJSValue JSC_HOST_CALL constructJSFile(ExecState& exec)
         // Only try to parse the lastModified date if there was not an invalid type argument.
         if (type.isEmpty() ||  !normalizedType.isEmpty()) {
             dictionary.get("lastModified", lastModified);
-            if (exec.hadException())
+            if (UNLIKELY(scope.exception()))
                 return JSValue::encode(jsUndefined());
         }
     }
@@ -104,7 +107,7 @@ EncodedJSValue JSC_HOST_CALL constructJSFile(ExecState& exec)
 
     for (unsigned i = 0; i < blobPartsLength; ++i) {
         JSValue item = blobParts->get(&exec, i);
-        if (exec.hadException())
+        if (UNLIKELY(scope.exception()))
             return JSValue::encode(jsUndefined());
 
         if (ArrayBuffer* arrayBuffer = toArrayBuffer(item))
@@ -115,14 +118,14 @@ EncodedJSValue JSC_HOST_CALL constructJSFile(ExecState& exec)
             blobBuilder.append(blob);
         else {
             String string = item.toWTFString(&exec);
-            if (exec.hadException())
+            if (UNLIKELY(scope.exception()))
                 return JSValue::encode(jsUndefined());
             blobBuilder.append(string, ASCIILiteral("transparent"));
         }
     }
 
     auto file = File::create(blobBuilder.finalize(), filename, normalizedType, lastModified.value());
-    return JSValue::encode(CREATE_DOM_WRAPPER(constructor->globalObject(), File, WTFMove(file)));
+    return JSValue::encode(createWrapper<File>(constructor->globalObject(), WTFMove(file)));
 }
 
 } // namespace WebCore

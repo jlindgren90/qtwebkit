@@ -1406,8 +1406,8 @@ void DocumentLoader::addSubresourceLoader(ResourceLoader* loader)
     ASSERT(!m_subresourceLoaders.contains(loader->identifier()));
     ASSERT(!mainResourceLoader() || mainResourceLoader() != loader);
 
-    // A page in the PageCache should not be able to start loads.
-    ASSERT_WITH_SECURITY_IMPLICATION(!document() || !document()->inPageCache());
+    // A page in the PageCache or about to enter PageCache should not be able to start loads.
+    ASSERT_WITH_SECURITY_IMPLICATION(!document() || document()->pageCacheState() == Document::NotInPageCache);
 
     m_subresourceLoaders.add(loader->identifier(), loader);
 }
@@ -1510,8 +1510,7 @@ void DocumentLoader::startLoadingMainResource()
     request.makeUnconditional();
 
     static NeverDestroyed<ResourceLoaderOptions> mainResourceLoadOptions(SendCallbacks, SniffContent, BufferData, AllowStoredCredentials, ClientCredentialPolicy::MayAskClientForCredentials, FetchOptions::Credentials::Include, SkipSecurityCheck, FetchOptions::Mode::NoCors, IncludeCertificateInfo, ContentSecurityPolicyImposition::DoPolicyCheck, DefersLoadingPolicy::AllowDefersLoading, CachingPolicy::AllowCaching);
-    CachedResourceRequest cachedResourceRequest(ResourceRequest(request), mainResourceLoadOptions);
-    m_mainResource = m_cachedResourceLoader->requestMainResource(cachedResourceRequest);
+    m_mainResource = m_cachedResourceLoader->requestMainResource(CachedResourceRequest(ResourceRequest(request), mainResourceLoadOptions));
 
 #if ENABLE(CONTENT_EXTENSIONS)
     if (m_mainResource && m_mainResource->errorOccurred() && m_frame->page() && m_mainResource->resourceError().domain() == ContentExtensions::WebKitContentBlockerDomain) {

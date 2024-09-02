@@ -638,7 +638,7 @@ private:
             const FastBitVector& livenessAtBytecode = fullLiveness.getLiveness(bytecodeIndex);
 
             for (unsigned local = codeBlock->m_numCalleeLocals; local--;) {
-                if (livenessAtBytecode.get(local)) {
+                if (livenessAtBytecode[local]) {
                     VirtualRegister reg = virtualRegisterForLocal(local);
                     if (inlineCallFrame)
                         reg = inlineStackEntry->remapOperand(reg);
@@ -2155,7 +2155,8 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
     case FRoundIntrinsic:
     case LogIntrinsic:
     case SinIntrinsic:
-    case SqrtIntrinsic: {
+    case SqrtIntrinsic:
+    case TanIntrinsic: {
         if (argumentCountIncludingThis == 1) {
             insertChecks();
             set(VirtualRegister(resultOperand), addToGraph(JSConstant, OpInfo(m_constantNaN)));
@@ -2178,6 +2179,9 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
             break;
         case SqrtIntrinsic:
             nodeType = ArithSqrt;
+            break;
+        case TanIntrinsic:
+            nodeType = ArithTan;
             break;
         default:
             RELEASE_ASSERT_NOT_REACHED();
@@ -2358,15 +2362,6 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
         return true;
     }
 
-    case IsRegExpObjectIntrinsic: {
-        ASSERT(argumentCountIncludingThis == 2);
-
-        insertChecks();
-        Node* isRegExpObject = addToGraph(IsRegExpObject, OpInfo(prediction), get(virtualRegisterForArgument(1, registerOffset)));
-        set(VirtualRegister(resultOperand), isRegExpObject);
-        return true;
-    }
-
     case IsTypedArrayViewIntrinsic: {
         ASSERT(argumentCountIncludingThis == 2);
 
@@ -2446,25 +2441,22 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
             set(VirtualRegister(resultOperand), addToGraph(JSConstant, OpInfo(m_constantNaN)));
             return true;
         }
-        if (argumentCountIncludingThis == 2) {
-            insertChecks();
-            Node* operand = get(virtualRegisterForArgument(1, registerOffset));
-            NodeType op;
-            if (intrinsic == RoundIntrinsic)
-                op = ArithRound;
-            else if (intrinsic == FloorIntrinsic)
-                op = ArithFloor;
-            else if (intrinsic == CeilIntrinsic)
-                op = ArithCeil;
-            else {
-                ASSERT(intrinsic == TruncIntrinsic);
-                op = ArithTrunc;
-            }
-            Node* roundNode = addToGraph(op, OpInfo(0), OpInfo(prediction), operand);
-            set(VirtualRegister(resultOperand), roundNode);
-            return true;
+        insertChecks();
+        Node* operand = get(virtualRegisterForArgument(1, registerOffset));
+        NodeType op;
+        if (intrinsic == RoundIntrinsic)
+            op = ArithRound;
+        else if (intrinsic == FloorIntrinsic)
+            op = ArithFloor;
+        else if (intrinsic == CeilIntrinsic)
+            op = ArithCeil;
+        else {
+            ASSERT(intrinsic == TruncIntrinsic);
+            op = ArithTrunc;
         }
-        return false;
+        Node* roundNode = addToGraph(op, OpInfo(0), OpInfo(prediction), operand);
+        set(VirtualRegister(resultOperand), roundNode);
+        return true;
     }
     case IMulIntrinsic: {
         if (argumentCountIncludingThis != 3)
@@ -2538,7 +2530,57 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
             set(VirtualRegister(resultOperand), get(operand));
         return true;
     }
-        
+
+    case JSMapGetIntrinsic: {
+        if (argumentCountIncludingThis != 2)
+            return false;
+
+        insertChecks();
+        Node* map = get(virtualRegisterForArgument(0, registerOffset));
+        Node* key = get(virtualRegisterForArgument(1, registerOffset));
+        Node* hash = addToGraph(MapHash, key);
+        Node* bucket = addToGraph(GetMapBucket, Edge(map, MapObjectUse), Edge(key), Edge(hash));
+        Node* result = addToGraph(LoadFromJSMapBucket, OpInfo(), OpInfo(prediction), bucket);
+        set(VirtualRegister(resultOperand), result);
+        return true;
+    }
+
+    case JSSetHasIntrinsic:
+    case JSMapHasIntrinsic: {
+        if (argumentCountIncludingThis != 2)
+            return false;
+
+        insertChecks();
+        Node* mapOrSet = get(virtualRegisterForArgument(0, registerOffset));
+        Node* key = get(virtualRegisterForArgument(1, registerOffset));
+        Node* hash = addToGraph(MapHash, key);
+        UseKind useKind = intrinsic == JSSetHasIntrinsic ? SetObjectUse : MapObjectUse;
+        Node* bucket = addToGraph(GetMapBucket, OpInfo(0), Edge(mapOrSet, useKind), Edge(key), Edge(hash));
+        Node* result = addToGraph(IsNonEmptyMapBucket, bucket);
+        set(VirtualRegister(resultOperand), result);
+        return true;
+    }
+
+    case HasOwnPropertyIntrinsic: {
+        if (argumentCountIncludingThis != 2)
+            return false;
+
+        // This can be racy, that's fine. We know that once we observe that this is created,
+        // that it will never be destroyed until the VM is destroyed. It's unlikely that
+        // we'd ever get to the point where we inline this as an intrinsic without the
+        // cache being created, however, it's possible if we always throw exceptions inside
+        // hasOwnProperty.
+        if (!m_vm->hasOwnPropertyCache())
+            return false;
+
+        insertChecks();
+        Node* object = get(virtualRegisterForArgument(0, registerOffset));
+        Node* key = get(virtualRegisterForArgument(1, registerOffset));
+        Node* result = addToGraph(HasOwnProperty, object, key);
+        set(VirtualRegister(resultOperand), result);
+        return true;
+    }
+
     default:
         return false;
     }
@@ -3936,16 +3978,11 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             NEXT_OPCODE(op_is_number);
         }
 
-        case op_is_string: {
+        case op_is_cell_with_type: {
+            JSType type = static_cast<JSType>(currentInstruction[3].u.operand);
             Node* value = get(VirtualRegister(currentInstruction[2].u.operand));
-            set(VirtualRegister(currentInstruction[1].u.operand), addToGraph(IsString, value));
-            NEXT_OPCODE(op_is_string);
-        }
-
-        case op_is_jsarray: {
-            Node* value = get(VirtualRegister(currentInstruction[2].u.operand));
-            set(VirtualRegister(currentInstruction[1].u.operand), addToGraph(IsJSArray, value));
-            NEXT_OPCODE(op_is_jsarray);
+            set(VirtualRegister(currentInstruction[1].u.operand), addToGraph(IsCellWithType, OpInfo(type), value));
+            NEXT_OPCODE(op_is_cell_with_type);
         }
 
         case op_is_object: {
@@ -4129,10 +4166,12 @@ bool ByteCodeParser::parseBlock(unsigned limit)
         }
 
         case op_get_by_val_with_this: {
+            SpeculatedType prediction = getPrediction();
+
             Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
             Node* thisValue = get(VirtualRegister(currentInstruction[3].u.operand));
             Node* property = get(VirtualRegister(currentInstruction[4].u.operand));
-            Node* getByValWithThis = addToGraph(GetByValWithThis, base, thisValue, property);
+            Node* getByValWithThis = addToGraph(GetByValWithThis, OpInfo(), OpInfo(prediction), base, thisValue, property);
             set(VirtualRegister(currentInstruction[1].u.operand), getByValWithThis);
 
             NEXT_OPCODE(op_get_by_val_with_this);
@@ -4226,12 +4265,14 @@ bool ByteCodeParser::parseBlock(unsigned limit)
                 NEXT_OPCODE(op_get_by_id);
         }
         case op_get_by_id_with_this: {
+            SpeculatedType prediction = getPrediction();
+
             Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
             Node* thisValue = get(VirtualRegister(currentInstruction[3].u.operand));
             unsigned identifierNumber = m_inlineStackTop->m_identifierRemap[currentInstruction[4].u.operand];
 
             set(VirtualRegister(currentInstruction[1].u.operand),
-                addToGraph(GetByIdWithThis, OpInfo(identifierNumber), base, thisValue));
+                addToGraph(GetByIdWithThis, OpInfo(identifierNumber), OpInfo(prediction), base, thisValue));
 
             NEXT_OPCODE(op_get_by_id_with_this);
         }

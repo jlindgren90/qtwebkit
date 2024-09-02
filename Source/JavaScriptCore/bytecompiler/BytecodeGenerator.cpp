@@ -1659,9 +1659,18 @@ RegisterID* BytecodeGenerator::emitEqualityOp(OpcodeID opcodeID, RegisterID* dst
             }
             if (value == "string") {
                 rewindUnaryOp();
-                emitOpcode(op_is_string);
+                emitOpcode(op_is_cell_with_type);
                 instructions().append(dst->index());
                 instructions().append(srcIndex);
+                instructions().append(StringType);
+                return dst;
+            }
+            if (value == "symbol") {
+                rewindUnaryOp();
+                emitOpcode(op_is_cell_with_type);
+                instructions().append(dst->index());
+                instructions().append(srcIndex);
+                instructions().append(SymbolType);
                 return dst;
             }
             if (value == "object") {
@@ -2492,11 +2501,12 @@ RegisterID* BytecodeGenerator::emitGetById(RegisterID* dst, RegisterID* base, Re
 {
     ASSERT_WITH_MESSAGE(!parseIndex(property), "Indexed properties should be handled with get_by_val.");
 
-    emitOpcode(op_get_by_id_with_this);
+    UnlinkedValueProfile profile = emitProfiledOpcode(op_get_by_id_with_this);
     instructions().append(kill(dst));
     instructions().append(base->index());
     instructions().append(thisVal->index());
     instructions().append(addConstant(property));
+    instructions().append(profile);
     return dst;
 }
 
@@ -2664,11 +2674,12 @@ RegisterID* BytecodeGenerator::emitGetByVal(RegisterID* dst, RegisterID* base, R
 
 RegisterID* BytecodeGenerator::emitGetByVal(RegisterID* dst, RegisterID* base, RegisterID* thisValue, RegisterID* property)
 {
-    emitOpcode(op_get_by_val_with_this);
+    UnlinkedValueProfile profile = emitProfiledOpcode(op_get_by_val_with_this);
     instructions().append(kill(dst));
     instructions().append(base->index());
     instructions().append(thisValue->index());
     instructions().append(property->index());
+    instructions().append(profile);
     return dst;
 }
 
@@ -4215,6 +4226,14 @@ RegisterID* BytecodeGenerator::emitToIndexString(RegisterID* dst, RegisterID* in
     return dst;
 }
 
+RegisterID* BytecodeGenerator::emitIsCellWithType(RegisterID* dst, RegisterID* src, JSType type)
+{
+    emitOpcode(op_is_cell_with_type);
+    instructions().append(dst->index());
+    instructions().append(src->index());
+    instructions().append(type);
+    return dst;
+}
 
 RegisterID* BytecodeGenerator::emitIsObject(RegisterID* dst, RegisterID* src)
 {

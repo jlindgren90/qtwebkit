@@ -231,34 +231,7 @@ webkit.org/b/61661 editing/pasteboard/drag-drop-list.html [ Failure ]
 webkit.org/b/92749 fast/dom/NavigatorContentUtils/is-protocol-handler-registered.html [ Skip ]
 
 # Tests for MediaSource API. Feature is not totally functional.
-webkit.org/b/99065 http/tests/media/media-source/mediasource-append-buffer.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-append-stream.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-appendwindow.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-buffered.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-mp4-a-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-mp4-av-audio-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-mp4-av-framesize.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-mp4-av-video-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-mp4-v-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-mp4-v-framerate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-mp4-v-framesize.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-webm-a-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-webm-av-audio-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-webm-av-framesize.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-webm-av-video-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-webm-v-bitrate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-webm-v-framerate.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-config-change-webm-v-framesize.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-duration.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-getvideoplaybackquality.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-is-type-supported.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-play.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-play-then-seek-back.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-redundant-seek.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-remove.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-seek-beyond-duration.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-seek-during-pending-seek.html [ Skip ]
-webkit.org/b/99065 http/tests/media/media-source/mediasource-sourcebuffer-mode.html [ Skip ]
+webkit.org/b/99065 imported/w3c/web-platform-tests/media-source/ [ Skip ]
 
 webkit.org/b/99065 media/media-source/media-source-append-failed.html [ Skip ]
 webkit.org/b/99065 media/media-source/media-source-multiple-initialization-segments.html [ Skip ]
@@ -362,9 +335,6 @@ webkit.org/b/79203 fast/mediastream/MediaStream-video-element-track-stop.html [ 
 webkit.org/b/151344 fast/mediastream/MediaStream-add-ended-tracks.html [ Skip ]
 webkit.org/b/151344 fast/mediastream/MediaStream-add-remove-tracks.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/mock-media-source.html [ Skip ]
-
-# Text Autosizing is not yet enabled.
-webkit.org/b/99063 fast/text-autosizing [ Skip ]
 
 # Proximity Events is not supported.
 webkit.org/b/99060 proximity [ Failure ]
@@ -730,6 +700,13 @@ security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement.h
 http/tests/media/hls/hls-accessiblity-describes-video-menu.html [ Skip ]
 http/tests/media/hls/hls-accessiblity-describes-video.html [ Skip ]
 
+# No support for font-variant-* properties in @font-face declarations
+webkit.org/b/161586 css3/font-feature-settings-font-face-rendering.html [ ImageOnlyFailure ]
+
+webkit.org/b/161962 fast/forms/implicit-submission.html [ Failure ]
+
+webkit.org/b/161960 fast/dom/HTMLLinkElement/prefetch-beforeload.html [ Failure ]
+
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of Expected failures
 #////////////////////////////////////////////////////////////////////////////////////////
@@ -819,6 +796,8 @@ webkit.org/b/153692 imported/blink/fast/css/first-letter-float-block.html [ Cras
 webkit.org/b/117756 media/track/media-element-enqueue-event-crash.html [ Timeout Pass Crash ]
 
 webkit.org/b/153937 http/tests/misc/detach-during-notifyDone.html [ Crash Pass ]
+
+webkit.org/b/161956 fast/mediastream/MediaStream-video-element-displays-buffer.html [ Timeout ]
 
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of Crashing tests
@@ -963,8 +942,6 @@ webkit.org/b/119041 css3/calc/img-size.html [ ImageOnlyFailure Pass ]
 # These tests started to time out (or time out more often) since the FTL merge
 webkit.org/b/119253 [ Release ] css3/autoclose-braces-and-parentheses.html [ Timeout Pass ]
 webkit.org/b/119253 [ Debug ] js/dfg-osr-entry-hoisted-clobbered-structure-check.html [ Timeout Pass ]
-webkit.org/b/119253 [ Debug ] js/regress/nested-function-parsing.html [ Timeout Pass ]
-webkit.org/b/119253 [ Debug ] js/regress/new-array-buffer-dead.html [ Timeout Pass ]
 webkit.org/b/119253 [ Debug ] fast/media/update-media-query-css-parser.html [ Timeout Pass ]
 webkit.org/b/119253 fast/workers/dedicated-worker-lifecycle.html [ Timeout Pass ]
 
@@ -1404,7 +1381,6 @@ Bug(GTK) [ Debug ] js/dfg-uint8clampedarray.html [ Pass Slow ]
 Bug(GTK) [ Debug ] js/dom/random-array-gc-stress.html [ Pass Slow ]
 Bug(GTK) js/dom/string-replacement-outofmemory.html [ Pass Slow ]
 Bug(GTK) [ Debug ] js/dom/toString-and-valueOf-override.html [ Pass Slow ]
-Bug(GTK) [ Debug ] js/regress/method-on-number.html [ Pass Slow ]
 Bug(GTK) jquery/event.html [ Pass Slow ]
 Bug(GTK) jquery/manipulation.html [ Pass Slow ]
 Bug(GTK) jquery/offset.html [ Pass Slow ]
@@ -1664,6 +1640,15 @@ webkit.org/b/160019 media/media-source/media-source-small-gap.html [ Timeout ]
 webkit.org/b/160126 fast/forms/input-image-submit.html [ Timeout ]
 
 webkit.org/b/160127 js/regress-139548.html [ Timeout ]
+
+webkit.org/b/162017 http/tests/navigation/ping-attribute/anchor-cookie.html [ Timeout ]
+webkit.org/b/162017 http/tests/navigation/ping-attribute/anchor-cross-origin-from-https.html [ Timeout ]
+webkit.org/b/162017 http/tests/navigation/ping-attribute/anchor-cross-origin.html [ Timeout ]
+webkit.org/b/162017 http/tests/navigation/ping-attribute/anchor-same-origin.html [ Timeout ]
+webkit.org/b/162017 http/tests/navigation/ping-attribute/area-cookie.html [ Timeout ]
+webkit.org/b/162017 http/tests/navigation/ping-attribute/area-cross-origin-from-https.html [ Timeout ]
+webkit.org/b/162017 http/tests/navigation/ping-attribute/area-cross-origin.html [ Timeout ]
+webkit.org/b/162017 http/tests/navigation/ping-attribute/area-same-origin.html [ Timeout ]
 
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of Tests timing out
@@ -2487,14 +2472,16 @@ imported/w3c/web-platform-tests/XMLHttpRequest/send-accept-language.htm [ Failur
 imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-get-head-async.htm [ Failure ]
 imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-get-head.htm [ Failure ]
 imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect.htm [ Failure ]
+imported/w3c/web-platform-tests/XMLHttpRequest/send-network-error-sync-events.sub.htm [ Failure ]
 imported/w3c/web-platform-tests/XMLHttpRequest/status-async.htm [ Failure ]
 imported/w3c/web-platform-tests/XMLHttpRequest/status-basic.htm [ Failure ]
 imported/w3c/web-platform-tests/XMLHttpRequest/status-error.htm [ Failure ]
-imported/w3c/web-platform-tests/XMLHttpRequest/event-readystatechange-loaded.htm [ Failure Timeout ]
+imported/w3c/web-platform-tests/XMLHttpRequest/event-readystatechange-loaded.htm [ Pass ]
 imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type.htm [ Pass ]
 imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-none.htm [ Pass ]
 imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-empty.htm  [ Pass ]
 
+imported/w3c/web-platform-tests/html/browsers/browsing-the-web/read-media/pageload-video.html [ Failure ]
 
 webkit.org/b/151267 imported/blink/compositing/squashing/squashing-reflection-disallowed.html [ ImageOnlyFailure ]
 webkit.org/b/151267 imported/blink/compositing/will-change/stacking-context-creation.html [ ImageOnlyFailure ]
@@ -2574,6 +2561,7 @@ webkit.org/b/94952 platform/gtk/scrollbars/overflow-scrollbar-horizontal-wheel-s
 webkit.org/b/153707 imported/w3c/web-platform-tests/dom/nodes/Document-characterSet-normalization.html [ Failure ]
 webkit.org/b/153707 imported/w3c/web-platform-tests/dom/nodes/Document-createEvent.html [ Failure ]
 webkit.org/b/153707 imported/w3c/web-platform-tests/html/dom/interfaces.html [ Failure ]
+webkit.org/b/153707 imported/w3c/web-platform-tests/dom/events/EventTarget-dispatchEvent.html [ Failure ]
 
 webkit.org/b/153708 http/tests/cache/disk-cache/disk-cache-last-modified.html [ Failure ]
 
@@ -2600,6 +2588,15 @@ webkit.org/b/160248 fast/text/trailing-word.html [ ImageOnlyFailure ]
 webkit.org/b/160249 fast/shrink-wrap/rect-shrink-wrap.html [ ImageOnlyFailure ]
 
 webkit.org/b/160251 fast/text/font-kerning.html [ ImageOnlyFailure ]
+
+webkit.org/b/161583 accessibility/auto-fill-types.html [ Failure ]
+webkit.org/b/161584 accessibility/children-changed-sends-notification.html [ Failure ]
+
+webkit.org/b/161587 css3/font-feature-settings-rendering.html [ ImageOnlyFailure ]
+webkit.org/b/161588 css3/font-variant-synthesis-jdaggett.html [ ImageOnlyFailure ]
+webkit.org/b/161589 css3/masking/mask-repeat-space-padding.html [ ImageOnlyFailure ]
+
+webkit.org/b/161590 editing/inserting/typing-space-to-trigger-smart-link.html [ Failure ]
 
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of non-crashing, non-flaky tests failing
@@ -2690,7 +2687,7 @@ fast/text/emoji-gender.html [ Pass ]
 # Tests failing due to switch to THREADED COMPOSITOR
 #////////////////////////////////////////////////////////////////////////////////////////
 
-webkit.org/b/160119 accessibility/media-element.html [ Timeout Crash Pass ]
+webkit.org/b/160119 accessibility/media-element.html [ Timeout Crash Pass Failure ]
 
 webkit.org/b/160119 editing/input/caret-at-the-edge-of-contenteditable.html [ Failure ]
 webkit.org/b/160119 editing/input/reveal-caret-of-multiline-contenteditable.html [ Failure ]
@@ -2790,6 +2787,8 @@ webkit.org/b/160119 storage/indexeddb/objectstore-cursor.html [ Timeout Pass ]
 
 webkit.org/b/160119 svg/repaint/add-outline-property-on-root.html [ ImageOnlyFailure ]
 webkit.org/b/160119 svg/repaint/remove-outline-property-on-root.html [ ImageOnlyFailure ]
+
+webkit.org/b/161242 animations/negative-delay.html [ Pass Failure ]
 
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of tests failing due to THREADED COMPOSITOR enablement. Don't put random test

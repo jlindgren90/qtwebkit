@@ -286,7 +286,7 @@ private:
         float miterLimit;
         FloatSize shadowOffset;
         float shadowBlur;
-        RGBA32 shadowColor;
+        Color shadowColor;
         float globalAlpha;
         CompositeOperator globalComposite;
         BlendMode globalBlend;
@@ -318,7 +318,7 @@ private:
     const State& state() const { return m_stateStack.last(); }
 
     void applyLineDash() const;
-    void setShadow(const FloatSize& offset, float blur, RGBA32 color);
+    void setShadow(const FloatSize& offset, float blur, Color);
     void applyShadow();
     bool shouldDrawShadows() const;
 

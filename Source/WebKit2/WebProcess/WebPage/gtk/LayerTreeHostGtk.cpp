@@ -337,7 +337,13 @@ void LayerTreeHostGtk::compositeLayersToContext(CompositePurpose purpose)
     }
 
     ASSERT(m_textureMapper);
-    m_textureMapper->beginPainting();
+
+    TextureMapper::PaintFlags paintFlags = 0;
+
+    if (m_surface && m_surface->shouldPaintMirrored())
+        paintFlags |= TextureMapper::PaintingMirrored;
+
+    m_textureMapper->beginPainting(paintFlags);
     downcast<GraphicsLayerTextureMapper>(*m_rootLayer).layer().paint();
     m_textureMapper->endPainting();
 
@@ -408,7 +414,7 @@ void LayerTreeHostGtk::createTextureMapper()
     downcast<GraphicsLayerTextureMapper>(*m_rootLayer).layer().setTextureMapper(m_textureMapper.get());
 }
 
-#if !USE(REDIRECTED_XCOMPOSITE_WINDOW)
+#if PLATFORM(X11) && !USE(REDIRECTED_XCOMPOSITE_WINDOW)
 void LayerTreeHostGtk::setNativeSurfaceHandleForCompositing(uint64_t handle)
 {
     cancelPendingLayerFlush();

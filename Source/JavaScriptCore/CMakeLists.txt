@@ -66,6 +66,7 @@ set(JavaScriptCore_SOURCES
     assembler/MacroAssembler.cpp
     assembler/MacroAssemblerARM.cpp
     assembler/MacroAssemblerARMv7.cpp
+    assembler/MacroAssemblerCodeRef.cpp
     assembler/MacroAssemblerPrinter.cpp
     assembler/MacroAssemblerX86Common.cpp
 
@@ -440,13 +441,11 @@ set(JavaScriptCore_SOURCES
     heap/AllocatorAttributes.cpp
     heap/CodeBlockSet.cpp
     heap/ConservativeRoots.cpp
-    heap/CopiedBlock.cpp
-    heap/CopiedSpace.cpp
-    heap/CopyVisitor.cpp
     heap/DeferGC.cpp
     heap/DestructionMode.cpp
     heap/EdenGCActivityCallback.cpp
     heap/FullGCActivityCallback.cpp
+    heap/FreeList.cpp
     heap/GCActivityCallback.cpp
     heap/GCLogging.cpp
     heap/HandleSet.cpp
@@ -454,6 +453,7 @@ set(JavaScriptCore_SOURCES
     heap/Heap.cpp
     heap/HeapCell.cpp
     heap/HeapHelperPool.cpp
+    heap/HeapOperation.cpp
     heap/HeapProfiler.cpp
     heap/HeapSnapshot.cpp
     heap/HeapSnapshotBuilder.cpp
@@ -462,6 +462,7 @@ set(JavaScriptCore_SOURCES
     heap/HeapVerifier.cpp
     heap/IncrementalSweeper.cpp
     heap/JITStubRoutineSet.cpp
+    heap/LargeAllocation.cpp
     heap/LiveObjectList.cpp
     heap/MachineStackMarker.cpp
     heap/MarkStack.cpp
@@ -619,6 +620,7 @@ set(JavaScriptCore_SOURCES
     runtime/ArrayBufferNeuteringWatchpoint.cpp
     runtime/ArrayBufferView.cpp
     runtime/ArrayConstructor.cpp
+    runtime/ArrayConventions.cpp
     runtime/ArrayIteratorPrototype.cpp
     runtime/ArrayPrototype.cpp
     runtime/BasicBlockLocation.cpp
@@ -626,6 +628,7 @@ set(JavaScriptCore_SOURCES
     runtime/BooleanObject.cpp
     runtime/BooleanPrototype.cpp
     runtime/CallData.cpp
+    runtime/CatchScope.cpp
     runtime/ClonedArguments.cpp
     runtime/CodeCache.cpp
     runtime/CodeSpecializationKind.cpp
@@ -655,8 +658,10 @@ set(JavaScriptCore_SOURCES
     runtime/ErrorInstance.cpp
     runtime/ErrorPrototype.cpp
     runtime/Exception.cpp
+    runtime/ExceptionEventLocation.cpp
     runtime/ExceptionFuzz.cpp
     runtime/ExceptionHelpers.cpp
+    runtime/ExceptionScope.cpp
     runtime/Executable.cpp
     runtime/FunctionConstructor.cpp
     runtime/FunctionExecutableDump.cpp
@@ -667,6 +672,7 @@ set(JavaScriptCore_SOURCES
     runtime/GeneratorFunctionPrototype.cpp
     runtime/GeneratorPrototype.cpp
     runtime/GetterSetter.cpp
+    runtime/HashMapImpl.cpp
     runtime/Identifier.cpp
     runtime/IndexingType.cpp
     runtime/InferredType.cpp
@@ -752,6 +758,7 @@ set(JavaScriptCore_SOURCES
     runtime/LazyClassStructure.cpp
     runtime/LiteralParser.cpp
     runtime/Lookup.cpp
+    runtime/MapBase.cpp
     runtime/MapConstructor.cpp
     runtime/MapIteratorPrototype.cpp
     runtime/MapPrototype.cpp
@@ -799,6 +806,7 @@ set(JavaScriptCore_SOURCES
     runtime/SimpleTypedArrayController.cpp
     runtime/SmallStrings.cpp
     runtime/SparseArrayValueMap.cpp
+    runtime/StackFrame.cpp
     runtime/StrictEvalActivation.cpp
     runtime/StringConstructor.cpp
     runtime/StringIteratorPrototype.cpp
@@ -814,6 +822,7 @@ set(JavaScriptCore_SOURCES
     runtime/SymbolObject.cpp
     runtime/SymbolPrototype.cpp
     runtime/SymbolTable.cpp
+    runtime/ThrowScope.cpp
     runtime/TemplateRegistry.cpp
     runtime/TestRunnerUtils.cpp
     runtime/TypeLocationCache.cpp
@@ -842,9 +851,9 @@ set(JavaScriptCore_SOURCES
 
     wasm/JSWASMModule.cpp
     wasm/WASMB3IRGenerator.cpp
+    wasm/WASMCallingConvention.cpp
     wasm/WASMModuleParser.cpp
     wasm/WASMPlan.cpp
-    wasm/WASMSections.cpp
 
     yarr/RegularExpression.cpp
     yarr/YarrCanonicalizeUCS2.cpp

@@ -563,12 +563,35 @@ bool GraphicsLayerTextureMapper::shouldHaveBackingStore() const
     return drawsContent() && contentsAreVisible() && !m_size.isEmpty();
 }
 
+bool GraphicsLayerTextureMapper::filtersCanBeComposited(const FilterOperations& filters) const
+{
+    if (!filters.size())
+        return false;
+
+    for (const auto& filterOperation : filters.operations()) {
+        if (filterOperation->type() == FilterOperation::REFERENCE)
+            return false;
+    }
+
+    return true;
+}
+
 bool GraphicsLayerTextureMapper::addAnimation(const KeyframeValueList& valueList, const FloatSize& boxSize, const Animation* anim, const String& keyframesName, double timeOffset)
 {
     ASSERT(!keyframesName.isEmpty());
 
     if (!anim || anim->isEmptyOrZeroDuration() || valueList.size() < 2 || (valueList.property() != AnimatedPropertyTransform && valueList.property() != AnimatedPropertyOpacity))
         return false;
+
+    if (valueList.property() == AnimatedPropertyFilter) {
+        int listIndex = validateFilterOperations(valueList);
+        if (listIndex < 0)
+            return false;
+
+        const auto& filters = static_cast<const FilterAnimationValue&>(valueList.at(listIndex)).value();
+        if (!filtersCanBeComposited(filters))
+            return false;
+    }
 
     bool listsMatch = false;
     bool hasBigRotation;
@@ -607,12 +630,23 @@ void GraphicsLayerTextureMapper::removeAnimation(const String& animationName)
 
 bool GraphicsLayerTextureMapper::setFilters(const FilterOperations& filters)
 {
-    TextureMapper* textureMapper = m_layer.textureMapper();
-    // TextureMapperImageBuffer does not support CSS filters.
-    if (!textureMapper || textureMapper->accelerationMode() == TextureMapper::SoftwareMode)
+    if (!m_layer.textureMapper())
         return false;
-    notifyChange(FilterChange);
-    return GraphicsLayer::setFilters(filters);
+
+    bool canCompositeFilters = filtersCanBeComposited(filters);
+    if (GraphicsLayer::filters() == filters)
+        return canCompositeFilters;
+
+    if (canCompositeFilters) {
+        if (!GraphicsLayer::setFilters(filters))
+            return false;
+        notifyChange(FilterChange);
+    } else if (GraphicsLayer::filters().size()) {
+        clearFilters();
+        notifyChange(FilterChange);
+    }
+
+    return canCompositeFilters;
 }
 
 void GraphicsLayerTextureMapper::setFixedToViewport(bool fixed)

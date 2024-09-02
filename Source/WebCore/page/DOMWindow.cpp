@@ -625,7 +625,7 @@ bool DOMWindow::isCurrentlyDisplayedInFrame() const
 CustomElementRegistry& DOMWindow::ensureCustomElementRegistry()
 {
     if (!m_customElementRegistry)
-        m_customElementRegistry = CustomElementRegistry::create();
+        m_customElementRegistry = CustomElementRegistry::create(*this);
     return *m_customElementRegistry;
 }
 #endif
@@ -1803,7 +1803,7 @@ void DOMWindow::decrementScrollEventListenersCount()
     Document* document = this->document();
     if (!--m_scrollEventListenerCount && document == &document->topDocument()) {
         Frame* frame = this->frame();
-        if (frame && frame->page() && !document->inPageCache())
+        if (frame && frame->page() && document->pageCacheState() == Document::NotInPageCache)
             frame->page()->chrome().client().setNeedsScrollNotifications(frame, false);
     }
 }

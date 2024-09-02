@@ -89,7 +89,7 @@
 #include "WebFullScreenManagerProxyMessages.h"
 #include "WebImage.h"
 #include "WebInspectorProxy.h"
-#include "WebInspectorProxyMessages.h"
+#include "WebInspectorUtilities.h"
 #include "WebNavigationState.h"
 #include "WebNotificationManagerProxy.h"
 #include "WebOpenPanelResultListenerProxy.h"
@@ -126,6 +126,7 @@
 #include <WebCore/WindowFeatures.h>
 #include <stdio.h>
 #include <wtf/NeverDestroyed.h>
+#include <wtf/text/StringBuilder.h>
 #include <wtf/text/StringView.h>
 
 #if ENABLE(ASYNC_SCROLLING)
@@ -184,7 +185,7 @@
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_process->connection())
 #define MESSAGE_CHECK_URL(url) MESSAGE_CHECK_BASE(m_process->checkURLReceivedFromWebProcess(url), m_process->connection())
 
-#define RELEASE_LOG_IF_ALLOWED(...) RELEASE_LOG_IF(isAlwaysOnLoggingAllowed(), __VA_ARGS__)
+#define RELEASE_LOG_IF_ALLOWED(...) RELEASE_LOG_IF(isAlwaysOnLoggingAllowed(), ProcessSuspension, __VA_ARGS__)
 
 // Instead of URLParser class added later
 namespace URLParser
@@ -934,7 +935,7 @@ bool WebPageProxy::maybeInitializeSandboxExtensionHandle(const URL& url, Sandbox
         return false;
 
     // Inspector resources are in a directory with assumed access.
-    ASSERT_WITH_SECURITY_IMPLICATION(!WebInspectorProxy::isInspectorPage(*this));
+    ASSERT_WITH_SECURITY_IMPLICATION(!WebKit::isInspectorPage(*this));
 
     SandboxExtension::createHandle("/", SandboxExtension::ReadOnly, sandboxExtensionHandle);
     return true;
@@ -1531,7 +1532,7 @@ void WebPageProxy::viewDidEnterWindow()
     LayerHostingMode layerHostingMode = m_pageClient.viewLayerHostingMode();
     if (m_layerHostingMode != layerHostingMode) {
         m_layerHostingMode = layerHostingMode;
-        m_process->send(Messages::WebPage::SetLayerHostingMode(static_cast<unsigned>(layerHostingMode)), m_pageID);
+        m_process->send(Messages::WebPage::SetLayerHostingMode(layerHostingMode), m_pageID);
     }
 }
 
@@ -1648,7 +1649,7 @@ void WebPageProxy::layerHostingModeDidChange()
         return;
 
     m_layerHostingMode = layerHostingMode;
-    m_process->send(Messages::WebPage::SetLayerHostingMode(static_cast<unsigned>(layerHostingMode)), m_pageID);
+    m_process->send(Messages::WebPage::SetLayerHostingMode(layerHostingMode), m_pageID);
 }
 
 void WebPageProxy::waitForDidUpdateViewState()
@@ -2400,7 +2401,7 @@ void WebPageProxy::terminateProcess()
     // requestTermination() is a no-op for launching processes, so we get into an inconsistent state by calling resetStateAfterProcessExited().
     // FIXME: A client can terminate the page at any time, so we should do something more meaningful than assert and fall apart in release builds.
     // See also <https://bugs.webkit.org/show_bug.cgi?id=136012>.
-//    ASSERT(m_process->state() != WebProcessProxy::State::Launching);
+    ASSERT(m_process->state() != WebProcessProxy::State::Launching);
 
     // NOTE: This uses a check of m_isValid rather than calling isValid() since
     // we want this to run even for pages being closed or that already closed.
@@ -2926,6 +2927,18 @@ void WebPageProxy::getBytecodeProfile(std::function<void (const String&, Callbac
     m_process->send(Messages::WebPage::GetBytecodeProfile(callbackID), m_pageID);
 }
 
+void WebPageProxy::getSamplingProfilerOutput(std::function<void (const String&, CallbackBase::Error)> callbackFunction)
+{
+    if (!isValid()) {
+        callbackFunction(String(), CallbackBase::Error::Unknown);
+        return;
+    }
+    
+    uint64_t callbackID = m_callbacks.put(WTFMove(callbackFunction), m_process->throttler().backgroundActivityToken());
+    m_loadDependentStringCallbackIDs.add(callbackID);
+    m_process->send(Messages::WebPage::GetSamplingProfilerOutput(callbackID), m_pageID);
+}
+
 void WebPageProxy::isWebProcessResponsive(std::function<void (bool isWebProcessResponsive)> callbackFunction)
 {
     if (!isValid()) {
@@ -3143,6 +3156,11 @@ void WebPageProxy::setNetworkRequestsInProgress(bool networkRequestsInProgress)
     m_pageLoadState.setNetworkRequestsInProgress(transaction, networkRequestsInProgress);
 }
 
+void WebPageProxy::hasInsecureContent(HasInsecureContent& hasInsecureContent)
+{
+    hasInsecureContent = m_pageLoadState.committedHasInsecureContent() ? HasInsecureContent::Yes : HasInsecureContent::No;
+}
+
 void WebPageProxy::didDestroyNavigation(uint64_t navigationID)
 {
     PageClientProtector protector(m_pageClient);
@@ -3279,7 +3297,7 @@ void WebPageProxy::clearLoadDependentCallbacks()
     }
 }
 
-void WebPageProxy::didCommitLoadForFrame(uint64_t frameID, uint64_t navigationID, const String& mimeType, bool frameHasCustomContentProvider, uint32_t opaqueFrameLoadType, const WebCore::CertificateInfo& certificateInfo, bool containsPluginDocument, const UserData& userData)
+void WebPageProxy::didCommitLoadForFrame(uint64_t frameID, uint64_t navigationID, const String& mimeType, bool frameHasCustomContentProvider, uint32_t opaqueFrameLoadType, const WebCore::CertificateInfo& certificateInfo, bool containsPluginDocument, Optional<HasInsecureContent> hasInsecureContent, const UserData& userData)
 {
     PageClientProtector protector(m_pageClient);
 
@@ -3299,8 +3317,9 @@ void WebPageProxy::didCommitLoadForFrame(uint64_t frameID, uint64_t navigationID
 #endif
 
     auto transaction = m_pageLoadState.transaction();
-    bool markPageInsecure = m_treatsSHA1CertificatesAsInsecure && certificateInfo.containsNonRootSHA1SignedCertificate();
     Ref<WebCertificateInfo> webCertificateInfo = WebCertificateInfo::create(certificateInfo);
+    bool markPageInsecure = hasInsecureContent ? hasInsecureContent.value() == HasInsecureContent::Yes : m_treatsSHA1CertificatesAsInsecure && certificateInfo.containsNonRootSHA1SignedCertificate();
+
     if (frame->isMainFrame()) {
         m_pageLoadState.didCommitLoad(transaction, webCertificateInfo, markPageInsecure);
         m_suppressNavigationSnapshotting = false;
@@ -4326,6 +4345,16 @@ void WebPageProxy::setHasHadSelectionChangesFromUserInteraction(bool hasHadUserS
     m_hasHadSelectionChangesFromUserInteraction = hasHadUserSelectionChanges;
 }
 
+void WebPageProxy::setNeedsHiddenContentEditableQuirk(bool needsHiddenContentEditableQuirk)
+{
+    m_needsHiddenContentEditableQuirk = needsHiddenContentEditableQuirk;
+}
+
+void WebPageProxy::setNeedsPlainTextQuirk(bool needsPlainTextQuirk)
+{
+    m_needsPlainTextQuirk = needsPlainTextQuirk;
+}
+
 // BackForwardList
 
 void WebPageProxy::backForwardAddItem(uint64_t itemID)
@@ -5044,6 +5073,20 @@ void WebPageProxy::stringCallback(const String& resultString, uint64_t callbackI
     m_loadDependentStringCallbackIDs.remove(callbackID);
 
     callback->performCallbackWithReturnValue(resultString.impl());
+}
+
+void WebPageProxy::invalidateStringCallback(uint64_t callbackID)
+{
+    auto callback = m_callbacks.take<StringCallback>(callbackID);
+    if (!callback) {
+        // FIXME: Log error or assert.
+        // this can validly happen if a load invalidated the callback, though
+        return;
+    }
+
+    m_loadDependentStringCallbackIDs.remove(callbackID);
+
+    callback->invalidate();
 }
 
 void WebPageProxy::scriptValueCallback(const IPC::DataReference& dataReference, bool hadException, const ExceptionDetails& details, uint64_t callbackID)
@@ -6174,12 +6217,12 @@ void WebPageProxy::addMIMETypeWithCustomContentProvider(const String& mimeType)
 
 #if PLATFORM(COCOA)
 
-void WebPageProxy::insertTextAsync(const String& text, const EditingRange& replacementRange, bool registerUndoGroup, EditingRangeIsRelativeTo editingRangeIsRelativeTo)
+void WebPageProxy::insertTextAsync(const String& text, const EditingRange& replacementRange, bool registerUndoGroup, EditingRangeIsRelativeTo editingRangeIsRelativeTo, bool suppressSelectionUpdate)
 {
     if (!isValid())
         return;
 
-    process().send(Messages::WebPage::InsertTextAsync(text, replacementRange, registerUndoGroup, static_cast<uint32_t>(editingRangeIsRelativeTo)), m_pageID);
+    process().send(Messages::WebPage::InsertTextAsync(text, replacementRange, registerUndoGroup, static_cast<uint32_t>(editingRangeIsRelativeTo), suppressSelectionUpdate), m_pageID);
 }
 
 void WebPageProxy::getMarkedRangeAsync(std::function<void (EditingRange, CallbackBase::Error)> callbackFunction)
@@ -6364,10 +6407,23 @@ void WebPageProxy::videoControlsManagerDidChange()
 bool WebPageProxy::hasActiveVideoForControlsManager() const
 {
 #if ENABLE(VIDEO_PRESENTATION_MODE)
-    return m_playbackSessionManager && m_playbackSessionManager->controlsManagerInterface() && m_mediaState & MediaProducer::HasAudioOrVideo;
+    return m_playbackSessionManager && m_playbackSessionManager->controlsManagerInterface();
 #else
     return false;
 #endif
+}
+
+void WebPageProxy::requestControlledElementID() const
+{
+#if ENABLE(VIDEO_PRESENTATION_MODE)
+    if (m_playbackSessionManager)
+        m_playbackSessionManager->requestControlledElementID();
+#endif
+}
+
+void WebPageProxy::handleControlledElementIDResponse(const String& identifier) const
+{
+    m_pageClient.handleControlledElementIDResponse(identifier);
 }
 
 bool WebPageProxy::isPlayingVideoInEnhancedFullscreen() const

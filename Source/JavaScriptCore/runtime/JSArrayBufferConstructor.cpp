@@ -79,13 +79,16 @@ Structure* JSArrayBufferConstructor::createStructure(
 
 static EncodedJSValue JSC_HOST_CALL constructArrayBuffer(ExecState* exec)
 {
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     JSArrayBufferConstructor* constructor =
         jsCast<JSArrayBufferConstructor*>(exec->callee());
     
     unsigned length;
     if (exec->argumentCount()) {
         length = exec->uncheckedArgument(0).toUInt32(exec);
-        if (exec->hadException())
+        if (UNLIKELY(scope.exception()))
             return JSValue::encode(jsUndefined());
     } else {
         // Although the documentation doesn't say so, it is in fact correct to say
@@ -96,19 +99,21 @@ static EncodedJSValue JSC_HOST_CALL constructArrayBuffer(ExecState* exec)
     
     auto buffer = ArrayBuffer::tryCreate(length, 1);
     if (!buffer)
-        return JSValue::encode(throwOutOfMemoryError(exec));
+        return JSValue::encode(throwOutOfMemoryError(exec, scope));
 
     Structure* arrayBufferStructure = InternalFunction::createSubclassStructure(exec, exec->newTarget(), constructor->globalObject()->arrayBufferStructure());
-    if (exec->hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(JSValue());
-    JSArrayBuffer* result = JSArrayBuffer::create(exec->vm(), arrayBufferStructure, WTFMove(buffer));
+    JSArrayBuffer* result = JSArrayBuffer::create(vm, arrayBufferStructure, WTFMove(buffer));
     
     return JSValue::encode(result);
 }
 
 static EncodedJSValue JSC_HOST_CALL callArrayBuffer(ExecState* exec)
 {
-    return JSValue::encode(throwConstructorCannotBeCalledAsFunctionTypeError(exec, "ArrayBuffer"));
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    return JSValue::encode(throwConstructorCannotBeCalledAsFunctionTypeError(exec, scope, "ArrayBuffer"));
 }
 
 ConstructType JSArrayBufferConstructor::getConstructData(

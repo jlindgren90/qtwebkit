@@ -168,6 +168,7 @@ class NotificationPermissionRequestManager;
 class PDFPlugin;
 class PageBanner;
 class PluginView;
+class RemoteWebInspectorUI;
 class VisibleContentRectUpdateInfo;
 class WebColorChooser;
 class WebContextMenu;
@@ -263,7 +264,8 @@ public:
 
     WebInspector* inspector(LazyCreationPolicy = LazyCreationPolicy::CreateIfNeeded);
     WebInspectorUI* inspectorUI();
-    bool isInspectorPage() { return !!m_inspectorUI; }
+    RemoteWebInspectorUI* remoteInspectorUI();
+    bool isInspectorPage() { return !!m_inspectorUI || !!m_remoteInspectorUI; }
 
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     WebPlaybackSessionManager& playbackSessionManager();
@@ -374,6 +376,7 @@ public:
     enum class IncludePostLayoutDataHint { No, Yes };
     EditorState editorState(IncludePostLayoutDataHint = IncludePostLayoutDataHint::Yes) const;
     void sendPostLayoutEditorStateIfNeeded();
+    void updateEditorStateAfterLayoutIfEditabilityChanged();
 
     String renderTreeExternalRepresentation() const;
     String renderTreeExternalRepresentationForPrinting() const;
@@ -447,7 +450,7 @@ public:
     bool isVisibleOrOccluded() const { return m_viewState & WebCore::ViewState::IsVisibleOrOccluded; }
 
     LayerHostingMode layerHostingMode() const { return m_layerHostingMode; }
-    void setLayerHostingMode(unsigned);
+    void setLayerHostingMode(LayerHostingMode);
 
 #if PLATFORM(COCOA)
     void updatePluginsActiveAndFocusedState();
@@ -515,11 +518,12 @@ public:
     void elementDidBlur(WebCore::Node*);
     void resetAssistedNodeForFrame(WebFrame*);
 
+    void viewportPropertiesDidChange(const WebCore::ViewportArguments&);
+
 #if PLATFORM(IOS)
     WebCore::FloatSize screenSize() const;
     WebCore::FloatSize availableScreenSize() const;
     int32_t deviceOrientation() const { return m_deviceOrientation; }
-    void viewportPropertiesDidChange(const WebCore::ViewportArguments&);
     void didReceiveMobileDocType(bool);
 
     void setUseTestingViewportConfiguration(bool useTestingViewport) { m_useTestingViewportConfiguration = useTestingViewport; }
@@ -608,7 +612,6 @@ public:
     void pageDidScroll();
 #if USE(COORDINATED_GRAPHICS)
     void pageDidRequestScroll(const WebCore::IntPoint&);
-    void sendViewportAttributesChanged();
 #endif
 
 #if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
@@ -657,6 +660,8 @@ public:
     void setComposition(const String& text, const Vector<WebCore::CompositionUnderline>& underlines, uint64_t selectionStart, uint64_t selectionEnd, uint64_t replacementRangeStart, uint64_t replacementRangeLength);
     void confirmComposition(const String& text, int64_t selectionStart, int64_t selectionLength);
     void cancelComposition();
+
+    void collapseSelectionInFrame(uint64_t frameID);
 #endif
 
 #if PLATFORM (GTK) && HAVE(GTK_GESTURES)
@@ -675,7 +680,7 @@ public:
     
     void sendComplexTextInputToPlugin(uint64_t pluginComplexTextInputIdentifier, const String& textInput);
 
-    void insertTextAsync(const String& text, const EditingRange& replacementRange, bool registerUndoGroup = false, uint32_t editingRangeIsRelativeTo = (uint32_t)EditingRangeIsRelativeTo::EditableRoot);
+    void insertTextAsync(const String& text, const EditingRange& replacementRange, bool registerUndoGroup = false, uint32_t editingRangeIsRelativeTo = (uint32_t)EditingRangeIsRelativeTo::EditableRoot, bool suppressSelectionUpdate = false);
     void getMarkedRangeAsync(uint64_t callbackID);
     void getSelectedRangeAsync(uint64_t callbackID);
     void characterIndexForPointAsync(const WebCore::IntPoint&, uint64_t callbackID);
@@ -923,6 +928,7 @@ public:
     void updateCachedDocumentLoader(WebDocumentLoader&, WebCore::Frame&);
 
     void getBytecodeProfile(uint64_t callbackID);
+    void getSamplingProfilerOutput(uint64_t callbackID);
     
 #if ENABLE(SERVICE_CONTROLS) || ENABLE(TELEPHONE_NUMBER_DETECTION)
     void handleTelephoneNumberClick(const String& number, const WebCore::IntPoint&);
@@ -1147,6 +1153,10 @@ private:
     void hideFindUI();
     void countStringMatches(const String&, uint32_t findOptions, uint32_t maxMatchCount);
 
+#if USE(COORDINATED_GRAPHICS)
+    void sendViewportAttributesChanged(const WebCore::ViewportArguments&);
+#endif
+
 #if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
     void findZoomableAreaForPoint(const WebCore::IntPoint&, const WebCore::IntSize& area);
 #endif
@@ -1363,6 +1373,8 @@ private:
 
     RefPtr<WebInspector> m_inspector;
     RefPtr<WebInspectorUI> m_inspectorUI;
+    RefPtr<RemoteWebInspectorUI> m_remoteInspectorUI;
+
 #if (PLATFORM(IOS) && HAVE(AVKIT)) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     RefPtr<WebPlaybackSessionManager> m_playbackSessionManager;
     RefPtr<WebVideoFullscreenManager> m_videoFullscreenManager;
@@ -1431,6 +1443,8 @@ private:
     bool m_userIsInteracting;
     bool m_isAssistingNodeDueToUserInteraction { false };
     bool m_hasEverFocusedElementDueToUserInteractionSincePageTransition { false };
+    bool m_needsHiddenContentEditableQuirk { false };
+    bool m_needsPlainTextQuirk { false };
 
 #if ENABLE(CONTEXT_MENUS)
     bool m_isShowingContextMenu;
@@ -1509,6 +1523,11 @@ private:
     bool m_mainFrameProgressCompleted;
     bool m_shouldDispatchFakeMouseMoveEvents;
     bool m_isEditorStateMissingPostLayoutData { false };
+    bool m_isGettingDictionaryPopupInfo { false };
+    bool m_isSelectingTextWhileInsertingAsynchronously { false };
+
+    enum class EditorStateIsContentEditable { No, Yes, Unset };
+    mutable EditorStateIsContentEditable m_lastEditorStateWasContentEditable { EditorStateIsContentEditable::Unset };
 
 #if PLATFORM(GTK)
     bool m_inputMethodEnabled { false };

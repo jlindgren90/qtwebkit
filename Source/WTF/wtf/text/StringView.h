@@ -60,11 +60,13 @@ public:
     StringView& operator=(const StringView&);
 #endif
 
+    StringView(const AtomicString&);
     StringView(const String&);
     StringView(const StringImpl&);
     StringView(const StringImpl*);
     StringView(const LChar*, unsigned length);
     StringView(const UChar*, unsigned length);
+    StringView(const char*);
 
     static StringView empty();
 
@@ -113,6 +115,7 @@ public:
     void getCharactersWithUpconvert(UChar*) const;
 
     StringView substring(unsigned start, unsigned length = std::numeric_limits<unsigned>::max()) const;
+    WTF_EXPORT_STRING_API Vector<StringView> split(UChar);
 
     size_t find(UChar, unsigned start = 0) const;
     size_t find(CharacterMatchFunction, unsigned start = 0) const;
@@ -193,6 +196,7 @@ inline bool operator!=(const char* a, StringView b) { return !equal(b, a); }
 
 }
 
+#include <wtf/text/AtomicString.h>
 #include <wtf/text/WTFString.h>
 
 namespace WTF {
@@ -285,6 +289,11 @@ inline StringView::StringView(const UChar* characters, unsigned length)
     initialize(characters, length);
 }
 
+inline StringView::StringView(const char* characters)
+{
+    initialize(reinterpret_cast<const LChar*>(characters), strlen(characters));
+}
+
 inline StringView::StringView(const StringImpl& string)
 {
     setUnderlyingString(&string);
@@ -318,6 +327,11 @@ inline StringView::StringView(const String& string)
         return;
     }
     initialize(string.characters16(), string.length());
+}
+
+inline StringView::StringView(const AtomicString& atomicString)
+    : StringView(atomicString.string())
+{
 }
 
 inline void StringView::clear()

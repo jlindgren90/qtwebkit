@@ -8,15 +8,11 @@
 
 accessibility/ios-simulator [ Pass ]
 displaylists [ Pass ]
-quicklook [ Pass ]
 http/tests/quicklook [ Pass ]
 media/controls/ipad [ Pass ]
 
 fast/text-autosizing/ios [ Pass ]
 fast/zooming/ios [ Pass ]
-
-# <rdar://problem/22898927> Crashes in iWorkImport.framework
-quicklook/pages.html [ Pass Crash ]
 
 #//////////////////////////////////////////////////////////////////////////////////////////
 # End platform-specific directories.
@@ -168,6 +164,8 @@ media/video-size-intrinsic-scale.html [ WontFix ]
 
 # MediaSource is not currently supported on iOS.
 media/media-source
+http/tests/media/media-source [ Skip ]
+imported/w3c/web-platform-tests/media-source/ [ Skip ]
 fast/history/page-cache-media-source-closed-2.html [ Skip ]
 fast/history/page-cache-media-source-closed.html [ Skip ]
 fast/history/page-cache-media-source-opened.html [ Skip ]
@@ -617,7 +615,6 @@ css3/shapes/shape-outside/supported-shapes/inset/shape-outside-inset-015.html [ 
 css3/shapes/shape-outside/values/shape-margin-001.html [ Failure ]
 css3/shapes/shape-outside/values/shape-outside-circle-004.html [ Failure ]
 css3/shapes/shape-outside/values/shape-outside-circle-005.html [ Failure ]
-css3/shapes/shape-outside/values/shape-outside-computed-shape-000.html [ Failure ]
 css3/shapes/shape-outside/values/shape-outside-ellipse-004.html [ Failure ]
 css3/shapes/shape-outside/values/shape-outside-ellipse-005.html [ Failure ]
 css3/shapes/shape-outside/values/shape-outside-inset-003.html [ Failure ]
@@ -1126,13 +1123,6 @@ fast/dom/HTMLHeadElement/textInHead5.html [ Failure ]
 fast/dom/HTMLImageElement/sizes/image-sizes-1x.html [ Failure ]
 fast/dom/HTMLInputElement/input-slider-update-styled.html [ Failure ]
 fast/dom/HTMLInputElement/input-slider-update.html [ Failure ]
-fast/dom/HTMLMeterElement/meter-clone.html [ Failure ]
-fast/dom/HTMLMeterElement/meter-element-markup.html [ Failure ]
-fast/dom/HTMLMeterElement/meter-element-repaint-on-update-value.html [ Failure ]
-fast/dom/HTMLMeterElement/meter-element-with-child-crash.html [ Failure ]
-fast/dom/HTMLMeterElement/meter-element.html [ Failure ]
-fast/dom/HTMLMeterElement/meter-percent-size.html [ Failure ]
-fast/dom/HTMLMeterElement/set-meter-properties.html [ Failure ]
 fast/dom/MutationObserver/end-of-task-delivery.html [ Failure ]
 fast/dom/NavigatorContentUtils/is-protocol-handler-registered.html [ Failure ]
 fast/dom/Range/getBoundingClientRect.html [ Failure ]
@@ -1308,16 +1298,6 @@ fast/forms/input-select-webkit-user-select-none.html [ Failure ]
 fast/forms/input-set-composition-scroll.html [ Failure ]
 fast/forms/input-step-as-double.html [ Failure ]
 fast/forms/input-textarea-padding-match.html [ ImageOnlyFailure ]
-fast/forms/label/labelable-elements.html [ Failure ]
-fast/forms/label/labels-add-htmlFor-label.html [ Failure ]
-fast/forms/label/labels-add-parent-label.html [ Failure ]
-fast/forms/label/labels-change-htmlFor-attribute.html [ Failure ]
-fast/forms/label/labels-multiple-sibling-labels.html [ Failure ]
-fast/forms/label/labels-parent-and-sibling-labels.html [ Failure ]
-fast/forms/label/labels-remove-htmlFor-attribute.html [ Failure ]
-fast/forms/label/labels-remove-htmlFor-label.html [ Failure ]
-fast/forms/label/labels-remove-parent-label.html [ Failure ]
-fast/forms/label/labels-set-htmlFor-attribute.html [ Failure ]
 fast/forms/listbox-clip.html [ Failure ]
 fast/forms/listbox-deselect-scroll.html [ Failure ]
 fast/forms/listbox-non-contiguous-keyboard-selection.html [ Failure ]
@@ -1801,55 +1781,6 @@ fast/table/table-style-not-updated.html [ Failure ]
 fast/table/wide-colspan.html [ Failure ]
 fast/table/wide-column.html [ Failure ]
 
-# Tests designed for TEXT_AUTOSIZING, not IOS_TEXT_AUTOSIZING behavior.
-fast/text-autosizing/cluster-inline-block-or-table.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-inline-grid-flex-box.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-list-item.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-narrow-in-wide-ohidden.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-narrow-in-wide.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-wide-in-narrow.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-with-narrow-lca-and-cluster.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-with-narrow-lca.html [ ImageOnlyFailure ]
-fast/text-autosizing/cluster-with-wide-lca.html [ ImageOnlyFailure ]
-fast/text-autosizing/clusters-insufficient-text.html [ ImageOnlyFailure ]
-fast/text-autosizing/clusters-insufficient-width.html [ ImageOnlyFailure ]
-fast/text-autosizing/clusters-sufficient-text-except-in-root.html [ ImageOnlyFailure ]
-fast/text-autosizing/clusters-sufficient-width.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-and-overflow-auto-ancestor.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-and-overflow-paged-x-ancestor.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-and-overflow-scroll-ancestor.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-height-body.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-then-float-ancestors.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-then-overflow-ancestors.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-then-position-absolute-ancestors.html [ ImageOnlyFailure ]
-fast/text-autosizing/constrained-then-position-fixed-ancestors.html [ ImageOnlyFailure ]
-fast/text-autosizing/em-margin-border-padding.html [ ImageOnlyFailure ]
-fast/text-autosizing/font-scale-factor.html [ ImageOnlyFailure ]
-fast/text-autosizing/form-controls-autosizing-button-input-elements.html [ ImageOnlyFailure ]
-fast/text-autosizing/form-controls-autosizing-checkbox-input-element.html [ ImageOnlyFailure ]
-fast/text-autosizing/form-controls-autosizing-radio-input-element.html [ ImageOnlyFailure ]
-fast/text-autosizing/form-controls-autosizing-select-element.html [ ImageOnlyFailure ]
-fast/text-autosizing/form-controls-autosizing-textfield-input-elements.html [ ImageOnlyFailure ]
-fast/text-autosizing/header-li-links-autosizing.html [ ImageOnlyFailure ]
-fast/text-autosizing/header-links-autosizing-different-fontsize.html [ ImageOnlyFailure ]
-fast/text-autosizing/header-links-autosizing.html [ ImageOnlyFailure ]
-fast/text-autosizing/narrow-child.html [ ImageOnlyFailure ]
-fast/text-autosizing/narrow-descendants-combined.html [ ImageOnlyFailure ]
-fast/text-autosizing/narrow-iframe-flattened.html [ ImageOnlyFailure ]
-fast/text-autosizing/narrow-iframe.html [ ImageOnlyFailure ]
-fast/text-autosizing/nested-child.html [ ImageOnlyFailure ]
-fast/text-autosizing/nested-em-line-height.html [ ImageOnlyFailure ]
-fast/text-autosizing/oscillation-javascript-fontsize-change.html [ ImageOnlyFailure ]
-fast/text-autosizing/simple-paragraph.html [ ImageOnlyFailure ]
-fast/text-autosizing/span-child.html [ ImageOnlyFailure ]
-fast/text-autosizing/unwrappable-blocks.html [ ImageOnlyFailure ]
-fast/text-autosizing/unwrappable-inlines.html [ ImageOnlyFailure ]
-fast/text-autosizing/various-font-sizes.html [ ImageOnlyFailure ]
-fast/text-autosizing/wide-block.html [ ImageOnlyFailure ]
-fast/text-autosizing/wide-child.html [ ImageOnlyFailure ]
-fast/text-autosizing/wide-iframe.html [ ImageOnlyFailure ]
-fast/text-autosizing/wide-in-narrow-overflow-scroll.html [ ImageOnlyFailure ]
-
 fast/text/decorations-transformed.html [ Failure ]
 fast/text/emphasis-avoid-ruby.html [ Failure ]
 fast/text/emphasis-overlap.html [ Failure ]
@@ -1865,7 +1796,6 @@ fast/text/justify-ideograph-simple.html [ Failure ]
 fast/text/justify-ideograph-vertical.html [ Failure ]
 fast/text/justify-nbsp.html [ Failure ]
 fast/text/mark-matches-rendering.html [ ImageOnlyFailure ]
-fast/text/narrow-non-breaking-space.html [ ImageOnlyFailure ]
 fast/text/offsetForPosition-complex-fallback.html [ Failure ]
 fast/text/reset-drag-on-mouse-down.html [ Failure ]
 fast/text/selection-in-initial-advance-region.html [ Failure ]
@@ -2134,10 +2064,11 @@ webkit.org/b/139968 fast/css/word-spacing-between-inlines.html [ ImageOnlyFailur
 
 webkit.org/b/104954 http/tests/canvas/canvas-slow-font-loading.html [ ImageOnlyFailure ]
 
+webkit.org/b/162236 fast/text-autosizing/ios/line-height-text-autosizing.html [ Failure ]
+
 ###
 # Mark as passing specific tests in folders that were skipped temporarily above.
 ##
-webkit.org/b/138970 fast/text-autosizing/ios/line-height-text-autosizing.html [ Pass ]
 
 # Skipped for mac as well:
 webkit.org/b/129758 js/dom/create-lots-of-workers.html [ Skip ]
@@ -2491,7 +2422,6 @@ webkit.org/b/155095 fast/table/border-collapsing/table-ltr-rows-mixed-direction.
 fast/table/collapsed-border-with-odd-pixel-width.html [ ImageOnlyFailure ]
 
 # Uncategorized reftest failures, uncovered once we made reftests work. Needs triage.
-css3/font-variant-petite-caps-synthesis-coverage.html [ ImageOnlyFailure ]
 css3/font-variant-small-caps-synthesis-coverage.html [ ImageOnlyFailure ]
 css3/font-variant-synthesis-jdaggett.html [ ImageOnlyFailure ]
 fast/backgrounds/background-image-large-float-intrinsic-ratio.html [ ImageOnlyFailure ]
@@ -2500,7 +2430,6 @@ fast/borders/border-image-fill-inline-no-border.html [ ImageOnlyFailure ]
 fast/borders/border-image-space.html [ ImageOnlyFailure ]
 fast/css-generated-content/initial-letter-first-line-wrapping.html [ ImageOnlyFailure ]
 fast/css/pseudo-visited-background-color-on-input.html [ ImageOnlyFailure ]
-fast/css3-text/css3-text-decoration/text-decoration-line-through-mispositioned.html [ ImageOnlyFailure ]
 fast/forms/select-size.html [ ImageOnlyFailure ]
 fast/inline/inline-with-outline-offset.html [ ImageOnlyFailure ]
 fast/inline/outline-corners-with-offset.html [ ImageOnlyFailure ]
@@ -2571,9 +2500,6 @@ webkit.org/b/142969 editing/spelling/copy-paste-crash.html
 
 # This test is iPad only
 platform/ios-simulator/media/video-interruption-suspendunderlock.html [ Skip ]
-
-# System font on iOS 9 cannot be bold and italic.
-fast/text/system-font-weight-italic.html [ Failure ]
 
 media/accessibility-closed-captions-has-aria-owns.html
 media/airplay-autoplay.html
@@ -2708,3 +2634,26 @@ fast/attachment/attachment-wrapping-action.html [ Pass ]
 fast/events/page-visibility-iframe-move-test.html [ Skip ]
 
 webkit.org/b/161143 imported/w3c/web-platform-tests/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-samedoc.html [ Pass Failure ]
+
+webkit.org/b/161395 svg/animations/reinserting-svg-into-document.html [ Pass Failure ]
+
+# rdar://problem/26477735
+quicklook
+
+# rdar://problem/27954577
+http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html [ Failure ]
+
+# rdar://problem/26478053
+http/tests/dom/document-contentType.html [ Failure ]
+
+# rdar://problem/26477897
+imported/w3c/web-platform-tests/dom/nodes/Document-contentType/contentType/contenttype_mimeheader_01.html [ Failure ]
+
+webkit.org/b/156718 storage/websql/alter-to-info-table.html [ Failure ]
+
+css3/font-variant-petite-caps-synthesis.html [ ImageOnlyFailure ]
+css3/font-variant-small-caps-synthesis.html [ ImageOnlyFailure ]
+
+webkit.org/b/161949 imported/w3c/web-platform-tests/XMLHttpRequest/response-method.htm [ Failure ]
+
+webkit.org/b/130972 transitions/3d/interrupted-transition.html [ Pass Timeout ]
