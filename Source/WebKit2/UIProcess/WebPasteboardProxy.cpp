@@ -26,6 +26,7 @@
 #include "config.h"
 #include "WebPasteboardProxy.h"
 
+#include "StringReference.h" // FIXME: needed for WebPasteboardProxyMessages.h
 #include "WebPasteboardProxyMessages.h"
 #include "WebProcessProxy.h"
 #include <mutex>

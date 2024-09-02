@@ -504,7 +504,7 @@ void FrameLoaderClientQt::dispatchDidFinishLoad()
     emitLoadFinished(true);
 }
 
-void FrameLoaderClientQt::dispatchDidLayout(LayoutMilestones milestones)
+void FrameLoaderClientQt::dispatchDidReachLayoutMilestone(LayoutMilestones milestones)
 {
     if (!m_webFrame)
         return;
@@ -1272,10 +1272,10 @@ ObjectContentType FrameLoaderClientQt::objectContentType(const URL& url, const S
     QFileInfo fi(url.path());
     String extension = fi.suffix();
     if (mimeTypeIn == "application/x-qt-plugin" || mimeTypeIn == "application/x-qt-styled-widget")
-        return ObjectContentOtherPlugin;
+        return ObjectContentType::PlugIn;
 
     if (url.isEmpty() && !mimeTypeIn.length())
-        return ObjectContentNone;
+        return ObjectContentType::None;
 
     String mimeType = mimeTypeIn;
     if (!mimeType.length())
@@ -1286,31 +1286,31 @@ ObjectContentType FrameLoaderClientQt::objectContentType(const URL& url, const S
         mimeType = PluginDatabase::installedPlugins()->MIMETypeForExtension(extension);
 
     if (!mimeType.length())
-        return ObjectContentFrame;
+        return ObjectContentType::Frame;
 
-    ObjectContentType plugInType = ObjectContentNone;
+    ObjectContentType plugInType = ObjectContentType::None;
     if (arePluginsEnabled && PluginDatabase::installedPlugins()->isMIMETypeRegistered(mimeType))
-        plugInType = ObjectContentNetscapePlugin;
+        plugInType = ObjectContentType::PlugIn;
     else if (m_frame->page()) {
         bool allowPlugins = m_frame->loader().subframeLoader().allowPlugins();
         if ((m_frame->page()->pluginData().supportsMimeType(mimeType, PluginData::AllPlugins) && allowPlugins)
             || m_frame->page()->pluginData().supportsMimeType(mimeType, PluginData::OnlyApplicationPlugins))
-                plugInType = ObjectContentOtherPlugin;
+                plugInType = ObjectContentType::PlugIn;
     }
 
     if (MIMETypeRegistry::isSupportedImageMIMEType(mimeType))
-        return ObjectContentImage;
+        return ObjectContentType::Image;
     
-    if (plugInType != ObjectContentNone)
+    if (plugInType != ObjectContentType::None)
         return plugInType;
 
     if (MIMETypeRegistry::isSupportedNonImageMIMEType(mimeType))
-        return ObjectContentFrame;
+        return ObjectContentType::Frame;
 
     if (url.protocol() == "about")
-        return ObjectContentFrame;
+        return ObjectContentType::Frame;
 
-    return ObjectContentNone;
+    return ObjectContentType::None;
 }
 
 static const CSSPropertyID qstyleSheetProperties[] = {

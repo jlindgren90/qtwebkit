@@ -32,6 +32,8 @@
 #include "DFGFrozenValue.h"
 #include <wtf/text/StringImpl.h>
 
+#undef emit // FIXME: defined by Qt
+
 namespace JSC {
 
 class CCallHelpers;

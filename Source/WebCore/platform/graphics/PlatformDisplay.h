@@ -58,7 +58,7 @@ public:
 
     virtual Type type() const = 0;
 
-#if !PLATFORM(EFL)
+#if !PLATFORM(EFL) && !PLATFORM(QT)
     // FIXME: This should not have any platform ifdef, but EFL has its own EGLContext class
     // instead of using the GLContext common API.
     GLContext* sharingGLContext();

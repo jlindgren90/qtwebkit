@@ -132,7 +132,7 @@ PlatformDisplay::~PlatformDisplay()
 #endif
 }
 
-#if !PLATFORM(EFL)
+#if !PLATFORM(EFL) && !PLATFORM(QT)
 GLContext* PlatformDisplay::sharingGLContext()
 {
     if (!m_sharingGLContext)
