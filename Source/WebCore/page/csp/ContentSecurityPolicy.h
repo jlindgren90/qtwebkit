@@ -33,6 +33,7 @@
 #include <wtf/OptionSet.h>
 #include <wtf/Vector.h>
 #include <wtf/text/TextPosition.h>
+#include <functional>
 
 namespace JSC {
 class ExecState;

@@ -41,7 +41,7 @@
 #include "RenderView.h"
 #include "ShadowRoot.h"
 #include "Text.h"
-#include "TextBreakIterator.h"
+#include <wtf/text/TextBreakIterator.h>
 
 namespace WebCore {
 
@@ -81,7 +81,8 @@ bool nodeRespondsToTapGesture(Node* node)
         Element* element = downcast<Element>(node);
         if (element->isMouseFocusable())
             return true;
-        if (element->childrenAffectedByActive() || element->childrenAffectedByHover())
+        // FIXME: is styleAffectedByActive() needed here?
+        if (element->styleAffectedByActive() || element->childrenAffectedByHover())
             return true;
     }
     if (const RenderStyle* renderStyle = node->renderStyle()) {

@@ -164,8 +164,6 @@ list(APPEND WebCore_SOURCES
     platform/text/LocaleICU.cpp
 
     platform/text/hyphen/HyphenationLibHyphen.cpp
-
-    platform/text/qt/TextBreakIteratorInternalICUQt.cpp
 )
 
 QTWEBKIT_GENERATE_MOC_FILES_CPP(WebCore

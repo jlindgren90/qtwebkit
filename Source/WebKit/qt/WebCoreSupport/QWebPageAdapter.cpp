@@ -225,7 +225,7 @@ void QWebPageAdapter::initializeWebCorePage()
     const bool useMock = QWebPageAdapter::drtRun;
 #endif
     PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
-                                        WTF::makeUniqueRef<SocketProvider>());
+                                        SocketProvider::create());
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
     pageConfiguration.dragClient = new DragClientQt(pageConfiguration.chromeClient);
@@ -1181,7 +1181,7 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
     case ToggleVideoFullscreen:
         if (HTMLMediaElement* mediaElt = mediaElement(hitTestResult->innerNonSharedNode)) {
             if (mediaElt->isVideo() && mediaElt->supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenModeStandard)) {
-                UserGestureIndicator indicator(DefinitelyProcessingUserGesture);
+                UserGestureIndicator indicator(ProcessingUserGesture);
                 mediaElt->toggleStandardFullscreenState();
             }
         }

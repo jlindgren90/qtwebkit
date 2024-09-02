@@ -48,6 +48,7 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/UIProcess/CoordinatedGraphics"
     "${WEBKIT2_DIR}/UIProcess/InspectorServer/qt"
     "${WEBKIT2_DIR}/UIProcess/gstreamer"
+    "${WEBKIT2_DIR}/UIProcess/linux"
     "${WEBKIT2_DIR}/UIProcess/qt"
 
     "${WEBKIT2_DIR}/WebProcess/Plugins/Netscape/unix"
@@ -157,6 +158,8 @@ list(APPEND WebKit2_SOURCES
     UIProcess/gstreamer/InstallMissingMediaPluginsPermissionRequest.cpp
     UIProcess/gstreamer/WebPageProxyGStreamer.cpp
 
+    UIProcess/linux/MemoryPressureMonitor.cpp
+
     UIProcess/qt/BackingStoreQt.cpp
     UIProcess/qt/ColorChooserContextObject.h
     UIProcess/qt/DialogContextObjects.h
@@ -203,8 +206,11 @@ list(APPEND WebKit2_SOURCES
     WebProcess/WebCoreSupport/qt/WebFrameNetworkingContext.cpp
     WebProcess/WebCoreSupport/qt/WebPopupMenuQt.cpp
 
-    WebProcess/WebPage/CoordinatedGraphics/CoordinatedDrawingArea.cpp
+    WebProcess/WebPage/AcceleratedDrawingArea.cpp
+    WebProcess/WebPage/CoordinatedGraphics/AreaAllocator.cpp
+    WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp
     WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.cpp
+    WebProcess/WebPage/CoordinatedGraphics/UpdateAtlas.cpp
     WebProcess/WebPage/CoordinatedGraphics/WebPageCoordinatedGraphics.cpp
 
     WebProcess/WebPage/gstreamer/WebPageGStreamer.cpp

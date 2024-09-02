@@ -2828,7 +2828,7 @@ bool EventHandler::handleGestureTap(const PlatformGestureEvent& gestureEvent)
 
     PlatformMouseEvent fakeMouseMove(adjustedPoint, gestureEvent.globalPosition(),
         NoButton, PlatformEvent::MouseMoved, /* clickCount */ 0,
-        gestureEvent.shiftKey(), gestureEvent.ctrlKey(), gestureEvent.altKey(), gestureEvent.metaKey(), gestureEvent.timestamp(), ForceAtClick);
+        gestureEvent.shiftKey(), gestureEvent.ctrlKey(), gestureEvent.altKey(), gestureEvent.metaKey(), gestureEvent.timestamp(), ForceAtClick, NoTap);
     mouseMoved(fakeMouseMove);
 
     int tapCount = 1;
@@ -2836,12 +2836,12 @@ bool EventHandler::handleGestureTap(const PlatformGestureEvent& gestureEvent)
     bool defaultPrevented = false;
     PlatformMouseEvent fakeMouseDown(adjustedPoint, gestureEvent.globalPosition(),
         LeftButton, PlatformEvent::MousePressed, tapCount,
-        gestureEvent.shiftKey(), gestureEvent.ctrlKey(), gestureEvent.altKey(), gestureEvent.metaKey(), gestureEvent.timestamp(), ForceAtClick);
+        gestureEvent.shiftKey(), gestureEvent.ctrlKey(), gestureEvent.altKey(), gestureEvent.metaKey(), gestureEvent.timestamp(), ForceAtClick, NoTap);
     defaultPrevented |= handleMousePressEvent(fakeMouseDown);
 
     PlatformMouseEvent fakeMouseUp(adjustedPoint, gestureEvent.globalPosition(),
         LeftButton, PlatformEvent::MouseReleased, tapCount,
-        gestureEvent.shiftKey(), gestureEvent.ctrlKey(), gestureEvent.altKey(), gestureEvent.metaKey(), gestureEvent.timestamp(), ForceAtClick);
+        gestureEvent.shiftKey(), gestureEvent.ctrlKey(), gestureEvent.altKey(), gestureEvent.metaKey(), gestureEvent.timestamp(), ForceAtClick, NoTap);
     defaultPrevented |= handleMouseReleaseEvent(fakeMouseUp);
 
     return defaultPrevented;
@@ -3048,7 +3048,7 @@ bool EventHandler::sendContextMenuEventForGesture(const PlatformGestureEvent& ev
 #if ENABLE(TOUCH_ADJUSTMENT)
     adjustGesturePosition(event, adjustedPoint);
 #endif
-    PlatformMouseEvent mouseEvent(adjustedPoint, event.globalPosition(), RightButton, eventType, 1, false, false, false, false, WTF::currentTime(), ForceAtClick);
+    PlatformMouseEvent mouseEvent(adjustedPoint, event.globalPosition(), RightButton, eventType, 1, false, false, false, false, WTF::currentTime(), ForceAtClick, NoTap);
     // To simulate right-click behavior, we send a right mouse down and then
     // context menu event.
     handleMousePressEvent(mouseEvent);

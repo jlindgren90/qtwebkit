@@ -840,7 +840,7 @@ QString QWebElement::styleProperty(const QString &name, StyleResolveStrategy str
         if (!m_element || !m_element->isStyledElement())
             return QString();
 
-        RefPtr<CSSComputedStyleDeclaration> style = CSSComputedStyleDeclaration::create(m_element, true);
+        RefPtr<CSSComputedStyleDeclaration> style = CSSComputedStyleDeclaration::create(*m_element, true);
         if (!propID || !style)
             return QString();
 
@@ -1642,7 +1642,7 @@ void QWebElementCollection::append(const QWebElementCollection &other)
         }
     }
 
-    d->m_result = StaticNodeList::adopt(nodes);
+    d->m_result = StaticNodeList::create(std::move(nodes));
 }
 
 /*!

@@ -56,7 +56,7 @@ void QtTcpServerHandler::handleNewConnection()
     QTcpSocket* socket = m_serverSocket.nextPendingConnection();
     ASSERT(socket);
     auto connection = std::make_unique<WebSocketServerConnection>(m_webSocketServer->client(), m_webSocketServer);
-    connection->setSocketHandle(SocketStreamHandle::create(socket, connection.get()));
+    connection->setSocketHandle(SocketStreamHandle::create(socket, *connection));
     m_webSocketServer->didAcceptConnection(WTFMove(connection));
 }
 

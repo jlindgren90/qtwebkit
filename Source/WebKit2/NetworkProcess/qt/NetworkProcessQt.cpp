@@ -69,7 +69,7 @@ void NetworkProcess::clearDiskCache(std::chrono::system_clock::time_point, std::
 {
 }
 
-void NetworkProcess::platformSetCacheModel(CacheModel)
+void NetworkProcess::platformSetURLCacheSize(unsigned, uint64_t)
 {
 }
 

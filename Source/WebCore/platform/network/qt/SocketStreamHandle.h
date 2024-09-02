@@ -35,6 +35,7 @@
 
 #include "SocketStreamHandleBase.h"
 
+#include "SessionID.h"
 #include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
 
@@ -56,8 +57,8 @@ namespace WebCore {
 
     class SocketStreamHandle final : public RefCounted<SocketStreamHandle>, public SocketStreamHandleBase {
     public:
-        static Ref<SocketStreamHandle> create(const URL& url, SocketStreamHandleClient* client, NetworkingContext&, bool) { return adoptRef(*new SocketStreamHandle(url, client)); }
-        static Ref<SocketStreamHandle> create(QTcpSocket* socket, SocketStreamHandleClient* client) { return adoptRef(*new SocketStreamHandle(socket, client)); }
+        static Ref<SocketStreamHandle> create(const URL& url, SocketStreamHandleClient& client, NetworkingContext&, SessionID) { return adoptRef(*new SocketStreamHandle(url, client)); }
+        static Ref<SocketStreamHandle> create(QTcpSocket* socket, SocketStreamHandleClient& client) { return adoptRef(*new SocketStreamHandle(socket, client)); }
 
         ~SocketStreamHandle();
 
@@ -66,8 +67,8 @@ namespace WebCore {
         void platformClose() final;
 
     private:
-        SocketStreamHandle(const URL&, SocketStreamHandleClient*);
-        SocketStreamHandle(QTcpSocket*, SocketStreamHandleClient*);
+        SocketStreamHandle(const URL&, SocketStreamHandleClient&);
+        SocketStreamHandle(QTcpSocket*, SocketStreamHandleClient&);
 
         // No authentication for streams per se, but proxy may ask for credentials.
         void didReceiveAuthenticationChallenge(const AuthenticationChallenge&);

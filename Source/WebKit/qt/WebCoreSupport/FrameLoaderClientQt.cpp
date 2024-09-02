@@ -1429,7 +1429,7 @@ RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTML
 
                 styleSheet.append(getPropertyName(property));
                 styleSheet.append(':');
-                styleSheet.append(CSSComputedStyleDeclaration::create(element)->getPropertyValue(property));
+                styleSheet.append(CSSComputedStyleDeclaration::create(*element)->getPropertyValue(property));
                 styleSheet.append(';');
             }
 

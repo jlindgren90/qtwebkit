@@ -90,9 +90,6 @@ Q_DECL_EXPORT void initializeWebCoreQt()
     if (initialized)
         return;
 
-#if !LOG_DISABLED
-    WebCore::initializeLoggingChannelsIfNecessary();
-#endif // !LOG_DISABLED
     JSC::initializeThreading();
     WTF::initializeMainThread();
     RunLoop::initializeMainRunLoop();
