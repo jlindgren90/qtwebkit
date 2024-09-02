@@ -62,6 +62,7 @@
 #include "InsertListCommand.h"
 #include "KeyboardEvent.h"
 #include "KillRing.h"
+#include "Logging.h"
 #include "MainFrame.h"
 #include "ModifySelectionListLevel.h"
 #include "NodeList.h"
@@ -197,6 +198,8 @@ void Editor::handleInputMethodKeydown(KeyboardEvent* event)
 
 bool Editor::handleTextEvent(TextEvent* event)
 {
+    LOG(Editing, "Editor %p handleTextEvent (data %s)", this, event->data().utf8().data());
+
     // Default event handling for Drag and Drop will be handled by DragController
     // so we leave the event for it.
     if (event->isDrop())
@@ -1033,6 +1036,8 @@ static void dispatchEditableContentChangedEvents(PassRefPtr<Element> prpStartRoo
 
 void Editor::appliedEditing(PassRefPtr<CompositeEditCommand> cmd)
 {
+    LOG(Editing, "Editor %p appliedEditing", this);
+
     document().updateLayout();
 
     EditCommandComposition* composition = cmd->composition();
@@ -1108,18 +1113,10 @@ void Editor::reappliedEditing(PassRefPtr<EditCommandComposition> cmd)
 
 Editor::Editor(Frame& frame)
     : m_frame(frame)
-    , m_ignoreCompositionSelectionChange(false)
-    // This is off by default, since most editors want this behavior (this matches IE but not FF).
-    , m_shouldStyleWithCSS(false)
     , m_killRing(std::make_unique<KillRing>())
     , m_spellChecker(std::make_unique<SpellChecker>(frame))
     , m_alternativeTextController(std::make_unique<AlternativeTextController>(frame))
-    , m_areMarkedTextMatchesHighlighted(false)
-    , m_defaultParagraphSeparator(EditorParagraphSeparatorIsDiv)
-    , m_overwriteModeEnabled(false)
     , m_editorUIUpdateTimer(*this, &Editor::editorUIUpdateTimerFired)
-    , m_editorUIUpdateTimerShouldCheckSpellingAndGrammar(false)
-    , m_editorUIUpdateTimerWasTriggeredByDictation(false)
 #if ENABLE(TELEPHONE_NUMBER_DETECTION) && !PLATFORM(IOS)
     , m_telephoneNumberDetectionUpdateTimer(*this, &Editor::scanSelectionForTelephoneNumbers)
 #endif

@@ -81,6 +81,7 @@ list(APPEND WebKit2_SOURCES
 
     Shared/unix/ChildProcessMain.cpp
 
+    UIProcess/AcceleratedDrawingAreaProxy.cpp
     UIProcess/BackingStore.cpp
     UIProcess/DefaultUndoController.cpp
     UIProcess/DrawingAreaProxyImpl.cpp
@@ -294,13 +295,16 @@ list(APPEND WebKit2_SOURCES
     UIProcess/gstreamer/InstallMissingMediaPluginsPermissionRequest.cpp
     UIProcess/gstreamer/WebPageProxyGStreamer.cpp
 
+    UIProcess/gtk/AcceleratedBackingStore.cpp
+    UIProcess/gtk/AcceleratedBackingStoreWayland.cpp
+    UIProcess/gtk/AcceleratedBackingStoreX11.cpp
     UIProcess/gtk/DragAndDropHandler.cpp
     UIProcess/gtk/ExperimentalFeatures.cpp
     UIProcess/gtk/GestureController.cpp
     UIProcess/gtk/InputMethodFilter.cpp
     UIProcess/gtk/KeyBindingTranslator.cpp
     UIProcess/gtk/TextCheckerGtk.cpp
-    UIProcess/gtk/XDamageNotifier.cpp
+    UIProcess/gtk/WaylandCompositor.cpp
     UIProcess/gtk/WebColorPickerGtk.cpp
     UIProcess/gtk/WebContextMenuProxyGtk.cpp
     UIProcess/gtk/WebFullScreenClientGtk.cpp
@@ -349,8 +353,10 @@ list(APPEND WebKit2_SOURCES
 
     WebProcess/WebPage/gstreamer/WebPageGStreamer.cpp
 
+    WebProcess/WebPage/gtk/AcceleratedSurface.cpp
+    WebProcess/WebPage/gtk/AcceleratedSurfaceWayland.cpp
+    WebProcess/WebPage/gtk/AcceleratedSurfaceX11.cpp
     WebProcess/WebPage/gtk/PrinterListGtk.cpp
-    WebProcess/WebPage/gtk/RedirectedXCompositeWindow.cpp
     WebProcess/WebPage/gtk/WebInspectorUIGtk.cpp
     WebProcess/WebPage/gtk/WebPageGtk.cpp
     WebProcess/WebPage/gtk/WebPrintOperationGtk.cpp
@@ -367,6 +373,7 @@ list(APPEND WebKit2_DERIVED_SOURCES
     ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/InspectorGResourceBundle.c
     ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/WebKit2InspectorGResourceBundle.c
     ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/WebKit2ResourcesGResourceBundle.c
+    ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/WebKit2WaylandClientProtocol.c
 
     ${DERIVED_SOURCES_WEBKIT2GTK_API_DIR}/WebKitEnumTypes.cpp
     ${DERIVED_SOURCES_WEBKIT2GTK_API_DIR}/WebKitMarshal.cpp
@@ -674,6 +681,17 @@ add_custom_command(
     VERBATIM
 )
 
+if (ENABLE_WAYLAND_TARGET)
+    # Wayland protocol extension.
+    add_custom_command(
+        OUTPUT ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/WebKit2WaylandClientProtocol.c
+        DEPENDS ${WEBKIT2_DIR}/Shared/gtk/WebKit2WaylandProtocol.xml
+        COMMAND wayland-scanner server-header < ${WEBKIT2_DIR}/Shared/gtk/WebKit2WaylandProtocol.xml > ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/WebKit2WaylandServerProtocol.h
+        COMMAND wayland-scanner client-header < ${WEBKIT2_DIR}/Shared/gtk/WebKit2WaylandProtocol.xml > ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/WebKit2WaylandClientProtocol.h
+        COMMAND wayland-scanner code < ${WEBKIT2_DIR}/Shared/gtk/WebKit2WaylandProtocol.xml > ${DERIVED_SOURCES_WEBKIT2GTK_DIR}/WebKit2WaylandClientProtocol.c
+    )
+endif ()
+
 if (ENABLE_PLUGIN_PROCESS_GTK2)
     set(PluginProcessGTK2_EXECUTABLE_NAME WebKitPluginProcess2)
 
@@ -684,13 +702,11 @@ if (ENABLE_PLUGIN_PROCESS_GTK2)
         Platform/Module.cpp
 
         Platform/IPC/ArgumentCoders.cpp
-        Platform/IPC/ArgumentDecoder.cpp
-        Platform/IPC/ArgumentEncoder.cpp
         Platform/IPC/Attachment.cpp
         Platform/IPC/Connection.cpp
         Platform/IPC/DataReference.cpp
-        Platform/IPC/MessageDecoder.cpp
-        Platform/IPC/MessageEncoder.cpp
+        Platform/IPC/Decoder.cpp
+        Platform/IPC/Encoder.cpp
         Platform/IPC/MessageReceiverMap.cpp
         Platform/IPC/MessageSender.cpp
         Platform/IPC/StringReference.cpp

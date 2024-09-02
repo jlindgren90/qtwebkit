@@ -28,7 +28,47 @@
 
 #if ENABLE(GAMEPAD)
 
+#include "GamepadData.h"
+#include "Logging.h"
+#include <wtf/CurrentTime.h>
+
+
 namespace WebKit {
+
+WebGamepad::WebGamepad(const GamepadData& gamepadData)
+    : PlatformGamepad(gamepadData.index())
+{
+    LOG(Gamepad, "Connecting WebGamepad %u", gamepadData.index());
+
+    m_id = gamepadData.id();
+    m_axisValues.resize(gamepadData.axisValues().size());
+    m_buttonValues.resize(gamepadData.buttonValues().size());
+
+    updateValues(gamepadData);
+}
+
+const Vector<double>& WebGamepad::axisValues() const
+{
+    return m_axisValues;
+}
+
+const Vector<double>& WebGamepad::buttonValues() const
+{
+    return m_buttonValues;
+}
+
+void WebGamepad::updateValues(const GamepadData& gamepadData)
+{
+    ASSERT(!gamepadData.isNull());
+    ASSERT(gamepadData.index() == index());
+    ASSERT(m_axisValues.size() == gamepadData.axisValues().size());
+    ASSERT(m_buttonValues.size() == gamepadData.buttonValues().size());
+
+    m_axisValues = gamepadData.axisValues();
+    m_buttonValues = gamepadData.buttonValues();
+
+    m_lastUpdateTime = monotonicallyIncreasingTime();
+}
 
 }
 

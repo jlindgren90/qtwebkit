@@ -41,6 +41,7 @@
 #include <runtime/JSCellInlines.h>
 #include <runtime/JSTypedArrays.h>
 #include <runtime/Lookup.h>
+#include <runtime/ObjectConstructor.h>
 #include <runtime/StructureInlines.h>
 #include <runtime/TypedArrayInlines.h>
 #include <runtime/TypedArrays.h>
@@ -60,7 +61,6 @@ class JSFunction;
 namespace WebCore {
 
 class CachedScript;
-class DOMStringList;
 class DOMWindow;
 class Frame;
 class URL;
@@ -120,14 +120,16 @@ void throwAttributeTypeError(JSC::ExecState&, const char* interfaceName, const c
 WEBCORE_EXPORT void throwSequenceTypeError(JSC::ExecState&);
 WEBCORE_EXPORT bool throwSetterTypeError(JSC::ExecState&, const char* interfaceName, const char* attributeName);
 WEBCORE_EXPORT void throwNonFiniteTypeError(JSC::ExecState&);
+void throwSecurityError(JSC::ExecState&, const String& message);
 
 WEBCORE_EXPORT JSC::EncodedJSValue throwArgumentMustBeEnumError(JSC::ExecState&, unsigned argumentIndex, const char* argumentName, const char* functionInterfaceName, const char* functionName, const char* expectedValues);
 JSC::EncodedJSValue throwArgumentMustBeFunctionError(JSC::ExecState&, unsigned argumentIndex, const char* argumentName, const char* functionInterfaceName, const char* functionName);
 WEBCORE_EXPORT JSC::EncodedJSValue throwArgumentTypeError(JSC::ExecState&, unsigned argumentIndex, const char* argumentName, const char* functionInterfaceName, const char* functionName, const char* expectedType);
-JSC::EncodedJSValue throwConstructorDocumentUnavailableError(JSC::ExecState&, const char* interfaceName);
+JSC::EncodedJSValue throwConstructorScriptExecutionContextUnavailableError(JSC::ExecState&, const char* interfaceName);
 
 String makeGetterTypeErrorMessage(const char* interfaceName, const char* attributeName);
 String makeThisTypeErrorMessage(const char* interfaceName, const char* attributeName);
+
 WEBCORE_EXPORT JSC::EncodedJSValue throwGetterTypeError(JSC::ExecState&, const char* interfaceName, const char* attributeName);
 WEBCORE_EXPORT JSC::EncodedJSValue throwThisTypeError(JSC::ExecState&, const char* interfaceName, const char* functionName);
 
@@ -269,7 +271,7 @@ JSC::JSValue toJSIteratorEnd(JSC::ExecState&);
 
 template<typename T, size_t inlineCapacity> JSC::JSValue jsArray(JSC::ExecState*, JSDOMGlobalObject*, const Vector<T, inlineCapacity>&);
 template<typename T, size_t inlineCapacity> JSC::JSValue jsArray(JSC::ExecState*, JSDOMGlobalObject*, const Vector<T, inlineCapacity>*);
-WEBCORE_EXPORT JSC::JSValue jsArray(JSC::ExecState*, JSDOMGlobalObject*, DOMStringList*);
+template<typename T, size_t inlineCapacity> JSC::JSValue jsFrozenArray(JSC::ExecState*, JSDOMGlobalObject*, const Vector<T, inlineCapacity>&);
 
 JSC::JSValue jsPair(JSC::ExecState&, JSDOMGlobalObject*, JSC::JSValue, JSC::JSValue);
 template<typename FirstType, typename SecondType> JSC::JSValue jsPair(JSC::ExecState&, JSDOMGlobalObject*, const FirstType&, const SecondType&);
@@ -285,22 +287,27 @@ RefPtr<JSC::Uint32Array> toUint32Array(JSC::JSValue);
 RefPtr<JSC::Float32Array> toFloat32Array(JSC::JSValue);
 RefPtr<JSC::Float64Array> toFloat64Array(JSC::JSValue);
 
-template<typename T, typename JSType> Vector<RefPtr<T>> toRefPtrNativeArray(JSC::ExecState*, JSC::JSValue, T* (*)(JSC::JSValue));
+template<typename T, typename JSType> Vector<RefPtr<T>> toRefPtrNativeArray(JSC::ExecState*, JSC::JSValue);
 template<typename T> Vector<T> toNativeArray(JSC::ExecState&, JSC::JSValue);
 template<typename T> Vector<T> toNativeArguments(JSC::ExecState&, size_t startIndex = 0);
+bool hasIteratorMethod(JSC::ExecState&, JSC::JSValue);
 
 bool shouldAllowAccessToNode(JSC::ExecState*, Node*);
 bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*);
 bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, String& message);
 bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, String& message);
 
-enum SecurityReportingOption { DoNotReportSecurityError, ReportSecurityError };
+enum SecurityReportingOption {
+    DoNotReportSecurityError,
+    LogSecurityError, // Legacy behavior.
+    ThrowSecurityError
+};
 
 class BindingSecurity {
 public:
     static bool shouldAllowAccessToNode(JSC::ExecState*, Node*);
-    static bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, SecurityReportingOption = ReportSecurityError);
-    static bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, SecurityReportingOption = ReportSecurityError);
+    static bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, SecurityReportingOption = LogSecurityError);
+    static bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, SecurityReportingOption = LogSecurityError);
 };
 
 void printErrorMessageForFrame(Frame*, const String& message);
@@ -630,6 +637,20 @@ template<typename T, size_t inlineCapacity> inline JSC::JSValue jsArray(JSC::Exe
     return jsArray(exec, globalObject, *vector);
 }
 
+template<typename T, size_t inlineCapacity> JSC::JSValue jsFrozenArray(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, const Vector<T, inlineCapacity>& vector)
+{
+    JSC::MarkedArgumentBuffer list;
+    for (auto& element : vector) {
+        list.append(JSValueTraits<T>::arrayJSValue(exec, globalObject, element));
+        if (UNLIKELY(exec->hadException()))
+            return JSC::jsUndefined();
+    }
+    auto* array = JSC::constructArray(exec, nullptr, globalObject, list);
+    if (UNLIKELY(exec->hadException()))
+        return JSC::jsUndefined();
+    return JSC::objectConstructorFreeze(exec, array);
+}
+
 inline JSC::JSValue jsPair(JSC::ExecState& state, JSDOMGlobalObject* globalObject, JSC::JSValue value1, JSC::JSValue value2)
 {
     JSC::MarkedArgumentBuffer args;
@@ -667,21 +688,15 @@ template<> struct NativeValueTraits<String> {
     static inline bool nativeValue(JSC::ExecState& exec, JSC::JSValue jsValue, String& indexedValue)
     {
         indexedValue = jsValue.toWTFString(&exec);
-        return true;
+        return !exec.hadException();
     }
 };
 
 template<> struct NativeValueTraits<unsigned> {
     static inline bool nativeValue(JSC::ExecState& exec, JSC::JSValue jsValue, unsigned& indexedValue)
     {
-        if (!jsValue.isNumber())
-            return false;
-
         indexedValue = jsValue.toUInt32(&exec);
-        if (exec.hadException())
-            return false;
-
-        return true;
+        return !exec.hadException();
     }
 };
 
@@ -701,50 +716,38 @@ template<> struct NativeValueTraits<double> {
     }
 };
 
-template<typename T, typename JST> Vector<RefPtr<T>> toRefPtrNativeArray(JSC::ExecState* exec, JSC::JSValue value, T* (*toT)(JSC::JSValue value))
+template<typename T, typename JST> Vector<RefPtr<T>> toRefPtrNativeArray(JSC::ExecState& exec, JSC::JSValue value)
 {
-    if (!isJSArray(value))
+    if (!value.isObject()) {
+        throwSequenceTypeError(exec);
         return Vector<RefPtr<T>>();
+    }
 
     Vector<RefPtr<T>> result;
-    JSC::JSArray* array = asArray(value);
-    size_t size = array->length();
-    result.reserveInitialCapacity(size);
-    for (size_t i = 0; i < size; ++i) {
-        JSC::JSValue element = array->getIndex(exec, i);
-        if (element.inherits(JST::info()))
-            result.uncheckedAppend((*toT)(element));
-        else {
-            throwArrayElementTypeError(*exec);
-            return Vector<RefPtr<T>>();
-        }
-    }
+    forEachInIterable(&exec, value, [&result](JSC::VM&, JSC::ExecState* state, JSC::JSValue jsValue) {
+        if (jsValue.inherits(JST::info()))
+            result.append(JST::toWrapped(jsValue));
+        else
+            throwArrayElementTypeError(*state);
+    });
     return result;
 }
 
 template<typename T> Vector<T> toNativeArray(JSC::ExecState& exec, JSC::JSValue value)
 {
-    JSC::JSObject* object = value.getObject();
-    if (!object)
+    if (!value.isObject()) {
+        throwSequenceTypeError(exec);
         return Vector<T>();
-
-    unsigned length = 0;
-    if (isJSArray(value)) {
-        JSC::JSArray* array = asArray(value);
-        length = array->length();
-    } else
-        toJSSequence(exec, value, length);
+    }
 
     Vector<T> result;
-    result.reserveInitialCapacity(length);
-    typedef NativeValueTraits<T> TraitsType;
-
-    for (unsigned i = 0; i < length; ++i) {
-        T indexValue;
-        if (!TraitsType::nativeValue(exec, object->get(&exec, i), indexValue))
-            return Vector<T>();
-        result.uncheckedAppend(indexValue);
-    }
+    forEachInIterable(&exec, value, [&result](JSC::VM&, JSC::ExecState* state, JSC::JSValue jsValue) {
+        T convertedValue;
+        if (!NativeValueTraits<T>::nativeValue(*state, jsValue, convertedValue))
+            return;
+        ASSERT(!state->hadException());
+        result.append(convertedValue);
+    });
     return result;
 }
 

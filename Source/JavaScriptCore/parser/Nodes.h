@@ -171,6 +171,7 @@ namespace JSC {
         virtual bool isLocation() const { return false; }
         virtual bool isAssignmentLocation() const { return isLocation(); }
         virtual bool isResolveNode() const { return false; }
+        virtual bool isAssignResolveNode() const { return false; }
         virtual bool isBracketAccessorNode() const { return false; }
         virtual bool isDotAccessorNode() const { return false; }
         virtual bool isDestructuringNode() const { return false; }
@@ -1220,6 +1221,8 @@ namespace JSC {
     class AssignResolveNode : public ExpressionNode, public ThrowableExpressionData {
     public:
         AssignResolveNode(const JSTokenLocation&, const Identifier&, ExpressionNode* right, AssignmentContext);
+        bool isAssignResolveNode() const override { return true; }
+        const Identifier& identifier() const { return m_ident; }
 
     private:
         RegisterID* emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;

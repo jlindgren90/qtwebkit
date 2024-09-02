@@ -27,10 +27,9 @@
  */
 
 #include "config.h"
+#include "MathMLElement.h"
 
 #if ENABLE(MATHML)
-
-#include "MathMLElement.h"
 
 #include "ElementIterator.h"
 #include "Event.h"
@@ -63,26 +62,6 @@ MathMLElement::MathMLElement(const QualifiedName& tagName, Document& document)
 Ref<MathMLElement> MathMLElement::create(const QualifiedName& tagName, Document& document)
 {
     return adoptRef(*new MathMLElement(tagName, document));
-}
-
-bool MathMLElement::isPresentationMathML() const
-{
-    return hasTagName(MathMLNames::mtrTag)
-        || hasTagName(MathMLNames::mtdTag)
-        || hasTagName(MathMLNames::maligngroupTag)
-        || hasTagName(MathMLNames::malignmarkTag)
-        || hasTagName(MathMLNames::mencloseTag)
-        || hasTagName(MathMLNames::mglyphTag)
-        || hasTagName(MathMLNames::mlabeledtrTag)
-        || hasTagName(MathMLNames::mlongdivTag)
-        || hasTagName(MathMLNames::mpaddedTag)
-        || hasTagName(MathMLNames::msTag)
-        || hasTagName(MathMLNames::mscarriesTag)
-        || hasTagName(MathMLNames::mscarryTag)
-        || hasTagName(MathMLNames::msgroupTag)
-        || hasTagName(MathMLNames::mslineTag)
-        || hasTagName(MathMLNames::msrowTag)
-        || hasTagName(MathMLNames::mstackTag);
 }
 
 bool MathMLElement::isPhrasingContent(const Node& node) const
@@ -279,41 +258,8 @@ void MathMLElement::collectStyleForPresentationAttribute(const QualifiedName& na
 
 bool MathMLElement::childShouldCreateRenderer(const Node& child) const
 {
-    if (hasTagName(annotation_xmlTag)) {
-        auto& value = attributeWithoutSynchronization(MathMLNames::encodingAttr);
-
-        // See annotation-xml.model.mathml, annotation-xml.model.svg and annotation-xml.model.xhtml in the HTML5 RelaxNG schema.
-
-        if (is<MathMLElement>(child) && (MathMLSelectElement::isMathMLEncoding(value) || MathMLSelectElement::isHTMLEncoding(value))) {
-            auto& mathmlElement = downcast<MathMLElement>(child);
-            return is<MathMLMathElement>(mathmlElement);
-        }
-
-        if (is<SVGElement>(child) && (MathMLSelectElement::isSVGEncoding(value) || MathMLSelectElement::isHTMLEncoding(value))) {
-            auto& svgElement = downcast<SVGElement>(child);
-            return is<SVGSVGElement>(svgElement);
-        }
-
-        if (is<HTMLElement>(child) && MathMLSelectElement::isHTMLEncoding(value)) {
-            auto& htmlElement = downcast<HTMLElement>(child);
-            return is<HTMLHtmlElement>(htmlElement) || (isFlowContent(htmlElement) && StyledElement::childShouldCreateRenderer(child));
-        }
-
-        return false;
-    }
-
     // In general, only MathML children are allowed. Text nodes are only visible in token MathML elements.
     return is<MathMLElement>(child);
-}
-
-void MathMLElement::attributeChanged(const QualifiedName& name, const AtomicString& oldValue, const AtomicString& newValue, AttributeModificationReason reason)
-{
-    if (isSemanticAnnotation() && (name == MathMLNames::srcAttr || name == MathMLNames::encodingAttr)) {
-        auto* parent = parentElement();
-        if (is<MathMLElement>(parent) && parent->hasTagName(semanticsTag))
-            downcast<MathMLElement>(*parent).updateSelectedChild();
-    }
-    StyledElement::attributeChanged(name, oldValue, newValue, reason);
 }
 
 bool MathMLElement::willRespondToMouseClickEvents()
@@ -398,7 +344,7 @@ int MathMLElement::tabIndex() const
     return Element::tabIndex();
 }
 
-static inline StringView skipLeadingAndTrailingWhitespace(const StringView& stringView)
+StringView MathMLElement::stripLeadingAndTrailingWhitespace(const StringView& stringView)
 {
     unsigned start = 0, stringLength = stringView.length();
     while (stringLength > 0 && isHTMLSpace(stringView[start])) {
@@ -503,7 +449,7 @@ MathMLElement::Length MathMLElement::parseMathMLLength(const String& string)
     // Instead, we just use isHTMLSpace and toFloat to parse these parts.
 
     // We first skip whitespace from both ends of the string.
-    StringView stringView = skipLeadingAndTrailingWhitespace(string);
+    StringView stringView = stripLeadingAndTrailingWhitespace(string);
 
     if (stringView.isEmpty())
         return Length();

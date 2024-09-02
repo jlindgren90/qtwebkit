@@ -31,7 +31,6 @@
 // #include "PlugInsResourcesData.cpp"
 // #include "UserAgentStyleSheetsData.cpp"
 
-#include "ExceptionCodeDescription.h"
 #include "HTMLElementFactory.cpp"
 #if ENABLE(WEBGL)
 #include "JSANGLEInstancedArrays.cpp"
@@ -49,7 +48,6 @@
 #include "JSCanvasGradient.cpp"
 #include "JSCanvasPattern.cpp"
 #include "JSCanvasProxy.cpp"
-#include "JSCanvasRenderingContext.cpp"
 #include "JSCanvasRenderingContext2D.cpp"
 #if ENABLE(STREAMS_API)
 #include "JSByteLengthQueuingStrategy.cpp"
@@ -138,6 +136,9 @@
 #include "JSCSSUnknownRule.cpp"
 #include "JSCSSValue.cpp"
 #include "JSCSSValueList.cpp"
+#if ENABLE(CUSTOM_ELEMENTS)
+#include "JSCustomElementRegistry.cpp"
+#endif
 #include "JSCustomEvent.cpp"
 #include "JSDatabase.cpp"
 #include "JSDatabaseCallback.cpp"
@@ -207,6 +208,7 @@
 #endif
 #include "JSGeolocation.cpp"
 #include "JSGeoposition.cpp"
+#include "JSGlobalCrypto.cpp"
 #include "JSGlobalEventHandlers.cpp"
 #include "JSHashChangeEvent.cpp"
 #include "JSHistory.cpp"
@@ -378,7 +380,6 @@
 #include "JSParentNode.cpp"
 #include "JSPerformance.cpp"
 #include "JSPerformanceEntry.cpp"
-#include "JSPerformanceEntryList.cpp"
 #include "JSPerformanceMark.cpp"
 #include "JSPerformanceMeasure.cpp"
 #include "JSPerformanceNavigation.cpp"

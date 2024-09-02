@@ -37,7 +37,6 @@
 #include "Error.h"
 #include "ErrorHandlingScope.h"
 #include "ExceptionFuzz.h"
-#include "GeneratorFrame.h"
 #include "GetterSetter.h"
 #include "HostCallReturnValue.h"
 #include "Interpreter.h"
@@ -753,38 +752,6 @@ SLOW_PATH_DECL(slow_path_assert)
     END();
 }
 
-SLOW_PATH_DECL(slow_path_save)
-{
-    // Only save variables and temporary registers. The scope registers are included in them.
-    // But parameters are not included. Because the generator implementation replaces the values of parameters on each generator.next() call.
-    BEGIN();
-    JSValue generator = OP(1).jsValue();
-    GeneratorFrame* frame = nullptr;
-    JSValue value = generator.get(exec, exec->propertyNames().builtinNames().generatorFramePrivateName());
-    if (!value.isNull())
-        frame = jsCast<GeneratorFrame*>(value);
-    else {
-        // FIXME: Once JSGenerator specialized object is introduced, this GeneratorFrame should be embeded into it to avoid allocations.
-        // https://bugs.webkit.org/show_bug.cgi?id=151545
-        frame = GeneratorFrame::create(exec->vm(),  exec->codeBlock()->numCalleeLocals());
-        PutPropertySlot slot(generator, true, PutPropertySlot::PutById);
-        asObject(generator)->methodTable(exec->vm())->put(asObject(generator), exec, exec->propertyNames().builtinNames().generatorFramePrivateName(), frame, slot);
-    }
-    unsigned liveCalleeLocalsIndex = pc[2].u.unsignedValue;
-    frame->save(exec, exec->codeBlock()->liveCalleeLocalsAtYield(liveCalleeLocalsIndex));
-    END();
-}
-
-SLOW_PATH_DECL(slow_path_resume)
-{
-    BEGIN();
-    JSValue generator = OP(1).jsValue();
-    GeneratorFrame* frame = jsCast<GeneratorFrame*>(generator.get(exec, exec->propertyNames().builtinNames().generatorFramePrivateName()));
-    unsigned liveCalleeLocalsIndex = pc[2].u.unsignedValue;
-    frame->resume(exec, exec->codeBlock()->liveCalleeLocalsAtYield(liveCalleeLocalsIndex));
-    END();
-}
-
 SLOW_PATH_DECL(slow_path_create_lexical_environment)
 {
     BEGIN();
@@ -848,20 +815,15 @@ SLOW_PATH_DECL(slow_path_resolve_scope)
     RETURN(resolvedScope);
 }
 
-SLOW_PATH_DECL(slow_path_copy_rest)
+SLOW_PATH_DECL(slow_path_create_rest)
 {
     BEGIN();
     unsigned arraySize = OP_C(2).jsValue().asUInt32();
-    if (!arraySize) {
-        ASSERT(!jsCast<JSArray*>(OP(1).jsValue())->length());
-        END();
-    }
-    JSArray* array = jsCast<JSArray*>(OP(1).jsValue());
-    ASSERT(arraySize == array->length());
+    JSGlobalObject* globalObject = exec->lexicalGlobalObject();
+    Structure* structure = globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous);
     unsigned numParamsToSkip = pc[3].u.unsignedValue;
-    for (unsigned i = 0; i < arraySize; i++)
-        array->putDirectIndex(exec, i, exec->uncheckedArgument(i + numParamsToSkip));
-    END();
+    JSValue* argumentsToCopyRegion = exec->addressOfArgumentsStart() + numParamsToSkip;
+    RETURN(constructArray(exec, structure, argumentsToCopyRegion, arraySize));
 }
 
 SLOW_PATH_DECL(slow_path_get_by_id_with_this)

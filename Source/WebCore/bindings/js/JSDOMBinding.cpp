@@ -24,7 +24,6 @@
 
 #include "CachedScript.h"
 #include "DOMConstructorWithDocument.h"
-#include "DOMStringList.h"
 #include "ExceptionCode.h"
 #include "ExceptionCodeDescription.h"
 #include "ExceptionHeaders.h"
@@ -141,7 +140,7 @@ String valueToUSVString(ExecState* exec, JSValue value)
         return string;
 
     // Slow path: http://heycam.github.io/webidl/#dfn-obtain-unicode
-    // Replaces unpaired surrogates with the replacememnt character.
+    // Replaces unpaired surrogates with the replacement character.
     StringBuilder result;
     result.reserveCapacity(view.length());
     for (auto codePoint : view.codePoints()) {
@@ -184,16 +183,6 @@ double valueToDate(ExecState* exec, JSValue value)
     if (!value.inherits(DateInstance::info()))
         return std::numeric_limits<double>::quiet_NaN();
     return static_cast<DateInstance*>(value.toObject(exec))->internalNumber();
-}
-
-JSC::JSValue jsArray(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, DOMStringList* stringList)
-{
-    JSC::MarkedArgumentBuffer list;
-    if (stringList) {
-        for (unsigned i = 0; i < stringList->length(); ++i)
-            list.append(jsStringWithCache(exec, stringList->item(i)));
-    }
-    return JSC::constructArray(exec, 0, globalObject, list);
 }
 
 void reportException(ExecState* exec, JSValue exceptionValue, CachedScript* cachedScript)
@@ -364,6 +353,22 @@ void setDOMException(JSC::ExecState* exec, const ExceptionCodeWithMessage& ec)
 }
 
 #undef TRY_TO_CREATE_EXCEPTION
+
+bool hasIteratorMethod(JSC::ExecState& state, JSC::JSValue value)
+{
+    if (!value.isObject())
+        return false;
+
+    auto& vm = state.vm();
+    JSObject* object = JSC::asObject(value);
+    CallData callData;
+    CallType callType;
+    JSValue applyMethod = object->getMethod(&state, callData, callType, vm.propertyNames->iteratorSymbol, ASCIILiteral("Symbol.iterator property should be callable"));
+    if (vm.exception())
+        return false;
+
+    return !applyMethod.isUndefined();
+}
 
 bool shouldAllowAccessToNode(ExecState* exec, Node* node)
 {
@@ -755,7 +760,7 @@ DOMWindow& firstDOMWindow(ExecState* exec)
     return asJSDOMWindow(exec->vmEntryGlobalObject())->wrapped();
 }
 
-static inline bool canAccessDocument(JSC::ExecState* state, Document* targetDocument, SecurityReportingOption reportingOption = ReportSecurityError)
+static inline bool canAccessDocument(JSC::ExecState* state, Document* targetDocument, SecurityReportingOption reportingOption)
 {
     if (!targetDocument)
         return false;
@@ -765,8 +770,16 @@ static inline bool canAccessDocument(JSC::ExecState* state, Document* targetDocu
     if (active.document()->securityOrigin()->canAccess(targetDocument->securityOrigin()))
         return true;
 
-    if (reportingOption == ReportSecurityError)
+    switch (reportingOption) {
+    case ThrowSecurityError:
+        throwSecurityError(*state, targetDocument->domWindow()->crossDomainAccessErrorMessage(active));
+        break;
+    case LogSecurityError:
         printErrorMessageForFrame(targetDocument->frame(), targetDocument->domWindow()->crossDomainAccessErrorMessage(active));
+        break;
+    case DoNotReportSecurityError:
+        break;
+    }
 
     return false;
 }
@@ -783,7 +796,7 @@ bool BindingSecurity::shouldAllowAccessToFrame(JSC::ExecState* state, Frame* tar
 
 bool BindingSecurity::shouldAllowAccessToNode(JSC::ExecState* state, Node* target)
 {
-    return target && canAccessDocument(state, &target->document());
+    return target && canAccessDocument(state, &target->document(), LogSecurityError);
 }
     
 static EncodedJSValue throwTypeError(JSC::ExecState& state, const String& errorMessage)
@@ -837,6 +850,12 @@ void throwInvalidStateError(JSC::ExecState& state, const char* message)
     state.vm().throwException(&state, createDOMException(&state, INVALID_STATE_ERR, &messageString));
 }
 
+void throwSecurityError(JSC::ExecState& state, const String& message)
+{
+    ASSERT(!state.hadException());
+    state.vm().throwException(&state, createDOMException(&state, SECURITY_ERR, message));
+}
+
 JSC::EncodedJSValue throwArgumentMustBeEnumError(JSC::ExecState& state, unsigned argumentIndex, const char* argumentName, const char* functionInterfaceName, const char* functionName, const char* expectedValues)
 {
     StringBuilder builder;
@@ -873,10 +892,9 @@ void throwAttributeTypeError(JSC::ExecState& state, const char* interfaceName, c
     throwTypeError(state, makeString("The ", interfaceName, '.', attributeName, " attribute must be an instance of ", expectedType));
 }
 
-JSC::EncodedJSValue throwConstructorDocumentUnavailableError(JSC::ExecState& state, const char* interfaceName)
+JSC::EncodedJSValue throwConstructorScriptExecutionContextUnavailableError(JSC::ExecState& state, const char* interfaceName)
 {
-    // FIXME: This is confusing exception wording. Can we reword to be clearer and more specific?
-    return throwVMError(&state, createReferenceError(&state, makeString(interfaceName, " constructor associated document is unavailable")));
+    return throwVMError(&state, createReferenceError(&state, makeString(interfaceName, " constructor associated execution context is unavailable")));
 }
 
 void throwSequenceTypeError(JSC::ExecState& state)

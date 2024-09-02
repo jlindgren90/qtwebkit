@@ -55,7 +55,7 @@ bool JSLocation::getOwnPropertySlotDelegate(ExecState* exec, PropertyName proper
         return true;
     }
 
-    printErrorMessageForFrame(frame, message);
+    throwSecurityError(*exec, message);
     slot.setUndefined();
     return true;
 }
@@ -70,13 +70,18 @@ bool JSLocation::putDelegate(ExecState* exec, PropertyName propertyName, JSValue
     if (propertyName == exec->propertyNames().toString || propertyName == exec->propertyNames().valueOf)
         return true;
 
-    if (shouldAllowAccessToFrame(exec, frame))
+    String errorMessage;
+    if (shouldAllowAccessToFrame(exec, frame, errorMessage))
         return false;
 
     // Cross-domain access to the location is allowed when assigning the whole location,
-    //but not when assigning the individual pieces, since that might inadvertently
+    // but not when assigning the individual pieces, since that might inadvertently
     // disclose other parts of the original location.
-    return propertyName != exec->propertyNames().href;
+    if (propertyName != exec->propertyNames().href) {
+        throwSecurityError(*exec, errorMessage);
+        return true;
+    }
+    return false;
 }
 
 bool JSLocation::deleteProperty(JSCell* cell, ExecState* exec, PropertyName propertyName)
@@ -111,15 +116,6 @@ bool JSLocation::defineOwnProperty(JSObject* object, ExecState* exec, PropertyNa
     if (descriptor.isAccessorDescriptor() && (propertyName == exec->propertyNames().toString || propertyName == exec->propertyNames().valueOf))
         return false;
     return Base::defineOwnProperty(object, exec, propertyName, descriptor, throwException);
-}
-
-JSValue JSLocation::toStringFunction(ExecState& state)
-{
-    Frame* frame = wrapped().frame();
-    if (!frame || !shouldAllowAccessToFrame(&state, frame))
-        return jsUndefined();
-
-    return jsStringWithCache(&state, wrapped().toString());
 }
 
 bool JSLocationPrototype::putDelegate(ExecState* exec, PropertyName propertyName, JSValue, PutPropertySlot&, bool& putResult)

@@ -709,26 +709,6 @@ WEBKIT_API void
 webkit_dom_test_obj_method_with_optional_unsigned_long_long_is_zero(WebKitDOMTestObj* self, guint64 number);
 
 /**
- * webkit_dom_test_obj_method_with_optional_array:
- * @self: A #WebKitDOMTestObj
- * @array: A #gchar
- *
- * Stability: Unstable
-**/
-WEBKIT_API void
-webkit_dom_test_obj_method_with_optional_array(WebKitDOMTestObj* self, const gchar* array);
-
-/**
- * webkit_dom_test_obj_method_with_optional_array_is_empty:
- * @self: A #WebKitDOMTestObj
- * @array: A #gchar
- *
- * Stability: Unstable
-**/
-WEBKIT_API void
-webkit_dom_test_obj_method_with_optional_array_is_empty(WebKitDOMTestObj* self, const gchar* array);
-
-/**
  * webkit_dom_test_obj_method_with_optional_boolean:
  * @self: A #WebKitDOMTestObj
  * @b: A #gboolean
@@ -2117,6 +2097,27 @@ webkit_dom_test_obj_get_put_forwards_attribute(WebKitDOMTestObj* self);
 **/
 WEBKIT_API WebKitDOMTestNode*
 webkit_dom_test_obj_get_put_forwards_nullable_attribute(WebKitDOMTestObj* self);
+
+/**
+ * webkit_dom_test_obj_get_stringifier_attribute:
+ * @self: A #WebKitDOMTestObj
+ *
+ * Returns: A #gchar
+ *
+ * Stability: Unstable
+**/
+WEBKIT_API gchar*
+webkit_dom_test_obj_get_stringifier_attribute(WebKitDOMTestObj* self);
+
+/**
+ * webkit_dom_test_obj_set_stringifier_attribute:
+ * @self: A #WebKitDOMTestObj
+ * @value: A #gchar
+ *
+ * Stability: Unstable
+**/
+WEBKIT_API void
+webkit_dom_test_obj_set_stringifier_attribute(WebKitDOMTestObj* self, const gchar* value);
 
 G_END_DECLS
 

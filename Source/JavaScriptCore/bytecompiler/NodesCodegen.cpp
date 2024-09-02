@@ -31,12 +31,10 @@
 #include "BuiltinNames.h"
 #include "BytecodeGenerator.h"
 #include "CallFrame.h"
-#include "Debugger.h"
 #include "JIT.h"
 #include "JSFunction.h"
 #include "JSGeneratorFunction.h"
 #include "JSGlobalObject.h"
-#include "JSONObject.h"
 #include "LabelScope.h"
 #include "Lexer.h"
 #include "JSCInlines.h"
@@ -48,7 +46,6 @@
 #include "StackAlignment.h"
 #include "TemplateRegistryKey.h"
 #include <wtf/Assertions.h>
-#include <wtf/RefCountedLeakCounter.h>
 #include <wtf/Threading.h>
 
 using namespace WTF;
@@ -954,6 +951,17 @@ RegisterID* BytecodeIntrinsicNode::emit_intrinsic_isObject(BytecodeGenerator& ge
     ASSERT(!node->m_next);
 
     return generator.moveToDestinationIfNeeded(dst, generator.emitIsObject(generator.tempDestination(dst), src.get()));
+}
+
+RegisterID* BytecodeIntrinsicNode::emit_intrinsic_newArrayWithSize(JSC::BytecodeGenerator& generator, JSC::RegisterID* dst)
+{
+    ArgumentListNode* node = m_args->m_listNode;
+    RefPtr<RegisterID> size = generator.emitNode(node);
+    ASSERT(!node->m_next);
+
+    RefPtr<RegisterID> finalDestination = generator.finalDestination(dst);
+    generator.emitNewArrayWithSize(finalDestination.get(), size.get());
+    return finalDestination.get();
 }
 
 
@@ -2551,21 +2559,37 @@ RegisterID* ForInNode::tryGetBoundLocal(BytecodeGenerator& generator)
 
 void ForInNode::emitLoopHeader(BytecodeGenerator& generator, RegisterID* propertyName)
 {
-    if (m_lexpr->isResolveNode()) {
-        const Identifier& ident = static_cast<ResolveNode*>(m_lexpr)->identifier();
+    auto lambdaEmitResolveVariable = [&](const Identifier& ident)
+    {
         Variable var = generator.variable(ident);
-        if (RegisterID* local = var.local())
+        if (RegisterID* local = var.local()) {
+            if (var.isReadOnly())
+                generator.emitReadOnlyExceptionIfNeeded(var);
             generator.emitMove(local, propertyName);
-        else {
+        } else {
             if (generator.isStrictMode())
                 generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+            if (var.isReadOnly())
+                generator.emitReadOnlyExceptionIfNeeded(var);
             RegisterID* scope = generator.emitResolveScope(nullptr, var);
             generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
             generator.emitPutToScope(scope, var, propertyName, generator.isStrictMode() ? ThrowIfNotFound : DoNotThrowIfNotFound, InitializationMode::NotInitialization);
         }
         generator.emitProfileType(propertyName, var, m_lexpr->position(), JSTextPosition(-1, m_lexpr->position().offset + ident.length(), -1));
+    };
+
+    if (m_lexpr->isResolveNode()) {
+        const Identifier& ident = static_cast<ResolveNode*>(m_lexpr)->identifier();
+        lambdaEmitResolveVariable(ident);
         return;
     }
+
+    if (m_lexpr->isAssignResolveNode()) {
+        const Identifier& ident = static_cast<AssignResolveNode*>(m_lexpr)->identifier();
+        lambdaEmitResolveVariable(ident);
+        return;
+    }
+
     if (m_lexpr->isDotAccessorNode()) {
         DotAccessorNode* assignNode = static_cast<DotAccessorNode*>(m_lexpr);
         const Identifier& ident = assignNode->identifier();
@@ -2618,7 +2642,7 @@ void ForInNode::emitLoopHeader(BytecodeGenerator& generator, RegisterID* propert
 
 void ForInNode::emitMultiLoopBytecode(BytecodeGenerator& generator, RegisterID* dst)
 {
-    if (!m_lexpr->isAssignmentLocation()) {
+    if (!m_lexpr->isAssignResolveNode() && !m_lexpr->isAssignmentLocation()) {
         emitThrowReferenceError(generator, ASCIILiteral("Left side of for-in statement is not a reference."));
         return;
     }
@@ -2630,9 +2654,13 @@ void ForInNode::emitMultiLoopBytecode(BytecodeGenerator& generator, RegisterID* 
 
     generator.emitDebugHook(WillExecuteStatement, firstLine(), startOffset(), lineStartOffset());
 
+    if (m_lexpr->isAssignResolveNode())
+        generator.emitNode(generator.ignoredResult(), m_lexpr);
+
     RefPtr<RegisterID> base = generator.newTemporary();
     RefPtr<RegisterID> length;
     RefPtr<RegisterID> enumerator;
+
     generator.emitNode(base.get(), m_expr);
     RefPtr<RegisterID> local = this->tryGetBoundLocal(generator);
     RefPtr<RegisterID> enumeratorIndex;
@@ -2783,11 +2811,15 @@ void ForOfNode::emitBytecode(BytecodeGenerator& generator, RegisterID* dst)
         if (m_lexpr->isResolveNode()) {
             const Identifier& ident = static_cast<ResolveNode*>(m_lexpr)->identifier();
             Variable var = generator.variable(ident);
-            if (RegisterID* local = var.local())
+            if (RegisterID* local = var.local()) {
+                if (var.isReadOnly())
+                    generator.emitReadOnlyExceptionIfNeeded(var);
                 generator.emitMove(local, value);
-            else {
+            } else {
                 if (generator.isStrictMode())
                     generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+                if (var.isReadOnly())
+                    generator.emitReadOnlyExceptionIfNeeded(var);
                 RegisterID* scope = generator.emitResolveScope(nullptr, var);
                 generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
                 generator.emitPutToScope(scope, var, value, generator.isStrictMode() ? ThrowIfNotFound : DoNotThrowIfNotFound, InitializationMode::NotInitialization);
@@ -3345,7 +3377,6 @@ void FunctionNode::emitBytecode(BytecodeGenerator& generator, RegisterID*)
         RefPtr<Label> done = generator.newLabel();
         generator.emitLabel(done.get());
         generator.emitReturn(generator.emitLoad(nullptr, jsUndefined()));
-        generator.endGenerator(done.get());
         break;
     }
 
@@ -3747,7 +3778,7 @@ void ArrayPatternNode::toString(StringBuilder& builder) const
             break;
 
         case BindingType::RestElement:
-            builder.append("...");
+            builder.appendLiteral("...");
             target.pattern->toString(builder);
             break;
         }
@@ -3928,7 +3959,7 @@ void RestParameterNode::collectBoundIdentifiers(Vector<Identifier>& identifiers)
 
 void RestParameterNode::toString(StringBuilder& builder) const
 {
-    builder.append("...");
+    builder.appendLiteral("...");
     m_pattern->toString(builder);
 }
 

@@ -27,33 +27,62 @@
 
 #if ENABLE(GAMEPAD)
 
-#include <WebCore/GamepadProvider.h>
 #include <WebCore/GamepadProviderClient.h>
 #include <wtf/HashSet.h>
+#include <wtf/NeverDestroyed.h>
+#include <wtf/RunLoop.h>
+#include <wtf/Vector.h>
 
 namespace WebKit {
 
+class UIGamepad;
+class WebPageProxy;
 class WebProcessPool;
+class GamepadData;
 
 class UIGamepadProvider : public WebCore::GamepadProviderClient {
 public:
-    UIGamepadProvider();
-    ~UIGamepadProvider() final;
-
     static UIGamepadProvider& singleton();
-
-    void platformGamepadConnected(WebCore::PlatformGamepad&) final;
-    void platformGamepadDisconnected(WebCore::PlatformGamepad&) final;
-    void platformGamepadInputActivity() final;
 
     void processPoolStartedUsingGamepads(WebProcessPool&);
     void processPoolStoppedUsingGamepads(WebProcessPool&);
 
+    void viewBecameActive(WebPageProxy&);
+    void viewBecameInactive(WebPageProxy&);
+
+    Vector<GamepadData> gamepadStates() const;
+
 private:
-    void platformStartMonitoringGamepads();
-    void platformStopMonitoringGamepads();
+    friend NeverDestroyed<UIGamepadProvider>;
+    UIGamepadProvider();
+    ~UIGamepadProvider() final;
+
+    void startMonitoringGamepads();
+    void stopMonitoringGamepads();
+
+    void platformSetDefaultGamepadProvider();
+    WebPageProxy* platformWebPageProxyForGamepadInput();
+    void platformStopMonitoringInput();
+    void platformStartMonitoringInput();
+
+    void setInitialConnectedGamepads(const Vector<WebCore::PlatformGamepad*>&) final;
+    void platformGamepadConnected(WebCore::PlatformGamepad&) final;
+    void platformGamepadDisconnected(WebCore::PlatformGamepad&) final;
+    void platformGamepadInputActivity() final;
+
+    void scheduleGamepadStateSync();
+    void gamepadSyncTimerFired();
+
+    Vector<GamepadData> snapshotGamepads();
 
     HashSet<WebProcessPool*> m_processPoolsUsingGamepads;
+
+    Vector<std::unique_ptr<UIGamepad>> m_gamepads;
+
+    RunLoop::Timer<UIGamepadProvider> m_gamepadSyncTimer;
+
+    bool m_isMonitoringGamepads { false };
+    bool m_hasInitialGamepads { false };
 };
 
 }

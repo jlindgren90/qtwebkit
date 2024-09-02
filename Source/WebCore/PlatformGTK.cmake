@@ -144,6 +144,8 @@ list(APPEND WebCore_SOURCES
 
     platform/graphics/opentype/OpenTypeVerticalData.cpp
 
+    platform/graphics/wayland/PlatformDisplayWayland.cpp
+
     platform/graphics/x11/PlatformDisplayX11.cpp
     platform/graphics/x11/XUniqueResource.cpp
 
@@ -172,7 +174,7 @@ list(APPEND WebCore_SOURCES
     platform/network/soup/ResourceHandleSoup.cpp
     platform/network/soup/ResourceRequestSoup.cpp
     platform/network/soup/ResourceResponseSoup.cpp
-    platform/network/soup/SocketStreamHandleSoup.cpp
+    platform/network/soup/SocketStreamHandleImplSoup.cpp
     platform/network/soup/SoupNetworkSession.cpp
     platform/network/soup/SynchronousLoaderClientSoup.cpp
     platform/network/soup/WebKitSoupRequestGeneric.cpp
@@ -348,24 +350,6 @@ if (ENABLE_PLUGIN_PROCESS_GTK2)
 endif ()
 
 if (ENABLE_WAYLAND_TARGET)
-    # Wayland protocol extension.
-    add_custom_command(
-        OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/WebKitGtkWaylandClientProtocol.c
-        DEPENDS ${WEBCORE_DIR}/platform/graphics/wayland/WebKitGtkWaylandClientProtocol.xml
-        COMMAND wayland-scanner server-header < ${WEBCORE_DIR}/platform/graphics/wayland/WebKitGtkWaylandClientProtocol.xml > ${DERIVED_SOURCES_WEBCORE_DIR}/WebKitGtkWaylandServerProtocol.h
-        COMMAND wayland-scanner client-header < ${WEBCORE_DIR}/platform/graphics/wayland/WebKitGtkWaylandClientProtocol.xml > ${DERIVED_SOURCES_WEBCORE_DIR}/WebKitGtkWaylandClientProtocol.h
-        COMMAND wayland-scanner code < ${WEBCORE_DIR}/platform/graphics/wayland/WebKitGtkWaylandClientProtocol.xml > ${DERIVED_SOURCES_WEBCORE_DIR}/WebKitGtkWaylandClientProtocol.c
-    )
-
-    list(APPEND WebCore_SOURCES
-        platform/graphics/wayland/PlatformDisplayWayland.cpp
-        platform/graphics/wayland/WaylandEventSource.cpp
-        platform/graphics/wayland/WaylandSurface.cpp
-    )
-    list(APPEND WebCore_DERIVED_SOURCES
-        ${DERIVED_SOURCES_WEBCORE_DIR}/WebKitGtkWaylandClientProtocol.c
-    )
-
     list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
         ${WAYLAND_INCLUDE_DIRS}
     )
@@ -578,7 +562,6 @@ list(APPEND GObjectDOMBindingsUnstable_IDL_FILES
     page/Navigator.idl
     page/Performance.idl
     page/PerformanceEntry.idl
-    page/PerformanceEntryList.idl
     page/PerformanceNavigation.idl
     page/PerformanceTiming.idl
     page/Screen.idl
@@ -597,9 +580,13 @@ list(APPEND GObjectDOMBindingsUnstable_IDL_FILES
 
 if (ENABLE_WEB_ANIMATIONS)
     list(APPEND GObjectDOMBindingsUnstable_IDL_FILES
+        animation/Animatable.idl
+        animation/AnimationEffect.idl
         animation/AnimationTimeline.idl
         animation/DocumentAnimation.idl
         animation/DocumentTimeline.idl
+        animation/KeyframeEffect.idl
+        animation/WebAnimation.idl
     )
 endif ()
 

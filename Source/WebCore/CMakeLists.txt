@@ -44,6 +44,7 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/crypto/keys"
     "${WEBCORE_DIR}/crypto/parameters"
     "${WEBCORE_DIR}/css"
+    "${WEBCORE_DIR}/css/parser"
     "${WEBCORE_DIR}/cssjit"
     "${WEBCORE_DIR}/dom"
     "${WEBCORE_DIR}/dom/default"
@@ -228,6 +229,8 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/mediastream/MediaTrackSupportedConstraints.idl
     Modules/mediastream/NavigatorMediaDevices.idl
     Modules/mediastream/NavigatorUserMedia.idl
+    Modules/mediastream/OverconstrainedError.idl
+    Modules/mediastream/OverconstrainedErrorEvent.idl
     Modules/mediastream/RTCConfiguration.idl
     Modules/mediastream/RTCDTMFSender.idl
     Modules/mediastream/RTCDTMFToneChangeEvent.idl
@@ -316,6 +319,14 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/websockets/CloseEvent.idl
     Modules/websockets/WebSocket.idl
 
+    animation/Animatable.idl
+    animation/AnimationEffect.idl
+    animation/AnimationTimeline.idl
+    animation/DocumentAnimation.idl
+    animation/DocumentTimeline.idl
+    animation/KeyframeEffect.idl
+    animation/WebAnimation.idl
+
     crypto/CryptoKey.idl
     crypto/CryptoKeyPair.idl
     crypto/WebKitSubtleCrypto.idl
@@ -367,6 +378,7 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/ClientRectList.idl
     dom/Comment.idl
     dom/CompositionEvent.idl
+    dom/CustomElementRegistry.idl
     dom/CustomEvent.idl
     dom/DOMCoreException.idl
     dom/DOMError.idl
@@ -532,9 +544,9 @@ set(WebCore_NON_SVG_IDL_FILES
 
     html/canvas/ANGLEInstancedArrays.idl
     html/canvas/CanvasGradient.idl
+    html/canvas/CanvasPath.idl
     html/canvas/CanvasPattern.idl
     html/canvas/CanvasProxy.idl
-    html/canvas/CanvasRenderingContext.idl
     html/canvas/CanvasRenderingContext2D.idl
     html/canvas/DOMPath.idl
     html/canvas/EXTBlendMinMax.idl
@@ -597,12 +609,12 @@ set(WebCore_NON_SVG_IDL_FILES
 
     loader/appcache/DOMApplicationCache.idl
 
-    page/AbstractView.idl
     page/BarProp.idl
     page/Crypto.idl
     page/DOMSelection.idl
     page/DOMWindow.idl
     page/EventSource.idl
+    page/GlobalCrypto.idl
     page/History.idl
     page/Location.idl
     page/Navigator.idl
@@ -612,7 +624,6 @@ set(WebCore_NON_SVG_IDL_FILES
     page/NavigatorOnLine.idl
     page/Performance.idl
     page/PerformanceEntry.idl
-    page/PerformanceEntryList.idl
     page/PerformanceMark.idl
     page/PerformanceMeasure.idl
     page/PerformanceNavigation.idl
@@ -1083,6 +1094,13 @@ set(WebCore_SOURCES
     accessibility/AccessibilityTree.cpp
     accessibility/AccessibilityTreeItem.cpp
 
+    animation/AnimationEffect.cpp
+    animation/AnimationTimeline.cpp
+    animation/DocumentAnimation.cpp
+    animation/DocumentTimeline.cpp
+    animation/KeyframeEffect.cpp
+    animation/WebAnimation.cpp
+
     bindings/generic/ActiveDOMCallback.cpp
     bindings/generic/RuntimeEnabledFeatures.cpp
 
@@ -1094,10 +1112,8 @@ set(WebCore_SOURCES
     bindings/js/IDBBindingUtilities.cpp
     bindings/js/JSAnimationTimelineCustom.cpp
     bindings/js/JSAttrCustom.cpp
-    bindings/js/JSAudioContextCustom.cpp
     bindings/js/JSAudioTrackCustom.cpp
     bindings/js/JSAudioTrackListCustom.cpp
-    bindings/js/JSBiquadFilterNodeCustom.cpp
     bindings/js/JSBlobCustom.cpp
     bindings/js/JSCSSRuleCustom.cpp
     bindings/js/JSCSSRuleListCustom.cpp
@@ -1108,7 +1124,6 @@ set(WebCore_SOURCES
     bindings/js/JSCSSValueCustom.cpp
     bindings/js/JSCallbackData.cpp
     bindings/js/JSCanvasRenderingContext2DCustom.cpp
-    bindings/js/JSCanvasRenderingContextCustom.cpp
     bindings/js/JSCharacterDataCustom.cpp
     bindings/js/JSClientRectCustom.cpp
     bindings/js/JSCommandLineAPIHostCustom.cpp
@@ -1120,11 +1135,11 @@ set(WebCore_SOURCES
     bindings/js/JSCryptoKeySerializationJWK.cpp
     bindings/js/JSCryptoOperationData.cpp
     bindings/js/JSCustomElementInterface.cpp
+    bindings/js/JSCustomElementRegistryCustom.cpp
     bindings/js/JSCustomEventCustom.cpp
     bindings/js/JSCustomSQLStatementErrorCallback.cpp
     bindings/js/JSCustomXPathNSResolver.cpp
     bindings/js/JSDOMBinding.cpp
-    bindings/js/JSDOMFormDataCustom.cpp
     bindings/js/JSDOMGlobalObject.cpp
     bindings/js/JSDOMGlobalObjectTask.cpp
     bindings/js/JSDOMMimeTypeArrayCustom.cpp
@@ -1132,7 +1147,6 @@ set(WebCore_SOURCES
     bindings/js/JSDOMPluginArrayCustom.cpp
     bindings/js/JSDOMPluginCustom.cpp
     bindings/js/JSDOMPromise.cpp
-    bindings/js/JSDOMStringListCustom.cpp
     bindings/js/JSDOMStringMapCustom.cpp
     bindings/js/JSDOMWindowBase.cpp
     bindings/js/JSDOMWindowCustom.cpp
@@ -1188,6 +1202,7 @@ set(WebCore_SOURCES
     bindings/js/JSLazyEventListener.cpp
     bindings/js/JSLocationCustom.cpp
     bindings/js/JSMainThreadExecState.cpp
+    bindings/js/JSMediaDevicesCustom.cpp
     bindings/js/JSMediaStreamTrackCustom.cpp
     bindings/js/JSMediaTrackSupportedConstraintsCustom.cpp
     bindings/js/JSMessageChannelCustom.cpp
@@ -1202,9 +1217,8 @@ set(WebCore_SOURCES
     bindings/js/JSNodeIteratorCustom.cpp
     bindings/js/JSNodeOrString.cpp
     bindings/js/JSNodeListCustom.cpp
-    bindings/js/JSOscillatorNodeCustom.cpp
-    bindings/js/JSPannerNodeCustom.cpp
     bindings/js/JSPerformanceEntryCustom.cpp
+    bindings/js/JSPerformanceTimingCustom.cpp
     bindings/js/JSPluginElementFunctions.cpp
     bindings/js/JSPopStateEventCustom.cpp
     bindings/js/JSReadableStreamPrivateConstructors.cpp
@@ -1229,7 +1243,6 @@ set(WebCore_SOURCES
     bindings/js/JSWebGL2RenderingContextCustom.cpp
     bindings/js/JSWebGLRenderingContextBaseCustom.cpp
     bindings/js/JSWebGLRenderingContextCustom.cpp
-    bindings/js/JSWebKitPointCustom.cpp
     bindings/js/JSWebKitSubtleCryptoCustom.cpp
     bindings/js/JSWorkerCustom.cpp
     bindings/js/JSWorkerGlobalScopeBase.cpp
@@ -1245,6 +1258,7 @@ set(WebCore_SOURCES
     bindings/js/ScriptController.cpp
     bindings/js/ScriptGlobalObject.cpp
     bindings/js/ScriptState.cpp
+    bindings/js/StructuredClone.cpp
     bindings/js/SerializedScriptValue.cpp
     bindings/js/WebCoreTypedArrayController.cpp
     bindings/js/WorkerScriptController.cpp
@@ -1325,12 +1339,10 @@ set(WebCore_SOURCES
     css/CSSKeyframeRule.cpp
     css/CSSKeyframesRule.cpp
     css/CSSLineBoxContainValue.cpp
+    css/CSSMarkup.cpp
     css/CSSMediaRule.cpp
     css/CSSNamedImageValue.cpp
-    css/CSSOMUtils.cpp
     css/CSSPageRule.cpp
-    css/CSSParser.cpp
-    css/CSSParserValues.cpp
     css/CSSPrimitiveValue.cpp
     css/CSSProperty.cpp
     css/CSSPropertySourceData.cpp
@@ -1374,7 +1386,6 @@ set(WebCore_SOURCES
     css/RuleFeature.cpp
     css/RuleSet.cpp
     css/SVGCSSComputedStyleDeclaration.cpp
-    css/SVGCSSParser.cpp
     css/SelectorChecker.cpp
     css/SelectorFilter.cpp
     css/SourceSizeList.cpp
@@ -1395,6 +1406,18 @@ set(WebCore_SOURCES
     css/WebKitCSSRegionRule.cpp
     css/WebKitCSSTransformValue.cpp
     css/WebKitCSSViewportRule.cpp
+
+    css/parser/CSSParser.cpp
+    css/parser/CSSParserFastPaths.cpp
+    css/parser/CSSParserObserverWrapper.cpp
+    css/parser/CSSParserToken.cpp
+    css/parser/CSSParserTokenRange.cpp
+    css/parser/CSSParserValues.cpp
+    css/parser/CSSPropertyParser.cpp
+    css/parser/CSSPropertyParserHelpers.cpp
+    css/parser/CSSTokenizer.cpp
+    css/parser/CSSTokenizerInputStream.cpp
+    css/parser/SVGCSSParser.cpp
 
     cssjit/SelectorCompiler.cpp
 
@@ -1420,7 +1443,8 @@ set(WebCore_SOURCES
     dom/ContainerNode.cpp
     dom/ContainerNodeAlgorithms.cpp
     dom/ContextDestructionObserver.cpp
-    dom/CustomElementDefinitions.cpp
+    dom/CustomElementReactionQueue.cpp
+    dom/CustomElementRegistry.cpp
     dom/CustomEvent.cpp
     dom/DOMCoreException.cpp
     dom/DOMError.cpp
@@ -1466,12 +1490,10 @@ set(WebCore_SOURCES
     dom/IdTargetObserverRegistry.cpp
     dom/InlineStyleSheetOwner.cpp
     dom/KeyboardEvent.cpp
-    dom/LifecycleCallbackQueue.cpp
     dom/LiveNodeList.cpp
     dom/MessageChannel.cpp
     dom/MessageEvent.cpp
     dom/MessagePort.cpp
-    dom/MessagePortChannel.cpp
     dom/Microtasks.cpp
     dom/MouseEvent.cpp
     dom/MouseRelatedEvent.cpp
@@ -1487,7 +1509,6 @@ set(WebCore_SOURCES
     dom/Node.cpp
     dom/NodeFilterCondition.cpp
     dom/NodeIterator.cpp
-    dom/NodeOrString.cpp
     dom/NodeRareData.cpp
     dom/NodeTraversal.cpp
     dom/OverflowEvent.cpp
@@ -1502,7 +1523,6 @@ set(WebCore_SOURCES
     dom/QualifiedName.cpp
     dom/RadioButtonGroups.cpp
     dom/Range.cpp
-    dom/RegisteredEventListener.cpp
     dom/ScopedEventQueue.cpp
     dom/ScriptElement.cpp
     dom/ScriptExecutionContext.cpp
@@ -1653,7 +1673,6 @@ set(WebCore_SOURCES
     html/HTMLAudioElement.cpp
     html/HTMLBRElement.cpp
     html/HTMLBaseElement.cpp
-    html/HTMLBaseFontElement.cpp
     html/HTMLBodyElement.cpp
     html/HTMLButtonElement.cpp
     html/HTMLCanvasElement.cpp
@@ -1778,7 +1797,7 @@ set(WebCore_SOURCES
     html/canvas/ANGLEInstancedArrays.cpp
     html/canvas/CanvasContextAttributes.cpp
     html/canvas/CanvasGradient.cpp
-    html/canvas/CanvasPathMethods.cpp
+    html/canvas/CanvasPath.cpp
     html/canvas/CanvasPattern.cpp
     html/canvas/CanvasProxy.cpp
     html/canvas/CanvasRenderingContext.cpp
@@ -1912,7 +1931,6 @@ set(WebCore_SOURCES
     loader/CrossOriginAccessControl.cpp
     loader/CrossOriginPreflightChecker.cpp
     loader/CrossOriginPreflightResultCache.cpp
-    loader/DocumentLoadTiming.cpp
     loader/DocumentLoader.cpp
     loader/DocumentThreadableLoader.cpp
     loader/DocumentWriter.cpp
@@ -1926,6 +1944,7 @@ set(WebCore_SOURCES
     loader/HistoryController.cpp
     loader/ImageLoader.cpp
     loader/LinkLoader.cpp
+    loader/LoadTiming.cpp
     loader/LoaderStrategy.cpp
     loader/MediaResourceLoader.cpp
     loader/MixedContentChecker.cpp
@@ -1989,18 +2008,20 @@ set(WebCore_SOURCES
     loader/icon/IconRecord.cpp
     loader/icon/PageURLRecord.cpp
 
+    mathml/MathMLAnnotationElement.cpp
     mathml/MathMLElement.cpp
     mathml/MathMLFractionElement.cpp
-    mathml/MathMLInlineContainerElement.cpp
     mathml/MathMLMathElement.cpp
     mathml/MathMLMencloseElement.cpp
     mathml/MathMLOperatorDictionary.cpp
     mathml/MathMLOperatorElement.cpp
     mathml/MathMLPaddedElement.cpp
+    mathml/MathMLPresentationElement.cpp
+    mathml/MathMLRowElement.cpp
     mathml/MathMLScriptsElement.cpp
     mathml/MathMLSelectElement.cpp
     mathml/MathMLSpaceElement.cpp
-    mathml/MathMLTextElement.cpp
+    mathml/MathMLTokenElement.cpp
     mathml/MathMLUnderOverElement.cpp
 
     page/AutoscrollController.cpp
@@ -2048,7 +2069,6 @@ set(WebCore_SOURCES
     page/PageVisibilityState.cpp
     page/Performance.cpp
     page/PerformanceEntry.cpp
-    page/PerformanceEntryList.cpp
     page/PerformanceNavigation.cpp
     page/PerformanceResourceTiming.cpp
     page/PerformanceTiming.cpp
@@ -2141,7 +2161,6 @@ set(WebCore_SOURCES
     platform/MainThreadSharedTimer.cpp
     platform/MemoryPressureHandler.cpp
     platform/NotImplemented.cpp
-    platform/PlatformEvent.cpp
     platform/PlatformSpeechSynthesisUtterance.cpp
     platform/PlatformSpeechSynthesisVoice.cpp
     platform/PlatformSpeechSynthesizer.cpp
@@ -2162,6 +2181,7 @@ set(WebCore_SOURCES
     platform/ThreadTimers.cpp
     platform/Timer.cpp
     platform/URL.cpp
+    platform/URLParser.cpp
     platform/UUID.cpp
     platform/UserActivity.cpp
     platform/WebCoreCrossThreadCopier.cpp
@@ -2313,10 +2333,12 @@ set(WebCore_SOURCES
     platform/graphics/transforms/TransformationMatrix.cpp
     platform/graphics/transforms/TranslateTransformOperation.cpp
 
+    platform/mediastream/MediaConstraints.cpp
     platform/mediastream/MediaEndpoint.cpp
     platform/mediastream/MediaEndpointConfiguration.cpp
     platform/mediastream/MediaStreamPrivate.cpp
     platform/mediastream/MediaStreamTrackPrivate.cpp
+    platform/mediastream/RealtimeMediaSourceSupportedConstraints.cpp
     platform/mediastream/RTCIceCandidateDescriptor.cpp
     platform/mediastream/RTCPeerConnectionHandler.cpp
     platform/mediastream/RTCSessionDescriptionDescriptor.cpp
@@ -2357,6 +2379,7 @@ set(WebCore_SOURCES
     platform/network/HTTPParsers.cpp
     platform/network/MIMEHeader.cpp
     platform/network/NetworkStateNotifier.cpp
+    platform/network/NetworkStorageSession.cpp
     platform/network/ParsedContentRange.cpp
     platform/network/ParsedContentType.cpp
     platform/network/ProtectionSpaceBase.cpp
@@ -2366,7 +2389,7 @@ set(WebCore_SOURCES
     platform/network/ResourceHandleClient.cpp
     platform/network/ResourceRequestBase.cpp
     platform/network/ResourceResponseBase.cpp
-    platform/network/SocketStreamHandleBase.cpp
+    platform/network/SocketStreamHandle.cpp
     platform/network/SynchronousLoaderClient.cpp
 
     platform/sql/SQLValue.cpp
@@ -2402,10 +2425,12 @@ set(WebCore_SOURCES
     plugins/DOMPlugin.cpp
     plugins/DOMPluginArray.cpp
     plugins/PluginData.cpp
+    plugins/PluginInfoProvider.cpp
 
     rendering/AutoTableLayout.cpp
     rendering/BidiRun.cpp
     rendering/BorderEdge.cpp
+    rendering/BreakLines.cpp
     rendering/ClipRect.cpp
     rendering/CounterNode.cpp
     rendering/EllipsisBox.cpp
@@ -2524,7 +2549,6 @@ set(WebCore_SOURCES
     rendering/TextDecorationPainter.cpp
     rendering/TextPaintStyle.cpp
     rendering/TextPainter.cpp
-    rendering/break_lines.cpp
 
     rendering/line/LineBreaker.cpp
     rendering/line/LineInfo.cpp
@@ -2572,7 +2596,6 @@ set(WebCore_SOURCES
     rendering/style/StyleBackgroundData.cpp
     rendering/style/StyleBoxData.cpp
     rendering/style/StyleCachedImage.cpp
-    rendering/style/StyleCachedImageSet.cpp
     rendering/style/StyleDeprecatedFlexibleBoxData.cpp
     rendering/style/StyleFilterData.cpp
     rendering/style/StyleFlexibleBoxData.cpp
@@ -3032,20 +3055,6 @@ list(APPEND WebCore_CSS_VALUE_KEYWORDS
     ${WEBCORE_DIR}/css/SVGCSSValueKeywords.in
 )
 
-if (ENABLE_WEB_ANIMATIONS)
-    list(APPEND WebCore_IDL_FILES
-        "animation/AnimationTimeline.idl"
-        "animation/DocumentAnimation.idl"
-        "animation/DocumentTimeline.idl"
-    )
-
-    list(APPEND WebCore_SOURCES
-        "animation/AnimationTimeline.cpp"
-        "animation/DocumentAnimation.cpp"
-        "animation/DocumentTimeline.cpp"
-    )
-endif ()
-
 if (ENABLE_WEBGL)
     list(APPEND WebCore_SOURCES
         html/canvas/ANGLEInstancedArrays.cpp
@@ -3451,11 +3460,12 @@ list(APPEND WebCoreTestSupport_SOURCES
     platform/mock/mediasource/MockMediaPlayerMediaSource.cpp
     platform/mock/mediasource/MockMediaSourcePrivate.cpp
     platform/mock/mediasource/MockSourceBufferPrivate.cpp
-    platform/mock/mediasource/MockTracks.cpp
 
     testing/GCObservation.cpp
     testing/InternalSettings.cpp
     testing/Internals.cpp
+    testing/MockGamepad.cpp
+    testing/MockGamepadProvider.cpp
     testing/MockPageOverlay.cpp
     testing/MockPageOverlayClient.cpp
 

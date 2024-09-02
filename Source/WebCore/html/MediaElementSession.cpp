@@ -68,7 +68,7 @@ static String restrictionName(MediaElementSession::BehaviorRestrictions restrict
 #define CASE(restrictionType) \
     if (restriction & MediaElementSession::restrictionType) { \
         if (!restrictionBuilder.isEmpty()) \
-            restrictionBuilder.append(", "); \
+            restrictionBuilder.appendLiteral(", "); \
         restrictionBuilder.append(#restrictionType); \
     } \
 
@@ -221,11 +221,6 @@ bool MediaElementSession::canControlControlsManager() const
 
     if (!m_element.hasAudio()) {
         LOG(Media, "MediaElementSession::canControlControlsManager - returning FALSE: No audio");
-        return false;
-    }
-
-    if (m_element.ended()) {
-        LOG(Media, "MediaElementSession::canControlControlsManager - returning FALSE: Ended");
         return false;
     }
 

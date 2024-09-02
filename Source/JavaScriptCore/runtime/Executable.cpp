@@ -28,18 +28,15 @@
 
 #include "BatchedTransitionOptimizer.h"
 #include "CodeBlock.h"
-#include "DFGDriver.h"
+#include "Debugger.h"
 #include "JIT.h"
 #include "JSCInlines.h"
 #include "JSWASMModule.h"
 #include "LLIntEntrypoint.h"
 #include "Parser.h"
-#include "ProfilerDatabase.h"
 #include "TypeProfiler.h"
 #include "VMInlines.h"
 #include <wtf/CommaPrinter.h>
-#include <wtf/Vector.h>
-#include <wtf/text/StringBuilder.h>
 
 namespace JSC {
 
@@ -149,6 +146,7 @@ ScriptExecutable::ScriptExecutable(Structure* structure, VM& vm, const SourceCod
     , m_neverOptimize(false)
     , m_neverFTLOptimize(false)
     , m_isArrowFunctionContext(isInArrowFunctionContext)
+    , m_canUseOSRExitFuzzing(true)
     , m_derivedContextType(static_cast<unsigned>(derivedContextType))
     , m_evalContextType(static_cast<unsigned>(evalContextType))
     , m_overrideLineNumber(-1)
@@ -570,8 +568,8 @@ JSObject* ProgramExecutable::checkSyntax(ExecState* exec)
     VM* vm = &exec->vm();
     JSGlobalObject* lexicalGlobalObject = exec->lexicalGlobalObject();
     std::unique_ptr<ProgramNode> programNode = parse<ProgramNode>(
-        vm, m_source, Identifier(), JSParserBuiltinMode::NotBuiltin, 
-        JSParserStrictMode::NotStrict, SourceParseMode::ProgramMode, SuperBinding::NotNeeded, error);
+        vm, m_source, Identifier(), JSParserBuiltinMode::NotBuiltin,
+        JSParserStrictMode::NotStrict, JSParserCommentMode::Classic, SourceParseMode::ProgramMode, SuperBinding::NotNeeded, error);
     if (programNode)
         return 0;
     ASSERT(error.isValid());

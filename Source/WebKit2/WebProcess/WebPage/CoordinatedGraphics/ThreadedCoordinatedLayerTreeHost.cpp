@@ -30,13 +30,11 @@
 #include "ThreadedCoordinatedLayerTreeHost.h"
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
+
+#include "AcceleratedSurface.h"
 #include "WebPage.h"
 #include <WebCore/FrameView.h>
 #include <WebCore/MainFrame.h>
-
-#if USE(REDIRECTED_XCOMPOSITE_WINDOW)
-#include "RedirectedXCompositeWindow.h"
-#endif
 
 using namespace WebCore;
 
@@ -54,26 +52,23 @@ ThreadedCoordinatedLayerTreeHost::~ThreadedCoordinatedLayerTreeHost()
 ThreadedCoordinatedLayerTreeHost::ThreadedCoordinatedLayerTreeHost(WebPage& webPage)
     : CoordinatedLayerTreeHost(webPage)
     , m_compositorClient(*this)
-#if USE(REDIRECTED_XCOMPOSITE_WINDOW)
-    , m_redirectedWindow(RedirectedXCompositeWindow::create(webPage))
-    , m_compositor(ThreadedCompositor::create(&m_compositorClient, m_redirectedWindow ? m_redirectedWindow->window() : 0))
-#else
-    , m_compositor(ThreadedCompositor::create(&m_compositorClient))
-#endif
+    , m_surface(AcceleratedSurface::create(webPage))
 {
-#if USE(REDIRECTED_XCOMPOSITE_WINDOW)
-    if (m_redirectedWindow)
-        m_layerTreeContext.contextID = m_redirectedWindow->pixmap();
-#endif
+    if (m_surface) {
+        // Do not do frame sync when rendering offscreen in the web process to ensure that SwapBuffers never blocks.
+        // Rendering to the actual screen will happen later anyway since the UI process schedules a redraw for every update,
+        // the compositor will take care of syncing to vblank.
+        m_compositor = ThreadedCompositor::create(&m_compositorClient, m_surface->window(), ThreadedCompositor::ShouldDoFrameSync::No);
+        m_layerTreeContext.contextID = m_surface->surfaceID();
+    } else
+        m_compositor = ThreadedCompositor::create(&m_compositorClient);
 }
 
 void ThreadedCoordinatedLayerTreeHost::invalidate()
 {
     m_compositor->invalidate();
     CoordinatedLayerTreeHost::invalidate();
-#if USE(REDIRECTED_XCOMPOSITE_WINDOW)
-    m_redirectedWindow = nullptr;
-#endif
+    m_surface = nullptr;
 }
 
 void ThreadedCoordinatedLayerTreeHost::forceRepaint()
@@ -95,12 +90,8 @@ void ThreadedCoordinatedLayerTreeHost::contentsSizeChanged(const WebCore::IntSiz
 
 void ThreadedCoordinatedLayerTreeHost::deviceOrPageScaleFactorChanged()
 {
-#if USE(REDIRECTED_XCOMPOSITE_WINDOW)
-    if (m_redirectedWindow) {
-        m_redirectedWindow->resize(m_webPage.size());
-        m_layerTreeContext.contextID = m_redirectedWindow->pixmap();
-    }
-#endif
+    if (m_surface && m_surface->resize(m_webPage.size()))
+        m_layerTreeContext.contextID = m_surface->surfaceID();
 
     CoordinatedLayerTreeHost::deviceOrPageScaleFactorChanged();
     m_compositor->setDeviceScaleFactor(m_webPage.deviceScaleFactor());
@@ -114,12 +105,9 @@ void ThreadedCoordinatedLayerTreeHost::pageBackgroundTransparencyChanged()
 
 void ThreadedCoordinatedLayerTreeHost::sizeDidChange(const IntSize& size)
 {
-#if USE(REDIRECTED_XCOMPOSITE_WINDOW)
-    if (m_redirectedWindow) {
-        m_redirectedWindow->resize(size);
-        m_layerTreeContext.contextID = m_redirectedWindow->pixmap();
-    }
-#endif
+    if (m_surface && m_surface->resize(size))
+        m_layerTreeContext.contextID = m_surface->surfaceID();
+
     CoordinatedLayerTreeHost::sizeDidChange(size);
     m_compositor->didChangeViewportSize(size);
 }
@@ -145,12 +133,25 @@ void ThreadedCoordinatedLayerTreeHost::setNativeSurfaceHandleForCompositing(uint
 
 void ThreadedCoordinatedLayerTreeHost::setVisibleContentsRect(const FloatRect& rect, const FloatPoint& trajectoryVector, float scale)
 {
-    CoordinatedLayerTreeHost::setVisibleContentsRect(rect, trajectoryVector);
-    if (m_lastScrollPosition != roundedIntPoint(rect.location())) {
-        m_lastScrollPosition = roundedIntPoint(rect.location());
+    FloatRect visibleRect(rect);
 
-        if (!m_webPage.corePage()->mainFrame().view()->useFixedLayout())
-            m_webPage.corePage()->mainFrame().view()->notifyScrollPositionChanged(m_lastScrollPosition);
+    // When using non overlay scrollbars, the contents size doesn't include the scrollbars, but we need to include them
+    // in the visible area used by the compositor to ensure that the scrollbar layers are also updated.
+    // See https://bugs.webkit.org/show_bug.cgi?id=160450.
+    FrameView* view = m_webPage.corePage()->mainFrame().view();
+    Scrollbar* scrollbar = view->verticalScrollbar();
+    if (scrollbar && !scrollbar->isOverlayScrollbar())
+        visibleRect.expand(scrollbar->width(), 0);
+    scrollbar = view->horizontalScrollbar();
+    if (scrollbar && !scrollbar->isOverlayScrollbar())
+        visibleRect.expand(0, scrollbar->height());
+
+    CoordinatedLayerTreeHost::setVisibleContentsRect(visibleRect, trajectoryVector);
+    if (m_lastScrollPosition != roundedIntPoint(visibleRect.location())) {
+        m_lastScrollPosition = roundedIntPoint(visibleRect.location());
+
+        if (!view->useFixedLayout())
+            view->notifyScrollPositionChanged(m_lastScrollPosition);
     }
 
     if (m_lastScaleFactor != scale) {

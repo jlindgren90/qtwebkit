@@ -42,6 +42,7 @@
 #include "MemoryCache.h"
 #include "Page.h"
 #include "ResourceLoadObserver.h"
+#include "RuntimeEnabledFeatures.h"
 #include "Settings.h"
 #include <wtf/Ref.h>
 #include <wtf/RefCountedLeakCounter.h>
@@ -181,6 +182,7 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
             }
 
             ResourceResponse opaqueRedirectedResponse;
+            opaqueRedirectedResponse.setURL(redirectResponse.url());
             opaqueRedirectedResponse.setType(ResourceResponse::Type::Opaqueredirect);
             m_resource->responseReceived(opaqueRedirectedResponse);
             didFinishLoading(currentTime());
@@ -216,6 +218,7 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
             cancel();
             return;
         }
+        m_loadTiming.addRedirect(redirectResponse.url(), newRequest.url());
         m_resource->redirectReceived(newRequest, redirectResponse);
     }
 
@@ -458,15 +461,28 @@ void SubresourceLoader::didFinishLoading(double finishTime)
     Ref<SubresourceLoader> protectedThis(*this);
     CachedResourceHandle<CachedResource> protectResource(m_resource);
 
+    // FIXME: The finishTime that is passed in is from the NetworkProcess and is more accurate.
+    // However, all other load times are generated from the web process or offsets.
+    // Mixing times from different processes can cause the finish time to be earlier than
+    // the response received time due to inter-process communication lag.
+    UNUSED_PARAM(finishTime);
+    double responseEndTime = monotonicallyIncreasingTime();
+    m_loadTiming.setResponseEnd(responseEndTime);
+
+#if ENABLE(WEB_TIMING)
+    if (m_documentLoader->cachedResourceLoader().document() && RuntimeEnabledFeatures::sharedFeatures().resourceTimingEnabled())
+        m_documentLoader->cachedResourceLoader().resourceTimingInformation().addResourceTiming(m_resource, *m_documentLoader->cachedResourceLoader().document(), m_resource->loader()->loadTiming());
+#endif
+
     m_state = Finishing;
-    m_resource->setLoadFinishTime(finishTime);
+    m_resource->setLoadFinishTime(responseEndTime); // FIXME: Users of the loadFinishTime should use the LoadTiming struct instead.
     m_resource->finishLoading(resourceData());
 
     if (wasCancelled())
         return;
     m_resource->finish();
     ASSERT(!reachedTerminalState());
-    didFinishLoadingOnePart(finishTime);
+    didFinishLoadingOnePart(responseEndTime);
     notifyDone();
     if (reachedTerminalState())
         return;

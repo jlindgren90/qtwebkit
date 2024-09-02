@@ -26,6 +26,7 @@
 #include "config.h"
 #include "ProxyObject.h"
 
+#include "ArrayConstructor.h"
 #include "Error.h"
 #include "IdentifierInlines.h"
 #include "JSCJSValueInlines.h"
@@ -47,6 +48,22 @@ const ClassInfo ProxyObject::s_info = { "ProxyObject", &Base::s_info, 0, CREATE_
 ProxyObject::ProxyObject(VM& vm, Structure* structure)
     : Base(vm, structure)
 {
+}
+
+String ProxyObject::toStringName(const JSObject* object, ExecState* exec)
+{
+    VM& vm = exec->vm();
+    const ProxyObject* proxy = jsCast<const ProxyObject*>(object);
+    while (proxy) {
+        const JSObject* target = proxy->target();
+        if (isArray(exec, target))
+            return target->classInfo()->methodTable.toStringName(target, exec);
+        if (vm.exception())
+            break;
+
+        proxy = jsDynamicCast<const ProxyObject*>(target);
+    }
+    return ASCIILiteral("Object");
 }
 
 Structure* ProxyObject::structureForTarget(JSGlobalObject* globalObject, JSValue target)
@@ -344,7 +361,7 @@ bool ProxyObject::getOwnPropertySlotCommon(ExecState* exec, PropertyName propert
         return false;
     }
     slot.disableCaching();
-    slot.setIsTaintedByProxy();
+    slot.setIsTaintedByOpaqueObject();
     switch (slot.internalMethodType()) {
     case PropertySlot::InternalMethodType::Get:
         return performGet(exec, propertyName, slot);

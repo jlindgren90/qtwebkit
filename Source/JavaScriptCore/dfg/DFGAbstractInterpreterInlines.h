@@ -105,12 +105,6 @@ void AbstractInterpreter<AbstractStateType>::executeEdges(Node* node)
 }
 
 template<typename AbstractStateType>
-void AbstractInterpreter<AbstractStateType>::executeEdges(unsigned indexInBlock)
-{
-    executeEdges(m_state.block()->at(indexInBlock));
-}
-
-template<typename AbstractStateType>
 void AbstractInterpreter<AbstractStateType>::executeKnownEdgeTypes(Node* node)
 {
     // Some use kinds are required to not have checks, because we know somehow that the incoming
@@ -439,23 +433,9 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         
     case DoubleRep: {
         JSValue child = forNode(node->child1()).value();
-        if (child) {
-            if (child.isNumber()) {
-                setConstant(node, jsDoubleNumber(child.asNumber()));
-                break;
-            }
-            if (child.isUndefined()) {
-                setConstant(node, jsDoubleNumber(PNaN));
-                break;
-            }
-            if (child.isNull() || child.isFalse()) {
-                setConstant(node, jsDoubleNumber(0));
-                break;
-            }
-            if (child.isTrue()) {
-                setConstant(node, jsDoubleNumber(1));
-                break;
-            }
+        if (Optional<double> number = child.toNumberFromPrimitive()) {
+            setConstant(node, jsDoubleNumber(*number));
+            break;
         }
 
         SpeculatedType type = forNode(node->child1()).m_type;
@@ -872,8 +852,8 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         JSValue child = forNode(node->child1()).value();
         switch (node->child1().useKind()) {
         case Int32Use:
-            if (child && child.isInt32()) {
-                JSValue result = jsNumber(fabs(child.asNumber()));
+            if (Optional<double> number = child.toNumberFromPrimitive()) {
+                JSValue result = jsNumber(fabs(*number));
                 if (result.isInt32()) {
                     setConstant(node, result);
                     break;
@@ -882,14 +862,15 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
             forNode(node).setType(SpecInt32Only);
             break;
         case DoubleRepUse:
-            if (child && child.isNumber()) {
-                setConstant(node, jsDoubleNumber(fabs(child.asNumber())));
+            if (Optional<double> number = child.toNumberFromPrimitive()) {
+                setConstant(node, jsDoubleNumber(fabs(*number)));
                 break;
             }
             forNode(node).setType(typeOfDoubleAbs(forNode(node->child1()).m_type));
             break;
         default:
-            RELEASE_ASSERT_NOT_REACHED();
+            DFG_ASSERT(m_graph, node, node->child1().useKind() == UntypedUse);
+            forNode(node).setType(SpecFullNumber);
             break;
         }
         break;
@@ -961,55 +942,25 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         break;
     }
             
-    case ArithSqrt: {
-        JSValue child = forNode(node->child1()).value();
-        if (child && child.isNumber()) {
-            setConstant(node, jsDoubleNumber(sqrt(child.asNumber())));
-            break;
-        }
-        forNode(node).setType(typeOfDoubleUnaryOp(forNode(node->child1()).m_type));
+    case ArithSqrt:
+        executeDoubleUnaryOpEffects(node, sqrt);
         break;
-    }
-        
-    case ArithFRound: {
-        JSValue child = forNode(node->child1()).value();
-        if (child && child.isNumber()) {
-            setConstant(node, jsDoubleNumber(static_cast<float>(child.asNumber())));
-            break;
-        }
-        forNode(node).setType(typeOfDoubleRounding(forNode(node->child1()).m_type));
-        break;
-    }
-        
-    case ArithSin: {
-        JSValue child = forNode(node->child1()).value();
-        if (child && child.isNumber()) {
-            setConstant(node, jsDoubleNumber(sin(child.asNumber())));
-            break;
-        }
-        forNode(node).setType(typeOfDoubleUnaryOp(forNode(node->child1()).m_type));
-        break;
-    }
-    
-    case ArithCos: {
-        JSValue child = forNode(node->child1()).value();
-        if (child && child.isNumber()) {
-            setConstant(node, jsDoubleNumber(cos(child.asNumber())));
-            break;
-        }
-        forNode(node).setType(typeOfDoubleUnaryOp(forNode(node->child1()).m_type));
-        break;
-    }
 
-    case ArithLog: {
-        JSValue child = forNode(node->child1()).value();
-        if (child && child.isNumber()) {
-            setConstant(node, jsDoubleNumber(log(child.asNumber())));
-            break;
-        }
-        forNode(node).setType(typeOfDoubleUnaryOp(forNode(node->child1()).m_type));
+    case ArithFRound:
+        executeDoubleUnaryOpEffects(node, [](double value) -> double { return static_cast<float>(value); });
         break;
-    }
+        
+    case ArithSin:
+        executeDoubleUnaryOpEffects(node, sin);
+        break;
+    
+    case ArithCos:
+        executeDoubleUnaryOpEffects(node, cos);
+        break;
+
+    case ArithLog:
+        executeDoubleUnaryOpEffects(node, log);
+        break;
             
     case LogicalNot: {
         switch (booleanResult(node, forNode(node->child1()))) {
@@ -2867,7 +2818,10 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case CheckTypeInfoFlags:
         break;
 
-    case CopyRest:
+    case CreateRest:
+        if (!m_graph.isWatchingHavingABadTimeWatchpoint(node)) // This means we're already having a bad time.
+            clobberWorld(node->origin.semantic, clobberLimit);
+        forNode(node).setType(m_graph, SpecArray);
         break;
             
     case Check: {
@@ -3088,6 +3042,20 @@ FiltrationResult AbstractInterpreter<AbstractStateType>::filterByValue(
         return FiltrationOK;
     m_state.setIsValid(false);
     return Contradiction;
+}
+
+template<typename AbstractStateType>
+void AbstractInterpreter<AbstractStateType>::executeDoubleUnaryOpEffects(Node* node, double(*equivalentFunction)(double))
+{
+    JSValue child = forNode(node->child1()).value();
+    if (Optional<double> number = child.toNumberFromPrimitive()) {
+        setConstant(node, jsDoubleNumber(equivalentFunction(*number)));
+        return;
+    }
+    SpeculatedType type = SpecFullNumber;
+    if (node->child1().useKind() == DoubleRepUse)
+        type = typeOfDoubleUnaryOp(forNode(node->child1()).m_type);
+    forNode(node).setType(type);
 }
 
 } } // namespace JSC::DFG

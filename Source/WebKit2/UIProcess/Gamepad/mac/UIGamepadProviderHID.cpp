@@ -29,21 +29,30 @@
 #if ENABLE(GAMEPAD)
 
 #include <WebCore/HIDGamepadProvider.h>
+#include <WebCore/MockGamepadProvider.h>
 
 using namespace WebCore;
 
 namespace WebKit {
 
-void UIGamepadProvider::platformStartMonitoringGamepads()
+void UIGamepadProvider::platformSetDefaultGamepadProvider()
 {
-    ASSERT(!m_processPoolsUsingGamepads.isEmpty());
-    HIDGamepadProvider::singleton().startMonitoringGamepads(this);
+    if (GamepadProvider::singleton().isMockGamepadProvider())
+        return;
+
+    GamepadProvider::setSharedProvider(HIDGamepadProvider::singleton());
 }
 
-void UIGamepadProvider::platformStopMonitoringGamepads()
+void UIGamepadProvider::platformStopMonitoringInput()
 {
-    ASSERT(m_processPoolsUsingGamepads.isEmpty());
-    HIDGamepadProvider::singleton().stopMonitoringGamepads(this);
+    // No effect when the MockGamepadProvider is being used.
+    return HIDGamepadProvider::singleton().stopMonitoringInput();
+}
+
+void UIGamepadProvider::platformStartMonitoringInput()
+{
+    // No effect when the MockGamepadProvider is being used.
+    return HIDGamepadProvider::singleton().startMonitoringInput();
 }
 
 }

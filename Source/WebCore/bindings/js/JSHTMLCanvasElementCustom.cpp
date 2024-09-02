@@ -29,6 +29,7 @@
 
 #include "CanvasContextAttributes.h"
 #include "HTMLCanvasElement.h"
+#include "JSCanvasRenderingContext.h"
 #include "JSCanvasRenderingContext2D.h"
 #include <bindings/ScriptObject.h>
 #include <wtf/GetPtr.h>
@@ -62,7 +63,8 @@ static void get3DContextAttributes(ExecState& state, RefPtr<CanvasContextAttribu
     dictionary.tryGetProperty("antialias", graphicsAttrs.antialias);
     dictionary.tryGetProperty("premultipliedAlpha", graphicsAttrs.premultipliedAlpha);
     dictionary.tryGetProperty("preserveDrawingBuffer", graphicsAttrs.preserveDrawingBuffer);
-    
+    dictionary.tryGetProperty("preferLowPowerToHighPerformance", graphicsAttrs.preferLowPowerToHighPerformance);
+
     attrs = WebGLContextAttributes::create(graphicsAttrs);
 }
 #endif

@@ -65,7 +65,6 @@
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSpecific.h>
 #include <wtf/WTFThreadData.h>
-#include <wtf/WeakRandom.h>
 #include <wtf/text/SymbolRegistry.h>
 #include <wtf/text/WTFString.h>
 #if ENABLE(REGEXP_TRACING)
@@ -120,6 +119,11 @@ class Watchdog;
 class Watchpoint;
 class WatchpointSet;
 
+#if ENABLE(DFG_JIT)
+namespace DFG {
+class LongLivedState;
+}
+#endif // ENABLE(DFG_JIT)
 #if ENABLE(FTL_JIT)
 namespace FTL {
 class Thunks;
@@ -267,6 +271,10 @@ public:
     // destructed after all the objects that reference it.
     Heap heap;
 
+#if ENABLE(DFG_JIT)
+    std::unique_ptr<DFG::LongLivedState> dfgState;
+#endif // ENABLE(DFG_JIT)
+
     VMType vmType;
     ClientData* clientData;
     VMEntryFrame* topVMEntryFrame;
@@ -312,7 +320,6 @@ public:
     Strong<Structure> inferredTypeStructure;
     Strong<Structure> inferredTypeTableStructure;
     Strong<Structure> functionRareDataStructure;
-    Strong<Structure> generatorFrameStructure;
     Strong<Structure> exceptionStructure;
     Strong<Structure> promiseDeferredStructure;
     Strong<Structure> internalPromiseDeferredStructure;
@@ -617,7 +624,6 @@ public:
 
 private:
     friend class LLIntOffsetsExtractor;
-    friend class ClearExceptionScope;
 
     VM(VMType, HeapType);
     static VM*& sharedInstanceInternal();

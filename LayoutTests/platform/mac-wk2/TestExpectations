@@ -15,9 +15,6 @@ fast/events/force-click-link-selection-behavior.html [ Pass ]
 fast/events/force-click-on-link-navigation.html [ Pass ]
 fast/events/force-click-text-selection-behavior.html [ Failure ]
 
-fast/harness/ui-side-scripts.html [ Pass ]
-fast/harness/concurrent-ui-side-scripts.html [ Pass ]
-
 #//////////////////////////////////////////////////////////////////////////////////////////
 # End platform-specific directories.
 #//////////////////////////////////////////////////////////////////////////////////////////
@@ -376,9 +373,6 @@ webkit.org/b/142726 [ Yosemite ] fast/images/animated-png.html [ Skip ]
 # This test fails every time on El Capitan
 [ ElCapitan ] fast/mediastream/MediaStream-video-element-video-tracks-disabled.html [ Skip ]
 
-# Hitting "The certificate for this server is invalid" loading error (not happening in WK1)
-webkit.org/b/160445 http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html [ Failure Timeout ]
-
 ### END OF (3) Unclassified failures
 ########################################
 
@@ -472,7 +466,8 @@ webkit.org/b/158639 [ Release Yosemite ] imported/blink/storage/indexeddb/blob-d
 
 # PiP tests are only enabled for Sierra WebKit2.
 # rdar://problem/27574303
-[ Sierra+ ] media/controls/picture-in-picture.html [ Pass Failure ]
+[ Sierra+ ] media/controls/picture-in-picture.html [ Pass ]
+[ Sierra+ ] media/controls/pip-placeholder-without-video-controls.html [ Pass ]
 [ Sierra+ ] media/element-containing-pip-video-going-into-fullscreen.html [ Pass ]
 [ Sierra+ ] media/fullscreen-api-enabled-media-with-presentation-mode.html [ Pass ]
 [ Sierra+ ] media/fullscreen-video-going-into-pip.html [ Pass ]
@@ -525,6 +520,10 @@ webkit.org/b/158639 [ Release Yosemite ] imported/blink/storage/indexeddb/blob-d
 [ Sierra+ ] swipe/pushState-cached-back-swipe.html [ Skip ]
 [ Sierra+ ] swipe/swipe-start-hysteresis-failures.html [ Skip ]
 
+# Hitting "The certificate for this server is invalid" loading error (not happening in WK1)
+webkit.org/b/160445 [ Sierra+ ] http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html [ Failure ]
+webkit.org/b/160445 [ Sierra+ ] http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html [ Failure ]
+
 webkit.org/b/159447 [ Debug ] inspector/debugger/tail-deleted-frames-from-vm-entry.html [ Pass Failure ]
 
 webkit.org/b/159430 [ Debug Sierra+ ] media/restore-from-page-cache.html [ Pass Crash ]
@@ -538,3 +537,5 @@ webkit.org/b/160042 [ ElCapitan ] accessibility/mac/value-change/value-change-us
 webkit.org/b/159427 http/tests/loading/basic-credentials-sent-automatically.html [ Pass Failure ]
 
 webkit.org/b/160309 fast/dom/Window/child-window-focus.html [ Pass Failure ]
+
+webkit.org/b/161148 gamepad/gamepad-timestamp.html [ Pass Failure ]

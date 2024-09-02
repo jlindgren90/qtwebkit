@@ -75,7 +75,6 @@
 #include <wtf/StdLibExtras.h>
 #include <wtf/StringPrintStream.h>
 #include <wtf/Threading.h>
-#include <wtf/WTFThreadData.h>
 #include <wtf/text/StringBuilder.h>
 
 #if ENABLE(JIT)
@@ -610,7 +609,7 @@ JSString* Interpreter::stackTraceAsString(VM& vm, const Vector<StackFrame>& stac
     return jsString(&vm, builder.toString());
 }
 
-ALWAYS_INLINE static HandlerInfo* findExceptionHandler(StackVisitor& visitor, CodeBlock* codeBlock, CodeBlock::RequiredHandler requiredHandler)
+ALWAYS_INLINE static HandlerInfo* findExceptionHandler(StackVisitor& visitor, CodeBlock* codeBlock, RequiredHandler requiredHandler)
 {
     ASSERT(codeBlock);
 #if ENABLE(DFG_JIT)
@@ -644,7 +643,7 @@ public:
         if (!codeBlock)
             return StackVisitor::Continue;
 
-        m_handler = findExceptionHandler(visitor, codeBlock, CodeBlock::RequiredHandler::CatchHandler);
+        m_handler = findExceptionHandler(visitor, codeBlock, RequiredHandler::CatchHandler);
         if (m_handler)
             return StackVisitor::Done;
 
@@ -686,7 +685,7 @@ public:
         m_handler = nullptr;
         if (!m_isTermination) {
             if (m_codeBlock && !isWebAssemblyExecutable(m_codeBlock->ownerExecutable()))
-                m_handler = findExceptionHandler(visitor, m_codeBlock, CodeBlock::RequiredHandler::AnyHandler);
+                m_handler = findExceptionHandler(visitor, m_codeBlock, RequiredHandler::AnyHandler);
         }
 
         if (m_handler)
@@ -1211,7 +1210,7 @@ JSValue Interpreter::execute(EvalExecutable* eval, CallFrame* callFrame, JSValue
 
     if (numVariables || numFunctions) {
         BatchedTransitionOptimizer optimizer(vm, variableObject);
-        if (variableObject->next())
+        if (variableObject->next() && !eval->isStrictMode())
             variableObject->globalObject()->varInjectionWatchpoint()->fireAll(vm, "Executed eval, fired VarInjection watchpoint");
 
         for (unsigned i = 0; i < numVariables; ++i) {

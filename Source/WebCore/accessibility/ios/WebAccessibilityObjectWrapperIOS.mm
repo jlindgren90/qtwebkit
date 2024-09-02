@@ -601,7 +601,7 @@ static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityO
                 if (role == StaticTextRole) {
                     // We should only set the text value as the label when there's no
                     // alternate text on the heading parent.
-                    NSString *headingLabel = [wrapper accessibilityLabel];
+                    NSString *headingLabel = [wrapper baseAccessibilityDescription];
                     if (![headingLabel length])
                         [self setAccessibilityLabel:m_object->stringValue()];
                     else
@@ -698,9 +698,11 @@ static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityO
             break;
         case MenuButtonRole:
         case MenuItemRole:
+            traits |= [self _axMenuItemTrait];
+            break;
         case MenuItemCheckboxRole:
         case MenuItemRadioRole:
-            traits |= [self _axMenuItemTrait];
+            traits |= ([self _axMenuItemTrait] | [self _axToggleTrait]);
             break;
         default:
             break;
@@ -1247,7 +1249,8 @@ static void appendStringToResult(NSMutableString *result, NSString *string)
     if (value)
         return value;
     
-    if (m_object->isCheckboxOrRadio()) {
+    AccessibilityRole role = m_object->roleValue();
+    if (m_object->isCheckboxOrRadio() || role == MenuItemCheckboxRole || role == MenuItemRadioRole) {
         switch (m_object->checkboxOrRadioValue()) {
         case ButtonStateOff:
             return [NSString stringWithFormat:@"%d", 0];
@@ -2590,6 +2593,13 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
     if (!start || !end)
         return nil;
     return [NSArray arrayWithObjects:start, end, nil];
+}
+
+- (NSString *)accessibilityExpandedTextValue
+{
+    if (![self _prepareAccessibilityCall])
+        return nil;
+    return m_object->expandedTextValue();
 }
 
 - (NSString *)accessibilityIdentifier

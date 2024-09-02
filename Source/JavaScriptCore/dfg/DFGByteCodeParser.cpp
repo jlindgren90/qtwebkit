@@ -238,7 +238,6 @@ private:
 
     Node* store(Node* base, unsigned identifier, const PutByIdVariant&, Node* value);
 
-    void handleTryGetById(int destinationOperand, Node* base, unsigned identifierNumber, const GetByIdStatus&);
     void handleGetById(
         int destinationOperand, SpeculatedType, Node* base, unsigned identifierNumber, GetByIdStatus, AccessType);
     void emitPutById(
@@ -1204,14 +1203,26 @@ private:
     bool m_hasDebuggerEnabled;
 };
 
+// The idiom:
+//     if (true) { ...; goto label; } else label: continue
+// Allows using NEXT_OPCODE as a statement, even in unbraced if+else, while containing a `continue`.
+// The more common idiom:
+//     do { ...; } while (false)
+// Doesn't allow using `continue`.
 #define NEXT_OPCODE(name) \
-    m_currentIndex += OPCODE_LENGTH(name); \
-    continue
+    if (true) { \
+        m_currentIndex += OPCODE_LENGTH(name); \
+        goto WTF_CONCAT(NEXT_OPCODE_, __LINE__); /* Need a unique label: usable more than once per function. */ \
+    } else \
+    WTF_CONCAT(NEXT_OPCODE_, __LINE__): \
+        continue
 
+// Chain expressions with comma-operator so LAST_OPCODE can be used as a statement.
 #define LAST_OPCODE(name) \
-    m_currentIndex += OPCODE_LENGTH(name); \
-    m_exitOK = false; \
-    return shouldContinueParsing
+    return \
+        m_currentIndex += OPCODE_LENGTH(name), \
+        m_exitOK = false, \
+        shouldContinueParsing
 
 ByteCodeParser::Terminality ByteCodeParser::handleCall(Instruction* pc, NodeType op, CallMode callMode)
 {
@@ -2140,41 +2151,40 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
     case MaxIntrinsic:
         return handleMinMax(resultOperand, ArithMax, registerOffset, argumentCountIncludingThis, insertChecks);
 
-    case SqrtIntrinsic:
     case CosIntrinsic:
+    case FRoundIntrinsic:
+    case LogIntrinsic:
     case SinIntrinsic:
-    case LogIntrinsic: {
+    case SqrtIntrinsic: {
         if (argumentCountIncludingThis == 1) {
             insertChecks();
             set(VirtualRegister(resultOperand), addToGraph(JSConstant, OpInfo(m_constantNaN)));
             return true;
         }
-        
-        switch (intrinsic) {
-        case SqrtIntrinsic:
-            insertChecks();
-            set(VirtualRegister(resultOperand), addToGraph(ArithSqrt, get(virtualRegisterForArgument(1, registerOffset))));
-            return true;
-            
-        case CosIntrinsic:
-            insertChecks();
-            set(VirtualRegister(resultOperand), addToGraph(ArithCos, get(virtualRegisterForArgument(1, registerOffset))));
-            return true;
-            
-        case SinIntrinsic:
-            insertChecks();
-            set(VirtualRegister(resultOperand), addToGraph(ArithSin, get(virtualRegisterForArgument(1, registerOffset))));
-            return true;
 
+        NodeType nodeType = Unreachable;
+        switch (intrinsic) {
+        case CosIntrinsic:
+            nodeType = ArithCos;
+            break;
+        case FRoundIntrinsic:
+            nodeType = ArithFRound;
+            break;
         case LogIntrinsic:
-            insertChecks();
-            set(VirtualRegister(resultOperand), addToGraph(ArithLog, get(virtualRegisterForArgument(1, registerOffset))));
-            return true;
-            
+            nodeType = ArithLog;
+            break;
+        case SinIntrinsic:
+            nodeType = ArithSin;
+            break;
+        case SqrtIntrinsic:
+            nodeType = ArithSqrt;
+            break;
         default:
             RELEASE_ASSERT_NOT_REACHED();
-            return false;
         }
+        insertChecks();
+        set(VirtualRegister(resultOperand), addToGraph(nodeType, get(virtualRegisterForArgument(1, registerOffset))));
+        return true;
     }
 
     case PowIntrinsic: {
@@ -2473,15 +2483,6 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
             return false;
         insertChecks();
         set(VirtualRegister(resultOperand), addToGraph(ArithRandom));
-        return true;
-    }
-        
-    case FRoundIntrinsic: {
-        if (argumentCountIncludingThis != 2)
-            return false;
-        insertChecks();
-        VirtualRegister operand = virtualRegisterForArgument(1, registerOffset);
-        set(VirtualRegister(resultOperand), addToGraph(ArithFRound, get(operand)));
         return true;
     }
         
@@ -3708,10 +3709,9 @@ bool ByteCodeParser::parseBlock(unsigned limit)
         }
             
         case op_new_regexp: {
-            // FIXME: We really should be able to inline code that uses NewRegexp. That means
-            // using something other than the index into the CodeBlock here.
-            // https://bugs.webkit.org/show_bug.cgi?id=154808
-            set(VirtualRegister(currentInstruction[1].u.operand), addToGraph(NewRegexp, OpInfo(currentInstruction[2].u.operand)));
+            RegExp* regexp = m_inlineStackTop->m_codeBlock->regexp(currentInstruction[2].u.operand);
+            FrozenValue* frozen = m_graph.freezeStrong(regexp);
+            set(VirtualRegister(currentInstruction[1].u.operand), addToGraph(NewRegexp, OpInfo(frozen)));
             NEXT_OPCODE(op_new_regexp);
         }
 
@@ -3734,13 +3734,12 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             NEXT_OPCODE(op_get_rest_length);
         }
 
-        case op_copy_rest: {
+        case op_create_rest: {
             noticeArgumentsUse();
-            Node* array = get(VirtualRegister(currentInstruction[1].u.operand));
             Node* arrayLength = get(VirtualRegister(currentInstruction[2].u.operand));
-            addToGraph(CopyRest, OpInfo(currentInstruction[3].u.unsignedValue),
-                array, arrayLength);
-            NEXT_OPCODE(op_copy_rest);
+            set(VirtualRegister(currentInstruction[1].u.operand),
+                addToGraph(CreateRest, OpInfo(currentInstruction[3].u.unsignedValue), arrayLength));
+            NEXT_OPCODE(op_create_rest);
         }
             
         // === Bitwise operations ===
@@ -4201,21 +4200,7 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             NEXT_OPCODE(op_put_by_val_with_this);
         }
 
-        case op_try_get_by_id: {
-            Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
-            unsigned identifierNumber = m_inlineStackTop->m_identifierRemap[currentInstruction[3].u.operand];
-            UniquedStringImpl* uid = m_graph.identifiers()[identifierNumber];
-
-            GetByIdStatus getByIdStatus = GetByIdStatus::computeFor(
-                m_inlineStackTop->m_profiledBlock, m_dfgCodeBlock,
-                m_inlineStackTop->m_stubInfos, m_dfgStubInfos,
-                currentCodeOrigin(), uid);
-
-            handleGetById(currentInstruction[1].u.operand, SpecHeapTop, base, identifierNumber, getByIdStatus, AccessType::GetPure);
-
-            NEXT_OPCODE(op_try_get_by_id);
-        }
-
+        case op_try_get_by_id:
         case op_get_by_id:
         case op_get_by_id_proto_load:
         case op_get_by_id_unset:
@@ -4230,11 +4215,15 @@ bool ByteCodeParser::parseBlock(unsigned limit)
                 m_inlineStackTop->m_profiledBlock, m_dfgCodeBlock,
                 m_inlineStackTop->m_stubInfos, m_dfgStubInfos,
                 currentCodeOrigin(), uid);
+            AccessType type = op_try_get_by_id == opcodeID ? AccessType::GetPure : AccessType::Get;
             
             handleGetById(
-                currentInstruction[1].u.operand, prediction, base, identifierNumber, getByIdStatus, AccessType::Get);
+                currentInstruction[1].u.operand, prediction, base, identifierNumber, getByIdStatus, type);
 
-            NEXT_OPCODE(op_get_by_id);
+            if (op_try_get_by_id == opcodeID)
+                NEXT_OPCODE(op_try_get_by_id); // Opcode's length is different from others in this case.
+            else
+                NEXT_OPCODE(op_get_by_id);
         }
         case op_get_by_id_with_this: {
             Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
@@ -4569,11 +4558,10 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             // If the call is terminal then we should not parse any further bytecodes as the TailCall will exit the function.
             // If the call is not terminal, however, then we want the subsequent op_ret/op_jump to update metadata and clean
             // things up.
-            if (terminality == NonTerminal) {
+            if (terminality == NonTerminal)
                 NEXT_OPCODE(op_tail_call);
-            } else {
+            else
                 LAST_OPCODE(op_tail_call);
-            }
         }
 
         case op_construct:
@@ -4594,11 +4582,10 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             // If the call is terminal then we should not parse any further bytecodes as the TailCall will exit the function.
             // If the call is not terminal, however, then we want the subsequent op_ret/op_jump to update metadata and clean
             // things up.
-            if (terminality == NonTerminal) {
+            if (terminality == NonTerminal)
                 NEXT_OPCODE(op_tail_call_varargs);
-            } else {
+            else
                 LAST_OPCODE(op_tail_call_varargs);
-            }
         }
 
         case op_tail_call_forward_arguments: {
@@ -4611,11 +4598,10 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             // If the call is terminal then we should not parse any further bytecodes as the TailCall will exit the function.
             // If the call is not terminal, however, then we want the subsequent op_ret/op_jump to update metadata and clean
             // things up.
-            if (terminality == NonTerminal) {
+            if (terminality == NonTerminal)
                 NEXT_OPCODE(op_tail_call);
-            } else {
+            else
                 LAST_OPCODE(op_tail_call);
-            }
         }
             
         case op_construct_varargs: {

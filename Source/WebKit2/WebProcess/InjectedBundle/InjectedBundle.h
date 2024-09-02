@@ -60,7 +60,7 @@ class Data;
 }
 
 namespace IPC {
-class ArgumentDecoder;
+class Decoder;
 class Connection;
 class DataReference;
 }
@@ -112,6 +112,7 @@ public:
     void setFrameFlatteningEnabled(WebPageGroupProxy*, bool);
     void setPluginsEnabled(WebPageGroupProxy*, bool);
     void setJavaScriptCanAccessClipboard(WebPageGroupProxy*, bool);
+    void setAutomaticLinkDetectionEnabled(WebPageGroupProxy*, bool enabled);
     void setPrivateBrowsingEnabled(WebPageGroupProxy*, bool);
     void setPopupBlockingEnabled(WebPageGroupProxy*, bool);
     void setAuthorAndUserStylesEnabled(WebPageGroupProxy*, bool);

@@ -42,8 +42,8 @@
 #include "DirectArguments.h"
 #include "FTLForOSREntryJITCode.h"
 #include "FTLOSREntry.h"
-#include "HostCallReturnValue.h"
 #include "GetterSetter.h"
+#include "HostCallReturnValue.h"
 #include "Interpreter.h"
 #include "JIT.h"
 #include "JITExceptions.h"
@@ -320,6 +320,78 @@ EncodedJSValue JIT_OPERATION operationValueDiv(ExecState* exec, EncodedJSValue e
         return JSValue::encode(JSValue());
     double b = op2.toNumber(exec);
     return JSValue::encode(jsNumber(a / b));
+}
+
+double JIT_OPERATION operationArithAbs(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return fabs(a);
+}
+
+double JIT_OPERATION operationArithCos(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return cos(a);
+}
+
+double JIT_OPERATION operationArithFRound(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return static_cast<float>(a);
+}
+
+double JIT_OPERATION operationArithLog(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return log(a);
+}
+
+double JIT_OPERATION operationArithSin(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return sin(a);
+}
+
+double JIT_OPERATION operationArithSqrt(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return sqrt(a);
 }
 
 static ALWAYS_INLINE EncodedJSValue getByVal(ExecState* exec, JSCell* base, uint32_t index)
@@ -1102,17 +1174,16 @@ JSCell* JIT_OPERATION operationCreateClonedArgumentsDuringExit(ExecState* exec, 
     return result;
 }
 
-void JIT_OPERATION operationCopyRest(ExecState* exec, JSCell* arrayAsCell, Register* argumentStart, unsigned numberOfParamsToSkip, unsigned arraySize)
+JSCell* JIT_OPERATION operationCreateRest(ExecState* exec, Register* argumentStart, unsigned numberOfParamsToSkip, unsigned arraySize)
 {
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
 
-    ASSERT(arraySize);
-    JSArray* array = jsCast<JSArray*>(arrayAsCell);
-    ASSERT(arraySize == array->length());
-    array->setLength(exec, arraySize);
-    for (unsigned i = 0; i < arraySize; i++)
-        array->putDirectIndex(exec, i, argumentStart[i + numberOfParamsToSkip].jsValue());
+    JSGlobalObject* globalObject = exec->lexicalGlobalObject();
+    Structure* structure = globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous);
+    static_assert(sizeof(Register) == sizeof(JSValue), "This is a strong assumption here.");
+    JSValue* argumentsToCopyRegion = bitwise_cast<JSValue*>(argumentStart) + numberOfParamsToSkip;
+    return constructArray(exec, structure, argumentsToCopyRegion, arraySize);
 }
 
 size_t JIT_OPERATION operationObjectIsObject(ExecState* exec, JSGlobalObject* globalObject, JSCell* object)

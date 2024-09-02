@@ -38,6 +38,7 @@
 #include "CommonIdentifiers.h"
 #include "CommonSlowPaths.h"
 #include "CustomGetterSetter.h"
+#include "DFGLongLivedState.h"
 #include "DFGWorklist.h"
 #include "Disassembler.h"
 #include "ErrorInstance.h"
@@ -45,7 +46,6 @@
 #include "FTLThunks.h"
 #include "FunctionConstructor.h"
 #include "GCActivityCallback.h"
-#include "GeneratorFrame.h"
 #include "GetterSetter.h"
 #include "Heap.h"
 #include "HeapIterationScope.h"
@@ -98,7 +98,6 @@
 #include "WeakMapData.h"
 #include <wtf/CurrentTime.h>
 #include <wtf/ProcessID.h>
-#include <wtf/RetainPtr.h>
 #include <wtf/StringPrintStream.h>
 #include <wtf/Threading.h>
 #include <wtf/WTFThreadData.h>
@@ -240,7 +239,6 @@ VM::VM(VMType vmType, HeapType heapType)
     inferredTypeStructure.set(*this, InferredType::createStructure(*this, 0, jsNull()));
     inferredTypeTableStructure.set(*this, InferredTypeTable::createStructure(*this, 0, jsNull()));
     functionRareDataStructure.set(*this, FunctionRareData::createStructure(*this, 0, jsNull()));
-    generatorFrameStructure.set(*this, GeneratorFrame::createStructure(*this, 0, jsNull()));
     exceptionStructure.set(*this, Exception::createStructure(*this, 0, jsNull()));
     promiseDeferredStructure.set(*this, JSPromiseDeferred::createStructure(*this, 0, jsNull()));
     internalPromiseDeferredStructure.set(*this, JSInternalPromiseDeferred::createStructure(*this, 0, jsNull()));
@@ -290,6 +288,11 @@ VM::VM(VMType vmType, HeapType heapType)
     }
 
     callFrameForCatch = nullptr;
+
+#if ENABLE(DFG_JIT)
+    if (canUseJIT())
+        dfgState = std::make_unique<DFG::LongLivedState>();
+#endif
     
     // Initialize this last, as a free way of asserting that VM initialization itself
     // won't use this.

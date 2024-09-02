@@ -293,7 +293,8 @@ void JSFinalObject::visitChildren(JSCell* cell, SlotVisitor& visitor)
         thisObject->visitButterfly(visitor, butterfly, structure);
 
     size_t storageSize = structure->inlineSize();
-    visitor.appendValuesHidden(thisObject->inlineStorage(), storageSize);
+    if (storageSize)
+        visitor.appendValuesHidden(thisObject->inlineStorage(), storageSize);
 
 #if !ASSERT_DISABLED
     visitor.m_isCheckingForDefaultMarkViolation = wasCheckingForDefaultMarkViolation;
@@ -305,6 +306,13 @@ String JSObject::className(const JSObject* object)
     const ClassInfo* info = object->classInfo();
     ASSERT(info);
     return info->className;
+}
+
+String JSObject::toStringName(const JSObject* object, ExecState*)
+{
+    const ClassInfo* info = object->classInfo();
+    ASSERT(info);
+    return info->methodTable.className(object);
 }
 
 String JSObject::calculatedClassName(JSObject* object)

@@ -75,12 +75,6 @@ static EncodedJSValue jsDOMWindowWebKit(ExecState* exec, EncodedJSValue thisValu
 
 static bool jsDOMWindowGetOwnPropertySlotRestrictedAccess(JSDOMWindow* thisObject, Frame* frame, ExecState* exec, PropertyName propertyName, PropertySlot& slot, String& errorMessage)
 {
-    // Allow access to toString() cross-domain, but always Object.prototype.toString.
-    if (propertyName == exec->propertyNames().toString) {
-        slot.setCustom(thisObject, ReadOnly | DontDelete | DontEnum, nonCachingStaticFunctionGetter<objectProtoFuncToString, 0>);
-        return true;
-    }
-
     // We don't want any properties other than "close" and "closed" on a frameless window
     // (i.e. one whose page got closed, or whose iframe got removed).
     // FIXME: This handling for frameless windows duplicates similar behaviour for cross-origin
@@ -141,7 +135,7 @@ static bool jsDOMWindowGetOwnPropertySlotRestrictedAccess(JSDOMWindow* thisObjec
         // For any other entries in the static property table, deny access. (Early return also prevents
         // named getter from returning frames with matching names - this seems a little questionable, see
         // FIXME comment on prototype search below.)
-        thisObject->printErrorMessage(errorMessage);
+        throwSecurityError(*exec, errorMessage);
         slot.setUndefined();
         return true;
     }
@@ -155,7 +149,7 @@ static bool jsDOMWindowGetOwnPropertySlotRestrictedAccess(JSDOMWindow* thisObjec
         return true;
     }
 
-    thisObject->printErrorMessage(errorMessage);
+    throwSecurityError(*exec, errorMessage);
     slot.setUndefined();
     return true;
 }
@@ -249,7 +243,7 @@ bool JSDOMWindow::put(JSCell* cell, ExecState* exec, PropertyName propertyName, 
                 return putResult;
             return false;
         }
-        thisObject->printErrorMessage(errorMessage);
+        throwSecurityError(*exec, errorMessage);
         return false;
     }
 

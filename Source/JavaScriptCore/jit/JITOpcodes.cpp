@@ -30,7 +30,6 @@
 
 #include "BasicBlockLocation.h"
 #include "CopiedSpaceInlines.h"
-#include "Debugger.h"
 #include "Exception.h"
 #include "Heap.h"
 #include "JITInlines.h"
@@ -1458,9 +1457,9 @@ void JIT::emit_op_argument_count(Instruction* currentInstruction)
     emitPutVirtualRegister(dst, result);
 }
 
-void JIT::emit_op_copy_rest(Instruction* currentInstruction)
+void JIT::emit_op_create_rest(Instruction* currentInstruction)
 {
-    JITSlowPathCall slowPathCall(this, currentInstruction, slow_path_copy_rest);
+    JITSlowPathCall slowPathCall(this, currentInstruction, slow_path_create_rest);
     slowPathCall.call();
 }
 
@@ -1491,18 +1490,6 @@ void JIT::emit_op_get_rest_length(Instruction* currentInstruction)
     move(TrustedImm32(JSValue::Int32Tag), regT1);
     emitPutVirtualRegister(dst, JSValueRegs(regT1, regT0));
 #endif
-}
-
-void JIT::emit_op_save(Instruction* currentInstruction)
-{
-    JITSlowPathCall slowPathCall(this, currentInstruction, slow_path_save);
-    slowPathCall.call();
-}
-
-void JIT::emit_op_resume(Instruction* currentInstruction)
-{
-    JITSlowPathCall slowPathCall(this, currentInstruction, slow_path_resume);
-    slowPathCall.call();
 }
 
 } // namespace JSC

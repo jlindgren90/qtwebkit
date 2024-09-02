@@ -41,12 +41,19 @@
 #include "FrameView.h"
 #include "HTMLBDIElement.h"
 #include "HTMLBRElement.h"
+#include "HTMLButtonElement.h"
 #include "HTMLCollection.h"
 #include "HTMLDocument.h"
 #include "HTMLElementFactory.h"
+#include "HTMLFieldSetElement.h"
 #include "HTMLFormElement.h"
+#include "HTMLInputElement.h"
 #include "HTMLNames.h"
+#include "HTMLOptGroupElement.h"
+#include "HTMLOptionElement.h"
 #include "HTMLParserIdioms.h"
+#include "HTMLSelectElement.h"
+#include "HTMLTextAreaElement.h"
 #include "HTMLTextFormControlElement.h"
 #include "NodeTraversal.h"
 #include "RenderElement.h"
@@ -81,45 +88,6 @@ String HTMLElement::nodeName() const
         return Element::nodeName().convertToASCIIUppercase();
     }
     return Element::nodeName();
-}
-
-bool HTMLElement::ieForbidsInsertHTML() const
-{
-    // FIXME: Supposedly IE disallows settting innerHTML, outerHTML
-    // and createContextualFragment on these tags.  We have no tests to
-    // verify this however, so this list could be totally wrong.
-    // This list was moved from the previous endTagRequirement() implementation.
-    // This is also called from editing and assumed to be the list of tags
-    // for which no end tag should be serialized. It's unclear if the list for
-    // IE compat and the list for serialization sanity are the same.
-    if (hasTagName(areaTag)
-        || hasTagName(baseTag)
-        || hasTagName(basefontTag)
-        || hasTagName(brTag)
-        || hasTagName(colTag)
-        || hasTagName(embedTag)
-        || hasTagName(frameTag)
-        || hasTagName(hrTag)
-        || hasTagName(imageTag)
-        || hasTagName(imgTag)
-        || hasTagName(inputTag)
-        || hasTagName(isindexTag)
-        || hasTagName(linkTag)
-        || hasTagName(metaTag)
-        || hasTagName(paramTag)
-        || hasTagName(sourceTag)
-        || hasTagName(wbrTag))
-        return true;
-    // FIXME: I'm not sure why dashboard mode would want to change the
-    // serialization of <canvas>, that seems like a bad idea.
-#if ENABLE(DASHBOARD_SUPPORT)
-    if (hasTagName(canvasTag)) {
-        Settings* settings = document().settings();
-        if (settings && settings->usesDashboardBackwardCompatibilityMode())
-            return true;
-    }
-#endif
-    return false;
 }
 
 static inline CSSValueID unicodeBidiAttributeForDirAuto(HTMLElement& element)
@@ -473,7 +441,7 @@ Ref<DocumentFragment> HTMLElement::textToFragment(const String& text, ExceptionC
     for (unsigned start = 0, length = text.length(); start < length; ) {
 
         // Find next line break.
-        UChar c;
+        UChar c = 0;
         unsigned i;
         for (i = start; i < length; i++) {
             c = text[i];
@@ -1096,6 +1064,22 @@ bool HTMLElement::willRespondToMouseWheelEvents()
 bool HTMLElement::willRespondToMouseClickEvents()
 {
     return !isDisabledFormControl() && Element::willRespondToMouseClickEvents();
+}
+
+bool HTMLElement::canBeActuallyDisabled() const
+{
+    return is<HTMLButtonElement>(*this)
+        || is<HTMLInputElement>(*this)
+        || is<HTMLSelectElement>(*this)
+        || is<HTMLTextAreaElement>(*this)
+        || is<HTMLOptGroupElement>(*this)
+        || is<HTMLOptionElement>(*this)
+        || is<HTMLFieldSetElement>(*this);
+}
+
+bool HTMLElement::isActuallyDisabled() const
+{
+    return canBeActuallyDisabled() && isDisabledFormControl();
 }
 
 } // namespace WebCore

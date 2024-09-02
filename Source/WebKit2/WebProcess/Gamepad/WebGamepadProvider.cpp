@@ -28,8 +28,11 @@
 
 #if ENABLE(GAMEPAD)
 
+#include "GamepadData.h"
+#include "WebGamepad.h"
 #include "WebProcess.h"
 #include "WebProcessPoolMessages.h"
+#include <WebCore/GamepadProviderClient.h>
 #include <wtf/NeverDestroyed.h>
 
 using namespace WebCore;
@@ -50,28 +53,86 @@ WebGamepadProvider::~WebGamepadProvider()
 {
 }
 
-void WebGamepadProvider::startMonitoringGamepads(GamepadProviderClient* client)
+void WebGamepadProvider::setInitialGamepads(const Vector<GamepadData>& gamepadDatas)
 {
-    ASSERT(!m_clients.contains(client));
-    m_clients.add(client);
+    ASSERT(m_gamepads.isEmpty());
 
-    if (m_clients.size() == 1)
+    m_gamepads.resize(gamepadDatas.size());
+    m_rawGamepads.resize(gamepadDatas.size());
+    for (size_t i = 0; i < gamepadDatas.size(); ++i) {
+        if (gamepadDatas[i].isNull())
+            continue;
+
+        m_gamepads[i] = std::make_unique<WebGamepad>(gamepadDatas[i]);
+        m_rawGamepads[i] = m_gamepads[i].get();
+    }
+}
+
+void WebGamepadProvider::gamepadConnected(const GamepadData& gamepadData)
+{
+    if (m_gamepads.size() <= gamepadData.index()) {
+        m_gamepads.resize(gamepadData.index() + 1);
+        m_rawGamepads.resize(gamepadData.index() + 1);
+    }
+
+    ASSERT(!m_gamepads[gamepadData.index()]);
+
+    m_gamepads[gamepadData.index()] = std::make_unique<WebGamepad>(gamepadData);
+    m_rawGamepads[gamepadData.index()] = m_gamepads[gamepadData.index()].get();
+
+    for (auto* client : m_clients)
+        client->platformGamepadConnected(*m_gamepads[gamepadData.index()]);
+}
+
+void WebGamepadProvider::gamepadDisconnected(unsigned index)
+{
+    ASSERT(m_gamepads.size() > index);
+
+    std::unique_ptr<WebGamepad> disconnectedGamepad = WTFMove(m_gamepads[index]);
+    m_rawGamepads[index] = nullptr;
+
+    for (auto* client : m_clients)
+        client->platformGamepadDisconnected(*disconnectedGamepad);
+}
+
+void WebGamepadProvider::gamepadActivity(const Vector<GamepadData>& gamepadDatas)
+{
+    ASSERT(m_gamepads.size() == gamepadDatas.size());
+
+    for (size_t i = 0; i < m_gamepads.size(); ++i) {
+        if (m_gamepads[i])
+            m_gamepads[i]->updateValues(gamepadDatas[i]);
+    }
+
+    for (auto* client : m_clients)
+        client->platformGamepadInputActivity();
+}
+
+void WebGamepadProvider::startMonitoringGamepads(GamepadProviderClient& client)
+{
+    bool processHadGamepadClients = !m_clients.isEmpty();
+
+    ASSERT(!m_clients.contains(&client));
+    m_clients.add(&client);
+
+    if (!processHadGamepadClients)
         WebProcess::singleton().send(Messages::WebProcessPool::StartedUsingGamepads(), 0);
 }
 
-void WebGamepadProvider::stopMonitoringGamepads(GamepadProviderClient* client)
+void WebGamepadProvider::stopMonitoringGamepads(GamepadProviderClient& client)
 {
-    ASSERT(m_clients.contains(client));
-    m_clients.remove(client);
+    bool processHadGamepadClients = !m_clients.isEmpty();
 
-    if (m_clients.isEmpty())
+    ASSERT(m_clients.contains(&client));
+    m_clients.remove(&client);
+
+    if (processHadGamepadClients && m_clients.isEmpty())
         WebProcess::singleton().send(Messages::WebProcessPool::StoppedUsingGamepads(), 0);
 }
 
 const Vector<PlatformGamepad*>& WebGamepadProvider::platformGamepads()
 {
-    static NeverDestroyed<Vector<PlatformGamepad*>> gamepads;
-    return gamepads;
+    return m_rawGamepads;
 }
 
 }

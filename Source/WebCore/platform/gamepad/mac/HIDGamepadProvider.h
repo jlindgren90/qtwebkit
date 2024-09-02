@@ -47,10 +47,13 @@ class HIDGamepadProvider : public GamepadProvider {
 public:
     WEBCORE_EXPORT static HIDGamepadProvider& singleton();
 
-    virtual void startMonitoringGamepads(GamepadProviderClient*);
-    virtual void stopMonitoringGamepads(GamepadProviderClient*);
-    virtual const Vector<PlatformGamepad*>& platformGamepads() { return m_gamepadVector; }
+    WEBCORE_EXPORT void startMonitoringGamepads(GamepadProviderClient&) final;
+    WEBCORE_EXPORT void stopMonitoringGamepads(GamepadProviderClient&) final;
+    const Vector<PlatformGamepad*>& platformGamepads() final { return m_gamepadVector; }
 
+    WEBCORE_EXPORT void stopMonitoringInput();
+    WEBCORE_EXPORT void startMonitoringInput();
+    
     void deviceAdded(IOHIDDeviceRef);
     void deviceRemoved(IOHIDDeviceRef);
     void valuesChanged(IOHIDValueRef);

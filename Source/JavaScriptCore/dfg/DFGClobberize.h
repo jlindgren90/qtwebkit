@@ -149,16 +149,10 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         return;
         
     case ArithIMul:
-    case ArithAbs:
     case ArithClz32:
     case ArithMin:
     case ArithMax:
     case ArithPow:
-    case ArithSqrt:
-    case ArithFRound:
-    case ArithSin:
-    case ArithCos:
-    case ArithLog:
     case GetScope:
     case SkipScope:
     case GetGlobalObject:
@@ -188,6 +182,28 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case BottomValue:
     case TypeOf:
         def(PureValue(node));
+        return;
+
+    case ArithCos:
+    case ArithFRound:
+    case ArithLog:
+    case ArithSin:
+    case ArithSqrt:
+        if (node->child1().useKind() == DoubleRepUse)
+            def(PureValue(node));
+        else {
+            read(World);
+            write(Heap);
+        }
+        return;
+
+    case ArithAbs:
+        if (node->child1().useKind() == Int32Use || node->child1().useKind() == DoubleRepUse)
+            def(PureValue(node));
+        else {
+            read(World);
+            write(Heap);
+        }
         return;
 
     case BitAnd:
@@ -1101,9 +1117,16 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         return;
     }
 
-    case CopyRest: {
+    case CreateRest: {
+        if (!graph.isWatchingHavingABadTimeWatchpoint(node)) {
+            // This means we're already having a bad time.
+            read(World);
+            write(Heap);
+            return;
+        }
         read(Stack);
-        write(Heap);
+        read(HeapObjectCount);
+        write(HeapObjectCount);
         return;
     }
 

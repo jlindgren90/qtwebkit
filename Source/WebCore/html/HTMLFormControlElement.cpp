@@ -42,7 +42,6 @@
 #include "RenderTheme.h"
 #include "StyleTreeResolver.h"
 #include "ValidationMessage.h"
-#include <wtf/NeverDestroyed.h>
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
 
@@ -147,10 +146,12 @@ void HTMLFormControlElement::parseAttribute(const QualifiedName& name, const Ato
     if (name == formAttr)
         formAttributeChanged();
     else if (name == disabledAttr) {
-        bool oldDisabled = m_disabled;
-        m_disabled = !value.isNull();
-        if (oldDisabled != m_disabled)
-            disabledAttributeChanged();
+        if (canBeActuallyDisabled()) {
+            bool oldDisabled = m_disabled;
+            m_disabled = !value.isNull();
+            if (oldDisabled != m_disabled)
+                disabledAttributeChanged();
+        }
     } else if (name == readonlyAttr) {
         bool wasReadOnly = m_isReadOnly;
         m_isReadOnly = !value.isNull();

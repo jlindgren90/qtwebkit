@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef JSWASMModule_h
-#define JSWASMModule_h
+#pragma once
 
 #if ENABLE(WEBASSEMBLY)
 
@@ -79,7 +78,7 @@ public:
     Vector<WASMSignature>& signatures() { return m_signatures; }
     Vector<WASMFunctionImport>& functionImports() { return m_functionImports; }
     Vector<WASMFunctionImportSignature>& functionImportSignatures() { return m_functionImportSignatures; }
-    Vector<WASMType>& globalVariableTypes() { return m_globalVariableTypes; }
+    Vector<WASMValueType>& globalVariableTypes() { return m_globalVariableTypes; }
     Vector<WASMFunctionDeclaration>& functionDeclarations() { return m_functionDeclarations; }
     Vector<WASMFunctionPointerTable>& functionPointerTables() { return m_functionPointerTables; }
 
@@ -99,7 +98,7 @@ private:
     Vector<WASMSignature> m_signatures;
     Vector<WASMFunctionImport> m_functionImports;
     Vector<WASMFunctionImportSignature> m_functionImportSignatures;
-    Vector<WASMType> m_globalVariableTypes;
+    Vector<WASMValueType> m_globalVariableTypes;
     Vector<WASMFunctionDeclaration> m_functionDeclarations;
     Vector<WASMFunctionPointerTable> m_functionPointerTables;
 
@@ -114,5 +113,3 @@ private:
 } // namespace JSC
 
 #endif // ENABLE(WEBASSEMBLY)
-
-#endif // JSWASMModule_h

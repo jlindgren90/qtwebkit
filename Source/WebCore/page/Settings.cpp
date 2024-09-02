@@ -83,7 +83,6 @@ bool Settings::gAVFoundationNSURLSessionEnabled = true;
 
 #if PLATFORM(COCOA)
 bool Settings::gQTKitEnabled = false;
-bool Settings::gCookieStoragePartitioningEnabled = false;
 #endif
 
 bool Settings::gMockScrollbarsEnabled = false;
@@ -193,7 +192,6 @@ Settings::Settings(Page* page)
     , m_loadsImagesAutomatically(false)
     , m_areImagesEnabled(true)
     , m_preferMIMETypeForImages(false)
-    , m_isCachedPDFImageEnabled(true)
     , m_arePluginsEnabled(false)
     , m_isScriptEnabled(false)
     , m_needsAdobeFrameReloadingQuirk(false)
@@ -426,11 +424,6 @@ void Settings::setPreferMIMETypeForImages(bool preferMIMETypeForImages)
     m_preferMIMETypeForImages = preferMIMETypeForImages;
 }
 
-void Settings::setCachedPDFImageEnabled(bool isCachedPDFImageEnabled)
-{
-    m_isCachedPDFImageEnabled = isCachedPDFImageEnabled;
-}
-
 void Settings::setForcePendingWebGLPolicy(bool forced)
 {
     m_forcePendingWebGLPolicy = forced;
@@ -597,11 +590,6 @@ void Settings::setQTKitEnabled(bool enabled)
 
     gQTKitEnabled = enabled;
     HTMLMediaElement::resetMediaEngines();
-}
-    
-void Settings::setCookieStoragePartitioningEnabled(bool enabled)
-{
-    gCookieStoragePartitioningEnabled = enabled;
 }
 #endif
 

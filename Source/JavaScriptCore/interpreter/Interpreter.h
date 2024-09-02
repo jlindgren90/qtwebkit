@@ -37,7 +37,6 @@
 #include "Opcode.h"
 #include "SourceProvider.h"
 #include "StackAlignment.h"
-
 #include <wtf/HashMap.h>
 #include <wtf/text/StringBuilder.h>
 
@@ -66,6 +65,7 @@ namespace JSC {
     struct HandlerInfo;
     struct Instruction;
     struct ProtoCallFrame;
+    struct UnlinkedInstruction;
 
     enum UnwindStart { UnwindFromCurrentFrame, UnwindFromCallerFrame };
 
@@ -208,7 +208,10 @@ namespace JSC {
             return opcode;
 #endif
         }
-        
+
+        OpcodeID getOpcodeID(const Instruction&);
+        OpcodeID getOpcodeID(const UnlinkedInstruction&);
+
         bool isOpcode(Opcode);
 
         JSValue execute(ProgramExecutable*, CallFrame*, JSObject* thisObj);

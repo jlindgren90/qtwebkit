@@ -330,12 +330,12 @@ private:
         }
 
         case ArithAbs: {
-            SpeculatedType child = node->child1()->prediction();
-            if (isInt32OrBooleanSpeculationForArithmetic(child)
+            SpeculatedType childPrediction = node->child1()->prediction();
+            if (isInt32OrBooleanSpeculation(childPrediction)
                 && node->canSpeculateInt32(m_pass))
                 changed |= mergePrediction(SpecInt32Only);
             else
-                changed |= mergePrediction(speculatedDoubleTypeForPrediction(child));
+                changed |= mergePrediction(SpecBytecodeDouble);
             break;
         }
 
@@ -685,10 +685,6 @@ private:
             setPrediction(SpecBytecodeTop);
             break;
         }
-        case TryGetById: {
-            setPrediction(SpecBytecodeTop);
-            break;
-        }
         case ArrayPop:
         case ArrayPush:
         case RegExpExec:
@@ -697,6 +693,7 @@ private:
         case StringReplaceRegExp:
         case GetById:
         case GetByIdFlush:
+        case TryGetById:
         case GetByOffset:
         case MultiGetByOffset:
         case GetDirectPname:
@@ -836,6 +833,7 @@ private:
             
         case NewArray:
         case NewArrayWithSize:
+        case CreateRest:
         case NewArrayBuffer: {
             setPrediction(SpecArray);
             break;
@@ -1063,7 +1061,6 @@ private:
         case ExitOK:
         case LoadVarargs:
         case ForwardVarargs:
-        case CopyRest:
         case PutDynamicVar:
             break;
             
