@@ -645,6 +645,10 @@ void EditorClientQt::didChangeSelectionAndUpdateLayout()
 {
 }
 
+void EditorClientQt::updateEditorStateAfterLayoutIfEditabilityChanged()
+{
+}
+
 void EditorClientQt::discardedComposition(Frame *)
 {
 }

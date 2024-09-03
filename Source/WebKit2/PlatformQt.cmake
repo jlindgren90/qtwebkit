@@ -104,6 +104,7 @@ list(APPEND WebKit2_SOURCES
     Shared/qt/WebCoreArgumentCodersQt.cpp
     Shared/qt/WebEventFactoryQt.cpp
     Shared/qt/WebGestureEvent.cpp
+    Shared/qt/WebKit2InitializeQt.cpp
 
     UIProcess/AcceleratedDrawingAreaProxy.cpp
     UIProcess/BackingStore.cpp

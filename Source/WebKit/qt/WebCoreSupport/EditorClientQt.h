@@ -108,6 +108,7 @@ public:
 
     void didApplyStyle() override;
     void didChangeSelectionAndUpdateLayout() override;
+    void updateEditorStateAfterLayoutIfEditabilityChanged() override;
     void discardedComposition(Frame *) override;
     void overflowScrollPositionChanged() override;
 
