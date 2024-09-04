@@ -56,10 +56,5 @@ JSValue JSCustomEvent::detail(ExecState& state) const
     return detail;
 }
 
-void JSCustomEvent::visitAdditionalChildren(JSC::SlotVisitor& visitor)
-{
-    wrapped().detail().visit(visitor);
-}
-
 } // namespace WebCore
 

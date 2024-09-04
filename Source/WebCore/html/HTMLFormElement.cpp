@@ -370,7 +370,7 @@ void HTMLFormElement::reset()
 
     Ref<HTMLFormElement> protectedThis(*this);
 
-    SetForScope<bool> isInResetFunctionRestorer(m_isInResetFunction, true);
+    JSC::SetForScope<bool> isInResetFunctionRestorer(m_isInResetFunction, true);
 
     if (!dispatchEvent(Event::create(eventNames().resetEvent, true, true)))
         return;

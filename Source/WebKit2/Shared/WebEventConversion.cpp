@@ -234,15 +234,15 @@ public:
             ASSERT_NOT_REACHED();
         }
 
-        m_modifiers = 0;
+        m_modifiers = { };
         if (webEvent.shiftKey())
-            m_modifiers |= ShiftKey;
+            m_modifiers |= Modifier::ShiftKey;
         if (webEvent.controlKey())
-            m_modifiers |= CtrlKey;
+            m_modifiers |= Modifier::CtrlKey;
         if (webEvent.altKey())
-            m_modifiers |= AltKey;
+            m_modifiers |= Modifier::AltKey;
         if (webEvent.metaKey())
-            m_modifiers |= MetaKey;
+            m_modifiers |= Modifier::MetaKey;
 
         m_timestamp = webEvent.timestamp();
 

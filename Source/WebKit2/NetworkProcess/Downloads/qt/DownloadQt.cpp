@@ -38,13 +38,13 @@ using namespace WebCore;
 
 namespace WebKit {
 
-void Download::start()
+void Download::startNetworkLoad()
 {
     ASSERT(!m_qtDownloader);
     m_qtDownloader = new QtFileDownloader(*this, m_request.toNetworkRequest());
 }
 
-void Download::startWithHandle(ResourceHandle* handle, const ResourceResponse& resp)
+void Download::startNetworkLoadWithHandle(ResourceHandle* handle, const ResourceResponse& resp)
 {
     ASSERT(!m_qtDownloader);
     m_qtDownloader = new QtFileDownloader(*this, handle->getInternal()->m_job->release());
@@ -55,7 +55,7 @@ void Download::resume(const IPC::DataReference&, const WTF::String&, const Sandb
     notImplemented();
 }
 
-void Download::cancel()
+void Download::cancelNetworkLoad()
 {
     ASSERT(m_qtDownloader);
     m_qtDownloader->cancel();

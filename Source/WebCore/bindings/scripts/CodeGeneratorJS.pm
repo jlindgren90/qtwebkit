@@ -3156,7 +3156,7 @@ sub GenerateImplementation
                 my $domJITClassName = $generatorName . "DOMJIT";
                 my $getter = GetAttributeGetterName($interface, $generatorName, $attribute);
                 my $setter = IsReadonly($attribute) ? "nullptr" : GetAttributeSetterName($interface, $generatorName, $attribute);
-                push(@implContent, "$domJITClassName::$domJITClassName()\n");
+                push(@implContent, "${domJITClassName}::$domJITClassName()\n");
                 push(@implContent, "    : JSC::DOMJIT::GetterSetter($getter, $setter, ${className}::info())\n");
                 push(@implContent, "{\n");
                 push(@implContent, "}\n\n");

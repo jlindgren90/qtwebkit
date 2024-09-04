@@ -49,7 +49,7 @@ namespace WebCore {
             return adoptRef(new StillImage(WTFMove(pixmap)));
         }
 
-        bool currentFrameKnownToBeOpaque() override;
+        bool currentFrameKnownToBeOpaque() const override;
 
         // FIXME: StillImages are underreporting decoded sizes and will be unable
         // to prune because these functions are not implemented yet.

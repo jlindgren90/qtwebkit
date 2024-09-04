@@ -253,7 +253,7 @@ void ImageBufferDataPrivateAccelerated::drawPattern(GraphicsContext& destContext
     const FloatPoint& phase, const FloatSize& spacing, CompositeOperator op, const FloatRect& destRect, BlendMode blendMode, bool /*ownContext*/)
 {
     RefPtr<Image> image = StillImage::create(QPixmap::fromImage(toQImage()));
-    image->drawPattern(destContext, srcRect, patternTransform, phase, spacing, op, destRect, blendMode);
+    image->drawPattern(destContext, destRect, srcRect, patternTransform, phase, spacing, op, blendMode);
 }
 
 void ImageBufferDataPrivateAccelerated::clip(GraphicsContext& context, const IntRect& rect) const
@@ -426,9 +426,9 @@ void ImageBufferDataPrivateUnaccelerated::drawPattern(GraphicsContext& destConte
     if (ownContext) {
         // We're drawing into our own buffer. In order for this to work, we need to copy the source buffer first.
         RefPtr<Image> copy = copyImage();
-        copy->drawPattern(destContext, srcRect, patternTransform, phase, spacing, op, destRect, blendMode);
+        copy->drawPattern(destContext, destRect, srcRect, patternTransform, phase, spacing, op, blendMode);
     } else
-        m_image->drawPattern(destContext, srcRect, patternTransform, phase, spacing, op, destRect, blendMode);
+        m_image->drawPattern(destContext, destRect, srcRect, patternTransform, phase, spacing, op, blendMode);
 }
 
 void ImageBufferDataPrivateUnaccelerated::clip(GraphicsContext& context, const IntRect& rect) const
