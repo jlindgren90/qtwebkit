@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef DFGNode_h
-#define DFGNode_h
+#pragma once
 
 #if ENABLE(DFG_JIT)
 
@@ -58,6 +57,10 @@
 #include <wtf/ListDump.h>
 
 namespace JSC {
+
+namespace DOMJIT {
+class GetterSetter;
+}
 
 namespace Profiler {
 class ExecutionCounter;
@@ -897,7 +900,7 @@ public:
 
     bool isStoreBarrier()
     {
-        return op() == StoreBarrier;
+        return op() == StoreBarrier || op() == FencedStoreBarrier;
     }
 
     bool hasIdentifier()
@@ -1443,6 +1446,7 @@ public:
         case StringReplaceRegExp:
         case ToNumber:
         case LoadFromJSMapBucket:
+        case CallDOM:
             return true;
         default:
             return false;
@@ -2309,7 +2313,28 @@ public:
         ASSERT(hasBasicBlockLocation());
         return m_opInfo.as<BasicBlockLocation*>();
     }
-    
+
+    bool hasDOMJIT() const
+    {
+        return op() == CheckDOM || op() == CallDOM;
+    }
+
+    DOMJIT::GetterSetter* domJIT()
+    {
+        ASSERT(hasDOMJIT());
+        return m_opInfo.as<DOMJIT::GetterSetter*>();
+    }
+
+    bool hasClassInfo() const
+    {
+        return op() == CheckDOM;
+    }
+
+    const ClassInfo* classInfo()
+    {
+        return m_opInfo2.as<const ClassInfo*>();
+    }
+
     Node* replacement() const
     {
         return m_misc.replacement;
@@ -2389,6 +2414,11 @@ private:
             u.int64 = 0;
             u.pointer = pointer;
         }
+        OpInfoWrapper(const void* constPointer)
+        {
+            u.int64 = 0;
+            u.constPointer = constPointer;
+        }
         OpInfoWrapper& operator=(uint32_t int32)
         {
             u.int64 = 0;
@@ -2412,10 +2442,21 @@ private:
             u.pointer = pointer;
             return *this;
         }
+        OpInfoWrapper& operator=(const void* constPointer)
+        {
+            u.int64 = 0;
+            u.constPointer = constPointer;
+            return *this;
+        }
         template <typename T>
-        ALWAYS_INLINE auto as() const -> typename std::enable_if<std::is_pointer<T>::value, T>::type
+        ALWAYS_INLINE auto as() const -> typename std::enable_if<std::is_pointer<T>::value && !std::is_const<typename std::remove_pointer<T>::type>::value, T>::type
         {
             return static_cast<T>(u.pointer);
+        }
+        template <typename T>
+        ALWAYS_INLINE auto as() const -> typename std::enable_if<std::is_pointer<T>::value && std::is_const<typename std::remove_pointer<T>::type>::value, T>::type
+        {
+            return static_cast<T>(u.constPointer);
         }
         template <typename T>
         ALWAYS_INLINE auto as() const -> typename std::enable_if<std::is_integral<T>::value && sizeof(T) == 4, T>::type
@@ -2431,6 +2472,7 @@ private:
             uint32_t int32;
             uint64_t int64;
             void* pointer;
+            const void* constPointer;
         } u;
     };
     OpInfoWrapper m_opInfo;
@@ -2511,5 +2553,4 @@ inline JSC::DFG::Node* inContext(JSC::DFG::Node* node, JSC::DumpContext*) { retu
 
 using WTF::inContext;
 
-#endif
 #endif

@@ -430,7 +430,7 @@ public:
     static unsigned dataOffset() { return OBJECT_OFFSETOF(StringImpl, m_data8); }
 
     template<typename CharType, size_t inlineCapacity, typename OverflowHandler>
-    static Ref<StringImpl> adopt(Vector<CharType, inlineCapacity, OverflowHandler>& vector)
+    static Ref<StringImpl> adopt(Vector<CharType, inlineCapacity, OverflowHandler>&& vector)
     {
         if (size_t size = vector.size()) {
             ASSERT(vector.data());
@@ -441,8 +441,8 @@ public:
         return *empty();
     }
 
-    WTF_EXPORT_STRING_API static Ref<StringImpl> adopt(StringBuffer<UChar>&);
-    WTF_EXPORT_STRING_API static Ref<StringImpl> adopt(StringBuffer<LChar>&);
+    WTF_EXPORT_STRING_API static Ref<StringImpl> adopt(StringBuffer<UChar>&&);
+    WTF_EXPORT_STRING_API static Ref<StringImpl> adopt(StringBuffer<LChar>&&);
 
     unsigned length() const { return m_length; }
     static ptrdiff_t lengthMemoryOffset() { return OBJECT_OFFSETOF(StringImpl, m_length); }
@@ -668,6 +668,7 @@ public:
     WTF_EXPORT_STRING_API Ref<StringImpl> convertToASCIILowercase();
     WTF_EXPORT_STRING_API Ref<StringImpl> convertToASCIIUppercase();
     WTF_EXPORT_STRING_API Ref<StringImpl> convertToLowercaseWithoutLocale();
+    WTF_EXPORT_STRING_API Ref<StringImpl> convertToLowercaseWithoutLocaleStartingAtFailingIndex8Bit(unsigned);
     WTF_EXPORT_STRING_API Ref<StringImpl> convertToUppercaseWithoutLocale();
     WTF_EXPORT_STRING_API Ref<StringImpl> convertToLowercaseWithLocale(const AtomicString& localeIdentifier);
     WTF_EXPORT_STRING_API Ref<StringImpl> convertToUppercaseWithLocale(const AtomicString& localeIdentifier);
@@ -931,8 +932,8 @@ WTF_EXPORT_STRING_API bool equalIgnoringNullity(const UChar*, size_t length, Str
 
 bool equalIgnoringASCIICase(const StringImpl&, const StringImpl&);
 WTF_EXPORT_STRING_API bool equalIgnoringASCIICase(const StringImpl*, const StringImpl*);
-WTF_EXPORT_STRING_API bool equalIgnoringASCIICase(const StringImpl&, const char*);
-WTF_EXPORT_STRING_API bool equalIgnoringASCIICase(const StringImpl*, const char*);
+bool equalIgnoringASCIICase(const StringImpl&, const char*);
+bool equalIgnoringASCIICase(const StringImpl*, const char*);
 
 WTF_EXPORT_STRING_API bool equalIgnoringASCIICaseNonNull(const StringImpl*, const StringImpl*);
 

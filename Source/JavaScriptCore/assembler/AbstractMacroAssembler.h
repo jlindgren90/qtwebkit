@@ -23,10 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef AbstractMacroAssembler_h
-#define AbstractMacroAssembler_h
+#pragma once
 
 #include "AbortReason.h"
+#include "AssemblerBuffer.h"
+#include "AssemblerCommon.h"
+#include "CPU.h"
 #include "CodeLocation.h"
 #include "MacroAssemblerCodeRef.h"
 #include "Options.h"
@@ -35,79 +37,9 @@
 #include <wtf/SharedTask.h>
 #include <wtf/WeakRandom.h>
 
-#if ENABLE(ASSEMBLER)
-
 namespace JSC {
 
-inline bool isARMv7IDIVSupported()
-{
-#if HAVE(ARM_IDIV_INSTRUCTIONS)
-    return true;
-#else
-    return false;
-#endif
-}
-
-inline bool isARM64()
-{
-#if CPU(ARM64)
-    return true;
-#else
-    return false;
-#endif
-}
-
-inline bool isMIPS()
-{
-#if CPU(MIPS)
-    return true;
-#else
-    return false;
-#endif
-}
-
-inline bool isX86()
-{
-#if CPU(X86_64) || CPU(X86)
-    return true;
-#else
-    return false;
-#endif
-}
-
-inline bool isX86_64()
-{
-#if CPU(X86_64)
-    return true;
-#else
-    return false;
-#endif
-}
-
-inline bool optimizeForARMv7IDIVSupported()
-{
-    return isARMv7IDIVSupported() && Options::useArchitectureSpecificOptimizations();
-}
-
-inline bool optimizeForARM64()
-{
-    return isARM64() && Options::useArchitectureSpecificOptimizations();
-}
-
-inline bool optimizeForMIPS()
-{
-    return isMIPS() && Options::useArchitectureSpecificOptimizations();
-}
-
-inline bool optimizeForX86()
-{
-    return isX86() && Options::useArchitectureSpecificOptimizations();
-}
-
-inline bool optimizeForX86_64()
-{
-    return isX86_64() && Options::useArchitectureSpecificOptimizations();
-}
+#if ENABLE(ASSEMBLER)
 
 class AllowMacroScratchRegisterUsage;
 class DisallowMacroScratchRegisterUsage;
@@ -1179,8 +1111,6 @@ AbstractMacroAssembler<AssemblerType, MacroAssemblerType>::Address::indexedBy(
     return BaseIndex(base, index, scale, offset);
 }
 
-} // namespace JSC
-
 #endif // ENABLE(ASSEMBLER)
 
-#endif // AbstractMacroAssembler_h
+} // namespace JSC

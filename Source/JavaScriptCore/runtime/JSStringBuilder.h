@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef JSStringBuilder_h
-#define JSStringBuilder_h
+#pragma once
 
 #include "ExceptionHelpers.h"
 #include "JSString.h"
@@ -79,12 +78,12 @@ public:
             buffer8.shrinkToFit();
             if (!buffer8.data())
                 return throwOutOfMemoryError(exec, scope);
-            return jsString(exec, String::adopt(buffer8));
+            return jsString(exec, String::adopt(WTFMove(buffer8)));
         }
         buffer16.shrinkToFit();
         if (!buffer16.data())
             return throwOutOfMemoryError(exec, scope);
-        return jsString(exec, String::adopt(buffer16));
+        return jsString(exec, String::adopt(WTFMove(buffer16)));
     }
 
 private:
@@ -137,6 +136,4 @@ inline JSValue jsMakeNontrivialString(ExecState* exec, const StringType& string,
     return jsNontrivialString(exec, WTFMove(result));
 }
 
-}
-
-#endif
+} // namespace JSC

@@ -28,6 +28,7 @@
 #include "FullGCActivityCallback.h"
 #include "GCActivityCallback.h"
 #include "GCIncomingRefCountedSetInlines.h"
+#include "GCSegmentedArrayInlines.h"
 #include "GCTypeMap.h"
 #include "HasOwnPropertyCache.h"
 #include "HeapHelperPool.h"
@@ -914,7 +915,7 @@ void Heap::addToRememberedSet(const JSCell* cell)
 {
     ASSERT(cell);
     ASSERT(!Options::useConcurrentJIT() || !isCompilationThread());
-    ASSERT(cell->cellState() == CellState::OldBlack);
+    ASSERT(isBlack(cell->cellState()));
     // Indicate that this object is grey and that it's one of the following:
     // - A re-greyed object during a concurrent collection.
     // - An old remembered object.
@@ -1546,6 +1547,19 @@ void Heap::forEachCodeBlockImpl(const ScopedLambda<bool(CodeBlock*)>& func)
     completeAllJITPlans();
 
     return m_codeBlocks->iterate(func);
+}
+
+void Heap::writeBarrierSlowPath(const JSCell* from)
+{
+    if (UNLIKELY(barrierShouldBeFenced())) {
+        // In this case, the barrierThreshold is the tautological threshold, so from could still be
+        // not black. But we can't know for sure until we fire off a fence.
+        WTF::storeLoadFence();
+        if (!isBlack(from->cellState()))
+            return;
+    }
+    
+    addToRememberedSet(from);
 }
 
 } // namespace JSC

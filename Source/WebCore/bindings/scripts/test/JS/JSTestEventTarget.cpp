@@ -47,7 +47,7 @@ bool setJSTestEventTargetConstructor(JSC::ExecState*, JSC::EncodedJSValue, JSC::
 
 class JSTestEventTargetPrototype : public JSC::JSNonFinalObject {
 public:
-    typedef JSC::JSNonFinalObject Base;
+    using Base = JSC::JSNonFinalObject;
     static JSTestEventTargetPrototype* create(JSC::VM& vm, JSC::JSGlobalObject* globalObject, JSC::Structure* structure)
     {
         JSTestEventTargetPrototype* ptr = new (NotNull, JSC::allocateCell<JSTestEventTargetPrototype>(vm.heap)) JSTestEventTargetPrototype(vm, globalObject, structure);
@@ -70,7 +70,7 @@ private:
     void finishCreation(JSC::VM&);
 };
 
-typedef JSDOMConstructorNotConstructable<JSTestEventTarget> JSTestEventTargetConstructor;
+using JSTestEventTargetConstructor = JSDOMConstructorNotConstructable<JSTestEventTarget>;
 
 template<> JSValue JSTestEventTargetConstructor::prototypeForStructure(JSC::VM& vm, const JSDOMGlobalObject& globalObject)
 {
@@ -213,9 +213,8 @@ EncodedJSValue JSC_HOST_CALL jsTestEventTargetPrototypeFunctionItem(ExecState* s
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
-    auto index = convert<uint32_t>(*state, state->argument(0), NormalConversion);
-    if (UNLIKELY(throwScope.exception()))
-        return JSValue::encode(jsUndefined());
+    auto index = convert<uint32_t>(*state, state->uncheckedArgument(0), NormalConversion);
+    RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
     JSValue result = toJS(state, castedThis->globalObject(), impl.item(WTFMove(index)));
     return JSValue::encode(result);
 }

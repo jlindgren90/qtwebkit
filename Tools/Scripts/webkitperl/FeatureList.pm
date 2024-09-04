@@ -51,6 +51,7 @@ BEGIN {
 my (
     $accelerated2DCanvasSupport,
     $allInOneBuild,
+    $asyncfunctionSyntax,
     $attachmentElementSupport,
     $batteryStatusSupport,
     $canvasPathSupport,
@@ -113,6 +114,7 @@ my (
     $mediaStreamSupport,
     $meterElementSupport,
     $mhtmlSupport,
+    $modernMediaControls,
     $modulesSupport,
     $mouseCursorScaleSupport,
     $netscapePluginAPISupport,
@@ -171,10 +173,14 @@ my @features = (
       define => "ENABLE_3D_TRANSFORMS", default => (isAppleMacWebKit() || isIOSWebKit() || isGtk() || isEfl() || isQt()), value => \$threeDTransformsSupport },
 
     { option => "accelerated-2d-canvas", desc => "Toggle Accelerated 2D Canvas support",
-      define => "ENABLE_ACCELERATED_2D_CANVAS", default => (isGtk() || isQt()), value => \$accelerated2DCanvasSupport },
+      define => "ENABLE_ACCELERATED_2D_CANVAS", default => 0, value => \$accelerated2DCanvasSupport },
 
     { option => "allinone-build", desc => "Toggle all-in-one build",
       define => "ENABLE_ALLINONE_BUILD", default => isWindows() || isQt(), value => \$allInOneBuild },
+
+    { option => "asyncfunction-syntax", desc => "Toggle ES2017 async functions support",
+      define => "ENABLE_ES2017_ASYNCFUNCTION_SYNTAX", default => 0, value => \$asyncfunctionSyntax,
+      javascript => 1 },
 
     { option => "attachment-element", desc => "Toggle Attachment Element support",
       define => "ENABLE_ATTACHMENT_ELEMENT", default => 0, value => \$attachmentElementSupport },
@@ -248,6 +254,9 @@ my @features = (
     { option => "download-attribute", desc => "Toggle Download Attribute support",
       define => "ENABLE_DOWNLOAD_ATTRIBUTE", default => (isEfl() || isGtk() || isQt()), value => \$downloadAttributeSupport },
 
+    { option => "encrypted-media", desc => "Toggle EME support",
+      define => "ENABLE_ENCRYPTED_MEDIA", default => 0, value => \$fetchAPISupport },
+
     { option => "fetch-api", desc => "Toggle Fetch API support",
       define => "ENABLE_FETCH_API", default => 1, value => \$fetchAPISupport },
 
@@ -267,7 +276,8 @@ my @features = (
       define => "ENABLE_GAMEPAD", default => 0, value => \$gamepadSupport },
 
     { option => "generators", desc => "Toggle ES6 generators support",
-      define => "ENABLE_ES6_GENERATORS", default => 1, value => \$generatorsSupport },
+      define => "ENABLE_ES6_GENERATORS", default => 1, value => \$generatorsSupport,
+      javascript => 1 },
 
     { option => "geolocation", desc => "Toggle Geolocation support",
       define => "ENABLE_GEOLOCATION", default => (isAppleWebKit() || isIOSWebKit() || isGtk() || isEfl() || isQt()), value => \$geolocationSupport },
@@ -345,7 +355,8 @@ my @features = (
       define => "ENABLE_MHTML", default => (isGtk() || isEfl() || isQt()), value => \$mhtmlSupport },
 
     { option => "modules", desc => "Toggle ES6 modules support",
-      define => "ENABLE_ES6_MODULES", default => 0, value => \$modulesSupport },
+      define => "ENABLE_ES6_MODULES", default => 0, value => \$modulesSupport,
+      javascript => 1 },
 
     { option => "mouse-cursor-scale", desc => "Toggle Scaled mouse cursor support",
       define => "ENABLE_MOUSE_CURSOR_SCALE", default => isEfl(), value => \$mouseCursorScaleSupport },

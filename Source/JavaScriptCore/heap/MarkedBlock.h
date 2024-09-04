@@ -19,8 +19,7 @@
  *
  */
 
-#ifndef MarkedBlock_h
-#define MarkedBlock_h
+#pragma once
 
 #include "AllocatorAttributes.h"
 #include "DestructionMode.h"
@@ -29,6 +28,7 @@
 #include "HeapOperation.h"
 #include "IterationStatus.h"
 #include "WeakSet.h"
+#include <wtf/Atomics.h>
 #include <wtf/Bitmap.h>
 #include <wtf/DataLog.h>
 #include <wtf/DoublyLinkedList.h>
@@ -154,15 +154,12 @@ public:
         size_t markCount();
         size_t size();
             
-        inline bool isLive(HeapVersion, const HeapCell*);
-        inline bool isLiveCell(HeapVersion, const void*);
+        inline bool isLive(HeapVersion markingVersion, const HeapCell*);
+        inline bool isLiveCell(HeapVersion markingVersion, const void*);
 
         bool isLive(const HeapCell*);
         bool isLiveCell(const void*);
 
-        bool isMarkedOrNewlyAllocated(const HeapCell*);
-        bool isMarkedOrNewlyAllocated(HeapVersion, const HeapCell*);
-            
         bool isNewlyAllocated(const void*);
         void setNewlyAllocated(const void*);
         void clearNewlyAllocated(const void*);
@@ -173,9 +170,9 @@ public:
         template <typename Functor> inline IterationStatus forEachLiveCell(const Functor&);
         template <typename Functor> inline IterationStatus forEachDeadCell(const Functor&);
             
-        bool needsFlip();
+        bool areMarksStale();
         
-        void assertFlipped();
+        void assertMarksNotStale();
             
         bool isFreeListed() const { return m_isFreeListed; }
         
@@ -208,11 +205,11 @@ public:
         FreeList sweepHelperSelectSweepMode(SweepMode = SweepOnly);
         
         template<EmptyMode, SweepMode, DestructionMode, ScribbleMode, NewlyAllocatedMode>
-        FreeList sweepHelperSelectFlipMode();
+        FreeList sweepHelperSelectMarksMode();
         
-        enum FlipMode { NeedsFlip, DoesNotNeedFlip };
+        enum MarksMode { MarksStale, MarksNotStale };
         
-        template<EmptyMode, SweepMode, DestructionMode, ScribbleMode, NewlyAllocatedMode, FlipMode>
+        template<EmptyMode, SweepMode, DestructionMode, ScribbleMode, NewlyAllocatedMode, MarksMode>
         FreeList specializedSweep();
             
         template<typename Func>
@@ -252,13 +249,10 @@ public:
     size_t markCount();
 
     bool isMarked(const void*);
-    bool isMarked(HeapVersion, const void*);
-    bool isMarkedConcurrently(HeapVersion, const void*);
+    bool isMarked(HeapVersion markingVersion, const void*);
+    bool isMarkedConcurrently(HeapVersion markingVersion, const void*);
     bool testAndSetMarked(const void*);
         
-    bool isMarkedOrNewlyAllocated(const HeapCell*);
-    bool isMarkedOrNewlyAllocated(HeapVersion, const HeapCell*);
-    
     bool isAtom(const void*);
     void clearMarked(const void*);
     
@@ -269,17 +263,22 @@ public:
     void noteMarked();
         
     WeakSet& weakSet();
+
+    bool areMarksStale();
+    bool areMarksStale(HeapVersion markingVersion);
+    struct MarksWithDependency {
+        bool areStale;
+        ConsumeDependency dependency;
+    };
+    MarksWithDependency areMarksStaleWithDependency(HeapVersion markingVersion);
     
-    bool needsFlip(HeapVersion);
-    bool needsFlip();
-    
-    void aboutToMark(HeapVersion);
+    void aboutToMark(HeapVersion markingVersion);
         
-    void assertFlipped();
+    void assertMarksNotStale();
         
     bool needsDestruction() const { return m_needsDestruction; }
     
-    inline void resetVersion();
+    inline void resetMarkingVersion();
     
 private:
     static const size_t atomAlignmentMask = atomSize - 1;
@@ -289,9 +288,9 @@ private:
     MarkedBlock(VM&, Handle&);
     Atom* atoms();
         
-    void aboutToMarkSlow(HeapVersion);
+    void aboutToMarkSlow(HeapVersion markingVersion);
     void clearMarks();
-    void clearMarks(HeapVersion);
+    void clearMarks(HeapVersion markingVersion);
     void clearHasAnyMarked();
     
     void noteMarkedSlow();
@@ -328,7 +327,7 @@ private:
     //     m_biasedMarkCount != m_markCountBias
     int16_t m_markCountBias;
 
-    HeapVersion m_version;
+    HeapVersion m_markingVersion;
     
     Handle& m_handle;
     VM* m_vm;
@@ -469,45 +468,54 @@ inline size_t MarkedBlock::atomNumber(const void* p)
     return (reinterpret_cast<Bits>(p) - reinterpret_cast<Bits>(this)) / atomSize;
 }
 
-inline bool MarkedBlock::needsFlip(HeapVersion heapVersion)
+inline bool MarkedBlock::areMarksStale(HeapVersion markingVersion)
 {
-    return heapVersion != m_version;
+    return markingVersion != m_markingVersion;
 }
 
-inline void MarkedBlock::aboutToMark(HeapVersion heapVersion)
+ALWAYS_INLINE MarkedBlock::MarksWithDependency MarkedBlock::areMarksStaleWithDependency(HeapVersion markingVersion)
 {
-    if (UNLIKELY(needsFlip(heapVersion)))
-        aboutToMarkSlow(heapVersion);
+    auto consumed = consumeLoad(&m_markingVersion);
+    MarksWithDependency ret;
+    ret.areStale = consumed.value != markingVersion;
+    ret.dependency = consumed.dependency;
+    return ret;
+}
+
+inline void MarkedBlock::aboutToMark(HeapVersion markingVersion)
+{
+    if (UNLIKELY(areMarksStale(markingVersion)))
+        aboutToMarkSlow(markingVersion);
     WTF::loadLoadFence();
 }
 
 #if ASSERT_DISABLED
-inline void MarkedBlock::assertFlipped()
+inline void MarkedBlock::assertMarksNotStale()
 {
 }
 #endif // ASSERT_DISABLED
 
-inline void MarkedBlock::Handle::assertFlipped()
+inline void MarkedBlock::Handle::assertMarksNotStale()
 {
-    block().assertFlipped();
+    block().assertMarksNotStale();
 }
 
-inline bool MarkedBlock::isMarked(HeapVersion heapVersion, const void* p)
+inline bool MarkedBlock::isMarked(HeapVersion markingVersion, const void* p)
 {
-    return needsFlip(heapVersion) ? false : m_marks.get(atomNumber(p));
+    return areMarksStale(markingVersion) ? false : m_marks.get(atomNumber(p));
 }
 
-inline bool MarkedBlock::isMarkedConcurrently(HeapVersion heapVersion, const void* p)
+inline bool MarkedBlock::isMarkedConcurrently(HeapVersion markingVersion, const void* p)
 {
-    if (needsFlip(heapVersion))
+    auto marksWithDependency = areMarksStaleWithDependency(markingVersion);
+    if (marksWithDependency.areStale)
         return false;
-    WTF::loadLoadFence();
-    return m_marks.get(atomNumber(p));
+    return m_marks.get(atomNumber(p) + marksWithDependency.dependency);
 }
 
 inline bool MarkedBlock::testAndSetMarked(const void* p)
 {
-    assertFlipped();
+    assertMarksNotStale();
     return m_marks.concurrentTestAndSet(atomNumber(p));
 }
 
@@ -533,16 +541,6 @@ inline bool MarkedBlock::Handle::clearNewlyAllocated()
         return true;
     }
     return false;
-}
-
-inline bool MarkedBlock::Handle::isMarkedOrNewlyAllocated(HeapVersion version, const HeapCell* cell)
-{
-    return m_block->isMarked(version, cell) || (m_newlyAllocated && isNewlyAllocated(cell));
-}
-
-inline bool MarkedBlock::isMarkedOrNewlyAllocated(HeapVersion version, const HeapCell* cell)
-{
-    return isMarked(version, cell) || (m_handle.m_newlyAllocated && m_handle.isNewlyAllocated(cell));
 }
 
 inline bool MarkedBlock::isAtom(const void* p)
@@ -607,5 +605,3 @@ template<> struct DefaultHash<JSC::MarkedBlock*> {
 void printInternal(PrintStream& out, JSC::MarkedBlock::Handle::SweepMode);
 
 } // namespace WTF
-
-#endif // MarkedBlock_h

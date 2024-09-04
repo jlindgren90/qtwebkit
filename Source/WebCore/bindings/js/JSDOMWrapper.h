@@ -19,19 +19,20 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef JSDOMWrapper_h
-#define JSDOMWrapper_h
+#pragma once
 
 #include "JSDOMGlobalObject.h"
 #include <runtime/JSDestructibleObject.h>
 
 namespace WebCore {
 
+class JSDOMWindow;
 class ScriptExecutionContext;
 
-static const uint8_t JSNodeType = JSC::LastJSCObjectType + 1;
-static const uint8_t JSDocumentWrapperType = JSC::LastJSCObjectType + 2;
-static const uint8_t JSElementType = JSC::LastJSCObjectType + 3;
+static const uint8_t JSDOMWrapperType = JSC::LastJSCObjectType + 1;
+static const uint8_t JSNodeType = JSC::LastJSCObjectType + 2;
+static const uint8_t JSDocumentWrapperType = JSC::LastJSCObjectType + 3;
+static const uint8_t JSElementType = JSC::LastJSCObjectType + 4;
 
 class JSDOMObject : public JSC::JSDestructibleObject {
 public:
@@ -41,8 +42,10 @@ public:
     JSDOMGlobalObject* globalObject() const { return JSC::jsCast<JSDOMGlobalObject*>(JSC::JSNonFinalObject::globalObject()); }
     ScriptExecutionContext* scriptExecutionContext() const { return globalObject()->scriptExecutionContext(); }
 
+    JSDOMWindow& domWindow() const;
+
 protected:
-    JSDOMObject(JSC::Structure* structure, JSC::JSGlobalObject& globalObject) 
+    JSDOMObject(JSC::Structure* structure, JSC::JSGlobalObject& globalObject)
         : Base(globalObject.vm(), structure)
     {
         ASSERT(scriptExecutionContext());
@@ -56,6 +59,7 @@ public:
     static constexpr bool isDOMWrapper = true;
 
     ImplementationClass& wrapped() const { return const_cast<ImplementationClass&>(m_wrapped.get()); }
+    static ptrdiff_t offsetOfWrapped() { return OBJECT_OFFSETOF(JSDOMWrapper<ImplementationClass>, m_wrapped); }
 
 protected:
     JSDOMWrapper(JSC::Structure* structure, JSC::JSGlobalObject& globalObject, Ref<ImplementationClass>&& impl)
@@ -65,6 +69,13 @@ protected:
 private:
     Ref<ImplementationClass> m_wrapped;
 };
+
+ALWAYS_INLINE bool isJSDOMWrapperType(JSC::JSValue value)
+{
+    if (UNLIKELY(!value.isCell()))
+        return false;
+    return value.asCell()->type() >= JSDOMWrapperType;
+}
 
 template<typename ImplementationClass> struct JSDOMWrapperConverterTraits;
 
@@ -89,5 +100,3 @@ public:
 };
 
 } // namespace WebCore
-
-#endif // JSDOMWrapper_h

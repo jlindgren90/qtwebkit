@@ -27,6 +27,8 @@
 
 #include "GraphicsLayerCA.h"
 
+#if USE(CA)
+
 #include "Animation.h"
 #include "DisplayListRecorder.h"
 #include "DisplayListReplayer.h"
@@ -2570,7 +2572,7 @@ GraphicsLayerCA::CloneID GraphicsLayerCA::ReplicaState::cloneID() const
         currChar = (currChar << 1) | m_replicaBranches[i];
     }
     
-    return String::adopt(result);
+    return String::adopt(WTFMove(result));
 }
 
 PassRefPtr<PlatformCALayer> GraphicsLayerCA::replicatedLayerRoot(ReplicaState& replicaState)
@@ -3993,3 +3995,5 @@ double GraphicsLayerCA::backingStoreMemoryEstimate() const
 }
 
 } // namespace WebCore
+
+#endif

@@ -1,7 +1,7 @@
 /*
  * This file is part of the internal font implementation.
  *
- * Copyright (C) 2006, 2008, 2010, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2006, 2008, 2010, 2015-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2007-2008 Torch Mobile, Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -59,6 +59,11 @@
 
 #if PLATFORM(QT)
 #include <QRawFont>
+#endif
+
+#if USE(DIRECT2D)
+interface IDWriteFactory;
+interface IDWriteGdiInterop;
 #endif
 
 namespace WebCore {
@@ -147,7 +152,7 @@ public:
         m_adjustedSpaceWidth = spaceWidth;
     }
 
-#if USE(CG) || USE(CAIRO)
+#if USE(CG) || USE(DIRECT2D) || USE(CAIRO)
     float syntheticBoldOffset() const { return m_syntheticBoldOffset; }
 #endif
 
@@ -204,6 +209,11 @@ public:
     static void setShouldApplyMacAscentHack(bool);
     static bool shouldApplyMacAscentHack();
     static float ascentConsideringMacAscentHack(const WCHAR*, float ascent, float descent);
+#endif
+
+#if USE(DIRECT2D)
+    WEBCORE_EXPORT static IDWriteFactory* systemDWriteFactory();
+    WEBCORE_EXPORT static IDWriteGdiInterop* systemDWriteGdiInterop();
 #endif
 
 private:
@@ -275,7 +285,7 @@ private:
 
     mutable std::unique_ptr<DerivedFonts> m_derivedFontData;
 
-#if USE(CG) || USE(CAIRO)
+#if USE(CG) || USE(DIRECT2D) || USE(CAIRO)
     float m_syntheticBoldOffset;
 #endif
 
@@ -346,7 +356,7 @@ ALWAYS_INLINE float Font::widthForGlyph(Glyph glyph) const
 
 #if ENABLE(OPENTYPE_VERTICAL)
     if (m_verticalData) {
-#if USE(CG) || USE(CAIRO)
+#if USE(CG) || USE(DIRECT2D) || USE(CAIRO)
         width = m_verticalData->advanceHeight(this, glyph) + m_syntheticBoldOffset;
 #else
         width = m_verticalData->advanceHeight(this, glyph);

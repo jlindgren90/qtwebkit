@@ -23,8 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef ExecutableAllocator_h
-#define ExecutableAllocator_h
+#pragma once
+
 #include "JITCompilationEffort.h"
 #include <stddef.h> // for ptrdiff_t
 #include <limits>
@@ -74,7 +74,7 @@ class DemandExecutableAllocator;
 #if ENABLE(EXECUTABLE_ALLOCATOR_FIXED)
 #if defined(FIXED_EXECUTABLE_MEMORY_POOL_SIZE_IN_MB) && FIXED_EXECUTABLE_MEMORY_POOL_SIZE_IN_MB > 0
 static const size_t fixedExecutableMemoryPoolSize = FIXED_EXECUTABLE_MEMORY_POOL_SIZE_IN_MB * 1024 * 1024;
-#elif CPU(ARM) || CPU(MIPS)
+#elif CPU(ARM)
 static const size_t fixedExecutableMemoryPoolSize = 16 * 1024 * 1024;
 #elif CPU(ARM64)
 static const size_t fixedExecutableMemoryPoolSize = 32 * 1024 * 1024;
@@ -149,5 +149,3 @@ public:
 #endif // ENABLE(JIT) && ENABLE(ASSEMBLER)
 
 } // namespace JSC
-
-#endif // !defined(ExecutableAllocator)

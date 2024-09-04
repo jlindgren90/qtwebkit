@@ -41,6 +41,11 @@ typedef struct CGImage* CGImageRef;
 #include "SharedBitmap.h"
 #endif
 
+#if USE(DIRECT2D)
+#include "COMPtr.h"
+#include <d2d1.h>
+#endif
+
 namespace WebCore {
 
 class Color;
@@ -66,6 +71,8 @@ public:
     const QPixmap &operator*() const { return *this; }
     QPixmap &operator*() { return *this; }
 };
+#elif USE(DIRECT2D)
+typedef COMPtr<ID2D1Bitmap> NativeImagePtr;
 #elif USE(CAIRO)
 typedef RefPtr<cairo_surface_t> NativeImagePtr;
 #elif USE(WINGDI)

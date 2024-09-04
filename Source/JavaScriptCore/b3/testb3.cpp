@@ -37,10 +37,12 @@
 #include "B3Const32Value.h"
 #include "B3ConstPtrValue.h"
 #include "B3Effects.h"
+#include "B3FenceValue.h"
 #include "B3Generate.h"
 #include "B3LowerToAir.h"
 #include "B3MathExtras.h"
 #include "B3MemoryValue.h"
+#include "B3MoveConstants.h"
 #include "B3Procedure.h"
 #include "B3ReduceStrength.h"
 #include "B3SlotBaseValue.h"
@@ -48,6 +50,7 @@
 #include "B3StackmapGenerationParams.h"
 #include "B3SwitchValue.h"
 #include "B3UpsilonValue.h"
+#include "B3UseCounts.h"
 #include "B3Validate.h"
 #include "B3ValueInlines.h"
 #include "B3VariableValue.h"
@@ -149,6 +152,39 @@ void lowerToAirForTesting(Procedure& proc)
         dataLog("Air after lowering:\n", proc.code());
     
     Air::validate(proc.code());
+}
+
+template<typename Func>
+void checkDisassembly(Compilation& compilation, const Func& func, CString failText)
+{
+    CString disassembly = compilation.disassembly();
+    if (func(disassembly.data()))
+        return;
+    
+    crashLock.lock();
+    dataLog("Bad lowering!  ", failText, "\n");
+    dataLog(disassembly);
+    CRASH();
+}
+
+void checkUsesInstruction(Compilation& compilation, const char* text)
+{
+    checkDisassembly(
+        compilation,
+        [&] (const char* disassembly) -> bool {
+            return strstr(disassembly, text);
+        },
+        toCString("Expected to find ", text, " but didnt!"));
+}
+
+void checkDoesNotUseInstruction(Compilation& compilation, const char* text)
+{
+    checkDisassembly(
+        compilation,
+        [&] (const char* disassembly) -> bool {
+            return !strstr(disassembly, text);
+        },
+        toCString("Did not expected to find ", text, " but it's there!"));
 }
 
 template<typename Type>
@@ -2192,7 +2228,7 @@ void testTernarySubInstructionSelection(B3::Opcode valueModifier, Type valueType
     auto block = proc.code()[0];
     unsigned numberOfSubInstructions = 0;
     for (auto instruction : *block) {
-        if (instruction.opcode == expectedOpcode) {
+        if (instruction.kind.opcode == expectedOpcode) {
             CHECK_EQ(instruction.args.size(), 3ul);
             CHECK_EQ(instruction.args[0].kind(), Air::Arg::Tmp);
             CHECK_EQ(instruction.args[1].kind(), Air::Arg::Tmp);
@@ -9951,7 +9987,7 @@ void testChillDiv(int num, int den, int res)
         root->appendNewControlValue(
             proc, Return, Origin(),
             root->appendNew<Value>(
-                proc, ChillDiv, Origin(),
+                proc, chill(Div), Origin(),
                 root->appendNew<Value>(
                     proc, Trunc, Origin(),
                     root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)),
@@ -9970,7 +10006,7 @@ void testChillDiv(int num, int den, int res)
         root->appendNewControlValue(
             proc, Return, Origin(),
             root->appendNew<Value>(
-                proc, ChillDiv, Origin(),
+                proc, chill(Div), Origin(),
                 root->appendNew<Const32Value>(proc, Origin(), num),
                 root->appendNew<Const32Value>(proc, Origin(), den)));
         
@@ -9988,7 +10024,7 @@ void testChillDivTwice(int num1, int den1, int num2, int den2, int res)
         root->appendNew<Value>(
             proc, Add, Origin(),
             root->appendNew<Value>(
-                proc, ChillDiv, Origin(),
+                proc, chill(Div), Origin(),
                 root->appendNew<Value>(
                     proc, Trunc, Origin(),
                     root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)),
@@ -9996,7 +10032,7 @@ void testChillDivTwice(int num1, int den1, int num2, int den2, int res)
                     proc, Trunc, Origin(),
                     root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1))),
             root->appendNew<Value>(
-                proc, ChillDiv, Origin(),
+                proc, chill(Div), Origin(),
                 root->appendNew<Value>(
                     proc, Trunc, Origin(),
                     root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR2)),
@@ -10020,7 +10056,7 @@ void testChillDiv64(int64_t num, int64_t den, int64_t res)
         root->appendNewControlValue(
             proc, Return, Origin(),
             root->appendNew<Value>(
-                proc, ChillDiv, Origin(),
+                proc, chill(Div), Origin(),
                 root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
                 root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1)));
         
@@ -10035,7 +10071,7 @@ void testChillDiv64(int64_t num, int64_t den, int64_t res)
         root->appendNewControlValue(
             proc, Return, Origin(),
             root->appendNew<Value>(
-                proc, ChillDiv, Origin(),
+                proc, chill(Div), Origin(),
                 root->appendNew<Const64Value>(proc, Origin(), num),
                 root->appendNew<Const64Value>(proc, Origin(), den)));
         
@@ -10154,7 +10190,7 @@ void testChillModArg(int64_t value)
     BasicBlock* root = proc.addBlock();
 
     Value* argument = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
-    Value* result = root->appendNew<Value>(proc, ChillMod, Origin(), argument, argument);
+    Value* result = root->appendNew<Value>(proc, chill(Mod), Origin(), argument, argument);
     root->appendNewControlValue(proc, Return, Origin(), result);
 
     CHECK(!compileAndRun<int64_t>(proc, value));
@@ -10167,7 +10203,7 @@ void testChillModArgs(int64_t numerator, int64_t denominator)
 
     Value* argument1 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
     Value* argument2 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1);
-    Value* result = root->appendNew<Value>(proc, ChillMod, Origin(), argument1, argument2);
+    Value* result = root->appendNew<Value>(proc, chill(Mod), Origin(), argument1, argument2);
     root->appendNewControlValue(proc, Return, Origin(), result);
 
     CHECK(compileAndRun<int64_t>(proc, numerator, denominator) == chillMod(numerator, denominator));
@@ -10180,7 +10216,7 @@ void testChillModImms(int64_t numerator, int64_t denominator)
 
     Value* argument1 = root->appendNew<Const64Value>(proc, Origin(), numerator);
     Value* argument2 = root->appendNew<Const64Value>(proc, Origin(), denominator);
-    Value* result = root->appendNew<Value>(proc, ChillMod, Origin(), argument1, argument2);
+    Value* result = root->appendNew<Value>(proc, chill(Mod), Origin(), argument1, argument2);
     root->appendNewControlValue(proc, Return, Origin(), result);
 
     CHECK(compileAndRun<int64_t>(proc, numerator, denominator) == chillMod(numerator, denominator));
@@ -10193,7 +10229,7 @@ void testChillModArg32(int32_t value)
 
     Value* argument = root->appendNew<Value>(proc, Trunc, Origin(),
         root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0));
-    Value* result = root->appendNew<Value>(proc, ChillMod, Origin(), argument, argument);
+    Value* result = root->appendNew<Value>(proc, chill(Mod), Origin(), argument, argument);
     root->appendNewControlValue(proc, Return, Origin(), result);
 
     CHECK(!compileAndRun<int32_t>(proc, value));
@@ -10208,7 +10244,7 @@ void testChillModArgs32(int32_t numerator, int32_t denominator)
         root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0));
     Value* argument2 = root->appendNew<Value>(proc, Trunc, Origin(),
         root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1));
-    Value* result = root->appendNew<Value>(proc, ChillMod, Origin(), argument1, argument2);
+    Value* result = root->appendNew<Value>(proc, chill(Mod), Origin(), argument1, argument2);
     root->appendNewControlValue(proc, Return, Origin(), result);
 
     CHECK(compileAndRun<int32_t>(proc, numerator, denominator) == chillMod(numerator, denominator));
@@ -10221,7 +10257,7 @@ void testChillModImms32(int32_t numerator, int32_t denominator)
 
     Value* argument1 = root->appendNew<Const32Value>(proc, Origin(), numerator);
     Value* argument2 = root->appendNew<Const32Value>(proc, Origin(), denominator);
-    Value* result = root->appendNew<Value>(proc, ChillMod, Origin(), argument1, argument2);
+    Value* result = root->appendNew<Value>(proc, chill(Mod), Origin(), argument1, argument2);
     root->appendNewControlValue(proc, Return, Origin(), result);
 
     CHECK(compileAndRun<int32_t>(proc, numerator, denominator) == chillMod(numerator, denominator));
@@ -10288,7 +10324,7 @@ void testSwitchChillDiv(unsigned degree, unsigned gap = 1)
         newBlock->appendNewControlValue(
             proc, Return, Origin(),
             newBlock->appendNew<Value>(
-                proc, ChillDiv, Origin(), (i & 1) ? right : left, (i & 1) ? left : right));
+                proc, chill(Div), Origin(), (i & 1) ? right : left, (i & 1) ? left : right));
         
         switchValue->appendCase(SwitchCase(gap * i, FrequentedBlock(newBlock)));
     }
@@ -12649,7 +12685,7 @@ void testEntrySwitchWithCommonPaths()
     end->appendNew<Value>(
         proc, Return, Origin(),
         end->appendNew<Value>(
-            proc, ChillMod, Origin(),
+            proc, chill(Mod), Origin(),
             phi, end->appendNew<Value>(
                 proc, Trunc, Origin(),
                 end->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR2))));
@@ -12766,7 +12802,7 @@ void testEntrySwitchWithCommonPathsAndNonTrivialEntrypoint()
     end->appendNew<Value>(
         proc, Return, Origin(),
         end->appendNew<Value>(
-            proc, ChillMod, Origin(),
+            proc, chill(Mod), Origin(),
             phi, end->appendNew<Value>(
                 proc, Trunc, Origin(),
                 end->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR2))));
@@ -12947,7 +12983,7 @@ void testBranchBitAndImmFusion(
 
     // The first basic block must end in a BranchTest64(resCond, tmp, bitImm).
     Air::Inst terminal = proc.code()[0]->last();
-    CHECK_EQ(terminal.opcode, expectedOpcode);
+    CHECK_EQ(terminal.kind.opcode, expectedOpcode);
     CHECK_EQ(terminal.args[0].kind(), Air::Arg::ResCond);
     CHECK_EQ(terminal.args[1].kind(), firstKind);
     CHECK(terminal.args[2].kind() == Air::Arg::BitImm || terminal.args[2].kind() == Air::Arg::BitImm64);
@@ -13025,6 +13061,602 @@ void testPatchpointTerminalReturnValue(bool successIsRare)
     CHECK_EQ(invoke<int>(*code, 42), 73);
     CHECK_EQ(invoke<int>(*code, 43), 666);
     CHECK_EQ(invoke<int>(*code, -1), 666);
+}
+
+void testMemoryFence()
+{
+    Procedure proc;
+    
+    BasicBlock* root = proc.addBlock();
+    
+    root->appendNew<FenceValue>(proc, Origin());
+    root->appendNew<Value>(proc, Return, Origin(), root->appendIntConstant(proc, Origin(), Int32, 42));
+    
+    auto code = compile(proc);
+    CHECK_EQ(invoke<int>(*code), 42);
+    if (isX86())
+        checkUsesInstruction(*code, "lock or $0x0, (%rsp)");
+    if (isARM64())
+        checkUsesInstruction(*code, "dmb    ish");
+    checkDoesNotUseInstruction(*code, "mfence");
+    checkDoesNotUseInstruction(*code, "dmb    ishst");
+}
+
+void testStoreFence()
+{
+    Procedure proc;
+    
+    BasicBlock* root = proc.addBlock();
+    
+    root->appendNew<FenceValue>(proc, Origin(), HeapRange::top(), HeapRange());
+    root->appendNew<Value>(proc, Return, Origin(), root->appendIntConstant(proc, Origin(), Int32, 42));
+    
+    auto code = compile(proc);
+    CHECK_EQ(invoke<int>(*code), 42);
+    checkDoesNotUseInstruction(*code, "lock");
+    checkDoesNotUseInstruction(*code, "mfence");
+    if (isARM64())
+        checkUsesInstruction(*code, "dmb    ishst");
+}
+
+void testLoadFence()
+{
+    Procedure proc;
+    
+    BasicBlock* root = proc.addBlock();
+    
+    root->appendNew<FenceValue>(proc, Origin(), HeapRange(), HeapRange::top());
+    root->appendNew<Value>(proc, Return, Origin(), root->appendIntConstant(proc, Origin(), Int32, 42));
+    
+    auto code = compile(proc);
+    CHECK_EQ(invoke<int>(*code), 42);
+    checkDoesNotUseInstruction(*code, "lock");
+    checkDoesNotUseInstruction(*code, "mfence");
+    if (isARM64())
+        checkUsesInstruction(*code, "dmb    ish");
+    checkDoesNotUseInstruction(*code, "dmb    ishst");
+}
+
+void testTrappingLoad()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    int x = 42;
+    MemoryValue* value = root->appendNew<MemoryValue>(
+        proc, trapping(Load), Int32, Origin(),
+        root->appendNew<ConstPtrValue>(proc, Origin(), &x));
+    Effects expectedEffects;
+    expectedEffects.exitsSideways = true;
+    expectedEffects.controlDependent= true;
+    expectedEffects.reads = HeapRange::top();
+    CHECK_EQ(value->range(), HeapRange::top());
+    CHECK_EQ(value->effects(), expectedEffects);
+    value->setRange(HeapRange(0));
+    CHECK_EQ(value->range(), HeapRange(0));
+    CHECK_EQ(value->effects(), expectedEffects); // We still reads top!
+    root->appendNew<Value>(proc, Return, Origin(), value);
+    CHECK_EQ(compileAndRun<int>(proc), 42);
+    unsigned trapsCount = 0;
+    for (Air::BasicBlock* block : proc.code()) {
+        for (Air::Inst& inst : *block) {
+            if (inst.kind.traps)
+                trapsCount++;
+        }
+    }
+    CHECK_EQ(trapsCount, 1u);
+}
+
+void testTrappingStore()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    int x = 42;
+    MemoryValue* value = root->appendNew<MemoryValue>(
+        proc, trapping(Store), Origin(),
+        root->appendNew<Const32Value>(proc, Origin(), 111),
+        root->appendNew<ConstPtrValue>(proc, Origin(), &x));
+    Effects expectedEffects;
+    expectedEffects.exitsSideways = true;
+    expectedEffects.controlDependent= true;
+    expectedEffects.reads = HeapRange::top();
+    expectedEffects.writes = HeapRange::top();
+    CHECK_EQ(value->range(), HeapRange::top());
+    CHECK_EQ(value->effects(), expectedEffects);
+    value->setRange(HeapRange(0));
+    CHECK_EQ(value->range(), HeapRange(0));
+    expectedEffects.writes = HeapRange(0);
+    CHECK_EQ(value->effects(), expectedEffects); // We still reads top!
+    root->appendNew<Value>(proc, Return, Origin());
+    compileAndRun<int>(proc);
+    CHECK_EQ(x, 111);
+    unsigned trapsCount = 0;
+    for (Air::BasicBlock* block : proc.code()) {
+        for (Air::Inst& inst : *block) {
+            if (inst.kind.traps)
+                trapsCount++;
+        }
+    }
+    CHECK_EQ(trapsCount, 1u);
+}
+
+void testTrappingLoadAddStore()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    int x = 42;
+    ConstPtrValue* ptr = root->appendNew<ConstPtrValue>(proc, Origin(), &x);
+    root->appendNew<MemoryValue>(
+        proc, trapping(Store), Origin(),
+        root->appendNew<Value>(
+            proc, Add, Origin(),
+            root->appendNew<MemoryValue>(proc, trapping(Load), Int32, Origin(), ptr),
+            root->appendNew<Const32Value>(proc, Origin(), 3)),
+        ptr);
+    root->appendNew<Value>(proc, Return, Origin());
+    compileAndRun<int>(proc);
+    CHECK_EQ(x, 45);
+    bool traps = false;
+    for (Air::BasicBlock* block : proc.code()) {
+        for (Air::Inst& inst : *block) {
+            if (inst.kind.traps)
+                traps = true;
+        }
+    }
+    CHECK(traps);
+}
+
+void testTrappingLoadDCE()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    int x = 42;
+    root->appendNew<MemoryValue>(
+        proc, trapping(Load), Int32, Origin(),
+        root->appendNew<ConstPtrValue>(proc, Origin(), &x));
+    root->appendNew<Value>(proc, Return, Origin());
+    compileAndRun<int>(proc);
+    unsigned trapsCount = 0;
+    for (Air::BasicBlock* block : proc.code()) {
+        for (Air::Inst& inst : *block) {
+            if (inst.kind.traps)
+                trapsCount++;
+        }
+    }
+    CHECK_EQ(trapsCount, 1u);
+}
+
+void testTrappingStoreElimination()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    int x = 42;
+    Value* ptr = root->appendNew<ConstPtrValue>(proc, Origin(), &x);
+    root->appendNew<MemoryValue>(
+        proc, trapping(Store), Origin(),
+        root->appendNew<Const32Value>(proc, Origin(), 43),
+        ptr);
+    root->appendNew<MemoryValue>(
+        proc, trapping(Store), Origin(),
+        root->appendNew<Const32Value>(proc, Origin(), 44),
+        ptr);
+    root->appendNew<Value>(proc, Return, Origin());
+    compileAndRun<int>(proc);
+    unsigned storeCount = 0;
+    for (Value* value : proc.values()) {
+        if (MemoryValue::isStore(value->opcode()))
+            storeCount++;
+    }
+    CHECK_EQ(storeCount, 2u);
+}
+
+void testMoveConstants()
+{
+    auto check = [] (Procedure& proc) {
+        proc.resetReachability();
+        
+        if (shouldBeVerbose()) {
+            dataLog("IR before:\n");
+            dataLog(proc);
+        }
+        
+        moveConstants(proc);
+        
+        if (shouldBeVerbose()) {
+            dataLog("IR after:\n");
+            dataLog(proc);
+        }
+        
+        UseCounts useCounts(proc);
+        unsigned count = 0;
+        for (Value* value : proc.values()) {
+            if (useCounts.numUses(value) && value->hasInt64())
+                count++;
+        }
+        
+        if (count == 1)
+            return;
+        
+        crashLock.lock();
+        dataLog("Fail in testMoveConstants: got more than one Const64:\n");
+        dataLog(proc);
+        CRASH();
+    };
+
+    {
+        Procedure proc;
+        BasicBlock* root = proc.addBlock();
+        Value* a = root->appendNew<MemoryValue>(
+            proc, Load, pointerType(), Origin(), 
+            root->appendNew<ConstPtrValue>(proc, Origin(), 0x123412341234));
+        Value* b = root->appendNew<MemoryValue>(
+            proc, Load, pointerType(), Origin(),
+            root->appendNew<ConstPtrValue>(proc, Origin(), 0x123412341334));
+        root->appendNew<CCallValue>(proc, Void, Origin(), a, b);
+        root->appendNew<Value>(proc, Return, Origin());
+        check(proc);
+    }
+    
+    {
+        Procedure proc;
+        BasicBlock* root = proc.addBlock();
+        Value* x = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+        Value* a = root->appendNew<Value>(
+            proc, Add, Origin(), x, root->appendNew<ConstPtrValue>(proc, Origin(), 0x123412341234));
+        Value* b = root->appendNew<Value>(
+            proc, Add, Origin(), x, root->appendNew<ConstPtrValue>(proc, Origin(), -0x123412341234));
+        root->appendNew<CCallValue>(proc, Void, Origin(), a, b);
+        root->appendNew<Value>(proc, Return, Origin());
+        check(proc);
+    }
+}
+
+void testPCOriginMapDoesntInsertNops()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+
+    CCallHelpers::Label watchpointLabel;
+
+    PatchpointValue* patchpoint = root->appendNew<PatchpointValue>(proc, Void, Origin());
+    patchpoint->setGenerator(
+        [&] (CCallHelpers& jit, const StackmapGenerationParams&) {
+            watchpointLabel = jit.watchpointLabel();
+        });
+
+    patchpoint = root->appendNew<PatchpointValue>(proc, Void, Origin());
+    patchpoint->setGenerator(
+        [&] (CCallHelpers& jit, const StackmapGenerationParams&) {
+            CCallHelpers::Label labelIgnoringWatchpoints = jit.labelIgnoringWatchpoints();
+
+            CHECK(watchpointLabel == labelIgnoringWatchpoints);
+        });
+
+    root->appendNew<Value>(proc, Return, Origin());
+
+    compile(proc);
+}
+
+void testPinRegisters()
+{
+    auto go = [&] (bool pin) {
+        Procedure proc;
+        RegisterSet csrs;
+        csrs.merge(RegisterSet::calleeSaveRegisters());
+        csrs.exclude(RegisterSet::stackRegisters());
+        if (pin) {
+            csrs.forEach(
+                [&] (Reg reg) {
+                    proc.pinRegister(reg);
+                });
+        }
+        BasicBlock* root = proc.addBlock();
+        Value* a = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+        Value* b = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1);
+        Value* c = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR2);
+        Value* d = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::regCS0);
+        root->appendNew<CCallValue>(
+            proc, Void, Origin(),
+            root->appendNew<ConstPtrValue>(proc, Origin(), static_cast<intptr_t>(0x1234)));
+        root->appendNew<CCallValue>(
+            proc, Void, Origin(),
+            root->appendNew<ConstPtrValue>(proc, Origin(), static_cast<intptr_t>(0x1235)),
+            a, b, c);
+        PatchpointValue* patchpoint = root->appendNew<PatchpointValue>(proc, Void, Origin());
+        patchpoint->appendSomeRegister(d);
+        patchpoint->setGenerator(
+            [&] (CCallHelpers&, const StackmapGenerationParams& params) {
+                CHECK_EQ(params[0].gpr(), GPRInfo::regCS0);
+            });
+        root->appendNew<Value>(proc, Return, Origin());
+        auto code = compile(proc);
+        bool usesCSRs = false;
+        for (Air::BasicBlock* block : proc.code()) {
+            for (Air::Inst& inst : *block) {
+                if (inst.kind.opcode == Air::Patch && inst.origin == patchpoint)
+                    continue;
+                inst.forEachTmpFast(
+                    [&] (Air::Tmp tmp) {
+                        if (tmp.isReg())
+                            usesCSRs |= csrs.get(tmp.reg());
+                    });
+            }
+        }
+        for (const RegisterAtOffset& regAtOffset : proc.calleeSaveRegisters())
+            usesCSRs |= csrs.get(regAtOffset.reg());
+        CHECK_EQ(usesCSRs, !pin);
+    };
+    
+    go(true);
+    go(false);
+}
+
+void testX86LeaAddAddShlLeft()
+{
+    // Add(Add(Shl(@x, $c), @y), $d)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<Value>(
+            proc, Add, Origin(),
+            root->appendNew<Value>(
+                proc, Shl, Origin(),
+                root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+                root->appendNew<Const32Value>(proc, Origin(), 2)),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)),
+        root->appendNew<ConstPtrValue>(proc, Origin(), 100));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkUsesInstruction(*code, "lea 0x64(%rdi,%rsi,4), %rax");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), (1 + (2 << 2)) + 100);
+}
+
+void testX86LeaAddAddShlRight()
+{
+    // Add(Add(@x, Shl(@y, $c)), $d)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<Value>(
+            proc, Add, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+            root->appendNew<Value>(
+                proc, Shl, Origin(),
+                root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+                root->appendNew<Const32Value>(proc, Origin(), 2))),
+        root->appendNew<ConstPtrValue>(proc, Origin(), 100));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkUsesInstruction(*code, "lea 0x64(%rdi,%rsi,4), %rax");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), (1 + (2 << 2)) + 100);
+}
+
+void testX86LeaAddAdd()
+{
+    // Add(Add(@x, @y), $c)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<Value>(
+            proc, Add, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)),
+        root->appendNew<ConstPtrValue>(proc, Origin(), 100));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkDisassembly(
+        *code,
+        [&] (const char* disassembly) -> bool {
+            return strstr(disassembly, "lea 0x64(%rdi,%rsi), %rax")
+                || strstr(disassembly, "lea 0x64(%rsi,%rdi), %rax");
+        },
+        "Expected to find something like lea 0x64(%rdi,%rsi), %rax but didn't!");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), (1 + 2) + 100);
+}
+
+void testX86LeaAddShlRight()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 2)));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkUsesInstruction(*code, "lea (%rdi,%rsi,4), %rax");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + (2 << 2));
+}
+
+void testX86LeaAddShlLeftScale1()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 0)));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkDisassembly(
+        *code,
+        [&] (const char* disassembly) -> bool {
+            return strstr(disassembly, "lea (%rdi,%rsi), %rax")
+                || strstr(disassembly, "lea (%rsi,%rdi), %rax");
+        },
+        "Expected to find something like lea (%rdi,%rsi), %rax but didn't!");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + 2);
+}
+
+void testX86LeaAddShlLeftScale2()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 1)));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkUsesInstruction(*code, "lea (%rdi,%rsi,2), %rax");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + (2 << 1));
+}
+
+void testX86LeaAddShlLeftScale4()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 2)),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkUsesInstruction(*code, "lea (%rdi,%rsi,4), %rax");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + (2 << 2));
+}
+
+void testX86LeaAddShlLeftScale8()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 3)));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    checkUsesInstruction(*code, "lea (%rdi,%rsi,8), %rax");
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + (2 << 3));
+}
+
+void testAddShl32()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 32)));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + (static_cast<intptr_t>(2) << static_cast<intptr_t>(32)));
+}
+
+void testAddShl64()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 64)));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + 2);
+}
+
+void testAddShl65()
+{
+    // Add(Shl(@x, $c), @y)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* result = root->appendNew<Value>(
+        proc, Add, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0),
+        root->appendNew<Value>(
+            proc, Shl, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1),
+            root->appendNew<Const32Value>(proc, Origin(), 65)));
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    auto code = compile(proc);
+    CHECK_EQ(invoke<intptr_t>(*code, 1, 2), 1 + (2 << 1));
+}
+
+void testReduceStrengthReassociation(bool flip)
+{
+    // Add(Add(@x, $c), @y) -> Add(Add(@x, @y), $c)
+    // and
+    // Add(@y, Add(@x, $c)) -> Add(Add(@x, @y), $c)
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* arg1 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    Value* arg2 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1);
+    
+    Value* innerAdd = root->appendNew<Value>(
+        proc, Add, Origin(), arg1,
+        root->appendNew<ConstPtrValue>(proc, Origin(), 42));
+    
+    Value* outerAdd;
+    if (flip)
+        outerAdd = root->appendNew<Value>(proc, Add, Origin(), arg2, innerAdd);
+    else
+        outerAdd = root->appendNew<Value>(proc, Add, Origin(), innerAdd, arg2);
+    
+    root->appendNew<Value>(proc, Return, Origin(), outerAdd);
+    
+    proc.resetReachability();
+
+    if (shouldBeVerbose()) {
+        dataLog("IR before reduceStrength:\n");
+        dataLog(proc);
+    }
+    
+    reduceStrength(proc);
+    
+    if (shouldBeVerbose()) {
+        dataLog("IR after reduceStrength:\n");
+        dataLog(proc);
+    }
+    
+    CHECK_EQ(root->last()->opcode(), Return);
+    CHECK_EQ(root->last()->child(0)->opcode(), Add);
+    CHECK(root->last()->child(0)->child(1)->isIntPtr(42));
+    CHECK_EQ(root->last()->child(0)->child(0)->opcode(), Add);
+    CHECK(
+        (root->last()->child(0)->child(0)->child(0) == arg1 && root->last()->child(0)->child(0)->child(1) == arg2) ||
+        (root->last()->child(0)->child(0)->child(0) == arg2 && root->last()->child(0)->child(0)->child(1) == arg1));
 }
 
 // Make sure the compiler does not try to optimize anything out.
@@ -14447,6 +15079,23 @@ void run(const char* filter)
     RUN(testPatchpointTerminalReturnValue(true));
     RUN(testPatchpointTerminalReturnValue(false));
     
+    RUN(testMemoryFence());
+    RUN(testStoreFence());
+    RUN(testLoadFence());
+    RUN(testTrappingLoad());
+    RUN(testTrappingStore());
+    RUN(testTrappingLoadAddStore());
+    RUN(testTrappingLoadDCE());
+    RUN(testTrappingStoreElimination());
+    RUN(testMoveConstants());
+    RUN(testPCOriginMapDoesntInsertNops());
+    RUN(testPinRegisters());
+    RUN(testReduceStrengthReassociation(true));
+    RUN(testReduceStrengthReassociation(false));
+    RUN(testAddShl32());
+    RUN(testAddShl64());
+    RUN(testAddShl65());
+    
     if (isX86()) {
         RUN(testBranchBitAndImmFusion(Identity, Int64, 1, Air::BranchTest32, Air::Arg::Tmp));
         RUN(testBranchBitAndImmFusion(Identity, Int64, 0xff, Air::BranchTest32, Air::Arg::Tmp));
@@ -14456,6 +15105,14 @@ void run(const char* filter)
         RUN(testBranchBitAndImmFusion(Load8Z, Int32, 1, Air::BranchTest8, Air::Arg::Addr));
         RUN(testBranchBitAndImmFusion(Load, Int32, 1, Air::BranchTest32, Air::Arg::Addr));
         RUN(testBranchBitAndImmFusion(Load, Int64, 1, Air::BranchTest32, Air::Arg::Addr));
+        RUN(testX86LeaAddAddShlLeft());
+        RUN(testX86LeaAddAddShlRight());
+        RUN(testX86LeaAddAdd());
+        RUN(testX86LeaAddShlRight());
+        RUN(testX86LeaAddShlLeftScale1());
+        RUN(testX86LeaAddShlLeftScale2());
+        RUN(testX86LeaAddShlLeftScale4());
+        RUN(testX86LeaAddShlLeftScale8());
     }
 
     if (isARM64()) {

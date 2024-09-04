@@ -29,7 +29,7 @@ namespace WebCore {
 
 class JSTestException : public JSDOMWrapper<TestException> {
 public:
-    typedef JSDOMWrapper<TestException> Base;
+    using Base = JSDOMWrapper<TestException>;
     static JSTestException* create(JSC::Structure* structure, JSDOMGlobalObject* globalObject, Ref<TestException>&& impl)
     {
         JSTestException* ptr = new (NotNull, JSC::allocateCell<JSTestException>(globalObject->vm().heap)) JSTestException(structure, *globalObject, WTFMove(impl));
@@ -50,6 +50,7 @@ public:
     }
 
     static JSC::JSValue getConstructor(JSC::VM&, const JSC::JSGlobalObject*);
+    static JSTestException* castForAttribute(JSC::ExecState*, JSC::EncodedJSValue);
 public:
     static const unsigned StructureFlags = JSC::HasStaticPropertyTable | Base::StructureFlags;
 protected:

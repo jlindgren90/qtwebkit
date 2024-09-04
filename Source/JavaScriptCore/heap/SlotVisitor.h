@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SlotVisitor_h
-#define SlotVisitor_h
+#pragma once
 
 #include "CellState.h"
 #include "HandleTypes.h"
@@ -124,7 +123,7 @@ public:
 
     bool isBuildingHeapSnapshot() const { return !!m_heapSnapshotBuilder; }
     
-    HeapVersion version() const { return m_version; }
+    HeapVersion markingVersion() const { return m_markingVersion; }
 
 private:
     friend class ParallelModeEnabler;
@@ -161,14 +160,12 @@ private:
     size_t m_visitCount;
     bool m_isInParallelMode;
     
-    HeapVersion m_version;
+    HeapVersion m_markingVersion;
     
     Heap& m_heap;
 
     HeapSnapshotBuilder* m_heapSnapshotBuilder { nullptr };
     JSCell* m_currentCell { nullptr };
-
-    CellState m_currentObjectCellStateBeforeVisiting { CellState::NewWhite };
 
 public:
 #if !ASSERT_DISABLED
@@ -197,5 +194,3 @@ private:
 };
 
 } // namespace JSC
-
-#endif // SlotVisitor_h

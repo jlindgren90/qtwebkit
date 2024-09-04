@@ -25,9 +25,10 @@
 
 #include "config.h"
 #include "SlotVisitor.h"
-#include "SlotVisitorInlines.h"
 
+#include "CPU.h"
 #include "ConservativeRoots.h"
+#include "GCSegmentedArrayInlines.h"
 #include "HeapCellInlines.h"
 #include "HeapProfiler.h"
 #include "HeapSnapshotBuilder.h"
@@ -36,6 +37,7 @@
 #include "JSObject.h"
 #include "JSString.h"
 #include "JSCInlines.h"
+#include "SlotVisitorInlines.h"
 #include "SuperSampler.h"
 #include "VM.h"
 #include <wtf/Lock.h>
@@ -78,7 +80,7 @@ SlotVisitor::SlotVisitor(Heap& heap)
     , m_bytesCopied(0)
     , m_visitCount(0)
     , m_isInParallelMode(false)
-    , m_version(MarkedSpace::initialVersion)
+    , m_markingVersion(MarkedSpace::initialVersion)
     , m_heap(heap)
 #if !ASSERT_DISABLED
     , m_isCheckingForDefaultMarkViolation(false)
@@ -102,7 +104,7 @@ void SlotVisitor::didStartMarking()
     if (HeapProfiler* heapProfiler = vm().heapProfiler())
         m_heapSnapshotBuilder = heapProfiler->activeSnapshotBuilder();
     
-    m_version = heap()->objectSpace().version();
+    m_markingVersion = heap()->objectSpace().markingVersion();
 }
 
 void SlotVisitor::reset()
@@ -134,7 +136,7 @@ void SlotVisitor::appendJSCellOrAuxiliary(HeapCell* heapCell)
     
     ASSERT(!m_isCheckingForDefaultMarkViolation);
     
-    if (Heap::testAndSetMarked(m_version, heapCell))
+    if (Heap::testAndSetMarked(m_markingVersion, heapCell))
         return;
     
     switch (heapCell->cellKind()) {
@@ -200,7 +202,7 @@ void SlotVisitor::setMarkedAndAppendToMarkStack(JSCell* cell)
 template<typename ContainerType>
 ALWAYS_INLINE void SlotVisitor::setMarkedAndAppendToMarkStack(ContainerType& container, JSCell* cell)
 {
-    container.aboutToMark(m_version);
+    container.aboutToMark(m_markingVersion);
     
     if (container.testAndSetMarked(cell))
         return;
@@ -248,7 +250,7 @@ void SlotVisitor::markAuxiliary(const void* base)
     
     ASSERT(cell->heap() == heap());
     
-    if (Heap::testAndSetMarked(m_version, cell))
+    if (Heap::testAndSetMarked(m_markingVersion, cell))
         return;
     
     noteLiveAuxiliaryCell(cell);
@@ -296,25 +298,29 @@ ALWAYS_INLINE void SlotVisitor::visitChildren(const JSCell* cell)
     
     SetCurrentCellScope currentCellScope(*this, cell);
     
-    m_currentObjectCellStateBeforeVisiting = cell->cellState();
-    cell->setCellState(CellState::OldBlack);
+    cell->setCellState(blacken(cell->cellState()));
     
-    if (isJSString(cell)) {
+    WTF::storeLoadFence();
+    
+    switch (cell->type()) {
+    case StringType:
         JSString::visitChildren(const_cast<JSCell*>(cell), *this);
-        return;
-    }
-
-    if (isJSFinalObject(cell)) {
+        break;
+        
+    case FinalObjectType:
         JSFinalObject::visitChildren(const_cast<JSCell*>(cell), *this);
-        return;
-    }
+        break;
 
-    if (isJSArray(cell)) {
+    case ArrayType:
         JSArray::visitChildren(const_cast<JSCell*>(cell), *this);
-        return;
+        break;
+        
+    default:
+        // FIXME: This could be so much better.
+        // https://bugs.webkit.org/show_bug.cgi?id=162462
+        cell->methodTable()->visitChildren(const_cast<JSCell*>(cell), *this);
+        break;
     }
-
-    cell->methodTable()->visitChildren(const_cast<JSCell*>(cell), *this);
 }
 
 void SlotVisitor::donateKnownParallel()

@@ -19,8 +19,7 @@
  *
  */
 
-#ifndef MarkedSpace_h
-#define MarkedSpace_h
+#pragma once
 
 #include "IterationStatus.h"
 #include "LargeAllocation.h"
@@ -112,12 +111,17 @@ public:
     MarkedAllocator* auxiliaryAllocatorFor(size_t);
 
     JS_EXPORT_PRIVATE void* allocate(Subspace&, size_t);
+    JS_EXPORT_PRIVATE void* allocate(Subspace&, GCDeferralContext*, size_t);
     JS_EXPORT_PRIVATE void* tryAllocate(Subspace&, size_t);
+    JS_EXPORT_PRIVATE void* tryAllocate(Subspace&, GCDeferralContext*, size_t);
     
     void* allocateWithDestructor(size_t);
     void* allocateWithoutDestructor(size_t);
+    void* allocateWithDestructor(GCDeferralContext*, size_t);
+    void* allocateWithoutDestructor(GCDeferralContext*, size_t);
     void* allocateAuxiliary(size_t);
     void* tryAllocateAuxiliary(size_t);
+    void* tryAllocateAuxiliary(GCDeferralContext*, size_t);
     
     Subspace& subspaceForObjectsWithDestructor() { return m_destructorSpace; }
     Subspace& subspaceForObjectsWithoutDestructor() { return m_normalSpace; }
@@ -166,7 +170,7 @@ public:
 
     bool isPagedOut(double deadline);
     
-    HeapVersion version() const { return m_version; }
+    HeapVersion markingVersion() const { return m_markingVersion; }
 
     const Vector<LargeAllocation*>& largeAllocations() const { return m_largeAllocations; }
     unsigned largeAllocationsNurseryOffset() const { return m_largeAllocationsNurseryOffset; }
@@ -195,8 +199,8 @@ private:
     
     JS_EXPORT_PRIVATE static std::array<size_t, numSizeClasses> s_sizeClassForSizeStep;
     
-    JS_EXPORT_PRIVATE void* allocateLarge(Subspace&, size_t);
-    JS_EXPORT_PRIVATE void* tryAllocateLarge(Subspace&, size_t);
+    void* allocateLarge(Subspace&, GCDeferralContext*, size_t);
+    void* tryAllocateLarge(Subspace&, GCDeferralContext*, size_t);
 
     static void initializeSizeClassForStepSize();
     
@@ -212,7 +216,7 @@ private:
     Subspace m_auxiliarySpace;
 
     Heap* m_heap;
-    HeapVersion m_version { initialVersion };
+    HeapVersion m_markingVersion { initialVersion };
     size_t m_capacity;
     bool m_isIterating;
     bool m_isMarking { false };
@@ -264,6 +268,16 @@ inline void* MarkedSpace::allocateWithDestructor(size_t bytes)
     return allocate(m_destructorSpace, bytes);
 }
 
+inline void* MarkedSpace::allocateWithoutDestructor(GCDeferralContext* deferralContext, size_t bytes)
+{
+    return allocate(m_normalSpace, deferralContext, bytes);
+}
+
+inline void* MarkedSpace::allocateWithDestructor(GCDeferralContext* deferralContext, size_t bytes)
+{
+    return allocate(m_destructorSpace, deferralContext, bytes);
+}
+
 inline void* MarkedSpace::allocateAuxiliary(size_t bytes)
 {
     return allocate(m_auxiliarySpace, bytes);
@@ -272,6 +286,11 @@ inline void* MarkedSpace::allocateAuxiliary(size_t bytes)
 inline void* MarkedSpace::tryAllocateAuxiliary(size_t bytes)
 {
     return tryAllocate(m_auxiliarySpace, bytes);
+}
+
+inline void* MarkedSpace::tryAllocateAuxiliary(GCDeferralContext* deferralContext, size_t bytes)
+{
+    return tryAllocate(m_auxiliarySpace, deferralContext, bytes);
 }
 
 template <typename Functor> inline void MarkedSpace::forEachBlock(const Functor& functor)
@@ -323,5 +342,3 @@ ALWAYS_INLINE size_t MarkedSpace::optimalSizeFor(size_t bytes)
 }
 
 } // namespace JSC
-
-#endif // MarkedSpace_h

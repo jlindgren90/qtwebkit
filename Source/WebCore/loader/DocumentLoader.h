@@ -286,6 +286,8 @@ namespace WebCore {
         ContentFilter* contentFilter() const;
 #endif
 
+        bool isAlwaysOnLoggingAllowed() const;
+
     protected:
         WEBCORE_EXPORT DocumentLoader(const ResourceRequest&, const SubstituteData&);
 
@@ -314,10 +316,13 @@ namespace WebCore {
         void willSendRequest(ResourceRequest&, const ResourceResponse&);
         void finishedLoading(double finishTime);
         void mainReceivedError(const ResourceError&);
-        WEBCORE_EXPORT void redirectReceived(CachedResource*, ResourceRequest&, const ResourceResponse&) override;
-        WEBCORE_EXPORT void responseReceived(CachedResource*, const ResourceResponse&) override;
-        WEBCORE_EXPORT void dataReceived(CachedResource*, const char* data, int length) override;
-        WEBCORE_EXPORT void notifyFinished(CachedResource*) override;
+        WEBCORE_EXPORT void redirectReceived(CachedResource&, ResourceRequest&, const ResourceResponse&) override;
+        WEBCORE_EXPORT void responseReceived(CachedResource&, const ResourceResponse&) override;
+        WEBCORE_EXPORT void dataReceived(CachedResource&, const char* data, int length) override;
+        WEBCORE_EXPORT void notifyFinished(CachedResource&) override;
+
+        void responseReceived(const ResourceResponse&);
+        void dataReceived(const char* data, int length);
 
         bool maybeLoadEmpty();
 

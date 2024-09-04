@@ -23,11 +23,11 @@
  *
  */
 
-#ifndef Nodes_h
-#define Nodes_h
+#pragma once
 
 #include "BuiltinNames.h"
 #include "Error.h"
+#include "Interpreter.h"
 #include "JITCode.h"
 #include "ParserArena.h"
 #include "ParserTokens.h"
@@ -51,13 +51,12 @@ namespace JSC {
     class FunctionMetadataNode;
     class FunctionParameters;
     class Label;
+    class ModuleAnalyzer;
+    class ModuleScopeData;
     class PropertyListNode;
     class ReadModifyResolveNode;
     class RegisterID;
-    class JSScope;
     class ScopeNode;
-    class ModuleAnalyzer;
-    class ModuleScopeData;
 
     typedef SmallPtrSet<UniquedStringImpl*> UniquedStringImplPtrSet;
 
@@ -176,6 +175,7 @@ namespace JSC {
         virtual bool isBracketAccessorNode() const { return false; }
         virtual bool isDotAccessorNode() const { return false; }
         virtual bool isDestructuringNode() const { return false; }
+        virtual bool isBaseFuncExprNode() const { return false; }
         virtual bool isFuncExprNode() const { return false; }
         virtual bool isArrowFuncExprNode() const { return false; }
         virtual bool isClassExprNode() const { return false; }
@@ -195,8 +195,12 @@ namespace JSC {
 
         ResultType resultDescriptor() const { return m_resultType; }
 
+        bool needsDebugHook() { return m_needsDebugHook; }
+        void setNeedsDebugHook() { m_needsDebugHook = true; }
+
     private:
         ResultType m_resultType;
+        bool m_needsDebugHook { false };
     };
 
     class StatementNode : public Node {
@@ -213,17 +217,24 @@ namespace JSC {
         void setNext(StatementNode* next) { m_next = next; }
 
         virtual bool isEmptyStatement() const { return false; }
+        virtual bool isFunctionNode() const { return false; }
         virtual bool isReturnNode() const { return false; }
         virtual bool isExprStatement() const { return false; }
         virtual bool isBreak() const { return false; }
         virtual bool isContinue() const { return false; }
+        virtual bool isLabel() const { return false; }
         virtual bool isBlock() const { return false; }
         virtual bool isFuncDeclNode() const { return false; }
         virtual bool isModuleDeclarationNode() const { return false; }
+        virtual bool isForOfNode() const { return false; }
+
+        bool needsDebugHook() { return m_needsDebugHook; }
+        void setNeedsDebugHook() { m_needsDebugHook = true; }
 
     protected:
         StatementNode* m_next;
         int m_lastLine;
+        bool m_needsDebugHook { false };
     };
 
     class VariableEnvironmentNode : public ParserArenaDeletable {
@@ -1465,7 +1476,9 @@ namespace JSC {
         using ParserArenaDeletable::operator new;
 
         EnumerationNode(const JSTokenLocation&, ExpressionNode*, ExpressionNode*, StatementNode*, VariableEnvironment&);
-        
+
+        ExpressionNode* expr() const { return m_expr; }
+
     protected:
         ExpressionNode* m_lexpr;
         ExpressionNode* m_expr;
@@ -1479,7 +1492,6 @@ namespace JSC {
     private:
         RegisterID* tryGetBoundLocal(BytecodeGenerator&);
         void emitLoopHeader(BytecodeGenerator&, RegisterID* propertyName);
-        void emitMultiLoopBytecode(BytecodeGenerator&, RegisterID* dst);
 
         void emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
     };
@@ -1487,7 +1499,8 @@ namespace JSC {
     class ForOfNode : public EnumerationNode {
     public:
         ForOfNode(const JSTokenLocation&, ExpressionNode*, ExpressionNode*, StatementNode*, VariableEnvironment&);
-        
+        bool isForOfNode() const override { return true; }
+
     private:
         void emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
     };
@@ -1546,6 +1559,8 @@ namespace JSC {
     class LabelNode : public StatementNode, public ThrowableExpressionData {
     public:
         LabelNode(const JSTokenLocation&, const Identifier& name, StatementNode*);
+
+        bool isLabel() const override { return true; }
 
     private:
         void emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
@@ -1865,7 +1880,8 @@ namespace JSC {
             ParserArena&, const JSTokenLocation& start, const JSTokenLocation& end, 
             unsigned startColumn, unsigned endColumn, int functionKeywordStart, 
             int functionNameStart, int parametersStart, bool isInStrictContext, 
-            ConstructorKind, SuperBinding, unsigned, SourceParseMode, bool isArrowFunctionBodyExpression);
+            ConstructorKind, SuperBinding, unsigned parameterCount, unsigned functionLength,
+            SourceParseMode, bool isArrowFunctionBodyExpression);
 
         void finishParsing(const SourceCode&, const Identifier&, FunctionMode);
         
@@ -1884,6 +1900,7 @@ namespace JSC {
         unsigned startColumn() const { return m_startColumn; }
         unsigned endColumn() const { return m_endColumn; }
         unsigned parameterCount() const { return m_parameterCount; }
+        unsigned functionLength() const { return m_functionLength; }
         SourceParseMode parseMode() const { return m_parseMode; }
 
         void setEndPosition(JSTextPosition);
@@ -1920,6 +1937,7 @@ namespace JSC {
         SourceCode m_classSource;
         int m_startStartOffset;
         unsigned m_parameterCount;
+        unsigned m_functionLength;
         int m_lastLine;
         SourceParseMode m_parseMode;
         unsigned m_isInStrictContext : 1;
@@ -1935,6 +1953,8 @@ namespace JSC {
         FunctionParameters* parameters() const { return m_parameters; }
 
         void emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
+
+        bool isFunctionNode() const override { return true; }
 
         void finishParsing(const Identifier&, FunctionMode);
         
@@ -1958,6 +1978,8 @@ namespace JSC {
     class BaseFuncExprNode : public ExpressionNode {
     public:
         FunctionMetadataNode* metadata() { return m_metadata; }
+
+        bool isBaseFuncExprNode() const override { return true; }
 
     protected:
         BaseFuncExprNode(const JSTokenLocation&, const Identifier&, FunctionMetadataNode*, const SourceCode&, FunctionMode);
@@ -2009,6 +2031,18 @@ namespace JSC {
 
         ExpressionNode* m_argument;
         bool m_delegate;
+    };
+
+    class AwaitExprNode final : public ExpressionNode, public ThrowableExpressionData {
+    public:
+        AwaitExprNode(const JSTokenLocation&, ExpressionNode* argument);
+
+        ExpressionNode* argument() const { return m_argument; }
+
+    private:
+        RegisterID* emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
+
+        ExpressionNode* m_argument;
     };
 
     class ClassExprNode final : public ExpressionNode, public VariableEnvironmentNode {
@@ -2282,5 +2316,3 @@ namespace JSC {
     };
 
 } // namespace JSC
-
-#endif // Nodes_h

@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef B3Procedure_h
-#define B3Procedure_h
+#pragma once
 
 #if ENABLE(B3_JIT)
 
@@ -210,11 +209,14 @@ public:
     const Air::Code& code() const { return *m_code; }
     Air::Code& code() { return *m_code; }
 
-    unsigned callArgAreaSize() const;
-    void requestCallArgAreaSize(unsigned size);
+    unsigned callArgAreaSizeInBytes() const;
+    void requestCallArgAreaSizeInBytes(unsigned size);
+
+    // This tells the register allocators to stay away from this register.
+    JS_EXPORT_PRIVATE void pinRegister(Reg);
 
     JS_EXPORT_PRIVATE unsigned frameSize() const;
-    const RegisterAtOffsetList& calleeSaveRegisters() const;
+    JS_EXPORT_PRIVATE const RegisterAtOffsetList& calleeSaveRegisters() const;
 
     PCToOriginMap& pcToOriginMap() { return m_pcToOriginMap; }
     PCToOriginMap releasePCToOriginMap() { return WTFMove(m_pcToOriginMap); }
@@ -244,6 +246,3 @@ private:
 } } // namespace JSC::B3
 
 #endif // ENABLE(B3_JIT)
-
-#endif // B3Procedure_h
-

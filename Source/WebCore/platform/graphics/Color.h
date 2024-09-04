@@ -51,6 +51,8 @@ struct _D3DCOLORVALUE;
 typedef _D3DCOLORVALUE D3DCOLORVALUE;
 typedef D3DCOLORVALUE D2D_COLOR_F;
 typedef D2D_COLOR_F D2D1_COLOR_F;
+struct D2D_VECTOR_4F;
+typedef D2D_VECTOR_4F D2D1_VECTOR_4F;
 #endif
 
 #if PLATFORM(GTK)
@@ -73,7 +75,7 @@ RGBA32 makePremultipliedRGBA(int r, int g, int b, int a);
 RGBA32 makeUnPremultipliedRGBA(int r, int g, int b, int a);
 
 WEBCORE_EXPORT RGBA32 colorWithOverrideAlpha(RGBA32 color, float overrideAlpha);
-WEBCORE_EXPORT RGBA32 colorWithOverrideAlpha(RGBA32 color, Optional<float> overrideAlpha);
+RGBA32 colorWithOverrideAlpha(RGBA32 color, Optional<float> overrideAlpha);
 
 WEBCORE_EXPORT RGBA32 makeRGBA32FromFloats(float r, float g, float b, float a);
 RGBA32 makeRGBAFromHSLA(double h, double s, double l, double a);
@@ -196,6 +198,7 @@ public:
 #if PLATFORM(WIN)
     WEBCORE_EXPORT Color(D2D1_COLOR_F);
     WEBCORE_EXPORT operator D2D1_COLOR_F() const;
+    WEBCORE_EXPORT operator D2D1_VECTOR_4F() const;
 #endif
 
     static bool parseHexColor(const String&, RGBA32&);

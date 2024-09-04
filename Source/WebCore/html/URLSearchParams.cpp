@@ -106,7 +106,7 @@ void URLSearchParams::remove(const String& name)
         updateURL();
 }
 
-String URLSearchParams::toString()
+String URLSearchParams::toString() const
 {
     return URLParser::serialize(m_pairs);
 }
@@ -117,4 +117,11 @@ void URLSearchParams::updateURL()
         m_associatedURL->setQuery(URLParser::serialize(m_pairs));
 }
 
+void URLSearchParams::updateFromAssociatedURL()
+{
+    ASSERT(m_associatedURL);
+    String search = m_associatedURL->search();
+    m_pairs = search.startsWith('?') ? URLParser::parseURLEncodedForm(StringView(search).substring(1)) : URLParser::parseURLEncodedForm(search);
+}
+    
 }

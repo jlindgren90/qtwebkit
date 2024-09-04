@@ -52,25 +52,11 @@ inline bool CellContainer::isMarked(HeapCell* cell) const
     return markedBlock().isMarked(cell);
 }
 
-inline bool CellContainer::isMarked(HeapVersion version, HeapCell* cell) const
+inline bool CellContainer::isMarked(HeapVersion markingVersion, HeapCell* cell) const
 {
     if (isLargeAllocation())
         return largeAllocation().isMarked();
-    return markedBlock().isMarked(version, cell);
-}
-
-inline bool CellContainer::isMarkedOrNewlyAllocated(HeapCell* cell) const
-{
-    if (isLargeAllocation())
-        return largeAllocation().isMarkedOrNewlyAllocated();
-    return markedBlock().isMarkedOrNewlyAllocated(cell);
-}
-
-inline bool CellContainer::isMarkedOrNewlyAllocated(HeapVersion version, HeapCell* cell) const
-{
-    if (isLargeAllocation())
-        return largeAllocation().isMarkedOrNewlyAllocated();
-    return markedBlock().isMarkedOrNewlyAllocated(version, cell);
+    return markedBlock().isMarked(markingVersion, cell);
 }
 
 inline void CellContainer::noteMarked()
@@ -93,17 +79,17 @@ inline WeakSet& CellContainer::weakSet() const
     return markedBlock().weakSet();
 }
 
-inline void CellContainer::aboutToMark(HeapVersion heapVersion)
+inline void CellContainer::aboutToMark(HeapVersion markingVersion)
 {
     if (!isLargeAllocation())
-        markedBlock().aboutToMark(heapVersion);
+        markedBlock().aboutToMark(markingVersion);
 }
 
-inline bool CellContainer::needsFlip() const
+inline bool CellContainer::areMarksStale() const
 {
     if (isLargeAllocation())
         return false;
-    return markedBlock().needsFlip();
+    return markedBlock().areMarksStale();
 }
 
 } // namespace JSC

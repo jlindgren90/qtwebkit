@@ -317,7 +317,7 @@ messages -> WebPageProxy {
 #endif
 #endif
 #if (PLATFORM(QT) || PLATFORM(GTK)) && ENABLE(DRAG_SUPPORT)
-    StartDrag(WebCore::DragData dragData, WebKit::ShareableBitmap::Handle dragImage)
+    StartDrag(struct WebKit::WebSelectionData selection, uint64_t dragOperation, WebKit::ShareableBitmap::Handle dragImage)
 #endif
 
 #if PLATFORM(COCOA)
@@ -349,6 +349,13 @@ messages -> WebPageProxy {
 
 #if USE(APPKIT)
     SubstitutionsPanelIsShowing() -> (bool isShowing)
+#endif
+#if USE(AUTOMATIC_TEXT_REPLACEMENT)
+    toggleSmartInsertDelete()
+    toggleAutomaticQuoteSubstitution()
+    toggleAutomaticLinkDetection()
+    toggleAutomaticDashSubstitution()
+    toggleAutomaticTextReplacement()
 #endif
 #if PLATFORM(MAC)
     # Autocorrection messages
@@ -472,6 +479,7 @@ messages -> WebPageProxy {
 
 #if PLATFORM(MAC)
     DidHandleAcceptedCandidate()
+    HandleActiveNowPlayingSessionInfoResponse(bool hasActiveSession, String title, double duration, double elapsedTime)
 #endif
 
     StartURLSchemeHandlerTask(uint64_t loaderIdentifier, uint64_t resourceIdentifier, WebCore::ResourceRequest request)
