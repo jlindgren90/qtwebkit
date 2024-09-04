@@ -102,6 +102,9 @@ static bool shouldTreatAsUniqueOrigin(const URL& url)
         && !innerURL.protocolIs("file")
         && !innerURL.protocolIs("ftp")
         && !innerURL.protocolIs("gopher")
+#if PLATFORM(QT)
+        && !innerURL.protocolIs("qrc")
+#endif
         && !innerURL.protocolIs("ws")
         && !innerURL.protocolIs("wss");
 }
