@@ -70,6 +70,8 @@ public:
     void keyDownUsingHardwareKeyboard(JSStringRef character, JSValueRef callback);
     void keyUpUsingHardwareKeyboard(JSStringRef character, JSValueRef callback);
 
+    void selectTextCandidateAtIndex(long index, JSValueRef callback);
+
     void keyboardAccessoryBarNext();
     void keyboardAccessoryBarPrevious();
     
@@ -85,6 +87,12 @@ public:
 
     void setDidEndFormControlInteractionCallback(JSValueRef);
     JSValueRef didEndFormControlInteractionCallback() const;
+    
+    void setDidShowForcePressPreviewCallback(JSValueRef);
+    JSValueRef didShowForcePressPreviewCallback() const;
+    
+    void setDidDismissForcePressPreviewCallback(JSValueRef);
+    JSValueRef didDismissForcePressPreviewCallback() const;
 
     void setWillBeginZoomingCallback(JSValueRef);
     JSValueRef willBeginZoomingCallback() const;
@@ -118,6 +126,8 @@ private:
 
     void platformSetDidStartFormControlInteractionCallback();
     void platformSetDidEndFormControlInteractionCallback();
+    void platformSetDidShowForcePressPreviewCallback();
+    void platformSetDidDismissForcePressPreviewCallback();
     void platformSetWillBeginZoomingCallback();
     void platformSetDidEndZoomingCallback();
     void platformSetDidShowKeyboardCallback();
@@ -128,6 +138,7 @@ private:
     JSClassRef wrapperClass() final;
 
     JSObjectRef objectFromRect(const WebCore::FloatRect&) const;
+    void waitForTextPredictionsViewAndSelectCandidateAtIndex(long index, unsigned callbackID, float interval);
 
     UIScriptContext* m_context;
 };

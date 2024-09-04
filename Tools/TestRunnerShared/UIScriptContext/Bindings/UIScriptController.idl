@@ -49,6 +49,8 @@ interface UIScriptController {
     void keyDownUsingHardwareKeyboard(DOMString character, object callback);
     void keyUpUsingHardwareKeyboard(DOMString character, object callback);
 
+    void selectTextCandidateAtIndex(long index, object callback);
+
     // eventsJSON describes a series of user events in JSON form. For the keys, see HIDEventGenerator.mm.
     // For example, this JSON describes a touch down followed by a touch up (i.e. a single tap).
     //  {
@@ -65,6 +67,38 @@ interface UIScriptController {
     //                      "y" : 120
     //                  }
     //              ]
+    //          },
+    //          {
+    //              "interpolate" : "linear",
+    //              "timestep" : 0.025,
+    //              "startEvent" : {
+    //                  "inputType" : "hand",
+    //                  "timeOffset" : 0.025,
+    //                  "touches" : [
+    //                      {
+    //                          "inputType" : "finger",
+    //                          "phase" : "began",
+    //                          "id" : 1,
+    //                          "x" : 100,
+    //                          "y" : 120,
+    //                          "pressure" : 0
+    //                      }
+    //                  ]
+    //              },
+    //              "endEvent" : {
+    //                  "inputType" : "hand",
+    //                  "timeOffset" : 3.0,
+    //                  "touches" : [
+    //                      {
+    //                          "inputType" : "finger",
+    //                          "phase" : "stationary",
+    //                          "id" : 1,
+    //                          "x" : 20,
+    //                          "y" : 40,
+    //                          "pressure" : 500
+    //                      }
+    //                  ]
+    //              }
     //          },
     //          {
     //              "inputType" : "hand",
@@ -89,6 +123,10 @@ interface UIScriptController {
     // Form control handling
     attribute object didStartFormControlInteractionCallback;
     attribute object didEndFormControlInteractionCallback;
+
+    // Force press preview handling
+    attribute object didShowForcePressPreviewCallback;
+    attribute object didDismissForcePressPreviewCallback;
 
     // <select> picker
     void selectFormAccessoryPickerRow(long rowIndex);

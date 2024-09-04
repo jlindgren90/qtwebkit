@@ -93,6 +93,28 @@ CGColorSpaceRef sRGBColorSpaceRef()
 #endif // PLATFORM(WIN)
     return sRGBSpace;
 }
+    
+CGColorSpaceRef extendedSRGBColorSpaceRef()
+{
+    static CGColorSpaceRef extendedSRGBSpace;
+#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED > 101200)
+    extendedSRGBSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedSRGB);
+#endif
+    // If there is no support for exteneded sRGB, fall back to sRGB.
+    if (!extendedSRGBSpace)
+        extendedSRGBSpace = sRGBColorSpaceRef();
+    return extendedSRGBSpace;
+}
+
+CGColorSpaceRef displayP3ColorSpaceRef()
+{
+#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED > 101100)
+    static CGColorSpaceRef displayP3Space = CGColorSpaceCreateWithName(kCGColorSpaceDisplayP3);
+#else
+    static CGColorSpaceRef displayP3Space = sRGBColorSpaceRef();
+#endif
+    return displayP3Space;
+}
 
 #if PLATFORM(WIN)
 CGColorSpaceRef linearRGBColorSpaceRef()

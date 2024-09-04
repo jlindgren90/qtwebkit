@@ -22,6 +22,7 @@
 #pragma once
 
 #include "JSDOMGlobalObject.h"
+#include "NodeConstants.h"
 #include <runtime/JSDestructibleObject.h>
 
 namespace WebCore {
@@ -29,10 +30,30 @@ namespace WebCore {
 class JSDOMWindow;
 class ScriptExecutionContext;
 
-static const uint8_t JSDOMWrapperType = JSC::LastJSCObjectType + 1;
-static const uint8_t JSNodeType = JSC::LastJSCObjectType + 2;
-static const uint8_t JSDocumentWrapperType = JSC::LastJSCObjectType + 3;
-static const uint8_t JSElementType = JSC::LastJSCObjectType + 4;
+// JSC allows us to extend JSType. If the highest bit is set, we can add any Object types and they are
+// recognized as OtherObj in JSC. And we encode Node type into JSType if the given JSType is subclass of Node.
+// offset | 7 | 6 | 5   4 | 3   2   1   0  |
+// value  | 1 | 0 |  Non-node DOM types    |
+// If the given JSType is a subclass of Node, the format is the following.
+// offset | 7 | 6 | 5   4 | 3   2   1   0  |
+// value  | 1 | 1 |  Kind |       NodeType |
+static const uint8_t JSNodeTypeMask                  = 0b00001111;
+
+static const uint8_t JSDOMWrapperType                = 0b10000000;
+static const uint8_t JSEventType                     = 0b10000001;
+static const uint8_t JSNodeType                      = 0b11000000;
+static const uint8_t JSTextNodeType                  = JSNodeType | NodeConstants::TEXT_NODE;
+static const uint8_t JSProcessingInstructionNodeType = JSNodeType | NodeConstants::PROCESSING_INSTRUCTION_NODE;
+static const uint8_t JSDocumentTypeNodeType          = JSNodeType | NodeConstants::DOCUMENT_TYPE_NODE;
+static const uint8_t JSDocumentFragmentNodeType      = JSNodeType | NodeConstants::DOCUMENT_FRAGMENT_NODE;
+static const uint8_t JSDocumentWrapperType           = JSNodeType | NodeConstants::DOCUMENT_NODE;
+static const uint8_t JSCommentNodeType               = JSNodeType | NodeConstants::COMMENT_NODE;
+static const uint8_t JSCDATASectionNodeType          = JSNodeType | NodeConstants::CDATA_SECTION_NODE;
+static const uint8_t JSAttrNodeType                  = JSNodeType | NodeConstants::ATTRIBUTE_NODE;
+static const uint8_t JSElementType                   = 0b11010000 | NodeConstants::ELEMENT_NODE;
+
+static_assert(JSDOMWrapperType > JSC::LastJSCObjectType, "JSC::JSType offers the highest bit.");
+static_assert(NodeConstants::LastNodeType <= JSNodeTypeMask, "NodeType should be represented in 4bit.");
 
 class JSDOMObject : public JSC::JSDestructibleObject {
 public:
@@ -69,13 +90,6 @@ protected:
 private:
     Ref<ImplementationClass> m_wrapped;
 };
-
-ALWAYS_INLINE bool isJSDOMWrapperType(JSC::JSValue value)
-{
-    if (UNLIKELY(!value.isCell()))
-        return false;
-    return value.asCell()->type() >= JSDOMWrapperType;
-}
 
 template<typename ImplementationClass> struct JSDOMWrapperConverterTraits;
 

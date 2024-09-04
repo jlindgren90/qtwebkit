@@ -504,7 +504,8 @@ HTMLMediaElement::HTMLMediaElement(const QualifiedName& tagName, Document& docum
     if (document.ownerElement() || !document.isMediaDocument()) {
         if (settings && settings->videoPlaybackRequiresUserGesture()) {
             m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForVideoRateChange);
-            m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForLoad);
+            if (settings->requiresUserGestureToLoadVideo())
+                m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForLoad);
         }
 
         if (settings && settings->audioPlaybackRequiresUserGesture())
@@ -3306,7 +3307,8 @@ void HTMLMediaElement::setMuted(bool muted)
 {
     LOG(Media, "HTMLMediaElement::setMuted(%p) - %s", this, boolString(muted));
 
-    if (m_muted != muted || !m_explicitlyMuted) {
+    bool mutedStateChanged = m_muted != muted;
+    if (mutedStateChanged || !m_explicitlyMuted) {
         m_muted = muted;
         m_explicitlyMuted = true;
 
@@ -3321,7 +3323,9 @@ void HTMLMediaElement::setMuted(bool muted)
                     mediaControls()->changedMute();
             }
         }
-        scheduleEvent(eventNames().volumechangeEvent);
+
+        if (mutedStateChanged)
+            scheduleEvent(eventNames().volumechangeEvent);
 
         updateShouldPlay();
 
@@ -3337,6 +3341,7 @@ void HTMLMediaElement::setMuted(bool muted)
     }
 
     scheduleUpdatePlaybackControlsManager();
+    updateAudioAssertionState();
 }
 
 void HTMLMediaElement::togglePlayState()
@@ -4576,7 +4581,12 @@ void HTMLMediaElement::mediaPlayerRenderingModeChanged(MediaPlayer*)
     LOG(Media, "HTMLMediaElement::mediaPlayerRenderingModeChanged(%p)", this);
 
     // Kick off a fake recalcStyle that will update the compositing tree.
-    setNeedsStyleRecalc(SyntheticStyleChange);
+    invalidateStyleAndLayerComposition();
+}
+
+bool HTMLMediaElement::mediaPlayerAcceleratedCompositingEnabled()
+{
+    return document().settings() && document().settings()->acceleratedCompositingEnabled();
 }
 
 #if PLATFORM(WIN) && USE(AVFOUNDATION)
@@ -4841,7 +4851,7 @@ void HTMLMediaElement::updateVolume()
 
         if (m_mediaController) {
             volumeMultiplier *= m_mediaController->volume();
-            shouldMute = m_mediaController->muted() || (page && page->isMuted());
+            shouldMute = m_mediaController->muted() || (page && page->isAudioMuted());
         }
 
 #if ENABLE(MEDIA_SESSION)
@@ -4856,6 +4866,8 @@ void HTMLMediaElement::updateVolume()
     if (hasMediaControls())
         mediaControls()->changedVolume();
 #endif
+
+    updateAudioAssertionState();
 }
 
 void HTMLMediaElement::updatePlayState(UpdateState updateState)
@@ -4875,7 +4887,7 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
         m_playbackProgressTimer.stop();
         if (hasMediaControls())
             mediaControls()->playbackStopped();
-        m_activityToken = nullptr;
+        updateAudioAssertionState();
         return;
     }
     
@@ -4913,8 +4925,6 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
 
         if (hasMediaControls())
             mediaControls()->playbackStarted();
-        if (document().page())
-            m_activityToken = document().page()->pageThrottler().mediaActivityToken();
 
         startPlaybackProgressTimer();
         setPlaying(true);
@@ -4936,7 +4946,6 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
 
         if (hasMediaControls())
             mediaControls()->playbackStopped();
-        m_activityToken = nullptr;
     }
     
     updateMediaController();
@@ -4944,6 +4953,8 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
 
     m_hasEverHadAudio |= hasAudio();
     m_hasEverHadVideo |= hasVideo();
+
+    updateAudioAssertionState();
 }
 
 void HTMLMediaElement::setPlaying(bool playing)
@@ -5589,7 +5600,7 @@ void HTMLMediaElement::setVideoFullscreenLayer(PlatformLayer* platformLayer, std
     }
     
     m_player->setVideoFullscreenLayer(platformLayer, completionHandler);
-    setNeedsStyleRecalc(SyntheticStyleChange);
+    invalidateStyleAndLayerComposition();
 #if ENABLE(VIDEO_TRACK)
     updateTextTrackDisplay();
 #endif
@@ -6985,7 +6996,7 @@ MediaProducer::MediaStateFlags HTMLMediaElement::mediaState() const
     if (!isPlaying())
         return state;
 
-    if (hasAudio && !muted())
+    if (hasAudio && !muted() && volume())
         state |= IsPlayingAudio;
 
     if (hasActiveVideo)
@@ -7001,7 +7012,43 @@ void HTMLMediaElement::pageMutedStateDidChange()
 
 bool HTMLMediaElement::effectiveMuted() const
 {
-    return muted() || (document().page() && document().page()->isMuted());
+    return muted() || (document().page() && document().page()->isAudioMuted());
+}
+
+void HTMLMediaElement::updateAudioAssertionState()
+{
+    auto* page = document().page();
+    if (!page) {
+        m_audioActivityToken = nullptr;
+        return;
+    }
+
+#define RELEASE_AUDIO_TOKEN(REASON) \
+    RELEASE_LOG_IF(page->isAlwaysOnLoggingAllowed() && m_audioActivityToken, Media, "%p - HTMLMediaElement releases audio activity token, reason: " REASON, this); \
+    m_audioActivityToken = nullptr
+
+    if (!hasAudio()) {
+        RELEASE_AUDIO_TOKEN("No audio");
+        return;
+    }
+    if (!isPlaying()) {
+        RELEASE_AUDIO_TOKEN("Not playing");
+        return;
+    }
+    if (effectiveMuted()) {
+        RELEASE_AUDIO_TOKEN("Audio is muted");
+        return;
+    }
+    if (!volume()) {
+        RELEASE_AUDIO_TOKEN("Volume is 0");
+        return;
+    }
+    if (!m_audioActivityToken) {
+        RELEASE_LOG_IF(page->isAlwaysOnLoggingAllowed(), Media, "%p - HTMLMediaElement takes audio activity token because there is audible audio", this);
+        m_audioActivityToken = page->pageThrottler().mediaActivityToken();
+    }
+
+#undef RELEASE_AUDIO_TOKEN
 }
 
 bool HTMLMediaElement::doesHaveAttribute(const AtomicString& attribute, AtomicString* value) const

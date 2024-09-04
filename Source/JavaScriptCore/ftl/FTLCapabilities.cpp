@@ -140,9 +140,13 @@ inline CapabilityLevel canCompile(Node* node)
     case StoreBarrier:
     case FencedStoreBarrier:
     case Call:
+    case DirectCall:
     case TailCall:
+    case DirectTailCall:
     case TailCallInlinedCaller:
+    case DirectTailCallInlinedCaller:
     case Construct:
+    case DirectConstruct:
     case CallVarargs:
     case CallEval:
     case TailCallVarargs:
@@ -267,7 +271,7 @@ inline CapabilityLevel canCompile(Node* node)
     case DefineAccessorProperty:
     case ToLowerCase:
     case CheckDOM:
-    case CallDOM:
+    case CallDOMGetter:
         // These are OK.
         break;
 

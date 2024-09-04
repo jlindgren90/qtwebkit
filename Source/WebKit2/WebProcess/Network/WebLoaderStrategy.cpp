@@ -80,7 +80,7 @@ RefPtr<SubresourceLoader> WebLoaderStrategy::loadResource(Frame& frame, CachedRe
     if (loader)
         scheduleLoad(*loader, &resource, frame.document()->referrerPolicy() == ReferrerPolicy::Default);
     else
-        RELEASE_LOG_ERROR_IF_ALLOWED(frame, "loadResource: Unable to create SubresourceLoader (frame = %p", &frame);
+        RELEASE_LOG_IF_ALLOWED(frame, "loadResource: Unable to create SubresourceLoader (frame = %p", &frame);
     return loader;
 }
 

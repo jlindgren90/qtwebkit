@@ -294,10 +294,10 @@ RenderThemeIOS::RenderThemeIOS()
     CFNotificationCenterAddObserver(CFNotificationCenterGetLocalCenter(), this, contentSizeCategoryDidChange, UIContentSizeCategoryDidChangeNotification, 0, CFNotificationSuspensionBehaviorDeliverImmediately);
 }
 
-PassRefPtr<RenderTheme> RenderTheme::themeForPage(Page*)
+Ref<RenderTheme> RenderTheme::themeForPage(Page*)
 {
     static RenderTheme& renderTheme = RenderThemeIOS::create().leakRef();
-    return &renderTheme;
+    return renderTheme;
 }
 
 Ref<RenderTheme> RenderThemeIOS::create()
@@ -325,7 +325,7 @@ void RenderThemeIOS::setContentSizeCategory(const String& contentSizeCategory)
 
 const Color& RenderThemeIOS::shadowColor() const
 {
-    static Color color(0.0f, 0.0f, 0.0f, 0.7f);
+    static NeverDestroyed<Color> color(0.0f, 0.0f, 0.0f, 0.7f);
     return color;
 }
 

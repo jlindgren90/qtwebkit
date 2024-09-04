@@ -30,7 +30,7 @@
 
 #include "CallFrame.h"
 #include "CodeBlock.h"
-#include "Executable.h"
+#include "CodeBlockSet.h"
 #include "HeapInlines.h"
 #include "HeapIterationScope.h"
 #include "HeapUtil.h"
@@ -43,6 +43,7 @@
 #include "MarkedBlock.h"
 #include "MarkedBlockSet.h"
 #include "MarkedSpaceInlines.h"
+#include "NativeExecutable.h"
 #include "PCToCodeOriginMap.h"
 #include "SlotVisitor.h"
 #include "SlotVisitorInlines.h"

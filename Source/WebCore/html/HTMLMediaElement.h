@@ -564,6 +564,7 @@ private:
     void mediaPlayerSizeChanged(MediaPlayer*) override;
     bool mediaPlayerRenderingCanBeAccelerated(MediaPlayer*) override;
     void mediaPlayerRenderingModeChanged(MediaPlayer*) override;
+    bool mediaPlayerAcceleratedCompositingEnabled() override;
     void mediaPlayerEngineUpdated(MediaPlayer*) override;
     void mediaEngineWasUpdated();
 
@@ -770,6 +771,8 @@ private:
     void pageMutedStateDidChange() override;
 
     bool effectiveMuted() const;
+
+    void updateAudioAssertionState();
 
     void registerWithDocument(Document&);
     void unregisterWithDocument(Document&);
@@ -1007,7 +1010,7 @@ private:
 #endif
 
     std::unique_ptr<MediaElementSession> m_mediaSession;
-    PageActivityAssertionToken m_activityToken;
+    PageActivityAssertionToken m_audioActivityToken;
     size_t m_reportedExtraMemoryCost;
 
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)

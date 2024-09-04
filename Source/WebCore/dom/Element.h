@@ -32,6 +32,7 @@
 #include "RegionOversetState.h"
 #include "ScrollToOptions.h"
 #include "ScrollTypes.h"
+#include "ShadowRootMode.h"
 #include "SimulatedClickOptions.h"
 #include "StyleChange.h"
 
@@ -39,6 +40,7 @@ namespace WebCore {
 
 class ClientRect;
 class ClientRectList;
+class CustomElementReactionQueue;
 class DatasetDOMStringMap;
 class Dictionary;
 class DOMTokenList;
@@ -267,9 +269,8 @@ public:
     virtual bool rendererIsNeeded(const RenderStyle&);
 
     WEBCORE_EXPORT ShadowRoot* shadowRoot() const;
-    WEBCORE_EXPORT RefPtr<ShadowRoot> createShadowRoot(ExceptionCode&);
+    WEBCORE_EXPORT ShadowRoot* createShadowRoot(ExceptionCode&);
 
-    enum class ShadowRootMode { Open, Closed };
     struct ShadowRootInit {
         ShadowRootMode mode;
     };
@@ -284,7 +285,8 @@ public:
     void setIsDefinedCustomElement(JSCustomElementInterface&);
     void setIsFailedCustomElement(JSCustomElementInterface&);
     void setIsCustomElementUpgradeCandidate();
-    JSCustomElementInterface* customElementInterface() const;
+    void enqueueToUpgrade(JSCustomElementInterface&);
+    CustomElementReactionQueue* reactionQueue() const;
 #endif
 
     // FIXME: this should not be virtual, do not override this.
@@ -477,7 +479,7 @@ public:
 #endif
 
 #if ENABLE(POINTER_LOCK)
-    void requestPointerLock();
+    WEBCORE_EXPORT void requestPointerLock();
 #endif
 
 #if ENABLE(INDIE_UI)
@@ -542,6 +544,26 @@ public:
 
     StyleResolver& styleResolver();
     ElementStyle resolveStyle(const RenderStyle* parentStyle);
+
+    // Invalidates the style of a single element. Style is resolved lazily.
+    // Descendant elements are resolved as needed, for example if an inherited property changes.
+    // This should be called whenever an element changes in a manner that can affect its style.
+    void invalidateStyle();
+
+    // As above but also call RenderElement::setStyle with StyleDifferenceRecompositeLayer flag for
+    // the element even when the style doesn't change. This is mostly needed by the animation code.
+    WEBCORE_EXPORT void invalidateStyleAndLayerComposition();
+
+    // Invalidate the element and all its descendants. This is used when there is some sort of change
+    // in the tree that may affect the style of any of the descendants and we don't know how to optimize
+    // the case to limit the scope. This is expensive and should be avoided.
+    void invalidateStyleForSubtree();
+
+    // Invalidates renderers for the element and all its descendants causing them to be torn down
+    // and rebuild during style resolution. Style is also recomputed. This is used in code dealing with
+    // custom (not style based) renderers. This is expensive and should be avoided.
+    // Elements newly added to the tree are also in this state.
+    void invalidateStyleAndRenderersForSubtree();
 
     bool hasDisplayContents() const;
     void setHasDisplayContents(bool);
@@ -808,7 +830,7 @@ inline void Element::setHasFocusWithin(bool flag)
         return;
     setFlag(flag, HasFocusWithin);
     if (styleAffectedByFocusWithin())
-        setNeedsStyleRecalc();
+        invalidateStyleForSubtree();
 }
 
 } // namespace WebCore

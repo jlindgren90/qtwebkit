@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2008, 2009, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2009, 2015-2016 Apple Inc. All rights reserved.
  * Copyright (C) Research In Motion Limited 2011. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,12 @@
 #include "TextStream.h"
 #include <runtime/JSCInlines.h>
 #include <runtime/JSLock.h>
+
+#if USE(DIRECT2D)
+#include "COMPtr.h"
+#include "RenderTargetScopedDrawing.h"
+#include <d2d1.h>
+#endif
 
 namespace WebCore {
 
@@ -187,7 +193,7 @@ void SVGImage::drawForContainer(GraphicsContext& context, const FloatSize contai
 #if USE(CAIRO)
 // Passes ownership of the native image to the caller so NativeImagePtr needs
 // to be a smart pointer type.
-NativeImagePtr SVGImage::nativeImageForCurrentFrame()
+NativeImagePtr SVGImage::nativeImageForCurrentFrame(const GraphicsContext*)
 {
     if (!m_page)
         return nullptr;
@@ -201,6 +207,36 @@ NativeImagePtr SVGImage::nativeImageForCurrentFrame()
 
     // FIXME: WK(Bug 113657): We should use DontCopyBackingStore here.
     return buffer->copyImage(CopyBackingStore)->nativeImageForCurrentFrame();
+}
+#endif
+
+#if USE(DIRECT2D)
+NativeImagePtr SVGImage::nativeImage(const GraphicsContext* targetContext)
+{
+    ASSERT(targetContext);
+    if (!m_page || !targetContext)
+        return nullptr;
+
+    auto platformContext = targetContext->platformContext();
+    ASSERT(platformContext);
+
+    // Draw the SVG into a bitmap.
+    COMPtr<ID2D1BitmapRenderTarget> nativeImageTarget;
+    HRESULT hr = platformContext->CreateCompatibleRenderTarget(IntSize(rect().size()), &nativeImageTarget);
+    ASSERT(SUCCEEDED(hr));
+
+    GraphicsContext localContext(nativeImageTarget.get());
+
+    {
+        RenderTargetScopedDrawing scopedDraw(localContext);
+        draw(localContext, rect(), rect(), CompositeSourceOver, BlendModeNormal, ImageOrientationDescription());
+    }
+
+    COMPtr<ID2D1Bitmap> nativeImage;
+    hr = nativeImageTarget->GetBitmap(&nativeImage);
+    ASSERT(SUCCEEDED(hr));
+
+    return nativeImage;
 }
 #endif
 
@@ -335,8 +371,7 @@ void SVGImage::computeIntrinsicDimensions(Length& intrinsicWidth, Length& intrin
         intrinsicRatio = FloatSize(floatValueForLength(intrinsicWidth, 0), floatValueForLength(intrinsicHeight, 0));
 }
 
-// FIXME: support catchUpIfNecessary.
-void SVGImage::startAnimation(CatchUpAnimation)
+void SVGImage::startAnimation()
 {
     SVGSVGElement* rootElement = this->rootElement();
     if (!rootElement)

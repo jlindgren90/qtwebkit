@@ -84,6 +84,8 @@ list(APPEND WebCore_SOURCES
     loader/soup/SubresourceLoaderSoup.cpp
 
     platform/KillRingNone.cpp
+    platform/StaticPasteboard.cpp
+    platform/UserAgentQuirks.cpp
 
     platform/audio/glib/AudioBusGLib.cpp
 
@@ -125,6 +127,8 @@ list(APPEND WebCore_SOURCES
     platform/graphics/cairo/TransformationMatrixCairo.cpp
 
     platform/graphics/egl/GLContextEGL.cpp
+    platform/graphics/egl/GLContextEGLWayland.cpp
+    platform/graphics/egl/GLContextEGLX11.cpp
 
     platform/graphics/freetype/FontCacheFreeType.cpp
     platform/graphics/freetype/FontCustomPlatformDataFreeType.cpp
@@ -148,6 +152,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/wayland/PlatformDisplayWayland.cpp
 
     platform/graphics/x11/PlatformDisplayX11.cpp
+    platform/graphics/x11/XErrorTrapper.cpp
     platform/graphics/x11/XUniqueResource.cpp
 
     platform/gtk/DragDataGtk.cpp
@@ -161,7 +166,7 @@ list(APPEND WebCore_SOURCES
 
     platform/image-decoders/cairo/ImageBackingStoreCairo.cpp
 
-    platform/mediastream/gtk/SDPProcessorScriptResourceGtk.cpp
+    platform/mediastream/SDPProcessorScriptResource.cpp
 
     platform/network/soup/AuthenticationChallengeSoup.cpp
     platform/network/soup/CertificateInfo.cpp
@@ -256,7 +261,7 @@ set(WebCore_USER_AGENT_SCRIPTS
 set(WebCore_USER_AGENT_SCRIPTS_DEPENDENCIES ${WEBCORE_DIR}/platform/gtk/RenderThemeGtk.cpp)
 
 set(WebCore_SDP_PROCESSOR_SCRIPTS ${WEBCORE_DIR}/Modules/mediastream/sdp.js)
-set(WebCore_SDP_PROCESSOR_SCRIPTS_DEPENDENCIES ${WEBCORE_DIR}/platform/mediastream/gtk/SDPProcessorScriptResourceGtk.cpp)
+set(WebCore_SDP_PROCESSOR_SCRIPTS_DEPENDENCIES ${WEBCORE_DIR}/platform/mediastream/openwebrtc/SDPProcessorScriptResource.cpp)
 
 list(APPEND WebCore_LIBRARIES
     ${ATK_LIBRARIES}

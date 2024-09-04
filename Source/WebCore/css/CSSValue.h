@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "ExceptionCode.h"
+#include "ExceptionOr.h"
 #include "URLHash.h"
 #include <wtf/HashMap.h>
 #include <wtf/ListHashSet.h>
@@ -31,6 +31,7 @@
 
 namespace WebCore {
 
+class CSSCustomPropertyValue;
 class CachedResource;
 class StyleSheetContents;
 
@@ -65,7 +66,7 @@ public:
 
     WEBCORE_EXPORT String cssText() const;
 
-    void setCssText(const String&, ExceptionCode&) { } // FIXME: Not implemented.
+    ExceptionOr<void> setCssText(const String&) { return { }; } // FIXME: Not implemented.
 
     bool isPrimitiveValue() const { return m_classType == PrimitiveClass; }
     bool isValueList() const { return m_classType >= ValueListClass; }
@@ -79,7 +80,6 @@ public:
     bool isCrossfadeValue() const { return m_classType == CrossfadeClass; }
     bool isCursorImageValue() const { return m_classType == CursorImageClass; }
     bool isCustomPropertyValue() const { return m_classType == CustomPropertyClass; }
-    bool isInvalidCustomPropertyValue() const;
     bool isVariableDependentValue() const { return m_classType == VariableDependentClass; }
     bool isVariableValue() const { return m_classType == VariableClass; }
     bool isFunctionValue() const { return m_classType == FunctionClass; }
@@ -127,9 +127,11 @@ public:
     bool isAnimationTriggerScrollValue() const { return m_classType == AnimationTriggerScrollClass; }
 #endif
 
-    bool isCustomPropertyDeclaration() const { return m_classType == CustomPropertyDeclarationClass; }
     bool isCustomIdentValue() const { return m_classType == CustomIdentClass; }
     bool isVariableReferenceValue() const { return m_classType == VariableReferenceClass; }
+    bool isPendingSubstitutionValue() const { return m_classType == PendingSubstitutionValueClass; }
+    
+    bool hasVariableReferences() const { return isVariableDependentValue() || isVariableReferenceValue() || isPendingSubstitutionValue(); }
 
     bool isCSSOMSafe() const { return m_isCSSOMSafe; }
     bool isSubtypeExposedToCSSOM() const
@@ -202,15 +204,16 @@ protected:
 
         CSSContentDistributionClass,
         
-        // FIXME-NEWPARSER: Remove in favor of new variables implementation.
+        CustomIdentClass,
+
+        // FIXME-NEWPARSER: Unify variables implementation.
         CustomPropertyClass,
         VariableDependentClass,
         VariableClass,
 
         // New variables implementation.
-        CustomPropertyDeclarationClass,
-        CustomIdentClass,
         VariableReferenceClass,
+        PendingSubstitutionValueClass,
 
         // List class types must appear after ValueListClass.
         ValueListClass,
@@ -300,7 +303,7 @@ inline bool compareCSSValue(const Ref<CSSValueType>& first, const Ref<CSSValueTy
     return first.get().equals(second);
 }
 
-typedef HashMap<AtomicString, RefPtr<CSSValue>> CustomPropertyValueMap;
+typedef HashMap<AtomicString, RefPtr<CSSCustomPropertyValue>> CustomPropertyValueMap;
 
 } // namespace WebCore
 

@@ -120,6 +120,7 @@
 #include "ShadowData.h"
 #include "ShadowRoot.h"
 #include "StyleBuilder.h"
+#include "StyleColor.h"
 #include "StyleCachedImage.h"
 #include "StyleFontSizeFunctions.h"
 #include "StyleGeneratedImage.h"
@@ -192,7 +193,7 @@ inline void StyleResolver::State::clear()
     m_cssToLengthConversionData = CSSToLengthConversionData();
 }
 
-void StyleResolver::MatchResult::addMatchedProperties(const StyleProperties& properties, StyleRule* rule, unsigned linkMatchType, PropertyWhitelistType propertyWhitelistType, unsigned treeContextOrdinal)
+void StyleResolver::MatchResult::addMatchedProperties(const StyleProperties& properties, StyleRule* rule, unsigned linkMatchType, PropertyWhitelistType propertyWhitelistType, int treeContextOrdinal)
 {
     m_matchedProperties.grow(m_matchedProperties.size() + 1);
     StyleResolver::MatchedProperties& newProperties = m_matchedProperties.last();
@@ -227,12 +228,12 @@ void StyleResolver::MatchResult::addMatchedProperties(const StyleProperties& pro
 
                 // The value currentColor has implicitely the same side effect. It depends on the value of color,
                 // which is an inherited value, making the non-inherited property implicitly inherited.
-                if (is<CSSPrimitiveValue>(value) && downcast<CSSPrimitiveValue>(value).getValueID() == CSSValueCurrentcolor) {
+                if (is<CSSPrimitiveValue>(value) && downcast<CSSPrimitiveValue>(value).valueID() == CSSValueCurrentcolor) {
                     isCacheable = false;
                     break;
                 }
 
-                if (value.isVariableDependentValue()) {
+                if (value.hasVariableReferences()) {
                     isCacheable = false;
                     break;
                 }
@@ -267,8 +268,14 @@ StyleResolver::StyleResolver(Document& document)
     else
         m_mediaQueryEvaluator = MediaQueryEvaluator { "all" };
 
-    if (root)
+    if (root) {
         m_rootDefaultStyle = styleForElement(*root, m_document.renderStyle(), MatchOnlyUserAgentRules).renderStyle;
+        // Turn off assertion against font lookups during style resolver initialization. We may need root style font for media queries.
+        m_document.fontSelector().setIsComputingRootStyleFont(true);
+        m_rootDefaultStyle->fontCascade().update(&m_document.fontSelector());
+        m_rootDefaultStyle->fontCascade().primaryFont();
+        m_document.fontSelector().setIsComputingRootStyleFont(false);
+    }
 
     if (m_rootDefaultStyle && view)
         m_mediaQueryEvaluator = MediaQueryEvaluator { view->mediaType(), m_document, m_rootDefaultStyle.get() };
@@ -1285,7 +1292,7 @@ void extractDirectionAndWritingMode(const RenderStyle& style, const StyleResolve
     direction = style.direction();
     writingMode = style.writingMode();
 
-    bool hadImportantWebkitWritingMode = false;
+    bool hadImportantWritingMode = false;
     bool hadImportantDirection = false;
 
     for (const auto& matchedProperties : matchResult.matchedProperties()) {
@@ -1294,10 +1301,10 @@ void extractDirectionAndWritingMode(const RenderStyle& style, const StyleResolve
             if (!property.value()->isPrimitiveValue())
                 continue;
             switch (property.id()) {
-            case CSSPropertyWebkitWritingMode:
-                if (!hadImportantWebkitWritingMode || property.isImportant()) {
+            case CSSPropertyWritingMode:
+                if (!hadImportantWritingMode || property.isImportant()) {
                     writingMode = downcast<CSSPrimitiveValue>(*property.value());
-                    hadImportantWebkitWritingMode = property.isImportant();
+                    hadImportantWritingMode = property.isImportant();
                 }
                 break;
             case CSSPropertyDirection:
@@ -1579,8 +1586,8 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     State& state = m_state;
     
     RefPtr<CSSValue> valueToApply = value;
-    if (value->isVariableDependentValue()) {
-        valueToApply = resolvedVariableValue(id, *downcast<CSSVariableDependentValue>(value));
+    if (value->hasVariableReferences()) {
+        valueToApply = resolvedVariableValue(id, *value);
         if (!valueToApply) {
             if (CSSProperty::isInheritedProperty(id))
                 valueToApply = CSSValuePool::singleton().createInheritedValue();
@@ -1597,17 +1604,23 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     
     CSSValue* valueToCheckForInheritInitial = valueToApply.get();
     CSSCustomPropertyValue* customPropertyValue = nullptr;
+    CSSValueID customPropertyValueID = CSSValueInvalid;
     
     if (id == CSSPropertyCustom) {
+        // FIXME-NEWPARSER: Can clean this up once old parser is gone and remove
+        // the deprecatedValue call and the valueToCheckForInheritInitial variable.
         customPropertyValue = &downcast<CSSCustomPropertyValue>(*valueToApply);
-        valueToCheckForInheritInitial = customPropertyValue->value().get();
+        valueToCheckForInheritInitial = customPropertyValue->deprecatedValue().get();
+        customPropertyValueID = customPropertyValue->valueID();
+        if (customPropertyValueID != CSSValueInvalid)
+            valueToCheckForInheritInitial = valueToApply.get();
     }
 
-    bool isInherit = state.parentStyle() && valueToCheckForInheritInitial->isInheritedValue();
-    bool isInitial = valueToCheckForInheritInitial->isInitialValue() || (!state.parentStyle() && valueToCheckForInheritInitial->isInheritedValue());
+    bool isInherit = state.parentStyle() ? valueToCheckForInheritInitial->isInheritedValue() || customPropertyValueID == CSSValueInherit : false;
+    bool isInitial = valueToCheckForInheritInitial->isInitialValue() || customPropertyValueID == CSSValueInitial || (!state.parentStyle() && (valueToCheckForInheritInitial->isInheritedValue() || customPropertyValueID == CSSValueInherit));
     
-    bool isUnset = valueToCheckForInheritInitial->isUnsetValue();
-    bool isRevert = valueToCheckForInheritInitial->isRevertValue();
+    bool isUnset = valueToCheckForInheritInitial->isUnsetValue() || customPropertyValueID == CSSValueUnset;
+    bool isRevert = valueToCheckForInheritInitial->isRevertValue() || customPropertyValueID == CSSValueRevert;
 
     if (isRevert) {
         if (cascadeLevel() == UserAgentLevel || !matchResult)
@@ -1659,14 +1672,14 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     if (id == CSSPropertyCustom) {
         CSSCustomPropertyValue* customProperty = &downcast<CSSCustomPropertyValue>(*valueToApply);
         if (isInherit) {
-            RefPtr<CSSValue> customVal = state.parentStyle()->getCustomPropertyValue(customProperty->name());
+            RefPtr<CSSCustomPropertyValue> customVal = state.parentStyle()->getCustomPropertyValue(customProperty->name());
             if (!customVal)
                 customVal = CSSCustomPropertyValue::createInvalid();
             state.style()->setCustomPropertyValue(customProperty->name(), customVal);
         } else if (isInitial)
             state.style()->setCustomPropertyValue(customProperty->name(), CSSCustomPropertyValue::createInvalid());
         else
-            state.style()->setCustomPropertyValue(customProperty->name(), customProperty->value());
+            state.style()->setCustomPropertyValue(customProperty->name(), customProperty);
         return;
     }
 
@@ -1674,10 +1687,10 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     StyleBuilder::applyProperty(id, *this, *valueToApply, isInitial, isInherit);
 }
 
-RefPtr<CSSValue> StyleResolver::resolvedVariableValue(CSSPropertyID propID, const CSSVariableDependentValue& value)
+RefPtr<CSSValue> StyleResolver::resolvedVariableValue(CSSPropertyID propID, const CSSValue& value)
 {
     CSSParser parser(m_state.document());
-    return parser.parseVariableDependentValue(propID, value, m_state.style()->customProperties(), m_state.style()->direction(), m_state.style()->writingMode());
+    return parser.parseValueWithVariableReferences(propID, value, m_state.style()->customProperties(), m_state.style()->direction(), m_state.style()->writingMode());
 }
 
 RefPtr<StyleImage> StyleResolver::styleImage(CSSValue& value)
@@ -1777,46 +1790,9 @@ void StyleResolver::setFontSize(FontCascadeDescription& fontDescription, float s
     fontDescription.setComputedSize(Style::computedFontSizeFromSpecifiedSize(size, fontDescription.isAbsoluteSize(), useSVGZoomRules(), m_state.style(), document()));
 }
 
-static Color colorForCSSValue(CSSValueID cssValueId)
-{
-    struct ColorValue {
-        CSSValueID cssValueId;
-        RGBA32 color;
-    };
-
-    static const ColorValue colorValues[] = {
-        { CSSValueAqua, 0xFF00FFFF },
-        { CSSValueBlack, 0xFF000000 },
-        { CSSValueBlue, 0xFF0000FF },
-        { CSSValueFuchsia, 0xFFFF00FF },
-        { CSSValueGray, 0xFF808080 },
-        { CSSValueGreen, 0xFF008000  },
-        { CSSValueGrey, 0xFF808080 },
-        { CSSValueLime, 0xFF00FF00 },
-        { CSSValueMaroon, 0xFF800000 },
-        { CSSValueNavy, 0xFF000080 },
-        { CSSValueOlive, 0xFF808000  },
-        { CSSValueOrange, 0xFFFFA500 },
-        { CSSValuePurple, 0xFF800080 },
-        { CSSValueRed, 0xFFFF0000 },
-        { CSSValueSilver, 0xFFC0C0C0 },
-        { CSSValueTeal, 0xFF008080  },
-        { CSSValueTransparent, 0x00000000 },
-        { CSSValueWhite, 0xFFFFFFFF },
-        { CSSValueYellow, 0xFFFFFF00 },
-        { CSSValueInvalid, CSSValueInvalid }
-    };
-
-    for (const ColorValue* col = colorValues; col->cssValueId; ++col) {
-        if (col->cssValueId == cssValueId)
-            return col->color;
-    }
-    return RenderTheme::defaultTheme()->systemColor(cssValueId);
-}
-
 bool StyleResolver::colorFromPrimitiveValueIsDerivedFromElement(const CSSPrimitiveValue& value)
 {
-    int ident = value.getValueID();
+    int ident = value.valueID();
     switch (ident) {
     case CSSValueWebkitText:
     case CSSValueWebkitLink:
@@ -1831,10 +1807,10 @@ bool StyleResolver::colorFromPrimitiveValueIsDerivedFromElement(const CSSPrimiti
 Color StyleResolver::colorFromPrimitiveValue(const CSSPrimitiveValue& value, bool forVisitedLink) const
 {
     if (value.isRGBColor())
-        return Color(value.getRGBA32Value());
+        return value.color();
 
     const State& state = m_state;
-    CSSValueID ident = value.getValueID();
+    CSSValueID ident = value.valueID();
     switch (ident) {
     case 0:
         return Color();
@@ -1847,9 +1823,12 @@ Color StyleResolver::colorFromPrimitiveValue(const CSSPrimitiveValue& value, boo
     case CSSValueWebkitFocusRingColor:
         return RenderTheme::focusRingColor();
     case CSSValueCurrentcolor:
+        // Color is an inherited property so depending on it effectively makes the property inherited.
+        state.style()->setHasExplicitlyInheritedProperties();
         return state.style()->color();
-    default:
-        return colorForCSSValue(ident);
+    default: {
+        return StyleColor::colorFromKeyword(ident);
+    }
     }
 }
 
@@ -1905,7 +1884,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
     
     if (is<CSSPrimitiveValue>(inValue)) {
         auto& primitiveValue = downcast<CSSPrimitiveValue>(inValue);
-        if (primitiveValue.getValueID() == CSSValueNone)
+        if (primitiveValue.valueID() == CSSValueNone)
             return true;
     }
     
@@ -1929,7 +1908,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
                 continue;
 
             auto& primitiveValue = downcast<CSSPrimitiveValue>(argument);
-            String cssUrl = primitiveValue.getStringValue();
+            String cssUrl = primitiveValue.stringValue();
             URL url = m_state.document().completeURL(cssUrl);
 
             RefPtr<ReferenceFilterOperation> operation = ReferenceFilterOperation::create(cssUrl, url.fragmentIdentifier());
@@ -1960,7 +1939,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
         case WebKitCSSFilterValue::SaturateFilterOperation: {
             double amount = 1;
             if (filterValue.length() == 1) {
-                amount = firstValue->getDoubleValue();
+                amount = firstValue->doubleValue();
                 if (firstValue->isPercentage())
                     amount /= 100;
             }
@@ -1982,7 +1961,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
         case WebKitCSSFilterValue::OpacityFilterOperation: {
             double amount = (filterValue.operationType() == WebKitCSSFilterValue::BrightnessFilterOperation) ? 0 : 1;
             if (filterValue.length() == 1) {
-                amount = firstValue->getDoubleValue();
+                amount = firstValue->doubleValue();
                 if (firstValue->isPercentage())
                     amount /= 100;
             }
@@ -2032,7 +2011,6 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
 }
 
 inline StyleResolver::MatchedProperties::MatchedProperties()
-    : possiblyPaddedMember(nullptr)
 {
 }
 
@@ -2196,7 +2174,7 @@ void StyleResolver::CascadedProperties::addImportantMatches(const MatchResult& m
 
     struct IndexAndOrdinal {
         int index;
-        unsigned ordinal;
+        int ordinal;
     };
     Vector<IndexAndOrdinal> shadowTreeMatches;
 

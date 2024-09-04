@@ -31,16 +31,37 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
 
         this.element.classList.add("text-editor", WebInspector.SyntaxHighlightedStyleClassName);
 
-        // FIXME: <https://webkit.org/b/149120> Web Inspector: Preferences for Text Editor behavior
         this._codeMirror = WebInspector.CodeMirrorEditor.create(this.element, {
             readOnly: true,
-            indentWithTabs: true,
-            indentUnit: 4,
+            indentWithTabs: WebInspector.settings.indentWithTabs.value,
+            indentUnit: WebInspector.settings.indentUnit.value,
+            tabSize: WebInspector.settings.tabSize.value,
             lineNumbers: true,
-            lineWrapping: false,
+            lineWrapping: WebInspector.settings.enableLineWrapping.value,
             matchBrackets: true,
             autoCloseBrackets: true,
+            showWhitespaceCharacters: WebInspector.settings.showWhitespaceCharacters.value,
             styleSelectedText: true,
+        });
+
+        WebInspector.settings.indentWithTabs.addEventListener(WebInspector.Setting.Event.Changed, (event) => {
+            this._codeMirror.setOption("indentWithTabs", WebInspector.settings.indentWithTabs.value);
+        });
+
+        WebInspector.settings.indentUnit.addEventListener(WebInspector.Setting.Event.Changed, (event) => {
+            this._codeMirror.setOption("indentUnit", WebInspector.settings.indentUnit.value);
+        });
+
+        WebInspector.settings.tabSize.addEventListener(WebInspector.Setting.Event.Changed, (event) => {
+            this._codeMirror.setOption("tabSize", WebInspector.settings.tabSize.value);
+        });
+
+        WebInspector.settings.enableLineWrapping.addEventListener(WebInspector.Setting.Event.Changed, (event) => {
+            this._codeMirror.setOption("lineWrapping", WebInspector.settings.enableLineWrapping.value);
+        });
+
+        WebInspector.settings.showWhitespaceCharacters.addEventListener(WebInspector.Setting.Event.Changed, (event) => {
+            this._codeMirror.setOption("showWhitespaceCharacters", WebInspector.settings.showWhitespaceCharacters.value);
         });
 
         this._codeMirror.on("change", this._contentChanged.bind(this));
@@ -336,8 +357,10 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
         this._executionLineNumber = lineNumber;
         this._executionColumnNumber = columnNumber;
 
-        this._updateExecutionLine();
-        this._updateExecutionRangeHighlight();
+        if (!this._initialStringNotSet) {
+            this._updateExecutionLine();
+            this._updateExecutionRangeHighlight();
+        }
 
         // Still dispatch the event even if the number didn't change. The execution state still
         // could have changed (e.g. continuing in a loop with a breakpoint inside).
@@ -530,6 +553,15 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
         this._visible = false;
     }
 
+    close()
+    {
+        WebInspector.settings.indentWithTabs.removeEventListener(null, null, this);
+        WebInspector.settings.indentUnit.removeEventListener(null, null, this);
+        WebInspector.settings.tabSize.removeEventListener(null, null, this);
+        WebInspector.settings.enableLineWrapping.removeEventListener(null, null, this);
+        WebInspector.settings.showWhitespaceCharacters.removeEventListener(null, null, this);
+    }
+
     setBreakpointInfoForLineAndColumn(lineNumber, columnNumber, breakpointInfo)
     {
         if (this._ignoreSetBreakpointInfoCalls)
@@ -703,7 +735,7 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
         if (this._formatterSourceMap)
             offset = this._formatterSourceMap.formattedToOriginalOffset(position.line, position.ch);
         else
-            offset = this.tokenTrackingController._codeMirror.getDoc().indexFromPos(position);
+            offset = this._codeMirror.getDoc().indexFromPos(position);
 
         return offset;
     }
@@ -805,10 +837,9 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
 
     _startWorkerPrettyPrint(beforePrettyPrintState, callback)
     {
-        // <rdar://problem/10593948> Provide a way to change the tab width in the Web Inspector
-        let indentString = "    ";
         let sourceText = this._codeMirror.getValue();
-        let includeSourceMapData = true;
+        let indentString = WebInspector.indentString();
+        const includeSourceMapData = true;
 
         // FIXME: Properly pass if this is a module or script.
         const isModule = false;
@@ -826,8 +857,7 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
 
     _startCodeMirrorPrettyPrint(beforePrettyPrintState, callback)
     {
-        // <rdar://problem/10593948> Provide a way to change the tab width in the Web Inspector
-        let indentString = "    ";
+        let indentString = WebInspector.indentString();
         let start = {line: 0, ch: 0};
         let end = {line: this._codeMirror.lineCount() - 1};
         let builder = new FormatterContentBuilder(indentString);
@@ -1220,6 +1250,7 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
             if (this._executionLineHandle) {
                 this._codeMirror.addLineClass(this._executionLineHandle, "wrap", WebInspector.TextEditor.ExecutionLineStyleClassName);
                 this._codeMirror.addLineClass(this._executionLineHandle, "wrap", "primary");
+                this._codeMirror.removeLineClass(this._executionLineHandle, "wrap", WebInspector.TextEditor.HighlightedStyleClassName);
             }
         });
     }
@@ -1238,8 +1269,9 @@ WebInspector.TextEditor = class TextEditor extends WebInspector.View
         let originalOffset = this.currentPositionToOriginalOffset(currentPosition);
         let originalCodeMirrorPosition = this.currentPositionToOriginalPosition(currentPosition);
         let originalPosition = new WebInspector.SourceCodePosition(originalCodeMirrorPosition.line, originalCodeMirrorPosition.ch);
+        let characterAtOffset = this._codeMirror.getRange(currentPosition, {line: this._executionLineNumber, ch: this._executionColumnNumber + 1});
 
-        this._delegate.textEditorExecutionHighlightRange(originalOffset, originalPosition, (range) => {
+        this._delegate.textEditorExecutionHighlightRange(originalOffset, originalPosition, characterAtOffset, (range) => {
             let start, end;
             if (!range) {
                 // Highlight the rest of the line.

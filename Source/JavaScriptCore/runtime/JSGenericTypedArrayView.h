@@ -88,7 +88,7 @@ enum class CopyType {
     Unobservable,
 };
 
-static const char* typedArrayBufferHasBeenDetachedErrorMessage = "Underlying ArrayBuffer has been detached from the view";
+static const char* const typedArrayBufferHasBeenDetachedErrorMessage = "Underlying ArrayBuffer has been detached from the view";
 
 template<typename Adaptor>
 class JSGenericTypedArrayView : public JSArrayBufferView {
@@ -176,7 +176,7 @@ public:
         RETURN_IF_EXCEPTION(scope, false);
 
         if (isNeutered()) {
-            throwTypeError(exec, scope, typedArrayBufferHasBeenDetachedErrorMessage);
+            throwTypeError(exec, scope, ASCIILiteral(typedArrayBufferHasBeenDetachedErrorMessage));
             return false;
         }
 
@@ -225,10 +225,12 @@ public:
     // then it will have thrown an exception.
     bool set(ExecState*, unsigned offset, JSObject*, unsigned objectOffset, unsigned length, CopyType type = CopyType::Unobservable);
     
-    PassRefPtr<typename Adaptor::ViewType> typedImpl()
+    RefPtr<typename Adaptor::ViewType> typedImpl()
     {
         return Adaptor::ViewType::create(buffer(), byteOffset(), length());
     }
+
+    static RefPtr<typename Adaptor::ViewType> toWrapped(JSValue);
     
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
     {
@@ -365,6 +367,12 @@ inline RefPtr<typename Adaptor::ViewType> toNativeTypedView(JSValue value)
     if (!wrapper)
         return nullptr;
     return wrapper->typedImpl();
+}
+
+template<typename Adaptor>
+RefPtr<typename Adaptor::ViewType> JSGenericTypedArrayView<Adaptor>::toWrapped(JSValue value)
+{
+    return JSC::toNativeTypedView<Adaptor>(value);
 }
 
 } // namespace JSC

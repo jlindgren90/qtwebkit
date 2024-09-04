@@ -30,6 +30,7 @@
 #include "AppendNodeCommand.h"
 #include "ApplyStyleCommand.h"
 #include "BreakBlockquoteCommand.h"
+#include "DataTransfer.h"
 #include "DeleteFromTextNodeCommand.h"
 #include "DeleteSelectionCommand.h"
 #include "Document.h"
@@ -68,6 +69,7 @@
 #include "SplitElementCommand.h"
 #include "SplitTextNodeCommand.h"
 #include "SplitTextNodeContainingElementCommand.h"
+#include "StaticRange.h"
 #include "Text.h"
 #include "TextIterator.h"
 #include "VisibleUnits.h"
@@ -319,7 +321,7 @@ CompositeEditCommand::~CompositeEditCommand()
 
 bool CompositeEditCommand::willApplyCommand()
 {
-    return frame().editor().willApplyEditing(*this);
+    return frame().editor().willApplyEditing(*this, targetRangesForBindings());
 }
 
 void CompositeEditCommand::apply()
@@ -333,16 +335,21 @@ void CompositeEditCommand::apply()
         case EditActionTypingDeleteWordForward:
         case EditActionTypingDeleteLineBackward:
         case EditActionTypingDeleteLineForward:
+        case EditActionTypingDeletePendingComposition:
+        case EditActionTypingDeleteFinalComposition:
         case EditActionTypingInsertText:
         case EditActionTypingInsertLineBreak:
         case EditActionTypingInsertParagraph:
+        case EditActionTypingInsertPendingComposition:
+        case EditActionTypingInsertFinalComposition:
         case EditActionPaste:
-        case EditActionDrag:
+        case EditActionDeleteByDrag:
         case EditActionSetWritingDirection:
         case EditActionCut:
         case EditActionUnspecified:
         case EditActionInsert:
         case EditActionInsertReplacement:
+        case EditActionInsertFromDrop:
         case EditActionDelete:
         case EditActionDictation:
             break;
@@ -373,6 +380,41 @@ void CompositeEditCommand::apply()
 void CompositeEditCommand::didApplyCommand()
 {
     frame().editor().appliedEditing(this);
+}
+
+Vector<RefPtr<StaticRange>> CompositeEditCommand::targetRanges() const
+{
+    ASSERT(!isEditingTextAreaOrTextInput());
+    auto firstRange = frame().selection().selection().firstRange();
+    if (!firstRange)
+        return { };
+
+    RefPtr<StaticRange> range = StaticRange::createFromRange(*firstRange);
+    return { 1, range };
+}
+
+Vector<RefPtr<StaticRange>> CompositeEditCommand::targetRangesForBindings() const
+{
+    if (isEditingTextAreaOrTextInput())
+        return { };
+
+    return targetRanges();
+}
+
+RefPtr<DataTransfer> CompositeEditCommand::inputEventDataTransfer() const
+{
+    return nullptr;
+}
+
+EditCommandComposition* CompositeEditCommand::composition() const
+{
+    for (auto* command = this; command; command = command->parent()) {
+        if (auto composition = command->m_composition) {
+            ASSERT(!command->parent());
+            return composition.get();
+        }
+    }
+    return nullptr;
 }
 
 EditCommandComposition* CompositeEditCommand::ensureComposition()
@@ -1494,23 +1536,33 @@ void CompositeEditCommand::moveParagraphs(const VisiblePosition& startOfParagrap
     }
 }
 
-// FIXME: Send an appropriate shouldDeleteRange call.
-bool CompositeEditCommand::breakOutOfEmptyListItem()
+Optional<VisibleSelection> CompositeEditCommand::shouldBreakOutOfEmptyListItem() const
 {
-    RefPtr<Node> emptyListItem = enclosingEmptyListItem(endingSelection().visibleStart());
+    auto emptyListItem = enclosingEmptyListItem(endingSelection().visibleStart());
     if (!emptyListItem)
-        return false;
+        return Nullopt;
 
-    RefPtr<EditingStyle> style = EditingStyle::create(endingSelection().start());
-    style->mergeTypingStyle(document());
-
-    RefPtr<ContainerNode> listNode = emptyListItem->parentNode();
+    auto listNode = emptyListItem->parentNode();
     // FIXME: Can't we do something better when the immediate parent wasn't a list node?
     if (!listNode
         || (!listNode->hasTagName(ulTag) && !listNode->hasTagName(olTag))
         || !listNode->hasEditableStyle()
         || listNode == emptyListItem->rootEditableElement())
+        return Nullopt;
+
+    return VisibleSelection(endingSelection().start().previous(BackwardDeletion), endingSelection().end());
+}
+
+// FIXME: Send an appropriate shouldDeleteRange call.
+bool CompositeEditCommand::breakOutOfEmptyListItem()
+{
+    if (!shouldBreakOutOfEmptyListItem())
         return false;
+
+    auto emptyListItem = enclosingEmptyListItem(endingSelection().visibleStart());
+    auto listNode = emptyListItem->parentNode();
+    auto style = EditingStyle::create(endingSelection().start());
+    style->mergeTypingStyle(document());
 
     RefPtr<Element> newBlock;
     if (ContainerNode* blockEnclosingList = listNode->parentNode()) {
@@ -1536,7 +1588,7 @@ bool CompositeEditCommand::breakOutOfEmptyListItem()
     if (isListItem(nextListNode.get()) || isListHTMLElement(nextListNode.get())) {
         // If emptyListItem follows another list item or nested list, split the list node.
         if (isListItem(previousListNode.get()) || isListHTMLElement(previousListNode.get()))
-            splitElement(downcast<Element>(listNode.get()), emptyListItem);
+            splitElement(downcast<Element>(listNode), emptyListItem);
 
         // If emptyListItem is followed by other list item or nested list, then insert newBlock before the list node.
         // Because we have splitted the element, emptyListItem is the first element in the list node.
@@ -1547,7 +1599,7 @@ bool CompositeEditCommand::breakOutOfEmptyListItem()
         // When emptyListItem does not follow any list item or nested list, insert newBlock after the enclosing list node.
         // Remove the enclosing node if emptyListItem is the only child; otherwise just remove emptyListItem.
         insertNodeAfter(newBlock, listNode);
-        removeNode(isListItem(previousListNode.get()) || isListHTMLElement(previousListNode.get()) ? emptyListItem.get() : listNode.get());
+        removeNode(isListItem(previousListNode.get()) || isListHTMLElement(previousListNode.get()) ? emptyListItem : listNode);
     }
 
     appendBlockPlaceholder(newBlock);
@@ -1555,7 +1607,7 @@ bool CompositeEditCommand::breakOutOfEmptyListItem()
 
     style->prepareToApplyAt(endingSelection().start());
     if (!style->isEmpty())
-        applyStyle(style.get());
+        applyStyle(style.ptr());
 
     return true;
 }

@@ -386,6 +386,8 @@ namespace JSC {
                 emitThrowExpressionTooDeepException();
                 return;
             }
+            if (UNLIKELY(n->needsDebugHook()))
+                emitDebugHook(n);
             n->emitBytecode(*this, dst);
         }
 
@@ -411,6 +413,8 @@ namespace JSC {
             ASSERT(!dst || dst == ignoredResult() || !dst->isTemporary() || dst->refCount());
             if (UNLIKELY(!m_vm->isSafeToRecurse()))
                 return emitThrowExpressionTooDeepException();
+            if (UNLIKELY(n->needsDebugHook()))
+                emitDebugHook(n);
             return n->emitBytecode(*this, dst);
         }
 
@@ -430,7 +434,6 @@ namespace JSC {
                 emitThrowExpressionTooDeepException();
                 return;
             }
-
             n->emitBytecodeInConditionContext(*this, trueTarget, falseTarget, fallThroughMode);
         }
 
@@ -573,7 +576,10 @@ namespace JSC {
         void emitPutGetterSetter(RegisterID* base, const Identifier& property, unsigned attributes, RegisterID* getter, RegisterID* setter);
         void emitPutGetterByVal(RegisterID* base, RegisterID* property, unsigned propertyDescriptorOptions, RegisterID* getter);
         void emitPutSetterByVal(RegisterID* base, RegisterID* property, unsigned propertyDescriptorOptions, RegisterID* setter);
-        
+
+        // Initialize object with generator fields (@generatorThis, @generatorNext, @generatorState, @generatorFrame)
+        void emitPutGeneratorFields(RegisterID* nextFunction);
+
         ExpectedFunction expectedFunctionForIdentifier(const Identifier&);
         RegisterID* emitCall(RegisterID* dst, RegisterID* func, ExpectedFunction, CallArguments&, const JSTextPosition& divot, const JSTextPosition& divotStart, const JSTextPosition& divotEnd, DebuggableCall);
         RegisterID* emitCallInTailPosition(RegisterID* dst, RegisterID* func, ExpectedFunction, CallArguments&, const JSTextPosition& divot, const JSTextPosition& divotStart, const JSTextPosition& divotEnd, DebuggableCall);
@@ -684,7 +690,7 @@ namespace JSC {
         void emitDebugHook(DebugHookType, const JSTextPosition&);
         void emitDebugHook(DebugHookType, unsigned line, unsigned charOffset, unsigned lineStart);
         void emitDebugHook(StatementNode*);
-        void emitDebugHook(ExpressionNode*, DebugHookType);
+        void emitDebugHook(ExpressionNode*);
         void emitWillLeaveCallFrameDebugHook();
 
         bool isInFinallyBlock() { return m_finallyDepth > 0; }
@@ -839,7 +845,7 @@ namespace JSC {
         {
             DerivedContextType newDerivedContextType = DerivedContextType::None;
 
-            if (metadata->parseMode() == SourceParseMode::ArrowFunctionMode) {
+            if (SourceParseModeSet(SourceParseMode::ArrowFunctionMode, SourceParseMode::AsyncArrowFunctionMode).contains(metadata->parseMode())) {
                 if (constructorKind() == ConstructorKind::Extends || isDerivedConstructorContext())
                     newDerivedContextType = DerivedContextType::DerivedConstructorContext;
                 else if (m_codeBlock->isClassContext() || isDerivedClassContext())
@@ -852,11 +858,9 @@ namespace JSC {
             // FIXME: These flags, ParserModes and propagation to XXXCodeBlocks should be reorganized.
             // https://bugs.webkit.org/show_bug.cgi?id=151547
             SourceParseMode parseMode = metadata->parseMode();
-            ConstructAbility constructAbility = ConstructAbility::CanConstruct;
-            if (parseMode == SourceParseMode::GetterMode || parseMode == SourceParseMode::SetterMode || parseMode == SourceParseMode::ArrowFunctionMode || parseMode == SourceParseMode::GeneratorWrapperFunctionMode)
-                constructAbility = ConstructAbility::CannotConstruct;
-            else if (parseMode == SourceParseMode::MethodMode && metadata->constructorKind() == ConstructorKind::None)
-                constructAbility = ConstructAbility::CannotConstruct;
+            ConstructAbility constructAbility = constructAbilityForParseMode(parseMode);
+            if (parseMode == SourceParseMode::MethodMode && metadata->constructorKind() != ConstructorKind::None)
+                constructAbility = ConstructAbility::CanConstruct;
 
             return UnlinkedFunctionExecutable::create(m_vm, m_scopeNode->source(), metadata, isBuiltinFunction() ? UnlinkedBuiltinFunction : UnlinkedNormalFunction, constructAbility, scriptMode(), variablesUnderTDZ, newDerivedContextType);
         }

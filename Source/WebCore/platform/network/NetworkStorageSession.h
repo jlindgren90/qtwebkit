@@ -30,7 +30,7 @@
 #include <wtf/text/WTFString.h>
 #include <functional>
 
-#if PLATFORM(COCOA) || USE(CFNETWORK)
+#if PLATFORM(COCOA) || USE(CFURLCONNECTION)
 #include "CFNetworkSPI.h"
 #include <wtf/RetainPtr.h>
 #endif
@@ -60,7 +60,7 @@ public:
     SessionID sessionID() const { return m_sessionID; }
     CredentialStorage& credentialStorage() { return m_credentialStorage; }
 
-#if PLATFORM(COCOA) || USE(CFNETWORK)
+#if PLATFORM(COCOA) || USE(CFURLCONNECTION)
     NetworkStorageSession(SessionID, RetainPtr<CFURLStorageSessionRef>);
 
     // May be null, in which case a Foundation default should be used.
@@ -85,7 +85,7 @@ private:
     static HashMap<SessionID, std::unique_ptr<NetworkStorageSession>>& globalSessionMap();
     SessionID m_sessionID;
 
-#if PLATFORM(COCOA) || USE(CFNETWORK)
+#if PLATFORM(COCOA) || USE(CFURLCONNECTION)
     RetainPtr<CFURLStorageSessionRef> m_platformSession;
 #elif USE(SOUP)
     std::unique_ptr<SoupNetworkSession> m_session;

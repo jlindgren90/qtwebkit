@@ -790,6 +790,8 @@ public:
     BytecodeKills& killsFor(CodeBlock*);
     BytecodeKills& killsFor(InlineCallFrame*);
     
+    static unsigned parameterSlotsForArgCount(unsigned);
+    
     unsigned frameRegisterCount();
     unsigned stackPointerOffset();
     unsigned requiredRegisterCountForExit();
@@ -899,11 +901,13 @@ public:
     Bag<LoadVarargsData> m_loadVarargsData;
     Bag<StackAccessData> m_stackAccessData;
     Bag<LazyJSValue> m_lazyJSValues;
+    Bag<CallDOMGetterData> m_callDOMGetterData;
     Vector<InlineVariableData, 4> m_inlineVariableData;
     HashMap<CodeBlock*, std::unique_ptr<FullBytecodeLiveness>> m_bytecodeLiveness;
     HashMap<CodeBlock*, std::unique_ptr<BytecodeKills>> m_bytecodeKills;
     HashSet<std::pair<JSObject*, PropertyOffset>> m_safeToLoad;
     HashMap<PropertyTypeKey, InferredType::Descriptor> m_inferredTypes;
+    Vector<RefPtr<DOMJIT::Patchpoint>> m_domJITPatchpoints;
     std::unique_ptr<Dominators> m_dominators;
     std::unique_ptr<PrePostNumbering> m_prePostNumbering;
     std::unique_ptr<NaturalLoops> m_naturalLoops;

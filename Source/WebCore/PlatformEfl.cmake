@@ -87,6 +87,7 @@ list(APPEND WebCore_SOURCES
     page/scrolling/AxisScrollSnapOffsets.cpp
 
     platform/KillRingNone.cpp
+    platform/StaticPasteboard.cpp
 
     platform/audio/efl/AudioBusEfl.cpp
 
@@ -182,6 +183,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/surfaces/glx/X11Helper.cpp
 
     platform/graphics/x11/PlatformDisplayX11.cpp
+    platform/graphics/x11/XErrorTrapper.cpp
     platform/graphics/x11/XUniqueResource.cpp
 
     platform/image-decoders/cairo/ImageBackingStoreCairo.cpp

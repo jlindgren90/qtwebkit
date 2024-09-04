@@ -348,6 +348,11 @@ void Graph::dump(PrintStream& out, const char* prefix, Node* node, DumpContext* 
         out.print(", offset = ", data->offset, ", mandatoryMinimum = ", data->mandatoryMinimum);
         out.print(", limit = ", data->limit);
     }
+    if (node->hasCallDOMGetterData()) {
+        CallDOMGetterData* data = node->callDOMGetterData();
+        out.print(comma, "id", data->identifierNumber, "{", identifiers()[data->identifierNumber], "}");
+        out.print(", domJIT = ", RawPointer(data->domJIT));
+    }
     if (node->isConstant())
         out.print(comma, pointerDumpInContext(node->constant(), context));
     if (node->isJump())
@@ -1157,6 +1162,13 @@ BitVector Graph::localsLiveInBytecode(CodeOrigin codeOrigin)
             result.quickSet(reg.toLocal());
         });
     return result;
+}
+
+unsigned Graph::parameterSlotsForArgCount(unsigned argCount)
+{
+    size_t frameSize = CallFrame::headerSizeInRegisters + argCount;
+    size_t alignedFrameSize = WTF::roundUpToMultipleOf(stackAlignmentRegisters(), frameSize);
+    return alignedFrameSize - CallerFrameAndPC::sizeInRegisters;
 }
 
 unsigned Graph::frameRegisterCount()

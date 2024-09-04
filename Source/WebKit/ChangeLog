@@ -1,3 +1,74 @@
+2016-10-25  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Check if jscLib and WebKitGUID targets exist before using them
+        https://bugs.webkit.org/show_bug.cgi?id=163945
+
+        Reviewed by Alex Christensen.
+
+        Currently these targets are used under WIN32 condition, however they
+        are defined in PlatformWin.cmake, causing CMake warnings if port
+        supports WIN32 but does not use PlatformWin.cmake
+
+        * CMakeLists.txt:
+
+2016-10-24  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] CMake build type is not set.
+        https://bugs.webkit.org/show_bug.cgi?id=163917
+
+        Reviewed by Alex Christensen.
+
+        The CMAKE_BUILD_TYPE variable should be set to Debug or Release.
+
+        * WebKit.vcxproj/WebKit.proj:
+
+2016-10-19  Alex Christensen  <achristensen@webkit.org>
+
+        Revert r207151
+        https://bugs.webkit.org/show_bug.cgi?id=163675
+
+        Reviewed by Brent Fulgham.
+
+        * WebCoreSupport/WebResourceLoadScheduler.cpp:
+        (WebResourceLoadScheduler::scheduleLoad):
+
+2016-10-14  Alex Christensen  <achristensen@webkit.org>
+
+        Fix CMake build.
+
+        * PlatformMac.cmake:
+
+2016-10-13  Anders Carlsson  <andersca@apple.com>
+
+        Move BackForwardList from WebCore to WebKitLegacy
+        https://bugs.webkit.org/show_bug.cgi?id=163418
+
+        Reviewed by Tim Horton.
+
+        * WebKit.xcodeproj/project.pbxproj:
+
+2016-10-12  Anders Carlsson  <andersca@apple.com>
+
+        Copy BackForwardList from WebCore to WebKit/win
+        https://bugs.webkit.org/show_bug.cgi?id=163360
+
+        Reviewed by Alex Christensen.
+
+        This is the first step towards getting rid of BackForwardList in WebCore.
+
+        * PlatformWin.cmake:
+        Add new files.
+
+2016-10-11  Alex Christensen  <achristensen@webkit.org>
+
+        Remove dead networking code
+        https://bugs.webkit.org/show_bug.cgi?id=163263
+
+        Reviewed by Daniel Bates.
+
+        * WebCoreSupport/WebResourceLoadScheduler.cpp:
+        (WebResourceLoadScheduler::scheduleLoad):
+
 2016-10-06  Brent Fulgham  <bfulgham@apple.com>
 
         Unreviewed build fix when building with Direct2D.

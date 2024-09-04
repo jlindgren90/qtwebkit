@@ -27,7 +27,7 @@
 
 #include "WebView.h"
 
-#include "BackForwardController.h"
+#include "BackForwardList.h"
 #include "COMVariantSetter.h"
 #include "DOMCoreClasses.h"
 #include "FullscreenVideoController.h"
@@ -84,7 +84,6 @@
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/BString.h>
 #include <WebCore/BackForwardController.h>
-#include <WebCore/BackForwardList.h>
 #include <WebCore/BitmapInfo.h>
 #include <WebCore/Chrome.h>
 #include <WebCore/ContextMenu.h>
@@ -165,6 +164,7 @@
 #include <WebCore/WindowMessageBroadcaster.h>
 #include <WebCore/WindowsTouch.h>
 #include <bindings/ScriptValue.h>
+#include <comdef.h>
 #include <d2d1.h>
 #include <wtf/MainThread.h>
 #include <wtf/RAMSize.h>
@@ -178,7 +178,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
 #include <CFNetwork/CFURLCachePriv.h>
 #include <CFNetwork/CFURLProtocolPriv.h>
 #include <WebKitSystemInterface/WebKitSystemInterface.h>
@@ -195,6 +195,10 @@
 
 #if ENABLE(FULLSCREEN_API)
 #include <WebCore/FullScreenController.h>
+#endif
+
+#if USE(DIRECT2D)
+#include <WebCore/RenderTargetScopedDrawing.h>
 #endif
 
 #include <ShlObj.h>
@@ -497,11 +501,11 @@ void WebView::setCacheModel(WebCacheModel cacheModel)
 
     String cacheDirectory;
 
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
     RetainPtr<CFURLCacheRef> cfurlCache = adoptCF(CFURLCacheCopySharedURLCache());
     RetainPtr<CFStringRef> cfurlCacheDirectory = adoptCF(wkCopyFoundationCacheDirectory(0));
     if (!cfurlCacheDirectory) {
-        RetainPtr<CFPropertyListRef> preference = adoptCF(CFPreferencesCopyAppValue(WebKitLocalCacheDefaultsKey, kCFPreferencesCurrentApplication));
+        RetainPtr<CFPropertyListRef> preference = adoptCF(CFPreferencesCopyAppValue(WebKitLocalCacheDefaultsKey, WebPreferences::applicationId()));
         if (preference && (CFStringGetTypeID() == CFGetTypeID(preference.get())))
             cfurlCacheDirectory = adoptCF(static_cast<CFStringRef>(preference.leakRef()));
         else
@@ -551,7 +555,7 @@ void WebView::setCacheModel(WebCacheModel cacheModel)
         // Memory cache capacity (in bytes)
         cacheMemoryCapacity = 0;
 
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
         // Foundation disk cache capacity (in bytes)
         cacheDiskCapacity = CFURLCacheDiskCapacity(cfurlCache.get());
 #endif
@@ -675,7 +679,7 @@ void WebView::setCacheModel(WebCacheModel cacheModel)
     memoryCache.setDeadDecodedDataDeletionInterval(deadDecodedDataDeletionInterval);
     PageCache::singleton().setMaxSize(pageCacheSize);
 
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
     // Don't shrink a big disk cache, since that would cause churn.
     cacheDiskCapacity = max(cacheDiskCapacity, CFURLCacheDiskCapacity(cfurlCache.get()));
 
@@ -1064,7 +1068,7 @@ void WebView::sizeChanged(const IntSize& newSize)
     // Create a Direct2D render target.
     auto renderTargetProperties = D2D1::RenderTargetProperties();
     renderTargetProperties.usage = D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
-    auto hwndRenderTargetProperties = D2D1::HwndRenderTargetProperties(m_viewWindow, newSize);
+    auto hwndRenderTargetProperties = D2D1::HwndRenderTargetProperties(m_viewWindow, newSize, D2D1_PRESENT_OPTIONS_IMMEDIATELY);
     HRESULT hr = GraphicsContext::systemFactory()->CreateHwndRenderTarget(&renderTargetProperties, &hwndRenderTargetProperties, &m_renderTarget);
     ASSERT(SUCCEEDED(hr));
 #endif
@@ -1237,45 +1241,42 @@ void WebView::paintWithDirect2D()
 
         auto pixelSize = D2D1::SizeU(clientRect.width(), clientRect.height());
 
-        auto hwndRenderTargetProperties = D2D1::HwndRenderTargetProperties(m_viewWindow, pixelSize);
+        auto hwndRenderTargetProperties = D2D1::HwndRenderTargetProperties(m_viewWindow, pixelSize, D2D1_PRESENT_OPTIONS_IMMEDIATELY);
         HRESULT hr = GraphicsContext::systemFactory()->CreateHwndRenderTarget(&renderTargetProperties, &hwndRenderTargetProperties, &m_renderTarget);
         if (!SUCCEEDED(hr))
             return;
     }
 
-    m_renderTarget->BeginDraw();
-
-    m_renderTarget->SetTags(WEBKIT_DRAWING, __LINE__);
-    m_renderTarget->Clear();
-
-    // Direct2D honors the scale factor natively.
-    float scaleFactor = 1.0f;
-    float inverseScaleFactor = 1.0f / scaleFactor;
-
-    RECT clientRect;
-    GetClientRect(m_viewWindow, &clientRect);
-
-    IntRect dirtyRectPixels(0, 0, clientRect.right, clientRect.bottom);
-    FloatRect logicalDirtyRectFloat = dirtyRectPixels;
-    logicalDirtyRectFloat.scale(inverseScaleFactor);
-    IntRect logicalDirtyRect(enclosingIntRect(logicalDirtyRectFloat));
-
+    RECT clientRect = {};
     GraphicsContext gc(m_renderTarget.get());
-    gc.setDidBeginDraw(true);
 
-    if (frameView && frameView->frame().contentRenderer()) {
-        gc.save();
-        gc.scale(FloatSize(scaleFactor, scaleFactor));
-        gc.clip(logicalDirtyRect);
-        frameView->paint(gc, logicalDirtyRect);
-        gc.restore();
-        if (m_shouldInvertColors)
-            gc.fillRect(logicalDirtyRect, Color::white, CompositeDifference);
+    {
+        WebCore::RenderTargetScopedDrawing scopedDraw(gc);
+
+        m_renderTarget->SetTags(WEBKIT_DRAWING, __LINE__);
+        m_renderTarget->Clear();
+
+        // Direct2D honors the scale factor natively.
+        float scaleFactor = 1.0f;
+        float inverseScaleFactor = 1.0f / scaleFactor;
+
+        GetClientRect(m_viewWindow, &clientRect);
+
+        IntRect dirtyRectPixels(0, 0, clientRect.right, clientRect.bottom);
+        FloatRect logicalDirtyRectFloat = dirtyRectPixels;
+        logicalDirtyRectFloat.scale(inverseScaleFactor);
+        IntRect logicalDirtyRect(enclosingIntRect(logicalDirtyRectFloat));
+
+        if (frameView && frameView->frame().contentRenderer()) {
+            gc.save();
+            gc.scale(FloatSize(scaleFactor, scaleFactor));
+            gc.clip(logicalDirtyRect);
+            frameView->paint(gc, logicalDirtyRect);
+            gc.restore();
+            if (m_shouldInvertColors)
+                gc.fillRect(logicalDirtyRect, Color::white, CompositeDifference);
+        }
     }
-
-    HRESULT hr = m_renderTarget->EndDraw();
-    // FIXME: Recognize and recover from error state:
-    UNUSED_PARAM(hr);
 
     ::ValidateRect(m_viewWindow, &clientRect);
 #else
@@ -1547,7 +1548,7 @@ void WebView::closeWindow()
 
 bool WebView::canHandleRequest(const WebCore::ResourceRequest& request)
 {
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
     // On the Mac there's an about URL protocol implementation but Windows CFNetwork doesn't have that.
     if (request.url().protocolIs("about"))
         return true;
@@ -3099,6 +3100,7 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
     m_inspectorClient = new WebInspectorClient(this);
 
     PageConfiguration configuration(makeUniqueRef<WebEditorClient>(this), SocketProvider::create());
+    configuration.backForwardClient = BackForwardList::create();
     configuration.chromeClient = new WebChromeClient(this);
     configuration.contextMenuClient = new WebContextMenuClient(this);
     configuration.dragClient = new WebDragClient(this);
@@ -3151,6 +3153,7 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
     m_page->setDeviceScaleFactor(deviceScaleFactor());
 
     setSmartInsertDeleteEnabled(TRUE);
+
     return hr;
 }
 
@@ -3430,7 +3433,7 @@ HRESULT WebView::backForwardList(_COM_Outptr_opt_ IWebBackForwardList** list)
     if (!m_useBackForwardList)
         return E_FAIL;
  
-    *list = WebBackForwardList::createInstance(static_cast<WebCore::BackForwardList*>(m_page->backForward().client()));
+    *list = WebBackForwardList::createInstance(static_cast<BackForwardList*>(m_page->backForward().client()));
 
     return S_OK;
 }
@@ -5261,7 +5264,7 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     hr = preferences->privateBrowsingEnabled(&enabled);
     if (FAILED(hr))
         return hr;
-#if PLATFORM(WIN) || USE(CFNETWORK)
+#if PLATFORM(WIN) || USE(CFURLCONNECTION)
     if (enabled)
         WebFrameNetworkingContext::ensurePrivateBrowsingSession();
     else
@@ -5560,7 +5563,7 @@ HRESULT updateSharedSettingsFromPreferencesIfNeeded(IWebPreferences* preferences
     if (FAILED(hr))
         return hr;
 
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
     WebFrameNetworkingContext::setCookieAcceptPolicyForAllContexts(acceptPolicy);
 #endif
 

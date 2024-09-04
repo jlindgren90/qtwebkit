@@ -263,7 +263,7 @@ void SVGInlineTextBox::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffse
     bool hasVisibleStroke = svgStyle.hasVisibleStroke();
 
     const RenderStyle* selectionStyle = &style;
-    if (hasSelection) {
+    if (hasSelection && shouldPaintSelectionHighlight) {
         selectionStyle = parentRenderer.getCachedPseudoStyle(SELECTION);
         if (selectionStyle) {
             const SVGRenderStyle& svgSelectionStyle = selectionStyle->svgStyle();

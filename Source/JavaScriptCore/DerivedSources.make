@@ -28,9 +28,10 @@ VPATH = \
     $(JavaScriptCore) \
     $(JavaScriptCore)/parser \
     $(JavaScriptCore)/runtime \
-	$(JavaScriptCore)/interpreter \
-	$(JavaScriptCore)/jit \
-	$(JavaScriptCore)/builtins \
+    $(JavaScriptCore)/interpreter \
+    $(JavaScriptCore)/jit \
+    $(JavaScriptCore)/builtins \
+    $(JavaScriptCore)/wasm/js \
 #
 
 PYTHON = python
@@ -88,6 +89,7 @@ JavaScriptCore_BUILTINS_SOURCES = \
     $(JavaScriptCore)/builtins/ArrayConstructor.js \
     $(JavaScriptCore)/builtins/ArrayIteratorPrototype.js \
     $(JavaScriptCore)/builtins/ArrayPrototype.js \
+    $(JavaScriptCore)/builtins/AsyncFunctionPrototype.js \
     $(JavaScriptCore)/builtins/DatePrototype.js \
     $(JavaScriptCore)/builtins/FunctionPrototype.js \
     $(JavaScriptCore)/builtins/GeneratorPrototype.js \
@@ -159,6 +161,19 @@ OBJECT_LUT_HEADERS = \
     StringPrototype.lut.h \
     SymbolConstructor.lut.h \
     SymbolPrototype.lut.h \
+    WebAssemblyCompileErrorConstructor.lut.h \
+    WebAssemblyCompileErrorPrototype.lut.h \
+    WebAssemblyInstanceConstructor.lut.h \
+    WebAssemblyInstancePrototype.lut.h \
+    WebAssemblyMemoryConstructor.lut.h \
+    WebAssemblyMemoryPrototype.lut.h \
+    WebAssemblyModuleConstructor.lut.h \
+    WebAssemblyModulePrototype.lut.h \
+    WebAssemblyPrototype.lut.h \
+    WebAssemblyRuntimeErrorConstructor.lut.h \
+    WebAssemblyRuntimeErrorPrototype.lut.h \
+    WebAssemblyTableConstructor.lut.h \
+    WebAssemblyTablePrototype.lut.h \
 #
 
 $(OBJECT_LUT_HEADERS): %.lut.h : %.cpp $(JavaScriptCore)/create_hash_table
@@ -209,6 +224,7 @@ INSPECTOR_DOMAINS = \
     $(JavaScriptCore)/inspector/protocol/Runtime.json \
     $(JavaScriptCore)/inspector/protocol/ScriptProfiler.json \
     $(JavaScriptCore)/inspector/protocol/Timeline.json \
+    $(JavaScriptCore)/inspector/protocol/Worker.json \
 #
 
 ifeq ($(findstring ENABLE_INDEXED_DATABASE,$(FEATURE_DEFINES)), ENABLE_INDEXED_DATABASE)

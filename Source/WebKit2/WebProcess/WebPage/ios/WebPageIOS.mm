@@ -2171,7 +2171,7 @@ void WebPage::syncApplyAutocorrection(const String& correction, const String& or
     
     frame.selection().setSelectedRange(range.get(), UPSTREAM, true);
     if (correction.length())
-        frame.editor().insertText(correction, 0);
+        frame.editor().insertText(correction, 0, originalText.isEmpty() ? TextEventInputKeyboard : TextEventInputAutocompletion);
     else
         frame.editor().deleteWithDirection(DirectionBackward, CharacterGranularity, false, true);
     correctionApplied = true;
@@ -2357,7 +2357,10 @@ void WebPage::getPositionInformation(const IntPoint& point, InteractionInformati
                                 screenSizeInPixels.scale(corePage()->deviceScaleFactor());
                                 FloatSize scaledSize = largestRectWithAspectRatioInsideRect(image->size().width() / image->size().height(), FloatRect(0, 0, screenSizeInPixels.width(), screenSizeInPixels.height())).size();
                                 FloatSize bitmapSize = scaledSize.width() < image->size().width() ? scaledSize : image->size();
-                                if (RefPtr<ShareableBitmap> sharedBitmap = ShareableBitmap::createShareable(IntSize(bitmapSize), ShareableBitmap::SupportsAlpha)) {
+                                // FIXME: Only select ExtendedColor on images known to need wide gamut
+                                ShareableBitmap::Flags flags = ShareableBitmap::SupportsAlpha;
+                                flags |= screenSupportsExtendedColor() ? ShareableBitmap::SupportsExtendedColor : 0;
+                                if (RefPtr<ShareableBitmap> sharedBitmap = ShareableBitmap::createShareable(IntSize(bitmapSize), flags)) {
                                     auto graphicsContext = sharedBitmap->createGraphicsContext();
                                     graphicsContext->drawImage(*image, FloatRect(0, 0, bitmapSize.width(), bitmapSize.height()));
                                     info.image = sharedBitmap;

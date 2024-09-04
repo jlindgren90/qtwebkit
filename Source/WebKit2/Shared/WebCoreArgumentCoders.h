@@ -127,6 +127,19 @@ class MediaSessionMetadata;
 }
 #endif
 
+#if ENABLE(MEDIA_STREAM)
+namespace WebCore {
+class CaptureDevice;
+struct MediaConstraintsData;
+}
+#endif
+
+#if ENABLE(INDEXED_DATABASE)
+namespace WebCore {
+using IDBKeyPath = Variant<String, Vector<String>>;
+}
+#endif
+
 namespace IPC {
 
 template<> struct ArgumentCoder<WebCore::AffineTransform> {
@@ -524,6 +537,27 @@ template<> struct ArgumentCoder<WebCore::PaymentRequest::ShippingMethod> {
 template<> struct ArgumentCoder<WebCore::PaymentRequest::TotalAndLineItems> {
     static void encode(Encoder&, const WebCore::PaymentRequest::TotalAndLineItems&);
     static bool decode(Decoder&, WebCore::PaymentRequest::TotalAndLineItems&);
+};
+
+#endif
+
+#if ENABLE(MEDIA_STREAM)
+template<> struct ArgumentCoder<WebCore::MediaConstraintsData> {
+    static void encode(Encoder&, const WebCore::MediaConstraintsData&);
+    static bool decode(Decoder&, WebCore::MediaConstraintsData&);
+};
+
+template<> struct ArgumentCoder<WebCore::CaptureDevice> {
+    static void encode(Encoder&, const WebCore::CaptureDevice&);
+    static bool decode(Decoder&, WebCore::CaptureDevice&);
+};
+#endif
+
+#if ENABLE(INDEXED_DATABASE)
+
+template<> struct ArgumentCoder<WebCore::IDBKeyPath> {
+    static void encode(Encoder&, const WebCore::IDBKeyPath&);
+    static bool decode(Decoder&, WebCore::IDBKeyPath&);
 };
 
 #endif

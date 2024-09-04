@@ -28,7 +28,7 @@
 
 #include "JSArrayBuffer.h"
 #include "JSCInlines.h"
-#include "Reject.h"
+#include "TypeError.h"
 
 namespace JSC {
 
@@ -184,6 +184,14 @@ void JSArrayBufferView::finalize(JSCell* cell)
     ASSERT(thisObject->m_mode == OversizeTypedArray || thisObject->m_mode == WastefulTypedArray);
     if (thisObject->m_mode == OversizeTypedArray)
         fastFree(thisObject->m_vector.get());
+}
+
+RefPtr<ArrayBufferView> JSArrayBufferView::toWrapped(JSValue value)
+{
+    auto* wrapper = jsDynamicCast<JSArrayBufferView*>(value);
+    if (!wrapper)
+        return nullptr;
+    return wrapper->impl();
 }
 
 } // namespace JSC

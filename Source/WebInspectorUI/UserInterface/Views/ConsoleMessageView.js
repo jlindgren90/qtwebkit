@@ -416,7 +416,7 @@ WebInspector.ConsoleMessageView = class ConsoleMessageView extends WebInspector.
             return parameter;
 
         if (typeof parameter === "object")
-            return WebInspector.RemoteObject.fromPayload(parameter);
+            return WebInspector.RemoteObject.fromPayload(parameter, this._message.target);
 
         return WebInspector.RemoteObject.fromPrimitiveValue(parameter);
     }
@@ -536,6 +536,7 @@ WebInspector.ConsoleMessageView = class ConsoleMessageView extends WebInspector.
             "weakset": this._formatParameterAsObject,
             "iterator": this._formatParameterAsObject,
             "class": this._formatParameterAsObject,
+            "proxy": this._formatParameterAsObject,
             "array": this._formatParameterAsArray,
             "node": this._formatParameterAsNode,
             "string": this._formatParameterAsString,

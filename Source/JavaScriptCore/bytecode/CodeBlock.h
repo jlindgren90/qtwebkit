@@ -35,7 +35,6 @@
 #include "CallLinkInfo.h"
 #include "CallReturnOffsetToBytecodeOffset.h"
 #include "CodeBlockHash.h"
-#include "CodeBlockSet.h"
 #include "CodeOrigin.h"
 #include "CodeType.h"
 #include "CompactJITCodeMap.h"
@@ -46,6 +45,7 @@
 #include "EvalCodeCache.h"
 #include "ExecutionCounter.h"
 #include "ExpressionRangeInfo.h"
+#include "FunctionExecutable.h"
 #include "HandlerInfo.h"
 #include "Instruction.h"
 #include "JITCode.h"
@@ -56,9 +56,11 @@
 #include "LLIntCallLinkInfo.h"
 #include "LLIntPrototypeLoadAdaptiveStructureWatchpoint.h"
 #include "LazyOperandValueProfile.h"
+#include "ModuleProgramExecutable.h"
 #include "ObjectAllocationProfile.h"
 #include "Options.h"
 #include "ProfilerJettisonReason.h"
+#include "ProgramExecutable.h"
 #include "PutPropertySlot.h"
 #include "UnconditionalFinalizer.h"
 #include "ValueProfile.h"
@@ -76,6 +78,7 @@
 namespace JSC {
 
 class BytecodeLivenessAnalysis;
+class CodeBlockSet;
 class ExecState;
 class JSModuleEnvironment;
 class LLIntOffsetsExtractor;
@@ -1311,38 +1314,6 @@ inline void CodeBlock::clearVisitWeaklyHasBeenCalled()
     m_visitWeaklyHasBeenCalled.store(false, std::memory_order_relaxed);
 }
 
-inline void CodeBlockSet::mark(const LockHolder& locker, void* candidateCodeBlock)
-{
-    ASSERT(m_lock.isLocked());
-    // We have to check for 0 and -1 because those are used by the HashMap as markers.
-    uintptr_t value = reinterpret_cast<uintptr_t>(candidateCodeBlock);
-    
-    // This checks for both of those nasty cases in one go.
-    // 0 + 1 = 1
-    // -1 + 1 = 0
-    if (value + 1 <= 1)
-        return;
-
-    CodeBlock* codeBlock = static_cast<CodeBlock*>(candidateCodeBlock); 
-    if (!m_oldCodeBlocks.contains(codeBlock) && !m_newCodeBlocks.contains(codeBlock))
-        return;
-
-    mark(locker, codeBlock);
-}
-
-inline void CodeBlockSet::mark(const LockHolder&, CodeBlock* codeBlock)
-{
-    if (!codeBlock)
-        return;
-
-    // Try to recover gracefully if we forget to execute a barrier for a
-    // CodeBlock that does value profiling. This is probably overkill, but we
-    // have always done it.
-    Heap::heap(codeBlock)->writeBarrier(codeBlock);
-
-    m_currentlyExecuting.add(codeBlock);
-}
-
 template <typename Functor> inline void ScriptExecutable::forEachCodeBlock(Functor&& functor)
 {
     switch (type()) {
@@ -1377,6 +1348,25 @@ template <typename Functor> inline void ScriptExecutable::forEachCodeBlock(Funct
     default:
         RELEASE_ASSERT_NOT_REACHED();
     }
+}
+
+template <typename ExecutableType>
+JSObject* ScriptExecutable::prepareForExecution(VM& vm, JSFunction* function, JSScope* scope, CodeSpecializationKind kind, CodeBlock*& resultCodeBlock)
+{
+    if (hasJITCodeFor(kind)) {
+        if (std::is_same<ExecutableType, EvalExecutable>::value)
+            resultCodeBlock = jsCast<CodeBlock*>(jsCast<EvalExecutable*>(this)->codeBlock());
+        else if (std::is_same<ExecutableType, ProgramExecutable>::value)
+            resultCodeBlock = jsCast<CodeBlock*>(jsCast<ProgramExecutable*>(this)->codeBlock());
+        else if (std::is_same<ExecutableType, ModuleProgramExecutable>::value)
+            resultCodeBlock = jsCast<CodeBlock*>(jsCast<ModuleProgramExecutable*>(this)->codeBlock());
+        else if (std::is_same<ExecutableType, FunctionExecutable>::value)
+            resultCodeBlock = jsCast<CodeBlock*>(jsCast<FunctionExecutable*>(this)->codeBlockFor(kind));
+        else
+            RELEASE_ASSERT_NOT_REACHED();
+        return nullptr;
+    }
+    return prepareForExecutionImpl(vm, function, scope, kind, resultCodeBlock);
 }
 
 #define CODEBLOCK_LOG_EVENT(codeBlock, summary, details) \

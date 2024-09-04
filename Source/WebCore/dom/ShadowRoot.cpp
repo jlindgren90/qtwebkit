@@ -48,10 +48,11 @@ struct SameSizeAsShadowRoot : public DocumentFragment, public TreeScope {
 
 COMPILE_ASSERT(sizeof(ShadowRoot) == sizeof(SameSizeAsShadowRoot), shadowroot_should_stay_small);
 
-ShadowRoot::ShadowRoot(Document& document, Mode type)
+ShadowRoot::ShadowRoot(Document& document, ShadowRootMode type)
     : DocumentFragment(document, CreateShadowRoot)
     , TreeScope(*this, document)
     , m_type(type)
+    , m_styleScope(std::make_unique<Style::Scope>(*this))
 {
 }
 
@@ -59,7 +60,8 @@ ShadowRoot::ShadowRoot(Document& document, Mode type)
 ShadowRoot::ShadowRoot(Document& document, std::unique_ptr<SlotAssignment>&& slotAssignment)
     : DocumentFragment(document, CreateShadowRoot)
     , TreeScope(*this, document)
-    , m_type(Mode::UserAgent)
+    , m_type(ShadowRootMode::UserAgent)
+    , m_styleScope(std::make_unique<Style::Scope>(*this))
     , m_slotAssignment(WTFMove(slotAssignment))
 {
 }
@@ -79,10 +81,23 @@ ShadowRoot::~ShadowRoot()
     removeDetachedChildren();
 }
 
+Node::InsertionNotificationRequest ShadowRoot::insertedInto(ContainerNode& insertionPoint)
+{
+    auto result = DocumentFragment::insertedInto(insertionPoint);
+    if (inDocument())
+        document().didInsertInDocumentShadowRoot(*this);
+    return result;
+}
+
+void ShadowRoot::removedFrom(ContainerNode& insertionPoint)
+{
+    if (inDocument())
+        document().didRemoveInDocumentShadowRoot(*this);
+    DocumentFragment::removedFrom(insertionPoint);
+}
+
 Style::Scope& ShadowRoot::styleScope()
 {
-    if (!m_styleScope)
-        m_styleScope = std::make_unique<Style::Scope>(*this);
     return *m_styleScope;
 }
 
@@ -118,14 +133,8 @@ bool ShadowRoot::childTypeAllowed(NodeType type) const
 
 void ShadowRoot::setResetStyleInheritance(bool value)
 {
-    if (isOrphan())
-        return;
-
-    if (value != m_resetStyleInheritance) {
-        m_resetStyleInheritance = value;
-        if (host())
-            setNeedsStyleRecalc();
-    }
+    // If this was ever changed after initialization, child styles would need to be invalidated here.
+    m_resetStyleInheritance = value;
 }
 
 Ref<Node> ShadowRoot::cloneNodeInternal(Document&, CloningOperation)

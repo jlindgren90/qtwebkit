@@ -127,7 +127,7 @@ static Node* moveOutOfUserAgentShadowTree(Node& node)
 {
     if (node.isInShadowTree()) {
         if (ShadowRoot* root = node.containingShadowRoot()) {
-            if (root->mode() == ShadowRoot::Mode::UserAgent)
+            if (root->mode() == ShadowRootMode::UserAgent)
                 return root->host();
         }
     }
@@ -784,6 +784,14 @@ Element* HitTestResult::innerNonSharedElement() const
     if (is<Element>(*node))
         return downcast<Element>(node);
     return node->parentElement();
+}
+
+const AtomicString& HitTestResult::URLElementDownloadAttribute() const
+{
+    auto* urlElement = URLElement();
+    if (!is<HTMLAnchorElement>(urlElement))
+        return nullAtom;
+    return urlElement->attributeWithoutSynchronization(HTMLNames::downloadAttr);
 }
 
 bool HitTestResult::mediaSupportsEnhancedFullscreen() const

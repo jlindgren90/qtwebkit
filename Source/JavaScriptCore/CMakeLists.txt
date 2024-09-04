@@ -35,6 +35,7 @@ set(JavaScriptCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/runtime"
     "${JAVASCRIPTCORE_DIR}/tools"
     "${JAVASCRIPTCORE_DIR}/wasm"
+    "${JAVASCRIPTCORE_DIR}/wasm/js"
     "${JAVASCRIPTCORE_DIR}/yarr"
     "${DERIVED_SOURCES_DIR}"
     "${DERIVED_SOURCES_DIR}/ForwardingHeaders"
@@ -95,6 +96,7 @@ set(JavaScriptCore_SOURCES
     b3/air/AirLowerEntrySwitch.cpp
     b3/air/AirLowerMacros.cpp
     b3/air/AirOptimizeBlockOrder.cpp
+    b3/air/AirPadInterference.cpp
     b3/air/AirPhaseScope.cpp
     b3/air/AirReportUsedRegisters.cpp
     b3/air/AirSimplifyCFG.cpp
@@ -172,6 +174,8 @@ set(JavaScriptCore_SOURCES
     b3/B3ValueRep.cpp
     b3/B3Variable.cpp
     b3/B3VariableValue.cpp
+    b3/B3WasmAddressValue.cpp
+    b3/B3WasmBoundsCheckValue.cpp
 
     bindings/ScriptFunctionCall.cpp
     bindings/ScriptObject.cpp
@@ -202,6 +206,7 @@ set(JavaScriptCore_SOURCES
     bytecode/ComplexGetStatus.cpp
     bytecode/DataFormat.cpp
     bytecode/DFGExitProfile.cpp
+    bytecode/DOMJITAccessCasePatchpointParams.cpp
     bytecode/DeferredCompilationCallback.cpp
     bytecode/DeferredSourceDump.cpp
     bytecode/ExecutionCounter.cpp
@@ -409,6 +414,9 @@ set(JavaScriptCore_SOURCES
     disassembler/udis86/udis86_syn-intel.c
     disassembler/udis86/udis86_syn.c
 
+    domjit/DOMJITAbstractHeap.cpp
+    domjit/DOMJITHeapRange.cpp
+
     ftl/FTLAbstractHeap.cpp
     ftl/FTLAbstractHeapRepository.cpp
     ftl/FTLAvailableRecovery.cpp
@@ -447,6 +455,7 @@ set(JavaScriptCore_SOURCES
 
     heap/AllocatorAttributes.cpp
     heap/CodeBlockSet.cpp
+    heap/CollectionScope.cpp
     heap/ConservativeRoots.cpp
     heap/DeferGC.cpp
     heap/DestructionMode.cpp
@@ -460,7 +469,6 @@ set(JavaScriptCore_SOURCES
     heap/Heap.cpp
     heap/HeapCell.cpp
     heap/HeapHelperPool.cpp
-    heap/HeapOperation.cpp
     heap/HeapProfiler.cpp
     heap/HeapSnapshot.cpp
     heap/HeapSnapshotBuilder.cpp
@@ -476,6 +484,7 @@ set(JavaScriptCore_SOURCES
     heap/MarkedAllocator.cpp
     heap/MarkedBlock.cpp
     heap/MarkedSpace.cpp
+    heap/MutatorState.cpp
     heap/SlotVisitor.cpp
     heap/Weak.cpp
     heap/WeakBlock.cpp
@@ -630,6 +639,8 @@ set(JavaScriptCore_SOURCES
     runtime/ArrayConventions.cpp
     runtime/ArrayIteratorPrototype.cpp
     runtime/ArrayPrototype.cpp
+    runtime/AsyncFunctionConstructor.cpp
+    runtime/AsyncFunctionPrototype.cpp
     runtime/BasicBlockLocation.cpp
     runtime/BooleanConstructor.cpp
     runtime/BooleanObject.cpp
@@ -664,13 +675,15 @@ set(JavaScriptCore_SOURCES
     runtime/ErrorHandlingScope.cpp
     runtime/ErrorInstance.cpp
     runtime/ErrorPrototype.cpp
+    runtime/EvalExecutable.cpp
     runtime/Exception.cpp
     runtime/ExceptionEventLocation.cpp
     runtime/ExceptionFuzz.cpp
     runtime/ExceptionHelpers.cpp
     runtime/ExceptionScope.cpp
-    runtime/Executable.cpp
+    runtime/ExecutableBase.cpp
     runtime/FunctionConstructor.cpp
+    runtime/FunctionExecutable.cpp
     runtime/FunctionExecutableDump.cpp
     runtime/FunctionHasExecutedCache.cpp
     runtime/FunctionPrototype.cpp
@@ -706,6 +719,7 @@ set(JavaScriptCore_SOURCES
     runtime/JSArrayBufferConstructor.cpp
     runtime/JSArrayBufferPrototype.cpp
     runtime/JSArrayBufferView.cpp
+    runtime/JSAsyncFunction.cpp
     runtime/JSBoundFunction.cpp
     runtime/JSCJSValue.cpp
     runtime/JSCallee.cpp
@@ -774,8 +788,10 @@ set(JavaScriptCore_SOURCES
     runtime/MathObject.cpp
     runtime/MemoryStatistics.cpp
     runtime/ModuleLoaderPrototype.cpp
+    runtime/ModuleProgramExecutable.cpp
     runtime/NativeErrorConstructor.cpp
     runtime/NativeErrorPrototype.cpp
+    runtime/NativeExecutable.cpp
     runtime/NativeStdFunctionCell.cpp
     runtime/NullGetterFunction.cpp
     runtime/NullSetterFunction.cpp
@@ -786,6 +802,7 @@ set(JavaScriptCore_SOURCES
     runtime/ObjectPrototype.cpp
     runtime/Operations.cpp
     runtime/Options.cpp
+    runtime/ProgramExecutable.cpp
     runtime/PropertyDescriptor.cpp
     runtime/PropertySlot.cpp
     runtime/PropertyTable.cpp
@@ -807,6 +824,7 @@ set(JavaScriptCore_SOURCES
     runtime/ScopeOffset.cpp
     runtime/ScopedArguments.cpp
     runtime/ScopedArgumentsTable.cpp
+    runtime/ScriptExecutable.cpp
     runtime/SetConstructor.cpp
     runtime/SetIteratorPrototype.cpp
     runtime/SetPrototype.cpp
@@ -829,9 +847,9 @@ set(JavaScriptCore_SOURCES
     runtime/SymbolObject.cpp
     runtime/SymbolPrototype.cpp
     runtime/SymbolTable.cpp
-    runtime/ThrowScope.cpp
     runtime/TemplateRegistry.cpp
     runtime/TestRunnerUtils.cpp
+    runtime/ThrowScope.cpp
     runtime/TypeLocationCache.cpp
     runtime/TypeProfiler.cpp
     runtime/TypeProfilerLog.cpp
@@ -848,6 +866,7 @@ set(JavaScriptCore_SOURCES
     runtime/WeakMapPrototype.cpp
     runtime/WeakSetConstructor.cpp
     runtime/WeakSetPrototype.cpp
+    runtime/WebAssemblyExecutable.cpp
 
     tools/CodeProfile.cpp
     tools/CodeProfiling.cpp
@@ -856,11 +875,32 @@ set(JavaScriptCore_SOURCES
     tools/JSDollarVM.cpp
     tools/JSDollarVMPrototype.cpp
 
-    wasm/JSWASMModule.cpp
-    wasm/WASMB3IRGenerator.cpp
-    wasm/WASMCallingConvention.cpp
-    wasm/WASMModuleParser.cpp
-    wasm/WASMPlan.cpp
+    wasm/JSWebAssembly.cpp
+    wasm/WasmB3IRGenerator.cpp
+    wasm/WasmCallingConvention.cpp
+    wasm/WasmMemory.cpp
+    wasm/WasmModuleParser.cpp
+    wasm/WasmPlan.cpp
+
+    wasm/js/JSWebAssemblyCompileError.cpp
+    wasm/js/JSWebAssemblyInstance.cpp
+    wasm/js/JSWebAssemblyMemory.cpp
+    wasm/js/JSWebAssemblyModule.cpp
+    wasm/js/JSWebAssemblyRuntimeError.cpp
+    wasm/js/JSWebAssemblyTable.cpp
+    wasm/js/WebAssemblyCompileErrorConstructor.cpp
+    wasm/js/WebAssemblyCompileErrorPrototype.cpp
+    wasm/js/WebAssemblyInstanceConstructor.cpp
+    wasm/js/WebAssemblyInstancePrototype.cpp
+    wasm/js/WebAssemblyMemoryConstructor.cpp
+    wasm/js/WebAssemblyMemoryPrototype.cpp
+    wasm/js/WebAssemblyModuleConstructor.cpp
+    wasm/js/WebAssemblyModulePrototype.cpp
+    wasm/js/WebAssemblyPrototype.cpp
+    wasm/js/WebAssemblyRuntimeErrorConstructor.cpp
+    wasm/js/WebAssemblyRuntimeErrorPrototype.cpp
+    wasm/js/WebAssemblyTableConstructor.cpp
+    wasm/js/WebAssemblyTablePrototype.cpp
 
     yarr/RegularExpression.cpp
     yarr/YarrCanonicalizeUCS2.cpp
@@ -912,6 +952,20 @@ set(JavaScriptCore_OBJECT_LUT_SOURCES
     runtime/StringPrototype.cpp
     runtime/SymbolConstructor.cpp
     runtime/SymbolPrototype.cpp
+
+    wasm/js/WebAssemblyCompileErrorConstructor.cpp
+    wasm/js/WebAssemblyCompileErrorPrototype.cpp
+    wasm/js/WebAssemblyInstanceConstructor.cpp
+    wasm/js/WebAssemblyInstancePrototype.cpp
+    wasm/js/WebAssemblyMemoryConstructor.cpp
+    wasm/js/WebAssemblyMemoryPrototype.cpp
+    wasm/js/WebAssemblyModuleConstructor.cpp
+    wasm/js/WebAssemblyModulePrototype.cpp
+    wasm/js/WebAssemblyPrototype.cpp
+    wasm/js/WebAssemblyRuntimeErrorConstructor.cpp
+    wasm/js/WebAssemblyRuntimeErrorPrototype.cpp
+    wasm/js/WebAssemblyTableConstructor.cpp
+    wasm/js/WebAssemblyTablePrototype.cpp
 )
 
 set(JavaScriptCore_LIBRARIES
@@ -1189,6 +1243,7 @@ set(JavaScriptCore_INSPECTOR_DOMAINS
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/Runtime.json
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/ScriptProfiler.json
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/Timeline.json
+    ${JAVASCRIPTCORE_DIR}/inspector/protocol/Worker.json
 )
 
 if (ENABLE_INDEXED_DATABASE)
@@ -1255,6 +1310,7 @@ set(JavaScriptCore_BUILTINS_SOURCES
     ${JAVASCRIPTCORE_DIR}/builtins/ArrayConstructor.js
     ${JAVASCRIPTCORE_DIR}/builtins/ArrayIteratorPrototype.js
     ${JAVASCRIPTCORE_DIR}/builtins/ArrayPrototype.js
+    ${JAVASCRIPTCORE_DIR}/builtins/AsyncFunctionPrototype.js
     ${JAVASCRIPTCORE_DIR}/builtins/DatePrototype.js
     ${JAVASCRIPTCORE_DIR}/builtins/FunctionPrototype.js
     ${JAVASCRIPTCORE_DIR}/builtins/GeneratorPrototype.js

@@ -143,7 +143,7 @@ void HTMLObjectElement::parseAttribute(const QualifiedName& name, const AtomicSt
         return;
 
     clearUseFallbackContent();
-    setNeedsStyleRecalc(ReconstructRenderTree);
+    invalidateStyleAndRenderersForSubtree();
 }
 
 static void mapDataParamToSrc(Vector<String>& paramNames, Vector<String>& paramValues)
@@ -373,7 +373,7 @@ void HTMLObjectElement::childrenChanged(const ChildChange& change)
     updateDocNamedItem();
     if (inDocument() && !useFallbackContent()) {
         setNeedsWidgetUpdate(true);
-        setNeedsStyleRecalc();
+        invalidateStyleForSubtree();
     }
     HTMLPlugInImageElement::childrenChanged(change);
 }
@@ -396,7 +396,7 @@ void HTMLObjectElement::renderFallbackContent()
     if (!inDocument())
         return;
 
-    setNeedsStyleRecalc(ReconstructRenderTree);
+    invalidateStyleAndRenderersForSubtree();
 
     // Before we give up and use fallback content, check to see if this is a MIME type issue.
     auto* loader = imageLoader();

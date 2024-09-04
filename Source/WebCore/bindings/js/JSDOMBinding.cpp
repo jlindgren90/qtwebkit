@@ -64,13 +64,6 @@ void addImpureProperty(const AtomicString& propertyName)
     JSDOMWindow::commonVM().addImpureProperty(propertyName);
 }
 
-JSValue jsStringOrNull(ExecState* exec, const String& s)
-{
-    if (s.isNull())
-        return jsNull();
-    return jsStringWithCache(exec, s);
-}
-
 JSValue jsOwnedStringOrNull(ExecState* exec, const String& s)
 {
     if (s.isNull())
@@ -90,32 +83,11 @@ JSValue jsString(ExecState* exec, const URL& url)
     return jsStringWithCache(exec, url.string());
 }
 
-JSValue jsStringOrNull(ExecState* exec, const URL& url)
-{
-    if (url.isNull())
-        return jsNull();
-    return jsStringWithCache(exec, url.string());
-}
-
 JSValue jsStringOrUndefined(ExecState* exec, const URL& url)
 {
     if (url.isNull())
         return jsUndefined();
     return jsStringWithCache(exec, url.string());
-}
-
-String valueToStringTreatingNullAsEmptyString(ExecState* exec, JSValue value)
-{
-    if (value.isNull())
-        return emptyString();
-    return value.toString(exec)->value(exec);
-}
-
-String valueToStringWithUndefinedOrNullCheck(ExecState* exec, JSValue value)
-{
-    if (value.isUndefinedOrNull())
-        return String();
-    return value.toString(exec)->value(exec);
 }
 
 static inline bool hasUnpairedSurrogate(StringView string)
@@ -156,26 +128,8 @@ String valueToUSVString(ExecState* exec, JSValue value)
     return result.toString();
 }
 
-String valueToUSVStringTreatingNullAsEmptyString(ExecState* exec, JSValue value)
-{
-    return value.isNull() ? emptyString() : valueToUSVString(exec, value);
-}
-
-String valueToUSVStringWithUndefinedOrNullCheck(ExecState* exec, JSValue value)
-{
-    return value.isUndefinedOrNull() ? String() : valueToUSVString(exec, value);
-}
-
 JSValue jsDate(ExecState* exec, double value)
 {
-    return DateInstance::create(exec->vm(), exec->lexicalGlobalObject()->dateStructure(), value);
-}
-
-JSValue jsDateOrNull(ExecState* exec, double value)
-{
-    // For nullable Date types, we use NaN as null value.
-    if (std::isnan(value))
-        return jsNull();
     return DateInstance::create(exec->vm(), exec->lexicalGlobalObject()->dateStructure(), value);
 }
 
@@ -512,12 +466,12 @@ static inline T toSmallerInt(ExecState& state, JSValue value, IntegerConversionC
         if (d >= LimitsTrait::minValue && d <= LimitsTrait::maxValue)
             return static_cast<T>(d);
         switch (configuration) {
-        case NormalConversion:
+        case IntegerConversionConfiguration::Normal:
             break;
-        case EnforceRange:
+        case IntegerConversionConfiguration::EnforceRange:
             throwTypeError(&state, scope);
             return 0;
-        case Clamp:
+        case IntegerConversionConfiguration::Clamp:
             return d < LimitsTrait::minValue ? LimitsTrait::minValue : LimitsTrait::maxValue;
         }
         d %= LimitsTrait::numberOfValues;
@@ -528,11 +482,11 @@ static inline T toSmallerInt(ExecState& state, JSValue value, IntegerConversionC
     RETURN_IF_EXCEPTION(scope, 0);
 
     switch (configuration) {
-    case NormalConversion:
+    case IntegerConversionConfiguration::Normal:
         break;
-    case EnforceRange:
+    case IntegerConversionConfiguration::EnforceRange:
         return enforceRange(state, x, LimitsTrait::minValue, LimitsTrait::maxValue);
-    case Clamp:
+    case IntegerConversionConfiguration::Clamp:
         return std::isnan(x) ? 0 : clampTo<T>(x);
     }
 
@@ -560,12 +514,12 @@ static inline T toSmallerUInt(ExecState& state, JSValue value, IntegerConversion
         if (d <= LimitsTrait::maxValue)
             return static_cast<T>(d);
         switch (configuration) {
-        case NormalConversion:
+        case IntegerConversionConfiguration::Normal:
             return static_cast<T>(d);
-        case EnforceRange:
+        case IntegerConversionConfiguration::EnforceRange:
             throwTypeError(&state, scope);
             return 0;
-        case Clamp:
+        case IntegerConversionConfiguration::Clamp:
             return LimitsTrait::maxValue;
         }
     }
@@ -574,11 +528,11 @@ static inline T toSmallerUInt(ExecState& state, JSValue value, IntegerConversion
     RETURN_IF_EXCEPTION(scope, 0);
 
     switch (configuration) {
-    case NormalConversion:
+    case IntegerConversionConfiguration::Normal:
         break;
-    case EnforceRange:
+    case IntegerConversionConfiguration::EnforceRange:
         return enforceRange(state, x, 0, LimitsTrait::maxValue);
-    case Clamp:
+    case IntegerConversionConfiguration::Clamp:
         return std::isnan(x) ? 0 : clampTo<T>(x);
     }
 
@@ -591,66 +545,66 @@ static inline T toSmallerUInt(ExecState& state, JSValue value, IntegerConversion
 
 int8_t toInt8EnforceRange(JSC::ExecState& state, JSValue value)
 {
-    return toSmallerInt<int8_t>(state, value, EnforceRange);
+    return toSmallerInt<int8_t>(state, value, IntegerConversionConfiguration::EnforceRange);
 }
 
 uint8_t toUInt8EnforceRange(JSC::ExecState& state, JSValue value)
 {
-    return toSmallerUInt<uint8_t>(state, value, EnforceRange);
+    return toSmallerUInt<uint8_t>(state, value, IntegerConversionConfiguration::EnforceRange);
 }
 
 int8_t toInt8Clamp(JSC::ExecState& state, JSValue value)
 {
-    return toSmallerInt<int8_t>(state, value, Clamp);
+    return toSmallerInt<int8_t>(state, value, IntegerConversionConfiguration::Clamp);
 }
 
 uint8_t toUInt8Clamp(JSC::ExecState& state, JSValue value)
 {
-    return toSmallerUInt<uint8_t>(state, value, Clamp);
+    return toSmallerUInt<uint8_t>(state, value, IntegerConversionConfiguration::Clamp);
 }
 
 // http://www.w3.org/TR/WebIDL/#es-byte
 int8_t toInt8(ExecState& state, JSValue value)
 {
-    return toSmallerInt<int8_t>(state, value, NormalConversion);
+    return toSmallerInt<int8_t>(state, value, IntegerConversionConfiguration::Normal);
 }
 
 // http://www.w3.org/TR/WebIDL/#es-octet
 uint8_t toUInt8(ExecState& state, JSValue value)
 {
-    return toSmallerUInt<uint8_t>(state, value, NormalConversion);
+    return toSmallerUInt<uint8_t>(state, value, IntegerConversionConfiguration::Normal);
 }
 
 int16_t toInt16EnforceRange(ExecState& state, JSValue value)
 {
-    return toSmallerInt<int16_t>(state, value, EnforceRange);
+    return toSmallerInt<int16_t>(state, value, IntegerConversionConfiguration::EnforceRange);
 }
 
 uint16_t toUInt16EnforceRange(ExecState& state, JSValue value)
 {
-    return toSmallerUInt<uint16_t>(state, value, EnforceRange);
+    return toSmallerUInt<uint16_t>(state, value, IntegerConversionConfiguration::EnforceRange);
 }
 
 int16_t toInt16Clamp(ExecState& state, JSValue value)
 {
-    return toSmallerInt<int16_t>(state, value, Clamp);
+    return toSmallerInt<int16_t>(state, value, IntegerConversionConfiguration::Clamp);
 }
 
 uint16_t toUInt16Clamp(ExecState& state, JSValue value)
 {
-    return toSmallerUInt<uint16_t>(state, value, Clamp);
+    return toSmallerUInt<uint16_t>(state, value, IntegerConversionConfiguration::Clamp);
 }
 
 // http://www.w3.org/TR/WebIDL/#es-short
 int16_t toInt16(ExecState& state, JSValue value)
 {
-    return toSmallerInt<int16_t>(state, value, NormalConversion);
+    return toSmallerInt<int16_t>(state, value, IntegerConversionConfiguration::Normal);
 }
 
 // http://www.w3.org/TR/WebIDL/#es-unsigned-short
 uint16_t toUInt16(ExecState& state, JSValue value)
 {
-    return toSmallerUInt<uint16_t>(state, value, NormalConversion);
+    return toSmallerUInt<uint16_t>(state, value, IntegerConversionConfiguration::Normal);
 }
 
 // http://www.w3.org/TR/WebIDL/#es-long
@@ -932,6 +886,18 @@ void throwAttributeTypeError(JSC::ExecState& state, JSC::ThrowScope& scope, cons
     throwTypeError(state, scope, makeString("The ", interfaceName, '.', attributeName, " attribute must be an instance of ", expectedType));
 }
 
+JSC::EncodedJSValue throwRequiredMemberTypeError(JSC::ExecState& state, JSC::ThrowScope& scope, const char* memberName, const char* dictionaryName, const char* expectedType)
+{
+    StringBuilder builder;
+    builder.appendLiteral("Member ");
+    builder.append(dictionaryName);
+    builder.append('.');
+    builder.append(memberName);
+    builder.appendLiteral(" is required and must be an instance of ");
+    builder.append(expectedType);
+    return throwVMTypeError(&state, scope, builder.toString());
+}
+
 JSC::EncodedJSValue throwConstructorScriptExecutionContextUnavailableError(JSC::ExecState& state, JSC::ThrowScope& scope, const char* interfaceName)
 {
     return throwVMError(&state, scope, createReferenceError(&state, makeString(interfaceName, " constructor associated execution context is unavailable")));
@@ -976,6 +942,17 @@ String makeThisTypeErrorMessage(const char* interfaceName, const char* functionN
 EncodedJSValue throwThisTypeError(JSC::ExecState& state, JSC::ThrowScope& scope, const char* interfaceName, const char* functionName)
 {
     return throwTypeError(state, scope, makeThisTypeErrorMessage(interfaceName, functionName));
+}
+
+JSC::EncodedJSValue rejectPromiseWithThisTypeError(DeferredPromise& promise, const char* interfaceName, const char* methodName)
+{
+    promise.reject(TypeError, makeThisTypeErrorMessage(interfaceName, methodName));
+    return JSValue::encode(jsUndefined());
+}
+
+JSC::EncodedJSValue rejectPromiseWithThisTypeError(JSC::ExecState& state, const char* interfaceName, const char* methodName)
+{
+    return createRejectedPromiseWithTypeError(state, makeThisTypeErrorMessage(interfaceName, methodName));
 }
 
 void callFunctionWithCurrentArguments(JSC::ExecState& state, JSC::JSObject& thisObject, JSC::JSFunction& function)

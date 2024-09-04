@@ -1196,12 +1196,6 @@ void RenderLayerCompositor::computeExtent(const OverlapMap& overlapMap, const Re
         // Because fixed elements get moved around without re-computing overlap, we have to compute an overlap
         // rect that covers all the locations that the fixed element could move to.
         // FIXME: need to handle sticky too.
-        LayoutRect viewportRect;
-        if (m_renderView.frameView().useFixedLayout())
-            viewportRect = m_renderView.unscaledDocumentRect();
-        else
-            viewportRect = m_renderView.frameView().viewportConstrainedVisibleContentRect();
-
         extent.bounds = m_renderView.frameView().fixedScrollableAreaBoundsInflatedForScrolling(extent.bounds);
     }
 
@@ -2544,7 +2538,7 @@ bool RenderLayerCompositor::requiresCompositingForCanvas(RenderLayerModelObject&
         bool isCanvasLargeEnoughToForceCompositing = true;
 #else
         HTMLCanvasElement* canvas = downcast<HTMLCanvasElement>(renderer.element());
-        bool isCanvasLargeEnoughToForceCompositing = canvas->size().area() >= canvasAreaThresholdRequiringCompositing;
+        bool isCanvasLargeEnoughToForceCompositing = canvas->size().area().unsafeGet() >= canvasAreaThresholdRequiringCompositing;
 #endif
         CanvasCompositingStrategy compositingStrategy = canvasCompositingStrategy(renderer);
         return compositingStrategy == CanvasAsLayerContents || (compositingStrategy == CanvasPaintedToLayer && isCanvasLargeEnoughToForceCompositing);
@@ -3549,7 +3543,7 @@ void RenderLayerCompositor::attachRootLayer(RootLayerAttachment attachment)
         case RootLayerAttachedViaEnclosingFrame: {
             // The layer will get hooked up via RenderLayerBacking::updateConfiguration()
             // for the frame's renderer in the parent document.
-            m_renderView.document().ownerElement()->scheduleSetNeedsStyleRecalc(SyntheticStyleChange);
+            m_renderView.document().ownerElement()->scheduleinvalidateStyleAndLayerComposition();
             break;
         }
     }
@@ -3578,7 +3572,7 @@ void RenderLayerCompositor::detachRootLayer()
             m_rootContentLayer->removeFromParent();
 
         if (HTMLFrameOwnerElement* ownerElement = m_renderView.document().ownerElement())
-            ownerElement->scheduleSetNeedsStyleRecalc(SyntheticStyleChange);
+            ownerElement->scheduleinvalidateStyleAndLayerComposition();
         break;
     }
     case RootLayerAttachedViaChromeClient: {
@@ -3637,7 +3631,7 @@ void RenderLayerCompositor::notifyIFramesOfCompositingChange()
     // Compositing affects the answer to RenderIFrame::requiresAcceleratedCompositing(), so
     // we need to schedule a style recalc in our parent document.
     if (HTMLFrameOwnerElement* ownerElement = m_renderView.document().ownerElement())
-        ownerElement->scheduleSetNeedsStyleRecalc(SyntheticStyleChange);
+        ownerElement->scheduleinvalidateStyleAndLayerComposition();
 }
 
 bool RenderLayerCompositor::layerHas3DContent(const RenderLayer& layer) const

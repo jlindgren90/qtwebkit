@@ -116,6 +116,10 @@ void UIScriptController::typeCharacterUsingHardwareKeyboard(JSStringRef characte
 {
 }
 
+void UIScriptController::selectTextCandidateAtIndex(long, JSValueRef)
+{
+}
+
 void UIScriptController::keyDownUsingHardwareKeyboard(JSStringRef character, JSValueRef callback)
 {
 }
@@ -171,6 +175,14 @@ void UIScriptController::platformSetDidStartFormControlInteractionCallback()
 }
 
 void UIScriptController::platformSetDidEndFormControlInteractionCallback()
+{
+}
+    
+void UIScriptController::platformSetDidShowForcePressPreviewCallback()
+{
+}
+
+void UIScriptController::platformSetDidDismissForcePressPreviewCallback()
 {
 }
 

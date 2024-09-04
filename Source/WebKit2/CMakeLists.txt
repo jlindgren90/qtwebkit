@@ -185,10 +185,12 @@ endif ()
 
 set(NetworkProcess_COMMON_SOURCES
     NetworkProcess/NetworkConnectionToWebProcess.cpp
+    NetworkProcess/NetworkDataTask.cpp
     NetworkProcess/NetworkLoad.cpp
     NetworkProcess/NetworkProcess.cpp
     NetworkProcess/NetworkProcessPlatformStrategies.cpp
     NetworkProcess/NetworkResourceLoader.cpp
+    NetworkProcess/NetworkSession.cpp
 
     NetworkProcess/FileAPI/NetworkBlobRegistry.cpp
 
@@ -220,6 +222,7 @@ set(WebKit2_SOURCES
     NetworkProcess/Downloads/BlobDownloadClient.cpp
     NetworkProcess/Downloads/Download.cpp
     NetworkProcess/Downloads/DownloadManager.cpp
+    NetworkProcess/Downloads/PendingDownload.cpp
 
     Platform/Logging.cpp
     Platform/Module.cpp

@@ -21,7 +21,6 @@
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
- *
  */
 
 #pragma once
@@ -43,7 +42,10 @@ class WorkerGlobalScope;
 class WorkerLoaderProxy;
 class WorkerReportingProxy;
 
-enum WorkerThreadStartMode { DontPauseWorkerGlobalScopeOnStart, PauseWorkerGlobalScopeOnStart };
+enum class WorkerThreadStartMode {
+    Normal,
+    WaitForInspector,
+};
 
 namespace IDBClient {
 class IDBConnectionProxy;
@@ -72,6 +74,9 @@ public:
     void setNotificationClient(NotificationClient* client) { m_notificationClient = client; }
 #endif
 
+    void startRunningDebuggerTasks();
+    void stopRunningDebuggerTasks();
+
 protected:
     WorkerThread(const URL&, const String& userAgent, const String& sourceCode, WorkerLoaderProxy&, WorkerReportingProxy&, WorkerThreadStartMode, const ContentSecurityPolicyResponseHeaders&, bool shouldBypassMainWorldContentSecurityPolicy, const SecurityOrigin* topOrigin, IDBClient::IDBConnectionProxy*, SocketProvider*);
 
@@ -95,6 +100,7 @@ private:
     WorkerRunLoop m_runLoop;
     WorkerLoaderProxy& m_workerLoaderProxy;
     WorkerReportingProxy& m_workerReportingProxy;
+    bool m_pausedForDebugger { false };
 
     RefPtr<WorkerGlobalScope> m_workerGlobalScope;
     Lock m_threadCreationMutex;
@@ -102,7 +108,7 @@ private:
     std::unique_ptr<WorkerThreadStartupData> m_startupData;
 
 #if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
-    NotificationClient* m_notificationClient;
+    NotificationClient* m_notificationClient { nullptr };
 #endif
 
 #if ENABLE(INDEXED_DATABASE)
@@ -114,4 +120,3 @@ private:
 };
 
 } // namespace WebCore
-

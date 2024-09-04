@@ -173,8 +173,7 @@ InputType::~InputType()
 bool InputType::themeSupportsDataListUI(InputType* type)
 {
     Document& document = type->element().document();
-    RefPtr<RenderTheme> theme = document.page() ? &document.page()->theme() : RenderTheme::defaultTheme();
-    return theme->supportsDataListUI(type->formControlType());
+    return RenderTheme::themeForPage(document.page())->supportsDataListUI(type->formControlType());
 }
 
 bool InputType::isTextField() const
@@ -683,7 +682,7 @@ bool InputType::storesValueSeparateFromAttribute()
 void InputType::setValue(const String& sanitizedValue, bool valueChanged, TextFieldEventBehavior eventBehavior)
 {
     element().setValueInternal(sanitizedValue, eventBehavior);
-    element().setNeedsStyleRecalc();
+    element().invalidateStyleForSubtree();
     if (!valueChanged)
         return;
     switch (eventBehavior) {

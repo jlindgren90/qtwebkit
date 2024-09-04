@@ -39,11 +39,28 @@
 #include <WebCore/SharedBuffer.h>
 #include <wtf/MainThread.h>
 
+#if PLATFORM(COCOA)
+#include "NetworkDataTaskCocoa.h"
+#endif
+
 namespace WebKit {
 
 using namespace WebCore;
 
 #if USE(NETWORK_SESSION)
+
+struct NetworkLoad::Throttle {
+    Throttle(NetworkLoad& load, std::chrono::milliseconds delay, ResourceResponse&& response, ResponseCompletionHandler&& handler)
+        : timer(load, &NetworkLoad::throttleDelayCompleted)
+        , response(WTFMove(response))
+        , responseCompletionHandler(WTFMove(handler))
+    {
+        timer.startOneShot(delay);
+    }
+    Timer timer;
+    ResourceResponse response;
+    ResponseCompletionHandler responseCompletionHandler;
+};
 
 NetworkLoad::NetworkLoad(NetworkLoadClient& client, NetworkLoadParameters&& parameters, NetworkSession& networkSession)
     : m_client(client)
@@ -189,12 +206,13 @@ void NetworkLoad::convertTaskToDownload(DownloadID downloadID, const ResourceReq
     if (!m_task)
         return;
 
-    NetworkProcess::singleton().downloadManager().downloadProxyConnection()->send(Messages::DownloadProxy::DidStart(updatedRequest, String()), downloadID.downloadID());
+    m_currentRequest = updatedRequest;
+    NetworkProcess::singleton().downloadManager().downloadProxyConnection()->send(Messages::DownloadProxy::DidStart(m_currentRequest, String()), downloadID.downloadID());
     m_task->setPendingDownloadID(downloadID);
     
     ASSERT(m_responseCompletionHandler);
     if (m_responseCompletionHandler)
-        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), std::exchange(m_responseCompletionHandler, nullptr), updatedRequest, response);
+        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), std::exchange(m_responseCompletionHandler, nullptr), response);
 }
 
 void NetworkLoad::setPendingDownloadID(DownloadID downloadID)
@@ -270,16 +288,37 @@ void NetworkLoad::completeAuthenticationChallenge(ChallengeCompletionHandler&& c
 void NetworkLoad::didReceiveResponseNetworkSession(ResourceResponse&& response, ResponseCompletionHandler&& completionHandler)
 {
     ASSERT(isMainThread());
-    if (m_task && m_task->pendingDownloadID().downloadID())
-        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), WTFMove(completionHandler), m_task->currentRequest(), response);
-    else if (sharedDidReceiveResponse(WTFMove(response)) == NetworkLoadClient::ShouldContinueDidReceiveResponse::Yes)
-        completionHandler(PolicyUse);
-    else
+    ASSERT(!m_throttle);
+
+    if (m_task && m_task->isDownload()) {
+        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), WTFMove(completionHandler), response);
+        return;
+    }
+
+    auto delay = NetworkProcess::singleton().loadThrottleLatency();
+    if (delay > 0ms) {
+        m_throttle = std::make_unique<Throttle>(*this, delay, WTFMove(response), WTFMove(completionHandler));
+        return;
+    }
+
+    notifyDidReceiveResponse(WTFMove(response), WTFMove(completionHandler));
+}
+
+void NetworkLoad::notifyDidReceiveResponse(ResourceResponse&& response, ResponseCompletionHandler&& completionHandler)
+{
+    ASSERT(isMainThread());
+
+    if (sharedDidReceiveResponse(WTFMove(response)) == NetworkLoadClient::ShouldContinueDidReceiveResponse::No) {
         m_responseCompletionHandler = WTFMove(completionHandler);
+        return;
+    }
+    completionHandler(PolicyUse);
 }
 
 void NetworkLoad::didReceiveData(Ref<SharedBuffer>&& buffer)
 {
+    ASSERT(!m_throttle);
+
     // FIXME: This should be the encoded data length, not the decoded data length.
     auto size = buffer->size();
     m_client.didReceiveBuffer(WTFMove(buffer), size);
@@ -287,10 +326,21 @@ void NetworkLoad::didReceiveData(Ref<SharedBuffer>&& buffer)
 
 void NetworkLoad::didCompleteWithError(const ResourceError& error)
 {
+    ASSERT(!m_throttle);
+
     if (error.isNull())
         m_client.didFinishLoading(WTF::monotonicallyIncreasingTime());
     else
         m_client.didFailLoading(error);
+}
+
+void NetworkLoad::throttleDelayCompleted()
+{
+    ASSERT(m_throttle);
+
+    auto throttle = WTFMove(m_throttle);
+
+    notifyDidReceiveResponse(WTFMove(throttle->response), WTFMove(throttle->responseCompletionHandler));
 }
 
 void NetworkLoad::didBecomeDownload()

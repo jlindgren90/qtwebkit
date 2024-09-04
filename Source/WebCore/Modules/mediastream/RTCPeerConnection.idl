@@ -34,8 +34,8 @@
     ActiveDOMObject,
     Conditional=WEB_RTC,
     ConstructorCallWith=ScriptExecutionContext,
+    ExportMacro=WEBCORE_EXPORT,
     JSBuiltinConstructor,
-    InterfaceName=webkitRTCPeerConnection,
 ] interface RTCPeerConnection : EventTarget {
     // Private initializer
     [PrivateIdentifier, CallWith=Document, MayThrowLegacyException] void initializeWith(Dictionary parameters);

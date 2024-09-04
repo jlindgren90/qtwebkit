@@ -190,6 +190,9 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
             m_resource->responseReceived(opaqueRedirectedResponse);
             didFinishLoading(currentTime());
             return;
+        } else if (m_redirectCount++ >= options().maxRedirectCount) {
+            cancel(ResourceError(String(), 0, request().url(), ASCIILiteral("Too many redirections"), ResourceError::Type::General));
+            return;
         }
 
         // CachedResources are keyed off their original request URL.
@@ -203,7 +206,7 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
                 m_frame->page()->diagnosticLoggingClient().logDiagnosticMessageWithResult(DiagnosticLoggingKeys::cachedResourceRevalidationKey(), emptyString(), DiagnosticLoggingResultFail, ShouldSample::Yes);
         }
 
-        if (!m_documentLoader->cachedResourceLoader().canRequestAfterRedirection(m_resource->type(), newRequest.url(), options())) {
+        if (!m_documentLoader->cachedResourceLoader().updateRequestAfterRedirection(m_resource->type(), newRequest, options())) {
             cancel();
             return;
         }
@@ -229,8 +232,13 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
         return;
 
     ResourceLoader::willSendRequestInternal(newRequest, redirectResponse);
-    if (newRequest.isNull())
+    if (newRequest.isNull()) {
         cancel();
+        return;
+    }
+
+    if (m_resource->type() == CachedResource::MainResource && !redirectResponse.isNull())
+        m_documentLoader->willContinueMainResourceLoadAfterRedirect(newRequest);
 }
 
 void SubresourceLoader::didSendData(unsigned long long bytesSent, unsigned long long totalBytesToBeSent)

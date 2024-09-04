@@ -23,8 +23,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef Extensions3DOpenGL_h
-#define Extensions3DOpenGL_h
+#pragma once
 
 #include "Extensions3DOpenGLCommon.h"
 
@@ -44,7 +43,7 @@ class Extensions3DOpenGL : public Extensions3DOpenGLCommon {
     WTF_MAKE_FAST_ALLOCATED;
 public:
     // This class only needs to be instantiated by GraphicsContext3D implementations.
-    explicit Extensions3DOpenGL(GraphicsContext3D*);
+    explicit Extensions3DOpenGL(GraphicsContext3D*, bool useIndexedGetString);
     virtual ~Extensions3DOpenGL();
 
     // Extensions3D methods.
@@ -67,8 +66,9 @@ public:
 protected:
     virtual bool supportsExtension(const WTF::String&);
     virtual String getExtensions();
-#if (PLATFORM(GTK) || PLATFORM(QT) || PLATFORM(EFL) || PLATFORM(WIN) || PLATFORM(IOS))
+
 private:
+#if (PLATFORM(GTK) || PLATFORM(EFL) || PLATFORM(WIN) || PLATFORM(IOS) || PLATFORM(QT))
     bool isVertexArrayObjectSupported();
 #endif
 
@@ -78,5 +78,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // Extensions3DOpenGL_h

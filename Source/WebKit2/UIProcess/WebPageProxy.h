@@ -136,6 +136,7 @@ class ContextMenuClient;
 class FindClient;
 class FindMatchesClient;
 class FormClient;
+class FullscreenClient;
 class HistoryClient;
 class LoaderClient;
 class Navigation;
@@ -165,6 +166,7 @@ enum class HasInsecureContent;
 struct DictionaryPopupInfo;
 struct ExceptionDetails;
 struct FileChooserSettings;
+struct MediaConstraintsData;
 struct SecurityOriginData;
 struct TextAlternativeWithRange;
 struct TextCheckingResult;
@@ -342,6 +344,9 @@ public:
 
 #if ENABLE(FULLSCREEN_API)
     WebFullScreenManagerProxy* fullScreenManager();
+
+    API::FullscreenClient& fullscreenClient() const { return *m_fullscreenClient; }
+    void setFullscreenClient(std::unique_ptr<API::FullscreenClient>);
 #endif
 #if (PLATFORM(IOS) && HAVE(AVKIT)) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     WebPlaybackSessionManagerProxy* playbackSessionManager();
@@ -964,7 +969,7 @@ public:
     void printMainFrame();
     
     void setMediaVolume(float);
-    void setMuted(bool);
+    void setMuted(WebCore::MediaProducer::MutedStateFlags);
     void setMayStartMediaWhenInWindow(bool);
     bool mayStartMediaWhenInWindow() const { return m_mayStartMediaWhenInWindow; }
         
@@ -972,6 +977,11 @@ public:
     bool hasMediaSessionWithActiveMediaElements() const { return m_hasMediaSessionWithActiveMediaElements; }
     void handleMediaEvent(WebCore::MediaEventType);
     void setVolumeOfMediaElement(double, uint64_t);
+#endif
+        
+#if ENABLE(POINTER_LOCK)
+    void didAllowPointerLock();
+    void didDenyPointerLock();
 #endif
 
     // WebPopupMenuProxy::Client
@@ -1163,13 +1173,14 @@ public:
         
     WeakPtr<WebPageProxy> createWeakPtr() const { return m_weakPtrFactory.createWeakPtr(); }
 
+    void isLoadingChanged() { updateThrottleState(); }
+
 private:
     WebPageProxy(PageClient&, WebProcessProxy&, uint64_t pageID, Ref<API::PageConfiguration>&&);
     void platformInitialize();
 
     void updateViewState(WebCore::ViewState::Flags flagsToUpdate = WebCore::ViewState::AllFlags);
-    void updateActivityToken();
-    void updateProccessSuppressionState();
+    void updateThrottleState();
     void updateHiddenPageThrottlingAutoIncreases();
 
     enum class ResetStateReason {
@@ -1201,6 +1212,11 @@ private:
 #if PLATFORM(QT)
     void changeSelectedIndex(int32_t newSelectedIndex) override;
     void closePopupMenu() override;
+#endif
+
+#if ENABLE(POINTER_LOCK)
+    void requestPointerLock();
+    void requestPointerUnlock();
 #endif
 
     void didCreateMainFrame(uint64_t frameID);
@@ -1285,8 +1301,8 @@ private:
     void reachedApplicationCacheOriginQuota(const String& originIdentifier, uint64_t currentQuota, uint64_t totalBytesNeeded, PassRefPtr<Messages::WebPageProxy::ReachedApplicationCacheOriginQuota::DelayedReply>);
     void requestGeolocationPermissionForFrame(uint64_t geolocationID, uint64_t frameID, String originIdentifier);
 
-    void requestUserMediaPermissionForFrame(uint64_t userMediaID, uint64_t frameID, String userMediaDocumentOriginIdentifier, String topLevelDocumentOriginIdentifier, const Vector<String>& audioDeviceUIDs, const Vector<String>& videoDeviceUIDs);
-    void checkUserMediaPermissionForFrame(uint64_t userMediaID, uint64_t frameID, String userMediaDocumentOriginIdentifier, String topLevelDocumentOriginIdentifier);
+    void requestUserMediaPermissionForFrame(uint64_t userMediaID, uint64_t frameID, String userMediaDocumentOriginIdentifier, String topLevelDocumentOriginIdentifier, const WebCore::MediaConstraintsData& audioConstraints, const WebCore::MediaConstraintsData& videoConstraints);
+    void enumerateMediaDevicesForFrame(uint64_t userMediaID, uint64_t frameID, String userMediaDocumentOriginIdentifier, String topLevelDocumentOriginIdentifier);
 
     void runModal();
     void notifyScrollerThumbIsVisibleInRect(const WebCore::IntRect&);
@@ -1634,6 +1650,7 @@ private:
 
 #if ENABLE(FULLSCREEN_API)
     RefPtr<WebFullScreenManagerProxy> m_fullScreenManager;
+    std::unique_ptr<API::FullscreenClient> m_fullscreenClient;
 #endif
 #if (PLATFORM(IOS) && HAVE(AVKIT)) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     RefPtr<WebPlaybackSessionManagerProxy> m_playbackSessionManager;
@@ -1693,6 +1710,8 @@ private:
     Ref<WebBackForwardList> m_backForwardList;
         
     bool m_maintainsInactiveSelection;
+
+    bool m_waitsForPaintAfterViewDidMoveToWindow;
 
     String m_toolTip;
 
@@ -1754,6 +1773,7 @@ private:
     WebCore::PolicyAction m_syncNavigationActionPolicyAction;
     DownloadID m_syncNavigationActionPolicyDownloadID;
     bool m_shouldSuppressAppLinksInNextNavigationPolicyDecision { false };
+    bool m_pageSuppressed { false };
 
 #if ENABLE(QT_GESTURE_EVENTS)
     Deque<WebGestureEvent> m_gestureEventQueue;
@@ -1883,7 +1903,7 @@ private:
     WebCore::IntSize m_minimumLayoutSize;
 
     float m_mediaVolume;
-    bool m_muted;
+    WebCore::MediaProducer::MutedStateFlags m_mutedState { WebCore::MediaProducer::NoneMuted };
     bool m_mayStartMediaWhenInWindow;
 
     bool m_waitingForDidUpdateViewState;

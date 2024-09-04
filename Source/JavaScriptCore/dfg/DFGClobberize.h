@@ -33,6 +33,7 @@
 #include "DFGHeapLocation.h"
 #include "DFGLazyNode.h"
 #include "DFGPureValue.h"
+#include "DOMJITCallDOMGetterPatchpoint.h"
 
 namespace JSC { namespace DFG {
 
@@ -211,6 +212,17 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         }
         return;
 
+    case ArithNegate:
+        if (node->child1().useKind() == Int32Use
+            || node->child1().useKind() == DoubleRepUse
+            || node->child1().useKind() == Int52RepUse)
+            def(PureValue(node));
+        else {
+            read(World);
+            write(Heap);
+        }
+        return;
+
     case IsCellWithType:
         def(PureValue(node, node->queriedType()));
         return;
@@ -334,7 +346,6 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         return;
 
     case ArithAdd:
-    case ArithNegate:
     case ArithMod:
     case DoubleAsInt32:
     case UInt32ToNumber:
@@ -505,8 +516,11 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case ArrayPush:
     case ArrayPop:
     case Call:
+    case DirectCall:
     case TailCallInlinedCaller:
+    case DirectTailCallInlinedCaller:
     case Construct:
+    case DirectConstruct:
     case CallVarargs:
     case CallForwardVarargs:
     case TailCallVarargsInlinedCaller:
@@ -534,6 +548,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         return;
 
     case TailCall:
+    case DirectTailCall:
     case TailCallVarargs:
     case TailCallForwardVarargs:
         read(World);
@@ -893,10 +908,34 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         def(PureValue(node, node->classInfo()));
         return;
 
-    case CallDOM:
-        read(World);
-        write(Heap);
+    case CallDOMGetter: {
+        DOMJIT::CallDOMGetterPatchpoint* patchpoint = node->callDOMGetterData()->patchpoint;
+        DOMJIT::Effect effect = patchpoint->effect;
+        if (effect.reads) {
+            if (effect.reads == DOMJIT::HeapRange::top())
+                read(World);
+            else
+                read(AbstractHeap(DOMState, effect.reads.rawRepresentation()));
+        }
+        if (effect.writes) {
+            if (effect.writes == DOMJIT::HeapRange::top())
+                write(Heap);
+            else
+                write(AbstractHeap(DOMState, effect.writes.rawRepresentation()));
+        }
+        if (effect.def) {
+            DOMJIT::HeapRange range = effect.def.value();
+            if (range == DOMJIT::HeapRange::none())
+                def(PureValue(node, node->callDOMGetterData()->domJIT));
+            else {
+                // Def with heap location. We do not include "GlobalObject" for that since this information is included in the base node.
+                // FIXME: When supporting the other nodes like getElementById("string"), we should include the base and the id string.
+                // Currently, we only see the DOMJIT getter here. So just including "base" is ok.
+                def(HeapLocation(DOMStateLoc, AbstractHeap(DOMState, range.rawRepresentation()), node->child1()), LazyNode(node));
+            }
+        }
         return;
+    }
 
     case Arrayify:
     case ArrayifyToStructure:

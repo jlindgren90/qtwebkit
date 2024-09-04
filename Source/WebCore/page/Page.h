@@ -336,7 +336,7 @@ public:
     // Notifications when the Page starts and stops being presented via a native window.
     WEBCORE_EXPORT void setViewState(ViewState::Flags);
     bool isVisibleAndActive() const;
-    void setPageActivityState(PageActivityState::Flags);
+    void pageActivityStateChanged() { updateTimerThrottlingState(); }
     WEBCORE_EXPORT void setIsVisible(bool);
     WEBCORE_EXPORT void setIsPrerender();
     bool isVisible() const { return m_viewState & ViewState::IsVisible; }
@@ -484,8 +484,10 @@ public:
 
     MediaProducer::MediaStateFlags mediaState() const { return m_mediaState; }
     void updateIsPlayingMedia(uint64_t);
-    bool isMuted() const { return m_muted; }
-    WEBCORE_EXPORT void setMuted(bool);
+    MediaProducer::MutedStateFlags mutedState() const { return m_mutedState; }
+    bool isAudioMuted() const { return m_mutedState & MediaProducer::AudioIsMuted; }
+    bool isMediaCaptureMuted() const { return m_mutedState & MediaProducer::CaptureDevicesAreMuted; };
+    WEBCORE_EXPORT void setMuted(MediaProducer::MutedStateFlags);
 
 #if ENABLE(MEDIA_SESSION)
     WEBCORE_EXPORT void handleMediaEvent(MediaEventType);
@@ -613,7 +615,7 @@ private:
     bool m_inLowQualityInterpolationMode;
     bool m_areMemoryCacheClientCallsEnabled;
     float m_mediaVolume;
-    bool m_muted;
+    MediaProducer::MutedStateFlags m_mutedState { MediaProducer::NoneMuted };
 
     float m_pageScaleFactor;
     float m_zoomedOutPageScaleFactor;
