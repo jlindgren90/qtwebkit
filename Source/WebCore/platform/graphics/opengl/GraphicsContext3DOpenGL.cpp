@@ -73,6 +73,8 @@
 #include "OpenGLShimsQt.h"
 #include <QOpenGLContext>
 
+#define glGetError(...)  m_functions->glGetError(__VA_ARGS__)
+
 #define scopedScissor(c, s)     scopedScissor(m_functions, c, s)
 #define scopedDither(c, s)      scopedDither(m_functions, c, s)
 #define scopedDepth(c, s)       scopedDepth(m_functions, c, s)
@@ -419,9 +421,9 @@ void GraphicsContext3D::getIntegerv(GC3Denum pname, GC3Dint* value)
         break;
     case MAX_VARYING_VECTORS:
         if (isGLES2Compliant()) {
-            ASSERT(::glGetError() == GL_NO_ERROR);
+            ASSERT(glGetError() == GL_NO_ERROR);
             ::glGetIntegerv(GL_MAX_VARYING_VECTORS, value);
-            if (::glGetError() == GL_INVALID_ENUM) {
+            if (glGetError() == GL_INVALID_ENUM) {
                 ::glGetIntegerv(GL_MAX_VARYING_COMPONENTS, value);
                 *value /= 4;
             }

@@ -34,8 +34,6 @@ extern "C" {
 
 WK_EXPORT void WKTextCheckerSetTestingMode(bool enabled);
 
-#if defined(BUILDING_EFL__) || defined(BUILDING_GTK__)
-
 // TextChecker Client
 typedef bool (*WKTextCheckerContinousSpellCheckingAllowed)(const void *clientInfo);
 typedef bool (*WKTextCheckerContinousSpellCheckingEnabled)(const void *clientInfo);
@@ -87,8 +85,6 @@ WK_EXPORT void WKTextCheckerGrammarCheckingEnabledStateChanged(bool);
 
 WK_EXPORT void WKTextCheckerCheckSpelling(WKPageRef page, bool startBeforeSelection);
 WK_EXPORT void WKTextCheckerChangeSpellingToWord(WKPageRef page, WKStringRef word);
-
-#endif
 
 #ifdef __cplusplus
 }

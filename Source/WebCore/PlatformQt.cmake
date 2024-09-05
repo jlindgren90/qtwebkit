@@ -72,6 +72,7 @@ list(APPEND WebCore_SOURCES
     page/qt/TouchAdjustment.cpp
 
     platform/KillRingNone.cpp
+    platform/StaticPasteboard.cpp
 
     platform/audio/qt/AudioBusQt.cpp
 

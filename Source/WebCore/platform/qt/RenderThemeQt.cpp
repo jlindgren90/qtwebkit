@@ -95,19 +95,19 @@ ScrollbarTheme* RenderThemeQt::customScrollbarTheme()
     return scrollbarTheme;
 }
 
-static PassRefPtr<RenderTheme> createTheme(Page* page)
+static Ref<RenderTheme> createTheme(Page* page)
 {
     if (themeFactory)
         return themeFactory(page);
     return RenderThemeQtMobile::create(page);
 }
 
-PassRefPtr<RenderTheme> RenderTheme::themeForPage(Page* page)
+Ref<RenderTheme> RenderTheme::themeForPage(Page* page)
 {
     if (page)
         return createTheme(page);
-    static RenderTheme* fallback = createTheme(0).leakRef();
-    return fallback;
+    static Ref<RenderTheme> fallback = createTheme(0);
+    return fallback.copyRef();
 }
 
 // Remove this when SearchFieldPart is style-able in RenderTheme::isControlStyled()

@@ -59,7 +59,7 @@ SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandleImpl* str
 
     initConnections();
 
-    unsigned int port = url.hasPort() ? url.port() : (isSecure ? 443 : 80);
+    unsigned int port = url.port().valueOr(isSecure ? 443 : 80);
 
     QString host = url.host();
     if (isSecure) {

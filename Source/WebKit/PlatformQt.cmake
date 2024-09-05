@@ -231,6 +231,7 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/WebDatabaseProviderQt.cpp
     qt/WebCoreSupport/WebEventConversion.cpp
 
+    win/BackForwardList.cpp
     win/Plugins/PluginDatabase.cpp
     win/Plugins/PluginDebug.cpp
     win/Plugins/PluginPackage.cpp

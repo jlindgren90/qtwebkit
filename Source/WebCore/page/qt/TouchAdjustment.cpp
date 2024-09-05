@@ -336,7 +336,7 @@ float zoomableIntersectionQuotient(const IntPoint& touchHotspot, const IntRect& 
     intersection.intersect(touchArea);
 
     // Return the quotient of the intersection.
-    return rect.size().area() / (float)intersection.size().area();
+    return rect.size().area().unsafeGet() / (float)intersection.size().area().unsafeGet();
 }
 
 // Uses a hybrid of distance to adjust and intersect ratio, normalizing each score between 0 and 1
@@ -359,7 +359,7 @@ float hybridDistanceFunction(const IntPoint& touchHotspot, const IntRect& touchR
     int maxOverlapHeight = std::min(touchRect.height(), rect.height());
     float maxOverlapArea = std::max(maxOverlapWidth * maxOverlapHeight, 1);
     rect.intersect(touchRect);
-    float intersectArea = rect.size().area();
+    float intersectArea = rect.size().area().unsafeGet();
     float intersectionScore = 1 - intersectArea / maxOverlapArea;
 
     float hybridScore = intersectionScore + distanceToAdjustScore;

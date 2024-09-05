@@ -149,6 +149,16 @@ void HeapTimer::customEvent(QEvent*)
     m_newThread = 0;
 }
 
+void HeapTimer::scheduleTimer(double intervalInSeconds)
+{
+    m_timer.start(intervalInSeconds * 1000, this);
+}
+
+void HeapTimer::cancelTimer()
+{
+    m_timer.stop();
+}
+
 #elif PLATFORM(EFL)
 
 HeapTimer::HeapTimer(VM* vm)

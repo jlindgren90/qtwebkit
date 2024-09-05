@@ -195,7 +195,7 @@ void WebLoaderStrategy::scheduleLoad(ResourceLoader& resourceLoader, CachedResou
 #endif
 
     if (webPage) {
-        if (auto* handler = webPage->urlSchemeHandlerForScheme(resourceLoader.request().url().protocol())) {
+        if (auto* handler = webPage->urlSchemeHandlerForScheme(resourceLoader.request().url().protocol().toStringWithoutCopying())) {
             LOG(NetworkScheduling, "(WebProcess) WebLoaderStrategy::scheduleLoad, URL '%s' will be handled by a UIProcess URL scheme handler.", resourceLoader.url().string().utf8().data());
             handler->startNewTask(resourceLoader);
             return;

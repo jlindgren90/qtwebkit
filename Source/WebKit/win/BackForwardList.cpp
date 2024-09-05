@@ -24,7 +24,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include "WebKitDLL.h"
 #include "BackForwardList.h"
 
 #include <WebCore/Frame.h>

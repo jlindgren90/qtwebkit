@@ -25,6 +25,9 @@
 
 #include "AcceleratedDrawingAreaProxy.h"
 #include "APIPageConfiguration.h"
+#include "APIUserContentWorld.h"
+#include "APIUserScript.h"
+#include "APIUserStyleSheet.h"
 #include "CoordinatedGraphicsScene.h"
 #include "CoordinatedLayerTreeHostProxy.h"
 #include "DownloadProxy.h"
@@ -48,6 +51,7 @@
 #include "WebPageGroup.h"
 #include "WebPreferences.h"
 #include "WebProcessPool.h"
+#include "WebUserContentControllerProxy.h"
 #include "qglobal.h"
 #include "qquicknetworkreply_p.h"
 #include "qquicknetworkrequest_p.h"
@@ -925,17 +929,53 @@ static WTF::Optional<String> readUserFile(const QUrl& url, const char* userFileT
     return String::fromUTF8(contents);
 }
 
+/* copied from WebPageGroup::addUserStyleSheet */
+static void addUserStyleSheet(WebPageGroup& pageGroup, const String& source, const String& baseURL,
+    API::Array* whitelist, API::Array* blacklist, WebCore::UserContentInjectedFrames injectedFrames,
+    WebCore::UserStyleLevel level)
+{
+    if (source.isEmpty())
+        return;
+
+    Ref<API::UserStyleSheet> userStyleSheet = API::UserStyleSheet::create(
+        WebCore::UserStyleSheet { source,
+            (baseURL.isEmpty() ? WebCore::blankURL() : WebCore::URL(WebCore::URL(), baseURL)),
+            whitelist ? whitelist->toStringVector() : Vector<String>(),
+            blacklist ? blacklist->toStringVector() : Vector<String>(),
+            injectedFrames, level
+        }, API::UserContentWorld::normalWorld());
+    pageGroup.userContentController().addUserStyleSheet(userStyleSheet.get());
+}
+
+/* copied from WebPageGroup::addUserScript */
+static void addUserScript(WebPageGroup& pageGroup, const String& source, const String& baseURL,
+    API::Array* whitelist, API::Array* blacklist, WebCore::UserContentInjectedFrames injectedFrames,
+    WebCore::UserScriptInjectionTime injectionTime)
+{
+    if (source.isEmpty())
+        return;
+
+    Ref<API::UserScript> userScript = API::UserScript::create(
+        WebCore::UserScript { source,
+            (baseURL.isEmpty() ? WebCore::blankURL() : WebCore::URL(WebCore::URL(), baseURL)),
+            whitelist ? whitelist->toStringVector() : Vector<String>(),
+            blacklist ? blacklist->toStringVector() : Vector<String>(),
+            injectionTime, injectedFrames
+        }, API::UserContentWorld::normalWorld());
+    pageGroup.userContentController().addUserScript(userScript.get());
+}
+
 void QQuickWebViewPrivate::updateUserScripts()
 {
     // This feature works per-WebView because we keep an unique page group for
     // each Page/WebView pair we create.
-    webPageProxy->pageGroup().removeAllUserScripts();
+    webPageProxy->pageGroup().userContentController().removeAllUserScripts();
 
     for (const QUrl& url : userScripts) {
         auto contents = readUserFile(url, "user script");
         if (!contents)
             continue;
-        webPageProxy->pageGroup().addUserScript(contents.value(), /*baseURL*/ String(),
+        addUserScript(webPageProxy->pageGroup(), contents.value(), /*baseURL*/ String(),
             /*whitelistedURLPatterns*/ 0, /*blacklistedURLPatterns*/ 0, WebCore::InjectInTopFrameOnly, WebCore::InjectAtDocumentEnd);
     }
 }
@@ -944,13 +984,13 @@ void QQuickWebViewPrivate::updateUserStyleSheets()
 {
     // This feature works per-WebView because we keep an unique page group for
     // each Page/WebView pair we create.
-    webPageProxy->pageGroup().removeAllUserStyleSheets();
+    webPageProxy->pageGroup().userContentController().removeAllUserStyleSheets();
 
     for (const QUrl& url : userStyleSheets) {
         auto contents = readUserFile(url, "user style sheet");
         if (!contents)
             continue;
-        webPageProxy->pageGroup().addUserStyleSheet(contents.value(), /*baseURL*/ String(),
+        addUserStyleSheet(webPageProxy->pageGroup(), contents.value(), /*baseURL*/ String(),
             /*whitelistedURLPatterns*/ 0, /*blacklistedURLPatterns*/ 0, WebCore::InjectInTopFrameOnly, WebCore::UserStyleUserLevel);
     }
 }

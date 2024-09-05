@@ -630,9 +630,9 @@ void StylePainterMobile::drawSliderThumb(const QRect & rect, bool pressed) const
 }
 
 
-PassRefPtr<RenderTheme> RenderThemeQtMobile::create(Page* page)
+Ref<RenderTheme> RenderThemeQtMobile::create(Page* page)
 {
-    return adoptRef(new RenderThemeQtMobile(page));
+    return adoptRef(*new RenderThemeQtMobile(page));
 }
 
 RenderThemeQtMobile::RenderThemeQtMobile(Page* page)

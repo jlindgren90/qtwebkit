@@ -105,6 +105,15 @@ std::unique_ptr<Pasteboard> Pasteboard::createForDragAndDrop(const DragData& dra
 }
 #endif
 
+// FIXME: check this
+Pasteboard::Pasteboard()
+    : m_selectionMode(false)
+    , m_readableData(0)
+    , m_writableData(0)
+    , m_isForDragAndDrop(true)
+{
+}
+
 Pasteboard::Pasteboard(const QMimeData* readableClipboard, bool isForDragAndDrop)
     : m_selectionMode(false)
     , m_readableData(readableClipboard)
@@ -157,6 +166,11 @@ void Pasteboard::read(PasteboardPlainText& text)
 {
     if (const QMimeData* data = readData())
         text.text =  data->text();
+}
+
+void Pasteboard::read(PasteboardWebContentReader&)
+{
+    // TODO
 }
 
 RefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& context,
@@ -231,6 +245,21 @@ void Pasteboard::write(const PasteboardURL& pasteboardURL)
     m_writableData->setUrls(QList<QUrl>() << pasteboardURL.url);
     if (isForCopyAndPaste())
         updateSystemPasteboard();
+}
+
+void Pasteboard::write(const PasteboardImage& pasteboardImage)
+{
+    // TODO
+}
+
+void Pasteboard::write(const PasteboardWebContent& pasteboardContent)
+{
+    // TODO
+}
+
+void Pasteboard::writeMarkup(const String&)
+{
+    // TODO
 }
 
 void Pasteboard::writeImage(Element& node, const URL& url, const String& title)

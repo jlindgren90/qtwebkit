@@ -41,6 +41,7 @@ public:
 
 private:
     void show() override;
+    void showContextMenuWithItems(const Vector<WebContextMenuItemData>&) override;
 };
 
 } // namespace WebKit

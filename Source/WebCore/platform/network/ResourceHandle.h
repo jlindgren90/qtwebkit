@@ -92,7 +92,11 @@ class ResourceResponse;
 class SharedBuffer;
 class Timer;
 
-class ResourceHandle : public RefCounted<ResourceHandle>, public AuthenticationClient {
+class ResourceHandle : public RefCounted<ResourceHandle>
+#if !PLATFORM(QT)
+    , public AuthenticationClient
+#endif
+    {
 public:
     WEBCORE_EXPORT static RefPtr<ResourceHandle> create(NetworkingContext*, const ResourceRequest&, ResourceHandleClient*, bool defersLoading, bool shouldContentSniff);
     WEBCORE_EXPORT static void loadResourceSynchronously(NetworkingContext*, const ResourceRequest&, StoredCredentials, ResourceError&, ResourceResponse&, Vector<char>& data);
@@ -103,6 +107,7 @@ public:
     ResourceRequest willSendRequest(ResourceRequest&&, ResourceResponse&&);
 #endif
 
+#if !PLATFORM(QT)
     bool shouldUseCredentialStorage();
     void didReceiveAuthenticationChallenge(const AuthenticationChallenge&);
     void receivedCredential(const AuthenticationChallenge&, const Credential&) override;
@@ -110,6 +115,7 @@ public:
     void receivedCancellation(const AuthenticationChallenge&) override;
     void receivedRequestToPerformDefaultHandling(const AuthenticationChallenge&) override;
     void receivedChallengeRejection(const AuthenticationChallenge&) override;
+#endif
 
 #if PLATFORM(COCOA) || USE(CFURLCONNECTION)
     bool tryHandlePasswordBasedAuthentication(const AuthenticationChallenge&);

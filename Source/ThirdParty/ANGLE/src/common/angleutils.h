@@ -117,10 +117,7 @@ inline bool IsMaskFlagSet(T mask, T flag)
 
 inline const char* MakeStaticString(const std::string &str)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wexit-time-destructors"
     static std::set<std::string> strings;
-#pragma GCC diagnostic pop
     std::set<std::string>::iterator it = strings.find(str);
     if (it != strings.end())
     {

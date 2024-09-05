@@ -1232,7 +1232,7 @@ ExceptionOr<String> Internals::autofillFieldName(Element& element)
     if (!is<HTMLFormControlElement>(element))
         return Exception { INVALID_NODE_TYPE_ERR };
 
-    return String { downcast<HTMLFormControlElement>(element).autofillData().fieldName };
+    return String { downcast<HTMLFormControlElement>(element).autofillData().fieldName.string() };
 }
 
 ExceptionOr<void> Internals::paintControlTints()
