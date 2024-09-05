@@ -110,13 +110,8 @@ struct VisiblePositionIndexRange {
 class AccessibilityReplacedText {
 public:
     AccessibilityReplacedText() { }
-#if HAVE(ACCESSIBILITY)
     AccessibilityReplacedText(const VisibleSelection&);
     void postTextStateChangeNotification(AXObjectCache*, AXTextEditType, const String&, const VisibleSelection&);
-#else
-    AccessibilityReplacedText(const VisibleSelection&) { }
-    void postTextStateChangeNotification(AXObjectCache*, AXTextEditType, const String&, const VisibleSelection&) { }
-#endif
     const VisiblePositionIndexRange& replacedRange() { return m_replacedRange; }
 protected:
     String m_replacedText;

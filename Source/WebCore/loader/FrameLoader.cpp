@@ -621,9 +621,6 @@ void FrameLoader::clear(Document* newDocument, bool clearWindowProperties, bool 
 
     subframeLoader().clear();
 
-    if (clearWindowProperties)
-        m_frame.script().setDOMWindowForWindowShell(newDocument->domWindow());
-
     if (clearScriptObjects)
         m_frame.script().clearScriptObjects();
 
