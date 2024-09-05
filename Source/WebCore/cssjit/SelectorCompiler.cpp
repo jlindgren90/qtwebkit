@@ -38,7 +38,6 @@
 #include "FunctionCall.h"
 #include "HTMLDocument.h"
 #include "HTMLNames.h"
-#include "HTMLOptGroupElement.h"
 #include "HTMLParserIdioms.h"
 #include "InspectorInstrumentation.h"
 #include "NodeRenderStyle.h"
@@ -327,8 +326,8 @@ private:
     void generateElementHasFocusWithin(Assembler::JumpList& failureCases);
 
     // Helpers.
-    void generateAddStyleRelationIfResolvingStyle(Assembler::RegisterID element, Style::Relation::Type, Optional<Assembler::RegisterID> value = { });
-    void generateAddStyleRelation(Assembler::RegisterID checkingContext, Assembler::RegisterID element, Style::Relation::Type, Optional<Assembler::RegisterID> value = { });
+    void generateAddStyleRelationIfResolvingStyle(Assembler::RegisterID element, Style::Relation::Type, std::optional<Assembler::RegisterID> value = { });
+    void generateAddStyleRelation(Assembler::RegisterID checkingContext, Assembler::RegisterID element, Style::Relation::Type, std::optional<Assembler::RegisterID> value = { });
     Assembler::Jump branchOnResolvingModeWithCheckingContext(Assembler::RelationalCondition, SelectorChecker::Mode, Assembler::RegisterID checkingContext);
     Assembler::Jump branchOnResolvingMode(Assembler::RelationalCondition, SelectorChecker::Mode, Assembler::RegisterID checkingContext);
     void generateElementIsFirstLink(Assembler::JumpList& failureCases, Assembler::RegisterID element);
@@ -402,7 +401,10 @@ SelectorCompilationStatus compileSelector(const CSSSelector* lastSelector, JSC::
 static inline FragmentRelation fragmentRelationForSelectorRelation(CSSSelector::RelationType relation)
 {
     switch (relation) {
-    case CSSSelector::Descendant:
+    case CSSSelector::DescendantSpace:
+#if ENABLE_CSS_SELECTORS_LEVEL4
+    case CSSSelector::DescendantDoubleChild:
+#endif
         return FragmentRelation::Descendant;
     case CSSSelector::Child:
         return FragmentRelation::Child;
@@ -412,9 +414,6 @@ static inline FragmentRelation fragmentRelationForSelectorRelation(CSSSelector::
         return FragmentRelation::IndirectAdjacent;
     case CSSSelector::Subselector:
     case CSSSelector::ShadowDescendant:
-    case CSSSelector::ShadowPseudo:
-    case CSSSelector::ShadowDeep:
-    case CSSSelector::ShadowSlot:
         ASSERT_NOT_REACHED();
     }
     ASSERT_NOT_REACHED();
@@ -548,11 +547,9 @@ static inline FunctionType addPseudoClassType(const CSSSelector& selector, Selec
     case CSSSelector::PseudoClassEnabled:
         fragment.unoptimizedPseudoClasses.append(JSC::FunctionPtr(matchesEnabledPseudoClass));
         return FunctionType::SimpleSelectorChecker;
-#if ENABLE(CUSTOM_ELEMENTS)
     case CSSSelector::PseudoClassDefined:
         fragment.unoptimizedPseudoClasses.append(JSC::FunctionPtr(isDefinedElement));
         return FunctionType::SimpleSelectorChecker;
-#endif
     case CSSSelector::PseudoClassFocus:
         fragment.unoptimizedPseudoClasses.append(JSC::FunctionPtr(SelectorChecker::matchesFocusPseudoClass));
         return FunctionType::SimpleSelectorChecker;
@@ -2024,11 +2021,6 @@ void SelectorCodeGenerator::generateElementMatchesSelectorList(Assembler::JumpLi
     }
 }
 
-static inline Assembler::Jump testIsElementFlagOnNode(Assembler::ResultCondition condition, Assembler& assembler, Assembler::RegisterID nodeAddress)
-{
-    return assembler.branchTest32(condition, Assembler::Address(nodeAddress, Node::nodeFlagsMemoryOffset()), Assembler::TrustedImm32(Node::flagIsElement()));
-}
-
 void SelectorCodeGenerator::generateRightmostTreeWalker(Assembler::JumpList& failureCases, const SelectorFragment& fragment)
 {
     generateElementMatching(failureCases, failureCases, fragment);
@@ -2046,7 +2038,7 @@ void SelectorCodeGenerator::generateWalkToParentElement(Assembler::JumpList& fai
     //         failure
     generateWalkToParentNode(targetRegister);
     failureCases.append(m_assembler.branchTestPtr(Assembler::Zero, targetRegister));
-    failureCases.append(testIsElementFlagOnNode(Assembler::Zero, m_assembler, targetRegister));
+    failureCases.append(DOMJIT::branchTestIsElementFlagOnNode(m_assembler, Assembler::Zero, targetRegister));
 }
 
 void SelectorCodeGenerator::generateParentElementTreeWalker(Assembler::JumpList& failureCases, const SelectorFragment& fragment)
@@ -2099,7 +2091,7 @@ inline void SelectorCodeGenerator::generateWalkToNextAdjacentElement(Assembler::
     Assembler::Label loopStart = m_assembler.label();
     m_assembler.loadPtr(Assembler::Address(workRegister, Node::nextSiblingMemoryOffset()), workRegister);
     failureCases.append(m_assembler.branchTestPtr(Assembler::Zero, workRegister));
-    testIsElementFlagOnNode(Assembler::Zero, m_assembler, workRegister).linkTo(loopStart, &m_assembler);
+    DOMJIT::branchTestIsElementFlagOnNode(m_assembler, Assembler::Zero, workRegister).linkTo(loopStart, &m_assembler);
 }
 
 inline void SelectorCodeGenerator::generateWalkToPreviousAdjacentElement(Assembler::JumpList& failureCases, Assembler::RegisterID workRegister)
@@ -2107,7 +2099,7 @@ inline void SelectorCodeGenerator::generateWalkToPreviousAdjacentElement(Assembl
     Assembler::Label loopStart = m_assembler.label();
     m_assembler.loadPtr(Assembler::Address(workRegister, Node::previousSiblingMemoryOffset()), workRegister);
     failureCases.append(m_assembler.branchTestPtr(Assembler::Zero, workRegister));
-    testIsElementFlagOnNode(Assembler::Zero, m_assembler, workRegister).linkTo(loopStart, &m_assembler);
+    DOMJIT::branchTestIsElementFlagOnNode(m_assembler, Assembler::Zero, workRegister).linkTo(loopStart, &m_assembler);
 }
 
 void SelectorCodeGenerator::generateWalkToPreviousAdjacent(Assembler::JumpList& failureCases, const SelectorFragment& fragment)
@@ -2178,7 +2170,7 @@ void SelectorCodeGenerator::generateIndirectAdjacentTreeWalker(Assembler::JumpLi
     localFailureCases.linkTo(loopStart, &m_assembler);
 }
 
-void SelectorCodeGenerator::generateAddStyleRelationIfResolvingStyle(Assembler::RegisterID element, Style::Relation::Type relationType, Optional<Assembler::RegisterID> value)
+void SelectorCodeGenerator::generateAddStyleRelationIfResolvingStyle(Assembler::RegisterID element, Style::Relation::Type relationType, std::optional<Assembler::RegisterID> value)
 {
     if (m_selectorContext == SelectorContext::QuerySelector)
         return;
@@ -2196,7 +2188,7 @@ static void addStyleRelationFunction(SelectorChecker::CheckingContext* checkingC
     checkingContext->styleRelations.append({ *element, Style::Relation::AffectedByActive, 1 });
 }
 
-void SelectorCodeGenerator::generateAddStyleRelation(Assembler::RegisterID checkingContext, Assembler::RegisterID element, Style::Relation::Type relationType, Optional<Assembler::RegisterID> value)
+void SelectorCodeGenerator::generateAddStyleRelation(Assembler::RegisterID checkingContext, Assembler::RegisterID element, Style::Relation::Type relationType, std::optional<Assembler::RegisterID> value)
 {
     ASSERT(m_selectorContext != SelectorContext::QuerySelector);
 
@@ -2654,11 +2646,6 @@ void SelectorCodeGenerator::generateElementLinkMatching(Assembler::JumpList& fai
         generateElementIsLink(failureCases);
 }
 
-static inline Assembler::Jump testIsHTMLFlagOnNode(Assembler::ResultCondition condition, Assembler& assembler, Assembler::RegisterID nodeAddress)
-{
-    return assembler.branchTest32(condition, Assembler::Address(nodeAddress, Node::nodeFlagsMemoryOffset()), Assembler::TrustedImm32(Node::flagIsHTML()));
-}
-
 static inline bool canMatchStyleAttribute(const SelectorFragment& fragment)
 {
     for (unsigned i = 0; i < fragment.attributes.size(); ++i) {
@@ -2801,7 +2788,7 @@ void SelectorCodeGenerator::generateElementAttributeMatching(Assembler::JumpList
         m_assembler.move(Assembler::TrustedImmPtr(canonicalLocalName), localNameToMatch);
     else {
         m_assembler.move(Assembler::TrustedImmPtr(canonicalLocalName), localNameToMatch);
-        Assembler::Jump elementIsHTML = testIsHTMLFlagOnNode(Assembler::NonZero, m_assembler, elementAddressRegister);
+        Assembler::Jump elementIsHTML = DOMJIT::branchTestIsHTMLFlagOnNode(m_assembler, Assembler::NonZero, elementAddressRegister);
         m_assembler.move(Assembler::TrustedImmPtr(localName), localNameToMatch);
         elementIsHTML.link(&m_assembler);
     }
@@ -2983,7 +2970,7 @@ void SelectorCodeGenerator::generateElementAttributeValueExactMatching(Assembler
         // If the element is an HTML element, in a HTML dcoument (not including XHTML), value matching is case insensitive.
         // Taking the contrapositive, if we find the element is not HTML or is not in a HTML document, the condition above
         // sould be sufficient and we can fail early.
-        failureCases.append(testIsHTMLFlagOnNode(Assembler::Zero, m_assembler, elementAddressRegister));
+        failureCases.append(DOMJIT::branchTestIsHTMLFlagOnNode(m_assembler, Assembler::Zero, elementAddressRegister));
 
         {
             LocalRegister document(m_registerAllocator);
@@ -3033,7 +3020,7 @@ void SelectorCodeGenerator::generateElementAttributeFunctionCallValueMatching(As
     }
     case AttributeCaseSensitivity::HTMLLegacyCaseInsensitive: {
         Assembler::JumpList shouldUseCaseSensitiveComparison;
-        shouldUseCaseSensitiveComparison.append(testIsHTMLFlagOnNode(Assembler::Zero, m_assembler, elementAddressRegister));
+        shouldUseCaseSensitiveComparison.append(DOMJIT::branchTestIsHTMLFlagOnNode(m_assembler, Assembler::Zero, elementAddressRegister));
         {
             LocalRegister scratchRegister(m_registerAllocator);
             // scratchRegister = pointer to treeScope.
@@ -3119,7 +3106,7 @@ static void jumpIfElementIsNotEmpty(Assembler& assembler, RegisterAllocator& reg
     Assembler::Label loopStart(assembler.label());
     Assembler::Jump noMoreChildren = assembler.branchTestPtr(Assembler::Zero, currentChild);
 
-    notEmptyCases.append(testIsElementFlagOnNode(Assembler::NonZero, assembler, currentChild));
+    notEmptyCases.append(DOMJIT::branchTestIsElementFlagOnNode(assembler, Assembler::NonZero, currentChild));
 
     {
         Assembler::Jump skipTextNodeCheck = assembler.branchTest32(Assembler::Zero, Assembler::Address(currentChild, Node::nodeFlagsMemoryOffset()), Assembler::TrustedImm32(Node::flagIsText()));
@@ -3414,7 +3401,7 @@ inline void SelectorCodeGenerator::generateElementHasTagName(Assembler::JumpList
             failureCases.append(m_assembler.branchPtr(Assembler::NotEqual, Assembler::Address(qualifiedNameImpl, QualifiedName::QualifiedNameImpl::localNameMemoryOffset()), constantRegister));
         } else {
             Assembler::JumpList caseSensitiveCases;
-            caseSensitiveCases.append(testIsHTMLFlagOnNode(Assembler::Zero, m_assembler, elementAddressRegister));
+            caseSensitiveCases.append(DOMJIT::branchTestIsHTMLFlagOnNode(m_assembler, Assembler::Zero, elementAddressRegister));
             {
                 LocalRegister document(m_registerAllocator);
                 DOMJIT::loadDocument(m_assembler, elementAddressRegister, document);
@@ -3677,7 +3664,7 @@ void SelectorCodeGenerator::generateElementIsNthLastChildOf(Assembler::JumpList&
         for (const NthChildOfSelectorInfo& nthLastChildOfSelectorInfo : fragment.nthLastChildOfFilters) {
             if (nthFilterIsAlwaysSatisified(nthLastChildOfSelectorInfo.a, nthLastChildOfSelectorInfo.b))
                 continue;
-            validSubsetFilters.append(&nthLastChildOfSelectorInfo);
+            validSubsetFilters.uncheckedAppend(&nthLastChildOfSelectorInfo);
         }
         if (validSubsetFilters.isEmpty())
             return;

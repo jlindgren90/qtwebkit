@@ -61,6 +61,8 @@ macro(ADD_PREFIX_HEADER _target _header)
 endmacro()
 
 
+option(SHOW_BINDINGS_GENERATION_PROGRESS "Show progress of generating bindings" OFF)
+
 # Helper macro which wraps generate-bindings-all.pl script.
 #   target is a new target name to be added
 #   OUTPUT_SOURCE is a list name which will contain generated sources.(eg. WebCore_SOURCES)
@@ -145,13 +147,16 @@ function(GENERATE_BINDINGS target)
     endforeach ()
     set(${arg_OUTPUT_SOURCE} ${${arg_OUTPUT_SOURCE}} ${gen_sources} PARENT_SCOPE)
     set(act_args)
+    if (SHOW_BINDINGS_GENERATION_PROGRESS)
+        list(APPEND args --showProgress)
+    endif ()
     if (${CMAKE_VERSION} VERSION_LESS 3.2)
         set_source_files_properties(${gen_sources} ${gen_headers} PROPERTIES GENERATED 1)
     else ()
-        list(APPEND act_args
-            BYPRODUCTS ${gen_sources} ${gen_headers}
-            USES_TERMINAL
-        )
+        list(APPEND act_args BYPRODUCTS ${gen_sources} ${gen_headers})
+        if (SHOW_BINDINGS_GENERATION_PROGRESS)
+            list(APPEND act_args USES_TERMINAL)
+        endif ()
     endif ()
     add_custom_target(${target}
         COMMAND ${PERL_EXECUTABLE} ${binding_generator} ${args}
@@ -201,12 +206,25 @@ endmacro()
 macro(GENERATE_SETTINGS_MACROS _infile _outfile)
     set(NAMES_GENERATOR ${WEBCORE_DIR}/page/make_settings.pl)
 
+    # Do not list the output in more than one independent target that may
+    # build in parallel or the two instances of the rule may conflict.
+    # <https://cmake.org/cmake/help/v3.0/command/add_custom_command.html>
+    set(_extra_output
+        ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.h
+        ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.cpp
+        ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.idl
+    )
+    set(_args BYPRODUCTS ${_extra_output})
+    if (${CMAKE_VERSION} VERSION_LESS 3.2)
+        set_source_files_properties(${_extra_output} PROPERTIES GENERATED 1)
+        set(_args)
+    endif ()
     add_custom_command(
-        OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/${_outfile} ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.h ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.cpp ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.idl
+        OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/${_outfile}
         MAIN_DEPENDENCY ${_infile}
         DEPENDS ${NAMES_GENERATOR} ${SCRIPTS_BINDINGS}
         COMMAND ${PERL_EXECUTABLE} ${NAMES_GENERATOR} --input ${_infile} --outputDir ${DERIVED_SOURCES_WEBCORE_DIR}
-        VERBATIM)
+        VERBATIM ${_args})
 endmacro()
 
 
@@ -290,7 +308,6 @@ macro(WEBKIT_WRAP_SOURCELIST)
 endmacro()
 
 macro(WEBKIT_FRAMEWORK _target)
-    include_directories(${${_target}_INCLUDE_DIRECTORIES})
     include_directories(SYSTEM ${${_target}_SYSTEM_INCLUDE_DIRECTORIES})
     add_library(${_target} ${${_target}_LIBRARY_TYPE}
         ${${_target}_HEADERS}
@@ -298,6 +315,7 @@ macro(WEBKIT_FRAMEWORK _target)
         ${${_target}_PRIVATE_HEADERS}
         ${${_target}_PUBLIC_HEADERS}
     )
+    target_include_directories(${_target} PUBLIC "$<BUILD_INTERFACE:${${_target}_INCLUDE_DIRECTORIES}>")
     target_link_libraries(${_target} ${${_target}_LIBRARIES})
     set_target_properties(${_target} PROPERTIES COMPILE_DEFINITIONS "BUILDING_${_target}")
 
@@ -314,16 +332,8 @@ macro(WEBKIT_FRAMEWORK _target)
         add_custom_command(TARGET ${_target} POST_BUILD COMMAND ${${_target}_POST_BUILD_COMMAND} VERBATIM)
     endif ()
 
-    if (APPLE AND NOT PORT STREQUAL "GTK" AND NOT ${_target} STREQUAL "WTF")
+    if (APPLE AND NOT PORT STREQUAL "GTK" AND NOT ${${_target}_LIBRARY_TYPE} MATCHES STATIC)
         set_target_properties(${_target} PROPERTIES FRAMEWORK TRUE)
-        if (${_target}_PUBLIC_HEADERS)
-            set_target_properties(${_target} PROPERTIES PUBLIC_HEADER "${${_target}_PUBLIC_HEADERS}")
-            if (${_target}_PRIVATE_HEADERS)
-                foreach (CURRENT_PRIVATE_HEADER ${${_target}_PRIVATE_HEADERS})
-                    set_property(SOURCE ${CURRENT_PRIVATE_HEADER} PROPERTY MACOSX_PACKAGE_LOCATION ${${_target}_PRIVATE_HEADERS_LOCATION})
-                endforeach ()
-            endif ()
-        endif ()
         install(TARGETS ${_target} FRAMEWORK DESTINATION ${LIB_INSTALL_DIR})
     endif ()
 endmacro()

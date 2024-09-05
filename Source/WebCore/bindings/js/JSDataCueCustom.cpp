@@ -52,7 +52,7 @@ EncodedJSValue JSC_HOST_CALL constructJSDataCue(ExecState& exec)
     VM& vm = exec.vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    DOMConstructorObject* castedThis = jsCast<DOMConstructorObject*>(exec.callee());
+    DOMConstructorObject* castedThis = jsCast<DOMConstructorObject*>(exec.jsCallee());
     ASSERT(castedThis);
     if (exec.argumentCount() < 3)
         return throwVMError(&exec, scope, createNotEnoughArgumentsError(&exec));
@@ -84,7 +84,7 @@ EncodedJSValue JSC_HOST_CALL constructJSDataCue(ExecState& exec)
 
     if (valueArgument.isCell() && valueArgument.asCell()->inherits(std::remove_pointer<JSArrayBuffer*>::type::info())) {
 
-        ArrayBuffer* data = toArrayBuffer(valueArgument);
+        ArrayBuffer* data = toUnsharedArrayBuffer(valueArgument);
         RETURN_IF_EXCEPTION(scope, encodedJSValue());
 
         if (UNLIKELY(!data)) {

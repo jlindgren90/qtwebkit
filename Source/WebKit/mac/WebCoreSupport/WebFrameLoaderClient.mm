@@ -690,7 +690,7 @@ void WebFrameLoaderClient::dispatchDidReceiveTitle(const StringWithDirection& ti
         CallFrameLoadDelegate(implementations->didReceiveTitleForFrameFunc, webView, @selector(webView:didReceiveTitle:forFrame:), (NSString *)title.string(), m_webFrame.get());
 }
 
-void WebFrameLoaderClient::dispatchDidCommitLoad(Optional<HasInsecureContent>)
+void WebFrameLoaderClient::dispatchDidCommitLoad(std::optional<HasInsecureContent>)
 {
     // Tell the client we've committed this URL.
     ASSERT([m_webFrame->_private->webFrameView documentView] != nil);
@@ -1561,17 +1561,14 @@ NSDictionary *WebFrameLoaderClient::actionDictionary(const NavigationAction& act
 #if !PLATFORM(IOS)
     const UIEventWithKeyState* keyStateEvent = findEventWithKeyState(const_cast<Event*>(event));
     if (keyStateEvent && keyStateEvent->isTrusted()) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         if (keyStateEvent->ctrlKey())
-            modifierFlags |= NSControlKeyMask;
+            modifierFlags |= NSEventModifierFlagControl;
         if (keyStateEvent->altKey())
-            modifierFlags |= NSAlternateKeyMask;
+            modifierFlags |= NSEventModifierFlagOption;
         if (keyStateEvent->shiftKey())
-            modifierFlags |= NSShiftKeyMask;
+            modifierFlags |= NSEventModifierFlagShift;
         if (keyStateEvent->metaKey())
-            modifierFlags |= NSCommandKeyMask;
-#pragma clang diagnostic pop
+            modifierFlags |= NSEventModifierFlagCommand;
     }
 #else
     // No modifier flags on iOS right now

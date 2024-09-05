@@ -28,8 +28,7 @@
  * SUCH DAMAGE.
  */
 
-#ifndef CSSParserMode_h
-#define CSSParserMode_h
+#pragma once
 
 #include "TextEncoding.h"
 #include "URL.h"
@@ -107,7 +106,6 @@ public:
     bool enforcesCSSMIMETypeInNoQuirksMode { true };
     bool useLegacyBackgroundSizeShorthandBehavior { false };
     bool springTimingFunctionEnabled { false };
-    bool useNewParser { false };
     
     URL completeURL(const String& url) const
     {
@@ -132,7 +130,8 @@ struct CSSParserContextHash {
     static unsigned hash(const CSSParserContext& key)
     {
         auto hash = URLHash::hash(key.baseURL);
-        hash ^= StringHash::hash(key.charset);
+        if (!key.charset.isEmpty())
+            hash ^= StringHash::hash(key.charset);
         unsigned bits = key.isHTMLDocument                  << 0
             & key.isHTMLDocument                            << 1
 #if ENABLE(CSS_GRID_LAYOUT)
@@ -145,11 +144,10 @@ struct CSSParserContextHash {
             & key.enforcesCSSMIMETypeInNoQuirksMode         << 5
             & key.useLegacyBackgroundSizeShorthandBehavior  << 6
             & key.springTimingFunctionEnabled               << 7
-            & key.useNewParser                              << 8
 #if ENABLE(VARIATION_FONTS)
-            & key.variationFontsEnabled                     << 9
+            & key.variationFontsEnabled                     << 8
 #endif
-            & key.mode                                      << 10;
+            & key.mode                                      << 9;
         hash ^= WTF::intHash(bits);
         return hash;
     }
@@ -160,7 +158,7 @@ struct CSSParserContextHash {
     static const bool safeToCompareToEmptyOrDeleted = false;
 };
 
-}
+} // namespace WebCore
 
 namespace WTF {
 template<> struct HashTraits<WebCore::CSSParserContext> : GenericHashTraits<WebCore::CSSParserContext> {
@@ -172,6 +170,4 @@ template<> struct HashTraits<WebCore::CSSParserContext> : GenericHashTraits<WebC
 template<> struct DefaultHash<WebCore::CSSParserContext> {
     typedef WebCore::CSSParserContextHash Hash;
 };
-}
-
-#endif // CSSParserMode_h
+} // namespace WTF

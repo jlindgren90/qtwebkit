@@ -50,7 +50,7 @@ public:
     static const AtomicString& directionPrev();
     static const AtomicString& directionPrevUnique();
 
-    static Optional<IndexedDB::CursorDirection> stringToDirection(const String& modeString);
+    static std::optional<IndexedDB::CursorDirection> stringToDirection(const String& modeString);
     static const AtomicString& directionToString(IndexedDB::CursorDirection mode);
     
     virtual ~IDBCursor();
@@ -65,6 +65,7 @@ public:
     ExceptionOr<Ref<IDBRequest>> update(JSC::ExecState&, JSC::JSValue);
     ExceptionOr<void> advance(unsigned);
     ExceptionOr<void> continueFunction(JSC::ExecState&, JSC::JSValue key);
+    ExceptionOr<void> continuePrimaryKey(JSC::ExecState&, JSC::JSValue key, JSC::JSValue primaryKey);
     ExceptionOr<Ref<IDBRequest>> deleteFunction(JSC::ExecState&);
 
     ExceptionOr<void> continueFunction(const IDBKeyData&);
@@ -96,6 +97,7 @@ private:
     IDBTransaction& transaction() const;
 
     void uncheckedIterateCursor(const IDBKeyData&, unsigned count);
+    void uncheckedIterateCursor(const IDBKeyData&, const IDBKeyData&);
 
     // Cursors are created with an outstanding iteration request.
     unsigned m_outstandingRequestCount { 1 };

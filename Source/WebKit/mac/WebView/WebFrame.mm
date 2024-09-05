@@ -711,17 +711,18 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 
 - (void)_scrollDOMRangeToVisible:(DOMRange *)range
 {
+    bool insideFixed = false; // FIXME: get via firstRectForRange().
     NSRect rangeRect = [self _firstRectForDOMRange:range];    
     Node *startNode = core([range startContainer]);
         
     if (startNode && startNode->renderer()) {
 #if !PLATFORM(IOS)
-        startNode->renderer()->scrollRectToVisible(SelectionRevealMode::Reveal, enclosingIntRect(rangeRect), ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
+        startNode->renderer()->scrollRectToVisible(SelectionRevealMode::Reveal, enclosingIntRect(rangeRect), insideFixed, ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
 #else
         RenderLayer* layer = startNode->renderer()->enclosingLayer();
         if (layer) {
             layer->setAdjustForIOSCaretWhenScrolling(true);
-            startNode->renderer()->scrollRectToVisible(SelectionRevealMode::Reveal, enclosingIntRect(rangeRect), ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
+            startNode->renderer()->scrollRectToVisible(SelectionRevealMode::Reveal, enclosingIntRect(rangeRect), insideFixed, ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
             layer->setAdjustForIOSCaretWhenScrolling(false);
             _private->coreFrame->selection().setCaretRectNeedsUpdate();
             _private->coreFrame->selection().updateAppearance();
@@ -733,6 +734,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 #if PLATFORM(IOS)
 - (void)_scrollDOMRangeToVisible:(DOMRange *)range withInset:(CGFloat)inset
 {
+    bool insideFixed = false; // FIXME: get via firstRectForRange().
     NSRect rangeRect = NSInsetRect([self _firstRectForDOMRange:range], inset, inset);
     Node *startNode = core([range startContainer]);
 
@@ -740,7 +742,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
         RenderLayer* layer = startNode->renderer()->enclosingLayer();
         if (layer) {
             layer->setAdjustForIOSCaretWhenScrolling(true);
-            startNode->renderer()->scrollRectToVisible(SelectionRevealMode::Reveal, enclosingIntRect(rangeRect), ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
+            startNode->renderer()->scrollRectToVisible(SelectionRevealMode::Reveal, enclosingIntRect(rangeRect), insideFixed, ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
             layer->setAdjustForIOSCaretWhenScrolling(false);
 
             Frame *coreFrame = core(self);
@@ -846,42 +848,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     return kit(_private->coreFrame->editor().mark().toNormalizedRange().get());
 }
 
-// Given proposedRange, returns an extended range that includes adjacent whitespace that should
-// be deleted along with the proposed range in order to preserve proper spacing and punctuation of
-// the text surrounding the deletion.
-- (DOMRange *)_smartDeleteRangeForProposedRange:(DOMRange *)proposedRange
-{
-    Node* startContainer = core([proposedRange startContainer]);
-    Node* endContainer = core([proposedRange endContainer]);
-    if (startContainer == nil || endContainer == nil)
-        return nil;
-
-    ASSERT(&startContainer->document() == &endContainer->document());
-    
-    _private->coreFrame->document()->updateLayoutIgnorePendingStylesheets();
-
-    Position start = Position(startContainer, [proposedRange startOffset], Position::PositionIsOffsetInAnchor);
-    Position end = Position(endContainer, [proposedRange endOffset], Position::PositionIsOffsetInAnchor);
-    Position newStart = start.upstream().leadingWhitespacePosition(DOWNSTREAM, true);
-    if (newStart.isNull())
-        newStart = start;
-    Position newEnd = end.downstream().trailingWhitespacePosition(DOWNSTREAM, true);
-    if (newEnd.isNull())
-        newEnd = end;
-
-    newStart = newStart.parentAnchoredEquivalent();
-    newEnd = newEnd.parentAnchoredEquivalent();
-
-    Ref<Range> range = _private->coreFrame->document()->createRange();
-    if (newStart.containerNode()) {
-        int exception = 0;
-        range->setStart(*newStart.containerNode(), newStart.offsetInContainerNode(), exception);
-        range->setEnd(*newStart.containerNode(), newStart.offsetInContainerNode(), exception);
-    }
-    return kit(range.ptr());
-}
-
-- (DOMDocumentFragment *)_documentFragmentWithMarkupString:(NSString *)markupString baseURLString:(NSString *)baseURLString 
+- (DOMDocumentFragment *)_documentFragmentWithMarkupString:(NSString *)markupString baseURLString:(NSString *)baseURLString
 {
     Frame* frame = _private->coreFrame;
     if (!frame)
@@ -2073,7 +2040,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     }
     
     if (Document* document = _private->coreFrame->document()) {
-        if (DatabaseManager::singleton().hasOpenDatabases(document))
+        if (DatabaseManager::singleton().hasOpenDatabases(*document))
             [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameUsesDatabases];
         if (!document->canSuspendActiveDOMObjectsForDocumentSuspension())
             [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameCanSuspendActiveDOMObjects];

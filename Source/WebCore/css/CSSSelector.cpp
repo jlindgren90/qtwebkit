@@ -50,7 +50,7 @@ static_assert(CSSSelector::RelationType::Subselector == 0, "Subselector must be 
 static_assert(sizeof(CSSSelector) == sizeof(SameSizeAsCSSSelector), "CSSSelector should remain small.");
 
 CSSSelector::CSSSelector(const QualifiedName& tagQName, bool tagIsForNamespaceRule)
-    : m_relation(Descendant)
+    : m_relation(DescendantSpace)
     , m_match(Tag)
     , m_pseudoType(0)
     , m_parsedNth(false)
@@ -60,9 +60,6 @@ CSSSelector::CSSSelector(const QualifiedName& tagQName, bool tagIsForNamespaceRu
     , m_hasNameWithCase(false)
     , m_isForPage(false)
     , m_tagIsForNamespaceRule(tagIsForNamespaceRule)
-#if ENABLE(CSS_SELECTORS_LEVEL4)
-    , m_descendantDoubleChildSyntax(false)
-#endif
     , m_caseInsensitiveAttributeValueMatching(false)
 #if !ASSERT_WITH_SECURITY_IMPLICATION_DISABLED
     , m_destructorHasBeenCalled(false)
@@ -87,7 +84,8 @@ void CSSSelector::createRareData()
     if (m_hasRareData)
         return;
     // Move the value to the rare data stucture.
-    m_data.m_rareData = &RareData::create(adoptRef(m_data.m_value)).leakRef();
+    AtomicString value { adoptRef(m_data.m_value) };
+    m_data.m_rareData = &RareData::create(WTFMove(value)).leakRef();
     m_hasRareData = true;
 }
 
@@ -409,10 +407,10 @@ String CSSSelector::selectorText(const String& rightSide) const
     while (true) {
         if (cs->match() == CSSSelector::Id) {
             str.append('#');
-            serializeIdentifier(cs->value(), str);
+            serializeIdentifier(cs->serializingValue(), str);
         } else if (cs->match() == CSSSelector::Class) {
             str.append('.');
-            serializeIdentifier(cs->value(), str);
+            serializeIdentifier(cs->serializingValue(), str);
         } else if (cs->match() == CSSSelector::PseudoClass) {
             switch (cs->pseudoClassType()) {
 #if ENABLE(FULLSCREEN_API)
@@ -643,11 +641,9 @@ String CSSSelector::selectorText(const String& rightSide) const
             case CSSSelector::PseudoClassHost:
                 str.appendLiteral(":host");
                 break;
-#if ENABLE(CUSTOM_ELEMENTS)
             case CSSSelector::PseudoClassDefined:
                 str.appendLiteral(":defined");
                 break;
-#endif
             case CSSSelector::PseudoClassUnknown:
                 ASSERT_NOT_REACHED();
             }
@@ -664,7 +660,7 @@ String CSSSelector::selectorText(const String& rightSide) const
                 break;
             default:
                 str.appendLiteral("::");
-                str.append(cs->value());
+                str.append(cs->serializingValue());
             }
         } else if (cs->isAttributeSelector()) {
             str.append('[');
@@ -701,7 +697,7 @@ String CSSSelector::selectorText(const String& rightSide) const
                     break;
             }
             if (cs->match() != CSSSelector::Set) {
-                serializeString(cs->value(), str);
+                serializeString(cs->serializingValue(), str, true);
                 if (cs->attributeValueMatchingIsCaseInsensitive())
                     str.appendLiteral(" i]");
                 else
@@ -728,28 +724,24 @@ String CSSSelector::selectorText(const String& rightSide) const
 
     if (const CSSSelector* tagHistory = cs->tagHistory()) {
         switch (cs->relation()) {
-        case CSSSelector::Descendant:
-#if ENABLE(CSS_SELECTORS_LEVEL4)
-            if (cs->m_descendantDoubleChildSyntax)
-                return tagHistory->selectorText(" >> " + str.toString() + rightSide);
-#endif
+        case CSSSelector::DescendantSpace:
             return tagHistory->selectorText(" " + str.toString() + rightSide);
         case CSSSelector::Child:
             return tagHistory->selectorText(" > " + str.toString() + rightSide);
-        case CSSSelector::ShadowDeep:
-            return tagHistory->selectorText(" /deep/ " + str.toString() + rightSide);
         case CSSSelector::DirectAdjacent:
             return tagHistory->selectorText(" + " + str.toString() + rightSide);
         case CSSSelector::IndirectAdjacent:
             return tagHistory->selectorText(" ~ " + str.toString() + rightSide);
+#if ENABLE(CSS_SELECTORS_LEVEL4)
+        case CSSSelector::DescendantDoubleChild:
+            return tagHistory->selectorText(" >> " + str.toString() + rightSide);
+#endif
         case CSSSelector::Subselector:
             ASSERT_NOT_REACHED();
 #if ASSERT_DISABLED
             FALLTHROUGH;
 #endif
         case CSSSelector::ShadowDescendant:
-        case CSSSelector::ShadowPseudo:
-        case CSSSelector::ShadowSlot:
             return tagHistory->selectorText(str.toString() + rightSide);
         }
     }
@@ -829,8 +821,9 @@ int CSSSelector::nthB() const
     return m_data.m_rareData->m_b;
 }
 
-CSSSelector::RareData::RareData(PassRefPtr<AtomicStringImpl> value)
-    : m_value(value.leakRef())
+CSSSelector::RareData::RareData(AtomicString&& value)
+    : m_matchingValue(value)
+    , m_serializingValue(value)
     , m_a(0)
     , m_b(0)
     , m_attribute(anyQName())
@@ -840,8 +833,6 @@ CSSSelector::RareData::RareData(PassRefPtr<AtomicStringImpl> value)
 
 CSSSelector::RareData::~RareData()
 {
-    if (m_value)
-        m_value->deref();
 }
 
 // a helper function for parsing nth-arguments

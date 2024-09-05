@@ -21,7 +21,6 @@
 #include "config.h"
 #include "JSTestGlobalObject.h"
 
-#include "ExceptionCode.h"
 #include "JSDOMBinding.h"
 #include "JSDOMConstructor.h"
 #include "JSDOMConvert.h"
@@ -45,6 +44,7 @@ JSC::EncodedJSValue JSC_HOST_CALL jsTestGlobalObjectInstanceFunctionRegularOpera
 #if ENABLE(TEST_FEATURE)
 JSC::EncodedJSValue JSC_HOST_CALL jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation(JSC::ExecState*);
 #endif
+JSC::EncodedJSValue JSC_HOST_CALL jsTestGlobalObjectInstanceFunctionEnabledInSpecificWorld(JSC::ExecState*);
 #if ENABLE(TEST_FEATURE)
 JSC::EncodedJSValue JSC_HOST_CALL jsTestGlobalObjectInstanceFunctionTestPrivateFunction(JSC::ExecState*);
 #endif
@@ -141,9 +141,10 @@ JSTestGlobalObject::JSTestGlobalObject(Structure* structure, JSDOMGlobalObject& 
 {
 }
 
-void JSTestGlobalObject::finishCreation(VM& vm, JSProxy* proxy)
+void JSTestGlobalObject::finishCreation(VM& vm)
 {
-    Base::finishCreation(vm, proxy);
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
 
 #if ENABLE(TEST_FEATURE)
     if (RuntimeEnabledFeatures::sharedFeatures().testFeatureEnabled()) {
@@ -159,6 +160,8 @@ void JSTestGlobalObject::finishCreation(VM& vm, JSProxy* proxy)
     if (RuntimeEnabledFeatures::sharedFeatures().testFeatureEnabled())
         putDirectNativeFunction(vm, this, vm.propertyNames->enabledAtRuntimeOperation, 1, jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation, NoIntrinsic, attributesForStructure(JSC::Function));
 #endif
+    if (worldForDOMObject(this).specificWorld())
+        putDirectNativeFunction(vm, this, vm.propertyNames->enabledInSpecificWorld, 1, jsTestGlobalObjectInstanceFunctionEnabledInSpecificWorld, NoIntrinsic, attributesForStructure(JSC::Function));
 #if ENABLE(TEST_FEATURE)
     if (RuntimeEnabledFeatures::sharedFeatures().testFeatureEnabled())
         putDirectNativeFunction(vm, this, static_cast<JSVMClientData*>(vm.clientData)->builtinNames().testPrivateFunctionPrivateName(), 0, jsTestGlobalObjectInstanceFunctionTestPrivateFunction, NoIntrinsic, attributesForStructure(JSC::Function));
@@ -177,12 +180,12 @@ void JSTestGlobalObject::destroy(JSC::JSCell* cell)
 
 template<> inline JSTestGlobalObject* BindingCaller<JSTestGlobalObject>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
-    return jsDynamicCast<JSTestGlobalObject*>(JSValue::decode(thisValue));
+    return jsDynamicDowncast<JSTestGlobalObject*>(JSValue::decode(thisValue));
 }
 
 template<> inline JSTestGlobalObject* BindingCaller<JSTestGlobalObject>::castForOperation(ExecState& state)
 {
-    return jsDynamicCast<JSTestGlobalObject*>(state.thisValue());
+    return jsDynamicDowncast<JSTestGlobalObject*>(state.thisValue());
 }
 
 static inline JSValue jsTestGlobalObjectRegularAttributeGetter(ExecState&, JSTestGlobalObject&, ThrowScope& throwScope);
@@ -259,7 +262,7 @@ EncodedJSValue jsTestGlobalObjectConstructor(ExecState* state, EncodedJSValue th
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestGlobalObjectPrototype* domObject = jsDynamicCast<JSTestGlobalObjectPrototype*>(JSValue::decode(thisValue));
+    JSTestGlobalObjectPrototype* domObject = jsDynamicDowncast<JSTestGlobalObjectPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestGlobalObject::getConstructor(state->vm(), domObject->globalObject()));
@@ -270,7 +273,7 @@ bool setJSTestGlobalObjectConstructor(ExecState* state, EncodedJSValue thisValue
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestGlobalObjectPrototype* domObject = jsDynamicCast<JSTestGlobalObjectPrototype*>(JSValue::decode(thisValue));
+    JSTestGlobalObjectPrototype* domObject = jsDynamicDowncast<JSTestGlobalObjectPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -451,6 +454,26 @@ EncodedJSValue JSC_HOST_CALL jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeO
 }
 #endif
 
+static inline JSC::EncodedJSValue jsTestGlobalObjectInstanceFunctionEnabledInSpecificWorldCaller(JSC::ExecState*, JSTestGlobalObject*, JSC::ThrowScope&);
+
+EncodedJSValue JSC_HOST_CALL jsTestGlobalObjectInstanceFunctionEnabledInSpecificWorld(ExecState* state)
+{
+    return BindingCaller<JSTestGlobalObject>::callOperation<jsTestGlobalObjectInstanceFunctionEnabledInSpecificWorldCaller>(state, "enabledInSpecificWorld");
+}
+
+static inline JSC::EncodedJSValue jsTestGlobalObjectInstanceFunctionEnabledInSpecificWorldCaller(JSC::ExecState* state, JSTestGlobalObject* castedThis, JSC::ThrowScope& throwScope)
+{
+    UNUSED_PARAM(state);
+    UNUSED_PARAM(throwScope);
+    auto& impl = castedThis->wrapped();
+    if (UNLIKELY(state->argumentCount() < 1))
+        return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
+    auto testParam = convert<IDLLong>(*state, state->uncheckedArgument(0), IntegerConversionConfiguration::Normal);
+    RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
+    impl.enabledInSpecificWorld(WTFMove(testParam));
+    return JSValue::encode(jsUndefined());
+}
+
 #if ENABLE(TEST_FEATURE)
 static inline JSC::EncodedJSValue jsTestGlobalObjectInstanceFunctionTestPrivateFunctionCaller(JSC::ExecState*, JSTestGlobalObject*, JSC::ThrowScope&);
 
@@ -524,7 +547,7 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestGl
 
 TestGlobalObject* JSTestGlobalObject::toWrapped(JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicCast<JSTestGlobalObject*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestGlobalObject*>(value))
         return &wrapper->wrapped();
     return nullptr;
 }

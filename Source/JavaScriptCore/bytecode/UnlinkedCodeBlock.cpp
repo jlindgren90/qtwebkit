@@ -33,24 +33,23 @@
 #include "CodeCache.h"
 #include "ExecutableInfo.h"
 #include "FunctionOverrides.h"
-#include "JSString.h"
 #include "JSCInlines.h"
+#include "JSString.h"
 #include "Parser.h"
 #include "PreciseJumpTargetsInlines.h"
 #include "SourceProvider.h"
 #include "Structure.h"
 #include "SymbolTable.h"
+#include "UnlinkedEvalCodeBlock.h"
+#include "UnlinkedFunctionCodeBlock.h"
 #include "UnlinkedInstructionStream.h"
+#include "UnlinkedModuleProgramCodeBlock.h"
+#include "UnlinkedProgramCodeBlock.h"
 #include <wtf/DataLog.h>
 
 namespace JSC {
 
 const ClassInfo UnlinkedCodeBlock::s_info = { "UnlinkedCodeBlock", 0, 0, CREATE_METHOD_TABLE(UnlinkedCodeBlock) };
-const ClassInfo UnlinkedGlobalCodeBlock::s_info = { "UnlinkedGlobalCodeBlock", &Base::s_info, 0, CREATE_METHOD_TABLE(UnlinkedGlobalCodeBlock) };
-const ClassInfo UnlinkedProgramCodeBlock::s_info = { "UnlinkedProgramCodeBlock", &Base::s_info, 0, CREATE_METHOD_TABLE(UnlinkedProgramCodeBlock) };
-const ClassInfo UnlinkedModuleProgramCodeBlock::s_info = { "UnlinkedModuleProgramCodeBlock", &Base::s_info, nullptr, CREATE_METHOD_TABLE(UnlinkedModuleProgramCodeBlock) };
-const ClassInfo UnlinkedEvalCodeBlock::s_info = { "UnlinkedEvalCodeBlock", &Base::s_info, 0, CREATE_METHOD_TABLE(UnlinkedEvalCodeBlock) };
-const ClassInfo UnlinkedFunctionCodeBlock::s_info = { "UnlinkedFunctionCodeBlock", &Base::s_info, 0, CREATE_METHOD_TABLE(UnlinkedFunctionCodeBlock) };
 
 UnlinkedCodeBlock::UnlinkedCodeBlock(VM* vm, Structure* structure, CodeType codeType, const ExecutableInfo& info, DebuggerMode debuggerMode)
     : Base(*vm, structure)
@@ -71,7 +70,6 @@ UnlinkedCodeBlock::UnlinkedCodeBlock(VM* vm, Structure* structure, CodeType code
     , m_constructorKind(static_cast<unsigned>(info.constructorKind()))
     , m_derivedContextType(static_cast<unsigned>(info.derivedContextType()))
     , m_evalContextType(static_cast<unsigned>(info.evalContextType()))
-    , m_firstLine(0)
     , m_lineCount(0)
     , m_endColumn(UINT_MAX)
     , m_didOptimize(MixedTriState)
@@ -94,6 +92,7 @@ void UnlinkedCodeBlock::visitChildren(JSCell* cell, SlotVisitor& visitor)
     UnlinkedCodeBlock* thisObject = jsCast<UnlinkedCodeBlock*>(cell);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
     Base::visitChildren(thisObject, visitor);
+    auto locker = holdLock(*thisObject);
     for (FunctionExpressionVector::iterator ptr = thisObject->m_functionDecls.begin(), end = thisObject->m_functionDecls.end(); ptr != end; ++ptr)
         visitor.append(ptr);
     for (FunctionExpressionVector::iterator ptr = thisObject->m_functionExprs.begin(), end = thisObject->m_functionExprs.end(); ptr != end; ++ptr)
@@ -308,53 +307,17 @@ void UnlinkedCodeBlock::addTypeProfilerExpressionInfo(unsigned instructionOffset
     m_rareData->m_typeProfilerInfoMap.set(instructionOffset, range);
 }
 
-void UnlinkedProgramCodeBlock::visitChildren(JSCell* cell, SlotVisitor& visitor)
-{
-    UnlinkedProgramCodeBlock* thisObject = jsCast<UnlinkedProgramCodeBlock*>(cell);
-    ASSERT_GC_OBJECT_INHERITS(thisObject, info());
-    Base::visitChildren(thisObject, visitor);
-}
-
-void UnlinkedModuleProgramCodeBlock::visitChildren(JSCell* cell, SlotVisitor& visitor)
-{
-    UnlinkedModuleProgramCodeBlock* thisObject = jsCast<UnlinkedModuleProgramCodeBlock*>(cell);
-    ASSERT_GC_OBJECT_INHERITS(thisObject, info());
-    Base::visitChildren(thisObject, visitor);
-}
-
 UnlinkedCodeBlock::~UnlinkedCodeBlock()
 {
-}
-
-void UnlinkedProgramCodeBlock::destroy(JSCell* cell)
-{
-    jsCast<UnlinkedProgramCodeBlock*>(cell)->~UnlinkedProgramCodeBlock();
-}
-
-void UnlinkedModuleProgramCodeBlock::destroy(JSCell* cell)
-{
-    jsCast<UnlinkedModuleProgramCodeBlock*>(cell)->~UnlinkedModuleProgramCodeBlock();
-}
-
-void UnlinkedEvalCodeBlock::destroy(JSCell* cell)
-{
-    jsCast<UnlinkedEvalCodeBlock*>(cell)->~UnlinkedEvalCodeBlock();
-}
-
-void UnlinkedFunctionCodeBlock::destroy(JSCell* cell)
-{
-    jsCast<UnlinkedFunctionCodeBlock*>(cell)->~UnlinkedFunctionCodeBlock();
-}
-
-void UnlinkedFunctionExecutable::destroy(JSCell* cell)
-{
-    jsCast<UnlinkedFunctionExecutable*>(cell)->~UnlinkedFunctionExecutable();
 }
 
 void UnlinkedCodeBlock::setInstructions(std::unique_ptr<UnlinkedInstructionStream> instructions)
 {
     ASSERT(instructions);
-    m_unlinkedInstructions = WTFMove(instructions);
+    {
+        auto locker = holdLock(*this);
+        m_unlinkedInstructions = WTFMove(instructions);
+    }
     Heap::heap(this)->reportExtraMemoryAllocated(m_unlinkedInstructions->sizeInBytes());
 }
 
@@ -426,5 +389,28 @@ void UnlinkedCodeBlock::applyModification(BytecodeRewriter& rewriter)
     recomputePreciseJumpTargets(this, graph.instructions().begin(), graph.instructions().size(), m_jumpTargets);
 }
 
+void UnlinkedCodeBlock::shrinkToFit()
+{
+    auto locker = holdLock(*this);
+    
+    m_jumpTargets.shrinkToFit();
+    m_identifiers.shrinkToFit();
+    m_bitVectors.shrinkToFit();
+    m_constantRegisters.shrinkToFit();
+    m_constantsSourceCodeRepresentation.shrinkToFit();
+    m_functionDecls.shrinkToFit();
+    m_functionExprs.shrinkToFit();
+    m_propertyAccessInstructions.shrinkToFit();
+    m_expressionInfo.shrinkToFit();
+
+    if (m_rareData) {
+        m_rareData->m_exceptionHandlers.shrinkToFit();
+        m_rareData->m_regexps.shrinkToFit();
+        m_rareData->m_constantBuffers.shrinkToFit();
+        m_rareData->m_switchJumpTables.shrinkToFit();
+        m_rareData->m_stringSwitchJumpTables.shrinkToFit();
+        m_rareData->m_expressionInfoFatPositions.shrinkToFit();
+    }
 }
 
+} // namespace JSC

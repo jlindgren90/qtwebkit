@@ -109,7 +109,7 @@ RepetitionCount ImageDecoder::repetitionCount() const
     return RepetitionCountNone;
 }
 
-Optional<IntPoint> ImageDecoder::hotSpot() const
+std::optional<IntPoint> ImageDecoder::hotSpot() const
 {
     return IntPoint();
 }
@@ -209,7 +209,7 @@ NativeImagePtr ImageDecoder::createFrameImageAtIndex(size_t index, SubsamplingLe
 
 void ImageDecoder::setData(SharedBuffer& data, bool allDataReceived)
 {
-    if (allDataReceived)
+    if (!allDataReceived)
         return;
 
     COMPtr<IWICStream> stream;

@@ -208,6 +208,7 @@ namespace JSC { namespace DFG {
     macro(AllocatePropertyStorage, NodeMustGenerate | NodeResultStorage) \
     macro(ReallocatePropertyStorage, NodeMustGenerate | NodeResultStorage) \
     macro(GetButterfly, NodeResultStorage) \
+    macro(NukeStructureAndSetButterfly, NodeMustGenerate) \
     macro(CheckArray, NodeMustGenerate) \
     macro(Arrayify, NodeMustGenerate) \
     macro(ArrayifyToStructure, NodeMustGenerate) \
@@ -290,6 +291,7 @@ namespace JSC { namespace DFG {
     /* Allocations. */\
     macro(NewObject, NodeResultJS) \
     macro(NewArray, NodeResultJS | NodeHasVarArgs) \
+    macro(NewArrayWithSpread, NodeResultJS | NodeHasVarArgs) \
     macro(NewArrayWithSize, NodeResultJS | NodeMustGenerate) \
     macro(NewArrayBuffer, NodeResultJS) \
     macro(NewTypedArray, NodeResultJS | NodeMustGenerate) \
@@ -298,6 +300,7 @@ namespace JSC { namespace DFG {
     macro(GetRestLength, NodeResultInt32) \
     macro(CreateRest, NodeResultJS | NodeMustGenerate) \
     \
+    macro(Spread, NodeResultJS | NodeMustGenerate) \
     /* Support for allocation sinking. */\
     macro(PhantomNewObject, NodeResultJS | NodeMustGenerate) \
     macro(PutHint, NodeMustGenerate) \
@@ -305,6 +308,7 @@ namespace JSC { namespace DFG {
     macro(MaterializeNewObject, NodeResultJS | NodeHasVarArgs) \
     macro(PhantomNewFunction, NodeResultJS | NodeMustGenerate) \
     macro(PhantomNewGeneratorFunction, NodeResultJS | NodeMustGenerate) \
+    macro(PhantomNewAsyncFunction, NodeResultJS | NodeMustGenerate) \
     macro(PhantomCreateActivation, NodeResultJS | NodeMustGenerate) \
     macro(MaterializeCreateActivation, NodeResultJS | NodeHasVarArgs) \
     \
@@ -341,15 +345,21 @@ namespace JSC { namespace DFG {
     \
     macro(CreateDirectArguments, NodeResultJS) \
     macro(PhantomDirectArguments, NodeResultJS | NodeMustGenerate) \
+    macro(PhantomCreateRest, NodeResultJS | NodeMustGenerate) \
+    macro(PhantomSpread, NodeResultJS | NodeMustGenerate) \
+    macro(PhantomNewArrayWithSpread, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
     macro(CreateScopedArguments, NodeResultJS) \
     macro(CreateClonedArguments, NodeResultJS) \
     macro(PhantomClonedArguments, NodeResultJS | NodeMustGenerate) \
     macro(GetFromArguments, NodeResultJS) \
     macro(PutToArguments, NodeMustGenerate) \
+    macro(GetArgument, NodeResultJS) \
     \
     macro(NewFunction, NodeResultJS) \
     \
     macro(NewGeneratorFunction, NodeResultJS) \
+    \
+    macro(NewAsyncFunction, NodeResultJS) \
     \
     /* These aren't terminals but always exit */ \
     macro(Throw, NodeMustGenerate) \
@@ -405,6 +415,7 @@ namespace JSC { namespace DFG {
     /* Nodes for DOM JIT */\
     macro(CheckDOM, NodeMustGenerate) \
     macro(CallDOMGetter, NodeResultJS | NodeMustGenerate) \
+    macro(CallDOM, NodeResultJS | NodeMustGenerate) \
 
 // This enum generates a monotonically increasing id for all Node types,
 // and is used by the subsequent enum to fill out the id (as accessed via the NodeIdMask).

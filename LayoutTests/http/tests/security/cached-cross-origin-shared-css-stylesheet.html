@@ -25,6 +25,8 @@ document.body.appendChild(createLinkElement(false, function() {
         document.body.appendChild(createLinkElement(true, function() {
             if (window.internals)
                 internals.beginSimulatedMemoryPressure();
+            if (window.internals)
+                internals.endSimulatedMemoryPressure();
             document.getElementById('log').innerHTML = "PASS";
             if (window.testRunner)
                 testRunner.notifyDone();

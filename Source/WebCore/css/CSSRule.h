@@ -49,6 +49,7 @@ public:
         // <https://bugs.webkit.org/show_bug.cgi?id=71293>.
         KEYFRAMES_RULE,
         KEYFRAME_RULE,
+        NAMESPACE_RULE = 10, // Matches other browsers.
         SUPPORTS_RULE = 12,
 #if ENABLE(CSS_DEVICE_ADAPTATION)
         WEBKIT_VIEWPORT_RULE = 15,
@@ -119,4 +120,3 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::CSSRule& rule) { return rule.type() == WebCore::predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
-

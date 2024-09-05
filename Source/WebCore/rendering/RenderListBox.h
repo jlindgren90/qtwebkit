@@ -28,12 +28,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef RenderListBox_h
-#define RenderListBox_h
+#pragma once
 
 #include "RenderBlockFlow.h"
 #include "ScrollableArea.h"
-
 #include <wtf/Optional.h>
 
 namespace WebCore {
@@ -177,8 +175,8 @@ private:
     int m_optionsWidth;
     int m_indexOffset;
 
-    Optional<int> m_indexOfFirstVisibleItemInsidePaddingTopArea;
-    Optional<int> m_indexOfFirstVisibleItemInsidePaddingBottomArea;
+    std::optional<int> m_indexOfFirstVisibleItemInsidePaddingTopArea;
+    std::optional<int> m_indexOfFirstVisibleItemInsidePaddingBottomArea;
 
     RefPtr<Scrollbar> m_vBar;
 };
@@ -186,5 +184,3 @@ private:
 } // namepace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderListBox, isListBox())
-
-#endif // RenderListBox_h

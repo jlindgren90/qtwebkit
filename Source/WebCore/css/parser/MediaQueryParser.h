@@ -27,8 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef MediaQueryParser_h
-#define MediaQueryParser_h
+#pragma once
 
 #include "CSSParserToken.h"
 #include "CSSParserTokenRange.h"
@@ -77,9 +76,9 @@ private:
 class MediaQueryParser {
     WTF_MAKE_NONCOPYABLE(MediaQueryParser);
 public:
-    static RefPtr<MediaQuerySet> parseMediaQuerySet(const String&);
-    static RefPtr<MediaQuerySet> parseMediaQuerySet(CSSParserTokenRange);
-    static RefPtr<MediaQuerySet> parseMediaCondition(CSSParserTokenRange);
+    static Ref<MediaQuerySet> parseMediaQuerySet(const String&);
+    static Ref<MediaQuerySet> parseMediaQuerySet(CSSParserTokenRange);
+    static Ref<MediaQuerySet> parseMediaCondition(CSSParserTokenRange);
 
 private:
     enum ParserType {
@@ -90,7 +89,7 @@ private:
     MediaQueryParser(ParserType);
     virtual ~MediaQueryParser();
 
-    RefPtr<MediaQuerySet> parseInternal(CSSParserTokenRange);
+    Ref<MediaQuerySet> parseInternal(CSSParserTokenRange);
 
     void processToken(const CSSParserToken&);
 
@@ -117,7 +116,7 @@ private:
     State m_state;
     ParserType m_parserType;
     MediaQueryData m_mediaQueryData;
-    RefPtr<MediaQuerySet> m_querySet;
+    Ref<MediaQuerySet> m_querySet;
     MediaQueryBlockWatcher m_blockWatcher;
 
     const static State ReadRestrictor;
@@ -132,9 +131,6 @@ private:
     const static State SkipUntilComma;
     const static State SkipUntilBlockEnd;
     const static State Done;
-
 };
 
 } // namespace WebCore
-
-#endif // MediaQueryParser_h

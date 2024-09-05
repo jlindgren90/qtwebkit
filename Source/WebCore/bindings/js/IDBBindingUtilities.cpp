@@ -45,6 +45,7 @@
 #include "SerializedScriptValue.h"
 #include "SharedBuffer.h"
 #include "ThreadSafeDataBuffer.h"
+#include <runtime/ArrayBuffer.h>
 #include <runtime/DateInstance.h>
 #include <runtime/ObjectConstructor.h>
 
@@ -100,9 +101,25 @@ JSValue toJS(ExecState& state, JSGlobalObject& globalObject, IDBKey* key)
         unsigned size = inArray.size();
         auto outArray = constructEmptyArray(&state, 0, &globalObject, size);
         RETURN_IF_EXCEPTION(scope, JSValue());
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i) {
             outArray->putDirectIndex(&state, i, toJS(state, globalObject, inArray.at(i).get()));
+            RETURN_IF_EXCEPTION(scope, JSValue());
+        }
         return outArray;
+    }
+    case KeyType::Binary: {
+        auto* data = key->binary().data();
+        if (!data) {
+            ASSERT_NOT_REACHED();
+            return jsNull();
+        }
+
+        auto arrayBuffer = ArrayBuffer::create(data->data(), data->size());
+        Structure* structure = globalObject.arrayBufferStructure(arrayBuffer->sharingMode());
+        if (!structure)
+            return jsNull();
+
+        return JSArrayBuffer::create(state.vm(), structure, WTFMove(arrayBuffer));
     }
     case KeyType::String:
         return jsStringWithCache(&state, key->string());
@@ -163,6 +180,12 @@ static RefPtr<IDBKey> createIDBKeyFromValue(ExecState& exec, JSValue value, Vect
             stack.removeLast();
             return IDBKey::createArray(subkeys);
         }
+
+        if (auto* arrayBuffer = jsDynamicCast<JSArrayBuffer*>(value))
+            return IDBKey::createBinary(*arrayBuffer);
+
+        if (auto* arrayBufferView = jsDynamicCast<JSArrayBufferView*>(value))
+            return IDBKey::createBinary(*arrayBufferView);
     }
     return nullptr;
 }
@@ -301,7 +324,7 @@ bool canInjectIDBKeyIntoScriptValue(ExecState& exec, const JSValue& scriptValue,
     return canInjectNthValueOnKeyPath(exec, scriptValue, keyPathElements, keyPathElements.size() - 1);
 }
 
-JSValue deserializeIDBValueToJSValue(ExecState& exec, const IDBValue& value)
+static JSValue deserializeIDBValueToJSValue(ExecState& state, JSC::JSGlobalObject& globalObject, const IDBValue& value)
 {
     // FIXME: I think it's peculiar to use undefined to mean "null data" and null to mean "empty data".
     // But I am not changing this at the moment because at least some callers are specifically checking isUndefined.
@@ -315,12 +338,23 @@ JSValue deserializeIDBValueToJSValue(ExecState& exec, const IDBValue& value)
 
     auto serializedValue = SerializedScriptValue::createFromWireBytes(Vector<uint8_t>(data));
 
-    exec.vm().apiLock().lock();
+    state.vm().apiLock().lock();
     Vector<RefPtr<MessagePort>> messagePorts;
-    JSValue result = serializedValue->deserialize(exec, exec.lexicalGlobalObject(), messagePorts, value.blobURLs(), value.blobFilePaths(), NonThrowing);
-    exec.vm().apiLock().unlock();
+    JSValue result = serializedValue->deserialize(state, &globalObject, messagePorts, value.blobURLs(), value.blobFilePaths(), NonThrowing);
+    state.vm().apiLock().unlock();
 
     return result;
+}
+
+JSValue deserializeIDBValueToJSValue(ExecState& state, const IDBValue& value)
+{
+    return deserializeIDBValueToJSValue(state, *state.lexicalGlobalObject(), value);
+}
+
+JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, const IDBValue& value)
+{
+    ASSERT(state);
+    return deserializeIDBValueToJSValue(*state, *globalObject, value);
 }
 
 Ref<IDBKey> scriptValueToIDBKey(ExecState& exec, const JSValue& scriptValue)
@@ -332,6 +366,14 @@ JSC::JSValue idbKeyDataToScriptValue(JSC::ExecState& exec, const IDBKeyData& key
 {
     RefPtr<IDBKey> key = keyData.maybeCreateIDBKey();
     return toJS(exec, *exec.lexicalGlobalObject(), key.get());
+}
+
+JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, const IDBKeyData& keyData)
+{
+    ASSERT(state);
+    ASSERT(globalObject);
+
+    return toJS(*state, *globalObject, keyData.maybeCreateIDBKey().get());
 }
 
 static Vector<IDBKeyData> createKeyPathArray(ExecState& exec, JSValue value, const IDBIndexInfo& info)
@@ -372,7 +414,7 @@ void generateIndexKeyForValue(ExecState& exec, const IDBIndexInfo& info, JSValue
     outKey = IndexKey(WTFMove(keyDatas));
 }
 
-JSValue toJS(ExecState& state, JSDOMGlobalObject& globalObject, const Optional<IDBKeyPath>& keyPath)
+JSValue toJS(ExecState& state, JSDOMGlobalObject& globalObject, const std::optional<IDBKeyPath>& keyPath)
 {
     if (!keyPath)
         return jsNull();

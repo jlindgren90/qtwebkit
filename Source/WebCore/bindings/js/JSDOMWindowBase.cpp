@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 2000 Harri Porten (porten@kde.org)
  *  Copyright (C) 2006 Jon Shier (jshier@iastate.edu)
- *  Copyright (C) 2003-2009, 2014 Apple Inc. All rights reseved.
+ *  Copyright (C) 2003-2009, 2014, 2016 Apple Inc. All rights reseved.
  *  Copyright (C) 2006 Alexey Proskuryakov (ap@webkit.org)
  *  Copyright (c) 2015 Canon Inc. All rights reserved.
  *
@@ -26,6 +26,8 @@
 
 #include "ActiveDOMCallbackMicrotask.h"
 #include "Chrome.h"
+#include "CommonVM.h"
+#include "DOMWindow.h"
 #include "Frame.h"
 #include "InspectorController.h"
 #include "JSDOMGlobalObjectTask.h"
@@ -48,8 +50,6 @@
 
 #if PLATFORM(IOS)
 #include "ChromeClient.h"
-#include "WebSafeGCActivityCallbackIOS.h"
-#include "WebSafeIncrementalSweeperIOS.h"
 #endif
 
 using namespace JSC;
@@ -58,7 +58,18 @@ namespace WebCore {
 
 const ClassInfo JSDOMWindowBase::s_info = { "Window", &JSDOMGlobalObject::s_info, 0, CREATE_METHOD_TABLE(JSDOMWindowBase) };
 
-const GlobalObjectMethodTable JSDOMWindowBase::s_globalObjectMethodTable = { &supportsRichSourceInfo, &shouldInterruptScript, &javaScriptRuntimeFlags, &queueTaskToEventLoop, &shouldInterruptScriptBeforeTimeout, &moduleLoaderResolve, &moduleLoaderFetch, nullptr, nullptr, &moduleLoaderEvaluate, &defaultLanguage };
+const GlobalObjectMethodTable JSDOMWindowBase::s_globalObjectMethodTable = {
+    &supportsRichSourceInfo,
+    &shouldInterruptScript,
+    &javaScriptRuntimeFlags,
+    &queueTaskToEventLoop,
+    &shouldInterruptScriptBeforeTimeout,
+    &moduleLoaderResolve,
+    &moduleLoaderFetch,
+    nullptr,
+    &moduleLoaderEvaluate,
+    &defaultLanguage
+};
 
 JSDOMWindowBase::JSDOMWindowBase(VM& vm, Structure* structure, RefPtr<DOMWindow>&& window, JSDOMWindowShell* shell)
     : JSDOMGlobalObject(vm, structure, shell->world(), &s_globalObjectMethodTable)
@@ -235,32 +246,6 @@ JSDOMWindowShell* JSDOMWindowBase::shell() const
     return m_shell;
 }
 
-VM& JSDOMWindowBase::commonVM()
-{
-    ASSERT(isMainThread());
-
-    static VM* vm = nullptr;
-    if (!vm) {
-        ScriptController::initializeThreading();
-        vm = &VM::createLeaked(LargeHeap).leakRef();
-#if !PLATFORM(IOS)
-        vm->setExclusiveThread(std::this_thread::get_id());
-#else
-        vm->heap.setFullActivityCallback(WebSafeFullGCActivityCallback::create(&vm->heap));
-        vm->heap.setEdenActivityCallback(WebSafeEdenGCActivityCallback::create(&vm->heap));
-
-        vm->heap.setIncrementalSweeper(std::make_unique<WebSafeIncrementalSweeper>(&vm->heap));
-        vm->heap.machineThreads().addCurrentThread();
-#endif
-
-        vm->setGlobalConstRedeclarationShouldThrow(Settings::globalConstRedeclarationShouldThrow());
-
-        initNormalWorldClientData(vm);
-    }
-
-    return *vm;
-}
-
 // JSDOMGlobalObject* is ignored, accessing a window in any context will
 // use that DOMWindow's prototype chain.
 JSValue toJS(ExecState* exec, JSDOMGlobalObject*, DOMWindow& domWindow)
@@ -301,7 +286,7 @@ JSDOMWindow* toJSDOMWindow(JSValue value)
 
 void JSDOMWindowBase::fireFrameClearedWatchpointsForWindow(DOMWindow* window)
 {
-    JSC::VM& vm = JSDOMWindowBase::commonVM();
+    JSC::VM& vm = commonVM();
     JSVMClientData* clientData = static_cast<JSVMClientData*>(vm.clientData);
     Vector<Ref<DOMWrapperWorld>> wrapperWorlds;
     clientData->getAllWorlds(wrapperWorlds);

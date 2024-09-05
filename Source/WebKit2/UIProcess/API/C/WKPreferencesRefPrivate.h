@@ -170,6 +170,10 @@ WK_EXPORT bool WKPreferencesGetUniversalAccessFromFileURLsAllowed(WKPreferencesR
 WK_EXPORT void WKPreferencesSetFileAccessFromFileURLsAllowed(WKPreferencesRef preferences, bool allowed);
 WK_EXPORT bool WKPreferencesGetFileAccessFromFileURLsAllowed(WKPreferencesRef preferences);
 
+// Defaults to true
+WK_EXPORT void WKPreferencesSetNeedsStorageAccessFromFileURLsQuirk(WKPreferencesRef preferences, bool needsQuirk);
+WK_EXPORT bool WKPreferencesGetNeedsStorageAccessFromFileURLsQuirk(WKPreferencesRef preferences);
+
 // Defaults to true.
 WK_EXPORT void WKPreferencesSetHixie76WebSocketProtocolEnabled(WKPreferencesRef preferencesRef, bool enabled);
 WK_EXPORT bool WKPreferencesGetHixie76WebSocketProtocolEnabled(WKPreferencesRef preferencesRef);
@@ -201,6 +205,10 @@ WK_EXPORT bool WKPreferencesGetInlineMediaPlaybackRequiresPlaysInlineAttribute(W
 // Defaults to false on iOS, true elsewhere.
 WK_EXPORT void WKPreferencesSetMediaControlsScaleWithPageZoom(WKPreferencesRef preferencesRef, bool flag);
 WK_EXPORT bool WKPreferencesGetMediaControlsScaleWithPageZoom(WKPreferencesRef preferencesRef);
+
+// Defaults to false.
+WK_EXPORT void WKPreferencesSetModernMediaControlsEnabled(WKPreferencesRef preferencesRef, bool flag);
+WK_EXPORT bool WKPreferencesGetModernMediaControlsEnabled(WKPreferencesRef preferencesRef);
 
 // Defaults to false.
 WK_EXPORT void WKPreferencesSetShowsToolTipOverTruncatedText(WKPreferencesRef preferencesRef, bool flag);
@@ -415,7 +423,11 @@ WK_EXPORT bool WKPreferencesGetResourceUsageOverlayVisible(WKPreferencesRef);
 // Defaults to false.
 WK_EXPORT void WKPreferencesSetMockCaptureDevicesEnabled(WKPreferencesRef, bool);
 WK_EXPORT bool WKPreferencesGetMockCaptureDevicesEnabled(WKPreferencesRef);
-    
+
+// Defaults to true.
+WK_EXPORT void WKPreferencesSetMediaCaptureRequiresSecureConnection(WKPreferencesRef, bool);
+WK_EXPORT bool WKPreferencesGetMediaCaptureRequiresSecureConnection(WKPreferencesRef);
+
 // Defaults to false
 WK_EXPORT void WKPreferencesSetFetchAPIEnabled(WKPreferencesRef, bool flag);
 WK_EXPORT bool WKPreferencesGetFetchAPIEnabled(WKPreferencesRef);
@@ -431,6 +443,18 @@ WK_EXPORT bool WKPreferencesGetSelectionPaintingWithoutSelectionGapsEnabled(WKPr
 // Defaults to false.
 WK_EXPORT void WKPreferencesSetAllowsPictureInPictureMediaPlayback(WKPreferencesRef, bool flag);
 WK_EXPORT bool WKPreferencesGetAllowsPictureInPictureMediaPlayback(WKPreferencesRef);
+
+// Defaults to false
+WK_EXPORT void WKPreferencesSetES6ModulesEnabled(WKPreferencesRef, bool flag);
+WK_EXPORT bool WKPreferencesGetES6ModulesEnabled(WKPreferencesRef);
+
+// Defaults to false
+WK_EXPORT void WKPreferencesSetIntersectionObserverEnabled(WKPreferencesRef, bool flag);
+WK_EXPORT bool WKPreferencesGetIntersectionObserverEnabled(WKPreferencesRef);
+
+// Defaults to true
+WK_EXPORT void WKPreferencesSetSubtleCryptoEnabled(WKPreferencesRef, bool flag);
+WK_EXPORT bool WKPreferencesGetSubtleCryptoEnabled(WKPreferencesRef);
 
 #ifdef __cplusplus
 }

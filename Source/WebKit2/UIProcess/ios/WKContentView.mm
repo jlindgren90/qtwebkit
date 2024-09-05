@@ -92,15 +92,14 @@ public:
     HistoricalVelocityData()
         : m_historySize(0)
         , m_latestDataIndex(0)
-        , m_lastAppendTimestamp(0)
     {
     }
 
-    VelocityData velocityForNewData(CGPoint newPosition, double scale, double timestamp)
+    VelocityData velocityForNewData(CGPoint newPosition, double scale, MonotonicTime timestamp)
     {
         // Due to all the source of rect update, the input is very noisy. To smooth the output, we accumulate all changes
         // within 1 frame as a single update. No speed computation is ever done on data within the same frame.
-        const double filteringThreshold = 1 / 60.;
+        const Seconds filteringThreshold(1.0 / 60);
 
         VelocityData velocityData;
         if (m_historySize > 0) {
@@ -111,14 +110,14 @@ public:
             else
                 oldestDataIndex = m_historySize - (distanceToLastHistoricalData - m_latestDataIndex);
 
-            double timeDelta = timestamp - m_history[oldestDataIndex].timestamp;
+            Seconds timeDelta = timestamp - m_history[oldestDataIndex].timestamp;
             if (timeDelta > filteringThreshold) {
                 Data& oldestData = m_history[oldestDataIndex];
-                velocityData = VelocityData((newPosition.x - oldestData.position.x) / timeDelta, (newPosition.y - oldestData.position.y) / timeDelta, (scale - oldestData.scale) / timeDelta);
+                velocityData = VelocityData((newPosition.x - oldestData.position.x) / timeDelta.seconds(), (newPosition.y - oldestData.position.y) / timeDelta.seconds(), (scale - oldestData.scale) / timeDelta.seconds());
             }
         }
 
-        double timeSinceLastAppend = timestamp - m_lastAppendTimestamp;
+        Seconds timeSinceLastAppend = timestamp - m_lastAppendTimestamp;
         if (timeSinceLastAppend > filteringThreshold)
             append(newPosition, scale, timestamp);
         else
@@ -129,7 +128,7 @@ public:
     void clear() { m_historySize = 0; }
 
 private:
-    void append(CGPoint newPosition, double scale, double timestamp)
+    void append(CGPoint newPosition, double scale, MonotonicTime timestamp)
     {
         m_latestDataIndex = (m_latestDataIndex + 1) % maxHistoryDepth;
         m_history[m_latestDataIndex] = { timestamp, newPosition, scale };
@@ -146,10 +145,10 @@ private:
 
     unsigned m_historySize;
     unsigned m_latestDataIndex;
-    double m_lastAppendTimestamp;
+    MonotonicTime m_lastAppendTimestamp;
 
     struct Data {
-        double timestamp;
+        MonotonicTime timestamp;
         CGPoint position;
         double scale;
     } m_history[maxHistoryDepth];
@@ -363,27 +362,32 @@ private:
     [_fixedClippingView setBounds:clippingBounds];
 }
 
-- (void)didUpdateVisibleRect:(CGRect)visibleRect unobscuredRect:(CGRect)unobscuredRect unobscuredRectInScrollViewCoordinates:(CGRect)unobscuredRectInScrollViewCoordinates
-    obscuredInset:(CGSize)obscuredInset scale:(CGFloat)zoomScale minimumScale:(CGFloat)minimumScale inStableState:(BOOL)isStableState isChangingObscuredInsetsInteractively:(BOOL)isChangingObscuredInsetsInteractively enclosedInScrollableAncestorView:(BOOL)enclosedInScrollableAncestorView
+- (void)didUpdateVisibleRect:(CGRect)visibleContentRect
+    unobscuredRect:(CGRect)unobscuredContentRect
+    unobscuredRectInScrollViewCoordinates:(CGRect)unobscuredRectInScrollViewCoordinates
+    obscuredInset:(CGSize)obscuredInset
+    scale:(CGFloat)zoomScale minimumScale:(CGFloat)minimumScale
+    inStableState:(BOOL)isStableState
+    isChangingObscuredInsetsInteractively:(BOOL)isChangingObscuredInsetsInteractively
+    enclosedInScrollableAncestorView:(BOOL)enclosedInScrollableAncestorView
 {
     auto drawingArea = _page->drawingArea();
     if (!drawingArea)
         return;
 
-    double timestamp = monotonicallyIncreasingTime();
+    MonotonicTime timestamp = MonotonicTime::now();
     HistoricalVelocityData::VelocityData velocityData;
     if (!isStableState)
-        velocityData = _historicalKinematicData.velocityForNewData(visibleRect.origin, zoomScale, timestamp);
+        velocityData = _historicalKinematicData.velocityForNewData(visibleContentRect.origin, zoomScale, timestamp);
     else
         _historicalKinematicData.clear();
 
-    FloatRect fixedPositionRectForLayout = _page->computeCustomFixedPositionRect(unobscuredRect, zoomScale, WebPageProxy::UnobscuredRectConstraint::ConstrainedToDocumentRect);
-
-    LOG_WITH_STREAM(VisibleRects, stream << "didUpdateVisibleRect: visibleRect:" << visibleRect << " unobscuredRect:" << unobscuredRect << " fixedPositionRectForLayout:" << fixedPositionRectForLayout);
+    RemoteScrollingCoordinatorProxy* scrollingCoordinator = _page->scrollingCoordinatorProxy();
+    FloatRect fixedPositionRectForLayout = _page->computeCustomFixedPositionRect(unobscuredContentRect, _page->customFixedPositionRect(), zoomScale, WebPageProxy::UnobscuredRectConstraint::ConstrainedToDocumentRect, scrollingCoordinator->visualViewportEnabled());
 
     VisibleContentRectUpdateInfo visibleContentRectUpdateInfo(
-        visibleRect,
-        unobscuredRect,
+        visibleContentRect,
+        unobscuredContentRect,
         unobscuredRectInScrollViewCoordinates,
         fixedPositionRectForLayout,
         WebCore::FloatSize(obscuredInset),
@@ -398,10 +402,11 @@ private:
         velocityData.scaleChangeRate,
         downcast<RemoteLayerTreeDrawingAreaProxy>(*drawingArea).lastCommittedLayerTreeTransactionID());
 
+    LOG_WITH_STREAM(VisibleRects, stream << "-[WKContentView didUpdateVisibleRect]" << visibleContentRectUpdateInfo.dump());
+
     _page->updateVisibleContentRects(visibleContentRectUpdateInfo);
 
-    RemoteScrollingCoordinatorProxy* scrollingCoordinator = _page->scrollingCoordinatorProxy();
-    FloatRect fixedPositionRect = _page->computeCustomFixedPositionRect(_page->unobscuredContentRect(), zoomScale);
+    FloatRect fixedPositionRect = _page->computeCustomFixedPositionRect(_page->unobscuredContentRect(), _page->customFixedPositionRect(), zoomScale, WebPageProxy::UnobscuredRectConstraint::Unconstrained, scrollingCoordinator->visualViewportEnabled());
     scrollingCoordinator->viewportChangedViaDelegatedScrolling(scrollingCoordinator->rootScrollingNodeID(), fixedPositionRect, zoomScale);
 
     drawingArea->updateDebugIndicator();
@@ -531,12 +536,13 @@ static void storeAccessibilityRemoteConnectionInformation(id element, pid_t pid,
     if (_interactionViewsContainerView) {
         FloatPoint scaledOrigin = layerTreeTransaction.scrollOrigin();
         float scale = [[_webView scrollView] zoomScale];
-        scaledOrigin.scale(scale, scale);
+        scaledOrigin.scale(scale);
         [_interactionViewsContainerView setFrame:CGRectMake(scaledOrigin.x(), scaledOrigin.y(), 0, 0)];
     }
     
     if (boundsChanged) {
-        FloatRect fixedPositionRect = _page->computeCustomFixedPositionRect(_page->unobscuredContentRect(), [[_webView scrollView] zoomScale]);
+        // FIXME: factor computeCustomFixedPositionRect() into something that gives us this rect.
+        FloatRect fixedPositionRect = _page->computeCustomFixedPositionRect(_page->unobscuredContentRect(), _page->customFixedPositionRect(), [[_webView scrollView] zoomScale]);
         [self updateFixedClippingView:fixedPositionRect];
 
         // We need to push the new content bounds to the webview to update fixed position rects.
@@ -602,7 +608,7 @@ static void storeAccessibilityRemoteConnectionInformation(id element, pid_t pid,
 - (void)_applicationDidEnterBackground
 {
     _page->applicationDidEnterBackground();
-    _page->viewStateDidChange(ViewState::AllFlags & ~ViewState::IsInWindow);
+    _page->activityStateDidChange(ActivityState::AllFlags & ~ActivityState::IsInWindow);
 }
 
 - (void)_applicationDidCreateWindowContext
@@ -619,7 +625,7 @@ static void storeAccessibilityRemoteConnectionInformation(id element, pid_t pid,
 - (void)_applicationWillEnterForeground
 {
     _page->applicationWillEnterForeground();
-    _page->viewStateDidChange(ViewState::AllFlags & ~ViewState::IsInWindow, true, WebPageProxy::ViewStateChangeDispatchMode::Immediate);
+    _page->activityStateDidChange(ActivityState::AllFlags & ~ActivityState::IsInWindow, true, WebPageProxy::ActivityStateChangeDispatchMode::Immediate);
 }
 
 - (void)_applicationDidBecomeActive:(NSNotification*)notification
@@ -678,7 +684,7 @@ static void storeAccessibilityRemoteConnectionInformation(id element, pid_t pid,
 - (CGPDFDocumentRef)_wk_printedDocument
 {
     if (_isPrintingToPDF) {
-        if (!_page->process().connection()->waitForAndDispatchImmediately<Messages::WebPageProxy::DrawToPDFCallback>(_page->pageID(), std::chrono::milliseconds::max())) {
+        if (!_page->process().connection()->waitForAndDispatchImmediately<Messages::WebPageProxy::DrawToPDFCallback>(_page->pageID(), Seconds::infinity())) {
             ASSERT_NOT_REACHED();
             return nullptr;
         }

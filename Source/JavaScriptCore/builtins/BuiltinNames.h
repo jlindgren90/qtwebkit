@@ -81,12 +81,13 @@ namespace JSC {
     macro(BuiltinLog) \
     macro(homeObject) \
     macro(getTemplateObject) \
+    macro(templateRegistryKey) \
     macro(enqueueJob) \
-    macro(handler) \
     macro(promiseState) \
-    macro(promiseFulfillReactions) \
-    macro(promiseRejectReactions) \
+    macro(promiseReactions) \
     macro(promiseResult) \
+    macro(onFulfilled) \
+    macro(onRejected) \
     macro(push) \
     macro(repeatCharacter) \
     macro(capabilities) \

@@ -203,23 +203,23 @@ RepetitionCount ImageDecoder::repetitionCount() const
     return RepetitionCountNone;
 }
 
-Optional<IntPoint> ImageDecoder::hotSpot() const
+std::optional<IntPoint> ImageDecoder::hotSpot() const
 {
     RetainPtr<CFDictionaryRef> properties = adoptCF(CGImageSourceCopyPropertiesAtIndex(m_nativeDecoder.get(), 0, imageSourceOptions().get()));
     if (!properties)
-        return Nullopt;
+        return std::nullopt;
     
     int x = -1, y = -1;
     CFNumberRef num = (CFNumberRef)CFDictionaryGetValue(properties.get(), CFSTR("hotspotX"));
     if (!num || !CFNumberGetValue(num, kCFNumberIntType, &x))
-        return Nullopt;
+        return std::nullopt;
     
     num = (CFNumberRef)CFDictionaryGetValue(properties.get(), CFSTR("hotspotY"));
     if (!num || !CFNumberGetValue(num, kCFNumberIntType, &y))
-        return Nullopt;
+        return std::nullopt;
     
     if (x < 0 || y < 0)
-        return Nullopt;
+        return std::nullopt;
     
     return IntPoint(x, y);
 }
@@ -343,13 +343,13 @@ NativeImagePtr ImageDecoder::createFrameImageAtIndex(size_t index, SubsamplingLe
 {
     LOG(Images, "ImageDecoder %p createFrameImageAtIndex %lu", this, index);
 
-    const auto* options = imageSourceOptions(subsamplingLevel, decodingMode).get();
+    RetainPtr<CFDictionaryRef> options = imageSourceOptions(subsamplingLevel, decodingMode);
     RetainPtr<CGImageRef> image;
 
     if (decodingMode == DecodingMode::OnDemand)
-        image = adoptCF(CGImageSourceCreateImageAtIndex(m_nativeDecoder.get(), index, options));
+        image = adoptCF(CGImageSourceCreateImageAtIndex(m_nativeDecoder.get(), index, options.get()));
     else
-        image = adoptCF(CGImageSourceCreateThumbnailAtIndex(m_nativeDecoder.get(), index, options));
+        image = adoptCF(CGImageSourceCreateThumbnailAtIndex(m_nativeDecoder.get(), index, options.get()));
     
 #if PLATFORM(IOS)
     // <rdar://problem/7371198> - CoreGraphics changed the default caching behaviour in iOS 4.0 to kCGImageCachingTransient

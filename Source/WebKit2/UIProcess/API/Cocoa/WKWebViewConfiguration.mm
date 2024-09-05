@@ -109,6 +109,7 @@ private:
     BOOL _allowsInlineMediaPlayback;
     BOOL _inlineMediaPlaybackRequiresPlaysInlineAttribute;
     BOOL _allowsInlineMediaPlaybackAfterFullscreen;
+    unsigned _contentUpdateFrequency;
 #endif
 
     BOOL _invisibleAutoplayNotPermitted;
@@ -124,10 +125,12 @@ private:
 #endif
     BOOL _initialCapitalizationEnabled;
     BOOL _waitsForPaintAfterViewDidMoveToWindow;
+    BOOL _controlledByAutomation;
 
 #if ENABLE(APPLE_PAY)
     BOOL _applePayEnabled;
 #endif
+    BOOL _needsStorageAccessFromFileURLsQuirk;
 }
 
 - (instancetype)init
@@ -146,6 +149,7 @@ private:
     else
         _mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAll;
     _ignoresViewportScaleLimits = NO;
+    _contentUpdateFrequency = 60;
 #else
     _mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeNone;
     _mediaDataLoadsAutomatically = YES;
@@ -187,6 +191,7 @@ private:
     _allowsMetaRefresh = YES;
     _allowUniversalAccessFromFileURLs = NO;
     _treatsSHA1SignedCertificatesAsInsecure = YES;
+    _needsStorageAccessFromFileURLsQuirk = YES;
 
     return self;
 }
@@ -287,6 +292,7 @@ private:
     configuration->_mainContentUserGestureOverrideEnabled = self->_mainContentUserGestureOverrideEnabled;
     configuration->_initialCapitalizationEnabled = self->_initialCapitalizationEnabled;
     configuration->_waitsForPaintAfterViewDidMoveToWindow = self->_waitsForPaintAfterViewDidMoveToWindow;
+    configuration->_controlledByAutomation = self->_controlledByAutomation;
 
 #if PLATFORM(IOS)
     configuration->_allowsInlineMediaPlayback = self->_allowsInlineMediaPlayback;
@@ -296,6 +302,7 @@ private:
     configuration->_alwaysRunsAtForegroundPriority = _alwaysRunsAtForegroundPriority;
     configuration->_selectionGranularity = self->_selectionGranularity;
     configuration->_ignoresViewportScaleLimits = self->_ignoresViewportScaleLimits;
+    configuration->_contentUpdateFrequency = self->_contentUpdateFrequency;
 #endif
 #if PLATFORM(MAC)
     configuration->_userInterfaceDirectionPolicy = self->_userInterfaceDirectionPolicy;
@@ -313,6 +320,7 @@ private:
 #if ENABLE(APPLE_PAY)
     configuration->_applePayEnabled = self->_applePayEnabled;
 #endif
+    configuration->_needsStorageAccessFromFileURLsQuirk = self->_needsStorageAccessFromFileURLsQuirk;
 
     return configuration;
 }
@@ -580,6 +588,16 @@ static NSString *defaultApplicationNameForUserAgent()
 {
     _allowsInlineMediaPlaybackAfterFullscreen = allows;
 }
+
+- (NSUInteger)_contentUpdateFrequency
+{
+    return _contentUpdateFrequency;
+}
+
+- (void)_setContentUpdateFrequency:(NSUInteger)contentUpdateFrequency
+{
+    _contentUpdateFrequency = contentUpdateFrequency;
+}
 #endif // PLATFORM(IOS)
 
 - (BOOL)_invisibleAutoplayNotPermitted
@@ -668,6 +686,16 @@ static NSString *defaultApplicationNameForUserAgent()
     _waitsForPaintAfterViewDidMoveToWindow = shouldSynchronize;
 }
 
+- (BOOL)_isControlledByAutomation
+{
+    return _controlledByAutomation;
+}
+
+- (void)_setControlledByAutomation:(BOOL)controlledByAutomation
+{
+    _controlledByAutomation = controlledByAutomation;
+}
+
 #if PLATFORM(MAC)
 - (BOOL)_showsURLsInToolTips
 {
@@ -725,6 +753,16 @@ static NSString *defaultApplicationNameForUserAgent()
 #if ENABLE(APPLE_PAY)
     _applePayEnabled = applePayEnabled;
 #endif
+}
+
+- (BOOL)_needsStorageAccessFromFileURLsQuirk
+{
+    return _needsStorageAccessFromFileURLsQuirk;
+}
+
+- (void)_setNeedsStorageAccessFromFileURLsQuirk:(BOOL)needsLocalStorageQuirk
+{
+    _needsStorageAccessFromFileURLsQuirk = needsLocalStorageQuirk;
 }
 
 @end

@@ -138,6 +138,7 @@ namespace WebCore {
         PlatformGradient platformGradient();
 #endif
 
+        // FIXME: ExtendedColor - A color stop needs a notion of color space.
         struct ColorStop {
             float stop;
             float red;

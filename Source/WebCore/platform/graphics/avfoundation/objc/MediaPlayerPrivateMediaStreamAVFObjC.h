@@ -123,9 +123,12 @@ private:
     void setSize(const IntSize&) override { /* No-op */ }
 
     void enqueueAudioSampleBufferFromTrack(MediaStreamTrackPrivate&, MediaSample&);
-    void enqueueVideoSampleBufferFromTrack(MediaStreamTrackPrivate&, MediaSample&);
+
+    void prepareVideoSampleBufferFromTrack(MediaStreamTrackPrivate&, MediaSample&);
+    void enqueueVideoSampleBuffer(MediaSample&);
     bool shouldEnqueueVideoSampleBuffer() const;
     void flushAndRemoveVideoSampleBuffers();
+    void requestNotificationWhenReadyForMediaData();
 
     void paint(GraphicsContext&, const FloatRect&) override;
     void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&) override;
@@ -183,17 +186,26 @@ private:
     void setVideoFullscreenFrame(FloatRect) override;
 #endif
 
+    bool haveVideoLayer() const { return m_sampleBufferDisplayLayer || m_videoPreviewPlayer; }
+
     MediaPlayer* m_player { nullptr };
     WeakPtrFactory<MediaPlayerPrivateMediaStreamAVFObjC> m_weakPtrFactory;
     RefPtr<MediaStreamPrivate> m_mediaStreamPrivate;
+
+    RefPtr<RealtimeMediaSourcePreview> m_videoPreviewPlayer;
+    RefPtr<MediaStreamTrackPrivate> m_videoTrack;
+
     RetainPtr<AVSampleBufferDisplayLayer> m_sampleBufferDisplayLayer;
+#if PLATFORM(MAC)
     RetainPtr<AVSampleBufferRenderSynchronizer> m_synchronizer;
+#endif
     RetainPtr<CGImageRef> m_pausedImage;
     double m_pausedTime { 0 };
     std::unique_ptr<Clock> m_clock;
 
     HashMap<String, RefPtr<AudioTrackPrivateMediaStream>> m_audioTrackMap;
     HashMap<String, RefPtr<VideoTrackPrivateMediaStream>> m_videoTrackMap;
+    Deque<Ref<MediaSample>> m_sampleQueue;
 
     MediaPlayer::NetworkState m_networkState { MediaPlayer::Empty };
     MediaPlayer::ReadyState m_readyState { MediaPlayer::HaveNothing };

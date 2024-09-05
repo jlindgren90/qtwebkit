@@ -31,7 +31,6 @@
 #import "DumpRenderTree.h"
 
 #import "AccessibilityController.h"
-#import "CheckedMalloc.h"
 #import "DefaultPolicyDelegate.h"
 #import "DumpRenderTreeDraggingInfo.h"
 #import "DumpRenderTreePasteboard.h"
@@ -49,6 +48,7 @@
 #import "PixelDumpSupport.h"
 #import "PolicyDelegate.h"
 #import "ResourceLoadDelegate.h"
+#import "TestOptions.h"
 #import "TestRunner.h"
 #import "UIDelegate.h"
 #import "WebArchiveDumpSupport.h"
@@ -895,10 +895,11 @@ static NSString *libraryPathForDumpRenderTree()
 }
 
 // Called before each test.
-static void resetWebPreferencesToConsistentValues()
+static void resetWebPreferencesToConsistentValues(const TestOptions& options)
 {
     WebPreferences *preferences = [WebPreferences standardPreferences];
 
+    [preferences setNeedsStorageAccessFromFileURLsQuirk: NO];
     [preferences setAllowUniversalAccessFromFileURLs:YES];
     [preferences setAllowFileAccessFromFileURLs:YES];
     [preferences setStandardFontFamily:@"Times"];
@@ -991,10 +992,18 @@ static void resetWebPreferencesToConsistentValues()
 
     [preferences setDownloadAttributeEnabled:YES];
 
-    [preferences setModernMediaControlsEnabled:NO];
+    [preferences setES6ModulesEnabled:YES];
 
     [preferences setHiddenPageDOMTimerThrottlingEnabled:NO];
     [preferences setHiddenPageCSSAnimationSuspensionEnabled:NO];
+
+    preferences.intersectionObserverEnabled = options.enableIntersectionObserver;
+    preferences.modernMediaControlsEnabled = options.enableModernMediaControls;
+
+    [preferences setSubtleCryptoEnabled:YES];
+
+    [preferences setMediaStreamEnabled:YES];
+    [preferences setPeerConnectionEnabled:YES];
 
     [WebPreferences _clearNetworkLoaderSession];
     [WebPreferences _setCurrentNetworkLoaderSessionCookieAcceptPolicy:NSHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain];
@@ -1240,8 +1249,6 @@ static void prepareConsistentTestingEnvironment()
     
     allocateGlobalControllers();
     
-    makeLargeMallocFailSilently();
-
 #if PLATFORM(MAC)
     NSActivityOptions options = (NSActivityUserInitiatedAllowingIdleSystemSleep | NSActivityLatencyCritical) & ~(NSActivitySuddenTerminationDisabled | NSActivityAutomaticTerminationDisabled);
     static id assertion = [[[NSProcessInfo processInfo] beginActivityWithOptions:options reason:@"DumpRenderTree should not be subject to process suppression"] retain];
@@ -1811,11 +1818,11 @@ static bool shouldEnableDeveloperExtras(const char* pathOrURL)
 #if PLATFORM(IOS)
 static bool shouldMakeViewportFlexible(const char* pathOrURL)
 {
-    return strstr(pathOrURL, "viewport/");
+    return strstr(pathOrURL, "viewport/") && !strstr(pathOrURL, "visual-viewport/");
 }
 #endif
 
-static void resetWebViewToConsistentStateBeforeTesting()
+static void resetWebViewToConsistentStateBeforeTesting(const TestOptions& options)
 {
     WebView *webView = [mainFrame webView];
 #if PLATFORM(IOS)
@@ -1848,7 +1855,7 @@ static void resetWebViewToConsistentStateBeforeTesting()
 
     [WebCache clearCachedCredentials];
     
-    resetWebPreferencesToConsistentValues();
+    resetWebPreferencesToConsistentValues(options);
 
     TestRunner::setSerializeHTTPLoads(false);
     TestRunner::setAllowsAnySSLCertificate(false);
@@ -1982,9 +1989,11 @@ static void runTest(const string& inputLine)
     NSString *informationString = [@"CRASHING TEST: " stringByAppendingString:testPath];
     WKSetCrashReportApplicationSpecificInformation((CFStringRef)informationString);
 
+    TestOptions options(url);
+    resetWebViewToConsistentStateBeforeTesting(options);
+
     const char* testURL([[url absoluteString] UTF8String]);
-    
-    resetWebViewToConsistentStateBeforeTesting();
+
 #if !PLATFORM(IOS)
     changeWindowScaleIfNeeded(testURL);
 #endif
@@ -2093,7 +2102,7 @@ static void runTest(const string& inputLine)
         }
     }
 
-    resetWebViewToConsistentStateBeforeTesting();
+    resetWebViewToConsistentStateBeforeTesting(options);
 
     // Loading an empty request synchronously replaces the document with a blank one, which is necessary
     // to stop timers, WebSockets and other activity that could otherwise spill output into next test's results.

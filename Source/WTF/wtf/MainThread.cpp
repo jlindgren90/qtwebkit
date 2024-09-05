@@ -190,11 +190,16 @@ bool canAccessThreadLocalDataForThread(ThreadIdentifier threadId)
 }
 #endif
 
-static ThreadSpecific<Optional<GCThreadType>>* isGCThread;
+static ThreadSpecific<std::optional<GCThreadType>, CanBeGCThread::True>* isGCThread;
 
 void initializeGCThreads()
 {
-    isGCThread = new ThreadSpecific<Optional<GCThreadType>>();
+    static std::once_flag flag;
+    std::call_once(
+        flag,
+        [] {
+            isGCThread = new ThreadSpecific<std::optional<GCThreadType>, CanBeGCThread::True>();
+        });
 }
 
 void registerGCThread(GCThreadType type)
@@ -216,12 +221,12 @@ bool isMainThreadOrGCThread()
     return isMainThread();
 }
 
-Optional<GCThreadType> mayBeGCThread()
+std::optional<GCThreadType> mayBeGCThread()
 {
     if (!isGCThread)
-        return Nullopt;
+        return std::nullopt;
     if (!isGCThread->isSet())
-        return Nullopt;
+        return std::nullopt;
     return **isGCThread;
 }
 

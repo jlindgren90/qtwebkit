@@ -166,7 +166,10 @@
 #if PLATFORM(IOS)
 #import <Foundation/Foundation.h>
 #else
+#if USE(APPKIT)
 #import <Cocoa/Cocoa.h>
+#import <wtf/mac/AppKitCompatibilityDeclarations.h>
+#endif
 #endif // PLATFORM(IOS)
 #endif
 

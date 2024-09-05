@@ -177,7 +177,7 @@ static Ref<CryptoAlgorithmParametersDeprecated> createRSAKeyParametersWithHash(C
     return WTFMove(rsaKeyParameters);
 }
 
-Optional<CryptoAlgorithmPair> JSCryptoKeySerializationJWK::reconcileAlgorithm(CryptoAlgorithm* suggestedAlgorithm, CryptoAlgorithmParametersDeprecated* suggestedParameters) const
+std::optional<CryptoAlgorithmPair> JSCryptoKeySerializationJWK::reconcileAlgorithm(CryptoAlgorithm* suggestedAlgorithm, CryptoAlgorithmParametersDeprecated* suggestedParameters) const
 {
     VM& vm = m_exec->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
@@ -234,7 +234,7 @@ Optional<CryptoAlgorithmPair> JSCryptoKeySerializationJWK::reconcileAlgorithm(Cr
         parameters = adoptRef(*new CryptoAlgorithmParametersDeprecated);
     } else {
         throwTypeError(m_exec, scope, "Unsupported JWK algorithm " + m_jwkAlgorithmName);
-        return Nullopt;
+        return std::nullopt;
     }
 
     if (!suggestedAlgorithm)
@@ -244,11 +244,11 @@ Optional<CryptoAlgorithmPair> JSCryptoKeySerializationJWK::reconcileAlgorithm(Cr
         return CryptoAlgorithmPair { suggestedAlgorithm, suggestedParameters };
 
     if (algorithm->identifier() != suggestedAlgorithm->identifier())
-        return Nullopt;
+        return std::nullopt;
 
     if (algorithm->identifier() == CryptoAlgorithmIdentifier::HMAC) {
         if (downcast<CryptoAlgorithmHmacParamsDeprecated>(*parameters).hash != downcast<CryptoAlgorithmHmacParamsDeprecated>(*suggestedParameters).hash)
-            return Nullopt;
+            return std::nullopt;
         return CryptoAlgorithmPair { suggestedAlgorithm, suggestedParameters };
     }
     if (algorithm->identifier() == CryptoAlgorithmIdentifier::RSASSA_PKCS1_v1_5
@@ -258,7 +258,7 @@ Optional<CryptoAlgorithmPair> JSCryptoKeySerializationJWK::reconcileAlgorithm(Cr
         ASSERT(rsaKeyParameters.hasHash);
         if (suggestedRSAKeyParameters.hasHash) {
             if (suggestedRSAKeyParameters.hash != rsaKeyParameters.hash)
-                return Nullopt;
+                return std::nullopt;
             return CryptoAlgorithmPair { suggestedAlgorithm, suggestedParameters };
         }
         suggestedRSAKeyParameters.hasHash = true;
@@ -269,7 +269,7 @@ Optional<CryptoAlgorithmPair> JSCryptoKeySerializationJWK::reconcileAlgorithm(Cr
     return CryptoAlgorithmPair { suggestedAlgorithm, suggestedParameters };
 }
 
-static bool tryJWKKeyOpsValue(ExecState* exec, CryptoKeyUsage& usages, const String& operation, const String& tryOperation, CryptoKeyUsage tryUsage)
+static bool tryJWKKeyOpsValue(ExecState* exec, CryptoKeyUsageBitmap& usages, const String& operation, const String& tryOperation, CryptoKeyUsageBitmap tryUsage)
 {
     VM& vm = exec->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
@@ -284,12 +284,12 @@ static bool tryJWKKeyOpsValue(ExecState* exec, CryptoKeyUsage& usages, const Str
     return true;
 }
 
-void JSCryptoKeySerializationJWK::reconcileUsages(CryptoKeyUsage& suggestedUsages) const
+void JSCryptoKeySerializationJWK::reconcileUsages(CryptoKeyUsageBitmap& suggestedUsages) const
 {
     VM& vm = m_exec->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    CryptoKeyUsage jwkUsages = 0;
+    CryptoKeyUsageBitmap jwkUsages = 0;
 
     JSArray* keyOps;
     if (getJSArrayFromJSON(m_exec, m_json.get(), "key_ops", keyOps)) {
@@ -571,6 +571,7 @@ static void buildJSONForRSAComponents(JSC::ExecState* exec, const CryptoKeyDataR
         addToJSON(exec, jsPrimeInfo, "d", base64URLEncode(data.otherPrimeInfos()[i].factorCRTExponent));
         addToJSON(exec, jsPrimeInfo, "t", base64URLEncode(data.otherPrimeInfos()[i].factorCRTCoefficient));
         oth->putDirectIndex(exec, i, jsPrimeInfo);
+        RETURN_IF_EXCEPTION(scope, void());
     }
     result->putDirect(vm, Identifier::fromString(exec, "oth"), oth);
 }
@@ -686,7 +687,7 @@ static void addJWKAlgorithmToJSON(ExecState* exec, JSObject* json, const CryptoK
     addToJSON(exec, json, "alg", jwkAlgorithm);
 }
 
-static void addUsagesToJSON(ExecState* exec, JSObject* json, CryptoKeyUsage usages)
+static void addUsagesToJSON(ExecState* exec, JSObject* json, CryptoKeyUsageBitmap usages)
 {
     VM& vm = exec->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
@@ -694,22 +695,38 @@ static void addUsagesToJSON(ExecState* exec, JSObject* json, CryptoKeyUsage usag
     RETURN_IF_EXCEPTION(scope, void());
 
     unsigned index = 0;
-    if (usages & CryptoKeyUsageSign)
+    if (usages & CryptoKeyUsageSign) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("sign")));
-    if (usages & CryptoKeyUsageVerify)
+        RETURN_IF_EXCEPTION(scope, void());
+    }
+    if (usages & CryptoKeyUsageVerify) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("verify")));
-    if (usages & CryptoKeyUsageEncrypt)
+        RETURN_IF_EXCEPTION(scope, void());
+    }
+    if (usages & CryptoKeyUsageEncrypt) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("encrypt")));
-    if (usages & CryptoKeyUsageDecrypt)
+        RETURN_IF_EXCEPTION(scope, void());
+    }
+    if (usages & CryptoKeyUsageDecrypt) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("decrypt")));
-    if (usages & CryptoKeyUsageWrapKey)
+        RETURN_IF_EXCEPTION(scope, void());
+    }
+    if (usages & CryptoKeyUsageWrapKey) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("wrapKey")));
-    if (usages & CryptoKeyUsageUnwrapKey)
+        RETURN_IF_EXCEPTION(scope, void());
+    }
+    if (usages & CryptoKeyUsageUnwrapKey) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("unwrapKey")));
-    if (usages & CryptoKeyUsageDeriveKey)
+        RETURN_IF_EXCEPTION(scope, void());
+    }
+    if (usages & CryptoKeyUsageDeriveKey) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("deriveKey")));
-    if (usages & CryptoKeyUsageDeriveBits)
+        RETURN_IF_EXCEPTION(scope, void());
+    }
+    if (usages & CryptoKeyUsageDeriveBits) {
         keyOps->putDirectIndex(exec, index++, jsNontrivialString(exec, ASCIILiteral("deriveBits")));
+        RETURN_IF_EXCEPTION(scope, void());
+    }
 
     json->putDirect(vm, Identifier::fromString(exec, "key_ops"), keyOps);
 }

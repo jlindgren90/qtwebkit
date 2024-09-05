@@ -48,7 +48,7 @@ class JSDOMGlobalObject;
 class ThreadSafeDataBuffer;
 
 // FIXME: Remove this once we support returning union types.
-JSC::JSValue toJS(JSC::ExecState&, JSDOMGlobalObject&, const Optional<IDBKeyPath>&);
+JSC::JSValue toJS(JSC::ExecState&, JSDOMGlobalObject&, const std::optional<IDBKeyPath>&);
 
 RefPtr<IDBKey> maybeCreateIDBKeyFromScriptValueAndKeyPath(JSC::ExecState&, const JSC::JSValue&, const IDBKeyPath&);
 bool canInjectIDBKeyIntoScriptValue(JSC::ExecState&, const JSC::JSValue&, const IDBKeyPath&);
@@ -61,6 +61,9 @@ void generateIndexKeyForValue(JSC::ExecState&, const IDBIndexInfo&, JSC::JSValue
 JSC::JSValue deserializeIDBValueToJSValue(JSC::ExecState&, const IDBValue&);
 
 Ref<IDBKey> scriptValueToIDBKey(JSC::ExecState&, const JSC::JSValue&);
+
+JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, const IDBKeyData&);
+JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, const IDBValue&);
 
 }
 

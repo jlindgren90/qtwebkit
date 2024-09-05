@@ -386,11 +386,11 @@ RenderLayer::~RenderLayer()
 String RenderLayer::name() const
 {
     StringBuilder name;
-    name.append(renderer().renderName());
 
     if (Element* element = renderer().element()) {
-        name.append(' ');
-        name.append(element->tagName());
+        name.append(" <");
+        name.append(element->tagName().convertToLowercaseWithoutLocale());
+        name.append('>');
 
         if (element->hasID()) {
             name.appendLiteral(" id=\'");
@@ -400,14 +400,25 @@ String RenderLayer::name() const
 
         if (element->hasClass()) {
             name.appendLiteral(" class=\'");
-            for (size_t i = 0; i < element->classNames().size(); ++i) {
+            size_t classNamesToDump = element->classNames().size();
+            const size_t maxNumClassNames = 7;
+            bool addEllipsis = false;
+            if (classNamesToDump > maxNumClassNames) {
+                classNamesToDump = maxNumClassNames;
+                addEllipsis = true;
+            }
+            
+            for (size_t i = 0; i < classNamesToDump; ++i) {
                 if (i > 0)
                     name.append(' ');
                 name.append(element->classNames()[i]);
             }
+            if (addEllipsis)
+                name.append("...");
             name.append('\'');
         }
-    }
+    } else
+        name.append(renderer().renderName());
 
     if (isReflection())
         name.appendLiteral(" (reflection)");
@@ -577,7 +588,7 @@ void RenderLayer::updateLayerPositions(RenderGeometryMap* geometryMap, UpdateLay
         
     // With all our children positioned, now update our marquee if we need to.
     if (m_marquee) {
-        // FIXME: would like to use TemporaryChange<> but it doesn't work with bitfields.
+        // FIXME: would like to use SetForScope<> but it doesn't work with bitfields.
         bool oldUpdatingMarqueePosition = m_updatingMarqueePosition;
         m_updatingMarqueePosition = true;
         m_marquee->updateMarqueePosition();
@@ -823,6 +834,8 @@ void RenderLayer::clearRepaintRects()
 void RenderLayer::updateLayerPositionsAfterDocumentScroll()
 {
     ASSERT(this == renderer().view().layer());
+
+    LOG(Scrolling, "RenderLayer::updateLayerPositionsAfterDocumentScroll");
 
     RenderGeometryMap geometryMap(UseTransforms);
     updateLayerPositionsAfterScroll(&geometryMap);
@@ -1809,6 +1822,7 @@ void RenderLayer::beginTransparencyLayers(GraphicsContext& context, const LayerP
         ancestor->beginTransparencyLayers(context, paintingInfo, dirtyRect);
     
     if (paintsWithTransparency(paintingInfo.paintBehavior)) {
+        ASSERT(isStackingContext());
         m_usedTransparency = true;
         context.save();
         LayoutRect adjustedClipRect = paintingExtent(*this, paintingInfo.rootLayer, dirtyRect, paintingInfo.paintBehavior);
@@ -2492,12 +2506,12 @@ bool RenderLayer::allowsCurrentScroll() const
     return box->hasHorizontalOverflow() || box->hasVerticalOverflow();
 }
 
-void RenderLayer::scrollRectToVisible(SelectionRevealMode revealMode, const LayoutRect& rect, const ScrollAlignment& alignX, const ScrollAlignment& alignY)
+void RenderLayer::scrollRectToVisible(SelectionRevealMode revealMode, const LayoutRect& absoluteRect, bool insideFixed, const ScrollAlignment& alignX, const ScrollAlignment& alignY)
 {
-    LOG_WITH_STREAM(Scrolling, stream << "Layer " << this << " scrollRectToVisible " << rect);
+    LOG_WITH_STREAM(Scrolling, stream << "Layer " << this << " scrollRectToVisible " << absoluteRect);
 
     RenderLayer* parentLayer = nullptr;
-    LayoutRect newRect = rect;
+    LayoutRect newRect = absoluteRect;
 
     // We may end up propagating a scroll event. It is important that we suspend events until 
     // the end of the function since they could delete the layer or the layer's renderer().
@@ -2511,11 +2525,11 @@ void RenderLayer::scrollRectToVisible(SelectionRevealMode revealMode, const Layo
         // This will prevent us from revealing text hidden by the slider in Safari RSS.
         RenderBox* box = renderBox();
         ASSERT(box);
-        LayoutRect localExposeRect(box->absoluteToLocalQuad(FloatQuad(FloatRect(rect))).boundingBox());
+        LayoutRect localExposeRect(box->absoluteToLocalQuad(FloatQuad(FloatRect(absoluteRect))).boundingBox());
         LayoutRect layerBounds(0, 0, box->clientWidth(), box->clientHeight());
-        LayoutRect r = getRectToExpose(layerBounds, layerBounds, localExposeRect, alignX, alignY);
+        LayoutRect revealRect = getRectToExpose(layerBounds, layerBounds, localExposeRect, insideFixed, alignX, alignY);
 
-        ScrollOffset clampedScrollOffset = clampScrollOffset(scrollOffset() + toIntSize(roundedIntRect(r).location()));
+        ScrollOffset clampedScrollOffset = clampScrollOffset(scrollOffset() + toIntSize(roundedIntRect(revealRect).location()));
         if (clampedScrollOffset != scrollOffset()) {
             ScrollOffset oldScrollOffset = scrollOffset();
             scrollToOffset(clampedScrollOffset);
@@ -2537,7 +2551,7 @@ void RenderLayer::scrollRectToVisible(SelectionRevealMode revealMode, const Layo
                 NoEventDispatchAssertion assertNoEventDispatch;
 
                 LayoutRect viewRect = frameView.visibleContentRect(LegacyIOSDocumentVisibleRect);
-                LayoutRect exposeRect = getRectToExpose(viewRect, viewRect, rect, alignX, alignY);
+                LayoutRect exposeRect = getRectToExpose(viewRect, viewRect, absoluteRect, insideFixed, alignX, alignY);
 
                 IntPoint scrollOffset(roundedIntPoint(exposeRect.location()));
                 // Adjust offsets if they're outside of the allowable range.
@@ -2548,6 +2562,7 @@ void RenderLayer::scrollRectToVisible(SelectionRevealMode revealMode, const Layo
                     parentLayer = ownerElement->renderer()->enclosingLayer();
                     // Convert the rect into the coordinate space of the parent frame's document.
                     newRect = frameView.contentsToContainingViewContents(enclosingIntRect(newRect));
+                    insideFixed = false; // FIXME: ideally need to determine if this <iframe> is inside position:fixed.
                 } else
                     parentLayer = nullptr;
             }
@@ -2557,16 +2572,17 @@ void RenderLayer::scrollRectToVisible(SelectionRevealMode revealMode, const Layo
 
 #if !PLATFORM(IOS)
             LayoutRect viewRect = frameView.visibleContentRect();
+            viewRect.scale(1 / frameView.frameScaleFactor());
+
             LayoutRect visibleRectRelativeToDocument = viewRect;
             visibleRectRelativeToDocument.setLocation(frameView.documentScrollPositionRelativeToScrollableAreaOrigin());
 #else
             LayoutRect viewRect = frameView.unobscuredContentRect();
             LayoutRect visibleRectRelativeToDocument = viewRect;
 #endif
-
-            LayoutRect r = getRectToExpose(viewRect, visibleRectRelativeToDocument, rect, alignX, alignY);
+            LayoutRect revealRect = getRectToExpose(viewRect, visibleRectRelativeToDocument, absoluteRect, insideFixed, alignX, alignY);
                 
-            frameView.setScrollPosition(roundedIntPoint(r.location()));
+            frameView.setScrollPosition(roundedIntPoint(revealRect.location()));
 
             // This is the outermost view of a web page, so after scrolling this view we
             // scroll its container by calling Page::scrollRectIntoView.
@@ -2574,12 +2590,12 @@ void RenderLayer::scrollRectToVisible(SelectionRevealMode revealMode, const Layo
             // that put web views into scrolling containers, such as Mac OS X Mail.
             // The canAutoscroll function in EventHandler also knows about this.
             if (Page* page = frameView.frame().page())
-                page->chrome().scrollRectIntoView(snappedIntRect(rect));
+                page->chrome().scrollRectIntoView(snappedIntRect(absoluteRect));
         }
     }
     
     if (parentLayer)
-        parentLayer->scrollRectToVisible(revealMode, newRect, alignX, alignY);
+        parentLayer->scrollRectToVisible(revealMode, newRect, insideFixed, alignX, alignY);
 }
 
 void RenderLayer::updateCompositingLayersAfterScroll()
@@ -2596,8 +2612,35 @@ void RenderLayer::updateCompositingLayersAfterScroll()
     }
 }
 
-LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const LayoutRect &visibleRectRelativeToDocument, const LayoutRect &exposeRect, const ScrollAlignment& alignX, const ScrollAlignment& alignY)
+LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const LayoutRect &visibleRectRelativeToDocument, const LayoutRect &exposeRect, bool insideFixed, const ScrollAlignment& alignX, const ScrollAlignment& alignY)
 {
+    FrameView& frameView = renderer().view().frameView();
+    if (insideFixed) {
+        // If the element is inside position:fixed and we're not scaled, no amount of scrolling is going to move things around.
+        if (frameView.frameScaleFactor() == 1)
+            return visibleRect;
+
+        if (frameView.frame().settings().visualViewportEnabled()) {
+            // exposeRect is in absolute coords, affected by page scale. Unscale it.
+            LayoutRect unscaledExposeRect = exposeRect;
+            unscaledExposeRect.scale(1 / frameView.frameScaleFactor());
+            // These are both in unscaled coordinates.
+            LayoutRect layoutViewport = frameView.layoutViewportRect();
+            LayoutRect visualViewport = frameView.visualViewportRect();
+
+            // The rect to expose may be partially offscreen, which we can't do anything about with position:fixed.
+            unscaledExposeRect.intersect(layoutViewport);
+            // Make sure it's not larger than the visual viewport; if so, we'll just move to the top left.
+            unscaledExposeRect.setSize(unscaledExposeRect.size().shrunkTo(visualViewport.size()));
+
+            // Compute how much we have to move the visualViewport to reveal the part of the layoutViewport that contains exposeRect.
+            LayoutRect requiredVisualViewport = getRectToExpose(visualViewport, visualViewport, unscaledExposeRect, false, alignX, alignY);
+            // Scale it back up.
+            requiredVisualViewport.scale(frameView.frameScaleFactor());
+            return requiredVisualViewport;
+        }
+    }
+
     // Determine the appropriate X behavior.
     ScrollAlignment::Behavior scrollX;
     LayoutRect exposeRectX(exposeRect.x(), visibleRect.y(), exposeRect.width(), visibleRect.height());
@@ -2672,7 +2715,7 @@ LayoutRect RenderLayer::getRectToExpose(const LayoutRect &visibleRect, const Lay
 void RenderLayer::autoscroll(const IntPoint& position)
 {
     IntPoint currentDocumentPosition = renderer().view().frameView().windowToContents(position);
-    scrollRectToVisible(SelectionRevealMode::Reveal, LayoutRect(currentDocumentPosition, LayoutSize(1, 1)), ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
+    scrollRectToVisible(SelectionRevealMode::Reveal, LayoutRect(currentDocumentPosition, LayoutSize(1, 1)), false, ScrollAlignment::alignToEdgeIfNeeded, ScrollAlignment::alignToEdgeIfNeeded);
 }
 
 bool RenderLayer::canResize() const
@@ -4347,7 +4390,7 @@ void RenderLayer::paintLayerContents(GraphicsContext& context, const LayerPainti
             if (!localPaintingInfo.clipToDirtyRect && renderer().hasOverflowClip()) {
                 // We can turn clipping back by requesting full repaint for the overflow area.
                 localPaintingInfo.clipToDirtyRect = true;
-                paintDirtyRect = selfClipRect();
+                paintDirtyRect = clipRectRelativeToAncestor(localPaintingInfo.rootLayer, offsetFromRoot, LayoutRect::infiniteRect());
             }
             collectFragments(layerFragments, localPaintingInfo.rootLayer, paintDirtyRect, ExcludeCompositedPaginatedLayers,
                 (localPaintFlags & PaintLayerTemporaryClipRects) ? TemporaryClipRects : PaintingClipRects, IgnoreOverlayScrollbarSize,
@@ -4463,7 +4506,7 @@ void RenderLayer::paintLayerByApplyingTransform(GraphicsContext& context, const 
 
     // Now do a paint with the root layer shifted to be us.
     LayoutSize adjustedSubpixelOffset = offsetForThisLayer - LayoutSize(devicePixelSnappedOffsetForThisLayer);
-    LayerPaintingInfo transformedPaintingInfo(this, LayoutRect(encloseRectToDevicePixels(transform.inverse().valueOr(AffineTransform()).mapRect(paintingInfo.paintDirtyRect), deviceScaleFactor)),
+    LayerPaintingInfo transformedPaintingInfo(this, LayoutRect(encloseRectToDevicePixels(transform.inverse().value_or(AffineTransform()).mapRect(paintingInfo.paintDirtyRect), deviceScaleFactor)),
         paintingInfo.paintBehavior, adjustedSubpixelOffset, paintingInfo.subtreePaintRoot, paintingInfo.overlapTestRequests);
     paintLayerContentsAndReflection(context, transformedPaintingInfo, paintFlags);
     context.setCTM(oldTransfrom);
@@ -5097,7 +5140,7 @@ RenderLayer* RenderLayer::hitTestLayer(RenderLayer* rootLayer, RenderLayer* cont
 
     // Check for hit test on backface if backface-visibility is 'hidden'
     if (localTransformState && renderer().style().backfaceVisibility() == BackfaceVisibilityHidden) {
-        Optional<TransformationMatrix> invertedMatrix = localTransformState->m_accumulatedTransform.inverse();
+        std::optional<TransformationMatrix> invertedMatrix = localTransformState->m_accumulatedTransform.inverse();
         // If the z-vector of the matrix is negative, the back is facing towards the viewer.
         if (invertedMatrix && invertedMatrix.value().m33() < 0)
             return nullptr;
@@ -5726,18 +5769,24 @@ LayoutRect RenderLayer::childrenClipRect() const
     return clippingRootLayer->renderer().localToAbsoluteQuad(FloatQuad(foregroundRect.rect())).enclosingBoundingBox();
 }
 
+LayoutRect RenderLayer::clipRectRelativeToAncestor(RenderLayer* ancestor, LayoutSize offsetFromAncestor, const LayoutRect& constrainingRect) const
+{
+    LayoutRect layerBounds;
+    ClipRect backgroundRect;
+    ClipRect foregroundRect;
+    auto clipRectType = !m_enclosingPaginationLayer || m_enclosingPaginationLayer == ancestor ? PaintingClipRects : TemporaryClipRects;
+    ClipRectsContext clipRectsContext(ancestor, clipRectType);
+    calculateRects(clipRectsContext, constrainingRect, layerBounds, backgroundRect, foregroundRect, offsetFromAncestor);
+    return backgroundRect.rect();
+}
+
 LayoutRect RenderLayer::selfClipRect() const
 {
     // FIXME: border-radius not accounted for.
     // FIXME: Regions not accounted for.
     RenderLayer* clippingRootLayer = clippingRootForPainting();
-    LayoutRect layerBounds;
-    ClipRect backgroundRect;
-    ClipRect foregroundRect;
-    auto clipRectType = !m_enclosingPaginationLayer || m_enclosingPaginationLayer == clippingRootLayer ? PaintingClipRects : TemporaryClipRects;
-    ClipRectsContext clipRectsContext(clippingRootLayer, clipRectType);
-    calculateRects(clipRectsContext, renderer().view().documentRect(), layerBounds, backgroundRect, foregroundRect, offsetFromAncestor(clippingRootLayer));
-    return clippingRootLayer->renderer().localToAbsoluteQuad(FloatQuad(backgroundRect.rect())).enclosingBoundingBox();
+    LayoutRect clipRect = clipRectRelativeToAncestor(clippingRootLayer, offsetFromAncestor(clippingRootLayer), renderer().view().documentRect());
+    return clippingRootLayer->renderer().localToAbsoluteQuad(FloatQuad(clipRect)).enclosingBoundingBox();
 }
 
 LayoutRect RenderLayer::localClipRect(bool& clipExceedsBounds) const
@@ -5747,15 +5796,7 @@ LayoutRect RenderLayer::localClipRect(bool& clipExceedsBounds) const
     // FIXME: Regions not accounted for.
     RenderLayer* clippingRootLayer = clippingRootForPainting();
     LayoutSize offsetFromRoot = offsetFromAncestor(clippingRootLayer);
-
-    LayoutRect layerBounds;
-    ClipRect backgroundRect;
-    ClipRect foregroundRect;
-    auto clipRectType = !m_enclosingPaginationLayer || m_enclosingPaginationLayer == clippingRootLayer ? PaintingClipRects : TemporaryClipRects;
-    ClipRectsContext clipRectsContext(clippingRootLayer, clipRectType);
-    calculateRects(clipRectsContext, LayoutRect::infiniteRect(), layerBounds, backgroundRect, foregroundRect, offsetFromRoot);
-
-    LayoutRect clipRect = backgroundRect.rect();
+    LayoutRect clipRect = clipRectRelativeToAncestor(clippingRootLayer, offsetFromRoot, LayoutRect::infiniteRect());
     if (clipRect.isInfinite())
         return clipRect;
 
@@ -6894,7 +6935,7 @@ void RenderLayer::removeReflection()
 RenderStyle RenderLayer::createReflectionStyle()
 {
     auto newStyle = RenderStyle::create();
-    newStyle.inheritFrom(&renderer().style());
+    newStyle.inheritFrom(renderer().style());
     
     // Map in our transform.
     TransformOperations transform;
@@ -6924,6 +6965,9 @@ RenderStyle RenderLayer::createReflectionStyle()
 
     // Map in our mask.
     newStyle.setMaskBoxImage(renderer().style().boxReflect()->mask());
+    
+    // Style has transform and mask, so needs to be stacking context.
+    newStyle.setZIndex(0);
 
     return newStyle;
 }

@@ -28,6 +28,7 @@
 #if PLATFORM(IOS)
 
 #import "AnimationController.h"
+#import "CommonVM.h"
 #import "DOMWindow.h"
 #import "Document.h"
 #import "DocumentMarkerController.h"
@@ -39,13 +40,13 @@
 #import "FrameSelection.h"
 #import "FrameView.h"
 #import "HTMLAreaElement.h"
+#import "HTMLBodyElement.h"
 #import "HTMLDocument.h"
-#import "HTMLElement.h"
+#import "HTMLHtmlElement.h"
 #import "HTMLNames.h"
 #import "HTMLObjectElement.h"
 #import "HitTestRequest.h"
 #import "HitTestResult.h"
-#import "JSDOMWindowBase.h"
 #import "MainFrame.h"
 #import "NodeRenderStyle.h"
 #import "NodeTraversal.h"
@@ -58,6 +59,7 @@
 #import "RenderTextControl.h"
 #import "RenderView.h"
 #import "RenderedDocumentMarker.h"
+#import "ShadowRoot.h"
 #import "TextBoundaries.h"
 #import "TextIterator.h"
 #import "VisiblePosition.h"
@@ -84,15 +86,14 @@ void Frame::initWithSimpleHTMLDocument(const String& style, const URL& url)
     document->createDOMWindow();
     setDocument(document);
 
-    ExceptionCode ec;
-    auto rootElement = document->createElementNS(xhtmlNamespaceURI, ASCIILiteral("html"), ec);
+    auto rootElement = HTMLHtmlElement::create(*document);
 
-    auto body = document->createElementNS(xhtmlNamespaceURI, ASCIILiteral("body"), ec);
+    auto body = HTMLBodyElement::create(*document);
     if (!style.isEmpty())
         body->setAttribute(HTMLNames::styleAttr, style);
 
-    rootElement->appendChild(*body, ec);
-    document->appendChild(*rootElement, ec);
+    rootElement->appendChild(body);
+    document->appendChild(rootElement);
 }
 
 const ViewportArguments& Frame::viewportArguments() const
@@ -258,8 +259,8 @@ static Node* ancestorRespondingToClickEvents(const HitTestResult& hitTestResult,
         *nodeBounds = IntRect();
 
     Node* pointerCursorNode = nullptr;
-    for (Node* node = hitTestResult.innerNode(); node && node != terminationNode; node = node->parentNode()) {
-        ASSERT(!node->isInShadowTree());
+    for (Node* node = hitTestResult.innerNode(); node && node != terminationNode; node = node->parentInComposedTree()) {
+        ASSERT(!node->isInShadowTree() || node->containingShadowRoot()->mode() != ShadowRootMode::UserAgent);
 
         // We only accept pointer nodes before reaching the body tag.
         if (node->hasTagName(HTMLNames::bodyTag)) {
@@ -405,7 +406,7 @@ Node* Frame::qualifyingNodeAtViewportLocation(const FloatPoint& viewportLocation
         Node* failedNode = candidate;
 
         while (candidate && !candidate->isElementNode())
-            candidate = candidate->parentNode();
+            candidate = candidate->parentInComposedTree();
 
         if (candidate)
             failedNode = candidate;
@@ -544,7 +545,7 @@ void Frame::setTimersPaused(bool paused)
 {
     if (!m_page)
         return;
-    JSLockHolder lock(JSDOMWindowBase::commonVM());
+    JSLockHolder lock(commonVM());
     if (paused)
         m_page->suspendActiveDOMObjectsAndAnimations();
     else

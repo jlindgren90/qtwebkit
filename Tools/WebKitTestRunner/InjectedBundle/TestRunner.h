@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TestRunner_h
-#define TestRunner_h
+#pragma once
 
 #include "JSWrappable.h"
 #include "StringFunctions.h"
@@ -32,7 +31,7 @@
 #include <WebKit/WKBundleScriptWorld.h>
 #include <WebKit/WKRetainPtr.h>
 #include <string>
-#include <wtf/PassRefPtr.h>
+#include <wtf/Ref.h>
 #include <wtf/text/WTFString.h>
 
 #if PLATFORM(COCOA)
@@ -56,7 +55,7 @@ namespace WTR {
 
 class TestRunner : public JSWrappable {
 public:
-    static PassRefPtr<TestRunner> create();
+    static Ref<TestRunner> create();
     virtual ~TestRunner();
 
     // JSWrappable
@@ -111,6 +110,7 @@ public:
     void setFetchAPIEnabled(bool);
     void setAllowUniversalAccessFromFileURLs(bool);
     void setAllowFileAccessFromFileURLs(bool);
+    void setNeedsStorageAccessFromFileURLsQuirk(bool);
     void setPluginsEnabled(bool);
     void setJavaScriptCanAccessClipboard(bool);
     void setPrivateBrowsingEnabled(bool);
@@ -130,6 +130,11 @@ public:
     void setAsynchronousSpellCheckingEnabled(bool);
     void setDownloadAttributeEnabled(bool);
     void setAllowsAnySSLCertificate(bool);
+    void setES6ModulesEnabled(bool);
+    void setEncryptedMediaAPIEnabled(bool);
+    void setSubtleCryptoEnabled(bool);
+    void setMediaStreamEnabled(bool);
+    void setPeerConnectionEnabled(bool);
 
     // Special DOM functions.
     void clearBackForwardList();
@@ -287,7 +292,9 @@ public:
 
     // MediaStream
     void setUserMediaPermission(bool);
-    void setUserMediaPermissionForOrigin(bool permission, JSStringRef origin, JSStringRef parentOrigin);
+    void setUserMediaPersistentPermissionForOrigin(bool permission, JSStringRef origin, JSStringRef parentOrigin);
+    unsigned userMediaPermissionRequestCountForOrigin(JSStringRef origin, JSStringRef parentOrigin) const;
+    void resetUserMediaPermissionRequestCountForOrigin(JSStringRef origin, JSStringRef parentOrigin);
 
     void setPageVisibility(JSStringRef state);
     void resetPageVisibility();
@@ -315,6 +322,7 @@ public:
     void setShouldDecideNavigationPolicyAfterDelay(bool);
     void setNavigationGesturesEnabled(bool);
     void setIgnoresViewportScaleLimits(bool);
+    void setShouldDownloadUndisplayableMIMETypes(bool);
 
     void runUIScript(JSStringRef script, JSValueRef callback);
     void runUIScriptCallback(unsigned callbackID, JSStringRef result);
@@ -400,9 +408,9 @@ private:
 
     WKRetainPtr<WKArrayRef> m_allowedHosts;
 
+    size_t m_userMediaPermissionRequestCount { 0 };
+
     PlatformTimerRef m_waitToDumpWatchdogTimer;
 };
 
 } // namespace WTR
-
-#endif // TestRunner_h

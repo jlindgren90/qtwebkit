@@ -33,8 +33,6 @@ list(APPEND WebKit2_SOURCES
 
     NetworkProcess/Downloads/gtk/DownloadSoupErrorsGtk.cpp
 
-    NetworkProcess/Downloads/soup/DownloadSoup.cpp
-
     NetworkProcess/cache/NetworkCacheCodersSoup.cpp
     NetworkProcess/cache/NetworkCacheDataSoup.cpp
     NetworkProcess/cache/NetworkCacheIOChannelSoup.cpp
@@ -103,7 +101,6 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/C/gtk/WKView.cpp
 
     UIProcess/API/C/soup/WKCookieManagerSoup.cpp
-    UIProcess/API/C/soup/WKSoupCustomProtocolRequestManager.cpp
 
     UIProcess/API/gtk/APIWebsiteDataStoreGtk.cpp
     UIProcess/API/gtk/PageClientImpl.cpp
@@ -136,6 +133,8 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/gtk/WebKitCookieManagerPrivate.h
     UIProcess/API/gtk/WebKitCredential.cpp
     UIProcess/API/gtk/WebKitCredential.h
+    UIProcess/API/gtk/WebKitCustomProtocolManagerClient.cpp
+    UIProcess/API/gtk/WebKitCustomProtocolManagerClient.h
     UIProcess/API/gtk/WebKitDefines.h
     UIProcess/API/gtk/WebKitDownload.cpp
     UIProcess/API/gtk/WebKitDownload.h
@@ -212,8 +211,6 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/gtk/WebKitPrintOperationPrivate.h
     UIProcess/API/gtk/WebKitPrivate.cpp
     UIProcess/API/gtk/WebKitPrivate.h
-    UIProcess/API/gtk/WebKitRequestManagerClient.cpp
-    UIProcess/API/gtk/WebKitRequestManagerClient.h
     UIProcess/API/gtk/WebKitResponsePolicyDecision.cpp
     UIProcess/API/gtk/WebKitResponsePolicyDecision.h
     UIProcess/API/gtk/WebKitResponsePolicyDecisionPrivate.h
@@ -285,8 +282,6 @@ list(APPEND WebKit2_SOURCES
     UIProcess/linux/MemoryPressureMonitor.cpp
 
     UIProcess/Network/CustomProtocols/soup/CustomProtocolManagerProxySoup.cpp
-    UIProcess/Network/CustomProtocols/soup/WebSoupCustomProtocolRequestManager.cpp
-    UIProcess/Network/CustomProtocols/soup/WebSoupCustomProtocolRequestManagerClient.cpp
 
     UIProcess/Plugins/gtk/PluginInfoCache.cpp
 
@@ -833,14 +828,6 @@ list(INSERT WebKit2_INCLUDE_DIRECTORIES 0
 
 list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/PluginProcess/unix"
-    "${WEBCORE_DIR}/platform/cairo"
-    "${WEBCORE_DIR}/platform/gtk"
-    "${WEBCORE_DIR}/platform/graphics/cairo"
-    "${WEBCORE_DIR}/platform/graphics/freetype"
-    "${WEBCORE_DIR}/platform/graphics/opentype"
-    "${WEBCORE_DIR}/platform/graphics/x11"
-    "${WEBCORE_DIR}/platform/network/soup"
-    "${WEBCORE_DIR}/platform/text/enchant"
     "${WEBKIT2_DIR}/DatabaseProcess/unix"
     "${WEBKIT2_DIR}/NetworkProcess/CustomProtocols/soup"
     "${WEBKIT2_DIR}/NetworkProcess/Downloads/soup"
@@ -877,9 +864,6 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/WebProcess/WebCoreSupport/soup"
     "${WEBKIT2_DIR}/WebProcess/WebPage/atk"
     "${WEBKIT2_DIR}/WebProcess/WebPage/gtk"
-    "${WTF_DIR}/wtf/gtk"
-    "${WTF_DIR}/wtf/glib"
-    "${WTF_DIR}"
 )
 
 list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES
@@ -887,6 +871,7 @@ list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES
     ${ENCHANT_INCLUDE_DIRS}
     ${GEOCLUE_INCLUDE_DIRS}
     ${GSTREAMER_INCLUDE_DIRS}
+    ${GSTREAMER_PBUTILS_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
     ${LIBSOUP_INCLUDE_DIRS}
 )
@@ -1187,7 +1172,6 @@ if (ENABLE_THREADED_COMPOSITOR)
         WebProcess/WebPage/CoordinatedGraphics/UpdateAtlas.cpp
     )
     list(APPEND WebKit2_INCLUDE_DIRECTORIES
-        "${WEBCORE_DIR}/platform/graphics/texmap/coordinated"
         "${WEBKIT2_DIR}/Shared/CoordinatedGraphics"
         "${WEBKIT2_DIR}/Shared/CoordinatedGraphics/threadedcompositor"
         "${WEBKIT2_DIR}/WebProcess/WebPage/CoordinatedGraphics"
@@ -1206,7 +1190,6 @@ include_directories(
     "${WEBKIT2_DIR}/UIProcess/API/C"
     "${WEBKIT2_DIR}/WebProcess/InjectedBundle"
     "${WEBKIT2_DIR}/WebProcess/InjectedBundle/API/c"
-    "${DERIVED_SOURCES_DIR}"
     "${DERIVED_SOURCES_DIR}/InjectedBundle"
     "${FORWARDING_HEADERS_DIR}"
     "${FORWARDING_HEADERS_WEBKIT2GTK_DIR}"

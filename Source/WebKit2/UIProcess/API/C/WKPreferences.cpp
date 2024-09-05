@@ -733,6 +733,16 @@ bool WKPreferencesGetFileAccessFromFileURLsAllowed(WKPreferencesRef preferencesR
     return toImpl(preferencesRef)->allowFileAccessFromFileURLs();
 }
 
+void WKPreferencesSetNeedsStorageAccessFromFileURLsQuirk(WKPreferencesRef preferencesRef, bool needsQuirk)
+{
+    toImpl(preferencesRef)->setNeedsStorageAccessFromFileURLsQuirk(needsQuirk);
+}
+
+bool WKPreferencesGetNeedsStorageAccessFromFileURLsQuirk(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->needsStorageAccessFromFileURLsQuirk();
+}
+
 void WKPreferencesSetHixie76WebSocketProtocolEnabled(WKPreferencesRef, bool /*enabled*/)
 {
 }
@@ -810,6 +820,16 @@ void WKPreferencesSetMediaControlsScaleWithPageZoom(WKPreferencesRef preferences
 bool WKPreferencesGetMediaControlsScaleWithPageZoom(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->mediaControlsScaleWithPageZoom();
+}
+
+void WKPreferencesSetModernMediaControlsEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setModernMediaControlsEnabled(flag);
+}
+
+bool WKPreferencesGetModernMediaControlsEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->modernMediaControlsEnabled();
 }
 
 void WKPreferencesSetShowsToolTipOverTruncatedText(WKPreferencesRef preferencesRef, bool flag)
@@ -1301,6 +1321,16 @@ bool WKPreferencesGetMediaStreamEnabled(WKPreferencesRef preferencesRef)
     return toImpl(preferencesRef)->mediaStreamEnabled();
 }
 
+void WKPreferencesSetPeerConnectionEnabled(WKPreferencesRef preferencesRef, bool enabled)
+{
+    toImpl(preferencesRef)->setPeerConnectionEnabled(enabled);
+}
+
+bool WKPreferencesGetPeerConnectionEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->peerConnectionEnabled();
+}
+
 void WKPreferencesSetSpatialNavigationEnabled(WKPreferencesRef preferencesRef, bool enabled)
 {
     toImpl(preferencesRef)->setSpatialNavigationEnabled(enabled);
@@ -1501,6 +1531,16 @@ bool WKPreferencesGetMockCaptureDevicesEnabled(WKPreferencesRef preferencesRef)
     return toImpl(preferencesRef)->mockCaptureDevicesEnabled();
 }
 
+void WKPreferencesSetMediaCaptureRequiresSecureConnection(WKPreferencesRef preferencesRef, bool enabled)
+{
+    toImpl(preferencesRef)->setMediaCaptureRequiresSecureConnection(enabled);
+}
+
+bool WKPreferencesGetMediaCaptureRequiresSecureConnection(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->mediaCaptureRequiresSecureConnection();
+}
+
 void WKPreferencesSetFetchAPIEnabled(WKPreferencesRef preferencesRef, bool flag)
 {
     toImpl(preferencesRef)->setFetchAPIEnabled(flag);
@@ -1519,6 +1559,26 @@ void WKPreferencesSetDownloadAttributeEnabled(WKPreferencesRef preferencesRef, b
 bool WKPreferencesGetDownloadAttributeEnabled(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->downloadAttributeEnabled();
+}
+
+void WKPreferencesSetES6ModulesEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setES6ModulesEnabled(flag);
+}
+
+bool WKPreferencesGetES6ModulesEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->es6ModulesEnabled();
+}
+
+void WKPreferencesSetIntersectionObserverEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setIntersectionObserverEnabled(flag);
+}
+
+bool WKPreferencesGetIntersectionObserverEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->intersectionObserverEnabled();
 }
 
 void WKPreferencesSetSelectionPaintingWithoutSelectionGapsEnabled(WKPreferencesRef preferencesRef, bool flag)
@@ -1559,4 +1619,14 @@ bool WKPreferencesGetApplePayCapabilityDisclosureAllowed(WKPreferencesRef prefer
 void WKPreferencesSetApplePayCapabilityDisclosureAllowed(WKPreferencesRef preferencesRef, bool allowed)
 {
     WebKit::toImpl(preferencesRef)->setApplePayCapabilityDisclosureAllowed(allowed);
+}
+
+void WKPreferencesSetSubtleCryptoEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setSubtleCryptoEnabled(flag);
+}
+
+bool WKPreferencesGetSubtleCryptoEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->subtleCryptoEnabled();
 }

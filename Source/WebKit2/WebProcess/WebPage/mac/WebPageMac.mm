@@ -59,6 +59,7 @@
 #import <WebCore/BackForwardController.h>
 #import <WebCore/DataDetection.h>
 #import <WebCore/DictionaryLookup.h>
+#import <WebCore/Editor.h>
 #import <WebCore/EventHandler.h>
 #import <WebCore/FocusController.h>
 #import <WebCore/FrameLoader.h>
@@ -89,7 +90,7 @@
 #import <WebCore/WindowsKeyboardCodes.h>
 #import <WebCore/htmlediting.h>
 #import <WebKitSystemInterface.h>
-#import <wtf/TemporaryChange.h>
+#import <wtf/SetForScope.h>
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 #include <WebCore/MediaPlaybackTargetMac.h>
@@ -437,19 +438,24 @@ void WebPage::performDictionaryLookupOfCurrentSelection()
 
 DictionaryPopupInfo WebPage::dictionaryPopupInfoForRange(Frame* frame, Range& range, NSDictionary **options, TextIndicatorPresentationTransition presentationTransition)
 {
-    TemporaryChange<bool> isGettingDictionaryPopupInfoChange { m_isGettingDictionaryPopupInfo, true };
+    Editor& editor = frame->editor();
+    editor.setIsGettingDictionaryPopupInfo(true);
 
     DictionaryPopupInfo dictionaryPopupInfo;
-    if (range.text().stripWhiteSpace().isEmpty())
+    if (range.text().stripWhiteSpace().isEmpty()) {
+        editor.setIsGettingDictionaryPopupInfo(false);
         return dictionaryPopupInfo;
+    }
     
     RenderObject* renderer = range.startContainer().renderer();
     const RenderStyle& style = renderer->style();
 
     Vector<FloatQuad> quads;
     range.absoluteTextQuads(quads);
-    if (quads.isEmpty())
+    if (quads.isEmpty()) {
+        editor.setIsGettingDictionaryPopupInfo(false);
         return dictionaryPopupInfo;
+    }
 
     IntRect rangeRect = frame->view()->contentsToWindow(quads[0].enclosingBoundingBox());
 
@@ -479,12 +485,15 @@ DictionaryPopupInfo WebPage::dictionaryPopupInfoForRange(Frame* frame, Range& ra
         indicatorOptions |= TextIndicatorOptionIncludeSnapshotWithSelectionHighlight;
 
     RefPtr<TextIndicator> textIndicator = TextIndicator::createWithRange(range, indicatorOptions, presentationTransition);
-    if (!textIndicator)
+    if (!textIndicator) {
+        editor.setIsGettingDictionaryPopupInfo(false);
         return dictionaryPopupInfo;
+    }
 
     dictionaryPopupInfo.textIndicator = textIndicator->data();
     dictionaryPopupInfo.attributedString = scaledNSAttributedString;
 
+    editor.setIsGettingDictionaryPopupInfo(false);
     return dictionaryPopupInfo;
 }
 
@@ -992,7 +1001,7 @@ void WebPage::performImmediateActionHitTestAtLocation(WebCore::FloatPoint locati
     HitTestResult hitTestResult = mainFrame.eventHandler().hitTestResultAtPoint(locationInContentCoordinates);
 
     bool immediateActionHitTestPreventsDefault = false;
-    Element* element = hitTestResult.innerElement();
+    Element* element = hitTestResult.targetElement();
 
     mainFrame.eventHandler().setImmediateActionStage(ImmediateActionStage::PerformedHitTest);
     if (element)

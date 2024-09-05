@@ -151,6 +151,7 @@ void RenderMultiColumnFlowThread::populate()
     // now. At this point there's obviously nothing after the flow thread, but renderers (column
     // sets and spanners) will be inserted there as we insert elements into the flow thread.
     LayoutStateDisabler layoutStateDisabler(view());
+    RenderTreeInternalMutationScope reparentingIsOn(view());
     multicolContainer->moveChildrenTo(this, multicolContainer->firstChild(), this, true);
 }
 
@@ -168,6 +169,7 @@ void RenderMultiColumnFlowThread::evacuateAndDestroy()
     // container, we need to unregister the flow thread, so that they aren't just re-added again to
     // the flow thread that we're trying to empty.
     multicolContainer->setMultiColumnFlowThread(nullptr);
+    RenderTreeInternalMutationScope reparentingIsOn(view());
     moveAllChildrenTo(multicolContainer, true);
 
     // Move spanners back to their original DOM position in the tree, and destroy the placeholders.
@@ -238,31 +240,41 @@ static bool isValidColumnSpanner(const RenderMultiColumnFlowThread& flowThread, 
 {
     // We assume that we're inside the flow thread. This function is not to be called otherwise.
     ASSERT(descendant.isDescendantOf(&flowThread));
-
     // First make sure that the renderer itself has the right properties for becoming a spanner.
-    auto& style = descendant.style();
-    if (style.columnSpan() != ColumnSpanAll || !is<RenderBox>(descendant) || descendant.isFloatingOrOutOfFlowPositioned())
+    if (!is<RenderBox>(descendant))
         return false;
 
-    RenderElement* container = descendant.parent();
-    if (!is<RenderBlockFlow>(*container) || container->childrenInline()) {
+    auto& descendantBox = downcast<RenderBox>(descendant);
+    if (descendantBox.isFloatingOrOutOfFlowPositioned())
+        return false;
+
+    if (descendantBox.style().columnSpan() != ColumnSpanAll)
+        return false;
+
+    auto* parent = descendantBox.parent();
+    if (!is<RenderBlockFlow>(*parent) || parent->childrenInline()) {
         // Needs to be block-level.
         return false;
     }
     
     // We need to have the flow thread as the containing block. A spanner cannot break out of the flow thread.
-    RenderFlowThread* enclosingFlowThread = descendant.flowThreadContainingBlock();
+    auto* enclosingFlowThread = descendantBox.flowThreadContainingBlock();
     if (enclosingFlowThread != &flowThread)
         return false;
 
     // This looks like a spanner, but if we're inside something unbreakable, it's not to be treated as one.
-    for (auto* ancestor = downcast<RenderBox>(descendant).containingBlock(); ancestor && !is<RenderView>(*ancestor); ancestor = ancestor->containingBlock()) {
-        if (ancestor->isRenderFlowThread()) {
+    for (auto* ancestor = descendantBox.containingBlock(); ancestor; ancestor = ancestor->containingBlock()) {
+        if (is<RenderView>(*ancestor))
+            return false;
+        if (is<RenderFlowThread>(*ancestor)) {
             // Don't allow any intervening non-multicol fragmentation contexts. The spec doesn't say
             // anything about disallowing this, but it's just going to be too complicated to
             // implement (not to mention specify behavior).
             return ancestor == &flowThread;
         }
+        // This ancestor (descendent of the flowThread) will create columns later. The spanner belongs to it.
+        if (is<RenderBlockFlow>(*ancestor) && downcast<RenderBlockFlow>(*ancestor).willCreateColumns())
+            return false;
         ASSERT(ancestor->style().columnSpan() != ColumnSpanAll || !isValidColumnSpanner(flowThread, *ancestor));
         if (ancestor->isUnsplittableForPagination())
             return false;
@@ -421,16 +433,16 @@ void RenderMultiColumnFlowThread::flowThreadDescendantInserted(RenderObject& new
     }
 }
 
-void RenderMultiColumnFlowThread::handleSpannerRemoval(RenderObject* spanner)
+void RenderMultiColumnFlowThread::handleSpannerRemoval(RenderObject& spanner)
 {
      // The placeholder may already have been removed, but if it hasn't, do so now.
-    if (RenderMultiColumnSpannerPlaceholder* placeholder = m_spannerMap.get(downcast<RenderBox>(spanner))) {
+    if (RenderMultiColumnSpannerPlaceholder* placeholder = m_spannerMap.get(&downcast<RenderBox>(spanner))) {
         placeholder->parent()->removeChild(*placeholder);
-        m_spannerMap.remove(downcast<RenderBox>(spanner));
+        m_spannerMap.remove(&downcast<RenderBox>(spanner));
     }
 
-    if (RenderObject* next = spanner->nextSibling()) {
-        if (RenderObject* previous = spanner->previousSibling()) {
+    if (RenderObject* next = spanner.nextSibling()) {
+        if (RenderObject* previous = spanner.previousSibling()) {
             if (previous->isRenderMultiColumnSet() && next->isRenderMultiColumnSet()) {
                 // Merge two sets that no longer will be separated by a spanner.
                 next->destroy();
@@ -440,21 +452,21 @@ void RenderMultiColumnFlowThread::handleSpannerRemoval(RenderObject* spanner)
     }
 }
 
-void RenderMultiColumnFlowThread::flowThreadRelativeWillBeRemoved(RenderObject* relative)
+void RenderMultiColumnFlowThread::flowThreadRelativeWillBeRemoved(RenderObject& relative)
 {
     if (m_beingEvacuated)
         return;
     invalidateRegions();
-    if (is<RenderMultiColumnSpannerPlaceholder>(*relative)) {
+    if (is<RenderMultiColumnSpannerPlaceholder>(relative)) {
         // Remove the map entry for this spanner, but leave the actual spanner renderer alone. Also
         // keep the reference to the spanner, since the placeholder may be about to be re-inserted
         // in the tree.
-        ASSERT(relative->isDescendantOf(this));
-        m_spannerMap.remove(downcast<RenderMultiColumnSpannerPlaceholder>(*relative).spanner());
+        ASSERT(relative.isDescendantOf(this));
+        m_spannerMap.remove(downcast<RenderMultiColumnSpannerPlaceholder>(relative).spanner());
         return;
     }
-    if (relative->style().columnSpan() == ColumnSpanAll) {
-        if (relative->parent() != parent())
+    if (relative.style().columnSpan() == ColumnSpanAll) {
+        if (relative.parent() != parent())
             return; // not a valid spanner.
         
         handleSpannerRemoval(relative);
@@ -545,7 +557,7 @@ RenderRegion* RenderMultiColumnFlowThread::regionAtBlockOffset(const RenderBox* 
     return columnSet;
 }
 
-void RenderMultiColumnFlowThread::setRegionRangeForBox(const RenderBox* box, RenderRegion* startRegion, RenderRegion* endRegion)
+void RenderMultiColumnFlowThread::setRegionRangeForBox(const RenderBox& box, RenderRegion* startRegion, RenderRegion* endRegion)
 {
     // Some column sets may have zero height, which means that two or more sets may start at the
     // exact same flow thread position, which means that some parts of the code may believe that a

@@ -37,7 +37,6 @@
 #include "GeometryUtilities.h"
 #include "GraphicsContext.h"
 #include "HTMLElement.h"
-#include "HTMLImageElement.h"
 #include "HTMLNames.h"
 #include "HTMLTableCellElement.h"
 #include "HTMLTableElement.h"
@@ -65,7 +64,6 @@
 #include "RenderView.h"
 #include "RenderWidget.h"
 #include "SVGRenderSupport.h"
-#include "Settings.h"
 #include "StyleResolver.h"
 #include "TransformState.h"
 #include "htmlediting.h"
@@ -179,16 +177,58 @@ void RenderObject::setFlowThreadStateIncludingDescendants(FlowThreadState state)
     }
 }
 
+RenderObject::FlowThreadState RenderObject::computedFlowThreadState(const RenderObject& renderer)
+{
+    if (!renderer.parent())
+        return renderer.flowThreadState();
+
+    auto inheritedFlowState = RenderObject::NotInsideFlowThread;
+    if (is<RenderText>(renderer))
+        inheritedFlowState = renderer.parent()->flowThreadState();
+    else if (auto* containingBlock = renderer.containingBlock())
+        inheritedFlowState = containingBlock->flowThreadState();
+    else {
+        // Splitting lines or doing continuation, so just keep the current state.
+        inheritedFlowState = renderer.flowThreadState();
+    }
+    return inheritedFlowState;
+}
+
+void RenderObject::initializeFlowThreadStateOnInsertion()
+{
+    ASSERT(parent());
+
+    // A RenderFlowThread is always considered to be inside itself, so it never has to change its state in response to parent changes.
+    if (isRenderFlowThread())
+        return;
+
+    auto computedState = computedFlowThreadState(*this);
+    if (flowThreadState() == computedState)
+        return;
+
+    setFlowThreadStateIncludingDescendants(computedState);
+}
+
+void RenderObject::resetFlowThreadStateOnRemoval()
+{
+    if (flowThreadState() == NotInsideFlowThread)
+        return;
+
+    if (!documentBeingDestroyed() && is<RenderElement>(*this)) {
+        downcast<RenderElement>(*this).removeFromRenderFlowThread();
+        return;
+    }
+
+    // A RenderFlowThread is always considered to be inside itself, so it never has to change its state in response to parent changes.
+    if (isRenderFlowThread())
+        return;
+
+    setFlowThreadStateIncludingDescendants(NotInsideFlowThread);
+}
+
 void RenderObject::setParent(RenderElement* parent)
 {
     m_parent = parent;
-
-    // Only update if our flow thread state is different from our new parent and if we're not a RenderFlowThread.
-    // A RenderFlowThread is always considered to be inside itself, so it never has to change its state
-    // in response to parent changes.
-    FlowThreadState newState = parent ? parent->flowThreadState() : NotInsideFlowThread;
-    if (newState != flowThreadState() && !isRenderFlowThread())
-        setFlowThreadStateIncludingDescendants(newState);
 }
 
 void RenderObject::removeFromParent()
@@ -356,7 +396,7 @@ RenderLayer* RenderObject::enclosingLayer() const
     return nullptr;
 }
 
-bool RenderObject::scrollRectToVisible(SelectionRevealMode revealMode, const LayoutRect& rect, const ScrollAlignment& alignX, const ScrollAlignment& alignY)
+bool RenderObject::scrollRectToVisible(SelectionRevealMode revealMode, const LayoutRect& absoluteRect, bool insideFixed, const ScrollAlignment& alignX, const ScrollAlignment& alignY)
 {
     if (revealMode == SelectionRevealMode::DoNotReveal)
         return false;
@@ -365,7 +405,7 @@ bool RenderObject::scrollRectToVisible(SelectionRevealMode revealMode, const Lay
     if (!enclosingLayer)
         return false;
 
-    enclosingLayer->scrollRectToVisible(revealMode, rect, alignX, alignY);
+    enclosingLayer->scrollRectToVisible(revealMode, absoluteRect, insideFixed, alignX, alignY);
     return true;
 }
 
@@ -606,10 +646,22 @@ void RenderObject::addPDFURLRect(PaintInfo& paintInfo, const LayoutPoint& paintO
     Node* node = this->node();
     if (!is<Element>(node) || !node->isLink())
         return;
-    const AtomicString& href = downcast<Element>(*node).getAttribute(hrefAttr);
+    Element& element = downcast<Element>(*node);
+    const AtomicString& href = element.getAttribute(hrefAttr);
     if (href.isNull())
         return;
-    paintInfo.context().setURLForRect(node->document().completeURL(href), snappedIntRect(urlRect));
+
+    if (paintInfo.context().supportsInternalLinks()) {
+        String outAnchorName;
+        Element* linkTarget = element.findAnchorElementForLink(outAnchorName);
+        if (linkTarget) {
+            paintInfo.context().setDestinationForRect(outAnchorName, urlRect);
+            return;
+        }
+    }
+
+    paintInfo.context().setURLForRect(node->document().completeURL(href), urlRect);
+
 }
 
 #if PLATFORM(IOS)
@@ -1131,6 +1183,19 @@ void RenderObject::showRenderObject(bool mark, int depth) const
             fprintf(stderr, " continuation->(%p)", renderer.continuation());
     }
     showRegionsInformation();
+    if (needsLayout()) {
+        fprintf(stderr, " layout->");
+        if (selfNeedsLayout())
+            fprintf(stderr, "[self]");
+        if (normalChildNeedsLayout())
+            fprintf(stderr, "[normal child]");
+        if (posChildNeedsLayout())
+            fprintf(stderr, "[positioned child]");
+        if (needsSimplifiedNormalFlowLayout())
+            fprintf(stderr, "[simplified]");
+        if (needsPositionedMovementLayout())
+            fprintf(stderr, "[positioned movement]");
+    }
     fprintf(stderr, "\n");
 }
 
@@ -1427,9 +1492,6 @@ void RenderObject::insertedIntoTree()
 void RenderObject::willBeRemovedFromTree()
 {
     // FIXME: We should ASSERT(isRooted()) but we have some out-of-order removals which would need to be fixed first.
-
-    setFlowThreadState(NotInsideFlowThread);
-
     // Update cached boundaries in SVG renderers, if a child is removed.
     parent()->setNeedsBoundariesUpdate();
 }
@@ -1916,24 +1978,22 @@ void RenderObject::setVisibleInViewportState(VisibleInViewportState visible)
         ensureRareData().setVisibleInViewportState(visible);
 }
 
-RenderObject::RareDataHash& RenderObject::rareDataMap()
+RenderObject::RareDataMap& RenderObject::rareDataMap()
 {
-    static NeverDestroyed<RareDataHash> map;
+    static NeverDestroyed<RareDataMap> map;
     return map;
 }
 
-RenderObject::RenderObjectRareData RenderObject::rareData() const
+const RenderObject::RenderObjectRareData& RenderObject::rareData() const
 {
-    if (!hasRareData())
-        return RenderObjectRareData();
-
-    return rareDataMap().get(this);
+    ASSERT(hasRareData());
+    return *rareDataMap().get(this);
 }
 
 RenderObject::RenderObjectRareData& RenderObject::ensureRareData()
 {
     setHasRareData(true);
-    return rareDataMap().add(this, RenderObjectRareData()).iterator->value;
+    return *rareDataMap().ensure(this, [] { return std::make_unique<RenderObjectRareData>(); }).iterator->value;
 }
 
 void RenderObject::removeRareData()

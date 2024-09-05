@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CachedResourceRequest_h
-#define CachedResourceRequest_h
+#pragma once
 
 #include "CachedResource.h"
 #include "DocumentLoader.h"
@@ -50,7 +49,7 @@ bool isRequestCrossOrigin(SecurityOrigin*, const URL& requestURL, const Resource
 
 class CachedResourceRequest {
 public:
-    CachedResourceRequest(ResourceRequest&&, const ResourceLoaderOptions&, Optional<ResourceLoadPriority> = Nullopt, String&& charset = String());
+    CachedResourceRequest(ResourceRequest&&, const ResourceLoaderOptions&, std::optional<ResourceLoadPriority> = std::nullopt, String&& charset = String());
 
     ResourceRequest&& releaseResourceRequest() { return WTFMove(m_resourceRequest); }
     const ResourceRequest& resourceRequest() const { return m_resourceRequest; }
@@ -58,7 +57,7 @@ public:
     void setCharset(const String& charset) { m_charset = charset; }
     const ResourceLoaderOptions& options() const { return m_options; }
     void setOptions(const ResourceLoaderOptions& options) { m_options = options; }
-    const Optional<ResourceLoadPriority>& priority() const { return m_priority; }
+    const std::optional<ResourceLoadPriority>& priority() const { return m_priority; }
     void setInitiator(PassRefPtr<Element>);
     void setInitiator(const AtomicString& name);
     const AtomicString& initiatorName() const;
@@ -93,7 +92,7 @@ private:
     ResourceRequest m_resourceRequest;
     String m_charset;
     ResourceLoaderOptions m_options;
-    Optional<ResourceLoadPriority> m_priority;
+    std::optional<ResourceLoadPriority> m_priority;
     RefPtr<Element> m_initiatorElement;
     AtomicString m_initiatorName;
     RefPtr<SecurityOrigin> m_origin;
@@ -103,5 +102,3 @@ private:
 void upgradeInsecureResourceRequestIfNeeded(ResourceRequest&, Document&);
 
 } // namespace WebCore
-
-#endif

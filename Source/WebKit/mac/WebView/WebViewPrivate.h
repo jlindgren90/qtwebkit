@@ -486,6 +486,8 @@ Could be worth adding to the API.
 // SPI for DumpRenderTree
 - (void)_updateActiveState;
 
+- (void)_didScrollDocumentInFrameView:(WebFrameView *)frameView;
+
 /*!
     @method _registerViewClass:representationClass:forURLScheme:
     @discussion Register classes that implement WebDocumentView and WebDocumentRepresentation respectively.
@@ -742,6 +744,7 @@ Could be worth adding to the API.
 - (void)setInteractiveFormValidationEnabled:(BOOL)enabled;
 - (int)validationMessageTimerMagnification;
 - (void)setValidationMessageTimerMagnification:(int)newValue;
+- (NSDictionary *)_contentsOfUserInterfaceItem:(NSString *)userInterfaceItem;
 
 // Returns YES if NSView -displayRectIgnoringOpacity:inContext: will produce a faithful representation of the content.
 - (BOOL)_isSoftwareRenderable;
@@ -888,6 +891,10 @@ Could be worth adding to the API.
 @property (nonatomic, copy, getter=_sourceApplicationAuditData, setter=_setSourceApplicationAuditData:) NSData *sourceApplicationAuditData;
 
 - (void)_setFontFallbackPrefersPictographs:(BOOL)flag;
+
+- (void)showCandidates:(NSArray *)candidates forString:(NSString *)string inRect:(NSRect)rectOfTypedString forSelectedRange:(NSRange)range view:(NSView *)view completionHandler:(void (^)(NSTextCheckingResult *acceptedCandidate))completionBlock;
+- (void)forceRequestCandidatesForTesting;
+- (BOOL)shouldRequestCandidates;
 
 @end
 
@@ -1059,12 +1066,6 @@ Could be worth adding to the API.
 @interface NSObject (WebViewResourceLoadDelegatePrivate)
 // Addresses <rdar://problem/5008925> - SPI for now
 - (NSCachedURLResponse *)webView:(WebView *)sender resource:(id)identifier willCacheResponse:(NSCachedURLResponse *)response fromDataSource:(WebDataSource *)dataSource;
-@end
-
-@interface WebView (WebShowCandidates)
-- (void)showCandidates:(NSArray *)candidates forString:(NSString *)string inRect:(NSRect)rectOfTypedString forSelectedRange:(NSRange)range view:(NSView *)view completionHandler:(void (^)(NSTextCheckingResult *acceptedCandidate))completionBlock;
-- (void)forceRequestCandidatesForTesting;
-- (BOOL)shouldRequestCandidates;
 @end
 
 #ifdef __cplusplus

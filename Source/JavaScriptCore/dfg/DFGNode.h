@@ -62,6 +62,7 @@ namespace DOMJIT {
 class GetterSetter;
 class Patchpoint;
 class CallDOMGetterPatchpoint;
+class Signature;
 }
 
 namespace Profiler {
@@ -585,7 +586,7 @@ public:
 
     void convertToPhantomNewFunction()
     {
-        ASSERT(m_op == NewFunction || m_op == NewGeneratorFunction);
+        ASSERT(m_op == NewFunction || m_op == NewGeneratorFunction || m_op == NewAsyncFunction);
         m_op = PhantomNewFunction;
         m_flags |= NodeMustGenerate;
         m_opInfo = OpInfoWrapper();
@@ -597,6 +598,16 @@ public:
     {
         ASSERT(m_op == NewGeneratorFunction);
         m_op = PhantomNewGeneratorFunction;
+        m_flags |= NodeMustGenerate;
+        m_opInfo = OpInfoWrapper();
+        m_opInfo2 = OpInfoWrapper();
+        children = AdjacencyList();
+    }
+
+    void convertToPhantomNewAsyncFunction()
+    {
+        ASSERT(m_op == NewAsyncFunction);
+        m_op = PhantomNewAsyncFunction;
         m_flags |= NodeMustGenerate;
         m_opInfo = OpInfoWrapper();
         m_opInfo2 = OpInfoWrapper();
@@ -651,6 +662,8 @@ public:
     }
     
     void convertToDirectCall(FrozenValue*);
+
+    void convertToCallDOM(Graph&);
     
     JSValue asJSValue()
     {
@@ -1057,6 +1070,12 @@ public:
         }
     }
 
+    BitVector* bitVector()
+    {
+        ASSERT(op() == NewArrayWithSpread || op() == PhantomNewArrayWithSpread);
+        return m_opInfo.as<BitVector*>();
+    }
+
     // Return the indexing type that an array allocation *wants* to use. It may end up using a different
     // type if we're having a bad time. You can determine the actual indexing type by asking the global
     // object:
@@ -1450,6 +1469,7 @@ public:
         case MultiGetByOffset:
         case GetClosureVar:
         case GetFromArguments:
+        case GetArgument:
         case ArrayPop:
         case ArrayPush:
         case RegExpExec:
@@ -1461,6 +1481,7 @@ public:
         case ToNumber:
         case LoadFromJSMapBucket:
         case CallDOMGetter:
+        case CallDOM:
             return true;
         default:
             return false;
@@ -1486,6 +1507,7 @@ public:
         case OverridesHasInstance:
         case NewFunction:
         case NewGeneratorFunction:
+        case NewAsyncFunction:
         case CreateActivation:
         case MaterializeCreateActivation:
         case NewRegexp:
@@ -1721,6 +1743,7 @@ public:
         switch (op()) {
         case NewFunction:
         case NewGeneratorFunction:
+        case NewAsyncFunction:
             return true;
         default:
             return false;
@@ -1732,6 +1755,7 @@ public:
         switch (op()) {
         case PhantomNewFunction:
         case PhantomNewGeneratorFunction:
+        case PhantomNewAsyncFunction:
             return true;
         default:
             return false;
@@ -1743,9 +1767,13 @@ public:
         switch (op()) {
         case PhantomNewObject:
         case PhantomDirectArguments:
+        case PhantomCreateRest:
+        case PhantomSpread:
+        case PhantomNewArrayWithSpread:
         case PhantomClonedArguments:
         case PhantomNewFunction:
         case PhantomNewGeneratorFunction:
+        case PhantomNewAsyncFunction:
         case PhantomCreateActivation:
             return true;
         default:
@@ -1977,6 +2005,11 @@ public:
     {
         return isInt32Speculation(prediction());
     }
+
+    bool shouldSpeculateNotInt32()
+    {
+        return isNotInt32Speculation(prediction());
+    }
     
     bool sawBooleans()
     {
@@ -2037,6 +2070,11 @@ public:
     {
         return isBooleanSpeculation(prediction());
     }
+
+    bool shouldSpeculateNotBoolean()
+    {
+        return isNotBooleanSpeculation(prediction());
+    }
     
     bool shouldSpeculateOther()
     {
@@ -2061,6 +2099,11 @@ public:
     bool shouldSpeculateString()
     {
         return isStringSpeculation(prediction());
+    }
+
+    bool shouldSpeculateNotString()
+    {
+        return isNotStringSpeculation(prediction());
     }
  
     bool shouldSpeculateStringOrOther()
@@ -2364,6 +2407,18 @@ public:
         return m_opInfo2.as<const ClassInfo*>();
     }
 
+    bool hasSignature() const
+    {
+        // Note that this does not include TailCall node types intentionally.
+        // CallDOM node types are always converted from Call.
+        return op() == Call || op() == CallDOM;
+    }
+
+    const DOMJIT::Signature* signature()
+    {
+        return m_opInfo.as<const DOMJIT::Signature*>();
+    }
+
     Node* replacement() const
     {
         return m_misc.replacement;
@@ -2386,7 +2441,18 @@ public:
 
     unsigned numberOfArgumentsToSkip()
     {
-        ASSERT(op() == CreateRest || op() == GetRestLength);
+        ASSERT(op() == CreateRest || op() == PhantomCreateRest || op() == GetRestLength || op() == GetMyArgumentByVal || op() == GetMyArgumentByValOutOfBounds);
+        return m_opInfo.as<unsigned>();
+    }
+
+    bool hasArgumentIndex()
+    {
+        return op() == GetArgument;
+    }
+
+    unsigned argumentIndex()
+    {
+        ASSERT(hasArgumentIndex());
         return m_opInfo.as<unsigned>();
     }
 
@@ -2525,15 +2591,18 @@ public:
     BasicBlock* owner;
 };
 
-inline bool nodeComparator(Node* a, Node* b)
-{
-    return a->index() < b->index();
-}
+struct NodeComparator {
+    template<typename NodePtrType>
+    bool operator()(NodePtrType a, NodePtrType b) const
+    {
+        return a->index() < b->index();
+    }
+};
 
 template<typename T>
 CString nodeListDump(const T& nodeList)
 {
-    return sortedListDump(nodeList, nodeComparator);
+    return sortedListDump(nodeList, NodeComparator());
 }
 
 template<typename T>
@@ -2544,7 +2613,7 @@ CString nodeMapDump(const T& nodeMap, DumpContext* context = 0)
         typename T::const_iterator iter = nodeMap.begin();
         iter != nodeMap.end(); ++iter)
         keys.append(iter->key);
-    std::sort(keys.begin(), keys.end(), nodeComparator);
+    std::sort(keys.begin(), keys.end(), NodeComparator());
     StringPrintStream out;
     CommaPrinter comma;
     for(unsigned i = 0; i < keys.size(); ++i)
@@ -2558,7 +2627,7 @@ CString nodeValuePairListDump(const T& nodeValuePairList, DumpContext* context =
     using V = typename T::ValueType;
     T sortedList = nodeValuePairList;
     std::sort(sortedList.begin(), sortedList.end(), [](const V& a, const V& b) {
-        return nodeComparator(a.node, b.node);
+        return NodeComparator()(a.node, b.node);
     });
 
     StringPrintStream out;

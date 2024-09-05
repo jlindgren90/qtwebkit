@@ -42,7 +42,7 @@ class WorkerInspectorProxy {
     WTF_MAKE_NONCOPYABLE(WorkerInspectorProxy);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    WorkerInspectorProxy();
+    WorkerInspectorProxy(const String& identifier);
     ~WorkerInspectorProxy();
 
     // A Worker's inspector messages come in and go out through the Page's WorkerAgent.
@@ -58,7 +58,7 @@ public:
     const String& identifier() const { return m_identifier; }
     ScriptExecutionContext* scriptExecutionContext() const { return m_scriptExecutionContext.get(); }
 
-    WorkerThreadStartMode workerStartMode(ScriptExecutionContext*);
+    WorkerThreadStartMode workerStartMode(ScriptExecutionContext&);
     void workerStarted(ScriptExecutionContext*, WorkerThread*, const URL&);
     void workerTerminated();
 

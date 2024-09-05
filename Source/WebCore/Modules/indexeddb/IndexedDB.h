@@ -74,11 +74,17 @@ enum class IndexRecordType {
     Value,
 };
 
+enum class ObjectStoreRecordType {
+    ValueOnly,
+    KeyOnly,
+};
+
 // In order of the least to the highest precedent in terms of sort order.
 enum KeyType {
     Max = -1,
     Invalid = 0,
     Array,
+    Binary,
     String,
     Date,
     Number,
@@ -89,6 +95,11 @@ enum class RequestType {
     Open,
     Delete,
     Other,
+};
+
+enum class GetAllType {
+    Keys,
+    Values,
 };
 
 } // namespace IndexedDB

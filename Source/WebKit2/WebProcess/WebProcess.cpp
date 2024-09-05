@@ -70,10 +70,13 @@
 #include <WebCore/AXObjectCache.h>
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/AuthenticationChallenge.h>
+#include <WebCore/CommonVM.h>
 #include <WebCore/CrossOriginPreflightResultCache.h>
 #include <WebCore/DNS.h>
 #include <WebCore/DatabaseManager.h>
 #include <WebCore/DatabaseTracker.h>
+#include <WebCore/DiagnosticLoggingClient.h>
+#include <WebCore/DiagnosticLoggingKeys.h>
 #include <WebCore/FontCache.h>
 #include <WebCore/FontCascade.h>
 #include <WebCore/Frame.h>
@@ -86,7 +89,7 @@
 #include <WebCore/Language.h>
 #include <WebCore/MainFrame.h>
 #include <WebCore/MemoryCache.h>
-#include <WebCore/MemoryPressureHandler.h>
+#include <WebCore/MemoryRelease.h>
 #include <WebCore/NetworkStorageSession.h>
 #include <WebCore/Page.h>
 #include <WebCore/PageCache.h>
@@ -131,10 +134,6 @@
 
 #if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
 #include "WebNotificationManager.h"
-#endif
-
-#if ENABLE(BATTERY_STATUS)
-#include "WebBatteryManager.h"
 #endif
 
 #if ENABLE(REMOTE_INSPECTOR)
@@ -198,9 +197,6 @@ WebProcess::WebProcess()
 
 #if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
     addSupplement<WebNotificationManager>();
-#endif
-#if ENABLE(BATTERY_STATUS)
-    addSupplement<WebBatteryManager>();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     addSupplement<WebMediaKeyStorageManager>();
@@ -282,8 +278,13 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
     WTF::setCurrentThreadIsUserInteractive(-1);
 
     m_suppressMemoryPressureHandler = parameters.shouldSuppressMemoryPressureHandler;
-    if (!m_suppressMemoryPressureHandler)
-        MemoryPressureHandler::singleton().install();
+    if (!m_suppressMemoryPressureHandler) {
+        auto& memoryPressureHandler = MemoryPressureHandler::singleton();
+        memoryPressureHandler.setLowMemoryHandler([] (Critical critical, Synchronous synchronous) {
+            WebCore::releaseMemory(critical, synchronous);
+        });
+        memoryPressureHandler.install();
+    }
 
     if (!parameters.injectedBundlePath.isEmpty())
         m_injectedBundle = InjectedBundle::create(parameters, transformHandlesToObjects(parameters.initializationUserData.object()).get());
@@ -978,21 +979,21 @@ void WebProcess::getWebCoreStatistics(uint64_t callbackID)
     
     // Gather JavaScript statistics.
     {
-        JSLockHolder lock(JSDOMWindow::commonVM());
-        data.statisticsNumbers.set(ASCIILiteral("JavaScriptObjectsCount"), JSDOMWindow::commonVM().heap.objectCount());
-        data.statisticsNumbers.set(ASCIILiteral("JavaScriptGlobalObjectsCount"), JSDOMWindow::commonVM().heap.globalObjectCount());
-        data.statisticsNumbers.set(ASCIILiteral("JavaScriptProtectedObjectsCount"), JSDOMWindow::commonVM().heap.protectedObjectCount());
-        data.statisticsNumbers.set(ASCIILiteral("JavaScriptProtectedGlobalObjectsCount"), JSDOMWindow::commonVM().heap.protectedGlobalObjectCount());
+        JSLockHolder lock(commonVM());
+        data.statisticsNumbers.set(ASCIILiteral("JavaScriptObjectsCount"), commonVM().heap.objectCount());
+        data.statisticsNumbers.set(ASCIILiteral("JavaScriptGlobalObjectsCount"), commonVM().heap.globalObjectCount());
+        data.statisticsNumbers.set(ASCIILiteral("JavaScriptProtectedObjectsCount"), commonVM().heap.protectedObjectCount());
+        data.statisticsNumbers.set(ASCIILiteral("JavaScriptProtectedGlobalObjectsCount"), commonVM().heap.protectedGlobalObjectCount());
         
-        std::unique_ptr<TypeCountSet> protectedObjectTypeCounts(JSDOMWindow::commonVM().heap.protectedObjectTypeCounts());
+        std::unique_ptr<TypeCountSet> protectedObjectTypeCounts(commonVM().heap.protectedObjectTypeCounts());
         fromCountedSetToHashMap(protectedObjectTypeCounts.get(), data.javaScriptProtectedObjectTypeCounts);
         
-        std::unique_ptr<TypeCountSet> objectTypeCounts(JSDOMWindow::commonVM().heap.objectTypeCounts());
+        std::unique_ptr<TypeCountSet> objectTypeCounts(commonVM().heap.objectTypeCounts());
         fromCountedSetToHashMap(objectTypeCounts.get(), data.javaScriptObjectTypeCounts);
         
-        uint64_t javaScriptHeapSize = JSDOMWindow::commonVM().heap.size();
+        uint64_t javaScriptHeapSize = commonVM().heap.size();
         data.statisticsNumbers.set(ASCIILiteral("JavaScriptHeapSize"), javaScriptHeapSize);
-        data.statisticsNumbers.set(ASCIILiteral("JavaScriptFreeSize"), JSDOMWindow::commonVM().heap.capacity() - javaScriptHeapSize);
+        data.statisticsNumbers.set(ASCIILiteral("JavaScriptFreeSize"), commonVM().heap.capacity() - javaScriptHeapSize);
     }
 
     WTF::FastMallocStatistics fastMallocStatistics = WTF::fastMallocStatistics();
@@ -1094,13 +1095,35 @@ NetworkProcessConnection& WebProcess::networkConnection()
     return *m_networkProcessConnection;
 }
 
+void WebProcess::logDiagnosticMessageForNetworkProcessCrash()
+{
+    WebCore::Page* page = nullptr;
+
+    if (auto* webPage = focusedWebPage())
+        page = webPage->corePage();
+
+    if (!page) {
+        for (auto& webPage : m_pageMap.values()) {
+            if (auto* corePage = webPage->corePage()) {
+                page = corePage;
+                break;
+            }
+        }
+    }
+
+    if (page)
+        page->diagnosticLoggingClient().logDiagnosticMessage(WebCore::DiagnosticLoggingKeys::internalErrorKey(), WebCore::DiagnosticLoggingKeys::networkProcessCrashedKey(), WebCore::ShouldSample::No);
+}
+
 void WebProcess::networkProcessConnectionClosed(NetworkProcessConnection* connection)
 {
     ASSERT(m_networkProcessConnection);
     ASSERT_UNUSED(connection, m_networkProcessConnection == connection);
 
     m_networkProcessConnection = nullptr;
-    
+
+    logDiagnosticMessageForNetworkProcessCrash();
+
     m_webLoaderStrategy.networkProcessCrashed();
 }
 
@@ -1203,7 +1226,7 @@ void WebProcess::fetchWebsiteData(WebCore::SessionID sessionID, OptionSet<Websit
 {
     if (websiteDataTypes.contains(WebsiteDataType::MemoryCache)) {
         for (auto& origin : MemoryCache::singleton().originsWithCache(sessionID))
-            websiteData.entries.append(WebsiteData::Entry { origin, WebsiteDataType::MemoryCache, 0 });
+            websiteData.entries.append(WebsiteData::Entry { SecurityOriginData::fromSecurityOrigin(*origin), WebsiteDataType::MemoryCache, 0 });
     }
 }
 
@@ -1293,7 +1316,7 @@ void WebProcess::processWillSuspendImminently(bool& handled)
     }
 
     RELEASE_LOG(ProcessSuspension, "%p - WebProcess::processWillSuspendImminently()", this);
-    DatabaseTracker::tracker().closeAllDatabases(CurrentQueryBehavior::Interrupt);
+    DatabaseTracker::singleton().closeAllDatabases(CurrentQueryBehavior::Interrupt);
     actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend::No);
     handled = true;
 }

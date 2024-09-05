@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef StyleUpdate_h
-#define StyleUpdate_h
+#pragma once
 
 #include "Node.h"
 #include "StyleChange.h"
@@ -46,6 +45,12 @@ class Text;
 namespace Style {
 
 struct ElementUpdate {
+    ElementUpdate() = default;
+    ElementUpdate(std::unique_ptr<RenderStyle> style, Change change, bool recompositeLayer)
+        : style(WTFMove(style))
+        , change(change)
+        , recompositeLayer(recompositeLayer)
+    { }
     std::unique_ptr<RenderStyle> style;
     Change change { NoChange };
     bool recompositeLayer { false };
@@ -85,4 +90,3 @@ private:
 
 }
 }
-#endif

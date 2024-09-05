@@ -37,11 +37,11 @@
 #include "CryptoAlgorithmRsaKeyParamsWithHashDeprecated.h"
 #include "CryptoAlgorithmRsaOaepParamsDeprecated.h"
 #include "CryptoAlgorithmRsaSsaParamsDeprecated.h"
+#include "Dictionary.h"
 #include "ExceptionCode.h"
 #include "JSCryptoOperationData.h"
 #include "JSDOMBinding.h"
 #include "JSDOMConvert.h"
-#include "JSDictionary.h"
 
 using namespace JSC;
 
@@ -75,7 +75,7 @@ bool JSCryptoAlgorithmDictionary::getAlgorithmIdentifier(ExecState* exec, JSValu
             // This is partially because we don't implement it elsewhere in WebCore yet, and partially because
             // WebCrypto doesn't yet clearly specify what to do with non-present values in most cases anyway.
 
-            JSDictionary dictionary(exec, value.getObject());
+            Dictionary dictionary(exec, value.getObject());
             dictionary.get("name", algorithmName);
         }
     }
@@ -87,11 +87,13 @@ bool JSCryptoAlgorithmDictionary::getAlgorithmIdentifier(ExecState* exec, JSValu
         return false;
     }
 
-    if (!CryptoAlgorithmRegistry::singleton().getIdentifierForName(algorithmName, algorithmIdentifier)) {
+    auto identifier = CryptoAlgorithmRegistry::singleton().identifier(algorithmName);
+    if (!identifier) {
         setDOMException(exec, NOT_SUPPORTED_ERR);
         return false;
     }
 
+    algorithmIdentifier = *identifier;
     return true;
 }
 
@@ -100,9 +102,9 @@ static JSValue getProperty(ExecState* exec, JSObject* object, const char* name)
     return object->get(exec, Identifier::fromString(exec, name));
 }
 
-static bool getHashAlgorithm(JSDictionary& dictionary, CryptoAlgorithmIdentifier& result, HashRequirement isRequired)
+static bool getHashAlgorithm(Dictionary& dictionary, CryptoAlgorithmIdentifier& result, HashRequirement isRequired)
 {
-    // FXIME: Teach JSDictionary how to return JSValues, and use that to get hash element value.
+    // FIXME: Teach Dictionary how to return JSValues, and use that to get hash element value.
 
     ExecState* exec = dictionary.execState();
     VM& vm = exec->vm();
@@ -184,10 +186,10 @@ static RefPtr<CryptoAlgorithmParametersDeprecated> createHmacParams(ExecState& s
         return nullptr;
     }
 
-    JSDictionary jsDictionary(&state, value.getObject());
+    Dictionary dictionary(&state, value.getObject());
     auto result = adoptRef(*new CryptoAlgorithmHmacParamsDeprecated);
 
-    auto success = getHashAlgorithm(jsDictionary, result->hash, HashRequirement::Required);
+    auto success = getHashAlgorithm(dictionary, result->hash, HashRequirement::Required);
     ASSERT_UNUSED(scope, scope.exception() || success);
     if (!success)
         return nullptr;
@@ -205,15 +207,15 @@ static RefPtr<CryptoAlgorithmParametersDeprecated> createHmacKeyParams(ExecState
         return nullptr;
     }
 
-    JSDictionary jsDictionary(&state, value.getObject());
+    Dictionary dictionary(&state, value.getObject());
     auto result = adoptRef(*new CryptoAlgorithmHmacKeyParamsDeprecated);
 
-    auto success = getHashAlgorithm(jsDictionary, result->hash, HashRequirement::Required);
+    auto success = getHashAlgorithm(dictionary, result->hash, HashRequirement::Required);
     ASSERT(scope.exception() || success);
     if (!success)
         return nullptr;
 
-    result->hasLength = jsDictionary.get("length", result->length);
+    result->hasLength = dictionary.get("length", result->length);
     RETURN_IF_EXCEPTION(scope, nullptr);
 
     return WTFMove(result);
@@ -229,7 +231,7 @@ static RefPtr<CryptoAlgorithmParametersDeprecated> createRsaKeyGenParams(ExecSta
         return nullptr;
     }
 
-    JSDictionary jsDictionary(&state, value.getObject());
+    Dictionary dictionary(&state, value.getObject());
     auto result = adoptRef(*new CryptoAlgorithmRsaKeyGenParamsDeprecated);
 
     JSValue modulusLengthValue = getProperty(&state, value.getObject(), "modulusLength");
@@ -242,14 +244,14 @@ static RefPtr<CryptoAlgorithmParametersDeprecated> createRsaKeyGenParams(ExecSta
     JSValue publicExponentValue = getProperty(&state, value.getObject(), "publicExponent");
     RETURN_IF_EXCEPTION(scope, nullptr);
 
-    RefPtr<Uint8Array> publicExponentArray = toUint8Array(publicExponentValue);
+    RefPtr<Uint8Array> publicExponentArray = toUnsharedUint8Array(publicExponentValue);
     if (!publicExponentArray) {
         throwTypeError(&state, scope, ASCIILiteral("Expected a Uint8Array in publicExponent"));
         return nullptr;
     }
     result->publicExponent.append(publicExponentArray->data(), publicExponentArray->byteLength());
 
-    result->hasHash = getHashAlgorithm(jsDictionary, result->hash, HashRequirement::Optional); 
+    result->hasHash = getHashAlgorithm(dictionary, result->hash, HashRequirement::Optional); 
 
     return WTFMove(result);
 }
@@ -270,10 +272,10 @@ static RefPtr<CryptoAlgorithmParametersDeprecated> createRsaOaepParams(ExecState
         return nullptr;
     }
 
-    JSDictionary jsDictionary(exec, value.getObject());
+    Dictionary dictionary(exec, value.getObject());
     auto result = adoptRef(*new CryptoAlgorithmRsaOaepParamsDeprecated);
 
-    auto success = getHashAlgorithm(jsDictionary, result->hash, HashRequirement::Required);
+    auto success = getHashAlgorithm(dictionary, result->hash, HashRequirement::Required);
     ASSERT(scope.exception() || success);
     if (!success)
         return nullptr;
@@ -306,10 +308,10 @@ static RefPtr<CryptoAlgorithmParametersDeprecated> createRsaSsaParams(ExecState&
         return nullptr;
     }
 
-    JSDictionary jsDictionary(&state, value.getObject());
+    Dictionary dictionary(&state, value.getObject());
     auto result = adoptRef(*new CryptoAlgorithmRsaSsaParamsDeprecated);
 
-    auto success = getHashAlgorithm(jsDictionary, result->hash, HashRequirement::Required);
+    auto success = getHashAlgorithm(dictionary, result->hash, HashRequirement::Required);
     ASSERT(scope.exception() || success);
     if (!success)
         return nullptr;

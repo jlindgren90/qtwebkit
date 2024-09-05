@@ -28,10 +28,14 @@
 #include "BatchedTransitionOptimizer.h"
 #include "CodeBlock.h"
 #include "Debugger.h"
+#include "EvalCodeBlock.h"
+#include "FunctionCodeBlock.h"
 #include "JIT.h"
 #include "JSCInlines.h"
 #include "LLIntEntrypoint.h"
+#include "ModuleProgramCodeBlock.h"
 #include "Parser.h"
+#include "ProgramCodeBlock.h"
 #include "TypeProfiler.h"
 #include "VMInlines.h"
 #include <wtf/CommaPrinter.h>
@@ -85,14 +89,6 @@ void ExecutableBase::clearCode()
         return;
     }
     
-#if ENABLE(WEBASSEMBLY)
-    if (classInfo() == WebAssemblyExecutable::info()) {
-        WebAssemblyExecutable* executable = jsCast<WebAssemblyExecutable*>(this);
-        executable->m_codeBlockForCall.clear();
-        return;
-    }
-#endif
-
     ASSERT(classInfo() == NativeExecutable::info());
 }
 

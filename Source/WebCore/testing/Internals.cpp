@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Google Inc. All rights reserved.
- * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,10 @@
 #include "Autofill.h"
 #include "BackForwardController.h"
 #include "BitmapImage.h"
+#include "CSSKeyframesRule.h"
+#include "CSSMediaRule.h"
+#include "CSSStyleRule.h"
+#include "CSSSupportsRule.h"
 #include "CachedImage.h"
 #include "CachedResourceLoader.h"
 #include "Chrome.h"
@@ -119,6 +123,7 @@
 #include "SourceBuffer.h"
 #include "SpellChecker.h"
 #include "StaticNodeList.h"
+#include "StyleRule.h"
 #include "StyleScope.h"
 #include "StyleSheetContents.h"
 #include "TextIterator.h"
@@ -138,13 +143,10 @@
 #include <runtime/JSCJSValue.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuffer.h>
+#include <wtf/text/StringBuilder.h>
 
 #if ENABLE(INPUT_TYPE_COLOR)
 #include "ColorChooser.h"
-#endif
-
-#if ENABLE(BATTERY_STATUS)
-#include "BatteryController.h"
 #endif
 
 #if ENABLE(PROXIMITY_EVENTS)
@@ -196,7 +198,6 @@
 #if ENABLE(WEB_RTC)
 #include "MockMediaEndpoint.h"
 #include "RTCPeerConnection.h"
-#include "RTCPeerConnectionHandlerMock.h"
 #endif
 
 #if ENABLE(MEDIA_SOURCE)
@@ -222,6 +223,10 @@
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 #include "MediaPlaybackTargetContext.h"
+#endif
+
+#if ENABLE(POINTER_LOCK)
+#include "PointerLockController.h"
 #endif
 
 using JSC::CallData;
@@ -388,6 +393,7 @@ void Internals::resetToConsistentState(Page& page)
 #endif
     }
 
+    WebCore::clearDefaultPortForProtocolMapForTesting();
     WebCore::overrideUserPreferredLanguages(Vector<String>());
     WebCore::Settings::setUsesOverlayScrollbars(false);
     WebCore::Settings::setUsesMockScrollAnimator(false);
@@ -435,11 +441,11 @@ Internals::Internals(Document& document)
 
 #if ENABLE(MEDIA_STREAM)
     setMockMediaCaptureDevicesEnabled(true);
+    WebCore::Settings::setMediaCaptureRequiresSecureConnection(false);
 #endif
 
 #if ENABLE(WEB_RTC)
     enableMockMediaEndpoint();
-    enableMockRTCPeerConnectionHandler();
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -660,6 +666,32 @@ unsigned Internals::imageFrameIndex(HTMLImageElement& element)
     return is<BitmapImage>(image) ? downcast<BitmapImage>(*image).currentFrame() : 0;
 }
 
+void Internals::setImageFrameDecodingDuration(HTMLImageElement& element, float duration)
+{
+    auto* cachedImage = element.cachedImage();
+    if (!cachedImage)
+        return;
+    
+    auto* image = cachedImage->image();
+    if (!is<BitmapImage>(image))
+        return;
+    
+    downcast<BitmapImage>(*image).setFrameDecodingDurationForTesting(duration);
+}
+
+void Internals::resetImageAnimation(HTMLImageElement& element)
+{
+    auto* cachedImage = element.cachedImage();
+    if (!cachedImage)
+        return;
+
+    auto* image = cachedImage->image();
+    if (!is<BitmapImage>(image))
+        return;
+
+    image->resetAnimation();
+}
+
 void Internals::clearPageCache()
 {
     PageCache::singleton().pruneToSizeNow(0, PruningReason::None);
@@ -789,30 +821,9 @@ RefPtr<CSSComputedStyleDeclaration> Internals::computedStyleIncludingVisitedInfo
     return CSSComputedStyleDeclaration::create(element, allowVisitedStyle);
 }
 
-ExceptionOr<Node*> Internals::ensureShadowRoot(Element& host)
-{
-    if (ShadowRoot* shadowRoot = host.shadowRoot())
-        return shadowRoot;
-
-    ExceptionCode ec = 0;
-    auto result = host.createShadowRoot(ec);
-    if (ec)
-        return Exception { ec };
-    return result;
-}
-
 Node* Internals::ensureUserAgentShadowRoot(Element& host)
 {
     return &host.ensureUserAgentShadowRoot();
-}
-
-ExceptionOr<Node*> Internals::createShadowRoot(Element& host)
-{
-    ExceptionCode ec = 0;
-    auto result = host.createShadowRoot(ec);
-    if (ec)
-        return Exception { ec };
-    return result;
 }
 
 Node* Internals::shadowRoot(Element& host)
@@ -848,6 +859,101 @@ void Internals::setShadowPseudoId(Element& element, const String& id)
     return element.setPseudo(id);
 }
 
+static unsigned deferredStyleRulesCountForList(const Vector<RefPtr<StyleRuleBase>>& childRules)
+{
+    unsigned count = 0;
+    for (auto rule : childRules) {
+        if (is<StyleRule>(rule.get())) {
+            auto* cssRule = downcast<StyleRule>(rule.get());
+            if (!cssRule->propertiesWithoutDeferredParsing())
+                count++;
+            continue;
+        }
+        
+        StyleRuleGroup* groupRule = nullptr;
+        if (is<StyleRuleMedia>(rule.get()))
+            groupRule = downcast<StyleRuleMedia>(rule.get());
+        else if (is<StyleRuleSupports>(rule.get()))
+            groupRule = downcast<StyleRuleSupports>(rule.get());
+        if (!groupRule)
+            continue;
+        
+        auto* groupChildRules = groupRule->childRulesWithoutDeferredParsing();
+        if (!groupChildRules)
+            continue;
+        
+        count += deferredStyleRulesCountForList(*groupChildRules);
+    }
+
+    return count;
+}
+
+unsigned Internals::deferredStyleRulesCount(StyleSheet& styleSheet)
+{
+    return deferredStyleRulesCountForList(downcast<CSSStyleSheet>(styleSheet).contents().childRules());
+}
+
+static unsigned deferredGroupRulesCountForList(const Vector<RefPtr<StyleRuleBase>>& childRules)
+{
+    unsigned count = 0;
+    for (auto rule : childRules) {
+        StyleRuleGroup* groupRule = nullptr;
+        if (is<StyleRuleMedia>(rule.get()))
+            groupRule = downcast<StyleRuleMedia>(rule.get());
+        else if (is<StyleRuleSupports>(rule.get()))
+            groupRule = downcast<StyleRuleSupports>(rule.get());
+        if (!groupRule)
+            continue;
+        
+        auto* groupChildRules = groupRule->childRulesWithoutDeferredParsing();
+        if (!groupChildRules)
+            count++;
+        else
+            count += deferredGroupRulesCountForList(*groupChildRules);
+    }
+    return count;
+}
+
+unsigned Internals::deferredGroupRulesCount(StyleSheet& styleSheet)
+{
+    return deferredGroupRulesCountForList(downcast<CSSStyleSheet>(styleSheet).contents().childRules());
+}
+
+static unsigned deferredKeyframesRulesCountForList(const Vector<RefPtr<StyleRuleBase>>& childRules)
+{
+    unsigned count = 0;
+    for (auto rule : childRules) {
+        if (is<StyleRuleKeyframes>(rule.get())) {
+            auto* cssRule = downcast<StyleRuleKeyframes>(rule.get());
+            if (!cssRule->keyframesWithoutDeferredParsing())
+                count++;
+            continue;
+        }
+        
+        StyleRuleGroup* groupRule = nullptr;
+        if (is<StyleRuleMedia>(rule.get()))
+            groupRule = downcast<StyleRuleMedia>(rule.get());
+        else if (is<StyleRuleSupports>(rule.get()))
+            groupRule = downcast<StyleRuleSupports>(rule.get());
+        if (!groupRule)
+            continue;
+        
+        auto* groupChildRules = groupRule->childRulesWithoutDeferredParsing();
+        if (!groupChildRules)
+            continue;
+        
+        count += deferredKeyframesRulesCountForList(*groupChildRules);
+    }
+    
+    return count;
+}
+
+unsigned Internals::deferredKeyframesRulesCount(StyleSheet& styleSheet)
+{
+    StyleSheetContents& contents = downcast<CSSStyleSheet>(styleSheet).contents();
+    return deferredKeyframesRulesCountForList(contents.childRules());
+}
+
 ExceptionOr<bool> Internals::isTimerThrottled(int timeoutId)
 {
     DOMTimer* timer = scriptExecutionContext()->findTimeout(timeoutId);
@@ -871,6 +977,47 @@ bool Internals::isRequestAnimationFrameThrottled() const
 bool Internals::areTimersThrottled() const
 {
     return contextDocument()->isTimerThrottlingEnabled();
+}
+
+void Internals::setEventThrottlingBehaviorOverride(std::optional<EventThrottlingBehavior> value)
+{
+    Document* document = contextDocument();
+    if (!document || !document->page())
+        return;
+
+    if (!value) {
+        document->page()->setEventThrottlingBehaviorOverride(std::nullopt);
+        return;
+    }
+
+    switch (value.value()) {
+    case Internals::EventThrottlingBehavior::Responsive:
+        document->page()->setEventThrottlingBehaviorOverride(WebCore::EventThrottlingBehavior::Responsive);
+        break;
+    case Internals::EventThrottlingBehavior::Unresponsive:
+        document->page()->setEventThrottlingBehaviorOverride(WebCore::EventThrottlingBehavior::Unresponsive);
+        break;
+    }
+}
+
+std::optional<Internals::EventThrottlingBehavior> Internals::eventThrottlingBehaviorOverride() const
+{
+    Document* document = contextDocument();
+    if (!document || !document->page())
+        return std::nullopt;
+
+    auto behavior = document->page()->eventThrottlingBehaviorOverride();
+    if (!behavior)
+        return std::nullopt;
+    
+    switch (behavior.value()) {
+    case WebCore::EventThrottlingBehavior::Responsive:
+        return Internals::EventThrottlingBehavior::Responsive;
+    case WebCore::EventThrottlingBehavior::Unresponsive:
+        return Internals::EventThrottlingBehavior::Unresponsive;
+    }
+
+    return std::nullopt;
 }
 
 String Internals::visiblePlaceholder(Element& element)
@@ -938,11 +1085,6 @@ void Internals::enableMockSpeechSynthesizer()
 void Internals::enableMockMediaEndpoint()
 {
     MediaEndpoint::create = MockMediaEndpoint::create;
-}
-
-void Internals::enableMockRTCPeerConnectionHandler()
-{
-    RTCPeerConnectionHandler::create = RTCPeerConnectionHandlerMock::create;
 }
 
 void Internals::emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection& connection, const String& action)
@@ -1109,6 +1251,30 @@ ExceptionOr<void> Internals::setScrollViewPosition(int x, int y)
     frameView.setConstrainsScrollingToContentEdge(constrainsScrollingToContentEdgeOldValue);
 
     return { };
+}
+
+ExceptionOr<Ref<ClientRect>> Internals::layoutViewportRect()
+{
+    Document* document = contextDocument();
+    if (!document || !document->frame())
+        return Exception { INVALID_ACCESS_ERR };
+
+    document->updateLayoutIgnorePendingStylesheets();
+
+    auto& frameView = *document->view();
+    return ClientRect::create(frameView.layoutViewportRect());
+}
+
+ExceptionOr<Ref<ClientRect>> Internals::visualViewportRect()
+{
+    Document* document = contextDocument();
+    if (!document || !document->frame())
+        return Exception { INVALID_ACCESS_ERR };
+
+    document->updateLayoutIgnorePendingStylesheets();
+
+    auto& frameView = *document->view();
+    return ClientRect::create(frameView.visualViewportRect());
 }
 
 ExceptionOr<void> Internals::setViewBaseBackgroundColor(const String& colorValue)
@@ -1493,10 +1659,6 @@ String Internals::parserMetaData(JSC::JSValue code)
         result.appendLiteral("module");
     else if (executable->isProgramExecutable())
         result.appendLiteral("program");
-#if ENABLE(WEBASSEMBLY)
-    else if (executable->isWebAssemblyExecutable())
-        result.appendLiteral("WebAssembly");
-#endif
     else
         ASSERT_NOT_REACHED();
 
@@ -1511,24 +1673,6 @@ String Internals::parserMetaData(JSC::JSValue code)
     result.appendLiteral(" }");
 
     return result.toString();
-}
-
-ExceptionOr<void> Internals::setBatteryStatus(const String& eventType, bool charging, double chargingTime, double dischargingTime, double level)
-{
-    Document* document = contextDocument();
-    if (!document || !document->page())
-        return Exception { INVALID_ACCESS_ERR };
-
-#if ENABLE(BATTERY_STATUS)
-    BatteryController::from(document->page())->didChangeBatteryStatus(eventType, BatteryStatus::create(charging, chargingTime, dischargingTime, level));
-#else
-    UNUSED_PARAM(eventType);
-    UNUSED_PARAM(charging);
-    UNUSED_PARAM(chargingTime);
-    UNUSED_PARAM(dischargingTime);
-    UNUSED_PARAM(level);
-#endif
-    return { };
 }
 
 ExceptionOr<void> Internals::setDeviceProximity(const String&, double value, double min, double max)
@@ -2047,6 +2191,15 @@ ExceptionOr<String> Internals::pageSizeAndMarginsInPixels(int pageNumber, int wi
     return PrintContext::pageSizeAndMarginsInPixels(frame(), pageNumber, width, height, marginTop, marginRight, marginBottom, marginLeft);
 }
 
+ExceptionOr<float> Internals::pageScaleFactor() const
+{
+    Document* document = contextDocument();
+    if (!document || !document->page())
+        return Exception { INVALID_ACCESS_ERR };
+
+    return document->page()->pageScaleFactor();
+}
+
 ExceptionOr<void> Internals::setPageScaleFactor(float scaleFactor, int x, int y)
 {
     Document* document = contextDocument();
@@ -2186,6 +2339,11 @@ void Internals::registerURLSchemeAsBypassingContentSecurityPolicy(const String& 
 void Internals::removeURLSchemeRegisteredAsBypassingContentSecurityPolicy(const String& scheme)
 {
     SchemeRegistry::removeURLSchemeRegisteredAsBypassingContentSecurityPolicy(scheme);
+}
+
+void Internals::registerDefaultPortForProtocol(unsigned short port, const String& protocol)
+{
+    registerDefaultPortForProtocolForTesting(port, protocol);
 }
 
 Ref<MallocStatistics> Internals::mallocStatistics() const
@@ -2526,7 +2684,7 @@ ExceptionOr<String> Internals::captionsStyleSheetOverride()
 #if ENABLE(VIDEO_TRACK)
     return document->page()->group().captionPreferences().captionsStyleSheetOverride();
 #else
-    return emptyString();
+    return String { emptyString() };
 #endif
 }
 
@@ -2705,16 +2863,24 @@ void Internals::applicationWillEnterBackground() const
     PlatformMediaSessionManager::sharedManager().applicationWillEnterBackground();
 }
 
+static PlatformMediaSession::MediaType mediaTypeFromString(const String& mediaTypeString)
+{
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "video"))
+        return PlatformMediaSession::Video;
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "audio"))
+        return PlatformMediaSession::Audio;
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "videoaudio"))
+        return PlatformMediaSession::VideoAudio;
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "webaudio"))
+        return PlatformMediaSession::WebAudio;
+
+    return PlatformMediaSession::None;
+}
+
 ExceptionOr<void> Internals::setMediaSessionRestrictions(const String& mediaTypeString, const String& restrictionsString)
 {
-    PlatformMediaSession::MediaType mediaType = PlatformMediaSession::None;
-    if (equalLettersIgnoringASCIICase(mediaTypeString, "video"))
-        mediaType = PlatformMediaSession::Video;
-    else if (equalLettersIgnoringASCIICase(mediaTypeString, "audio"))
-        mediaType = PlatformMediaSession::Audio;
-    else if (equalLettersIgnoringASCIICase(mediaTypeString, "webaudio"))
-        mediaType = PlatformMediaSession::WebAudio;
-    else
+    PlatformMediaSession::MediaType mediaType = mediaTypeFromString(mediaTypeString);
+    if (mediaType == PlatformMediaSession::None)
         return Exception { INVALID_ACCESS_ERR };
 
     PlatformMediaSessionManager::SessionRestrictions restrictions = PlatformMediaSessionManager::sharedManager().restrictions(mediaType);
@@ -2736,6 +2902,37 @@ ExceptionOr<void> Internals::setMediaSessionRestrictions(const String& mediaType
     }
     PlatformMediaSessionManager::sharedManager().addRestriction(mediaType, restrictions);
     return { };
+}
+
+ExceptionOr<String> Internals::mediaSessionRestrictions(const String& mediaTypeString) const
+{
+    PlatformMediaSession::MediaType mediaType = mediaTypeFromString(mediaTypeString);
+    if (mediaType == PlatformMediaSession::None)
+        return Exception { INVALID_ACCESS_ERR };
+
+    PlatformMediaSessionManager::SessionRestrictions restrictions = PlatformMediaSessionManager::sharedManager().restrictions(mediaType);
+    if (restrictions == PlatformMediaSessionManager::NoRestrictions)
+        return String();
+
+    StringBuilder builder;
+    if (restrictions & PlatformMediaSessionManager::ConcurrentPlaybackNotPermitted)
+        builder.append("concurrentplaybacknotpermitted");
+    if (restrictions & PlatformMediaSessionManager::BackgroundProcessPlaybackRestricted) {
+        if (!builder.isEmpty())
+            builder.append(',');
+        builder.append("backgroundprocessplaybackrestricted");
+    }
+    if (restrictions & PlatformMediaSessionManager::BackgroundTabPlaybackRestricted) {
+        if (!builder.isEmpty())
+            builder.append(',');
+        builder.append("backgroundtabplaybackrestricted");
+    }
+    if (restrictions & PlatformMediaSessionManager::InterruptedPlaybackNotPermitted) {
+        if (!builder.isEmpty())
+            builder.append(',');
+        builder.append("interruptedplaybacknotpermitted");
+    }
+    return builder.toString();
 }
 
 void Internals::setMediaElementRestrictions(HTMLMediaElement& element, const String& restrictionsString)
@@ -3007,10 +3204,10 @@ String Internals::pageMediaState()
         string.append("HasPlaybackTargetAvailabilityListener,");
     if (state & MediaProducer::HasAudioOrVideo)
         string.append("HasAudioOrVideo,");
-    if (state & MediaProducer::HasActiveMediaCaptureDevice)
-        string.append("HasActiveMediaCaptureDevice,");
-    if (state & MediaProducer::HasMediaCaptureDevice)
-        string.append("HasMediaCaptureDevice,");
+    if (state & MediaProducer::HasActiveAudioCaptureDevice)
+        string.append("HasActiveAudioCaptureDevice,");
+    if (state & MediaProducer::HasActiveVideoCaptureDevice)
+        string.append("HasActiveVideoCaptureDevice,");
 
     if (string.isEmpty())
         string.append("IsNotPlaying");
@@ -3308,5 +3505,40 @@ bool Internals::userPrefersReducedMotion() const
 }
 
 #endif
+
+void Internals::reportBacktrace()
+{
+    WTFReportBacktrace();
+}
+
+#if ENABLE(POINTER_LOCK)
+bool Internals::pageHasPendingPointerLock() const
+{
+    Document* document = contextDocument();
+    if (!document)
+        return false;
+
+    Page* page = document->page();
+    if (!page)
+        return false;
+
+    return page->pointerLockController().lockPending();
+}
+
+bool Internals::pageHasPointerLock() const
+{
+    Document* document = contextDocument();
+    if (!document)
+        return false;
+
+    Page* page = document->page();
+    if (!page)
+        return false;
+
+    auto& controller = page->pointerLockController();
+    return controller.element() && !controller.lockPending();
+}
+#endif
+
 
 } // namespace WebCore

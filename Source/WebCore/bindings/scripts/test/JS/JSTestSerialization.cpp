@@ -122,6 +122,13 @@ JSTestSerialization::JSTestSerialization(Structure* structure, JSDOMGlobalObject
 {
 }
 
+void JSTestSerialization::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
+
+}
+
 JSObject* JSTestSerialization::createPrototype(VM& vm, JSGlobalObject* globalObject)
 {
     return JSTestSerializationPrototype::create(vm, globalObject, JSTestSerializationPrototype::createStructure(vm, globalObject, globalObject->objectPrototype()));
@@ -140,12 +147,12 @@ void JSTestSerialization::destroy(JSC::JSCell* cell)
 
 template<> inline JSTestSerialization* BindingCaller<JSTestSerialization>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
-    return jsDynamicCast<JSTestSerialization*>(JSValue::decode(thisValue));
+    return jsDynamicDowncast<JSTestSerialization*>(JSValue::decode(thisValue));
 }
 
 template<> inline JSTestSerialization* BindingCaller<JSTestSerialization>::castForOperation(ExecState& state)
 {
-    return jsDynamicCast<JSTestSerialization*>(state.thisValue());
+    return jsDynamicDowncast<JSTestSerialization*>(state.thisValue());
 }
 
 static inline JSValue jsTestSerializationFirstStringAttributeGetter(ExecState&, JSTestSerialization&, ThrowScope& throwScope);
@@ -192,7 +199,7 @@ static inline JSValue jsTestSerializationThirdUnserializableAttributeGetter(Exec
     UNUSED_PARAM(throwScope);
     UNUSED_PARAM(state);
     auto& impl = thisObject.wrapped();
-    JSValue result = toJS(&state, thisObject.globalObject(), impl.thirdUnserializableAttribute());
+    JSValue result = toJS<IDLInterface<TestNode>>(state, *thisObject.globalObject(), impl.thirdUnserializableAttribute());
     return result;
 }
 
@@ -232,7 +239,7 @@ EncodedJSValue jsTestSerializationConstructor(ExecState* state, EncodedJSValue t
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestSerializationPrototype* domObject = jsDynamicCast<JSTestSerializationPrototype*>(JSValue::decode(thisValue));
+    JSTestSerializationPrototype* domObject = jsDynamicDowncast<JSTestSerializationPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestSerialization::getConstructor(state->vm(), domObject->globalObject()));
@@ -243,7 +250,7 @@ bool setJSTestSerializationConstructor(ExecState* state, EncodedJSValue thisValu
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestSerializationPrototype* domObject = jsDynamicCast<JSTestSerializationPrototype*>(JSValue::decode(thisValue));
+    JSTestSerializationPrototype* domObject = jsDynamicDowncast<JSTestSerializationPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -302,11 +309,8 @@ static inline bool setJSTestSerializationThirdUnserializableAttributeFunction(Ex
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = JSTestNode::toWrapped(value);
-    if (UNLIKELY(!nativeValue)) {
-        throwAttributeTypeError(state, throwScope, "TestSerialization", "thirdUnserializableAttribute", "TestNode");
-        return false;
-    }
+    auto nativeValue = convert<IDLInterface<TestNode>>(state, value, [](JSC::ExecState& state, JSC::ThrowScope& scope) { throwAttributeTypeError(state, scope, "TestSerialization", "thirdUnserializableAttribute", "TestNode"); });
+    RETURN_IF_EXCEPTION(throwScope, false);
     impl.setThirdUnserializableAttribute(*nativeValue);
     return true;
 }
@@ -438,7 +442,7 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestSe
 
 TestSerialization* JSTestSerialization::toWrapped(JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicCast<JSTestSerialization*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestSerialization*>(value))
         return &wrapper->wrapped();
     return nullptr;
 }

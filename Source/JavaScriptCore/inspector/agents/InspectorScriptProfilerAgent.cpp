@@ -26,6 +26,8 @@
 #include "config.h"
 #include "InspectorScriptProfilerAgent.h"
 
+#include "DeferGC.h"
+#include "HeapInlines.h"
 #include "InspectorEnvironment.h"
 #include "SamplingProfiler.h"
 #include <wtf/RunLoop.h>
@@ -203,15 +205,18 @@ void InspectorScriptProfilerAgent::trackingComplete()
 {
 #if ENABLE(SAMPLING_PROFILER)
     if (m_enabledSamplingProfiler) {
-        JSLockHolder lock(m_environment.scriptDebugServer().vm());
-        SamplingProfiler* samplingProfiler = m_environment.scriptDebugServer().vm().samplingProfiler();
+        VM& vm = m_environment.scriptDebugServer().vm();
+        JSLockHolder lock(vm);
+        DeferGC deferGC(vm.heap);
+        SamplingProfiler* samplingProfiler = vm.samplingProfiler();
         RELEASE_ASSERT(samplingProfiler);
+
         LockHolder locker(samplingProfiler->getLock());
         samplingProfiler->pause(locker);
         Vector<SamplingProfiler::StackTrace> stackTraces = samplingProfiler->releaseStackTraces(locker);
-        Ref<Protocol::ScriptProfiler::Samples> samples = buildSamples(m_environment.scriptDebugServer().vm(), WTFMove(stackTraces));
-
         locker.unlockEarly();
+
+        Ref<Protocol::ScriptProfiler::Samples> samples = buildSamples(vm, WTFMove(stackTraces));
 
         m_enabledSamplingProfiler = false;
 
@@ -229,8 +234,9 @@ void InspectorScriptProfilerAgent::stopSamplingWhenDisconnecting()
     if (!m_enabledSamplingProfiler)
         return;
 
-    JSLockHolder lock(m_environment.scriptDebugServer().vm());
-    SamplingProfiler* samplingProfiler = m_environment.scriptDebugServer().vm().samplingProfiler();
+    VM& vm = m_environment.scriptDebugServer().vm();
+    JSLockHolder lock(vm);
+    SamplingProfiler* samplingProfiler = vm.samplingProfiler();
     RELEASE_ASSERT(samplingProfiler);
     LockHolder locker(samplingProfiler->getLock());
     samplingProfiler->pause(locker);

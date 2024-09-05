@@ -158,6 +158,7 @@ typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EJP)(ExecState*, EncodedJS
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EGP)(ExecState*, JSGlobalObject*, void*);
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EP)(ExecState*, void*);
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EPP)(ExecState*, void*, void*);
+typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EPPP)(ExecState*, void*, void*, void*);
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EPS)(ExecState*, void*, size_t);
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EPc)(ExecState*, Instruction*);
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EJscC)(ExecState*, JSScope*, JSCell*);
@@ -173,6 +174,7 @@ typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EZZ)(ExecState*, int32_t, 
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EZSymtabJ)(ExecState*, int32_t, SymbolTable*, EncodedJSValue);
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EOIUi)(ExecState*, JSObject*, UniquedStringImpl*, uint32_t);
 typedef EncodedJSValue (JIT_OPERATION *J_JITOperation_EJJI)(ExecState*, EncodedJSValue, EncodedJSValue, UniquedStringImpl*);
+typedef JSCell* (JIT_OPERATION *C_JITOperation_EPUi)(ExecState*, void*, uint32_t);
 typedef JSCell* (JIT_OPERATION *C_JITOperation_E)(ExecState*);
 typedef JSCell* (JIT_OPERATION *C_JITOperation_EZ)(ExecState*, int32_t);
 typedef JSCell* (JIT_OPERATION *C_JITOperation_EC)(ExecState*, JSCell*);

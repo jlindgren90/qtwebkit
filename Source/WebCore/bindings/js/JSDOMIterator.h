@@ -119,7 +119,7 @@ private:
 
     static void destroy(JSC::JSCell*);
 
-    Optional<typename DOMWrapped::Iterator> m_iterator;
+    std::optional<typename DOMWrapped::Iterator> m_iterator;
     IterationKind m_kind;
 };
 
@@ -236,7 +236,7 @@ JSC::JSValue JSDOMIterator<JSWrapper, IteratorTraits>::next(JSC::ExecState& stat
         auto iteratorValue = m_iterator->next();
         if (iteratorValue)
             return createIteratorResultObject(&state, asJS(state, iteratorValue), false);
-        m_iterator = Nullopt;
+        m_iterator = std::nullopt;
     }
     return createIteratorResultObject(&state, JSC::jsUndefined(), true);
 }
@@ -247,7 +247,7 @@ JSC::EncodedJSValue JSC_HOST_CALL JSDOMIteratorPrototype<JSWrapper, IteratorTrai
     JSC::VM& vm = state->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    auto iterator = JSC::jsDynamicCast<JSDOMIterator<JSWrapper, IteratorTraits>*>(state->thisValue());
+    auto iterator = jsDynamicDowncast<JSDOMIterator<JSWrapper, IteratorTraits>*>(state->thisValue());
     if (!iterator)
         return JSC::JSValue::encode(throwTypeError(state, scope, ASCIILiteral("Cannot call next() on a non-Iterator object")));
 

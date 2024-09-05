@@ -133,12 +133,7 @@ unsigned extractCompoundFlags(const CSSParserSelector& simpleSelector, CSSParser
 {
     if (simpleSelector.match() != CSSSelector::PseudoElement)
         return 0;
-    // FIXME-NEWPARSER: These don't exist for us, so may need to revisit.
-    // if (simpleSelector.pseudoElementType() == CSSSelector::PseudoContent)
-    //    return HasContentPseudoElement;
-    // if (simpleSelector.pseudoElementType() == CSSSelector::PseudoShadow)
-    //    return 0;
-
+    
     // FIXME: https://bugs.webkit.org/show_bug.cgi?id=161747
     // The UASheetMode check is a work-around to allow this selector in mediaControls(New).css:
     // input[type="range" i]::-webkit-media-slider-container > div {
@@ -149,6 +144,14 @@ unsigned extractCompoundFlags(const CSSParserSelector& simpleSelector, CSSParser
 
 } // namespace
 
+static bool isDescendantCombinator(CSSSelector::RelationType relation)
+{
+#if ENABLE(CSS_SELECTORS_LEVEL4)
+    return relation == CSSSelector::DescendantSpace || relation == CSSSelector::DescendantDoubleChild;
+#else
+    return relation == CSSSelector::DescendantSpace;
+#endif
+}
 std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeComplexSelector(CSSParserTokenRange& range)
 {
     std::unique_ptr<CSSParserSelector> selector = consumeCompoundSelector(range);
@@ -163,7 +166,7 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeComplexSelector(CSS
     while (auto combinator = consumeCombinator(range)) {
         std::unique_ptr<CSSParserSelector> nextSelector = consumeCompoundSelector(range);
         if (!nextSelector)
-            return combinator == CSSSelector::Descendant ? WTFMove(selector) : nullptr;
+            return isDescendantCombinator(combinator) ? WTFMove(selector) : nullptr;
         if (previousCompoundFlags & HasPseudoElementForRightmostCompound)
             return nullptr;
         CSSParserSelector* end = nextSelector.get();
@@ -173,9 +176,6 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeComplexSelector(CSS
             compoundFlags |= extractCompoundFlags(*end, m_context.mode);
         }
         end->setRelation(combinator);
-        // FIXME-NEWPARSER: Shadow stuff that we don't have.
-        // if (previousCompoundFlags & HasContentPseudoElement)
-        //    end->setRelationIsAffectedByPseudoContent();
         previousCompoundFlags = compoundFlags;
         end->setTagHistory(WTFMove(selector));
 
@@ -311,7 +311,7 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeCompoundSelector(CS
         return selector;
     }
     prependTypeSelectorIfNeeded(namespacePrefix, elementName, compoundSelector.get());
-    return splitCompoundAtImplicitShadowCrossingCombinator(WTFMove(compoundSelector));
+    return splitCompoundAtImplicitShadowCrossingCombinator(WTFMove(compoundSelector), m_context);
 }
 
 std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeSimpleSelector(CSSParserTokenRange& range)
@@ -380,11 +380,8 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeId(CSSParserTokenRa
     
     // FIXME-NEWPARSER: Avoid having to do this, but the old parser does and we need
     // to be compatible for now.
-    StringView stringView = range.consume().value();
-    if (m_context.mode == HTMLQuirksMode)
-        convertToASCIILowercaseInPlace(stringView);
-    selector->setValue(stringView.toAtomicString());
-
+    CSSParserToken token = range.consume();
+    selector->setValue(token.value().toAtomicString(), m_context.mode == HTMLQuirksMode);
     return selector;
 }
 
@@ -400,10 +397,8 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeClass(CSSParserToke
     
     // FIXME-NEWPARSER: Avoid having to do this, but the old parser does and we need
     // to be compatible for now.
-    StringView stringView = range.consume().value();
-    if (m_context.mode == HTMLQuirksMode)
-        convertToASCIILowercaseInPlace(stringView);
-    selector->setValue(stringView.toAtomicString());
+    CSSParserToken token = range.consume();
+    selector->setValue(token.value().toAtomicString(), m_context.mode == HTMLQuirksMode);
 
     return selector;
 }
@@ -412,6 +407,9 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeAttribute(CSSParser
 {
     ASSERT(range.peek().type() == LeftBracketToken);
     CSSParserTokenRange block = range.consumeBlock();
+    if (block.end() == range.end())
+        return nullptr; // No ] was found. Be strict about this.
+
     block.consumeWhitespace();
 
     AtomicString namespacePrefix;
@@ -450,7 +448,7 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumeAttribute(CSSParser
     return selector;
 }
 
-static bool isPseudoClassFunction(CSSSelector::PseudoClassType pseudoClassType)
+static bool isOnlyPseudoClassFunction(CSSSelector::PseudoClassType pseudoClassType)
 {
     switch (pseudoClassType) {
     case CSSSelector::PseudoClassNot:
@@ -461,7 +459,6 @@ static bool isPseudoClassFunction(CSSSelector::PseudoClassType pseudoClassType)
     case CSSSelector::PseudoClassNthLastOfType:
     case CSSSelector::PseudoClassLang:
     case CSSSelector::PseudoClassAny:
-    case CSSSelector::PseudoClassHost:
 #if ENABLE_CSS_SELECTORS_LEVEL4
     case CSSSelector::PseudoClassDir:
     case CSSSelector::PseudoClassRole:
@@ -473,10 +470,10 @@ static bool isPseudoClassFunction(CSSSelector::PseudoClassType pseudoClassType)
     return false;
 }
     
-static bool isPseudoElementFunction(CSSSelector::PseudoElementType pseudoElementType)
+static bool isOnlyPseudoElementFunction(CSSSelector::PseudoElementType pseudoElementType)
 {
+    // Note that we omit cue since it can be both an ident or a function.
     switch (pseudoElementType) {
-    case CSSSelector::PseudoElementCue:
     case CSSSelector::PseudoElementSlotted:
         return true;
     default:
@@ -501,38 +498,41 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumePseudo(CSSParserTok
         return nullptr;
 
     std::unique_ptr<CSSParserSelector> selector;
-    StringView value = token.value();
     
-    // FIXME-NEWPARSER: We can't change the pseudoclass/element maps that the old parser
-    // uses without breaking it; this hack allows function selectors to work. When the new
-    // parser turns on, we can patch the map and remove this code.
-    String newValue;
-    if (token.type() == FunctionToken) {
-        newValue = value.toString() + "(";
-        value = newValue;
-    }
+    auto lowercasedValue = token.value().toString().convertToASCIILowercase();
+    auto value = StringView { lowercasedValue };
 
     if (colons == 1)
         selector = std::unique_ptr<CSSParserSelector>(CSSParserSelector::parsePseudoClassSelectorFromStringView(value));
-    else
+    else {
         selector = std::unique_ptr<CSSParserSelector>(CSSParserSelector::parsePseudoElementSelectorFromStringView(value));
-    
+#if ENABLE(VIDEO_TRACK)
+        // Treat the ident version of cue as PseudoElementWebkitCustom.
+        if (token.type() == IdentToken && selector && selector->match() == CSSSelector::PseudoElement && selector->pseudoElementType() == CSSSelector::PseudoElementCue)
+            selector->setPseudoElementType(CSSSelector::PseudoElementWebKitCustom);
+#endif
+    }
+
     if (!selector || (selector->match() == CSSSelector::PseudoElement && m_disallowPseudoElements))
         return nullptr;
 
     if (token.type() == IdentToken) {
         range.consume();
-        if ((selector->match() == CSSSelector::PseudoElement && (selector->pseudoElementType() == CSSSelector::PseudoElementUnknown || isPseudoElementFunction(selector->pseudoElementType())))
-            || (selector->match() == CSSSelector::PseudoClass && (selector->pseudoClassType() == CSSSelector::PseudoClassUnknown || isPseudoClassFunction(selector->pseudoClassType()))))
+        if ((selector->match() == CSSSelector::PseudoElement && (selector->pseudoElementType() == CSSSelector::PseudoElementUnknown || isOnlyPseudoElementFunction(selector->pseudoElementType())))
+            || (selector->match() == CSSSelector::PseudoClass && (selector->pseudoClassType() == CSSSelector::PseudoClassUnknown || isOnlyPseudoClassFunction(selector->pseudoClassType()))))
             return nullptr;
         return selector;
     }
 
     CSSParserTokenRange block = range.consumeBlock();
+    if (block.end() == range.end())
+        return nullptr; // No ) was found. Be strict about this.
     block.consumeWhitespace();
     if (token.type() != FunctionToken)
         return nullptr;
-
+    
+    const auto& argumentStart = block.peek();
+    
     if (selector->match() == CSSSelector::PseudoClass) {
         switch (selector->pseudoClassType()) {
         case CSSSelector::PseudoClassNot: {
@@ -552,11 +552,17 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumePseudo(CSSParserTok
             if (!consumeANPlusB(block, ab))
                 return nullptr;
             block.consumeWhitespace();
+            const auto& argumentEnd = block.peek();
+            auto rangeOfANPlusB = block.makeSubRange(&argumentStart, &argumentEnd);
+            auto argument = rangeOfANPlusB.serialize();
+            selector->setArgument(argument.stripWhiteSpace());
             if (!block.atEnd()) {
                 if (block.peek().type() != IdentToken)
                     return nullptr;
                 const CSSParserToken& ident = block.consume();
                 if (!equalIgnoringASCIICase(ident.value(), "of"))
+                    return nullptr;
+                if (block.peek().type() != WhitespaceToken)
                     return nullptr;
                 DisallowPseudoElementsScope scope(this);
                 block.consumeWhitespace();
@@ -585,10 +591,8 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumePseudo(CSSParserTok
             selector->setSelectorList(WTFMove(selectorList));
             return selector;
         }
-        // FIXME-NEWPARSER: Support :host-context
         case CSSSelector::PseudoClassAny:
         case CSSSelector::PseudoClassHost: {
-            DisallowPseudoElementsScope scope(this);
             std::unique_ptr<CSSSelectorList> selectorList = std::unique_ptr<CSSSelectorList>(new CSSSelectorList());
             *selectorList = consumeCompoundSelectorList(block);
             if (!selectorList->componentCount() || !block.atEnd())
@@ -600,7 +604,7 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumePseudo(CSSParserTok
         case CSSSelector::PseudoClassDir:
         case CSSSelector::PseudoClassRole: {
             const CSSParserToken& ident = block.consumeIncludingWhitespace();
-            if (ident.type() != IdentToken)
+            if (ident.type() != IdentToken || !block.atEnd())
                 return nullptr;
             selector->setArgument(ident.value().toAtomicString());
             return selector;
@@ -614,6 +618,7 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumePseudo(CSSParserTok
     
     if (selector->match() == CSSSelector::PseudoElement) {
         switch (selector->pseudoElementType()) {
+#if ENABLE(VIDEO_TRACK)
         case CSSSelector::PseudoElementCue: {
             DisallowPseudoElementsScope scope(this);
             std::unique_ptr<CSSSelectorList> selectorList = std::unique_ptr<CSSSelectorList>(new CSSSelectorList());
@@ -623,6 +628,7 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::consumePseudo(CSSParserTok
             selector->setSelectorList(WTFMove(selectorList));
             return selector;
         }
+#endif
         case CSSSelector::PseudoElementSlotted: {
             DisallowPseudoElementsScope scope(this);
 
@@ -648,7 +654,7 @@ CSSSelector::RelationType CSSSelectorParser::consumeCombinator(CSSParserTokenRan
     auto fallbackResult = CSSSelector::Subselector;
     while (range.peek().type() == WhitespaceToken) {
         range.consume();
-        fallbackResult = CSSSelector::Descendant;
+        fallbackResult = CSSSelector::DescendantSpace;
     }
 
     if (range.peek().type() != DelimiterToken)
@@ -657,32 +663,30 @@ CSSSelector::RelationType CSSSelectorParser::consumeCombinator(CSSParserTokenRan
     UChar delimiter = range.peek().delimiter();
 
     if (delimiter == '+' || delimiter == '~' || delimiter == '>') {
-        range.consumeIncludingWhitespace();
-        if (delimiter == '+')
-            return CSSSelector::DirectAdjacent;
-        if (delimiter == '~')
-            return CSSSelector::IndirectAdjacent;
-#if ENABLE_CSS_SELECTORS_LEVEL4
-        // FIXME-NEWPARSER: Need to set that this was a >> so serialization is correct
-        if (delimiter == '>' && range.peek().type() == DelimiterToken && range.peek().delimiter() == '>') {
+        if (delimiter == '+') {
             range.consumeIncludingWhitespace();
-            return CSSSelector::Descendant;
+            return CSSSelector::DirectAdjacent;
         }
+        
+        if (delimiter == '~') {
+            range.consumeIncludingWhitespace();
+            return CSSSelector::IndirectAdjacent;
+        }
+        
+#if ENABLE_CSS_SELECTORS_LEVEL4
+        range.consume();
+        if (range.peek().type() == DelimiterToken && range.peek().delimiter() == '>') {
+            range.consumeIncludingWhitespace();
+            return CSSSelector::DescendantDoubleChild;
+        }
+        range.consumeWhitespace();
+#else
+        range.consumeIncludingWhitespace();
 #endif
         return CSSSelector::Child;
     }
 
-    // Match /deep/
-    if (delimiter != '/')
-        return fallbackResult;
-    range.consume();
-    const CSSParserToken& ident = range.consume();
-    if (ident.type() != IdentToken || !equalIgnoringASCIICase(ident.value(), "deep"))
-        m_failedParsing = true;
-    const CSSParserToken& slash = range.consumeIncludingWhitespace();
-    if (slash.type() != DelimiterToken || slash.delimiter() != '/')
-        m_failedParsing = true;
-    return CSSSelector::ShadowDeep;
+    return fallbackResult;
 }
 
 CSSSelector::Match CSSSelectorParser::consumeAttributeMatch(CSSParserTokenRange& range)
@@ -820,7 +824,9 @@ const AtomicString& CSSSelectorParser::determineNamespace(const AtomicString& pr
 
 void CSSSelectorParser::prependTypeSelectorIfNeeded(const AtomicString& namespacePrefix, const AtomicString& elementName, CSSParserSelector* compoundSelector)
 {
-    if (elementName.isNull() && defaultNamespace() == starAtom && !compoundSelector->needsImplicitShadowCombinatorForMatching())
+    bool isShadowDOM = compoundSelector->needsImplicitShadowCombinatorForMatching();
+    
+    if (elementName.isNull() && defaultNamespace() == starAtom && !isShadowDOM)
         return;
 
     AtomicString determinedElementName = elementName.isNull() ? starAtom : elementName;
@@ -834,16 +840,16 @@ void CSSSelectorParser::prependTypeSelectorIfNeeded(const AtomicString& namespac
         determinedPrefix = nullAtom;
     QualifiedName tag = QualifiedName(determinedPrefix, determinedElementName, namespaceURI);
 
-    // *:host/*:host-context never matches, so we can't discard the *,
+    // *:host never matches, so we can't discard the *,
     // otherwise we can't tell the difference between *:host and just :host.
     //
     // Also, selectors where we use a ShadowPseudo combinator between the
     // element and the pseudo element for matching (custom pseudo elements,
-    // ::cue, ::shadow), we need a universal selector to set the combinator
+    // ::cue), we need a universal selector to set the combinator
     // (relation) on in the cases where there are no simple selectors preceding
     // the pseudo element.
     bool explicitForHost = compoundSelector->isHostPseudoSelector() && !elementName.isNull();
-    if (tag != anyQName() || explicitForHost || compoundSelector->needsImplicitShadowCombinatorForMatching())
+    if (tag != anyQName() || explicitForHost || isShadowDOM)
         compoundSelector->prependTagSelector(tag, determinedPrefix == nullAtom && determinedElementName == starAtom && !explicitForHost);
 }
 
@@ -853,7 +859,7 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::addSimpleSelectorToCompoun
     return compoundSelector;
 }
 
-std::unique_ptr<CSSParserSelector> CSSSelectorParser::splitCompoundAtImplicitShadowCrossingCombinator(std::unique_ptr<CSSParserSelector> compoundSelector)
+std::unique_ptr<CSSParserSelector> CSSSelectorParser::splitCompoundAtImplicitShadowCrossingCombinator(std::unique_ptr<CSSParserSelector> compoundSelector, const CSSParserContext& context)
 {
     // The tagHistory is a linked list that stores combinator separated compound selectors
     // from right-to-left. Yet, within a single compound selector, stores the simple selectors
@@ -868,20 +874,18 @@ std::unique_ptr<CSSParserSelector> CSSSelectorParser::splitCompoundAtImplicitSha
     //
     // Example: input#x::-webkit-clear-button -> [ ::-webkit-clear-button, input, #x ]
     //
-    // Likewise, ::slotted() pseudo element has an implicit ShadowSlot combinator to its left
-    // for finding matching slot element in other TreeScope.
-    //
-    // Example: slot[name=foo]::slotted(div) -> [ ::slotted(div), slot, [name=foo] ]
     CSSParserSelector* splitAfter = compoundSelector.get();
-
     while (splitAfter->tagHistory() && !splitAfter->tagHistory()->needsImplicitShadowCombinatorForMatching())
         splitAfter = splitAfter->tagHistory();
-
+    
     if (!splitAfter || !splitAfter->tagHistory())
         return compoundSelector;
 
-    std::unique_ptr<CSSParserSelector> secondCompound = splitAfter->releaseTagHistory();
-    secondCompound->appendTagHistory(secondCompound->pseudoElementType() == CSSSelector::PseudoElementSlotted ? CSSSelector::ShadowSlot : CSSSelector::ShadowPseudo, WTFMove(compoundSelector));
+    // FIXME: https://bugs.webkit.org/show_bug.cgi?id=161747
+    // We have to recur, since we have rules in media controls like video::a::b. This should not be allowed, and
+    // we should remove this recursion once those rules are gone.
+    std::unique_ptr<CSSParserSelector> secondCompound = context.mode != UASheetMode ? splitAfter->releaseTagHistory() : splitCompoundAtImplicitShadowCrossingCombinator(splitAfter->releaseTagHistory(), context);
+    secondCompound->appendTagHistory(CSSSelector::ShadowDescendant, WTFMove(compoundSelector));
     return secondCompound;
 }
 

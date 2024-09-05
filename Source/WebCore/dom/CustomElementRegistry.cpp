@@ -26,8 +26,6 @@
 #include "config.h"
 #include "CustomElementRegistry.h"
 
-#if ENABLE(CUSTOM_ELEMENTS)
-
 #include "CustomElementReactionQueue.h"
 #include "DOMWindow.h"
 #include "Document.h"
@@ -79,7 +77,7 @@ void CustomElementRegistry::addElementDefinition(Ref<JSCustomElementInterface>&&
         enqueueUpgradeInShadowIncludingTreeOrder(*document, elementInterface.get());
 
     if (auto promise = m_promiseMap.take(localName))
-        promise.value()->resolve(nullptr);
+        promise.value()->resolve();
 }
 
 JSCustomElementInterface* CustomElementRegistry::findInterface(const Element& element) const
@@ -89,11 +87,9 @@ JSCustomElementInterface* CustomElementRegistry::findInterface(const Element& el
 
 JSCustomElementInterface* CustomElementRegistry::findInterface(const QualifiedName& name) const
 {
-    ASSERT(!name.hasPrefix());
     if (name.namespaceURI() != HTMLNames::xhtmlNamespaceURI)
         return nullptr;
-    auto it = m_nameMap.find(name.localName());
-    return it == m_nameMap.end() || it->value->name() != name ? nullptr : const_cast<JSCustomElementInterface*>(it->value.ptr());
+    return m_nameMap.get(name.localName());
 }
 
 JSCustomElementInterface* CustomElementRegistry::findInterface(const AtomicString& name) const
@@ -119,5 +115,3 @@ JSC::JSValue CustomElementRegistry::get(const AtomicString& name)
 }
 
 }
-
-#endif

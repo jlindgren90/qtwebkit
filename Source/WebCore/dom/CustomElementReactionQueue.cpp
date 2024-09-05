@@ -26,18 +26,18 @@
 #include "config.h"
 #include "CustomElementReactionQueue.h"
 
-#if ENABLE(CUSTOM_ELEMENTS)
-
 #include "CustomElementRegistry.h"
 #include "DOMWindow.h"
 #include "Document.h"
 #include "Element.h"
+#include "HTMLNames.h"
 #include "JSCustomElementInterface.h"
 #include "JSDOMBinding.h"
 #include "Microtasks.h"
 #include <heap/Heap.h>
 #include <wtf/Optional.h>
 #include <wtf/Ref.h>
+#include <wtf/SetForScope.h>
 
 namespace WebCore {
 
@@ -94,7 +94,7 @@ private:
     Type m_type;
     RefPtr<Document> m_oldDocument;
     RefPtr<Document> m_newDocument;
-    Optional<QualifiedName> m_attributeName;
+    std::optional<QualifiedName> m_attributeName;
     AtomicString m_oldValue;
     AtomicString m_newValue;
 };
@@ -141,6 +141,7 @@ void CustomElementReactionQueue::enqueueElementUpgradeIfDefined(Element& element
 void CustomElementReactionQueue::enqueueConnectedCallbackIfNeeded(Element& element)
 {
     ASSERT(element.isDefinedCustomElement());
+    ASSERT(element.document().refCount() > 0);
     auto& queue = CustomElementReactionStack::ensureCurrentQueue(element);
     if (queue.m_interface->hasConnectedCallback())
         queue.m_items.append({CustomElementReactionQueueItem::Type::Connected});
@@ -149,6 +150,8 @@ void CustomElementReactionQueue::enqueueConnectedCallbackIfNeeded(Element& eleme
 void CustomElementReactionQueue::enqueueDisconnectedCallbackIfNeeded(Element& element)
 {
     ASSERT(element.isDefinedCustomElement());
+    if (element.document().refCount() <= 0)
+        return; // Don't enqueue disconnectedCallback if the entire document is getting destructed.
     auto& queue = CustomElementReactionStack::ensureCurrentQueue(element);
     if (queue.m_interface->hasDisconnectedCallback())
         queue.m_items.append({CustomElementReactionQueueItem::Type::Disconnected});
@@ -157,6 +160,7 @@ void CustomElementReactionQueue::enqueueDisconnectedCallbackIfNeeded(Element& el
 void CustomElementReactionQueue::enqueueAdoptedCallbackIfNeeded(Element& element, Document& oldDocument, Document& newDocument)
 {
     ASSERT(element.isDefinedCustomElement());
+    ASSERT(element.document().refCount() > 0);
     auto& queue = CustomElementReactionStack::ensureCurrentQueue(element);
     if (queue.m_interface->hasAdoptedCallback())
         queue.m_items.append({oldDocument, newDocument});
@@ -165,6 +169,7 @@ void CustomElementReactionQueue::enqueueAdoptedCallbackIfNeeded(Element& element
 void CustomElementReactionQueue::enqueueAttributeChangedCallbackIfNeeded(Element& element, const QualifiedName& attributeName, const AtomicString& oldValue, const AtomicString& newValue)
 {
     ASSERT(element.isDefinedCustomElement());
+    ASSERT(element.document().refCount() > 0);
     auto& queue = CustomElementReactionStack::ensureCurrentQueue(element);
     if (queue.m_interface->observesAttribute(attributeName.localName()))
         queue.m_items.append({attributeName, oldValue, newValue});
@@ -190,6 +195,11 @@ void CustomElementReactionQueue::enqueuePostUpgradeReactions(Element& element)
         queue->m_items.append({CustomElementReactionQueueItem::Type::Connected});
 }
 
+bool CustomElementReactionQueue::observesStyleAttribute() const
+{
+    return m_interface->observesAttribute(HTMLNames::styleAttr.localName());
+}
+
 void CustomElementReactionQueue::invokeAll(Element& element)
 {
     while (!m_items.isEmpty()) {
@@ -201,20 +211,24 @@ void CustomElementReactionQueue::invokeAll(Element& element)
 
 inline void CustomElementReactionStack::ElementQueue::add(Element& element)
 {
+    RELEASE_ASSERT(!m_invoking);
     // FIXME: Avoid inserting the same element multiple times.
     m_elements.append(element);
 }
 
 inline void CustomElementReactionStack::ElementQueue::invokeAll()
 {
+    RELEASE_ASSERT(!m_invoking);
+    SetForScope<bool> invoking(m_invoking, true);
     Vector<Ref<Element>> elements;
     elements.swap(m_elements);
+    RELEASE_ASSERT(m_elements.isEmpty());
     for (auto& element : elements) {
         auto* queue = element->reactionQueue();
         ASSERT(queue);
         queue->invokeAll(element.get());
     }
-    ASSERT(m_elements.isEmpty());
+    RELEASE_ASSERT(m_elements.isEmpty());
 }
 
 CustomElementReactionQueue& CustomElementReactionStack::ensureCurrentQueue(Element& element)
@@ -277,5 +291,3 @@ CustomElementReactionStack::ElementQueue& CustomElementReactionStack::backupElem
 }
 
 }
-
-#endif

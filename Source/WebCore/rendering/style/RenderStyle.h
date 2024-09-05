@@ -43,7 +43,6 @@
 #include "Pagination.h"
 #include "RenderStyleConstants.h"
 #include "RoundedRect.h"
-#include "SVGPaint.h"
 #include "SVGRenderStyle.h"
 #include "ShadowData.h"
 #include "ShapeValue.h"
@@ -510,12 +509,7 @@ public:
     StyleSelfAlignmentData resolvedJustifyItems(ItemPosition normalValueBehaviour) const;
     StyleSelfAlignmentData resolvedJustifySelf(const RenderStyle& parentStyle, ItemPosition normalValueBehaviour) const;
 
-    enum IsAtShadowBoundary {
-        AtShadowBoundary,
-        NotAtShadowBoundary,
-    };
-
-    void inheritFrom(const RenderStyle* inheritParent, IsAtShadowBoundary = NotAtShadowBoundary);
+    void inheritFrom(const RenderStyle& inheritParent);
     void copyNonInheritedFrom(const RenderStyle*);
 
     PseudoId styleType() const { return noninherited_flags.styleType(); }
@@ -568,7 +562,7 @@ public:
     bool hasBackground() const
     {
         Color color = visitedDependentColor(CSSPropertyBackgroundColor);
-        if (color.isValid() && color.alpha())
+        if (color.isVisible())
             return true;
         return hasBackgroundImage();
     }
@@ -1738,21 +1732,21 @@ public:
     const SVGRenderStyle& svgStyle() const { return *m_svgStyle; }
     SVGRenderStyle& accessSVGStyle() { return *m_svgStyle.access(); }
 
-    const SVGPaint::SVGPaintType& fillPaintType() const { return svgStyle().fillPaintType(); }
+    const SVGPaintType& fillPaintType() const { return svgStyle().fillPaintType(); }
     Color fillPaintColor() const { return svgStyle().fillPaintColor(); }
-    void setFillPaintColor(const Color& c) { accessSVGStyle().setFillPaint(SVGPaint::SVG_PAINTTYPE_RGBCOLOR, c, ""); }
+    void setFillPaintColor(const Color& c) { accessSVGStyle().setFillPaint(SVG_PAINTTYPE_RGBCOLOR, c, ""); }
     float fillOpacity() const { return svgStyle().fillOpacity(); }
     void setFillOpacity(float f) { accessSVGStyle().setFillOpacity(f); }
 
-    const SVGPaint::SVGPaintType& strokePaintType() const { return svgStyle().strokePaintType(); }
+    const SVGPaintType& strokePaintType() const { return svgStyle().strokePaintType(); }
     Color strokePaintColor() const { return svgStyle().strokePaintColor(); }
-    void setStrokePaintColor(const Color& c) { accessSVGStyle().setStrokePaint(SVGPaint::SVG_PAINTTYPE_RGBCOLOR, c, ""); }
+    void setStrokePaintColor(const Color& c) { accessSVGStyle().setStrokePaint(SVG_PAINTTYPE_RGBCOLOR, c, ""); }
     float strokeOpacity() const { return svgStyle().strokeOpacity(); }
     void setStrokeOpacity(float f) { accessSVGStyle().setStrokeOpacity(f); }
     const Length& strokeWidth() const { return svgStyle().strokeWidth(); }
     void setStrokeWidth(Length w) { accessSVGStyle().setStrokeWidth(w); }
-    Vector<SVGLength> strokeDashArray() const { return svgStyle().strokeDashArray(); }
-    void setStrokeDashArray(Vector<SVGLength> array) { accessSVGStyle().setStrokeDashArray(array); }
+    Vector<SVGLengthValue> strokeDashArray() const { return svgStyle().strokeDashArray(); }
+    void setStrokeDashArray(Vector<SVGLengthValue> array) { accessSVGStyle().setStrokeDashArray(array); }
     const Length& strokeDashOffset() const { return svgStyle().strokeDashOffset(); }
     void setStrokeDashOffset(Length d) { accessSVGStyle().setStrokeDashOffset(d); }
     float strokeMiterLimit() const { return svgStyle().strokeMiterLimit(); }
@@ -1783,10 +1777,10 @@ public:
     void setFloodColor(const Color& c) { accessSVGStyle().setFloodColor(c); }
     void setLightingColor(const Color& c) { accessSVGStyle().setLightingColor(c); }
 
-    SVGLength baselineShiftValue() const { return svgStyle().baselineShiftValue(); }
-    void setBaselineShiftValue(SVGLength s) { accessSVGStyle().setBaselineShiftValue(s); }
-    SVGLength kerning() const { return svgStyle().kerning(); }
-    void setKerning(SVGLength k) { accessSVGStyle().setKerning(k); }
+    SVGLengthValue baselineShiftValue() const { return svgStyle().baselineShiftValue(); }
+    void setBaselineShiftValue(SVGLengthValue s) { accessSVGStyle().setBaselineShiftValue(s); }
+    SVGLengthValue kerning() const { return svgStyle().kerning(); }
+    void setKerning(SVGLengthValue k) { accessSVGStyle().setKerning(k); }
 
     void setShapeOutside(RefPtr<ShapeValue>&& value)
     {

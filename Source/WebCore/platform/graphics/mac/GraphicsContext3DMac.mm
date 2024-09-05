@@ -54,11 +54,6 @@
 #include "WebGLLayer.h"
 #include "WebGLObject.h"
 #include "WebGLRenderingContextBase.h"
-#include <runtime/ArrayBuffer.h>
-#include <runtime/ArrayBufferView.h>
-#include <runtime/Int32Array.h>
-#include <runtime/Float32Array.h>
-#include <runtime/Uint8Array.h>
 #include <sysexits.h>
 #include <wtf/text/CString.h>
 
@@ -132,7 +127,7 @@ static void setPixelFormat(Vector<CGLPixelFormatAttribute>& attribs, int colorBi
 }
 #endif // !PLATFORM(IOS)
 
-RefPtr<GraphicsContext3D> GraphicsContext3D::create(GraphicsContext3D::Attributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
+RefPtr<GraphicsContext3D> GraphicsContext3D::create(GraphicsContext3DAttributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
 {
     // This implementation doesn't currently support rendering directly to the HostWindow.
     if (renderStyle == RenderDirectlyToHostWindow)
@@ -158,7 +153,7 @@ RefPtr<GraphicsContext3D> GraphicsContext3D::create(GraphicsContext3D::Attribute
     return context;
 }
 
-GraphicsContext3D::GraphicsContext3D(GraphicsContext3D::Attributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
+GraphicsContext3D::GraphicsContext3D(GraphicsContext3DAttributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
     : m_currentWidth(0)
     , m_currentHeight(0)
     , m_contextObj(0)

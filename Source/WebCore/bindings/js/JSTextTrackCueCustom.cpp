@@ -48,10 +48,6 @@ bool JSTextTrackCueOwner::isReachableFromOpaqueRoots(JSC::Handle<JSC::Unknown> h
     if (textTrackCue.isFiringEventListeners())
         return true;
 
-    // If the cue has no event listeners and has no custom properties, it is not reachable.
-    if (!textTrackCue.hasEventListeners() && !jsTextTrackCue->hasCustomProperties())
-        return false;
-
     // If the cue is not associated with a track, it is not reachable.
     if (!textTrackCue.track())
         return false;
@@ -81,6 +77,8 @@ JSValue toJS(ExecState* state, JSDOMGlobalObject* globalObject, TextTrackCue& cu
 
 void JSTextTrackCue::visitAdditionalChildren(SlotVisitor& visitor)
 {
+    visitor.rescanAsConstraint();
+    
     if (TextTrack* textTrack = wrapped().track())
         visitor.addOpaqueRoot(root(textTrack));
 }

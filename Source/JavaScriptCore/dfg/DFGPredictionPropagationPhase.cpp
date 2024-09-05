@@ -709,6 +709,7 @@ private:
         case GetFromArguments:
         case LoadFromJSMapBucket:
         case ToNumber:
+        case GetArgument:
         case CallDOMGetter: {
             setPrediction(m_currentNode->getHeapPrediction());
             break;
@@ -729,7 +730,8 @@ private:
         case GetSetter:
         case GetCallee:
         case NewFunction:
-        case NewGeneratorFunction: {
+        case NewGeneratorFunction:
+        case NewAsyncFunction: {
             setPrediction(SpecFunction);
             break;
         }
@@ -858,6 +860,7 @@ private:
             break;
         }
             
+        case NewArrayWithSpread:
         case NewArray:
         case NewArrayWithSize:
         case CreateRest:
@@ -865,6 +868,10 @@ private:
             setPrediction(SpecArray);
             break;
         }
+
+        case Spread:
+            setPrediction(SpecCellOther);
+            break;
             
         case NewTypedArray: {
             setPrediction(speculationFromTypedArrayType(m_currentNode->typedArrayType()));
@@ -1001,8 +1008,12 @@ private:
         case PhantomNewObject:
         case PhantomNewFunction:
         case PhantomNewGeneratorFunction:
+        case PhantomNewAsyncFunction:
         case PhantomCreateActivation:
         case PhantomDirectArguments:
+        case PhantomCreateRest:
+        case PhantomSpread:
+        case PhantomNewArrayWithSpread:
         case PhantomClonedArguments:
         case GetMyArgumentByVal:
         case GetMyArgumentByValOutOfBounds:
@@ -1018,7 +1029,8 @@ private:
         case GetRegExpObjectLastIndex:
         case SetRegExpObjectLastIndex:
         case RecordRegExpCachedResult:
-        case LazyJSConstant: {
+        case LazyJSConstant:
+        case CallDOM: {
             // This node should never be visible at this stage of compilation. It is
             // inserted by fixup(), which follows this phase.
             DFG_CRASH(m_graph, m_currentNode, "Unexpected node during prediction propagation");
@@ -1093,6 +1105,7 @@ private:
         case LoadVarargs:
         case ForwardVarargs:
         case PutDynamicVar:
+        case NukeStructureAndSetButterfly:
             break;
             
         // This gets ignored because it only pretends to produce a value.

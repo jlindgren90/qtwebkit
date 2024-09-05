@@ -284,6 +284,8 @@ void NetscapePluginX11::geometryDidChange()
     if (m_plugin.isWindowed()) {
         uint64_t windowID = 0;
 #if PLATFORM(GTK)
+        if (!gtk_plug_get_embedded(GTK_PLUG(m_platformPluginWidget)))
+            return;
         windowID = static_cast<uint64_t>(GDK_WINDOW_XID(gtk_plug_get_socket_window(GTK_PLUG(m_platformPluginWidget))));
 #endif
         m_plugin.controller()->windowedPluginGeometryDidChange(m_plugin.frameRectInWindowCoordinates(), m_plugin.clipRect(), windowID);
@@ -303,6 +305,8 @@ void NetscapePluginX11::visibilityDidChange()
     ASSERT(m_plugin.isWindowed());
     uint64_t windowID = 0;
 #if PLATFORM(GTK)
+    if (!gtk_plug_get_embedded(GTK_PLUG(m_platformPluginWidget)))
+        return;
     windowID = static_cast<uint64_t>(GDK_WINDOW_XID(gtk_plug_get_socket_window(GTK_PLUG(m_platformPluginWidget))));
 #endif
     m_plugin.controller()->windowedPluginVisibilityDidChange(m_plugin.isVisible(), windowID);

@@ -27,10 +27,12 @@
 
 #include "BatchedTransitionOptimizer.h"
 #include "CodeBlock.h"
+#include "CodeCache.h"
 #include "Debugger.h"
 #include "JIT.h"
 #include "JSCInlines.h"
 #include "LLIntEntrypoint.h"
+#include "ModuleProgramCodeBlock.h"
 #include "Parser.h"
 #include "TypeProfiler.h"
 #include "VMInlines.h"
@@ -52,13 +54,26 @@ ModuleProgramExecutable::ModuleProgramExecutable(ExecState* exec, const SourceCo
 
 ModuleProgramExecutable* ModuleProgramExecutable::create(ExecState* exec, const SourceCode& source)
 {
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     JSGlobalObject* globalObject = exec->lexicalGlobalObject();
     ModuleProgramExecutable* executable = new (NotNull, allocateCell<ModuleProgramExecutable>(*exec->heap())) ModuleProgramExecutable(exec, source);
     executable->finishCreation(exec->vm());
 
-    UnlinkedModuleProgramCodeBlock* unlinkedModuleProgramCode = globalObject->createModuleProgramCodeBlock(exec, executable);
-    if (!unlinkedModuleProgramCode)
+    ParserError error;
+    DebuggerMode debuggerMode = globalObject->hasInteractiveDebugger() ? DebuggerOn : DebuggerOff;
+    UnlinkedModuleProgramCodeBlock* unlinkedModuleProgramCode = vm.codeCache()->getUnlinkedModuleProgramCodeBlock(
+        vm, executable, executable->source(), debuggerMode, error);
+
+    if (globalObject->hasDebugger())
+        globalObject->debugger()->sourceParsed(exec, executable->source().provider(), error.line(), error.message());
+
+    if (error.isValid()) {
+        throwVMError(exec, scope, error.toErrorObject(globalObject, executable->source()));
         return nullptr;
+    }
+
     executable->m_unlinkedModuleProgramCodeBlock.set(exec->vm(), executable, unlinkedModuleProgramCode);
 
     executable->m_moduleEnvironmentSymbolTable.set(exec->vm(), executable, jsCast<SymbolTable*>(unlinkedModuleProgramCode->constantRegister(unlinkedModuleProgramCode->moduleEnvironmentSymbolTableConstantRegisterOffset()).get())->cloneScopePart(exec->vm()));
@@ -78,8 +93,8 @@ void ModuleProgramExecutable::visitChildren(JSCell* cell, SlotVisitor& visitor)
     ScriptExecutable::visitChildren(thisObject, visitor);
     visitor.append(&thisObject->m_unlinkedModuleProgramCodeBlock);
     visitor.append(&thisObject->m_moduleEnvironmentSymbolTable);
-    if (thisObject->m_moduleProgramCodeBlock)
-        thisObject->m_moduleProgramCodeBlock->visitWeakly(visitor);
+    if (ModuleProgramCodeBlock* moduleProgramCodeBlock = thisObject->m_moduleProgramCodeBlock.get())
+        moduleProgramCodeBlock->visitWeakly(visitor);
 }
 
 } // namespace JSC

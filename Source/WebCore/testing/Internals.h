@@ -67,6 +67,7 @@ class RenderedDocumentMarker;
 class RTCPeerConnection;
 class SerializedScriptValue;
 class SourceBuffer;
+class StyleSheet;
 class TimeRanges;
 class TypeConversions;
 class WebKitPoint;
@@ -104,24 +105,33 @@ public:
     unsigned memoryCacheSize() const;
 
     unsigned imageFrameIndex(HTMLImageElement&);
+    void setImageFrameDecodingDuration(HTMLImageElement&, float duration);
+    void resetImageAnimation(HTMLImageElement&);
 
     void clearPageCache();
     unsigned pageCacheSize() const;
 
     RefPtr<CSSComputedStyleDeclaration> computedStyleIncludingVisitedInfo(Element&) const;
 
-    ExceptionOr<Node*> ensureShadowRoot(Element& host);
     Node* ensureUserAgentShadowRoot(Element& host);
-    ExceptionOr<Node*> createShadowRoot(Element& host);
     Node* shadowRoot(Element& host);
     ExceptionOr<String> shadowRootType(const Node&) const;
     String shadowPseudoId(Element&);
     void setShadowPseudoId(Element&, const String&);
 
+    // CSS Deferred Parsing Testing
+    unsigned deferredStyleRulesCount(StyleSheet&);
+    unsigned deferredGroupRulesCount(StyleSheet&);
+    unsigned deferredKeyframesRulesCount(StyleSheet&);
+
     // DOMTimers throttling testing.
     ExceptionOr<bool> isTimerThrottled(int timeoutId);
     bool isRequestAnimationFrameThrottled() const;
     bool areTimersThrottled() const;
+
+    enum EventThrottlingBehavior { Responsive, Unresponsive };
+    void setEventThrottlingBehaviorOverride(std::optional<EventThrottlingBehavior>);
+    std::optional<EventThrottlingBehavior> eventThrottlingBehaviorOverride() const;
 
     // Spatial Navigation testing.
     ExceptionOr<unsigned> lastSpatialNavigationCandidateCount() const;
@@ -163,6 +173,10 @@ public:
     void invalidateFontCache();
 
     ExceptionOr<void> setScrollViewPosition(int x, int y);
+    
+    ExceptionOr<Ref<ClientRect>> layoutViewportRect();
+    ExceptionOr<Ref<ClientRect>> visualViewportRect();
+    
     ExceptionOr<void> setViewBaseBackgroundColor(const String& colorValue);
 
     ExceptionOr<void> setPagination(const String& mode, int gap, int pageLength);
@@ -235,7 +249,6 @@ public:
     InternalSettings* settings() const;
     unsigned workerThreadCount() const;
 
-    ExceptionOr<void> setBatteryStatus(const String& eventType, bool charging, double chargingTime, double dischargingTime, double level);
     ExceptionOr<void> setDeviceProximity(const String& eventType, double value, double min, double max);
 
     enum {
@@ -287,6 +300,8 @@ public:
     ExceptionOr<String> pageProperty(const String& propertyName, int pageNumber) const;
     ExceptionOr<String> pageSizeAndMarginsInPixels(int pageNumber, int width, int height, int marginTop, int marginRight, int marginBottom, int marginLeft) const;
 
+    ExceptionOr<float> pageScaleFactor() const;
+
     ExceptionOr<void> setPageScaleFactor(float scaleFactor, int x, int y);
     ExceptionOr<void> setPageZoomFactor(float);
     ExceptionOr<void> setTextZoomFactor(float);
@@ -311,6 +326,8 @@ public:
 
     void registerURLSchemeAsBypassingContentSecurityPolicy(const String& scheme);
     void removeURLSchemeRegisteredAsBypassingContentSecurityPolicy(const String& scheme);
+
+    void registerDefaultPortForProtocol(unsigned short port, const String& protocol);
 
     Ref<MallocStatistics> mallocStatistics() const;
     Ref<TypeConversions> typeConversions() const;
@@ -411,6 +428,7 @@ public:
     void applicationDidEnterForeground() const;
     void applicationWillEnterBackground() const;
     ExceptionOr<void> setMediaSessionRestrictions(const String& mediaType, const String& restrictions);
+    ExceptionOr<String> mediaSessionRestrictions(const String& mediaType) const;
     void setMediaElementRestrictions(HTMLMediaElement&, const String& restrictions);
     ExceptionOr<void> postRemoteControlCommand(const String&, float argument);
     bool elementIsBlockingDisplaySleep(HTMLMediaElement&) const;
@@ -494,6 +512,13 @@ public:
     void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection);
 
     bool userPrefersReducedMotion() const;
+    
+    void reportBacktrace();
+
+#if ENABLE(POINTER_LOCK)
+    bool pageHasPendingPointerLock() const;
+    bool pageHasPointerLock() const;
+#endif
 
 private:
     explicit Internals(Document&);

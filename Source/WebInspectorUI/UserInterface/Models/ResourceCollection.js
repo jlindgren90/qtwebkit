@@ -51,6 +51,8 @@ WebInspector.ResourceCollection = class ResourceCollection extends WebInspector.
             return WebInspector.ResourceCollection.TypeVerifier.Script;
         case WebInspector.Resource.Type.XHR:
             return WebInspector.ResourceCollection.TypeVerifier.XHR;
+        case WebInspector.Resource.Type.Fetch:
+            return WebInspector.ResourceCollection.TypeVerifier.Fetch;
         case WebInspector.Resource.Type.WebSocket:
             return WebInspector.ResourceCollection.TypeVerifier.WebSocket;
         case WebInspector.Resource.Type.Other:
@@ -173,16 +175,14 @@ WebInspector.ResourceCollection = class ResourceCollection extends WebInspector.
             return;
         }
 
-        let oldType = event.data.oldType;
-        console.assert(oldType);
-        if (!oldType)
-            return;
+        console.assert(event.data.oldType);
 
         let resourcesWithNewType = this.resourceCollectionForType(resource.type);
         resourcesWithNewType.add(resource);
 
-        let resourcesWithOldType = this.resourceCollectionForType(oldType);
-        resourcesWithOldType.remove(resource);
+        // It is not necessary to remove the resource from the sub-collection for the old type since
+        // this is handled by that sub-collection's own _resourceTypeDidChange handler (via the
+        // above if statement).
     }
 };
 
@@ -193,6 +193,7 @@ WebInspector.ResourceCollection.TypeVerifier = {
     Font: (object) => WebInspector.Collection.TypeVerifier.Resource(object) && object.type === WebInspector.Resource.Type.Font,
     Script: (object) => WebInspector.Collection.TypeVerifier.Resource(object) && object.type === WebInspector.Resource.Type.Script,
     XHR: (object) => WebInspector.Collection.TypeVerifier.Resource(object) && object.type === WebInspector.Resource.Type.XHR,
+    Fetch: (object) => WebInspector.Collection.TypeVerifier.Resource(object) && object.type === WebInspector.Resource.Type.Fetch,
     WebSocket: (object) => WebInspector.Collection.TypeVerifier.Resource(object) && object.type === WebInspector.Resource.Type.WebSocket,
     Other: (object) => WebInspector.Collection.TypeVerifier.Resource(object) && object.type === WebInspector.Resource.Type.Other,
 };

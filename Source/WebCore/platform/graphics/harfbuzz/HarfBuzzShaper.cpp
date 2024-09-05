@@ -83,6 +83,11 @@ HarfBuzzShaper::HarfBuzzRun::HarfBuzzRun(const Font* fontData, unsigned startInd
 void HarfBuzzShaper::HarfBuzzRun::applyShapeResult(hb_buffer_t* harfBuzzBuffer)
 {
     m_numGlyphs = hb_buffer_get_length(harfBuzzBuffer);
+    if (!m_numGlyphs) {
+        // HarfBuzzShaper::fillGlyphBuffer gets offsets()[0]
+        m_offsets.resize(1);
+        return;
+    }
     m_glyphs.resize(m_numGlyphs);
     m_advances.resize(m_numGlyphs);
     m_glyphToCharacterIndexes.resize(m_numGlyphs);
@@ -647,8 +652,8 @@ FloatRect HarfBuzzShaper::selectionRect(const FloatPoint& point, int height, uns
     bool foundFromX = false;
     bool foundToX = false;
 
-    Optional<unsigned> fromIndex = from;
-    Optional<unsigned> toIndex = to;
+    std::optional<unsigned> fromIndex = from;
+    std::optional<unsigned> toIndex = to;
 
     if (m_run.rtl())
         currentX = m_totalWidth;
@@ -663,7 +668,7 @@ FloatRect HarfBuzzShaper::selectionRect(const FloatPoint& point, int height, uns
             if (fromIndex && fromIndex.value() >= numCharacters)
                 fromIndex.value() -= numCharacters;
             else
-                fromIndex = Nullopt;
+                fromIndex = std::nullopt;
         }
 
         if (!foundToX && toIndex.value() < numCharacters) {
@@ -673,7 +678,7 @@ FloatRect HarfBuzzShaper::selectionRect(const FloatPoint& point, int height, uns
             if (toIndex && toIndex.value() >= numCharacters)
                 toIndex.value() -= numCharacters;
             else
-                toIndex = Nullopt;
+                toIndex = std::nullopt;
         }
 
         if (foundFromX && foundToX)

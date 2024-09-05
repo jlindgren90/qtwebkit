@@ -23,13 +23,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AssistedNodeInformation_h
-#define AssistedNodeInformation_h
+#pragma once
 
 #include "ArgumentCoders.h"
+#include <WebCore/AutocapitalizeTypes.h>
 #include <WebCore/Autofill.h>
 #include <WebCore/IntRect.h>
-#include <WebCore/WebAutocapitalize.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebKit {
@@ -102,7 +101,7 @@ struct AssistedNodeInformation {
     bool allowsUserScaling { false };
     bool allowsUserScalingIgnoringAlwaysScalable { false };
     bool insideFixedPosition { false };
-    WebAutocapitalizeType autocapitalizeType { WebAutocapitalizeTypeDefault };
+    AutocapitalizeType autocapitalizeType { AutocapitalizeTypeDefault };
     InputType elementType { InputType::None };
     String formAction;
     Vector<OptionItem> selectOptions;
@@ -118,5 +117,3 @@ struct AssistedNodeInformation {
 #endif
 
 }
-
-#endif // InteractionInformationAtPosition_h

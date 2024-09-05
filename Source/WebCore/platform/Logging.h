@@ -65,6 +65,7 @@ namespace WebCore {
     M(Network) \
     M(NotYetImplemented) \
     M(PageCache) \
+    M(PerformanceLogging) \
     M(PlatformLeaks) \
     M(Plugins) \
     M(PopupBlocking) \
@@ -79,6 +80,7 @@ namespace WebCore {
     M(StorageAPI) \
     M(SVG) \
     M(TextAutosizing) \
+    M(Tiling) \
     M(Threading) \
     M(URLParser) \
     M(WebAudio) \

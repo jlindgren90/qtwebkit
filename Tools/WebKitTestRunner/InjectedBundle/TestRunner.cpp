@@ -56,9 +56,9 @@
 
 namespace WTR {
 
-PassRefPtr<TestRunner> TestRunner::create()
+Ref<TestRunner> TestRunner::create()
 {
-    return adoptRef(new TestRunner);
+    return adoptRef(*new TestRunner);
 }
 
 TestRunner::TestRunner()
@@ -354,6 +354,27 @@ void TestRunner::setCustomElementsEnabled(bool enabled)
     WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
 }
 
+void TestRunner::setSubtleCryptoEnabled(bool enabled)
+{
+    WKRetainPtr<WKStringRef> key(AdoptWK, WKStringCreateWithUTF8CString("WebKitSubtleCryptoEnabled"));
+    auto& injectedBundle = InjectedBundle::singleton();
+    WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
+}
+
+void TestRunner::setMediaStreamEnabled(bool enabled)
+{
+    WKRetainPtr<WKStringRef> key(AdoptWK, WKStringCreateWithUTF8CString("WebKitMediaStreamEnabled"));
+    auto& injectedBundle = InjectedBundle::singleton();
+    WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
+}
+
+void TestRunner::setPeerConnectionEnabled(bool enabled)
+{
+    WKRetainPtr<WKStringRef> key(AdoptWK, WKStringCreateWithUTF8CString("WebKitPeerConnectionEnabled"));
+    auto& injectedBundle = InjectedBundle::singleton();
+    WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
+}
+
 void TestRunner::setDOMIteratorEnabled(bool enabled)
 {
     WKRetainPtr<WKStringRef> key(AdoptWK, WKStringCreateWithUTF8CString("WebKitDOMIteratorEnabled"));
@@ -389,6 +410,20 @@ void TestRunner::setDownloadAttributeEnabled(bool enabled)
     WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
 }
 
+void TestRunner::setES6ModulesEnabled(bool enabled)
+{
+    WKRetainPtr<WKStringRef> key(AdoptWK, WKStringCreateWithUTF8CString("WebKitES6ModulesEnabled"));
+    auto& injectedBundle = InjectedBundle::singleton();
+    WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
+}
+
+void TestRunner::setEncryptedMediaAPIEnabled(bool enabled)
+{
+    WKRetainPtr<WKStringRef> key(AdoptWK, WKStringCreateWithUTF8CString("WebKitEncryptedMediaAPIEnabled"));
+    auto& injectedBundle = InjectedBundle::singleton();
+    WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
+}
+
 void TestRunner::setAllowsAnySSLCertificate(bool enabled)
 {
     InjectedBundle::singleton().setAllowsAnySSLCertificate(enabled);
@@ -406,10 +441,17 @@ void TestRunner::setAllowFileAccessFromFileURLs(bool enabled)
     WKBundleSetAllowFileAccessFromFileURLs(injectedBundle.bundle(), injectedBundle.pageGroup(), enabled);
 }
 
-void TestRunner::setPluginsEnabled(bool enabled)
+void TestRunner::setNeedsStorageAccessFromFileURLsQuirk(bool needsQuirk)
 {
     auto& injectedBundle = InjectedBundle::singleton();
-    WKBundleSetPluginsEnabled(injectedBundle.bundle(), injectedBundle.pageGroup(), enabled);
+    WKBundleSetAllowStorageAccessFromFileURLS(injectedBundle.bundle(), injectedBundle.pageGroup(), needsQuirk);
+}
+    
+void TestRunner::setPluginsEnabled(bool enabled)
+{
+    WKRetainPtr<WKStringRef> key(AdoptWK, WKStringCreateWithUTF8CString("WebKitPluginsEnabled"));
+    auto& injectedBundle = InjectedBundle::singleton();
+    WKBundleOverrideBoolPreferenceForTestRunner(injectedBundle.bundle(), injectedBundle.pageGroup(), key.get(), enabled);
 }
 
 void TestRunner::setJavaScriptCanAccessClipboard(bool enabled)
@@ -869,11 +911,25 @@ void TestRunner::setUserMediaPermission(bool enabled)
     InjectedBundle::singleton().setUserMediaPermission(enabled);
 }
 
-void TestRunner::setUserMediaPermissionForOrigin(bool permission, JSStringRef origin, JSStringRef parentOrigin)
+void TestRunner::setUserMediaPersistentPermissionForOrigin(bool permission, JSStringRef origin, JSStringRef parentOrigin)
 {
     WKRetainPtr<WKStringRef> originWK = toWK(origin);
     WKRetainPtr<WKStringRef> parentOriginWK = toWK(parentOrigin);
-    InjectedBundle::singleton().setUserMediaPermissionForOrigin(permission, originWK.get(), parentOriginWK.get());
+    InjectedBundle::singleton().setUserMediaPersistentPermissionForOrigin(permission, originWK.get(), parentOriginWK.get());
+}
+
+unsigned TestRunner::userMediaPermissionRequestCountForOrigin(JSStringRef origin, JSStringRef parentOrigin) const
+{
+    WKRetainPtr<WKStringRef> originWK = toWK(origin);
+    WKRetainPtr<WKStringRef> parentOriginWK = toWK(parentOrigin);
+    return InjectedBundle::singleton().userMediaPermissionRequestCountForOrigin(originWK.get(), parentOriginWK.get());
+}
+
+void TestRunner::resetUserMediaPermissionRequestCountForOrigin(JSStringRef origin, JSStringRef parentOrigin)
+{
+    WKRetainPtr<WKStringRef> originWK = toWK(origin);
+    WKRetainPtr<WKStringRef> parentOriginWK = toWK(parentOrigin);
+    InjectedBundle::singleton().resetUserMediaPermissionRequestCountForOrigin(originWK.get(), parentOriginWK.get());
 }
 
 bool TestRunner::callShouldCloseOnWebView()
@@ -1018,6 +1074,13 @@ void TestRunner::setNavigationGesturesEnabled(bool value)
 void TestRunner::setIgnoresViewportScaleLimits(bool value)
 {
     WKRetainPtr<WKStringRef> messageName(AdoptWK, WKStringCreateWithUTF8CString("SetIgnoresViewportScaleLimits"));
+    WKRetainPtr<WKBooleanRef> messageBody(AdoptWK, WKBooleanCreate(value));
+    WKBundlePagePostMessage(InjectedBundle::singleton().page()->page(), messageName.get(), messageBody.get());
+}
+
+void TestRunner::setShouldDownloadUndisplayableMIMETypes(bool value)
+{
+    WKRetainPtr<WKStringRef> messageName(AdoptWK, WKStringCreateWithUTF8CString("SetShouldDownloadUndisplayableMIMETypes"));
     WKRetainPtr<WKBooleanRef> messageBody(AdoptWK, WKBooleanCreate(value));
     WKBundlePagePostMessage(InjectedBundle::singleton().page()->page(), messageName.get(), messageBody.get());
 }

@@ -42,8 +42,10 @@
 #include "DFGWorklist.h"
 #include "Disassembler.h"
 #include "ErrorInstance.h"
+#include "EvalCodeBlock.h"
 #include "Exception.h"
 #include "FTLThunks.h"
+#include "FunctionCodeBlock.h"
 #include "FunctionConstructor.h"
 #include "GCActivityCallback.h"
 #include "GetterSetter.h"
@@ -61,6 +63,7 @@
 #include "JSAPIValueWrapper.h"
 #include "JSArray.h"
 #include "JSCInlines.h"
+#include "JSFixedArray.h"
 #include "JSFunction.h"
 #include "JSGlobalObjectFunctions.h"
 #include "JSInternalPromiseDeferred.h"
@@ -69,14 +72,17 @@
 #include "JSPromiseDeferred.h"
 #include "JSPropertyNameEnumerator.h"
 #include "JSTemplateRegistryKey.h"
+#include "JSWebAssembly.h"
 #include "JSWithScope.h"
 #include "LLIntData.h"
 #include "Lexer.h"
 #include "Lookup.h"
+#include "ModuleProgramCodeBlock.h"
 #include "NativeStdFunctionCell.h"
 #include "Nodes.h"
 #include "Parser.h"
 #include "ProfilerDatabase.h"
+#include "ProgramCodeBlock.h"
 #include "PropertyMapHashTable.h"
 #include "RegExpCache.h"
 #include "RegExpObject.h"
@@ -162,6 +168,7 @@ VM::VM(VMType vmType, HeapType heapType)
     , clientData(0)
     , topVMEntryFrame(nullptr)
     , topCallFrame(CallFrame::noCaller())
+    , topJSWebAssemblyInstance(nullptr)
     , m_atomicStringTable(vmType == Default ? wtfThreadData().atomicStringTable() : new AtomicStringTable)
     , propertyNames(nullptr)
     , emptyList(new MarkedArgumentBuffer)
@@ -222,12 +229,15 @@ VM::VM(VMType vmType, HeapType heapType)
     programExecutableStructure.set(*this, ProgramExecutable::createStructure(*this, 0, jsNull()));
     functionExecutableStructure.set(*this, FunctionExecutable::createStructure(*this, 0, jsNull()));
 #if ENABLE(WEBASSEMBLY)
-    webAssemblyExecutableStructure.set(*this, WebAssemblyExecutable::createStructure(*this, 0, jsNull()));
+    webAssemblyCalleeStructure.set(*this, JSWebAssemblyCallee::createStructure(*this, 0, jsNull()));
+    webAssemblyToJSCalleeStructure.set(*this, WebAssemblyToJSCallee::createStructure(*this, 0, jsNull()));
+    webAssemblyToJSCallee.set(*this, WebAssemblyToJSCallee::create(*this, webAssemblyToJSCalleeStructure.get()));
 #endif
     moduleProgramExecutableStructure.set(*this, ModuleProgramExecutable::createStructure(*this, 0, jsNull()));
     regExpStructure.set(*this, RegExp::createStructure(*this, 0, jsNull()));
     symbolStructure.set(*this, Symbol::createStructure(*this, 0, jsNull()));
     symbolTableStructure.set(*this, SymbolTable::createStructure(*this, 0, jsNull()));
+    fixedArrayStructure.set(*this, JSFixedArray::createStructure(*this, 0, jsNull()));
     structureChainStructure.set(*this, StructureChain::createStructure(*this, 0, jsNull()));
     sparseArrayValueMapStructure.set(*this, SparseArrayValueMap::createStructure(*this, 0, jsNull()));
     templateRegistryKeyStructure.set(*this, JSTemplateRegistryKey::createStructure(*this, 0, jsNull()));
@@ -250,9 +260,6 @@ VM::VM(VMType vmType, HeapType heapType)
     moduleProgramCodeBlockStructure.set(*this, ModuleProgramCodeBlock::createStructure(*this, 0, jsNull()));
     evalCodeBlockStructure.set(*this, EvalCodeBlock::createStructure(*this, 0, jsNull()));
     functionCodeBlockStructure.set(*this, FunctionCodeBlock::createStructure(*this, 0, jsNull()));
-#if ENABLE(WEBASSEMBLY)
-    webAssemblyCodeBlockStructure.set(*this, WebAssemblyCodeBlock::createStructure(*this, 0, jsNull()));
-#endif
     hashMapBucketSetStructure.set(*this, HashMapBucket<HashMapBucketDataKey>::createStructure(*this, 0, jsNull()));
     hashMapBucketMapStructure.set(*this, HashMapBucket<HashMapBucketDataKeyValue>::createStructure(*this, 0, jsNull()));
     hashMapImplSetStructure.set(*this, HashMapImpl<HashMapBucket<HashMapBucketDataKey>>::createStructure(*this, 0, jsNull()));
@@ -354,7 +361,7 @@ VM::~VM()
     // Make sure concurrent compilations are done, but don't install them, since there is
     // no point to doing so.
     for (unsigned i = DFG::numberOfWorklists(); i--;) {
-        if (DFG::Worklist* worklist = DFG::worklistForIndexOrNull(i)) {
+        if (DFG::Worklist* worklist = DFG::existingWorklistForIndexOrNull(i)) {
             worklist->removeNonCompilingPlansForVM(*this);
             worklist->waitUntilAllPlansForVMAreReady(*this);
             worklist->removeAllReadyPlansForVM(*this);
@@ -447,7 +454,7 @@ Watchdog& VM::ensureWatchdog()
         // And if we've previously compiled any functions, we need to revert
         // them because they don't have the needed polling checks for the watchdog
         // yet.
-        deleteAllCode();
+        deleteAllCode(PreventCollectionAndDeleteAllCode);
     }
     return *m_watchdog;
 }
@@ -511,17 +518,17 @@ static ThunkGenerator thunkGeneratorForIntrinsic(Intrinsic intrinsic)
 
 NativeExecutable* VM::getHostFunction(NativeFunction function, NativeFunction constructor, const String& name)
 {
-    return getHostFunction(function, NoIntrinsic, constructor, name);
+    return getHostFunction(function, NoIntrinsic, constructor, nullptr, name);
 }
 
-NativeExecutable* VM::getHostFunction(NativeFunction function, Intrinsic intrinsic, NativeFunction constructor, const String& name)
+NativeExecutable* VM::getHostFunction(NativeFunction function, Intrinsic intrinsic, NativeFunction constructor, const DOMJIT::Signature* signature, const String& name)
 {
 #if ENABLE(JIT)
     if (canUseJIT()) {
         return jitStubs->hostFunctionStub(
             this, function, constructor,
             intrinsic != NoIntrinsic ? thunkGeneratorForIntrinsic(intrinsic) : 0,
-            intrinsic, name);
+            intrinsic, signature, name);
     }
 #else // ENABLE(JIT)
     UNUSED_PARAM(intrinsic);
@@ -529,7 +536,7 @@ NativeExecutable* VM::getHostFunction(NativeFunction function, Intrinsic intrins
     return NativeExecutable::create(*this,
         adoptRef(new NativeJITCode(MacroAssemblerCodeRef::createLLIntCodeRef(llint_native_call_trampoline), JITCode::HostCallThunk)), function,
         adoptRef(new NativeJITCode(MacroAssemblerCodeRef::createLLIntCodeRef(llint_native_construct_trampoline), JITCode::HostCallThunk)), constructor,
-        NoIntrinsic, name);
+        NoIntrinsic, signature, name);
 }
 
 VM::ClientData::~ClientData()
@@ -554,20 +561,20 @@ void VM::whenIdle(std::function<void()> callback)
     entryScope->addDidPopListener(callback);
 }
 
-void VM::deleteAllLinkedCode()
+void VM::deleteAllLinkedCode(DeleteAllCodeEffort effort)
 {
-    whenIdle([this]() {
-        heap.deleteAllCodeBlocks();
+    whenIdle([=] () {
+        heap.deleteAllCodeBlocks(effort);
     });
 }
 
-void VM::deleteAllCode()
+void VM::deleteAllCode(DeleteAllCodeEffort effort)
 {
-    whenIdle([this]() {
+    whenIdle([=] () {
         m_codeCache->clear();
         m_regExpCache->deleteAllCode();
-        heap.deleteAllCodeBlocks();
-        heap.deleteAllUnlinkedCodeBlocks();
+        heap.deleteAllCodeBlocks(effort);
+        heap.deleteAllUnlinkedCodeBlocks(effort);
         heap.reportAbandonedObjectGraph();
     });
 }

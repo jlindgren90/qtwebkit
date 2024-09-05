@@ -91,9 +91,10 @@
     -webkit-mask-position-y: 13px;
 }
 
-/* Time labels */
+/* Labels */
 
-.media-controls.mac.inline .time-label {
+.media-controls.mac.inline .time-label,
+.media-controls.mac.inline .status-label {
     top: 14.5px;
 }
 
@@ -124,4 +125,10 @@
     transform: rotate(-90deg);
     left: -15px;
     top: 40px;
+}
+
+/* Tracks Panel */
+
+.media-controls.mac.inline .tracks-panel {
+    bottom: 51px;
 }

@@ -89,12 +89,21 @@ void CachedImage::load(CachedResourceLoader& loader)
         CachedResource::load(loader);
     else
         setLoading(false);
+
+    if (m_loader) {
+        m_allowSubsampling = m_loader->frameLoader()->frame().settings().imageSubsamplingEnabled();
+        m_allowLargeImageAsyncDecoding = m_loader->frameLoader()->frame().settings().largeImageAsyncDecodingEnabled();
+        m_allowAnimatedImageAsyncDecoding = m_loader->frameLoader()->frame().settings().animatedImageAsyncDecodingEnabled();
+        m_showDebugBackground = m_loader->frameLoader()->frame().settings().showDebugBorders();
+    }
 }
 
 void CachedImage::setBodyDataFrom(const CachedResource& resource)
 {
     ASSERT(resource.type() == type());
     const CachedImage& image = static_cast<const CachedImage&>(resource);
+
+    CachedResource::setBodyDataFrom(resource);
 
     m_image = image.m_image;
 
@@ -323,10 +332,8 @@ inline void CachedImage::createImage()
         auto svgImage = SVGImage::create(*this, url());
         m_svgImageCache = std::make_unique<SVGImageCache>(svgImage.ptr());
         m_image = WTFMove(svgImage);
-    } else {
+    } else
         m_image = BitmapImage::create(this);
-        downcast<BitmapImage>(*m_image).setAllowSubsampling(m_loader && m_loader->frameLoader()->frame().settings().imageSubsamplingEnabled());
-    }
 
     if (m_image) {
         // Send queued container size requests.
@@ -479,11 +486,11 @@ void CachedImage::animationAdvanced(const Image* image)
         client->newImageAnimationFrameAvailable(*this);
 }
 
-void CachedImage::changedInRect(const Image* image, const IntRect& rect)
+void CachedImage::changedInRect(const Image* image, const IntRect* rect)
 {
     if (!image || image != m_image)
         return;
-    notifyObservers(&rect);
+    notifyObservers(rect);
 }
 
 bool CachedImage::currentFrameKnownToBeOpaque(const RenderElement* renderer)

@@ -48,19 +48,23 @@
 
 namespace WebCore {
 
-Ref<MockRealtimeVideoSource> MockRealtimeVideoSource::create()
+RefPtr<MockRealtimeVideoSource> MockRealtimeVideoSource::create(const String& name, const MediaConstraints* constraints)
 {
-    return adoptRef(*new MockRealtimeVideoSourceMac());
+    auto source = adoptRef(new MockRealtimeVideoSourceMac(name));
+    if (constraints && source->applyConstraints(*constraints))
+        source = nullptr;
+
+    return source;
 }
 
-MockRealtimeVideoSourceMac::MockRealtimeVideoSourceMac()
-    : MockRealtimeVideoSource()
+MockRealtimeVideoSourceMac::MockRealtimeVideoSourceMac(const String& name)
+    : MockRealtimeVideoSource(name)
 {
 }
 
-Ref<MockRealtimeVideoSource> MockRealtimeVideoSource::createMuted(const String& name)
+RefPtr<MockRealtimeVideoSource> MockRealtimeVideoSource::createMuted(const String& name)
 {
-    auto source = adoptRef(*new MockRealtimeVideoSource(name));
+    auto source = adoptRef(new MockRealtimeVideoSource(name));
     source->m_muted = true;
     return source;
 }
@@ -114,49 +118,6 @@ RetainPtr<CVPixelBufferRef> MockRealtimeVideoSourceMac::pixelBufferFromCGImage(C
     CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
 
     return adoptCF(pixelBuffer);
-}
-
-PlatformLayer* MockRealtimeVideoSourceMac::platformLayer() const
-{
-    if (m_previewLayer)
-        return m_previewLayer.get();
-
-    m_previewLayer = adoptNS([[CALayer alloc] init]);
-    m_previewLayer.get().name = @"MockRealtimeVideoSourceMac preview layer";
-    m_previewLayer.get().contentsGravity = kCAGravityResizeAspect;
-    m_previewLayer.get().anchorPoint = CGPointZero;
-    m_previewLayer.get().needsDisplayOnBoundsChange = YES;
-#if !PLATFORM(IOS)
-    m_previewLayer.get().autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
-#endif
-
-    updatePlatformLayer();
-
-    return m_previewLayer.get();
-}
-
-void MockRealtimeVideoSourceMac::updatePlatformLayer() const
-{
-    if (!m_previewLayer)
-        return;
-
-    [CATransaction begin];
-    [CATransaction setAnimationDuration:0];
-    [CATransaction setDisableActions:YES];
-
-    do {
-        RefPtr<Image> image = imageBuffer()->copyImage();
-        if (!image)
-            break;
-
-        m_previewImage = image->nativeImage();
-        if (!m_previewImage)
-            break;
-
-        m_previewLayer.get().contents = (NSObject*)(m_previewImage.get());
-    } while (0);
-
-    [CATransaction commit];
 }
 
 void MockRealtimeVideoSourceMac::updateSampleBuffer()

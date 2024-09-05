@@ -276,19 +276,19 @@ static bool advanceByCombiningCharacterSequence(const UChar*& iterator, const UC
 }
 
 // FIXME: Capitalization is language-dependent and context-dependent and should operate on grapheme clusters instead of codepoints.
-static inline Optional<UChar32> capitalized(UChar32 baseCharacter)
+static inline std::optional<UChar32> capitalized(UChar32 baseCharacter)
 {
     if (U_GET_GC_MASK(baseCharacter) & U_GC_M_MASK)
-        return Nullopt;
+        return std::nullopt;
 
     UChar32 uppercaseCharacter = u_toupper(baseCharacter);
     ASSERT(uppercaseCharacter == baseCharacter || (U_IS_BMP(baseCharacter) == U_IS_BMP(uppercaseCharacter)));
     if (uppercaseCharacter != baseCharacter)
         return uppercaseCharacter;
-    return Nullopt;
+    return std::nullopt;
 }
 
-static bool shouldSynthesize(const Font* nextFont, UChar32 baseCharacter, Optional<UChar32> capitalizedBase, FontVariantCaps fontVariantCaps, bool engageAllSmallCapsProcessing)
+static bool shouldSynthesize(const Font* nextFont, UChar32 baseCharacter, std::optional<UChar32> capitalizedBase, FontVariantCaps fontVariantCaps, bool engageAllSmallCapsProcessing)
 {
     if (!nextFont || nextFont == Font::systemFallback())
         return false;
@@ -664,14 +664,14 @@ void ComplexTextController::adjustGlyphsAndAdvances()
     bool runForbidsTrailingExpansion = (m_run.expansionBehavior() & TrailingExpansionMask) == ForbidTrailingExpansion;
 
     // We are iterating in glyph order, not string order. Compare this to WidthIterator::advanceInternal()
-    for (size_t r = 0; r < runCount; ++r) {
-        ComplexTextRun& complexTextRun = *m_complexTextRuns[r];
+    for (size_t runIndex = 0; runIndex < runCount; ++runIndex) {
+        ComplexTextRun& complexTextRun = *m_complexTextRuns[runIndex];
         unsigned glyphCount = complexTextRun.glyphCount();
         const Font& font = complexTextRun.font();
 
         // Represent the initial advance for a text run by adjusting the advance
         // of the last glyph of the previous text run in the glyph buffer.
-        if (r && m_adjustedBaseAdvances.size()) {
+        if (!complexTextRun.glyphOrigins() && runIndex && m_adjustedBaseAdvances.size()) {
             CGSize previousAdvance = m_adjustedBaseAdvances.last();
             previousAdvance.width += complexTextRun.initialAdvance().width;
             previousAdvance.height -= complexTextRun.initialAdvance().height;
@@ -685,7 +685,7 @@ void ComplexTextController::adjustGlyphsAndAdvances()
         const CGGlyph* glyphs = complexTextRun.glyphs();
         const CGSize* advances = complexTextRun.baseAdvances();
 
-        bool lastRun = r + 1 == runCount;
+        bool lastRun = runIndex + 1 == runCount;
         float spaceWidth = font.spaceWidth() - font.syntheticBoldOffset();
         const UChar* cp = complexTextRun.characters();
         CGPoint glyphOrigin = CGPointZero;
@@ -709,7 +709,7 @@ void ComplexTextController::adjustGlyphsAndAdvances()
             else if (i + 1 < glyphCount)
                 nextCh = *(cp + complexTextRun.indexAt(i + 1));
             else
-                nextCh = *(m_complexTextRuns[r + 1]->characters() + m_complexTextRuns[r + 1]->indexAt(0));
+                nextCh = *(m_complexTextRuns[runIndex + 1]->characters() + m_complexTextRuns[runIndex + 1]->indexAt(0));
 
             bool treatAsSpace = FontCascade::treatAsSpace(ch);
             CGGlyph glyph = treatAsSpace ? font.spaceGlyph() : glyphs[i];
@@ -771,7 +771,7 @@ void ComplexTextController::adjustGlyphsAndAdvances()
                         afterExpansion = false;
 
                     // Account for word-spacing.
-                    if (treatAsSpace && (ch != '\t' || !m_run.allowTabs()) && (characterIndex > 0 || r > 0) && m_font.wordSpacing())
+                    if (treatAsSpace && (ch != '\t' || !m_run.allowTabs()) && (characterIndex > 0 || runIndex > 0) && m_font.wordSpacing())
                         advance.width += m_font.wordSpacing();
                 } else
                     afterExpansion = false;

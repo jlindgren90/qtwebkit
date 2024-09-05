@@ -157,7 +157,7 @@ void DocumentThreadableLoader::makeSimpleCrossOriginAccessRequest(ResourceReques
 void DocumentThreadableLoader::makeCrossOriginAccessRequestWithPreflight(ResourceRequest&& request)
 {
     if (m_async) {
-        m_preflightChecker = CrossOriginPreflightChecker(*this, WTFMove(request));
+        m_preflightChecker.emplace(*this, WTFMove(request));
         m_preflightChecker->startPreflight();
         return;
     }
@@ -203,7 +203,7 @@ void DocumentThreadableLoader::clearResource()
         resource->removeClient(*this);
     }
     if (m_preflightChecker)
-        m_preflightChecker = Nullopt;
+        m_preflightChecker = std::nullopt;
 }
 
 static inline void reportContentSecurityPolicyError(ThreadableLoaderClient& client, const URL& url)
@@ -294,6 +294,8 @@ void DocumentThreadableLoader::didReceiveResponse(unsigned long identifier, cons
 {
     ASSERT(m_client);
 
+    InspectorInstrumentation::didReceiveThreadableLoaderResponse(*this, identifier);
+
     ASSERT(response.type() != ResourceResponse::Type::Error);
     if (response.type() == ResourceResponse::Type::Default) {
         m_client->didReceiveResponse(identifier, ResourceResponse::filterResponse(response, tainting));
@@ -349,7 +351,7 @@ void DocumentThreadableLoader::preflightSuccess(ResourceRequest&& request)
     ResourceRequest actualRequest(WTFMove(request));
     updateRequestForAccessControl(actualRequest, securityOrigin(), m_options.allowCredentials);
 
-    m_preflightChecker = Nullopt;
+    m_preflightChecker = std::nullopt;
 
     // It should be ok to skip the security check since we already asked about the preflight request.
     loadRequest(WTFMove(actualRequest), SkipSecurityCheck);
@@ -357,7 +359,7 @@ void DocumentThreadableLoader::preflightSuccess(ResourceRequest&& request)
 
 void DocumentThreadableLoader::preflightFailure(unsigned long identifier, const ResourceError& error)
 {
-    m_preflightChecker = Nullopt;
+    m_preflightChecker = std::nullopt;
 
     InspectorInstrumentation::didFailLoading(m_document.frame(), m_document.frame()->loader().documentLoader(), identifier, error);
 

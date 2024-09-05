@@ -41,6 +41,7 @@
 #include "CSSFontSelector.h"
 #include "CSSFontValue.h"
 #include "CSSFunctionValue.h"
+#include "CSSGradientValue.h"
 #include "CSSImageSetValue.h"
 #include "CSSInheritedValue.h"
 #include "CSSInitialValue.h"
@@ -56,11 +57,11 @@
 #include "CSSSelectorList.h"
 #include "CSSShadowValue.h"
 #include "CSSStyleRule.h"
+#include "CSSStyleSheet.h"
 #include "CSSSupportsRule.h"
 #include "CSSTimingFunctionValue.h"
 #include "CSSValueList.h"
 #include "CSSValuePool.h"
-#include "CSSVariableDependentValue.h"
 #include "CachedImage.h"
 #include "CachedResourceLoader.h"
 #include "CachedSVGDocument.h"
@@ -76,15 +77,10 @@
 #include "FrameSelection.h"
 #include "FrameView.h"
 #include "HTMLDocument.h"
-#include "HTMLIFrameElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLMarqueeElement.h"
 #include "HTMLNames.h"
-#include "HTMLOptGroupElement.h"
-#include "HTMLOptionElement.h"
-#include "HTMLProgressElement.h"
 #include "HTMLSlotElement.h"
-#include "HTMLStyleElement.h"
 #include "HTMLTableElement.h"
 #include "HTMLTextAreaElement.h"
 #include "InspectorInstrumentation.h"
@@ -137,14 +133,13 @@
 #include "UserAgentStyleSheets.h"
 #include "ViewportStyleResolver.h"
 #include "VisitedLinkState.h"
-#include "WebKitCSSFilterValue.h"
 #include "WebKitCSSRegionRule.h"
 #include "WebKitCSSTransformValue.h"
 #include "WebKitFontFamilyNames.h"
 #include "XMLNames.h"
 #include <bitset>
+#include <wtf/SetForScope.h>
 #include <wtf/StdLibExtras.h>
-#include <wtf/TemporaryChange.h>
 #include <wtf/Vector.h>
 #include <wtf/text/AtomicStringHash.h>
 
@@ -169,7 +164,6 @@ namespace WebCore {
 
 using namespace HTMLNames;
 
-static const CSSPropertyID lastHighPriorityProperty = CSSPropertyFontSynthesis;
 static const CSSPropertyID firstLowPriorityProperty = static_cast<CSSPropertyID>(lastHighPriorityProperty + 1);
 
 static void extractDirectionAndWritingMode(const RenderStyle&, const StyleResolver::MatchResult&, TextDirection&, WritingMode&);
@@ -193,18 +187,17 @@ inline void StyleResolver::State::clear()
     m_cssToLengthConversionData = CSSToLengthConversionData();
 }
 
-void StyleResolver::MatchResult::addMatchedProperties(const StyleProperties& properties, StyleRule* rule, unsigned linkMatchType, PropertyWhitelistType propertyWhitelistType, int treeContextOrdinal)
+void StyleResolver::MatchResult::addMatchedProperties(const StyleProperties& properties, StyleRule* rule, unsigned linkMatchType, PropertyWhitelistType propertyWhitelistType, Style::ScopeOrdinal styleScopeOrdinal)
 {
     m_matchedProperties.grow(m_matchedProperties.size() + 1);
     StyleResolver::MatchedProperties& newProperties = m_matchedProperties.last();
     newProperties.properties = const_cast<StyleProperties*>(&properties);
     newProperties.linkMatchType = linkMatchType;
     newProperties.whitelistType = propertyWhitelistType;
-    newProperties.treeContextOrdinal = treeContextOrdinal;
+    newProperties.styleScopeOrdinal = styleScopeOrdinal;
     matchedRules.append(rule);
 
-    // Ordinal is relative to the currently matched element
-    if (treeContextOrdinal)
+    if (styleScopeOrdinal != Style::ScopeOrdinal::Element)
         isCacheable = false;
 
     if (isCacheable) {
@@ -269,7 +262,7 @@ StyleResolver::StyleResolver(Document& document)
         m_mediaQueryEvaluator = MediaQueryEvaluator { "all" };
 
     if (root) {
-        m_rootDefaultStyle = styleForElement(*root, m_document.renderStyle(), MatchOnlyUserAgentRules).renderStyle;
+        m_rootDefaultStyle = styleForElement(*root, m_document.renderStyle(), nullptr, MatchOnlyUserAgentRules).renderStyle;
         // Turn off assertion against font lookups during style resolver initialization. We may need root style font for media queries.
         m_document.fontSelector().setIsComputingRootStyleFont(true);
         m_rootDefaultStyle->fontCascade().update(&m_document.fontSelector());
@@ -391,7 +384,7 @@ static inline bool isAtShadowBoundary(const Element& element)
     return parentNode && parentNode->isShadowRoot();
 }
 
-ElementStyle StyleResolver::styleForElement(const Element& element, const RenderStyle* parentStyle, RuleMatchingBehavior matchingBehavior, const RenderRegion* regionForStyling, const SelectorFilter* selectorFilter)
+ElementStyle StyleResolver::styleForElement(const Element& element, const RenderStyle* parentStyle, const RenderStyle* parentBoxStyle, RuleMatchingBehavior matchingBehavior, const RenderRegion* regionForStyling, const SelectorFilter* selectorFilter)
 {
     RELEASE_ASSERT(!m_isDeleted);
 
@@ -400,7 +393,7 @@ ElementStyle StyleResolver::styleForElement(const Element& element, const Render
 
     if (state.parentStyle()) {
         state.setStyle(RenderStyle::createPtr());
-        state.style()->inheritFrom(state.parentStyle(), isAtShadowBoundary(element) ? RenderStyle::AtShadowBoundary : RenderStyle::NotAtShadowBoundary);
+        state.style()->inheritFrom(*state.parentStyle());
     } else {
         state.setStyle(defaultStyleForElement());
         state.setParentStyle(RenderStyle::clonePtr(*state.style()));
@@ -442,7 +435,7 @@ ElementStyle StyleResolver::styleForElement(const Element& element, const Render
     applyMatchedProperties(collector.matchedResult(), element);
 
     // Clean up our style object's display and text decorations (among other fixups).
-    adjustRenderStyle(*state.style(), *state.parentStyle(), &element);
+    adjustRenderStyle(*state.style(), *state.parentStyle(), parentBoxStyle, &element);
 
     if (state.style()->hasViewportUnits())
         document().setHasStyleWithViewportUnits();
@@ -492,7 +485,7 @@ std::unique_ptr<RenderStyle> StyleResolver::styleForKeyframe(const RenderStyle* 
 
     cascade.applyDeferredProperties(*this, &result);
 
-    adjustRenderStyle(*state.style(), *state.parentStyle(), nullptr);
+    adjustRenderStyle(*state.style(), *state.parentStyle(), nullptr, nullptr);
 
     // Add all the animating properties to the keyframe.
     unsigned propertyCount = keyframe->properties().propertyCount();
@@ -612,7 +605,7 @@ std::unique_ptr<RenderStyle> StyleResolver::pseudoStyleForElement(const Element&
 
     if (m_state.parentStyle()) {
         state.setStyle(RenderStyle::createPtr());
-        state.style()->inheritFrom(m_state.parentStyle());
+        state.style()->inheritFrom(*m_state.parentStyle());
     } else {
         state.setStyle(defaultStyleForElement());
         state.setParentStyle(RenderStyle::clonePtr(*state.style()));
@@ -642,7 +635,7 @@ std::unique_ptr<RenderStyle> StyleResolver::pseudoStyleForElement(const Element&
     applyMatchedProperties(collector.matchedResult(), element);
 
     // Clean up our style object's display and text decorations (among other fixups).
-    adjustRenderStyle(*state.style(), *m_state.parentStyle(), nullptr);
+    adjustRenderStyle(*state.style(), *m_state.parentStyle(), nullptr, nullptr);
 
     if (state.style()->hasViewportUnits())
         document().setHasStyleWithViewportUnits();
@@ -662,7 +655,7 @@ std::unique_ptr<RenderStyle> StyleResolver::styleForPage(int pageIndex)
     m_state = State(*documentElement, m_document.renderStyle());
 
     m_state.setStyle(RenderStyle::createPtr());
-    m_state.style()->inheritFrom(m_state.rootElementStyle());
+    m_state.style()->inheritFrom(*m_state.rootElementStyle());
 
     PageRuleCollector collector(m_state, m_ruleSets);
     collector.matchAllPageRules(pageIndex);
@@ -708,7 +701,7 @@ std::unique_ptr<RenderStyle> StyleResolver::defaultStyleForElement()
 static void addIntrinsicMargins(RenderStyle& style)
 {
     // Intrinsic margin value.
-    const int intrinsicMargin = 2 * style.effectiveZoom();
+    const int intrinsicMargin = clampToInteger(2 * style.effectiveZoom());
 
     // FIXME: Using width/height alone and not also dealing with min-width/max-width is flawed.
     // FIXME: Using "hasQuirk" to decide the margin wasn't set is kind of lame.
@@ -727,9 +720,9 @@ static void addIntrinsicMargins(RenderStyle& style)
     }
 }
 
-static EDisplay equivalentBlockDisplay(EDisplay display, bool isFloating, bool strictParsing)
+static EDisplay equivalentBlockDisplay(const RenderStyle& style, const Document& document)
 {
-    switch (display) {
+    switch (auto display = style.display()) {
     case BLOCK:
     case TABLE:
     case BOX:
@@ -742,7 +735,7 @@ static EDisplay equivalentBlockDisplay(EDisplay display, bool isFloating, bool s
 
     case LIST_ITEM:
         // It is a WinIE bug that floated list items lose their bullets, so we'll emulate the quirk, but only in quirks mode.
-        if (!strictParsing && isFloating)
+        if (document.inQuirksMode() && style.isFloating())
             return BLOCK;
         return display;
     case INLINE_TABLE:
@@ -768,8 +761,10 @@ static EDisplay equivalentBlockDisplay(EDisplay display, bool isFloating, bool s
     case TABLE_COLUMN:
     case TABLE_CELL:
     case TABLE_CAPTION:
-    case CONTENTS:
         return BLOCK;
+    case CONTENTS:
+        ASSERT_NOT_REACHED();
+        return CONTENTS;
     case NONE:
         ASSERT_NOT_REACHED();
         return NONE;
@@ -805,19 +800,24 @@ void StyleResolver::adjustStyleForInterCharacterRuby()
         style->setWritingMode(LeftToRightWritingMode);
 }
 
-void StyleResolver::adjustRenderStyle(RenderStyle& style, const RenderStyle& parentStyle, const Element* element)
+void StyleResolver::adjustRenderStyle(RenderStyle& style, const RenderStyle& parentStyle, const RenderStyle* parentBoxStyle, const Element* element)
 {
+    // If the composed tree parent has display:contents, the parent box style will be different from the parent style.
+    // We don't have it when resolving computed style for display:none subtree. Use parent style for adjustments in that case.
+    if (!parentBoxStyle)
+        parentBoxStyle = &parentStyle;
+
     // Cache our original display.
     style.setOriginalDisplay(style.display());
 
-    if (style.display() != NONE) {
-        if (style.display() == CONTENTS) {
-            // FIXME: Enable for all elements.
-            bool elementSupportsDisplayContents = false;
-            elementSupportsDisplayContents = is<HTMLSlotElement>(element);
-            if (!elementSupportsDisplayContents)
-                style.setDisplay(INLINE);
-        }
+    if (style.display() == CONTENTS) {
+        // FIXME: Enable for all elements.
+        bool elementSupportsDisplayContents = is<HTMLSlotElement>(element);
+        if (!elementSupportsDisplayContents)
+            style.setDisplay(INLINE);
+    }
+
+    if (style.display() != NONE && style.display() != CONTENTS) {
         if (element) {
             // If we have a <td> that specifies a float property, in quirks mode we just drop the float
             // property.
@@ -871,7 +871,7 @@ void StyleResolver::adjustRenderStyle(RenderStyle& style, const RenderStyle& par
 
         // Absolute/fixed positioned elements, floating elements and the document element need block-like outside display.
         if (style.hasOutOfFlowPosition() || style.isFloating() || (element && element->document().documentElement() == element))
-            style.setDisplay(equivalentBlockDisplay(style.display(), style.isFloating(), !document().inQuirksMode()));
+            style.setDisplay(equivalentBlockDisplay(style, document()));
 
         // FIXME: Don't support this mutation for pseudo styles like first-letter or first-line, since it's not completely
         // clear how that should work.
@@ -899,14 +899,16 @@ void StyleResolver::adjustRenderStyle(RenderStyle& style, const RenderStyle& par
         if (style.writingMode() != TopToBottomWritingMode && (style.display() == BOX || style.display() == INLINE_BOX))
             style.setWritingMode(TopToBottomWritingMode);
 
-        if (parentStyle.isDisplayFlexibleOrGridBox()) {
+        // https://www.w3.org/TR/css-display/#transformations
+        // "A parent with a grid or flex display value blockifies the box’s display type."
+        if (parentBoxStyle->isDisplayFlexibleOrGridBox()) {
             style.setFloating(NoFloat);
-            style.setDisplay(equivalentBlockDisplay(style.display(), style.isFloating(), !document().inQuirksMode()));
+            style.setDisplay(equivalentBlockDisplay(style, document()));
         }
     }
 
     // Make sure our z-index value is only applied if the object is positioned.
-    if (style.position() == StaticPosition && !parentStyle.isDisplayFlexibleOrGridBox())
+    if (style.position() == StaticPosition && !parentBoxStyle->isDisplayFlexibleOrGridBox())
         style.setHasAutoZIndex();
 
     // Auto z-index becomes 0 for the root element and transparent objects. This prevents
@@ -1336,7 +1338,7 @@ void StyleResolver::applyMatchedProperties(const MatchResult& matchResult, const
             EInsideLink linkStatus = state.style()->insideLink();
             // If the cache item parent style has identical inherited properties to the current parent style then the
             // resulting style will be identical too. We copy the inherited properties over from the cache and are done.
-            state.style()->inheritFrom(cacheItem->renderStyle.get());
+            state.style()->inheritFrom(*cacheItem->renderStyle);
 
             // Unfortunately the link status is treated like an inherited property. We need to explicitly restore it.
             state.style()->setInsideLink(linkStatus);
@@ -1607,13 +1609,8 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     CSSValueID customPropertyValueID = CSSValueInvalid;
     
     if (id == CSSPropertyCustom) {
-        // FIXME-NEWPARSER: Can clean this up once old parser is gone and remove
-        // the deprecatedValue call and the valueToCheckForInheritInitial variable.
         customPropertyValue = &downcast<CSSCustomPropertyValue>(*valueToApply);
-        valueToCheckForInheritInitial = customPropertyValue->deprecatedValue().get();
         customPropertyValueID = customPropertyValue->valueID();
-        if (customPropertyValueID != CSSValueInvalid)
-            valueToCheckForInheritInitial = valueToApply.get();
     }
 
     bool isInherit = state.parentStyle() ? valueToCheckForInheritInitial->isInheritedValue() || customPropertyValueID == CSSValueInherit : false;
@@ -1846,34 +1843,49 @@ bool StyleResolver::hasMediaQueriesAffectedByViewportChange() const
     return false;
 }
 
-static FilterOperation::OperationType filterOperationForType(WebKitCSSFilterValue::FilterOperationType type)
+void StyleResolver::addAccessibilitySettingsDependentMediaQueryResult(const MediaQueryExpression& expression, bool result)
+{
+    m_accessibilitySettingsDependentMediaQueryResults.append(MediaQueryResult { expression, result });
+}
+
+bool StyleResolver::hasMediaQueriesAffectedByAccessibilitySettingsChange() const
+{
+    for (auto& result : m_accessibilitySettingsDependentMediaQueryResults) {
+        if (m_mediaQueryEvaluator.evaluate(result.expression) != result.result)
+            return true;
+    }
+    return false;
+}
+
+static FilterOperation::OperationType filterOperationForType(CSSValueID type)
 {
     switch (type) {
-    case WebKitCSSFilterValue::ReferenceFilterOperation:
+    case CSSValueUrl:
         return FilterOperation::REFERENCE;
-    case WebKitCSSFilterValue::GrayscaleFilterOperation:
+    case CSSValueGrayscale:
         return FilterOperation::GRAYSCALE;
-    case WebKitCSSFilterValue::SepiaFilterOperation:
+    case CSSValueSepia:
         return FilterOperation::SEPIA;
-    case WebKitCSSFilterValue::SaturateFilterOperation:
+    case CSSValueSaturate:
         return FilterOperation::SATURATE;
-    case WebKitCSSFilterValue::HueRotateFilterOperation:
+    case CSSValueHueRotate:
         return FilterOperation::HUE_ROTATE;
-    case WebKitCSSFilterValue::InvertFilterOperation:
+    case CSSValueInvert:
         return FilterOperation::INVERT;
-    case WebKitCSSFilterValue::OpacityFilterOperation:
+    case CSSValueOpacity:
         return FilterOperation::OPACITY;
-    case WebKitCSSFilterValue::BrightnessFilterOperation:
+    case CSSValueBrightness:
         return FilterOperation::BRIGHTNESS;
-    case WebKitCSSFilterValue::ContrastFilterOperation:
+    case CSSValueContrast:
         return FilterOperation::CONTRAST;
-    case WebKitCSSFilterValue::BlurFilterOperation:
+    case CSSValueBlur:
         return FilterOperation::BLUR;
-    case WebKitCSSFilterValue::DropShadowFilterOperation:
+    case CSSValueDropShadow:
         return FilterOperation::DROP_SHADOW;
-    case WebKitCSSFilterValue::UnknownFilterOperation:
-        return FilterOperation::NONE;
+    default:
+        break;
     }
+    ASSERT_NOT_REACHED();
     return FilterOperation::NONE;
 }
 
@@ -1893,21 +1905,12 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
 
     FilterOperations operations;
     for (auto& currentValue : downcast<CSSValueList>(inValue)) {
-        if (!is<WebKitCSSFilterValue>(currentValue.get()))
-            continue;
 
-        auto& filterValue = downcast<WebKitCSSFilterValue>(currentValue.get());
-        FilterOperation::OperationType operationType = filterOperationForType(filterValue.operationType());
-
-        if (operationType == FilterOperation::REFERENCE) {
-            if (filterValue.length() != 1)
-                continue;
-            auto& argument = *filterValue.itemWithoutBoundsCheck(0);
-
-            if (!is<CSSPrimitiveValue>(argument))
+        if (is<CSSPrimitiveValue>(currentValue.get())) {
+            auto& primitiveValue = downcast<CSSPrimitiveValue>(currentValue.get());
+            if (!primitiveValue.isURI())
                 continue;
 
-            auto& primitiveValue = downcast<CSSPrimitiveValue>(argument);
             String cssUrl = primitiveValue.stringValue();
             URL url = m_state.document().completeURL(cssUrl);
 
@@ -1916,29 +1919,36 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
             continue;
         }
 
+        if (!is<CSSFunctionValue>(currentValue.get()))
+            continue;
+
+        auto& filterValue = downcast<CSSFunctionValue>(currentValue.get());
+        FilterOperation::OperationType operationType = filterOperationForType(filterValue.name());
+        auto args = filterValue.arguments();
+
         // Check that all parameters are primitive values, with the
         // exception of drop shadow which has a CSSShadowValue parameter.
         const CSSPrimitiveValue* firstValue = nullptr;
-        if (operationType != FilterOperation::DROP_SHADOW) {
+        if (args && operationType != FilterOperation::DROP_SHADOW) {
             bool haveNonPrimitiveValue = false;
-            for (unsigned j = 0; j < filterValue.length(); ++j) {
-                if (!is<CSSPrimitiveValue>(*filterValue.itemWithoutBoundsCheck(j))) {
+            for (unsigned j = 0; j < args->length(); ++j) {
+                if (!is<CSSPrimitiveValue>(*args->itemWithoutBoundsCheck(j))) {
                     haveNonPrimitiveValue = true;
                     break;
                 }
             }
             if (haveNonPrimitiveValue)
                 continue;
-            if (filterValue.length())
-                firstValue = downcast<CSSPrimitiveValue>(filterValue.itemWithoutBoundsCheck(0));
+            if (args->length())
+                firstValue = downcast<CSSPrimitiveValue>(args->itemWithoutBoundsCheck(0));
         }
 
-        switch (filterValue.operationType()) {
-        case WebKitCSSFilterValue::GrayscaleFilterOperation:
-        case WebKitCSSFilterValue::SepiaFilterOperation:
-        case WebKitCSSFilterValue::SaturateFilterOperation: {
+        switch (operationType) {
+        case FilterOperation::GRAYSCALE:
+        case FilterOperation::SEPIA:
+        case FilterOperation::SATURATE: {
             double amount = 1;
-            if (filterValue.length() == 1) {
+            if (args && args->length() == 1) {
                 amount = firstValue->doubleValue();
                 if (firstValue->isPercentage())
                     amount /= 100;
@@ -1947,20 +1957,20 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
             operations.operations().append(BasicColorMatrixFilterOperation::create(amount, operationType));
             break;
         }
-        case WebKitCSSFilterValue::HueRotateFilterOperation: {
+        case FilterOperation::HUE_ROTATE: {
             double angle = 0;
-            if (filterValue.length() == 1)
+            if (args && args->length() == 1)
                 angle = firstValue->computeDegrees();
 
             operations.operations().append(BasicColorMatrixFilterOperation::create(angle, operationType));
             break;
         }
-        case WebKitCSSFilterValue::InvertFilterOperation:
-        case WebKitCSSFilterValue::BrightnessFilterOperation:
-        case WebKitCSSFilterValue::ContrastFilterOperation:
-        case WebKitCSSFilterValue::OpacityFilterOperation: {
-            double amount = (filterValue.operationType() == WebKitCSSFilterValue::BrightnessFilterOperation) ? 0 : 1;
-            if (filterValue.length() == 1) {
+        case FilterOperation::INVERT:
+        case FilterOperation::BRIGHTNESS:
+        case FilterOperation::CONTRAST:
+        case FilterOperation::OPACITY: {
+            double amount = (operationType == FilterOperation::BRIGHTNESS) ? 0 : 1;
+            if (args && args->length() == 1) {
                 amount = firstValue->doubleValue();
                 if (firstValue->isPercentage())
                     amount /= 100;
@@ -1969,9 +1979,9 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
             operations.operations().append(BasicComponentTransferFilterOperation::create(amount, operationType));
             break;
         }
-        case WebKitCSSFilterValue::BlurFilterOperation: {
+        case FilterOperation::BLUR: {
             Length stdDeviation = Length(0, Fixed);
-            if (filterValue.length() >= 1)
+            if (args && args->length() >= 1)
                 stdDeviation = convertToFloatLength(firstValue, state.cssToLengthConversionData());
             if (stdDeviation.isUndefined())
                 return false;
@@ -1979,11 +1989,11 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
             operations.operations().append(BlurFilterOperation::create(stdDeviation));
             break;
         }
-        case WebKitCSSFilterValue::DropShadowFilterOperation: {
-            if (filterValue.length() != 1)
+        case FilterOperation::DROP_SHADOW: {
+            if (args && args->length() != 1)
                 return false;
 
-            auto& cssValue = *filterValue.itemWithoutBoundsCheck(0);
+            auto& cssValue = *args->itemWithoutBoundsCheck(0);
             if (!is<CSSShadowValue>(cssValue))
                 continue;
 
@@ -1999,7 +2009,6 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
             operations.operations().append(DropShadowFilterOperation::create(location, blur, color.isValid() ? color : Color::transparent));
             break;
         }
-        case WebKitCSSFilterValue::UnknownFilterOperation:
         default:
             ASSERT_NOT_REACHED();
             break;
@@ -2045,11 +2054,12 @@ inline StyleResolver::CascadedProperties::Property StyleResolver::CascadedProper
     return m_customProperties.get(name);
 }
 
-void StyleResolver::CascadedProperties::setPropertyInternal(Property& property, CSSPropertyID id, CSSValue& cssValue, unsigned linkMatchType, CascadeLevel cascadeLevel)
+void StyleResolver::CascadedProperties::setPropertyInternal(Property& property, CSSPropertyID id, CSSValue& cssValue, unsigned linkMatchType, CascadeLevel cascadeLevel, Style::ScopeOrdinal styleScopeOrdinal)
 {
     ASSERT(linkMatchType <= SelectorChecker::MatchAll);
     property.id = id;
     property.level = cascadeLevel;
+    property.styleScopeOrdinal = styleScopeOrdinal;
     if (linkMatchType == SelectorChecker::MatchAll) {
         property.cssValue[0] = &cssValue;
         property.cssValue[SelectorChecker::MatchLink] = &cssValue;
@@ -2058,7 +2068,7 @@ void StyleResolver::CascadedProperties::setPropertyInternal(Property& property, 
         property.cssValue[linkMatchType] = &cssValue;
 }
 
-void StyleResolver::CascadedProperties::set(CSSPropertyID id, CSSValue& cssValue, unsigned linkMatchType, CascadeLevel cascadeLevel)
+void StyleResolver::CascadedProperties::set(CSSPropertyID id, CSSValue& cssValue, unsigned linkMatchType, CascadeLevel cascadeLevel, Style::ScopeOrdinal styleScopeOrdinal)
 {
     if (CSSProperty::isDirectionAwareProperty(id))
         id = CSSProperty::resolveDirectionAwareProperty(id, m_direction, m_writingMode);
@@ -2075,11 +2085,11 @@ void StyleResolver::CascadedProperties::set(CSSPropertyID id, CSSValue& cssValue
             Property property;
             property.id = id;
             memset(property.cssValue, 0, sizeof(property.cssValue));
-            setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel);
+            setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel, styleScopeOrdinal);
             customProperties().set(customValue.name(), property);
         } else {
             Property property = customProperties().get(customValue.name());
-            setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel);
+            setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel, styleScopeOrdinal);
             customProperties().set(customValue.name(), property);
         }
         return;
@@ -2088,24 +2098,39 @@ void StyleResolver::CascadedProperties::set(CSSPropertyID id, CSSValue& cssValue
     if (!m_propertyIsPresent[id])
         memset(property.cssValue, 0, sizeof(property.cssValue));
     m_propertyIsPresent.set(id);
-    setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel);
+    setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel, styleScopeOrdinal);
 }
 
-void StyleResolver::CascadedProperties::setDeferred(CSSPropertyID id, CSSValue& cssValue, unsigned linkMatchType, CascadeLevel cascadeLevel)
+void StyleResolver::CascadedProperties::setDeferred(CSSPropertyID id, CSSValue& cssValue, unsigned linkMatchType, CascadeLevel cascadeLevel, Style::ScopeOrdinal styleScopeOrdinal)
 {
     ASSERT(!CSSProperty::isDirectionAwareProperty(id));
     ASSERT(shouldApplyPropertyInParseOrder(id));
 
     Property property;
     memset(property.cssValue, 0, sizeof(property.cssValue));
-    setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel);
+    setPropertyInternal(property, id, cssValue, linkMatchType, cascadeLevel, styleScopeOrdinal);
     m_deferredProperties.append(property);
 }
 
-void StyleResolver::CascadedProperties::addStyleProperties(const StyleProperties& properties, bool isImportant, bool inheritedOnly, PropertyWhitelistType propertyWhitelistType, unsigned linkMatchType, CascadeLevel cascadeLevel)
+static CascadeLevel cascadeLevelForIndex(const StyleResolver::MatchResult& matchResult, int index)
 {
-    for (unsigned i = 0, count = properties.propertyCount(); i < count; ++i) {
-        auto current = properties.propertyAt(i);
+    if (index >= matchResult.ranges.firstUARule && index <= matchResult.ranges.lastUARule)
+        return UserAgentLevel;
+    if (index >= matchResult.ranges.firstUserRule && index <= matchResult.ranges.lastUserRule)
+        return UserLevel;
+    return AuthorLevel;
+}
+
+void StyleResolver::CascadedProperties::addMatch(const MatchResult& matchResult, unsigned index, bool isImportant, bool inheritedOnly)
+{
+    auto& matchedProperties = matchResult.matchedProperties()[index];
+    auto& styleProperties = *matchedProperties.properties;
+
+    auto propertyWhitelistType = static_cast<PropertyWhitelistType>(matchedProperties.whitelistType);
+    auto cascadeLevel = cascadeLevelForIndex(matchResult, index);
+
+    for (unsigned i = 0, count = styleProperties.propertyCount(); i < count; ++i) {
+        auto current = styleProperties.propertyAt(i);
         if (isImportant != current.isImportant())
             continue;
         if (inheritedOnly && !current.isInherited()) {
@@ -2124,29 +2149,10 @@ void StyleResolver::CascadedProperties::addStyleProperties(const StyleProperties
 #endif
 
         if (shouldApplyPropertyInParseOrder(propertyID))
-            setDeferred(propertyID, *current.value(), linkMatchType, cascadeLevel);
+            setDeferred(propertyID, *current.value(), matchedProperties.linkMatchType, cascadeLevel, matchedProperties.styleScopeOrdinal);
         else
-            set(propertyID, *current.value(), linkMatchType, cascadeLevel);
+            set(propertyID, *current.value(), matchedProperties.linkMatchType, cascadeLevel, matchedProperties.styleScopeOrdinal);
     }
-}
-
-static CascadeLevel cascadeLevelForIndex(const StyleResolver::MatchResult& matchResult, int index)
-{
-    if (index >= matchResult.ranges.firstUARule && index <= matchResult.ranges.lastUARule)
-        return UserAgentLevel;
-    if (index >= matchResult.ranges.firstUserRule && index <= matchResult.ranges.lastUserRule)
-        return UserLevel;
-    return AuthorLevel;
-}
-
-void StyleResolver::CascadedProperties::addMatch(const MatchResult& matchResult, unsigned index, bool isImportant, bool inheritedOnly)
-{
-    const MatchedProperties& matchedProperties = matchResult.matchedProperties()[index];
-
-    auto propertyWhitelistType = static_cast<PropertyWhitelistType>(matchedProperties.whitelistType);
-    auto cascadeLevel = cascadeLevelForIndex(matchResult, index);
-
-    addStyleProperties(*matchedProperties.properties, isImportant, inheritedOnly, propertyWhitelistType, matchedProperties.linkMatchType, cascadeLevel);
 }
 
 void StyleResolver::CascadedProperties::addNormalMatches(const MatchResult& matchResult, int startIndex, int endIndex, bool inheritedOnly)
@@ -2174,7 +2180,7 @@ void StyleResolver::CascadedProperties::addImportantMatches(const MatchResult& m
 
     struct IndexAndOrdinal {
         int index;
-        int ordinal;
+        Style::ScopeOrdinal ordinal;
     };
     Vector<IndexAndOrdinal> shadowTreeMatches;
 
@@ -2184,8 +2190,8 @@ void StyleResolver::CascadedProperties::addImportantMatches(const MatchResult& m
         if (!hasImportantProperties(*matchedProperties.properties))
             continue;
 
-        if (matchedProperties.treeContextOrdinal) {
-            shadowTreeMatches.append({ i, matchedProperties.treeContextOrdinal });
+        if (matchedProperties.styleScopeOrdinal != Style::ScopeOrdinal::Element) {
+            shadowTreeMatches.append({ i, matchedProperties.styleScopeOrdinal });
             continue;
         }
 
@@ -2215,6 +2221,7 @@ void StyleResolver::CascadedProperties::Property::apply(StyleResolver& resolver,
 {
     State& state = resolver.state();
     state.setCascadeLevel(level);
+    state.setStyleScopeOrdinal(styleScopeOrdinal);
 
     if (cssValue[SelectorChecker::MatchDefault]) {
         state.setApplyPropertyToRegularStyle(true);

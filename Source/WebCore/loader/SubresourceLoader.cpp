@@ -43,11 +43,10 @@
 #include "Page.h"
 #include "ResourceLoadObserver.h"
 #include "RuntimeEnabledFeatures.h"
-#include "Settings.h"
 #include <wtf/Ref.h>
 #include <wtf/RefCountedLeakCounter.h>
+#include <wtf/SetForScope.h>
 #include <wtf/StdLibExtras.h>
-#include <wtf/TemporaryChange.h>
 #include <wtf/text/CString.h>
 
 #if PLATFORM(IOS)
@@ -79,7 +78,7 @@ SubresourceLoader::SubresourceLoader(Frame& frame, CachedResource& resource, con
     , m_resource(&resource)
     , m_loadingMultipartContent(false)
     , m_state(Uninitialized)
-    , m_requestCountTracker(InPlace, frame.document()->cachedResourceLoader(), resource)
+    , m_requestCountTracker(std::in_place, frame.document()->cachedResourceLoader(), resource)
 {
 #ifndef NDEBUG
     subresourceLoaderCounter.increment();
@@ -263,14 +262,6 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
     if (shouldIncludeCertificateInfo())
         response.includeCertificateInfo();
 
-    if (response.isHttpVersion0_9()) {
-        if (m_frame) {
-            String message = "Sandboxing '" + response.url().string() + "' because it is using HTTP/0.9.";
-            m_frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, message, identifier());
-            frameLoader()->forceSandboxFlags(SandboxScripts | SandboxPlugins);
-        }
-    }
-
     if (m_resource->resourceToRevalidate()) {
         if (response.httpStatusCode() == 304) {
             // 304 Not modified / Use local copy
@@ -311,7 +302,7 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
         m_loadingMultipartContent = true;
 
         // We don't count multiParts in a CachedResourceLoader's request count
-        m_requestCountTracker = Nullopt;
+        m_requestCountTracker = std::nullopt;
         if (!m_resource->isImage()) {
             cancel();
             return;
@@ -581,7 +572,7 @@ void SubresourceLoader::notifyDone()
     if (reachedTerminalState())
         return;
 
-    m_requestCountTracker = Nullopt;
+    m_requestCountTracker = std::nullopt;
 #if PLATFORM(IOS)
     m_documentLoader->cachedResourceLoader().loadDone(m_resource, m_state != CancelledWhileInitializing);
 #else

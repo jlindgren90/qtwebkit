@@ -26,19 +26,34 @@
 class MacOSMediaControls extends MediaControls
 {
 
-    constructor(options = {})
+    constructor({ width, height, layoutTraits = LayoutTraits.macOS } = {})
     {
-        super({
-            width: options.width,
-            height: options.height,
-            layoutTraits: LayoutTraits.macOS
-        });
+        super({ width, height, layoutTraits });
 
         this.element.classList.add("mac");
 
         this.muteButton = new MuteButton(this);
         this.tracksButton = new TracksButton(this);
+        this.tracksPanel = new TracksPanel;
         this.volumeSlider = new VolumeSlider;
+    }
+
+    // Public
+
+    showTracksPanel()
+    {
+        this.tracksButton.on = true;
+        this.tracksButton.element.blur();
+        this.controlsBar.userInteractionEnabled = false;
+        this.tracksPanel.presentInParent(this);
+    }
+
+    hideTracksPanel()
+    {
+        this.tracksButton.on = false;
+        this.tracksButton.element.focus();
+        this.controlsBar.userInteractionEnabled = true;
+        this.tracksPanel.hide();
     }
 
 }

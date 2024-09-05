@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KeyframeAnimation_h
-#define KeyframeAnimation_h
+#pragma once
 
 #include "AnimationBase.h"
 #include "Document.h"
@@ -45,7 +44,7 @@ public:
         return adoptRef(*new KeyframeAnimation(animation, renderer, compositeAnimation, unanimatedStyle));
     }
 
-    bool animate(CompositeAnimation*, RenderElement*, const RenderStyle* currentStyle, const RenderStyle* targetStyle, std::unique_ptr<RenderStyle>& animatedStyle) override;
+    bool animate(CompositeAnimation*, RenderElement*, const RenderStyle* currentStyle, const RenderStyle* targetStyle, std::unique_ptr<RenderStyle>& animatedStyle, bool& didBlendStyle) override;
     void getAnimatedStyle(std::unique_ptr<RenderStyle>&) override;
 
     bool computeExtentOfTransformAnimation(LayoutRect&) const override;
@@ -106,5 +105,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // KeyframeAnimation_h

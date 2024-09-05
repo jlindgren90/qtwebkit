@@ -34,7 +34,6 @@
 #include "MarkedSpaceInlines.h"
 #include "Parser.h"
 #include "Protect.h"
-#include "VMEntryScope.h"
 
 namespace {
 
@@ -99,7 +98,7 @@ private:
     Debugger& m_debugger;
 };
 
-// This is very similar to TemporaryChange<bool>, but that cannot be used
+// This is very similar to SetForScope<bool>, but that cannot be used
 // as the m_isPaused field uses only one bit.
 class TemporaryPausedState {
 public:
@@ -334,7 +333,7 @@ void Debugger::toggleBreakpoint(Breakpoint& breakpoint, Debugger::BreakpointStat
 
 void Debugger::recompileAllJSFunctions()
 {
-    m_vm.deleteAllCode();
+    m_vm.deleteAllCode(PreventCollectionAndDeleteAllCode);
 }
 
 DebuggerParseData& Debugger::debuggerParseData(SourceID sourceID, SourceProvider* provider)
@@ -361,7 +360,7 @@ void Debugger::resolveBreakpoint(Breakpoint& breakpoint, SourceProvider* sourceP
     unsigned column = breakpoint.column ? breakpoint.column : Breakpoint::unspecifiedColumn;
 
     DebuggerParseData& parseData = debuggerParseData(breakpoint.sourceID, sourceProvider);
-    Optional<JSTextPosition> resolvedPosition = parseData.pausePositions.breakpointLocationForLineColumn((int)line, (int)column);
+    std::optional<JSTextPosition> resolvedPosition = parseData.pausePositions.breakpointLocationForLineColumn((int)line, (int)column);
     if (!resolvedPosition)
         return;
 

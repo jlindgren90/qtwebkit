@@ -27,7 +27,7 @@
 
 #if ENABLE(WEBASSEMBLY)
 
-#include "WasmMemory.h"
+#include "WasmFormat.h"
 #include "WasmOps.h"
 #include "WasmParser.h"
 #include <wtf/Vector.h>
@@ -37,14 +37,13 @@ namespace JSC { namespace Wasm {
 class ModuleParser : public Parser {
 public:
 
-    static const unsigned magicNumber = 0xc;
-
-    ModuleParser(const uint8_t* sourceBuffer, size_t sourceLength)
+    ModuleParser(VM* vm, const uint8_t* sourceBuffer, size_t sourceLength)
         : Parser(sourceBuffer, sourceLength)
+        , m_vm(vm)
     {
     }
-    ModuleParser(const Vector<uint8_t>& sourceBuffer)
-        : Parser(sourceBuffer.data(), sourceBuffer.size())
+    ModuleParser(VM* vm, const Vector<uint8_t>& sourceBuffer)
+        : ModuleParser(vm, sourceBuffer.data(), sourceBuffer.size())
     {
     }
 
@@ -56,28 +55,39 @@ public:
         return m_errorMessage;
     }
 
-    const Vector<FunctionInformation>& functionInformation() const
+    std::unique_ptr<ModuleInformation>& moduleInformation()
     {
         RELEASE_ASSERT(!failed());
-        return m_functions;
+        return m_module;
     }
-    std::unique_ptr<Memory>& memory()
+
+    FunctionIndexSpace& functionIndexSpace()
     {
         RELEASE_ASSERT(!failed());
-        return m_memory;
+        return m_functionIndexSpace;
+    }
+
+    Vector<FunctionLocationInBinary>& functionLocationInBinary()
+    {
+        RELEASE_ASSERT(!failed());
+        return m_functionLocationInBinary;
     }
 
 private:
-    bool WARN_UNUSED_RETURN parseMemory();
-    bool WARN_UNUSED_RETURN parseFunctionTypes();
-    bool WARN_UNUSED_RETURN parseFunctionSignatures();
-    bool WARN_UNUSED_RETURN parseFunctionDefinitions();
-    bool WARN_UNUSED_RETURN parseFunctionDefinition(uint32_t number);
+#define WASM_SECTION_DECLARE_PARSER(NAME, ID, DESCRIPTION) bool WARN_UNUSED_RETURN parse ## NAME();
+    FOR_EACH_WASM_SECTION(WASM_SECTION_DECLARE_PARSER)
+#undef WASM_SECTION_DECLARE_PARSER
 
-    Vector<FunctionInformation> m_functions;
-    Vector<Signature> m_signatures;
-    std::unique_ptr<Memory> m_memory;
+    bool WARN_UNUSED_RETURN parseMemoryHelper(bool isImport);
+    bool WARN_UNUSED_RETURN parseTableHelper(bool isImport);
+    bool WARN_UNUSED_RETURN parseResizableLimits(uint32_t& initial, std::optional<uint32_t>& maximum);
+
+    VM* m_vm;
+    std::unique_ptr<ModuleInformation> m_module;
+    FunctionIndexSpace m_functionIndexSpace;
+    Vector<FunctionLocationInBinary> m_functionLocationInBinary;
     bool m_failed { true };
+    bool m_hasTable { false };
     String m_errorMessage;
 };
 

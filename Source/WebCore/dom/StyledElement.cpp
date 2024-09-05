@@ -155,11 +155,13 @@ MutableStyleProperties& StyledElement::ensureMutableInlineStyle()
 
 void StyledElement::attributeChanged(const QualifiedName& name, const AtomicString& oldValue, const AtomicString& newValue, AttributeModificationReason reason)
 {
-    if (name == styleAttr)
-        styleAttributeChanged(newValue, reason);
-    else if (isPresentationAttribute(name)) {
-        elementData()->setPresentationAttributeStyleIsDirty(true);
-        invalidateStyle();
+    if (oldValue != newValue) {
+        if (name == styleAttr)
+            styleAttributeChanged(newValue, reason);
+        else if (isPresentationAttribute(name)) {
+            elementData()->setPresentationAttributeStyleIsDirty(true);
+            invalidateStyle();
+        }
     }
 
     Element::attributeChanged(name, oldValue, newValue, reason);
@@ -249,7 +251,7 @@ bool StyledElement::setInlineStyleProperty(CSSPropertyID propertyID, CSSProperty
     return true;
 }
 
-bool StyledElement::setInlineStyleProperty(CSSPropertyID propertyID, double value, CSSPrimitiveValue::UnitTypes unit, bool important)
+bool StyledElement::setInlineStyleProperty(CSSPropertyID propertyID, double value, CSSPrimitiveValue::UnitType unit, bool important)
 {
     ensureMutableInlineStyle().setProperty(propertyID, CSSValuePool::singleton().createValue(value, unit), important);
     inlineStyleChanged();
@@ -386,7 +388,7 @@ void StyledElement::addPropertyToPresentationAttributeStyle(MutableStyleProperti
     style.setProperty(propertyID, CSSValuePool::singleton().createIdentifierValue(identifier));
 }
 
-void StyledElement::addPropertyToPresentationAttributeStyle(MutableStyleProperties& style, CSSPropertyID propertyID, double value, CSSPrimitiveValue::UnitTypes unit)
+void StyledElement::addPropertyToPresentationAttributeStyle(MutableStyleProperties& style, CSSPropertyID propertyID, double value, CSSPrimitiveValue::UnitType unit)
 {
     style.setProperty(propertyID, CSSValuePool::singleton().createValue(value, unit));
 }

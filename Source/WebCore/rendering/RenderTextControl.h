@@ -19,8 +19,7 @@
  *
  */
 
-#ifndef RenderTextControl_h
-#define RenderTextControl_h
+#pragma once
 
 #include "RenderBlockFlow.h"
 #include "RenderFlexibleBox.h"
@@ -100,8 +99,8 @@ public:
     {
         return RenderBlock::baselinePosition(baseline, firstLine, direction, position);
     }
-    Optional<int> firstLineBaseline() const override { return RenderBlock::firstLineBaseline(); }
-    Optional<int> inlineBlockBaseline(LineDirectionMode direction) const override { return RenderBlock::inlineBlockBaseline(direction); }
+    std::optional<int> firstLineBaseline() const override { return RenderBlock::firstLineBaseline(); }
+    std::optional<int> inlineBlockBaseline(LineDirectionMode direction) const override { return RenderBlock::inlineBlockBaseline(direction); }
 
 private:
     bool isFlexibleBoxImpl() const override { return true; }
@@ -110,5 +109,3 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderTextControl, isTextControl())
-
-#endif // RenderTextControl_h

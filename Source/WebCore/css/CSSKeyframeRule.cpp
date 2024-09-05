@@ -34,13 +34,13 @@
 namespace WebCore {
 
 StyleKeyframe::StyleKeyframe(Ref<StyleProperties>&& properties)
-    : StyleRuleBase(Keyframe, 0)
+    : StyleRuleBase(Keyframe)
     , m_properties(WTFMove(properties))
 {
 }
 
 StyleKeyframe::StyleKeyframe(std::unique_ptr<Vector<double>> keys, Ref<StyleProperties>&& properties)
-    : StyleRuleBase(Keyframe, 0)
+    : StyleRuleBase(Keyframe)
     , m_properties(WTFMove(properties))
     , m_keys(*keys)
 {
@@ -69,6 +69,16 @@ String StyleKeyframe::keyText() const
     }
 
     return keyText.toString();
+}
+    
+bool StyleKeyframe::setKeyText(const String& keyText)
+{
+    ASSERT(!keyText.isNull());
+    auto keys = CSSParser::parseKeyframeKeyList(keyText);
+    if (!keys || keys->isEmpty())
+        return false;
+    m_keys = *keys;
+    return true;
 }
 
 String StyleKeyframe::cssText() const

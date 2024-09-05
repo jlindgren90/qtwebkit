@@ -89,13 +89,19 @@ public:
         m_height += height;
     }
 
-    void scale(float s) { scale(s, s); }
+    void scale(float s)
+    {
+        m_width *= s;
+        m_height *= s;
+    }
 
     void scale(float scaleX, float scaleY)
     {
         m_width *= scaleX;
         m_height *= scaleY;
     }
+
+    WEBCORE_EXPORT FloatSize constrainedBetween(const FloatSize& min, const FloatSize& max) const;
 
     FloatSize expandedTo(const FloatSize& other) const
     {
@@ -110,6 +116,7 @@ public:
     }
 
     WEBCORE_EXPORT float diagonalLength() const;
+
     float diagonalLengthSquared() const
     {
         return m_width * m_width + m_height * m_height;

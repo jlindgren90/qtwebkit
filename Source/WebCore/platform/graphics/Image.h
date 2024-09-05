@@ -112,7 +112,7 @@ public:
     FloatRect rect() const { return FloatRect(FloatPoint(), size()); }
     float width() const { return size().width(); }
     float height() const { return size().height(); }
-    virtual Optional<IntPoint> hotSpot() const { return Nullopt; }
+    virtual std::optional<IntPoint> hotSpot() const { return std::nullopt; }
 
 #if PLATFORM(IOS)
     virtual FloatSize originalSize() const { return size(); }
@@ -133,6 +133,7 @@ public:
     virtual void startAnimation() { }
     virtual void stopAnimation() {}
     virtual void resetAnimation() {}
+    virtual void newFrameNativeImageAvailableAtIndex(size_t) { }
     
     // Typically the CachedImage that owns us.
     ImageObserver* imageObserver() const { return m_imageObserver; }

@@ -1,3 +1,601 @@
+2016-12-12  Darin Adler  <darin@apple.com>
+
+        Remove bindings generation support for legacy WebCore::Dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=165762
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/webrtc/datachannel-emptystring-expected.txt:
+        * web-platform-tests/webrtc/no-media-call-expected.txt:
+        * web-platform-tests/webrtc/promises-call-expected.txt:
+        * web-platform-tests/webrtc/rtcpeerconnection/rtcpeerconnection-constructor-expected.txt:
+        * web-platform-tests/webrtc/rtcpeerconnection/rtcpeerconnection-idl-expected.txt:
+        Updated to expect error messages with "dictionary" with a lowercase D.
+
+2016-12-10  Jiewen Tan  <jiewen_tan@apple.com>
+
+        [WebCrypto] RSA algorithms should allow importing keys without usages
+        https://bugs.webkit.org/show_bug.cgi?id=165680
+        <rdar://problem/29601354>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/encrypt_decrypt/test_rsa_oaep-expected.txt:
+
+2016-12-09  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Ignore LayoutTests/imported/w3c/web-platform-tests/config.json
+        https://bugs.webkit.org/show_bug.cgi?id=165685
+
+        Reviewed by Ryosuke Niwa.
+
+        * web-platform-tests/.gitignore:
+        Ignore generated user-specific config.json file.
+
+2016-12-06  Jiewen Tan  <jiewen_tan@apple.com>
+
+        [Part 2 of 2] Add support for PKCS8 format while doing SubtleCrypto.importKey/exportKey
+        https://bugs.webkit.org/show_bug.cgi?id=129978
+        <rdar://problem/21799829>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/encrypt_decrypt/test_rsa_oaep-expected.txt:
+
+2016-12-08  Jiewen Tan  <jiewen_tan@apple.com>
+
+        [WebCrypto] Remove NoInterfaceObject attribute from SubtleCrypto Interface
+        https://bugs.webkit.org/show_bug.cgi?id=165629
+        <rdar://problem/29586203>
+
+        Reviewed by Chris Dumez.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-12-08  Chris Dumez  <cdumez@apple.com>
+
+        Support running the layout tests offline
+        https://bugs.webkit.org/show_bug.cgi?id=165534
+
+        Reviewed by Ryosuke Niwa.
+
+        Commit W3C web-platform-tests modules so that it is now possible to run
+        layout tests offline.
+
+        * resources/web-platform-tests-modules.json:
+        * resources/web-platform-tests-modules/darobin/webidl2.js/archive/bd216bcd5596d60734450adc938155deab1e1a80.tar.gz: Added.
+        * resources/web-platform-tests-modules/dontcallmedom/widlproc/archive/4ef8dde69c0ba3d0167bccfa2775eea7f0d6c7fe.tar.gz: Added.
+        * resources/web-platform-tests-modules/html5lib/html5lib-python/archive/7cce65bbaa78411f98b8b37eeefc9db03c580097.tar.gz: Added.
+        * resources/web-platform-tests-modules/html5lib/html5lib-tests/archive/a9badff0cd2fe337170769d42ca2df5e96d30f97.tar.gz: Added.
+        * resources/web-platform-tests-modules/jgraham/six/archive/3b6173c833d217ab0186c355804f5925cbcfca47.tar.gz: Added.
+        * resources/web-platform-tests-modules/pytest-dev/pytest/archive/168daaa71f4cc5f846064ebebab41b9cf625a89a.tar.gz: Added.
+        * resources/web-platform-tests-modules/w3c/pywebsocket/archive/8c285d9015121e8c1c40be852439fc03b4a18112.tar.gz: Added.
+        * resources/web-platform-tests-modules/w3c/testharness.js/archive/873f9680aff66553f84d38f21a038c4534cc2789.tar.gz: Added.
+        * resources/web-platform-tests-modules/w3c/wdclient/archive/de9b46ec049f0b2a6fe261e27804970535ba8658.tar.gz: Added.
+        * resources/web-platform-tests-modules/w3c/wpt-tools/archive/cf9748586c2bca14998eda5956be6cf4d6d221d9.tar.gz: Added.
+        * resources/web-platform-tests-modules/w3c/wptserve/archive/071c51e26a57300979ad53313970d7247979f6d3.tar.gz: Added.
+
+2016-12-05  Jiewen Tan  <jiewen_tan@apple.com>
+
+        [Part 1 of 2] Add support for SPKI format while doing SubtleCrypto.importKey/exportKey
+        https://bugs.webkit.org/show_bug.cgi?id=129978
+        <rdar://problem/21799829>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/encrypt_decrypt/test_rsa_oaep-expected.txt:
+
+2016-12-01  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::unwrapKey to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164747
+        <rdar://problem/29258198>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-12-01  Jiewen Tan  <jiewen_tan@apple.com>
+
+        SubtleCrypto::deriveBits always return NOT_SUPPORTED_ERR for now
+        https://bugs.webkit.org/show_bug.cgi?id=164745
+        <rdar://problem/29258118>
+
+        Reviewed by Darin Adler.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-30  Sam Weinig  <sam@webkit.org>
+
+        [WebIDL] Remove custom bindings for File and Blob constructors
+        https://bugs.webkit.org/show_bug.cgi?id=165218
+
+        Reviewed by Darin Adler.
+
+        * web-platform-tests/fetch/api/basic/request-headers-expected.txt:
+        * web-platform-tests/fetch/api/basic/request-headers-worker-expected.txt:
+        Update results (still failing) to account for stricter rules about dictionary default values.
+
+2016-11-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        SubtleCrypto::deriveKey always return NOT_SUPPORTED_ERR for now
+        https://bugs.webkit.org/show_bug.cgi?id=164744
+        <rdar://problem/29258083>
+
+        Reviewed by Darin Adler.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-26  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::digest to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164742
+        <rdar://problem/29258037>
+
+        Reviewed by Darin Adler.
+
+        * WebCryptoAPI/digest/test_digest-expected.txt:
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::wrapKey to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164746
+        <rdar://problem/29258160>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::verify to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164741
+        <rdar://problem/29257935>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-22  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::sign to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164740
+        <rdar://problem/29257864>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-18  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::decrypt to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164739
+        <rdar://problem/29257848>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/encrypt_decrypt/test_aes_cbc-expected.txt:
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-18  Alex Christensen  <achristensen@webkit.org>
+
+        TextDecoder constructor should not accept replacement encodings
+        https://bugs.webkit.org/show_bug.cgi?id=164903
+
+        Reviewed by Chris Dumez.
+
+        * web-platform-tests/encoding/api-replacement-encodings-expected.txt:
+
+2016-11-17  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::encrypt to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164738
+        <rdar://problem/29257812>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/encrypt_decrypt/test_aes_cbc-expected.txt:
+        * WebCryptoAPI/encrypt_decrypt/test_aes_ctr-expected.txt:
+        * WebCryptoAPI/encrypt_decrypt/test_aes_gcm-expected.txt:
+        * WebCryptoAPI/encrypt_decrypt/test_rsa_oaep-expected.txt:
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-17  Alex Christensen  <achristensen@webkit.org>
+
+        Implement TextDecoder and TextEncoder
+        https://bugs.webkit.org/show_bug.cgi?id=163771
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/encoding/api-basics-expected.txt:
+        * web-platform-tests/encoding/api-invalid-label-expected.txt:
+        * web-platform-tests/encoding/api-replacement-encodings-expected.txt:
+        * web-platform-tests/encoding/api-surrogates-utf8-expected.txt:
+        * web-platform-tests/encoding/idlharness-expected.txt:
+        * web-platform-tests/encoding/iso-2022-jp-decoder-expected.txt:
+        * web-platform-tests/encoding/single-byte-decoder-expected.txt:
+        * web-platform-tests/encoding/textdecoder-byte-order-marks-expected.txt:
+        * web-platform-tests/encoding/textdecoder-fatal-expected.txt:
+        * web-platform-tests/encoding/textdecoder-fatal-single-byte-expected.txt:
+        * web-platform-tests/encoding/textdecoder-fatal-streaming-expected.txt:
+        * web-platform-tests/encoding/textdecoder-ignorebom-expected.txt:
+        * web-platform-tests/encoding/textdecoder-labels-expected.txt:
+        * web-platform-tests/encoding/textdecoder-streaming-expected.txt:
+        * web-platform-tests/encoding/textdecoder-utf16-surrogates-expected.txt:
+        * web-platform-tests/encoding/textencoder-constructor-non-utf-expected.txt:
+        * web-platform-tests/encoding/textencoder-utf16-surrogates-expected.txt:
+
+2016-11-16  Ryosuke Niwa  <rniwa@webkit.org>
+
+        slotchange event should bubble and dispatched once
+        https://bugs.webkit.org/show_bug.cgi?id=164770
+
+        Reviewed by Antti Koivisto.
+
+        Rebaselined the test. Some test cases fail as they do on Chrome because it's testing an outdated version of the spec.
+        Will fix the test upstream later.
+
+        * web-platform-tests/shadow-dom/slotchange-event-expected.txt:
+
+2016-11-14  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::exportKey to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164722
+        <rdar://problem/29251740>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-14  Youenn Fablet  <youenn@apple.com>
+
+        Support WPT templated tests
+        https://bugs.webkit.org/show_bug.cgi?id=164707
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/IndexedDB/interfaces.worker-expected.txt: Added.
+        * web-platform-tests/IndexedDB/interfaces.worker.html: Added.
+        * web-platform-tests/WebIDL/ecmascript-binding/es-exceptions/constructor-object.worker-expected.txt: Added.
+        * web-platform-tests/WebIDL/ecmascript-binding/es-exceptions/constructor-object.worker.html: Added.
+        * web-platform-tests/XMLHttpRequest/XMLHttpRequest-withCredentials.any-expected.txt: Added.
+        * web-platform-tests/XMLHttpRequest/XMLHttpRequest-withCredentials.any.html: Added.
+        * web-platform-tests/XMLHttpRequest/XMLHttpRequest-withCredentials.worker-expected.txt: Added.
+        * web-platform-tests/XMLHttpRequest/XMLHttpRequest-withCredentials.worker.html: Added.
+        * web-platform-tests/XMLHttpRequest/abort-during-open.worker-expected.txt: Added.
+        * web-platform-tests/XMLHttpRequest/abort-during-open.worker.html: Added.
+        * web-platform-tests/XMLHttpRequest/send-send.worker-expected.txt: Added.
+        * web-platform-tests/XMLHttpRequest/send-send.worker.html: Added.
+        * web-platform-tests/XMLHttpRequest/send-usp.worker-expected.txt: Added.
+        * web-platform-tests/XMLHttpRequest/send-usp.worker.html: Added.
+        * web-platform-tests/html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.worker-expected.txt: Added.
+        * web-platform-tests/html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.worker.html: Added.
+        * web-platform-tests/url/historical.worker-expected.txt: Added.
+        * web-platform-tests/url/historical.worker.html: Added.
+
+2016-11-12  Ryosuke Niwa  <rniwa@webkit.org>
+
+        document.currentScript should be null when running a script inside a shadow tree
+        https://bugs.webkit.org/show_bug.cgi?id=164693
+
+        Reviewed by Yusuke Suzuki.
+
+        Rebaselined the imported test now that there are no errors.
+
+        * web-platform-tests/shadow-dom/Document-prototype-currentScript-expected.txt:
+
+2016-11-11  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: "close pending flag" and firing blocked events all need fixing.
+        https://bugs.webkit.org/show_bug.cgi?id=164641
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbobjectstore-rename-store-expected.txt:
+
+2016-11-10  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0 Support the IDBDatabase.onclose event.
+        https://bugs.webkit.org/show_bug.cgi?id=164602
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/interfaces-expected.txt:
+
+2016-11-05  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::importKey to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=164446
+        <rdar://problem/29123621>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-11-10  Zan Dobersek  <zdobersek@igalia.com>
+
+        [EME] Add no-op Web-facing APIs
+        https://bugs.webkit.org/show_bug.cgi?id=164028
+
+        Reviewed by Jer Noble.
+
+        Add the text baseline for the web-platform-tests/encrypted-media/idlharness.html
+        test. It's the only meaningful test we can run at the moment, and all but one of
+        the subtests pass.
+
+        * web-platform-tests/encrypted-media/idlharness-expected.txt: Added.
+
+2016-11-08  Philippe Normand  <pnormand@igalia.com>
+
+        [WebRTC] white-list turns urls from the RTCConfiguration
+        https://bugs.webkit.org/show_bug.cgi?id=164506
+
+        Reviewed by Alejandro G. Castro.
+
+        * web-platform-tests/webrtc/rtcpeerconnection/rtcpeerconnection-constructor-expected.txt: Rebaseline test, since turns servers are now parsed.
+
+2016-11-09  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Clean up some exception ordering.
+        https://bugs.webkit.org/show_bug.cgi?id=164566
+
+        Reviewed by Alex Christensen.
+
+        * IndexedDB-private-browsing/idbcursor_advance_index7-expected.txt:
+        * IndexedDB-private-browsing/idbcursor_continue_index7-expected.txt:
+        * web-platform-tests/IndexedDB/idbcursor_advance_index7-expected.txt:
+        * web-platform-tests/IndexedDB/idbcursor_continue_index7-expected.txt:
+        * web-platform-tests/IndexedDB/idbobjectstore_createIndex14-exception_order-expected.txt:
+
+2016-11-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should not consider path of URLs with no host to start at the first slash after the colon
+        https://bugs.webkit.org/show_bug.cgi?id=164555
+
+        Reviewed by Tim Horton.
+
+        * web-platform-tests/url/a-element-expected.txt:
+        * web-platform-tests/url/a-element-xhtml-expected.txt:
+        * web-platform-tests/url/url-constructor-expected.txt:
+
+2016-11-09  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: W3C test IndexedDB/idbtransaction_objectStoreNames.html fails.
+        https://bugs.webkit.org/show_bug.cgi?id=164528
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbtransaction_objectStoreNames-expected.txt:
+
+2016-11-09  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Implement new IDBCursor.continuePrimaryKey function.
+        https://bugs.webkit.org/show_bug.cgi?id=164404
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbcursor-continuePrimaryKey-exception-order-expected.txt:
+
+2016-11-09  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Clean up more transaction abort behavior, including tweaks to Index/ObjectStore lifetime.
+        https://bugs.webkit.org/show_bug.cgi?id=164466
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/transaction-abort-index-metadata-revert-expected.txt:
+        * web-platform-tests/IndexedDB/transaction-abort-multiple-metadata-revert-expected.txt:
+        * web-platform-tests/IndexedDB/transaction-abort-object-store-metadata-revert-expected.txt:
+
+2016-11-09  Alex Christensen  <achristensen@webkit.org>
+
+        Ignore URL.origin in URL web-platform-tests
+        https://bugs.webkit.org/show_bug.cgi?id=164553
+
+        Reviewed by Tim Horton.
+
+        Spec-noncompliance in our SecurityOrigin class is covering up URLParser bugs.
+        Let's ignore those bugs for now in our copy of the web-platform-tests so we can see URLParser conformance improvement in our results.
+        I've proposed moving these URL.origin checks to different tests in https://github.com/w3c/web-platform-tests/pull/4182
+
+        * web-platform-tests/url/a-element-expected.txt:
+        * web-platform-tests/url/a-element-xhtml-expected.txt:
+        * web-platform-tests/url/a-element.js:
+        (runURLTests):
+        * web-platform-tests/url/url-constructor-expected.txt:
+        * web-platform-tests/url/url-constructor.html:
+
+2016-11-04  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Clean up more transaction abort and exception throwing behavior from IDBObjectStore.
+        https://bugs.webkit.org/show_bug.cgi?id=164424
+
+        Reviewed by Alex Christensen.
+
+        This patch actually turns a handful of PASS to FAIL in the imported tests, but those are parts of the
+        spec in flux/under discussion.
+
+        We'll update either source or the tests as things are resolved.
+
+        * IndexedDB-private-browsing/idbcursor_advance_index7-expected.txt:
+        * IndexedDB-private-browsing/idbcursor_continue_index7-expected.txt:
+        * IndexedDB-private-browsing/idbindex_get7-expected.txt:
+        * IndexedDB-private-browsing/idbindex_getKey7-expected.txt:
+        * IndexedDB-private-browsing/idbindex_openCursor2-expected.txt:
+        * IndexedDB-private-browsing/idbindex_openKeyCursor3-expected.txt:
+        * web-platform-tests/IndexedDB/idbcursor_advance_index7-expected.txt:
+        * web-platform-tests/IndexedDB/idbcursor_continue_index7-expected.txt:
+        * web-platform-tests/IndexedDB/idbindex_get8-expected.txt:
+        * web-platform-tests/IndexedDB/idbindex_getKey8-expected.txt:
+        * web-platform-tests/IndexedDB/idbindex_openCursor3-expected.txt:
+        * web-platform-tests/IndexedDB/idbindex_openKeyCursor4-expected.txt:
+        * web-platform-tests/IndexedDB/transaction-abort-index-metadata-revert-expected.txt:
+        * web-platform-tests/IndexedDB/transaction-abort-multiple-metadata-revert-expected.txt:
+        * web-platform-tests/IndexedDB/transaction-abort-object-store-metadata-revert-expected.txt:
+
+2016-11-04  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Handle IDBObjectStore rename behavior properly when version change transaction aborts.
+        https://bugs.webkit.org/show_bug.cgi?id=164416
+
+        Reviewed by Beth Dakin.
+
+        * web-platform-tests/IndexedDB/idbobjectstore-rename-abort-expected.txt:
+
+2016-11-04  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Use IDB-specific exceptions in places where the generic exceptions are currently used.
+        https://bugs.webkit.org/show_bug.cgi?id=164406
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbindex-rename-errors-expected.txt:
+        * web-platform-tests/IndexedDB/idbobjectstore-rename-errors-expected.txt:
+
+2016-11-04  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Throw the correct exceptions during IDBObjectStore/IDBIndex renaming.
+        https://bugs.webkit.org/show_bug.cgi?id=164405
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbindex-rename-errors-expected.txt:
+        * web-platform-tests/IndexedDB/idbobjectstore-rename-errors-expected.txt:
+
+2016-11-03  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Handle IDBIndex rename behavior properly when version change transaction aborts.
+        https://bugs.webkit.org/show_bug.cgi?id=164403
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbindex-rename-abort-expected.txt: Updated to passing expectations.
+
+2016-11-03  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Update custom elements tests
+        https://bugs.webkit.org/show_bug.cgi?id=164352
+
+        Reviewed by Antti Koivisto.
+
+        Reimported the custom elements tests as of 5047c27a5c61cc12eab75ac72b86125ec3cc8527.
+
+        * web-platform-tests/custom-elements/custom-element-reaction-queue-expected.txt: Added.
+        * web-platform-tests/custom-elements/custom-element-reaction-queue.html: Added.
+        * web-platform-tests/custom-elements/htmlconstructor/newtarget.html:
+        * web-platform-tests/custom-elements/reactions/CSSStyleDeclaration-expected.txt: Moved from fast/custom-elements/reactions/.
+        * web-platform-tests/custom-elements/reactions/CSSStyleDeclaration.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/Document.html: Updated.
+        * web-platform-tests/custom-elements/reactions/HTMLAnchorElement-expected.txt: Moved from fast/custom-elements/reactions/.
+        * web-platform-tests/custom-elements/reactions/HTMLAnchorElement.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLOptionElement-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLOptionElement.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLOptionsCollection-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLOptionsCollection.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLOutputElement-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLOutputElement.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLSelectElement-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLSelectElement.html:  Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTableElement-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTableElement.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTableRowElement-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTableRowElement.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTableSectionElement-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTableSectionElement.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTitleElement-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/HTMLTitleElement.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/ShadowRoot-expected.txt: Ditto.
+        * web-platform-tests/custom-elements/reactions/ShadowRoot.html: Ditto.
+        * web-platform-tests/custom-elements/reactions/resources/reactions.js:
+        * web-platform-tests/custom-elements/reactions/w3c-import.log:
+        * web-platform-tests/custom-elements/resources/custom-elements-helpers.js:
+        * web-platform-tests/custom-elements/upgrading/upgrading-enqueue-reactions-expected.txt: Moved from fast/custom-elements/.
+        * web-platform-tests/custom-elements/upgrading/upgrading-enqueue-reactions.html: Ditto.
+        * web-platform-tests/custom-elements/upgrading/w3c-import.log:
+        * web-platform-tests/custom-elements/w3c-import.log:
+
+2016-11-03  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Rename IDBKeyRange.contains to IDBKeyRange.includes.
+        https://bugs.webkit.org/show_bug.cgi?id=164383
+
+        Reviewed by Beth Dakin.
+
+        * web-platform-tests/IndexedDB/idbkeyrange-includes-expected.txt:
+
+2016-11-03  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support binary keys.
+        <rdar://problem/28806927> and https://bugs.webkit.org/show_bug.cgi?id=164359
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idb_binary_key_conversion-expected.txt:
+        * web-platform-tests/IndexedDB/idbfactory_cmp3-expected.txt:
+        * web-platform-tests/IndexedDB/idbfactory_cmp4-expected.txt:
+
+2016-11-01  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBIndex getAll/getAllKeys.
+        <rdar://problem/28806933> and https://bugs.webkit.org/show_bug.cgi?id=164294
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbindex_getAll-expected.txt:
+        * web-platform-tests/IndexedDB/idbindex_getAllKeys-expected.txt:
+
+2016-11-01  Alex Christensen  <achristensen@webkit.org>
+
+        Rebase test after r208239
+        https://bugs.webkit.org/show_bug.cgi?id=164290
+
+        * web-platform-tests/url/url-setters-expected.txt:
+        This was an expected change.  Non-special hosts are parsed differently than special hosts.
+
+2016-11-01  Alex Christensen  <achristensen@webkit.org>
+
+        Percent-encode non-ASCII code points in hosts of URLs with unrecognized schemes
+        https://bugs.webkit.org/show_bug.cgi?id=164290
+
+        Reviewed by Tim Horton.
+
+        * web-platform-tests/url/a-element-expected.txt:
+        * web-platform-tests/url/a-element-xhtml-expected.txt:
+        * web-platform-tests/url/url-constructor-expected.txt:
+
+2016-10-31  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBObjectStore getAll/getAllKeys.
+        <rdar://problem/28806934> and https://bugs.webkit.org/show_bug.cgi?id=164097
+
+        Reviewed by Darin Adler.
+
+        * web-platform-tests/IndexedDB/idbobjectstore_getAll-expected.txt:
+        * web-platform-tests/IndexedDB/idbobjectstore_getAllKeys-expected.txt:
+
+2016-10-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        CSSStyleDeclaration should be annotated with CEReactions
+        https://bugs.webkit.org/show_bug.cgi?id=163968
+
+        Reviewed by Antti Koivisto.
+
+        Rebaselined the test now that all test cases pass.
+
+        * web-platform-tests/custom-elements/attribute-changed-callback-expected.txt:
+
+2016-10-28  Darin Adler  <darin@apple.com>
+
+        Move all classes in the HTML directory from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163876
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/url/url-setters-expected.txt: Updated for progressions that occurred
+        because setting the href attribute on a DOMURL object no longer modifies the URL as a side
+        effect in the cases where it throw an exception.
+
 2016-10-28  Alex Christensen  <achristensen@webkit.org>
 
         Partially revert 207805 after resolution in URL spec issue 87

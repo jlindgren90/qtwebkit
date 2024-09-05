@@ -99,7 +99,7 @@ EncodedJSValue pluginElementPropertyGetter(ExecState* exec, EncodedJSValue thisV
     VM& vm = exec->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    JSHTMLElement* thisObject = jsDynamicCast<JSHTMLElement*>(JSValue::decode(thisValue));
+    JSHTMLElement* thisObject = jsDynamicDowncast<JSHTMLElement*>(JSValue::decode(thisValue));
     if (!thisObject)
         return throwVMTypeError(exec, scope);
     JSObject* scriptObject = pluginScriptObject(exec, thisObject);
@@ -134,7 +134,7 @@ bool pluginElementCustomPut(ExecState* exec, PropertyName propertyName, JSValue 
 
 static EncodedJSValue JSC_HOST_CALL callPlugin(ExecState* exec)
 {
-    JSHTMLElement* element = jsCast<JSHTMLElement*>(exec->callee());
+    JSHTMLElement* element = jsCast<JSHTMLElement*>(exec->jsCallee());
 
     // Get the plug-in script object.
     JSObject* scriptObject = pluginScriptObject(exec, element);

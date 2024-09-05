@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2010 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2008, 2010, 2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,8 +31,15 @@
 #include "EventTarget.h"
 #include "MessagePort.h"
 #include "WorkerScriptLoaderClient.h"
+#include <runtime/RuntimeFlags.h>
 #include <wtf/Optional.h>
 #include <wtf/text/AtomicStringHash.h>
+
+namespace JSC {
+class ExecState;
+class JSObject;
+class JSValue;
+}
 
 namespace WebCore {
 
@@ -42,19 +49,21 @@ class WorkerScriptLoader;
 
 class Worker final : public AbstractWorker, public ActiveDOMObject, private WorkerScriptLoaderClient {
 public:
-    static ExceptionOr<Ref<Worker>> create(ScriptExecutionContext&, const String& url);
+    static ExceptionOr<Ref<Worker>> create(ScriptExecutionContext&, const String& url, JSC::RuntimeFlags);
     virtual ~Worker();
 
-    ExceptionOr<void> postMessage(RefPtr<SerializedScriptValue>&& message, Vector<RefPtr<MessagePort>>&&);
+    ExceptionOr<void> postMessage(JSC::ExecState&, JSC::JSValue message, Vector<JSC::Strong<JSC::JSObject>>&&);
 
     void terminate();
 
     bool hasPendingActivity() const final;
 
+    String identifier() const { return m_identifier; }
+
     ScriptExecutionContext* scriptExecutionContext() const final { return ActiveDOMObject::scriptExecutionContext(); }
 
 private:
-    explicit Worker(ScriptExecutionContext&);
+    explicit Worker(ScriptExecutionContext&, JSC::RuntimeFlags);
 
     EventTargetInterface eventTargetInterface() const final { return WorkerEventTargetInterfaceType; }
 
@@ -70,9 +79,11 @@ private:
     friend void networkStateChanged(bool isOnLine);
 
     RefPtr<WorkerScriptLoader> m_scriptLoader;
+    String m_identifier;
     WorkerGlobalScopeProxy* m_contextProxy; // The proxy outlives the worker to perform thread shutdown.
-    Optional<ContentSecurityPolicyResponseHeaders> m_contentSecurityPolicyResponseHeaders;
+    std::optional<ContentSecurityPolicyResponseHeaders> m_contentSecurityPolicyResponseHeaders;
     bool m_shouldBypassMainWorldContentSecurityPolicy { false };
+    JSC::RuntimeFlags m_runtimeFlags;
 };
 
 } // namespace WebCore

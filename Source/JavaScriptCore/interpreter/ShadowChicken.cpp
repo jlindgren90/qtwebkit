@@ -155,8 +155,16 @@ void ShadowChicken::update(VM&, ExecState* exec)
             exec, [&] (StackVisitor& visitor) -> StackVisitor::Status {
                 if (visitor->isInlinedFrame())
                     return StackVisitor::Continue;
+                if (visitor->isWasmFrame()) {
+                    // FIXME: Make shadow chicken work with Wasm.
+                    // https://bugs.webkit.org/show_bug.cgi?id=165441
+                    return StackVisitor::Continue;
+                }
+
                 bool isTailDeleted = false;
-                stackRightNow.append(Frame(visitor->callee(), visitor->callFrame(), isTailDeleted));
+                // FIXME: Make shadow chicken work with Wasm.
+                // https://bugs.webkit.org/show_bug.cgi?id=165441
+                stackRightNow.append(Frame(jsCast<JSObject*>(visitor->callee()), visitor->callFrame(), isTailDeleted));
                 return StackVisitor::Continue;
             });
         stackRightNow.reverse();
@@ -272,6 +280,11 @@ void ShadowChicken::update(VM&, ExecState* exec)
                 return StackVisitor::Continue;
             }
 
+            if (visitor->isWasmFrame()) {
+                // FIXME: Make shadow chicken work with Wasm.
+                return StackVisitor::Continue;
+            }
+
             CallFrame* callFrame = visitor->callFrame();
             if (verbose)
                 dataLog("    Examining ", RawPointer(callFrame), "\n");
@@ -281,7 +294,7 @@ void ShadowChicken::update(VM&, ExecState* exec)
                 return StackVisitor::Done;
             }
 
-            bool foundFrame = advanceIndexInLogTo(callFrame, callFrame->callee(), callFrame->callerFrame());
+            bool foundFrame = advanceIndexInLogTo(callFrame, callFrame->jsCallee(), callFrame->callerFrame());
             bool isTailDeleted = false;
             JSScope* scope = nullptr;
             CodeBlock* codeBlock = callFrame->codeBlock();
@@ -293,7 +306,7 @@ void ShadowChicken::update(VM&, ExecState* exec)
                 if (scope)
                     RELEASE_ASSERT(scope->inherits(JSScope::info()));
             }
-            toPush.append(Frame(visitor->callee(), callFrame, isTailDeleted, callFrame->thisValue(), scope, codeBlock, callFrame->callSiteIndex()));
+            toPush.append(Frame(jsCast<JSObject*>(visitor->callee()), callFrame, isTailDeleted, callFrame->thisValue(), scope, codeBlock, callFrame->callSiteIndex()));
 
             if (indexInLog < logCursorIndex
                 // This condition protects us from the case where advanceIndexInLogTo didn't find
@@ -444,6 +457,7 @@ JSArray* ShadowChicken::functionsOnStack(ExecState* exec)
         vm, exec,
         [&] (const Frame& frame) -> bool {
             result->push(exec, frame.callee);
+            RELEASE_ASSERT(!scope.exception()); // This function is only called from tests.
             return true;
         });
     

@@ -54,15 +54,14 @@ namespace IndexedDB {
 enum class ObjectStoreOverwriteMode;
 }
 
-class IDBObjectStore final : public RefCounted<IDBObjectStore>, public ActiveDOMObject {
+class IDBObjectStore final : public ActiveDOMObject {
 public:
-    static Ref<IDBObjectStore> create(ScriptExecutionContext&, const IDBObjectStoreInfo&, IDBTransaction&);
-
+    IDBObjectStore(ScriptExecutionContext&, const IDBObjectStoreInfo&, IDBTransaction&);
     ~IDBObjectStore();
 
     const String& name() const;
     ExceptionOr<void> setName(const String&);
-    const Optional<IDBKeyPath>& keyPath() const;
+    const std::optional<IDBKeyPath>& keyPath() const;
     RefPtr<DOMStringList> indexNames() const;
     IDBTransaction& transaction();
     bool autoIncrement() const;
@@ -78,6 +77,8 @@ public:
     ExceptionOr<Ref<IDBRequest>> openKeyCursor(JSC::ExecState&, JSC::JSValue key, const String& direction);
     ExceptionOr<Ref<IDBRequest>> get(JSC::ExecState&, JSC::JSValue key);
     ExceptionOr<Ref<IDBRequest>> get(JSC::ExecState&, IDBKeyRange*);
+    ExceptionOr<Ref<IDBRequest>> getKey(JSC::ExecState&, JSC::JSValue key);
+    ExceptionOr<Ref<IDBRequest>> getKey(JSC::ExecState&, IDBKeyRange*);
     ExceptionOr<Ref<IDBRequest>> add(JSC::ExecState&, JSC::JSValue, JSC::JSValue key);
     ExceptionOr<Ref<IDBRequest>> put(JSC::ExecState&, JSC::JSValue, JSC::JSValue key);
     ExceptionOr<Ref<IDBRequest>> deleteFunction(JSC::ExecState&, IDBKeyRange*);
@@ -88,6 +89,10 @@ public:
     ExceptionOr<void> deleteIndex(const String& name);
     ExceptionOr<Ref<IDBRequest>> count(JSC::ExecState&, IDBKeyRange*);
     ExceptionOr<Ref<IDBRequest>> count(JSC::ExecState&, JSC::JSValue key);
+    ExceptionOr<Ref<IDBRequest>> getAll(JSC::ExecState&, RefPtr<IDBKeyRange>, std::optional<uint32_t> count);
+    ExceptionOr<Ref<IDBRequest>> getAll(JSC::ExecState&, JSC::JSValue key, std::optional<uint32_t> count);
+    ExceptionOr<Ref<IDBRequest>> getAllKeys(JSC::ExecState&, RefPtr<IDBKeyRange>, std::optional<uint32_t> count);
+    ExceptionOr<Ref<IDBRequest>> getAllKeys(JSC::ExecState&, JSC::JSValue key, std::optional<uint32_t> count);
 
     ExceptionOr<Ref<IDBRequest>> putForCursorUpdate(JSC::ExecState&, JSC::JSValue, JSC::JSValue key);
 
@@ -98,12 +103,13 @@ public:
 
     void rollbackForVersionChangeAbort();
 
+    void ref();
+    void deref();
+
     void visitReferencedIndexes(JSC::SlotVisitor&) const;
     void renameReferencedIndex(IDBIndex&, const String& newName);
 
 private:
-    IDBObjectStore(ScriptExecutionContext&, const IDBObjectStoreInfo&, IDBTransaction&);
-
     enum class InlineKeyCheck { Perform, DoNotPerform };
     ExceptionOr<Ref<IDBRequest>> putOrAdd(JSC::ExecState&, JSC::JSValue, RefPtr<IDBKey>, IndexedDB::ObjectStoreOverwriteMode, InlineKeyCheck);
     ExceptionOr<Ref<IDBRequest>> doCount(JSC::ExecState&, const IDBKeyRangeData&);
@@ -115,13 +121,16 @@ private:
 
     IDBObjectStoreInfo m_info;
     IDBObjectStoreInfo m_originalInfo;
-    Ref<IDBTransaction> m_transaction;
+
+    // IDBObjectStore objects are always owned by their referencing IDBTransaction.
+    // ObjectStores will never outlive transactions so its okay to keep a raw C++ reference here.
+    IDBTransaction& m_transaction;
 
     bool m_deleted { false };
 
     mutable Lock m_referencedIndexLock;
     HashMap<String, std::unique_ptr<IDBIndex>> m_referencedIndexes;
-    HashSet<std::unique_ptr<IDBIndex>> m_deletedIndexes;
+    HashMap<uint64_t, std::unique_ptr<IDBIndex>> m_deletedIndexes;
 };
 
 } // namespace WebCore

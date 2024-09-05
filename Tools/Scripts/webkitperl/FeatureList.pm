@@ -51,9 +51,7 @@ BEGIN {
 my (
     $accelerated2DCanvasSupport,
     $allInOneBuild,
-    $asyncfunctionSyntax,
     $attachmentElementSupport,
-    $batteryStatusSupport,
     $canvasPathSupport,
     $canvasProxySupport,
     $channelMessagingSupport,
@@ -129,6 +127,7 @@ my (
     $proximityEventsSupport,
     $quotaSupport,
     $readableStreamAPISupport,
+    $readableByteStreamAPISupport,
     $registerProtocolHandlerSupport,
     $requestAnimationFrameSupport,
     $resolutionMediaQuerySupport,
@@ -180,15 +179,8 @@ my @features = (
     { option => "allinone-build", desc => "Toggle all-in-one build",
       define => "ENABLE_ALLINONE_BUILD", default => isWindows() || isQt(), value => \$allInOneBuild },
 
-    { option => "asyncfunction-syntax", desc => "Toggle ES2017 async functions support",
-      define => "ENABLE_ES2017_ASYNCFUNCTION_SYNTAX", default => 0, value => \$asyncfunctionSyntax,
-      javascript => 1 },
-
     { option => "attachment-element", desc => "Toggle Attachment Element support",
       define => "ENABLE_ATTACHMENT_ELEMENT", default => 0, value => \$attachmentElementSupport },
-
-    { option => "battery-status", desc => "Toggle Battery Status support",
-      define => "ENABLE_BATTERY_STATUS", default => isEfl(), value => \$batteryStatusSupport },
 
     { option => "canvas-path", desc => "Toggle Canvas Path support",
       define => "ENABLE_CANVAS_PATH", default => 1, value => \$canvasPathSupport },
@@ -209,7 +201,7 @@ my @features = (
       define => "ENABLE_CSS_COMPOSITING", default => isAppleWebKit(), value => \$cssCompositingSupport },
 
     { option => "css-device-adaptation", desc => "Toggle CSS Device Adaptation support",
-      define => "ENABLE_CSS_DEVICE_ADAPTATION", default => isEfl(), value => \$cssDeviceAdaptation },
+      define => "ENABLE_CSS_DEVICE_ADAPTATION", default => 0, value => \$cssDeviceAdaptation },
 
     { option => "css-grid-layout", desc => "Toggle CSS Grid Layout support",
       define => "ENABLE_CSS_GRID_LAYOUT", default => 1, value => \$cssGridLayoutSupport },
@@ -233,7 +225,7 @@ my @features = (
       define => "ENABLE_CSS3_TEXT", default => (isEfl() || isGtk()), value => \$css3TextSupport },
 
     { option => "custom-elements", desc => "Toggle custom elements support",
-      define => "ENABLE_CUSTOM_ELEMENTS", default => (isAppleMacWebKit() || isIOSWebKit()), value => \$customElementsSupport },
+      define => "ENABLE_CUSTOM_ELEMENTS", default => 1, value => \$customElementsSupport },
 
     { option => "custom-scheme-handler", desc => "Toggle Custom Scheme Handler support",
       define => "ENABLE_CUSTOM_SCHEME_HANDLER", default => isEfl(), value => \$customSchemeHandlerSupport },
@@ -359,10 +351,6 @@ my @features = (
     { option => "mhtml", desc => "Toggle MHTML support",
       define => "ENABLE_MHTML", default => (isGtk() || isEfl() || isQt()), value => \$mhtmlSupport },
 
-    { option => "modules", desc => "Toggle ES6 modules support",
-      define => "ENABLE_ES6_MODULES", default => 0, value => \$modulesSupport,
-      javascript => 1 },
-
     { option => "mouse-cursor-scale", desc => "Toggle Scaled mouse cursor support",
       define => "ENABLE_MOUSE_CURSOR_SCALE", default => isEfl(), value => \$mouseCursorScaleSupport },
 
@@ -401,6 +389,9 @@ my @features = (
 
     { option => "readableStreamAPI", desc => "Toggle ReadableStream API support",
       define => "ENABLE_READABLE_STREAM_API", default => 1, value => \$readableStreamAPISupport },
+
+    { option => "readableByteStreamAPI", desc => "Toggle support of ByteStream part of ReadableStream API",
+      define => "ENABLE_READABLE_BYTE_STREAM_API", default => 1, value => \$readableByteStreamAPISupport },
 
     { option => "resolution-media-query", desc => "Toggle resolution media query support",
       define => "ENABLE_RESOLUTION_MEDIA_QUERY", default => isEfl(), value => \$resolutionMediaQuerySupport },

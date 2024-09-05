@@ -33,7 +33,6 @@
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameView.h"
-#include "HTMLBodyElement.h"
 #include "HTMLDocument.h"
 #include "Page.h"
 #include "SecurityOrigin.h"
@@ -93,7 +92,9 @@ Ref<Document> XSLTProcessor::createDocumentFromSource(const String& sourceString
             result->setSecurityOriginPolicy(oldDocument->securityOriginPolicy());
             result->setCookieURL(oldDocument->cookieURL());
             result->setFirstPartyForCookies(oldDocument->firstPartyForCookies());
+            result->setStrictMixedContentMode(oldDocument->isStrictMixedContentMode());
             result->contentSecurityPolicy()->copyStateFrom(oldDocument->contentSecurityPolicy());
+            result->contentSecurityPolicy()->copyUpgradeInsecureRequestStateFrom(*oldDocument->contentSecurityPolicy());
         }
 
         frame->setDocument(result.copyRef());

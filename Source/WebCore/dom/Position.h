@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef Position_h
-#define Position_h
+#pragma once
 
 #include "ContainerNode.h"
 #include "EditingBoundary.h"
@@ -350,9 +349,7 @@ TextStream& operator<<(TextStream&, const Position&);
 } // namespace WebCore
 
 #if ENABLE(TREE_DEBUGGING)
-// Outside the WebCore namespace for ease of invocation from gdb.
+// Outside the WebCore namespace for ease of invocation from the debugger.
 void showTree(const WebCore::Position&);
 void showTree(const WebCore::Position*);
 #endif
-
-#endif // Position_h

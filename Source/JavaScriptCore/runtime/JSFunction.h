@@ -39,12 +39,16 @@ class JSGlobalObject;
 class LLIntOffsetsExtractor;
 class NativeExecutable;
 class SourceCode;
-class WebAssemblyExecutable;
 class InternalFunction;
 namespace DFG {
 class SpeculativeJIT;
 class JITCompiler;
 }
+
+namespace DOMJIT {
+class Signature;
+}
+
 
 JS_EXPORT_PRIVATE EncodedJSValue JSC_HOST_CALL callHostFunctionAsConstructor(ExecState*);
 
@@ -67,15 +71,12 @@ public:
         return sizeof(JSFunction);
     }
 
-    JS_EXPORT_PRIVATE static JSFunction* create(VM&, JSGlobalObject*, int length, const String& name, NativeFunction, Intrinsic = NoIntrinsic, NativeFunction nativeConstructor = callHostFunctionAsConstructor);
+    JS_EXPORT_PRIVATE static JSFunction* create(VM&, JSGlobalObject*, int length, const String& name, NativeFunction, Intrinsic = NoIntrinsic, NativeFunction nativeConstructor = callHostFunctionAsConstructor, const DOMJIT::Signature* = nullptr);
     
     static JSFunction* createWithInvalidatedReallocationWatchpoint(VM&, FunctionExecutable*, JSScope*);
 
     static JSFunction* create(VM&, FunctionExecutable*, JSScope*);
     static JSFunction* create(VM&, FunctionExecutable*, JSScope*, Structure*);
-#if ENABLE(WEBASSEMBLY)
-    static JSFunction* create(VM&, WebAssemblyExecutable*, JSScope*);
-#endif
 
     JS_EXPORT_PRIVATE static JSFunction* createBuiltinFunction(VM&, FunctionExecutable*, JSGlobalObject*);
     static JSFunction* createBuiltinFunction(VM&, FunctionExecutable*, JSGlobalObject*, const String& name);
@@ -154,10 +155,6 @@ public:
 protected:
     JS_EXPORT_PRIVATE JSFunction(VM&, JSGlobalObject*, Structure*);
     JSFunction(VM&, FunctionExecutable*, JSScope*, Structure*);
-
-#if ENABLE(WEBASSEMBLY)
-    JSFunction(VM&, WebAssemblyExecutable*, JSScope*);
-#endif
 
     void finishCreation(VM&, NativeExecutable*, int length, const String& name);
     using Base::finishCreation;

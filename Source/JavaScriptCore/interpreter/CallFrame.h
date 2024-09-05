@@ -57,6 +57,7 @@ namespace JSC  {
 #endif
 
         explicit operator bool() const { return m_bits != UINT_MAX; }
+        bool operator==(const CallSiteIndex& other) const { return m_bits == other.m_bits; }
         
         inline uint32_t bits() const { return m_bits; }
 
@@ -86,7 +87,8 @@ namespace JSC  {
         static const int headerSizeInRegisters = CallFrameSlot::argumentCount + 1;
 
         JSValue calleeAsValue() const { return this[CallFrameSlot::callee].jsValue(); }
-        JSObject* callee() const { return this[CallFrameSlot::callee].object(); }
+        JSObject* jsCallee() const { return this[CallFrameSlot::callee].object(); }
+        JSCell* callee() const { return this[CallFrameSlot::callee].unboxedCell(); }
         SUPPRESS_ASAN JSValue unsafeCallee() const { return this[CallFrameSlot::callee].asanUnsafeJSValue(); }
         CodeBlock* codeBlock() const { return this[CallFrameSlot::codeBlock].Register::codeBlock(); }
         CodeBlock** addressOfCodeBlock() const { return bitwise_cast<CodeBlock**>(this + CallFrameSlot::codeBlock); }

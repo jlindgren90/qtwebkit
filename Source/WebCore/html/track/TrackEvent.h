@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef TrackEvent_h
-#define TrackEvent_h
+#pragma once
 
 #if ENABLE(VIDEO_TRACK)
 
@@ -47,7 +46,7 @@ public:
     using TrackEventTrack = Variant<RefPtr<VideoTrack>, RefPtr<AudioTrack>, RefPtr<TextTrack>>;
 
     struct Init : public EventInit {
-        Optional<TrackEventTrack> track;
+        std::optional<TrackEventTrack> track;
     };
 
     static Ref<TrackEvent> create(const AtomicString& type, const Init& initializer, IsTrusted isTrusted = IsTrusted::No)
@@ -68,5 +67,4 @@ private:
 
 } // namespace WebCore
 
-#endif
-#endif
+#endif // ENABLE(VIDEO_TRACK)

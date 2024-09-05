@@ -25,12 +25,13 @@
 #pragma once
 
 #include "EventTarget.h"
-#include "URLHash.h"
+#include "ExceptionOr.h"
 #include "LayoutRect.h"
 #include "MutationObserver.h"
 #include "RenderStyleConstants.h"
 #include "StyleValidity.h"
 #include "TreeScope.h"
+#include "URLHash.h"
 #include <wtf/Forward.h>
 #include <wtf/ListHashSet.h>
 #include <wtf/MainThread.h>
@@ -130,7 +131,7 @@ public:
     bool hasTagName(const SVGQualifiedName&) const;
     virtual String nodeName() const = 0;
     virtual String nodeValue() const;
-    virtual void setNodeValue(const String&, ExceptionCode&);
+    virtual ExceptionOr<void> setNodeValue(const String&);
     virtual NodeType nodeType() const = 0;
     virtual size_t approximateMemoryCost() const { return sizeof(*this); }
     ContainerNode* parentNode() const;
@@ -154,13 +155,10 @@ public:
     
     void getSubresourceURLs(ListHashSet<URL>&) const;
 
-    // These should all actually return a node, but this is only important for language bindings,
-    // which will already know and hold a ref on the right node to return. Returning bool allows
-    // these methods to be more efficient since they don't need to return a ref
-    WEBCORE_EXPORT bool insertBefore(Node& newChild, Node* refChild, ExceptionCode&);
-    WEBCORE_EXPORT bool replaceChild(Node& newChild, Node& oldChild, ExceptionCode&);
-    WEBCORE_EXPORT bool removeChild(Node& child, ExceptionCode&);
-    WEBCORE_EXPORT bool appendChild(Node& newChild, ExceptionCode&);
+    WEBCORE_EXPORT ExceptionOr<void> insertBefore(Node& newChild, Node* refChild);
+    WEBCORE_EXPORT ExceptionOr<void> replaceChild(Node& newChild, Node& oldChild);
+    WEBCORE_EXPORT ExceptionOr<void> removeChild(Node& child);
+    WEBCORE_EXPORT ExceptionOr<void> appendChild(Node& newChild);
 
     bool hasChildNodes() const { return firstChild(); }
 
@@ -171,12 +169,12 @@ public:
     };
     virtual Ref<Node> cloneNodeInternal(Document&, CloningOperation) = 0;
     Ref<Node> cloneNode(bool deep) { return cloneNodeInternal(document(), deep ? CloningOperation::Everything : CloningOperation::OnlySelf); }
-    WEBCORE_EXPORT RefPtr<Node> cloneNodeForBindings(bool deep, ExceptionCode&);
+    WEBCORE_EXPORT ExceptionOr<Ref<Node>> cloneNodeForBindings(bool deep);
 
     virtual const AtomicString& localName() const;
     virtual const AtomicString& namespaceURI() const;
     virtual const AtomicString& prefix() const;
-    virtual void setPrefix(const AtomicString&, ExceptionCode&);
+    virtual ExceptionOr<void> setPrefix(const AtomicString&);
     WEBCORE_EXPORT void normalize();
 
     bool isSameNode(Node* other) const { return this == other; }
@@ -186,7 +184,7 @@ public:
     WEBCORE_EXPORT const AtomicString& lookupNamespaceURI(const AtomicString& prefix) const;
 
     WEBCORE_EXPORT String textContent(bool convertBRsToNewlines = false) const;
-    WEBCORE_EXPORT void setTextContent(const String&, ExceptionCode&);
+    WEBCORE_EXPORT ExceptionOr<void> setTextContent(const String&);
     
     Node* lastDescendant() const;
     Node* firstDescendant() const;
@@ -196,10 +194,10 @@ public:
     WEBCORE_EXPORT Element* nextElementSibling() const;
 
     // From the ChildNode - https://dom.spec.whatwg.org/#childnode
-    void before(Vector<NodeOrString>&&, ExceptionCode&);
-    void after(Vector<NodeOrString>&&, ExceptionCode&);
-    void replaceWith(Vector<NodeOrString>&&, ExceptionCode&);
-    WEBCORE_EXPORT void remove(ExceptionCode&);
+    ExceptionOr<void> before(Vector<NodeOrString>&&);
+    ExceptionOr<void> after(Vector<NodeOrString>&&);
+    ExceptionOr<void> replaceWith(Vector<NodeOrString>&&);
+    WEBCORE_EXPORT ExceptionOr<void> remove();
 
     // Other methods (not part of DOM)
 
@@ -247,17 +245,15 @@ public:
     WEBCORE_EXPORT Node* deprecatedShadowAncestorNode() const;
     ShadowRoot* containingShadowRoot() const;
     ShadowRoot* shadowRoot() const;
-    bool isUnclosedNode(const Node&) const;
+    bool isClosedShadowHidden(const Node&) const;
 
     HTMLSlotElement* assignedSlot() const;
     HTMLSlotElement* assignedSlotForBindings() const;
 
-#if ENABLE(CUSTOM_ELEMENTS)
     bool isUndefinedCustomElement() const { return isElementNode() && getFlag(IsEditingTextOrUndefinedCustomElementFlag); }
     bool isCustomElementUpgradeCandidate() const { return getFlag(IsCustomElement) && getFlag(IsEditingTextOrUndefinedCustomElementFlag); }
     bool isDefinedCustomElement() const { return getFlag(IsCustomElement) && !getFlag(IsEditingTextOrUndefinedCustomElementFlag); }
     bool isFailedCustomElement() const { return isElementNode() && !getFlag(IsCustomElement) && getFlag(IsEditingTextOrUndefinedCustomElementFlag); }
-#endif
 
     // Returns null, a child of ShadowRoot, or a legacy shadow root.
     Node* nonBoundaryShadowTreeRootNode();
@@ -274,6 +270,8 @@ public:
         bool composed;
     };
     Node& getRootNode(const GetRootNodeOptions&) const;
+    
+    void* opaqueRoot() const;
 
     // Use when it's guaranteed to that shadowHost is null.
     ContainerNode* parentNodeGuaranteedHostFree() const;
@@ -392,9 +390,11 @@ public:
     unsigned countChildNodes() const;
     Node* traverseToChildAt(unsigned) const;
 
-    void checkSetPrefix(const AtomicString& prefix, ExceptionCode&);
+    ExceptionOr<void> checkSetPrefix(const AtomicString& prefix);
 
-    WEBCORE_EXPORT bool isDescendantOf(const Node*) const;
+    WEBCORE_EXPORT bool isDescendantOf(const Node&) const;
+    bool isDescendantOf(const Node* other) const { return other && isDescendantOf(*other); }
+
     bool isDescendantOrShadowDescendantOf(const Node*) const;
     WEBCORE_EXPORT bool contains(const Node*) const;
     bool containsIncludingShadowDOM(const Node*) const;
@@ -539,6 +539,7 @@ public:
 #endif
 
     EventTargetData* eventTargetData() final;
+    EventTargetData* eventTargetDataConcurrently() final;
     EventTargetData& ensureEventTargetData() final;
 
     void getRegisteredMutationObserversOfType(HashMap<MutationObserver*, MutationRecordDeliveryOptions>&, MutationObserver::MutationType, const QualifiedName* attributeName);
@@ -639,7 +640,7 @@ protected:
     };
     Node(Document&, ConstructionType);
 
-    virtual void didMoveToNewDocument(Document* oldDocument);
+    virtual void didMoveToNewDocument(Document& oldDocument);
     
     virtual void addSubresourceAttributeURLs(ListHashSet<URL>&) const { }
 
@@ -658,7 +659,7 @@ protected:
     void invalidateStyle(Style::Validity, Style::InvalidationMode = Style::InvalidationMode::Normal);
     void updateAncestorsForStyleRecalc();
 
-    RefPtr<Node> convertNodesOrStringsIntoNode(Vector<NodeOrString>&&, ExceptionCode&);
+    ExceptionOr<RefPtr<Node>> convertNodesOrStringsIntoNode(Vector<NodeOrString>&&);
 
 private:
     virtual PseudoId customPseudoId() const
@@ -679,6 +680,8 @@ private:
     HashSet<MutationObserverRegistration*>* transientMutationObserverRegistry();
 
     void adjustStyleValidity(Style::Validity, Style::InvalidationMode);
+    
+    void* opaqueRootSlow() const;
 
     int m_refCount;
     mutable uint32_t m_nodeFlags;
@@ -765,6 +768,15 @@ inline ContainerNode* Node::parentNode() const
     return m_parentNode;
 }
 
+inline void* Node::opaqueRoot() const
+{
+    // FIXME: Possible race?
+    // https://bugs.webkit.org/show_bug.cgi?id=165713
+    if (inDocument())
+        return &document();
+    return opaqueRootSlow();
+}
+
 inline ContainerNode* Node::parentNodeGuaranteedHostFree() const
 {
     ASSERT(!isShadowRoot());
@@ -790,7 +802,7 @@ inline void Node::setHasValidStyle()
 } // namespace WebCore
 
 #if ENABLE(TREE_DEBUGGING)
-// Outside the WebCore namespace for ease of invocation from gdb.
+// Outside the WebCore namespace for ease of invocation from the debugger.
 void showTree(const WebCore::Node*);
 void showNodePath(const WebCore::Node*);
 #endif

@@ -29,6 +29,8 @@
 #include "HandleTypes.h"
 #include "MarkStack.h"
 #include "OpaqueRootSet.h"
+#include "VisitRaceKey.h"
+#include <wtf/MonotonicTime.h>
 
 namespace JSC {
 
@@ -57,9 +59,11 @@ public:
     SlotVisitor(Heap&);
     ~SlotVisitor();
 
-    MarkStackArray& markStack() { return m_stack; }
-    const MarkStackArray& markStack() const { return m_stack; }
-
+    MarkStackArray& collectorMarkStack() { return m_collectorStack; }
+    MarkStackArray& mutatorMarkStack() { return m_mutatorStack; }
+    const MarkStackArray& collectorMarkStack() const { return m_collectorStack; }
+    const MarkStackArray& mutatorMarkStack() const { return m_mutatorStack; }
+    
     VM& vm();
     const VM& vm() const;
     Heap* heap() const;
@@ -81,31 +85,43 @@ public:
     void appendUnbarrieredReadOnlyPointer(T*);
     void appendUnbarrieredReadOnlyValue(JSValue);
     
+    void visitSubsequently(JSCell*);
+    
+    // Does your visitChildren do logic that depends on non-JS-object state that can
+    // change during the course of a GC, or in between GCs? Then you should call this
+    // method! It will cause the GC to invoke your visitChildren method again just before
+    // terminating with the world stopped.
+    JS_EXPORT_PRIVATE void rescanAsConstraint();
+    
+    // Implies rescanAsConstraint, so you don't have to call rescanAsConstraint() if you
+    // call this unconditionally.
     JS_EXPORT_PRIVATE void addOpaqueRoot(void*);
+    
     JS_EXPORT_PRIVATE bool containsOpaqueRoot(void*) const;
     TriState containsOpaqueRootTriState(void*) const;
-    int opaqueRootCount();
 
-    bool isEmpty() { return m_stack.isEmpty(); }
+    bool isEmpty() { return m_collectorStack.isEmpty() && m_mutatorStack.isEmpty(); }
 
     void didStartMarking();
     void reset();
-    void clearMarkStack();
+    void clearMarkStacks();
 
     size_t bytesVisited() const { return m_bytesVisited; }
-    size_t bytesCopied() const { return m_bytesCopied; }
     size_t visitCount() const { return m_visitCount; }
 
     void donate();
-    void drain();
-    void donateAndDrain();
+    void drain(MonotonicTime timeout = MonotonicTime::infinity());
+    void donateAndDrain(MonotonicTime timeout = MonotonicTime::infinity());
     
     enum SharedDrainMode { SlaveDrain, MasterDrain };
-    void drainFromShared(SharedDrainMode);
+    enum class SharedDrainResult { Done, TimedOut };
+    SharedDrainResult drainFromShared(SharedDrainMode, MonotonicTime timeout = MonotonicTime::infinity());
 
-    void harvestWeakReferences();
-    void finalizeUnconditionalFinalizers();
+    SharedDrainResult drainInParallel(MonotonicTime timeout = MonotonicTime::infinity());
+    SharedDrainResult drainInParallelPassively(MonotonicTime timeout = MonotonicTime::infinity());
     
+    void mergeIfNecessary();
+
     // This informs the GC about auxiliary of some size that we are keeping alive. If you don't do
     // this then the space will be freed at end of GC.
     void markAuxiliary(const void* base);
@@ -124,6 +140,23 @@ public:
     
     HeapVersion markingVersion() const { return m_markingVersion; }
 
+    bool mutatorIsStopped() const { return m_mutatorIsStopped; }
+    
+    Lock& rightToRun() { return m_rightToRun; }
+    
+    void updateMutatorIsStopped(const AbstractLocker&);
+    void updateMutatorIsStopped();
+    
+    bool hasAcknowledgedThatTheMutatorIsResumed() const;
+    bool mutatorIsStoppedIsUpToDate() const;
+    
+    void optimizeForStoppedMutator();
+    
+    void didRace(const VisitRaceKey&);
+    void didRace(JSCell* cell, const char* reason) { didRace(VisitRaceKey(cell, reason)); }
+    void didNotRace(const VisitRaceKey&);
+    void didNotRace(JSCell* cell, const char* reason) { didNotRace(VisitRaceKey(cell, reason)); }
+
 private:
     friend class ParallelModeEnabler;
     
@@ -141,21 +174,29 @@ private:
     template<typename ContainerType>
     void appendToMarkStack(ContainerType&, JSCell*);
     
+    void appendToMutatorMarkStack(const JSCell*);
+    
     void noteLiveAuxiliaryCell(HeapCell*);
     
-    JS_EXPORT_PRIVATE void mergeOpaqueRoots();
-    void mergeOpaqueRootsIfNecessary();
+    void mergeOpaqueRoots();
+    void mergeOpaqueRootsAndConstraints();
+
     void mergeOpaqueRootsIfProfitable();
 
     void visitChildren(const JSCell*);
     
     void donateKnownParallel();
+    void donateKnownParallel(MarkStackArray& from, MarkStackArray& to);
+    
+    bool hasWork();
+    bool didReachTermination();
 
-    MarkStackArray m_stack;
+    MarkStackArray m_collectorStack;
+    MarkStackArray m_mutatorStack;
     OpaqueRootSet m_opaqueRoots; // Handle-owning data structures not visible to the garbage collector.
+    HashSet<JSCell*> m_constraints;
     
     size_t m_bytesVisited;
-    size_t m_bytesCopied;
     size_t m_visitCount;
     bool m_isInParallelMode;
     
@@ -165,8 +206,11 @@ private:
 
     HeapSnapshotBuilder* m_heapSnapshotBuilder { nullptr };
     JSCell* m_currentCell { nullptr };
-    CellState m_oldCellState;
-
+    bool m_isFirstVisit { false };
+    bool m_mutatorIsStopped { false };
+    bool m_canOptimizeForStoppedMutator { false };
+    Lock m_rightToRun;
+    
 public:
 #if !ASSERT_DISABLED
     bool m_isCheckingForDefaultMarkViolation;

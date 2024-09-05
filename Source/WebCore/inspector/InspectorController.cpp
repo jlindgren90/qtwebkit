@@ -33,6 +33,7 @@
 #include "InspectorController.h"
 
 #include "CommandLineAPIHost.h"
+#include "CommonVM.h"
 #include "DOMWrapperWorld.h"
 #include "GraphicsContext.h"
 #include "InspectorApplicationCacheAgent.h"
@@ -211,6 +212,8 @@ void InspectorController::inspectedPageDestroyed()
 
     // Clean up resources and disconnect local and remote frontends.
     disconnectAllFrontends();
+
+    m_agents.discardValues();
 }
 
 void InspectorController::setInspectorFrontendClient(InspectorFrontendClient* inspectorFrontendClient)
@@ -468,7 +471,7 @@ PageScriptDebugServer& InspectorController::scriptDebugServer()
 
 JSC::VM& InspectorController::vm()
 {
-    return JSDOMWindowBase::commonVM();
+    return commonVM();
 }
 
 void InspectorController::didComposite(Frame& frame)

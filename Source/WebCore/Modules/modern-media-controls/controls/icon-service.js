@@ -30,6 +30,7 @@ const Icons = {
     EnterPiP        : "pip-in",
     ExitFullscreen  : "exit-fullscreen",
     Forward         : "forward",
+    InvalidPlacard  : "invalid-placard",
     Pause           : "pause",
     PiPPlacard      : "pip-placard",
     Play            : "play",
@@ -43,7 +44,7 @@ const Icons = {
     VolumeMuted     : "volume-mute"
 };
 
-const IconsWithFullScreenVariants = [Icons.Airplay, Icons.Tracks, Icons.Pause, Icons.Play];
+const IconsWithFullscreenVariants = [Icons.Airplay, Icons.Tracks, Icons.Pause, Icons.EnterPiP, Icons.Play];
 
 const iconService = new class IconService {
 
@@ -85,7 +86,7 @@ const iconService = new class IconService {
         else
             throw "Could not identify icon's platform from layout traits.";
 
-        if (layoutTraits & LayoutTraits.Fullscreen && IconsWithFullScreenVariants.includes(iconName))
+        if (layoutTraits & LayoutTraits.Fullscreen && IconsWithFullscreenVariants.includes(iconName))
             iconName += "-fullscreen";
 
         const fileName = `${iconName}@${window.devicePixelRatio}x`;

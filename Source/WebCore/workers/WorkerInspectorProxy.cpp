@@ -31,7 +31,6 @@
 #include "WorkerGlobalScope.h"
 #include "WorkerInspectorController.h"
 #include "WorkerRunLoop.h"
-#include <inspector/IdentifiersFactory.h>
 #include <inspector/InspectorAgentBase.h>
 #include <wtf/NeverDestroyed.h>
 
@@ -45,9 +44,9 @@ HashSet<WorkerInspectorProxy*>& WorkerInspectorProxy::allWorkerInspectorProxies(
     return proxies;
 }
 
-WorkerInspectorProxy::WorkerInspectorProxy()
+WorkerInspectorProxy::WorkerInspectorProxy(const String& identifier)
+    : m_identifier(identifier)
 {
-    m_identifier = "worker:" + IdentifiersFactory::createIdentifier();
 }
 
 WorkerInspectorProxy::~WorkerInspectorProxy()
@@ -56,7 +55,7 @@ WorkerInspectorProxy::~WorkerInspectorProxy()
     ASSERT(!m_pageChannel);
 }
 
-WorkerThreadStartMode WorkerInspectorProxy::workerStartMode(ScriptExecutionContext* scriptExecutionContext)
+WorkerThreadStartMode WorkerInspectorProxy::workerStartMode(ScriptExecutionContext& scriptExecutionContext)
 {
     bool pauseOnStart = InspectorInstrumentation::shouldWaitForDebuggerOnStart(scriptExecutionContext);
     return pauseOnStart ? WorkerThreadStartMode::WaitForInspector : WorkerThreadStartMode::Normal;
@@ -72,7 +71,7 @@ void WorkerInspectorProxy::workerStarted(ScriptExecutionContext* scriptExecution
 
     allWorkerInspectorProxies().add(this);
 
-    InspectorInstrumentation::workerStarted(m_scriptExecutionContext.get(), this, m_url);
+    InspectorInstrumentation::workerStarted(*m_scriptExecutionContext.get(), this, m_url);
 }
 
 void WorkerInspectorProxy::workerTerminated()
@@ -80,7 +79,7 @@ void WorkerInspectorProxy::workerTerminated()
     if (!m_workerThread)
         return;
 
-    InspectorInstrumentation::workerTerminated(m_scriptExecutionContext.get(), this);
+    InspectorInstrumentation::workerTerminated(*m_scriptExecutionContext.get(), this);
 
     allWorkerInspectorProxies().remove(this);
 

@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef TypingCommand_h
-#define TypingCommand_h
+#pragma once
 
 #include "TextInsertionBaseCommand.h"
 
@@ -120,6 +119,7 @@ private:
 
     String inputEventTypeName() const final;
     String inputEventData() const final;
+    RefPtr<DataTransfer> inputEventDataTransfer() const final;
     bool isBeforeInputEventCancelable() const final;
 
     static void updateSelectionIfDifferentFromCurrentSelection(TypingCommand*, Frame*);
@@ -165,5 +165,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // TypingCommand_h

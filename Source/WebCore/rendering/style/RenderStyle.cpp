@@ -27,7 +27,6 @@
 #include "CSSCustomPropertyValue.h"
 #include "CSSParser.h"
 #include "CSSPropertyNames.h"
-#include "CSSVariableDependentValue.h"
 #include "CursorList.h"
 #include "FloatRoundedRect.h"
 #include "FontCascade.h"
@@ -113,7 +112,7 @@ std::unique_ptr<RenderStyle> RenderStyle::clonePtr(const RenderStyle& style)
 RenderStyle RenderStyle::createAnonymousStyleWithDisplay(const RenderStyle& parentStyle, EDisplay display)
 {
     auto newStyle = create();
-    newStyle.inheritFrom(&parentStyle);
+    newStyle.inheritFrom(parentStyle);
     newStyle.inheritUnicodeBidiFrom(&parentStyle);
     newStyle.setDisplay(display);
     return newStyle;
@@ -124,7 +123,7 @@ RenderStyle RenderStyle::createStyleInheritingFromPseudoStyle(const RenderStyle&
     ASSERT(pseudoStyle.styleType() == BEFORE || pseudoStyle.styleType() == AFTER);
 
     auto style = create();
-    style.inheritFrom(&pseudoStyle);
+    style.inheritFrom(pseudoStyle);
     return style;
 }
 
@@ -268,20 +267,14 @@ ContentDistributionType RenderStyle::resolvedAlignContentDistribution(const Styl
     return resolvedContentAlignmentDistribution(alignContent(), normalValueBehavior);
 }
 
-void RenderStyle::inheritFrom(const RenderStyle* inheritParent, IsAtShadowBoundary isAtShadowBoundary)
+void RenderStyle::inheritFrom(const RenderStyle& inheritParent)
 {
-    if (isAtShadowBoundary == AtShadowBoundary) {
-        // Even if surrounding content is user-editable, shadow DOM should act as a single unit, and not necessarily be editable
-        EUserModify currentUserModify = userModify();
-        rareInheritedData = inheritParent->rareInheritedData;
-        setUserModify(currentUserModify);
-    } else
-        rareInheritedData = inheritParent->rareInheritedData;
-    inherited = inheritParent->inherited;
-    inherited_flags = inheritParent->inherited_flags;
+    rareInheritedData = inheritParent.rareInheritedData;
+    inherited = inheritParent.inherited;
+    inherited_flags = inheritParent.inherited_flags;
 
-    if (m_svgStyle != inheritParent->m_svgStyle)
-        m_svgStyle.access()->inheritFrom(inheritParent->m_svgStyle.get());
+    if (m_svgStyle != inheritParent.m_svgStyle)
+        m_svgStyle.access()->inheritFrom(inheritParent.m_svgStyle.get());
 }
 
 void RenderStyle::copyNonInheritedFrom(const RenderStyle* other)
@@ -759,7 +752,22 @@ bool RenderStyle::changeRequiresLayout(const RenderStyle& other, unsigned& chang
                 return true;
         }
     }
-    
+
+    bool hasFirstLineStyle = hasPseudoStyle(FIRST_LINE);
+    if (hasFirstLineStyle != other.hasPseudoStyle(FIRST_LINE))
+        return true;
+    if (hasFirstLineStyle) {
+        auto* firstLineStyle = getCachedPseudoStyle(FIRST_LINE);
+        if (!firstLineStyle)
+            return true;
+        auto* otherFirstLineStyle = other.getCachedPseudoStyle(FIRST_LINE);
+        if (!otherFirstLineStyle)
+            return true;
+        // FIXME: Not all first line style changes actually need layout.
+        if (*firstLineStyle != *otherFirstLineStyle)
+            return true;
+    }
+
     return false;
 }
 
@@ -1707,7 +1715,7 @@ Color RenderStyle::visitedDependentColor(int colorProperty) const
         return unvisitedColor;
 
     // Take the alpha from the unvisited color, but get the RGB values from the visited color.
-    return Color(visitedColor.red(), visitedColor.green(), visitedColor.blue(), unvisitedColor.alpha());
+    return visitedColor.colorWithAlpha(unvisitedColor.alphaAsFloat());
 }
 
 const BorderValue& RenderStyle::borderBefore() const

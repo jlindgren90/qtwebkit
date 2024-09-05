@@ -66,7 +66,7 @@ public:
 
         // This could be made more efficient by processing blocks in reverse postorder.
         
-        LocalOSRAvailabilityCalculator calculator;
+        LocalOSRAvailabilityCalculator calculator(m_graph);
         bool changed;
         do {
             changed = false;
@@ -105,7 +105,8 @@ bool performOSRAvailabilityAnalysis(Graph& graph)
     return runPhase<OSRAvailabilityAnalysisPhase>(graph);
 }
 
-LocalOSRAvailabilityCalculator::LocalOSRAvailabilityCalculator()
+LocalOSRAvailabilityCalculator::LocalOSRAvailabilityCalculator(Graph& graph)
+    : m_graph(graph)
 {
 }
 
@@ -164,7 +165,8 @@ void LocalOSRAvailabilityCalculator::executeNode(Node* node)
         }
         break;
     }
-        
+    
+    case PhantomCreateRest:
     case PhantomDirectArguments:
     case PhantomClonedArguments: {
         InlineCallFrame* inlineCallFrame = node->origin.semantic.inlineCallFrame;
@@ -173,6 +175,10 @@ void LocalOSRAvailabilityCalculator::executeNode(Node* node)
             // given that we can read them from the stack.
             break;
         }
+
+        unsigned numberOfArgumentsToSkip = 0;
+        if (node->op() == PhantomCreateRest)
+            numberOfArgumentsToSkip = node->numberOfArgumentsToSkip();
         
         if (inlineCallFrame->isVarargs()) {
             // Record how to read each argument and the argument count.
@@ -188,7 +194,7 @@ void LocalOSRAvailabilityCalculator::executeNode(Node* node)
             m_availability.m_heap.set(PromotedHeapLocation(ArgumentsCalleePLoc, node), callee);
         }
         
-        for (unsigned i = 0; i < inlineCallFrame->arguments.size() - 1; ++i) {
+        for (unsigned i = numberOfArgumentsToSkip; i < inlineCallFrame->arguments.size() - 1; ++i) {
             Availability argument = m_availability.m_locals.operand(
                 inlineCallFrame->stackOffset + CallFrame::argumentOffset(i));
             
@@ -203,6 +209,17 @@ void LocalOSRAvailabilityCalculator::executeNode(Node* node)
             Availability(node->child2().node()));
         break;
     }
+
+    case PhantomSpread:
+        m_availability.m_heap.set(PromotedHeapLocation(SpreadPLoc, node), Availability(node->child1().node()));
+        break;
+
+    case PhantomNewArrayWithSpread:
+        for (unsigned i = 0; i < node->numChildren(); i++) {
+            Node* child = m_graph.varArgChild(node, i).node();
+            m_availability.m_heap.set(PromotedHeapLocation(NewArrayWithSpreadArgumentPLoc, node, i), Availability(child));
+        }
+        break;
         
     default:
         break;

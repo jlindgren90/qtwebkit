@@ -43,9 +43,14 @@
 
 #if WK_API_ENABLED
 
-@interface TestRunnerWKWebView ()
+@interface TestRunnerWKWebView () {
+    RetainPtr<NSNumber *> m_stableStateOverride;
+}
+
 @property (nonatomic, copy) void (^zoomToScaleCompletionHandler)(void);
 @property (nonatomic, copy) void (^showKeyboardCompletionHandler)(void);
+@property (nonatomic) BOOL isShowingKeyboard;
+
 @end
 
 @implementation TestRunnerWKWebView
@@ -123,12 +128,20 @@
 
 - (void)_keyboardDidShow:(NSNotification *)notification
 {
+    if (self.isShowingKeyboard)
+        return;
+
+    self.isShowingKeyboard = YES;
     if (self.didShowKeyboardCallback)
         self.didShowKeyboardCallback();
 }
 
 - (void)_keyboardDidHide:(NSNotification *)notification
 {
+    if (!self.isShowingKeyboard)
+        return;
+
+    self.isShowingKeyboard = NO;
     if (self.didHideKeyboardCallback)
         self.didHideKeyboardCallback();
 }
@@ -161,6 +174,17 @@
     if (self.didEndScrollingCallback)
         self.didEndScrollingCallback();
 }
+
+- (NSNumber *)_stableStateOverride
+{
+    return m_stableStateOverride.get();
+}
+
+- (void)_setStableStateOverride:(NSNumber *)overrideBoolean
+{
+    m_stableStateOverride = overrideBoolean;
+}
+
 #endif
 
 @end

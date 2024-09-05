@@ -45,7 +45,6 @@
 #include "SourceCode.h"
 #include "TypeProfiler.h"
 #include "TypeProfilerLog.h"
-#include "VMEntryScope.h"
 #include <wtf/CurrentTime.h>
 
 using namespace JSC;
@@ -337,7 +336,7 @@ void InspectorRuntimeAgent::setTypeProfilerEnabledState(bool isTypeProfilingEnab
     vm.whenIdle([&vm, isTypeProfilingEnabled] () {
         bool shouldRecompileFromTypeProfiler = (isTypeProfilingEnabled ? vm.enableTypeProfiler() : vm.disableTypeProfiler());
         if (shouldRecompileFromTypeProfiler)
-            vm.deleteAllCode();
+            vm.deleteAllCode(PreventCollectionAndDeleteAllCode);
     });
 }
 
@@ -352,7 +351,7 @@ void InspectorRuntimeAgent::setControlFlowProfilerEnabledState(bool isControlFlo
         bool shouldRecompileFromControlFlowProfiler = (isControlFlowProfilingEnabled ? vm.enableControlFlowProfiler() : vm.disableControlFlowProfiler());
 
         if (shouldRecompileFromControlFlowProfiler)
-            vm.deleteAllCode();
+            vm.deleteAllCode(PreventCollectionAndDeleteAllCode);
     });
 }
 

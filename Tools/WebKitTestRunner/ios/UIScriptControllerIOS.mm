@@ -33,6 +33,7 @@
 #import "StringFunctions.h"
 #import "TestController.h"
 #import "TestRunnerWKWebView.h"
+#import "UIKitSPI.h"
 #import "UIScriptContext.h"
 #import <JavaScriptCore/JavaScriptCore.h>
 #import <JavaScriptCore/OpaqueJSString.h>
@@ -54,6 +55,18 @@ void UIScriptController::doAsyncTask(JSValueRef callback)
     });
 }
 
+void UIScriptController::doAfterPresentationUpdate(JSValueRef callback)
+{
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+
+    unsigned callbackID = m_context->prepareForAsyncTask(callback, CallbackTypeNonPersistent);
+    [webView _doAfterNextPresentationUpdate:^{
+        if (!m_context)
+            return;
+        m_context->asyncTaskComplete(callbackID);
+    }];
+}
+
 void UIScriptController::zoomToScale(double scale, JSValueRef callback)
 {
     TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
@@ -61,6 +74,21 @@ void UIScriptController::zoomToScale(double scale, JSValueRef callback)
     unsigned callbackID = m_context->prepareForAsyncTask(callback, CallbackTypeNonPersistent);
 
     [webView zoomToScale:scale animated:YES completionHandler:^{
+        if (!m_context)
+            return;
+        m_context->asyncTaskComplete(callbackID);
+    }];
+}
+
+void UIScriptController::simulateAccessibilitySettingsChangeNotification(JSValueRef callback)
+{
+    unsigned callbackID = m_context->prepareForAsyncTask(callback, CallbackTypeNonPersistent);
+
+    auto* webView = TestController::singleton().mainWebView()->platformView();
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center postNotificationName:UIAccessibilityInvertColorsStatusDidChangeNotification object:webView];
+
+    [webView _doAfterNextPresentationUpdate: ^{
         if (!m_context)
             return;
         m_context->asyncTaskComplete(callbackID);
@@ -271,8 +299,13 @@ void UIScriptController::selectTextCandidateAtIndex(long index, JSValueRef callb
 
 void UIScriptController::waitForTextPredictionsViewAndSelectCandidateAtIndex(long index, unsigned callbackID, float interval)
 {
+    id UIKeyboardPredictionViewClass = NSClassFromString(@"UIKeyboardPredictionView");
+    if (!UIKeyboardPredictionViewClass)
+        return;
+
 #if USE(APPLE_INTERNAL_SDK)
-    if (![UIKeyboardPredictionView activeInstance].hasPredictions) {
+    UIKeyboardPredictionView *predictionView = (UIKeyboardPredictionView *)[UIKeyboardPredictionViewClass activeInstance];
+    if (![predictionView hasPredictions]) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, interval * NSEC_PER_SEC), dispatch_get_main_queue(), ^() {
             waitForTextPredictionsViewAndSelectCandidateAtIndex(index, callbackID, interval);
         });
@@ -280,10 +313,10 @@ void UIScriptController::waitForTextPredictionsViewAndSelectCandidateAtIndex(lon
     }
 
     PlatformWKView webView = TestController::singleton().mainWebView()->platformView();
-    CGRect predictionViewFrame = [UIKeyboardPredictionView activeInstance].frame;
+    CGRect predictionViewFrame = [predictionView frame];
     // This assumes there are 3 predicted text cells of equal width, which is the case on iOS.
     float offsetX = (index * 2 + 1) * CGRectGetWidth(predictionViewFrame) / 6;
-    float offsetY = CGRectGetHeight(webView.window.frame) - CGRectGetHeight([UIKeyboardPredictionView activeInstance].superview.frame) + CGRectGetHeight(predictionViewFrame) / 2;
+    float offsetY = CGRectGetHeight(webView.window.frame) - CGRectGetHeight([[predictionView superview] frame]) + CGRectGetHeight(predictionViewFrame) / 2;
     [[HIDEventGenerator sharedHIDEventGenerator] tap:CGPointMake(offsetX, offsetY) completionBlock:^{
         if (m_context)
             m_context->asyncTaskComplete(callbackID);
@@ -336,6 +369,18 @@ void UIScriptController::scrollToOffset(long x, long y)
     [webView.scrollView setContentOffset:contentOffsetBoundedInValidRange(webView.scrollView, CGPointMake(x, y)) animated:YES];
 }
 
+void UIScriptController::immediateScrollToOffset(long x, long y)
+{
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+    [webView.scrollView setContentOffset:contentOffsetBoundedInValidRange(webView.scrollView, CGPointMake(x, y)) animated:NO];
+}
+
+void UIScriptController::immediateZoomToScale(double scale)
+{
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+    [webView.scrollView setZoomScale:scale animated:NO];
+}
+
 void UIScriptController::keyboardAccessoryBarNext()
 {
     TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
@@ -358,6 +403,24 @@ double UIScriptController::maximumZoomScale() const
 {
     TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
     return webView.scrollView.maximumZoomScale;
+}
+
+std::optional<bool> UIScriptController::stableStateOverride() const
+{
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+    if (webView._stableStateOverride)
+        return webView._stableStateOverride.boolValue;
+
+    return std::nullopt;
+}
+
+void UIScriptController::setStableStateOverride(std::optional<bool> overrideValue)
+{
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+    if (overrideValue)
+        webView._stableStateOverride = @(overrideValue.value());
+    else
+        webView._stableStateOverride = nil;
 }
 
 JSObjectRef UIScriptController::contentVisibleRect() const
@@ -386,6 +449,17 @@ JSObjectRef UIScriptController::selectionRangeViewRects() const
         }];
     }
     return JSValueToObject(m_context->jsContext(), [JSValue valueWithObject:selectionRects inContext:[JSContext contextWithJSGlobalContextRef:m_context->jsContext()]].JSValueRef, nullptr);
+}
+
+void UIScriptController::removeAllDynamicDictionaries()
+{
+    [UIKeyboard removeAllDynamicDictionaries];
+}
+
+JSRetainPtr<JSStringRef> UIScriptController::scrollingTreeAsText() const
+{
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+    return JSStringCreateWithCFString((CFStringRef)[webView _scrollingTreeAsText]);
 }
 
 void UIScriptController::platformSetDidStartFormControlInteractionCallback()
@@ -481,6 +555,11 @@ void UIScriptController::platformSetDidEndScrollingCallback()
 void UIScriptController::platformClearAllCallbacks()
 {
     TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+    
+    webView.didStartFormControlInteractionCallback = nil;
+    webView.didEndFormControlInteractionCallback = nil;
+    webView.didShowForcePressPreviewCallback = nil;
+    webView.didDismissForcePressPreviewCallback = nil;
     webView.didEndZoomingCallback = nil;
     webView.willBeginZoomingCallback = nil;
     webView.didHideKeyboardCallback = nil;

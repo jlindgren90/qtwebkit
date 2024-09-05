@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef RenderTreeUpdater_h
-#define RenderTreeUpdater_h
+#pragma once
 
 #include "RenderTreePosition.h"
 #include "StyleChange.h"
@@ -64,7 +63,7 @@ private:
     struct Parent {
         Element* element { nullptr };
         Style::Change styleChange { Style::NoChange };
-        Optional<RenderTreePosition> renderTreePosition;
+        std::optional<RenderTreePosition> renderTreePosition;
 
         Parent(ContainerNode& root);
         Parent(Element&, Style::Change);
@@ -84,5 +83,4 @@ private:
     HashSet<Text*> m_invalidatedWhitespaceOnlyTextSiblings;
 };
 
-}
-#endif
+} // namespace WebCore

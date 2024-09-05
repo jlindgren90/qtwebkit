@@ -17,8 +17,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef JSDOMWindowBase_h
-#define JSDOMWindowBase_h
+#pragma once
 
 #include "DOMWindow.h"
 #include "JSDOMBinding.h"
@@ -71,7 +70,6 @@ namespace WebCore {
 
         JSDOMWindowShell* shell() const;
 
-        static JSC::VM& commonVM();
         static void fireFrameClearedWatchpointsForWindow(DOMWindow*);
         static void visitChildren(JSC::JSCell*, JSC::SlotVisitor&);
 
@@ -100,5 +98,3 @@ namespace WebCore {
     WEBCORE_EXPORT JSDOMWindow* toJSDOMWindow(JSC::JSValue);
 
 } // namespace WebCore
-
-#endif // JSDOMWindowBase_h

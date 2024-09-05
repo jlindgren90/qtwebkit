@@ -17,8 +17,7 @@
  *  Boston, MA 02110-1301, USA.
  */
 
-#ifndef DeviceProximityEvent_h
-#define DeviceProximityEvent_h
+#pragma once
 
 #if ENABLE(PROXIMITY_EVENTS)
 
@@ -41,9 +40,9 @@ public:
     }
 
     struct Init : EventInit {
-        Optional<double> value;
-        Optional<double> min;
-        Optional<double> max;
+        std::optional<double> value;
+        std::optional<double> min;
+        std::optional<double> max;
     };
 
     static Ref<DeviceProximityEvent> create(const AtomicString& type, const Init& initializer, IsTrusted isTrusted = IsTrusted::No)
@@ -70,4 +69,3 @@ private:
 } // namespace WebCore
 
 #endif // DeviceProximityEvent_h
-#endif // PROXIMITY_EVENTS

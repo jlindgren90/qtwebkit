@@ -44,12 +44,12 @@ CryptoKeySerializationRaw::~CryptoKeySerializationRaw()
 {
 }
 
-Optional<CryptoAlgorithmPair> CryptoKeySerializationRaw::reconcileAlgorithm(CryptoAlgorithm* algorithm, CryptoAlgorithmParametersDeprecated* parameters) const
+std::optional<CryptoAlgorithmPair> CryptoKeySerializationRaw::reconcileAlgorithm(CryptoAlgorithm* algorithm, CryptoAlgorithmParametersDeprecated* parameters) const
 {
     return CryptoAlgorithmPair { algorithm, parameters };
 }
 
-void CryptoKeySerializationRaw::reconcileUsages(CryptoKeyUsage&) const
+void CryptoKeySerializationRaw::reconcileUsages(CryptoKeyUsageBitmap&) const
 {
 }
 

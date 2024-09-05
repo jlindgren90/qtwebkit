@@ -54,6 +54,12 @@
 #define DEFAULT_PDFPLUGIN_ENABLED false
 #endif
 
+#if PLATFORM(COCOA)
+#define DEFAULT_HTML_INTERACTIVE_FORM_VALIDATION_ENABLED true
+#else
+#define DEFAULT_HTML_INTERACTIVE_FORM_VALIDATION_ENABLED false
+#endif
+
 #if PLATFORM(IOS)
 #define DEFAULT_ALLOWS_PICTURE_IN_PICTURE_MEDIA_PLAYBACK true
 #define DEFAULT_BACKSPACE_KEY_NAVIGATION_ENABLED false
@@ -207,6 +213,7 @@
     macro(SubpixelCSSOMElementMetricsEnabled, subpixelCSSOMElementMetricsEnabled, Bool, bool, false, "", "") \
     macro(UseGiantTiles, useGiantTiles, Bool, bool, false, "", "") \
     macro(MediaStreamEnabled, mediaStreamEnabled, Bool, bool, false, "", "") \
+    macro(PeerConnectionEnabled, peerConnectionEnabled, Bool, bool, false, "", "") \
     macro(UseLegacyTextAlignPositionedElementBehavior, useLegacyTextAlignPositionedElementBehavior, Bool, bool, false, "", "") \
     macro(SpatialNavigationEnabled, spatialNavigationEnabled, Bool, bool, false, "", "") \
     macro(MediaSourceEnabled, mediaSourceEnabled, Bool, bool, true, "", "") \
@@ -221,9 +228,10 @@
     macro(EnableInheritURIQueryComponent, enableInheritURIQueryComponent, Bool, bool, false, "", "") \
     macro(ServiceControlsEnabled, serviceControlsEnabled, Bool, bool, false, "", "") \
     macro(NewBlockInsideInlineModelEnabled, newBlockInsideInlineModelEnabled, Bool, bool, false, "", "") \
-    macro(NewCSSParserEnabled, newCSSParserEnabled, Bool, bool, false, "", "") \
+    macro(NewCSSParserEnabled, newCSSParserEnabled, Bool, bool, true, "", "") \
     macro(HTTPEquivEnabled, httpEquivEnabled, Bool, bool, true, "", "") \
     macro(MockCaptureDevicesEnabled, mockCaptureDevicesEnabled, Bool, bool, false, "", "") \
+    macro(MediaCaptureRequiresSecureConnection, mediaCaptureRequiresSecureConnection, Bool, bool, true, "", "") \
     macro(ShadowDOMEnabled, shadowDOMEnabled, Bool, bool, true, "Shadow DOM", "HTML Shadow DOM prototype") \
     macro(DOMIteratorEnabled, domIteratorEnabled, Bool, bool, true, "", "") \
     macro(FetchAPIEnabled, fetchAPIEnabled, Bool, bool, true, "", "") \
@@ -231,6 +239,14 @@
     macro(SelectionPaintingWithoutSelectionGapsEnabled, selectionPaintingWithoutSelectionGapsEnabled, Bool, bool, DEFAULT_SELECTION_PAINTING_WITHOUT_SELECTION_GAPS_ENABLED, "", "") \
     macro(ApplePayEnabled, applePayEnabled, Bool, bool, false, "", "") \
     macro(ApplePayCapabilityDisclosureAllowed, applePayCapabilityDisclosureAllowed, Bool, bool, true, "", "") \
+    macro(VisualViewportEnabled, visualViewportEnabled, Bool, bool, true, "", "") \
+    macro(NeedsStorageAccessFromFileURLsQuirk, needsStorageAccessFromFileURLsQuirk, Bool, bool, true, "", "") \
+    macro(LargeImageAsyncDecodingEnabled, largeImageAsyncDecodingEnabled, Bool, bool, true, "", "") \
+    macro(AnimatedImageAsyncDecodingEnabled, animatedImageAsyncDecodingEnabled, Bool, bool, true, "", "") \
+    macro(CustomElementsEnabled, customElementsEnabled, Bool, bool, true, "", "") \
+    macro(EncryptedMediaAPIEnabled, encryptedMediaAPIEnabled, Bool, bool, false, "", "") \
+    macro(IntersectionObserverEnabled, intersectionObserverEnabled, Bool, bool, false, "Intersection Observer", "Enable Intersection Observer support") \
+    macro(InteractiveFormValidationEnabled, interactiveFormValidationEnabled, Bool, bool, DEFAULT_HTML_INTERACTIVE_FORM_VALIDATION_ENABLED, "HTML Interactive Form Validation", "HTML interactive form validation") \
     \
 
 #define FOR_EACH_WEBKIT_DOUBLE_PREFERENCE(macro) \
@@ -278,24 +294,33 @@
 #define FOR_EACH_WEBKIT_DEBUG_UINT32_PREFERENCE(macro) \
     macro(VisibleDebugOverlayRegions, visibleDebugOverlayRegions, UInt32, uint32_t, 0, "", "")
 
+// Our XCode build system does not currently have any concept of DEVELOPER_MODE.
+// Cocoa ports must disable experimental features on release branches for now.
+#if ENABLE(DEVELOPER_MODE) || PLATFORM(COCOA)
+#define DEFAULT_EXPERIMENTAL_FEATURES_ENABLED true
+#else
+#define DEFAULT_EXPERIMENTAL_FEATURES_ENABLED false
+#endif
+
 // For experimental features:
 // - The type should be boolean.
 // - You must provide the last two parameters for all experimental features. They
 //   are the text exposed to the user from the WebKit client.
 // - They should be alphabetically ordered by the human readable text.
-// - They should be false by default, although they are currently set to true while we develop client UI.
+// - The default value may be either false (for very unstable features) or
+//   DEFAULT_EXPERIMENTAL_FEATURE_ENABLED (for features that are ready for
+//   wider testing).
 
 #define FOR_EACH_WEBKIT_EXPERIMENTAL_FEATURE_PREFERENCE(macro) \
-    macro(CSSGridLayoutEnabled, cssGridLayoutEnabled, Bool, bool, false, "CSS Grid", "CSS Grid Layout Module support") \
-    macro(SpringTimingFunctionEnabled, springTimingFunctionEnabled, Bool, bool, true, "CSS Spring Animations", "CSS Spring Animation prototype") \
-    macro(CustomElementsEnabled, customElementsEnabled, Bool, bool, true, "Custom Elements", "HTML Custom Elements prototype") \
-    macro(InteractiveFormValidationEnabled, interactiveFormValidationEnabled, Bool, bool, false, "HTML Interactive Form Validation", "HTML interactive form validation prototype") \
-    macro(GamepadsEnabled, gamepadsEnabled, Bool, bool, true, "Gamepads", "Web Gamepad API support") \
+    macro(CSSGridLayoutEnabled, cssGridLayoutEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "CSS Grid", "CSS Grid Layout Module support") \
+    macro(SpringTimingFunctionEnabled, springTimingFunctionEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "CSS Spring Animations", "CSS Spring Animation prototype") \
+    macro(GamepadsEnabled, gamepadsEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "Gamepads", "Web Gamepad API support") \
     macro(ModernMediaControlsEnabled, modernMediaControlsEnabled, Bool, bool, false, "Modern Media Controls", "Use modern media controls look") \
-    macro(VariationFontsEnabled, variationFontsEnabled, Bool, bool, true, "Variation Fonts", "Enable variation fonts") \
-    macro(InputEventsEnabled, inputEventsEnabled, Bool, bool, false, "Input Events", "Enable InputEvents support") \
-    macro(VisualViewportEnabled, visualViewportEnabled, Bool, bool, false, "Visual Viewport", "Use Visual Viewport for fixed elements when zooming") \
-    macro(WebGL2Enabled, webGL2Enabled, Bool, bool, true, "WebGL 2.0", "WebGL 2 prototype") \
+    macro(VariationFontsEnabled, variationFontsEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "Variation Fonts", "Enable variation fonts") \
+    macro(InputEventsEnabled, inputEventsEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "Input Events", "Enable InputEvents support") \
+    macro(SubtleCryptoEnabled, subtleCryptoEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "SubtleCrypto", "Enable SubtleCrypto support") \
+    macro(WebGL2Enabled, webGL2Enabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "WebGL 2.0", "WebGL 2 prototype") \
+    macro(ES6ModulesEnabled, es6ModulesEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "ES6 Modules", "Enable ES6 Modules support") \
     \
 
 #if PLATFORM(COCOA)

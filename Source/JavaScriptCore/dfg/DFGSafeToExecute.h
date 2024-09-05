@@ -219,6 +219,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case GetExecutable:
     case GetButterfly:
     case CallDOMGetter:
+    case CallDOM:
     case CheckDOM:
     case CheckArray:
     case Arrayify:
@@ -262,6 +263,8 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case NewArray:
     case NewArrayWithSize:
     case NewArrayBuffer:
+    case NewArrayWithSpread:
+    case Spread:
     case NewRegexp:
     case ProfileType:
     case ProfileControlFlow:
@@ -296,9 +299,11 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case CreateScopedArguments:
     case CreateClonedArguments:
     case GetFromArguments:
+    case GetArgument:
     case PutToArguments:
     case NewFunction:
     case NewGeneratorFunction:
+    case NewAsyncFunction:
     case Jump:
     case Branch:
     case Switch:
@@ -347,12 +352,16 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case PhantomNewObject:
     case PhantomNewFunction:
     case PhantomNewGeneratorFunction:
+    case PhantomNewAsyncFunction:
     case PhantomCreateActivation:
     case PutHint:
     case CheckStructureImmediate:
     case MaterializeNewObject:
     case MaterializeCreateActivation:
     case PhantomDirectArguments:
+    case PhantomCreateRest:
+    case PhantomSpread:
+    case PhantomNewArrayWithSpread:
     case PhantomClonedArguments:
     case GetMyArgumentByVal:
     case GetMyArgumentByValOutOfBounds:
@@ -380,6 +389,8 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
 
     case StoreBarrier:
     case FencedStoreBarrier:
+    case PutStructure:
+    case NukeStructureAndSetButterfly:
         // We conservatively assume that these cannot be put anywhere, which forces the compiler to
         // keep them exactly where they were. This is sort of overkill since the clobberize effects
         // already force these things to be ordered precisely. I'm just not confident enough in my
@@ -404,7 +415,6 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
         return node->arrayMode().modeForPut().alreadyChecked(
             graph, node, state.forNode(graph.varArgChild(node, 0)));
 
-    case PutStructure:
     case AllocatePropertyStorage:
     case ReallocatePropertyStorage:
         return state.forNode(node->child1()).m_structure.isSubsetOf(

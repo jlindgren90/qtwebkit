@@ -31,6 +31,7 @@
 #include "ArrayValue.h"
 #include "Dictionary.h"
 #include "ExceptionCode.h"
+#include "JSDOMPromise.h"
 #include "JSMediaDevices.h"
 #include "Logging.h"
 #include "MediaConstraintsImpl.h"
@@ -58,7 +59,7 @@ static void initializeStringConstraintWithList(StringConstraint& constraint, voi
     }
 }
 
-static Optional<StringConstraint> createStringConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
+static std::optional<StringConstraint> createStringConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
 {
     auto constraint = StringConstraint(name, type);
 
@@ -85,7 +86,7 @@ static Optional<StringConstraint> createStringConstraint(const Dictionary& media
 
         if (constraint.isEmpty()) {
             LOG(Media, "createStringConstraint() - ignoring string constraint '%s' with dictionary value since it has no valid or supported key/value pairs.", name.utf8().data());
-            return Nullopt;
+            return std::nullopt;
         }
         
         return WTFMove(constraint);
@@ -98,7 +99,7 @@ static Optional<StringConstraint> createStringConstraint(const Dictionary& media
 
         if (constraint.isEmpty()) {
             LOG(Media, "createStringConstraint() - ignoring string constraint '%s' with array value since it is empty.", name.utf8().data());
-            return Nullopt;
+            return std::nullopt;
         }
 
         return WTFMove(constraint);
@@ -117,10 +118,10 @@ static Optional<StringConstraint> createStringConstraint(const Dictionary& media
 
     // Invalid constraint value.
     LOG(Media, "createStringConstraint() - ignoring string constraint '%s' since it has neither a dictionary nor sequence nor scalar value.", name.utf8().data());
-    return Nullopt;
+    return std::nullopt;
 }
 
-static Optional<BooleanConstraint> createBooleanConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
+static std::optional<BooleanConstraint> createBooleanConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
 {
     auto constraint = BooleanConstraint(name, type);
 
@@ -137,7 +138,7 @@ static Optional<BooleanConstraint> createBooleanConstraint(const Dictionary& med
 
         if (constraint.isEmpty()) {
             LOG(Media, "createBooleanConstraint() - ignoring boolean constraint '%s' with dictionary value since it has no valid or supported key/value pairs.", name.utf8().data());
-            return Nullopt;
+            return std::nullopt;
         }
 
         return WTFMove(constraint);
@@ -156,10 +157,10 @@ static Optional<BooleanConstraint> createBooleanConstraint(const Dictionary& med
 
     // Invalid constraint value.
     LOG(Media, "createBooleanConstraint() - ignoring boolean constraint '%s' since it has neither a dictionary nor scalar value.", name.utf8().data());
-    return Nullopt;
+    return std::nullopt;
 }
 
-static Optional<DoubleConstraint> createDoubleConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
+static std::optional<DoubleConstraint> createDoubleConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
 {
     auto constraint = DoubleConstraint(name, type);
 
@@ -184,7 +185,7 @@ static Optional<DoubleConstraint> createDoubleConstraint(const Dictionary& media
 
         if (constraint.isEmpty()) {
             LOG(Media, "createDoubleConstraint() - ignoring double constraint '%s' with dictionary value since it has no valid or supported key/value pairs.", name.utf8().data());
-            return Nullopt;
+            return std::nullopt;
         }
 
         return WTFMove(constraint);
@@ -203,10 +204,10 @@ static Optional<DoubleConstraint> createDoubleConstraint(const Dictionary& media
 
     // Invalid constraint value.
     LOG(Media, "createDoubleConstraint() - ignoring double constraint '%s' since it has neither a dictionary nor scalar value.", name.utf8().data());
-    return Nullopt;
+    return std::nullopt;
 }
 
-static Optional<IntConstraint> createIntConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
+static std::optional<IntConstraint> createIntConstraint(const Dictionary& mediaTrackConstraintSet, const String& name, MediaConstraintType type, ConstraintSetType constraintSetType)
 {
     auto constraint = IntConstraint(name, type);
 
@@ -231,7 +232,7 @@ static Optional<IntConstraint> createIntConstraint(const Dictionary& mediaTrackC
 
         if (constraint.isEmpty()) {
             LOG(Media, "createIntConstraint() - ignoring long constraint '%s' with dictionary value since it has no valid or supported key/value pairs.", name.utf8().data());
-            return Nullopt;
+            return std::nullopt;
         }
 
         return WTFMove(constraint);
@@ -250,7 +251,7 @@ static Optional<IntConstraint> createIntConstraint(const Dictionary& mediaTrackC
 
     // Invalid constraint value.
     LOG(Media, "createIntConstraint() - ignoring long constraint '%s' since it has neither a dictionary nor scalar value.", name.utf8().data());
-    return Nullopt;
+    return std::nullopt;
 }
 
 static void parseMediaTrackConstraintSetForKey(const Dictionary& mediaTrackConstraintSet, const String& name, MediaTrackConstraintSetMap& map, ConstraintSetType constraintSetType)
@@ -359,7 +360,6 @@ static void JSMediaDevicesGetUserMediaPromiseFunction(ExecState& state, Ref<Defe
         return;
     }
 
-    ExceptionCode ec = 0;
     auto constraintsDictionary = Dictionary(&state, state.uncheckedArgument(0));
 
     MediaTrackConstraintSetMap mandatoryAudioConstraints;
@@ -386,8 +386,7 @@ static void JSMediaDevicesGetUserMediaPromiseFunction(ExecState& state, Ref<Defe
 
     auto audioConstraints = MediaConstraintsImpl::create(WTFMove(mandatoryAudioConstraints), WTFMove(advancedAudioConstraints), areAudioConstraintsValid);
     auto videoConstraints = MediaConstraintsImpl::create(WTFMove(mandatoryVideoConstraints), WTFMove(advancedVideoConstraints), areVideoConstraintsValid);
-    castThisValue<JSMediaDevices>(state).wrapped().getUserMedia(WTFMove(audioConstraints), WTFMove(videoConstraints), WTFMove(promise), ec);
-    setDOMException(&state, ec);
+    propagateException(state, scope, castThisValue<JSMediaDevices>(state).wrapped().getUserMedia(WTFMove(audioConstraints), WTFMove(videoConstraints), WTFMove(promise)));
 }
 
 JSValue JSMediaDevices::getUserMedia(ExecState& state)

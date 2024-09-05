@@ -37,6 +37,7 @@
 #include "MediaPayload.h"
 #include "MockRealtimeAudioSource.h"
 #include "MockRealtimeVideoSource.h"
+#include "RTCDataChannelHandlerMock.h"
 #include "RealtimeMediaSource.h"
 #include <wtf/MainThread.h>
 
@@ -55,6 +56,7 @@ MockMediaEndpoint::MockMediaEndpoint(MediaEndpointClient& client)
     , m_iceCandidateTimer(*this, &MockMediaEndpoint::iceCandidateTimerFired)
     , m_iceTransportTimer(*this, &MockMediaEndpoint::iceTransportTimerFired)
     , m_unmuteTimer(*this, &MockMediaEndpoint::unmuteTimerFired)
+    , m_weakPtrFactory(this)
 {
 }
 
@@ -63,10 +65,18 @@ MockMediaEndpoint::~MockMediaEndpoint()
     stop();
 }
 
+std::unique_ptr<RTCDataChannelHandler> MockMediaEndpoint::createDataChannelHandler(const String& label, const RTCDataChannelInit& options)
+{
+    return std::make_unique<RTCDataChannelHandlerMock>(label, options);
+}
+
 void MockMediaEndpoint::generateDtlsInfo()
 {
-    callOnMainThread([this]() {
-        m_client.gotDtlsFingerprint(String(fingerprint), String(fingerprintFunction));
+    auto weakThis = m_weakPtrFactory.createWeakPtr();
+
+    callOnMainThread([weakThis] {
+        if (weakThis)
+            weakThis->m_client.gotDtlsFingerprint(fingerprint, fingerprintFunction);
     });
 }
 

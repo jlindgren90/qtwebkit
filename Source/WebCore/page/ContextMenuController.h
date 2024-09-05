@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef ContextMenuController_h
-#define ContextMenuController_h
+#pragma once
 
 #if ENABLE(CONTEXT_MENUS)
 
@@ -102,7 +101,6 @@ private:
     ContextMenuContext m_context;
 };
 
-}
+} // namespace WebCore
 
 #endif // ENABLE(CONTEXT_MENUS)
-#endif

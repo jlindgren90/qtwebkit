@@ -367,6 +367,7 @@ void GraphicsContext::restore()
         LOG_ERROR("ERROR void GraphicsContext::restore() stack is empty");
         return;
     }
+
     m_state = m_stack.last();
     m_stack.removeLast();
 
@@ -636,7 +637,7 @@ void GraphicsContext::endTransparencyLayer()
     --m_transparencyCount;
 }
 
-float GraphicsContext::drawText(const FontCascade& font, const TextRun& run, const FloatPoint& point, unsigned from, Optional<unsigned> to)
+float GraphicsContext::drawText(const FontCascade& font, const TextRun& run, const FloatPoint& point, unsigned from, std::optional<unsigned> to)
 {
     if (paintingDisabled())
         return 0;
@@ -658,7 +659,7 @@ void GraphicsContext::drawGlyphs(const FontCascade& fontCascade, const Font& fon
     fontCascade.drawGlyphs(*this, font, buffer, from, numGlyphs, point, fontCascade.fontDescription().fontSmoothing());
 }
 
-void GraphicsContext::drawEmphasisMarks(const FontCascade& font, const TextRun& run, const AtomicString& mark, const FloatPoint& point, unsigned from, Optional<unsigned> to)
+void GraphicsContext::drawEmphasisMarks(const FontCascade& font, const TextRun& run, const AtomicString& mark, const FloatPoint& point, unsigned from, std::optional<unsigned> to)
 {
     if (paintingDisabled())
         return;
@@ -691,7 +692,7 @@ void GraphicsContext::drawBidiText(const FontCascade& font, const TextRun& run, 
         subrun.setDirection(isRTL ? RTL : LTR);
         subrun.setDirectionalOverride(bidiRun->dirOverride(false));
 
-        float width = font.drawText(*this, subrun, currPoint, 0, Nullopt, customFontNotReadyAction);
+        float width = font.drawText(*this, subrun, currPoint, 0, std::nullopt, customFontNotReadyAction);
         currPoint.move(width, 0);
 
         bidiRun = bidiRun->next();
@@ -1020,7 +1021,7 @@ void GraphicsContext::platformApplyDeviceScaleFactor(float)
 
 void GraphicsContext::applyDeviceScaleFactor(float deviceScaleFactor)
 {
-    scale(FloatSize(deviceScaleFactor, deviceScaleFactor));
+    scale(deviceScaleFactor);
 
     if (isRecording()) {
         m_displayListRecorder->applyDeviceScaleFactor(deviceScaleFactor);
@@ -1100,8 +1101,7 @@ FloatRect GraphicsContext::computeLineBoundsAndAntialiasingModeForText(const Flo
         // effect, an alpha is applied to the underline color when text is at small scales.
         static const float minimumUnderlineAlpha = 0.4f;
         float shade = scale > minimumUnderlineAlpha ? scale : minimumUnderlineAlpha;
-        int alpha = color.alpha() * shade;
-        color = Color(color.red(), color.green(), color.blue(), alpha);
+        color = color.colorWithAlphaMultipliedBy(shade);
     }
 
     FloatPoint devicePoint = transform.mapPoint(point);
@@ -1176,5 +1176,20 @@ Vector<FloatPoint> GraphicsContext::centerLineAndCutOffCorners(bool isVerticalLi
 
     return { point1, point2 };
 }
+
+#if !USE(CG)
+bool GraphicsContext::supportsInternalLinks() const
+{
+    return false;
+}
+
+void GraphicsContext::setDestinationForRect(const String&, const FloatRect&)
+{
+}
+
+void GraphicsContext::addDestinationAtPoint(const String&, const FloatPoint&)
+{
+}
+#endif
 
 }

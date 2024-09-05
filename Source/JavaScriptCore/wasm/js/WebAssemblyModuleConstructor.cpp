@@ -33,10 +33,13 @@
 #include "JSArrayBuffer.h"
 #include "JSCInlines.h"
 #include "JSTypedArrays.h"
+#include "JSWebAssemblyCallee.h"
 #include "JSWebAssemblyCompileError.h"
 #include "JSWebAssemblyModule.h"
+#include "SymbolTable.h"
 #include "WasmPlan.h"
 #include "WebAssemblyModulePrototype.h"
+#include <wtf/StdLibExtras.h>
 
 #include "WebAssemblyModuleConstructor.lut.h"
 
@@ -51,7 +54,7 @@ const ClassInfo WebAssemblyModuleConstructor::s_info = { "Function", &Base::s_in
 
 static EncodedJSValue JSC_HOST_CALL constructJSWebAssemblyModule(ExecState* state)
 {
-    auto& vm = state->vm();
+    VM& vm = state->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
     JSValue val = state->argument(0);
 
@@ -68,18 +71,32 @@ static EncodedJSValue JSC_HOST_CALL constructJSWebAssemblyModule(ExecState* stat
     size_t byteSize = arrayBufferView ? arrayBufferView->length() : arrayBuffer->impl()->byteLength();
     const auto* base = arrayBufferView ? static_cast<uint8_t*>(arrayBufferView->vector()) : static_cast<uint8_t*>(arrayBuffer->impl()->data());
 
-    Wasm::Plan plan(vm, base + byteOffset, byteSize);
+    Wasm::Plan plan(&vm, base + byteOffset, byteSize);
     // On failure, a new WebAssembly.CompileError is thrown.
+    plan.run();
     if (plan.failed())
         return JSValue::encode(throwException(state, scope, createWebAssemblyCompileError(state, plan.errorMessage())));
 
-    // The spec string values inside Ast.module are decoded as UTF8 as described in Web.md. FIXME https://bugs.webkit.org/show_bug.cgi?id=164023
-
     // On success, a new WebAssembly.Module object is returned with [[Module]] set to the validated Ast.module.
-    auto* structure = InternalFunction::createSubclassStructure(state, state->newTarget(), asInternalFunction(state->callee())->globalObject()->WebAssemblyModuleStructure());
-    RETURN_IF_EXCEPTION(scope, encodedJSValue());
+    auto* structure = InternalFunction::createSubclassStructure(state, state->newTarget(), asInternalFunction(state->jsCallee())->globalObject()->WebAssemblyModuleStructure());
+    RETURN_IF_EXCEPTION(scope, { });
 
-    return JSValue::encode(JSWebAssemblyModule::create(vm, structure, plan.getFunctions(), plan.getMemory()));
+    // The export symbol table is the same for all Instances of a Module.
+    SymbolTable* exportSymbolTable = SymbolTable::create(vm);
+    for (auto& exp : plan.exports()) {
+        auto offset = exportSymbolTable->takeNextScopeOffset(NoLockingNecessary);
+        exportSymbolTable->set(NoLockingNecessary, exp.field.impl(), SymbolTableEntry(VarOffset(offset)));
+    }
+
+    // Only wasm-internal functions have a callee, stubs to JS do not.
+    unsigned calleeCount = plan.internalFunctionCount();
+    JSWebAssemblyModule* result = JSWebAssemblyModule::create(vm, structure, plan.takeModuleInformation(), plan.takeCallLinkInfos(), plan.takeWasmToJSStubs(), plan.takeFunctionIndexSpace(), exportSymbolTable, calleeCount);
+    plan.initializeCallees(state->jsCallee()->globalObject(), 
+        [&] (unsigned calleeIndex, JSWebAssemblyCallee* jsEntrypointCallee, JSWebAssemblyCallee* wasmEntrypointCallee) {
+            result->setJSEntrypointCallee(vm, calleeIndex, jsEntrypointCallee);
+            result->setWasmEntrypointCallee(vm, calleeIndex, wasmEntrypointCallee);
+        });
+    return JSValue::encode(result);
 }
 
 static EncodedJSValue JSC_HOST_CALL callJSWebAssemblyModule(ExecState* state)

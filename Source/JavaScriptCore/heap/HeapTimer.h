@@ -52,7 +52,7 @@ class VM;
 #if PLATFORM(QT) && !USE(CF)
 class HeapTimer : public QObject {
 #else
-class HeapTimer {
+class HeapTimer : public ThreadSafeRefCounted<HeapTimer> {
 #endif
 public:
     HeapTimer(VM*);
@@ -65,6 +65,7 @@ public:
 
     void scheduleTimer(double intervalInSeconds);
     void cancelTimer();
+    bool isScheduled() const { return m_isScheduled; }
 
 #if USE(CF)
     JS_EXPORT_PRIVATE void setRunLoop(CFRunLoopRef);
@@ -74,6 +75,7 @@ protected:
     VM* m_vm;
 
     RefPtr<JSLock> m_apiLock;
+    bool m_isScheduled { false };
 #if USE(CF)
     static const CFTimeInterval s_decade;
 

@@ -390,6 +390,7 @@ public:
 
     WEBCORE_EXPORT IntRect firstRectForRange(Range*) const;
 
+    void selectionWillChange();
     void respondToChangedSelection(const VisibleSelection& oldSelection, FrameSelection::SetSelectionOptions);
     WEBCORE_EXPORT void updateEditorUINowIfScheduled();
     bool shouldChangeSelection(const VisibleSelection& oldSelection, const VisibleSelection& newSelection, EAffinity, bool stillSelecting) const;
@@ -476,6 +477,9 @@ public:
     RefPtr<Range> rangeForTextCheckingResult(const TextCheckingResult&) const;
     bool isHandlingAcceptedCandidate() const { return m_isHandlingAcceptedCandidate; }
 
+    void setIsGettingDictionaryPopupInfo(bool b) { m_isGettingDictionaryPopupInfo = b; }
+    bool isGettingDictionaryPopupInfo() const { return m_isGettingDictionaryPopupInfo; }
+
 private:
     class WebContentReader;
 
@@ -489,7 +493,7 @@ private:
 
     void revealSelectionAfterEditingOperation(const ScrollAlignment& = ScrollAlignment::alignCenterIfNeeded, RevealExtentOption = DoNotRevealExtent);
     void markMisspellingsOrBadGrammar(const VisibleSelection&, bool checkSpelling, RefPtr<Range>& firstMisspellingRange);
-    TextCheckingTypeMask resolveTextCheckingTypeMask(TextCheckingTypeMask);
+    TextCheckingTypeMask resolveTextCheckingTypeMask(const Node& rootEditableElement, TextCheckingTypeMask);
 
     WEBCORE_EXPORT String selectedText(TextIteratorBehavior) const;
 
@@ -514,6 +518,7 @@ private:
     RefPtr<SharedBuffer> imageInWebArchiveFormat(Element&);
     RefPtr<Range> adjustedSelectionRange();
     RefPtr<DocumentFragment> createFragmentForImageResourceAndAddResource(RefPtr<ArchiveResource>&&);
+    Ref<DocumentFragment> createFragmentForImageAndURL(const String&);
     RefPtr<DocumentFragment> createFragmentAndAddResources(NSAttributedString *);
     FragmentAndResources createFragment(NSAttributedString *);
     void fillInUserVisibleForm(PasteboardURL&);
@@ -551,6 +556,8 @@ private:
     Timer m_telephoneNumberDetectionUpdateTimer;
     Vector<RefPtr<Range>> m_detectedTelephoneNumberRanges;
 #endif
+
+    bool m_isGettingDictionaryPopupInfo { false };
 };
 
 inline void Editor::setStartNewKillRingSequence(bool flag)

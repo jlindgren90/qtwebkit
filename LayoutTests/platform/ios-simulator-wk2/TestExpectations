@@ -8,7 +8,13 @@
 
 fast/scrolling/ios [ Pass ]
 fast/viewport/ios [ Pass ]
+scrollingcoordinator/ios [ Pass ]
 editing/selection/character-granularity-rect.html [ Pass ]
+
+fast/media/mq-inverted-colors-live-update.html [ Pass ]
+fast/media/mq-inverted-colors-live-update-in-subframes.html [ Pass ]
+fast/media/mq-monochrome-live-update.html [ Pass ]
+fast/media/mq-prefers-reduced-motion-live-update.html [ Pass ]
 
 #//////////////////////////////////////////////////////////////////////////////////////////
 # End platform-specific directories.
@@ -1457,6 +1463,17 @@ http/tests/navigation/target-blank-opener-post.html [ Skip ]
 css2.1/20110323/replaced-intrinsic-002.htm [ Pass ]
 fast/replaced/pdf-as-object-and-embed.html [ Pass ]
 
+# These tests test the Shadow DOM based HTML form validation UI but iOS WK2 is using native dialogs instead.
+fast/forms/validation-message-on-listbox.html
+fast/forms/validation-message-on-menulist.html
+fast/forms/validation-message-on-radio.html
+fast/forms/validation-message-on-checkbox.html
+fast/forms/validation-message-on-range.html
+fast/forms/validation-message-clone.html
+fast/forms/validation-message-in-relative-body.html
+fast/forms/validation-message-appearance.html
+fast/forms/validation-message-on-textarea.html 
+
 # Flaky as of 06/08/2015
 compositing/overflow/overflow-positioning.html [ Failure ImageOnlyFailure Pass ]
 editing/deleting/delete-3775172-fix.html [ Failure ImageOnlyFailure Pass ]
@@ -1760,7 +1777,12 @@ webkit.org/b/123431 http/tests/css/link-css-disabled-value-with-slow-loading-she
 fast/loader/location-hash-user-gesture.html [ Skip ]
 imported/blink/editing/selection/selectstart-event-crash.html [ Skip ]
 fast/dom/Window/post-message-user-action.html [ Skip ]
+fast/shadow-dom/click-on-slotted-anchor-with-hover.html [ Skip ]
 fast/shadow-dom/click-text-inside-linked-slot.html [ Skip ]
+fast/shadow-dom/fullscreen-in-shadow-fullscreenElement.html
+fast/shadow-dom/fullscreen-in-shadow-webkitCurrentFullScreenElement.html
+fast/shadow-dom/fullscreen-in-slot-fullscreenElement.html
+fast/shadow-dom/fullscreen-in-slot-webkitCurrentFullScreenElement.html
 
 # No touch events
 http/tests/contentdispositionattachmentsandbox/referer-header-stripped-with-meta-referer-always.html [ Skip ]
@@ -1804,6 +1826,8 @@ webkit.org/b/155948 transitions/cancel-transition.html [ Pass Failure ]
 # <a download> does not work on iOS.
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-download-unset.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-download.html [ Skip ]
+webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-file-blob-convert-to-download.html [ Skip ]
+webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-file-blob-download.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-nodownload-set.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-nodownload.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-download-synthetic-click.html [ Skip ]
@@ -1848,7 +1872,7 @@ svg/animations/mozilla/animateMotion-mpath-pathLength-1.svg [ ImageOnlyFailure ]
 
 webkit.org/b/159379 fast/history/page-cache-webdatabase-pending-transaction.html [ Pass Failure ]
 
-webkit.org/b/159840 [ Release ] http/tests/cache/disk-cache/disk-cache-request-max-stale.html [ Pass Timeout ]
+webkit.org/b/159840 http/tests/cache/disk-cache/disk-cache-request-max-stale.html [ Pass Timeout ]
 
 webkit.org/b/159884 [ Debug ] http/tests/loading/basic-auth-resend-wrong-credentials.html [ Pass Failure ]
 
@@ -1870,8 +1894,9 @@ webkit.org/b/153809 transitions/clip-path-transitions.html [ Pass Failure ]
 webkit.org/b/153809 transitions/clip-path-path-transitions.html [ Pass Failure ]
 webkit.org/b/153029 fast/css-generated-content/details-summary-before-after.html [ Failure ]
 
+webkit.org/b/165815 imported/w3c/web-platform-tests/html/browsers/browsing-the-web/scroll-to-fragid/scroll-frag-percent-encoded.html [ Pass Failure ]
+webkit.org/b/165814 imported/w3c/web-platform-tests/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-anchor-name.html [ Pass Failure ]
 webkit.org/b/161359 imported/w3c/web-platform-tests/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-top.html [ Pass Failure ]
-
 webkit.org/b/161631 imported/w3c/web-platform-tests/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-id-top.html [ Pass Failure ]
 
 # rdar://problem/26477855
@@ -1886,3 +1911,15 @@ webkit.org/b/162524 [ Release ] http/tests/cache/disk-cache/disk-cache-redirect.
 webkit.org/b/127116 [ Debug ] svg/custom/animate-initial-pause-unpause.html [ Pass Failure ]
 
 webkit.org/b/163362 [ Debug ] platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe.html [ Pass Failure ]
+
+webkit.org/b/164960 [ Release ] http/tests/security/module-correct-mime-types.html [ Slow ]
+
+webkit.org/b/164961 [ Release ] http/tests/storage/callbacks-are-called-in-correct-context.html [ Timeout ]
+
+webkit.org/b/165165 [ Release ] http/tests/security/contentSecurityPolicy/1.1/scriptnonce-invalidnonce.html [ Pass Timeout ]
+
+webkit.org/b/165344 [ Release ] http/tests/security/module-incorrect-mime-types.html [ Pass Timeout ]
+
+# Hover test does not apply
+fast/css/deferred-parsing/hover-test.html [ Skip ]
+

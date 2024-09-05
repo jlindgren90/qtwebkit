@@ -22,7 +22,6 @@
 #include "JSTestCEReactionsStringifier.h"
 
 #include "CustomElementReactionQueue.h"
-#include "ExceptionCode.h"
 #include "JSDOMBinding.h"
 #include "JSDOMConstructor.h"
 #include "JSDOMConvert.h"
@@ -111,6 +110,13 @@ JSTestCEReactionsStringifier::JSTestCEReactionsStringifier(Structure* structure,
 {
 }
 
+void JSTestCEReactionsStringifier::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
+
+}
+
 JSObject* JSTestCEReactionsStringifier::createPrototype(VM& vm, JSGlobalObject* globalObject)
 {
     return JSTestCEReactionsStringifierPrototype::create(vm, globalObject, JSTestCEReactionsStringifierPrototype::createStructure(vm, globalObject, globalObject->objectPrototype()));
@@ -129,12 +135,12 @@ void JSTestCEReactionsStringifier::destroy(JSC::JSCell* cell)
 
 template<> inline JSTestCEReactionsStringifier* BindingCaller<JSTestCEReactionsStringifier>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
-    return jsDynamicCast<JSTestCEReactionsStringifier*>(JSValue::decode(thisValue));
+    return jsDynamicDowncast<JSTestCEReactionsStringifier*>(JSValue::decode(thisValue));
 }
 
 template<> inline JSTestCEReactionsStringifier* BindingCaller<JSTestCEReactionsStringifier>::castForOperation(ExecState& state)
 {
-    return jsDynamicCast<JSTestCEReactionsStringifier*>(state.thisValue());
+    return jsDynamicDowncast<JSTestCEReactionsStringifier*>(state.thisValue());
 }
 
 static inline JSValue jsTestCEReactionsStringifierValueGetter(ExecState&, JSTestCEReactionsStringifier&, ThrowScope& throwScope);
@@ -157,7 +163,7 @@ EncodedJSValue jsTestCEReactionsStringifierConstructor(ExecState* state, Encoded
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestCEReactionsStringifierPrototype* domObject = jsDynamicCast<JSTestCEReactionsStringifierPrototype*>(JSValue::decode(thisValue));
+    JSTestCEReactionsStringifierPrototype* domObject = jsDynamicDowncast<JSTestCEReactionsStringifierPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestCEReactionsStringifier::getConstructor(state->vm(), domObject->globalObject()));
@@ -168,7 +174,7 @@ bool setJSTestCEReactionsStringifierConstructor(ExecState* state, EncodedJSValue
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestCEReactionsStringifierPrototype* domObject = jsDynamicCast<JSTestCEReactionsStringifierPrototype*>(JSValue::decode(thisValue));
+    JSTestCEReactionsStringifierPrototype* domObject = jsDynamicDowncast<JSTestCEReactionsStringifierPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -188,9 +194,7 @@ static inline bool setJSTestCEReactionsStringifierValueFunction(ExecState& state
 {
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
-#if ENABLE(CUSTOM_ELEMENTS)
     CustomElementReactionStack customElementReactionStack;
-#endif
     auto& impl = thisObject.wrapped();
     auto nativeValue = convert<IDLDOMString>(state, value, StringConversionConfiguration::Normal);
     RETURN_IF_EXCEPTION(throwScope, false);
@@ -216,8 +220,7 @@ static inline JSC::EncodedJSValue jsTestCEReactionsStringifierPrototypeFunctionT
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = castedThis->wrapped();
-    JSValue result = toJS<IDLDOMString>(*state, impl.value());
-    return JSValue::encode(result);
+    return JSValue::encode(toJS<IDLDOMString>(*state, impl.value()));
 }
 
 bool JSTestCEReactionsStringifierOwner::isReachableFromOpaqueRoots(JSC::Handle<JSC::Unknown> handle, void*, SlotVisitor& visitor)
@@ -274,7 +277,7 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestCE
 
 TestCEReactionsStringifier* JSTestCEReactionsStringifier::toWrapped(JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicCast<JSTestCEReactionsStringifier*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestCEReactionsStringifier*>(value))
         return &wrapper->wrapped();
     return nullptr;
 }

@@ -56,6 +56,14 @@ JSClassRef UIScriptController::wrapperClass()
 void UIScriptController::doAsyncTask(JSValueRef)
 {
 }
+
+void simulateAccessibilitySettingsChangeNotification(JSValueRef)
+{
+}
+
+void UIScriptController::doAfterPresentationUpdate(JSValueRef)
+{
+}
 #endif
 
 void UIScriptController::setDidStartFormControlInteractionCallback(JSValueRef callback)
@@ -157,11 +165,22 @@ JSValueRef UIScriptController::didHideKeyboardCallback() const
     return m_context->callbackWithID(CallbackTypeDidHideKeyboard);
 }
 
-#if !PLATFORM(IOS)
+#if !PLATFORM(COCOA)
 void UIScriptController::zoomToScale(double, JSValueRef)
 {
 }
 
+void UIScriptController::simulateAccessibilitySettingsChangeNotification(JSValueRef)
+{
+}
+
+JSObjectRef UIScriptController::contentsOfUserInterfaceItem(JSStringRef interfaceItem) const
+{
+    return nullptr;
+}
+#endif
+
+#if !PLATFORM(IOS)
 void UIScriptController::touchDownAtPoint(long x, long y, long touchCount, JSValueRef)
 {
 }
@@ -233,13 +252,16 @@ void UIScriptController::dismissFormAccessoryView()
 void UIScriptController::selectFormAccessoryPickerRow(long)
 {
 }
-    
-JSObjectRef UIScriptController::contentsOfUserInterfaceItem(JSStringRef interfaceItem) const
-{
-    return nullptr;
-}
 
 void UIScriptController::scrollToOffset(long x, long y)
+{
+}
+
+void UIScriptController::immediateScrollToOffset(long x, long y)
+{
+}
+
+void UIScriptController::immediateZoomToScale(double scale)
 {
 }
 
@@ -266,12 +288,30 @@ double UIScriptController::maximumZoomScale() const
     return 1;
 }
 
+std::optional<bool> UIScriptController::stableStateOverride() const
+{
+    return std::nullopt;
+}
+
+void UIScriptController::setStableStateOverride(std::optional<bool>)
+{
+}
+
 JSObjectRef UIScriptController::contentVisibleRect() const
 {
     return nullptr;
 }
 
 JSObjectRef UIScriptController::selectionRangeViewRects() const
+{
+    return nullptr;
+}
+
+void UIScriptController::removeAllDynamicDictionaries()
+{
+}
+
+JSRetainPtr<JSStringRef> UIScriptController::scrollingTreeAsText() const
 {
     return nullptr;
 }
@@ -315,6 +355,14 @@ void UIScriptController::platformSetDidHideKeyboardCallback()
 void UIScriptController::platformClearAllCallbacks()
 {
 }
+#endif
+
+#if !PLATFORM(MAC)
+
+void UIScriptController::insertText(JSStringRef, int, int)
+{
+}
+
 #endif
 
 void UIScriptController::uiScriptComplete(JSStringRef result)

@@ -121,7 +121,7 @@ public:
     Type type() const { return m_type; }
 
     ResourceLoadPriority loadPriority() const { return m_loadPriority; }
-    void setLoadPriority(const Optional<ResourceLoadPriority>&);
+    void setLoadPriority(const std::optional<ResourceLoadPriority>&);
 
     WEBCORE_EXPORT void addClient(CachedResourceClient&);
     WEBCORE_EXPORT void removeClient(CachedResourceClient&);
@@ -282,6 +282,8 @@ protected:
 
     virtual void didReplaceSharedBufferContents() { }
 
+    virtual void setBodyDataFrom(const CachedResource&);
+
     // FIXME: Make the rest of these data members private and use functions in derived classes instead.
     HashCountedSet<CachedResourceClient*> m_clients;
     ResourceRequest m_resourceRequest;
@@ -301,7 +303,6 @@ private:
 
     virtual void checkNotify();
     virtual bool mayTryReplaceEncodedData() const { return false; }
-    virtual void setBodyDataFrom(const CachedResource&);
 
     std::chrono::microseconds freshnessLifetime(const ResourceResponse&) const;
 

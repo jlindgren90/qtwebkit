@@ -107,6 +107,8 @@ public:
     ResourceRequest willSendRequest(ResourceRequest&&, ResourceResponse&&);
 #endif
 
+    void didReceiveResponse(ResourceResponse&&);
+
 #if !PLATFORM(QT)
     bool shouldUseCredentialStorage();
     void didReceiveAuthenticationChallenge(const AuthenticationChallenge&);
@@ -254,6 +256,8 @@ private:
     };
 
     void platformSetDefersLoading(bool);
+
+    void platformContinueSynchronousDidReceiveResponse();
 
     void scheduleFailure(FailureType);
 

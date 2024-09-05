@@ -26,7 +26,7 @@
 
 WebInspector.Resource = class Resource extends WebInspector.SourceCode
 {
-    constructor(url, mimeType, type, loaderIdentifier, requestIdentifier, requestMethod, requestHeaders, requestData, requestSentTimestamp, initiatorSourceCodeLocation, originalRequestWillBeSentTimestamp)
+    constructor(url, mimeType, type, loaderIdentifier, targetId, requestIdentifier, requestMethod, requestHeaders, requestData, requestSentTimestamp, initiatorSourceCodeLocation, originalRequestWillBeSentTimestamp)
     {
         super();
 
@@ -60,6 +60,7 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
         this._transferSize = NaN;
         this._cached = false;
         this._timingData = new WebInspector.ResourceTimingData(this);
+        this._target = targetId ? WebInspector.targetManager.targetForIdentifier(targetId) : WebInspector.mainTarget;
 
         if (this._initiatorSourceCodeLocation && this._initiatorSourceCodeLocation.sourceCode instanceof WebInspector.Resource)
             this._initiatorSourceCodeLocation.sourceCode.addInitiatedResource(this);
@@ -113,6 +114,10 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
             if (plural)
                 return WebInspector.UIString("XHRs");
             return WebInspector.UIString("XHR");
+        case WebInspector.Resource.Type.Fetch:
+            if (plural)
+                return WebInspector.UIString("Fetches");
+            return WebInspector.UIString("Fetch");
         case WebInspector.Resource.Type.WebSocket:
             if (plural)
                 return WebInspector.UIString("Sockets");
@@ -127,6 +132,8 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
 
     // Public
 
+    get target() { return this._target; }
+    get type() { return this._type; }
     get timingData() { return this._timingData; }
 
     get url()
@@ -166,11 +173,6 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
     get originalRequestWillBeSentTimestamp()
     {
         return this._originalRequestWillBeSentTimestamp;
-    }
-
-    get type()
-    {
-        return this._type;
     }
 
     get mimeType()
@@ -672,8 +674,8 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
 
         this._scripts.push(script);
 
-        if (this._type === WebInspector.Resource.Type.Other) {
-            var oldType = this._type;
+        if (this._type === WebInspector.Resource.Type.Other || this._type === WebInspector.Resource.Type.XHR) {
+            let oldType = this._type;
             this._type = WebInspector.Resource.Type.Script;
             this.dispatchEventToListeners(WebInspector.Resource.Event.TypeDidChange, {oldType});
         }
@@ -755,6 +757,7 @@ WebInspector.Resource.Type = {
     Font: "resource-type-font",
     Script: "resource-type-script",
     XHR: "resource-type-xhr",
+    Fetch: "resource-type-fetch",
     WebSocket: "resource-type-websocket",
     Other: "resource-type-other"
 };

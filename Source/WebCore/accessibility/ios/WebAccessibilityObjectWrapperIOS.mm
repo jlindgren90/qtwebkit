@@ -531,6 +531,18 @@ static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityO
     }    
 }
 
+- (AccessibilityObjectWrapper*)_accessibilityTreeAncestor
+{
+    auto matchFunc = [] (const AccessibilityObject& object) {
+        AccessibilityRole role = object.roleValue();
+        return role == TreeRole;
+    };
+    
+    if (const AccessibilityObject* parent = AccessibilityObject::matchedParent(*m_object, false, matchFunc))
+        return parent->wrapper();
+    return nil;
+}
+
 - (AccessibilityObjectWrapper*)_accessibilityListAncestor
 {
     auto matchFunc = [] (const AccessibilityObject& object) {
@@ -997,6 +1009,10 @@ static void appendStringToResult(NSMutableString *result, NSString *string)
     NSString *axTitle = [self baseAccessibilityTitle];
     NSString *axDescription = [self baseAccessibilityDescription];
     NSString *landmarkDescription = [self ariaLandmarkRoleDescription];
+    
+    // We should expose the value of the input type date or time through AXValue instead of AXTitle.
+    if (m_object->isInputTypePopupButton() && [axTitle isEqualToString:[self accessibilityValue]])
+        axTitle = nil;
 
     // Footer is not considered a landmark, but we want the role description.
     if (m_object->roleValue() == FooterRole)
@@ -1844,6 +1860,16 @@ static RenderObject* rendererForView(WAKView* view)
     return nil;
 }
 
+- (AccessibilityObject*)treeItemParentForObject:(AccessibilityObject*)object
+{
+    // Use this to check if an object is inside a treeitem object.
+    if (const AccessibilityObject* parent = AccessibilityObject::matchedParent(*object, true, [] (const AccessibilityObject& object) {
+        return object.roleValue() == TreeItemRole;
+    }))
+        return const_cast<AccessibilityObject*>(parent);
+    return nil;
+}
+
 - (void)accessibilityElementDidBecomeFocused
 {
     if (![self _prepareAccessibilityCall])
@@ -2171,11 +2197,11 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
 {
     if (!range)
         return NSMakeRange(NSNotFound, 0);
-    
+
     Document* document = m_object->document();
     Element* selectionRoot = document->frame()->selection().selection().rootEditableElement();
     Element* scope = selectionRoot ? selectionRoot : document->documentElement();
-    
+
     // Mouse events may cause TSM to attempt to create an NSRange for a portion of the view
     // that is not inside the current editable region.  These checks ensure we don't produce
     // potentially invalid data when responding to such requests.
@@ -2183,13 +2209,11 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
         return NSMakeRange(NSNotFound, 0);
     if (&range->endContainer() != scope && !range->endContainer().isDescendantOf(scope))
         return NSMakeRange(NSNotFound, 0);
-    
+
     RefPtr<Range> testRange = Range::create(scope->document(), scope, 0, &range->startContainer(), range->startOffset());
     ASSERT(&testRange->startContainer() == scope);
     int startPosition = TextIterator::rangeLength(testRange.get());
-    
-    ExceptionCode ec;
-    testRange->setEnd(range->endContainer(), range->endOffset(), ec);
+    testRange->setEnd(range->endContainer(), range->endOffset());
     ASSERT(&testRange->startContainer() == scope);
     int endPosition = TextIterator::rangeLength(testRange.get());
     return NSMakeRange(startPosition, endPosition - startPosition);
@@ -2653,7 +2677,7 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
     if (![self _prepareAccessibilityCall])
         return NO;
 
-    return m_object->ariaLiveRegionBusy();
+    return m_object->isBusy();
 }
 
 - (NSString *)accessibilityARIALiveRegionStatus
@@ -2706,6 +2730,9 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
     if (AccessibilityObject* detailParent = [self detailParentForSummaryObject:m_object])
         return detailParent->supportsExpanded();
     
+    if (AccessibilityObject* treeItemParent = [self treeItemParentForObject:m_object])
+        return treeItemParent->supportsExpanded();
+    
     return m_object->supportsExpanded();
 }
 
@@ -2718,6 +2745,9 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
     // summary's accessible children.
     if (AccessibilityObject* detailParent = [self detailParentForSummaryObject:m_object])
         return detailParent->isExpanded();
+    
+    if (AccessibilityObject* treeItemParent = [self treeItemParentForObject:m_object])
+        return treeItemParent->isExpanded();
     
     return m_object->isExpanded();
 }
@@ -2751,6 +2781,24 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
     default:
     case ARIACurrentTrue:
         return @"true";
+    }
+}
+
+- (NSString *)accessibilitySortDirection
+{
+    if (![self _prepareAccessibilityCall])
+        return nil;
+    
+    switch (m_object->sortDirection()) {
+    case SortDirectionAscending:
+        return @"ascending";
+    case SortDirectionDescending:
+        return @"descending";
+    case SortDirectionOther:
+        return @"other";
+    default:
+    case SortDirectionNone:
+        return nil;
     }
 }
 

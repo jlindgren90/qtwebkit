@@ -39,7 +39,6 @@
 #include "FrameView.h"
 #include "HTMLMediaElement.h"
 #include "HistoryItem.h"
-#include "InspectorInstrumentation.h"
 #include "MainFrame.h"
 #include "Page.h"
 #include "PageCache.h"
@@ -90,6 +89,7 @@ bool Settings::gMockScrollAnimatorEnabled = false;
 
 #if ENABLE(MEDIA_STREAM)
 bool Settings::gMockCaptureDevicesEnabled = false;
+bool Settings::gMediaCaptureRequiresSecureConnection = true;
 #endif
 
 #if PLATFORM(WIN)
@@ -183,7 +183,7 @@ static const bool defaultSelectTrailingWhitespaceEnabled = false;
 // This amount of time must have elapsed before we will even consider scheduling a layout without a delay.
 // FIXME: For faster machines this value can really be lowered to 200. 250 is adequate, but a little high
 // for dual G5s. :)
-static const auto layoutScheduleThreshold = 250ms;
+static const Seconds layoutScheduleThreshold = 250_ms;
 
 Settings::Settings(Page* page)
     : m_page(nullptr)
@@ -388,7 +388,6 @@ void Settings::setScriptEnabled(bool isScriptEnabled)
 #if PLATFORM(IOS)
     m_page->setNeedsRecalcStyleInAllFrames();
 #endif
-    InspectorInstrumentation::scriptsEnabled(*m_page, m_isScriptEnabled);
 }
 
 void Settings::setJavaEnabled(bool isJavaEnabled)
@@ -460,7 +459,7 @@ void Settings::setMinimumDOMTimerInterval(std::chrono::milliseconds interval)
     }
 }
 
-void Settings::setLayoutInterval(std::chrono::milliseconds layoutInterval)
+void Settings::setLayoutInterval(Seconds layoutInterval)
 {
     // FIXME: It seems weird that this function may disregard the specified layout interval.
     // We should either expose layoutScheduleThreshold or better communicate this invariant.
@@ -593,6 +592,16 @@ void Settings::setMockCaptureDevicesEnabled(bool enabled)
 {
     gMockCaptureDevicesEnabled = enabled;
     MockRealtimeMediaSourceCenter::setMockRealtimeMediaSourceCenterEnabled(enabled);
+}
+
+bool Settings::mediaCaptureRequiresSecureConnection() const
+{
+    return gMediaCaptureRequiresSecureConnection;
+}
+
+void Settings::setMediaCaptureRequiresSecureConnection(bool mediaCaptureRequiresSecureConnection)
+{
+    gMediaCaptureRequiresSecureConnection = mediaCaptureRequiresSecureConnection;
 }
 #endif
 

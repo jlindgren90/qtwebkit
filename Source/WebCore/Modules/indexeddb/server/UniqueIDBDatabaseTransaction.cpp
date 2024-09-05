@@ -29,6 +29,7 @@
 #if ENABLE(INDEXED_DATABASE)
 
 #include "IDBError.h"
+#include "IDBIterateCursorData.h"
 #include "IDBResultData.h"
 #include "IDBServer.h"
 #include "Logging.h"
@@ -257,6 +258,23 @@ void UniqueIDBDatabaseTransaction::getRecord(const IDBRequestData& requestData, 
     });
 }
 
+void UniqueIDBDatabaseTransaction::getAllRecords(const IDBRequestData& requestData, const IDBGetAllRecordsData& getAllRecordsData)
+{
+    LOG(IndexedDB, "UniqueIDBDatabaseTransaction::getAllRecords");
+
+    ASSERT(m_transactionInfo.identifier() == requestData.transactionIdentifier());
+
+    RefPtr<UniqueIDBDatabaseTransaction> protectedThis(this);
+    m_databaseConnection->database().getAllRecords(requestData, getAllRecordsData, [this, protectedThis, requestData](const IDBError& error, const IDBGetAllResult& result) {
+        LOG(IndexedDB, "UniqueIDBDatabaseTransaction::getAllRecords (callback)");
+
+        if (error.isNull())
+            m_databaseConnection->connectionToClient().didGetAllRecords(IDBResultData::getAllRecordsSuccess(requestData.requestIdentifier(), result));
+        else
+            m_databaseConnection->connectionToClient().didGetAllRecords(IDBResultData::error(requestData.requestIdentifier(), error));
+    });
+}
+
 void UniqueIDBDatabaseTransaction::getCount(const IDBRequestData& requestData, const IDBKeyRangeData& keyRangeData)
 {
     LOG(IndexedDB, "UniqueIDBDatabaseTransaction::getCount");
@@ -308,14 +326,14 @@ void UniqueIDBDatabaseTransaction::openCursor(const IDBRequestData& requestData,
     });
 }
 
-void UniqueIDBDatabaseTransaction::iterateCursor(const IDBRequestData& requestData, const IDBKeyData& key, unsigned long count)
+void UniqueIDBDatabaseTransaction::iterateCursor(const IDBRequestData& requestData, const IDBIterateCursorData& data)
 {
     LOG(IndexedDB, "UniqueIDBDatabaseTransaction::iterateCursor");
 
     ASSERT(m_transactionInfo.identifier() == requestData.transactionIdentifier());
 
     RefPtr<UniqueIDBDatabaseTransaction> protectedThis(this);
-    m_databaseConnection->database().iterateCursor(requestData, key, count, [this, protectedThis, requestData](const IDBError& error, const IDBGetResult& result) {
+    m_databaseConnection->database().iterateCursor(requestData, data, [this, protectedThis, requestData](const IDBError& error, const IDBGetResult& result) {
         LOG(IndexedDB, "UniqueIDBDatabaseTransaction::iterateCursor (callback)");
 
         if (error.isNull())

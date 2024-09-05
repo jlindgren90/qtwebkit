@@ -406,7 +406,7 @@ void FontCache::purgeInactiveFontData(unsigned purgeCount)
     keysToRemove.reserveInitialCapacity(fontPlatformDataCache().size());
     for (auto& entry : fontPlatformDataCache()) {
         if (entry.value && !cachedFonts().contains(*entry.value))
-            keysToRemove.append(entry.key);
+            keysToRemove.uncheckedAppend(entry.key);
     }
     for (auto& key : keysToRemove)
         fontPlatformDataCache().remove(key);

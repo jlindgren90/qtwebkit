@@ -154,7 +154,7 @@ public:
     WEBCORE_EXPORT RenderLayer* enclosingLayer() const;
 
     // Scrolling is a RenderBox concept, however some code just cares about recursively scrolling our enclosing ScrollableArea(s).
-    WEBCORE_EXPORT bool scrollRectToVisible(SelectionRevealMode, const LayoutRect&, const ScrollAlignment& alignX = ScrollAlignment::alignCenterIfNeeded, const ScrollAlignment& alignY = ScrollAlignment::alignCenterIfNeeded);
+    WEBCORE_EXPORT bool scrollRectToVisible(SelectionRevealMode, const LayoutRect& absoluteRect, bool insideFixed, const ScrollAlignment& alignX = ScrollAlignment::alignCenterIfNeeded, const ScrollAlignment& alignY = ScrollAlignment::alignCenterIfNeeded);
 
     // Convenience function for getting to the nearest enclosing box of a RenderObject.
     WEBCORE_EXPORT RenderBox& enclosingBox() const;
@@ -818,6 +818,10 @@ protected:
     virtual RenderFlowThread* locateFlowThreadContainingBlock() const;
     static void calculateBorderStyleColor(const EBorderStyle&, const BoxSide&, Color&);
 
+    void initializeFlowThreadStateOnInsertion();
+    void resetFlowThreadStateOnRemoval();
+    static FlowThreadState computedFlowThreadState(const RenderObject&);
+
 private:
 #ifndef NDEBUG
     bool isSetNeedsLayoutForbidden() const { return m_setNeedsLayoutForbidden; }
@@ -966,6 +970,7 @@ private:
 
     RenderObjectBitfields m_bitfields;
 
+    // FIXME: This should be RenderElementRareData.
     class RenderObjectRareData {
     public:
         RenderObjectRareData()
@@ -985,17 +990,16 @@ private:
         // From RenderElement
         ADD_BOOLEAN_BITFIELD(isRegisteredForVisibleInViewportCallback, IsRegisteredForVisibleInViewportCallback);
         ADD_ENUM_BITFIELD(visibleInViewportState, VisibleInViewportState, VisibleInViewportState, 2);
-
+        std::unique_ptr<RenderStyle> cachedFirstLineStyle;
     };
     
-    RenderObjectRareData rareData() const;
+    const RenderObject::RenderObjectRareData& rareData() const;
     RenderObjectRareData& ensureRareData();
     void removeRareData();
     
-    // Note: RenderObjectRareData is stored by value.
-    typedef HashMap<const RenderObject*, RenderObjectRareData> RareDataHash;
+    typedef HashMap<const RenderObject*, std::unique_ptr<RenderObjectRareData>> RareDataMap;
 
-    static RareDataHash& rareDataMap();
+    static RareDataMap& rareDataMap();
 
 #undef ADD_BOOLEAN_BITFIELD
 };
@@ -1108,7 +1112,7 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
 SPECIALIZE_TYPE_TRAITS_END()
 
 #if ENABLE(TREE_DEBUGGING)
-// Outside the WebCore namespace for ease of invocation from gdb.
+// Outside the WebCore namespace for ease of invocation from the debugger.
 void showNodeTree(const WebCore::RenderObject*);
 void showLineTree(const WebCore::RenderObject*);
 void showRenderTree(const WebCore::RenderObject*);

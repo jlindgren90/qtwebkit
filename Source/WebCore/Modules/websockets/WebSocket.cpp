@@ -358,7 +358,7 @@ ExceptionOr<void> WebSocket::send(ArrayBufferView& arrayBufferView)
         return { };
     }
     ASSERT(m_channel);
-    m_channel->send(*arrayBufferView.buffer(), arrayBufferView.byteOffset(), arrayBufferView.byteLength());
+    m_channel->send(*arrayBufferView.unsharedBuffer(), arrayBufferView.byteOffset(), arrayBufferView.byteLength());
     return { };
 }
 
@@ -378,7 +378,7 @@ ExceptionOr<void> WebSocket::send(Blob& binaryData)
     return { };
 }
 
-ExceptionOr<void> WebSocket::close(Optional<unsigned short> optionalCode, const String& reason)
+ExceptionOr<void> WebSocket::close(std::optional<unsigned short> optionalCode, const String& reason)
 {
     int code = optionalCode ? optionalCode.value() : static_cast<int>(WebSocketChannel::CloseEventCodeNotSpecified);
     if (code == WebSocketChannel::CloseEventCodeNotSpecified)

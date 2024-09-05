@@ -20,8 +20,7 @@
  *
  */
 
-#ifndef RenderText_h
-#define RenderText_h
+#pragma once
 
 #include "RenderElement.h"
 #include "RenderTextLineBoxes.h"
@@ -167,7 +166,7 @@ public:
     void deleteLineBoxesBeforeSimpleLineLayout();
     const SimpleLineLayout::Layout* simpleLineLayout() const;
 
-    StringView stringView(unsigned start = 0, Optional<unsigned> stop = Nullopt) const;
+    StringView stringView(unsigned start = 0, std::optional<unsigned> stop = std::nullopt) const;
 
     LayoutUnit topOfFirstText() const;
     
@@ -295,5 +294,3 @@ inline RenderText* Text::renderer() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderText, isText())
-
-#endif // RenderText_h

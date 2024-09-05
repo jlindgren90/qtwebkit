@@ -23,9 +23,10 @@
 #include "PropertySetCSSStyleDeclaration.h"
 
 #include "CSSCustomPropertyValue.h"
-#include "CSSParser.h"
+#include "CSSPropertyParser.h"
 #include "CSSRule.h"
 #include "CSSStyleSheet.h"
+#include "CustomElementReactionQueue.h"
 #include "HTMLNames.h"
 #include "InspectorInstrumentation.h"
 #include "MutationObserverInterestGroup.h"
@@ -53,7 +54,8 @@ public:
         ASSERT(!s_currentDecl);
         s_currentDecl = decl;
 
-        if (!s_currentDecl->parentElement())
+        auto* element = s_currentDecl->parentElement();
+        if (!element)
             return;
 
         bool shouldReadOldValue = false;
@@ -62,14 +64,16 @@ public:
         if (m_mutationRecipients && m_mutationRecipients->isOldValueRequested())
             shouldReadOldValue = true;
 
-        AtomicString oldValue;
-        if (shouldReadOldValue)
-            oldValue = s_currentDecl->parentElement()->getAttribute(HTMLNames::styleAttr);
-
-        if (m_mutationRecipients) {
-            AtomicString requestedOldValue = m_mutationRecipients->isOldValueRequested() ? oldValue : nullAtom;
-            m_mutation = MutationRecord::createAttributes(*s_currentDecl->parentElement(), HTMLNames::styleAttr, requestedOldValue);
+        if (UNLIKELY(element->isDefinedCustomElement())) {
+            auto* reactionQueue = element->reactionQueue();
+            if (reactionQueue && reactionQueue->observesStyleAttribute()) {
+                m_customElement = element;
+                shouldReadOldValue = true;
+            }
         }
+
+        if (shouldReadOldValue)
+            m_oldValue = s_currentDecl->parentElement()->getAttribute(HTMLNames::styleAttr);
     }
 
     ~StyleAttributeMutationScope()
@@ -78,8 +82,16 @@ public:
         if (s_scopeCount)
             return;
 
-        if (m_mutation && s_shouldDeliver)
-            m_mutationRecipients->enqueueMutationRecord(m_mutation.releaseNonNull());
+        if (s_shouldDeliver) {
+            if (m_mutationRecipients) {
+                auto mutation = MutationRecord::createAttributes(*s_currentDecl->parentElement(), HTMLNames::styleAttr, m_oldValue);
+                m_mutationRecipients->enqueueMutationRecord(WTFMove(mutation));
+            }
+            if (m_customElement) {
+                AtomicString newValue = m_customElement->getAttribute(HTMLNames::styleAttr);
+                CustomElementReactionQueue::enqueueAttributeChangedCallbackIfNeeded(*m_customElement, HTMLNames::styleAttr, m_oldValue, newValue);
+            }
+        }
 
         s_shouldDeliver = false;
         if (!s_shouldNotifyInspector) {
@@ -111,7 +123,8 @@ private:
     static bool s_shouldDeliver;
 
     std::unique_ptr<MutationObserverInterestGroup> m_mutationRecipients;
-    RefPtr<MutationRecord> m_mutation;
+    AtomicString m_oldValue;
+    RefPtr<Element> m_customElement;
 };
 
 unsigned StyleAttributeMutationScope::s_scopeCount = 0;
@@ -154,7 +167,7 @@ ExceptionOr<void> PropertySetCSSStyleDeclaration::setCssText(const String& text)
     if (!willMutate())
         return { };
 
-    bool changed = m_propertySet->parseDeclaration(text, cssParserContext(), contextStyleSheet());
+    bool changed = m_propertySet->parseDeclaration(text, cssParserContext());
 
     didMutate(changed ? PropertyChanged : NoChanges);
 
@@ -234,9 +247,9 @@ ExceptionOr<void> PropertySetCSSStyleDeclaration::setProperty(const String& prop
 
     bool changed;
     if (propertyID == CSSPropertyCustom)
-        changed = m_propertySet->setCustomProperty(propertyName, value, important, cssParserContext(), contextStyleSheet());
+        changed = m_propertySet->setCustomProperty(propertyName, value, important, cssParserContext());
     else
-        changed = m_propertySet->setProperty(propertyID, value, important, cssParserContext(), contextStyleSheet());
+        changed = m_propertySet->setProperty(propertyID, value, important, cssParserContext());
 
     didMutate(changed ? PropertyChanged : NoChanges);
 
@@ -291,7 +304,7 @@ ExceptionOr<bool> PropertySetCSSStyleDeclaration::setPropertyInternal(CSSPropert
     if (!willMutate())
         return false;
 
-    bool changed = m_propertySet->setProperty(propertyID, value, important, cssParserContext(), contextStyleSheet());
+    bool changed = m_propertySet->setProperty(propertyID, value, important, cssParserContext());
 
     didMutate(changed ? PropertyChanged : NoChanges);
 

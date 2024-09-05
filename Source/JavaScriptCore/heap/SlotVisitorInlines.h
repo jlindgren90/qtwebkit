@@ -93,25 +93,17 @@ inline void SlotVisitor::appendValuesHidden(WriteBarrierBase<Unknown>* barriers,
         appendHidden(&barriers[i]);
 }
 
-inline void SlotVisitor::addWeakReferenceHarvester(WeakReferenceHarvester* weakReferenceHarvester)
-{
-    m_heap.m_weakReferenceHarvesters.addThreadSafe(weakReferenceHarvester);
-}
-
-inline void SlotVisitor::addUnconditionalFinalizer(UnconditionalFinalizer* unconditionalFinalizer)
-{
-    m_heap.m_unconditionalFinalizers.addThreadSafe(unconditionalFinalizer);
-}
-
 inline void SlotVisitor::reportExtraMemoryVisited(size_t size)
 {
-    heap()->reportExtraMemoryVisited(m_oldCellState, size);
+    if (m_isFirstVisit)
+        heap()->reportExtraMemoryVisited(size);
 }
 
 #if ENABLE(RESOURCE_USAGE)
 inline void SlotVisitor::reportExternalMemoryVisited(size_t size)
 {
-    heap()->reportExternalMemoryVisited(m_oldCellState, size);
+    if (m_isFirstVisit)
+        heap()->reportExternalMemoryVisited(size);
 }
 #endif
 
@@ -128,6 +120,20 @@ inline VM& SlotVisitor::vm()
 inline const VM& SlotVisitor::vm() const
 {
     return *m_heap.m_vm;
+}
+
+inline void SlotVisitor::didNotRace(const VisitRaceKey& race)
+{
+    if (ASSERT_DISABLED)
+        return;
+    
+    if (m_isFirstVisit) {
+        // This is the first visit so we don't need to remove anything.
+        return;
+    }
+    
+    auto locker = holdLock(heap()->m_visitRaceLock);
+    heap()->m_visitRaces.remove(race);
 }
 
 } // namespace JSC

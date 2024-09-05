@@ -20,8 +20,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef RenderBlockFlow_h
-#define RenderBlockFlow_h
+#pragma once
 
 #include "FloatingObjects.h"
 #include "LineWidth.h"
@@ -37,7 +36,6 @@ class FloatWithRect;
 class LayoutStateMaintainer;
 class LineBreaker;
 class LineInfo;
-class LineWidth;
 class RenderMultiColumnFlowThread;
 class RenderNamedFlowFragment;
 class RenderRubyRun;
@@ -284,6 +282,7 @@ public:
 
     RenderMultiColumnFlowThread* multiColumnFlowThread() const { return hasRareBlockFlowData() ? rareBlockFlowData()->m_multiColumnFlowThread : nullptr; }
     void setMultiColumnFlowThread(RenderMultiColumnFlowThread*);
+    bool willCreateColumns(std::optional<unsigned> desiredColumnCount = std::nullopt) const;
     
     bool containsFloats() const override { return m_floatingObjects && !m_floatingObjects->set().isEmpty(); }
     bool containsFloat(RenderBox&) const;
@@ -449,8 +448,8 @@ protected:
 
     void createFloatingObjects();
 
-    Optional<int> firstLineBaseline() const override;
-    Optional<int> inlineBlockBaseline(LineDirectionMode) const override;
+    std::optional<int> firstLineBaseline() const override;
+    std::optional<int> inlineBlockBaseline(LineDirectionMode) const override;
 
     bool isMultiColumnBlockFlow() const override { return multiColumnFlowThread(); }
     
@@ -654,5 +653,3 @@ inline const SimpleLineLayout::Layout* RenderBlockFlow::simpleLineLayout() const
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderBlockFlow, isRenderBlockFlow())
-
-#endif // RenderBlockFlow_h

@@ -52,9 +52,11 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 
 #endif
 
+@class AVFunctionBarScrubber;
 @class WKBrowsingContextHandle;
 @class _WKFrameHandle;
 @class _WKHitTestResult;
+@class _WKIconLoadingDelegate;
 @class _WKRemoteObjectRegistry;
 @class _WKSessionState;
 @class _WKWebViewPrintFormatter;
@@ -62,6 +64,7 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 @protocol WKHistoryDelegatePrivate;
 @protocol _WKDiagnosticLoggingDelegate;
 @protocol _WKFindDelegate;
+@protocol _WKIconLoadingDelegate;
 @protocol _WKInputDelegate;
 @protocol _WKFullscreenDelegate;
 
@@ -74,6 +77,7 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 @property (nonatomic, setter=_setObservedRenderingProgressEvents:) _WKRenderingProgressEvents _observedRenderingProgressEvents;
 
 @property (nonatomic, weak, setter=_setHistoryDelegate:) id <WKHistoryDelegatePrivate> _historyDelegate;
+@property (nonatomic, weak, setter=_setIconLoadingDelegate:) id <_WKIconLoadingDelegate> _iconLoadingDelegate;
 
 @property (nonatomic, readonly) NSURL *_unreachableURL;
 
@@ -202,6 +206,12 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 - (NSPrintOperation *)_printOperationWithPrintInfo:(NSPrintInfo *)printInfo;
 - (NSPrintOperation *)_printOperationWithPrintInfo:(NSPrintInfo *)printInfo forFrame:(_WKFrameHandle *)frameHandle WK_API_AVAILABLE(macosx(10.12), ios(10.0));
 
+// FIXME: This SPI should become a part of the WKUIDelegate. rdar://problem/26561537
+@property (nonatomic, readwrite, setter=_setWantsMediaPlaybackControlsView:) BOOL _wantsMediaPlaybackControlsView WK_API_AVAILABLE(macosx(WK_MAC_TBA));
+@property (nonatomic, readonly) AVFunctionBarScrubber *_mediaPlaybackControlsView WK_API_AVAILABLE(macosx(WK_MAC_TBA));
+- (void)_addMediaPlaybackControlsView:(AVFunctionBarScrubber *)mediaPlaybackControlsView WK_API_AVAILABLE(macosx(WK_MAC_TBA));
+- (void)_removeMediaPlaybackControlsView WK_API_AVAILABLE(macosx(WK_MAC_TBA));
+
 #endif
 
 - (WKNavigation *)_reloadWithoutContentBlockers WK_API_AVAILABLE(macosx(10.12), ios(10.0));
@@ -248,6 +258,8 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 @property (nonatomic, setter=_setFullscreenDelegate:) id<_WKFullscreenDelegate> _fullscreenDelegate WK_API_AVAILABLE(macosx(10.13));
 @property (nonatomic, readonly) BOOL _isInFullscreen WK_API_AVAILABLE(macosx(WK_MAC_TBA));
 
+- (void)_stopMediaCapture;
+
 @end
 
 #if !TARGET_OS_IPHONE
@@ -256,6 +268,8 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 #endif
 
 @interface WKWebView (WKTesting)
+
+- (NSDictionary *)_contentsOfUserInterfaceItem:(NSString *)userInterfaceItem WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
 
 #if TARGET_OS_IPHONE
 
@@ -267,7 +281,6 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 - (void)keyboardAccessoryBarPrevious WK_API_AVAILABLE(ios(10.0));
 - (void)dismissFormAccessoryView WK_API_AVAILABLE(ios(WK_IOS_TBA));
 - (void)selectFormAccessoryPickerRow:(int)rowIndex WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (NSDictionary *)_contentsOfUserInterfaceItem:(NSString *)userInterfaceItem WK_API_AVAILABLE(ios(WK_IOS_TBA));
 
 - (void)didStartFormControlInteraction WK_API_AVAILABLE(ios(WK_IOS_TBA));
 - (void)didEndFormControlInteraction WK_API_AVAILABLE(ios(WK_IOS_TBA));
@@ -277,7 +290,11 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 
 @property (nonatomic, readonly) NSArray<UIView *> *_uiTextSelectionRectViews WK_API_AVAILABLE(ios(WK_IOS_TBA));
 
-#endif
+@property (nonatomic, readonly) NSString *_scrollingTreeAsText WK_API_AVAILABLE(ios(WK_IOS_TBA));
+
+@property (nonatomic, readonly) NSNumber *_stableStateOverride WK_API_AVAILABLE(ios(WK_IOS_TBA));
+
+#endif // TARGET_OS_IPHONE
 
 #if !TARGET_OS_IPHONE
 @property (nonatomic, readonly) BOOL _hasActiveVideoForControlsManager WK_API_AVAILABLE(macosx(10.12));
@@ -290,12 +307,15 @@ typedef NS_ENUM(NSInteger, _WKImmediateActionType) {
 @property (nonatomic, readonly) BOOL _shouldRequestCandidates WK_API_AVAILABLE(macosx(WK_MAC_TBA));
 - (void)_requestActiveNowPlayingSessionInfo WK_API_AVAILABLE(macosx(WK_MAC_TBA));
 - (void)_handleActiveNowPlayingSessionInfoResponse:(BOOL)hasActiveSession title:(NSString *)title duration:(double)duration elapsedTime:(double)elapsedTime WK_API_AVAILABLE(macosx(WK_MAC_TBA));
+
+- (void)_insertText:(id)string replacementRange:(NSRange)replacementRange WK_API_AVAILABLE(macosx(WK_MAC_TBA));
 #endif
 
 - (void)_setPageScale:(CGFloat)scale withOrigin:(CGPoint)origin WK_API_AVAILABLE(ios(WK_IOS_TBA));
 - (CGFloat)_pageScale WK_API_AVAILABLE(ios(WK_IOS_TBA));
 
 - (void)_doAfterNextPresentationUpdate:(void (^)(void))updateBlock WK_API_AVAILABLE(macosx(10.12), ios(10.0));
+- (void)_doAfterNextPresentationUpdateWithoutWaitingForPainting:(void (^)(void))updateBlock WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
 
 - (void)_disableBackForwardSnapshotVolatilityForTesting WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
 

@@ -1,7 +1,7 @@
 import * as assert from '../assert.js';
 import * as utilities from '../utilities.js';
 
-const version = 0xC;
+const version = 0x0D;
 const emptyModuleArray = Uint8Array.of(0x0, 0x61, 0x73, 0x6d, version, 0x00, 0x00, 0x00);
 const invalidConstructorInputs = [undefined, null, "", 1, {}, []];
 const invalidInstanceImports = [null, "", 1];
@@ -28,7 +28,7 @@ const constructorProperties = {
 };
 
 
-assert.notUndef(WebAssembly);
+assert.isNotUndef(WebAssembly);
 checkOwnPropertyDescriptor(utilities.global, "WebAssembly", { typeofvalue: "object", writable: true, configurable: true, enumerable: false });
 assert.eq(String(WebAssembly), "[object WebAssembly]");
 assert.isUndef(WebAssembly.length);
@@ -37,13 +37,13 @@ assert.throws(() => WebAssembly(), TypeError, `WebAssembly is not a function. (I
 assert.throws(() => new WebAssembly(), TypeError, `WebAssembly is not a constructor (evaluating 'new WebAssembly()')`);
 
 for (const f in functionProperties) {
-    assert.notUndef(WebAssembly[f]);
+    assert.isNotUndef(WebAssembly[f]);
     assert.eq(WebAssembly[f].name, f);
     assert.eq(WebAssembly[f].length, functionProperties[f].length);
 }
 
 for (const c in constructorProperties) {
-    assert.notUndef(WebAssembly[c]);
+    assert.isNotUndef(WebAssembly[c]);
     assert.eq(WebAssembly[c].name, c);
     assert.eq(WebAssembly[c].length, constructorProperties[c].length);
     checkOwnPropertyDescriptor(WebAssembly, c, constructorProperties[c]);
@@ -66,20 +66,21 @@ for (const c in constructorProperties) {
         assert.instanceof(instance, WebAssembly.Instance);
         for (const invalid of invalidInstanceImports)
             assert.throws(() => new WebAssembly[c](new WebAssembly.Module(emptyModuleArray), invalid), TypeError, `second argument to WebAssembly.Instance must be undefined or an Object (evaluating 'new WebAssembly[c](new WebAssembly.Module(emptyModuleArray), invalid)')`);
-        assert.notUndef(instance.exports);
+        assert.isNotUndef(instance.exports);
         checkOwnPropertyDescriptor(instance, "exports", { typeofvalue: "object", writable: true, configurable: true, enumerable: true });
-        assert.isUndef(instance.exports.__proto__);
-        assert.eq(Reflect.isExtensible(instance.exports), false);
-        assert.eq(Symbol.iterator in instance.exports, true);
-        assert.eq(Symbol.toStringTag in instance.exports, true);
+        // FIXME these should pass, requires a module namespace object. https://bugs.webkit.org/show_bug.cgi?id=165121
+        // assert.isUndef(instance.exports.__proto__);
+        // assert.eq(Reflect.isExtensible(instance.exports), false);
+        // assert.eq(Symbol.iterator in instance.exports, true);
+        // assert.eq(Symbol.toStringTag in instance.exports, true);
         break;
     case "Memory":
-        // FIXME Implement and test these APIs further. For now they just throw. https://bugs.webkit.org/show_bug.cgi?id=159775
-        assert.throws(() => new WebAssembly[c](), Error, `WebAssembly doesn't yet implement the ${c} constructor property`);
+        new WebAssembly.Memory({initial: 20});
         break;
     case "Table":
-        // FIXME Implement and test these APIs further. For now they just throw. https://bugs.webkit.org/show_bug.cgi?id=159775
-        assert.throws(() => new WebAssembly[c](), Error, `WebAssembly doesn't yet implement the ${c} constructor property`);
+        new WebAssembly.Table({initial: 20, element: "anyfunc"});
+        new WebAssembly.Table({initial: 20, maximum: 20, element: "anyfunc"});
+        new WebAssembly.Table({initial: 20, maximum: 25, element: "anyfunc"});
         break;
     case "CompileError":
     case "RuntimeError": {

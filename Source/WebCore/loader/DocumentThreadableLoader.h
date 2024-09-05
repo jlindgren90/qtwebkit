@@ -58,6 +58,8 @@ namespace WebCore {
         virtual void setDefersLoading(bool);
 
         friend CrossOriginPreflightChecker;
+        friend class InspectorInstrumentation;
+        friend class InspectorNetworkAgent;
 
         using RefCounted<DocumentThreadableLoader>::ref;
         using RefCounted<DocumentThreadableLoader>::deref;
@@ -117,8 +119,8 @@ namespace WebCore {
         bool m_simpleRequest;
         bool m_async;
         std::unique_ptr<ContentSecurityPolicy> m_contentSecurityPolicy;
-        Optional<CrossOriginPreflightChecker> m_preflightChecker;
-        Optional<HTTPHeaderMap> m_originalHeaders;
+        std::optional<CrossOriginPreflightChecker> m_preflightChecker;
+        std::optional<HTTPHeaderMap> m_originalHeaders;
     };
 
 } // namespace WebCore

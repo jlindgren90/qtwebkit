@@ -36,12 +36,20 @@
 #include "URL.h"
 #include <functional>
 #include <memory>
+#include <wtf/Forward.h>
 #include <wtf/HashSet.h>
 #include <wtf/Optional.h>
 #include <wtf/WeakPtr.h>
 
 namespace Inspector {
 class ScriptCallStack;
+}
+
+namespace JSC {
+class ExecState;
+class JSObject;
+class JSValue;
+template<typename T> class Strong;
 }
 
 namespace WebCore {
@@ -68,8 +76,10 @@ class IDBFactory;
 class Location;
 class MediaQueryList;
 class MessageEvent;
+class MessagePort;
 class Navigator;
 class Node;
+class NodeList;
 class Page;
 class PageConsoleClient;
 class Performance;
@@ -233,7 +243,7 @@ public:
     void printErrorMessage(const String&);
     String crossDomainAccessErrorMessage(const DOMWindow& activeWindow);
 
-    ExceptionOr<void> postMessage(Ref<SerializedScriptValue>&& message, Vector<RefPtr<MessagePort>>&&, const String& targetOrigin, DOMWindow& source);
+    ExceptionOr<void> postMessage(JSC::ExecState&, DOMWindow& callerWindow, JSC::JSValue message, const String& targetOrigin, Vector<JSC::Strong<JSC::JSObject>>&&);
     void postMessageTimerFired(PostMessageTimer&);
     void dispatchMessageEventWithOriginCheck(SecurityOrigin* intendedTargetOrigin, Event&, PassRefPtr<Inspector::ScriptCallStack>);
 
@@ -291,10 +301,10 @@ public:
     DOMApplicationCache* applicationCache() const;
     DOMApplicationCache* optionalApplicationCache() const { return m_applicationCache.get(); }
 
-#if ENABLE(CUSTOM_ELEMENTS)
     CustomElementRegistry* customElementRegistry() { return m_customElementRegistry.get(); }
     CustomElementRegistry& ensureCustomElementRegistry();
-#endif
+
+    ExceptionOr<Ref<NodeList>> collectMatchingElementsInFlatTree(Node&, const String& selectors);
 
 #if ENABLE(ORIENTATION_EVENTS)
     // This is the interface orientation in degrees. Some examples are:
@@ -368,7 +378,7 @@ private:
 
     bool m_shouldPrintWhenFinishedLoading { false };
     bool m_suspendedForDocumentSuspension { false };
-    Optional<bool> m_canShowModalDialogOverride;
+    std::optional<bool> m_canShowModalDialogOverride;
 
     HashSet<DOMWindowProperty*> m_properties;
 
@@ -410,9 +420,7 @@ private:
     mutable RefPtr<Storage> m_localStorage;
     mutable RefPtr<DOMApplicationCache> m_applicationCache;
 
-#if ENABLE(CUSTOM_ELEMENTS)
     RefPtr<CustomElementRegistry> m_customElementRegistry;
-#endif
 
 #if ENABLE(WEB_TIMING)
     mutable RefPtr<Performance> m_performance;

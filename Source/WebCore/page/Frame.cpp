@@ -108,7 +108,6 @@
 #include "markup.h"
 #include "npruntime_impl.h"
 #include "runtime_root.h"
-#include <bindings/ScriptValue.h>
 #include <wtf/RefCountedLeakCounter.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/StringBuilder.h>
@@ -281,9 +280,7 @@ void Frame::setDocument(RefPtr<Document>&& newDocument)
     if (newDocument)
         newDocument->didBecomeCurrentDocumentInFrame();
 
-    InspectorInstrumentation::frameDocumentUpdated(this);
-
-    m_documentIsBeingReplaced = false;
+    InspectorInstrumentation::frameDocumentUpdated(*this);
 }
 
 #if ENABLE(ORIENTATION_EVENTS)
@@ -646,15 +643,17 @@ void Frame::setPrinting(bool printing, const FloatSize& pageSize, const FloatSiz
     ResourceCacheValidationSuppressor validationSuppressor(m_doc->cachedResourceLoader());
 
     m_doc->setPrinting(printing);
-    view()->adjustMediaTypeForPrinting(printing);
+    if (auto* frameView = view()) {
+        frameView->adjustMediaTypeForPrinting(printing);
 
-    m_doc->styleScope().didChangeStyleSheetEnvironment();
-    if (shouldUsePrintingLayout()) {
-        view()->forceLayoutForPagination(pageSize, originalPageSize, maximumShrinkRatio, shouldAdjustViewSize);
-    } else {
-        view()->forceLayout();
-        if (shouldAdjustViewSize == AdjustViewSize)
-            view()->adjustViewSize();
+        m_doc->styleScope().didChangeStyleSheetEnvironment();
+        if (shouldUsePrintingLayout())
+            frameView->forceLayoutForPagination(pageSize, originalPageSize, maximumShrinkRatio, shouldAdjustViewSize);
+        else {
+            frameView->forceLayout();
+            if (shouldAdjustViewSize == AdjustViewSize)
+                frameView->adjustViewSize();
+        }
     }
 
     // Subframes of the one we're printing don't lay out to the page size.
@@ -816,7 +815,7 @@ VisiblePosition Frame::visiblePositionForPoint(const IntPoint& framePoint) const
 Document* Frame::documentAtPoint(const IntPoint& point)
 {
     if (!view())
-        return 0;
+        return nullptr;
 
     IntPoint pt = view()->windowToContents(point);
     HitTestResult result = HitTestResult(pt);

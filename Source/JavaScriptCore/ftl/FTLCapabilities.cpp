@@ -71,6 +71,8 @@ inline CapabilityLevel canCompile(Node* node)
     case GetButterfly:
     case NewObject:
     case NewArray:
+    case NewArrayWithSpread:
+    case Spread:
     case NewArrayBuffer:
     case NewTypedArray:
     case GetByOffset:
@@ -117,6 +119,7 @@ inline CapabilityLevel canCompile(Node* node)
     case CreateActivation:
     case NewFunction:
     case NewGeneratorFunction:
+    case NewAsyncFunction:
     case GetClosureVar:
     case PutClosureVar:
     case CreateDirectArguments:
@@ -124,6 +127,7 @@ inline CapabilityLevel canCompile(Node* node)
     case CreateClonedArguments:
     case GetFromArguments:
     case PutToArguments:
+    case GetArgument:
     case InvalidationPoint:
     case StringCharAt:
     case CheckCell:
@@ -135,6 +139,7 @@ inline CapabilityLevel canCompile(Node* node)
     case StringFromCharCode:
     case AllocatePropertyStorage:
     case ReallocatePropertyStorage:
+    case NukeStructureAndSetButterfly:
     case GetTypedArrayByteOffset:
     case NotifyWrite:
     case StoreBarrier:
@@ -223,12 +228,16 @@ inline CapabilityLevel canCompile(Node* node)
     case PhantomNewObject:
     case PhantomNewFunction:
     case PhantomNewGeneratorFunction:
+    case PhantomNewAsyncFunction:
     case PhantomCreateActivation:
     case PutHint:
     case CheckStructureImmediate:
     case MaterializeNewObject:
     case MaterializeCreateActivation:
     case PhantomDirectArguments:
+    case PhantomCreateRest:
+    case PhantomSpread:
+    case PhantomNewArrayWithSpread:
     case PhantomClonedArguments:
     case GetMyArgumentByVal:
     case GetMyArgumentByValOutOfBounds:
@@ -271,6 +280,7 @@ inline CapabilityLevel canCompile(Node* node)
     case DefineAccessorProperty:
     case ToLowerCase:
     case CheckDOM:
+    case CallDOM:
     case CallDOMGetter:
         // These are OK.
         break;

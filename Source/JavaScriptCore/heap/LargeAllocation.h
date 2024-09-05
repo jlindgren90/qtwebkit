@@ -114,12 +114,18 @@ public:
         // traffic.
         if (isMarked())
             return true;
-        return !m_isMarked.compareExchangeStrong(false, true);
+        return m_isMarked.compareExchangeStrong(false, true);
     }
     ALWAYS_INLINE bool testAndSetMarked(HeapCell*) { return testAndSetMarked(); }
     void clearMarked() { m_isMarked.store(false); }
     
     void noteMarked() { }
+    
+#if ASSERT_DISABLED
+    void assertValidCell(VM&, HeapCell*) const { }
+#else
+    void assertValidCell(VM&, HeapCell*) const;
+#endif
     
     void sweep();
     

@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2001 Harri Porten (porten@kde.org)
- *  Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009, 2013 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003-2006, 2008-2009, 2013, 2016 Apple Inc. All rights reserved.
  *  Copyright (C) 2007 Samuel Weinig <sam@webkit.org>
  *  Copyright (C) 2009 Google, Inc. All rights reserved.
  *  Copyright (C) 2012 Ericsson AB. All rights reserved.
@@ -28,6 +28,7 @@
 #include "ExceptionOr.h"
 #include "JSDOMGlobalObject.h"
 #include "JSDOMWrapper.h"
+#include "JSDynamicDowncast.h"
 #include "ScriptWrappable.h"
 #include "ScriptWrappableInlines.h"
 #include "WebCoreTypedArrayController.h"
@@ -181,6 +182,7 @@ void addImpureProperty(const AtomicString&);
 
 const JSC::HashTable& getHashTableForGlobalData(JSC::VM&, const JSC::HashTable& staticTable);
 
+String retrieveErrorMessage(JSC::ExecState&, JSC::VM&, JSC::JSValue exception, JSC::CatchScope&);
 WEBCORE_EXPORT void reportException(JSC::ExecState*, JSC::JSValue exception, CachedScript* = nullptr);
 WEBCORE_EXPORT void reportException(JSC::ExecState*, JSC::Exception*, CachedScript* = nullptr, ExceptionDetails* = nullptr);
 void reportCurrentException(JSC::ExecState*);
@@ -213,7 +215,10 @@ String propertyNameToString(JSC::PropertyName);
 
 AtomicString propertyNameToAtomicString(JSC::PropertyName);
 
-WEBCORE_EXPORT String valueToUSVString(JSC::ExecState*, JSC::JSValue);
+WEBCORE_EXPORT String identifierToByteString(JSC::ExecState&, const JSC::Identifier&);
+WEBCORE_EXPORT String valueToByteString(JSC::ExecState&, JSC::JSValue);
+WEBCORE_EXPORT String identifierToUSVString(JSC::ExecState&, const JSC::Identifier&);
+WEBCORE_EXPORT String valueToUSVString(JSC::ExecState&, JSC::JSValue);
 
 int32_t finiteInt32Value(JSC::JSValue, JSC::ExecState*, bool& okay);
 
@@ -268,36 +273,42 @@ JSC::JSValue toJSIterator(JSC::ExecState&, JSDOMGlobalObject&, JSC::JSValue);
 template<typename T> JSC::JSValue toJSIterator(JSC::ExecState&, JSDOMGlobalObject&, const T&);
 JSC::JSValue toJSIteratorEnd(JSC::ExecState&);
 
-RefPtr<JSC::ArrayBufferView> toArrayBufferView(JSC::JSValue);
-RefPtr<JSC::Int8Array> toInt8Array(JSC::JSValue);
-RefPtr<JSC::Int16Array> toInt16Array(JSC::JSValue);
-RefPtr<JSC::Int32Array> toInt32Array(JSC::JSValue);
-RefPtr<JSC::Uint8Array> toUint8Array(JSC::JSValue);
-RefPtr<JSC::Uint8ClampedArray> toUint8ClampedArray(JSC::JSValue);
-RefPtr<JSC::Uint16Array> toUint16Array(JSC::JSValue);
-RefPtr<JSC::Uint32Array> toUint32Array(JSC::JSValue);
-RefPtr<JSC::Float32Array> toFloat32Array(JSC::JSValue);
-RefPtr<JSC::Float64Array> toFloat64Array(JSC::JSValue);
+RefPtr<JSC::ArrayBufferView> toPossiblySharedArrayBufferView(JSC::JSValue);
+RefPtr<JSC::Int8Array> toPossiblySharedInt8Array(JSC::JSValue);
+RefPtr<JSC::Int16Array> toPossiblySharedInt16Array(JSC::JSValue);
+RefPtr<JSC::Int32Array> toPossiblySharedInt32Array(JSC::JSValue);
+RefPtr<JSC::Uint8Array> toPossiblySharedUint8Array(JSC::JSValue);
+RefPtr<JSC::Uint8ClampedArray> toPossiblySharedUint8ClampedArray(JSC::JSValue);
+RefPtr<JSC::Uint16Array> toPossiblySharedUint16Array(JSC::JSValue);
+RefPtr<JSC::Uint32Array> toPossiblySharedUint32Array(JSC::JSValue);
+RefPtr<JSC::Float32Array> toPossiblySharedFloat32Array(JSC::JSValue);
+RefPtr<JSC::Float64Array> toPossiblySharedFloat64Array(JSC::JSValue);
+
+RefPtr<JSC::ArrayBufferView> toUnsharedArrayBufferView(JSC::JSValue);
+RefPtr<JSC::Int8Array> toUnsharedInt8Array(JSC::JSValue);
+RefPtr<JSC::Int16Array> toUnsharedInt16Array(JSC::JSValue);
+RefPtr<JSC::Int32Array> toUnsharedInt32Array(JSC::JSValue);
+RefPtr<JSC::Uint8Array> toUnsharedUint8Array(JSC::JSValue);
+RefPtr<JSC::Uint8ClampedArray> toUnsharedUint8ClampedArray(JSC::JSValue);
+RefPtr<JSC::Uint16Array> toUnsharedUint16Array(JSC::JSValue);
+RefPtr<JSC::Uint32Array> toUnsharedUint32Array(JSC::JSValue);
+RefPtr<JSC::Float32Array> toUnsharedFloat32Array(JSC::JSValue);
+RefPtr<JSC::Float64Array> toUnsharedFloat64Array(JSC::JSValue);
 
 template<typename T, typename JSType> Vector<Ref<T>> toRefNativeArray(JSC::ExecState&, JSC::JSValue);
 WEBCORE_EXPORT bool hasIteratorMethod(JSC::ExecState&, JSC::JSValue);
 
-bool shouldAllowAccessToNode(JSC::ExecState*, Node*);
-bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*);
-bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, String& message);
-bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, String& message);
-
-enum SecurityReportingOption {
-    DoNotReportSecurityError,
-    LogSecurityError, // Legacy behavior.
-    ThrowSecurityError
-};
-
-class BindingSecurity {
-public:
-    static bool shouldAllowAccessToNode(JSC::ExecState*, Node*);
-    static bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, SecurityReportingOption = LogSecurityError);
-    static bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, SecurityReportingOption = LogSecurityError);
+enum SecurityReportingOption { DoNotReportSecurityError, LogSecurityError, ThrowSecurityError };
+namespace BindingSecurity {
+    template<typename T> T* checkSecurityForNode(JSC::ExecState&, T&);
+    template<typename T> T* checkSecurityForNode(JSC::ExecState&, T*);
+    template<typename T> ExceptionOr<T*> checkSecurityForNode(JSC::ExecState&, ExceptionOr<T*>&&);
+    template<typename T> ExceptionOr<T*> checkSecurityForNode(JSC::ExecState&, ExceptionOr<T&>&&);
+    bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, SecurityReportingOption = LogSecurityError);
+    bool shouldAllowAccessToDOMWindow(JSC::ExecState&, DOMWindow&, String& message);
+    bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, SecurityReportingOption = LogSecurityError);
+    bool shouldAllowAccessToFrame(JSC::ExecState&, Frame&, String& message);
+    bool shouldAllowAccessToNode(JSC::ExecState&, Node*);
 };
 
 void printErrorMessageForFrame(Frame*, const String& message);
@@ -564,7 +575,7 @@ template<typename DOMClass> inline JSC::JSValue wrap(JSC::ExecState* state, JSDO
 template<typename JSClass> inline JSClass& castThisValue(JSC::ExecState& state)
 {
     auto thisValue = state.thisValue();
-    auto castedThis = JSC::jsDynamicCast<JSClass*>(thisValue);
+    auto castedThis = jsDynamicDowncast<JSClass*>(thisValue);
     ASSERT(castedThis);
     return *castedThis;
 }
@@ -608,7 +619,7 @@ inline JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject,
         return result;
 
     // The JSArrayBuffer::create function will register the wrapper in finishCreation.
-    return JSC::JSArrayBuffer::create(state->vm(), globalObject->arrayBufferStructure(), &buffer);
+    return JSC::JSArrayBuffer::create(state->vm(), globalObject->arrayBufferStructure(buffer.sharingMode()), &buffer);
 }
 
 inline JSC::JSValue toJS(JSC::ExecState* state, JSC::JSGlobalObject* globalObject, JSC::ArrayBufferView& view)
@@ -647,8 +658,10 @@ template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalO
 
     JSC::JSArray* array = constructEmptyArray(exec, nullptr, vector.size());
     RETURN_IF_EXCEPTION(scope, JSC::JSValue());
-    for (size_t i = 0; i < vector.size(); ++i)
+    for (size_t i = 0; i < vector.size(); ++i) {
         array->putDirectIndex(exec, i, toJS(exec, globalObject, vector[i]));
+        RETURN_IF_EXCEPTION(scope, JSC::JSValue());
+    }
     return array;
 }
 
@@ -659,8 +672,10 @@ template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalO
 
     JSC::JSArray* array = constructEmptyArray(exec, nullptr, vector.size());
     RETURN_IF_EXCEPTION(scope, JSC::JSValue());
-    for (size_t i = 0; i < vector.size(); ++i)
+    for (size_t i = 0; i < vector.size(); ++i) {
         array->putDirectIndex(exec, i, toJS(exec, globalObject, vector[i].get()));
+        RETURN_IF_EXCEPTION(scope, JSC::JSValue());
+    }
     return array;
 }
 
@@ -684,23 +699,41 @@ inline JSC::JSValue toJSIteratorEnd(JSC::ExecState& state)
     return createIteratorResultObject(&state, JSC::jsUndefined(), true);
 }
 
-inline RefPtr<JSC::ArrayBufferView> toArrayBufferView(JSC::JSValue value)
+inline RefPtr<JSC::ArrayBufferView> toPossiblySharedArrayBufferView(JSC::JSValue value)
 {
-    auto* wrapper = JSC::jsDynamicCast<JSC::JSArrayBufferView*>(value);
+    auto* wrapper = jsDynamicDowncast<JSC::JSArrayBufferView*>(value);
     if (!wrapper)
         return nullptr;
-    return wrapper->impl();
+    return wrapper->possiblySharedImpl();
 }
 
-inline RefPtr<JSC::Int8Array> toInt8Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Int8Adaptor>(value); }
-inline RefPtr<JSC::Int16Array> toInt16Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Int16Adaptor>(value); }
-inline RefPtr<JSC::Int32Array> toInt32Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Int32Adaptor>(value); }
-inline RefPtr<JSC::Uint8Array> toUint8Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Uint8Adaptor>(value); }
-inline RefPtr<JSC::Uint8ClampedArray> toUint8ClampedArray(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Uint8ClampedAdaptor>(value); }
-inline RefPtr<JSC::Uint16Array> toUint16Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Uint16Adaptor>(value); }
-inline RefPtr<JSC::Uint32Array> toUint32Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Uint32Adaptor>(value); }
-inline RefPtr<JSC::Float32Array> toFloat32Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Float32Adaptor>(value); }
-inline RefPtr<JSC::Float64Array> toFloat64Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Float64Adaptor>(value); }
+inline RefPtr<JSC::ArrayBufferView> toUnsharedArrayBufferView(JSC::JSValue value)
+{
+    auto result = toPossiblySharedArrayBufferView(value);
+    if (!result || result->isShared())
+        return nullptr;
+    return result;
+}
+
+inline RefPtr<JSC::Int8Array> toPossiblySharedInt8Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Int8Adaptor>(value); }
+inline RefPtr<JSC::Int16Array> toPossiblySharedInt16Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Int16Adaptor>(value); }
+inline RefPtr<JSC::Int32Array> toPossiblySharedInt32Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Int32Adaptor>(value); }
+inline RefPtr<JSC::Uint8Array> toPossiblySharedUint8Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Uint8Adaptor>(value); }
+inline RefPtr<JSC::Uint8ClampedArray> toPossiblySharedUint8ClampedArray(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Uint8ClampedAdaptor>(value); }
+inline RefPtr<JSC::Uint16Array> toPossiblySharedUint16Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Uint16Adaptor>(value); }
+inline RefPtr<JSC::Uint32Array> toPossiblySharedUint32Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Uint32Adaptor>(value); }
+inline RefPtr<JSC::Float32Array> toPossiblySharedFloat32Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Float32Adaptor>(value); }
+inline RefPtr<JSC::Float64Array> toPossiblySharedFloat64Array(JSC::JSValue value) { return JSC::toPossiblySharedNativeTypedView<JSC::Float64Adaptor>(value); }
+
+inline RefPtr<JSC::Int8Array> toUnsharedInt8Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Int8Adaptor>(value); }
+inline RefPtr<JSC::Int16Array> toUnsharedInt16Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Int16Adaptor>(value); }
+inline RefPtr<JSC::Int32Array> toUnsharedInt32Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Int32Adaptor>(value); }
+inline RefPtr<JSC::Uint8Array> toUnsharedUint8Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Uint8Adaptor>(value); }
+inline RefPtr<JSC::Uint8ClampedArray> toUnsharedUint8ClampedArray(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Uint8ClampedAdaptor>(value); }
+inline RefPtr<JSC::Uint16Array> toUnsharedUint16Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Uint16Adaptor>(value); }
+inline RefPtr<JSC::Uint32Array> toUnsharedUint32Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Uint32Adaptor>(value); }
+inline RefPtr<JSC::Float32Array> toUnsharedFloat32Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Float32Adaptor>(value); }
+inline RefPtr<JSC::Float64Array> toUnsharedFloat64Array(JSC::JSValue value) { return JSC::toUnsharedNativeTypedView<JSC::Float64Adaptor>(value); }
 
 template<typename T, typename JST> inline Vector<Ref<T>> toRefNativeArray(JSC::ExecState& state, JSC::JSValue value)
 {
@@ -778,6 +811,30 @@ template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState& state,
         return { };
     }
     return toJSNewlyCreated(&state, &globalObject, value.releaseReturnValue());
+}
+
+template<typename T> inline T* BindingSecurity::checkSecurityForNode(JSC::ExecState& state, T& node)
+{
+    return shouldAllowAccessToNode(state, &node) ? &node : nullptr;
+}
+
+template<typename T> inline T* BindingSecurity::checkSecurityForNode(JSC::ExecState& state, T* node)
+{
+    return shouldAllowAccessToNode(state, node) ? node : nullptr;
+}
+
+template<typename T> inline ExceptionOr<T*> BindingSecurity::checkSecurityForNode(JSC::ExecState& state, ExceptionOr<T*>&& value)
+{
+    if (value.hasException())
+        return value.releaseException();
+    return checkSecurityForNode(state, value.releaseReturnValue());
+}
+
+template<typename T> inline ExceptionOr<T*> BindingSecurity::checkSecurityForNode(JSC::ExecState& state, ExceptionOr<T&>&& value)
+{
+    if (value.hasException())
+        return value.releaseException();
+    return checkSecurityForNode(state, value.releaseReturnValue());
 }
 
 } // namespace WebCore

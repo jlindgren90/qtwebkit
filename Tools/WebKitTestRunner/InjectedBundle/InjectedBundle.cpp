@@ -290,7 +290,9 @@ void InjectedBundle::beginTesting(WKDictionaryRef settings)
     m_gcController = GCController::create();
     m_eventSendingController = EventSendingController::create();
     m_textInputController = TextInputController::create();
+#if HAVE(ACCESSIBILITY)
     m_accessibilityController = AccessibilityController::create();
+#endif
 
     WKBundleSetAllowUniversalAccessFromFileURLs(m_bundle, m_pageGroup, true);
     WKBundleSetJavaScriptCanAccessClipboard(m_bundle, m_pageGroup, true);
@@ -301,12 +303,14 @@ void InjectedBundle::beginTesting(WKDictionaryRef settings)
     WKBundleSetMinimumLogicalFontSize(m_bundle, m_pageGroup, 9);
     WKBundleSetSpatialNavigationEnabled(m_bundle, m_pageGroup, false);
     WKBundleSetAllowFileAccessFromFileURLs(m_bundle, m_pageGroup, true);
-    WKBundleSetPluginsEnabled(m_bundle, m_pageGroup, true);
     WKBundleSetPopupBlockingEnabled(m_bundle, m_pageGroup, false);
+    WKBundleSetAllowStorageAccessFromFileURLS(m_bundle, m_pageGroup, false);
 
 #if PLATFORM(IOS)
     WKBundlePageSetUseTestingViewportConfiguration(page()->page(), !booleanForKey(settings, "UseFlexibleViewport"));
 #endif
+
+    m_testRunner->setPluginsEnabled(true);
 
     m_testRunner->setShouldDumpFrameLoadCallbacks(booleanForKey(settings, "DumpFrameLoadDelegates"));
     m_testRunner->setUserStyleSheetEnabled(false);
@@ -319,16 +323,23 @@ void InjectedBundle::beginTesting(WKDictionaryRef settings)
 
     m_testRunner->setWebGL2Enabled(true);
 
-    m_testRunner->setModernMediaControlsEnabled(false);
-
     m_testRunner->setFetchAPIEnabled(true);
 
     m_testRunner->setDownloadAttributeEnabled(true);
+
+    m_testRunner->setES6ModulesEnabled(true);
+
+    m_testRunner->setEncryptedMediaAPIEnabled(true);
 
     m_testRunner->setCloseRemainingWindowsWhenComplete(false);
     m_testRunner->setAcceptsEditing(true);
     m_testRunner->setTabKeyCyclesThroughElements(true);
     m_testRunner->clearTestRunnerCallbacks();
+
+    m_testRunner->setSubtleCryptoEnabled(true);
+
+    m_testRunner->setMediaStreamEnabled(true);
+    m_testRunner->setPeerConnectionEnabled(true);
 
     if (m_timeout > 0)
         m_testRunner->setCustomTimeout(m_timeout);
@@ -575,14 +586,46 @@ void InjectedBundle::setUserMediaPermission(bool enabled)
     WKBundlePagePostMessage(page()->page(), messageName.get(), messageBody.get());
 }
 
-void InjectedBundle::setUserMediaPermissionForOrigin(bool permission, WKStringRef origin, WKStringRef parentOrigin)
+void InjectedBundle::setUserMediaPersistentPermissionForOrigin(bool permission, WKStringRef origin, WKStringRef parentOrigin)
 {
-    auto messageName = adoptWK(WKStringCreateWithUTF8CString("SetUserMediaPermissionForOrigin"));
+    auto messageName = adoptWK(WKStringCreateWithUTF8CString("SetUserMediaPersistentPermissionForOrigin"));
     WKRetainPtr<WKMutableDictionaryRef> messageBody(AdoptWK, WKMutableDictionaryCreate());
 
     WKRetainPtr<WKStringRef> permissionKeyWK(AdoptWK, WKStringCreateWithUTF8CString("permission"));
     WKRetainPtr<WKBooleanRef> permissionWK(AdoptWK, WKBooleanCreate(permission));
     WKDictionarySetItem(messageBody.get(), permissionKeyWK.get(), permissionWK.get());
+
+    WKRetainPtr<WKStringRef> originKeyWK(AdoptWK, WKStringCreateWithUTF8CString("origin"));
+    WKDictionarySetItem(messageBody.get(), originKeyWK.get(), origin);
+
+    WKRetainPtr<WKStringRef> parentOriginKeyWK(AdoptWK, WKStringCreateWithUTF8CString("parentOrigin"));
+    WKDictionarySetItem(messageBody.get(), parentOriginKeyWK.get(), parentOrigin);
+
+    WKBundlePagePostMessage(page()->page(), messageName.get(), messageBody.get());
+}
+
+unsigned InjectedBundle::userMediaPermissionRequestCountForOrigin(WKStringRef origin, WKStringRef parentOrigin) const
+{
+    WKRetainPtr<WKStringRef> messageName(AdoptWK, WKStringCreateWithUTF8CString("UserMediaPermissionRequestCountForOrigin"));
+    WKRetainPtr<WKMutableDictionaryRef> messageBody(AdoptWK, WKMutableDictionaryCreate());
+
+    WKRetainPtr<WKStringRef> originKeyWK(AdoptWK, WKStringCreateWithUTF8CString("origin"));
+    WKDictionarySetItem(messageBody.get(), originKeyWK.get(), origin);
+
+    WKRetainPtr<WKStringRef> parentOriginKeyWK(AdoptWK, WKStringCreateWithUTF8CString("parentOrigin"));
+    WKDictionarySetItem(messageBody.get(), parentOriginKeyWK.get(), parentOrigin);
+
+    WKTypeRef resultToPass = 0;
+    WKBundlePagePostSynchronousMessageForTesting(page()->page(), messageName.get(), messageBody.get(), &resultToPass);
+    WKRetainPtr<WKUInt64Ref> count(AdoptWK, static_cast<WKUInt64Ref>(resultToPass));
+
+    return static_cast<unsigned>(WKUInt64GetValue(count.get()));
+}
+
+void InjectedBundle::resetUserMediaPermissionRequestCountForOrigin(WKStringRef origin, WKStringRef parentOrigin)
+{
+    WKRetainPtr<WKStringRef> messageName(AdoptWK, WKStringCreateWithUTF8CString("ResetUserMediaPermissionRequestCountForOrigin"));
+    WKRetainPtr<WKMutableDictionaryRef> messageBody(AdoptWK, WKMutableDictionaryCreate());
 
     WKRetainPtr<WKStringRef> originKeyWK(AdoptWK, WKStringCreateWithUTF8CString("origin"));
     WKDictionarySetItem(messageBody.get(), originKeyWK.get(), origin);

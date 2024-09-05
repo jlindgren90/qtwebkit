@@ -35,6 +35,7 @@
 #include "debugger/Debugger.h"
 #include "inspector/InspectorAgentBase.h"
 #include "inspector/ScriptBreakpoint.h"
+#include "inspector/ScriptCallStack.h"
 #include "inspector/ScriptDebugListener.h"
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
@@ -48,6 +49,7 @@ class InjectedScriptManager;
 class InspectorArray;
 class InspectorObject;
 class ScriptDebugServer;
+struct AsyncCallData;
 typedef String ErrorString;
 
 class JS_EXPORT_PRIVATE InspectorDebuggerAgent : public InspectorAgentBase, public ScriptDebugListener, public DebuggerBackendDispatcherHandler {
@@ -63,10 +65,12 @@ public:
 
     void enable(ErrorString&) final;
     void disable(ErrorString&) final;
+    void setAsyncStackTraceDepth(ErrorString&, int depth) final;
     void setBreakpointsActive(ErrorString&, bool active) final;
     void setBreakpointByUrl(ErrorString&, int lineNumber, const String* optionalURL, const String* optionalURLRegex, const int* optionalColumnNumber, const Inspector::InspectorObject* options, Inspector::Protocol::Debugger::BreakpointId*, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::Debugger::Location>>& locations) final;
     void setBreakpoint(ErrorString&, const Inspector::InspectorObject& location, const Inspector::InspectorObject* options, Inspector::Protocol::Debugger::BreakpointId*, RefPtr<Inspector::Protocol::Debugger::Location>& actualLocation) final;
     void removeBreakpoint(ErrorString&, const String& breakpointIdentifier) final;
+    void continueUntilNextRunLoop(ErrorString&) final;
     void continueToLocation(ErrorString&, const InspectorObject& location) final;
     void searchInContent(ErrorString&, const String& scriptID, const String& query, const bool* optionalCaseSensitive, const bool* optionalIsRegex, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::GenericTypes::SearchMatch>>&) final;
     void getScriptSource(ErrorString&, const String& scriptID, String* scriptSource) final;
@@ -88,8 +92,15 @@ public:
 
     void handleConsoleAssert(const String& message);
 
+    void didScheduleAsyncCall(JSC::ExecState*, int asyncCallType, int callbackIdentifier, bool singleShot);
+    void didCancelAsyncCall(int asyncCallType, int callbackIdentifier);
+    void willDispatchAsyncCall(int asyncCallType, int callbackIdentifier);
+    void didDispatchAsyncCall();
+
     void schedulePauseOnNextStatement(DebuggerFrontendDispatcher::Reason breakReason, RefPtr<InspectorObject>&& data);
     void cancelPauseOnNextStatement();
+    bool pauseOnNextStatementEnabled() const { return m_javaScriptPauseScheduled; }
+
     void breakProgram(DebuggerFrontendDispatcher::Reason breakReason, RefPtr<InspectorObject>&& data);
     void scriptExecutionBlockedByCSP(const String& directiveText);
 
@@ -98,7 +109,6 @@ public:
         virtual ~Listener() { }
         virtual void debuggerWasEnabled() = 0;
         virtual void debuggerWasDisabled() = 0;
-        virtual void didPause() = 0;
     };
     void setListener(Listener* listener) { m_listener = listener; }
 
@@ -140,16 +150,43 @@ private:
     void clearInspectorBreakpointState();
     void clearBreakDetails();
     void clearExceptionValue();
+    void clearAsyncStackTraceData();
+
+    enum class ShouldDispatchResumed { No, WhenIdle, WhenContinued };
+    void registerIdleHandler();
+    void willStepAndMayBecomeIdle();
+    void didBecomeIdle();
 
     RefPtr<InspectorObject> buildBreakpointPauseReason(JSC::BreakpointID);
     RefPtr<InspectorObject> buildExceptionPauseReason(JSC::JSValue exception, const InjectedScript&);
 
     bool breakpointActionsFromProtocol(ErrorString&, RefPtr<InspectorArray>& actions, BreakpointActions* result);
 
+    typedef std::pair<int, int> AsyncCallIdentifier;
+
+    RefPtr<Inspector::Protocol::Console::StackTrace> buildAsyncStackTrace(const AsyncCallIdentifier&);
+    void refAsyncCallData(const AsyncCallIdentifier&);
+    void derefAsyncCallData(const AsyncCallIdentifier&);
+
     typedef HashMap<JSC::SourceID, Script> ScriptsMap;
     typedef HashMap<String, Vector<JSC::BreakpointID>> BreakpointIdentifierToDebugServerBreakpointIDsMap;
     typedef HashMap<String, RefPtr<InspectorObject>> BreakpointIdentifierToBreakpointMap;
     typedef HashMap<JSC::BreakpointID, String> DebugServerBreakpointIDToBreakpointIdentifier;
+
+    struct AsyncCallData {
+        AsyncCallData(RefPtr<ScriptCallStack> callStack, std::optional<AsyncCallIdentifier> parentAsyncCallIdentifier, bool singleShot)
+            : callStack(callStack)
+            , parentAsyncCallIdentifier(parentAsyncCallIdentifier)
+            , referenceCount(singleShot ? 0 : 1)
+        {
+        }
+
+        AsyncCallData() = default;
+
+        RefPtr<ScriptCallStack> callStack;
+        std::optional<AsyncCallIdentifier> parentAsyncCallIdentifier { std::nullopt };
+        unsigned referenceCount { 0 };
+    };
 
     InjectedScriptManager& m_injectedScriptManager;
     std::unique_ptr<DebuggerFrontendDispatcher> m_frontendDispatcher;
@@ -165,11 +202,17 @@ private:
     JSC::BreakpointID m_continueToLocationBreakpointID;
     DebuggerFrontendDispatcher::Reason m_breakReason;
     RefPtr<InspectorObject> m_breakAuxData;
+    ShouldDispatchResumed m_conditionToDispatchResumed { ShouldDispatchResumed::No };
+    bool m_enablePauseWhenIdle { false };
+    HashMap<AsyncCallIdentifier, AsyncCallData> m_asyncCallIdentifierToData;
+    std::optional<AsyncCallIdentifier> m_currentAsyncCallIdentifier { std::nullopt };
     bool m_enabled { false };
     bool m_javaScriptPauseScheduled { false };
     bool m_hasExceptionValue { false };
     bool m_didPauseStopwatch { false };
     bool m_pauseOnAssertionFailures { false };
+    bool m_registeredIdleCallback { false };
+    int m_asyncStackTraceDepth { 0 };
 };
 
 } // namespace Inspector

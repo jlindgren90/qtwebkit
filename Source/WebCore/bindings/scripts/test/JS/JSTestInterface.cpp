@@ -24,7 +24,6 @@
 
 #include "JSTestInterface.h"
 
-#include "ExceptionCode.h"
 #include "JSDOMBinding.h"
 #include "JSDOMConstructor.h"
 #include "JSDOMConvert.h"
@@ -223,11 +222,10 @@ template<> EncodedJSValue JSC_HOST_CALL JSTestInterfaceConstructor::construct(Ex
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     UNUSED_PARAM(throwScope);
-    auto* castedThis = jsCast<JSTestInterfaceConstructor*>(state->callee());
+    auto* castedThis = jsCast<JSTestInterfaceConstructor*>(state->jsCallee());
     ASSERT(castedThis);
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
-    ExceptionCode ec = 0;
     auto str1 = convert<IDLDOMString>(*state, state->uncheckedArgument(0), StringConversionConfiguration::Normal);
     RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
     auto str2 = state->argument(1).isUndefined() ? ASCIILiteral("defaultString") : convert<IDLDOMString>(*state, state->uncheckedArgument(1), StringConversionConfiguration::Normal);
@@ -235,12 +233,8 @@ template<> EncodedJSValue JSC_HOST_CALL JSTestInterfaceConstructor::construct(Ex
     ScriptExecutionContext* context = castedThis->scriptExecutionContext();
     if (UNLIKELY(!context))
         return throwConstructorScriptExecutionContextUnavailableError(*state, throwScope, "TestInterface");
-    auto object = TestInterface::create(*context, WTFMove(str1), WTFMove(str2), ec);
-    if (UNLIKELY(ec)) {
-        setDOMException(state, throwScope, ec);
-        return encodedJSValue();
-    }
-    return JSValue::encode(toJSNewlyCreated(state, castedThis->globalObject(), WTFMove(object)));
+    auto object = TestInterface::create(*context, WTFMove(str1), WTFMove(str2));
+    return JSValue::encode(toJSNewlyCreated(*state, *castedThis->globalObject(), throwScope, WTFMove(object)));
 }
 
 template<> JSValue JSTestInterfaceConstructor::prototypeForStructure(JSC::VM& vm, const JSDOMGlobalObject& globalObject)
@@ -381,6 +375,13 @@ JSTestInterface::JSTestInterface(Structure* structure, JSDOMGlobalObject& global
 {
 }
 
+void JSTestInterface::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
+
+}
+
 JSObject* JSTestInterface::createPrototype(VM& vm, JSGlobalObject* globalObject)
 {
     return JSTestInterfacePrototype::create(vm, globalObject, JSTestInterfacePrototype::createStructure(vm, globalObject, globalObject->objectPrototype()));
@@ -399,12 +400,12 @@ void JSTestInterface::destroy(JSC::JSCell* cell)
 
 template<> inline JSTestInterface* BindingCaller<JSTestInterface>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
-    return jsDynamicCast<JSTestInterface*>(JSValue::decode(thisValue));
+    return jsDynamicDowncast<JSTestInterface*>(JSValue::decode(thisValue));
 }
 
 template<> inline JSTestInterface* BindingCaller<JSTestInterface>::castForOperation(ExecState& state)
 {
-    return jsDynamicCast<JSTestInterface*>(state.thisValue());
+    return jsDynamicDowncast<JSTestInterface*>(state.thisValue());
 }
 
 #if ENABLE(Condition22) || ENABLE(Condition23)
@@ -511,7 +512,7 @@ static inline JSValue jsTestInterfaceImplementsNodeGetter(ExecState& state, JSTe
     UNUSED_PARAM(throwScope);
     UNUSED_PARAM(state);
     auto& impl = thisObject.wrapped();
-    JSValue result = toJS(&state, thisObject.globalObject(), impl.implementsNode());
+    JSValue result = toJS<IDLInterface<Node>>(state, *thisObject.globalObject(), impl.implementsNode());
     return result;
 }
 
@@ -621,7 +622,7 @@ static inline JSValue jsTestInterfaceSupplementalNodeGetter(ExecState& state, JS
     UNUSED_PARAM(throwScope);
     UNUSED_PARAM(state);
     auto& impl = thisObject.wrapped();
-    JSValue result = toJS(&state, thisObject.globalObject(), WebCore::TestSupplemental::supplementalNode(impl));
+    JSValue result = toJS<IDLInterface<Node>>(state, *thisObject.globalObject(), WebCore::TestSupplemental::supplementalNode(impl));
     return result;
 }
 
@@ -631,7 +632,7 @@ EncodedJSValue jsTestInterfaceConstructor(ExecState* state, EncodedJSValue thisV
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestInterfacePrototype* domObject = jsDynamicCast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
+    JSTestInterfacePrototype* domObject = jsDynamicDowncast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestInterface::getConstructor(state->vm(), domObject->globalObject()));
@@ -642,7 +643,7 @@ bool setJSTestInterfaceConstructor(ExecState* state, EncodedJSValue thisValue, E
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestInterfacePrototype* domObject = jsDynamicCast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
+    JSTestInterfacePrototype* domObject = jsDynamicDowncast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -740,11 +741,8 @@ static inline bool setJSTestInterfaceImplementsNodeFunction(ExecState& state, JS
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = JSNode::toWrapped(value);
-    if (UNLIKELY(!nativeValue)) {
-        throwAttributeTypeError(state, throwScope, "TestInterface", "implementsNode", "Node");
-        return false;
-    }
+    auto nativeValue = convert<IDLInterface<Node>>(state, value, [](JSC::ExecState& state, JSC::ThrowScope& scope) { throwAttributeTypeError(state, scope, "TestInterface", "implementsNode", "Node"); });
+    RETURN_IF_EXCEPTION(throwScope, false);
     impl.setImplementsNode(*nativeValue);
     return true;
 }
@@ -818,11 +816,8 @@ static inline bool setJSTestInterfaceSupplementalNodeFunction(ExecState& state, 
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = JSNode::toWrapped(value);
-    if (UNLIKELY(!nativeValue)) {
-        throwAttributeTypeError(state, throwScope, "TestInterface", "supplementalNode", "Node");
-        return false;
-    }
+    auto nativeValue = convert<IDLInterface<Node>>(state, value, [](JSC::ExecState& state, JSC::ThrowScope& scope) { throwAttributeTypeError(state, scope, "TestInterface", "supplementalNode", "Node"); });
+    RETURN_IF_EXCEPTION(throwScope, false);
     WebCore::TestSupplemental::setSupplementalNode(impl, *nativeValue);
     return true;
 }
@@ -868,19 +863,14 @@ static inline JSC::EncodedJSValue jsTestInterfacePrototypeFunctionImplementsMeth
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
-    ExceptionCode ec = 0;
     auto* context = jsCast<JSDOMGlobalObject*>(state->lexicalGlobalObject())->scriptExecutionContext();
     if (!context)
         return JSValue::encode(jsUndefined());
     auto strArg = convert<IDLDOMString>(*state, state->uncheckedArgument(0), StringConversionConfiguration::Normal);
     RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
-    auto objArg = JSTestObj::toWrapped(state->uncheckedArgument(1));
-    if (UNLIKELY(!objArg))
-        return throwArgumentTypeError(*state, throwScope, 1, "objArg", "TestInterface", "implementsMethod2", "TestObj");
-    JSValue result = toJS(state, castedThis->globalObject(), impl.implementsMethod2(*context, WTFMove(strArg), *objArg, ec));
-
-    setDOMException(state, throwScope, ec);
-    return JSValue::encode(result);
+    auto objArg = convert<IDLInterface<TestObj>>(*state, state->uncheckedArgument(1), [](JSC::ExecState& state, JSC::ThrowScope& scope) { throwArgumentTypeError(state, scope, 1, "objArg", "TestInterface", "implementsMethod2", "TestObj"); });
+    RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
+    return JSValue::encode(toJS<IDLInterface<TestObj>>(*state, *castedThis->globalObject(), throwScope, impl.implementsMethod2(*context, WTFMove(strArg), *objArg)));
 }
 
 #endif
@@ -948,19 +938,14 @@ static inline JSC::EncodedJSValue jsTestInterfacePrototypeFunctionSupplementalMe
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
-    ExceptionCode ec = 0;
     auto* context = jsCast<JSDOMGlobalObject*>(state->lexicalGlobalObject())->scriptExecutionContext();
     if (!context)
         return JSValue::encode(jsUndefined());
     auto strArg = convert<IDLDOMString>(*state, state->uncheckedArgument(0), StringConversionConfiguration::Normal);
     RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
-    auto objArg = JSTestObj::toWrapped(state->uncheckedArgument(1));
-    if (UNLIKELY(!objArg))
-        return throwArgumentTypeError(*state, throwScope, 1, "objArg", "TestInterface", "supplementalMethod2", "TestObj");
-    JSValue result = toJS(state, castedThis->globalObject(), WebCore::TestSupplemental::supplementalMethod2(impl, *context, WTFMove(strArg), *objArg, ec));
-
-    setDOMException(state, throwScope, ec);
-    return JSValue::encode(result);
+    auto objArg = convert<IDLInterface<TestObj>>(*state, state->uncheckedArgument(1), [](JSC::ExecState& state, JSC::ThrowScope& scope) { throwArgumentTypeError(state, scope, 1, "objArg", "TestInterface", "supplementalMethod2", "TestObj"); });
+    RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
+    return JSValue::encode(toJS<IDLInterface<TestObj>>(*state, *castedThis->globalObject(), throwScope, WebCore::TestSupplemental::supplementalMethod2(impl, *context, WTFMove(strArg), *objArg)));
 }
 
 #endif
@@ -1029,7 +1014,7 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestIn
 
 TestInterface* JSTestInterface::toWrapped(JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicCast<JSTestInterface*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestInterface*>(value))
         return &wrapper->wrapped();
     return nullptr;
 }

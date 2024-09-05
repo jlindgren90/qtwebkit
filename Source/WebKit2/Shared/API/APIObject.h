@@ -101,8 +101,6 @@ public:
         AutomationSession,
         BackForwardList,
         BackForwardListItem,
-        BatteryManager,
-        BatteryStatus,
         CacheManager,
         ColorPickerResultListener,
         ContextMenuListener,
@@ -159,6 +157,7 @@ public:
         VisitedLinkStore,
         WebsiteDataRecord,
         WebsiteDataStore,
+        WebsitePolicies,
         WindowFeatures,
 
 #if ENABLE(MEDIA_SESSION)

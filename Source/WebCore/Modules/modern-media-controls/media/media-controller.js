@@ -32,49 +32,114 @@ class MediaController
         this.media = media;
         this.host = host;
 
-        // FIXME: This should get set dynamically based on the current environment.
-        this.layoutTraits = LayoutTraits.macOS;
+        this.container = shadowRoot.appendChild(document.createElement("div"));
+        this.container.className = "media-controls-container";
 
-        this.controls = new MacOSInlineMediaControls
-        shadowRoot.appendChild(this.controls.element);        
+        if (host) {
+            host.controlsDependOnPageScaleFactor = this.layoutTraits & LayoutTraits.iOS;
+            this.container.appendChild(host.textTrackContainer);
+        }
 
-        new ElapsedTimeSupport(this);
-        new MuteSupport(this);
-        new PlaybackSupport(this);
-        new RemainingTimeSupport(this);
-        new ScrubbingSupport(this);
-        new SkipBackSupport(this);
-        new StartSupport(this);
-        new VolumeSupport(this);
+        this._updateControlsIfNeeded();
 
-        this._updateControlsSize();
-        media.addEventListener("resize", this);
+        shadowRoot.addEventListener("resize", this);
+
+        if (media.webkitSupportsPresentationMode)
+            media.addEventListener("webkitpresentationmodechanged", this);
+        else
+            media.addEventListener("webkitfullscreenchange", this);
+    }
+
+    get layoutTraits()
+    {
+        let traits = window.navigator.platform === "MacIntel" ? LayoutTraits.macOS : LayoutTraits.iOS;
+        if (this.media.webkitSupportsPresentationMode) {
+            if (this.media.webkitPresentationMode === "fullscreen")
+                return traits | LayoutTraits.Fullscreen;
+        } else if (this.media.webkitDisplayingFullscreen)
+            return traits | LayoutTraits.Fullscreen;
+        return traits;
     }
 
     // Protected
 
     set pageScaleFactor(pageScaleFactor)
     {
-        // FIXME: To be implemented.
+        this.controls.scaleFactor = pageScaleFactor;
+        this._updateControlsSize();
     }
 
     set usesLTRUserInterfaceLayoutDirection(flag)
     {
-        // FIXME: To be implemented.
+        this.controls.usesLTRUserInterfaceLayoutDirection = flag;
     }
 
     handleEvent(event)
     {
-        if (event.type === "resize" && event.currentTarget === this.media)
+        if (event.type === "resize" && event.currentTarget === this.shadowRoot)
             this._updateControlsSize();
+        else if (event.currentTarget === this.media) {
+            this._updateControlsIfNeeded();
+            if (event.type === "webkitpresentationmodechanged")
+                this._returnMediaLayerToInlineIfNeeded();
+        }
     }
 
     // Private
 
+    _updateControlsIfNeeded()
+    {
+        const previousControls = this.controls;
+        const ControlsClass = this._controlsClass();
+        if (previousControls && previousControls.constructor === ControlsClass)
+            return;
+
+        // Before we reset the .controls property, we need to destroy the previous
+        // supporting objects so we don't leak.
+        if (this._supportingObjects) {
+            for (let supportingObject of this._supportingObjects)
+                supportingObject.destroy();
+        }
+
+        this.controls = new ControlsClass;
+
+        if (this.shadowRoot.host && this.shadowRoot.host.dataset.autoHideDelay)
+            this.controls.controlsBar.autoHideDelay = this.shadowRoot.host.dataset.autoHideDelay;
+
+        if (previousControls) {
+            this.controls.fadeIn();
+            this.container.replaceChild(this.controls.element, previousControls.element);
+            this.controls.usesLTRUserInterfaceLayoutDirection = previousControls.usesLTRUserInterfaceLayoutDirection;
+        } else
+            this.container.appendChild(this.controls.element);        
+
+        this._updateControlsSize();
+
+        this._supportingObjects = [AirplaySupport, ControlsVisibilitySupport, ElapsedTimeSupport, FullscreenSupport, MuteSupport, PiPSupport, PlacardSupport, PlaybackSupport, RemainingTimeSupport, ScrubbingSupport, SeekBackwardSupport, SeekForwardSupport, SkipBackSupport, StartSupport, StatusSupport, TracksSupport, VolumeSupport].map(SupportClass => {
+            return new SupportClass(this);
+        }, this);
+    }
+
     _updateControlsSize()
     {
-        this.controls.width = this.media.offsetWidth;
-        this.controls.height = this.media.offsetHeight;
+        this.controls.width = Math.round(this.media.offsetWidth * this.controls.scaleFactor);
+        this.controls.height = Math.round(this.media.offsetHeight * this.controls.scaleFactor);
+    }
+
+    _returnMediaLayerToInlineIfNeeded()
+    {
+        if (this.host)
+            window.requestAnimationFrame(() => this.host.setPreparedToReturnVideoLayerToInline(this.media.webkitPresentationMode !== PiPMode));
+    }
+
+    _controlsClass()
+    {
+        const layoutTraits = this.layoutTraits;
+        if (layoutTraits & LayoutTraits.iOS)
+            return IOSInlineMediaControls;
+        if (layoutTraits & LayoutTraits.Fullscreen)
+            return MacOSFullscreenMediaControls;
+        return MacOSInlineMediaControls;
     }
 
 }

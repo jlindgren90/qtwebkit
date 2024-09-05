@@ -36,10 +36,13 @@
     ExportMacro=WEBCORE_EXPORT,
     ImplicitThis,
     InterfaceName=Window,
+    IsImmutablePrototypeExoticObject,
+    IsImmutablePrototypeExoticObjectOnPrototype,
     JSCustomDefineOwnProperty,
     JSCustomMarkFunction,
     JSCustomToNativeObject,
     JSLegacyParent=JSDOMWindowBase,
+    PrimaryGlobal,
 ] interface DOMWindow : EventTarget {
     [Replaceable] readonly attribute Screen screen;
     readonly attribute History history;
@@ -151,7 +154,7 @@
     // 0 when straight up; -90 when rotated 90 degrees clockwise; 90 counter clockwise.
     [Conditional=ORIENTATION_EVENTS] readonly attribute long orientation;
 
-    [DoNotCheckSecurity, Custom, MayThrowException, ForwardDeclareInHeader] void postMessage(SerializedScriptValue message, USVString targetOrigin, optional Array messagePorts);
+    [CallWith=ScriptState&CallerWindow, DoNotCheckSecurity, ForwardDeclareInHeader, MayThrowException] void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
 
     [Conditional=WEB_TIMING, Replaceable] readonly attribute Performance performance;
 
@@ -170,7 +173,10 @@
     attribute DOMURLConstructor webkitURL; // FIXME: Deprecate this.
     attribute MutationObserverConstructor WebKitMutationObserver; // FIXME: Remove once we prove it is not needed for compatibility with legacy content.
 
-    [Conditional=CUSTOM_ELEMENTS, EnabledAtRuntime=CustomElements, ImplementedAs=ensureCustomElementRegistry] readonly attribute CustomElementRegistry customElements;
+    [EnabledAtRuntime=CustomElements, ImplementedAs=ensureCustomElementRegistry] readonly attribute CustomElementRegistry customElements;
+
+    [MayThrowException, EnabledForWorld=shadowRootIsAlwaysOpen]
+    NodeList collectMatchingElementsInFlatTree(Node scope, DOMString selectors);
 
     // Event handlers unique to Element and DOMWindow.
     // FIXME: Should these be exposed on Document as well (and therefore moved to GlobalEventHandlers.idl)?

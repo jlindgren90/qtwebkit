@@ -1,3 +1,81 @@
+2016-12-07  Alex Christensen  <achristensen@webkit.org>
+
+        Build more of ANGLE on Mac and Windows
+        https://bugs.webkit.org/show_bug.cgi?id=165543
+
+        Reviewed by Dean Jackson.
+
+        We will need to compile these files to use ANGLE's GLESv2 implementation instead of 
+        using OpenGL directly. No functional change.
+
+        * ANGLE.xcodeproj/project.pbxproj:
+        * CMakeLists.txt:
+        Move platform-specific files to Platform*.cmake.
+        * PlatformMac.cmake: Added.
+        * PlatformWin.cmake: Added.
+        * src/libANGLE/renderer/Format.cpp:
+        * src/libANGLE/renderer/Format_autogen.cpp:
+        (angle::Format::Get):
+        * src/libANGLE/renderer/gl/PathGL.cpp:
+        * src/libANGLE/renderer/gl/cgl/WindowSurfaceCGL.h:
+        * src/libANGLE/renderer/gl/cgl/WindowSurfaceCGL.mm:
+        Rename SwapLayer to WebSwapLayer.  Otherwise, WebCore complains about improperly named ObjC classes.
+        Since this is the only one, let's just rename it instead of adding an exception.
+        (rx::WindowSurfaceCGL::initialize):
+        (-[SwapLayer initWithSharedState:withContext:withFunctions:]): Deleted.
+        * src/libANGLE/renderer/gl/formatutilsgl.cpp:
+        (rx::nativegl::GetInternalFormatMap):
+        (rx::nativegl::GetInternalFormatInfo):
+        * src/libANGLE/renderer/renderer_utils.cpp:
+        (rx::GetColorWriteFunction):
+        * src/libGLESv2/entry_points_egl.cpp:
+        (egl::GetProcAddress):
+
+2016-12-06  Alexey Proskuryakov  <ap@apple.com>
+
+        Correct SDKROOT values in xcconfig files
+        https://bugs.webkit.org/show_bug.cgi?id=165487
+        rdar://problem/29539209
+
+        Reviewed by Dan Bernstein.
+
+        Fix suggested by Dan Bernstein.
+
+        * Configurations/DebugRelease.xcconfig:
+
+2016-10-30  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        -Wpragmas warning spam from angleutils.h
+        https://bugs.webkit.org/show_bug.cgi?id=164207
+
+        Reviewed by Darin Adler.
+
+        Use #pragma clang instead of #pragma GCC since all of the warnings we need to suppress are
+        Clang-specific warnings. GCC ignores unknown pragmas and does not warn, but it does warn if
+        any GCC pragma is invalid.
+
+        Note that this might still be broken for MSVCC, as MSVCC warns when it sees unknown pragmas.
+
+        * changes.diff:
+        * src/common/angleutils.cpp:
+        (FormatString):
+        * src/common/angleutils.h:
+        (MakeStaticString):
+        * src/common/debug.cpp:
+        * src/common/mathutil.cpp:
+        * src/libANGLE/Caps.cpp:
+        (gl::TextureCapsMap::get):
+        (gl::GetExtensionInfoMap):
+        * src/libANGLE/Device.cpp:
+        (egl::GetDeviceSet):
+        * src/libANGLE/Display.cpp:
+        (egl::Display::getClientExtensionString):
+        * src/libANGLE/formatutils.cpp:
+        (gl::GetInternalFormatMap):
+        (gl::GetAllSizedInternalFormats):
+        * src/libANGLE/validationES3.cpp:
+        (gl::IsValidES3CopyTexImageCombination):
+
 2016-10-28  Alex Christensen  <achristensen@webkit.org>
 
         Another build fix.

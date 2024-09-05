@@ -21,6 +21,7 @@
 #include "config.h"
 #include "MarkedSpace.h"
 
+#include "FunctionCodeBlock.h"
 #include "IncrementalSweeper.h"
 #include "JSObject.h"
 #include "JSCInlines.h"
@@ -43,14 +44,13 @@ const Vector<size_t>& sizeClasses()
             result = new Vector<size_t>();
             
             auto add = [&] (size_t sizeClass) {
+                sizeClass = WTF::roundUpToMultipleOf<MarkedBlock::atomSize>(sizeClass);
                 if (Options::dumpSizeClasses())
                     dataLog("Adding JSC MarkedSpace size class: ", sizeClass, "\n");
                 // Perform some validation as we go.
                 RELEASE_ASSERT(!(sizeClass % MarkedSpace::sizeStep));
                 if (result->isEmpty())
                     RELEASE_ASSERT(sizeClass == MarkedSpace::sizeStep);
-                else
-                    RELEASE_ASSERT(sizeClass > result->last());
                 result->append(sizeClass);
             };
             
@@ -129,7 +129,19 @@ const Vector<size_t>& sizeClasses()
                 
                 add(betterSizeClass);
             }
-            
+
+            add(sizeof(UnlinkedFunctionExecutable));
+            add(sizeof(UnlinkedFunctionCodeBlock));
+            add(sizeof(FunctionExecutable));
+            add(sizeof(FunctionCodeBlock));
+
+            {
+                // Sort and deduplicate.
+                std::sort(result->begin(), result->end());
+                auto it = std::unique(result->begin(), result->end());
+                result->shrinkCapacity(it - result->begin());
+            }
+
             if (Options::dumpSizeClasses())
                 dataLog("JSC Heap MarkedSpace size class dump: ", listDump(*result), "\n");
 
@@ -347,16 +359,18 @@ void MarkedSpace::prepareForAllocation()
     m_allocatorForEmptyAllocation = m_firstAllocator;
 }
 
-void MarkedSpace::visitWeakSets(HeapRootVisitor& heapRootVisitor)
+size_t MarkedSpace::visitWeakSets(HeapRootVisitor& heapRootVisitor)
 {
+    size_t count = 0;
     auto visit = [&] (WeakSet* weakSet) {
-        weakSet->visit(heapRootVisitor);
+        count += weakSet->visit(heapRootVisitor);
     };
     
     m_newActiveWeakSets.forEach(visit);
     
     if (m_heap->collectionScope() == CollectionScope::Full)
         m_activeWeakSets.forEach(visit);
+    return count;
 }
 
 void MarkedSpace::reapWeakSets()
@@ -381,16 +395,13 @@ void MarkedSpace::stopAllocating()
         });
 }
 
-void MarkedSpace::prepareForMarking()
+void MarkedSpace::prepareForConservativeScan()
 {
-    if (m_heap->collectionScope() == CollectionScope::Eden)
-        m_largeAllocationsOffsetForThisCollection = m_largeAllocationsNurseryOffset;
-    else
-        m_largeAllocationsOffsetForThisCollection = 0;
     m_largeAllocationsForThisCollectionBegin = m_largeAllocations.begin() + m_largeAllocationsOffsetForThisCollection;
     m_largeAllocationsForThisCollectionSize = m_largeAllocations.size() - m_largeAllocationsOffsetForThisCollection;
     m_largeAllocationsForThisCollectionEnd = m_largeAllocations.end();
     RELEASE_ASSERT(m_largeAllocationsForThisCollectionEnd == m_largeAllocationsForThisCollectionBegin + m_largeAllocationsForThisCollectionSize);
+    
     std::sort(
         m_largeAllocationsForThisCollectionBegin, m_largeAllocationsForThisCollectionEnd,
         [&] (LargeAllocation* a, LargeAllocation* b) {
@@ -398,9 +409,16 @@ void MarkedSpace::prepareForMarking()
         });
 }
 
+void MarkedSpace::prepareForMarking()
+{
+    if (m_heap->collectionScope() == CollectionScope::Eden)
+        m_largeAllocationsOffsetForThisCollection = m_largeAllocationsNurseryOffset;
+    else
+        m_largeAllocationsOffsetForThisCollection = 0;
+}
+
 void MarkedSpace::resumeAllocating()
 {
-    ASSERT(isIterating());
     forEachAllocator(
         [&] (MarkedAllocator& allocator) -> IterationStatus {
             allocator.resumeAllocating();

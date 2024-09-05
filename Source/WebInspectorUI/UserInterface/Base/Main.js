@@ -108,6 +108,7 @@ WebInspector.loaded = function()
 
     // Create the singleton managers next, before the user interface elements, so the user interface can register
     // as event listeners on these managers.
+    this.targetManager = new WebInspector.TargetManager;
     this.branchManager = new WebInspector.BranchManager;
     this.frameResourceManager = new WebInspector.FrameResourceManager;
     this.storageManager = new WebInspector.StorageManager;
@@ -126,7 +127,6 @@ WebInspector.loaded = function()
     this.layerTreeManager = new WebInspector.LayerTreeManager;
     this.dashboardManager = new WebInspector.DashboardManager;
     this.probeManager = new WebInspector.ProbeManager;
-    this.targetManager = new WebInspector.TargetManager;
     this.workerManager = new WebInspector.WorkerManager;
     this.replayManager = new WebInspector.ReplayManager;
 
@@ -167,10 +167,12 @@ WebInspector.loaded = function()
 
     // COMPATIBILITY (iOS 8): Page.enableTypeProfiler did not exist.
     this.showJavaScriptTypeInformationSetting = new WebInspector.Setting("show-javascript-type-information", false);
+    this.showJavaScriptTypeInformationSetting.addEventListener(WebInspector.Setting.Event.Changed, this._showJavaScriptTypeInformationSettingChanged, this);
     if (this.showJavaScriptTypeInformationSetting.value && window.RuntimeAgent && RuntimeAgent.enableTypeProfiler)
         RuntimeAgent.enableTypeProfiler();
 
     this.enableControlFlowProfilerSetting = new WebInspector.Setting("enable-control-flow-profiler", false);
+    this.enableControlFlowProfilerSetting.addEventListener(WebInspector.Setting.Event.Changed, this._enableControlFlowProfilerSettingChanged, this);
     if (this.enableControlFlowProfilerSetting.value && window.RuntimeAgent && RuntimeAgent.enableControlFlowProfiler)
         RuntimeAgent.enableControlFlowProfiler();
 
@@ -178,6 +180,10 @@ WebInspector.loaded = function()
     this.showPaintRectsSetting = new WebInspector.Setting("show-paint-rects", false);
     if (this.showPaintRectsSetting.value && window.PageAgent && PageAgent.setShowPaintRects)
         PageAgent.setShowPaintRects(true);
+
+    this.showPrintStylesSetting = new WebInspector.Setting("show-print-styles", false);
+    if (this.showPrintStylesSetting.value && window.PageAgent)
+        PageAgent.setEmulatedMedia("print");
 
     this._zoomFactorSetting = new WebInspector.Setting("zoom-factor", 1);
     this._setZoomFactor(this._zoomFactorSetting.value);
@@ -1109,6 +1115,9 @@ WebInspector.tabContentViewClassForRepresentedObject = function(representedObjec
         representedObject instanceof WebInspector.ApplicationCacheFrame || representedObject instanceof WebInspector.IndexedDatabaseObjectStore ||
         representedObject instanceof WebInspector.IndexedDatabaseObjectStoreIndex)
         return WebInspector.ResourcesTabContentView;
+
+    if (representedObject instanceof WebInspector.Collection)
+        return WebInspector.CollectionContentView;
 
     return null;
 };
@@ -2082,6 +2091,28 @@ WebInspector._showTabAtIndex = function(i, event)
         WebInspector.tabBar.selectedTabBarItem = i - 1;
 };
 
+WebInspector._showJavaScriptTypeInformationSettingChanged = function(event)
+{
+    if (this.showJavaScriptTypeInformationSetting.value) {
+        for (let target of WebInspector.targets)
+            target.RuntimeAgent.enableTypeProfiler();
+    } else {
+        for (let target of WebInspector.targets)
+            target.RuntimeAgent.disableTypeProfiler();
+    }
+};
+
+WebInspector._enableControlFlowProfilerSettingChanged = function(event)
+{
+    if (this.enableControlFlowProfilerSetting.value) {
+        for (let target of WebInspector.targets)
+            target.RuntimeAgent.enableControlFlowProfiler();
+    } else {
+        for (let target of WebInspector.targets)
+            target.RuntimeAgent.disableControlFlowProfiler();
+    }
+};
+
 WebInspector.elementDragStart = function(element, dividerDrag, elementDragEnd, event, cursor, eventTarget)
 {
     if (WebInspector._elementDraggingEventListener || WebInspector._elementEndDraggingEventListener)
@@ -2212,10 +2243,11 @@ WebInspector.linkifyElement = function(linkElement, sourceCodeLocation) {
     linkElement.addEventListener("click", showSourceCodeLocation.bind(this));
 };
 
-WebInspector.sourceCodeForURL = function(url) {
+WebInspector.sourceCodeForURL = function(url)
+{
     var sourceCode = WebInspector.frameResourceManager.resourceForURL(url);
     if (!sourceCode) {
-        sourceCode = WebInspector.debuggerManager.scriptsForURL(url)[0];
+        sourceCode = WebInspector.debuggerManager.scriptsForURL(url, WebInspector.assumingMainTarget())[0];
         if (sourceCode)
             sourceCode = sourceCode.resource || sourceCode;
     }
@@ -2526,6 +2558,15 @@ Object.defineProperty(WebInspector, "targets",
 {
     get() { return this.targetManager.targets; }
 });
+
+// Many places assume the main target because they cannot yet be
+// used by reached by Worker debugging. Eventually, once all
+// Worker domains have been implemented, all of these must be
+// handled properly.
+WebInspector.assumingMainTarget = function()
+{
+    return WebInspector.mainTarget;
+}
 
 // OpenResourceDialog delegate
 

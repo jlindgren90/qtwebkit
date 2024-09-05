@@ -35,6 +35,7 @@
 #include "CachedRawResource.h"
 #include "CachedResource.h"
 #include "CachedResourceLoader.h"
+#include "CachedResourceRequestInitiators.h"
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "DocumentThreadableLoader.h"
@@ -309,7 +310,9 @@ void InspectorNetworkAgent::willSendRequest(unsigned long identifier, DocumentLo
     Inspector::Protocol::Page::ResourceType resourceType = InspectorPageAgent::resourceTypeJson(type);
 
     RefPtr<Inspector::Protocol::Network::Initiator> initiatorObject = buildInitiatorObject(loader.frame() ? loader.frame()->document() : nullptr);
-    m_frontendDispatcher->requestWillBeSent(requestId, m_pageAgent->frameId(loader.frame()), m_pageAgent->loaderId(&loader), loader.url().string(), buildObjectForResourceRequest(request), timestamp(), initiatorObject, buildObjectForResourceResponse(redirectResponse, nullptr), type != InspectorPageAgent::OtherResource ? &resourceType : nullptr);
+    String targetId = request.initiatorIdentifier();
+
+    m_frontendDispatcher->requestWillBeSent(requestId, m_pageAgent->frameId(loader.frame()), m_pageAgent->loaderId(&loader), loader.url().string(), buildObjectForResourceRequest(request), timestamp(), initiatorObject, buildObjectForResourceResponse(redirectResponse, nullptr), type != InspectorPageAgent::OtherResource ? &resourceType : nullptr, targetId.isEmpty() ? nullptr : &targetId);
 }
 
 void InspectorNetworkAgent::markResourceAsCached(unsigned long identifier)
@@ -448,14 +451,18 @@ void InspectorNetworkAgent::didReceiveScriptResponse(unsigned long identifier)
     m_resourcesData->setResourceType(IdentifiersFactory::requestId(identifier), InspectorPageAgent::ScriptResource);
 }
 
-void InspectorNetworkAgent::didFinishXHRLoading(ThreadableLoaderClient*, unsigned long identifier, const String& decodedText)
+void InspectorNetworkAgent::didReceiveThreadableLoaderResponse(unsigned long identifier, DocumentThreadableLoader& documentThreadableLoader)
 {
-    m_resourcesData->setResourceContent(IdentifiersFactory::requestId(identifier), decodedText);
+    String initiator = documentThreadableLoader.options().initiator;
+    if (initiator == cachedResourceRequestInitiators().fetch)
+        m_resourcesData->setResourceType(IdentifiersFactory::requestId(identifier), InspectorPageAgent::FetchResource);
+    else if (initiator == cachedResourceRequestInitiators().xmlhttprequest)
+        m_resourcesData->setResourceType(IdentifiersFactory::requestId(identifier), InspectorPageAgent::XHRResource);
 }
 
-void InspectorNetworkAgent::didReceiveXHRResponse(unsigned long identifier)
+void InspectorNetworkAgent::didFinishXHRLoading(unsigned long identifier, const String& decodedText)
 {
-    m_resourcesData->setResourceType(IdentifiersFactory::requestId(identifier), InspectorPageAgent::XHRResource);
+    m_resourcesData->setResourceContent(IdentifiersFactory::requestId(identifier), decodedText);
 }
 
 void InspectorNetworkAgent::willLoadXHRSynchronously()

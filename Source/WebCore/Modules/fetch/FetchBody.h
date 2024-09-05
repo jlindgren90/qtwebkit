@@ -26,8 +26,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FetchBody_h
-#define FetchBody_h
+#pragma once
 
 #if ENABLE(FETCH_API)
 
@@ -47,9 +46,7 @@ class JSValue;
 
 namespace WebCore {
 
-class DOMFormData;
 class FetchBodyOwner;
-class FetchHeaders;
 class FetchResponseSource;
 class ScriptExecutionContext;
 
@@ -72,7 +69,7 @@ public:
     bool isURLSearchParams() const { return WTF::holds_alternative<Ref<const URLSearchParams>>(m_data); }
     bool isText() const { return WTF::holds_alternative<String>(m_data); }
 
-    static Optional<FetchBody> extract(ScriptExecutionContext&, JSC::ExecState&, JSC::JSValue, String&);
+    static std::optional<FetchBody> extract(ScriptExecutionContext&, JSC::ExecState&, JSC::JSValue, String&);
     static FetchBody loadingBody() { return { }; }
 
     void loadingFailed();
@@ -122,5 +119,3 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(FETCH_API)
-
-#endif // FetchBody_h

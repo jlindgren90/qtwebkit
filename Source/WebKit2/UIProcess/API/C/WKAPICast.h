@@ -67,6 +67,7 @@ class UserContentExtension;
 class UserContentExtensionStore;
 class UserScript;
 class WebsiteDataStore;
+class WebsitePolicies;
 class WindowFeatures;
 }
 
@@ -81,8 +82,6 @@ class UserMediaPermissionCheckProxy;
 class UserMediaPermissionRequestProxy;
 class WebBackForwardList;
 class WebBackForwardListItem;
-class WebBatteryManagerProxy;
-class WebBatteryStatus;
 class WebColorPickerResultListenerProxy;
 class WebContextMenuListenerProxy;
 class WebCookieManagerProxy;
@@ -112,13 +111,12 @@ class WebTextChecker;
 class WebUserContentControllerProxy;
 class WebVibrationProxy;
 class WebViewportAttributes;
+struct WebsitePolicies;
 
 WK_ADD_API_MAPPING(WKAuthenticationChallengeRef, AuthenticationChallengeProxy)
 WK_ADD_API_MAPPING(WKAuthenticationDecisionListenerRef, AuthenticationDecisionListener)
 WK_ADD_API_MAPPING(WKBackForwardListItemRef, WebBackForwardListItem)
 WK_ADD_API_MAPPING(WKBackForwardListRef, WebBackForwardList)
-WK_ADD_API_MAPPING(WKBatteryManagerRef, WebBatteryManagerProxy)
-WK_ADD_API_MAPPING(WKBatteryStatusRef, WebBatteryStatus)
 WK_ADD_API_MAPPING(WKBundleHitTestResultMediaType, BundleHitTestResultMediaType)
 WK_ADD_API_MAPPING(WKColorPickerResultListenerRef, WebColorPickerResultListenerProxy)
 WK_ADD_API_MAPPING(WKContextRef, WebProcessPool)
@@ -169,6 +167,7 @@ WK_ADD_API_MAPPING(WKUserScriptRef, API::UserScript)
 WK_ADD_API_MAPPING(WKVibrationRef, WebVibrationProxy)
 WK_ADD_API_MAPPING(WKViewportAttributesRef, WebViewportAttributes)
 WK_ADD_API_MAPPING(WKWebsiteDataStoreRef, API::WebsiteDataStore)
+WK_ADD_API_MAPPING(WKWebsitePoliciesRef, API::WebsitePolicies)
 WK_ADD_API_MAPPING(WKWindowFeaturesRef, API::WindowFeatures)
 
 /* Enum conversions */
@@ -554,10 +553,6 @@ inline ProxyingRefPtr<WebGrammarDetail> toAPI(const WebCore::GrammarDetail& gram
 
 #if defined(BUILDING_GTK__)
 #include "WKAPICastGtk.h"
-#endif
-
-#if USE(SOUP)
-#include "WKAPICastSoup.h"
 #endif
 
 #if defined(BUILDING_EFL__)

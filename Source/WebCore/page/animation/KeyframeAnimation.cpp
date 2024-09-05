@@ -39,6 +39,7 @@
 #include "RenderStyle.h"
 #include "StylePendingResources.h"
 #include "StyleResolver.h"
+#include "StyleScope.h"
 #include "WillChangeData.h"
 
 namespace WebCore {
@@ -124,7 +125,7 @@ void KeyframeAnimation::fetchIntervalEndpointsForProperty(CSSPropertyID property
     prog = progress(scale, offset, prevKeyframe.timingFunction(name()));
 }
 
-bool KeyframeAnimation::animate(CompositeAnimation* compositeAnimation, RenderElement*, const RenderStyle*, const RenderStyle* targetStyle, std::unique_ptr<RenderStyle>& animatedStyle)
+bool KeyframeAnimation::animate(CompositeAnimation* compositeAnimation, RenderElement*, const RenderStyle*, const RenderStyle* targetStyle, std::unique_ptr<RenderStyle>& animatedStyle, bool& didBlendStyle)
 {
     // Fire the start timeout if needed
     fireAnimationEventsIfNeeded();
@@ -179,6 +180,7 @@ bool KeyframeAnimation::animate(CompositeAnimation* compositeAnimation, RenderEl
         CSSPropertyAnimation::blendProperties(this, propertyID, animatedStyle.get(), fromStyle, toStyle, progress);
     }
     
+    didBlendStyle = true;
     return state() != oldState;
 }
 
@@ -362,7 +364,8 @@ void KeyframeAnimation::resolveKeyframeStyles()
         return;
     auto& element = *m_object->element();
 
-    element.styleResolver().keyframeStylesForAnimation(*m_object->element(), m_unanimatedStyle.get(), m_keyframes);
+    if (auto* styleScope = Style::Scope::forOrdinal(element, m_animation->nameStyleScopeOrdinal()))
+        styleScope->resolver().keyframeStylesForAnimation(*m_object->element(), m_unanimatedStyle.get(), m_keyframes);
 
     // Ensure resource loads for all the frames.
     for (auto& keyframe : m_keyframes.keyframes()) {

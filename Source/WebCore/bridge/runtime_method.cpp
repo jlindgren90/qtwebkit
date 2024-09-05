@@ -59,7 +59,7 @@ EncodedJSValue RuntimeMethod::lengthGetter(ExecState* exec, EncodedJSValue thisV
     VM& vm = exec->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    RuntimeMethod* thisObject = jsDynamicCast<RuntimeMethod*>(JSValue::decode(thisValue));
+    RuntimeMethod* thisObject = jsDynamicDowncast<RuntimeMethod*>(JSValue::decode(thisValue));
     if (!thisObject)
         return throwVMTypeError(exec, scope);
     return JSValue::encode(jsNumber(thisObject->m_method->numParameters()));
@@ -81,7 +81,7 @@ static EncodedJSValue JSC_HOST_CALL callRuntimeMethod(ExecState* exec)
     VM& vm = exec->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    RuntimeMethod* method = static_cast<RuntimeMethod*>(exec->callee());
+    RuntimeMethod* method = static_cast<RuntimeMethod*>(exec->jsCallee());
 
     if (!method->method())
         return JSValue::encode(jsUndefined());

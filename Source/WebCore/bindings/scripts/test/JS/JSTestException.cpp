@@ -115,6 +115,13 @@ JSTestException::JSTestException(Structure* structure, JSDOMGlobalObject& global
 {
 }
 
+void JSTestException::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
+
+}
+
 JSObject* JSTestException::createPrototype(VM& vm, JSGlobalObject* globalObject)
 {
     return JSTestExceptionPrototype::create(vm, globalObject, JSTestExceptionPrototype::createStructure(vm, globalObject, globalObject->errorPrototype()));
@@ -133,7 +140,7 @@ void JSTestException::destroy(JSC::JSCell* cell)
 
 template<> inline JSTestException* BindingCaller<JSTestException>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
-    return jsDynamicCast<JSTestException*>(JSValue::decode(thisValue));
+    return jsDynamicDowncast<JSTestException*>(JSValue::decode(thisValue));
 }
 
 static inline JSValue jsTestExceptionNameGetter(ExecState&, JSTestException&, ThrowScope& throwScope);
@@ -156,7 +163,7 @@ EncodedJSValue jsTestExceptionConstructor(ExecState* state, EncodedJSValue thisV
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestExceptionPrototype* domObject = jsDynamicCast<JSTestExceptionPrototype*>(JSValue::decode(thisValue));
+    JSTestExceptionPrototype* domObject = jsDynamicDowncast<JSTestExceptionPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestException::getConstructor(state->vm(), domObject->globalObject()));
@@ -167,7 +174,7 @@ bool setJSTestExceptionConstructor(ExecState* state, EncodedJSValue thisValue, E
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestExceptionPrototype* domObject = jsDynamicCast<JSTestExceptionPrototype*>(JSValue::decode(thisValue));
+    JSTestExceptionPrototype* domObject = jsDynamicDowncast<JSTestExceptionPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -235,7 +242,7 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestEx
 
 TestException* JSTestException::toWrapped(JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicCast<JSTestException*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestException*>(value))
         return &wrapper->wrapped();
     return nullptr;
 }

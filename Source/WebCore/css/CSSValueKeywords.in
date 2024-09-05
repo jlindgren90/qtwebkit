@@ -1150,11 +1150,13 @@ isolate
 scale-down
 
 // background-image, etc.
+container-scroll
+cross-fade
+image-set
 linear-gradient
 radial-gradient
 repeating-linear-gradient
 repeating-radial-gradient
-paint
 -webkit-canvas
 -webkit-cross-fade
 -webkit-gradient
@@ -1163,6 +1165,10 @@ paint
 -webkit-repeating-linear-gradient
 -webkit-repeating-radial-gradient
 -webkit-image-set
+-webkit-named-image
+filter
+-webkit-filter
+dashboard-region
 
 // deprecated gradients
 from
@@ -1197,6 +1203,7 @@ blur
 drop-shadow
 url
 cubic-bezier
+spring
 steps
 
 // colors
@@ -1204,6 +1211,7 @@ rgb
 rgba
 hsl
 hsla
+//color
 
 // transform
 matrix
@@ -1254,6 +1262,7 @@ span
 
 // grid-template-{columns|rows}
 minmax
+fit-content
 
 // grid-auto-flow
 auto-flow
@@ -1285,6 +1294,7 @@ white-outline
 plain
 buy
 set-up
+donate
 #endif
 
 // font-synthesis
@@ -1309,6 +1319,10 @@ last
 // color-gamut
 p3
 rec2020
+
+// color() function
+sRGB
+display-p3
 
 // prefers-reduced-motion
 reduce

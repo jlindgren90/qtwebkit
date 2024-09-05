@@ -398,34 +398,69 @@ LayoutUnit RenderBlockFlow::columnGap() const
 }
 
 void RenderBlockFlow::computeColumnCountAndWidth()
-{   
+{
     // Calculate our column width and column count.
     // FIXME: Can overflow on fast/block/float/float-not-removed-from-next-sibling4.html, see https://bugs.webkit.org/show_bug.cgi?id=68744
     unsigned desiredColumnCount = 1;
     LayoutUnit desiredColumnWidth = contentLogicalWidth();
-    
+
     // For now, we don't support multi-column layouts when printing, since we have to do a lot of work for proper pagination.
     if (document().paginated() || (style().hasAutoColumnCount() && style().hasAutoColumnWidth()) || !style().hasInlineColumnAxis()) {
         setComputedColumnCountAndWidth(desiredColumnCount, desiredColumnWidth);
         return;
     }
-        
+
     LayoutUnit availWidth = desiredColumnWidth;
     LayoutUnit colGap = columnGap();
-    LayoutUnit colWidth = std::max<LayoutUnit>(LayoutUnit::fromPixel(1), LayoutUnit(style().columnWidth()));
+    LayoutUnit colWidth = std::max<LayoutUnit>(1, style().columnWidth());
     unsigned colCount = std::max<unsigned>(1, style().columnCount());
 
     if (style().hasAutoColumnWidth() && !style().hasAutoColumnCount()) {
         desiredColumnCount = colCount;
         desiredColumnWidth = std::max<LayoutUnit>(0, (availWidth - ((desiredColumnCount - 1) * colGap)) / desiredColumnCount);
     } else if (!style().hasAutoColumnWidth() && style().hasAutoColumnCount()) {
-        desiredColumnCount = std::max<LayoutUnit>(1, (availWidth + colGap) / (colWidth + colGap)).toUnsigned();
+        desiredColumnCount = std::max<unsigned>(1, ((availWidth + colGap) / (colWidth + colGap)).toUnsigned());
         desiredColumnWidth = ((availWidth + colGap) / desiredColumnCount) - colGap;
     } else {
-        desiredColumnCount = std::max<LayoutUnit>(std::min<LayoutUnit>(colCount, (availWidth + colGap) / (colWidth + colGap)), 1).toUnsigned();
+        desiredColumnCount = std::max<unsigned>(std::min(colCount, ((availWidth + colGap) / (colWidth + colGap)).toUnsigned()), 1);
         desiredColumnWidth = ((availWidth + colGap) / desiredColumnCount) - colGap;
     }
     setComputedColumnCountAndWidth(desiredColumnCount, desiredColumnWidth);
+}
+
+bool RenderBlockFlow::willCreateColumns(std::optional<unsigned> desiredColumnCount) const
+{
+    // The following types are not supposed to create multicol context.
+    if (isFieldset() || isFileUploadControl() || isTextControl() || isListBox())
+        return false;
+
+    if (!firstChild())
+        return false;
+
+    // If overflow-y is set to paged-x or paged-y on the body or html element, we'll handle the paginating in the RenderView instead.
+    if ((style().overflowY() == OPAGEDX || style().overflowY() == OPAGEDY) && !(isDocumentElementRenderer() || isBody()))
+        return true;
+
+    if (!style().specifiesColumns())
+        return false;
+
+    // column-axis with opposite writing direction initiates MultiColumnFlowThread.
+    if (!style().hasInlineColumnAxis())
+        return true;
+
+    // Non-auto column-width always initiates MultiColumnFlowThread.
+    if (!style().hasAutoColumnWidth())
+        return true;
+
+    if (desiredColumnCount)
+        return desiredColumnCount.value() > 1;
+
+    // column-count > 1 always initiates MultiColumnFlowThread.
+    if (!style().hasAutoColumnCount())
+        return style().columnCount() > 1;
+
+    ASSERT_NOT_REACHED();
+    return false;
 }
 
 void RenderBlockFlow::layoutBlock(bool relayoutChildren, LayoutUnit pageLogicalHeight)
@@ -3034,43 +3069,43 @@ void RenderBlockFlow::markLinesDirtyInBlockRange(LayoutUnit logicalTop, LayoutUn
     }
 }
 
-Optional<int> RenderBlockFlow::firstLineBaseline() const
+std::optional<int> RenderBlockFlow::firstLineBaseline() const
 {
     if (isWritingModeRoot() && !isRubyRun())
-        return Optional<int>();
+        return std::optional<int>();
 
     if (!childrenInline())
         return RenderBlock::firstLineBaseline();
 
     if (!hasLines())
-        return Optional<int>();
+        return std::optional<int>();
 
     if (auto simpleLineLayout = this->simpleLineLayout())
-        return Optional<int>(SimpleLineLayout::computeFlowFirstLineBaseline(*this, *simpleLineLayout));
+        return std::optional<int>(SimpleLineLayout::computeFlowFirstLineBaseline(*this, *simpleLineLayout));
 
     ASSERT(firstRootBox());
     return firstRootBox()->logicalTop() + firstLineStyle().fontMetrics().ascent(firstRootBox()->baselineType());
 }
 
-Optional<int> RenderBlockFlow::inlineBlockBaseline(LineDirectionMode lineDirection) const
+std::optional<int> RenderBlockFlow::inlineBlockBaseline(LineDirectionMode lineDirection) const
 {
     if (isWritingModeRoot() && !isRubyRun())
-        return Optional<int>();
+        return std::optional<int>();
 
     // Note that here we only take the left and bottom into consideration. Our caller takes the right and top into consideration.
     float boxHeight = lineDirection == HorizontalLine ? height() + m_marginBox.bottom() : width() + m_marginBox.left();
     float lastBaseline;
     if (!childrenInline()) {
-        Optional<int> inlineBlockBaseline = RenderBlock::inlineBlockBaseline(lineDirection);
+        std::optional<int> inlineBlockBaseline = RenderBlock::inlineBlockBaseline(lineDirection);
         if (!inlineBlockBaseline)
             return inlineBlockBaseline;
         lastBaseline = inlineBlockBaseline.value();
     } else {
         if (!hasLines()) {
             if (!hasLineIfEmpty())
-                return Optional<int>();
+                return std::optional<int>();
             const auto& fontMetrics = firstLineStyle().fontMetrics();
-            return Optional<int>(fontMetrics.ascent()
+            return std::optional<int>(fontMetrics.ascent()
                 + (lineHeight(true, lineDirection, PositionOfInteriorLineBoxes) - fontMetrics.height()) / 2
                 + (lineDirection == HorizontalLine ? borderTop() + paddingTop() : borderRight() + paddingRight()));
         }
@@ -3086,7 +3121,7 @@ Optional<int> RenderBlockFlow::inlineBlockBaseline(LineDirectionMode lineDirecti
     // According to the CSS spec http://www.w3.org/TR/CSS21/visudet.html, we shouldn't be performing this min, but should
     // instead be returning boxHeight directly. However, we feel that a min here is better behavior (and is consistent
     // enough with the spec to not cause tons of breakages).
-    return Optional<int>(style().overflowY() == OVISIBLE ? lastBaseline : std::min(boxHeight, lastBaseline));
+    return std::optional<int>(style().overflowY() == OVISIBLE ? lastBaseline : std::min(boxHeight, lastBaseline));
 }
 
 void RenderBlockFlow::setSelectionState(SelectionState state)
@@ -3641,8 +3676,9 @@ void RenderBlockFlow::layoutSimpleLines(bool relayoutChildren, LayoutUnit& repai
         deleteLineBoxesBeforeSimpleLineLayout();
         m_simpleLineLayout = SimpleLineLayout::create(*this);
     }
+    for (auto& renderer : childrenOfType<RenderObject>(*this))
+        renderer.clearNeedsLayout();
     ASSERT(!m_lineBoxes.firstLineBox());
-
     LayoutUnit lineLayoutHeight = SimpleLineLayout::computeFlowHeight(*this, *m_simpleLineLayout);
     LayoutUnit lineLayoutTop = borderAndPaddingBefore();
     repaintLogicalTop = lineLayoutTop;
@@ -3882,7 +3918,7 @@ void RenderBlockFlow::removeChild(RenderObject& oldChild)
     if (!documentBeingDestroyed()) {
         RenderFlowThread* flowThread = multiColumnFlowThread();
         if (flowThread && flowThread != &oldChild)
-            flowThread->flowThreadRelativeWillBeRemoved(&oldChild);
+            flowThread->flowThreadRelativeWillBeRemoved(oldChild);
     }
     RenderBlock::removeChild(oldChild);
 }
@@ -3895,13 +3931,15 @@ void RenderBlockFlow::checkForPaginationLogicalHeightChange(bool& relayoutChildr
     
     // We don't actually update any of the variables. We just subclassed to adjust our column height.
     if (RenderMultiColumnFlowThread* flowThread = multiColumnFlowThread()) {
-        LogicalExtentComputedValues computedValues;
-        computeLogicalHeight(LayoutUnit(), logicalTop(), computedValues);
-        LayoutUnit columnHeight = computedValues.m_extent - borderAndPaddingLogicalHeight() - scrollbarLogicalHeight();
-        LayoutUnit oldHeightAvailable = flowThread->columnHeightAvailable();
-        flowThread->setColumnHeightAvailable(std::max<LayoutUnit>(columnHeight, 0));
-        if (oldHeightAvailable != flowThread->columnHeightAvailable())
-            relayoutChildren = true;
+        LayoutUnit newColumnHeight;
+        if (hasDefiniteLogicalHeight() || view().frameView().pagination().mode != Pagination::Unpaginated) {
+            LogicalExtentComputedValues computedValues;
+            computeLogicalHeight(LayoutUnit(), logicalTop(), computedValues);
+            newColumnHeight = std::max<LayoutUnit>(computedValues.m_extent - borderAndPaddingLogicalHeight() - scrollbarLogicalHeight(), 0);
+            if (flowThread->columnHeightAvailable() != newColumnHeight)
+                relayoutChildren = true;
+        }
+        flowThread->setColumnHeightAvailable(newColumnHeight);
     } else if (is<RenderFlowThread>(*this)) {
         RenderFlowThread& flowThread = downcast<RenderFlowThread>(*this);
 
@@ -3921,12 +3959,8 @@ void RenderBlockFlow::checkForPaginationLogicalHeightChange(bool& relayoutChildr
 }
 
 bool RenderBlockFlow::requiresColumns(int desiredColumnCount) const
-{
-    // If overflow-y is set to paged-x or paged-y on the body or html element, we'll handle the paginating
-    // in the RenderView instead.
-    bool isPaginated = (style().overflowY() == OPAGEDX || style().overflowY() == OPAGEDY) && !(isDocumentElementRenderer() || isBody());
-
-    return firstChild() && (desiredColumnCount != 1 || !style().hasAutoColumnWidth() || !style().hasInlineColumnAxis() || isPaginated);
+{    
+    return willCreateColumns(desiredColumnCount);
 }
 
 void RenderBlockFlow::setComputedColumnCountAndWidth(int count, LayoutUnit width)

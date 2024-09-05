@@ -1542,11 +1542,11 @@
    },
    "Devin Rousso" : {
       "emails" : [
-         "dcrousso+webkit@gmail.com",
-         "drousso@apple.com"
+         "dcrousso+webkit@gmail.com"
       ],
+      "expertise" : "Web Inspector",
       "nicks" : [
-         "drousso"
+         "dcrousso"
       ],
       "status" : "committer"
    },
@@ -3990,6 +3990,16 @@
       ],
       "status" : "committer"
    },
+   "Miguel Gomez" : {
+      "emails" : [
+         "magomez@igalia.com"
+      ],
+      "expertise" : "The WebKitGTK+ port, Accelerated Compositing, HW acceleration",
+      "nicks" : [
+         "magomez"
+      ],
+      "status" : "committer"
+   },
    "Mihai Balan" : {
       "emails" : [
          "mibalan@adobe.com"
@@ -4779,10 +4789,11 @@
          "sabouhallawa@apple.com",
          "said@apple.com"
       ],
+      "expertise" : "SVG/Graphics, Image Decoders",
       "nicks" : [
          "sabouhallawa"
       ],
-      "status" : "committer"
+      "status" : "reviewer"
    },
    "Sam Weinig" : {
       "emails" : [
@@ -5296,6 +5307,15 @@
       ],
       "status" : "committer"
    },
+   "Tom\u00e1\u0161 Popela" : {
+      "emails" : [
+         "tpopela@redhat.com"
+      ],
+      "nicks" : [
+         "tpopela"
+      ],
+      "status" : "committer"
+   },
    "Tony Chang" : {
       "emails" : [
          "tony@chromium.org"
@@ -5640,7 +5660,8 @@
    "Youenn Fablet" : {
       "emails" : [
          "youennf@gmail.com",
-         "youenn.fablet@crf.canon.fr"
+         "youenn@apple.com",
+         "yfablet@apple.com"
       ],
       "nicks" : [
          "youenn"

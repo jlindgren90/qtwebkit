@@ -281,17 +281,15 @@ webkit.org/b/99036 pointer-lock [ Skip ]
 # As well as testing fullscreen functionality, these tests also utilize the pointer lock feature.
 webkit.org/b/99036 http/tests/fullscreen [ Skip ]
 webkit.org/b/99036 http/tests/pointer-lock [ Skip ]
+webkit.org/b/99036 fast/shadow-dom/pointerlockelement-in-shadow-tree.html [ Skip ]
+webkit.org/b/99036 fast/shadow-dom/pointerlockelement-in-slot.html [ Skip ]
 
-# Battery Status API support not yet.
-webkit.org/b/95582 batterystatus [ Failure ]
-webkit.org/b/95582 batterystatus/event-after-navigation.html [ Timeout ]
 
 # IETC flexbox failures
 webkit.org/b/85211 ietestcenter/css3/flexbox/flexbox-align-stretch-001.htm [ ImageOnlyFailure ]
 webkit.org/b/85212 ietestcenter/css3/flexbox/flexbox-layout-002.htm [ ImageOnlyFailure ]
 
 # Mediastream implementation is not complete yet.
-webkit.org/b/79203 fast/mediastream/MediaStream-MediaElement-srcObject.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/MediaStreamTrack.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/MediaStreamTrack-onended.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/RTCPeerConnection-createAnswer.html [ Skip ]
@@ -634,10 +632,6 @@ webkit.org/b/154390 http/tests/security/local-video-source-from-remote.html [ Ti
 webkit.org/b/155505 http/tests/security/contentSecurityPolicy/userAgentShadowDOM/allow-audio.html [ Skip ]
 webkit.org/b/155505 http/tests/security/contentSecurityPolicy/userAgentShadowDOM/allow-video.html [ Skip ]
 
-# Custom Elements API still not enabled/tested on GTK+
-webkit.org/b/156108 fast/custom-elements [ Skip ]
-webkit.org/b/156108 imported/w3c/web-platform-tests/custom-elements [ Skip ]
-
 webkit.org/b/137096 svg/W3C-SVG-1.1/text-altglyph-01-b.svg [ Failure ]
 webkit.org/b/137096 svg/custom/altglyph.svg [ Failure ]
 webkit.org/b/137096 svg/text/text-altglyph-01-b.svg [ Failure ]
@@ -658,18 +652,6 @@ webkit.org/b/156148 svg/text/text-vkern.svg [ Failure ]
 
 # Since r200320 resource-timing feature is a runtime flag.
 webkit.org/b/158617 fast/dom/Window/window-properties-performance-resource-timing.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_connection_reuse.html [ Timeout ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_ignore_data_url.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_ignore_failures.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_reparenting.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_script_types.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_clearMarks.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_clearMeasures.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_entry_type.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_mark.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_measure_associate_with_navigation_timing.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_measure.html [ Failure ]
-webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_method_exist.html [ Failure ]
 
 webkit.org/b/160024 platform/gtk/scrollbars/main-frame-scrollbar-horizontal-wheel-scroll.html [ Failure ]
 
@@ -963,13 +945,9 @@ webkit.org/b/126523 perf/accessibility-title-ui-element.html [ Failure Pass ]
 
 webkit.org/b/127280 media/audio-concurrent-supported.html [ Failure Timeout Pass ]
 
-webkit.org/b/127682 http/tests/w3c/webperf/approved/navigation-timing/html/test_timing_attributes_order.html [ Failure Pass ]
-
 webkit.org/b/127742 fast/spatial-navigation/snav-unit-overflow-and-scroll-in-direction.html [ Failure Pass ]
 
 webkit.org/b/127745 fast/parser/document-write-basic.html [ Crash Pass ]
-
-webkit.org/b/127733 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_dynamic_insertion.html [ Failure Pass ]
 
 webkit.org/b/127735 media/crash-closing-page-with-media-as-plugin-fallback.html [ Timeout Pass ]
 
@@ -1015,7 +993,6 @@ Bug(GTK) fast/loader/fragment-after-redirect-gets-back-entry.html [ Failure Pass
 Bug(GTK) fast/writing-mode/japanese-ruby-horizontal-bt.html [ Failure Pass ]
 Bug(GTK) fast/writing-mode/japanese-ruby-vertical-lr.html [ Failure Pass ]
 Bug(GTK) fast/writing-mode/japanese-ruby-vertical-rl.html [ Failure Pass ]
-Bug(GTK) http/tests/w3c/webperf/approved/navigation-timing/html/test_performance_attributes_exist_in_object.html [ Failure Pass ]
 webkit.org/b/131533 media/track/track-remove-active-cue-crash.html [ Timeout Pass ]
 webkit.org/b/131534 media/media-ended.html [ Timeout Pass ]
 webkit.org/b/131535 media/audio-mpeg-supported.html [ Timeout Pass ]
@@ -1496,7 +1473,6 @@ webkit.org/b/122571 inspector/dom/request-child-nodes-depth.html [ Timeout Pass 
 webkit.org/b/122571 inspector/dom/focus.html [ Failure Timeout Pass ]
 webkit.org/b/122571 inspector/runtime/getProperties.html [ Timeout Pass Crash ]
 webkit.org/b/122571 inspector/runtime/saveResult.html [ Timeout Pass Crash ]
-webkit.org/b/122571 inspector/page/javascriptDialogEvents.html [ Timeout Pass ]
 webkit.org/b/122571 inspector/page/frameStartedLoading.html [ Timeout Pass ]
 webkit.org/b/122571 inspector/page/frameScheduledNavigation.html [ Timeout Pass Crash ]
 webkit.org/b/122571 inspector/page/setEmulatedMedia.html [ Timeout Pass ]
@@ -1874,8 +1850,6 @@ Bug(GTK) http/tests/misc/will-send-request-returns-null-on-redirect.html [ Failu
 Bug(GTK) http/tests/security/xssAuditor/xss-filter-bypass-big5.html [ Failure ]
 Bug(GTK) http/tests/security/xssAuditor/xss-filter-bypass-sjis.html [ Failure ]
 
-Bug(GTK) http/tests/w3c/webperf/submission/Intel/resource-timing [ Skip ]
-
 Bug(GTK) fast/backgrounds/background-position-parsing.html [ Failure ]
 
 Bug(GTK) fast/css/sticky/sticky-top-zoomed.html [ ImageOnlyFailure ]
@@ -2109,13 +2083,6 @@ webkit.org/b/39725 fast/events/drag-and-drop-autoscroll.html [ Skip ]
 # Leaking state into the next test.
 #webkit.org/b/85522 http/tests/security/sandboxed-iframe-form-top.html [ Skip ]
 
-webkit.org/b/103927 http/tests/w3c/webperf/submission/Intel/resource-timing/test_resource_timing_cross_origin_resource_request.html [ Failure ]
-webkit.org/b/103927 http/tests/w3c/webperf/submission/Intel/resource-timing/test_resource_timing_timing_allow_cross_origin_resource_request.html [ Failure ]
-webkit.org/b/103927 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_attribute_order.html [ Failure ]
-webkit.org/b/103927 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_frame_initiator_type.html [ Failure ]
-webkit.org/b/103927 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_initiator_types.html [ Failure ]
-webkit.org/b/103927 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_redirects.html [ Failure ]
-
 webkit.org/b/107118 fast/canvas/canvas-quadratic-same-endpoint.html [ Failure ]
 
 webkit.org/b/108973 fast/css/negative-text-indent-in-inline-block.html [ ImageOnlyFailure ]
@@ -2132,10 +2099,6 @@ webkit.org/b/111606 fast/borders/border-fit-2.html [ Failure ]
 webkit.org/b/112228 svg/custom/resources-css-scaled.html [ ImageOnlyFailure ]
 
 webkit.org/b/99893 svg/animations/mozilla/animateMotion-mpath-targetChange-1.svg [ ImageOnlyFailure Pass ]
-
-# Timing out because of webkit.org/b/158617
-webkit.org/b/113772 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_iframe_self_navigation.html [ Failure Timeout ]
-webkit.org/b/113772 http/tests/w3c/webperf/submission/Google/resource-timing/html/test_resource_cached.html [ Failure Timeout ]
 
 webkit.org/b/115025 fast/events/constructors/mouse-event-constructor.html [ Failure ]
 webkit.org/b/115025 fast/events/constructors/wheel-event-constructor.html [ Failure ]
@@ -2380,8 +2343,6 @@ webkit.org/b/42194 fast/scrolling/scroll-select-list.html [ ImageOnlyFailure ]
 webkit.org/b/139352 accessibility/inline-block-assertion.html [ Failure ]
 
 webkit.org/b/139354 fast/repaint/selection-ruby-rl.html [ Failure ]
-
-webkit.org/b/139358 http/tests/misc/authentication-redirect-3/authentication-sent-to-redirect-same-origin-with-location-credentials.html [ Failure ]
 
 webkit.org/b/139361 fast/css/data-attribute-style-sharing-5.html [ ImageOnlyFailure ]
 webkit.org/b/139361 fast/css/data-attribute-style-sharing-6.html [ ImageOnlyFailure ]

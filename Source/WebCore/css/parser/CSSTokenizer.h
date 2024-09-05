@@ -27,11 +27,10 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CSSTokenizer_h
-#define CSSTokenizer_h
+#pragma once
 
 #include "CSSParserToken.h"
-#include "InputStreamPreprocessor.h"
+#include "CSSTokenizerInputStream.h"
 #include <climits>
 #include <wtf/text/StringView.h>
 #include <wtf/text/WTFString.h>
@@ -46,27 +45,13 @@ class CSSTokenizer {
     WTF_MAKE_NONCOPYABLE(CSSTokenizer);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    class Scope {
-    public:
-        Scope(const String&);
-        Scope(const String&, CSSParserObserverWrapper&); // For the inspector
+    CSSTokenizer(const String&);
+    CSSTokenizer(const String&, CSSParserObserverWrapper&); // For the inspector
 
-        CSSParserTokenRange tokenRange();
-        unsigned tokenCount();
-
-    private:
-        void storeString(const String& string) { m_stringPool.append(string); }
-        Vector<CSSParserToken, 32> m_tokens;
-        // We only allocate strings when escapes are used.
-        Vector<String> m_stringPool;
-        String m_string;
-
-        friend class CSSTokenizer;
-    };
+    CSSParserTokenRange tokenRange() const;
+    unsigned tokenCount();
 
 private:
-    CSSTokenizer(CSSTokenizerInputStream&, Scope&);
-
     CSSParserToken nextToken();
 
     UChar consume();
@@ -131,10 +116,11 @@ private:
     static const CodePoint codePoints[];
 
     Vector<CSSParserTokenType, 8> m_blockStack;
-    CSSTokenizerInputStream& m_input;
-    Scope& m_scope;
+    CSSTokenizerInputStream m_input;
+    
+    Vector<CSSParserToken, 32> m_tokens;
+    // We only allocate strings when escapes are used.
+    Vector<String> m_stringPool;
 };
 
 } // namespace WebCore
-
-#endif // CSSTokenizer_h

@@ -55,15 +55,19 @@
 
 namespace JSC {
 
-static bool allowRestrictedOptions()
-{
+namespace {
 #ifdef NDEBUG
-    return false;
+bool restrictedOptionsEnabled = false;
 #else
-    return true;
+bool restrictedOptionsEnabled = true;
 #endif
 }
 
+void Options::enableRestrictedOptions(bool enableOrNot)
+{
+    restrictedOptionsEnabled = enableOrNot;
+}
+    
 static bool parse(const char* string, bool& value)
 {
     if (!strcasecmp(string, "true") || !strcasecmp(string, "yes") || !strcmp(string, "1")) {
@@ -128,12 +132,16 @@ static bool parse(const char* string, GCLogging::Level& value)
 bool Options::isAvailable(Options::ID id, Options::Availability availability)
 {
     if (availability == Availability::Restricted)
-        return allowRestrictedOptions();
+        return restrictedOptionsEnabled;
     ASSERT(availability == Availability::Configurable);
     
     UNUSED_PARAM(id);
 #if ENABLE(LLINT_STATS)
     if (id == reportLLIntStatsID || id == llintStatsFileID)
+        return true;
+#endif
+#if !defined(NDEBUG)
+    if (id == maxSingleAllocationSizeID)
         return true;
 #endif
     return false;
@@ -313,7 +321,7 @@ static void recomputeDependentOptions()
 #if !ENABLE(YARR_JIT)
     Options::useRegExpJIT() = false;
 #endif
-#if !ENABLE(CONCURRENT_JIT)
+#if !ENABLE(CONCURRENT_JS)
     Options::useConcurrentJIT() = false;
 #endif
 #if !ENABLE(DFG_JIT)
@@ -322,6 +330,10 @@ static void recomputeDependentOptions()
 #endif
 #if !ENABLE(FTL_JIT)
     Options::useFTLJIT() = false;
+#endif
+    
+#if !CPU(X86_64) && !CPU(ARM64)
+    Options::useConcurrentGC() = false;
 #endif
     
 #if OS(WINDOWS) && CPU(X86) 
@@ -353,6 +365,9 @@ static void recomputeDependentOptions()
         || Options::verboseCFA()
         || Options::verboseFTLFailure())
         Options::alwaysComputeHash() = true;
+    
+    if (!Options::useConcurrentGC())
+        Options::collectContinuously() = false;
 
     if (Option(Options::jitPolicyScaleID).isOverridden())
         scaleJITPolicy();
@@ -380,6 +395,9 @@ static void recomputeDependentOptions()
     Options::useSeparatedWXHeap() = true;
 #endif
 
+    if (Options::alwaysUseShadowChicken())
+        Options::maximumInliningDepth() = 1;
+
     // Compute the maximum value of the reoptimization retry counter. This is simply
     // the largest value at which we don't overflow the execute counter, when using it
     // to left-shift the execution counter by this amount. Currently the value ends
@@ -395,6 +413,12 @@ static void recomputeDependentOptions()
 
 #if ENABLE(LLINT_STATS)
     LLInt::Data::loadStats();
+#endif
+#if !defined(NDEBUG)
+    if (Options::maxSingleAllocationSize())
+        fastSetMaxSingleAllocationSize(Options::maxSingleAllocationSize());
+    else
+        fastSetMaxSingleAllocationSize(std::numeric_limits<size_t>::max());
 #endif
 }
 
