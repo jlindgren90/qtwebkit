@@ -45,7 +45,7 @@ TextureMapperLayerClientQt::~TextureMapperLayerClientQt()
 
 void TextureMapperLayerClientQt::syncRootLayer()
 {
-    m_rootGraphicsLayer->flushCompositingStateForThisLayerOnly(true/* viewportIsStable */);
+    m_rootGraphicsLayer->flushCompositingStateForThisLayerOnly();
 }
 
 void TextureMapperLayerClientQt::markForSync(bool scheduleSync)
@@ -137,7 +137,7 @@ void TextureMapperLayerClientQt::renderCompositedLayers(GraphicsContext& context
     if (m_rootGraphicsLayer->opacity() != painter->opacity() || m_rootGraphicsLayer->transform() != matrix) {
         m_rootGraphicsLayer->setOpacity(painter->opacity());
         m_rootGraphicsLayer->setTransform(matrix);
-        m_rootGraphicsLayer->flushCompositingStateForThisLayerOnly(true);
+        m_rootGraphicsLayer->flushCompositingStateForThisLayerOnly();
     }
     m_textureMapper->beginPainting();
     m_textureMapper->beginClip(matrix, clip);

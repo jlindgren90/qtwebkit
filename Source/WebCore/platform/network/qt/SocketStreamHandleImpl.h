@@ -63,7 +63,7 @@ namespace WebCore {
         ~SocketStreamHandleImpl();
 
     protected:
-        Optional<size_t> platformSend(const char* data, size_t length) final;
+        std::optional<size_t> platformSend(const char* data, size_t length) final;
         void platformClose() final;
 
     private:

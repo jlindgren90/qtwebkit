@@ -17,6 +17,8 @@
     Boston, MA 02110-1301, USA.
 */
 
+#if 0 // FIXME
+
 #include "config.h"
 #include "ArgumentCodersQt.h"
 
@@ -95,3 +97,5 @@ bool ArgumentCoder<WebCore::DragData>::decode(Decoder& decoder, DragData& dragDa
 }
 
 }
+
+#endif

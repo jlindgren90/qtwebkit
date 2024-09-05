@@ -24,6 +24,7 @@
 #include "qwebelement_p.h"
 #include "CSSComputedStyleDeclaration.h"
 #include "CSSParser.h"
+#include "CSSPropertyParser.h"
 #include "CSSRule.h"
 #include "CSSRuleList.h"
 #include "CSSStyleRule.h"
@@ -58,6 +59,22 @@
 #include <QPainter>
 
 using namespace WebCore;
+
+template<class T>
+RefPtr<T> toRefPtr(ExceptionOr<Ref<T>>&& val)
+{
+    if (val.hasException())
+        return RefPtr<T>();
+    return adoptRef(&val.releaseReturnValue().leakRef());
+}
+
+template<class T>
+T* toPtr(ExceptionOr<T*>&& val)
+{
+    if (val.hasException())
+        return nullptr;
+    return val.releaseReturnValue();
+}
 
 class QWebElementPrivate {
 public:
@@ -241,8 +258,7 @@ QWebElement QWebElement::findFirst(const QString &selectorQuery) const
 {
     if (!m_element)
         return QWebElement();
-    ExceptionCode exception = 0; // ###
-    return QWebElement(m_element->querySelector(selectorQuery, exception));
+    return QWebElement(toPtr(m_element->querySelector(selectorQuery)));
 }
 
 /*!
@@ -256,8 +272,7 @@ void QWebElement::setPlainText(const QString &text)
 {
     if (!m_element || !m_element->isHTMLElement())
         return;
-    ExceptionCode exception = 0;
-    static_cast<HTMLElement*>(m_element)->setInnerText(text, exception);
+    static_cast<HTMLElement*>(m_element)->setInnerText(text);
 }
 
 /*!
@@ -289,9 +304,7 @@ void QWebElement::setOuterXml(const QString &markup)
     if (!m_element || !m_element->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-
-    static_cast<HTMLElement*>(m_element)->setOuterHTML(markup, exception);
+    static_cast<HTMLElement*>(m_element)->setOuterHTML(markup);
 }
 
 /*!
@@ -329,9 +342,7 @@ void QWebElement::setInnerXml(const QString &markup)
     if (!m_element || !m_element->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-
-    static_cast<HTMLElement*>(m_element)->setInnerHTML(markup, exception);
+    static_cast<HTMLElement*>(m_element)->setInnerHTML(markup);
 }
 
 /*!
@@ -364,8 +375,7 @@ void QWebElement::setAttribute(const QString &name, const QString &value)
 {
     if (!m_element)
         return;
-    ExceptionCode exception = 0;
-    m_element->setAttribute(name, value, exception);
+    m_element->setAttribute(name, value);
 }
 
 /*!
@@ -379,8 +389,7 @@ void QWebElement::setAttributeNS(const QString &namespaceUri, const QString &nam
 {
     if (!m_element)
         return;
-    WebCore::ExceptionCode exception = 0;
-    m_element->setAttributeNS(namespaceUri, name, value, exception);
+    m_element->setAttributeNS(namespaceUri, name, value);
 }
 
 /*!
@@ -793,7 +802,7 @@ QString QWebElement::styleProperty(const QString &name, StyleResolveStrategy str
     if (!m_element || !m_element->isStyledElement())
         return QString();
 
-    CSSPropertyID propID = cssPropertyID(name);
+    CSSPropertyID propID = cssPropertyID(String(name));
 
     if (!propID)
         return QString();
@@ -876,7 +885,7 @@ void QWebElement::setStyleProperty(const QString &name, const QString &value)
         adjustedValue = adjustedValue.trimmed();
     }
 
-    CSSPropertyID propID = cssPropertyID(name);
+    CSSPropertyID propID = cssPropertyID(String(name));
     static_cast<StyledElement*>(m_element)->setInlineStyleProperty(propID, adjustedValue, important);
 }
 
@@ -961,8 +970,7 @@ void QWebElement::appendInside(const QWebElement &element)
     if (!m_element || element.isNull())
         return;
 
-    ExceptionCode exception = 0;
-    m_element->appendChild(*element.m_element, exception);
+    m_element->appendChild(*element.m_element);
 }
 
 /*!
@@ -980,12 +988,11 @@ void QWebElement::appendInside(const QString &markup)
     if (!m_element->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent));
     if (!fragment)
         return;
 
-    m_element->appendChild(*fragment, exception);
+    m_element->appendChild(*fragment);
 }
 
 /*!
@@ -1004,12 +1011,10 @@ void QWebElement::prependInside(const QWebElement &element)
     if (!m_element || element.isNull())
         return;
 
-    ExceptionCode exception = 0;
-
     if (m_element->hasChildNodes())
-        m_element->insertBefore(*element.m_element, m_element->firstChild(), exception);
+        m_element->insertBefore(*element.m_element, m_element->firstChild());
     else
-        m_element->appendChild(*element.m_element, exception);
+        m_element->appendChild(*element.m_element);
 }
 
 /*!
@@ -1027,15 +1032,14 @@ void QWebElement::prependInside(const QString &markup)
     if (!m_element->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent));
     if (!fragment)
         return;
 
     if (m_element->hasChildNodes())
-        m_element->insertBefore(*fragment, m_element->firstChild(), exception);
+        m_element->insertBefore(*fragment, m_element->firstChild());
     else
-        m_element->appendChild(*fragment, exception);
+        m_element->appendChild(*fragment);
 }
 
 
@@ -1057,8 +1061,7 @@ void QWebElement::prependOutside(const QWebElement &element)
     if (!m_element->parentNode())
         return;
 
-    ExceptionCode exception = 0;
-    m_element->parentNode()->insertBefore(*element.m_element, m_element, exception);
+    m_element->parentNode()->insertBefore(*element.m_element, m_element);
 }
 
 /*!
@@ -1080,10 +1083,9 @@ void QWebElement::prependOutside(const QString &markup)
     if (!parent->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent));
 
-    parent->insertBefore(*fragment, m_element, exception);
+    parent->insertBefore(*fragment, m_element);
 }
 
 /*!
@@ -1104,11 +1106,10 @@ void QWebElement::appendOutside(const QWebElement &element)
     if (!m_element->parentNode())
         return;
 
-    ExceptionCode exception = 0;
     if (!m_element->nextSibling())
-        m_element->parentNode()->appendChild(*element.m_element, exception);
+        m_element->parentNode()->appendChild(*element.m_element);
     else
-        m_element->parentNode()->insertBefore(*element.m_element, m_element->nextSibling(), exception);
+        m_element->parentNode()->insertBefore(*element.m_element, m_element->nextSibling());
 }
 
 /*!
@@ -1130,13 +1131,12 @@ void QWebElement::appendOutside(const QString &markup)
     if (!parent->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent));
 
     if (!m_element->nextSibling())
-        parent->appendChild(*fragment, exception);
+        parent->appendChild(*fragment);
     else
-        parent->insertBefore(*fragment, m_element->nextSibling(), exception);
+        parent->insertBefore(*fragment, m_element->nextSibling());
 }
 
 /*!
@@ -1168,8 +1168,7 @@ QWebElement &QWebElement::takeFromDocument()
     if (!m_element)
         return *this;
 
-    ExceptionCode exception = 0;
-    m_element->remove(exception);
+    m_element->remove();
 
     return *this;
 }
@@ -1184,8 +1183,7 @@ void QWebElement::removeFromDocument()
     if (!m_element)
         return;
 
-    ExceptionCode exception = 0;
-    m_element->remove(exception);
+    m_element->remove();
     m_element->deref();
     m_element = 0;
 }
@@ -1245,19 +1243,17 @@ void QWebElement::encloseContentsWith(const QWebElement &element)
     if (!insertionPoint)
         return;
 
-    ExceptionCode exception = 0;
-
     // reparent children
     for (RefPtr<Node> child = m_element->firstChild(); child;) {
         RefPtr<Node> next = child->nextSibling();
-        insertionPoint->appendChild(*child, exception);
+        insertionPoint->appendChild(*child);
         child = next;
     }
 
     if (m_element->hasChildNodes())
-        m_element->insertBefore(*element.m_element, m_element->firstChild(), exception);
+        m_element->insertBefore(*element.m_element, m_element->firstChild());
     else
-        m_element->appendChild(*element.m_element, exception);
+        m_element->appendChild(*element.m_element);
 }
 
 /*!
@@ -1277,8 +1273,7 @@ void QWebElement::encloseContentsWith(const QString &markup)
     if (!m_element->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent));
 
     if (!fragment || !fragment->firstChild())
         return;
@@ -1291,14 +1286,14 @@ void QWebElement::encloseContentsWith(const QString &markup)
     // reparent children
     for (RefPtr<Node> child = m_element->firstChild(); child;) {
         RefPtr<Node> next = child->nextSibling();
-        insertionPoint->appendChild(*child, exception);
+        insertionPoint->appendChild(*child);
         child = next;
     }
 
     if (m_element->hasChildNodes())
-        m_element->insertBefore(*fragment, m_element->firstChild(), exception);
+        m_element->insertBefore(*fragment, m_element->firstChild());
     else
-        m_element->appendChild(*fragment, exception);
+        m_element->appendChild(*fragment);
 }
 
 /*!
@@ -1324,13 +1319,12 @@ void QWebElement::encloseWith(const QWebElement &element)
     Node* parent = m_element->parentNode();
     Node* siblingNode = m_element->nextSibling();
 
-    ExceptionCode exception = 0;
-    insertionPoint->appendChild(*m_element, exception);
+    insertionPoint->appendChild(*m_element);
 
     if (!siblingNode)
-        parent->appendChild(*element.m_element, exception);
+        parent->appendChild(*element.m_element);
     else
-        parent->insertBefore(*element.m_element, siblingNode, exception);
+        parent->insertBefore(*element.m_element, siblingNode);
 }
 
 /*!
@@ -1351,8 +1345,7 @@ void QWebElement::encloseWith(const QString &markup)
     if (!parent->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent));
 
     if (!fragment || !fragment->firstChild())
         return;
@@ -1368,12 +1361,12 @@ void QWebElement::encloseWith(const QString &markup)
     // we no longer have access to the nodes it contained.
     Node* siblingNode = m_element->nextSibling();
 
-    insertionPoint->appendChild(*m_element, exception);
+    insertionPoint->appendChild(*m_element);
 
     if (!siblingNode)
-        parent->appendChild(*fragment, exception);
+        parent->appendChild(*fragment);
     else
-        parent->insertBefore(*fragment, siblingNode, exception);
+        parent->insertBefore(*fragment, siblingNode);
 }
 
 /*!
@@ -1521,8 +1514,7 @@ QWebElementCollectionPrivate* QWebElementCollectionPrivate::create(const PassRef
         return 0;
 
     // Let WebKit do the hard work hehehe
-    ExceptionCode exception = 0; // ###
-    RefPtr<NodeList> nodes = context->querySelectorAll(query, exception);
+    RefPtr<NodeList> nodes = toRefPtr(context->querySelectorAll(query));
     if (!nodes)
         return 0;
 

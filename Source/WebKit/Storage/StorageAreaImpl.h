@@ -36,7 +36,7 @@ class SecurityOrigin;
 class StorageMap;
 }
 
-namespace WebKit {
+namespace WebKit1 { // FIXME: conflict with WebKit2
 
 class StorageAreaSync;
 

@@ -218,7 +218,7 @@ void ImageBuffer::putByteArray(Multiply multiplied, Uint8ClampedArray* source, c
         m_data.m_painter->restore();
 }
 
-static bool encodeImage(const QPixmap& pixmap, const String& format, const double* quality, QByteArray& data)
+static bool encodeImage(const QPixmap& pixmap, const String& format, std::optional<double> quality, QByteArray& data)
 {
     int compressionQuality = -1;
     if (format == "jpeg" || format == "webp") {
@@ -235,7 +235,7 @@ static bool encodeImage(const QPixmap& pixmap, const String& format, const doubl
     return success;
 }
 
-String ImageBuffer::toDataURL(const String& mimeType, const double* quality, CoordinateSystem) const
+String ImageBuffer::toDataURL(const String& mimeType, std::optional<double> quality, CoordinateSystem) const
 {
     ASSERT(MIMETypeRegistry::isSupportedImageMIMETypeForEncoding(mimeType));
 

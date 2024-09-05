@@ -109,4 +109,8 @@ String WebProcessPool::legacyPlatformDefaultNetworkCacheDirectory()
     return WebKit::QtWebContext::preparedStoragePath(WebKit::QtWebContext::DiskCacheStorage);
 }
 
+void WebProcessPool::platformResolvePathsForSandboxExtensions()
+{
+}
+
 } // namespace WebKit

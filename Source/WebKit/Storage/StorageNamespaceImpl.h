@@ -32,7 +32,7 @@
 #include <wtf/RefPtr.h>
 #include <wtf/text/WTFString.h>
 
-namespace WebKit {
+namespace WebKit1 { // FIXME: conflict with WebKit2
 
 class StorageAreaImpl;
 

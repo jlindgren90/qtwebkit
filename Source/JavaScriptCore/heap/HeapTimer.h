@@ -49,11 +49,11 @@ namespace JSC {
 class JSLock;
 class VM;
 
-#if PLATFORM(QT) && !USE(CF)
-class HeapTimer : public QObject {
-#else
-class HeapTimer : public ThreadSafeRefCounted<HeapTimer> {
+class HeapTimer : public ThreadSafeRefCounted<HeapTimer>
+#if PLATFORM(QT)
+    , public QObject
 #endif
+    {
 public:
     HeapTimer(VM*);
 #if USE(CF)
@@ -86,10 +86,8 @@ protected:
 
     Lock m_shutdownMutex;
 #elif PLATFORM(QT)
-    void timerEvent(QTimerEvent*);
-    void customEvent(QEvent*);
+    void timerEvent(QTimerEvent*) override;
     QBasicTimer m_timer;
-    QThread* m_newThread;
     QMutex m_mutex;
 #elif PLATFORM(EFL)
     static bool timerEvent(void*);

@@ -37,7 +37,7 @@
 
 using namespace WebCore;
 
-namespace WebKit {
+namespace WebKit1 { // FIXME: conflict with WebKit2
 
 // If the StorageArea undergoes rapid changes, don't sync each change to disk.
 // Instead, queue up a batch of items to sync and actually do the sync at the following interval.

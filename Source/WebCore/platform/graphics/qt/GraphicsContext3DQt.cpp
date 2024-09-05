@@ -246,8 +246,8 @@ void GraphicsContext3DPrivate::initializeANGLE()
     // Always set to 1 for OpenGL ES.
     ANGLEResources.MaxDrawBuffers = 1;
 
-    Extensions3D* extensions = m_context->getExtensions();
-    if (extensions->supports("GL_ARB_texture_rectangle"))
+    Extensions3D& extensions = m_context->getExtensions();
+    if (extensions.supports("GL_ARB_texture_rectangle"))
         ANGLEResources.ARB_texture_rectangle = 1;
 
     GC3Dint range[2], precision;
@@ -385,7 +385,7 @@ void GraphicsContext3DPrivate::createGraphicsSurfaces(const IntSize& size)
 #endif
 }
 
-RefPtr<GraphicsContext3D> GraphicsContext3D::create(GraphicsContext3D::Attributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
+RefPtr<GraphicsContext3D> GraphicsContext3D::create(GraphicsContext3DAttributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
 {
     // This implementation doesn't currently support rendering directly to the HostWindow.
     if (renderStyle == RenderDirectlyToHostWindow)
@@ -393,7 +393,7 @@ RefPtr<GraphicsContext3D> GraphicsContext3D::create(GraphicsContext3D::Attribute
     return adoptRef(new GraphicsContext3D(attrs, hostWindow, renderStyle));
 }
 
-GraphicsContext3D::GraphicsContext3D(GraphicsContext3D::Attributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
+GraphicsContext3D::GraphicsContext3D(GraphicsContext3DAttributes attrs, HostWindow* hostWindow, GraphicsContext3D::RenderStyle renderStyle)
     : m_currentWidth(0)
     , m_currentHeight(0)
     , m_attrs(attrs)

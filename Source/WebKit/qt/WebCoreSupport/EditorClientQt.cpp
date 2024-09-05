@@ -653,6 +653,10 @@ void EditorClientQt::discardedComposition(Frame *)
 {
 }
 
+void EditorClientQt::canceledComposition()
+{
+}
+
 void EditorClientQt::overflowScrollPositionChanged()
 {
 }

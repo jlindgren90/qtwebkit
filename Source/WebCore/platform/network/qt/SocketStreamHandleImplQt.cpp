@@ -59,7 +59,7 @@ SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandleImpl* str
 
     initConnections();
 
-    unsigned int port = url.port().valueOr(isSecure ? 443 : 80);
+    unsigned int port = url.port().value_or(isSecure ? 443 : 80);
 
     QString host = url.host();
     if (isSecure) {
@@ -116,10 +116,10 @@ void SocketStreamHandlePrivate::socketReadyRead()
     }
 }
 
-Optional<size_t> SocketStreamHandlePrivate::send(const char* data, size_t len)
+std::optional<size_t> SocketStreamHandlePrivate::send(const char* data, size_t len)
 {
     if (!m_socket || m_socket->state() != QAbstractSocket::ConnectedState)
-        return Nullopt;
+        return std::nullopt;
     quint64 sentSize = m_socket->write(data, len);
     QMetaObject::invokeMethod(this, "socketSentData", Qt::QueuedConnection);
     return sentSize;
@@ -205,7 +205,7 @@ SocketStreamHandleImpl::~SocketStreamHandleImpl()
     delete m_p;
 }
 
-Optional<size_t> SocketStreamHandleImpl::platformSend(const char* data, size_t len)
+std::optional<size_t> SocketStreamHandleImpl::platformSend(const char* data, size_t len)
 {
     LOG(Network, "SocketStreamHandleImpl %p platformSend", this);
     return m_p->send(data, len);

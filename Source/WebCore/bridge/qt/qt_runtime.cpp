@@ -502,11 +502,11 @@ QVariant convertValueToQVariant(JSContextRef context, JSValueRef value, QMetaTyp
 
         case QMetaType::QByteArray: {
             if (type == RTUint8Array) {
-                RefPtr<JSC::Uint8Array> arr = toUint8Array(toJS(toJS(context), value));
+                RefPtr<JSC::Uint8Array> arr = toPossiblySharedUint8Array(toJS(toJS(context), value));
                 ret = QVariant(QByteArray(reinterpret_cast<const char*>(arr->data()), arr->length()));
                 dist = 0;
             } else if (type == RTUint8ClampedArray) {
-                RefPtr<JSC::Uint8ClampedArray> arr = toUint8ClampedArray(toJS(toJS(context), value));
+                RefPtr<JSC::Uint8ClampedArray> arr = toPossiblySharedUint8ClampedArray(toJS(toJS(context), value));
                 ret = QVariant(QByteArray(reinterpret_cast<const char*>(arr->data()), arr->length()));
                 dist = 0;
             } else {

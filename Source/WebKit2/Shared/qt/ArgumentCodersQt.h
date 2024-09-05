@@ -20,6 +20,8 @@
 #ifndef ArgumentCodersQt_h
 #define ArgumentCodersQt_h
 
+#if 0 // FIXME
+
 #include "Decoder.h"
 #include "Encoder.h"
 #include "DragData.h"
@@ -35,5 +37,7 @@ template<> struct ArgumentCoder<WebCore::DragData> {
 };
 
 }
+
+#endif
 
 #endif // ArgumentCodersQt_h

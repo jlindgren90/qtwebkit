@@ -112,7 +112,7 @@ QString QWebSecurityOrigin::host() const
 */
 int QWebSecurityOrigin::port() const
 {
-    return d->origin->port().valueOr(0); // FIXME: check this
+    return d->origin->port().value_or(0); // FIXME: check this
 }
 
 /*!
@@ -121,7 +121,8 @@ int QWebSecurityOrigin::port() const
 */
 qint64 QWebSecurityOrigin::databaseUsage() const
 {
-    return DatabaseManager::singleton().usageForOrigin(d->origin.get());
+    // FIXME
+    return 0; // DatabaseManager::singleton().usageForOrigin(d->origin.get());
 }
 
 /*!
@@ -129,7 +130,8 @@ qint64 QWebSecurityOrigin::databaseUsage() const
 */
 qint64 QWebSecurityOrigin::databaseQuota() const
 {
-    return DatabaseManager::singleton().quotaForOrigin(d->origin.get());
+    // FIXME
+    return 0; // DatabaseManager::singleton().quotaForOrigin(d->origin.get());
 }
 
 /*!
@@ -141,7 +143,8 @@ qint64 QWebSecurityOrigin::databaseQuota() const
 */
 void QWebSecurityOrigin::setDatabaseQuota(qint64 quota)
 {
-    DatabaseManager::singleton().setQuota(d->origin.get(), quota);
+    // FIXME
+    // DatabaseManager::singleton().setQuota(d->origin.get(), quota);
 }
 
 void QWebSecurityOrigin::setApplicationCacheQuota(qint64 quota)
@@ -171,6 +174,7 @@ QList<QWebSecurityOrigin> QWebSecurityOrigin::allOrigins()
 {
     QList<QWebSecurityOrigin> webOrigins;
 
+#if 0 // FIXME
     Vector<RefPtr<SecurityOrigin> > coreOrigins;
     DatabaseManager::singleton().origins(coreOrigins);
 
@@ -178,6 +182,7 @@ QList<QWebSecurityOrigin> QWebSecurityOrigin::allOrigins()
         QWebSecurityOriginPrivate* priv = new QWebSecurityOriginPrivate(coreOrigins[i].get());
         webOrigins.append(priv);
     }
+#endif
 
     return webOrigins;
 }
@@ -189,6 +194,7 @@ QList<QWebDatabase> QWebSecurityOrigin::databases() const
 {
     QList<QWebDatabase> databases;
 
+#if 0 // FIXME
     Vector<String> nameVector;
 
     if (!DatabaseManager::singleton().databaseNamesForOrigin(d->origin.get(), nameVector))
@@ -200,6 +206,7 @@ QList<QWebDatabase> QWebSecurityOrigin::databases() const
         QWebDatabase webDatabase(priv);
         databases.append(webDatabase);
     }
+#endif
 
     return databases;
 }

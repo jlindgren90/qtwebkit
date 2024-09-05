@@ -32,6 +32,10 @@ CustomProtocolManagerProxy::~CustomProtocolManagerProxy()
 {
 }
 
+void CustomProtocolManagerProxy::processDidClose()
+{
+}
+
 void CustomProtocolManagerProxy::startLoading(uint64_t customProtocolID, const WebCore::ResourceRequest& request)
 {
     ASSERT_NOT_REACHED();

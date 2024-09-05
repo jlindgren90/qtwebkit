@@ -201,18 +201,18 @@
 // Instead of URLParser class added later
 namespace URLParser
 {
-static WTF::Optional<String> maybeCanonicalizeScheme(const String& scheme)
+static std::optional<String> maybeCanonicalizeScheme(const String& scheme)
 {
     if (scheme.isEmpty())
-        return WTF::Nullopt;
+        return std::nullopt;
 
     if (!isASCIIAlpha(scheme[0]))
-        return WTF::Nullopt;
+        return std::nullopt;
 
     for (size_t i = 1; i < scheme.length(); ++i) {
         if (isASCIIAlphanumeric(scheme[i]) || scheme[i] == '+' || scheme[i] == '-' || scheme[i] == '.')
             continue;
-        return WTF::Nullopt;
+        return std::nullopt;
     }
 
     return scheme.convertToASCIILowercase();

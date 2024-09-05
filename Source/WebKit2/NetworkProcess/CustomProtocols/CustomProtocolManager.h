@@ -97,7 +97,9 @@ private:
     void wasRedirectedToRequest(uint64_t customProtocolID, const WebCore::ResourceRequest&, const WebCore::ResourceResponse& redirectResponse);
 
     ChildProcess* m_childProcess;
+#if !PLATFORM(QT)
     Ref<WorkQueue> m_messageQueue;
+#endif
 
 #if PLATFORM(COCOA)
     HashSet<String, ASCIICaseInsensitiveHash> m_registeredSchemes;

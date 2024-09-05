@@ -293,7 +293,7 @@ bool Download::isAlwaysOnLoggingAllowed() const
 #endif
 }
 
-#if !PLATFORM(COCOA)
+#if !PLATFORM(COCOA) && !PLATFORM(QT)
 void Download::platformCancelNetworkLoad()
 {
 }

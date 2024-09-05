@@ -35,7 +35,7 @@
 
 using namespace WebCore;
 
-namespace WebKit {
+namespace WebKit1 { // FIXME: conflict with WebKit2
 
 static HashMap<String, StorageNamespaceImpl*>& localStorageNamespaceMap()
 {

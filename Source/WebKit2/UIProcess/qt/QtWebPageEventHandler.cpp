@@ -318,12 +318,12 @@ void QtWebPageEventHandler::handleKeyReleaseEvent(QKeyEvent* ev)
 
 void QtWebPageEventHandler::handleFocusInEvent(QFocusEvent*)
 {
-    m_webPageProxy->viewStateDidChange(ViewState::IsFocused | ViewState::WindowIsActive);
+    m_webPageProxy->activityStateDidChange(ActivityState::IsFocused | ActivityState::WindowIsActive);
 }
 
 void QtWebPageEventHandler::handleFocusLost()
 {
-    m_webPageProxy->viewStateDidChange(ViewState::IsFocused | ViewState::WindowIsActive);
+    m_webPageProxy->activityStateDidChange(ActivityState::IsFocused | ActivityState::WindowIsActive);
 }
 
 void QtWebPageEventHandler::setViewportController(PageViewportControllerClientQt* controller)

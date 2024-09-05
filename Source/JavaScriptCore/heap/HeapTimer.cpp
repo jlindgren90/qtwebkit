@@ -117,7 +117,6 @@ void HeapTimer::cancelTimer()
 
 HeapTimer::HeapTimer(VM* vm)
     : m_vm(vm)
-    , m_newThread(0)
     , m_mutex(QMutex::NonRecursive)
 {
     // The HeapTimer might be created before the runLoop is started,
@@ -134,21 +133,8 @@ HeapTimer::~HeapTimer()
 void HeapTimer::timerEvent(QTimerEvent*)
 {
     QMutexLocker lock(&m_mutex);
-    if (m_newThread) {
-        // We need to wait with processing until we are on the right thread.
-        return;
-    }
-
     JSLockHolder locker(m_vm);
     doWork();
-}
-
-void HeapTimer::customEvent(QEvent*)
-{
-    ASSERT(m_newThread);
-    QMutexLocker lock(&m_mutex);
-    moveToThread(m_newThread);
-    m_newThread = 0;
 }
 
 void HeapTimer::scheduleTimer(double intervalInSeconds)

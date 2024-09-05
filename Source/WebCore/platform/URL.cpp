@@ -761,7 +761,7 @@ String URL::baseAsString() const
     return m_string.left(m_pathAfterLastSlash);
 }
 
-#if !USE(CF)
+#if !USE(CF) && !PLATFORM(QT)
 
 String URL::fileSystemPath() const
 {

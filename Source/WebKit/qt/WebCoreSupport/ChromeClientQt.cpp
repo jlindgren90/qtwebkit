@@ -532,10 +532,12 @@ void ChromeClientQt::print(Frame* frame)
 
 void ChromeClientQt::exceededDatabaseQuota(Frame* frame, const String& databaseName, DatabaseDetails)
 {
+#if 0 // FIXME
     quint64 quota = QWebSettings::offlineStorageDefaultQuota();
 
     if (!DatabaseManager::singleton().hasEntryForOrigin(frame->document()->securityOrigin()))
         DatabaseManager::singleton().setQuota(frame->document()->securityOrigin(), quota);
+#endif
 
     m_webPage->databaseQuotaExceeded(QWebFrameAdapter::kit(frame), databaseName);
 }

@@ -927,7 +927,7 @@ void QWebSettings::clearMemoryCaches()
     WebCore::CrossOriginPreflightResultCache::singleton().empty();
 
     // Drop JIT compiled code from ExecutableAllocator.
-    WebCore::GCController::singleton().deleteAllCode();
+    WebCore::GCController::singleton().deleteAllCode(JSC::PreventCollectionAndDeleteAllCode);
     // Garbage Collect to release the references of CachedResource from dead objects.
     WebCore::GCController::singleton().garbageCollectNow();
 
@@ -1133,7 +1133,8 @@ void QWebSettings::setOfflineStoragePath(const QString& path)
 {
     WebCore::initializeWebCoreQt();
     QWebSettings::globalSettings()->d->offlineDatabasePath = path;
-    WebCore::DatabaseManager::singleton().setDatabaseDirectoryPath(path);
+    // FIME
+    // WebCore::DatabaseManager::singleton().setDatabaseDirectoryPath(path);
 }
 
 /*!

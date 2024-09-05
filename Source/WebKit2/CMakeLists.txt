@@ -829,6 +829,7 @@ endif ()
 
 add_executable(NetworkProcess ${NetworkProcess_SOURCES})
 add_webkit2_prefix_header(NetworkProcess)
+target_include_directories(NetworkProcess PRIVATE "${CMAKE_BINARY_DIR}" "${FORWARDING_HEADERS_DIR}") # for config.h
 target_link_libraries(NetworkProcess ${NetworkProcess_LIBRARIES})
 
 if (WebKit2_NetworkProcess_OUTPUT_NAME)
@@ -839,6 +840,7 @@ if (ENABLE_PLUGIN_PROCESS AND NOT "${PORT}" STREQUAL "Mac")
     add_definitions(-DENABLE_PLUGIN_PROCESS=1)
     add_executable(PluginProcess ${PluginProcess_SOURCES})
     add_webkit2_prefix_header(PluginProcess)
+    target_include_directories(PluginProcess PRIVATE "${CMAKE_BINARY_DIR}" "${FORWARDING_HEADERS_DIR}") # for config.h
     target_link_libraries(PluginProcess ${PluginProcess_LIBRARIES})
     install(TARGETS PluginProcess DESTINATION "${LIBEXEC_INSTALL_DIR}")
 
@@ -851,6 +853,7 @@ if (ENABLE_DATABASE_PROCESS AND NOT "${PORT}" STREQUAL "Mac")
     add_definitions(-DENABLE_DATABASE_PROCESS=1)
     add_executable(DatabaseProcess ${DatabaseProcess_SOURCES})
     add_webkit2_prefix_header(DatabaseProcess)
+    target_include_directories(DatabaseProcess PRIVATE "${CMAKE_BINARY_DIR}" "${FORWARDING_HEADERS_DIR}") # for config.h
     target_link_libraries(DatabaseProcess ${DatabaseProcess_LIBRARIES})
     install(TARGETS DatabaseProcess DESTINATION "${LIBEXEC_INSTALL_DIR}")
 

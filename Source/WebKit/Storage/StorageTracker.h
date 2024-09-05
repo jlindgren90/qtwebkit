@@ -38,7 +38,7 @@ class StorageTrackerClient;
 struct SecurityOriginData;
 }
 
-namespace WebKit {
+namespace WebKit1 { // FIXME: conflict with WebKit2
 
 class StorageTracker {
     WTF_MAKE_NONCOPYABLE(StorageTracker);
