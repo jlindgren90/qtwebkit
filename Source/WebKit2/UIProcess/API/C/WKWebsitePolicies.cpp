@@ -51,3 +51,13 @@ bool WKWebsitePoliciesGetContentBlockersEnabled(WKWebsitePoliciesRef websitePoli
 {
     return toImpl(websitePolicies)->contentBlockersEnabled();
 }
+
+bool WKWebsitePoliciesGetAutoplayEnabled(WKWebsitePoliciesRef websitePolicies)
+{
+    return toImpl(websitePolicies)->autoplayEnabled();
+}
+
+void WKWebsitePoliciesSetAutoplayEnabled(WKWebsitePoliciesRef websitePolicies, bool enabled)
+{
+    toImpl(websitePolicies)->setAutoplayEnabled(enabled);
+}

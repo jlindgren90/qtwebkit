@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,7 +53,8 @@ public:
 
     bool isEmpty() const;
 
-    size_t visit(HeapRootVisitor&);
+    void visit(SlotVisitor&);
+
     void reap();
     void sweep();
     void shrink();
@@ -106,12 +107,10 @@ inline void WeakSet::lastChanceToFinalize()
         block->lastChanceToFinalize();
 }
 
-inline size_t WeakSet::visit(HeapRootVisitor& visitor)
+inline void WeakSet::visit(SlotVisitor& visitor)
 {
-    size_t count = 0;
     for (WeakBlock* block = m_blocks.head(); block; block = block->next())
-        count += block->visit(visitor);
-    return count;
+        block->visit(visitor);
 }
 
 inline void WeakSet::reap()

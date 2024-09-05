@@ -36,9 +36,7 @@
 #include "AccessibilitySpinButton.h"
 #include "AccessibilityTable.h"
 #include "CachedImage.h"
-#include "Chrome.h"
 #include "ElementIterator.h"
-#include "EventNames.h"
 #include "FloatRect.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -95,7 +93,6 @@
 #include "RenderedPosition.h"
 #include "SVGDocument.h"
 #include "SVGImage.h"
-#include "SVGNames.h"
 #include "SVGSVGElement.h"
 #include "Text.h"
 #include "TextControlInnerElements.h"
@@ -1421,11 +1418,7 @@ double AccessibilityRenderObject::estimatedLoadingProgress() const
     if (isLoaded())
         return 1.0;
     
-    Page* page = m_renderer->document().page();
-    if (!page)
-        return 0;
-    
-    return page->progress().estimatedProgress();
+    return m_renderer->page().progress().estimatedProgress();
 }
     
 int AccessibilityRenderObject::layoutCount() const

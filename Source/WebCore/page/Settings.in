@@ -111,6 +111,7 @@ webGLEnabled initial=false
 webGLErrorsToConsoleEnabled initial=true
 openGLMultisamplingEnabled initial=true
 forceSoftwareWebGLRendering initial=false
+preferLowPowerWebGLRendering initial=true
 accelerated2dCanvasEnabled initial=false
 antialiased2dCanvasEnabled initial=true
 loadDeferringEnabled initial=true
@@ -257,7 +258,7 @@ attachmentElementEnabled initial=true, conditional=ATTACHMENT_ELEMENT
 
 newBlockInsideInlineModelEnabled initial=false, setNeedsStyleRecalcInAllFrames=1
 
-newCSSParserEnabled initial=true
+deferredCSSParserEnabled initial=false
 
 httpEquivEnabled initial=true
 
@@ -282,8 +283,6 @@ springTimingFunctionEnabled initial=false
 
 treatIPAddressAsDomain initial=false
 
-variationFontsEnabled initial=true, setNeedsStyleRecalcInAllFrames=1, conditional=VARIATION_FONTS
-
 # Runtime-enabled features
 visualViewportEnabled initial=false, setNeedsStyleRecalcInAllFrames=1
 
@@ -299,4 +298,4 @@ forcedPrefersReducedMotionAccessibilityValue type=ForcedAccessibilityValue, init
 largeImageAsyncDecodingEnabled initial=true
 animatedImageAsyncDecodingEnabled initial=true
 
-es6ModulesEnabled initial=false
+shouldSuppressKeyboardInputDuringProvisionalNavigation initial=false

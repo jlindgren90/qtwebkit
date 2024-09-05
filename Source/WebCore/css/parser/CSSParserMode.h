@@ -107,6 +107,8 @@ public:
     bool useLegacyBackgroundSizeShorthandBehavior { false };
     bool springTimingFunctionEnabled { false };
     
+    bool deferredCSSParserEnabled { false };
+
     URL completeURL(const String& url) const
     {
         if (url.isNull())
@@ -115,10 +117,6 @@ public:
             return URL(baseURL, url);
         return URL(baseURL, url, TextEncoding(charset));
     }
-
-#if ENABLE(VARIATION_FONTS)
-    bool variationFontsEnabled { false };
-#endif
 };
 
 bool operator==(const CSSParserContext&, const CSSParserContext&);
@@ -144,9 +142,7 @@ struct CSSParserContextHash {
             & key.enforcesCSSMIMETypeInNoQuirksMode         << 5
             & key.useLegacyBackgroundSizeShorthandBehavior  << 6
             & key.springTimingFunctionEnabled               << 7
-#if ENABLE(VARIATION_FONTS)
-            & key.variationFontsEnabled                     << 8
-#endif
+            & key.deferredCSSParserEnabled                  << 8
             & key.mode                                      << 9;
         hash ^= WTF::intHash(bits);
         return hash;

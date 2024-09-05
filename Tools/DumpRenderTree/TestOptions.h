@@ -24,13 +24,14 @@
  */
 
 #pragma once
+#include "DumpRenderTree.h"
 
 @class NSURL;
 
 struct TestOptions {
     bool enableIntersectionObserver { false };
-    bool enableModernMediaControls { false };
+    bool enableModernMediaControls { true };
     bool enablePointerLock { false };
 
-    TestOptions(NSURL *testURL);
+    TestOptions(NSURL*, const TestCommand&);
 };

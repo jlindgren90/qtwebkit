@@ -195,7 +195,6 @@ class PageClient;
 class RemoteLayerTreeScrollingPerformanceData;
 class RemoteLayerTreeTransaction;
 class RemoteScrollingCoordinatorProxy;
-class StringPairVector;
 class UserData;
 class ViewSnapshot;
 class VisitedLinkStore;
@@ -216,11 +215,12 @@ class WebProcessProxy;
 class WebUserContentControllerProxy;
 class WebWheelEvent;
 class WebsiteDataStore;
+class GamepadData;
+
 struct AttributedString;
 struct ColorSpaceData;
 struct EditingRange;
 struct EditorState;
-class GamepadData;
 struct InteractionInformationRequest;
 struct LoadParameters;
 struct PlatformPopupMenuData;
@@ -392,6 +392,9 @@ public:
     bool tryClose();
     bool isClosed() const { return m_isClosed; }
 
+    void setIsUsingHighPerformanceWebGL(bool value) { m_isUsingHighPerformanceWebGL = value; }
+    bool isUsingHighPerformanceWebGL() const { return m_isUsingHighPerformanceWebGL; }
+
     void closePage(bool stopResponsivenessTimer);
 
     void addPlatformLoadParameters(LoadParameters&);
@@ -481,6 +484,8 @@ public:
     double displayedContentScale() const { return m_lastVisibleContentRectUpdate.scale(); }
     const WebCore::FloatRect& exposedContentRect() const { return m_lastVisibleContentRectUpdate.exposedContentRect(); }
     const WebCore::FloatRect& unobscuredContentRect() const { return m_lastVisibleContentRectUpdate.unobscuredContentRect(); }
+    bool inStableState() const { return m_lastVisibleContentRectUpdate.inStableState(); }
+    const WebCore::FloatRect& unobscuredContentRectRespectingInputViewBounds() const { return m_lastVisibleContentRectUpdate.unobscuredContentRectRespectingInputViewBounds(); }
     // When visual viewports are enabled, this is the layout viewport rect.
     const WebCore::FloatRect& customFixedPositionRect() const { return m_lastVisibleContentRectUpdate.customFixedPositionRect(); }
 
@@ -488,7 +493,7 @@ public:
     void resendLastVisibleContentRects();
 
     enum class UnobscuredRectConstraint { ConstrainedToDocumentRect, Unconstrained };
-    WebCore::FloatRect computeCustomFixedPositionRect(const WebCore::FloatRect& unobscuredContentRect, const WebCore::FloatRect& currentCustomFixedPositionRect, double displayedContentScale, UnobscuredRectConstraint = UnobscuredRectConstraint::Unconstrained, bool visualViewportEnabled = false) const;
+    WebCore::FloatRect computeCustomFixedPositionRect(const WebCore::FloatRect& unobscuredContentRect, const WebCore::FloatRect& unobscuredContentRectRespectingInputViewBounds, const WebCore::FloatRect& currentCustomFixedPositionRect, double displayedContentScale, UnobscuredRectConstraint = UnobscuredRectConstraint::Unconstrained, bool visualViewportEnabled = false) const;
 
     void overflowScrollViewWillStartPanGesture();
     void overflowScrollViewDidScroll();
@@ -1114,6 +1119,9 @@ public:
 
     void handleAcceptedCandidate(WebCore::TextCheckingResult);
     void didHandleAcceptedCandidate();
+
+    void setHeaderBannerHeightForTesting(int);
+    void setFooterBannerHeightForTesting(int);
 #endif
 
 #if PLATFORM(EFL) && HAVE(ACCESSIBILITY) && defined(HAVE_ECORE_X)
@@ -1696,15 +1704,15 @@ private:
 #endif
 #if PLATFORM(IOS)
     VisibleContentRectUpdateInfo m_lastVisibleContentRectUpdate;
-    bool m_hasReceivedLayerTreeTransactionAfterDidCommitLoad;
-    uint64_t m_firstLayerTreeTransactionIdAfterDidCommitLoad;
-    int32_t m_deviceOrientation;
-    bool m_dynamicViewportSizeUpdateWaitingForTarget;
-    bool m_dynamicViewportSizeUpdateWaitingForLayerTreeCommit;
-    uint64_t m_dynamicViewportSizeUpdateLayerTreeTransactionID;
-    uint64_t m_layerTreeTransactionIdAtLastTouchStart;
+    bool m_hasReceivedLayerTreeTransactionAfterDidCommitLoad { true };
+    uint64_t m_firstLayerTreeTransactionIdAfterDidCommitLoad { 0 };
+    int32_t m_deviceOrientation { 0 };
+    bool m_dynamicViewportSizeUpdateWaitingForTarget { false };
+    bool m_dynamicViewportSizeUpdateWaitingForLayerTreeCommit { false };
+    uint64_t m_dynamicViewportSizeUpdateLayerTreeTransactionID { 0 };
+    uint64_t m_layerTreeTransactionIdAtLastTouchStart { 0 };
     uint64_t m_currentDynamicViewportSizeUpdateID { 0 };
-    bool m_hasNetworkRequestsOnSuspended;
+    bool m_hasNetworkRequestsOnSuspended { false };
     bool m_isKeyboardAnimatingIn { false };
     bool m_isScrollingOrZooming { false };
 #endif
@@ -1867,7 +1875,7 @@ private:
     RefPtr<WebColorPicker> m_colorPicker;
 #endif
 #if PLATFORM(COCOA)
-    std::unique_ptr<WebCore::ValidationBubble> m_validationBubble;
+    RefPtr<WebCore::ValidationBubble> m_validationBubble;
 #endif
 
     const uint64_t m_pageID;
@@ -2020,6 +2028,8 @@ private:
 #if ENABLE(DOWNLOAD_ATTRIBUTE)
     bool m_syncNavigationActionHasDownloadAttribute { false };
 #endif
+
+    bool m_isUsingHighPerformanceWebGL { false };
         
     WeakPtrFactory<WebPageProxy> m_weakPtrFactory;
 };

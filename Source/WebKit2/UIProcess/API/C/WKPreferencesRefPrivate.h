@@ -339,8 +339,8 @@ WK_EXPORT void WKPreferencesSetNewBlockInsideInlineModelEnabled(WKPreferencesRef
 WK_EXPORT bool WKPreferencesGetNewBlockInsideInlineModelEnabled(WKPreferencesRef);
 
 // Defaults to false.
-WK_EXPORT void WKPreferencesSetNewCSSParserEnabled(WKPreferencesRef, bool);
-WK_EXPORT bool WKPreferencesGetNewCSSParserEnabled(WKPreferencesRef);
+WK_EXPORT void WKPreferencesSetDeferredCSSParserEnabled(WKPreferencesRef, bool);
+WK_EXPORT bool WKPreferencesGetDeferredCSSParserEnabled(WKPreferencesRef);
 
 // Defaults to false.
 WK_EXPORT void WKPreferencesSetSubpixelCSSOMElementMetricsEnabled(WKPreferencesRef, bool);
@@ -445,16 +445,16 @@ WK_EXPORT void WKPreferencesSetAllowsPictureInPictureMediaPlayback(WKPreferences
 WK_EXPORT bool WKPreferencesGetAllowsPictureInPictureMediaPlayback(WKPreferencesRef);
 
 // Defaults to false
-WK_EXPORT void WKPreferencesSetES6ModulesEnabled(WKPreferencesRef, bool flag);
-WK_EXPORT bool WKPreferencesGetES6ModulesEnabled(WKPreferencesRef);
-
-// Defaults to false
 WK_EXPORT void WKPreferencesSetIntersectionObserverEnabled(WKPreferencesRef, bool flag);
 WK_EXPORT bool WKPreferencesGetIntersectionObserverEnabled(WKPreferencesRef);
 
 // Defaults to true
 WK_EXPORT void WKPreferencesSetSubtleCryptoEnabled(WKPreferencesRef, bool flag);
 WK_EXPORT bool WKPreferencesGetSubtleCryptoEnabled(WKPreferencesRef);
+
+// Defaults to false
+WK_EXPORT void WKPreferencesSetShouldSuppressKeyboardInputDuringProvisionalNavigation(WKPreferencesRef, bool flag);
+WK_EXPORT bool WKPreferencesGetShouldSuppressKeyboardInputDuringProvisionalNavigation(WKPreferencesRef);
 
 #ifdef __cplusplus
 }

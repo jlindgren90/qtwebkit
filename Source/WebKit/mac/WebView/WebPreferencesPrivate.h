@@ -248,6 +248,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)forceSoftwareWebGLRendering;
 - (void)setForceSoftwareWebGLRendering:(BOOL)forced;
 
+- (BOOL)preferLowPowerWebGLRendering;
+- (void)setPreferLowPowerWebGLRendering:(BOOL)preferLowPower;
+
 - (BOOL)accelerated2dCanvasEnabled;
 - (void)setAccelerated2dCanvasEnabled:(BOOL)enabled;
 
@@ -504,9 +507,6 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 
 - (void)setDownloadAttributeEnabled:(BOOL)flag;
 - (BOOL)downloadAttributeEnabled;
-
-- (void)setES6ModulesEnabled:(BOOL)flag;
-- (BOOL)es6ModulesEnabled;
 
 - (void)setCSSGridLayoutEnabled:(BOOL)flag;
 - (BOOL)isCSSGridLayoutEnabled;

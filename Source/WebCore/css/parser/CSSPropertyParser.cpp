@@ -80,7 +80,6 @@
 #include "SVGPathUtilities.h"
 #include "StylePropertyShorthand.h"
 #include "StylePropertyShorthandFunctions.h"
-#include "WebKitCSSTransformValue.h"
 #include <bitset>
 #include <memory>
 #include <wtf/text/StringBuilder.h>
@@ -949,14 +948,14 @@ static RefPtr<CSSValueList> consumeFontFamilyDescriptor(CSSParserTokenRange& ran
 
 static RefPtr<CSSValue> consumeFontSynthesis(CSSParserTokenRange& range)
 {
-    // none | [ weight || style ]
+    // none | [ weight || style || small-caps ]
     CSSValueID id = range.peek().id();
     if (id == CSSValueNone)
         return consumeIdent(range);
     
     RefPtr<CSSValueList> list = CSSValueList::createSpaceSeparated();
     while (true) {
-        auto ident = consumeIdent<CSSValueWeight, CSSValueStyle>(range);
+        auto ident = consumeIdent<CSSValueWeight, CSSValueStyle, CSSValueSmallCaps>(range);
         if (!ident)
             break;
         if (list->hasValue(ident.get()))
@@ -1712,7 +1711,7 @@ static RefPtr<CSSPrimitiveValue> consumeColumnRuleWidth(CSSParserTokenRange& ran
     return consumeLineWidth(range, cssParserMode, UnitlessQuirk::Forbid);
 }
 
-static bool consumeTranslate3d(CSSParserTokenRange& args, CSSParserMode cssParserMode, RefPtr<WebKitCSSTransformValue>& transformValue)
+static bool consumeTranslate3d(CSSParserTokenRange& args, CSSParserMode cssParserMode, RefPtr<CSSFunctionValue>& transformValue)
 {
     unsigned numberOfArguments = 2;
     RefPtr<CSSValue> parsedValue;
@@ -1731,7 +1730,7 @@ static bool consumeTranslate3d(CSSParserTokenRange& args, CSSParserMode cssParse
     return true;
 }
 
-static bool consumeNumbers(CSSParserTokenRange& args, RefPtr<WebKitCSSTransformValue>& transformValue, unsigned numberOfArguments)
+static bool consumeNumbers(CSSParserTokenRange& args, RefPtr<CSSFunctionValue>& transformValue, unsigned numberOfArguments)
 {
     do {
         RefPtr<CSSPrimitiveValue> parsedValue = consumeNumber(args, ValueRangeAll);
@@ -1744,7 +1743,7 @@ static bool consumeNumbers(CSSParserTokenRange& args, RefPtr<WebKitCSSTransformV
     return true;
 }
 
-static bool consumePerspective(CSSParserTokenRange& args, CSSParserMode cssParserMode, RefPtr<WebKitCSSTransformValue>& transformValue)
+static bool consumePerspective(CSSParserTokenRange& args, CSSParserMode cssParserMode, RefPtr<CSSFunctionValue>& transformValue)
 {
     RefPtr<CSSPrimitiveValue> parsedValue = consumeLength(args, cssParserMode, ValueRangeNonNegative);
     if (!parsedValue) {
@@ -1759,58 +1758,6 @@ static bool consumePerspective(CSSParserTokenRange& args, CSSParserMode cssParse
     return true;
 }
 
-// FIXME-NEWPARSER: This has no reason to exist once we eliminate WebkitCSSTransformValue in favor
-// of CSSFunctionValue.
-static WebKitCSSTransformValue::TransformOperationType transformOperationForCSSValueID(CSSValueID functionId)
-{
-    switch (functionId) {
-    case CSSValueRotate:
-        return WebKitCSSTransformValue::RotateTransformOperation;
-    case CSSValueRotatex:
-        return WebKitCSSTransformValue::RotateXTransformOperation;
-    case CSSValueRotatey:
-        return WebKitCSSTransformValue::RotateYTransformOperation;
-    case CSSValueRotatez:
-        return WebKitCSSTransformValue::RotateZTransformOperation;
-    case CSSValueSkewx:
-        return WebKitCSSTransformValue::SkewXTransformOperation;
-    case CSSValueSkewy:
-        return WebKitCSSTransformValue::SkewYTransformOperation;
-    case CSSValueSkew:
-        return WebKitCSSTransformValue::SkewTransformOperation;
-    case CSSValueScalex:
-        return WebKitCSSTransformValue::ScaleXTransformOperation;
-    case CSSValueScaley:
-        return WebKitCSSTransformValue::ScaleYTransformOperation;
-    case CSSValueScalez:
-        return WebKitCSSTransformValue::ScaleZTransformOperation;
-    case CSSValueScale:
-        return WebKitCSSTransformValue::ScaleTransformOperation;
-    case CSSValuePerspective:
-        return WebKitCSSTransformValue::PerspectiveTransformOperation;
-    case CSSValueTranslatex:
-        return WebKitCSSTransformValue::TranslateXTransformOperation;
-    case CSSValueTranslatey:
-        return WebKitCSSTransformValue::TranslateYTransformOperation;
-    case CSSValueTranslate:
-        return WebKitCSSTransformValue::TranslateTransformOperation;
-    case CSSValueTranslatez:
-        return WebKitCSSTransformValue::TranslateZTransformOperation;
-    case CSSValueMatrix:
-        return WebKitCSSTransformValue::MatrixTransformOperation;
-    case CSSValueMatrix3d:
-        return WebKitCSSTransformValue::Matrix3DTransformOperation;
-    case CSSValueScale3d:
-        return WebKitCSSTransformValue::Scale3DTransformOperation;
-    case CSSValueRotate3d:
-        return WebKitCSSTransformValue::Rotate3DTransformOperation;
-    case CSSValueTranslate3d:
-        return WebKitCSSTransformValue::Translate3DTransformOperation;
-    default:
-        return WebKitCSSTransformValue::UnknownTransformOperation;
-    }
-}
-
 static RefPtr<CSSValue> consumeTransformValue(CSSParserTokenRange& range, CSSParserMode cssParserMode)
 {
     CSSValueID functionId = range.peek().functionId();
@@ -1820,9 +1767,7 @@ static RefPtr<CSSValue> consumeTransformValue(CSSParserTokenRange& range, CSSPar
     if (args.atEnd())
         return nullptr;
     
-    // FIXME-NEWPARSER: Do we really need WebkitCSSTransformValue? A CSSFunctionValue is good
-    // enough and has the CSSValueID as the operation type. Blink has eliminated it.
-    RefPtr<WebKitCSSTransformValue> transformValue = WebKitCSSTransformValue::create(transformOperationForCSSValueID(functionId));
+    RefPtr<CSSFunctionValue> transformValue = CSSFunctionValue::create(functionId);
     RefPtr<CSSValue> parsedValue;
     switch (functionId) {
     case CSSValueRotate:
@@ -2231,66 +2176,36 @@ static RefPtr<CSSPrimitiveValue> consumePerspective(CSSParserTokenRange& range, 
 
 #if ENABLE(CSS_SCROLL_SNAP)
 
-static RefPtr<CSSValueList> consumeSnapPointCoordinateList(CSSParserTokenRange& range, CSSParserMode cssParserMode)
+static RefPtr<CSSValueList> consumeScrollSnapAlign(CSSParserTokenRange& range)
 {
-    RefPtr<CSSValueList> positions = CSSValueList::createSpaceSeparated();
-    do {
-        
-        RefPtr<CSSPrimitiveValue> first = consumePositionX(range, cssParserMode);
-        if (!first || range.atEnd())
-            return nullptr;
-        RefPtr<CSSPrimitiveValue> second = consumePositionY(range, cssParserMode);
-        if (!second)
-            return nullptr;
-        RefPtr<CSSValue> position = createPrimitiveValuePair(first.releaseNonNull(), second.releaseNonNull(), Pair::IdenticalValueEncoding::DoNotCoalesce);
-        positions->append(position.releaseNonNull());
-    } while (!range.atEnd());
-    return positions;
+    RefPtr<CSSValueList> alignmentValue = CSSValueList::createSpaceSeparated();
+    if (RefPtr<CSSPrimitiveValue> firstValue = consumeIdent<CSSValueNone, CSSValueStart, CSSValueCenter, CSSValueEnd>(range)) {
+        alignmentValue->append(firstValue.releaseNonNull());
+        if (auto secondValue = consumeIdent<CSSValueNone, CSSValueStart, CSSValueCenter, CSSValueEnd>(range))
+            alignmentValue->append(secondValue.releaseNonNull());
+    }
+    return alignmentValue->length() ? alignmentValue : nullptr;
 }
 
-static RefPtr<CSSValue> consumeScrollSnapCoordinate(CSSParserTokenRange& range, CSSParserMode cssParserMode)
+static RefPtr<CSSValueList> consumeScrollSnapType(CSSParserTokenRange& range)
 {
-    if (range.peek().id() == CSSValueNone)
-        return consumeIdent(range);
-    return consumeSnapPointCoordinateList(range, cssParserMode);
-}
+    RefPtr<CSSValueList> typeValue = CSSValueList::createSpaceSeparated();
+    RefPtr<CSSPrimitiveValue> secondValue;
 
-static RefPtr<CSSValue> consumeScrollSnapDestination(CSSParserTokenRange& range, CSSParserMode cssParserMode)
-{
-    RefPtr<CSSPrimitiveValue> first = consumePositionX(range, cssParserMode);
-    if (!first || range.atEnd())
+    auto firstValue = consumeIdent<CSSValueX, CSSValueY, CSSValueBlock, CSSValueInline, CSSValueBoth>(range);
+    if (firstValue)
+        secondValue = consumeIdent<CSSValueProximity, CSSValueMandatory>(range);
+    else
+        firstValue = consumeIdent<CSSValueNone, CSSValueProximity, CSSValueMandatory>(range);
+
+    if (!firstValue)
         return nullptr;
-    RefPtr<CSSPrimitiveValue> second = consumePositionY(range, cssParserMode);
-    if (!second)
-        return nullptr;
-    return createPrimitiveValuePair(first.releaseNonNull(), second.releaseNonNull(), Pair::IdenticalValueEncoding::DoNotCoalesce);
-}
 
-static RefPtr<CSSValue> consumeScrollSnapPoints(CSSParserTokenRange& range, CSSParserMode cssParserMode)
-{
-    if (range.peek().id() == CSSValueNone || range.peek().id() == CSSValueElements)
-        return consumeIdent(range);
-    
-    RefPtr<CSSValueList> points = CSSValueList::createSpaceSeparated();
-    do {
-        if (range.peek().functionId() == CSSValueRepeat) {
-            CSSParserTokenRange args = consumeFunction(range);
-            RefPtr<CSSPrimitiveValue> parsedValue = consumeLengthOrPercent(args, cssParserMode, ValueRangeNonNegative);
-            if (args.atEnd() && parsedValue && (parsedValue->isCalculated() || parsedValue->doubleValue() > 0)) {
-                Ref<CSSFunctionValue> result = CSSFunctionValue::create(CSSValueRepeat);
-                result->append(parsedValue.releaseNonNull());
-                points->append(WTFMove(result));
-            }
-        } else {
-            RefPtr<CSSValue> length = consumeLengthOrPercent(range, cssParserMode, ValueRangeAll, UnitlessQuirk::Forbid);
-            if (!length)
-                return nullptr;
-            points->append(length.releaseNonNull());
-        }
-    } while (!range.atEnd());
-    
-    
-    return points;
+    typeValue->append(firstValue.releaseNonNull());
+    if (secondValue)
+        typeValue->append(secondValue.releaseNonNull());
+
+    return typeValue;
 }
 
 #endif
@@ -3096,11 +3011,11 @@ static bool isGridTrackFixedSized(const CSSValue& value)
 
     ASSERT(value.isFunctionValue());
     auto& function = downcast<CSSFunctionValue>(value);
-    if (function.name() == CSSValueFitContent || function.arguments() == nullptr || function.arguments()->length() < 2)
+    if (function.name() == CSSValueFitContent || function.length() < 2)
         return false;
 
-    CSSValue* minPrimitiveValue = downcast<CSSPrimitiveValue>(function.arguments()->item(0));
-    CSSValue* maxPrimitiveValue = downcast<CSSPrimitiveValue>(function.arguments()->item(1));
+    const CSSValue* minPrimitiveValue = downcast<CSSPrimitiveValue>(function.item(0));
+    const CSSValue* maxPrimitiveValue = downcast<CSSPrimitiveValue>(function.item(1));
     return isGridTrackFixedSized(*minPrimitiveValue) || isGridTrackFixedSized(*maxPrimitiveValue);
 }
 
@@ -3741,9 +3656,7 @@ RefPtr<CSSValue> CSSPropertyParser::parseSingleValue(CSSPropertyID property, CSS
         return consumeFontSynthesis(m_range);
 #if ENABLE(VARIATION_FONTS)
     case CSSPropertyFontVariationSettings:
-        if (m_context.variationFontsEnabled)
-            return consumeFontVariationSettings(m_range);
-        return nullptr;
+        return consumeFontVariationSettings(m_range);
 #endif
     case CSSPropertyLetterSpacing:
         return consumeLetterSpacing(m_range, m_context.mode);
@@ -3817,6 +3730,22 @@ RefPtr<CSSValue> CSSPropertyParser::parseSingleValue(CSSPropertyID property, CSS
     case CSSPropertyWebkitPaddingBefore:
     case CSSPropertyWebkitPaddingAfter:
         return consumeLengthOrPercent(m_range, m_context.mode, ValueRangeNonNegative, UnitlessQuirk::Forbid);
+#if ENABLE(CSS_SCROLL_SNAP)
+    case CSSPropertyScrollSnapMarginBottom:
+    case CSSPropertyScrollSnapMarginLeft:
+    case CSSPropertyScrollSnapMarginRight:
+    case CSSPropertyScrollSnapMarginTop:
+        return consumeLength(m_range, m_context.mode, ValueRangeAll);
+    case CSSPropertyScrollPaddingBottom:
+    case CSSPropertyScrollPaddingLeft:
+    case CSSPropertyScrollPaddingRight:
+    case CSSPropertyScrollPaddingTop:
+        return consumeLengthOrPercent(m_range, m_context.mode, ValueRangeAll);
+    case CSSPropertyScrollSnapAlign:
+        return consumeScrollSnapAlign(m_range);
+    case CSSPropertyScrollSnapType:
+        return consumeScrollSnapType(m_range);
+#endif
     case CSSPropertyClip:
         return consumeClip(m_range, m_context.mode);
 #if ENABLE(TOUCH_EVENTS)
@@ -4013,15 +3942,6 @@ RefPtr<CSSValue> CSSPropertyParser::parseSingleValue(CSSPropertyID property, CSS
         return consumeImageOrNone(m_range, m_context);
     case CSSPropertyPerspective:
         return consumePerspective(m_range, m_context.mode);
-#if ENABLE(CSS_SCROLL_SNAP)
-    case CSSPropertyWebkitScrollSnapCoordinate:
-        return consumeScrollSnapCoordinate(m_range, m_context.mode);
-    case CSSPropertyWebkitScrollSnapDestination:
-        return consumeScrollSnapDestination(m_range, m_context.mode);
-    case CSSPropertyWebkitScrollSnapPointsX:
-    case CSSPropertyWebkitScrollSnapPointsY:
-        return consumeScrollSnapPoints(m_range, m_context.mode);
-#endif
     case CSSPropertyBorderTopRightRadius:
     case CSSPropertyBorderTopLeftRadius:
     case CSSPropertyBorderBottomLeftRadius:
@@ -5406,6 +5326,12 @@ bool CSSPropertyParser::parseShorthand(CSSPropertyID property, bool important)
         return consume4Values(marginShorthand(), important);
     case CSSPropertyPadding:
         return consume4Values(paddingShorthand(), important);
+#if ENABLE(CSS_SCROLL_SNAP)
+    case CSSPropertyScrollSnapMargin:
+        return consume4Values(scrollSnapMarginShorthand(), important);
+    case CSSPropertyScrollPadding:
+        return consume4Values(scrollPaddingShorthand(), important);
+#endif
     case CSSPropertyWebkitTextEmphasis:
         return consumeShorthandGreedily(webkitTextEmphasisShorthand(), important);
     case CSSPropertyOutline:

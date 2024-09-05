@@ -61,13 +61,15 @@
 #include "CSSUnsetValue.h"
 #include "CSSValueList.h"
 #include "CSSVariableReferenceValue.h"
-#include "WebKitCSSTransformValue.h"
 
 #if ENABLE(CSS_GRID_LAYOUT)
 #include "CSSGridAutoRepeatValue.h"
 #include "CSSGridLineNamesValue.h"
 #include "CSSGridTemplateAreasValue.h"
 #endif
+
+#include "DeprecatedCSSOMPrimitiveValue.h"
+#include "DeprecatedCSSOMValueList.h"
 
 namespace WebCore {
 
@@ -76,26 +78,6 @@ struct SameSizeAsCSSValue : public RefCounted<SameSizeAsCSSValue> {
 };
 
 COMPILE_ASSERT(sizeof(CSSValue) == sizeof(SameSizeAsCSSValue), CSS_value_should_stay_small);
-
-class TextCloneCSSValue final : public CSSValue {
-public:
-    static Ref<TextCloneCSSValue> create(ClassType classType, const String& text)
-    {
-        return adoptRef(*new TextCloneCSSValue(classType, text));
-    }
-
-    String cssText() const { return m_cssText; }
-
-private:
-    TextCloneCSSValue(ClassType classType, const String& text) 
-        : CSSValue(classType, /*isCSSOMSafe*/ true)
-        , m_cssText(text)
-    {
-        m_isTextClone = true;
-    }
-
-    String m_cssText;
-};
 
 bool CSSValue::isImplicitInitialValue() const
 {
@@ -121,9 +103,6 @@ CSSValue::Type CSSValue::cssValueType() const
 
 bool CSSValue::traverseSubresources(const std::function<bool (const CachedResource&)>& handler) const
 {
-    // This should get called for internal instances only.
-    ASSERT(!isCSSOMSafe());
-
     if (is<CSSValueList>(*this))
         return downcast<CSSValueList>(*this).traverseSubresources(handler);
     if (is<CSSFontFaceSrcValue>(*this))
@@ -147,11 +126,6 @@ inline static bool compareCSSValues(const CSSValue& first, const CSSValue& secon
 
 bool CSSValue::equals(const CSSValue& other) const
 {
-    if (m_isTextClone) {
-        ASSERT(isCSSOMSafe());
-        return static_cast<const TextCloneCSSValue*>(this)->cssText() == other.cssText();
-    }
-
     if (m_classType == other.m_classType) {
         switch (m_classType) {
         case AspectRatioClass:
@@ -218,8 +192,6 @@ bool CSSValue::equals(const CSSValue& other) const
             return compareCSSValues<CSSUnicodeRangeValue>(*this, other);
         case ValueListClass:
             return compareCSSValues<CSSValueList>(*this, other);
-        case WebKitCSSTransformClass:
-            return compareCSSValues<WebKitCSSTransformValue>(*this, other);
         case LineBoxContainClass:
             return compareCSSValues<CSSLineBoxContainValue>(*this, other);
         case CalculationClass:
@@ -251,12 +223,6 @@ bool CSSValue::equals(const CSSValue& other) const
 
 String CSSValue::cssText() const
 {
-    if (m_isTextClone) {
-         ASSERT(isCSSOMSafe());
-        return static_cast<const TextCloneCSSValue*>(this)->cssText();
-    }
-    ASSERT(!isCSSOMSafe() || isSubtypeExposedToCSSOM());
-
     switch (classType()) {
     case AspectRatioClass:
         return downcast<CSSAspectRatioValue>(*this).customCSSText();
@@ -322,8 +288,6 @@ String CSSValue::cssText() const
         return downcast<CSSUnicodeRangeValue>(*this).customCSSText();
     case ValueListClass:
         return downcast<CSSValueList>(*this).customCSSText();
-    case WebKitCSSTransformClass:
-        return downcast<WebKitCSSTransformValue>(*this).customCSSText();
     case LineBoxContainClass:
         return downcast<CSSLineBoxContainValue>(*this).customCSSText();
     case CalculationClass:
@@ -352,13 +316,6 @@ String CSSValue::cssText() const
 
 void CSSValue::destroy()
 {
-    if (m_isTextClone) {
-        ASSERT(isCSSOMSafe());
-        delete static_cast<TextCloneCSSValue*>(this);
-        return;
-    }
-    ASSERT(!isCSSOMSafe() || isSubtypeExposedToCSSOM());
-
     switch (classType()) {
     case AspectRatioClass:
         delete downcast<CSSAspectRatioValue>(this);
@@ -451,9 +408,6 @@ void CSSValue::destroy()
     case ValueListClass:
         delete downcast<CSSValueList>(this);
         return;
-    case WebKitCSSTransformClass:
-        delete downcast<WebKitCSSTransformValue>(this);
-        return;
     case LineBoxContainClass:
         delete downcast<CSSLineBoxContainValue>(this);
         return;
@@ -490,24 +444,15 @@ void CSSValue::destroy()
     ASSERT_NOT_REACHED();
 }
 
-RefPtr<CSSValue> CSSValue::cloneForCSSOM() const
+Ref<DeprecatedCSSOMValue> CSSValue::createDeprecatedCSSOMWrapper() const
 {
-    switch (classType()) {
-    case PrimitiveClass:
-        return downcast<CSSPrimitiveValue>(*this).cloneForCSSOM();
-    case ValueListClass:
-        return downcast<CSSValueList>(*this).cloneForCSSOM();
-    case ImageClass:
-    case CursorImageClass:
-        return downcast<CSSImageValue>(*this).cloneForCSSOM();
-    case WebKitCSSTransformClass:
-        return downcast<WebKitCSSTransformValue>(*this).cloneForCSSOM();
-    case ImageSetClass:
-        return downcast<CSSImageSetValue>(*this).cloneForCSSOM();
-    default:
-        ASSERT(!isSubtypeExposedToCSSOM());
-        return TextCloneCSSValue::create(classType(), cssText());
-    }
+    if (isImageValue() || isCursorImageValue())
+        return downcast<CSSImageValue>(this)->createDeprecatedCSSOMWrapper();
+    if (isPrimitiveValue())
+        return DeprecatedCSSOMPrimitiveValue::create(downcast<CSSPrimitiveValue>(*this));
+    if (isValueList())
+        return DeprecatedCSSOMValueList::create(downcast<CSSValueList>(*this));
+    return DeprecatedCSSOMComplexValue::create(*this);
 }
 
 bool CSSValue::treatAsInheritedValue(CSSPropertyID propertyID) const

@@ -270,7 +270,7 @@ public:
 private:
     DeferredStyleProperties(const CSSParserTokenRange&, CSSDeferredParser&);
     
-    CSSParserTokenRange m_range;
+    Vector<CSSParserToken> m_tokens;
     Ref<CSSDeferredParser> m_parser;
 };
 

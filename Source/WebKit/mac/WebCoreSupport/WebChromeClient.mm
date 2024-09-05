@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008, 2009, 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2008, 2010 Nokia Corporation and/or its subsidiary(-ies)
  *
  * Redistribution and use in source and binary forms, with or without
@@ -741,10 +741,10 @@ void WebChromeClient::requestPointerUnlock()
 }
 #endif
 
-void WebChromeClient::runOpenPanel(Frame*, PassRefPtr<FileChooser> chooser)
+void WebChromeClient::runOpenPanel(Frame&, FileChooser& chooser)
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
-    BOOL allowMultipleFiles = chooser->settings().allowsMultipleFiles;
+    BOOL allowMultipleFiles = chooser.settings().allowsMultipleFiles;
     WebOpenPanelResultListener *listener = [[WebOpenPanelResultListener alloc] initWithChooser:chooser];
     id delegate = [m_webView UIDelegate];
     if ([delegate respondsToSelector:@selector(webView:runOpenPanelForFileButtonWithResultListener:allowMultipleFiles:)])
@@ -757,9 +757,9 @@ void WebChromeClient::runOpenPanel(Frame*, PassRefPtr<FileChooser> chooser)
     END_BLOCK_OBJC_EXCEPTIONS;
 }
 
-void WebChromeClient::loadIconForFiles(const Vector<String>& filenames, FileIconLoader* iconLoader)
+void WebChromeClient::loadIconForFiles(const Vector<String>& filenames, FileIconLoader& iconLoader)
 {
-    iconLoader->notifyFinished(Icon::createIconForFiles(filenames));
+    iconLoader.iconLoaded(Icon::createIconForFiles(filenames));
 }
 
 #if !PLATFORM(IOS)

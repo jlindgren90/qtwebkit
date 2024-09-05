@@ -57,6 +57,7 @@ const GlobalObjectMethodTable JSWorkerGlobalScopeBase::s_globalObjectMethodTable
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     &defaultLanguage
 };
 
@@ -79,7 +80,7 @@ void JSWorkerGlobalScopeBase::visitChildren(JSCell* cell, SlotVisitor& visitor)
     JSWorkerGlobalScopeBase* thisObject = jsCast<JSWorkerGlobalScopeBase*>(cell);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
     Base::visitChildren(thisObject, visitor);
-    visitor.append(&thisObject->m_proxy);
+    visitor.append(thisObject->m_proxy);
 }
 
 void JSWorkerGlobalScopeBase::destroy(JSCell* cell)

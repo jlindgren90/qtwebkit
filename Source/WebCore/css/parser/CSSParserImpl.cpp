@@ -75,15 +75,9 @@ CSSParserImpl::CSSParserImpl(const CSSParserContext& context, const String& stri
     , m_styleSheet(styleSheet)
     , m_observerWrapper(wrapper)
 {
-    if (!wrapper && styleSheet && ruleParsing == CSSParser::RuleParsing::Deferred)
-        m_deferredParser = CSSDeferredParser::create(string, context, *styleSheet);
-    else
-        m_tokenizer = wrapper ? std::make_unique<CSSTokenizer>(string, *wrapper) : std::make_unique<CSSTokenizer>(string);
-}
-
-const CSSTokenizer& CSSParserImpl::tokenizer() const
-{
-    return m_deferredParser ? m_deferredParser->tokenizer() : *m_tokenizer;
+    m_tokenizer = wrapper ? std::make_unique<CSSTokenizer>(string, *wrapper) : std::make_unique<CSSTokenizer>(string);
+    if (context.deferredCSSParserEnabled && !wrapper && styleSheet && ruleParsing == CSSParser::RuleParsing::Deferred)
+        m_deferredParser = CSSDeferredParser::create(context, string, *styleSheet);
 }
 
 CSSParser::ParseResult CSSParserImpl::parseValue(MutableStyleProperties* declaration, CSSPropertyID propertyID, const String& string, bool important, const CSSParserContext& context)
@@ -94,7 +88,7 @@ CSSParser::ParseResult CSSParserImpl::parseValue(MutableStyleProperties* declara
     if (declaration->cssParserMode() == CSSViewportRuleMode)
         ruleType = StyleRule::Viewport;
 #endif
-    parser.consumeDeclarationValue(parser.tokenizer().tokenRange(), propertyID, important, ruleType);
+    parser.consumeDeclarationValue(parser.tokenizer()->tokenRange(), propertyID, important, ruleType);
     if (parser.m_parsedProperties.isEmpty())
         return CSSParser::ParseResult::Error;
     return declaration->addParsedProperties(parser.m_parsedProperties) ? CSSParser::ParseResult::Changed : CSSParser::ParseResult::Unchanged;
@@ -103,7 +97,7 @@ CSSParser::ParseResult CSSParserImpl::parseValue(MutableStyleProperties* declara
 CSSParser::ParseResult CSSParserImpl::parseCustomPropertyValue(MutableStyleProperties* declaration, const AtomicString& propertyName, const String& string, bool important, const CSSParserContext& context)
 {
     CSSParserImpl parser(context, string);
-    parser.consumeCustomPropertyValue(parser.tokenizer().tokenRange(), propertyName, important);
+    parser.consumeCustomPropertyValue(parser.tokenizer()->tokenRange(), propertyName, important);
     if (parser.m_parsedProperties.isEmpty())
         return CSSParser::ParseResult::Error;
     return declaration->addParsedProperties(parser.m_parsedProperties) ? CSSParser::ParseResult::Changed : CSSParser::ParseResult::Unchanged;
@@ -166,7 +160,7 @@ Ref<ImmutableStyleProperties> CSSParserImpl::parseInlineStyleDeclaration(const S
     context.mode = strictToCSSParserMode(element->isHTMLElement() && !element->document().inQuirksMode());
 
     CSSParserImpl parser(context, string);
-    parser.consumeDeclarationList(parser.tokenizer().tokenRange(), StyleRule::Style);
+    parser.consumeDeclarationList(parser.tokenizer()->tokenRange(), StyleRule::Style);
     return createStyleProperties(parser.m_parsedProperties, context.mode);
 }
 
@@ -197,7 +191,7 @@ void CSSParserImpl::parseDeferredKeyframeList(CSSParserTokenRange tokenRange, CS
         return;
     CSSParserImpl parser(deferredParser);
     parser.consumeRuleList(tokenRange, KeyframesRuleList, [&keyframeRule](const RefPtr<StyleRuleBase>& keyframe) {
-        keyframeRule.parserAppendKeyframe(downcast<const StyleKeyframe>(keyframe.get()));
+        keyframeRule.parserAppendKeyframe(downcast<const StyleRuleKeyframe>(keyframe.get()));
     });
 }
 
@@ -209,7 +203,7 @@ bool CSSParserImpl::parseDeclarationList(MutableStyleProperties* declaration, co
     if (declaration->cssParserMode() == CSSViewportRuleMode)
         ruleType = StyleRule::Viewport;
 #endif
-    parser.consumeDeclarationList(parser.tokenizer().tokenRange(), ruleType);
+    parser.consumeDeclarationList(parser.tokenizer()->tokenRange(), ruleType);
     if (parser.m_parsedProperties.isEmpty())
         return false;
 
@@ -227,7 +221,7 @@ bool CSSParserImpl::parseDeclarationList(MutableStyleProperties* declaration, co
 RefPtr<StyleRuleBase> CSSParserImpl::parseRule(const String& string, const CSSParserContext& context, StyleSheetContents* styleSheet, AllowedRulesType allowedRules)
 {
     CSSParserImpl parser(context, string, styleSheet);
-    CSSParserTokenRange range = parser.tokenizer().tokenRange();
+    CSSParserTokenRange range = parser.tokenizer()->tokenRange();
     range.consumeWhitespace();
     if (range.atEnd())
         return nullptr; // Parse error, empty rule
@@ -247,12 +241,20 @@ RefPtr<StyleRuleBase> CSSParserImpl::parseRule(const String& string, const CSSPa
 void CSSParserImpl::parseStyleSheet(const String& string, const CSSParserContext& context, StyleSheetContents* styleSheet, CSSParser::RuleParsing ruleParsing)
 {
     CSSParserImpl parser(context, string, styleSheet, nullptr, ruleParsing);
-    bool firstRuleValid = parser.consumeRuleList(parser.tokenizer().tokenRange(), TopLevelRuleList, [&styleSheet](RefPtr<StyleRuleBase> rule) {
+    bool firstRuleValid = parser.consumeRuleList(parser.tokenizer()->tokenRange(), TopLevelRuleList, [&styleSheet](RefPtr<StyleRuleBase> rule) {
         if (rule->isCharsetRule())
             return;
         styleSheet->parserAppendRule(rule.releaseNonNull());
     });
     styleSheet->setHasSyntacticallyValidCSSHeader(firstRuleValid);
+    parser.adoptTokenizerEscapedStrings();
+}
+
+void CSSParserImpl::adoptTokenizerEscapedStrings()
+{
+    if (!m_deferredParser || !m_tokenizer)
+        return;
+    m_deferredParser->adoptTokenizerEscapedStrings(m_tokenizer->escapedStringsForAdoption());
 }
 
 CSSSelectorList CSSParserImpl::parsePageSelector(CSSParserTokenRange range, StyleSheetContents* styleSheet)
@@ -317,14 +319,14 @@ void CSSParserImpl::parseDeclarationListForInspector(const String& declaration, 
     CSSParserImpl parser(context, declaration, nullptr, &wrapper);
     observer.startRuleHeader(StyleRule::Style, 0);
     observer.endRuleHeader(1);
-    parser.consumeDeclarationList(parser.tokenizer().tokenRange(), StyleRule::Style);
+    parser.consumeDeclarationList(parser.tokenizer()->tokenRange(), StyleRule::Style);
 }
 
 void CSSParserImpl::parseStyleSheetForInspector(const String& string, const CSSParserContext& context, StyleSheetContents* styleSheet, CSSParserObserver& observer)
 {
     CSSParserObserverWrapper wrapper(observer);
     CSSParserImpl parser(context, string, styleSheet, &wrapper);
-    bool firstRuleValid = parser.consumeRuleList(parser.tokenizer().tokenRange(), TopLevelRuleList, [&styleSheet](RefPtr<StyleRuleBase> rule) {
+    bool firstRuleValid = parser.consumeRuleList(parser.tokenizer()->tokenRange(), TopLevelRuleList, [&styleSheet](RefPtr<StyleRuleBase> rule) {
         if (rule->isCharsetRule())
             return;
         styleSheet->parserAppendRule(rule.releaseNonNull());
@@ -519,7 +521,7 @@ RefPtr<StyleRuleImport> CSSParserImpl::consumeImportRule(CSSParserTokenRange pre
         m_observerWrapper->observer().endRuleBody(endOffset);
     }
 
-    return StyleRuleImport::create(uri, MediaQueryParser::parseMediaQuerySet(prelude));
+    return StyleRuleImport::create(uri, MediaQueryParser::parseMediaQuerySet(prelude).releaseNonNull());
 }
 
 RefPtr<StyleRuleNamespace> CSSParserImpl::consumeNamespaceRule(CSSParserTokenRange prelude)
@@ -538,7 +540,7 @@ RefPtr<StyleRuleNamespace> CSSParserImpl::consumeNamespaceRule(CSSParserTokenRan
 RefPtr<StyleRuleMedia> CSSParserImpl::consumeMediaRule(CSSParserTokenRange prelude, CSSParserTokenRange block)
 {
     if (m_deferredParser)
-        return StyleRuleMedia::create(MediaQueryParser::parseMediaQuerySet(prelude), std::make_unique<DeferredStyleGroupRuleList>(block, *m_deferredParser));
+        return StyleRuleMedia::create(MediaQueryParser::parseMediaQuerySet(prelude).releaseNonNull(),  std::make_unique<DeferredStyleGroupRuleList>(block, *m_deferredParser));
 
     Vector<RefPtr<StyleRuleBase>> rules;
 
@@ -555,7 +557,7 @@ RefPtr<StyleRuleMedia> CSSParserImpl::consumeMediaRule(CSSParserTokenRange prelu
     if (m_observerWrapper)
         m_observerWrapper->observer().endRuleBody(m_observerWrapper->endOffset(block));
 
-    return StyleRuleMedia::create(MediaQueryParser::parseMediaQuerySet(prelude), rules);
+    return StyleRuleMedia::create(MediaQueryParser::parseMediaQuerySet(prelude).releaseNonNull(), rules);
 }
 
 RefPtr<StyleRuleSupports> CSSParserImpl::consumeSupportsRule(CSSParserTokenRange prelude, CSSParserTokenRange block)
@@ -647,7 +649,7 @@ RefPtr<StyleRuleKeyframes> CSSParserImpl::consumeKeyframesRule(bool webkitPrefix
 
     RefPtr<StyleRuleKeyframes> keyframeRule = StyleRuleKeyframes::create(name);
     consumeRuleList(block, KeyframesRuleList, [keyframeRule](const RefPtr<StyleRuleBase>& keyframe) {
-        keyframeRule->parserAppendKeyframe(downcast<const StyleKeyframe>(keyframe.get()));
+        keyframeRule->parserAppendKeyframe(downcast<const StyleRuleKeyframe>(keyframe.get()));
     });
 
     // FIXME-NEWPARSER: Find out why this is done. Behavior difference when prefixed?
@@ -712,7 +714,7 @@ RefPtr<StyleRuleRegion> CSSParserImpl::consumeRegionRule(CSSParserTokenRange pre
 }
 */
     
-RefPtr<StyleKeyframe> CSSParserImpl::consumeKeyframeStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block)
+RefPtr<StyleRuleKeyframe> CSSParserImpl::consumeKeyframeStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block)
 {
     std::unique_ptr<Vector<double>> keyList = consumeKeyframeKeyList(prelude);
     if (!keyList)
@@ -724,7 +726,7 @@ RefPtr<StyleKeyframe> CSSParserImpl::consumeKeyframeStyleRule(CSSParserTokenRang
     }
 
     consumeDeclarationList(block, StyleRule::Keyframe);
-    return StyleKeyframe::create(WTFMove(keyList), createStyleProperties(m_parsedProperties, m_context.mode));
+    return StyleRuleKeyframe::create(WTFMove(keyList), createStyleProperties(m_parsedProperties, m_context.mode));
 }
 
 static void observeSelectors(CSSParserObserverWrapper& wrapper, CSSParserTokenRange selectors)

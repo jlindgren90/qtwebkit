@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2000 Harri Porten (porten@kde.org)
- *  Copyright (C) 2004-2008, 2012-2013, 2015-2016 Apple Inc. All rights reserved.
+ *  Copyright (C) 2004-2017 Apple Inc. All rights reserved.
  *  Copyright (C) 2006 Bjoern Graf (bjoern.graf@gmail.com)
  *
  *  This library is free software; you can redistribute it and/or
@@ -25,6 +25,7 @@
 #include "ArrayBuffer.h"
 #include "ArrayPrototype.h"
 #include "BuiltinExecutableCreator.h"
+#include "BuiltinNames.h"
 #include "ButterflyInlines.h"
 #include "CodeBlock.h"
 #include "Completion.h"
@@ -48,9 +49,11 @@
 #include "JSInternalPromise.h"
 #include "JSInternalPromiseDeferred.h"
 #include "JSLock.h"
+#include "JSModuleLoader.h"
 #include "JSNativeStdFunction.h"
 #include "JSONObject.h"
 #include "JSProxy.h"
+#include "JSSourceCode.h"
 #include "JSString.h"
 #include "JSTypedArrays.h"
 #include "JSWebAssemblyCallee.h"
@@ -169,7 +172,6 @@ public:
     }
 
     typedef JSNonFinalObject Base;
-    static const bool needsDestruction = false;
 
     Root* root() const { return m_root.get(); }
     void setRoot(VM& vm, Root* root) { m_root.set(vm, this, root); }
@@ -189,7 +191,7 @@ public:
         Element* thisObject = jsCast<Element*>(cell);
         ASSERT_GC_OBJECT_INHERITS(thisObject, info());
         Base::visitChildren(thisObject, visitor);
-        visitor.append(&thisObject->m_root);
+        visitor.append(thisObject->m_root);
     }
 
     static ElementHandleOwner* handleOwner();
@@ -270,7 +272,6 @@ public:
     typedef JSDestructibleObject Base;
 
     DECLARE_INFO;
-    static const bool needsDestruction = true;
 
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
     {
@@ -336,7 +337,7 @@ public:
     {
         Base::visitChildren(cell, visitor);
         ImpureGetter* thisObject = jsCast<ImpureGetter*>(cell);
-        visitor.append(&thisObject->m_delegate);
+        visitor.append(thisObject->m_delegate);
     }
 
     void setDelegate(VM& vm, JSObject* delegate)
@@ -527,7 +528,7 @@ public:
         SimpleObject* thisObject = jsCast<SimpleObject*>(cell);
         ASSERT_GC_OBJECT_INHERITS(thisObject, info());
         Base::visitChildren(thisObject, visitor);
-        visitor.append(&thisObject->m_hiddenValue);
+        visitor.append(thisObject->m_hiddenValue);
     }
 
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
@@ -1015,6 +1016,7 @@ static EncodedJSValue JSC_HOST_CALL functionSetGlobalConstRedeclarationShouldNot
 static EncodedJSValue JSC_HOST_CALL functionGetRandomSeed(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionSetRandomSeed(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionIsRope(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionCallerSourceOrigin(ExecState*);
 
 struct Script {
     enum class StrictMode {
@@ -1106,10 +1108,10 @@ static inline String stringFromUTF(const Vector& utf8)
 }
 
 template<typename Vector>
-static inline SourceCode jscSource(const Vector& utf8, const String& filename)
+static inline SourceCode jscSource(const Vector& utf8, const SourceOrigin& sourceOrigin, const String& filename)
 {
     String str = stringFromUTF(utf8);
-    return makeSource(str, filename);
+    return makeSource(str, sourceOrigin, filename);
 }
 
 class GlobalObject : public JSGlobalObject {
@@ -1238,6 +1240,7 @@ protected:
         addFunction(vm, "getRandomSeed", functionGetRandomSeed, 0);
         addFunction(vm, "setRandomSeed", functionSetRandomSeed, 1);
         addFunction(vm, "isRope", functionIsRope, 1);
+        addFunction(vm, "callerSourceOrigin", functionCallerSourceOrigin, 0);
 
         addFunction(vm, "is32BitPlatform", functionIs32BitPlatform, 0);
 
@@ -1281,6 +1284,7 @@ protected:
         putDirect(vm, identifier, JSFunction::create(vm, this, arguments, identifier.string(), function, NoIntrinsic, function));
     }
 
+    static JSInternalPromise* moduleLoaderImportModule(JSGlobalObject*, ExecState*, JSModuleLoader*, JSString*, const SourceOrigin&);
     static JSInternalPromise* moduleLoaderResolve(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue, JSValue);
     static JSInternalPromise* moduleLoaderFetch(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue);
 };
@@ -1292,6 +1296,7 @@ const GlobalObjectMethodTable GlobalObject::s_globalObjectMethodTable = {
     &javaScriptRuntimeFlags,
     nullptr,
     &shouldInterruptScriptBeforeTimeout,
+    &moduleLoaderImportModule,
     &moduleLoaderResolve,
     &moduleLoaderFetch,
     nullptr,
@@ -1338,11 +1343,12 @@ ModuleName::ModuleName(const String& moduleName)
     moduleName.split('/', true, queries);
 }
 
-static bool extractDirectoryName(const String& absolutePathToFile, DirectoryName& directoryName)
+static std::optional<DirectoryName> extractDirectoryName(const String& absolutePathToFile)
 {
     size_t firstSeparatorPosition = absolutePathToFile.find(pathSeparator());
     if (firstSeparatorPosition == notFound)
-        return false;
+        return std::nullopt;
+    DirectoryName directoryName;
     directoryName.rootName = absolutePathToFile.substring(0, firstSeparatorPosition + 1); // Include the separator.
     size_t lastSeparatorPosition = absolutePathToFile.reverseFind(pathSeparator());
     ASSERT_WITH_MESSAGE(lastSeparatorPosition != notFound, "If the separator is not found, this function already returns when performing the forward search.");
@@ -1353,10 +1359,10 @@ static bool extractDirectoryName(const String& absolutePathToFile, DirectoryName
         size_t queryLength = lastSeparatorPosition - queryStartPosition; // Not include the last separator.
         directoryName.queryName = absolutePathToFile.substring(queryStartPosition, queryLength);
     }
-    return true;
+    return directoryName;
 }
 
-static bool currentWorkingDirectory(DirectoryName& directoryName)
+static std::optional<DirectoryName> currentWorkingDirectory()
 {
 #if OS(WINDOWS)
     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa364934.aspx
@@ -1370,7 +1376,7 @@ static bool currentWorkingDirectory(DirectoryName& directoryName)
     // In the path utility functions inside the JSC shell, we does not handle the UNC and UNCW including the network host name.
     DWORD bufferLength = ::GetCurrentDirectoryW(0, nullptr);
     if (!bufferLength)
-        return false;
+        return std::nullopt;
     // In Windows, wchar_t is the UTF-16LE.
     // https://msdn.microsoft.com/en-us/library/dd374081.aspx
     // https://msdn.microsoft.com/en-us/library/windows/desktop/ff381407.aspx
@@ -1379,20 +1385,20 @@ static bool currentWorkingDirectory(DirectoryName& directoryName)
     String directoryString = wcharToString(buffer.get(), lengthNotIncludingNull);
     // We don't support network path like \\host\share\<path name>.
     if (directoryString.startsWith("\\\\"))
-        return false;
+        return std::nullopt;
 #else
     auto buffer = std::make_unique<char[]>(PATH_MAX);
     if (!getcwd(buffer.get(), PATH_MAX))
-        return false;
+        return std::nullopt;
     String directoryString = String::fromUTF8(buffer.get());
 #endif
     if (directoryString.isEmpty())
-        return false;
+        return std::nullopt;
 
     if (directoryString[directoryString.length() - 1] == pathSeparator())
-        return extractDirectoryName(directoryString, directoryName);
+        return extractDirectoryName(directoryString);
     // Append the seperator to represents the file name. extractDirectoryName only accepts the absolute file name.
-    return extractDirectoryName(makeString(directoryString, pathSeparator()), directoryName);
+    return extractDirectoryName(makeString(directoryString, pathSeparator()));
 }
 
 static String resolvePath(const DirectoryName& directoryName, const ModuleName& moduleName)
@@ -1422,6 +1428,29 @@ static String resolvePath(const DirectoryName& directoryName, const ModuleName& 
     return builder.toString();
 }
 
+static String absolutePath(const String& fileName)
+{
+    auto directoryName = currentWorkingDirectory();
+    if (!directoryName)
+        return fileName;
+    return resolvePath(directoryName.value(), ModuleName(fileName.impl()));
+}
+
+JSInternalPromise* GlobalObject::moduleLoaderImportModule(JSGlobalObject*, ExecState* exec, JSModuleLoader* moduleLoader, JSString* moduleName, const SourceOrigin& sourceOrigin)
+{
+    auto* function = jsCast<JSObject*>(moduleLoader->get(exec, exec->propertyNames().builtinNames().importModulePublicName()));
+    CallData callData;
+    auto callType = JSC::getCallData(function, callData);
+    ASSERT(callType != CallType::None);
+
+    MarkedArgumentBuffer arguments;
+    arguments.append(moduleName);
+    arguments.append(jsString(exec, sourceOrigin.string()));
+    arguments.append(jsUndefined());
+
+    return jsCast<JSInternalPromise*>(call(exec, function, callType, callData, moduleLoader, arguments));
+}
+
 JSInternalPromise* GlobalObject::moduleLoaderResolve(JSGlobalObject* globalObject, ExecState* exec, JSModuleLoader*, JSValue keyValue, JSValue referrerValue, JSValue)
 {
     VM& vm = globalObject->vm();
@@ -1438,28 +1467,32 @@ JSInternalPromise* GlobalObject::moduleLoaderResolve(JSGlobalObject* globalObjec
     if (key.isSymbol())
         return deferred->resolve(exec, keyValue);
 
-    DirectoryName directoryName;
     if (referrerValue.isUndefined()) {
-        if (!currentWorkingDirectory(directoryName))
+        auto directoryName = currentWorkingDirectory();
+        if (!directoryName)
             return deferred->reject(exec, createError(exec, ASCIILiteral("Could not resolve the current working directory.")));
-    } else {
-        const Identifier referrer = referrerValue.toPropertyKey(exec);
-        if (UNLIKELY(scope.exception())) {
-            JSValue exception = scope.exception();
-            scope.clearException();
-            return deferred->reject(exec, exception);
-        }
-        if (referrer.isSymbol()) {
-            if (!currentWorkingDirectory(directoryName))
-                return deferred->reject(exec, createError(exec, ASCIILiteral("Could not resolve the current working directory.")));
-        } else {
-            // If the referrer exists, we assume that the referrer is the correct absolute path.
-            if (!extractDirectoryName(referrer.impl(), directoryName))
-                return deferred->reject(exec, createError(exec, makeString("Could not resolve the referrer name '", String(referrer.impl()), "'.")));
-        }
+        return deferred->resolve(exec, jsString(exec, resolvePath(directoryName.value(), ModuleName(key.impl()))));
     }
 
-    return deferred->resolve(exec, jsString(exec, resolvePath(directoryName, ModuleName(key.impl()))));
+    const Identifier referrer = referrerValue.toPropertyKey(exec);
+    if (UNLIKELY(scope.exception())) {
+        JSValue exception = scope.exception();
+        scope.clearException();
+        return deferred->reject(exec, exception);
+    }
+
+    if (referrer.isSymbol()) {
+        auto directoryName = currentWorkingDirectory();
+        if (!directoryName)
+            return deferred->reject(exec, createError(exec, ASCIILiteral("Could not resolve the current working directory.")));
+        return deferred->resolve(exec, jsString(exec, resolvePath(directoryName.value(), ModuleName(key.impl()))));
+    }
+
+    // If the referrer exists, we assume that the referrer is the correct absolute path.
+    auto directoryName = extractDirectoryName(referrer.impl());
+    if (!directoryName)
+        return deferred->reject(exec, createError(exec, makeString("Could not resolve the referrer name '", String(referrer.impl()), "'.")));
+    return deferred->resolve(exec, jsString(exec, resolvePath(directoryName.value(), ModuleName(key.impl()))));
 }
 
 static void convertShebangToJSComment(Vector<char>& buffer)
@@ -1545,7 +1578,7 @@ JSInternalPromise* GlobalObject::moduleLoaderFetch(JSGlobalObject* globalObject,
     if (!fetchModuleFromLocalFileSystem(moduleKey, utf8))
         return deferred->reject(exec, createError(exec, makeString("Could not open file '", moduleKey, "'.")));
 
-    return deferred->resolve(exec, jsString(exec, stringFromUTF(utf8)));
+    return deferred->resolve(exec, JSSourceCode::create(exec->vm(), makeSource(stringFromUTF(utf8), SourceOrigin { moduleKey }, moduleKey, TextPosition(), SourceProviderSourceType::Module)));
 }
 
 
@@ -1879,10 +1912,8 @@ static EncodedJSValue JSC_HOST_CALL functionGetGetterSetter(ExecState* exec)
     if (!property.isString())
         return JSValue::encode(jsUndefined());
 
-    Identifier ident = Identifier::fromString(&exec->vm(), property.toWTFString(exec));
-
     PropertySlot slot(value, PropertySlot::InternalMethodType::VMInquiry);
-    value.getPropertySlot(exec, ident, slot);
+    value.getPropertySlot(exec, asString(property)->toIdentifier(exec), slot);
 
     JSValue result;
     if (slot.isCacheableGetter())
@@ -1922,7 +1953,7 @@ EncodedJSValue JSC_HOST_CALL functionRun(ExecState* exec)
     NakedPtr<Exception> exception;
     StopWatch stopWatch;
     stopWatch.start();
-    evaluate(globalObject->globalExec(), jscSource(script, fileName), JSValue(), exception);
+    evaluate(globalObject->globalExec(), jscSource(script, SourceOrigin { absolutePath(fileName) }, fileName), JSValue(), exception);
     stopWatch.stop();
 
     if (exception) {
@@ -1950,7 +1981,7 @@ EncodedJSValue JSC_HOST_CALL functionRunString(ExecState* exec)
         vm, Identifier::fromString(globalObject->globalExec(), "arguments"), array);
 
     NakedPtr<Exception> exception;
-    evaluate(globalObject->globalExec(), makeSource(source), JSValue(), exception);
+    evaluate(globalObject->globalExec(), makeSource(source, exec->callerSourceOrigin()), JSValue(), exception);
 
     if (exception) {
         scope.throwException(globalObject->globalExec(), exception);
@@ -1974,7 +2005,7 @@ EncodedJSValue JSC_HOST_CALL functionLoad(ExecState* exec)
     JSGlobalObject* globalObject = exec->lexicalGlobalObject();
     
     NakedPtr<Exception> evaluationException;
-    JSValue result = evaluate(globalObject->globalExec(), jscSource(script, fileName), JSValue(), evaluationException);
+    JSValue result = evaluate(globalObject->globalExec(), jscSource(script, SourceOrigin { absolutePath(fileName) }, fileName), JSValue(), evaluationException);
     if (evaluationException)
         throwException(exec, scope, evaluationException);
     return JSValue::encode(result);
@@ -1990,7 +2021,7 @@ EncodedJSValue JSC_HOST_CALL functionLoadString(ExecState* exec)
     JSGlobalObject* globalObject = exec->lexicalGlobalObject();
 
     NakedPtr<Exception> evaluationException;
-    JSValue result = evaluate(globalObject->globalExec(), makeSource(sourceCode), JSValue(), evaluationException);
+    JSValue result = evaluate(globalObject->globalExec(), makeSource(sourceCode, exec->callerSourceOrigin()), JSValue(), evaluationException);
     if (evaluationException)
         throwException(exec, scope, evaluationException);
     return JSValue::encode(result);
@@ -2045,7 +2076,7 @@ EncodedJSValue JSC_HOST_CALL functionCheckSyntax(ExecState* exec)
     stopWatch.start();
 
     JSValue syntaxException;
-    bool validSyntax = checkSyntax(globalObject->globalExec(), jscSource(script, fileName), &syntaxException);
+    bool validSyntax = checkSyntax(globalObject->globalExec(), jscSource(script, SourceOrigin { absolutePath(fileName) }, fileName), &syntaxException);
     stopWatch.stop();
 
     if (!validSyntax)
@@ -2107,8 +2138,16 @@ EncodedJSValue JSC_HOST_CALL functionIsRope(ExecState* exec)
     JSValue argument = exec->argument(0);
     if (!argument.isString())
         return JSValue::encode(jsBoolean(false));
-    const StringImpl* impl = jsCast<JSString*>(argument)->tryGetValueImpl();
+    const StringImpl* impl = asString(argument)->tryGetValueImpl();
     return JSValue::encode(jsBoolean(!impl));
+}
+
+EncodedJSValue JSC_HOST_CALL functionCallerSourceOrigin(ExecState* state)
+{
+    SourceOrigin sourceOrigin = state->callerSourceOrigin();
+    if (sourceOrigin.isNull())
+        return JSValue::encode(jsNull());
+    return JSValue::encode(jsString(state, sourceOrigin.string()));
 }
 
 EncodedJSValue JSC_HOST_CALL functionReadline(ExecState* exec)
@@ -2285,7 +2324,7 @@ EncodedJSValue JSC_HOST_CALL functionFindTypeForExpression(ExecState* exec)
     FunctionExecutable* executable = (jsDynamicCast<JSFunction*>(functionValue.asCell()->getObject()))->jsExecutable();
 
     RELEASE_ASSERT(exec->argument(1).isString());
-    String substring = exec->argument(1).getString(exec);
+    String substring = asString(exec->argument(1))->value(exec);
     String sourceCodeText = executable->source().view().toString();
     unsigned offset = static_cast<unsigned>(sourceCodeText.find(substring) + executable->source().startOffset());
     
@@ -2323,7 +2362,7 @@ EncodedJSValue JSC_HOST_CALL functionHasBasicBlockExecuted(ExecState* exec)
     FunctionExecutable* executable = (jsDynamicCast<JSFunction*>(functionValue.asCell()->getObject()))->jsExecutable();
 
     RELEASE_ASSERT(exec->argument(1).isString());
-    String substring = exec->argument(1).getString(exec);
+    String substring = asString(exec->argument(1))->value(exec);
     String sourceCodeText = executable->source().view().toString();
     RELEASE_ASSERT(sourceCodeText.contains(substring));
     int offset = sourceCodeText.find(substring) + executable->source().startOffset();
@@ -2341,7 +2380,7 @@ EncodedJSValue JSC_HOST_CALL functionBasicBlockExecutionCount(ExecState* exec)
     FunctionExecutable* executable = (jsDynamicCast<JSFunction*>(functionValue.asCell()->getObject()))->jsExecutable();
 
     RELEASE_ASSERT(exec->argument(1).isString());
-    String substring = exec->argument(1).getString(exec);
+    String substring = asString(exec->argument(1))->value(exec);
     String sourceCodeText = executable->source().view().toString();
     RELEASE_ASSERT(sourceCodeText.contains(substring));
     int offset = sourceCodeText.find(substring) + executable->source().startOffset();
@@ -2406,10 +2445,10 @@ EncodedJSValue JSC_HOST_CALL functionCreateBuiltin(ExecState* exec)
     if (exec->argumentCount() < 1 || !exec->argument(0).isString())
         return JSValue::encode(jsUndefined());
 
-    String functionText = exec->argument(0).toWTFString(exec);
+    String functionText = asString(exec->argument(0))->value(exec);
     RETURN_IF_EXCEPTION(scope, encodedJSValue());
 
-    const SourceCode& source = makeSource(functionText);
+    const SourceCode& source = makeSource(functionText, { });
     JSFunction* func = JSFunction::createBuiltinFunction(vm, createBuiltinExecutable(vm, source, Identifier::fromString(&vm, "foo"), ConstructorKind::None, ConstructAbility::CannotConstruct)->link(vm, source), exec->lexicalGlobalObject());
 
     return JSValue::encode(func);
@@ -2433,7 +2472,7 @@ EncodedJSValue JSC_HOST_CALL functionCheckModuleSyntax(ExecState* exec)
     stopWatch.start();
 
     ParserError error;
-    bool validSyntax = checkModuleSyntax(exec, makeSource(source, String(), TextPosition(), SourceProviderSourceType::Module), error);
+    bool validSyntax = checkModuleSyntax(exec, makeSource(source, { }, String(), TextPosition(), SourceProviderSourceType::Module), error);
     stopWatch.stop();
 
     if (!validSyntax)
@@ -2513,7 +2552,7 @@ EncodedJSValue JSC_HOST_CALL functionMaxArguments(ExecState*)
 
 static CString valueWithTypeOfWasmValue(ExecState* exec, VM& vm, JSValue value, JSValue wasmValue)
 {
-    JSString* type = jsCast<JSString*>(wasmValue.get(exec, makeIdentifier(vm, "type")));
+    JSString* type = asString(wasmValue.get(exec, makeIdentifier(vm, "type")));
 
     const String& typeString = type->value(exec);
     if (typeString == "i64" || typeString == "i32")
@@ -2526,14 +2565,14 @@ static CString valueWithTypeOfWasmValue(ExecState* exec, VM& vm, JSValue value, 
 static JSValue box(ExecState* exec, VM& vm, JSValue wasmValue)
 {
 
-    JSString* type = jsCast<JSString*>(wasmValue.get(exec, makeIdentifier(vm, "type")));
+    JSString* type = asString(wasmValue.get(exec, makeIdentifier(vm, "type")));
     JSValue value = wasmValue.get(exec, makeIdentifier(vm, "value"));
 
     auto unboxString = [&] (const char* hexFormat, const char* decFormat, auto& result) {
         if (!value.isString())
             return false;
 
-        const char* str = toCString(jsCast<JSString*>(value)->value(exec)).data();
+        const char* str = toCString(asString(value)->value(exec)).data();
         int scanResult;
         int length = std::strlen(str);
         if ((length > 2 && (str[0] == '0' && str[1] == 'x'))
@@ -2637,20 +2676,8 @@ static EncodedJSValue JSC_HOST_CALL functionTestWasmModuleFunctions(ExecState* e
                 lastIndex = calleeIndex;
             });
     }
-
-    void* memoryBytes = nullptr;
-    uint32_t memorySize = 0;
-    std::unique_ptr<Wasm::Memory> memory;
     std::unique_ptr<Wasm::ModuleInformation> moduleInformation = plan.takeModuleInformation();
-
-    if (!!moduleInformation->memory) {
-        memory = std::make_unique<Wasm::Memory>(moduleInformation->memory.initial(), moduleInformation->memory.maximum());
-        RELEASE_ASSERT(memory->isValid());
-        memoryBytes = memory->memory();
-        memorySize = memory->size();
-    }
-    vm.topWasmMemoryPointer = memoryBytes;
-    vm.topWasmMemorySize = memorySize;
+    RELEASE_ASSERT(!moduleInformation->memory);
 
     for (uint32_t i = 0; i < functionCount; ++i) {
         JSArray* testCases = jsCast<JSArray*>(exec->argument(i + 2));
@@ -2915,7 +2942,7 @@ static bool runWithScripts(GlobalObject* globalObject, const Vector<Script>& scr
         bool isLastFile = i == scripts.size() - 1;
         if (isModule) {
             if (!promise)
-                promise = loadAndEvaluateModule(globalObject->globalExec(), jscSource(scriptBuffer, fileName));
+                promise = loadAndEvaluateModule(globalObject->globalExec(), makeSource(stringFromUTF(scriptBuffer), SourceOrigin { absolutePath(fileName) }, fileName, TextPosition(), SourceProviderSourceType::Module));
             scope.clearException();
 
             JSFunction* fulfillHandler = JSNativeStdFunction::create(vm, globalObject, 1, String(), [&, isLastFile](ExecState* exec) {
@@ -2932,7 +2959,7 @@ static bool runWithScripts(GlobalObject* globalObject, const Vector<Script>& scr
             vm.drainMicrotasks();
         } else {
             NakedPtr<Exception> evaluationException;
-            JSValue returnValue = evaluate(globalObject->globalExec(), jscSource(scriptBuffer, fileName), JSValue(), evaluationException);
+            JSValue returnValue = evaluate(globalObject->globalExec(), jscSource(scriptBuffer, SourceOrigin { absolutePath(fileName) }, fileName), JSValue(), evaluationException);
             ASSERT(!scope.exception());
             if (evaluationException)
                 returnValue = evaluationException->value();
@@ -2956,7 +2983,10 @@ static void runInteractive(GlobalObject* globalObject)
     VM& vm = globalObject->vm();
     auto scope = DECLARE_CATCH_SCOPE(vm);
 
-    String interpreterName(ASCIILiteral("Interpreter"));
+    std::optional<DirectoryName> directoryName = currentWorkingDirectory();
+    if (!directoryName)
+        return;
+    SourceOrigin sourceOrigin(resolvePath(directoryName.value(), ModuleName("interpreter")));
     
     bool shouldQuit = false;
     while (!shouldQuit) {
@@ -2971,7 +3001,7 @@ static void runInteractive(GlobalObject* globalObject)
                 break;
             source = source + line;
             source = source + '\n';
-            checkSyntax(globalObject->vm(), makeSource(source, interpreterName), error);
+            checkSyntax(globalObject->vm(), makeSource(source, sourceOrigin), error);
             if (!line[0]) {
                 free(line);
                 break;
@@ -2987,7 +3017,7 @@ static void runInteractive(GlobalObject* globalObject)
         
         
         NakedPtr<Exception> evaluationException;
-        JSValue returnValue = evaluate(globalObject->globalExec(), makeSource(source, interpreterName), JSValue(), evaluationException);
+        JSValue returnValue = evaluate(globalObject->globalExec(), makeSource(source, sourceOrigin), JSValue(), evaluationException);
 #else
         printf("%s", interactivePrompt);
         Vector<char, 256> line;
@@ -3002,7 +3032,7 @@ static void runInteractive(GlobalObject* globalObject)
             break;
 
         NakedPtr<Exception> evaluationException;
-        JSValue returnValue = evaluate(globalObject->globalExec(), jscSource(line, interpreterName), JSValue(), evaluationException);
+        JSValue returnValue = evaluate(globalObject->globalExec(), jscSource(line, sourceOrigin, sourceOrigin.string()), JSValue(), evaluationException);
 #endif
         if (evaluationException)
             printf("Exception: %s\n", evaluationException->value().toWTFString(globalObject->globalExec()).utf8().data());

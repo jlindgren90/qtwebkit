@@ -31,7 +31,6 @@
 #include "JSHTMLCollection.h"
 #include "JSHTMLOptionElement.h"
 #include "JSIDBFactory.h"
-#include "JSImageConstructor.h"
 #include "JSWorker.h"
 #include "Location.h"
 #include "RuntimeEnabledFeatures.h"
@@ -51,7 +50,6 @@ EncodedJSValue JSC_HOST_CALL jsDOMWindowInstanceFunctionShowModalDialog(ExecStat
 
 void JSDOMWindow::visitAdditionalChildren(SlotVisitor& visitor)
 {
-    visitor.rescanAsConstraint();
     if (Frame* frame = wrapped().frame())
         visitor.addOpaqueRoot(frame);
 }
@@ -389,7 +387,7 @@ void JSDOMWindow::setLocation(ExecState& state, JSValue value)
     }
 #endif
 
-    String locationString = value.toString(&state)->value(&state);
+    String locationString = value.toWTFString(&state);
     RETURN_IF_EXCEPTION(scope, void());
 
     if (Location* location = wrapped().location())
@@ -402,11 +400,6 @@ JSValue JSDOMWindow::event(ExecState& state) const
     if (!event)
         return jsUndefined();
     return toJS(&state, const_cast<JSDOMWindow*>(this), event);
-}
-
-JSValue JSDOMWindow::image(ExecState& state) const
-{
-    return createImageConstructor(state.vm(), *this);
 }
 
 // Custom functions

@@ -227,6 +227,12 @@ String StyleProperties::getPropertyValue(CSSPropertyID propertyID) const
     }
     case CSSPropertyBorderRadius:
         return get4Values(borderRadiusShorthand());
+#if ENABLE(CSS_SCROLL_SNAP)
+    case CSSPropertyScrollSnapMargin:
+        return get4Values(scrollSnapMarginShorthand());
+    case CSSPropertyScrollPadding:
+        return get4Values(scrollPaddingShorthand());
+#endif
     default:
         return String();
     }
@@ -960,6 +966,20 @@ String StyleProperties::asText() const
             case CSSPropertyPaddingLeft:
                 shorthandPropertyID = CSSPropertyPadding;
                 break;
+#if ENABLE(CSS_SCROLL_SNAP)
+            case CSSPropertyScrollPaddingTop:
+            case CSSPropertyScrollPaddingRight:
+            case CSSPropertyScrollPaddingBottom:
+            case CSSPropertyScrollPaddingLeft:
+                shorthandPropertyID = CSSPropertyScrollPadding;
+                break;
+            case CSSPropertyScrollSnapMarginTop:
+            case CSSPropertyScrollSnapMarginRight:
+            case CSSPropertyScrollSnapMarginBottom:
+            case CSSPropertyScrollSnapMarginLeft:
+                shorthandPropertyID = CSSPropertyScrollSnapMargin;
+                break;
+#endif
             case CSSPropertyTransitionProperty:
             case CSSPropertyTransitionDuration:
             case CSSPropertyTransitionTimingFunction:
@@ -1369,11 +1389,13 @@ Ref<DeferredStyleProperties> DeferredStyleProperties::create(const CSSParserToke
     return adoptRef(*new DeferredStyleProperties(tokenRange, parser));
 }
 
-DeferredStyleProperties::DeferredStyleProperties(const CSSParserTokenRange& tokenRange, CSSDeferredParser& parser)
+DeferredStyleProperties::DeferredStyleProperties(const CSSParserTokenRange& range, CSSDeferredParser& parser)
     : StylePropertiesBase(parser.mode(), DeferredPropertiesType)
-    , m_range(tokenRange)
     , m_parser(parser)
 {
+    size_t length = range.end() - range.begin();
+    m_tokens.reserveCapacity(length);
+    m_tokens.append(range.begin(), length);
 }
     
 DeferredStyleProperties::~DeferredStyleProperties()
@@ -1382,7 +1404,7 @@ DeferredStyleProperties::~DeferredStyleProperties()
 
 Ref<ImmutableStyleProperties> DeferredStyleProperties::parseDeferredProperties()
 {
-    return m_parser->parseDeclaration(m_range);
+    return m_parser->parseDeclaration(m_tokens);
 }
 
 } // namespace WebCore

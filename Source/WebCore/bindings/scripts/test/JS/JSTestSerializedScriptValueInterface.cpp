@@ -352,8 +352,8 @@ void JSTestSerializedScriptValueInterface::visitChildren(JSCell* cell, SlotVisit
     auto* thisObject = jsCast<JSTestSerializedScriptValueInterface*>(cell);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
     Base::visitChildren(thisObject, visitor);
-    visitor.append(&thisObject->m_cachedValue);
-    visitor.append(&thisObject->m_cachedReadonlyValue);
+    visitor.append(thisObject->m_cachedValue);
+    visitor.append(thisObject->m_cachedReadonlyValue);
 }
 
 bool JSTestSerializedScriptValueInterfaceOwner::isReachableFromOpaqueRoots(JSC::Handle<JSC::Unknown> handle, void*, SlotVisitor& visitor)
@@ -365,7 +365,7 @@ bool JSTestSerializedScriptValueInterfaceOwner::isReachableFromOpaqueRoots(JSC::
 
 void JSTestSerializedScriptValueInterfaceOwner::finalize(JSC::Handle<JSC::Unknown> handle, void* context)
 {
-    auto* jsTestSerializedScriptValueInterface = jsCast<JSTestSerializedScriptValueInterface*>(handle.slot()->asCell());
+    auto* jsTestSerializedScriptValueInterface = static_cast<JSTestSerializedScriptValueInterface*>(handle.slot()->asCell());
     auto& world = *static_cast<DOMWrapperWorld*>(context);
     uncacheWrapper(world, &jsTestSerializedScriptValueInterface->wrapped(), jsTestSerializedScriptValueInterface);
 }

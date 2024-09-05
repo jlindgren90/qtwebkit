@@ -68,7 +68,6 @@
 #include "Settings.h"
 #include "ShadowRoot.h"
 #include "ShapeOutsideInfo.h"
-#include <wtf/text/TextBreakIterator.h>
 #include "TransformState.h"
 
 #include <wtf/NeverDestroyed.h>
@@ -672,7 +671,7 @@ static void getInlineRun(RenderObject* start, RenderObject* boundary,
 void RenderBlock::deleteLines()
 {
     if (AXObjectCache* cache = document().existingAXObjectCache())
-        cache->recomputeIsIgnored(this);
+        cache->recomputeDeferredIsIgnored(*this);
 }
 
 void RenderBlock::makeChildrenNonInline(RenderObject* insertionPoint)
@@ -1637,22 +1636,21 @@ bool RenderBlock::paintChild(RenderBox& child, PaintInfo& paintInfo, const Layou
 void RenderBlock::paintCaret(PaintInfo& paintInfo, const LayoutPoint& paintOffset, CaretType type)
 {
     // Paint the caret if the FrameSelection says so or if caret browsing is enabled
-    bool caretBrowsing = frame().settings().caretBrowsingEnabled();
     RenderBlock* caretPainter;
     bool isContentEditable;
     if (type == CursorCaret) {
         caretPainter = frame().selection().caretRendererWithoutUpdatingLayout();
         isContentEditable = frame().selection().selection().hasEditableStyle();
     } else {
-        caretPainter = frame().page()->dragCaretController().caretRenderer();
-        isContentEditable = frame().page()->dragCaretController().isContentEditable();
+        caretPainter = page().dragCaretController().caretRenderer();
+        isContentEditable = page().dragCaretController().isContentEditable();
     }
 
-    if (caretPainter == this && (isContentEditable || caretBrowsing)) {
+    if (caretPainter == this && (isContentEditable || settings().caretBrowsingEnabled())) {
         if (type == CursorCaret)
             frame().selection().paintCaret(paintInfo.context(), paintOffset, paintInfo.rect);
         else
-            frame().page()->dragCaretController().paintDragCaret(&frame(), paintInfo.context(), paintOffset, paintInfo.rect);
+            page().dragCaretController().paintDragCaret(&frame(), paintInfo.context(), paintOffset, paintInfo.rect);
     }
 }
 
@@ -1844,7 +1842,7 @@ void RenderBlock::paintContinuationOutlines(PaintInfo& info, const LayoutPoint& 
 
 bool RenderBlock::shouldPaintSelectionGaps() const
 {
-    if (frame().settings().selectionPaintingWithoutSelectionGapsEnabled())
+    if (settings().selectionPaintingWithoutSelectionGapsEnabled())
         return false;
 
     return selectionState() != SelectionNone && style().visibility() == VISIBLE && isSelectionRoot();
@@ -2793,9 +2791,7 @@ void RenderBlock::computeBlockPreferredLogicalWidths(LayoutUnit& minLogicalWidth
         LayoutUnit childMinPreferredLogicalWidth, childMaxPreferredLogicalWidth;
         if (is<RenderBox>(*child) && child->isHorizontalWritingMode() != isHorizontalWritingMode()) {
             auto& childBox = downcast<RenderBox>(*child);
-            LogicalExtentComputedValues computedValues;
-            childBox.computeLogicalHeight(childBox.borderAndPaddingLogicalHeight(), 0, computedValues);
-            childMinPreferredLogicalWidth = childMaxPreferredLogicalWidth = computedValues.m_extent;
+            childMinPreferredLogicalWidth = childMaxPreferredLogicalWidth = childBox.computeLogicalHeight(childBox.borderAndPaddingLogicalHeight(), 0).m_extent;
         } else {
             childMinPreferredLogicalWidth = child->minPreferredLogicalWidth();
             childMaxPreferredLogicalWidth = child->maxPreferredLogicalWidth();
@@ -3639,9 +3635,7 @@ void RenderBlock::estimateRegionRangeForBoxChild(const RenderBox& box) const
         return;
     }
 
-    LogicalExtentComputedValues estimatedValues;
-    box.computeLogicalHeight(RenderFlowThread::maxLogicalHeight(), logicalTopForChild(box), estimatedValues);
-
+    auto estimatedValues = box.computeLogicalHeight(RenderFlowThread::maxLogicalHeight(), logicalTopForChild(box));
     LayoutUnit offsetFromLogicalTopOfFirstRegion = box.offsetFromLogicalTopOfFirstPage();
     RenderRegion* startRegion = flowThread->regionAtBlockOffset(this, offsetFromLogicalTopOfFirstRegion, true);
     RenderRegion* endRegion = flowThread->regionAtBlockOffset(this, offsetFromLogicalTopOfFirstRegion + estimatedValues.m_extent, true);

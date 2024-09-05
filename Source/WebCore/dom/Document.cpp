@@ -3,7 +3,7 @@
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
  *           (C) 2006 Alexey Proskuryakov (ap@webkit.org)
- * Copyright (C) 2004-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2004-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2008, 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  * Copyright (C) 2008, 2009, 2011, 2012 Google Inc. All rights reserved.
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
@@ -114,6 +114,7 @@
 #include "MouseEventWithHitTestResults.h"
 #include "MutationEvent.h"
 #include "NameNodeList.h"
+#include "NamedFlowCollection.h"
 #include "NestingLevelIncrementer.h"
 #include "NoEventDispatchAssertion.h"
 #include "NodeIterator.h"
@@ -138,6 +139,7 @@
 #include "RenderTreeUpdater.h"
 #include "RenderView.h"
 #include "RenderWidget.h"
+#include "RequestAnimationFrameCallback.h"
 #include "ResourceLoadObserver.h"
 #include "RuntimeEnabledFeatures.h"
 #include "SVGDocumentExtensions.h"
@@ -153,6 +155,7 @@
 #include "ScriptModuleLoader.h"
 #include "ScriptRunner.h"
 #include "ScriptSourceCode.h"
+#include "ScriptedAnimationController.h"
 #include "ScrollingCoordinator.h"
 #include "SecurityOrigin.h"
 #include "SecurityOriginData.h"
@@ -239,9 +242,8 @@
 #include "MediaSession.h"
 #endif
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
-#include "RequestAnimationFrameCallback.h"
-#include "ScriptedAnimationController.h"
+#if USE(QUICK_LOOK)
+#include "QuickLook.h"
 #endif
 
 #if ENABLE(TOUCH_EVENTS)
@@ -275,6 +277,7 @@ namespace WebCore {
 using namespace HTMLNames;
 
 static const unsigned cMaxWriteRecursionDepth = 21;
+bool Document::hasEverCreatedAnAXObjectCache = false;
 
 // DOM Level 2 says (letters added):
 //
@@ -431,6 +434,7 @@ HashSet<Document*>& Document::allDocuments()
 Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsigned constructionFlags)
     : ContainerNode(*this, CreateDocument)
     , TreeScope(*this)
+    , FrameDestructionObserver(frame)
 #if ENABLE(IOS_TOUCH_EVENTS)
     , m_touchEventsChangedTimer(*this, &Document::touchEventsChangedTimerFired)
 #endif
@@ -439,7 +443,6 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
     , m_needsNotifyRemoveAllPendingStylesheet(false)
     , m_ignorePendingStylesheets(false)
     , m_pendingSheetLayout(NoLayoutWithPendingSheets)
-    , m_frame(frame)
     , m_cachedResourceLoader(m_frame ? Ref<CachedResourceLoader>(m_frame->loader().activeDocumentLoader()->cachedResourceLoader()) : CachedResourceLoader::create(nullptr))
     , m_activeParserCount(0)
     , m_wellFormed(false)
@@ -714,9 +717,7 @@ void Document::commonTeardown()
     if (svgExtensions())
         accessSVGExtensions().pauseAnimations();
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     clearScriptedAnimationController();
-#endif
 }
 
 Element* Document::getElementByAccessKey(const String& key)
@@ -749,19 +750,19 @@ void Document::invalidateAccessKeyMap()
     m_elementsByAccessKey.clear();
 }
 
-void Document::addImageElementByCaseFoldedUsemap(const AtomicStringImpl& name, HTMLImageElement& element)
+void Document::addImageElementByUsemap(const AtomicStringImpl& name, HTMLImageElement& element)
 {
     return m_imagesByUsemap.add(name, element, *this);
 }
 
-void Document::removeImageElementByCaseFoldedUsemap(const AtomicStringImpl& name, HTMLImageElement& element)
+void Document::removeImageElementByUsemap(const AtomicStringImpl& name, HTMLImageElement& element)
 {
     return m_imagesByUsemap.remove(name, element);
 }
 
-HTMLImageElement* Document::imageElementByCaseFoldedUsemap(const AtomicStringImpl& name) const
+HTMLImageElement* Document::imageElementByUsemap(const AtomicStringImpl& name) const
 {
-    return m_imagesByUsemap.getElementByCaseFoldedUsemap(name, *this);
+    return m_imagesByUsemap.getElementByUsemap(name, *this);
 }
 
 ExceptionOr<SelectorQuery&> Document::selectorQueryForString(const String& selectorString)
@@ -1444,64 +1445,44 @@ Element* Document::scrollingElement()
     return body();
 }
 
-/*
- * Performs three operations:
- *  1. Convert control characters to spaces
- *  2. Trim leading and trailing spaces
- *  3. Collapse internal whitespace.
- */
-template <typename CharacterType>
-static inline StringWithDirection canonicalizedTitle(Document* document, const StringWithDirection& titleWithDirection)
+template<typename CharacterType> static inline String canonicalizedTitle(Document& document, const String& title)
 {
-    const String& title = titleWithDirection.string();
-    const CharacterType* characters = title.characters<CharacterType>();
+    // FIXME: Compiling a separate copy of this for LChar and UChar is likely unnecessary.
+    // FIXME: Missing an optimized case for when title is fine as-is. This unnecessarily allocates
+    // and keeps around a new copy, and it's even the less optimal type of StringImpl with a separate buffer.
+    // Could probably just use StringBuilder instead.
+
+    auto* characters = title.characters<CharacterType>();
     unsigned length = title.length();
-    unsigned i;
 
-    StringBuffer<CharacterType> buffer(length);
-    unsigned builderIndex = 0;
+    StringBuffer<CharacterType> buffer { length };
+    unsigned bufferLength = 0;
 
-    // Skip leading spaces and leading characters that would convert to spaces
-    for (i = 0; i < length; ++i) {
-        CharacterType c = characters[i];
-        if (isNotHTMLSpace(c))
-            break;
-    }
+    auto* decoder = document.decoder();
+    auto backslashAsCurrencySymbol = decoder ? decoder->encoding().backslashAsCurrencySymbol() : '\\';
 
-    if (i == length)
-        return StringWithDirection();
-
-    // Replace control characters with spaces, and backslashes with currency symbols, and collapse whitespace.
-    bool previousCharWasWS = false;
-    for (; i < length; ++i) {
-        CharacterType c = characters[i];
-        if (isHTMLSpace(c)) {
-            if (previousCharWasWS)
-                continue;
-            buffer[builderIndex++] = ' ';
-            previousCharWasWS = true;
-        } else {
-            buffer[builderIndex++] = c;
-            previousCharWasWS = false;
+    // Collapse runs of HTML spaces into single space characters.
+    // Strip leading and trailing spaces.
+    // Replace backslashes with currency symbols.
+    bool previousCharacterWasHTMLSpace = false;
+    for (unsigned i = 0; i < length; ++i) {
+        auto character = characters[i];
+        if (isHTMLSpace(character))
+            previousCharacterWasHTMLSpace = true;
+        else {
+            if (character == '\\')
+                character = backslashAsCurrencySymbol;
+            if (previousCharacterWasHTMLSpace && bufferLength)
+                buffer[bufferLength++] = ' ';
+            buffer[bufferLength++] = character;
+            previousCharacterWasHTMLSpace = false;
         }
     }
+    if (!bufferLength)
+        return { };
 
-    // Strip trailing spaces
-    while (builderIndex > 0) {
-        --builderIndex;
-        if (buffer[builderIndex] != ' ')
-            break;
-    }
-
-    if (!builderIndex && buffer[builderIndex] == ' ')
-        return StringWithDirection();
-
-    buffer.shrink(builderIndex + 1);
-
-    // Replace the backslashes with currency symbols if the encoding requires it.
-    document->displayBufferModifiedByEncoding(buffer.characters(), buffer.length());
-    
-    return StringWithDirection(String::adopt(WTFMove(buffer)), titleWithDirection.direction());
+    buffer.shrink(bufferLength);
+    return String::adopt(WTFMove(buffer));
 }
 
 void Document::updateTitle(const StringWithDirection& title)
@@ -1510,31 +1491,31 @@ void Document::updateTitle(const StringWithDirection& title)
         return;
 
     m_rawTitle = title;
+    m_title = title;
 
-    if (m_rawTitle.string().isEmpty())
-        m_title = StringWithDirection();
-    else {
-        if (m_rawTitle.string().is8Bit())
-            m_title = canonicalizedTitle<LChar>(this, m_rawTitle);
+    if (!m_title.string.isEmpty()) {
+        if (m_title.string.is8Bit())
+            m_title.string = canonicalizedTitle<LChar>(*this, m_title.string);
         else
-            m_title = canonicalizedTitle<UChar>(this, m_rawTitle);
+            m_title.string = canonicalizedTitle<UChar>(*this, m_title.string);
     }
-    if (DocumentLoader* loader = this->loader())
+
+    if (auto* loader = this->loader())
         loader->setTitle(m_title);
 }
 
 void Document::updateTitleFromTitleElement()
 {
     if (!m_titleElement) {
-        updateTitle(StringWithDirection());
+        updateTitle({ });
         return;
     }
 
     if (is<HTMLTitleElement>(*m_titleElement))
         updateTitle(downcast<HTMLTitleElement>(*m_titleElement).textWithDirection());
     else if (is<SVGTitleElement>(*m_titleElement)) {
-        // FIXME: does SVG have a title text direction?
-        updateTitle(StringWithDirection(downcast<SVGTitleElement>(*m_titleElement).textContent(), LTR));
+        // FIXME: Does the SVG title element have a text direction?
+        updateTitle({ downcast<SVGTitleElement>(*m_titleElement).textContent(), LTR });
     }
 }
 
@@ -1554,16 +1535,19 @@ void Document::setTitle(const String& title)
             m_titleElement = SVGTitleElement::create(SVGNames::titleTag, *this);
             element->insertBefore(*m_titleElement, element->firstChild());
         }
-    } else if (!isHTMLDocument() && !isXHTMLDocument() && !isSVGDocument())
+    } else if (!isHTMLDocument() && !isXHTMLDocument() && !isSVGDocument()) {
+        // FIXME: What exactly is the point of this? This seems like a strange moment
+        // in time to demote something from being m_titleElement, when setting the
+        // value of the title attribute. Do we have test coverage for this?
         m_titleElement = nullptr;
-
-    // The DOM API has no method of specifying direction, so assume LTR.
-    updateTitle(StringWithDirection(title, LTR));
+    }
 
     if (is<HTMLTitleElement>(m_titleElement.get()))
         downcast<HTMLTitleElement>(*m_titleElement).setTextContent(title);
     else if (is<SVGTitleElement>(m_titleElement.get()))
         downcast<SVGTitleElement>(*m_titleElement).setTextContent(title);
+    else
+        updateTitle({ title, LTR });
 }
 
 void Document::updateTitleElement(Element* newTitleElement)
@@ -2083,7 +2067,7 @@ bool Document::isPageBoxVisible(int pageIndex)
 void Document::pageSizeAndMarginsInPixels(int pageIndex, IntSize& pageSize, int& marginTop, int& marginRight, int& marginBottom, int& marginLeft)
 {
     updateStyleIfNeeded();
-    std::unique_ptr<RenderStyle> style = styleScope().resolver().styleForPage(pageIndex);
+    auto style = styleScope().resolver().styleForPage(pageIndex);
 
     int width = pageSize.width();
     int height = pageSize.height();
@@ -2099,11 +2083,11 @@ void Document::pageSizeAndMarginsInPixels(int pageIndex, IntSize& pageSize, int&
             std::swap(width, height);
         break;
     case PAGE_SIZE_RESOLVED: {
-        LengthSize size = style->pageSize();
-        ASSERT(size.width().isFixed());
-        ASSERT(size.height().isFixed());
-        width = valueForLength(size.width(), 0);
-        height = valueForLength(size.height(), 0);
+        auto& size = style->pageSize();
+        ASSERT(size.width.isFixed());
+        ASSERT(size.height.isFixed());
+        width = valueForLength(size.width, 0);
+        height = valueForLength(size.height, 0);
         break;
     }
     default:
@@ -2182,13 +2166,6 @@ void Document::didBecomeCurrentDocumentInFrame()
     if (page() && m_frame->isMainFrame())
         wheelEventHandlersChanged();
 
-#if ENABLE(TOUCH_EVENTS)
-    // FIXME: Doing this only for the main frame is insufficient.
-    // A subframe could have touch event handlers.
-    if (hasTouchEventHandlers() && page() && m_frame->isMainFrame())
-        page()->chrome().client().needTouchEvents(true);
-#endif
-
     // Ensure that the scheduled task state of the document matches the DOM suspension state of the frame. It can
     // be out of sync if the DOM suspension state changed while the document was not in the frame (possibly in the
     // page cache, or simply newly created).
@@ -2203,13 +2180,27 @@ void Document::didBecomeCurrentDocumentInFrame()
 
 void Document::disconnectFromFrame()
 {
-    m_frame = nullptr;
+    observeFrame(nullptr);
+}
+
+void Document::frameDestroyed()
+{
+    // disconnectFromFrame() must be called before destroying the Frame.
+    ASSERT_WITH_SECURITY_IMPLICATION(!m_frame);
+    FrameDestructionObserver::frameDestroyed();
 }
 
 void Document::destroyRenderTree()
 {
     ASSERT(hasLivingRenderTree());
-    ASSERT(m_pageCacheState != InPageCache);
+    ASSERT(frame());
+    ASSERT(frame()->view());
+    ASSERT(page());
+
+    FrameView& frameView = *frame()->view();
+
+    // Prevent Widget tree changes from committing until the RenderView is dead and gone.
+    WidgetHierarchyUpdatesSuspensionScope suspendWidgetHierarchyUpdates;
 
     SetForScope<bool> change(m_renderTreeBeingDestroyed, true);
 
@@ -2218,8 +2209,7 @@ void Document::destroyRenderTree()
 
     documentWillBecomeInactive();
 
-    if (FrameView* frameView = view())
-        frameView->detachCustomScrollbars();
+    frameView.willDestroyRenderTree();
 
 #if ENABLE(FULLSCREEN_API)
     if (m_fullScreenRenderer)
@@ -2245,6 +2235,8 @@ void Document::destroyRenderTree()
     // Do this before the arena is cleared, which is needed to deref the RenderStyle on TextAutoSizingKey.
     m_textAutoSizedNodes.clear();
 #endif
+
+    frameView.didDestroyRenderTree();
 }
 
 void Document::prepareForDestruction()
@@ -2409,13 +2401,9 @@ void Document::clearAXObjectCache()
     m_axObjectCache = nullptr;
 }
 
-static bool hasEverCreatedAnAXObjectCache = false;
-
-AXObjectCache* Document::existingAXObjectCache() const
+AXObjectCache* Document::existingAXObjectCacheSlow() const
 {
-    if (!hasEverCreatedAnAXObjectCache)
-        return nullptr;
-
+    ASSERT(hasEverCreatedAnAXObjectCache);
     Document& topDocument = this->topDocument();
     if (!topDocument.hasLivingRenderTree())
         return nullptr;
@@ -2986,6 +2974,9 @@ bool Document::canNavigate(Frame* targetFrame)
     if (!m_frame)
         return false;
 
+    if (pageCacheState() != Document::NotInPageCache)
+        return false;
+
     // FIXME: We shouldn't call this function without a target frame, but
     // fast/forms/submit-to-blank-multiple-times.html depends on this function
     // returning true when supplied with a 0 targetFrame.
@@ -3145,7 +3136,7 @@ void Document::processHttpEquiv(const String& equiv, const String& content, bool
             else
                 completedURL = completeURL(urlString);
             if (!protocolIsJavaScript(completedURL))
-                frame->navigationScheduler().scheduleRedirect(this, delay, completedURL);
+                frame->navigationScheduler().scheduleRedirect(*this, delay, completedURL);
             else {
                 String message = "Refused to refresh " + m_url.stringCenterEllipsizedToLength() + " to a javascript: URL";
                 addConsoleMessage(MessageSource::Security, MessageLevel::Error, message);
@@ -4036,11 +4027,11 @@ void Document::setAttributeEventListener(const AtomicString& eventType, const Qu
     setAttributeEventListener(eventType, JSLazyEventListener::create(*this, attributeName, attributeValue));
 }
 
-void Document::setWindowAttributeEventListener(const AtomicString& eventType, PassRefPtr<EventListener> listener)
+void Document::setWindowAttributeEventListener(const AtomicString& eventType, RefPtr<EventListener>&& listener)
 {
     if (!m_domWindow)
         return;
-    m_domWindow->setAttributeEventListener(eventType, listener);
+    m_domWindow->setAttributeEventListener(eventType, WTFMove(listener));
 }
 
 void Document::setWindowAttributeEventListener(const AtomicString& eventType, const QualifiedName& attributeName, const AtomicString& attributeValue)
@@ -4536,8 +4527,7 @@ void Document::setPageCacheState(PageCacheState state)
                 v->resetScrollbarsAndClearContentsSize();
                 if (ScrollingCoordinator* scrollingCoordinator = page->scrollingCoordinator())
                     scrollingCoordinator->clearStateTree();
-            } else
-                v->resetScrollbars();
+            }
         }
 
 #if ENABLE(POINTER_LOCK)
@@ -4589,8 +4579,7 @@ void Document::suspend(ActiveDOMObject::ReasonForSuspension reason)
             view->compositor().cancelCompositingLayerUpdate();
     }
 
-    suspendScriptedAnimationControllerCallbacks();
-    suspendActiveDOMObjects(reason);
+    suspendScheduledTasks(reason);
 
     ASSERT(m_frame);
     m_frame->clearTimers();
@@ -4621,8 +4610,7 @@ void Document::resume(ActiveDOMObject::ReasonForSuspension reason)
     m_frame->loader().client().dispatchDidBecomeFrameset(isFrameSet());
     m_frame->animation().resumeAnimationsForDocument(this);
 
-    resumeActiveDOMObjects(reason);
-    resumeScriptedAnimationControllerCallbacks();
+    resumeScheduledTasks(reason);
 
     m_visualUpdatesAllowed = true;
 
@@ -5236,7 +5224,7 @@ void Document::updateURLForPushOrReplaceState(const URL& url)
         documentLoader->replaceRequestURLForSameDocumentNavigation(url);
 }
 
-void Document::statePopped(PassRefPtr<SerializedScriptValue> stateObject)
+void Document::statePopped(Ref<SerializedScriptValue>&& stateObject)
 {
     if (!frame())
         return;
@@ -5244,9 +5232,9 @@ void Document::statePopped(PassRefPtr<SerializedScriptValue> stateObject)
     // Per step 11 of section 6.5.9 (history traversal) of the HTML5 spec, we 
     // defer firing of popstate until we're in the complete state.
     if (m_readyState == Complete)
-        enqueuePopstateEvent(stateObject);
+        enqueuePopstateEvent(WTFMove(stateObject));
     else
-        m_pendingStateObject = stateObject;
+        m_pendingStateObject = WTFMove(stateObject);
 }
 
 void Document::updateFocusAppearanceSoon(SelectionRestorationMode mode)
@@ -5451,38 +5439,26 @@ void Document::resumeScheduledTasks(ActiveDOMObject::ReasonForSuspension reason)
 
 void Document::suspendScriptedAnimationControllerCallbacks()
 {
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     if (m_scriptedAnimationController)
         m_scriptedAnimationController->suspend();
-#endif
 }
 
 void Document::resumeScriptedAnimationControllerCallbacks()
 {
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     if (m_scriptedAnimationController)
         m_scriptedAnimationController->resume();
-#endif
 }
 
 void Document::scriptedAnimationControllerSetThrottled(bool isThrottled)
 {
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     if (m_scriptedAnimationController)
         m_scriptedAnimationController->setThrottled(isThrottled);
-#else
-    UNUSED_PARAM(isThrottled);
-#endif
 }
 
 void Document::windowScreenDidChange(PlatformDisplayID displayID)
 {
-    UNUSED_PARAM(displayID);
-
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     if (m_scriptedAnimationController)
         m_scriptedAnimationController->windowScreenDidChange(displayID);
-#endif
 
     if (RenderView* view = renderView()) {
         if (view->usesCompositing())
@@ -5490,30 +5466,12 @@ void Document::windowScreenDidChange(PlatformDisplayID displayID)
     }
 }
 
-String Document::displayStringModifiedByEncoding(const String& str) const
+String Document::displayStringModifiedByEncoding(const String& string) const
 {
-    if (m_decoder)
-        return m_decoder->encoding().displayString(str.impl()).get();
-    return str;
+    if (!m_decoder)
+        return string;
+    return String { string }.replace('\\', m_decoder->encoding().backslashAsCurrencySymbol());
 }
-
-RefPtr<StringImpl> Document::displayStringModifiedByEncoding(PassRefPtr<StringImpl> str) const
-{
-    if (m_decoder)
-        return m_decoder->encoding().displayString(str);
-    return str;
-}
-
-template <typename CharacterType>
-void Document::displayBufferModifiedByEncodingInternal(CharacterType* buffer, unsigned len) const
-{
-    if (m_decoder)
-        m_decoder->encoding().displayBuffer(buffer, len);
-}
-
-// Generate definitions for both character types
-template void Document::displayBufferModifiedByEncodingInternal<LChar>(LChar*, unsigned) const;
-template void Document::displayBufferModifiedByEncodingInternal<UChar>(UChar*, unsigned) const;
 
 void Document::enqueuePageshowEvent(PageshowEventPersistence persisted)
 {
@@ -6056,9 +6014,7 @@ double Document::monotonicTimestamp() const
     return loader ? loader->timing().monotonicTimeToZeroBasedDocumentTime(monotonicallyIncreasingTime()) : 0;
 }
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
-
-int Document::requestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback> callback)
+int Document::requestAnimationFrame(Ref<RequestAnimationFrameCallback>&& callback)
 {
     if (!m_scriptedAnimationController) {
 #if USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
@@ -6073,7 +6029,7 @@ int Document::requestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback> ca
             m_scriptedAnimationController->suspend();
     }
 
-    return m_scriptedAnimationController->registerCallback(callback);
+    return m_scriptedAnimationController->registerCallback(WTFMove(callback));
 }
 
 void Document::cancelAnimationFrame(int id)
@@ -6097,8 +6053,6 @@ void Document::clearScriptedAnimationController()
         m_scriptedAnimationController->clearDocumentPointer();
     m_scriptedAnimationController = nullptr;
 }
-
-#endif
     
 void Document::sendWillRevealEdgeEventsIfNeeded(const IntPoint& oldPosition, const IntPoint& newPosition, const IntRect& visibleRect, const IntSize& contentsSize, Element* target)
 {
@@ -6271,11 +6225,6 @@ void Document::didAddTouchEventHandler(Node& handler)
         parent->didAddTouchEventHandler(*this);
         return;
     }
-
-    if (Page* page = this->page()) {
-        if (m_touchEventTargets->size() == 1)
-            page->chrome().client().needTouchEvents(true);
-    }
 #else
     UNUSED_PARAM(handler);
 #endif
@@ -6289,23 +6238,8 @@ void Document::didRemoveTouchEventHandler(Node& handler, EventHandlerRemoval rem
 
     removeHandlerFromSet(*m_touchEventTargets, handler, removal);
 
-    if (Document* parent = parentDocument()) {
+    if (Document* parent = parentDocument())
         parent->didRemoveTouchEventHandler(*this);
-        return;
-    }
-
-    Page* page = this->page();
-    if (!page)
-        return;
-    if (m_touchEventTargets->size())
-        return;
-
-    // FIXME: why can't we trust m_touchEventTargets?
-    for (const Frame* frame = &page->mainFrame(); frame; frame = frame->tree().traverseNext()) {
-        if (frame->document() && frame->document()->hasTouchEventHandlers())
-            return;
-    }
-    page->chrome().client().needTouchEvents(false);
 #else
     UNUSED_PARAM(handler);
     UNUSED_PARAM(removal);
@@ -6529,9 +6463,9 @@ void Document::updateHoverActiveState(const HitTestRequest& request, Element* in
     Element* oldActiveElement = m_activeElement.get();
     if (oldActiveElement && !request.active()) {
         // We are clearing the :active chain because the mouse has been released.
-        for (Element* curr = oldActiveElement; curr; curr = curr->parentOrShadowHostElement()) {
-            curr->setActive(false);
-            m_userActionElements.setInActiveChain(curr, false);
+        for (Element* currentElement = oldActiveElement; currentElement; currentElement = currentElement->parentElementInComposedTree()) {
+            currentElement->setActive(false);
+            m_userActionElements.setInActiveChain(currentElement, false);
         }
         m_activeElement = nullptr;
     } else {
@@ -6569,7 +6503,7 @@ void Document::updateHoverActiveState(const HitTestRequest& request, Element* in
     // If it hasn't, we do not need to do anything.
     Element* newHoveredElement = innerElementInDocument;
     while (newHoveredElement && !newHoveredElement->renderer())
-        newHoveredElement = newHoveredElement->parentOrShadowHostElement();
+        newHoveredElement = newHoveredElement->parentElementInComposedTree();
 
     m_hoveredElement = newHoveredElement;
 
@@ -6588,7 +6522,7 @@ void Document::updateHoverActiveState(const HitTestRequest& request, Element* in
         // (for instance by setting display:none in the :hover pseudo-class). In this case, the old hovered element (and its ancestors)
         // must be updated, to ensure it's normal style is re-applied.
         if (oldHoveredElement && !oldHoverObj) {
-            for (Element* element = oldHoveredElement.get(); element; element = element->parentElement()) {
+            for (Element* element = oldHoveredElement.get(); element; element = element->parentElementInComposedTree()) {
                 if (!mustBeInActiveChain || element->inActiveChain())
                     elementsToRemoveFromChain.append(element);
             }

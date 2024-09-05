@@ -42,7 +42,6 @@
 #include "Logging.h"
 #include "MainFrame.h"
 #include "MemoryCache.h"
-#include "Page.h"
 #include "PlatformStrategies.h"
 #include "ResourceHandle.h"
 #include "SchemeRegistry.h"
@@ -297,6 +296,9 @@ void CachedResource::loadFrom(const CachedResource& resource)
 void CachedResource::setBodyDataFrom(const CachedResource& resource)
 {
     m_data = resource.m_data;
+    m_response = resource.m_response;
+    setDecodedSize(resource.decodedSize());
+    setEncodedSize(resource.encodedSize());
 }
 
 void CachedResource::checkNotify()

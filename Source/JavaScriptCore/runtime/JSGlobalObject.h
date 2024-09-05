@@ -140,6 +140,7 @@ struct HashTable;
 #define FOR_EACH_WEBASSEMBLY_CONSTRUCTOR_TYPE(macro) \
     macro(WebAssemblyCompileError, webAssemblyCompileError, WebAssemblyCompileError, WebAssemblyCompileError, CompileError, error) \
     macro(WebAssemblyInstance,     webAssemblyInstance,     WebAssemblyInstance,     WebAssemblyInstance,     Instance,     object) \
+    macro(WebAssemblyLinkError,    webAssemblyLinkError,    WebAssemblyLinkError,    WebAssemblyLinkError,    LinkError,    error) \
     macro(WebAssemblyMemory,       webAssemblyMemory,       WebAssemblyMemory,       WebAssemblyMemory,       Memory,       object) \
     macro(WebAssemblyModule,       webAssemblyModule,       WebAssemblyModule,       WebAssemblyModule,       Module,       object) \
     macro(WebAssemblyRuntimeError, webAssemblyRuntimeError, WebAssemblyRuntimeError, WebAssemblyRuntimeError, RuntimeError, error) \
@@ -182,6 +183,9 @@ struct GlobalObjectMethodTable {
 
     typedef bool (*ShouldInterruptScriptBeforeTimeoutPtr)(const JSGlobalObject*);
     ShouldInterruptScriptBeforeTimeoutPtr shouldInterruptScriptBeforeTimeout;
+
+    typedef JSInternalPromise* (*ModuleLoaderImportModulePtr)(JSGlobalObject*, ExecState*, JSModuleLoader*, JSString*, const SourceOrigin&);
+    ModuleLoaderImportModulePtr moduleLoaderImportModule;
 
     typedef JSInternalPromise* (*ModuleLoaderResolvePtr)(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue, JSValue);
     ModuleLoaderResolvePtr moduleLoaderResolve;
@@ -398,9 +402,11 @@ public:
     WeakRandom m_weakRandom;
 
     InlineWatchpointSet& arrayIteratorProtocolWatchpoint() { return m_arrayIteratorProtocolWatchpoint; }
+    InlineWatchpointSet& arraySpeciesWatchpoint() { return m_arraySpeciesWatchpoint; }
     // If this hasn't been invalidated, it means the array iterator protocol
     // is not observable to user code yet.
     InlineWatchpointSet m_arrayIteratorProtocolWatchpoint;
+    InlineWatchpointSet m_arraySpeciesWatchpoint;
     std::unique_ptr<ArrayIteratorAdaptiveWatchpoint> m_arrayPrototypeSymbolIteratorWatchpoint;
     std::unique_ptr<ArrayIteratorAdaptiveWatchpoint> m_arrayIteratorPrototypeNext;
 

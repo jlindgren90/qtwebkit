@@ -1,5 +1,9 @@
 <html>
 <head id="head">
+<script>
+    if (window.internals && window.internals.settings)
+        window.internals.settings.setDeferredCSSParserEnabled(true);
+</script>
 <style>
 /* This rule should parse. */
 body {

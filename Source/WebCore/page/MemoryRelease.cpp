@@ -38,6 +38,7 @@
 #include "MemoryCache.h"
 #include "Page.h"
 #include "PageCache.h"
+#include "RenderTheme.h"
 #include "ScrollingThread.h"
 #include "StyleScope.h"
 #include "StyledElement.h"
@@ -48,6 +49,8 @@ namespace WebCore {
 
 static void releaseNoncriticalMemory()
 {
+    RenderTheme::defaultTheme()->purgeCaches();
+
     FontCache::singleton().purgeInactiveFontData();
 
     clearWidthCaches();
@@ -56,8 +59,6 @@ static void releaseNoncriticalMemory()
         document->clearSelectorQueryCache();
 
     MemoryCache::singleton().pruneDeadResourcesToSize(0);
-
-    StyledElement::clearPresentationAttributeCache();
 
     InlineStyleSheetOwner::clearCache();
 }

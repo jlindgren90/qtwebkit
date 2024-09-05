@@ -79,6 +79,7 @@ class PageConfiguration;
 namespace WebKit {
 
 class DownloadProxy;
+class HighPerformanceGraphicsUsageSampler;
 class UIGamepad;
 class WebAutomationSession;
 class WebContextSupplement;
@@ -181,6 +182,7 @@ public:
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
     void setAdditionalPluginsDirectory(const String&);
+    void refreshPlugins();
 
     PluginInfoStore& pluginInfoStore() { return m_pluginInfoStore; }
 
@@ -522,6 +524,8 @@ private:
     RetainPtr<NSObject> m_automaticSpellingCorrectionNotificationObserver;
     RetainPtr<NSObject> m_automaticQuoteSubstitutionNotificationObserver;
     RetainPtr<NSObject> m_automaticDashSubstitutionNotificationObserver;
+
+    std::unique_ptr<HighPerformanceGraphicsUsageSampler> m_highPerformanceGraphicsUsageSampler;
 #endif
 
     String m_overrideIconDatabasePath;

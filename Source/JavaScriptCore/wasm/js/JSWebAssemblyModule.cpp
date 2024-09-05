@@ -38,9 +38,9 @@ namespace JSC {
 
 const ClassInfo JSWebAssemblyModule::s_info = { "WebAssembly.Module", &Base::s_info, nullptr, CREATE_METHOD_TABLE(JSWebAssemblyModule) };
 
-JSWebAssemblyModule* JSWebAssemblyModule::create(VM& vm, Structure* structure, std::unique_ptr<Wasm::ModuleInformation>&& moduleInformation, Bag<CallLinkInfo>&& callLinkInfos, Vector<Wasm::WasmToJSStub>&& wasmToJSStubs, Wasm::ImmutableFunctionIndexSpace&& functionIndexSpace, SymbolTable* exportSymbolTable, unsigned calleeCount)
+JSWebAssemblyModule* JSWebAssemblyModule::create(VM& vm, Structure* structure, std::unique_ptr<Wasm::ModuleInformation>&& moduleInformation, Bag<CallLinkInfo>&& callLinkInfos, Vector<Wasm::WasmExitStubs>&& wasmExitStubs, SymbolTable* exportSymbolTable, unsigned calleeCount)
 {
-    auto* instance = new (NotNull, allocateCell<JSWebAssemblyModule>(vm.heap, allocationSize(calleeCount))) JSWebAssemblyModule(vm, structure, std::forward<std::unique_ptr<Wasm::ModuleInformation>>(moduleInformation), std::forward<Bag<CallLinkInfo>>(callLinkInfos), std::forward<Vector<Wasm::WasmToJSStub>>(wasmToJSStubs), std::forward<Wasm::ImmutableFunctionIndexSpace>(functionIndexSpace), calleeCount);
+    auto* instance = new (NotNull, allocateCell<JSWebAssemblyModule>(vm.heap, allocationSize(calleeCount))) JSWebAssemblyModule(vm, structure, std::forward<std::unique_ptr<Wasm::ModuleInformation>>(moduleInformation), std::forward<Bag<CallLinkInfo>>(callLinkInfos), std::forward<Vector<Wasm::WasmExitStubs>>(wasmExitStubs), calleeCount);
     instance->finishCreation(vm, exportSymbolTable);
     return instance;
 }
@@ -50,12 +50,11 @@ Structure* JSWebAssemblyModule::createStructure(VM& vm, JSGlobalObject* globalOb
     return Structure::create(vm, globalObject, prototype, TypeInfo(ObjectType, StructureFlags), info());
 }
 
-JSWebAssemblyModule::JSWebAssemblyModule(VM& vm, Structure* structure, std::unique_ptr<Wasm::ModuleInformation>&& moduleInformation, Bag<CallLinkInfo>&& callLinkInfos, Vector<Wasm::WasmToJSStub>&& wasmToJSStubs, Wasm::ImmutableFunctionIndexSpace&& functionIndexSpace, unsigned calleeCount)
+JSWebAssemblyModule::JSWebAssemblyModule(VM& vm, Structure* structure, std::unique_ptr<Wasm::ModuleInformation>&& moduleInformation, Bag<CallLinkInfo>&& callLinkInfos, Vector<Wasm::WasmExitStubs>&& wasmExitStubs, unsigned calleeCount)
     : Base(vm, structure)
     , m_moduleInformation(WTFMove(moduleInformation))
     , m_callLinkInfos(WTFMove(callLinkInfos))
-    , m_wasmToJSStubs(WTFMove(wasmToJSStubs))
-    , m_functionIndexSpace(WTFMove(functionIndexSpace))
+    , m_wasmExitStubs(WTFMove(wasmExitStubs))
     , m_calleeCount(calleeCount)
 {
     memset(callees(), 0, m_calleeCount * sizeof(WriteBarrier<JSWebAssemblyCallee>) * 2);
@@ -79,11 +78,9 @@ void JSWebAssemblyModule::visitChildren(JSCell* cell, SlotVisitor& visitor)
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
 
     Base::visitChildren(thisObject, visitor);
-    visitor.append(&thisObject->m_exportSymbolTable);
-    for (unsigned i = 0; i < thisObject->m_calleeCount * 2; i++) {
-        WriteBarrier<JSWebAssemblyCallee>* callee = &thisObject->callees()[i];
-        visitor.append(callee);
-    }
+    visitor.append(thisObject->m_exportSymbolTable);
+    for (unsigned i = 0; i < thisObject->m_calleeCount * 2; i++)
+        visitor.append(thisObject->callees()[i]);
 
     visitor.addUnconditionalFinalizer(&thisObject->m_unconditionalFinalizer);
 }

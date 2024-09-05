@@ -184,9 +184,9 @@ template<>
 class TinyLRUCachePolicy<AtomicString, RefPtr<WebCore::HyphenationDictionary>>
 {
 public:
-    static TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>>& cache()
+    static TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>, 32>& cache()
     {
-        static NeverDestroyed<TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>>> cache;
+        static NeverDestroyed<TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>, 32>> cache;
         return cache;
     }
 

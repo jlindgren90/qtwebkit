@@ -122,7 +122,32 @@ export default class LowLevelBinary {
         this._push8(v >>> 16);
         this._push8(v >>> 24);
     }
+    float(v) {
+        if (isNaN(v))
+            throw new RangeError("unimplemented, NaNs");
+        // Unfortunately, we cannot just view the actual buffer as a Float32Array since it needs to be 4 byte aligned
+        let buffer = new ArrayBuffer(4);
+        let floatView = new Float32Array(buffer);
+        let int8View = new Uint8Array(buffer);
+        floatView[0] = v;
+        for (let byte of int8View)
+            this._push8(byte);
+    }
+
+    double(v) {
+        if (isNaN(v))
+            throw new RangeError("unimplemented, NaNs");
+        // Unfortunately, we cannot just view the actual buffer as a Float64Array since it needs to be 4 byte aligned
+        let buffer = new ArrayBuffer(8);
+        let floatView = new Float64Array(buffer);
+        let int8View = new Uint8Array(buffer);
+        floatView[0] = v;
+        for (let byte of int8View)
+            this._push8(byte);
+    }
+
     varuint32(v) {
+        assert.isNumber(v);
         if (v < varuint32Min || varuint32Max < v)
             throw new RangeError(`Invalid varuint32 ${v} range is [${varuint32Min}, ${varuint32Max}]`);
         while (v >= 0x80) {
@@ -132,6 +157,7 @@ export default class LowLevelBinary {
         this.uint8(v);
     }
     varint32(v) {
+        assert.isNumber(v);
         if (v < varint32Min || varint32Max < v)
             throw new RangeError(`Invalid varint32 ${v} range is [${varint32Min}, ${varint32Max}]`);
         do {
@@ -143,6 +169,18 @@ export default class LowLevelBinary {
             }
             this.uint8(0x80 | b);
         } while (true);
+    }
+    varuint64(v) {
+        assert.isNumber(v);
+        if (v < varuint32Min || varuint32Max < v)
+            throw new RangeError(`unimplemented: varuint64 larger than 32-bit`);
+        this.varuint32(v); // FIXME implement 64-bit var{u}int https://bugs.webkit.org/show_bug.cgi?id=163420
+    }
+    varint64(v) {
+        assert.isNumber(v);
+        if (v < varint32Min || varint32Max < v)
+            throw new RangeError(`unimplemented: varint64 larger than 32-bit`);
+        this.varint32(v); // FIXME implement 64-bit var{u}int https://bugs.webkit.org/show_bug.cgi?id=163420
     }
     varuint1(v) {
         if (v !== 0 && v !== 1)

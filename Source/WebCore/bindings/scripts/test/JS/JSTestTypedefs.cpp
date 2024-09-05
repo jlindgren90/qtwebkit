@@ -139,7 +139,7 @@ template<> EncodedJSValue JSC_HOST_CALL JSTestTypedefsConstructor::construct(Exe
     auto testCallbackInterface = convert<IDLCallbackInterface<JSTestCallbackInterface>>(*state, state->uncheckedArgument(2), *castedThis->globalObject(), [](JSC::ExecState& state, JSC::ThrowScope& scope) { throwArgumentMustBeFunctionError(state, scope, 2, "testCallbackInterface", "TestTypedefs", nullptr); });
     RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
     auto object = TestTypedefs::create(WTFMove(hello), testCallbackFunction.releaseNonNull(), testCallbackInterface.releaseNonNull());
-    return JSValue::encode(toJSNewlyCreated(state, castedThis->globalObject(), WTFMove(object)));
+    return JSValue::encode(toJSNewlyCreated<IDLInterface<TestTypedefs>>(*state, *castedThis->globalObject(), WTFMove(object)));
 }
 
 template<> JSValue JSTestTypedefsConstructor::prototypeForStructure(JSC::VM& vm, const JSDOMGlobalObject& globalObject)
@@ -770,7 +770,7 @@ bool JSTestTypedefsOwner::isReachableFromOpaqueRoots(JSC::Handle<JSC::Unknown> h
 
 void JSTestTypedefsOwner::finalize(JSC::Handle<JSC::Unknown> handle, void* context)
 {
-    auto* jsTestTypedefs = jsCast<JSTestTypedefs*>(handle.slot()->asCell());
+    auto* jsTestTypedefs = static_cast<JSTestTypedefs*>(handle.slot()->asCell());
     auto& world = *static_cast<DOMWrapperWorld*>(context);
     uncacheWrapper(world, &jsTestTypedefs->wrapped(), jsTestTypedefs);
 }

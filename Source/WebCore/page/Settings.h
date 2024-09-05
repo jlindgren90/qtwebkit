@@ -199,6 +199,9 @@ public:
     static bool shouldUseHighResolutionTimers() { return gShouldUseHighResolutionTimers; }
 #endif
 
+    static bool isPostLoadCPUUsageMeasurementEnabled();
+    static bool isPostBackgroundingCPUUsageMeasurementEnabled();
+
     static bool globalConstRedeclarationShouldThrow();
 
     WEBCORE_EXPORT void setBackgroundShouldExtendBeyondPage(bool);
@@ -216,6 +219,11 @@ public:
     static bool isQTKitEnabled() { return gQTKitEnabled; }
 #else
     static bool isQTKitEnabled() { return false; }
+#endif
+
+#if USE(GSTREAMER)
+    WEBCORE_EXPORT static void setGStreamerEnabled(bool flag);
+    static bool isGStreamerEnabled() { return gGStreamerEnabled; }
 #endif
 
     static const unsigned defaultMaximumHTMLParserDOMTreeDepth = 512;
@@ -374,6 +382,10 @@ private:
 
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT static bool gQTKitEnabled;
+#endif
+
+#if USE(GSTREAMER)
+    WEBCORE_EXPORT static bool gGStreamerEnabled;
 #endif
 
     static bool gMockScrollbarsEnabled;

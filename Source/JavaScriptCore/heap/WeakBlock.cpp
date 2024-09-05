@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,7 +28,6 @@
 
 #include "CellContainerInlines.h"
 #include "Heap.h"
-#include "HeapRootVisitor.h"
 #include "JSCInlines.h"
 #include "JSObject.h"
 #include "WeakHandleOwner.h"
@@ -97,10 +96,8 @@ void WeakBlock::sweep()
 }
 
 template<typename ContainerType>
-size_t WeakBlock::specializedVisit(ContainerType& container, HeapRootVisitor& heapRootVisitor)
+void WeakBlock::specializedVisit(ContainerType& container, SlotVisitor& visitor)
 {
-    SlotVisitor& visitor = heapRootVisitor.visitor();
-    
     HeapVersion markingVersion = visitor.markingVersion();
 
     size_t count = weakImplCount();
@@ -113,31 +110,30 @@ size_t WeakBlock::specializedVisit(ContainerType& container, HeapRootVisitor& he
         if (!weakHandleOwner)
             continue;
 
-        const JSValue& jsValue = weakImpl->jsValue();
+        JSValue jsValue = weakImpl->jsValue();
         if (container.isMarkedConcurrently(markingVersion, jsValue.asCell()))
             continue;
         
         if (!weakHandleOwner->isReachableFromOpaqueRoots(Handle<Unknown>::wrapSlot(&const_cast<JSValue&>(jsValue)), weakImpl->context(), visitor))
             continue;
 
-        heapRootVisitor.visit(&const_cast<JSValue&>(jsValue));
+        visitor.appendUnbarriered(jsValue);
     }
-    
-    return count;
 }
 
-size_t WeakBlock::visit(HeapRootVisitor& heapRootVisitor)
+void WeakBlock::visit(SlotVisitor& visitor)
 {
     // If a block is completely empty, a visit won't have any effect.
     if (isEmpty())
-        return 0;
+        return;
 
     // If this WeakBlock doesn't belong to a CellContainer, we won't even be here.
     ASSERT(m_container);
     
     if (m_container.isLargeAllocation())
-        return specializedVisit(m_container.largeAllocation(), heapRootVisitor);
-    return specializedVisit(m_container.markedBlock(), heapRootVisitor);
+        specializedVisit(m_container.largeAllocation(), visitor);
+    else
+        specializedVisit(m_container.markedBlock(), visitor);
 }
 
 void WeakBlock::reap()

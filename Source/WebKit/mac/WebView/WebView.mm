@@ -40,6 +40,7 @@
 #import "StorageThread.h"
 #import "WebAlternativeTextClient.h"
 #import "WebApplicationCacheInternal.h"
+#import "WebArchive.h"
 #import "WebBackForwardListInternal.h"
 #import "WebBaseNetscapePluginView.h"
 #import "WebCache.h"
@@ -580,6 +581,38 @@ static WebPageVisibilityState kit(PageVisibilityState visibilityState)
     ASSERT_NOT_REACHED();
     return WebPageVisibilityStateVisible;
 }
+
+namespace WebKit {
+
+class DeferredPageDestructor {
+public:
+    static void createDeferredPageDestructor(std::unique_ptr<Page> page)
+    {
+        new DeferredPageDestructor(WTFMove(page));
+    }
+
+private:
+    DeferredPageDestructor(std::unique_ptr<Page> page)
+        : m_page(WTFMove(page))
+    {
+        tryDestruction();
+    }
+
+    void tryDestruction()
+    {
+        if (m_page->insideNestedRunLoop()) {
+            m_page->whenUnnested([this] { tryDestruction(); });
+            return;
+        }
+
+        m_page = nullptr;
+        delete this;
+    }
+
+    std::unique_ptr<Page> m_page;
+};
+
+} // namespace WebKit
 
 @interface WebView (WebFileInternal)
 #if !PLATFORM(IOS)
@@ -2147,8 +2180,8 @@ static bool fastDocumentTeardownEnabled()
     // all the plug-ins in the page cache to break any retain cycles.
     // See comment in HistoryItem::releaseAllPendingPageCaches() for more information.
     Page* page = _private->page;
-    _private->page = 0;
-    delete page;
+    _private->page = nullptr;
+    WebKit::DeferredPageDestructor::createDeferredPageDestructor(std::unique_ptr<Page>(page));
 
 #if !PLATFORM(IOS)
     if (_private->hasSpellCheckerDocumentTag) {
@@ -2661,6 +2694,7 @@ static bool needsSelfRetainWhileLoadingQuirk()
     settings.setSubpixelCSSOMElementMetricsEnabled([preferences subpixelCSSOMElementMetricsEnabled]);
 
     settings.setForceSoftwareWebGLRendering([preferences forceSoftwareWebGLRendering]);
+    settings.setPreferLowPowerWebGLRendering([preferences preferLowPowerWebGLRendering]);
     settings.setAccelerated2dCanvasEnabled([preferences accelerated2dCanvasEnabled]);
     settings.setLoadDeferringEnabled(shouldEnableLoadDeferring());
     settings.setWindowFocusRestricted(shouldRestrictWindowFocus());
@@ -2858,8 +2892,6 @@ static bool needsSelfRetainWhileLoadingQuirk()
 #if ENABLE(DOWNLOAD_ATTRIBUTE)
     RuntimeEnabledFeatures::sharedFeatures().setDownloadAttributeEnabled([preferences downloadAttributeEnabled]);
 #endif
-
-    settings.setEs6ModulesEnabled([preferences es6ModulesEnabled]);
 
 #if ENABLE(CSS_GRID_LAYOUT)
     RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled([preferences isCSSGridLayoutEnabled]);
@@ -3286,6 +3318,8 @@ static inline IMP getMethod(id o, SEL s)
         [self _didChangeValueForKey: _WebIsLoadingKey];
 
         [self _willChangeValueForKey: _WebMainFrameURLKey];
+
+        [self hideFormValidationMessage];
     }
 
     [NSApp setWindowsNeedUpdate:YES];
@@ -3468,8 +3502,8 @@ static inline IMP getMethod(id o, SEL s)
     NSView *documentView = [[kit(&frameView->frame()) frameView] documentView];
 
     for (const auto& widget: frameView->children()) {
-        if (is<FrameView>(*widget)) {
-            [self _addScrollerDashboardRegionsForFrameView:downcast<FrameView>(widget.get()) dashboardRegions:regions];
+        if (is<FrameView>(widget)) {
+            [self _addScrollerDashboardRegionsForFrameView:&downcast<FrameView>(widget.get()) dashboardRegions:regions];
             continue;
         }
 
@@ -5025,7 +5059,7 @@ static Vector<String> toStringVector(NSArray* patterns)
 
 - (void)showCandidates:(NSArray<NSTextCheckingResult *> *)candidates forString:(NSString *)string inRect:(NSRect)rectOfTypedString forSelectedRange:(NSRange)range view:(NSView *)view completionHandler:(void (^)(NSTextCheckingResult *acceptedCandidate))completionBlock
 {
-    [self.candidateList setCandidates:candidates forSelectedRange:range inString:string];
+    [self.candidateList setCandidates:candidates forSelectedRange:range inString:string rect:rectOfTypedString view:view completionHandler:completionBlock];
 }
 
 - (BOOL)shouldRequestCandidates
@@ -6516,8 +6550,46 @@ static NSString * const backingPropertyOldScaleFactorKey = @"NSBackingPropertyOl
 {
     IntPoint client([draggingInfo draggingLocation]);
     IntPoint global(globalPoint([draggingInfo draggingLocation], [self window]));
-    DragData dragData(draggingInfo, client, global, static_cast<DragOperation>([draggingInfo draggingSourceOperationMask]), [self applicationFlags:draggingInfo]);
-    return core(self)->dragController().performDragOperation(dragData);
+    DragData *dragData = new DragData(draggingInfo, client, global, static_cast<DragOperation>([draggingInfo draggingSourceOperationMask]), [self applicationFlags:draggingInfo]);
+
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
+    NSArray* types = draggingInfo.draggingPasteboard.types;
+    if (![types containsObject:WebArchivePboardType] && ![types containsObject:NSFilenamesPboardType] && [types containsObject:NSFilesPromisePboardType]) {
+        NSArray *files = [draggingInfo.draggingPasteboard propertyListForType:NSFilesPromisePboardType];
+        if (![files isKindOfClass:[NSArray class]]) {
+            delete dragData;
+            return false;
+        }
+        size_t fileCount = files.count;
+        Vector<String> *fileNames = new Vector<String>;
+        NSURL *dropLocation = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
+        [draggingInfo enumerateDraggingItemsWithOptions:0 forView:self classes:@[[NSFilePromiseReceiver class]] searchOptions:@{ } usingBlock:^(NSDraggingItem * __nonnull draggingItem, NSInteger idx, BOOL * __nonnull stop) {
+            NSFilePromiseReceiver *item = draggingItem.item;
+            NSDictionary *options = @{ };
+
+            [item receivePromisedFilesAtDestination:dropLocation options:options operationQueue:[NSOperationQueue new] reader:^(NSURL * _Nonnull fileURL, NSError * _Nullable errorOrNil) {
+                if (errorOrNil)
+                    return;
+
+                dispatch_async(dispatch_get_main_queue(), [self, path = RetainPtr<NSString>(fileURL.path), fileNames, fileCount, dragData] {
+                    fileNames->append(path.get());
+                    if (fileNames->size() == fileCount) {
+                        dragData->setFileNames(*fileNames);
+                        core(self)->dragController().performDragOperation(*dragData);
+                        delete dragData;
+                        delete fileNames;
+                    }
+                });
+            }];
+        }];
+
+        return true;
+    }
+#endif
+    bool returnValue = core(self)->dragController().performDragOperation(*dragData);
+    delete dragData;
+
+    return returnValue;
 }
 
 - (NSView *)_hitTest:(NSPoint *)point dragTypes:(NSSet *)types
@@ -7369,7 +7441,7 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSC::JSValue j
     if (jsValue.isBoolean())
         return [NSAppleEventDescriptor descriptorWithBoolean:jsValue.asBoolean()];
     if (jsValue.isString())
-        return [NSAppleEventDescriptor descriptorWithString:jsValue.getString(exec)];
+        return [NSAppleEventDescriptor descriptorWithString:asString(jsValue)->value(exec)];
     if (jsValue.isNumber()) {
         double value = jsValue.asNumber();
         int intValue = value;
@@ -8242,11 +8314,10 @@ FORWARD(toggleUnderline)
 {
     Frame* coreFrame = core([self _selectedOrMainFrame]);
     if (coreFrame)
-        return coreFrame->editor().fontAttributesForSelectionStart();
+        return coreFrame->editor().fontAttributesForSelectionStart().autorelease();
     
     return nil;
 }
-
 
 @end
 
@@ -8520,7 +8591,6 @@ static WebFrameView *containingFrameView(NSView *view)
     auto& pageCache = PageCache::singleton();
     pageCache.setMaxSize(pageCacheSize);
 #if PLATFORM(IOS)
-    pageCache.setShouldClearBackingStores(true);
     nsurlCacheMemoryCapacity = std::max(nsurlCacheMemoryCapacity, [nsurlCache memoryCapacity]);
     CFURLCacheRef cfCache;
     if ([nsurlCache respondsToSelector:@selector(_CFURLCache)] && (cfCache = [nsurlCache _CFURLCache]))
@@ -9270,7 +9340,7 @@ bool LayerFlushController::flushLayers()
 {
     // FIXME: We should enable this on iOS as well.
 #if PLATFORM(MAC)
-    _private->formValidationBubble = std::make_unique<ValidationBubble>(self, message);
+    _private->formValidationBubble = ValidationBubble::create(self, message);
     _private->formValidationBubble->showRelativeTo(enclosingIntRect([self _convertRectFromRootView:anchorRect]));
 #else
     UNUSED_PARAM(message);

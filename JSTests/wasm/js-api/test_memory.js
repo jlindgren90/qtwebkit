@@ -1,11 +1,5 @@
-// FIXME: use the assert library: https://bugs.webkit.org/show_bug.cgi?id=165684
 import Builder from '../Builder.js';
-
-function assert(b) {
-    if (!b) {
-        throw new Error("Bad assertion");
-    }
-}
+import * as assert from '../assert.js';
 
 const pageSize = 64 * 1024;
 const maxPageCount = (2**32) / pageSize;
@@ -18,7 +12,7 @@ function binaryShouldNotParse(builder) {
     } catch(e) {
         threw = true;
     }
-    assert(threw);
+    assert.truthy(threw);
 }
 
 {
@@ -102,27 +96,35 @@ function binaryShouldNotParse(builder) {
 }
 
 {
-    let threw = false;
-    try {
-        new WebAssembly.Memory(20);
-    } catch(e) {
-        assert(e instanceof TypeError);
-        assert(e.message === "WebAssembly.Memory expects its first argument to be an object");
-        threw = true;
-    }
-    assert(threw);
+    // Can't export an undefined memory.
+    const builder = (new Builder())
+        .Type().End()
+        .Function().End()
+        .Export()
+            .Memory("memory", 0)
+        .End()
+        .Code()
+        .End();
+    binaryShouldNotParse(builder);
 }
 
 {
-    let threw = false;
-    try {
-        new WebAssembly.Memory({}, {});
-    } catch(e) {
-        assert(e instanceof TypeError);
-        assert(e.message === "WebAssembly.Memory expects exactly one argument");
-        threw = true;
-    }
-    assert(threw);
+    // Can't export a non-zero memory index.
+    const builder = (new Builder())
+        .Type().End()
+        .Import().Memory("imp", "memory", {initial: 20}).End()
+        .Function().End()
+        .Export()
+            .Memory("memory", 1)
+        .End()
+        .Code()
+        .End();
+    binaryShouldNotParse(builder);
+}
+
+{
+    assert.throws(() => new WebAssembly.Memory(20), TypeError, "WebAssembly.Memory expects its first argument to be an object"); 
+    assert.throws(() => new WebAssembly.Memory({}, {}), TypeError,  "WebAssembly.Memory expects exactly one argument");
 }
 
 function test(f) {
@@ -133,7 +135,7 @@ function test(f) {
 }
 
 test(function() {
-    const memoryDescription = {initial: 20, maximum: 20};
+    const memoryDescription = {initial: 2, maximum: 2};
     const builder = (new Builder())
         .Type().End()
         .Import().Memory("imp", "memory", memoryDescription).End()
@@ -164,15 +166,15 @@ test(function() {
         let value = i + 1;
         let address = i * 4;
         let result = foo(value, address);
-        assert(result === value);
+        assert.truthy(result === value);
         let arrayBuffer = memory.buffer;
         let buffer = new Uint32Array(arrayBuffer);
-        assert(buffer[i] === value);
+        assert.truthy(buffer[i] === value);
     }
 });
 
 test(function() {
-    const memoryDescription = {initial: 20, maximum: 20};
+    const memoryDescription = {initial: 2, maximum: 2};
     const builder = (new Builder())
         .Type().End()
         .Import().Memory("imp", "memory", memoryDescription).End()
@@ -204,15 +206,15 @@ test(function() {
         let address = i;
         let result = foo(value, address);
         let expectedValue = (value & ((2**8) - 1)); 
-        assert(result === expectedValue);
+        assert.truthy(result === expectedValue);
         let arrayBuffer = memory.buffer;
         let buffer = new Uint8Array(arrayBuffer);
-        assert(buffer[i] === expectedValue);
+        assert.truthy(buffer[i] === expectedValue);
     }
 });
 
 test(function() {
-    const memoryDescription = {initial: 20, maximum: 20};
+    const memoryDescription = {initial: 2, maximum: 2};
     const builder = (new Builder())
         .Type().End()
         .Import().Memory("imp", "memory", memoryDescription).End()
@@ -241,19 +243,19 @@ test(function() {
     const bytes = memoryDescription.initial * pageSize;
     for (let i = 0; i < (bytes/4); i++) {
         let value = i + 1 + .0128213781289;
-        assert(value !== Math.fround(value));
+        assert.truthy(value !== Math.fround(value));
         let address = i * 4;
         let result = foo(value, address);
         let expectedValue = Math.fround(result);
-        assert(result === expectedValue);
+        assert.truthy(result === expectedValue);
         let arrayBuffer = memory.buffer;
         let buffer = new Float32Array(arrayBuffer);
-        assert(buffer[i] === expectedValue);
+        assert.truthy(buffer[i] === expectedValue);
     }
 });
 
 test(function() {
-    const memoryDescription = {initial: 20, maximum: 20};
+    const memoryDescription = {initial: 2, maximum: 2};
     const builder = (new Builder())
         .Type().End()
         .Import().Memory("imp", "memory", memoryDescription).End()
@@ -285,10 +287,10 @@ test(function() {
         let address = i * 8;
         let result = foo(value, address);
         let expectedValue = result;
-        assert(result === expectedValue);
+        assert.truthy(result === expectedValue);
         let arrayBuffer = memory.buffer;
         let buffer = new Float64Array(arrayBuffer);
-        assert(buffer[i] === expectedValue);
+        assert.truthy(buffer[i] === expectedValue);
     }
 });
 
@@ -315,28 +317,14 @@ test(function() {
     const bin = builder.WebAssembly().get();
     const module = new WebAssembly.Module(bin);
 
-    function testMemImportError(instanceObj, expectedError) {
-        let threw = false;
-        try {
-            new WebAssembly.Instance(module, instanceObj);
-        } catch(e) {
-            assert(e instanceof TypeError);
-            threw = true;
-            if (expectedError) {
-                assert(e.message === expectedError);
-            }
-        }
-        assert(threw);
-    }
-
-    testMemImportError(20);
-    testMemImportError({ });
-    testMemImportError({imp: { } });
-    testMemImportError({imp: { memory: 20 } });
-    testMemImportError({imp: { memory: [] } });
-    testMemImportError({imp: { memory: new WebAssembly.Memory({initial: 19, maximum: 25}) } }, "Memory import provided an 'initial' that is too small");
-    testMemImportError({imp: { memory: new WebAssembly.Memory({initial: 20}) } }, "Memory import did not have a 'maximum' but the module requires that it does");
-    testMemImportError({imp: { memory: new WebAssembly.Memory({initial: 20, maximum: 26}) } }, "Memory imports 'maximum' is larger than the module's expected 'maximum");
+    assert.throws(() => new WebAssembly.Instance(module, 20), TypeError, `second argument to WebAssembly.Instance must be undefined or an Object (evaluating 'new WebAssembly.Instance(module, 20)')`);
+    assert.throws(() => new WebAssembly.Instance(module, {}), TypeError, `import must be an object (evaluating 'new WebAssembly.Instance(module, {})')`);
+    assert.throws(() => new WebAssembly.Instance(module, {imp: { } }), WebAssembly.LinkError, `Memory import is not an instance of WebAssembly.Memory (evaluating 'new WebAssembly.Instance(module, {imp: { } })')`);
+    assert.throws(() => new WebAssembly.Instance(module, {imp: { memory: 20 } }), WebAssembly.LinkError, `Memory import is not an instance of WebAssembly.Memory (evaluating 'new WebAssembly.Instance(module, {imp: { memory: 20 } })')`);
+    assert.throws(() => new WebAssembly.Instance(module, {imp: { memory: [] } }), WebAssembly.LinkError, `Memory import is not an instance of WebAssembly.Memory (evaluating 'new WebAssembly.Instance(module, {imp: { memory: [] } })')`);
+    assert.throws(() => new WebAssembly.Instance(module, {imp: { memory: new WebAssembly.Memory({initial: 19, maximum: 25}) } }), WebAssembly.LinkError, `Memory import provided an 'initial' that is too small (evaluating 'new WebAssembly.Instance(module, {imp: { memory: new WebAssembly.Memory({initial: 19, maximum: 25}) } })')`);
+    assert.throws(() => new WebAssembly.Instance(module, {imp: { memory: new WebAssembly.Memory({initial: 20}) } }), WebAssembly.LinkError, `Memory import did not have a 'maximum' but the module requires that it does (evaluating 'new WebAssembly.Instance(module, {imp: { memory: new WebAssembly.Memory({initial: 20}) } })')`);
+    assert.throws(() => new WebAssembly.Instance(module, {imp: { memory: new WebAssembly.Memory({initial: 20, maximum: 26}) } }), WebAssembly.LinkError, `Memory imports 'maximum' is larger than the module's expected 'maximum' (evaluating 'new WebAssembly.Instance(module, {imp: { memory: new WebAssembly.Memory({initial: 20, maximum: 26}) } })')`);
 });
 
 test(function() {
@@ -363,23 +351,51 @@ test(function() {
     const module = new WebAssembly.Module(bin);
 
     function testMemImportError(instanceObj, expectedError) {
-        let threw = false;
-        try {
-            new WebAssembly.Instance(module, instanceObj);
-        } catch(e) {
-            assert(e instanceof TypeError);
-            threw = true;
-            if (expectedError) {
-                assert(e.message === expectedError);
-            }
-        }
-        assert(threw);
+        assert.throws(() => new WebAssembly.Instance(module, instanceObj), WebAssembly.LinkError, expectedError);
     }
 
-    testMemImportError({imp: { memory: new WebAssembly.Memory({initial: 19, maximum: 25}) } }, "Memory import provided an 'initial' that is too small");
-    testMemImportError({imp: { memory: new WebAssembly.Memory({initial: 19}) } }, "Memory import provided an 'initial' that is too small");
+    testMemImportError({imp: { memory: new WebAssembly.Memory({initial: 19, maximum: 25}) } }, "Memory import provided an 'initial' that is too small (evaluating 'new WebAssembly.Instance(module, instanceObj)')");
+    testMemImportError({imp: { memory: new WebAssembly.Memory({initial: 19}) } }, "Memory import provided an 'initial' that is too small (evaluating 'new WebAssembly.Instance(module, instanceObj)')");
 
     // This should not throw.
     new WebAssembly.Instance(module, {imp: {memory: new WebAssembly.Memory({initial:20})}});
     new WebAssembly.Instance(module, {imp: {memory: new WebAssembly.Memory({initial:20, maximum:20})}});
 });
+
+{
+    const builder = (new Builder())
+        .Type().End()
+        .Import().Memory("imp", "memory", {initial: 20}).End()
+        .Function().End()
+        .Export()
+            .Memory("memory", 0)
+            .Memory("memory2", 0)
+        .End()
+        .Code()
+        .End();
+    const bin = builder.WebAssembly().get();
+    const module = new WebAssembly.Module(bin);
+    const memory = new WebAssembly.Memory({initial: 20});
+    const instance = new WebAssembly.Instance(module, {imp: {memory}});
+    assert.truthy(memory === instance.exports.memory);
+    assert.truthy(memory === instance.exports.memory2);
+}
+
+{
+    const builder = (new Builder())
+        .Type().End()
+        .Function().End()
+        .Memory().InitialMaxPages(20, 25).End()
+        .Export()
+            .Memory("memory", 0)
+            .Memory("memory2", 0)
+        .End()
+        .Code()
+        .End();
+    const bin = builder.WebAssembly().get();
+    const module = new WebAssembly.Module(bin);
+    const instance = new WebAssembly.Instance(module);
+    assert.eq(instance.exports.memory, instance.exports.memory2);
+    assert.eq(instance.exports.memory.buffer.byteLength, 20 * pageSize);
+    assert.truthy(instance.exports.memory instanceof WebAssembly.Memory);
+}

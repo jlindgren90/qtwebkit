@@ -57,12 +57,12 @@ std::optional<FetchBody> FetchBody::extract(ScriptExecutionContext& context, JSC
         ASSERT(!context.isWorkerGlobalScope());
         auto& domFormData = *JSDOMFormData::toWrapped(value);
         auto formData = FormData::createMultiPart(domFormData, domFormData.encoding(), &static_cast<Document&>(context));
-        contentType = makeString("multipart/form-data;boundary=", formData->boundary().data());
+        contentType = makeString("multipart/form-data; boundary=", formData->boundary().data());
         return FetchBody(WTFMove(formData));
     }
     if (value.isString()) {
         contentType = HTTPHeaderValues::textPlainContentType();
-        return FetchBody(value.toWTFString(&state));
+        return FetchBody(String { asString(value)->value(&state) });
     }
     if (value.inherits(JSURLSearchParams::info())) {
         contentType = HTTPHeaderValues::formURLEncodedContentType();

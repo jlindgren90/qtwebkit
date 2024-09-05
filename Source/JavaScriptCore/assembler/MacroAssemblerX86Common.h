@@ -31,6 +31,10 @@
 #include "AbstractMacroAssembler.h"
 #include <wtf/Optional.h>
 
+#if COMPILER(MSVC)
+#include <intrin.h>
+#endif
+
 namespace JSC {
 
 class MacroAssemblerX86Common : public AbstractMacroAssembler<X86Assembler, MacroAssemblerX86Common> {
@@ -1582,6 +1586,36 @@ public:
         else {
             moveDouble(src2, dst);
             andFloat(src1, dst);
+        }
+    }
+
+    void orDouble(FPRegisterID src, FPRegisterID dst)
+    {
+        m_assembler.orps_rr(src, dst);
+    }
+
+    void orDouble(FPRegisterID src1, FPRegisterID src2, FPRegisterID dst)
+    {
+        if (src1 == dst)
+            orDouble(src2, dst);
+        else {
+            moveDouble(src2, dst);
+            orDouble(src1, dst);
+        }
+    }
+
+    void orFloat(FPRegisterID src, FPRegisterID dst)
+    {
+        m_assembler.orps_rr(src, dst);
+    }
+
+    void orFloat(FPRegisterID src1, FPRegisterID src2, FPRegisterID dst)
+    {
+        if (src1 == dst)
+            orFloat(src2, dst);
+        else {
+            moveDouble(src2, dst);
+            orFloat(src1, dst);
         }
     }
 

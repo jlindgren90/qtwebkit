@@ -11,6 +11,7 @@ displaylists [ Pass ]
 http/tests/quicklook [ Pass ]
 media/controls/ipad [ Pass ]
 media/ios [ Pass ]
+quicklook [ Pass ]
 
 fast/text-autosizing/ios [ Pass ]
 fast/zooming/ios [ Pass ]
@@ -140,6 +141,7 @@ imported/w3c/web-platform-tests/html/semantics/embedded-content/media-elements
 # No touch events
 fast/events/touch [ Skip ]
 fast/shadow-dom/touch-event-ios.html [ Skip ]
+fast/shadow-dom/touch-event-on-text-assigned-to-slot.html [ Skip ]
 http/tests/quicklook/at-import-stylesheet-blocked.html [ Skip ]
 http/tests/quicklook/base-url-blocked.html [ Skip ]
 http/tests/quicklook/cross-origin-iframe-blocked.html [ Skip ]
@@ -348,13 +350,18 @@ fast/text/complex-small-caps-non-bmp-capitalize.html [ Skip ]
 fast/text/all-small-caps-whitespace.html [ Skip ]
 
 # This test relies on EventSender.keydown(), which is not supported on iOS
+editing/caret/emoji.html [ Skip ]
 webkit.org/b/155233 fast/events/max-tabindex-focus.html [ Skip ]
+fast/forms/validation-message-maxLength.html [ Skip ]
 fast/shadow-dom/shadow-host-removal-crash.html [ Skip ]
 fast/shadow-dom/input-element-in-shadow.html [ Skip ]
 fast/shadow-dom/activate-over-slotted-content.html [ Skip ]
+fast/shadow-dom/clear-active-state-in-shadow.html [ Skip ]
+fast/shadow-dom/hover-over-nested-slotted-content.html [ Skip ]
 fast/shadow-dom/hover-over-slotted-content.html [ Skip ]
 fast/events/keyboardevent-key.html [ Skip ]
 fast/events/keyboardevent-code.html [ Skip ]
+http/tests/navigation/keyboard-events-during-provisional-navigation.html [ Skip ]
 
 # The file-wrapper part of <attachment> is not yet working on iOS
 fast/attachment/attachment-type-attribute.html [ Skip ]
@@ -1002,7 +1009,6 @@ scrollingcoordinator/non-fast-scrollable-region-transformed-iframe.html [ Failur
 userscripts/user-script-plugin-document.html [ Failure ]
 
 # Webarchive tests that fail:
-webarchive/loading/video-in-webarchive.html [ Failure ]
 webarchive/test-css-url-resources-in-stylesheets.html [ Failure ]
 webarchive/test-css-url-resources-inline-styles.html [ Failure ]
 webarchive/test-link-rel-icon.html [ Failure ]
@@ -1291,6 +1297,12 @@ fast/events/shadow-event-path.html [ Failure ]
 fast/events/show-modal-dialog-onblur-onfocus.html [ Failure ]
 fast/events/tab-focus-link-in-canvas.html [ Failure ]
 fast/events/tabindex-focus-blur-all.html [ Failure ]
+
+# Tests that depend on mouse input
+fast/events/autoscroll-main-document.html [ Skip ]
+fast/events/autoscroll-when-zoomed.html [ Skip ]
+fast/events/drag-select-when-zoomed-with-header.html [ Skip ]
+fast/events/drag-select-when-zoomed.html [ Skip ]
 
 # Ref-test imported from W3C that is failing because type=image input elements have rounded corners on iOS.
 imported/w3c/web-platform-tests/html/semantics/forms/the-input-element/image01.html [ ImageOnlyFailure ]
@@ -2231,7 +2243,6 @@ compositing/fixed-with-fixed-layout.html [ Failure ]
 compositing/geometry/ancestor-overflow-change.html [ Failure ]
 compositing/layer-creation/will-change-layer-creation.html [ Failure ]
 css3/scroll-snap/nested-elements.html [ Failure ]
-css3/scroll-snap/scroll-snap-coordinate.html [ Failure ]
 fast/block/lineboxcontain/block-with-ideographs.xhtml [ Failure ]
 fast/css/text-overflow-ellipsis-text-align-center.html [ Failure ]
 fast/css/text-overflow-ellipsis-text-align-left.html [ Failure ]
@@ -2685,9 +2696,6 @@ webkit.org/b/161143 imported/w3c/web-platform-tests/html/browsers/browsing-the-w
 
 webkit.org/b/161395 svg/animations/reinserting-svg-into-document.html [ Pass Failure ]
 
-# rdar://problem/26477735
-quicklook
-
 # rdar://problem/27954577
 http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html [ Failure ]
 
@@ -2713,6 +2721,8 @@ webkit.org/b/162739 fast/images/gif-loop-count.html [ Pass ImageOnlyFailure ]
 
 # This variation font test requires Skia which isn't available on iOS.
 webkit.org/b/163093 fast/text/variations/advances.html [ Failure ]
+webkit.org/b/163093 fast/text/variations/outofbounds.html [ ImageOnlyFailure ]
+webkit.org/b/163093 fast/text/variations/default-value.html [ ImageOnlyFailure ]
 
 webkit.org/b/162647 http/tests/xmlhttprequest/onabort-response-getters.html [ Pass Failure ]
 
@@ -2746,6 +2756,7 @@ webkit.org/b/163046 js/regress-141098.html [ Pass Failure ]
 fast/zooming/client-rect-in-fixed-zoomed.html [ Skip ]
 fast/visual-viewport/zoomed-scroll-to-anchor-in-position-fixed.html [ Skip ]
 fast/visual-viewport/zoomed-scroll-into-view-fixed.html [ Skip ]
+fast/scrolling/scroll-to-anchor-zoomed-header.html [ Skip ]
 
 # This test relies on Arial being used to draw Arabic. However, on iOS,
 # we explicitly disallow this because this font is too slow.
@@ -2756,5 +2767,66 @@ fast/selectors/040.html
 
 webkit.org/b/165691 http/tests/security/contentSecurityPolicy/block-all-mixed-content/insecure-iframe-in-main-frame.html [ Pass Failure ]
 
-# Hover test does not apply
 fast/css/deferred-parsing/hover-test.html [ Skip ]
+
+# iOS-specific test
+media/modern-media-controls/media-controller/media-controller-scale-factor.html [ Pass ]
+
+# The tracks menu is never used in media controls on iOS
+media/modern-media-controls/tracks-panel [ Skip ]
+media/modern-media-controls/tracks-support [ Skip ]
+
+# There is no mute button or volume scrubber on iOS
+media/modern-media-controls/mute-button [ Skip ]
+media/modern-media-controls/mute-support [ Skip ]
+media/modern-media-controls/volume-slider [ Skip ]
+media/modern-media-controls/volume-support [ Skip ]
+
+# Fullscreen is handled natively on iOS, so no need to test fullscreen or controls only shown in fullscreen
+media/modern-media-controls/macos-fullscreen-media-controls [ Skip ]
+media/modern-media-controls/media-controller/media-controller-fade-controls-when-entering-fullscreen.html [ Skip ]
+media/modern-media-controls/media-controller/media-controller-fullscreen-change.html [ Skip ]
+media/modern-media-controls/media-controller/media-controller-fullscreen-ltr.html [ Skip ]
+media/modern-media-controls/media-controller/media-controller-inline-to-fullscreen-to-inline.html [ Skip ]
+media/modern-media-controls/media-controller/media-controller-inline-to-fullscreen-to-pip-to-inline.html [ Skip ]
+media/modern-media-controls/seek-backward-support [ Skip ]
+media/modern-media-controls/seek-forward-support [ Skip ]
+media/modern-media-controls/start-support/start-support-fullscreen.html [ Skip ]
+
+# These tests are mouse-specific
+media/modern-media-controls/media-controller/media-controller-auto-hide-mouse-leave-after-play.html [ Skip ]
+media/modern-media-controls/media-controller/media-controller-auto-hide-mouse-enter-and-mouse-leave.html [ Skip ]
+media/modern-media-controls/media-controller/media-controller-auto-hide-mouse-enter-over-controls-bar.html [ Skip ]
+media/modern-media-controls/media-controller/media-controller-auto-hide-rewind-with-mouse-enter.html [ Skip ]
+media/modern-media-controls/scrubber-support/scrubber-support-click.html [ Skip ]
+
+# Tests designed for macOS that have iOS equivalents in "ipad" directories
+media/modern-media-controls/fullscreen-support/fullscreen-support-click.html [ Skip ]
+media/modern-media-controls/pip-support/pip-support-click.html [ Skip ]
+media/modern-media-controls/pip-support/pip-support-enabled.html [ Skip ]
+media/modern-media-controls/placard-support/placard-support-pip.html [ Skip ]
+media/modern-media-controls/scrubber-support/scrubber-support-drag.html [ Skip ]
+media/modern-media-controls/scrubber-support/ipad/scrubber-support-drag.html [ Skip ]
+
+# These tests use uiController and need to be skipped in open-source
+media/modern-media-controls/placard-support/ipad/placard-support-pip.html [ Skip ]
+media/modern-media-controls/icon-button/icon-button-active-state.html [ Skip ]
+media/modern-media-controls/pip-support/ipad/pip-support-tap.html [ Skip ]
+media/modern-media-controls/playback-support/playback-support-button-click.html [ Skip ]
+media/modern-media-controls/fullscreen-support/ipad/fullscreen-support-tap.html [ Skip ]
+media/modern-media-controls/start-support/start-support-click-to-start.html [ Skip ]
+media/modern-media-controls/button/button.html [ Skip ]
+
+# AirPlay cannot be tested on iOS
+webkit.org/b/166062 media/modern-media-controls/airplay-placard/airplay-placard-text-section.html [ Skip ]
+webkit.org/b/166062 media/modern-media-controls/airplay-support/airplay-support.html [ Skip ]
+webkit.org/b/166062 media/modern-media-controls/placard-support/placard-support-airplay.html [ Skip ]
+webkit.org/b/166062 media/modern-media-controls/audio/audio-controls-buttons.html [ Skip ]
+
+# New Encrypted Media API not enabled on iOS
+media/encrypted-media/mock-navigator-requestMediaKeySystemAccess.html [ Skip ]
+
+webkit.org/b/166736 fast/scrolling/page-cache-back-overflow-scroll-restore.html [ Skip ]
+
+# editing/caret/ios/emoji.html is used instead.
+editing/caret/emoji.html [ Failure ]

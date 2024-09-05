@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,15 @@
 #include "Document.h"
 #include "Frame.h"
 #include "JSDOMBinding.h"
-#include "JSElement.h"
 #include "LoadableModuleScript.h"
 #include "MIMETypeRegistry.h"
 #include "ScriptController.h"
-#include "ScriptElement.h"
 #include "ScriptSourceCode.h"
 #include <runtime/JSInternalPromise.h>
 #include <runtime/JSInternalPromiseDeferred.h>
 #include <runtime/JSModuleRecord.h>
+#include <runtime/JSScriptFetcher.h>
+#include <runtime/JSSourceCode.h>
 #include <runtime/JSString.h>
 #include <runtime/Symbol.h>
 
@@ -53,9 +53,8 @@ ScriptModuleLoader::ScriptModuleLoader(Document& document)
 ScriptModuleLoader::~ScriptModuleLoader()
 {
     for (auto& loader : m_loaders)
-        const_cast<CachedModuleScriptLoader&>(loader.get()).clearClient();
+        loader->clearClient();
 }
-
 
 static bool isRootModule(JSC::JSValue importerModuleKey)
 {
@@ -133,8 +132,10 @@ JSC::JSInternalPromise* ScriptModuleLoader::resolve(JSC::JSGlobalObject* jsGloba
     return jsPromise.promise();
 }
 
-JSC::JSInternalPromise* ScriptModuleLoader::fetch(JSC::JSGlobalObject* jsGlobalObject, JSC::ExecState* exec, JSC::JSModuleLoader*, JSC::JSValue moduleKeyValue, JSC::JSValue initiator)
+JSC::JSInternalPromise* ScriptModuleLoader::fetch(JSC::JSGlobalObject* jsGlobalObject, JSC::ExecState* exec, JSC::JSModuleLoader*, JSC::JSValue moduleKeyValue, JSC::JSValue scriptFetcher)
 {
+    ASSERT(JSC::jsDynamicCast<JSC::JSScriptFetcher*>(scriptFetcher));
+
     auto& globalObject = *JSC::jsCast<JSDOMGlobalObject*>(jsGlobalObject);
     auto& jsPromise = *JSC::JSInternalPromiseDeferred::create(exec, &globalObject);
     auto deferred = DeferredPromise::create(globalObject, jsPromise);
@@ -156,17 +157,12 @@ JSC::JSInternalPromise* ScriptModuleLoader::fetch(JSC::JSGlobalObject* jsGlobalO
         return jsPromise.promise();
     }
 
-    ASSERT_WITH_MESSAGE(JSC::jsDynamicCast<JSElement*>(initiator), "Initiator should be an JSElement");
-    auto* scriptElement = toScriptElementIfPossible(&JSC::jsCast<JSElement*>(initiator)->wrapped());
-    ASSERT_WITH_MESSAGE(scriptElement, "Initiator should be ScriptElement.");
-
     if (auto* frame = m_document.frame()) {
-        auto loader = CachedModuleScriptLoader::create(*this, deferred.get());
+        auto loader = CachedModuleScriptLoader::create(*this, deferred.get(), *static_cast<CachedScriptFetcher*>(JSC::jsCast<JSC::JSScriptFetcher*>(scriptFetcher)->fetcher()));
         m_loaders.add(loader.copyRef());
-        if (!loader->load(*scriptElement, completedURL)) {
+        if (!loader->load(m_document, completedURL)) {
             loader->clearClient();
             m_loaders.remove(WTFMove(loader));
-
             deferred->reject(frame->script().moduleLoaderAlreadyReportedErrorSymbol());
             return jsPromise.promise();
         }
@@ -246,8 +242,10 @@ void ScriptModuleLoader::notifyFinished(CachedModuleScriptLoader& loader, RefPtr
     }
 
     m_requestURLToResponseURLMap.add(cachedScript.url(), cachedScript.response().url());
-    // FIXME: Let's wrap around ScriptSourceCode to propagate it directly through the module pipeline.
-    promise->resolve<IDLDOMString>(ScriptSourceCode(&cachedScript, JSC::SourceProviderSourceType::Module).source().toString());
+    ScriptSourceCode scriptSourceCode(&cachedScript, JSC::SourceProviderSourceType::Module, loader.scriptFetcher());
+    promise->resolveWithCallback([] (JSC::ExecState& state, JSDOMGlobalObject&, JSC::SourceCode sourceCode) {
+        return JSC::JSSourceCode::create(state.vm(), WTFMove(sourceCode));
+    }, scriptSourceCode.jsSourceCode());
 }
 
 }

@@ -246,6 +246,14 @@ String RenderThemeMac::mediaControlsStyleSheet()
 #endif
 }
 
+void RenderThemeMac::purgeCaches()
+{
+    m_legacyMediaControlsScript.clearImplIfNotShared();
+    m_mediaControlsScript.clearImplIfNotShared();
+    m_legacyMediaControlsStyleSheet.clearImplIfNotShared();
+    m_mediaControlsStyleSheet.clearImplIfNotShared();
+}
+
 String RenderThemeMac::mediaControlsScript()
 {
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
@@ -1467,12 +1475,11 @@ void RenderThemeMac::setPopupButtonCellState(const RenderObject& o, const IntSiz
 
 void RenderThemeMac::paintCellAndSetFocusedElementNeedsRepaintIfNecessary(NSCell* cell, const RenderObject& renderer, const PaintInfo& paintInfo, const FloatRect& rect)
 {
-    Page* page = renderer.document().page();
     bool shouldDrawFocusRing = isFocused(renderer) && renderer.style().outlineStyleIsAuto();
-    bool shouldUseImageBuffer = renderer.style().effectiveZoom() != 1 || page->pageScaleFactor() != 1;
+    bool shouldUseImageBuffer = renderer.style().effectiveZoom() != 1 || renderer.page().pageScaleFactor() != 1;
     bool shouldDrawCell = true;
-    if (ThemeMac::drawCellOrFocusRingWithViewIntoContext(cell, paintInfo.context(), rect, documentViewFor(renderer), shouldDrawCell, shouldDrawFocusRing, shouldUseImageBuffer, page->deviceScaleFactor()))
-        page->focusController().setFocusedElementNeedsRepaint();
+    if (ThemeMac::drawCellOrFocusRingWithViewIntoContext(cell, paintInfo.context(), rect, documentViewFor(renderer), shouldDrawCell, shouldDrawFocusRing, shouldUseImageBuffer, renderer.page().deviceScaleFactor()))
+        renderer.page().focusController().setFocusedElementNeedsRepaint();
 }
 
 const IntSize* RenderThemeMac::menuListSizes() const
@@ -1599,7 +1606,7 @@ bool RenderThemeMac::paintSliderThumb(const RenderObject& o, const PaintInfo& pa
 
     bool shouldDrawCell = true;
     bool shouldDrawFocusRing = false;
-    float deviceScaleFactor = o.document().page()->deviceScaleFactor();
+    float deviceScaleFactor = o.page().deviceScaleFactor();
     bool shouldUseImageBuffer = deviceScaleFactor != 1 || zoomLevel != 1;
     ThemeMac::drawCellOrFocusRingWithViewIntoContext(sliderThumbCell, paintInfo.context(), unzoomedRect, view, shouldDrawCell, shouldDrawFocusRing, shouldUseImageBuffer, deviceScaleFactor);
     [sliderThumbCell setControlView:nil];

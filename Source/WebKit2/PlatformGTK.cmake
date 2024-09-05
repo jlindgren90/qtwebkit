@@ -28,7 +28,6 @@ set(WebKit2_USE_PREFIX_HEADER ON)
 list(APPEND WebKit2_SOURCES
     DatabaseProcess/gtk/DatabaseProcessMainGtk.cpp
 
-    NetworkProcess/CustomProtocols/soup/CustomProtocolManagerImpl.cpp
     NetworkProcess/CustomProtocols/soup/CustomProtocolManagerSoup.cpp
 
     NetworkProcess/Downloads/gtk/DownloadSoupErrorsGtk.cpp
@@ -220,6 +219,9 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/gtk/WebKitSecurityManager.cpp
     UIProcess/API/gtk/WebKitSecurityManager.h
     UIProcess/API/gtk/WebKitSecurityManagerPrivate.h
+    UIProcess/API/gtk/WebKitSecurityOrigin.cpp
+    UIProcess/API/gtk/WebKitSecurityOrigin.h
+    UIProcess/API/gtk/WebKitSecurityOriginPrivate.h
     UIProcess/API/gtk/WebKitSettings.cpp
     UIProcess/API/gtk/WebKitSettings.h
     UIProcess/API/gtk/WebKitSettingsPrivate.h
@@ -534,6 +536,7 @@ set(WebKit2GTK_INSTALLED_HEADERS
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitResponsePolicyDecision.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitScriptDialog.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitSecurityManager.h
+    ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitSecurityOrigin.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitSettings.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitURIRequest.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitURIResponse.h

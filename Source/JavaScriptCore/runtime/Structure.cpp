@@ -793,10 +793,14 @@ Structure* Structure::flattenDictionaryStructure(VM& vm, JSObject* object)
             object->shiftButterflyAfterFlattening(locker, vm, this, afterOutOfLineCapacity);
     }
     
-    vm.heap.writeBarrier(object);
     WTF::storeStoreFence();
     object->setStructureIDDirectly(id());
-    
+
+    // FIXME: This is probably no longer needed since we have a stronger mechanism
+    // for detecting races and rescanning an object.
+    // https://bugs.webkit.org/show_bug.cgi?id=166989
+    vm.heap.writeBarrier(object);
+
     return this;
 }
 
@@ -1060,25 +1064,25 @@ void Structure::visitChildren(JSCell* cell, SlotVisitor& visitor)
     
     ConcurrentJSLocker locker(thisObject->m_lock);
     
-    visitor.append(&thisObject->m_globalObject);
+    visitor.append(thisObject->m_globalObject);
     if (!thisObject->isObject())
         thisObject->m_cachedPrototypeChain.clear();
     else {
-        visitor.append(&thisObject->m_prototype);
-        visitor.append(&thisObject->m_cachedPrototypeChain);
+        visitor.append(thisObject->m_prototype);
+        visitor.append(thisObject->m_cachedPrototypeChain);
     }
-    visitor.append(&thisObject->m_previousOrRareData);
+    visitor.append(thisObject->m_previousOrRareData);
 
     if (thisObject->isPinnedPropertyTable() || thisObject->isAddingPropertyForTransition()) {
         // NOTE: This can interleave in pin(), in which case it may see a null property table.
         // That's fine, because then the barrier will fire and we will scan this again.
-        visitor.append(&thisObject->m_propertyTableUnsafe);
+        visitor.append(thisObject->m_propertyTableUnsafe);
     } else if (visitor.isBuildingHeapSnapshot())
-        visitor.append(&thisObject->m_propertyTableUnsafe);
+        visitor.append(thisObject->m_propertyTableUnsafe);
     else if (thisObject->m_propertyTableUnsafe)
         thisObject->m_propertyTableUnsafe.clear();
 
-    visitor.append(&thisObject->m_inferredTypeTable);
+    visitor.append(thisObject->m_inferredTypeTable);
 }
 
 bool Structure::isCheapDuringGC()
@@ -1096,7 +1100,7 @@ bool Structure::markIfCheap(SlotVisitor& visitor)
     if (!isCheapDuringGC())
         return Heap::isMarkedConcurrently(this);
     
-    visitor.appendUnbarrieredReadOnlyPointer(this);
+    visitor.appendUnbarriered(this);
     return true;
 }
 

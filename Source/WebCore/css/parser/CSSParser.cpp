@@ -92,10 +92,7 @@ CSSParserContext::CSSParserContext(Document& document, const URL& baseURL, const
         textAutosizingEnabled = settings->textAutosizingEnabled();
 #endif
         springTimingFunctionEnabled = settings->springTimingFunctionEnabled();
-
-#if ENABLE(VARIATION_FONTS)
-        variationFontsEnabled = settings->variationFontsEnabled();
-#endif
+        deferredCSSParserEnabled = settings->deferredCSSParserEnabled();
     }
 
 #if PLATFORM(IOS)
@@ -118,10 +115,8 @@ bool operator==(const CSSParserContext& a, const CSSParserContext& b)
         && a.needsSiteSpecificQuirks == b.needsSiteSpecificQuirks
         && a.enforcesCSSMIMETypeInNoQuirksMode == b.enforcesCSSMIMETypeInNoQuirksMode
         && a.useLegacyBackgroundSizeShorthandBehavior == b.useLegacyBackgroundSizeShorthandBehavior
-#if ENABLE(VARIATION_FONTS)
-        && a.variationFontsEnabled == b.variationFontsEnabled
-#endif
-        && a.springTimingFunctionEnabled == b.springTimingFunctionEnabled;
+        && a.springTimingFunctionEnabled == b.springTimingFunctionEnabled
+        && a.deferredCSSParserEnabled == b.deferredCSSParserEnabled;
 }
 
 CSSParser::CSSParser(const CSSParserContext& context)
@@ -148,16 +143,16 @@ RefPtr<StyleRuleBase> CSSParser::parseRule(const CSSParserContext& context, Styl
     return CSSParserImpl::parseRule(string, context, sheet, CSSParserImpl::AllowImportRules);
 }
 
-RefPtr<StyleKeyframe> CSSParser::parseKeyframeRule(const String& string)
+RefPtr<StyleRuleKeyframe> CSSParser::parseKeyframeRule(const String& string)
 {
     RefPtr<StyleRuleBase> keyframe = CSSParserImpl::parseRule(string, m_context, nullptr, CSSParserImpl::KeyframeRules);
-    return downcast<StyleKeyframe>(keyframe.get());
+    return downcast<StyleRuleKeyframe>(keyframe.get());
 }
 
 bool CSSParser::parseSupportsCondition(const String& condition)
 {
     CSSParserImpl parser(m_context, condition);
-    return CSSSupportsParser::supportsCondition(parser.tokenizer().tokenRange(), parser) == CSSSupportsParser::Supported;
+    return CSSSupportsParser::supportsCondition(parser.tokenizer()->tokenRange(), parser) == CSSSupportsParser::Supported;
 }
 
 Color CSSParser::parseColor(const String& string, bool strict)

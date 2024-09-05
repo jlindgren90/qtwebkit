@@ -46,12 +46,14 @@
 #include "HTMLTableElement.h"
 #include "NodeRareData.h"
 #include "Page.h"
+#include "RadioNodeList.h"
 #include "RenderTextControl.h"
 #include "ScriptController.h"
 #include "SetForScope.h"
 #include "Settings.h"
 #include <limits>
 #include <wtf/Ref.h>
+#include <wtf/SetForScope.h>
 
 namespace WebCore {
 
@@ -174,6 +176,25 @@ HTMLElement* HTMLFormElement::item(unsigned index)
     return elements()->item(index);
 }
 
+std::optional<Variant<RefPtr<RadioNodeList>, RefPtr<Element>>> HTMLFormElement::namedItem(const AtomicString& name)
+{
+    auto namedItems = namedElements(name);
+
+    if (namedItems.isEmpty())
+        return std::nullopt;
+    if (namedItems.size() == 1)
+        return Variant<RefPtr<RadioNodeList>, RefPtr<Element>> { RefPtr<Element> { WTFMove(namedItems[0]) } };
+
+    return Variant<RefPtr<RadioNodeList>, RefPtr<Element>> { RefPtr<RadioNodeList> { radioNodeList(name) } };
+}
+
+Vector<AtomicString> HTMLFormElement::supportedPropertyNames() const
+{
+    // FIXME: Should be implemented (only needed for enumeration with includeDontEnumProperties mode
+    // since this class is annotated with LegacyUnenumerableNamedProperties).
+    return { };
+}
+
 void HTMLFormElement::submitImplicitly(Event& event, bool fromImplicitSubmissionTrigger)
 {
     unsigned submissionTriggerCount = 0;
@@ -248,14 +269,6 @@ bool HTMLFormElement::validateInteractively()
     return false;
 }
 
-static bool isURLBlacklistedForInteractiveFormValidation(const URL& url)
-{
-    // FIXME: Remove this workaround once <rdar://problem/29518605> is fixed.
-    if (url.host() == "idmsa.apple.com")
-        return true;
-    return false;
-}
-
 void HTMLFormElement::prepareForSubmission(Event& event)
 {
     Frame* frame = document().frame();
@@ -265,7 +278,7 @@ void HTMLFormElement::prepareForSubmission(Event& event)
     m_isSubmittingOrPreparingForSubmission = true;
     m_shouldSubmit = false;
 
-    bool shouldValidate = document().page() && document().page()->settings().interactiveFormValidationEnabled() && !noValidate() && !isURLBlacklistedForInteractiveFormValidation(document().url());
+    bool shouldValidate = document().page() && document().page()->settings().interactiveFormValidationEnabled() && !noValidate();
 
     HTMLFormControlElement* submitElement = submitElementFromEvent(event);
     if (submitElement && submitElement->formNoValidate())
@@ -277,12 +290,11 @@ void HTMLFormElement::prepareForSubmission(Event& event)
         return;
     }
 
-    StringPairVector controlNamesAndValues;
-    getTextFieldValues(controlNamesAndValues);
-    auto formState = FormState::create(this, controlNamesAndValues, &document(), NotSubmittedByJavaScript);
+    auto formState = FormState::create(*this, textFieldValues(), document(), NotSubmittedByJavaScript);
     frame->loader().client().dispatchWillSendSubmitEvent(WTFMove(formState));
 
     Ref<HTMLFormElement> protectedThis(*this);
+
     // Event handling can result in m_shouldSubmit becoming true, regardless of dispatchEvent() return value.
     if (dispatchEvent(Event::create(eventNames().submitEvent, true, true)))
         m_shouldSubmit = true;
@@ -303,20 +315,20 @@ void HTMLFormElement::submitFromJavaScript()
     submit(0, false, ScriptController::processingUserGesture(), SubmittedByJavaScript);
 }
 
-void HTMLFormElement::getTextFieldValues(StringPairVector& fieldNamesAndValues) const
+StringPairVector HTMLFormElement::textFieldValues() const
 {
-    ASSERT_ARG(fieldNamesAndValues, fieldNamesAndValues.isEmpty());
-
-    fieldNamesAndValues.reserveCapacity(m_associatedElements.size());
+    StringPairVector result;
+    result.reserveInitialCapacity(m_associatedElements.size());
     for (auto& associatedElement : m_associatedElements) {
-        HTMLElement& element = associatedElement->asHTMLElement();
+        auto& element = associatedElement->asHTMLElement();
         if (!is<HTMLInputElement>(element))
             continue;
-        HTMLInputElement& input = downcast<HTMLInputElement>(element);
+        auto& input = downcast<HTMLInputElement>(element);
         if (!input.isTextField())
             continue;
-        fieldNamesAndValues.append(std::make_pair(input.name().string(), input.value()));
+        result.uncheckedAppend({ input.name().string(), input.value() });
     }
+    return result;
 }
 
 void HTMLFormElement::submit(Event* event, bool activateSubmitButton, bool processingUserGesture, FormSubmissionTrigger formSubmissionTrigger)
@@ -352,9 +364,10 @@ void HTMLFormElement::submit(Event* event, bool activateSubmitButton, bool proce
     if (needButtonActivation && firstSuccessfulSubmitButton)
         firstSuccessfulSubmitButton->setActivatedSubmit(true);
 
-    LockHistory lockHistory = processingUserGesture ? LockHistory::No : LockHistory::Yes;
-    Ref<HTMLFormElement> protectedThis(*this); // Form submission can execute arbitary JavaScript.
-    frame->loader().submitForm(FormSubmission::create(this, m_attributes, event, lockHistory, formSubmissionTrigger));
+    auto protectedThis = makeRef(*this); // Form submission can execute arbitary JavaScript.
+
+    auto shouldLockHistory = processingUserGesture ? LockHistory::No : LockHistory::Yes;
+    frame->loader().submitForm(FormSubmission::create(*this, m_attributes, event, shouldLockHistory, formSubmissionTrigger));
 
     if (needButtonActivation && firstSuccessfulSubmitButton)
         firstSuccessfulSubmitButton->setActivatedSubmit(false);
@@ -427,8 +440,8 @@ void HTMLFormElement::requestAutocomplete()
     StringPairVector controlNamesAndValues;
     getTextFieldValues(controlNamesAndValues);
 
-    RefPtr<FormState> formState = FormState::create(this, controlNamesAndValues, &document(), SubmittedByJavaScript);
-    frame->loader().client().didRequestAutocomplete(formState.release());
+    auto formState = FormState::create(this, controlNamesAndValues, &document(), SubmittedByJavaScript);
+    frame->loader().client().didRequestAutocomplete(WTFMove(formState));
 }
 
 void HTMLFormElement::finishRequestAutocomplete(AutocompleteResult result)

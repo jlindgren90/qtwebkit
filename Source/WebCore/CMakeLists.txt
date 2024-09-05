@@ -3,6 +3,7 @@ include(WebKitCommon)
 set_property(DIRECTORY . PROPERTY FOLDER "WebCore")
 
 set(WebCore_INCLUDE_DIRECTORIES
+    "${CMAKE_BINARY_DIR}"
     "${WEBCORE_DIR}"
     "${WEBCORE_DIR}/Modules/airplay"
     "${WEBCORE_DIR}/Modules/applepay"
@@ -14,7 +15,6 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/indexeddb/client"
     "${WEBCORE_DIR}/Modules/indexeddb/server"
     "${WEBCORE_DIR}/Modules/indexeddb/shared"
-    "${WEBCORE_DIR}/Modules/indieui"
     "${WEBCORE_DIR}/Modules/mediacontrols/"
     "${WEBCORE_DIR}/Modules/mediasession"
     "${WEBCORE_DIR}/Modules/mediasource"
@@ -34,7 +34,6 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/accessibility"
     "${WEBCORE_DIR}/animation"
     "${WEBCORE_DIR}/bindings"
-    "${WEBCORE_DIR}/bindings/generic"
     "${WEBCORE_DIR}/bindings/js"
     "${WEBCORE_DIR}/bridge"
     "${WEBCORE_DIR}/bridge/c"
@@ -140,7 +139,6 @@ set(WebCore_IDL_INCLUDES
     Modules/fetch
     Modules/geolocation
     Modules/indexeddb
-    Modules/indieui
     Modules/mediasession
     Modules/mediastream
     Modules/notifications
@@ -153,7 +151,6 @@ set(WebCore_IDL_INCLUDES
     Modules/webdatabase
     Modules/websockets
 
-    bindings/generic
     bindings/js
 
     html/canvas
@@ -184,6 +181,7 @@ set(WebCore_NON_SVG_IDL_FILES
 
     Modules/indexeddb/DOMWindowIndexedDatabase.idl
     Modules/indexeddb/IDBCursor.idl
+    Modules/indexeddb/IDBCursorDirection.idl
     Modules/indexeddb/IDBCursorWithValue.idl
     Modules/indexeddb/IDBDatabase.idl
     Modules/indexeddb/IDBFactory.idl
@@ -196,8 +194,6 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/indexeddb/IDBTransactionMode.idl
     Modules/indexeddb/IDBVersionChangeEvent.idl
     Modules/indexeddb/WorkerGlobalScopeIndexedDatabase.idl
-
-    Modules/indieui/UIRequestEvent.idl
 
     Modules/mediacontrols/MediaControlsHost.idl
 
@@ -212,13 +208,16 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/mediasource/VideoPlaybackQuality.idl
 
     Modules/mediastream/DOMURLMediaStream.idl
+    Modules/mediastream/DoubleRange.idl
     Modules/mediastream/HTMLMediaElementMediaStream.idl
+    Modules/mediastream/LongRange.idl
     Modules/mediastream/MediaDeviceInfo.idl
     Modules/mediastream/MediaDevices.idl
     Modules/mediastream/MediaStream.idl
     Modules/mediastream/MediaStreamEvent.idl
     Modules/mediastream/MediaStreamTrack.idl
     Modules/mediastream/MediaStreamTrackEvent.idl
+    Modules/mediastream/MediaTrackConstraints.idl
     Modules/mediastream/MediaTrackSupportedConstraints.idl
     Modules/mediastream/NavigatorMediaDevices.idl
     Modules/mediastream/NavigatorUserMedia.idl
@@ -347,7 +346,6 @@ set(WebCore_NON_SVG_IDL_FILES
     css/CSSMediaRule.idl
     css/CSSNamespaceRule.idl
     css/CSSPageRule.idl
-    css/CSSPrimitiveValue.idl
     css/CSSRule.idl
     css/CSSRuleList.idl
     css/CSSStyleDeclaration.idl
@@ -355,23 +353,23 @@ set(WebCore_NON_SVG_IDL_FILES
     css/CSSStyleSheet.idl
     css/CSSSupportsRule.idl
     css/CSSUnknownRule.idl
-    css/CSSValue.idl
-    css/CSSValueList.idl
-    css/Counter.idl
+    css/DeprecatedCSSOMCounter.idl
+    css/DeprecatedCSSOMPrimitiveValue.idl
+    css/DeprecatedCSSOMRGBColor.idl
+    css/DeprecatedCSSOMRect.idl
+    css/DeprecatedCSSOMValue.idl
+    css/DeprecatedCSSOMValueList.idl
     css/DOMCSSNamespace.idl
     css/FontFace.idl
     css/FontFaceSet.idl
     css/MediaList.idl
     css/MediaQueryList.idl
     css/MediaQueryListListener.idl
-    css/RGBColor.idl
-    css/Rect.idl
     css/StyleMedia.idl
     css/StyleSheet.idl
     css/StyleSheetList.idl
     css/WebKitCSSMatrix.idl
     css/WebKitCSSRegionRule.idl
-    css/WebKitCSSTransformValue.idl
     css/WebKitCSSViewportRule.idl
 
     dom/AnimationEvent.idl
@@ -789,8 +787,10 @@ set(WebCore_SVG_IDL_FILES
 
 if (WIN32 AND INTERNAL_BUILD)
     set(JavaScriptCore_SCRIPTS_DIR "${CMAKE_BINARY_DIR}/../include/private/JavaScriptCore/Scripts")
+    set(ANGLE_FORWARDING_HEADERS_DIR "${CMAKE_BINARY_DIR}/../include/private/ANGLE")
 else ()
     set(JavaScriptCore_SCRIPTS_DIR "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/Scripts")
+    set(ANGLE_FORWARDING_HEADERS_DIR "${DERIVED_SOURCES_DIR}/ForwardingHeaders/ANGLE")
 endif ()
 
 set(WebCore_SOURCES
@@ -900,12 +900,12 @@ set(WebCore_SOURCES
     Modules/mediastream/MediaDevicesRequest.cpp
     Modules/mediastream/MediaEndpointPeerConnection.cpp
     Modules/mediastream/MediaEndpointSessionDescription.cpp
-    Modules/mediastream/MediaSourceSettings.cpp
     Modules/mediastream/MediaStream.cpp
     Modules/mediastream/MediaStreamEvent.cpp
     Modules/mediastream/MediaStreamRegistry.cpp
     Modules/mediastream/MediaStreamTrack.cpp
     Modules/mediastream/MediaStreamTrackEvent.cpp
+    Modules/mediastream/MediaTrackConstraints.cpp
     Modules/mediastream/NavigatorMediaDevices.cpp
     Modules/mediastream/PeerConnectionBackend.cpp
     Modules/mediastream/RTCDTMFSender.cpp
@@ -1065,16 +1065,12 @@ set(WebCore_SOURCES
     animation/KeyframeEffect.cpp
     animation/WebAnimation.cpp
 
-    bindings/generic/ActiveDOMCallback.cpp
-    bindings/generic/RuntimeEnabledFeatures.cpp
-
-    bindings/js/ArrayValue.cpp
     bindings/js/CachedModuleScript.cpp
     bindings/js/CachedModuleScriptLoader.cpp
+    bindings/js/CachedScriptFetcher.cpp
     bindings/js/CallbackFunction.cpp
     bindings/js/CommonVM.cpp
     bindings/js/DOMWrapperWorld.cpp
-    bindings/js/Dictionary.cpp
     bindings/js/GCController.cpp
     bindings/js/IDBBindingUtilities.cpp
     bindings/js/JSAnimationTimelineCustom.cpp
@@ -1101,15 +1097,10 @@ set(WebCore_SOURCES
     bindings/js/JSCustomElementInterface.cpp
     bindings/js/JSCustomElementRegistryCustom.cpp
     bindings/js/JSCustomEventCustom.cpp
-    bindings/js/JSCustomSQLStatementErrorCallback.cpp
     bindings/js/JSCustomXPathNSResolver.cpp
     bindings/js/JSDOMBinding.cpp
     bindings/js/JSDOMGlobalObject.cpp
     bindings/js/JSDOMGlobalObjectTask.cpp
-    bindings/js/JSDOMMimeTypeArrayCustom.cpp
-    bindings/js/JSDOMNamedFlowCollectionCustom.cpp
-    bindings/js/JSDOMPluginArrayCustom.cpp
-    bindings/js/JSDOMPluginCustom.cpp
     bindings/js/JSDOMPromise.cpp
     bindings/js/JSDOMStringMapCustom.cpp
     bindings/js/JSDOMWindowBase.cpp
@@ -1117,20 +1108,14 @@ set(WebCore_SOURCES
     bindings/js/JSDOMWindowProperties.cpp
     bindings/js/JSDOMWindowShell.cpp
     bindings/js/JSDOMWrapper.cpp
-    bindings/js/JSDataCueCustom.cpp
-    bindings/js/JSDataTransferCustom.cpp
-    bindings/js/JSDeviceMotionEventCustom.cpp
-    bindings/js/JSDeviceOrientationEventCustom.cpp
     bindings/js/JSDocumentCustom.cpp
     bindings/js/JSDocumentFragmentCustom.cpp
     bindings/js/JSElementCustom.cpp
-    bindings/js/JSErrorEventCustom.cpp
     bindings/js/JSErrorHandler.cpp
     bindings/js/JSEventCustom.cpp
     bindings/js/JSEventListener.cpp
     bindings/js/JSEventTargetCustom.cpp
     bindings/js/JSExceptionBase.cpp
-    bindings/js/JSFileReaderCustom.cpp
     bindings/js/JSHTMLAllCollectionCustom.cpp
     bindings/js/JSHTMLAppletElementCustom.cpp
     bindings/js/JSHTMLCanvasElementCustom.cpp
@@ -1139,11 +1124,7 @@ set(WebCore_SOURCES
     bindings/js/JSHTMLElementCustom.cpp
     bindings/js/JSHTMLEmbedElementCustom.cpp
     bindings/js/JSHTMLFormControlsCollectionCustom.cpp
-    bindings/js/JSHTMLFormElementCustom.cpp
-    bindings/js/JSHTMLFrameElementCustom.cpp
     bindings/js/JSHTMLFrameSetElementCustom.cpp
-    bindings/js/JSHTMLInputElementCustom.cpp
-    bindings/js/JSHTMLMediaElementCustom.cpp
     bindings/js/JSHTMLObjectElementCustom.cpp
     bindings/js/JSHTMLOptionsCollectionCustom.cpp
     bindings/js/JSHTMLSelectElementCustom.cpp
@@ -1153,25 +1134,18 @@ set(WebCore_SOURCES
     bindings/js/JSIDBCursorWithValueCustom.cpp
     bindings/js/JSIDBIndexCustom.cpp
     bindings/js/JSIDBObjectStoreCustom.cpp
-    bindings/js/JSIDBRequestCustom.cpp
     bindings/js/JSIDBTransactionCustom.cpp
-    bindings/js/JSImageConstructor.cpp
     bindings/js/JSImageDataCustom.cpp
     bindings/js/JSInspectorFrontendHostCustom.cpp
     bindings/js/JSLazyEventListener.cpp
     bindings/js/JSLocationCustom.cpp
     bindings/js/JSMainThreadExecState.cpp
-    bindings/js/JSMediaDevicesCustom.cpp
     bindings/js/JSMediaKeySessionCustom.cpp
-    bindings/js/JSMediaKeySystemAccessCustom.cpp
-    bindings/js/JSMediaStreamTrackCustom.cpp
-    bindings/js/JSMediaTrackSupportedConstraintsCustom.cpp
     bindings/js/JSMessageChannelCustom.cpp
     bindings/js/JSMessageEventCustom.cpp
     bindings/js/JSMessagePortCustom.cpp
     bindings/js/JSMutationCallback.cpp
     bindings/js/JSMutationObserverCustom.cpp
-    bindings/js/JSNamedNodeMapCustom.cpp
     bindings/js/JSNodeCustom.cpp
     bindings/js/JSNodeFilterCustom.cpp
     bindings/js/JSNodeIteratorCustom.cpp
@@ -1181,20 +1155,16 @@ set(WebCore_SOURCES
     bindings/js/JSPopStateEventCustom.cpp
     bindings/js/JSReadableStreamPrivateConstructors.cpp
     bindings/js/JSReadableStreamSourceCustom.cpp
-    bindings/js/JSRTCStatsResponseCustom.cpp
-    bindings/js/JSSQLResultSetRowListCustom.cpp
-    bindings/js/JSSQLTransactionCustom.cpp
+    bindings/js/JSSQLStatementErrorCallbackCustom.cpp
     bindings/js/JSSVGPathSegCustom.cpp
     bindings/js/JSStorageCustom.cpp
     bindings/js/JSStyleSheetCustom.cpp
-    bindings/js/JSStyleSheetListCustom.cpp
     bindings/js/JSSubtleCryptoCustom.cpp
     bindings/js/JSTextCustom.cpp
     bindings/js/JSTextTrackCueCustom.cpp
     bindings/js/JSTextTrackCustom.cpp
     bindings/js/JSTextTrackListCustom.cpp
     bindings/js/JSTrackCustom.cpp
-    bindings/js/JSTrackEventCustom.cpp
     bindings/js/JSTreeWalkerCustom.cpp
     bindings/js/JSVideoTrackCustom.cpp
     bindings/js/JSVideoTrackListCustom.cpp
@@ -1219,6 +1189,7 @@ set(WebCore_SOURCES
     bindings/js/ScriptState.cpp
     bindings/js/StructuredClone.cpp
     bindings/js/SerializedScriptValue.cpp
+    bindings/js/WebCoreJSClientData.cpp
     bindings/js/WebCoreTypedArrayController.cpp
     bindings/js/WorkerScriptController.cpp
 
@@ -1331,6 +1302,9 @@ set(WebCore_SOURCES
     css/CSSVariableData.cpp
     css/CSSVariableReferenceValue.cpp
     css/DOMCSSNamespace.cpp
+    css/DeprecatedCSSOMPrimitiveValue.cpp
+    css/DeprecatedCSSOMValue.cpp
+    css/DeprecatedCSSOMValueList.cpp
     css/DocumentRuleSets.cpp
     css/ElementRuleCollector.cpp
     css/FontVariantBuilder.cpp
@@ -1366,7 +1340,6 @@ set(WebCore_SOURCES
     css/ViewportStyleResolver.cpp
     css/WebKitCSSMatrix.cpp
     css/WebKitCSSRegionRule.cpp
-    css/WebKitCSSTransformValue.cpp
     css/WebKitCSSViewportRule.cpp
 
     css/parser/CSSAtRuleID.cpp
@@ -1393,6 +1366,7 @@ set(WebCore_SOURCES
 
     cssjit/SelectorCompiler.cpp
 
+    dom/ActiveDOMCallback.cpp
     dom/ActiveDOMCallbackMicrotask.cpp
     dom/ActiveDOMObject.cpp
     dom/AnimationEvent.cpp
@@ -1435,7 +1409,6 @@ set(WebCore_SOURCES
     dom/Document.cpp
     dom/DocumentEventQueue.cpp
     dom/DocumentFragment.cpp
-    dom/DocumentMarker.cpp
     dom/DocumentMarkerController.cpp
     dom/DocumentOrderedMap.cpp
     dom/DocumentParser.cpp
@@ -1458,6 +1431,7 @@ set(WebCore_SOURCES
     dom/GenericEventQueue.cpp
     dom/IdTargetObserver.cpp
     dom/IdTargetObserverRegistry.cpp
+    dom/InlineClassicScript.cpp
     dom/InlineStyleSheetOwner.cpp
     dom/InputEvent.cpp
     dom/KeyboardEvent.cpp
@@ -1776,7 +1750,6 @@ set(WebCore_SOURCES
     html/ValidationMessage.cpp
     html/WeekInputType.cpp
 
-    html/canvas/ANGLEInstancedArrays.cpp
     html/canvas/CanvasGradient.cpp
     html/canvas/CanvasPath.cpp
     html/canvas/CanvasPattern.cpp
@@ -1785,51 +1758,6 @@ set(WebCore_SOURCES
     html/canvas/CanvasRenderingContext2D.cpp
     html/canvas/CanvasStyle.cpp
     html/canvas/DOMPath.cpp
-    html/canvas/EXTBlendMinMax.cpp
-    html/canvas/EXTFragDepth.cpp
-    html/canvas/EXTShaderTextureLOD.cpp
-    html/canvas/EXTTextureFilterAnisotropic.cpp
-    html/canvas/EXTsRGB.cpp
-    html/canvas/OESElementIndexUint.cpp
-    html/canvas/OESStandardDerivatives.cpp
-    html/canvas/OESTextureFloat.cpp
-    html/canvas/OESTextureFloatLinear.cpp
-    html/canvas/OESTextureHalfFloat.cpp
-    html/canvas/OESTextureHalfFloatLinear.cpp
-    html/canvas/OESVertexArrayObject.cpp
-    html/canvas/WebGL2RenderingContext.cpp
-    html/canvas/WebGLBuffer.cpp
-    html/canvas/WebGLCompressedTextureATC.cpp
-    html/canvas/WebGLCompressedTexturePVRTC.cpp
-    html/canvas/WebGLCompressedTextureS3TC.cpp
-    html/canvas/WebGLContextEvent.cpp
-    html/canvas/WebGLContextGroup.cpp
-    html/canvas/WebGLContextObject.cpp
-    html/canvas/WebGLDebugRendererInfo.cpp
-    html/canvas/WebGLDebugShaders.cpp
-    html/canvas/WebGLDepthTexture.cpp
-    html/canvas/WebGLDrawBuffers.cpp
-    html/canvas/WebGLExtension.cpp
-    html/canvas/WebGLFramebuffer.cpp
-    html/canvas/WebGLGetInfo.cpp
-    html/canvas/WebGLLoseContext.cpp
-    html/canvas/WebGLObject.cpp
-    html/canvas/WebGLProgram.cpp
-    html/canvas/WebGLQuery.cpp
-    html/canvas/WebGLRenderbuffer.cpp
-    html/canvas/WebGLRenderingContext.cpp
-    html/canvas/WebGLRenderingContextBase.cpp
-    html/canvas/WebGLSampler.cpp
-    html/canvas/WebGLShader.cpp
-    html/canvas/WebGLShaderPrecisionFormat.cpp
-    html/canvas/WebGLSharedObject.cpp
-    html/canvas/WebGLSync.cpp
-    html/canvas/WebGLTexture.cpp
-    html/canvas/WebGLTransformFeedback.cpp
-    html/canvas/WebGLUniformLocation.cpp
-    html/canvas/WebGLVertexArrayObject.cpp
-    html/canvas/WebGLVertexArrayObjectBase.cpp
-    html/canvas/WebGLVertexArrayObjectOES.cpp
 
     html/forms/FileIconLoader.cpp
 
@@ -2066,6 +1994,7 @@ set(WebCore_SOURCES
     page/ResourceUsageData.cpp
     page/ResourceUsageOverlay.cpp
     page/ResourceUsageThread.cpp
+    page/RuntimeEnabledFeatures.cpp
     page/Screen.cpp
     page/SecurityOrigin.cpp
     page/SecurityOriginData.cpp
@@ -2121,6 +2050,7 @@ set(WebCore_SOURCES
     page/scrolling/ScrollingTreeScrollingNode.cpp
     page/scrolling/ThreadedScrollingTree.cpp
 
+    platform/CPUTime.cpp
     platform/CalculationValue.cpp
     platform/Clock.cpp
     platform/ClockGeneric.cpp
@@ -2175,6 +2105,7 @@ set(WebCore_SOURCES
     platform/UUID.cpp
     platform/UserActivity.cpp
     platform/WebCoreCrossThreadCopier.cpp
+    platform/WebGLStateTracker.cpp
     platform/Widget.cpp
 
     platform/animation/Animation.cpp
@@ -2338,7 +2269,6 @@ set(WebCore_SOURCES
     platform/mediastream/RealtimeMediaSourceSettings.cpp
     platform/mediastream/SDPProcessorScriptResource.cpp
 
-    platform/mock/DeviceMotionClientMock.cpp
     platform/mock/DeviceOrientationClientMock.cpp
     platform/mock/GeolocationClientMock.cpp
     platform/mock/MockMediaEndpoint.cpp
@@ -2382,7 +2312,6 @@ set(WebCore_SOURCES
     platform/network/SocketStreamHandle.cpp
     platform/network/SynchronousLoaderClient.cpp
 
-    platform/sql/SQLValue.cpp
     platform/sql/SQLiteAuthorizer.cpp
     platform/sql/SQLiteDatabase.cpp
     platform/sql/SQLiteDatabaseTracker.cpp
@@ -2872,6 +2801,7 @@ set(WebCore_SOURCES
     xml/XPathExpression.cpp
     xml/XPathExpressionNode.cpp
     xml/XPathFunctions.cpp
+    xml/XPathGrammar.cpp
     xml/XPathNSResolver.cpp
     xml/XPathNodeSet.cpp
     xml/XPathParser.cpp
@@ -3017,10 +2947,10 @@ set(WebCore_LIBRARIES
 
 if (ENABLE_LEGACY_ENCRYPTED_MEDIA)
     list(APPEND WebCore_SOURCES
-        Modules/encryptedmedia/CDM.cpp
-        Modules/encryptedmedia/CDMPrivateClearKey.cpp
-        Modules/encryptedmedia/CDMPrivateMediaPlayer.cpp
-        Modules/encryptedmedia/CDMSessionClearKey.cpp
+        Modules/encryptedmedia/legacy/LegacyCDM.cpp
+        Modules/encryptedmedia/legacy/LegacyCDMPrivateClearKey.cpp
+        Modules/encryptedmedia/legacy/LegacyCDMPrivateMediaPlayer.cpp
+        Modules/encryptedmedia/legacy/LegacyCDMSessionClearKey.cpp
 
         Modules/encryptedmedia/legacy/WebKitMediaKeyMessageEvent.cpp
         Modules/encryptedmedia/legacy/WebKitMediaKeyNeededEvent.cpp
@@ -3028,7 +2958,7 @@ if (ENABLE_LEGACY_ENCRYPTED_MEDIA)
         Modules/encryptedmedia/legacy/WebKitMediaKeys.cpp
     )
     list(APPEND WebCoreTestSupport_SOURCES
-        testing/MockCDM.cpp
+        testing/LegacyMockCDM.cpp
     )
     list(APPEND WebCore_IDL_FILES
         Modules/encryptedmedia/legacy/WebKitMediaKeyMessageEvent.idl
@@ -3042,6 +2972,8 @@ endif ()
 
 if (ENABLE_ENCRYPTED_MEDIA)
     list(APPEND WebCore_SOURCES
+        Modules/encryptedmedia/CDM.cpp
+        Modules/encryptedmedia/InitDataRegistry.cpp
         Modules/encryptedmedia/MediaKeyMessageEvent.cpp
         Modules/encryptedmedia/MediaKeySession.cpp
         Modules/encryptedmedia/MediaKeyStatusMap.cpp
@@ -3056,11 +2988,13 @@ if (ENABLE_ENCRYPTED_MEDIA)
     list(APPEND WebCore_IDL_FILES
         Modules/encryptedmedia/MediaKeyMessageEvent.idl
         Modules/encryptedmedia/MediaKeySession.idl
+        Modules/encryptedmedia/MediaKeySessionType.idl
         Modules/encryptedmedia/MediaKeyStatusMap.idl
         Modules/encryptedmedia/MediaKeySystemAccess.idl
         Modules/encryptedmedia/MediaKeySystemConfiguration.idl
         Modules/encryptedmedia/MediaKeySystemMediaCapability.idl
         Modules/encryptedmedia/MediaKeys.idl
+        Modules/encryptedmedia/MediaKeysRequirement.idl
         Modules/encryptedmedia/NavigatorEME.idl
 
         html/MediaEncryptedEvent.idl
@@ -3087,6 +3021,7 @@ if (ENABLE_WEBGL)
         html/canvas/OESTextureHalfFloatLinear.cpp
         html/canvas/OESVertexArrayObject.cpp
         html/canvas/WebGL2RenderingContext.cpp
+        html/canvas/WebGLAny.cpp
         html/canvas/WebGLBuffer.cpp
         html/canvas/WebGLCompressedTextureATC.cpp
         html/canvas/WebGLCompressedTexturePVRTC.cpp
@@ -3100,7 +3035,6 @@ if (ENABLE_WEBGL)
         html/canvas/WebGLDrawBuffers.cpp
         html/canvas/WebGLExtension.cpp
         html/canvas/WebGLFramebuffer.cpp
-        html/canvas/WebGLGetInfo.cpp
         html/canvas/WebGLLoseContext.cpp
         html/canvas/WebGLObject.cpp
         html/canvas/WebGLProgram.cpp
@@ -3271,6 +3205,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
     endif ()
 
     list(APPEND WebCore_INCLUDE_DIRECTORIES
+        "${ANGLE_FORWARDING_HEADERS_DIR}"
         "${WEBCORE_DIR}/platform/graphics/gpu"
     )
 
@@ -3458,6 +3393,7 @@ set(WebCoreTestSupport_IDL_FILES
     testing/Internals.idl
     testing/MallocStatistics.idl
     testing/MemoryInfo.idl
+    testing/MockCDMFactory.idl
     testing/MockContentFilterSettings.idl
     testing/MockPageOverlay.idl
     testing/TypeConversions.idl
@@ -3474,6 +3410,7 @@ list(APPEND WebCoreTestSupport_SOURCES
     testing/GCObservation.cpp
     testing/InternalSettings.cpp
     testing/Internals.cpp
+    testing/MockCDMFactory.cpp
     testing/MockGamepad.cpp
     testing/MockGamepadProvider.cpp
     testing/MockPageOverlay.cpp
@@ -3679,9 +3616,6 @@ add_custom_command(
     VERBATIM)
 list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/PlugInsResourcesData.cpp)
 ADD_SOURCE_WEBCORE_DERIVED_DEPENDENCIES(${WEBCORE_DIR}/css/StyleResolver.cpp PlugInsResourcesData.cpp PlugInsResources.h)
-
-GENERATE_GRAMMAR(xpathyy ${WEBCORE_DIR}/xml/XPathGrammar.y ${DERIVED_SOURCES_WEBCORE_DIR}/XPathGrammar.h ${DERIVED_SOURCES_WEBCORE_DIR}/XPathGrammar.cpp "")
-list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/XPathGrammar.cpp)
 
 set(FEATURE_DEFINES_JAVASCRIPT "LANGUAGE_JAVASCRIPT ${FEATURE_DEFINES_WITH_SPACE_SEPARATOR}")
 list(APPEND WebCoreTestSupport_IDL_FILES ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.idl)
@@ -3900,6 +3834,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D AND NOT ${PORT} STREQUAL "Win")
         ANGLE_ENABLE_GLSL)
 
     target_include_directories(ANGLESupport PRIVATE
+        "${THIRDPARTY_DIR}/ANGLE"
         "${THIRDPARTY_DIR}/ANGLE/include"
         "${THIRDPARTY_DIR}/ANGLE/include/KHR"
         "${THIRDPARTY_DIR}/ANGLE/src"

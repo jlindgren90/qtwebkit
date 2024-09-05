@@ -31,9 +31,9 @@
 #include <wtf/Optional.h>
 #include <wtf/RefCounted.h>
 
-#if PLATFORM(QT) || PLATFORM(GTK) || PLATFORM(EFL)
+#if USE(UNIX_DOMAIN_SOCKETS)
 #include "Attachment.h"
-#include <wtf/text/WTFString.h>
+#include <wtf/Optional.h>
 #endif
 
 namespace IPC {

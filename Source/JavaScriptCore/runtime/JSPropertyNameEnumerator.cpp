@@ -83,7 +83,7 @@ void JSPropertyNameEnumerator::finishCreation(VM& vm, uint32_t indexedLength, ui
 
 void JSPropertyNameEnumerator::destroy(JSCell* cell)
 {
-    jsCast<JSPropertyNameEnumerator*>(cell)->JSPropertyNameEnumerator::~JSPropertyNameEnumerator();
+    static_cast<JSPropertyNameEnumerator*>(cell)->JSPropertyNameEnumerator::~JSPropertyNameEnumerator();
 }
 
 void JSPropertyNameEnumerator::visitChildren(JSCell* cell, SlotVisitor& visitor)
@@ -91,9 +91,9 @@ void JSPropertyNameEnumerator::visitChildren(JSCell* cell, SlotVisitor& visitor)
     Base::visitChildren(cell, visitor);
     JSPropertyNameEnumerator* thisObject = jsCast<JSPropertyNameEnumerator*>(cell);
     auto locker = holdLock(*thisObject);
-    for (unsigned i = 0; i < thisObject->m_propertyNames.size(); ++i)
-        visitor.append(&thisObject->m_propertyNames[i]);
-    visitor.append(&thisObject->m_prototypeChain);
+    for (auto& propertyName : thisObject->m_propertyNames)
+        visitor.append(propertyName);
+    visitor.append(thisObject->m_prototypeChain);
 }
 
 } // namespace JSC

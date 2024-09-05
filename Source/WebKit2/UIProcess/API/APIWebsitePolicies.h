@@ -38,7 +38,10 @@ public:
 
     bool contentBlockersEnabled() const { return m_websitePolicies.contentBlockersEnabled; }
     void setContentBlockersEnabled(bool enabled) { m_websitePolicies.contentBlockersEnabled = enabled; }
-    
+
+    bool autoplayEnabled() const { return m_websitePolicies.autoplayEnabled; }
+    void setAutoplayEnabled(bool enabled) { m_websitePolicies.autoplayEnabled = enabled; }
+
     const WebKit::WebsitePolicies& websitePolicies() { return m_websitePolicies; }
     
 private:

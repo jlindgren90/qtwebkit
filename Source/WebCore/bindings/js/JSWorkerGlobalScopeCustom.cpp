@@ -36,33 +36,12 @@ namespace WebCore {
 
 void JSWorkerGlobalScope::visitAdditionalChildren(SlotVisitor& visitor)
 {
-    visitor.rescanAsConstraint();
-    
     if (auto* location = wrapped().optionalLocation())
         visitor.addOpaqueRoot(location);
     if (auto* navigator = wrapped().optionalNavigator())
         visitor.addOpaqueRoot(navigator);
     ScriptExecutionContext& context = wrapped();
     visitor.addOpaqueRoot(&context);
-}
-
-JSValue JSWorkerGlobalScope::importScripts(ExecState& state)
-{
-    VM& vm = state.vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
-
-    if (!state.argumentCount())
-        return jsUndefined();
-
-    Vector<String> urls;
-    urls.reserveInitialCapacity(state.argumentCount());
-    for (unsigned i = 0; i < state.argumentCount(); ++i) {
-        urls.uncheckedAppend(convert<IDLUSVString>(state, state.uncheckedArgument(i)));
-        RETURN_IF_EXCEPTION(scope, JSValue());
-    }
-
-    propagateException(state, scope, wrapped().importScripts(urls));
-    return jsUndefined();
 }
 
 JSValue JSWorkerGlobalScope::setTimeout(ExecState& state)

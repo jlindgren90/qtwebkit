@@ -120,9 +120,7 @@ ALWAYS_INLINE Structure* JSObject::visitButterfly(SlotVisitor& visitor)
 {
     static const char* raceReason = "JSObject::visitButterfly";
     Structure* result = visitButterflyImpl(visitor);
-    if (result)
-        visitor.didNotRace(this, raceReason);
-    else
+    if (!result)
         visitor.didRace(this, raceReason);
     return result;
 }
@@ -149,7 +147,7 @@ ALWAYS_INLINE Structure* JSObject::visitButterflyImpl(SlotVisitor& visitor)
         case ALL_ARRAY_STORAGE_INDEXING_TYPES:
             visitor.appendValuesHidden(butterfly->arrayStorage()->m_vector, butterfly->arrayStorage()->vectorLength());
             if (butterfly->arrayStorage()->m_sparseMap)
-                visitor.append(&butterfly->arrayStorage()->m_sparseMap);
+                visitor.append(butterfly->arrayStorage()->m_sparseMap);
             break;
         default:
             break;
@@ -188,7 +186,7 @@ ALWAYS_INLINE Structure* JSObject::visitButterflyImpl(SlotVisitor& visitor)
     //
     // BEFORE: Scan the object with the structure and butterfly *before* the mutator's transition.
     // AFTER: Scan the object with the structure and butterfly *after* the mutator's transition.
-    // IGNORE: Give up, so long as the write barrier on PutNewStructure executes after ReadStructureEarly.
+    // IGNORE: Ignore the butterfly and call didRace to schedule us to be revisted again in the future.
     //
     // In other words, the collector will never see any torn structure/butterfly mix. It will
     // always see the structure/butterfly before the transition or after but not in between.
@@ -383,6 +381,20 @@ ALWAYS_INLINE Structure* JSObject::visitButterflyImpl(SlotVisitor& visitor)
         return nullptr;
     structure = vm.getStructure(structureID);
     lastOffset = structure->lastOffset();
+    IndexingType indexingType = structure->indexingType();
+    Locker<JSCell> locker(NoLockingNecessary);
+    switch (indexingType) {
+    case ALL_CONTIGUOUS_INDEXING_TYPES:
+    case ALL_ARRAY_STORAGE_INDEXING_TYPES:
+        // We need to hold this lock to protect against changes to the innards of the butterfly
+        // that can happen when the butterfly is used for array storage. We conservatively
+        // assume that a contiguous butterfly may transform into an array storage one, though
+        // this is probably more conservative than necessary.
+        locker = Locker<JSCell>(*this);
+        break;
+    default:
+        break;
+    }
     WTF::loadLoadFence();
     butterfly = this->butterfly();
     if (!butterfly)
@@ -395,27 +407,17 @@ ALWAYS_INLINE Structure* JSObject::visitButterflyImpl(SlotVisitor& visitor)
     
     markAuxiliaryAndVisitOutOfLineProperties(visitor, butterfly, structure, lastOffset);
     
-    IndexingType oldType = structure->indexingType();
-    switch (oldType) {
+    ASSERT(indexingType == structure->indexingType());
+    
+    switch (indexingType) {
     case ALL_CONTIGUOUS_INDEXING_TYPES:
-    case ALL_ARRAY_STORAGE_INDEXING_TYPES: {
-        // This lock is here to protect Contiguous->ArrayStorage transitions, but we could make that
-        // race work if we needed to.
-        auto locker = holdLock(*this);
-        IndexingType newType = this->indexingType();
-        butterfly = this->butterfly();
-        switch (newType) {
-        case ALL_CONTIGUOUS_INDEXING_TYPES:
-            visitor.appendValuesHidden(butterfly->contiguous().data(), butterfly->publicLength());
-            break;
-        default: // ALL_ARRAY_STORAGE_INDEXING_TYPES
-            visitor.appendValuesHidden(butterfly->arrayStorage()->m_vector, butterfly->arrayStorage()->vectorLength());
-            if (butterfly->arrayStorage()->m_sparseMap)
-                visitor.append(&butterfly->arrayStorage()->m_sparseMap);
-            break;
-        }
+        visitor.appendValuesHidden(butterfly->contiguous().data(), butterfly->publicLength());
         break;
-    }
+    case ALL_ARRAY_STORAGE_INDEXING_TYPES:
+        visitor.appendValuesHidden(butterfly->arrayStorage()->m_vector, butterfly->arrayStorage()->vectorLength());
+        if (butterfly->arrayStorage()->m_sparseMap)
+            visitor.append(butterfly->arrayStorage()->m_sparseMap);
+        break;
     default:
         break;
     }
@@ -3217,8 +3219,12 @@ bool JSObject::getOwnPropertyDescriptor(ExecState* exec, PropertyName propertyNa
             }
 
             ASSERT(maybeGetterSetter);
-            getterSetter = jsCast<CustomGetterSetter*>(maybeGetterSetter);
+            getterSetter = jsDynamicCast<CustomGetterSetter*>(maybeGetterSetter);
         }
+        ASSERT(getterSetter);
+        if (!getterSetter)
+            return false;
+
         if (getterSetter->getter())
             descriptor.setGetter(getCustomGetterSetterFunctionForGetterSetter(exec, propertyName, getterSetter, JSCustomGetterSetterFunction::Type::Getter));
         if (getterSetter->setter())

@@ -317,7 +317,7 @@ bool Element::dispatchWheelEvent(const PlatformWheelEvent& event)
     if (!event.deltaX() && !event.deltaY())
         wheelEvent->stopPropagation();
 
-    return EventDispatcher::dispatchEvent(this, wheelEvent) && !wheelEvent->defaultHandled();
+    return EventDispatcher::dispatchEvent(*this, wheelEvent) && !wheelEvent->defaultHandled();
 }
 
 bool Element::dispatchKeyEvent(const PlatformKeyboardEvent& platformEvent)
@@ -327,7 +327,7 @@ bool Element::dispatchKeyEvent(const PlatformKeyboardEvent& platformEvent)
         if (frame->eventHandler().accessibilityPreventsEventPropogation(event))
             event->stopPropagation();
     }
-    return EventDispatcher::dispatchEvent(this, event) && !event->defaultHandled();
+    return EventDispatcher::dispatchEvent(*this, event) && !event->defaultHandled();
 }
 
 void Element::dispatchSimulatedClick(Event* underlyingEvent, SimulatedClickMouseEventOptions eventOptions, SimulatedClickVisualOptions visualOptions)
@@ -2035,6 +2035,7 @@ void Element::childrenChanged(const ChildChange& change)
             // For elements, we notify shadowRoot in Element::insertedInto and Element::removedFrom.
             break;
         case AllChildrenRemoved:
+        case AllChildrenReplaced:
             shadowRoot->didRemoveAllChildrenOfShadowHost();
             break;
         case TextInserted:
@@ -2465,7 +2466,7 @@ void Element::dispatchFocusEvent(RefPtr<Element>&& oldFocusedElement, FocusDirec
     if (document().page())
         document().page()->chrome().client().elementDidFocus(this);
 
-    EventDispatcher::dispatchEvent(this, FocusEvent::create(eventNames().focusEvent, false, false, document().defaultView(), 0, WTFMove(oldFocusedElement)));
+    EventDispatcher::dispatchEvent(*this, FocusEvent::create(eventNames().focusEvent, false, false, document().defaultView(), 0, WTFMove(oldFocusedElement)));
 }
 
 void Element::dispatchBlurEvent(RefPtr<Element>&& newFocusedElement)
@@ -2473,7 +2474,7 @@ void Element::dispatchBlurEvent(RefPtr<Element>&& newFocusedElement)
     if (document().page())
         document().page()->chrome().client().elementDidBlur(this);
 
-    EventDispatcher::dispatchEvent(this, FocusEvent::create(eventNames().blurEvent, false, false, document().defaultView(), 0, WTFMove(newFocusedElement)));
+    EventDispatcher::dispatchEvent(*this, FocusEvent::create(eventNames().blurEvent, false, false, document().defaultView(), 0, WTFMove(newFocusedElement)));
 }
 
 bool Element::dispatchMouseForceWillBegin()
@@ -3023,20 +3024,6 @@ void Element::setUnsignedIntegralAttribute(const QualifiedName& attributeName, u
     setAttribute(attributeName, AtomicString::number(limitToOnlyHTMLNonNegative(value)));
 }
 
-#if ENABLE(INDIE_UI)
-
-void Element::setUIActions(const AtomicString& actions)
-{
-    setAttribute(uiactionsAttr, actions);
-}
-
-const AtomicString& Element::UIActions() const
-{
-    return getAttribute(uiactionsAttr);
-}
-
-#endif
-
 bool Element::childShouldCreateRenderer(const Node& child) const
 {
     // Only create renderers for SVG elements whose parents are SVG elements, or for proper <svg xmlns="svgNS"> subdocuments.
@@ -3236,6 +3223,9 @@ void Element::updateNameForDocument(HTMLDocument& document, const AtomicString& 
 {
     ASSERT(oldName != newName);
 
+    if (isInShadowTree())
+        return;
+
     if (WindowNameCollection::elementMatchesIfNameAttributeMatch(*this)) {
         const AtomicString& id = WindowNameCollection::elementMatchesIfIdAttributeMatch(*this) ? getIdAttribute() : nullAtom;
         if (!oldName.isEmpty() && oldName != id)
@@ -3286,6 +3276,9 @@ void Element::updateIdForDocument(HTMLDocument& document, const AtomicString& ol
     ASSERT(inDocument());
     ASSERT(oldId != newId);
 
+    if (isInShadowTree())
+        return;
+
     if (WindowNameCollection::elementMatchesIfIdAttributeMatch(*this)) {
         const AtomicString& name = condition == UpdateHTMLDocumentNamedItemMapsOnlyIfDiffersFromNameAttribute && WindowNameCollection::elementMatchesIfNameAttributeMatch(*this) ? getNameAttribute() : nullAtom;
         if (!oldId.isEmpty() && oldId != name)
@@ -3330,7 +3323,7 @@ void Element::willModifyAttribute(const QualifiedName& name, const AtomicString&
             updateLabel(treeScope(), oldValue, newValue);
     }
 
-    if (std::unique_ptr<MutationObserverInterestGroup> recipients = MutationObserverInterestGroup::createForAttributesMutation(*this, name))
+    if (auto recipients = MutationObserverInterestGroup::createForAttributesMutation(*this, name))
         recipients->enqueueMutationRecord(MutationRecord::createAttributes(*this, name, oldValue));
 
     InspectorInstrumentation::willModifyDOMAttr(document(), *this, oldValue, newValue);
@@ -3584,44 +3577,6 @@ bool Element::canContainRangeEndPoint() const
 String Element::completeURLsInAttributeValue(const URL& base, const Attribute& attribute) const
 {
     return URL(base, attribute.value()).string();
-}
-
-bool Element::ieForbidsInsertHTML() const
-{
-    // FIXME: Supposedly IE disallows setting innerHTML, outerHTML
-    // and createContextualFragment on these tags. We have no tests to
-    // verify this however, so this list could be totally wrong.
-    // This list was moved from the previous endTagRequirement() implementation.
-    // This is also called from editing and assumed to be the list of tags
-    // for which no end tag should be serialized. It's unclear if the list for
-    // IE compat and the list for serialization sanity are the same.
-    if (hasTagName(areaTag)
-        || hasTagName(baseTag)
-        || hasTagName(basefontTag)
-        || hasTagName(brTag)
-        || hasTagName(colTag)
-        || hasTagName(embedTag)
-        || hasTagName(frameTag)
-        || hasTagName(hrTag)
-        || hasTagName(imageTag)
-        || hasTagName(imgTag)
-        || hasTagName(inputTag)
-        || hasTagName(linkTag)
-        || hasTagName(metaTag)
-        || hasTagName(paramTag)
-        || hasTagName(sourceTag)
-        || hasTagName(wbrTag))
-        return true;
-    // FIXME: I'm not sure why dashboard mode would want to change the
-    // serialization of <canvas>, that seems like a bad idea.
-#if ENABLE(DASHBOARD_SUPPORT)
-    if (hasTagName(canvasTag)) {
-        Settings* settings = document().settings();
-        if (settings && settings->usesDashboardBackwardCompatibilityMode())
-            return true;
-    }
-#endif
-    return false;
 }
 
 ExceptionOr<Node*> Element::insertAdjacent(const String& where, Ref<Node>&& newChild)

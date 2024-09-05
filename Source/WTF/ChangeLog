@@ -1,3 +1,814 @@
+2017-01-17  Andreas Kling  <akling@apple.com>
+
+        Annotate FastMalloc functions with returns_nonnull attribute.
+        <https://webkit.org/b/167144>
+
+        Reviewed by Antti Koivisto.
+
+        Decorate fastMalloc() and friends with __attribute__((returns_nonnull)) for supporting
+        compilers that can do useful things with that information.
+
+        * wtf/Compiler.h:
+        * wtf/FastMalloc.h:
+
+2017-01-17  Joseph Pecoraro  <pecoraro@apple.com>
+
+        ENABLE(USER_TIMING) Not Defined for Apple Windows or OS X Ports
+        https://bugs.webkit.org/show_bug.cgi?id=116551
+        <rdar://problem/13949830>
+
+        Reviewed by Alex Christensen.
+
+        * wtf/FeatureDefines.h:
+
+2017-01-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove the REQUEST_ANIMATION_FRAME flag
+        https://bugs.webkit.org/show_bug.cgi?id=156980
+        <rdar://problem/25906849>
+
+        Reviewed by Simon Fraser.
+
+        * wtf/FeatureDefines.h:
+
+2017-01-15  Sam Weinig  <sam@webkit.org>
+
+        Add the ability to use numbers in makeString()
+        https://bugs.webkit.org/show_bug.cgi?id=167087
+
+        Reviewed by Darin Adler.
+
+        Allow numbers to be easily used in makeString() and tryMakeString().
+
+        For instance, you can now write:
+            int amount = 7;
+            auto foo = makeString("There are ", amount, " apples in the cart");
+
+        * WTF.xcodeproj/project.pbxproj:
+        Add new file.
+
+        * wtf/text/IntegerToStringConversion.h:
+        (WTF::writeNumberToBufferImpl):
+        (WTF::writeNumberToBufferSigned):
+        (WTF::writeNumberToBufferUnsigned):
+        (WTF::lengthOfNumberAsStringImpl):
+        (WTF::lengthOfNumberAsStringSigned):
+        (WTF::lengthOfNumberAsStringUnsigned):
+        Add variants of integer writing code that compute the length of the string
+        that would be produced and writes the string to an existing buffer.
+
+        (WTF::IntegerToStringConversionTrait<AtomicString>::flush): Deleted.
+        (WTF::IntegerToStringConversionTrait<String>::flush): Deleted.
+        (WTF::IntegerToStringConversionTrait<StringBuilder>::flush): Deleted.
+        Move these traits to their respective classes.
+
+        * wtf/text/AtomicString.h:
+        (WTF::IntegerToStringConversionTrait<AtomicString>::flush):
+        * wtf/text/StringBuilder.h:
+        (WTF::IntegerToStringConversionTrait<StringBuilder>::flush):
+        * wtf/text/WTFString.h:
+        (WTF::IntegerToStringConversionTrait<String>::flush):
+        Traits moved here from IntegerToStringConversion.h
+
+        * wtf/text/StringConcatenateNumbers.h: Added.
+        (WTF::StringTypeAdapter<int>::StringTypeAdapter<int>):
+        (WTF::StringTypeAdapter<int>::length):
+        (WTF::StringTypeAdapter<int>::is8Bit):
+        (WTF::StringTypeAdapter<int>::writeTo):
+        (WTF::StringTypeAdapter<int>::toString):
+        (WTF::StringTypeAdapter<unsigned>::StringTypeAdapter<unsigned>):
+        (WTF::StringTypeAdapter<unsigned>::length):
+        (WTF::StringTypeAdapter<unsigned>::is8Bit):
+        (WTF::StringTypeAdapter<unsigned>::writeTo):
+        (WTF::StringTypeAdapter<unsigned>::toString):
+        (WTF::StringTypeAdapter<float>::StringTypeAdapter<float>):
+        (WTF::StringTypeAdapter<float>::length):
+        (WTF::StringTypeAdapter<float>::is8Bit):
+        (WTF::StringTypeAdapter<float>::writeTo):
+        (WTF::StringTypeAdapter<float>::toString):
+        (WTF::StringTypeAdapter<double>::StringTypeAdapter<double>):
+        (WTF::StringTypeAdapter<double>::length):
+        (WTF::StringTypeAdapter<double>::is8Bit):
+        (WTF::StringTypeAdapter<double>::writeTo):
+        (WTF::StringTypeAdapter<double>::toString):
+        Add basic adaptors for int, unsigned, float, and double.
+
+        (WTF::FormattedNumber::fixedPrecision):
+        (WTF::FormattedNumber::fixedWidth):
+        (WTF::FormattedNumber::length):
+        (WTF::FormattedNumber::buffer):
+        (WTF::FormattedNumber::stringView):
+        (WTF::StringTypeAdapter<FormattedNumber>::StringTypeAdapter<FormattedNumber>):
+        (WTF::StringTypeAdapter<FormattedNumber>::length):
+        (WTF::StringTypeAdapter<FormattedNumber>::is8Bit):
+        (WTF::StringTypeAdapter<FormattedNumber>::writeTo):
+        (WTF::StringTypeAdapter<FormattedNumber>::toString):
+        Add a special class, FormattedNumber, and an adaptor for it, allowing for
+        fixedPrecision and fixedWidth representation of doubles.
+
+2017-01-14  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        WebAssembly: Suppress warnings & errors in GCC
+        https://bugs.webkit.org/show_bug.cgi?id=167049
+
+        Reviewed by Sam Weinig.
+
+        * wtf/LEBDecoder.h:
+        (WTF::LEBDecoder::decodeInt):
+        If T = int, it performs `-1 << shift`. It causes
+        warning in GCC. Instead, we first cast it to the
+        UnsignedT, perform operation and re-cast to the
+        T.
+
+2017-01-13  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove ENABLE(DETAILS_ELEMENT) guards
+        https://bugs.webkit.org/show_bug.cgi?id=167042
+
+        Reviewed by Alex Christensen.
+
+        * wtf/FeatureDefines.h:
+
+2017-01-11  Darin Adler  <darin@apple.com>
+
+        Remove PassRefPtr from more of "platform"
+        https://bugs.webkit.org/show_bug.cgi?id=166809
+
+        Reviewed by Sam Weinig.
+
+        * wtf/Ref.h: Changed the template so that a const Ref<T> does not prohibit non-const
+        use of T. We can still use const Ref<const T> to express that. The earlier design
+        was intentional, but was not consistent with either actual references or with
+        other smart pointer classes like RefPtr. One way to see how much better this is,
+        is to see all the many, many cases where we have const_cast just to work around
+        this. I searched for those and included fixes for many in this patch.
+
+2017-01-12  Chris Dumez  <cdumez@apple.com>
+
+        [iOS] Implement support for KeyboardEvent.code
+        https://bugs.webkit.org/show_bug.cgi?id=166932
+        <rdar://problem/29972518>
+
+        Reviewed by Darin Adler.
+
+        Enable KEYBOARD_CODE_ATTRIBUTE feature on iOS.
+
+        * wtf/FeatureDefines.h:
+
+2017-01-11  Andreas Kling  <akling@apple.com>
+
+        Crash when WebCore's GC heap grows way too large.
+        <https://webkit.org/b/166875>
+        <rdar://problem/27896585>
+
+        Reviewed by Mark Lam.
+
+        Publish the WTF::GB constant.
+
+        * wtf/StdLibExtras.h:
+
+2017-01-11  Anders Carlsson  <andersca@apple.com>
+
+        navigator.plugins.refresh and WKContextRefreshPlugIns doesn't pick up changes to already-present plug-ins
+        https://bugs.webkit.org/show_bug.cgi?id=166942
+        rdar://problem/29839194
+
+        Reviewed by Sam Weinig.
+
+        * wtf/spi/cf/CFBundleSPI.h:
+        Add SPI declaration.
+
+2017-01-06  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        [GTK] Should support key and code properties on keyboard events
+        https://bugs.webkit.org/show_bug.cgi?id=166759
+
+        Reviewed by Carlos Garcia Campos.
+
+        * wtf/FeatureDefines.h: enable key and code properties support for GTK.
+
+2017-01-08  Antti Koivisto  <antti@apple.com>
+
+        Move cache coders to WTF
+        https://bugs.webkit.org/show_bug.cgi?id=166825
+
+        Rubber-stamped by Sam Weinig.
+
+        Make it possible to use robust serialization of WTF types on the lower levels of the stack.
+
+        * WTF.xcodeproj/project.pbxproj:
+        * wtf/persistence: Added.
+        * wtf/persistence/Coder.h: Copied from Source/WebKit2/NetworkProcess/cache/NetworkCacheCoder.h.
+        (WebKit::NetworkCache::Coder::encode): Deleted.
+        (WebKit::NetworkCache::Coder::decode): Deleted.
+        * wtf/persistence/Coders.cpp: Copied from Source/WebKit2/NetworkProcess/cache/NetworkCacheCoders.cpp.
+        (WebKit::NetworkCache::Coder<AtomicString>::encode): Deleted.
+        (WebKit::NetworkCache::Coder<AtomicString>::decode): Deleted.
+        (WebKit::NetworkCache::Coder<CString>::encode): Deleted.
+        (WebKit::NetworkCache::Coder<CString>::decode): Deleted.
+        (WebKit::NetworkCache::Coder<String>::encode): Deleted.
+        (WebKit::NetworkCache::decodeStringText): Deleted.
+        (WebKit::NetworkCache::Coder<String>::decode): Deleted.
+        (WebKit::NetworkCache::Coder<SHA1::Digest>::encode): Deleted.
+        (WebKit::NetworkCache::Coder<SHA1::Digest>::decode): Deleted.
+        (WebKit::NetworkCache::Coder<WebCore::HTTPHeaderMap>::encode): Deleted.
+        (WebKit::NetworkCache::Coder<WebCore::HTTPHeaderMap>::decode): Deleted.
+        * wtf/persistence/Coders.h: Copied from Source/WebKit2/NetworkProcess/cache/NetworkCacheCoders.h.
+        (WebKit::NetworkCache::Coder<std::optional<T>>::encode): Deleted.
+        (WebKit::NetworkCache::Coder<std::optional<T>>::decode): Deleted.
+        * wtf/persistence/Decoder.cpp: Copied from Source/WebKit2/NetworkProcess/cache/NetworkCacheDecoder.cpp.
+        (WebKit::NetworkCache::Decoder::Decoder): Deleted.
+        (WebKit::NetworkCache::Decoder::~Decoder): Deleted.
+        (WebKit::NetworkCache::Decoder::bufferIsLargeEnoughToContain): Deleted.
+        (WebKit::NetworkCache::Decoder::decodeFixedLengthData): Deleted.
+        (WebKit::NetworkCache::Decoder::decodeNumber): Deleted.
+        (WebKit::NetworkCache::Decoder::decode): Deleted.
+        (WebKit::NetworkCache::Decoder::verifyChecksum): Deleted.
+        * wtf/persistence/Decoder.h: Copied from Source/WebKit2/NetworkProcess/cache/NetworkCacheDecoder.h.
+        (WebKit::NetworkCache::Decoder::length): Deleted.
+        (WebKit::NetworkCache::Decoder::currentOffset): Deleted.
+        (WebKit::NetworkCache::Decoder::decodeEnum): Deleted.
+        (WebKit::NetworkCache::Decoder::decode): Deleted.
+        (WebKit::NetworkCache::Decoder::bufferIsLargeEnoughToContain): Deleted.
+        * wtf/persistence/Encoder.cpp: Copied from Source/WebKit2/NetworkProcess/cache/NetworkCacheEncoder.cpp.
+        (WebKit::NetworkCache::Encoder::Encoder): Deleted.
+        (WebKit::NetworkCache::Encoder::~Encoder): Deleted.
+        (WebKit::NetworkCache::Encoder::grow): Deleted.
+        (WebKit::NetworkCache::Encoder::updateChecksumForData): Deleted.
+        (WebKit::NetworkCache::Encoder::encodeFixedLengthData): Deleted.
+        (WebKit::NetworkCache::Encoder::encodeNumber): Deleted.
+        (WebKit::NetworkCache::Encoder::encode): Deleted.
+        (WebKit::NetworkCache::Encoder::encodeChecksum): Deleted.
+        * wtf/persistence/Encoder.h: Copied from Source/WebKit2/NetworkProcess/cache/NetworkCacheEncoder.h.
+        (WebKit::NetworkCache::Encoder::encodeEnum): Deleted.
+        (WebKit::NetworkCache::Encoder::encode): Deleted.
+        (WebKit::NetworkCache::Encoder::operator<<): Deleted.
+        (WebKit::NetworkCache::Encoder::buffer): Deleted.
+        (WebKit::NetworkCache::Encoder::bufferSize): Deleted.
+        (WebKit::NetworkCache::Encoder::updateChecksumForNumber): Deleted.
+
+2017-01-08  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Introduce CPU(X86_SSE2) instead of various SSE2 checks
+        https://bugs.webkit.org/show_bug.cgi?id=166808
+
+        Reviewed by Michael Catanzaro.
+
+        Now copyLCharsFromUCharSource can use SSE2 implementation on non-Darwin
+        OSes, and all SSE2 code paths are available for MSVC on x86 if /arch:SSE2
+        or higher is enabled, and for MSVC on x86_64.
+
+        * wtf/Platform.h:
+        * wtf/text/ASCIIFastPath.h:
+        (WTF::copyLCharsFromUCharSource):
+
+2017-01-05  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Carets can split up marriages and families
+        https://bugs.webkit.org/show_bug.cgi?id=166711
+        <rdar://problem/29019333>
+
+        Reviewed by Alex Christensen.
+
+        There are four code points which should be allowed to accept emoji modifiers:
+        - U+1F46A FAMILY
+        - U+1F46B MAN AND WOMAN HOLDING HANDS
+        - U+1F46C TWO MEN HOLDING HANDS
+        - U+1F46D TWO WOMEN HOLDING HANDS
+
+        Even though macOS's and iOS's emoji keyboard don't allow users to actually type
+        these combinations, we may still receive them from other platforms. We should
+        therefore treat these as joining sequences. Rendering isn't a problem because
+        the fonts accept the emoji modifiers, but our caret placement code isn't educated
+        about it. Currently, we treat these emoji groups as ligatures, allowing the caret
+        to be placed between the two code points, which visually shows as being horizontally
+        centered in the glyph. Instead, we should treat these code points as accepting
+        emoji modifiers.
+
+        Tests: editing/caret/emoji.html
+               editing/caret/ios/emoji.html
+
+        * wtf/text/TextBreakIterator.cpp:
+        (WTF::cursorMovementIterator):
+
+2017-01-05  Filip Pizlo  <fpizlo@apple.com>
+
+        AutomaticThread timeout shutdown leaves a small window where notify() would think that the thread is still running
+        https://bugs.webkit.org/show_bug.cgi?id=166742
+
+        Reviewed by Geoffrey Garen.
+        
+        Remove the use of the RAII ThreadScope, since the use of RAII helped make this bug possible:
+        we'd do ~ThreadScope after we had done ~LockHolder, so in between when we decided to shut
+        down a thread and when it reported itself as being shut down, there was a window where a
+        notify() call would get confused.
+        
+        Now, we run all thread shutdown stuff while the lock is held. We release the lock last. One
+        API implication is that threadWillStop becomes threadIsStopping and it's called while the
+        lock is held. This seems benign.
+
+        * wtf/AutomaticThread.cpp:
+        (WTF::AutomaticThread::start):
+        (WTF::AutomaticThread::threadIsStopping):
+        (WTF::AutomaticThread::ThreadScope::ThreadScope): Deleted.
+        (WTF::AutomaticThread::ThreadScope::~ThreadScope): Deleted.
+        (WTF::AutomaticThread::threadWillStop): Deleted.
+        * wtf/AutomaticThread.h:
+
+2017-01-04  Darin Adler  <darin@apple.com>
+
+        Remove PassRefPtr use from the "html" directory, other improvements
+        https://bugs.webkit.org/show_bug.cgi?id=166635
+
+        Reviewed by Alex Christensen.
+
+        * wtf/RefPtr.h:
+        (WTF::makeRefPtr): Added.
+
+2017-01-04  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed build fix after r210313
+        https://bugs.webkit.org/show_bug.cgi?id=166676
+
+        Revert `#pragma once` to ifdefs due to build failure.
+
+        * wtf/text/StringView.h:
+
+2017-01-04  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Limit thread name appropriately
+        https://bugs.webkit.org/show_bug.cgi?id=166676
+
+        Reviewed by Sam Weinig.
+
+        In some platform, the max length of thread names are limited.
+        For example, the number of the max length is 32 in Windows and
+        16 in Linux. But the specified thread name is typically long
+        in WebKit like "com.apple.CoreIPC.ReceiveQueue"
+
+        We port the logic substring the thread name in
+        generic/WorkQueueGeneric.cpp to Threading. It retrieves the name
+        "ReceiveQueue" from "com.apple.CoreIPC.ReceiveQueue". And apply
+        the appropriate the thread name limit and use it on Linux and
+        Windows environment.
+
+        * wtf/Threading.cpp:
+        (WTF::normalizeThreadName):
+        (WTF::createThread):
+        * wtf/Threading.h:
+        * wtf/ThreadingPthreads.cpp:
+        (WTF::initializeCurrentThreadInternal):
+        * wtf/ThreadingWin.cpp:
+        (WTF::initializeCurrentThreadInternal):
+        * wtf/generic/WorkQueueGeneric.cpp:
+        (WorkQueue::platformInitialize):
+        * wtf/text/StringView.h:
+        (WTF::StringView::left):
+        (WTF::StringView::right):
+        (WTF::StringView::reverseFind):
+
+2017-01-04  Sam Weinig  <sam@webkit.org>
+
+        REGRESSION (r210257): com.apple.WebKit.WebContent.Development crashed in com.apple.WebCore: WebCore::ExceptionOr<WTF::Ref<WebCore::Database> >::operator= + 14
+        <rdar://problem/29866398> 
+
+        * wtf/Expected.h:
+        (WTF::Expected::swap):
+        Add missing calls to destroy() when moving things over each other in a union.
+
+2017-01-03  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Use prctl to name thread on Linux
+        https://bugs.webkit.org/show_bug.cgi?id=166663
+
+        Reviewed by Michael Catanzaro.
+
+        It is quite useful if we can name threads. This name will be shown in GDB.
+        While macOS uses pthread_setname_np, we can use prctl on Linux.
+
+        * wtf/ThreadingPthreads.cpp:
+        (WTF::initializeCurrentThreadInternal):
+
+2017-01-03  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        WorkQueueGeneric's platformInvalidate() can deadlock when called on the RunLoop's thread
+        https://bugs.webkit.org/show_bug.cgi?id=166645
+
+        Reviewed by Carlos Garcia Campos.
+
+        WorkQueue can be destroyed on its invoking thread itself.
+        The scenario is the following.
+
+            1. Create WorkQueue (in thread A).
+            2. Dispatch a task (in thread A, dispatching a task to thread B).
+            3. Deref in thread A.
+            4. The task is executed in thread B.
+            5. Deref in thread B.
+            6. The WorkQueue is destroyed, calling platformInvalidate in thread B.
+
+        In that case, if platformInvalidate waits thread B's termination, it causes deadlock.
+        We do not need to wait the thread termination.
+
+        * wtf/WorkQueue.h:
+        * wtf/generic/WorkQueueGeneric.cpp:
+        (WorkQueue::platformInitialize):
+        (WorkQueue::platformInvalidate):
+
+2017-01-03  Sam Weinig  <sam@webkit.org>
+
+        Make WTF::Expected support Ref template parameters
+        https://bugs.webkit.org/show_bug.cgi?id=166662
+
+        Reviewed by Alex Christensen.
+
+        Tests: Added to TestWebKitAPI/Expected.cpp
+
+        * wtf/Expected.h:
+        (WTF::UnexpectedType::value):
+        Add overloads based on this value type to allow getting at the value
+        as an rvalue for moving the error into the Expected.
+
+        (WTF::Expected::Expected):
+        Add overload that takes an ErrorType/UnexpectedType<ErrorType> as an rvalue.
+
+        (WTF::Expected::swap):
+        Move the temporary value/error rather than copying.
+
+2017-01-02  Julien Brianceau  <jbriance@cisco.com>
+
+        Remove sh4 specific code from JavaScriptCore
+        https://bugs.webkit.org/show_bug.cgi?id=166640
+
+        Reviewed by Filip Pizlo.
+
+        * wtf/Platform.h:
+
+2017-01-02  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Leverage Substring to create new AtomicStringImpl for StaticStringImpl and SymbolImpl
+        https://bugs.webkit.org/show_bug.cgi?id=166636
+
+        Reviewed by Darin Adler.
+
+        Previously we always create the full atomic string if we need to create the same string
+        based on the given value. For example, when generating AtomicStringImpl from the SymbolImpl,
+        we need to create a new AtomicStringImpl since SymbolImpl never becomes `isAtomic() == true`.
+        But it is costly.
+
+        This patch leverages the substring system of StringImpl. Instead of allocating the completely
+        duplicate string, we create a substring StringImpl that shares the same content with the
+        base string.
+
+        * wtf/text/AtomicStringImpl.cpp:
+        (WTF::stringTable):
+        (WTF::addToStringTable):
+        (WTF::addSubstring):
+        (WTF::AtomicStringImpl::addSlowCase):
+        (WTF::AtomicStringImpl::remove):
+        (WTF::AtomicStringImpl::lookUpSlowCase):
+        * wtf/text/StringImpl.h:
+        (WTF::StringImpl::StaticStringImpl::operator StringImpl&):
+
+2017-01-02  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Use StaticStringImpl instead of StaticASCIILiteral
+        https://bugs.webkit.org/show_bug.cgi?id=166586
+
+        Reviewed by Darin Adler.
+
+        It is more handy way to define static StringImpl. It calculates the length
+        and hash value by using the constexpr constructor and function. So we do
+        not need to calculate these things in Perl script.
+        And it allows us to use StaticStringImpl in the hand written C++ code.
+        Previously, we need to calculate the length and hash value by hand if we
+        would like to use StaticASCIILiteral in the hand written C++ code, and it
+        meant that we cannot use it at all in the hand written C++ code.
+
+        * wtf/text/AtomicStringImpl.cpp:
+        (WTF::AtomicStringImpl::addSlowCase):
+        (WTF::AtomicStringImpl::lookUpSlowCase):
+        * wtf/text/AtomicStringImpl.h:
+        * wtf/text/StringImpl.h:
+        * wtf/text/SymbolImpl.h:
+        * wtf/text/UniquedStringImpl.h:
+
+2017-01-02  Andreas Kling  <akling@apple.com>
+
+        Discard media controls JS/CSS caches under memory pressure.
+        <https://webkit.org/b/166639>
+
+        Reviewed by Antti Koivisto.
+
+        * wtf/text/WTFString.h:
+        (WTF::String::clearImplIfNotShared): Add a helper for clearing a String if the underlying
+        StringImpl is not referenced by anyone else.
+
+2016-12-22  Mark Lam  <mark.lam@apple.com>
+
+        De-duplicate finally blocks.
+        https://bugs.webkit.org/show_bug.cgi?id=160168
+
+        Reviewed by Saam Barati.
+
+        Added some methods to bring SegmentedVector closer to parity with Vector.
+
+        * wtf/SegmentedVector.h:
+        (WTF::SegmentedVector::first):
+        (WTF::SegmentedVector::last):
+        (WTF::SegmentedVector::takeLast):
+
+2016-12-19  Mark Lam  <mark.lam@apple.com>
+
+        Rolling out r209974 and r209952. They break some websites in mysterious ways. Step 2: Rollout r209952.
+        https://bugs.webkit.org/show_bug.cgi?id=166049
+
+        Not reviewed.
+
+        * wtf/SegmentedVector.h:
+        (WTF::SegmentedVector::last):
+        (WTF::SegmentedVector::first): Deleted.
+        (WTF::SegmentedVector::takeLast): Deleted.
+
+2016-12-16  Mark Lam  <mark.lam@apple.com>
+
+        Add predecessor info to dumps from JSC_dumpBytecodeLivenessResults=true.
+        https://bugs.webkit.org/show_bug.cgi?id=165958
+
+        Reviewed by Keith Miller.
+
+        Added some methods to bring SegmentedVector closer to parity with Vector.
+
+        * wtf/SegmentedVector.h:
+        (WTF::SegmentedVector::first):
+        (WTF::SegmentedVector::last):
+        (WTF::SegmentedVector::takeLast):
+
+2016-12-16  Michael Saboff  <msaboff@apple.com>
+
+        REGRESSION: HipChat and Mail sometimes hang beneath JSC::Heap::lastChanceToFinalize()
+        https://bugs.webkit.org/show_bug.cgi?id=165962
+
+        Reviewed by Filip Pizlo.
+
+        There is an inherent race in Condition::waitFor() where the timeout can happen just before
+        a notify from another thread.
+
+        Fixed this by adding a condition variable and flag to each AutomaticThread.  The flag
+        is used to signify to a notifying thread that the thread is waiting.  That flag is set
+        in the waiting thread before calling waitFor() and cleared by another thread when it
+        notifies the thread.  The access to that flag happens when the lock is held.
+        Now the waiting thread checks if the flag after a timeout to see that it in fact should
+        proceed like a normal notification.
+
+        The added condition variable allows us to target a specific thread.  We used to keep a list
+        of waiting threads, now we keep a list of all threads.  To notify one thread, we look for
+        a waiting thread and notify it directly.  If we can't find a waiting thread, we start a
+        sleeping thread.
+
+        We notify all threads by waking all waiting threads and starting all sleeping threads.
+
+        * wtf/AutomaticThread.cpp:
+        (WTF::AutomaticThreadCondition::notifyOne):
+        (WTF::AutomaticThreadCondition::notifyAll):
+        (WTF::AutomaticThread::isWaiting):
+        (WTF::AutomaticThread::notify):
+        (WTF::AutomaticThread::start):
+        * wtf/AutomaticThread.h:
+
+2016-12-15  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Unreviewed build fix after r209910
+
+        Unreviewed.
+
+        * wtf/Platform.h:
+
+2016-12-15  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Stop reinterpret_casting UBreakIterators to the undefined type TextBreakIterator
+        https://bugs.webkit.org/show_bug.cgi?id=165931
+
+        We have a class declaration for TextBreakIterator but no definition for it. When we
+        create an ICU UBreakIterator, we immediately reinterpret_cast it to this undefined
+        type, and pass it around our code inside WebCore. Then, whenever we want to actually
+        use this iterator, we reinterpret_cast it back to UBreakIterator. This is likely due
+        to some ports historically implementing breaking interators on top of other libraries
+        other than ICU; however, now, all ports use ICU. Because this internal type is not
+        helpful and just adds confusion, we should just call our breaking iterators what
+        they are: UBreakIterators.
+
+        This patch is a mechanical replacement of TextBreakIterator to UBreakIterator and
+        removes the functions we were calling which pass through directly to ubrk_*().
+
+        Reviewed by Alex Christensen.
+
+        * wtf/text/LineBreakIteratorPoolICU.h:
+        (WTF::LineBreakIteratorPool::take):
+        (WTF::LineBreakIteratorPool::put):
+        * wtf/text/StringView.cpp:
+        (WTF::StringView::GraphemeClusters::Iterator::Impl::computeIndexEnd):
+        * wtf/text/TextBreakIterator.cpp:
+        (WTF::initializeIterator):
+        (WTF::initializeIteratorWithRules):
+        (WTF::setTextForIterator):
+        (WTF::setContextAwareTextForIterator):
+        (WTF::wordBreakIterator):
+        (WTF::sentenceBreakIterator):
+        (WTF::cursorMovementIterator):
+        (WTF::acquireLineBreakIterator):
+        (WTF::releaseLineBreakIterator):
+        (WTF::openLineBreakIterator):
+        (WTF::closeLineBreakIterator):
+        (WTF::getNonSharedCharacterBreakIterator):
+        (WTF::cacheNonSharedCharacterBreakIterator):
+        (WTF::isWordTextBreak):
+        (WTF::numGraphemeClusters):
+        (WTF::numCharactersInGraphemeClusters):
+        (WTF::textBreakFirst): Deleted.
+        (WTF::textBreakLast): Deleted.
+        (WTF::textBreakNext): Deleted.
+        (WTF::textBreakPrevious): Deleted.
+        (WTF::textBreakPreceding): Deleted.
+        (WTF::textBreakFollowing): Deleted.
+        (WTF::textBreakCurrent): Deleted.
+        (WTF::isTextBreak): Deleted.
+        * wtf/text/TextBreakIterator.h:
+        (WTF::LazyLineBreakIterator::lastCharacter):
+        (WTF::LazyLineBreakIterator::secondToLastCharacter):
+        (WTF::LazyLineBreakIterator::setPriorContext):
+        (WTF::LazyLineBreakIterator::updatePriorContext):
+        (WTF::LazyLineBreakIterator::resetPriorContext):
+        (WTF::LazyLineBreakIterator::priorContextLength):
+        (WTF::LazyLineBreakIterator::get):
+        (WTF::NonSharedCharacterBreakIterator::operator UBreakIterator*):
+        (WTF::NonSharedCharacterBreakIterator::operator TextBreakIterator*): Deleted.
+
+2016-12-15  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Sort Xcode project files
+        https://bugs.webkit.org/show_bug.cgi?id=165937
+
+        Reviewed by Simon Fraser.
+
+        * WTF.xcodeproj/project.pbxproj:
+
+2016-12-15  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Added missing override and final specifiers
+        https://bugs.webkit.org/show_bug.cgi?id=165903
+
+        Reviewed by Darin Adler.
+
+        * wtf/RunLoop.h:
+
+2016-12-15  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Optimize Kraken stringify
+        https://bugs.webkit.org/show_bug.cgi?id=165857
+
+        Reviewed by Darin Adler.
+
+        Kraken json-stringify-tinderbox performance heavily relies on StringBuilder::appendQuotedJSONString.
+        According to the result produced by Linux `perf`, it occupies 28% of execution time.
+
+        We tighten the hottest loop in the above function. We create the super fast path for non escaping case.
+        And add " and \ cases (since including " in the string is common). Then we fallback to the slow case.
+
+        It improves the performance 5.5% in Kraken json-stringify-tinderbox in MBP.
+
+            Performance result in my MBP (dandelion).
+
+                Collected 100 samples per benchmark/VM, with 100 VM invocations per benchmark. Emitted a call to gc()
+                between sample measurements. Used 1 benchmark iteration per VM invocation for warm-up. Used the
+                jsc-specific preciseTime() function to get microsecond-level timing. Reporting benchmark execution times
+                with 95% confidence intervals in milliseconds.
+
+                                                   baseline                  patched
+
+                json-stringify-tinderbox        29.243+-0.241      ^      27.701+-0.235         ^ definitely 1.0557x faster
+
+                <arithmetic>                    29.243+-0.241      ^      27.701+-0.235         ^ definitely 1.0557x faster
+
+            Performance result in my Linux laptop (hanayamata).
+
+                Collected 100 samples per benchmark/VM, with 100 VM invocations per benchmark. Emitted a call to gc()
+                between sample measurements. Used 1 benchmark iteration per VM invocation for warm-up. Used the
+                jsc-specific preciseTime() function to get microsecond-level timing. Reporting benchmark execution times
+                with 95% confidence intervals in milliseconds.
+
+                                                   baseline                  patched
+
+                json-stringify-tinderbox        26.711+-0.475      ^      25.255+-0.034         ^ definitely 1.0577x faster
+
+                <arithmetic>                    26.711+-0.475      ^      25.255+-0.034         ^ definitely 1.0577x faster
+
+        * wtf/text/StringBuilder.cpp:
+        (WTF::appendQuotedJSONStringInternalSlow):
+        (WTF::appendQuotedJSONStringInternal):
+
+2016-12-14  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r209795.
+        https://bugs.webkit.org/show_bug.cgi?id=165853
+
+        rolled out the wrong revision (Requested by pizlo on #webkit).
+
+        Reverted changeset:
+
+        "MarkedBlock::marksConveyLivenessDuringMarking should take
+        into account collection scope"
+        https://bugs.webkit.org/show_bug.cgi?id=165741
+        http://trac.webkit.org/changeset/209795
+
+2016-12-14  Enrique Ocaña González  <eocanha@igalia.com>
+
+        REGRESSION(r207879-207891): [GStreamer] Introduced many layout test failures and crashes, bots exiting early
+        https://bugs.webkit.org/show_bug.cgi?id=164022
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * wtf/glib/GLibUtilities.h:
+        Added new macros to convert gulong to/from gpointer.
+
+2016-12-14  Gavin Barraclough  <barraclough@apple.com>
+
+        MarkedBlock::marksConveyLivenessDuringMarking should take into account collection scope
+        https://bugs.webkit.org/show_bug.cgi?id=165741
+
+        Unreviewed, re-landing this with fix (revert erroneous change to Options).
+
+        * WTF.xcodeproj/project.pbxproj:
+        * wtf/CMakeLists.txt:
+        * wtf/DataLog.cpp:
+        (WTF::initializeLogFileOnce):
+        (WTF::initializeLogFile):
+        (WTF::dataFile):
+        * wtf/DataLog.h:
+        * wtf/LockedPrintStream.cpp: Added.
+        (WTF::LockedPrintStream::LockedPrintStream):
+        (WTF::LockedPrintStream::~LockedPrintStream):
+        (WTF::LockedPrintStream::vprintf):
+        (WTF::LockedPrintStream::flush):
+        (WTF::LockedPrintStream::begin):
+        (WTF::LockedPrintStream::end):
+        * wtf/LockedPrintStream.h: Added.
+        * wtf/PrintStream.cpp:
+        (WTF::PrintStream::printfVariableFormat):
+        (WTF::PrintStream::begin):
+        (WTF::PrintStream::end):
+        * wtf/PrintStream.h:
+        (WTF::PrintStream::atomically):
+        (WTF::PrintStream::print):
+        (WTF::PrintStream::println):
+        (WTF::PrintStream::printImpl):
+        (WTF::>::unpack):
+        (WTF::FormatImpl::FormatImpl):
+        (WTF::FormatImpl::dump):
+        (WTF::format):
+        (WTF::printInternal):
+        * wtf/RecursiveLockAdapter.h: Added.
+        (WTF::RecursiveLockAdapter::RecursiveLockAdapter):
+        (WTF::RecursiveLockAdapter::lock):
+        (WTF::RecursiveLockAdapter::unlock):
+        (WTF::RecursiveLockAdapter::tryLock):
+        (WTF::RecursiveLockAdapter::isLocked):
+        * wtf/WordLock.cpp:
+        * wtf/WordLock.h:
+
+2016-12-14  Gavin Barraclough  <barraclough@apple.com>
+
+        MarkedBlock::marksConveyLivenessDuringMarking should take into account collection scope
+        https://bugs.webkit.org/show_bug.cgi?id=165741
+
+        Unreviewed rollout due to performance regression.
+
+        * WTF.xcodeproj/project.pbxproj:
+        * wtf/CMakeLists.txt:
+        * wtf/DataLog.cpp:
+        (WTF::initializeLogFileOnce):
+        (WTF::initializeLogFile):
+        (WTF::dataFile):
+        * wtf/DataLog.h:
+        * wtf/LockedPrintStream.cpp: Removed.
+        * wtf/LockedPrintStream.h: Removed.
+        * wtf/PrintStream.cpp:
+        (WTF::PrintStream::printfVariableFormat): Deleted.
+        (WTF::PrintStream::begin): Deleted.
+        (WTF::PrintStream::end): Deleted.
+        * wtf/PrintStream.h:
+        (WTF::PrintStream::print):
+        (WTF::PrintStream::println):
+        (WTF::PrintStream::atomically): Deleted.
+        (WTF::PrintStream::printImpl): Deleted.
+        (): Deleted.
+        (WTF::>::unpack): Deleted.
+        (WTF::FormatImpl::FormatImpl): Deleted.
+        (WTF::FormatImpl::dump): Deleted.
+        (WTF::format): Deleted.
+        * wtf/RecursiveLockAdapter.h: Removed.
+        * wtf/WordLock.cpp:
+        * wtf/WordLock.h:
+
 2016-12-13  JF Bastien  <jfbastien@apple.com>
 
         std::expected: fix rvalue forwarding issues

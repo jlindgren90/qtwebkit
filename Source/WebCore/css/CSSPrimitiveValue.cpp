@@ -34,6 +34,7 @@
 #include "CalculationValue.h"
 #include "Color.h"
 #include "Counter.h"
+#include "DeprecatedCSSOMPrimitiveValue.h"
 #include "ExceptionCode.h"
 #include "FontCascade.h"
 #include "Node.h"
@@ -51,10 +52,6 @@
 
 #if ENABLE(DASHBOARD_SUPPORT)
 #include "DashboardRegion.h"
-#endif
-
-#if ENABLE(CSS_SCROLL_SNAP)
-#include "LengthRepeat.h"
 #endif
 
 using namespace WTF;
@@ -119,9 +116,6 @@ static inline bool isValidCSSUnitTypeForDoubleConversion(CSSPrimitiveValue::Unit
     case CSSPrimitiveValue::CSS_UNKNOWN:
     case CSSPrimitiveValue::CSS_URI:
     case CSSPrimitiveValue::CSS_VALUE_ID:
-#if ENABLE(CSS_SCROLL_SNAP)
-    case CSSPrimitiveValue::CSS_LENGTH_REPEAT:
-#endif
 #if ENABLE(DASHBOARD_SUPPORT)
     case CSSPrimitiveValue::CSS_DASHBOARD_REGION:
 #endif
@@ -189,9 +183,6 @@ static inline bool isStringType(CSSPrimitiveValue::UnitType type)
     case CSSPrimitiveValue::CSS_VW:
 #if ENABLE(DASHBOARD_SUPPORT)
     case CSSPrimitiveValue::CSS_DASHBOARD_REGION:
-#endif
-#if ENABLE(CSS_SCROLL_SNAP)
-    case CSSPrimitiveValue::CSS_LENGTH_REPEAT:
 #endif
         return false;
     }
@@ -436,7 +427,7 @@ void CSSPrimitiveValue::init(const LengthSize& lengthSize, const RenderStyle& st
 {
     m_primitiveUnitType = CSS_PAIR;
     m_hasCachedCSSText = false;
-    m_value.pair = &Pair::create(create(lengthSize.width(), style), create(lengthSize.height(), style)).leakRef();
+    m_value.pair = &Pair::create(create(lengthSize.width, style), create(lengthSize.height, style)).leakRef();
 }
 
 void CSSPrimitiveValue::init(Ref<Counter>&& counter)
@@ -459,15 +450,6 @@ void CSSPrimitiveValue::init(Ref<Quad>&& quad)
     m_hasCachedCSSText = false;
     m_value.quad = &quad.leakRef();
 }
-
-#if ENABLE(CSS_SCROLL_SNAP)
-void CSSPrimitiveValue::init(Ref<LengthRepeat>&& lengthRepeat)
-{
-    m_primitiveUnitType = CSS_LENGTH_REPEAT;
-    m_hasCachedCSSText = false;
-    m_value.lengthRepeat = &lengthRepeat.leakRef();
-}
-#endif
 
 #if ENABLE(DASHBOARD_SUPPORT)
 void CSSPrimitiveValue::init(RefPtr<DashboardRegion>&& r)
@@ -525,11 +507,6 @@ void CSSPrimitiveValue::cleanup()
     case CSS_QUAD:
         m_value.quad->deref();
         break;
-#if ENABLE(CSS_SCROLL_SNAP)
-    case CSS_LENGTH_REPEAT:
-        m_value.lengthRepeat->deref();
-        break;
-#endif
     case CSS_PAIR:
         m_value.pair->deref();
         break;
@@ -1094,10 +1071,6 @@ ALWAYS_INLINE String CSSPrimitiveValue::formatNumberForCustomCSSText() const
         return rectValue()->cssText();
     case CSS_QUAD:
         return quadValue()->cssText();
-#if ENABLE(CSS_SCROLL_SNAP)
-    case CSS_LENGTH_REPEAT:
-        return lengthRepeatValue()->cssText();
-#endif
     case CSS_RGBCOLOR:
         return color().cssText();
     case CSS_PAIR:
@@ -1174,104 +1147,6 @@ String CSSPrimitiveValue::customCSSText() const
     return text;
 }
 
-Ref<CSSPrimitiveValue> CSSPrimitiveValue::cloneForCSSOM() const
-{
-    RefPtr<CSSPrimitiveValue> result;
-
-    switch (m_primitiveUnitType) {
-    case CSS_STRING:
-    case CSS_URI:
-    case CSS_ATTR:
-    case CSS_COUNTER_NAME:
-        result = CSSPrimitiveValue::create(m_value.string, static_cast<UnitType>(m_primitiveUnitType));
-        break;
-    case CSS_FONT_FAMILY:
-        result = CSSPrimitiveValue::create(*m_value.fontFamily);
-        break;
-    case CSS_COUNTER:
-        result = CSSPrimitiveValue::create(m_value.counter->cloneForCSSOM());
-        break;
-    case CSS_RECT:
-        result = CSSPrimitiveValue::create(m_value.rect->cloneForCSSOM());
-        break;
-    case CSS_QUAD:
-        result = CSSPrimitiveValue::create(m_value.quad->cloneForCSSOM());
-        break;
-#if ENABLE(CSS_SCROLL_SNAP)
-    case CSS_LENGTH_REPEAT:
-        result = CSSPrimitiveValue::create(m_value.lengthRepeat->cloneForCSSOM());
-        break;
-#endif
-    case CSS_PAIR:
-        // Pair is not exposed to the CSSOM, no need for a deep clone.
-        result = CSSPrimitiveValue::create(Ref<Pair>(*m_value.pair));
-        break;
-#if ENABLE(DASHBOARD_SUPPORT)
-    case CSS_DASHBOARD_REGION:
-        // DashboardRegion is not exposed to the CSSOM, no need for a deep clone.
-        result = CSSPrimitiveValue::create(RefPtr<DashboardRegion>(m_value.region));
-        break;
-#endif
-    case CSS_CALC:
-        // CSSCalcValue is not exposed to the CSSOM, no need for a deep clone.
-        result = CSSPrimitiveValue::create(RefPtr<CSSCalcValue>(m_value.calc));
-        break;
-    case CSS_SHAPE:
-        // CSSShapeValue is not exposed to the CSSOM, no need for a deep clone.
-        result = CSSPrimitiveValue::create(Ref<CSSBasicShape>(*m_value.shape));
-        break;
-    case CSS_NUMBER:
-    case CSS_PERCENTAGE:
-    case CSS_EMS:
-    case CSS_QUIRKY_EMS:
-    case CSS_EXS:
-    case CSS_REMS:
-    case CSS_CHS:
-    case CSS_PX:
-    case CSS_CM:
-    case CSS_MM:
-    case CSS_IN:
-    case CSS_PT:
-    case CSS_PC:
-    case CSS_DEG:
-    case CSS_RAD:
-    case CSS_GRAD:
-    case CSS_MS:
-    case CSS_S:
-    case CSS_HZ:
-    case CSS_KHZ:
-    case CSS_TURN:
-    case CSS_VW:
-    case CSS_VH:
-    case CSS_VMIN:
-    case CSS_VMAX:
-#if ENABLE(CSS_IMAGE_RESOLUTION) || ENABLE(RESOLUTION_MEDIA_QUERY)
-    case CSS_DPPX:
-    case CSS_DPI:
-    case CSS_DPCM:
-#endif
-    case CSS_FR:
-        result = CSSPrimitiveValue::create(m_value.num, static_cast<UnitType>(m_primitiveUnitType));
-        break;
-    case CSS_PROPERTY_ID:
-        result = CSSPrimitiveValue::createIdentifier(m_value.propertyID);
-        break;
-    case CSS_VALUE_ID:
-        result = CSSPrimitiveValue::createIdentifier(m_value.valueID);
-        break;
-    case CSS_RGBCOLOR:
-        result = CSSPrimitiveValue::create(*m_value.color);
-        break;
-    case CSS_DIMENSION:
-    case CSS_UNKNOWN:
-        ASSERT_NOT_REACHED();
-        break;
-    }
-
-    result->setCSSOMSafe();
-    return result.releaseNonNull();
-}
-
 bool CSSPrimitiveValue::equals(const CSSPrimitiveValue& other) const
 {
     if (m_primitiveUnitType != other.m_primitiveUnitType)
@@ -1326,10 +1201,6 @@ bool CSSPrimitiveValue::equals(const CSSPrimitiveValue& other) const
         return m_value.rect && other.m_value.rect && m_value.rect->equals(*other.m_value.rect);
     case CSS_QUAD:
         return m_value.quad && other.m_value.quad && m_value.quad->equals(*other.m_value.quad);
-#if ENABLE(CSS_SCROLL_SNAP)
-    case CSS_LENGTH_REPEAT:
-        return m_value.lengthRepeat && other.m_value.lengthRepeat && m_value.lengthRepeat->equals(*other.m_value.lengthRepeat);
-#endif
     case CSS_RGBCOLOR:
         return color() == other.color();
     case CSS_PAIR:
@@ -1346,6 +1217,11 @@ bool CSSPrimitiveValue::equals(const CSSPrimitiveValue& other) const
         return fontFamily() == other.fontFamily();
     }
     return false;
+}
+
+Ref<DeprecatedCSSOMPrimitiveValue> CSSPrimitiveValue::createDeprecatedCSSOMPrimitiveWrapper() const
+{
+    return DeprecatedCSSOMPrimitiveValue::create(*this);
 }
 
 } // namespace WebCore

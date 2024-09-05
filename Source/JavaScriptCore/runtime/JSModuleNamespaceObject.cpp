@@ -83,7 +83,7 @@ void JSModuleNamespaceObject::finishCreation(ExecState* exec, JSGlobalObject* gl
 
 void JSModuleNamespaceObject::destroy(JSCell* cell)
 {
-    JSModuleNamespaceObject* thisObject = jsCast<JSModuleNamespaceObject*>(cell);
+    JSModuleNamespaceObject* thisObject = static_cast<JSModuleNamespaceObject*>(cell);
     thisObject->JSModuleNamespaceObject::~JSModuleNamespaceObject();
 }
 
@@ -92,7 +92,7 @@ void JSModuleNamespaceObject::visitChildren(JSCell* cell, SlotVisitor& visitor)
     JSModuleNamespaceObject* thisObject = jsCast<JSModuleNamespaceObject*>(cell);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
     Base::visitChildren(thisObject, visitor);
-    visitor.append(&thisObject->m_moduleRecord);
+    visitor.append(thisObject->m_moduleRecord);
 }
 
 bool JSModuleNamespaceObject::getOwnPropertySlot(JSObject* cell, ExecState* exec, PropertyName propertyName, PropertySlot& slot)

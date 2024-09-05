@@ -34,12 +34,14 @@
 @property (nonatomic, readonly) NSMenu *menu;
 
 @property (nonatomic, readonly) BOOL useWebKit2ByDefault;
+@property (nonatomic, readonly) BOOL createEditorByDefault;
 @property (nonatomic, readonly) BOOL useTransparentWindows;
 @property (nonatomic, readonly) BOOL usePaginatedMode;
 @property (nonatomic, readonly) BOOL layerBordersVisible;
 @property (nonatomic, readonly) BOOL simpleLineLayoutDebugBordersEnabled;
 @property (nonatomic, readonly) BOOL incrementalRenderingSuppressed;
 @property (nonatomic, readonly) BOOL tiledScrollingIndicatorVisible;
+@property (nonatomic, readonly, getter=isSpaceReservedForBanners) BOOL spaceReservedForBanners;
 @property (nonatomic, readonly) BOOL resourceUsageOverlayVisible;
 @property (nonatomic, readonly) BOOL nonFastScrollableRegionOverlayVisible;
 @property (nonatomic, readonly) BOOL wheelEventHandlerRegionOverlayVisible;

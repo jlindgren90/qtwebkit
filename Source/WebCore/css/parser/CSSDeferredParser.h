@@ -38,12 +38,11 @@ class StyleRuleBase;
 
 class CSSDeferredParser : public RefCounted<CSSDeferredParser> {
 public:
-    static Ref<CSSDeferredParser> create(const String& sheetText, const CSSParserContext& parserContext, StyleSheetContents& styleSheet)
+    static Ref<CSSDeferredParser> create(const CSSParserContext& parserContext, const String& sheetText, StyleSheetContents& styleSheet)
     {
-        return adoptRef(*new CSSDeferredParser(sheetText, parserContext, styleSheet));
+        return adoptRef(*new CSSDeferredParser(parserContext, sheetText, styleSheet));
     }
 
-    const CSSTokenizer& tokenizer() const { return m_tokenizer; }
     CSSParserMode mode() const { return m_context.mode; }
 
     const CSSParserContext& context() const { return m_context; }
@@ -53,12 +52,16 @@ public:
     void parseRuleList(const CSSParserTokenRange&, Vector<RefPtr<StyleRuleBase>>&);
     void parseKeyframeList(const CSSParserTokenRange&, StyleRuleKeyframes&);
 
+    void adoptTokenizerEscapedStrings(Vector<String>&& strings) { m_escapedStrings = WTFMove(strings); }
+
 private:
-    CSSDeferredParser(const String&, const CSSParserContext&, StyleSheetContents&);
+    CSSDeferredParser(const CSSParserContext&, const String&, StyleSheetContents&);
     
-    CSSTokenizer m_tokenizer;
+    Vector<String> m_escapedStrings;
     CSSParserContext m_context;
     
+    String m_sheetText;
+
     WeakPtr<StyleSheetContents> m_styleSheet;
 };
 

@@ -30,6 +30,7 @@
 #include "FloatQuad.h"
 #include "Frame.h"
 #include "LayoutRect.h"
+#include "Page.h"
 #include "PaintPhase.h"
 #include "RenderObjectEnums.h"
 #include "RenderStyle.h"
@@ -223,9 +224,7 @@ public:
     virtual bool isCounter() const { return false; }
     virtual bool isQuote() const { return false; }
 
-#if ENABLE(DETAILS_ELEMENT)
     virtual bool isDetailsMarker() const { return false; }
-#endif
     virtual bool isEmbeddedObject() const { return false; }
     virtual bool isFieldset() const { return false; }
     virtual bool isFileUploadControl() const { return false; }
@@ -243,7 +242,6 @@ public:
 #endif
     virtual bool isSnapshottedPlugIn() const { return false; }
     virtual bool isProgress() const { return false; }
-    virtual bool isRenderSVGBlock() const { return false; };
     virtual bool isRenderButton() const { return false; }
     virtual bool isRenderIFrame() const { return false; }
     virtual bool isRenderImage() const { return false; }
@@ -327,8 +325,6 @@ public:
     FlowThreadState flowThreadState() const { return m_bitfields.flowThreadState(); }
     void setFlowThreadState(FlowThreadState state) { m_bitfields.setFlowThreadState(state); }
 
-    virtual bool requiresForcedStyleRecalcPropagation() const { return false; }
-
 #if ENABLE(MATHML)
     virtual bool isRenderMathMLBlock() const { return false; }
     virtual bool isRenderMathMLTable() const { return false; }
@@ -351,6 +347,7 @@ public:
     // FIXME: Until all SVG renders can be subclasses of RenderSVGModelObject we have
     // to add SVG renderer methods to RenderObject with an ASSERT_NOT_REACHED() default implementation.
     virtual bool isRenderSVGModelObject() const { return false; }
+    virtual bool isRenderSVGBlock() const { return false; };
     virtual bool isSVGRoot() const { return false; }
     virtual bool isSVGContainer() const { return false; }
     virtual bool isSVGTransformableContainer() const { return false; }
@@ -517,6 +514,8 @@ public:
 
     Document& document() const { return m_node.document(); }
     Frame& frame() const;
+    Page& page() const;
+    Settings& settings() const { return page().settings(); }
 
     // Returns the object containing this one. Can be different from parent for positioned elements.
     // If repaintContainer and repaintContainerSkipped are not null, on return *repaintContainerSkipped
@@ -1007,6 +1006,14 @@ private:
 inline Frame& RenderObject::frame() const
 {
     return *document().frame();
+}
+
+inline Page& RenderObject::page() const
+{
+    // The render tree will always be torn down before Frame is disconnected from Page,
+    // so it's safe to assume Frame::page() is non-null as long as there are live RenderObjects.
+    ASSERT(frame().page());
+    return *frame().page();
 }
 
 inline AnimationController& RenderObject::animation() const

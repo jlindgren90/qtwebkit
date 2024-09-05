@@ -95,7 +95,7 @@ void StyleRuleBase::destroy()
         delete downcast<StyleRuleNamespace>(this);
         return;
     case Keyframe:
-        delete downcast<StyleKeyframe>(this);
+        delete downcast<StyleRuleKeyframe>(this);
         return;
     case Charset:
         delete downcast<StyleRuleCharset>(this);
@@ -325,19 +325,21 @@ MutableStyleProperties& StyleRuleFontFace::mutableProperties()
 }
 
 DeferredStyleGroupRuleList::DeferredStyleGroupRuleList(const CSSParserTokenRange& range, CSSDeferredParser& parser)
-    : m_range(range)
-    , m_parser(parser)
+    : m_parser(parser)
 {
+    size_t length = range.end() - range.begin();
+    m_tokens.reserveCapacity(length);
+    m_tokens.append(range.begin(), length);
 }
 
 void DeferredStyleGroupRuleList::parseDeferredRules(Vector<RefPtr<StyleRuleBase>>& childRules)
 {
-    m_parser->parseRuleList(m_range, childRules);
+    m_parser->parseRuleList(m_tokens, childRules);
 }
 
 void DeferredStyleGroupRuleList::parseDeferredKeyframes(StyleRuleKeyframes& keyframesRule)
 {
-    m_parser->parseKeyframeList(m_range, keyframesRule);
+    m_parser->parseKeyframeList(m_tokens, keyframesRule);
 }
     
 StyleRuleGroup::StyleRuleGroup(Type type, Vector<RefPtr<StyleRuleBase>>& adoptRule)

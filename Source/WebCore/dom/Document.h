@@ -3,7 +3,7 @@
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
  *           (C) 2006 Alexey Proskuryakov (ap@webkit.org)
- * Copyright (C) 2004-2010, 2012-2013, 2015, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2004-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2008, 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
  * Copyright (C) 2011 Google Inc. All rights reserved.
@@ -35,6 +35,7 @@
 #include "ExceptionOr.h"
 #include "FocusDirection.h"
 #include "FontSelectorClient.h"
+#include "FrameDestructionObserver.h"
 #include "MediaProducer.h"
 #include "MutationObserver.h"
 #include "PageVisibilityState.h"
@@ -56,7 +57,6 @@
 #include <wtf/Deque.h>
 #include <wtf/HashCountedSet.h>
 #include <wtf/HashSet.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/AtomicStringHash.h>
 
@@ -66,9 +66,7 @@
 
 namespace JSC {
 class ExecState;
-#if ENABLE(WEB_REPLAY)
 class InputCursor;
-#endif
 }
 
 namespace WebCore {
@@ -99,8 +97,9 @@ class DocumentParser;
 class DocumentSharedObjectPool;
 class DocumentType;
 class ExtensionStyleSheets;
-class FloatRect;
 class FloatQuad;
+class FloatRect;
+class FontFaceSet;
 class FormController;
 class Frame;
 class FrameView;
@@ -121,11 +120,10 @@ class HTMLScriptElement;
 class HitTestRequest;
 class HitTestResult;
 class IntPoint;
+class JSNode;
 class LayoutPoint;
 class LayoutRect;
 class LiveNodeList;
-class ScriptModuleLoader;
-class JSNode;
 class Locale;
 class Location;
 class MediaCanStartListener;
@@ -133,7 +131,6 @@ class MediaPlaybackTarget;
 class MediaPlaybackTargetClient;
 class MediaQueryList;
 class MediaQueryMatcher;
-class ScriptModuleLoader;
 class MouseEventWithHitTestResults;
 class NamedFlowCollection;
 class NodeFilter;
@@ -143,23 +140,26 @@ class PlatformMouseEvent;
 class ProcessingInstruction;
 class QualifiedName;
 class Range;
-class RenderView;
 class RenderFullScreen;
-class ScriptableDocumentParser;
+class RenderView;
+class RequestAnimationFrameCallback;
+class SVGDocumentExtensions;
+class SVGSVGElement;
 class ScriptElementData;
+class ScriptModuleLoader;
 class ScriptRunner;
+class ScriptableDocumentParser;
+class ScriptedAnimationController;
 class SecurityOrigin;
+class SegmentedString;
 class SelectorQuery;
 class SelectorQueryCache;
 class SerializedScriptValue;
-class SegmentedString;
 class Settings;
 class StyleResolver;
 class StyleSheet;
 class StyleSheetContents;
 class StyleSheetList;
-class SVGDocumentExtensions;
-class SVGSVGElement;
 class Text;
 class TextResourceDecoder;
 class TreeWalker;
@@ -189,13 +189,6 @@ struct AnnotatedRegionValue;
 class Touch;
 class TouchList;
 #endif
-
-#if ENABLE(REQUEST_ANIMATION_FRAME)
-class RequestAnimationFrameCallback;
-class ScriptedAnimationController;
-#endif
-
-class FontFaceSet;
 
 #if PLATFORM(IOS)
 class DeviceMotionClient;
@@ -286,6 +279,7 @@ class Document
     , public TreeScope
     , public ScriptExecutionContext
     , public FontSelectorClient
+    , public FrameDestructionObserver
     , public Supplementable<Document> {
 public:
     static Ref<Document> create(Frame* frame, const URL& url)
@@ -341,9 +335,9 @@ public:
     Element* getElementByAccessKey(const String& key);
     void invalidateAccessKeyMap();
 
-    void addImageElementByCaseFoldedUsemap(const AtomicStringImpl&, HTMLImageElement&);
-    void removeImageElementByCaseFoldedUsemap(const AtomicStringImpl&, HTMLImageElement&);
-    HTMLImageElement* imageElementByCaseFoldedUsemap(const AtomicStringImpl&) const;
+    void addImageElementByUsemap(const AtomicStringImpl&, HTMLImageElement&);
+    void removeImageElementByUsemap(const AtomicStringImpl&, HTMLImageElement&);
+    HTMLImageElement* imageElementByUsemap(const AtomicStringImpl&) const;
 
     ExceptionOr<SelectorQuery&> selectorQueryForString(const String&);
     void clearSelectorQueryCache();
@@ -512,7 +506,6 @@ public:
     void setStateForNewFormElements(const Vector<String>&);
 
     WEBCORE_EXPORT FrameView* view() const; // can be NULL
-    Frame* frame() const { return m_frame; } // can be NULL
     WEBCORE_EXPORT Page* page() const; // can be NULL
     WEBCORE_EXPORT Settings* settings() const; // can be NULL
 
@@ -767,7 +760,7 @@ public:
 
     // Helper functions for forwarding DOMWindow event related tasks to the DOMWindow if it exists.
     void setWindowAttributeEventListener(const AtomicString& eventType, const QualifiedName& attributeName, const AtomicString& value);
-    void setWindowAttributeEventListener(const AtomicString& eventType, PassRefPtr<EventListener>);
+    void setWindowAttributeEventListener(const AtomicString& eventType, RefPtr<EventListener>&&);
     EventListener* getWindowAttributeEventListener(const AtomicString& eventType);
     WEBCORE_EXPORT void dispatchWindowEvent(Event&, EventTarget* = nullptr);
     void dispatchWindowLoadEvent();
@@ -831,7 +824,7 @@ public:
     HTMLFrameOwnerElement* ownerElement() const;
 
     // Used by DOM bindings; no direction known.
-    String title() const { return m_title.string(); }
+    const String& title() const { return m_title.string; }
     WEBCORE_EXPORT void setTitle(const String&);
 
     WEBCORE_EXPORT const AtomicString& dir() const;
@@ -964,9 +957,7 @@ public:
 
     void postTask(Task&&) final; // Executes the task on context's thread asynchronously.
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     ScriptedAnimationController* scriptedAnimationController() { return m_scriptedAnimationController.get(); }
-#endif
     void suspendScriptedAnimationControllerCallbacks();
     void resumeScriptedAnimationControllerCallbacks();
     void scriptedAnimationControllerSetThrottled(bool);
@@ -1033,15 +1024,6 @@ public:
     TextResourceDecoder* decoder() const { return m_decoder.get(); }
 
     WEBCORE_EXPORT String displayStringModifiedByEncoding(const String&) const;
-    RefPtr<StringImpl> displayStringModifiedByEncoding(PassRefPtr<StringImpl>) const;
-    void displayBufferModifiedByEncoding(LChar* buffer, unsigned len) const
-    {
-        displayBufferModifiedByEncodingInternal(buffer, len);
-    }
-    void displayBufferModifiedByEncoding(UChar* buffer, unsigned len) const
-    {
-        displayBufferModifiedByEncodingInternal(buffer, len);
-    }
 
     // Quirk for the benefit of Apple's Dictionary application.
     void setFrameElementsShouldIgnoreScrolling(bool ignore) { m_frameElementsShouldIgnoreScrolling = ignore; }
@@ -1065,7 +1047,7 @@ public:
     void initContentSecurityPolicy();
 
     void updateURLForPushOrReplaceState(const URL&);
-    void statePopped(PassRefPtr<SerializedScriptValue>);
+    void statePopped(Ref<SerializedScriptValue>&&);
 
     bool processingLoadEvent() const { return m_processingLoadEvent; }
     bool loadEventFinished() const { return m_loadEventFinished; }
@@ -1147,11 +1129,9 @@ public:
 
     double monotonicTimestamp() const;
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
-    int requestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback>);
+    int requestAnimationFrame(Ref<RequestAnimationFrameCallback>&&);
     void cancelAnimationFrame(int id);
     void serviceScriptedAnimations(double timestamp);
-#endif
 
     void sendWillRevealEdgeEventsIfNeeded(const IntPoint& oldPosition, const IntPoint& newPosition, const IntRect& visibleRect, const IntSize& contentsSize, Element* target = nullptr);
 
@@ -1312,6 +1292,7 @@ private:
     friend class IgnoreOpensDuringUnloadCountIncrementer;
 
     void updateTitleElement(Element* newTitleElement);
+    void frameDestroyed() final;
 
     void commonTeardown();
 
@@ -1354,11 +1335,7 @@ private:
 
     void pendingTasksTimerFired();
 
-    template <typename CharacterType>
-    void displayBufferModifiedByEncodingInternal(CharacterType*, unsigned) const;
-
-    template <CollectionType collectionType>
-    Ref<HTMLCollection> ensureCachedCollection();
+    template<CollectionType> Ref<HTMLCollection> ensureCachedCollection();
 
 #if ENABLE(FULLSCREEN_API)
     void dispatchFullScreenChangeOrErrorEvent(Deque<RefPtr<Node>>&, const AtomicString& eventName, bool shouldNotifyMediaElement);
@@ -1379,6 +1356,7 @@ private:
     void wheelEventHandlersChanged();
 
     HttpEquivPolicy httpEquivPolicy() const;
+    AXObjectCache* existingAXObjectCacheSlow() const;
 
     // DOM Cookies caching.
     const String& cachedDOMCookies() const { return m_cachedDOMCookies; }
@@ -1410,7 +1388,6 @@ private:
     // do eventually load.
     PendingSheetLayout m_pendingSheetLayout;
 
-    Frame* m_frame;
     RefPtr<DOMWindow> m_domWindow;
     WeakPtr<Document> m_contextDocument;
 
@@ -1646,10 +1623,8 @@ private:
 
     double m_lastHandledUserGestureTimestamp;
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     void clearScriptedAnimationController();
     RefPtr<ScriptedAnimationController> m_scriptedAnimationController;
-#endif
 
 #if ENABLE(DEVICE_ORIENTATION) && PLATFORM(IOS)
     std::unique_ptr<DeviceMotionClient> m_deviceMotionClient;
@@ -1763,7 +1738,11 @@ private:
 #if ENABLE(WEB_SOCKETS)
     RefPtr<SocketProvider> m_socketProvider;
 #endif
+
+    static bool hasEverCreatedAnAXObjectCache;
 };
+
+Element* eventTargetElementForDocument(Document*);
 
 inline void Document::notifyRemovePendingSheetIfNeeded()
 {
@@ -1783,7 +1762,14 @@ inline const Document* Document::templateDocument() const
     return m_templateDocumentHost ? this : m_templateDocument.get();
 }
 
-// Put these methods here, because they require the Document definition, but we really want to inline them.
+inline AXObjectCache* Document::existingAXObjectCache() const
+{
+    if (!hasEverCreatedAnAXObjectCache)
+        return nullptr;
+    return existingAXObjectCacheSlow();
+}
+
+// These functions are here because they require the Document class definition and we want to inline them.
 
 inline bool Node::isDocumentNode() const
 {
@@ -1794,8 +1780,6 @@ inline ScriptExecutionContext* Node::scriptExecutionContext() const
 {
     return &document().contextDocument();
 }
-
-Element* eventTargetElementForDocument(Document*);
 
 } // namespace WebCore
 

@@ -110,6 +110,7 @@ public:
     WEBCORE_EXPORT String host() const;
     WEBCORE_EXPORT std::optional<uint16_t> port() const;
     WEBCORE_EXPORT String hostAndPort() const;
+    WEBCORE_EXPORT String protocolHostAndPort() const;
     WEBCORE_EXPORT String user() const;
     WEBCORE_EXPORT String pass() const;
     WEBCORE_EXPORT String path() const;
@@ -163,7 +164,7 @@ public:
     // URL (with nothing after it). To clear the query, pass a null string.
     void setQuery(const String&);
 
-    void setFragmentIdentifier(const String&);
+    void setFragmentIdentifier(StringView);
     void removeFragmentIdentifier();
 
     WEBCORE_EXPORT friend bool equalIgnoringFragmentIdentifier(const URL&, const URL&);

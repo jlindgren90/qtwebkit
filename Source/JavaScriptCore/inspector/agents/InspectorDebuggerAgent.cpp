@@ -787,8 +787,11 @@ void InspectorDebuggerAgent::didBecomeIdle()
 {
     m_registeredIdleCallback = false;
 
-    if (m_conditionToDispatchResumed == ShouldDispatchResumed::WhenIdle)
+    if (m_conditionToDispatchResumed == ShouldDispatchResumed::WhenIdle) {
+        cancelPauseOnNextStatement();
+        m_scriptDebugServer.continueProgram();
         m_frontendDispatcher->resumed();
+    }
 
     m_conditionToDispatchResumed = ShouldDispatchResumed::No;
 
@@ -1142,7 +1145,6 @@ void InspectorDebuggerAgent::clearAsyncStackTraceData()
 void InspectorDebuggerAgent::refAsyncCallData(const AsyncCallIdentifier& identifier)
 {
     auto iterator = m_asyncCallIdentifierToData.find(identifier);
-    ASSERT(iterator != m_asyncCallIdentifierToData.end());
     if (iterator == m_asyncCallIdentifierToData.end())
         return;
 

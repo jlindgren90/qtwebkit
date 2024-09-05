@@ -33,7 +33,7 @@ class CSSStyleRule;
 class CSSStyleSheet;
 class MediaQuerySet;
 class MutableStyleProperties;
-class StyleKeyframe;
+class StyleRuleKeyframe;
 class StyleProperties;
 class StyleRuleKeyframes;
     
@@ -49,7 +49,7 @@ public:
         FontFace,
         Page,
         Keyframes,
-        Keyframe, // Not used. These are internally non-rule StyleKeyframe objects.
+        Keyframe, // Not used. These are internally non-rule StyleRuleKeyframe objects.
         Namespace,
         Supports = 12,
 #if ENABLE(CSS_DEVICE_ADAPTATION)
@@ -197,7 +197,7 @@ public:
     void parseDeferredKeyframes(StyleRuleKeyframes&);
 
 private:
-    CSSParserTokenRange m_range;
+    Vector<CSSParserToken> m_tokens;
     Ref<CSSDeferredParser> m_parser;
 };
     
@@ -393,7 +393,7 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRuleNamespace)
     static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isNamespaceRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
 
-SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleKeyframe)
+SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::StyleRuleKeyframe)
 static bool isType(const WebCore::StyleRuleBase& rule) { return rule.isKeyframeRule(); }
 SPECIALIZE_TYPE_TRAITS_END()
 

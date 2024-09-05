@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008, 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2007 Eric Seidel <eric@webkit.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -106,9 +106,9 @@ public:
         void visitChildren(SlotVisitor& visitor)
         {
             LockHolder locker(m_lock);
-            for (PrivatePropertyMap::iterator ptr = m_propertyMap.begin(); ptr != m_propertyMap.end(); ++ptr) {
-                if (ptr->value)
-                    visitor.append(&ptr->value);
+            for (auto& pair : m_propertyMap) {
+                if (pair.value)
+                    visitor.append(pair.value);
             }
         }
 
@@ -232,6 +232,7 @@ private:
     static EncodedJSValue callbackGetter(ExecState*, EncodedJSValue, PropertyName);
 
     std::unique_ptr<JSCallbackObjectData> m_callbackObjectData;
+    const ClassInfo* m_classInfo;
 };
 
 } // namespace JSC

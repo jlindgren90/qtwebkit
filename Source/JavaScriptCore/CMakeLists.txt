@@ -3,6 +3,7 @@ include(WebKitCommon)
 set_property(DIRECTORY . PROPERTY FOLDER "JavaScriptCore")
 
 set(JavaScriptCore_INCLUDE_DIRECTORIES
+    "${CMAKE_BINARY_DIR}"
     "${JAVASCRIPTCORE_DIR}"
     "${JAVASCRIPTCORE_DIR}/.."
     "${JAVASCRIPTCORE_DIR}/API"
@@ -116,6 +117,7 @@ set(JavaScriptCore_SOURCES
     b3/B3CheckValue.cpp
     b3/B3Common.cpp
     b3/B3Commutativity.cpp
+    b3/B3Compile.cpp
     b3/B3Compilation.cpp
     b3/B3Const32Value.cpp
     b3/B3Const64Value.cpp
@@ -495,16 +497,20 @@ set(JavaScriptCore_SOURCES
     heap/MarkedAllocator.cpp
     heap/MarkedBlock.cpp
     heap/MarkedSpace.cpp
+    heap/MarkingConstraint.cpp
+    heap/MarkingConstraintSet.cpp
+    heap/MutatorScheduler.cpp
     heap/MutatorState.cpp
     heap/SlotVisitor.cpp
-    heap/SpaceTimeScheduler.cpp
+    heap/SpaceTimeMutatorScheduler.cpp
     heap/StopIfNecessaryTimer.cpp
+    heap/Subspace.cpp
+    heap/SynchronousStopTheWorldMutatorScheduler.cpp
     heap/VisitRaceKey.cpp
     heap/Weak.cpp
     heap/WeakBlock.cpp
     heap/WeakHandleOwner.cpp
     heap/WeakSet.cpp
-    heap/WriteBarrierBuffer.cpp
     heap/WriteBarrierSupport.cpp
 
     inspector/ConsoleMessage.cpp
@@ -747,6 +753,7 @@ set(JavaScriptCore_SOURCES
     runtime/JSDataView.cpp
     runtime/JSDataViewPrototype.cpp
     runtime/JSDateMath.cpp
+    runtime/JSDestructibleObjectSubspace.cpp
     runtime/JSEnvironmentRecord.cpp
     runtime/JSFixedArray.cpp
     runtime/JSFunction.cpp
@@ -779,12 +786,15 @@ set(JavaScriptCore_SOURCES
     runtime/JSPropertyNameIterator.cpp
     runtime/JSProxy.cpp
     runtime/JSScope.cpp
+    runtime/JSScriptFetcher.cpp
     runtime/JSSegmentedVariableObject.cpp
     runtime/JSSet.cpp
     runtime/JSSetIterator.cpp
+    runtime/JSSourceCode.cpp
     runtime/JSString.cpp
     runtime/JSStringIterator.cpp
     runtime/JSStringJoiner.cpp
+    runtime/JSStringSubspace.cpp
     runtime/JSSymbolTableObject.cpp
     runtime/JSTemplateRegistryKey.cpp
     runtime/JSTypedArrayConstructors.cpp
@@ -904,12 +914,15 @@ set(JavaScriptCore_SOURCES
     wasm/WasmMemory.cpp
     wasm/WasmMemoryInformation.cpp
     wasm/WasmModuleParser.cpp
+    wasm/WasmPageCount.cpp
     wasm/WasmPlan.cpp
+    wasm/WasmSignature.cpp
     wasm/WasmValidate.cpp
 
     wasm/js/JSWebAssemblyCallee.cpp
     wasm/js/JSWebAssemblyCompileError.cpp
     wasm/js/JSWebAssemblyInstance.cpp
+    wasm/js/JSWebAssemblyLinkError.cpp
     wasm/js/JSWebAssemblyMemory.cpp
     wasm/js/JSWebAssemblyModule.cpp
     wasm/js/JSWebAssemblyRuntimeError.cpp
@@ -919,6 +932,8 @@ set(JavaScriptCore_SOURCES
     wasm/js/WebAssemblyFunction.cpp
     wasm/js/WebAssemblyInstanceConstructor.cpp
     wasm/js/WebAssemblyInstancePrototype.cpp
+    wasm/js/WebAssemblyLinkErrorConstructor.cpp
+    wasm/js/WebAssemblyLinkErrorPrototype.cpp
     wasm/js/WebAssemblyMemoryConstructor.cpp
     wasm/js/WebAssemblyMemoryPrototype.cpp
     wasm/js/WebAssemblyModuleConstructor.cpp
@@ -986,6 +1001,8 @@ set(JavaScriptCore_OBJECT_LUT_SOURCES
     wasm/js/WebAssemblyCompileErrorPrototype.cpp
     wasm/js/WebAssemblyInstanceConstructor.cpp
     wasm/js/WebAssemblyInstancePrototype.cpp
+    wasm/js/WebAssemblyLinkErrorConstructor.cpp
+    wasm/js/WebAssemblyLinkErrorPrototype.cpp
     wasm/js/WebAssemblyMemoryConstructor.cpp
     wasm/js/WebAssemblyMemoryPrototype.cpp
     wasm/js/WebAssemblyModuleConstructor.cpp
@@ -1072,7 +1089,6 @@ set(OFFLINE_ASM
     offlineasm/risc.rb
     offlineasm/self_hash.rb
     offlineasm/settings.rb
-    offlineasm/sh4.rb
     offlineasm/transform.rb
     offlineasm/x86.rb
 )

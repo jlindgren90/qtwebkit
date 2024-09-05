@@ -83,6 +83,10 @@ bool Settings::gAVFoundationNSURLSessionEnabled = true;
 bool Settings::gQTKitEnabled = false;
 #endif
 
+#if USE(GSTREAMER)
+bool Settings::gGStreamerEnabled = true;
+#endif
+
 bool Settings::gMockScrollbarsEnabled = false;
 bool Settings::gUsesOverlayScrollbars = false;
 bool Settings::gMockScrollAnimatorEnabled = false;
@@ -582,6 +586,17 @@ void Settings::setQTKitEnabled(bool enabled)
 }
 #endif
 
+#if USE(GSTREAMER)
+void Settings::setGStreamerEnabled(bool enabled)
+{
+    if (gGStreamerEnabled == enabled)
+        return;
+
+    gGStreamerEnabled = enabled;
+    HTMLMediaElement::resetMediaEngines();
+}
+#endif
+
 #if ENABLE(MEDIA_STREAM)
 bool Settings::mockCaptureDevicesEnabled()
 {
@@ -760,6 +775,24 @@ bool Settings::globalConstRedeclarationShouldThrow()
     return !IOSApplication::isIBooks();
 #else
     return true;
+#endif
+}
+
+bool Settings::isPostLoadCPUUsageMeasurementEnabled()
+{
+#if PLATFORM(COCOA)
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool Settings::isPostBackgroundingCPUUsageMeasurementEnabled()
+{
+#if PLATFORM(MAC)
+    return true;
+#else
+    return false;
 #endif
 }
 

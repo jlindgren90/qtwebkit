@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2009, 2011 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2008, 2010 Nokia Corporation and/or its subsidiary(-ies)
  * Copyright (C) 2012, Samsung Electronics. All rights reserved.
  *
@@ -44,7 +44,6 @@
 #include "PopupOpeningObserver.h"
 #include "RenderObject.h"
 #include "ResourceHandle.h"
-#include "SecurityOrigin.h"
 #include "Settings.h"
 #include "StorageNamespace.h"
 #include "WindowFeatures.h"
@@ -432,13 +431,13 @@ std::unique_ptr<ColorChooser> Chrome::createColorChooser(ColorChooserClient* cli
 }
 #endif
 
-void Chrome::runOpenPanel(Frame* frame, PassRefPtr<FileChooser> fileChooser)
+void Chrome::runOpenPanel(Frame& frame, FileChooser& fileChooser)
 {
     notifyPopupOpeningObservers();
     m_client.runOpenPanel(frame, fileChooser);
 }
 
-void Chrome::loadIconForFiles(const Vector<String>& filenames, FileIconLoader* loader)
+void Chrome::loadIconForFiles(const Vector<String>& filenames, FileIconLoader& loader)
 {
     m_client.loadIconForFiles(filenames, loader);
 }
@@ -480,14 +479,12 @@ void Chrome::setCursorHiddenUntilMouseMoves(bool hiddenUntilMouseMoves)
 #endif
 }
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
 void Chrome::scheduleAnimation()
 {
 #if !USE(REQUEST_ANIMATION_FRAME_TIMER)
     m_client.scheduleAnimation();
 #endif
 }
-#endif
 
 PlatformDisplayID Chrome::displayID() const
 {

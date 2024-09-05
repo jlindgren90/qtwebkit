@@ -27,7 +27,7 @@ messages -> WebPage LegacyReceiver {
 
     SetDrawsBackground(bool drawsBackground)
 
-#if PLATFORM(COCOA)
+#if HAVE(COREANIMATION_FENCES)
     SetTopContentInsetFenced(float contentInset, IPC::Attachment fencePort)
 #endif
     SetTopContentInset(float contentInset)
@@ -299,8 +299,10 @@ messages -> WebPage LegacyReceiver {
     UserMediaAccessWasGranted(uint64_t userMediaID, String audioDeviceUID, String videoDeviceUID)
     UserMediaAccessWasDenied(uint64_t userMediaID, uint64_t reason, String invalidConstraint)
     DidCompleteMediaDeviceEnumeration(uint64_t userMediaID, Vector<WebCore::CaptureDevice> devices, String mediaDeviceIdentifierHashSalt, bool hasPersistentAccess)
+#if ENABLE(SANDBOX_EXTENSIONS)
     GrantUserMediaDeviceSandboxExtensions(WebKit::MediaDeviceSandboxExtensions sandboxExtensions)
     RevokeUserMediaDeviceSandboxExtensions(Vector<String> sandboxExtensionIDs)
+#endif
 #endif
 
     # Notification
@@ -423,11 +425,16 @@ messages -> WebPage LegacyReceiver {
     ImmediateActionDidUpdate()
     ImmediateActionDidCancel()
     ImmediateActionDidComplete()
+
     DataDetectorsDidPresentUI(WebCore::PageOverlay::PageOverlayID pageOverlay)
     DataDetectorsDidChangeUI(WebCore::PageOverlay::PageOverlayID pageOverlay)
     DataDetectorsDidHideUI(WebCore::PageOverlay::PageOverlayID pageOverlay)
+
     HandleAcceptedCandidate(struct WebCore::TextCheckingResult acceptedCandidate)
     RequestActiveNowPlayingSessionInfo()
+
+    SetHeaderBannerHeightForTesting(int height);
+    SetFooterBannerHeightForTesting(int height);
 #endif
 
     SetShouldDispatchFakeMouseMoveEvents(bool shouldDispatchFakeMouseMoveEvents)

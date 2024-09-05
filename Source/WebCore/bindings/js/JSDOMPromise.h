@@ -94,12 +94,24 @@ public:
     void reject(ExceptionCode, const String& = { });
     void reject(const JSC::PrivateName&);
 
+    template<typename Callback, typename Value>
+    void resolveWithCallback(Callback callback, Value value)
+    {
+        if (isSuspended())
+            return;
+        ASSERT(m_deferred);
+        ASSERT(m_globalObject);
+        JSC::ExecState* exec = m_globalObject->globalExec();
+        JSC::JSLockHolder locker(exec);
+        resolve(*exec, callback(*exec, *m_globalObject.get(), std::forward<Value>(value)));
+    }
+
     JSC::JSValue promise() const;
 
     bool isSuspended() { return !m_deferred || !canInvokeCallback(); } // The wrapper world has gone away or active DOM objects have been suspended.
     JSDOMGlobalObject* globalObject() { return m_globalObject.get(); }
 
-    void visitAggregate(JSC::SlotVisitor& visitor) { visitor.appendUnbarrieredWeak(&m_deferred); }
+    void visitAggregate(JSC::SlotVisitor& visitor) { visitor.append(m_deferred); }
 
 private:
     DeferredPromise(JSDOMGlobalObject&, JSC::JSPromiseDeferred&);

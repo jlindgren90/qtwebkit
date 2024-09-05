@@ -55,10 +55,8 @@ my (
     $canvasPathSupport,
     $canvasProxySupport,
     $channelMessagingSupport,
-    $classSyntax,
     $cspNextSupport,
     $css3TextSupport,
-    $css4ImagesSupport,
     $cssBoxDecorationBreakSupport,
     $cssCompositingSupport,
     $cssDeviceAdaptation,
@@ -72,11 +70,8 @@ my (
     $customSchemeHandlerSupport,
     $dataTransferItemsSupport,
     $datalistElementSupport,
-    $detailsElementSupport,
     $deviceOrientationSupport,
-    $directoryUploadSupport,
     $dom4EventsConstructor,
-    $domIterator,
     $downloadAttributeSupport,
     $encryptedMediaSupport,
     $fetchAPISupport,
@@ -85,7 +80,6 @@ my (
     $ftpDirSupport,
     $fullscreenAPISupport,
     $gamepadSupport,
-    $generatorsSupport,
     $geolocationSupport,
     $hardwareConcurrencySupport,
     $highDPICanvasSupport,
@@ -114,37 +108,23 @@ my (
     $mediaStreamSupport,
     $meterElementSupport,
     $mhtmlSupport,
-    $modernMediaControls,
-    $modulesSupport,
     $mouseCursorScaleSupport,
     $netscapePluginAPISupport,
     $nosniffSupport,
     $notificationsSupport,
     $orientationEventsSupport,
-    $pageVisibilityAPISupport,
     $performanceTimelineSupport,
-    $promiseSupport,
     $proximityEventsSupport,
     $quotaSupport,
     $readableStreamAPISupport,
     $readableByteStreamAPISupport,
     $registerProtocolHandlerSupport,
-    $requestAnimationFrameSupport,
     $resolutionMediaQuerySupport,
-    $resourceTimingSupport,
-    $samplingProfilerSupport,
     $scriptedSpeechSupport,
-    $shadowDOMSupport,
-    $styleScopedSupport,
     $subtleCrypto,
-    $svgDOMObjCBindingsSupport,
     $svgFontsSupport,
     $systemMallocSupport,
-    $templateElementSupport,
-    $templateLiteralSyntax,
-    $textAutosizingSupport,
     $threadedCompositorSupport,
-    $threadedHTMLParserSupport,
     $threeDTransformsSupport,
     $touchEventsSupport,
     $touchIconLoadingSupport,
@@ -236,9 +216,6 @@ my @features = (
     { option => "datalist-element", desc => "Toggle Datalist Element support",
       define => "ENABLE_DATALIST_ELEMENT", default => isEfl(), value => \$datalistElementSupport },
 
-    { option => "details-element", desc => "Toggle Details Element support",
-      define => "ENABLE_DETAILS_ELEMENT", default => 1, value => \$detailsElementSupport },
-
     { option => "device-orientation", desc => "Toggle Device Orientation support",
       define => "ENABLE_DEVICE_ORIENTATION", default => (isIOSWebKit() || isQt()), value => \$deviceOrientationSupport },
 
@@ -268,10 +245,6 @@ my @features = (
 
     { option => "gamepad", desc => "Toggle Gamepad support",
       define => "ENABLE_GAMEPAD", default => 0, value => \$gamepadSupport },
-
-    { option => "generators", desc => "Toggle ES6 generators support",
-      define => "ENABLE_ES6_GENERATORS", default => 1, value => \$generatorsSupport,
-      javascript => 1 },
 
     { option => "geolocation", desc => "Toggle Geolocation support",
       define => "ENABLE_GEOLOCATION", default => (isAppleWebKit() || isIOSWebKit() || isGtk() || isEfl() || isQt()), value => \$geolocationSupport },
@@ -337,7 +310,7 @@ my @features = (
       define => "ENABLE_MEDIA_CAPTURE", default => isEfl(), value => \$mediaCaptureSupport },
 
     { option => "media-source", desc => "Toggle Media Source support",
-      define => "ENABLE_MEDIA_SOURCE", default => 0, value => \$mediaSourceSupport },
+      define => "ENABLE_MEDIA_SOURCE", default => isGtk(), value => \$mediaSourceSupport },
 
     { option => "media-statistics", desc => "Toggle Media Statistics support",
       define => "ENABLE_MEDIA_STATISTICS", default => 0, value => \$mediaStatisticsSupport },
@@ -375,17 +348,11 @@ my @features = (
     { option => "performance-timeline", desc => "Toggle Performance Timeline support",
       define => "ENABLE_PERFORMANCE_TIMELINE", default => isGtk(), value => \$performanceTimelineSupport },
 
-    { option => "promises", desc => "Toggle Promise support",
-      define => "ENABLE_PROMISES", default => 1, value => \$promiseSupport },
-
     { option => "proximity-events", desc => "Toggle Proximity Events support",
       define => "ENABLE_PROXIMITY_EVENTS", default => 0, value => \$proximityEventsSupport },
 
     { option => "quota", desc => "Toggle Quota support",
       define => "ENABLE_QUOTA", default => 0, value => \$quotaSupport },
-
-    { option => "request-animation-frame", desc => "Toggle Request Animation Frame support",
-      define => "ENABLE_REQUEST_ANIMATION_FRAME", default => 1, value => \$requestAnimationFrameSupport },
 
     { option => "readableStreamAPI", desc => "Toggle ReadableStream API support",
       define => "ENABLE_READABLE_STREAM_API", default => 1, value => \$readableStreamAPISupport },
@@ -395,12 +362,6 @@ my @features = (
 
     { option => "resolution-media-query", desc => "Toggle resolution media query support",
       define => "ENABLE_RESOLUTION_MEDIA_QUERY", default => isEfl(), value => \$resolutionMediaQuerySupport },
-
-    { option => "resource-timing", desc => "Toggle Resource Timing support",
-      define => "ENABLE_RESOURCE_TIMING", default => isGtk(), value => \$resourceTimingSupport },
-
-    { option => "sampling-profiler", desc => "Toggle JSC Sampling Profiler",
-      define => "ENABLE_SAMPLING_PROFILER", default => 1, value => \$samplingProfilerSupport },
 
     { option => "scripted-speech", desc => "Toggle Scripted Speech support",
       define => "ENABLE_SCRIPTED_SPEECH", default => 0, value => \$scriptedSpeechSupport },

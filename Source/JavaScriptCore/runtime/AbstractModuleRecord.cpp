@@ -46,7 +46,7 @@ AbstractModuleRecord::AbstractModuleRecord(VM& vm, Structure* structure, const I
 
 void AbstractModuleRecord::destroy(JSCell* cell)
 {
-    AbstractModuleRecord* thisObject = jsCast<AbstractModuleRecord*>(cell);
+    AbstractModuleRecord* thisObject = static_cast<AbstractModuleRecord*>(cell);
     thisObject->AbstractModuleRecord::~AbstractModuleRecord();
 }
 
@@ -68,9 +68,9 @@ void AbstractModuleRecord::visitChildren(JSCell* cell, SlotVisitor& visitor)
 {
     AbstractModuleRecord* thisObject = jsCast<AbstractModuleRecord*>(cell);
     Base::visitChildren(thisObject, visitor);
-    visitor.append(&thisObject->m_moduleEnvironment);
-    visitor.append(&thisObject->m_moduleNamespaceObject);
-    visitor.append(&thisObject->m_dependenciesMap);
+    visitor.append(thisObject->m_moduleEnvironment);
+    visitor.append(thisObject->m_moduleNamespaceObject);
+    visitor.append(thisObject->m_dependenciesMap);
 }
 
 void AbstractModuleRecord::appendRequestedModule(const Identifier& moduleName)

@@ -51,7 +51,6 @@
 #include "MediaList.h"
 #include "Node.h"
 #include "SVGElement.h"
-#include "SVGNames.h"
 #include "SVGStyleElement.h"
 #include "StyleProperties.h"
 #include "StyleResolver.h"
@@ -604,6 +603,9 @@ void InspectorStyle::populateAllProperties(Vector<InspectorStyleProperty>* resul
         ASSERT(!styleDeclarationOrException.hasException());
         String styleDeclaration = styleDeclarationOrException.hasException() ? emptyString() : styleDeclarationOrException.releaseReturnValue();
         for (auto& sourceData : *sourcePropertyData) {
+            // FIXME: <https://webkit.org/b/166787> Web Inspector: Frontend should be made to expect and handle disabled properties
+            if (sourceData.disabled)
+                continue;
             InspectorStyleProperty p(sourceData, true, sourceData.disabled);
             p.setRawTextFromStyleDeclaration(styleDeclaration);
             result->append(p);

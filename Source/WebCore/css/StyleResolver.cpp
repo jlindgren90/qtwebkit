@@ -111,7 +111,6 @@
 #include "SVGNames.h"
 #include "SVGSVGElement.h"
 #include "SVGURIReference.h"
-#include "SecurityOrigin.h"
 #include "Settings.h"
 #include "ShadowData.h"
 #include "ShadowRoot.h"
@@ -134,9 +133,7 @@
 #include "ViewportStyleResolver.h"
 #include "VisitedLinkState.h"
 #include "WebKitCSSRegionRule.h"
-#include "WebKitCSSTransformValue.h"
 #include "WebKitFontFamilyNames.h"
-#include "XMLNames.h"
 #include <bitset>
 #include <wtf/SetForScope.h>
 #include <wtf/StdLibExtras.h>
@@ -156,10 +153,6 @@
 #include "WebVTTElement.h"
 #endif
 
-#if ENABLE(CSS_SCROLL_SNAP)
-#include "LengthRepeat.h"
-#endif
-
 namespace WebCore {
 
 using namespace HTMLNames;
@@ -173,7 +166,7 @@ inline void StyleResolver::State::cacheBorderAndBackground()
     m_hasUAAppearance = m_style->hasAppearance();
     if (m_hasUAAppearance) {
         m_borderData = m_style->border();
-        m_backgroundData = *m_style->backgroundLayers();
+        m_backgroundData = m_style->backgroundLayers();
         m_backgroundColor = m_style->backgroundColor();
     }
 }
@@ -445,7 +438,7 @@ ElementStyle StyleResolver::styleForElement(const Element& element, const Render
     return { state.takeStyle(), WTFMove(elementStyleRelations) };
 }
 
-std::unique_ptr<RenderStyle> StyleResolver::styleForKeyframe(const RenderStyle* elementStyle, const StyleKeyframe* keyframe, KeyframeValue& keyframeValue)
+std::unique_ptr<RenderStyle> StyleResolver::styleForKeyframe(const RenderStyle* elementStyle, const StyleRuleKeyframe* keyframe, KeyframeValue& keyframeValue)
 {
     RELEASE_ASSERT(!m_isDeleted);
 
@@ -517,7 +510,7 @@ void StyleResolver::keyframeStylesForAnimation(const Element& element, const Ren
     const StyleRuleKeyframes* keyframesRule = it->value.get();
 
     auto* keyframes = &keyframesRule->keyframes();
-    Vector<Ref<StyleKeyframe>> newKeyframesIfNecessary;
+    Vector<Ref<StyleRuleKeyframe>> newKeyframesIfNecessary;
 
     bool hasDuplicateKeys = false;
     HashSet<double> keyframeKeys;
@@ -536,17 +529,17 @@ void StyleResolver::keyframeStylesForAnimation(const Element& element, const Ren
     // to copy the HashMap into a Vector.
     if (hasDuplicateKeys) {
         // Merge duplicate key times.
-        HashMap<double, RefPtr<StyleKeyframe>> keyframesMap;
+        HashMap<double, RefPtr<StyleRuleKeyframe>> keyframesMap;
 
         for (auto& originalKeyframe : keyframesRule->keyframes()) {
             for (auto key : originalKeyframe->keys()) {
                 if (auto keyframe = keyframesMap.get(key))
                     keyframe->mutableProperties().mergeAndOverrideOnConflict(originalKeyframe->properties());
                 else {
-                    auto styleKeyframe = StyleKeyframe::create(MutableStyleProperties::create());
-                    styleKeyframe.ptr()->setKey(key);
-                    styleKeyframe.ptr()->mutableProperties().mergeAndOverrideOnConflict(originalKeyframe->properties());
-                    keyframesMap.set(key, styleKeyframe.ptr());
+                    auto StyleRuleKeyframe = StyleRuleKeyframe::create(MutableStyleProperties::create());
+                    StyleRuleKeyframe.ptr()->setKey(key);
+                    StyleRuleKeyframe.ptr()->mutableProperties().mergeAndOverrideOnConflict(originalKeyframe->properties());
+                    keyframesMap.set(key, StyleRuleKeyframe.ptr());
                 }
             }
         }
@@ -574,9 +567,9 @@ void StyleResolver::keyframeStylesForAnimation(const Element& element, const Ren
     // If the 0% keyframe is missing, create it (but only if there is at least one other keyframe).
     int initialListSize = list.size();
     if (initialListSize > 0 && list[0].key()) {
-        static StyleKeyframe* zeroPercentKeyframe;
+        static StyleRuleKeyframe* zeroPercentKeyframe;
         if (!zeroPercentKeyframe) {
-            zeroPercentKeyframe = &StyleKeyframe::create(MutableStyleProperties::create()).leakRef();
+            zeroPercentKeyframe = &StyleRuleKeyframe::create(MutableStyleProperties::create()).leakRef();
             zeroPercentKeyframe->setKey(0);
         }
         KeyframeValue keyframeValue(0, nullptr);
@@ -586,9 +579,9 @@ void StyleResolver::keyframeStylesForAnimation(const Element& element, const Ren
 
     // If the 100% keyframe is missing, create it (but only if there is at least one other keyframe).
     if (initialListSize > 0 && (list[list.size() - 1].key() != 1)) {
-        static StyleKeyframe* hundredPercentKeyframe;
+        static StyleRuleKeyframe* hundredPercentKeyframe;
         if (!hundredPercentKeyframe) {
-            hundredPercentKeyframe = &StyleKeyframe::create(MutableStyleProperties::create()).leakRef();
+            hundredPercentKeyframe = &StyleRuleKeyframe::create(MutableStyleProperties::create()).leakRef();
             hundredPercentKeyframe->setKey(1);
         }
         KeyframeValue keyframeValue(1, nullptr);
@@ -1333,7 +1326,7 @@ void StyleResolver::applyMatchedProperties(const MatchResult& matchResult, const
         // We can build up the style by copying non-inherited properties from an earlier style object built using the same exact
         // style declarations. We then only need to apply the inherited properties, if any, as their values can depend on the 
         // element context. This is fast and saves memory by reusing the style data structures.
-        state.style()->copyNonInheritedFrom(cacheItem->renderStyle.get());
+        state.style()->copyNonInheritedFrom(*cacheItem->renderStyle);
         if (state.parentStyle()->inheritedDataShared(cacheItem->parentRenderStyle.get()) && !isAtShadowBoundary(element)) {
             EInsideLink linkStatus = state.style()->insideLink();
             // If the cache item parent style has identical inherited properties to the current parent style then the
@@ -1666,17 +1659,10 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     if (isInherit && !CSSProperty::isInheritedProperty(id))
         state.style()->setHasExplicitlyInheritedProperties();
     
-    if (id == CSSPropertyCustom) {
-        CSSCustomPropertyValue* customProperty = &downcast<CSSCustomPropertyValue>(*valueToApply);
-        if (isInherit) {
-            RefPtr<CSSCustomPropertyValue> customVal = state.parentStyle()->getCustomPropertyValue(customProperty->name());
-            if (!customVal)
-                customVal = CSSCustomPropertyValue::createInvalid();
-            state.style()->setCustomPropertyValue(customProperty->name(), customVal);
-        } else if (isInitial)
-            state.style()->setCustomPropertyValue(customProperty->name(), CSSCustomPropertyValue::createInvalid());
-        else
-            state.style()->setCustomPropertyValue(customProperty->name(), customProperty);
+    if (customPropertyValue) {
+        auto& name = customPropertyValue->name();
+        auto* value = isInitial ? nullptr : isInherit ? state.parentStyle()->customProperties().get(name) : customPropertyValue;
+        state.style()->setCustomPropertyValue(name, value ? makeRef(*value) : CSSCustomPropertyValue::createInvalid());
         return;
     }
 
@@ -1694,7 +1680,7 @@ RefPtr<StyleImage> StyleResolver::styleImage(CSSValue& value)
 {
     if (is<CSSImageGeneratorValue>(value)) {
         if (is<CSSGradientValue>(value))
-            return StyleGeneratedImage::create(*downcast<CSSGradientValue>(value).gradientWithStylesResolved(this));
+            return StyleGeneratedImage::create(downcast<CSSGradientValue>(value).gradientWithStylesResolved(*this));
 
         if (is<CSSFilterImageValue>(value)) {
             // FilterImage needs to calculate FilterOperations.
@@ -1924,23 +1910,22 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
 
         auto& filterValue = downcast<CSSFunctionValue>(currentValue.get());
         FilterOperation::OperationType operationType = filterOperationForType(filterValue.name());
-        auto args = filterValue.arguments();
 
         // Check that all parameters are primitive values, with the
         // exception of drop shadow which has a CSSShadowValue parameter.
         const CSSPrimitiveValue* firstValue = nullptr;
-        if (args && operationType != FilterOperation::DROP_SHADOW) {
+        if (operationType != FilterOperation::DROP_SHADOW) {
             bool haveNonPrimitiveValue = false;
-            for (unsigned j = 0; j < args->length(); ++j) {
-                if (!is<CSSPrimitiveValue>(*args->itemWithoutBoundsCheck(j))) {
+            for (unsigned j = 0; j < filterValue.length(); ++j) {
+                if (!is<CSSPrimitiveValue>(*filterValue.itemWithoutBoundsCheck(j))) {
                     haveNonPrimitiveValue = true;
                     break;
                 }
             }
             if (haveNonPrimitiveValue)
                 continue;
-            if (args->length())
-                firstValue = downcast<CSSPrimitiveValue>(args->itemWithoutBoundsCheck(0));
+            if (filterValue.length())
+                firstValue = downcast<CSSPrimitiveValue>(filterValue.itemWithoutBoundsCheck(0));
         }
 
         switch (operationType) {
@@ -1948,7 +1933,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
         case FilterOperation::SEPIA:
         case FilterOperation::SATURATE: {
             double amount = 1;
-            if (args && args->length() == 1) {
+            if (filterValue.length() == 1) {
                 amount = firstValue->doubleValue();
                 if (firstValue->isPercentage())
                     amount /= 100;
@@ -1959,7 +1944,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
         }
         case FilterOperation::HUE_ROTATE: {
             double angle = 0;
-            if (args && args->length() == 1)
+            if (filterValue.length() == 1)
                 angle = firstValue->computeDegrees();
 
             operations.operations().append(BasicColorMatrixFilterOperation::create(angle, operationType));
@@ -1970,7 +1955,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
         case FilterOperation::CONTRAST:
         case FilterOperation::OPACITY: {
             double amount = (operationType == FilterOperation::BRIGHTNESS) ? 0 : 1;
-            if (args && args->length() == 1) {
+            if (filterValue.length() == 1) {
                 amount = firstValue->doubleValue();
                 if (firstValue->isPercentage())
                     amount /= 100;
@@ -1981,7 +1966,7 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
         }
         case FilterOperation::BLUR: {
             Length stdDeviation = Length(0, Fixed);
-            if (args && args->length() >= 1)
+            if (filterValue.length() >= 1)
                 stdDeviation = convertToFloatLength(firstValue, state.cssToLengthConversionData());
             if (stdDeviation.isUndefined())
                 return false;
@@ -1990,14 +1975,14 @@ bool StyleResolver::createFilterOperations(const CSSValue& inValue, FilterOperat
             break;
         }
         case FilterOperation::DROP_SHADOW: {
-            if (args && args->length() != 1)
+            if (filterValue.length() != 1)
                 return false;
 
-            auto& cssValue = *args->itemWithoutBoundsCheck(0);
+            const auto* cssValue = filterValue.itemWithoutBoundsCheck(0);
             if (!is<CSSShadowValue>(cssValue))
                 continue;
 
-            auto& item = downcast<CSSShadowValue>(cssValue);
+            const auto& item = downcast<CSSShadowValue>(*cssValue);
             int x = item.x->computeLength<int>(state.cssToLengthConversionData());
             int y = item.y->computeLength<int>(state.cssToLengthConversionData());
             IntPoint location(x, y);

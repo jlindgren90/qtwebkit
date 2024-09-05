@@ -313,8 +313,6 @@ public:
     WEBCORE_EXPORT ExceptionOr<void> insertAdjacentHTML(const String& where, const String& html);
     WEBCORE_EXPORT ExceptionOr<void> insertAdjacentText(const String& where, const String& text);
 
-    bool ieForbidsInsertHTML() const;
-
     const RenderStyle* computedStyle(PseudoId = NOPSEUDO) override;
 
     bool needsStyleInvalidation() const;
@@ -470,11 +468,6 @@ public:
     WEBCORE_EXPORT void requestPointerLock();
 #endif
 
-#if ENABLE(INDIE_UI)
-    void setUIActions(const AtomicString&);
-    const AtomicString& UIActions() const;
-#endif
-    
     bool isSpellCheckingEnabled() const;
 
     RenderNamedFlowFragment* renderNamedFlowFragment() const;

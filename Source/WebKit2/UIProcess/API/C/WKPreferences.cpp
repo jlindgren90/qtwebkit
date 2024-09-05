@@ -1281,14 +1281,14 @@ bool WKPreferencesGetNewBlockInsideInlineModelEnabled(WKPreferencesRef preferenc
     return toImpl(preferencesRef)->newBlockInsideInlineModelEnabled();
 }
 
-void WKPreferencesSetNewCSSParserEnabled(WKPreferencesRef preferencesRef, bool flag)
+void WKPreferencesSetDeferredCSSParserEnabled(WKPreferencesRef preferencesRef, bool flag)
 {
-    toImpl(preferencesRef)->setNewCSSParserEnabled(flag);
+    toImpl(preferencesRef)->setDeferredCSSParserEnabled(flag);
 }
 
-bool WKPreferencesGetNewCSSParserEnabled(WKPreferencesRef preferencesRef)
+bool WKPreferencesGetDeferredCSSParserEnabled(WKPreferencesRef preferencesRef)
 {
-    return toImpl(preferencesRef)->newCSSParserEnabled();
+    return toImpl(preferencesRef)->deferredCSSParserEnabled();
 }
 
 void WKPreferencesSetSubpixelCSSOMElementMetricsEnabled(WKPreferencesRef preferencesRef, bool flag)
@@ -1561,16 +1561,6 @@ bool WKPreferencesGetDownloadAttributeEnabled(WKPreferencesRef preferencesRef)
     return toImpl(preferencesRef)->downloadAttributeEnabled();
 }
 
-void WKPreferencesSetES6ModulesEnabled(WKPreferencesRef preferencesRef, bool flag)
-{
-    toImpl(preferencesRef)->setES6ModulesEnabled(flag);
-}
-
-bool WKPreferencesGetES6ModulesEnabled(WKPreferencesRef preferencesRef)
-{
-    return toImpl(preferencesRef)->es6ModulesEnabled();
-}
-
 void WKPreferencesSetIntersectionObserverEnabled(WKPreferencesRef preferencesRef, bool flag)
 {
     toImpl(preferencesRef)->setIntersectionObserverEnabled(flag);
@@ -1629,4 +1619,14 @@ void WKPreferencesSetSubtleCryptoEnabled(WKPreferencesRef preferencesRef, bool f
 bool WKPreferencesGetSubtleCryptoEnabled(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->subtleCryptoEnabled();
+}
+
+void WKPreferencesSetShouldSuppressKeyboardInputDuringProvisionalNavigation(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setShouldSuppressKeyboardInputDuringProvisionalNavigation(flag);
+}
+
+bool WKPreferencesGetShouldSuppressKeyboardInputDuringProvisionalNavigation(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->shouldSuppressKeyboardInputDuringProvisionalNavigation();
 }

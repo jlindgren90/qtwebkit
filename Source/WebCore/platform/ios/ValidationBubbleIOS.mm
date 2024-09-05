@@ -34,6 +34,7 @@
 #import <wtf/text/WTFString.h>
 
 SOFT_LINK_FRAMEWORK(UIKit);
+SOFT_LINK_CLASS(UIKit, UIFont);
 SOFT_LINK_CLASS(UIKit, UILabel);
 SOFT_LINK_CLASS(UIKit, UIPopoverPresentationController);
 SOFT_LINK_CLASS(UIKit, UITapGestureRecognizer);
@@ -92,8 +93,8 @@ SOFT_LINK_CLASS(UIKit, UIViewController);
 
 namespace WebCore {
 
-static const CGFloat horizontalPadding = 8;
-static const CGFloat verticalPadding = 8;
+static const CGFloat horizontalPadding = 17;
+static const CGFloat verticalPadding = 9;
 static const CGFloat maxLabelWidth = 300;
 
 ValidationBubble::ValidationBubble(UIView* view, const String& message)
@@ -109,7 +110,8 @@ ValidationBubble::ValidationBubble(UIView* view, const String& message)
 
     RetainPtr<UILabel> label = adoptNS([[getUILabelClass() alloc] initWithFrame:CGRectZero]);
     [label setText:message];
-    [label setLineBreakMode:NSLineBreakByWordWrapping];
+    [label setFont:[getUIFontClass() systemFontOfSize:14.0]];
+    [label setLineBreakMode:NSLineBreakByTruncatingTail];
     [label setNumberOfLines:4];
     [popoverView addSubview:label.get()];
 
@@ -127,7 +129,10 @@ ValidationBubble::~ValidationBubble()
 
 void ValidationBubble::show()
 {
-    [m_presentingViewController presentViewController:m_popoverController.get() animated:NO completion:nil];
+    // Protect the validation bubble so it stays alive until it is effectively presented. UIKit does not deal nicely with
+    // dismissing a popover that is being presented.
+    RefPtr<ValidationBubble> protectedThis(this);
+    [m_presentingViewController presentViewController:m_popoverController.get() animated:NO completion:[protectedThis]() { }];
 }
 
 static UIViewController *fallbackViewController(UIView *view)

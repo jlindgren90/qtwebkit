@@ -51,6 +51,8 @@ public:
     CSSParserTokenRange tokenRange() const;
     unsigned tokenCount();
 
+    Vector<String>&& escapedStringsForAdoption() { return WTFMove(m_stringPool); }
+
 private:
     CSSParserToken nextToken();
 

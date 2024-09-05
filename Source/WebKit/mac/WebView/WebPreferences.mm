@@ -504,6 +504,7 @@ public:
         [NSNumber numberWithBool:NO],   WebKitShowRepaintCounterPreferenceKey,
         [NSNumber numberWithBool:YES],  WebKitWebGLEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],  WebKitForceSoftwareWebGLRenderingPreferenceKey,
+        [NSNumber numberWithBool:YES],   WebKitPreferLowPowerWebGLRenderingPreferenceKey,
         [NSNumber numberWithBool:NO],   WebKitAccelerated2dCanvasEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],  WebKitSubpixelCSSOMElementMetricsEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],  WebKitResourceLoadStatisticsEnabledPreferenceKey,
@@ -612,6 +613,7 @@ public:
 #endif
         [NSNumber numberWithBool:YES], WebKitShadowDOMEnabledPreferenceKey,
         [NSNumber numberWithBool:YES], WebKitCustomElementsEnabledPreferenceKey,
+        [NSNumber numberWithBool:YES], WebKitModernMediaControlsEnabledPreferenceKey,
 #if ENABLE(WEBGL2)
         [NSNumber numberWithBool:NO], WebKitWebGL2EnabledPreferenceKey,
 #endif
@@ -621,7 +623,6 @@ public:
 #if ENABLE(DOWNLOAD_ATTRIBUTE)
         [NSNumber numberWithBool:NO], WebKitDownloadAttributeEnabledPreferenceKey,
 #endif
-        [NSNumber numberWithBool:NO], WebKitES6ModulesEnabledPreferenceKey,
 #if ENABLE(CSS_GRID_LAYOUT)
         [NSNumber numberWithBool:YES], WebKitCSSGridLayoutEnabledPreferenceKey,
 #endif
@@ -1821,6 +1822,9 @@ static NSString *classIBCreatorID = nil;
 
 + (void)_switchNetworkLoaderToNewTestingSession
 {
+#if PLATFORM(IOS)
+    WebThreadLock();
+#endif
     NetworkStorageSession::switchToNewTestingSession();
 }
 
@@ -2024,6 +2028,16 @@ static NSString *classIBCreatorID = nil;
 - (void)setForceSoftwareWebGLRendering:(BOOL)forced
 {
     [self _setBoolValue:forced forKey:WebKitForceSoftwareWebGLRenderingPreferenceKey];
+}
+
+- (BOOL)preferLowPowerWebGLRendering
+{
+    return [self _boolValueForKey:WebKitPreferLowPowerWebGLRenderingPreferenceKey];
+}
+
+- (void)setPreferLowPowerWebGLRendering:(BOOL)preferLowPower
+{
+    [self _setBoolValue:preferLowPower forKey:WebKitPreferLowPowerWebGLRenderingPreferenceKey];
 }
 
 - (BOOL)accelerated2dCanvasEnabled
@@ -2846,16 +2860,6 @@ static NSString *classIBCreatorID = nil;
 - (void)setDownloadAttributeEnabled:(BOOL)flag
 {
     [self _setBoolValue:flag forKey:WebKitDownloadAttributeEnabledPreferenceKey];
-}
-
-- (BOOL)es6ModulesEnabled
-{
-    return [self _boolValueForKey:WebKitES6ModulesEnabledPreferenceKey];
-}
-
-- (void)setES6ModulesEnabled:(BOOL)flag
-{
-    [self _setBoolValue:flag forKey:WebKitES6ModulesEnabledPreferenceKey];
 }
 
 - (BOOL)isCSSGridLayoutEnabled

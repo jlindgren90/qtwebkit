@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2000 Harri Porten (porten@kde.org)
- *  Copyright (C) 2003, 2007-2009, 2012-2013, 2015-2016 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003-2017 Apple Inc. All rights reserved.
  *  Copyright (C) 2003 Peter Kelly (pmk@post.com)
  *  Copyright (C) 2006 Alexey Proskuryakov (ap@nypop.com)
  *
@@ -75,7 +75,7 @@ JSArray* JSArray::tryCreateUninitialized(VM& vm, GCDeferralContext* deferralCont
             || hasContiguous(indexingType));
 
         unsigned vectorLength = Butterfly::optimalContiguousVectorLength(structure, initialLength);
-        void* temp = vm.heap.tryAllocateAuxiliary(deferralContext, nullptr, Butterfly::totalSize(0, outOfLineStorage, true, vectorLength * sizeof(EncodedJSValue)));
+        void* temp = vm.auxiliarySpace.tryAllocate(deferralContext, Butterfly::totalSize(0, outOfLineStorage, true, vectorLength * sizeof(EncodedJSValue)));
         if (!temp)
             return nullptr;
         butterfly = Butterfly::fromBase(temp, 0, outOfLineStorage);
@@ -90,7 +90,7 @@ JSArray* JSArray::tryCreateUninitialized(VM& vm, GCDeferralContext* deferralCont
         }
     } else {
         unsigned vectorLength = ArrayStorage::optimalVectorLength(0, structure, initialLength);
-        void* temp = vm.heap.tryAllocateAuxiliary(nullptr, Butterfly::totalSize(0, outOfLineStorage, true, ArrayStorage::sizeFor(vectorLength)));
+        void* temp = vm.auxiliarySpace.tryAllocate(deferralContext, Butterfly::totalSize(0, outOfLineStorage, true, ArrayStorage::sizeFor(vectorLength)));
         if (!temp)
             return nullptr;
         butterfly = Butterfly::fromBase(temp, 0, outOfLineStorage);
@@ -298,7 +298,7 @@ void JSArray::getOwnNonIndexPropertyNames(JSObject* object, ExecState* exec, Pro
 }
 
 // This method makes room in the vector, but leaves the new space for count slots uncleared.
-bool JSArray::unshiftCountSlowCase(VM& vm, DeferGC&, bool addToFront, unsigned count)
+bool JSArray::unshiftCountSlowCase(const AbstractLocker&, VM& vm, DeferGC&, bool addToFront, unsigned count)
 {
     ArrayStorage* storage = ensureArrayStorage(vm);
     Butterfly* butterfly = storage->butterfly();
@@ -347,7 +347,7 @@ bool JSArray::unshiftCountSlowCase(VM& vm, DeferGC&, bool addToFront, unsigned c
         allocatedNewStorage = false;
     } else {
         size_t newSize = Butterfly::totalSize(0, propertyCapacity, true, ArrayStorage::sizeFor(desiredCapacity));
-        newAllocBase = vm.heap.tryAllocateAuxiliary(this, newSize);
+        newAllocBase = vm.auxiliarySpace.tryAllocate(newSize);
         if (!newAllocBase)
             return false;
         newStorageCapacity = desiredCapacity;
@@ -892,6 +892,9 @@ bool JSArray::shiftCountWithArrayStorage(VM& vm, unsigned startIndex, unsigned c
     if (startIndex >= vectorLength)
         return true;
     
+    DisallowGC disallowGC;
+    auto locker = holdLock(*this);
+    
     if (startIndex + count > vectorLength)
         count = vectorLength - startIndex;
     
@@ -930,7 +933,7 @@ bool JSArray::shiftCountWithArrayStorage(VM& vm, unsigned startIndex, unsigned c
         // the start of the Butterfly, which needs to point at the first indexed property in the used
         // portion of the vector.
         Butterfly* butterfly = m_butterfly.get()->shift(structure(), count);
-        m_butterfly.setWithoutBarrier(butterfly);
+        setButterfly(vm, butterfly);
         storage = butterfly->arrayStorage();
         storage->m_indexBias += count;
 
@@ -1098,7 +1101,7 @@ bool JSArray::unshiftCountWithArrayStorage(ExecState* exec, unsigned startIndex,
         setButterfly(vm, newButterfly);
     } else if (!moveFront && vectorLength - length >= count)
         storage = storage->butterfly()->arrayStorage();
-    else if (unshiftCountSlowCase(vm, deferGC, moveFront, count))
+    else if (unshiftCountSlowCase(locker, vm, deferGC, moveFront, count))
         storage = arrayStorage();
     else {
         throwOutOfMemoryError(exec, scope);

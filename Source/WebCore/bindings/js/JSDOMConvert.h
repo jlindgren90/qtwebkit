@@ -26,8 +26,11 @@
 #pragma once
 
 #include "BufferSource.h"
+#include "IDBBindingUtilities.h"
 #include "IDLTypes.h"
 #include "JSDOMBinding.h"
+#include <runtime/JSGlobalObjectInlines.h>
+#include <runtime/JSONObject.h>
 
 namespace WebCore {
 
@@ -209,6 +212,38 @@ template<typename T> struct DefaultConverter {
 };
 
 // MARK: -
+// MARK: Any type
+
+template<> struct Converter<IDLAny> : DefaultConverter<IDLAny> {
+    using ReturnType = JSC::JSValue;
+    
+    static JSC::JSValue convert(JSC::ExecState&, JSC::JSValue value)
+    {
+        return value;
+    }
+
+    static JSC::JSValue convert(const JSC::Strong<JSC::Unknown>& value)
+    {
+        return value.get();
+    }
+};
+
+template<> struct JSConverter<IDLAny> {
+    static constexpr bool needsState = false;
+    static constexpr bool needsGlobalObject = false;
+
+    static JSC::JSValue convert(const JSC::JSValue& value)
+    {
+        return value;
+    }
+
+    static JSC::JSValue convert(const JSC::Strong<JSC::Unknown>& value)
+    {
+        return value.get();
+    }
+};
+
+// MARK: -
 // MARK: Nullable type
 
 namespace Detail {
@@ -223,6 +258,11 @@ namespace Detail {
     template<typename T>
     struct NullableConversionType<IDLInterface<T>> {
         using Type = typename Converter<IDLInterface<T>>::ReturnType;
+    };
+
+    template<>
+    struct NullableConversionType<IDLAny> {
+        using Type = typename Converter<IDLAny>::ReturnType;
     };
 }
 
@@ -330,6 +370,26 @@ template<typename T> struct JSConverter<IDLNullable<T>> {
 };
 
 // MARK: -
+// MARK: Null type
+
+template<> struct Converter<IDLNull> : DefaultConverter<IDLNull> {
+    static std::nullptr_t convert(JSC::ExecState&, JSC::JSValue)
+    {
+        return nullptr;
+    }
+};
+
+template<> struct JSConverter<IDLNull> {
+    static constexpr bool needsState = false;
+    static constexpr bool needsGlobalObject = false;
+
+    static JSC::JSValue convert(std::nullptr_t)
+    {
+        return JSC::jsNull();
+    }
+};
+
+// MARK: -
 // MARK: Boolean type
 
 template<> struct Converter<IDLBoolean> : DefaultConverter<IDLBoolean> {
@@ -390,8 +450,8 @@ namespace Detail {
 
 template <typename T> inline T* getPtrOrRef(const T* p) { return const_cast<T*>(p); }
 template <typename T> inline T& getPtrOrRef(const T& p) { return const_cast<T&>(p); }
-template <typename T> inline T* getPtrOrRef(const RefPtr<T>& p) { return const_cast<T*>(p.get()); }
-template <typename T> inline T& getPtrOrRef(const Ref<T>& p) { return const_cast<T&>(p.get()); }
+template <typename T> inline T* getPtrOrRef(const RefPtr<T>& p) { return p.get(); }
+template <typename T> inline T& getPtrOrRef(const Ref<T>& p) { return p.get(); }
 
 }
 
@@ -409,26 +469,6 @@ template<typename T> struct JSConverter<IDLInterface<T>> {
     static JSC::JSValue convertNewlyCreated(JSC::ExecState& state, JSDOMGlobalObject& globalObject, U&& value)
     {
         return toJSNewlyCreated(&state, &globalObject, std::forward<U>(value));
-    }
-};
-
-// MARK: -
-// MARK: Any type
-
-template<> struct Converter<IDLAny> : DefaultConverter<IDLAny> {
-    static JSC::JSValue convert(JSC::ExecState&, JSC::JSValue value)
-    {
-        return value;
-    }
-};
-
-template<> struct JSConverter<IDLAny> {
-    static constexpr bool needsState = false;
-    static constexpr bool needsGlobalObject = false;
-
-    static JSC::JSValue convert(const JSC::JSValue& value)
-    {
-        return value;
     }
 };
 
@@ -544,6 +584,11 @@ template<> struct JSConverter<IDLUnsignedShort> {
 };
 
 template<> struct Converter<IDLLong> : DefaultConverter<IDLLong> {
+    static inline int32_t convert(JSC::ExecState&, JSC::ThrowScope&, double number)
+    {
+        return JSC::toInt32(number);
+    }
+
     static int32_t convert(JSC::ExecState& state, JSC::JSValue value, IntegerConversionConfiguration configuration = IntegerConversionConfiguration::Normal)
     {
         switch (configuration) {
@@ -661,6 +706,14 @@ template<> struct JSConverter<IDLUnsignedLongLong> {
 // MARK: Floating point types
 
 template<> struct Converter<IDLFloat> : DefaultConverter<IDLFloat> {
+
+    static inline float convert(JSC::ExecState& state, JSC::ThrowScope& scope, double number)
+    {
+        if (UNLIKELY(!std::isfinite(number)))
+            throwNonFiniteTypeError(state, scope);
+        return static_cast<float>(number);
+    }
+
     static float convert(JSC::ExecState& state, JSC::JSValue value)
     {
         JSC::VM& vm = state.vm();
@@ -685,6 +738,11 @@ template<> struct JSConverter<IDLFloat> {
 };
 
 template<> struct Converter<IDLUnrestrictedFloat> : DefaultConverter<IDLUnrestrictedFloat> {
+    static inline float convert(JSC::ExecState&, JSC::ThrowScope&, double number)
+    {
+        return static_cast<float>(number);
+    }
+
     static float convert(JSC::ExecState& state, JSC::JSValue value)
     {
         return static_cast<float>(value.toNumber(&state));
@@ -704,6 +762,13 @@ template<> struct JSConverter<IDLUnrestrictedFloat> {
 };
 
 template<> struct Converter<IDLDouble> : DefaultConverter<IDLDouble> {
+    static inline double convert(JSC::ExecState& state, JSC::ThrowScope& scope, double number)
+    {
+        if (UNLIKELY(!std::isfinite(number)))
+            throwNonFiniteTypeError(state, scope);
+        return number;
+    }
+
     static double convert(JSC::ExecState& state, JSC::JSValue value)
     {
         JSC::VM& vm = state.vm();
@@ -728,6 +793,11 @@ template<> struct JSConverter<IDLDouble> {
 };
 
 template<> struct Converter<IDLUnrestrictedDouble> : DefaultConverter<IDLUnrestrictedDouble> {
+    static inline double convert(JSC::ExecState&, JSC::ThrowScope&, double number)
+    {
+        return number;
+    }
+
     static double convert(JSC::ExecState& state, JSC::JSValue value)
     {
         return value.toNumber(&state);
@@ -836,21 +906,32 @@ template<> struct Converter<IDLObject> : DefaultConverter<IDLObject> {
 
 namespace Detail {
     template<typename IDLType>
-    struct ArrayConverterBase;
-
-    template<typename IDLType> 
-    struct ArrayConverterBase {
+    struct GenericSequenceConverter {
         using ReturnType = Vector<typename IDLType::ImplementationType>;
+
+        static ReturnType convert(JSC::ExecState& state, JSC::JSObject* jsObject)
+        {
+            ReturnType result;
+            forEachInIterable(&state, jsObject, [&result](JSC::VM& vm, JSC::ExecState* state, JSC::JSValue jsValue) {
+                auto scope = DECLARE_THROW_SCOPE(vm);
+
+                auto convertedValue = Converter<IDLType>::convert(*state, jsValue);
+                if (UNLIKELY(scope.exception()))
+                    return;
+                result.append(WTFMove(convertedValue));
+            });
+            return result;
+        }
     };
 
-    template<typename T>
-    struct ArrayConverterBase<IDLInterface<T>> {
-        using ReturnType = Vector<RefPtr<T>>;
-    };
-
+    // Specialization for numeric types
+    // FIXME: This is only implemented for the IDLFloatingPointTypes and IDLLong. To add
+    // support for more numeric types, add an overload of Converter<IDLType>::convert that
+    // takes an ExecState, ThrowScope, double as its arguments.
     template<typename IDLType>
-    struct ArrayConverter : ArrayConverterBase<IDLType> {
-        using ReturnType = typename ArrayConverterBase<IDLType>::ReturnType;
+    struct NumericSequenceConverter {
+        using GenericConverter = GenericSequenceConverter<IDLType>;
+        using ReturnType = typename GenericConverter::ReturnType;
 
         static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
         {
@@ -862,26 +943,205 @@ namespace Detail {
                 return { };
             }
 
-            ReturnType result;
-            forEachInIterable(&state, value, [&result](JSC::VM& vm, JSC::ExecState* state, JSC::JSValue jsValue) {
-                auto scope = DECLARE_THROW_SCOPE(vm);
+            JSC::JSObject* object = JSC::asObject(value);
+            if (!JSC::isJSArray(object))
+                return GenericConverter::convert(state, object);
 
-                auto convertedValue = Converter<IDLType>::convert(*state, jsValue);
-                if (UNLIKELY(scope.exception()))
-                    return;
-                result.append(WTFMove(convertedValue));
-            });
+            JSC::JSArray* array = JSC::asArray(object);
+            if (!array->globalObject()->isArrayIteratorProtocolFastAndNonObservable())
+                return GenericConverter::convert(state, object);
+
+            unsigned length = array->length();
+
+            ReturnType result;
+            if (!result.tryReserveCapacity(length)) {
+                // FIXME: Is the right exception to throw?
+                throwTypeError(&state, scope);
+                return { };
+            }
+
+            JSC::IndexingType indexingType = array->indexingType() & JSC::IndexingShapeMask;
+
+            if (indexingType == JSC::ContiguousShape) {
+                for (unsigned i = 0; i < length; i++) {
+                    auto indexValue = array->butterfly()->contiguous()[i].get();
+                    if (!indexValue)
+                        result.uncheckedAppend(0);
+                    else {
+                        auto convertedValue = Converter<IDLType>::convert(state, indexValue);
+                        RETURN_IF_EXCEPTION(scope, { });
+
+                        result.uncheckedAppend(convertedValue);
+                    }
+                }
+                return result;
+            }
+            
+            if (indexingType == JSC::Int32Shape) {
+                for (unsigned i = 0; i < length; i++) {
+                    auto indexValue = array->butterfly()->contiguousInt32()[i].get();
+                    ASSERT(!indexValue || indexValue.isInt32());
+                    if (!indexValue)
+                        result.uncheckedAppend(0);
+                    else
+                        result.uncheckedAppend(indexValue.asInt32());
+                }
+                return result;
+            }
+
+            if (indexingType == JSC::DoubleShape) {
+                for (unsigned i = 0; i < length; i++) {
+                    auto doubleValue = array->butterfly()->contiguousDouble()[i];
+                    if (std::isnan(doubleValue))
+                        result.uncheckedAppend(0);
+                    else {
+                        auto convertedValue = Converter<IDLType>::convert(state, scope, doubleValue);
+                        RETURN_IF_EXCEPTION(scope, { });
+
+                        result.uncheckedAppend(convertedValue);
+                    }
+                }
+                return result;
+            }
+
+            for (unsigned i = 0; i < length; i++) {
+                auto indexValue = array->getDirectIndex(&state, i);
+                RETURN_IF_EXCEPTION(scope, { });
+                
+                if (!indexValue)
+                    result.uncheckedAppend(0);
+                else {
+                    auto convertedValue = Converter<IDLType>::convert(state, indexValue);
+                    RETURN_IF_EXCEPTION(scope, { });
+                    
+                    result.uncheckedAppend(convertedValue);
+                }
+            }
             return result;
+        }
+    };
+
+    template<typename IDLType>
+    struct SequenceConverter {
+        using GenericConverter = GenericSequenceConverter<IDLType>;
+        using ReturnType = typename GenericConverter::ReturnType;
+
+        static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
+        {
+            auto& vm = state.vm();
+            auto scope = DECLARE_THROW_SCOPE(vm);
+
+            if (!value.isObject()) {
+                throwSequenceTypeError(state, scope);
+                return { };
+            }
+
+            JSC::JSObject* object = JSC::asObject(value);
+            if (!JSC::isJSArray(object))
+                return GenericConverter::convert(state, object);
+
+            JSC::JSArray* array = JSC::asArray(object);
+            if (!array->globalObject()->isArrayIteratorProtocolFastAndNonObservable())
+                return GenericConverter::convert(state, object);
+
+            unsigned length = array->length();
+
+            ReturnType result;
+            if (!result.tryReserveCapacity(length)) {
+                // FIXME: Is the right exception to throw?
+                throwTypeError(&state, scope);
+                return { };
+            }
+
+            JSC::IndexingType indexingType = array->indexingType() & JSC::IndexingShapeMask;
+
+            if (indexingType == JSC::ContiguousShape) {
+                for (unsigned i = 0; i < length; i++) {
+                    auto indexValue = array->butterfly()->contiguous()[i].get();
+                    if (!indexValue)
+                        indexValue = JSC::jsUndefined();
+
+                    auto convertedValue = Converter<IDLType>::convert(state, indexValue);
+                    RETURN_IF_EXCEPTION(scope, { });
+
+                    result.uncheckedAppend(convertedValue);
+                }
+                return result;
+            }
+
+            for (unsigned i = 0; i < length; i++) {
+                auto indexValue = array->getDirectIndex(&state, i);
+                RETURN_IF_EXCEPTION(scope, { });
+
+                if (!indexValue)
+                    indexValue = JSC::jsUndefined();
+
+                auto convertedValue = Converter<IDLType>::convert(state, indexValue);
+                RETURN_IF_EXCEPTION(scope, { });
+                
+                result.uncheckedAppend(convertedValue);
+            }
+            return result;
+        }
+    };
+
+    template<>
+    struct SequenceConverter<IDLLong> {
+        using ReturnType = typename GenericSequenceConverter<IDLLong>::ReturnType;
+
+        static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
+        {
+            return NumericSequenceConverter<IDLLong>::convert(state, value);
+        }
+    };
+
+    template<>
+    struct SequenceConverter<IDLFloat> {
+        using ReturnType = typename GenericSequenceConverter<IDLFloat>::ReturnType;
+
+        static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
+        {
+            return NumericSequenceConverter<IDLFloat>::convert(state, value);
+        }
+    };
+
+    template<>
+    struct SequenceConverter<IDLUnrestrictedFloat> {
+        using ReturnType = typename GenericSequenceConverter<IDLUnrestrictedFloat>::ReturnType;
+
+        static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
+        {
+            return NumericSequenceConverter<IDLUnrestrictedFloat>::convert(state, value);
+        }
+    };
+
+    template<>
+    struct SequenceConverter<IDLDouble> {
+        using ReturnType = typename GenericSequenceConverter<IDLDouble>::ReturnType;
+
+        static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
+        {
+            return NumericSequenceConverter<IDLDouble>::convert(state, value);
+        }
+    };
+
+    template<>
+    struct SequenceConverter<IDLUnrestrictedDouble> {
+        using ReturnType = typename GenericSequenceConverter<IDLUnrestrictedDouble>::ReturnType;
+
+        static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
+        {
+            return NumericSequenceConverter<IDLUnrestrictedDouble>::convert(state, value);
         }
     };
 }
 
 template<typename T> struct Converter<IDLSequence<T>> : DefaultConverter<IDLSequence<T>> {
-    using ReturnType = typename Detail::ArrayConverter<T>::ReturnType;
+    using ReturnType = typename Detail::SequenceConverter<T>::ReturnType;
 
     static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
     {
-        return Detail::ArrayConverter<T>::convert(state, value);
+        return Detail::SequenceConverter<T>::convert(state, value);
     }
 };
 
@@ -900,11 +1160,11 @@ template<typename T> struct JSConverter<IDLSequence<T>> {
 };
 
 template<typename T> struct Converter<IDLFrozenArray<T>> : DefaultConverter<IDLFrozenArray<T>> {
-    using ReturnType = typename Detail::ArrayConverter<T>::ReturnType;
+    using ReturnType = typename Detail::SequenceConverter<T>::ReturnType;
 
     static ReturnType convert(JSC::ExecState& state, JSC::JSValue value)
     {
-        return Detail::ArrayConverter<T>::convert(state, value);
+        return Detail::SequenceConverter<T>::convert(state, value);
     }
 };
 
@@ -1442,6 +1702,26 @@ template<> struct JSConverter<IDLDate> {
 };
 
 // MARK: -
+// MARK: IDLJSON type
+
+template<> struct Converter<IDLJSON> : DefaultConverter<IDLJSON> {
+    static String convert(JSC::ExecState& state, JSC::JSValue value)
+    {
+        return JSC::JSONStringify(&state, value, 0);
+    }
+};
+
+template<> struct JSConverter<IDLJSON> {
+    static constexpr bool needsState = true;
+    static constexpr bool needsGlobalObject = false;
+
+    static JSC::JSValue convert(JSC::ExecState& state, const String& value)
+    {
+        return JSC::JSONParse(&state, value);
+    }
+};
+
+// MARK: -
 // MARK: SerializedScriptValue type
 
 template<typename T> struct Converter<IDLSerializedScriptValue<T>> : DefaultConverter<IDLSerializedScriptValue<T>> {
@@ -1514,6 +1794,37 @@ template<typename T> struct JSConverter<IDLXPathNSResolver<T>> {
         return toJSNewlyCreated(&state, &globalObject, std::forward<U>(value));
     }
 };
+
+// MARK: -
+// MARK: IDLIDBKey type
+
+template<> struct JSConverter<IDLIDBKey> {
+    static constexpr bool needsState = true;
+    static constexpr bool needsGlobalObject = true;
+
+    template <typename U>
+    static JSC::JSValue convert(JSC::ExecState& state, JSDOMGlobalObject& globalObject, U&& value)
+    {
+        return toJS(state, globalObject, std::forward<U>(value));
+    }
+};
+
+#if ENABLE(WEBGL)
+
+// MARK: -
+// MARK: IDLWebGLAny type
+
+template<> struct JSConverter<IDLWebGLAny> {
+    static constexpr bool needsState = true;
+    static constexpr bool needsGlobalObject = true;
+
+    static JSC::JSValue convert(JSC::ExecState& state, JSDOMGlobalObject& globalObject, const WebGLAny& value)
+    {
+        return convertToJSValue(state, globalObject, value);
+    }
+};
+
+#endif
 
 // MARK: -
 // MARK: Support for variadic tail convertions

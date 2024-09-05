@@ -117,7 +117,7 @@ $hostOS = nil
 $filter = nil
 $envVars = []
 $quickMode = false
-$buildType = :release
+$buildType = "release"
 $forceCollectContinuously = false
 
 def usage
@@ -127,7 +127,7 @@ def usage
     puts "--no-copy                   Do not copy the JavaScriptCore build product before testing."
     puts "                            --jsc specifies an already present JavaScriptCore to test."
     puts "--memory-limited            Indicate that we are targeting the test for a memory limited device."
-    puts "                            Skip tests tagged with //@largeHeap"
+    puts "                            Skip tests tagged with //@skip if $memoryLimited"
     puts "--no-jit                    Do not run JIT specific tests."
     puts "--force-collectContinuously Enable the collectContinuously mode even if disabled on this"
     puts "                            platform."
@@ -231,9 +231,9 @@ GetoptLong.new(['--help', '-h', GetoptLong::NO_ARGUMENT],
     when '--quick'
         $quickMode = true
     when '--debug'
-        $buildType = :debug
+        $buildType = "debug"
     when '--release'
-        $buildType = :release
+        $buildType = "release"
     end
 }
 
@@ -257,7 +257,7 @@ end
 unless jscArg
     # If we're not provided a JSC path, try to come up with a sensible JSC path automagically.
     command = SCRIPTS_PATH.join("webkit-build-directory").to_s
-    command += ($buildType == :release) ? " --release" : " --debug"
+    command += ($buildType == "release") ? " --release" : " --debug"
     command += " --executablePath"
 
     output = `#{command}`.split("\n")
@@ -431,7 +431,7 @@ NO_CJIT_OPTIONS = ["--useConcurrentJIT=false", "--thresholdForJITAfterWarmUp=100
 FTL_OPTIONS = ["--useFTLJIT=true"]
 
 def shouldCollectContinuously?
-    $buildType == :release or $forceCollectContinuously
+    $buildType == "release" or $forceCollectContinuously
 end
 
 COLLECT_CONTINUOUSLY_OPTIONS = shouldCollectContinuously? ? ["--collectContinuously=true", "--useGenerationalGC=false"] : []
@@ -798,8 +798,12 @@ def slow!
     $runCommandOptions[:isSlow] = true
 end
 
+def runWithOutputHandler(kind, outputHandler, *options)
+    addRunCommand(kind, [pathToVM.to_s] + BASE_OPTIONS + options + [$benchmark.to_s], outputHandler, simpleErrorHandler)
+end
+
 def run(kind, *options)
-    addRunCommand(kind, [pathToVM.to_s] + BASE_OPTIONS + options + [$benchmark.to_s], silentOutputHandler, simpleErrorHandler)
+    runWithOutputHandler(kind, silentOutputHandler, *options)
 end
 
 def runNoFTL(*optionalTestSpecificOptions)
@@ -1182,6 +1186,25 @@ def runWebAssembly
     run("default-wasm", "-m", "--useWebAssembly=1")
 end
 
+def runWebAssemblySpecTest(mode)
+    case mode
+    when :skip
+        return
+    end
+
+    return if !$jitTests
+    return if !$isFTLPlatform
+    # FIXME: The current WebAssembly implementation includes Darwin specific things.
+    # Once WebAssembly becomes ready to be ported, we will enable it on the other OSes (like Linux) and drop this workaround.
+    # https://bugs.webkit.org/show_bug.cgi?id=164032
+    return if $hostOS != "darwin"
+    modules = Dir[WASMTESTS_PATH + "*.js"].map { |f| File.basename(f) }
+    prepareExtraAbsoluteFiles(WASMTESTS_PATH, ["wasm.json"])
+    prepareExtraRelativeFiles(modules.map { |f| "../../" + f }, $collection)
+
+    runWithOutputHandler("default-wasm", noisyOutputHandler, "-m", "--useWebAssembly=1")
+end
+
 def runChakra(mode, exception, baselineFile, extraFiles)
     raise unless $benchmark.to_s =~ /\.js$/
     failsWithException = exception != "NoException"
@@ -1464,13 +1487,6 @@ end
 def skip
     $didAddRunCommand = true
     puts "Skipping #{$collectionName}/#{$benchmark}"
-end
-
-def largeHeap
-    if $memoryLimited
-        $didAddRunCommand = true
-        puts "Skipping #{$collectionName}/#{$benchmark}"
-    end
 end
 
 def allJSFiles(path)

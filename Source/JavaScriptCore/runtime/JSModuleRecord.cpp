@@ -59,7 +59,7 @@ JSModuleRecord::JSModuleRecord(VM& vm, Structure* structure, const Identifier& m
 
 void JSModuleRecord::destroy(JSCell* cell)
 {
-    JSModuleRecord* thisObject = jsCast<JSModuleRecord*>(cell);
+    JSModuleRecord* thisObject = static_cast<JSModuleRecord*>(cell);
     thisObject->JSModuleRecord::~JSModuleRecord();
 }
 
@@ -73,7 +73,7 @@ void JSModuleRecord::visitChildren(JSCell* cell, SlotVisitor& visitor)
 {
     JSModuleRecord* thisObject = jsCast<JSModuleRecord*>(cell);
     Base::visitChildren(thisObject, visitor);
-    visitor.append(&thisObject->m_moduleProgramExecutable);
+    visitor.append(thisObject->m_moduleProgramExecutable);
 }
 
 void JSModuleRecord::link(ExecState* exec)

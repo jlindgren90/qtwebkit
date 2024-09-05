@@ -43,28 +43,31 @@ class JSWebAssemblyModule : public JSDestructibleObject {
 public:
     typedef JSDestructibleObject Base;
 
-    static JSWebAssemblyModule* create(VM&, Structure*, std::unique_ptr<Wasm::ModuleInformation>&&, Bag<CallLinkInfo>&&, Vector<Wasm::WasmToJSStub>&&, Wasm::ImmutableFunctionIndexSpace&&, SymbolTable*, unsigned);
+    static JSWebAssemblyModule* create(VM&, Structure*, std::unique_ptr<Wasm::ModuleInformation>&&, Bag<CallLinkInfo>&&, Vector<Wasm::WasmExitStubs>&&, SymbolTable*, unsigned);
     static Structure* createStructure(VM&, JSGlobalObject*, JSValue);
 
     DECLARE_INFO;
 
     const Wasm::ModuleInformation& moduleInformation() const { return *m_moduleInformation.get(); }
     SymbolTable* exportSymbolTable() const { return m_exportSymbolTable.get(); }
-    Wasm::Signature* signatureForFunctionIndexSpace(unsigned functionIndexSpace) const { ASSERT(functionIndexSpace < m_functionIndexSpace.size); return m_functionIndexSpace.buffer.get()[functionIndexSpace].signature; }
-    unsigned importCount() const { return m_wasmToJSStubs.size(); }
+    Wasm::SignatureIndex signatureIndexFromFunctionIndexSpace(unsigned functionIndexSpace) const
+    {
+        return m_moduleInformation->signatureIndexFromFunctionIndexSpace(functionIndexSpace);
+    }
+    unsigned functionImportCount() const { return m_wasmExitStubs.size(); }
 
     JSWebAssemblyCallee* jsEntrypointCalleeFromFunctionIndexSpace(unsigned functionIndexSpace)
     {
-        RELEASE_ASSERT(functionIndexSpace >= importCount());
-        unsigned calleeIndex = functionIndexSpace - importCount();
+        RELEASE_ASSERT(functionIndexSpace >= functionImportCount());
+        unsigned calleeIndex = functionIndexSpace - functionImportCount();
         RELEASE_ASSERT(calleeIndex < m_calleeCount);
         return callees()[calleeIndex].get();
     }
 
     JSWebAssemblyCallee* wasmEntrypointCalleeFromFunctionIndexSpace(unsigned functionIndexSpace)
     {
-        RELEASE_ASSERT(functionIndexSpace >= importCount());
-        unsigned calleeIndex = functionIndexSpace - importCount();
+        RELEASE_ASSERT(functionIndexSpace >= functionImportCount());
+        unsigned calleeIndex = functionIndexSpace - functionImportCount();
         RELEASE_ASSERT(calleeIndex < m_calleeCount);
         return callees()[calleeIndex + m_calleeCount].get();
     }
@@ -86,10 +89,8 @@ public:
         return bitwise_cast<WriteBarrier<JSWebAssemblyCallee>*>(bitwise_cast<char*>(this) + offsetOfCallees());
     }
 
-    static ptrdiff_t offsetOfFunctionIndexSpace() { return OBJECT_OFFSETOF(JSWebAssemblyModule, m_functionIndexSpace); }
-
 protected:
-    JSWebAssemblyModule(VM&, Structure*, std::unique_ptr<Wasm::ModuleInformation>&&, Bag<CallLinkInfo>&&, Vector<Wasm::WasmToJSStub>&&, Wasm::ImmutableFunctionIndexSpace&&, unsigned calleeCount);
+    JSWebAssemblyModule(VM&, Structure*, std::unique_ptr<Wasm::ModuleInformation>&&, Bag<CallLinkInfo>&&, Vector<Wasm::WasmExitStubs>&&, unsigned calleeCount);
     void finishCreation(VM&, SymbolTable*);
     static void destroy(JSCell*);
     static void visitChildren(JSCell*, SlotVisitor&);
@@ -113,8 +114,7 @@ private:
     std::unique_ptr<Wasm::ModuleInformation> m_moduleInformation;
     Bag<CallLinkInfo> m_callLinkInfos;
     WriteBarrier<SymbolTable> m_exportSymbolTable;
-    Vector<Wasm::WasmToJSStub> m_wasmToJSStubs;
-    const Wasm::ImmutableFunctionIndexSpace m_functionIndexSpace;
+    Vector<Wasm::WasmExitStubs> m_wasmExitStubs;
     unsigned m_calleeCount;
 };
 

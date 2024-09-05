@@ -47,6 +47,8 @@ class LLIntOffsetsExtractor;
 // JSSegmentedVariableObject has its own GC tracing functionality, since it knows the
 // exact dimensions of the variables array at all times.
 
+// Except for JSGlobalObject, subclasses of this don't call the destructor and leak memory.
+
 class JSSegmentedVariableObject : public JSSymbolTableObject {
     friend class JIT;
     friend class LLIntOffsetsExtractor;
@@ -83,7 +85,7 @@ public:
     
     JS_EXPORT_PRIVATE static void visitChildren(JSCell*, SlotVisitor&);
     JS_EXPORT_PRIVATE static void heapSnapshot(JSCell*, HeapSnapshotBuilder&);
-
+    
 protected:
     JSSegmentedVariableObject(VM& vm, Structure* structure, JSScope* scope)
         : JSSymbolTableObject(vm, structure, scope)
@@ -97,6 +99,8 @@ protected:
     }
     
 private:
+    // FIXME: This needs a destructor, which can only be added using custom subspace.
+    
     SegmentedVector<WriteBarrier<Unknown>, 16> m_variables;
     ConcurrentJSLock m_lock;
 };

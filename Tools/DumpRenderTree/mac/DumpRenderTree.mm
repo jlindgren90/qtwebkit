@@ -34,6 +34,7 @@
 #import "DefaultPolicyDelegate.h"
 #import "DumpRenderTreeDraggingInfo.h"
 #import "DumpRenderTreePasteboard.h"
+#import "DumpRenderTreeSpellChecker.h"
 #import "DumpRenderTreeWindow.h"
 #import "EditingDelegate.h"
 #import "EventSendingController.h"
@@ -992,8 +993,6 @@ static void resetWebPreferencesToConsistentValues(const TestOptions& options)
 
     [preferences setDownloadAttributeEnabled:YES];
 
-    [preferences setES6ModulesEnabled:YES];
-
     [preferences setHiddenPageDOMTimerThrottlingEnabled:NO];
     [preferences setHiddenPageCSSAnimationSuspensionEnabled:NO];
 
@@ -1744,11 +1743,11 @@ void dump()
             resultMimeType = @"application/pdf";
         } else if (gTestRunner->dumpDOMAsWebArchive()) {
             WebArchive *webArchive = [[mainFrame DOMDocument] webArchive];
-            resultString = CFBridgingRelease(createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
+            resultString = CFBridgingRelease(WebCoreTestSupport::createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
             resultMimeType = @"application/x-webarchive";
         } else if (gTestRunner->dumpSourceAsWebArchive()) {
             WebArchive *webArchive = [[mainFrame dataSource] webArchive];
-            resultString = CFBridgingRelease(createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
+            resultString = CFBridgingRelease(WebCoreTestSupport::createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
             resultMimeType = @"application/x-webarchive";
         } else
             resultString = [mainFrame renderTreeAsExternalRepresentationForPrinting:gTestRunner->isPrinting()];
@@ -1896,6 +1895,8 @@ static void resetWebViewToConsistentStateBeforeTesting(const TestOptions& option
 
     [mainFrame _clearOpener];
 
+    setSpellCheckerLoggingEnabled(false);
+
     resetAccumulatedLogs();
     WebCoreTestSupport::initializeLogChannelsIfNecessary();
 }
@@ -1989,7 +1990,7 @@ static void runTest(const string& inputLine)
     NSString *informationString = [@"CRASHING TEST: " stringByAppendingString:testPath];
     WKSetCrashReportApplicationSpecificInformation((CFStringRef)informationString);
 
-    TestOptions options(url);
+    TestOptions options(url, command);
     resetWebViewToConsistentStateBeforeTesting(options);
 
     const char* testURL([[url absoluteString] UTF8String]);
@@ -2001,6 +2002,7 @@ static void runTest(const string& inputLine)
     gTestRunner = TestRunner::create(testURL, command.expectedPixelHash);
     gTestRunner->setAllowedHosts(allowedHosts);
     gTestRunner->setCustomTimeout(command.timeout);
+    gTestRunner->setDumpJSConsoleLogInStdErr(command.dumpJSConsoleLogInStdErr);
     topLoadingFrame = nil;
 #if !PLATFORM(IOS)
     ASSERT(!draggingInfo); // the previous test should have called eventSender.mouseUp to drop!

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013, 2015-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,6 @@ class SlotVisitor {
     WTF_MAKE_FAST_ALLOCATED;
 
     friend class SetCurrentCellScope;
-    friend class HeapRootVisitor; // Allowed to mark a JSValue* or JSCell** directly.
     friend class Heap;
 
 public:
@@ -70,31 +69,28 @@ public:
 
     void append(ConservativeRoots&);
     
-    template<typename T> void append(WriteBarrierBase<T>*);
-    template<typename T> void appendHidden(WriteBarrierBase<T>*);
+    template<typename T> void append(const WriteBarrierBase<T>&);
+    template<typename T> void appendHidden(const WriteBarrierBase<T>&);
     template<typename Iterator> void append(Iterator begin , Iterator end);
-    void appendValues(WriteBarrierBase<Unknown>*, size_t count);
-    void appendValuesHidden(WriteBarrierBase<Unknown>*, size_t count);
+    void appendValues(const WriteBarrierBase<Unknown>*, size_t count);
+    void appendValuesHidden(const WriteBarrierBase<Unknown>*, size_t count);
+    
+    // These don't require you to prove that you have a WriteBarrier<>. That makes sense
+    // for:
+    //
+    // - roots.
+    // - sophisticated data structures that barrier through other means (like DFG::Plan and
+    //   friends).
+    //
+    // If you are not a root and you don't know what kind of barrier you have, then you
+    // shouldn't call these methods.
+    JS_EXPORT_PRIVATE void appendUnbarriered(JSValue);
+    void appendUnbarriered(JSValue*, size_t);
+    void appendUnbarriered(JSCell*);
     
     template<typename T>
-    void appendUnbarrieredPointer(T**);
-    void appendUnbarrieredValue(JSValue*);
-    template<typename T>
-    void appendUnbarrieredWeak(Weak<T>*);
-    template<typename T>
-    void appendUnbarrieredReadOnlyPointer(T*);
-    void appendUnbarrieredReadOnlyValue(JSValue);
+    void append(const Weak<T>& weak);
     
-    void visitSubsequently(JSCell*);
-    
-    // Does your visitChildren do logic that depends on non-JS-object state that can
-    // change during the course of a GC, or in between GCs? Then you should call this
-    // method! It will cause the GC to invoke your visitChildren method again just before
-    // terminating with the world stopped.
-    JS_EXPORT_PRIVATE void rescanAsConstraint();
-    
-    // Implies rescanAsConstraint, so you don't have to call rescanAsConstraint() if you
-    // call this unconditionally.
     JS_EXPORT_PRIVATE void addOpaqueRoot(void*);
     
     JS_EXPORT_PRIVATE bool containsOpaqueRoot(void*) const;
@@ -108,6 +104,8 @@ public:
 
     size_t bytesVisited() const { return m_bytesVisited; }
     size_t visitCount() const { return m_visitCount; }
+    
+    void addToVisitCount(size_t value) { m_visitCount += value; }
 
     void donate();
     void drain(MonotonicTime timeout = MonotonicTime::infinity());
@@ -120,7 +118,7 @@ public:
     SharedDrainResult drainInParallel(MonotonicTime timeout = MonotonicTime::infinity());
     SharedDrainResult drainInParallelPassively(MonotonicTime timeout = MonotonicTime::infinity());
     
-    void mergeIfNecessary();
+    JS_EXPORT_PRIVATE void mergeIfNecessary();
 
     // This informs the GC about auxiliary of some size that we are keeping alive. If you don't do
     // this then the space will be freed at end of GC.
@@ -154,13 +152,16 @@ public:
     
     void didRace(const VisitRaceKey&);
     void didRace(JSCell* cell, const char* reason) { didRace(VisitRaceKey(cell, reason)); }
-    void didNotRace(const VisitRaceKey&);
-    void didNotRace(JSCell* cell, const char* reason) { didNotRace(VisitRaceKey(cell, reason)); }
+    
+    void visitAsConstraint(const JSCell*);
+    
+    bool didReachTermination();
+    
+    void setIgnoreNewOpaqueRoots(bool value) { m_ignoreNewOpaqueRoots = value; }
 
 private:
     friend class ParallelModeEnabler;
     
-    JS_EXPORT_PRIVATE void append(JSValue); // This is private to encourage clients to use WriteBarrier<T>.
     void appendJSCellOrAuxiliary(HeapCell*);
     void appendHidden(JSValue);
 
@@ -179,7 +180,6 @@ private:
     void noteLiveAuxiliaryCell(HeapCell*);
     
     void mergeOpaqueRoots();
-    void mergeOpaqueRootsAndConstraints();
 
     void mergeOpaqueRootsIfProfitable();
 
@@ -188,13 +188,13 @@ private:
     void donateKnownParallel();
     void donateKnownParallel(MarkStackArray& from, MarkStackArray& to);
     
-    bool hasWork();
-    bool didReachTermination();
+    bool hasWork(const LockHolder&);
+    bool didReachTermination(const LockHolder&);
 
     MarkStackArray m_collectorStack;
     MarkStackArray m_mutatorStack;
     OpaqueRootSet m_opaqueRoots; // Handle-owning data structures not visible to the garbage collector.
-    HashSet<JSCell*> m_constraints;
+    bool m_ignoreNewOpaqueRoots { false }; // Useful as a debugging mode.
     
     size_t m_bytesVisited;
     size_t m_visitCount;

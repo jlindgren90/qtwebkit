@@ -61,7 +61,6 @@ class RenderStyle;
 class SVGQualifiedName;
 class ShadowRoot;
 class TouchEvent;
-class UIRequestEvent;
 
 #if ENABLE(QT_GESTURE_EVENTS)
 class PlatformGestureEvent;
@@ -261,6 +260,7 @@ public:
     // Node's parent or shadow tree host.
     ContainerNode* parentOrShadowHostNode() const;
     ContainerNode* parentInComposedTree() const;
+    Element* parentElementInComposedTree() const;
     Element* parentOrShadowHostElement() const;
     void setParentNode(ContainerNode*);
     Node& rootNode() const;
@@ -516,10 +516,6 @@ public:
 #if ENABLE(TOUCH_EVENTS) && !PLATFORM(IOS)
     bool dispatchTouchEvent(TouchEvent&);
 #endif
-#if ENABLE(INDIE_UI)
-    bool dispatchUIRequestEvent(UIRequestEvent&);
-#endif
-
     bool dispatchBeforeLoadEvent(const String& sourceURL);
 
     void dispatchInputEvent();
@@ -542,11 +538,11 @@ public:
     EventTargetData* eventTargetDataConcurrently() final;
     EventTargetData& ensureEventTargetData() final;
 
-    void getRegisteredMutationObserversOfType(HashMap<MutationObserver*, MutationRecordDeliveryOptions>&, MutationObserver::MutationType, const QualifiedName* attributeName);
-    void registerMutationObserver(MutationObserver*, MutationObserverOptions, const HashSet<AtomicString>& attributeFilter);
-    void unregisterMutationObserver(MutationObserverRegistration*);
-    void registerTransientMutationObserver(MutationObserverRegistration*);
-    void unregisterTransientMutationObserver(MutationObserverRegistration*);
+    HashMap<MutationObserver*, MutationRecordDeliveryOptions> registeredMutationObservers(MutationObserver::MutationType, const QualifiedName* attributeName);
+    void registerMutationObserver(MutationObserver&, MutationObserverOptions, const HashSet<AtomicString>& attributeFilter);
+    void unregisterMutationObserver(MutationObserverRegistration&);
+    void registerTransientMutationObserver(MutationObserverRegistration&);
+    void unregisterTransientMutationObserver(MutationObserverRegistration&);
     void notifyMutationObserversNodeWillDetach();
 
     WEBCORE_EXPORT void textRects(Vector<IntRect>&) const;

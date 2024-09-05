@@ -57,6 +57,16 @@
     return _websitePolicies->contentBlockersEnabled();
 }
 
+- (void)setAutoplayEnabled:(BOOL)enabled
+{
+    _websitePolicies->setAutoplayEnabled(enabled);
+}
+
+- (BOOL)autoplayEnabled
+{
+    return _websitePolicies->autoplayEnabled();
+}
+
 - (NSString *)description
 {
     return [NSString stringWithFormat:@"<%@: %p; contentBlockersEnabled = %d>", NSStringFromClass(self.class), self, self.contentBlockersEnabled];

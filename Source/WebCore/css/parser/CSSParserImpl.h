@@ -48,7 +48,7 @@ class CSSParserObserver;
 class CSSParserObserverWrapper;
 class CSSSelectorList;
 class CSSTokenizer;
-class StyleKeyframe;
+class StyleRuleKeyframe;
 class StyleRule;
 class StyleRuleBase;
 class StyleRuleCharset;
@@ -104,7 +104,8 @@ public:
     static void parseDeferredRuleList(CSSParserTokenRange, CSSDeferredParser&, Vector<RefPtr<StyleRuleBase>>&);
     static void parseDeferredKeyframeList(CSSParserTokenRange, CSSDeferredParser&, StyleRuleKeyframes&);
 
-    const CSSTokenizer& tokenizer() const;
+    CSSTokenizer* tokenizer() const { return m_tokenizer.get(); };
+    CSSDeferredParser* deferredParser() const { return m_deferredParser.get(); }
 
 private:
     CSSParserImpl(const CSSParserContext&, StyleSheetContents*);
@@ -141,7 +142,7 @@ private:
     // FIXME-NEWPARSER: Support "apply"
     // void consumeApplyRule(CSSParserTokenRange prelude);
 
-    RefPtr<StyleKeyframe> consumeKeyframeStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
+    RefPtr<StyleRuleKeyframe> consumeKeyframeStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
     RefPtr<StyleRule> consumeStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
 
     void consumeDeclarationList(CSSParserTokenRange, StyleRule::Type);
@@ -153,6 +154,8 @@ private:
 
     Ref<DeferredStyleProperties> createDeferredStyleProperties(const CSSParserTokenRange& propertyRange);
     
+    void adoptTokenizerEscapedStrings();
+
     // FIXME: Can we build StylePropertySets directly?
     // FIXME: Investigate using a smaller inline buffer
     ParsedPropertyVector m_parsedProperties;

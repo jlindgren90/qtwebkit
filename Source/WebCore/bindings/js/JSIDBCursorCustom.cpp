@@ -30,8 +30,6 @@
 
 #include "JSDOMBinding.h"
 #include "JSIDBCursorWithValue.h"
-#include "JSIDBIndex.h"
-#include "JSIDBObjectStore.h"
 
 using namespace JSC;
 
@@ -39,18 +37,9 @@ namespace WebCore {
 
 void JSIDBCursor::visitAdditionalChildren(SlotVisitor& visitor)
 {
-    visitor.rescanAsConstraint();
     auto& cursor = wrapped();
     if (auto* request = cursor.request())
         visitor.addOpaqueRoot(request);
-}
-
-JSValue JSIDBCursor::source(ExecState& state) const
-{
-    auto& cursor = wrapped();
-    if (auto* index = cursor.index())
-        return toJS(&state, globalObject(), *index);
-    return toJS(&state, globalObject(), cursor.objectStore());
 }
 
 JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject* globalObject, Ref<IDBCursor>&& cursor)

@@ -32,9 +32,9 @@
 
 namespace WebCore {
 
-CSSDeferredParser::CSSDeferredParser(const String& sheetText, const CSSParserContext& context, StyleSheetContents& styleSheet)
-    : m_tokenizer(sheetText)
-    , m_context(context)
+CSSDeferredParser::CSSDeferredParser(const CSSParserContext& context, const String& sheetText, StyleSheetContents& styleSheet)
+    : m_context(context)
+    , m_sheetText(sheetText)
     , m_styleSheet(styleSheet.createWeakPtr())
 {
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004, 2006, 2007, 2008, 2009, 2010, 2011, 2012 Apple Inc. All rights reserved.
+ * Copyright (C) 2004-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,6 @@
 #import "NSURLConnectionSPI.h"
 #import "NetworkStorageSession.h"
 #import "NetworkingContext.h"
-#import "Page.h"
 #import "ResourceError.h"
 #import "ResourceResponse.h"
 #import "SharedBuffer.h"
@@ -75,10 +74,6 @@ CFDictionaryRef _CFURLConnectionCopyTimingData(CFURLConnectionRef);
 @interface NSURLRequest ()
 - (CFURLRequestRef) _CFURLRequest;
 @end
-#endif
-
-#if USE(QUICK_LOOK)
-#import "QuickLook.h"
 #endif
 
 using namespace WebCore;

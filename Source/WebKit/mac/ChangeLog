@@ -1,3 +1,609 @@
+2017-01-18  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Turn modern media controls on by default
+        https://bugs.webkit.org/show_bug.cgi?id=165668
+
+        Reviewed by Dean Jackson.
+
+        Enabled modern media controls by default in WK1. 
+
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+
+2017-01-15  Darin Adler  <darin@apple.com>
+
+        Remove PassRefPtr from "loader" directory of WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=167055
+
+        Reviewed by Alex Christensen.
+
+        * WebCoreSupport/WebChromeClient.h: Updated for changes to ChromeClient.
+        Also made class final and most functions private and final.
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::runOpenPanel): Updated to take references.
+
+        * WebCoreSupport/WebEditorClient.h: Updated for changes to EditorClient.
+        * WebCoreSupport/WebEditorClient.mm:
+        (-[WebUndoStep initWithUndoStep:]): Take reference instead of PassRefPtr.
+        (+[WebUndoStep stepWithUndoStep:]): Ditto.
+        (-[WebUndoStep step]): Return reference instead of pointer.
+        (-[WebEditorUndoTarget undoEditing:]): Updated for the above.
+        (-[WebEditorUndoTarget redoEditing:]): Ditto.
+        (WebEditorClient::registerUndoOrRedoStep): Take reference instead of
+        PassRefPtr.
+        (WebEditorClient::registerUndoStep): Ditto.
+        (WebEditorClient::registerRedoStep): Ditto.
+
+        * WebCoreSupport/WebFrameLoaderClient.h: Updated for changes to
+        FrameLoaderClient, marked functions final instead of override.
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::dispatchDecidePolicyForNewWindowAction): Take
+        pointer instead of PassRefPtr.
+        (WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction): Ditto.
+        (makeFormFieldValuesDictionary): Take a reference.
+        (WebFrameLoaderClient::dispatchWillSendSubmitEvent): Take Ref&& instead
+        of PassRefPtr.
+        (WebFrameLoaderClient::dispatchWillSubmitForm): Take a reference instead
+        of PassRefPtr.
+        (WebFrameLoaderClient::actionDictionary): Take a pointer instead of PassRePtr.
+        (WebFrameLoaderClient::createFrame): Take a reference instead of a pointer.
+        (WebFrameLoaderClient::createPlugin): Ditto.
+        (WebFrameLoaderClient::createJavaAppletWidget): Ditto.
+        (WebFrameLoaderClient::createNetworkingContext): Ditto.
+        (WebFrameLoaderClient::didCreateQuickLookHandle): Pass a reference.
+
+        * WebCoreSupport/WebFrameNetworkingContext.h: Use Ref instead of PassRefPtr.
+        * WebCoreSupport/WebFrameNetworkingContext.mm: Tweak style a bit.
+
+        * WebCoreSupport/WebOpenPanelResultListener.h: Take a reference instead of
+        PassRefPtr. Use RefPtr for class field.
+        * WebCoreSupport/WebOpenPanelResultListener.mm:
+        (-[WebOpenPanelResultListener dealloc]): Deleted. Compiler will now do it
+        correctly without us declaring anything explicitly.
+        (-[WebOpenPanelResultListener cancel]): Get rid of hand-written deref code,
+        and let RefPtr do the work.
+        (-[WebOpenPanelResultListener chooseFilename:]): Ditto.
+        (-[WebOpenPanelResultListener chooseFilenames:]): Ditto.
+        (-[WebOpenPanelResultListener chooseFilenames:displayString:iconImage:]):
+        Rewrote to use a modern Objective-C for loop, reserveInitialCapacity,
+        and uncheckedAppend.
+
+        * WebView/WebArchive.mm:
+        (-[WebArchive initWithMainResource:subresources:subframeArchives:]):
+        Updated for changes to LegacyWebArchive.
+        (-[WebArchive mainResource]): Ditto.
+        (-[WebArchive subresources]): Ditto.
+        (-[WebArchive subframeArchives]): Ditto.
+
+        * WebView/WebDataSource.mm:
+        (-[WebDataSource _addSubframeArchives:]): Use a modern Objective-C for loop
+        instead of NSEnumerator.
+        (-[WebDataSource _fileWrapperForURL:]): Use auto.
+        (-[WebDataSource _documentFragmentWithArchive:]): Pass a reference.
+        (-[WebDataSource mainResource]): Ditto.
+        (-[WebDataSource subresources]): Ditto.
+        (-[WebDataSource subresourceForURL:]): Ditto.
+        (-[WebDataSource addSubresource:]): Ditto.
+
+        * WebView/WebResource.mm:
+        (-[WebResourcePrivate initWithCoreResource:]): Take Ref&& instead of PassRefPtr.
+        (-[WebResourcePrivate dealloc]): Remove explicit deref since RefPtr will now take
+        care of it
+        (-[WebResource initWithCoder:]): Pass a reference.
+        (-[WebResource encodeWithCoder:]): Updated since coreResource is now RefPtr.
+        (-[WebResource _initWithCoreResource:]): Take Ref&& instead of PassRefPtr.
+        (-[WebResource _coreResource]): Return reference rather than pointer.
+        (-[WebResource _initWithData:URL:MIMEType:textEncodingName:frameName:response:copyData:]):
+        Added code to handle the null case and pass a reference rather than a pointer.
+        * WebView/WebResourceInternal.h: Updated for the above.
+
+2017-01-17  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed, rolling out r210834
+        https://bugs.webkit.org/show_bug.cgi?id=165668
+
+        It introduced dozens of test timeouts.
+
+        Reverted changeset:
+        "[Modern Media Controls] Turn modern media controls on by default"
+        https://bugs.webkit.org/show_bug.cgi?id=165668
+        http://trac.webkit.org/changeset/210834
+
+2017-01-17  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Turn modern media controls on by default
+        https://bugs.webkit.org/show_bug.cgi?id=165668
+
+        Reviewed by Dean Jackson.
+
+        Enabled modern media controls by default in WK1. 
+
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+
+2017-01-17  Joseph Pecoraro  <pecoraro@apple.com>
+
+        ENABLE(USER_TIMING) Not Defined for Apple Windows or OS X Ports
+        https://bugs.webkit.org/show_bug.cgi?id=116551
+        <rdar://problem/13949830>
+
+        Reviewed by Alex Christensen.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2017-01-17  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Crash when closing tab with debugger paused
+        https://bugs.webkit.org/show_bug.cgi?id=161746
+        <rdar://problem/15607819>
+
+        Reviewed by Brian Burg and Brent Fulgham.
+
+        * WebView/WebView.mm:
+        (WebKit::DeferredPageDestructor::createDeferredPageDestructor):
+        (WebKit::DeferredPageDestructor::DeferredPageDestructor):
+        (WebKit::DeferredPageDestructor::tryDestruction):
+        (-[WebView _close]):
+        Defer destruction of the Page if we are in a nested runloop.
+
+2017-01-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove the REQUEST_ANIMATION_FRAME flag
+        https://bugs.webkit.org/show_bug.cgi?id=156980
+        <rdar://problem/25906849>
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2017-01-16  Andy Estes  <aestes@apple.com>
+
+        [QuickLook] Do some cleanup in QuickLookHandle
+        https://bugs.webkit.org/show_bug.cgi?id=166864
+
+        Reviewed by Darin Adler.
+
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::didCreateQuickLookHandle): Changed to pass a
+        Ref<QuickLookHandleClient>&& to QuickLookHandle::setClient().
+
+2017-01-15  Tim Horton  <timothy_horton@apple.com>
+
+        De-duplicate more (nearly) identical code in Editor(Mac|IOS).mm
+        https://bugs.webkit.org/show_bug.cgi?id=167063
+
+        Reviewed by Dan Bernstein.
+
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView _selectionStartFontAttributesAsRTF]):
+        (-[WebHTMLView _updateFontPanel]):
+        * WebView/WebView.mm:
+        (-[WebView typingAttributes]):
+        Adjust to fontAttributesForSelectionStart returning a RetainPtr.
+
+2017-01-13  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove ENABLE(DETAILS_ELEMENT) guards
+        https://bugs.webkit.org/show_bug.cgi?id=167042
+
+        Reviewed by Alex Christensen.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2017-01-11  Darin Adler  <darin@apple.com>
+
+        Remove PassRefPtr from more of "platform"
+        https://bugs.webkit.org/show_bug.cgi?id=166809
+
+        Reviewed by Sam Weinig.
+
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (NetscapePluginWidget::handleEvent): Pass a reference.
+        * WebView/WebView.mm:
+        (-[WebView _addScrollerDashboardRegionsForFrameView:dashboardRegions:]):
+        Updated since the children set now contains Ref instead of RefPtr.
+
+2017-01-13  Sam Weinig  <sam@webkit.org>
+
+        [WebIDL] Remove custom bindings for DeviceMotionEvent and DeviceOrientationEvent
+        https://bugs.webkit.org/show_bug.cgi?id=167006
+
+        Reviewed by Geoffrey Garen.
+
+        * WebView/WebDeviceOrientation.mm:
+        (convert):
+        (-[WebDeviceOrientation initWithCanProvideAlpha:alpha:canProvideBeta:beta:canProvideGamma:gamma:]):
+        Update for new use of std::optional.
+
+2017-01-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove unnecessary includes of Page.h
+        https://bugs.webkit.org/show_bug.cgi?id=166996
+
+        Reviewed by Yusuke Suzuki.
+
+        * DOM/DOMHTML.mm:
+        * History/WebBackForwardList.mm:
+        * Plugins/WebPluginController.mm:
+        * WebCoreSupport/WebNotificationClient.mm:
+        * WebCoreSupport/WebPlatformStrategies.mm:
+        * WebCoreSupport/WebUserMediaClient.mm:
+        * WebView/WebFullScreenController.mm:
+
+2017-01-12  Chris Dumez  <cdumez@apple.com>
+
+        Add KEYBOARD_KEY_ATTRIBUTE / KEYBOARD_CODE_ATTRIBUTE to FeatureDefines.xcconfig
+        https://bugs.webkit.org/show_bug.cgi?id=166995
+
+        Reviewed by Jer Noble.
+
+        Add KEYBOARD_KEY_ATTRIBUTE / KEYBOARD_CODE_ATTRIBUTE to FeatureDefines.xcconfig
+        as some people are having trouble building without it.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2017-01-12  Chris Dumez  <cdumez@apple.com>
+
+        HTML form validation popover sometimes does not go away
+        https://bugs.webkit.org/show_bug.cgi?id=166990
+        <rdar://problem/29985957>
+
+        Reviewed by Tim Horton.
+
+        Update code using ValidationBubble now that it is RefCounted.
+
+        * WebView/WebView.mm:
+        (-[WebView showFormValidationMessage:withAnchorRect:]):
+
+2017-01-10  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Remove pointerLockElement from DOMDocumentPrivate.h
+        https://bugs.webkit.org/show_bug.cgi?id=166882
+
+        Reviewed by Simon Fraser.
+
+        Removed pointerLockElement declaration that was supposed to be removed in r209637.
+
+        * DOM/DOMDocumentPrivate.h:
+
+2017-01-06  Darin Adler  <darin@apple.com>
+
+        Remove PassRefPtr use from "inspector", "platform/sql", and "platform/text"
+        https://bugs.webkit.org/show_bug.cgi?id=166797
+
+        Reviewed by Alex Christensen.
+
+        * WebCoreSupport/WebEditorClient.h: Updated to take a reference.
+        * WebCoreSupport/WebEditorClient.mm:
+        (WebEditorClient::requestCheckingOfString): Take a reference
+        instead of a PassRefPtr.
+
+2017-01-05  Chris Dumez  <cdumez@apple.com>
+
+        Turn preferLowPowerWebGLRendering setting on by default
+        https://bugs.webkit.org/show_bug.cgi?id=166737
+        <rdar://problem/29870033>
+
+        Reviewed by Dean Jackson.
+
+        Temporarily turn preferLowPowerWebGLRendering setting on by default until
+        we deal better with WebGL content in background tabs.
+
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+
+2017-01-05  Enrica Casucci  <enrica@apple.com>
+
+        Support File Promise during drag for macOS.
+        https://bugs.webkit.org/show_bug.cgi?id=165204
+        rdar://problem/19595567
+
+        Reviewed by Tim Horton.
+
+        Adds support for dropping a File Promise in a WebView.
+        The implementation uses new File Promise API available in Sierra.
+
+        * Misc/WebNSPasteboardExtras.mm:
+        (+[NSPasteboard _web_dragTypesForURL]):
+        * WebView/WebView.mm:
+        (-[WebView performDragOperation:]):
+
+2017-01-05  Andreas Kling  <akling@apple.com>
+
+        Remove ChromeClient::needTouchEvents().
+        <https://webkit.org/b/166723>
+
+        Rubber-stamped by Antti Koivisto.
+
+        * WebCoreSupport/WebChromeClient.h:
+
+2017-01-04  Darin Adler  <darin@apple.com>
+
+        Remove PassRefPtr use from the "html" directory, other improvements
+        https://bugs.webkit.org/show_bug.cgi?id=166635
+
+        Reviewed by Alex Christensen.
+
+        * WebCoreSupport/WebChromeClient.h:
+        * WebCoreSupport/WebChromeClient.mm:
+        (WebChromeClient::loadIconForFiles): Take a reference instead of a pointer.
+
+2017-01-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r210287.
+
+        This change caused editing test failures on macOS.
+
+        Reverted changeset:
+
+        "Support File Promise during drag for macOS."
+        https://bugs.webkit.org/show_bug.cgi?id=165204
+        http://trac.webkit.org/changeset/210287
+
+2017-01-04  Enrica Casucci  <enrica@apple.com>
+
+        Support File Promise during drag for macOS.
+        https://bugs.webkit.org/show_bug.cgi?id=165204
+        rdar://problem/19595567
+
+        Reviewed by Tim Horton.
+
+        Adds support for dropping a File Promise in a WebView.
+        The implementation uses new File Promise API available in Sierra.
+
+        * Misc/WebNSPasteboardExtras.mm:
+        (+[NSPasteboard _web_dragTypesForURL]):
+        * WebView/WebView.mm:
+        (-[WebView performDragOperation:]):
+
+2017-01-04  Tim Horton  <timothy_horton@apple.com>
+
+        Provide a setting for clients to always prefer low-power WebGL
+        https://bugs.webkit.org/show_bug.cgi?id=166675
+        <rdar://problem/29834093>
+
+        Reviewed by Dan Bernstein.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        (-[WebPreferences preferLowPowerWebGLRendering]):
+        (-[WebPreferences setPreferLowPowerWebGLRendering:]):
+        * WebView/WebPreferencesPrivate.h:
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChanged:]):
+        Expose a new private preferLowPowerWebGLRendering WebKit1 preference.
+
+2017-01-03  Tim Horton  <timothy_horton@apple.com>
+
+        NSSpellChecker's recordResponse isn't called for unseen automatic corrections
+        https://bugs.webkit.org/show_bug.cgi?id=166450
+        <rdar://problem/29447824>
+
+        Reviewed by Darin Adler.
+
+        * WebCoreSupport/CorrectionPanel.h:
+        * WebCoreSupport/CorrectionPanel.mm:
+        (CorrectionPanel::recordAutocorrectionResponse):
+        (CorrectionPanel::handleAcceptedReplacement):
+        * WebCoreSupport/WebAlternativeTextClient.mm:
+        (toCorrectionResponse):
+        (WebAlternativeTextClient::recordAutocorrectionResponse):
+        Funnel all calls to recordResponse:toCorrection:forWord:language:inSpellDocumentWithTag:
+        through recordAutocorrectionResponse, for debugging's sake.
+        Drop the NSView parameter because we don't need it, just the tag.
+        Convert the new AutocorrectionResponseType value to its corresponding
+        NSCorrectionResponse value.
+
+2017-01-01  Jeff Miller  <jeffm@apple.com>
+
+        Update user-visible copyright strings to include 2017
+        https://bugs.webkit.org/show_bug.cgi?id=166278
+
+        Reviewed by Dan Bernstein.
+
+        * Info.plist:
+
+2016-12-30  Darin Adler  <darin@apple.com>
+
+        Remove PassRefPtr use from the "dom" directory, related cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=166569
+
+        Reviewed by Alex Christensen.
+
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::dispatchDidReceiveTitle): Updated to use struct.
+        (WebFrameLoaderClient::updateGlobalHistory): Ditto.
+        (WebFrameLoaderClient::setTitle): Ditto.
+        (WebFrameLoaderClient::transitionToCommittedForNewPage): Ditto.
+        * WebView/WebFrame.mm:
+        (-[WebFrame _dispatchDidReceiveTitle:]): Use aggregate-style syntax for StringWithDirection.
+        Not needed now, but useful later if we ever can get rid of the explicit constructors.
+        (-[WebFrame loadArchive:]): Pass a reference to loadArchive.
+        * WebView/WebHTMLRepresentation.mm:
+        (-[WebHTMLRepresentation title]): Updated to use struct.
+
+2016-12-25  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Propagate the source origin as much as possible
+        https://bugs.webkit.org/show_bug.cgi?id=166348
+
+        Reviewed by Darin Adler.
+
+        * Plugins/Hosted/NetscapePluginInstanceProxy.mm:
+        (WebKit::NetscapePluginInstanceProxy::evaluate):
+
+2016-12-23  Andy Estes  <aestes@apple.com>
+
+        [iOS] DumpRenderTree triggers an assertion failure when calling +[WebPreferences _switchNetworkLoaderToNewTestingSession]
+        https://bugs.webkit.org/show_bug.cgi?id=166471
+
+        Reviewed by Andreas Kling.
+
+        When DumpRenderTree starts up, it calls
+        +[WebPreferences _switchNetworkLoaderToNewTestingSession] from the main thread. In Debug
+        builds, this triggers the ASSERT(isMainThread()) in
+        NetworkStorageSession::defaultNetworkStorageSession() because the Web thread has already
+        started, we are on the main thread, and we are not holding the Web thread lock. This is
+        causing all layout tests to crash in the iOS WK1 Debug configuration.
+
+        * WebView/WebPreferences.mm: (+[WebPreferences _switchNetworkLoaderToNewTestingSession]):
+        Take the Web thread lock before calling NetworkStorageSession::switchToNewTestingSession().
+
+2016-12-22  Andy Estes  <aestes@apple.com>
+
+        Make WebCore::EditorInsertAction an enum class
+        https://bugs.webkit.org/show_bug.cgi?id=166424
+
+        Reviewed by Brent Fulgham.
+
+        * WebCoreSupport/WebEditorClient.mm:
+        (kit):
+
+2016-12-21  Beth Dakin  <bdakin@apple.com>
+
+        Holding down on candidates in the TouchBar should show panel on screen
+        https://bugs.webkit.org/show_bug.cgi?id=166367
+        -and corresponding-
+        <rdar://problem/28479236>
+
+        Reviewed by Tim Horton.
+
+        Stray whitespace.
+        * WebCoreSupport/WebEditorClient.mm:
+        (WebEditorClient::handleRequestedCandidates):
+
+        Call the version of setCandidates: that takes a rect. We need to keep the helper 
+        function in WK1 (unlike WK2) since we also use it for testing.
+        * WebView/WebView.mm:
+        (-[WebView showCandidates:forString:inRect:forSelectedRange:view:completionHandler:]):
+
+2016-12-20  Dean Jackson  <dino@apple.com>
+
+        Remove INDIE_UI
+        https://bugs.webkit.org/show_bug.cgi?id=165881
+        <rdar://problem/29672532>
+
+        Reviewed by Simon Fraser.
+
+        The Indie UI work has been discontinued.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-12-19  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Enable ES6 Modules
+        https://bugs.webkit.org/show_bug.cgi?id=165849
+
+        Reviewed by Geoffrey Garen.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        (-[WebPreferences es6ModulesEnabled]): Deleted.
+        (-[WebPreferences setES6ModulesEnabled:]): Deleted.
+        * WebView/WebPreferencesPrivate.h:
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChanged:]):
+
+2016-12-16  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Values] Make separate wrapper classes for the deprecated CSS Values OM
+        https://bugs.webkit.org/show_bug.cgi?id=165968
+
+        Reviewed by Andreas Kling.
+
+        * DOM/DOMCSS.mm:
+        (kitClass):
+        * DOM/DOMCSSPrimitiveValue.mm:
+        (-[DOMCSSPrimitiveValue getCounterValue]):
+        (-[DOMCSSPrimitiveValue getRectValue]):
+        (kit):
+        * DOM/DOMCSSPrimitiveValueInternal.h:
+        * DOM/DOMCSSStyleDeclaration.mm:
+        * DOM/DOMCSSValue.mm:
+        (kit):
+        * DOM/DOMCSSValueInternal.h:
+        * DOM/DOMCSSValueList.mm:
+        * DOM/DOMCounter.mm:
+        (kit):
+        * DOM/DOMCounterInternal.h:
+        * DOM/DOMRGBColor.mm:
+        (kit):
+        * DOM/DOMRGBColorInternal.h:
+        * DOM/DOMRect.mm:
+        (kit):
+        * DOM/DOMRectInternal.h:
+        * DOM/DOMUtility.mm:
+        (createDOMWrapper):
+
+2016-12-16  Chris Dumez  <cdumez@apple.com>
+
+        HTML form validation bubble should be dismissed on navigation
+        https://bugs.webkit.org/show_bug.cgi?id=165960
+        <rdar://problem/29668086>
+
+        Reviewed by Simon Fraser.
+
+        Dismiss HTML form validation bubble on top-level navigation on Mac WK1.
+
+        * WebView/WebView.mm:
+        (-[WebView _didStartProvisionalLoadForFrame:]):
+
+2016-12-15  Darin Adler  <darin@apple.com>
+
+        Use asString instead of toWTFString, toString, or getString when we already checked isString
+        https://bugs.webkit.org/show_bug.cgi?id=165895
+
+        Reviewed by Yusuke Suzuki.
+
+        * Plugins/Hosted/NetscapePluginInstanceProxy.mm:
+        (WebKit::NetscapePluginInstanceProxy::addValueToArray): Use asString/value instead of
+        toWTFString.
+        * WebView/WebView.mm:
+        (aeDescFromJSValue): Use asString/value instead of getString.
+
+2016-12-15  Chris Dumez  <cdumez@apple.com>
+
+        Make sure HTML validation bubble's state is updated after layout
+        https://bugs.webkit.org/show_bug.cgi?id=165922
+        <rdar://problem/29694730>
+
+        Reviewed by Simon Fraser.
+
+        Make sure HTML validation bubble's state is updated after layout.
+        In particular, if the validation bubble's associated element has
+        moved or is no longer visible, we now hide the bubble.
+
+        * WebCoreSupport/WebValidationMessageClient.h:
+        * WebCoreSupport/WebValidationMessageClient.mm:
+        (WebValidationMessageClient::showValidationMessage):
+        (WebValidationMessageClient::hideValidationMessage):
+        (WebValidationMessageClient::updateValidationBubbleStateIfNeeded):
+
+2016-12-15  Chris Dumez  <cdumez@apple.com>
+
+        Move charCode / keyCode / which attributes from UIEvent to KeyboardEvent
+        https://bugs.webkit.org/show_bug.cgi?id=165904
+
+        Reviewed by Sam Weinig.
+
+        Update ObjC bindings so they keep building.
+
+        * DOM/DOMUIEvent.mm:
+        (-[DOMUIEvent keyCode]):
+        (-[DOMUIEvent charCode]):
+
+2016-12-15  Andreas Kling  <akling@apple.com>
+
+        Always clear RenderLayer backing stores when going into page cache.
+        <https://webkit.org/b/165901>
+
+        Reviewed by Simon Fraser.
+
+        * WebView/WebView.mm:
+        (+[WebView _setCacheModel:]):
+
 2016-12-12  Alex Christensen  <achristensen@webkit.org>
 
         Remove unused workaround for Silverlight
