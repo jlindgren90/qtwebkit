@@ -34,12 +34,7 @@
 #include <wtf/MainThread.h>
 #include <wtf/Threading.h>
 
-#if PLATFORM(QT)
-#include <QCoreApplication>
-#include <QMutexLocker>
-#include <QThread>
-#include <QTimerEvent>
-#elif PLATFORM(EFL)
+#if PLATFORM(EFL)
 #include <Ecore.h>
 #elif USE(GLIB)
 #include <glib.h>
@@ -111,40 +106,6 @@ void HeapTimer::cancelTimer()
 {
     CFRunLoopTimerSetNextFireDate(m_timer.get(), CFAbsoluteTimeGetCurrent() + s_decade);
     m_isScheduled = false;
-}
-
-#elif PLATFORM(QT)
-
-HeapTimer::HeapTimer(VM* vm)
-    : m_vm(vm)
-    , m_mutex(QMutex::NonRecursive)
-{
-    // The HeapTimer might be created before the runLoop is started,
-    // but we need to ensure the thread has an eventDispatcher already.
-    QEventLoop fakeLoop(this);
-}
-
-HeapTimer::~HeapTimer()
-{
-    QMutexLocker lock(&m_mutex);
-    m_timer.stop();
-}
-
-void HeapTimer::timerEvent(QTimerEvent*)
-{
-    QMutexLocker lock(&m_mutex);
-    JSLockHolder locker(m_vm);
-    doWork();
-}
-
-void HeapTimer::scheduleTimer(double intervalInSeconds)
-{
-    m_timer.start(intervalInSeconds * 1000, this);
-}
-
-void HeapTimer::cancelTimer()
-{
-    m_timer.stop();
 }
 
 #elif PLATFORM(EFL)

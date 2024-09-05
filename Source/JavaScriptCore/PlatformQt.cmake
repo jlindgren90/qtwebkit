@@ -24,6 +24,19 @@ if (QT_STATIC_BUILD)
     )
 endif ()
 
+# copied from WebCore
+if (USE_GLIB)
+    list(APPEND JavaScriptCore_SYSTEM_INCLUDE_DIRECTORIES
+        ${GIO_UNIX_INCLUDE_DIRS}
+        ${GLIB_INCLUDE_DIRS}
+    )
+    list(APPEND JavaScriptCore_LIBRARIES
+        ${GLIB_GIO_LIBRARIES}
+        ${GLIB_GOBJECT_LIBRARIES}
+        ${GLIB_LIBRARIES}
+    )
+endif ()
+
 # From PlatformWin.cmake
 if (WIN32)
     list(REMOVE_ITEM JavaScriptCore_SOURCES

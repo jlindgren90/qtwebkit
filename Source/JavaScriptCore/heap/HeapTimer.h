@@ -35,13 +35,8 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-#if USE(GLIB) && !PLATFORM(EFL) && !PLATFORM(QT)
+#if USE(GLIB) && !PLATFORM(EFL)
 #include <wtf/glib/GRefPtr.h>
-#elif PLATFORM(QT)
-#include <QBasicTimer>
-#include <QMutex>
-#include <QObject>
-#include <QThread>
 #endif
 
 namespace JSC {
@@ -49,11 +44,7 @@ namespace JSC {
 class JSLock;
 class VM;
 
-class HeapTimer : public ThreadSafeRefCounted<HeapTimer>
-#if PLATFORM(QT)
-    , public QObject
-#endif
-    {
+class HeapTimer : public ThreadSafeRefCounted<HeapTimer> {
 public:
     HeapTimer(VM*);
 #if USE(CF)
@@ -85,10 +76,6 @@ protected:
     CFRunLoopTimerContext m_context;
 
     Lock m_shutdownMutex;
-#elif PLATFORM(QT)
-    void timerEvent(QTimerEvent*) override;
-    QBasicTimer m_timer;
-    QMutex m_mutex;
 #elif PLATFORM(EFL)
     static bool timerEvent(void*);
     Ecore_Timer* add(double delay, void* agent);

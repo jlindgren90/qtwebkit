@@ -83,14 +83,6 @@ protected:
         , m_delay(s_hour)
     {
     }
-#elif PLATFORM(QT)
-    static constexpr double s_hour = 3600;
-    GCActivityCallback(VM* vm)
-        : HeapTimer(vm)
-        , m_enabled(true)
-        , m_delay(s_hour)
-    {
-    }
 #elif USE(GLIB)
     GCActivityCallback(VM* vm)
         : HeapTimer(vm)
