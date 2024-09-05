@@ -37,7 +37,7 @@ CustomEvent::CustomEvent(IsTrusted isTrusted)
 
 CustomEvent::CustomEvent(JSC::ExecState& state, const AtomicString& type, const Init& initializer, IsTrusted isTrusted)
     : Event(type, initializer, isTrusted)
-    , m_detail(initializer.detail)
+    , m_detail(state.vm(), initializer.detail)
 {
 }
 
@@ -52,7 +52,7 @@ void CustomEvent::initCustomEvent(JSC::ExecState& state, const AtomicString& typ
 
     initEvent(type, canBubble, cancelable);
 
-    m_detail = detail;
+    m_detail = { state.vm(), detail };
     m_serializedDetail = nullptr;
     m_triedToSerialize = false;
 }

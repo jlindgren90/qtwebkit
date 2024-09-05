@@ -26,7 +26,6 @@
 #pragma once
 
 #include "Event.h"
-#include "JSValueInWrappedObject.h"
 #include "SerializedScriptValue.h"
 #include <bindings/ScriptValue.h>
 
@@ -54,7 +53,7 @@ public:
 
     EventInterface eventInterface() const override;
 
-    JSValueInWrappedObject& detail() { return m_detail; }
+    JSC::JSValue detail() const { return m_detail.jsValue(); }
     
     RefPtr<SerializedScriptValue> trySerializeDetail(JSC::ExecState&);
 
@@ -62,7 +61,7 @@ private:
     CustomEvent(IsTrusted);
     CustomEvent(JSC::ExecState&, const AtomicString& type, const Init& initializer, IsTrusted);
 
-    JSValueInWrappedObject m_detail;
+    Deprecated::ScriptValue m_detail; // FIXME: Why is it OK to use a strong reference here? What prevents a reference cycle?
     RefPtr<SerializedScriptValue> m_serializedDetail;
     bool m_triedToSerialize { false };
 };
