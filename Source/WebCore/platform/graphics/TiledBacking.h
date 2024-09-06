@@ -97,6 +97,7 @@ public:
     virtual void prepopulateRect(const FloatRect&) = 0;
 
     virtual void setIsInWindow(bool) = 0;
+    virtual bool isInWindow() const = 0;
 
     enum {
         CoverageForVisibleArea = 0,
@@ -121,9 +122,6 @@ public:
 
     virtual void setScrollingPerformanceLoggingEnabled(bool) = 0;
     virtual bool scrollingPerformanceLoggingEnabled() const = 0;
-    
-    virtual void setUnparentsOffscreenTiles(bool) = 0;
-    virtual bool unparentsOffscreenTiles() const = 0;
     
     virtual double retainedTileBackingStoreMemory() const = 0;
 

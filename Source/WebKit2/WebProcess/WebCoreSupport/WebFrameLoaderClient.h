@@ -142,7 +142,7 @@ private:
     bool shouldGoToHistoryItem(WebCore::HistoryItem*) const final;
 
     void didDisplayInsecureContent() final;
-    void didRunInsecureContent(WebCore::SecurityOrigin*, const WebCore::URL&) final;
+    void didRunInsecureContent(WebCore::SecurityOrigin&, const WebCore::URL&) final;
     void didDetectXSS(const WebCore::URL&, bool didBlockEntirePage) final;
 
     WebCore::ResourceError cancelledError(const WebCore::ResourceRequest&) final;
@@ -179,7 +179,9 @@ private:
     void setTitle(const WebCore::StringWithDirection&, const WebCore::URL&) final;
     
     String userAgent(const WebCore::URL&) final;
-    
+
+    String overrideContentSecurityPolicy() const final;
+
     void savePlatformDataToCachedFrame(WebCore::CachedFrame*) final;
     void transitionToCommittedFromCachedFrame(WebCore::CachedFrame*) final;
 #if PLATFORM(IOS)
@@ -245,7 +247,7 @@ private:
     void forcePageTransitionIfNeeded() final;
 
 #if USE(QUICK_LOOK)
-    void didCreateQuickLookHandle(WebCore::QuickLookHandle&) final;
+    RefPtr<WebCore::QuickLookHandleClient> createQuickLookHandleClient(const String& fileName, const String& uti) final;
 #endif
 
 #if ENABLE(CONTENT_FILTERING)

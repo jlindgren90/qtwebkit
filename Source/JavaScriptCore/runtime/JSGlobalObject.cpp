@@ -302,7 +302,7 @@ const GlobalObjectMethodTable JSGlobalObject::s_globalObjectMethodTable = {
 static EncodedJSValue JSC_HOST_CALL getTemplateObject(ExecState* exec)
 {
     JSValue thisValue = exec->thisValue();
-    ASSERT(thisValue.inherits(JSTemplateRegistryKey::info()));
+    ASSERT(thisValue.inherits(exec->vm(), JSTemplateRegistryKey::info()));
     return JSValue::encode(exec->lexicalGlobalObject()->templateRegistry().getTemplateObject(exec, jsCast<JSTemplateRegistryKey*>(thisValue)));
 }
 
@@ -314,7 +314,7 @@ static EncodedJSValue JSC_HOST_CALL enqueueJob(ExecState* exec)
 
     JSValue job = exec->argument(0);
     JSValue arguments = exec->argument(1);
-    ASSERT(arguments.inherits(JSArray::info()));
+    ASSERT(arguments.inherits(vm, JSArray::info()));
 
     globalObject->queueMicrotask(createJSJob(vm, job, jsCast<JSArray*>(arguments)));
 
@@ -924,7 +924,7 @@ putDirectWithoutTransition(vm, vm.propertyNames-> jsName, lowerName ## Construct
             RELEASE_ASSERT(slot.isCacheableValue());
             JSValue functionValue = slot.getValue(exec, ident);
             ASSERT(!catchScope.exception());
-            ASSERT(jsDynamicCast<JSFunction*>(functionValue));
+            ASSERT(jsDynamicCast<JSFunction*>(vm, functionValue));
 
             ObjectPropertyCondition condition = generateConditionForSelfEquivalence(m_vm, nullptr, base, ident.impl());
             RELEASE_ASSERT(condition.requiredValue() == functionValue);
@@ -1447,6 +1447,31 @@ bool JSGlobalObject::hasDebugger() const
 bool JSGlobalObject::hasInteractiveDebugger() const 
 { 
     return m_debugger && m_debugger->isInteractivelyDebugging();
+}
+
+JSGlobalObject* JSGlobalObject::create(VM& vm, Structure* structure)
+{
+    JSGlobalObject* globalObject = new (NotNull, allocateCell<JSGlobalObject>(vm.heap)) JSGlobalObject(vm, structure);
+    globalObject->finishCreation(vm);
+    return globalObject;
+}
+
+void JSGlobalObject::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    structure()->setGlobalObject(vm, this);
+    m_runtimeFlags = m_globalObjectMethodTable->javaScriptRuntimeFlags(this);
+    init(vm);
+    setGlobalThis(vm, JSProxy::create(vm, JSProxy::createStructure(vm, this, getPrototypeDirect(), PureForwardingProxyType), this));
+}
+
+void JSGlobalObject::finishCreation(VM& vm, JSObject* thisValue)
+{
+    Base::finishCreation(vm);
+    structure()->setGlobalObject(vm, this);
+    m_runtimeFlags = m_globalObjectMethodTable->javaScriptRuntimeFlags(this);
+    init(vm);
+    setGlobalThis(vm, thisValue);
 }
 
 } // namespace JSC

@@ -122,7 +122,6 @@
 
 #define WTF_COMPILER_MSVC 1
 #define WTF_COMPILER_SUPPORTS_CXX_REFERENCE_QUALIFIED_FUNCTIONS 1
-#define WTF_COMPILER_SUPPORTS_CXX_USER_LITERALS 1
 
 #if _MSC_VER < 1900
 #error "Please use a newer version of Visual Studio. WebKit requires VS2015 or newer to compile."

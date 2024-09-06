@@ -457,9 +457,9 @@ public:
     void pageScaleFactorChanged();
     void userInterfaceLayoutDirectionChanged();
     WEBCORE_EXPORT String getCurrentMediaControlsStatus();
-#endif
 
     MediaControlsHost* mediaControlsHost() { return m_mediaControlsHost.get(); }
+#endif
 
     bool isDisablingSleep() const { return m_sleepDisabler.get(); }
 
@@ -721,7 +721,7 @@ private:
     bool stoppedDueToErrors() const;
     bool pausedForUserInteraction() const;
     bool couldPlayIfEnoughData() const;
-    bool canTransitionFromAutoplayToPlay() const;
+    SuccessOr<MediaPlaybackDenialReason> canTransitionFromAutoplayToPlay() const;
 
     MediaTime minTimeSeekable() const;
     MediaTime maxTimeSeekable() const;
@@ -778,6 +778,7 @@ private:
     bool supportsSeeking() const override;
     bool shouldOverrideBackgroundPlaybackRestriction(PlatformMediaSession::InterruptionType) const override;
     bool shouldOverrideBackgroundLoadingRestriction() const override;
+    bool canProduceAudio() const final;
 
     void pageMutedStateDidChange() override;
 
@@ -963,6 +964,7 @@ private:
     bool m_creatingControls : 1;
     bool m_receivedLayoutSizeChanged : 1;
     bool m_hasEverNotifiedAboutPlaying : 1;
+    bool m_preventedFromPlayingWithoutUserGesture : 1;
 
     bool m_hasEverHadAudio : 1;
     bool m_hasEverHadVideo : 1;

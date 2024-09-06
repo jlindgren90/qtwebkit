@@ -29,11 +29,11 @@
 
 #include "AXObjectCache.h"
 #include "ActiveDOMCallbackMicrotask.h"
-#include "AnimationController.h"
 #include "ApplicationCacheStorage.h"
 #include "Autofill.h"
 #include "BackForwardController.h"
 #include "BitmapImage.h"
+#include "CSSAnimationController.h"
 #include "CSSKeyframesRule.h"
 #include "CSSMediaRule.h"
 #include "CSSStyleRule.h"
@@ -85,6 +85,8 @@
 #include "IntRect.h"
 #include "InternalSettings.h"
 #include "Language.h"
+#include "LibWebRTCProvider.h"
+#include "LibWebRTCUtils.h"
 #include "MainFrame.h"
 #include "MallocStatistics.h"
 #include "MediaPlayer.h"
@@ -92,6 +94,7 @@
 #include "MemoryCache.h"
 #include "MemoryInfo.h"
 #include "MemoryPressureHandler.h"
+#include "MockLibWebRTCPeerConnection.h"
 #include "MockPageOverlay.h"
 #include "MockPageOverlayClient.h"
 #include "Page.h"
@@ -110,7 +113,7 @@
 #include "RenderView.h"
 #include "RenderedDocumentMarker.h"
 #include "ResourceLoadObserver.h"
-#include "RuntimeEnabledFeatures.h"
+#include "SVGDocumentExtensions.h"
 #include "SVGPathStringBuilder.h"
 #include "SchemeRegistry.h"
 #include "ScriptedAnimationController.h"
@@ -231,6 +234,11 @@
 
 #if ENABLE(POINTER_LOCK)
 #include "PointerLockController.h"
+#endif
+
+#if USE(QUICK_LOOK)
+#include "MockQuickLookHandleClient.h"
+#include "QuickLook.h"
 #endif
 
 using JSC::CallData;
@@ -433,6 +441,11 @@ void Internals::resetToConsistentState(Page& page)
 #endif
 
     page.setShowAllPlugins(false);
+
+#if USE(QUICK_LOOK)
+    MockQuickLookHandleClient::singleton().setPassword("");
+    QuickLookHandle::setClientForTesting(nullptr);
+#endif
 }
 
 Internals::Internals(Document& document)
@@ -450,13 +463,13 @@ Internals::Internals(Document& document)
 
 #if ENABLE(WEB_RTC)
     enableMockMediaEndpoint();
+    useMockRTCPeerConnectionFactory(String());
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     if (document.page())
         document.page()->setMockMediaPlaybackTargetPickerEnabled(true);
 #endif
-    RuntimeEnabledFeatures::sharedFeatures().reset();
 
     if (contextDocument() && contextDocument()->frame()) {
         setAutomaticSpellingCorrectionEnabled(true);
@@ -493,6 +506,18 @@ InternalSettings* Internals::settings() const
 unsigned Internals::workerThreadCount() const
 {
     return WorkerThread::workerThreadCount();
+}
+
+bool Internals::areSVGAnimationsPaused() const
+{
+    auto* document = contextDocument();
+    if (!document)
+        return false;
+
+    if (!document->svgExtensions())
+        return false;
+
+    return document->accessSVGExtensions().areAnimationsPaused();
 }
 
 String Internals::address(Node& node)
@@ -546,7 +571,7 @@ bool Internals::isLoadingFromMemoryCache(const String& url)
 
     ResourceRequest request(contextDocument()->completeURL(url));
 #if ENABLE(CACHE_PARTITIONING)
-    request.setDomainForCachePartition(contextDocument()->topOrigin()->domainForCachePartition());
+    request.setDomainForCachePartition(contextDocument()->topOrigin().domainForCachePartition());
 #endif
     CachedResource* resource = MemoryCache::singleton().resourceForRequest(request, contextDocument()->page()->sessionID());
     return resource && resource->status() == CachedResource::Cached;
@@ -736,7 +761,7 @@ ExceptionOr<bool> Internals::animationsAreSuspended() const
     if (!document || !document->frame())
         return Exception { INVALID_ACCESS_ERR };
 
-    return document->frame()->animation().isSuspended();
+    return document->frame()->animation().animationsAreSuspendedForDocument(document);
 }
 
 ExceptionOr<void> Internals::suspendAnimations() const
@@ -745,7 +770,13 @@ ExceptionOr<void> Internals::suspendAnimations() const
     if (!document || !document->frame())
         return Exception { INVALID_ACCESS_ERR };
 
-    document->frame()->animation().suspendAnimations();
+    document->frame()->animation().suspendAnimationsForDocument(document);
+
+    for (Frame* frame = document->frame(); frame; frame = frame->tree().traverseNext()) {
+        if (Document* document = frame->document())
+            frame->animation().suspendAnimationsForDocument(document);
+    }
+
     return { };
 }
 
@@ -755,7 +786,13 @@ ExceptionOr<void> Internals::resumeAnimations() const
     if (!document || !document->frame())
         return Exception { INVALID_ACCESS_ERR };
 
-    document->frame()->animation().resumeAnimations();
+    document->frame()->animation().resumeAnimationsForDocument(document);
+
+    for (Frame* frame = document->frame(); frame; frame = frame->tree().traverseNext()) {
+        if (Document* document = frame->document())
+            frame->animation().resumeAnimationsForDocument(document);
+    }
+
     return { };
 }
 
@@ -1090,6 +1127,17 @@ void Internals::enableMockMediaEndpoint()
 void Internals::emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection& connection, const String& action)
 {
     connection.emulatePlatformEvent(action);
+}
+
+void Internals::useMockRTCPeerConnectionFactory(const String& testCase)
+{
+#if USE(LIBWEBRTC)
+    Document* document = contextDocument();
+    LibWebRTCProvider* provider = (document && document->page()) ? &document->page()->libWebRTCProvider() : nullptr;
+    WebCore::useMockRTCPeerConnectionFactory(provider, testCase);
+#else
+    UNUSED_PARAM(testCase);
+#endif
 }
 
 #endif
@@ -1440,6 +1488,11 @@ String Internals::rangeAsText(const Range& range)
 Ref<Range> Internals::subrange(Range& range, int rangeLocation, int rangeLength)
 {
     return TextIterator::subrange(&range, rangeLocation, rangeLength);
+}
+
+RefPtr<Range> Internals::rangeOfStringNearLocation(const Range& searchRange, const String& text, unsigned targetOffset)
+{
+    return findClosestPlainText(searchRange, text, 0, targetOffset);
 }
 
 ExceptionOr<RefPtr<Range>> Internals::rangeForDictionaryLookupAtLocation(int x, int y)
@@ -1972,6 +2025,23 @@ ExceptionOr<bool> Internals::isPageBoxVisible(int pageNumber)
     return document->isPageBoxVisible(pageNumber);
 }
 
+static LayerTreeFlags toLayerTreeFlags(unsigned short flags)
+{
+    LayerTreeFlags layerTreeFlags = 0;
+    if (flags & Internals::LAYER_TREE_INCLUDES_VISIBLE_RECTS)
+        layerTreeFlags |= LayerTreeFlagsIncludeVisibleRects;
+    if (flags & Internals::LAYER_TREE_INCLUDES_TILE_CACHES)
+        layerTreeFlags |= LayerTreeFlagsIncludeTileCaches;
+    if (flags & Internals::LAYER_TREE_INCLUDES_REPAINT_RECTS)
+        layerTreeFlags |= LayerTreeFlagsIncludeRepaintRects;
+    if (flags & Internals::LAYER_TREE_INCLUDES_PAINTING_PHASES)
+        layerTreeFlags |= LayerTreeFlagsIncludePaintingPhases;
+    if (flags & Internals::LAYER_TREE_INCLUDES_CONTENT_LAYERS)
+        layerTreeFlags |= LayerTreeFlagsIncludeContentLayers;
+
+    return layerTreeFlags;
+}
+
 // FIXME: Remove the document argument. It is almost always the same as
 // contextDocument(), with the exception of a few tests that pass a
 // different document, and could just make the call through another Internals
@@ -1981,19 +2051,7 @@ ExceptionOr<String> Internals::layerTreeAsText(Document& document, unsigned shor
     if (!document.frame())
         return Exception { INVALID_ACCESS_ERR };
 
-    LayerTreeFlags layerTreeFlags = 0;
-    if (flags & LAYER_TREE_INCLUDES_VISIBLE_RECTS)
-        layerTreeFlags |= LayerTreeFlagsIncludeVisibleRects;
-    if (flags & LAYER_TREE_INCLUDES_TILE_CACHES)
-        layerTreeFlags |= LayerTreeFlagsIncludeTileCaches;
-    if (flags & LAYER_TREE_INCLUDES_REPAINT_RECTS)
-        layerTreeFlags |= LayerTreeFlagsIncludeRepaintRects;
-    if (flags & LAYER_TREE_INCLUDES_PAINTING_PHASES)
-        layerTreeFlags |= LayerTreeFlagsIncludePaintingPhases;
-    if (flags & LAYER_TREE_INCLUDES_CONTENT_LAYERS)
-        layerTreeFlags |= LayerTreeFlagsIncludeContentLayers;
-
-    return document.frame()->layerTreeAsText(layerTreeFlags);
+    return document.frame()->layerTreeAsText(toLayerTreeFlags(flags));
 }
 
 ExceptionOr<String> Internals::repaintRectsAsText() const
@@ -2380,7 +2438,7 @@ void Internals::setApplicationCacheOriginQuota(unsigned long long quota)
     Document* document = contextDocument();
     if (!document || !document->page())
         return;
-    document->page()->applicationCacheStorage().storeUpdatedQuotaForOrigin(document->securityOrigin(), quota);
+    document->page()->applicationCacheStorage().storeUpdatedQuotaForOrigin(&document->securityOrigin(), quota);
 }
 
 void Internals::registerURLSchemeAsBypassingContentSecurityPolicy(const String& scheme)
@@ -3206,7 +3264,7 @@ ExceptionOr<Ref<MockPageOverlay>> Internals::installMockPageOverlay(PageOverlayT
     return MockPageOverlayClient::singleton().installOverlay(document->frame()->mainFrame(), type == PageOverlayType::View ? PageOverlay::OverlayType::View : PageOverlay::OverlayType::Document);
 }
 
-ExceptionOr<String> Internals::pageOverlayLayerTreeAsText() const
+ExceptionOr<String> Internals::pageOverlayLayerTreeAsText(unsigned short flags) const
 {
     Document* document = contextDocument();
     if (!document || !document->frame())
@@ -3214,7 +3272,7 @@ ExceptionOr<String> Internals::pageOverlayLayerTreeAsText() const
 
     document->updateLayout();
 
-    return MockPageOverlayClient::singleton().layerTreeAsText(document->frame()->mainFrame());
+    return MockPageOverlayClient::singleton().layerTreeAsText(document->frame()->mainFrame(), toLayerTreeFlags(flags));
 }
 
 void Internals::setPageMuted(const String& states)
@@ -3514,39 +3572,6 @@ String Internals::composedTreeAsText(Node& node)
     return WebCore::composedTreeAsText(downcast<ContainerNode>(node));
 }
 
-void Internals::setLinkPreloadSupport(bool enable)
-{
-    RuntimeEnabledFeatures::sharedFeatures().setLinkPreloadEnabled(enable);
-}
-
-#if ENABLE(CSS_GRID_LAYOUT)
-
-void Internals::setCSSGridLayoutEnabled(bool enable)
-{
-    RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled(enable);
-}
-
-#endif
-
-#if ENABLE(WEBGL2)
-
-bool Internals::webGL2Enabled() const
-{
-    return RuntimeEnabledFeatures::sharedFeatures().webGL2Enabled();
-}
-
-void Internals::setWebGL2Enabled(bool enable)
-{
-    RuntimeEnabledFeatures::sharedFeatures().setWebGL2Enabled(enable);
-}
-
-#endif
-
-void Internals::setResourceTimingSupport(bool enable)
-{
-    RuntimeEnabledFeatures::sharedFeatures().setResourceTimingEnabled(enable);
-}
-
 bool Internals::isProcessingUserGesture()
 {
     return UserGestureIndicator::processingUserGesture();
@@ -3659,6 +3684,25 @@ Vector<String> Internals::accessKeyModifiers() const
     }
 
     return accessKeyModifierStrings;
+}
+
+#if PLATFORM(IOS)
+void Internals::setQuickLookPassword(const String& password)
+{
+#if USE(QUICK_LOOK)
+    auto& quickLookHandleClient = MockQuickLookHandleClient::singleton();
+    QuickLookHandle::setClientForTesting(&quickLookHandleClient);
+    quickLookHandleClient.setPassword(password);
+#else
+    UNUSED_PARAM(password);
+#endif
+}
+#endif
+
+void Internals::setAsRunningUserScripts(Document& document)
+{
+    if (document.page())
+        document.page()->setAsRunningUserScripts();
 }
 
 } // namespace WebCore

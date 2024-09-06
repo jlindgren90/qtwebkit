@@ -86,6 +86,7 @@
 #endif
 
 #if USE(QUICK_LOOK)
+#include "PreviewConverter.h"
 #include "QuickLook.h"
 #endif
 
@@ -393,11 +394,11 @@ void DocumentLoader::finishedLoading(double finishTime)
 
     maybeFinishLoadingMultipartContent();
 
-    double responseEndTime = finishTime;
+    MonotonicTime responseEndTime = MonotonicTime::fromRawSeconds(finishTime);
     if (!responseEndTime)
         responseEndTime = m_timeOfLastDataReceived;
     if (!responseEndTime)
-        responseEndTime = monotonicallyIncreasingTime();
+        responseEndTime = MonotonicTime::now();
     timing().setResponseEnd(responseEndTime);
 
     commitIfReady();
@@ -857,7 +858,7 @@ void DocumentLoader::commitData(const char* bytes, size_t length)
             // load local resources. See https://bugs.webkit.org/show_bug.cgi?id=16756
             // and https://bugs.webkit.org/show_bug.cgi?id=19760 for further
             // discussion.
-            m_frame->document()->securityOrigin()->grantLoadLocalResources();
+            m_frame->document()->securityOrigin().grantLoadLocalResources();
         }
 
         if (frameLoader()->stateMachine().creatingInitialEmptyDocument())
@@ -935,7 +936,7 @@ void DocumentLoader::dataReceived(const char* data, int length)
         frameLoader()->notifier().dispatchDidReceiveData(this, m_identifierForLoadWithoutResourceLoader, data, length, -1);
 
     m_applicationCacheHost->mainResourceDataReceived(data, length, -1, false);
-    m_timeOfLastDataReceived = monotonicallyIncreasingTime();
+    m_timeOfLastDataReceived = MonotonicTime::now();
 
     if (!isMultipartReplacingLoad())
         commitLoad(data, length);
@@ -1722,9 +1723,14 @@ bool DocumentLoader::isAlwaysOnLoggingAllowed() const
 
 #if USE(QUICK_LOOK)
 
-void DocumentLoader::setQuickLookHandle(std::unique_ptr<QuickLookHandle> quickLookHandle)
+void DocumentLoader::setPreviewConverter(std::unique_ptr<PreviewConverter>&& previewConverter)
 {
-    m_quickLookHandle = WTFMove(quickLookHandle);
+    m_previewConverter = WTFMove(previewConverter);
+}
+
+PreviewConverter* DocumentLoader::previewConverter() const
+{
+    return m_previewConverter.get();
 }
 
 #endif

@@ -23,6 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+const CompactModeMaxWidth = 241;
+
 class MediaController
 {
 
@@ -34,6 +36,7 @@ class MediaController
 
         this.container = shadowRoot.appendChild(document.createElement("div"));
         this.container.className = "media-controls-container";
+        this.container.addEventListener("click", this, true);
 
         if (host) {
             host.controlsDependOnPageScaleFactor = this.layoutTraits & LayoutTraits.iOS;
@@ -58,6 +61,10 @@ class MediaController
                 return traits | LayoutTraits.Fullscreen;
         } else if (this.media.webkitDisplayingFullscreen)
             return traits | LayoutTraits.Fullscreen;
+
+        if (this._controlsWidth() <= CompactModeMaxWidth)
+            return traits | LayoutTraits.Compact;
+
         return traits;
     }
 
@@ -76,8 +83,11 @@ class MediaController
 
     handleEvent(event)
     {
-        if (event.type === "resize" && event.currentTarget === this.shadowRoot)
+        if (event.type === "resize" && event.currentTarget === this.shadowRoot) {
             this._updateControlsSize();
+            this._updateControlsIfNeeded();
+        } else if (event.type === "click" && event.currentTarget === this.container)
+            this._containerWasClicked(event);
         else if (event.currentTarget === this.media) {
             this._updateControlsIfNeeded();
             if (event.type === "webkitpresentationmodechanged")
@@ -86,6 +96,13 @@ class MediaController
     }
 
     // Private
+
+    _containerWasClicked(event)
+    {
+        // We need to call preventDefault() here since, in the case of Media Documents,
+        // playback may be toggled when clicking on the video.
+        event.preventDefault();
+    }
 
     _updateControlsIfNeeded()
     {
@@ -107,7 +124,8 @@ class MediaController
             this.controls.controlsBar.autoHideDelay = this.shadowRoot.host.dataset.autoHideDelay;
 
         if (previousControls) {
-            this.controls.fadeIn();
+            if (this._shouldFadeBetweenControls(previousControls, this.controls))
+                this.controls.fadeIn();
             this.container.replaceChild(this.controls.element, previousControls.element);
             this.controls.usesLTRUserInterfaceLayoutDirection = previousControls.usesLTRUserInterfaceLayoutDirection;
         } else
@@ -115,15 +133,28 @@ class MediaController
 
         this._updateControlsSize();
 
-        this._supportingObjects = [AirplaySupport, ControlsVisibilitySupport, ElapsedTimeSupport, FullscreenSupport, MuteSupport, PiPSupport, PlacardSupport, PlaybackSupport, RemainingTimeSupport, ScrubbingSupport, SeekBackwardSupport, SeekForwardSupport, SkipBackSupport, StartSupport, StatusSupport, TracksSupport, VolumeSupport].map(SupportClass => {
+        this._supportingObjects = [AirplaySupport, ControlsVisibilitySupport, FullscreenSupport, MuteSupport, PiPSupport, PlacardSupport, PlaybackSupport, ScrubbingSupport, SeekBackwardSupport, SeekForwardSupport, SkipBackSupport, StartSupport, StatusSupport, TimeLabelsSupport, TracksSupport, VolumeSupport, VolumeDownSupport, VolumeUpSupport].map(SupportClass => {
             return new SupportClass(this);
         }, this);
     }
 
+    _shouldFadeBetweenControls(previousControls, newControls)
+    {
+        // We don't fade when toggling between the various macOS inline modes.
+        if (previousControls instanceof MacOSInlineMediaControls && newControls instanceof MacOSInlineMediaControls)
+            return false;
+        return true;
+    }
+
     _updateControlsSize()
     {
-        this.controls.width = Math.round(this.media.offsetWidth * this.controls.scaleFactor);
+        this.controls.width = this._controlsWidth();
         this.controls.height = Math.round(this.media.offsetHeight * this.controls.scaleFactor);
+    }
+
+    _controlsWidth()
+    {
+        return Math.round(this.media.offsetWidth * (this.controls ? this.controls.scaleFactor : 1));
     }
 
     _returnMediaLayerToInlineIfNeeded()
@@ -139,6 +170,8 @@ class MediaController
             return IOSInlineMediaControls;
         if (layoutTraits & LayoutTraits.Fullscreen)
             return MacOSFullscreenMediaControls;
+        if (layoutTraits & LayoutTraits.Compact)
+            return MacOSCompactInlineMediaControls;
         return MacOSInlineMediaControls;
     }
 

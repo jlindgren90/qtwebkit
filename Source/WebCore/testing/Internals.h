@@ -202,6 +202,7 @@ public:
     String rangeAsText(const Range&);
     Ref<Range> subrange(Range&, int rangeLocation, int rangeLength);
     ExceptionOr<RefPtr<Range>> rangeForDictionaryLookupAtLocation(int x, int y);
+    RefPtr<Range> rangeOfStringNearLocation(const Range&, const String&, unsigned);
 
     ExceptionOr<void> setDelegatesScrolling(bool enabled);
 
@@ -250,6 +251,7 @@ public:
 
     InternalSettings* settings() const;
     unsigned workerThreadCount() const;
+    bool areSVGAnimationsPaused() const;
 
     ExceptionOr<void> setDeviceProximity(const String& eventType, double value, double min, double max);
 
@@ -391,6 +393,7 @@ public:
     void enableMockMediaEndpoint();
     void enableMockRTCPeerConnectionHandler();
     void emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection&, const String& action);
+    void useMockRTCPeerConnectionFactory(const String&);
 #endif
 
     String getImageSourceURL(Element&);
@@ -463,7 +466,7 @@ public:
 
     enum class PageOverlayType { View, Document };
     ExceptionOr<Ref<MockPageOverlay>> installMockPageOverlay(PageOverlayType);
-    ExceptionOr<String> pageOverlayLayerTreeAsText() const;
+    ExceptionOr<String> pageOverlayLayerTreeAsText(unsigned short flags) const;
 
     void setPageMuted(const String&);
     String pageMediaState();
@@ -499,18 +502,6 @@ public:
 
     String composedTreeAsText(Node&);
     
-    void setLinkPreloadSupport(bool);
-    void setResourceTimingSupport(bool);
-
-#if ENABLE(CSS_GRID_LAYOUT)
-    void setCSSGridLayoutEnabled(bool);
-#endif
-
-#if ENABLE(WEBGL2)
-    bool webGL2Enabled() const;
-    void setWebGL2Enabled(bool);
-#endif
-
     bool isProcessingUserGesture();
 
     RefPtr<GCObservation> observeGC(JSC::JSValue);
@@ -531,6 +522,12 @@ public:
 #endif
 
     Vector<String> accessKeyModifiers() const;
+
+#if PLATFORM(IOS)
+    void setQuickLookPassword(const String&);
+#endif
+
+    void setAsRunningUserScripts(Document&);
 
 private:
     explicit Internals(Document&);

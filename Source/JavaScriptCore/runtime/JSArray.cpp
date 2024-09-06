@@ -58,7 +58,7 @@ Butterfly* createArrayButterflyInDictionaryIndexingMode(
     return butterfly;
 }
 
-JSArray* JSArray::tryCreateUninitialized(VM& vm, GCDeferralContext* deferralContext, Structure* structure, unsigned initialLength)
+JSArray* JSArray::tryCreateForInitializationPrivate(VM& vm, GCDeferralContext* deferralContext, Structure* structure, unsigned initialLength)
 {
     if (initialLength > MAX_STORAGE_VECTOR_LENGTH)
         return 0;
@@ -846,7 +846,7 @@ JSArray* JSArray::fastSlice(ExecState& exec, unsigned startIndex, unsigned count
             return nullptr;
 
         Structure* resultStructure = exec.lexicalGlobalObject()->arrayStructureForIndexingTypeDuringAllocation(arrayType);
-        JSArray* resultArray = JSArray::tryCreateUninitialized(vm, resultStructure, count);
+        JSArray* resultArray = JSArray::tryCreateForInitializationPrivate(vm, resultStructure, count);
         if (!resultArray)
             return nullptr;
 
@@ -1021,6 +1021,11 @@ bool JSArray::shiftCountWithAnyIndexingType(ExecState* exec, unsigned& startInde
             butterfly->contiguous()[i].clear();
         
         butterfly->setPublicLength(oldLength - count);
+
+        // Our memmoving of values around in the array could have concealed some of them from
+        // the collector. Let's make sure that the collector scans this object again.
+        vm.heap.writeBarrier(this);
+        
         return true;
     }
         
@@ -1168,6 +1173,10 @@ bool JSArray::unshiftCountWithAnyIndexingType(ExecState* exec, unsigned startInd
             ASSERT(v);
             butterfly->contiguous()[i + count].setWithoutWriteBarrier(v);
         }
+        
+        // Our memmoving of values around in the array could have concealed some of them from
+        // the collector. Let's make sure that the collector scans this object again.
+        vm.heap.writeBarrier(this);
         
         // NOTE: we're leaving being garbage in the part of the array that we shifted out
         // of. This is fine because the caller is required to store over that area, and

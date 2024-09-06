@@ -1,3 +1,313 @@
+2017-02-07  Youenn Fablet  <youenn@apple.com>
+
+        Use a JSON file to define which WPT files/folders to import
+        https://bugs.webkit.org/show_bug.cgi?id=167923
+
+        Reviewed by Alex Christensen.
+
+        * resources/ImportExpectations: Removed.
+        * resources/import-expectations.json: Added.
+
+2017-02-07  Chris Dumez  <cdumez@apple.com>
+
+        Object.preventExtensions() on a Location object should throw a TypeError
+        https://bugs.webkit.org/show_bug.cgi?id=167917
+
+        Reviewed by Alex Christensen.
+
+        Rebaseline web platform test now that one more check is passing.
+
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-expected.txt:
+
+2017-02-06  Chris Dumez  <cdumez@apple.com>
+
+        Symbols exposed on cross-origin Window / Location objects should be configurable
+        https://bugs.webkit.org/show_bug.cgi?id=167920
+
+        Reviewed by Ryosuke Niwa.
+
+        Rebaseline web platform test now that more checks are passing.
+
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-expected.txt:
+
+2017-02-06  Chris Dumez  <cdumez@apple.com>
+
+        Align [[OwnPropertyKeys]] with the HTML specification for cross-origin Window / Location objects
+        https://bugs.webkit.org/show_bug.cgi?id=167647
+        <rdar://problem/30339489>
+
+        Reviewed by Sam Weinig.
+
+        Rebaseline web platform test now that more checks are passing.
+
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-expected.txt:
+
+2017-02-06  Chris Dumez  <cdumez@apple.com>
+
+        Re-sync html/browsers/origin/cross-origin-objects tests
+        https://bugs.webkit.org/show_bug.cgi?id=167881
+
+        Reviewed by Youenn Fablet.
+
+        Re-sync html/browsers/origin/cross-origin-objects tests from upstream a052787d.
+
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-exceptions-expected.txt: Removed.
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-exceptions.html: Removed.
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-expected.txt:
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects.html:
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/frame.html:
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/w3c-import.log:
+
+2017-02-03  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Import web-platform-tests/hr-time tests
+        https://bugs.webkit.org/show_bug.cgi?id=167819
+
+        Reviewed by Youenn Fablet.
+
+        We pass all of these tests upstream.
+
+        * resources/ImportExpectations:
+        * web-platform-tests/hr-time/OWNERS: Added.
+        * web-platform-tests/hr-time/basic-expected.txt: Added.
+        * web-platform-tests/hr-time/basic.html: Added.
+        * web-platform-tests/hr-time/basic.worker-expected.txt: Added.
+        * web-platform-tests/hr-time/basic.worker.html: Added.
+        * web-platform-tests/hr-time/basic.worker.js: Added.
+        * web-platform-tests/hr-time/idlharness-expected.txt: Added.
+        * web-platform-tests/hr-time/idlharness.html: Added.
+        * web-platform-tests/hr-time/monotonic-clock-expected.txt: Added.
+        * web-platform-tests/hr-time/monotonic-clock.html: Added.
+        * web-platform-tests/hr-time/resources/now_frame.html: Added.
+        * web-platform-tests/hr-time/resources/w3c-import.log: Added.
+        * web-platform-tests/hr-time/test_cross_frame_start-expected.txt: Added.
+        * web-platform-tests/hr-time/test_cross_frame_start.html: Added.
+        * web-platform-tests/hr-time/w3c-import.log: Added.
+
+2017-02-03  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: implement forbidden host code points for non-special URLs
+        https://bugs.webkit.org/show_bug.cgi?id=167779
+
+        Reviewed by Chris Dumez.
+
+        * web-platform-tests/url/a-element-expected.txt:
+        * web-platform-tests/url/a-element-xhtml-expected.txt:
+        * web-platform-tests/url/url-constructor-expected.txt:
+        * web-platform-tests/url/url-setters-expected.txt:
+
+2017-02-03  Alex Christensen  <achristensen@webkit.org>
+
+        Align URL setters with spec for URLs that cannot be a base URL
+        https://bugs.webkit.org/show_bug.cgi?id=167783
+
+        Reviewed by Chris Dumez.
+
+        * web-platform-tests/url/url-setters-expected.txt:
+
+2017-02-02  Alex Christensen  <achristensen@webkit.org>
+
+        Update URL web platform tests
+        https://bugs.webkit.org/show_bug.cgi?id=167777
+
+        Reviewed by Ryosuke Niwa.
+
+        * web-platform-tests/url/a-element-expected.txt:
+        * web-platform-tests/url/a-element-origin-expected.txt:
+        * web-platform-tests/url/a-element-origin-xhtml-expected.txt:
+        * web-platform-tests/url/a-element-origin-xhtml.xhtml:
+        * web-platform-tests/url/a-element-origin.html:
+        * web-platform-tests/url/a-element-xhtml-expected.txt:
+        * web-platform-tests/url/a-element-xhtml.xhtml:
+        * web-platform-tests/url/a-element.html:
+        * web-platform-tests/url/setters_tests.json:
+        * web-platform-tests/url/url-constructor-expected.txt:
+        * web-platform-tests/url/url-origin-expected.txt:
+        * web-platform-tests/url/url-setters-expected.txt:
+        * web-platform-tests/url/urlencoded-parser-expected.txt: Added.
+        * web-platform-tests/url/urlencoded-parser.html: Added.
+        * web-platform-tests/url/urlsearchparams-constructor-expected.txt:
+        * web-platform-tests/url/urlsearchparams-constructor.html:
+        * web-platform-tests/url/urlsearchparams-sort-expected.txt:
+        * web-platform-tests/url/urlsearchparams-sort.html:
+        * web-platform-tests/url/urltestdata.json:
+
+2017-02-02  Chris Dumez  <cdumez@apple.com>
+
+        {}.toString.call(crossOriginWindow) should return "[object Object]"
+        https://bugs.webkit.org/show_bug.cgi?id=167701
+        <rdar://problem/30330797>
+
+        Reviewed by Keith Miller.
+
+        Rebaseline W3C test now that one more check is passing.
+
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-expected.txt:
+
+2017-02-01  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION(r205136): {}.toString.call(crossOriginWindow) should not throw
+        https://bugs.webkit.org/show_bug.cgi?id=167681
+        <rdar://problem/30301117>
+
+        Reviewed by Mark Lam.
+
+        Rebaseline W3C test now that we passing one more check. We're still failing
+        later because {}.toString.call(crossOriginWindow) returns "[object Window]"
+        instead of "[object Object]". I am planning to fix this in a follow-up.
+        This is not a regression since we were returning "[object Window]" before
+        r205136.
+
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-expected.txt:
+
+2017-01-30  Chris Dumez  <cdumez@apple.com>
+
+        Drop legacy Attributes.isId attribute
+        https://bugs.webkit.org/show_bug.cgi?id=167603
+
+        Reviewed by Ryosuke Niwa.
+
+        Rebaseline W3C test now that one more check is passing.
+
+        * web-platform-tests/dom/historical-expected.txt:
+
+2017-01-30  Chris Dumez  <cdumez@apple.com>
+
+        Drop legacy constants on Event interface
+        https://bugs.webkit.org/show_bug.cgi?id=167602
+
+        Reviewed by Sam Weinig.
+
+        Rebaseline W3C test now that more checks are passing.
+
+        * web-platform-tests/dom/historical-expected.txt:
+
+2017-01-27  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Import web-platform-tests/user-timing
+        https://bugs.webkit.org/show_bug.cgi?id=167542
+        <rdar://problem/22746307>
+
+        Rubber-stamped by Ryosuke Niwa.
+
+        Only failures are ones where User Timing Level 2 differs
+        from User Timing Level 1.
+
+        * resources/ImportExpectations:
+        * web-platform-tests/user-timing/OWNERS: Added.
+        * web-platform-tests/user-timing/idlharness-expected.txt: Added.
+        * web-platform-tests/user-timing/idlharness.html: Added.
+        * web-platform-tests/user-timing/resources/w3c-import.log: Added.
+        * web-platform-tests/user-timing/resources/webperftestharness.js: Added.
+        * web-platform-tests/user-timing/resources/webperftestharnessextension.js: Added.
+        * web-platform-tests/user-timing/test_user_timing_clear_marks-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_clear_marks.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_clear_measures-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_clear_measures.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_entry_type-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_entry_type.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_exists-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_exists.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_and_measure_exception_when_invoke_with_timing_attributes-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_and_measure_exception_when_invoke_with_timing_attributes.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_and_measure_exception_when_invoke_with_timing_attributes.js: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_and_measure_exception_when_invoke_without_parameter-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_and_measure_exception_when_invoke_without_parameter.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_exceptions-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_exceptions.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_with_name_of_navigation_timing_optional_attribute-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_mark_with_name_of_navigation_timing_optional_attribute.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_measure-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_measure.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_measure_exceptions-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_measure_exceptions.html: Added.
+        * web-platform-tests/user-timing/test_user_timing_measure_navigation_timing-expected.txt: Added.
+        * web-platform-tests/user-timing/test_user_timing_measure_navigation_timing.html: Added.
+        * web-platform-tests/user-timing/w3c-import.log: Added.
+
+2017-01-21  Chris Dumez  <cdumez@apple.com>
+
+        innerText should replace existing text node
+        https://bugs.webkit.org/show_bug.cgi?id=167116
+
+        Reviewed by Darin Adler.
+
+        Rebaseline existing test now that one more check is passing.
+
+        * web-platform-tests/innerText/setter-expected.txt:
+
+2017-01-20  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rebaseline html/dom/interfaces.html.
+
+        * web-platform-tests/html/dom/interfaces-expected.txt:
+
+2017-01-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Cleanup RuntimeEnabledFeatures
+        https://bugs.webkit.org/show_bug.cgi?id=167228
+
+        Reviewed by Simon Fraser.
+
+        * web-platform-tests/resource-timing/resource_cached-expected.txt:
+        * web-platform-tests/resource-timing/resource_connection_reuse-expected.txt:
+        * web-platform-tests/resource-timing/resource_dynamic_insertion-expected.txt:
+        The previous internals API didn't appear to be working. Making it work
+        improved these results.
+
+2017-01-20  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, unskip innerText/ folder in ImportExpectations
+
+        This is needed so that the tests in this folder gets re-sync'ed
+        from upstream next time.
+
+        * resources/ImportExpectations:
+
+2017-01-20  Chris Dumez  <cdumez@apple.com>
+
+        Re-sync innerText web-platform-tests from upstream
+        https://bugs.webkit.org/show_bug.cgi?id=167229
+
+        Reviewed by Alex Christensen.
+
+        Re-sync innerText web-platform-tests from upstream 1a36aa52.
+
+        * web-platform-tests/innerText/setter-expected.txt:
+        * web-platform-tests/innerText/setter-tests.js:
+        * web-platform-tests/innerText/setter.html:
+
+2017-01-19  Alex Christensen  <achristensen@webkit.org>
+
+        Construct URLSearchParams from array or object
+        https://bugs.webkit.org/show_bug.cgi?id=166973
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/url/urlsearchparams-constructor-expected.txt:
+
+2017-01-18  Alex Christensen  <achristensen@webkit.org>
+
+        Implement URLSearchParams's sort()
+        https://bugs.webkit.org/show_bug.cgi?id=167154
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/url/urlsearchparams-sort-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-sort.html: Added.
+
+2017-01-18  Youenn Fablet  <youenn@apple.com>
+
+        Reject fetch promise in case of ReadableStream upload
+        https://bugs.webkit.org/show_bug.cgi?id=167145
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/basic/request-upload-expected.txt:
+        * web-platform-tests/fetch/api/basic/request-upload-worker-expected.txt:
+
 2017-01-18  Youenn Fablet  <youenn@apple.com>
 
         [Fetch API] Update content-type in case of form data

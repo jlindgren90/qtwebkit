@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Google Inc. All rights reserved.
- * Copyright (C) 2013-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -195,6 +195,7 @@ enum EventThrottlingBehavior {
     DOMString rangeAsText(Range range);
     Range subrange(Range range, long rangeLocation, long rangeLength);
     [MayThrowException] Range? rangeForDictionaryLookupAtLocation(long x, long y);
+    Range? rangeOfStringNearLocation(Range range, DOMString text, long targetOffset);
 
     [MayThrowException] void setDelegatesScrolling(boolean enabled);
 
@@ -244,6 +245,8 @@ enum EventThrottlingBehavior {
 
     readonly attribute InternalSettings settings;
     readonly attribute unsigned long workerThreadCount;
+
+    readonly attribute boolean areSVGAnimationsPaused;
 
     // Flags for layerTreeAsText.
     const unsigned short LAYER_TREE_INCLUDES_VISIBLE_RECTS = 1;
@@ -435,13 +438,14 @@ enum EventThrottlingBehavior {
     [Conditional=WIRELESS_PLAYBACK_TARGET, MayThrowException] void setMockMediaPlaybackTargetPickerState(DOMString deviceName, DOMString deviceState);
     [Conditional=MEDIA_STREAM] void setMockMediaCaptureDevicesEnabled(boolean enabled);
     [Conditional=WEB_RTC] void emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection connection, DOMString action);
+    [Conditional=WEB_RTC] void useMockRTCPeerConnectionFactory(DOMString testCase);
 
     [Conditional=VIDEO] void simulateSystemSleep();
     [Conditional=VIDEO] void simulateSystemWake();
     [Conditional=VIDEO] boolean elementIsBlockingDisplaySleep(HTMLMediaElement element);
 
     [MayThrowException] MockPageOverlay installMockPageOverlay(PageOverlayType type);
-    [MayThrowException] DOMString pageOverlayLayerTreeAsText();
+    [MayThrowException] DOMString pageOverlayLayerTreeAsText(optional unsigned short flags = 0);
 
     void setPageMuted(DOMString mutedState);
     DOMString pageMediaState();
@@ -476,19 +480,6 @@ enum EventThrottlingBehavior {
 
     DOMString composedTreeAsText(Node parent);
 
-    void setLinkPreloadSupport(boolean scalable);
-
-#if defined(ENABLE_CSS_GRID_LAYOUT) && ENABLE_CSS_GRID_LAYOUT
-    void setCSSGridLayoutEnabled(boolean enable);
-#endif
-
-#if defined(ENABLE_WEBGL2) && ENABLE_WEBGL2
-    boolean webGL2Enabled();
-    void setWebGL2Enabled(boolean enable);
-#endif
-
-    void setResourceTimingSupport(boolean scalable);
-    
     boolean isProcessingUserGesture();
 
     GCObservation? observeGC(any observed);
@@ -504,4 +495,10 @@ enum EventThrottlingBehavior {
     [Conditional=POINTER_LOCK] boolean pageHasPointerLock();
 
     sequence<DOMString> accessKeyModifiers();
+
+#if defined(WTF_PLATFORM_IOS) && WTF_PLATFORM_IOS
+    void setQuickLookPassword(DOMString password);
+#endif
+
+    [CallWith=Document] void setAsRunningUserScripts();
 };

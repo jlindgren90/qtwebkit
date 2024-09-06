@@ -187,6 +187,9 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/gtk/WebKitNavigationPolicyDecision.cpp
     UIProcess/API/gtk/WebKitNavigationPolicyDecision.h
     UIProcess/API/gtk/WebKitNavigationPolicyDecisionPrivate.h
+    UIProcess/API/gtk/WebKitNetworkProxySettings.cpp
+    UIProcess/API/gtk/WebKitNetworkProxySettings.h
+    UIProcess/API/gtk/WebKitNetworkProxySettingsPrivate.h
     UIProcess/API/gtk/WebKitNotification.cpp
     UIProcess/API/gtk/WebKitNotification.h
     UIProcess/API/gtk/WebKitNotificationPermissionRequest.cpp
@@ -205,6 +208,9 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/gtk/WebKitPolicyDecision.cpp
     UIProcess/API/gtk/WebKitPolicyDecision.h
     UIProcess/API/gtk/WebKitPolicyDecisionPrivate.h
+    UIProcess/API/gtk/WebKitPrintCustomWidget.cpp
+    UIProcess/API/gtk/WebKitPrintCustomWidget.h
+    UIProcess/API/gtk/WebKitPrintCustomWidgetPrivate.h
     UIProcess/API/gtk/WebKitPrintOperation.cpp
     UIProcess/API/gtk/WebKitPrintOperation.h
     UIProcess/API/gtk/WebKitPrintOperationPrivate.h
@@ -267,6 +273,9 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/gtk/WebKitWebViewSessionState.cpp
     UIProcess/API/gtk/WebKitWebViewSessionState.h
     UIProcess/API/gtk/WebKitWebViewSessionStatePrivate.h
+    UIProcess/API/gtk/WebKitWebsiteData.cpp
+    UIProcess/API/gtk/WebKitWebsiteData.h
+    UIProcess/API/gtk/WebKitWebsiteDataPrivate.h
     UIProcess/API/gtk/WebKitWebsiteDataManager.cpp
     UIProcess/API/gtk/WebKitWebsiteDataManager.h
     UIProcess/API/gtk/WebKitWebsiteDataManagerPrivate.h
@@ -303,8 +312,8 @@ list(APPEND WebKit2_SOURCES
     UIProcess/gtk/AcceleratedBackingStoreWayland.cpp
     UIProcess/gtk/AcceleratedBackingStoreX11.cpp
     UIProcess/gtk/DragAndDropHandler.cpp
-    UIProcess/gtk/ExperimentalFeatures.cpp
     UIProcess/gtk/GestureController.cpp
+    UIProcess/gtk/HardwareAccelerationManager.cpp
     UIProcess/gtk/InputMethodFilter.cpp
     UIProcess/gtk/KeyBindingTranslator.cpp
     UIProcess/gtk/TextCheckerGtk.cpp
@@ -527,11 +536,13 @@ set(WebKit2GTK_INSTALLED_HEADERS
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitMimeInfo.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitNavigationAction.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitNavigationPolicyDecision.h
+    ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitNetworkProxySettings.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitNotificationPermissionRequest.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitNotification.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitPermissionRequest.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitPlugin.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitPolicyDecision.h
+    ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitPrintCustomWidget.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitPrintOperation.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitResponsePolicyDecision.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitScriptDialog.h
@@ -550,6 +561,7 @@ set(WebKit2GTK_INSTALLED_HEADERS
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitWebView.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitWebViewBase.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitWebViewSessionState.h
+    ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitWebsiteData.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitWebsiteDataManager.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/WebKitWindowProperties.h
     ${WEBKIT2_DIR}/UIProcess/API/gtk/webkit2.h

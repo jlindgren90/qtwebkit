@@ -367,6 +367,9 @@ public:
     WEBCORE_EXPORT bool hasFocus() const;
 
     bool hasManifest() const;
+
+    bool hasEverCalledWindowOpen() const;
+    void markHasCalledWindowOpen();
     
     WEBCORE_EXPORT ExceptionOr<Ref<Element>> createElementForBindings(const AtomicString& tagName);
     WEBCORE_EXPORT Ref<DocumentFragment> createDocumentFragment();
@@ -886,7 +889,7 @@ public:
     static bool hasValidNamespaceForElements(const QualifiedName&);
     static bool hasValidNamespaceForAttributes(const QualifiedName&);
 
-    HTMLBodyElement* body() const;
+    WEBCORE_EXPORT HTMLBodyElement* body() const;
     WEBCORE_EXPORT HTMLElement* bodyOrFrameset() const;
     WEBCORE_EXPORT ExceptionOr<void> setBodyOrFrameset(RefPtr<HTMLElement>&&);
 
@@ -912,7 +915,7 @@ public:
     WEBCORE_EXPORT void setDesignMode(const String&);
 
     Document* parentDocument() const;
-    Document& topDocument() const;
+    WEBCORE_EXPORT Document& topDocument() const;
     
     ScriptRunner* scriptRunner() { return m_scriptRunner.get(); }
     ScriptModuleLoader* moduleLoader() { return m_moduleLoader.get(); }
@@ -983,6 +986,9 @@ public:
     void registerForMediaVolumeCallbacks(Element*);
     void unregisterForMediaVolumeCallbacks(Element*);
     void mediaVolumeDidChange();
+
+    bool audioPlaybackRequiresUserGesture() const;
+    bool videoPlaybackRequiresUserGesture() const;
 
 #if ENABLE(MEDIA_SESSION)
     MediaSession& defaultMediaSession();
@@ -1222,7 +1228,8 @@ public:
 
     WEBCORE_EXPORT void addConsoleMessage(MessageSource, MessageLevel, const String& message, unsigned long requestIdentifier = 0) final;
 
-    WEBCORE_EXPORT SecurityOrigin* topOrigin() const final;
+    SecurityOrigin& securityOrigin() const { return *SecurityContext::securityOrigin(); }
+    SecurityOrigin& topOrigin() const final { return topDocument().securityOrigin(); }
 
     Ref<FontFaceSet> fonts();
 
@@ -1465,6 +1472,7 @@ private:
     bool m_bParsing;
 
     Timer m_styleRecalcTimer;
+    bool m_hasEverCalledWindowOpen { false };
     bool m_pendingStyleRecalcShouldForce;
     bool m_inStyleRecalc;
     bool m_closeAfterStyleRecalc;

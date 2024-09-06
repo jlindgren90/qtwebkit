@@ -100,7 +100,6 @@
 #include <WebCore/ResourceLoadStatistics.h>
 #include <WebCore/ResourceLoadStatisticsStore.h>
 #include <WebCore/RuntimeApplicationChecks.h>
-#include <WebCore/RuntimeEnabledFeatures.h>
 #include <WebCore/SchemeRegistry.h>
 #include <WebCore/SecurityOrigin.h>
 #include <WebCore/Settings.h>
@@ -195,10 +194,6 @@ WebProcess::WebProcess()
 
     m_plugInAutoStartOriginHashes.add(SessionID::defaultSessionID(), HashMap<unsigned, double>());
 
-#if ENABLE(INDEXED_DATABASE)
-    RuntimeEnabledFeatures::sharedFeatures().setWebkitIndexedDBEnabled(true);
-#endif
-
     ResourceLoadObserver::sharedObserver().setStatisticsStore(m_resourceLoadStatisticsStorage.copyRef());
     m_resourceLoadStatisticsStorage->setNotificationCallback([this] {
         if (m_statisticsChangedTimer.isActive())
@@ -270,6 +265,15 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
         memoryPressureHandler.setLowMemoryHandler([] (Critical critical, Synchronous synchronous) {
             WebCore::releaseMemory(critical, synchronous);
         });
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101200
+        memoryPressureHandler.setShouldUsePeriodicMemoryMonitor(true);
+        memoryPressureHandler.setMemoryKillCallback([] () {
+            WebCore::didExceedMemoryLimitAndFailedToRecover();
+        });
+        memoryPressureHandler.setProcessIsEligibleForMemoryKillCallback([] () {
+            return WebCore::processIsEligibleForMemoryKill();
+        });
+#endif
         memoryPressureHandler.install();
     }
 
@@ -566,19 +570,19 @@ WebPage* WebProcess::webPage(uint64_t pageID) const
     return m_pageMap.get(pageID);
 }
 
-void WebProcess::createWebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
+void WebProcess::createWebPage(uint64_t pageID, WebPageCreationParameters&& parameters)
 {
     // It is necessary to check for page existence here since during a window.open() (or targeted
     // link) the WebPage gets created both in the synchronous handler and through the normal way. 
     HashMap<uint64_t, RefPtr<WebPage>>::AddResult result = m_pageMap.add(pageID, nullptr);
     if (result.isNewEntry) {
         ASSERT(!result.iterator->value);
-        result.iterator->value = WebPage::create(pageID, parameters);
+        result.iterator->value = WebPage::create(pageID, WTFMove(parameters));
 
         // Balanced by an enableTermination in removeWebPage.
         disableTermination();
     } else
-        result.iterator->value->reinitializeWebPage(parameters);
+        result.iterator->value->reinitializeWebPage(WTFMove(parameters));
 
     ASSERT(result.iterator->value);
 }
@@ -673,12 +677,6 @@ void WebProcess::didClose(IPC::Connection&)
 
     // The UI process closed this connection, shut down.
     stopRunLoop();
-}
-
-void WebProcess::didReceiveInvalidMessage(IPC::Connection&, IPC::StringReference, IPC::StringReference)
-{
-    // We received an invalid message, but since this is from the UI process (which we trust),
-    // we'll let it slide.
 }
 
 WebFrame* WebProcess::webFrame(uint64_t frameID) const
@@ -918,7 +916,7 @@ void WebProcess::clearPluginClientPolicies()
 void WebProcess::refreshPlugins()
 {
 #if ENABLE(NETSCAPE_PLUGIN_API)
-    WebPluginInfoProvider::singleton().refreshPlugins();
+    WebPluginInfoProvider::singleton().refresh(false);
 #endif
 }
 
@@ -1558,5 +1556,14 @@ void WebProcess::prefetchDNS(const String& hostname)
     // some time of no DNS requests.
     m_dnsPrefetchHystereris.impulse();
 }
+
+#if USE(LIBWEBRTC)
+LibWebRTCNetwork& WebProcess::libWebRTCNetwork()
+{
+    if (!m_libWebRTCNetwork)
+        m_libWebRTCNetwork = std::make_unique<LibWebRTCNetwork>();
+    return *m_libWebRTCNetwork;
+}
+#endif
 
 } // namespace WebKit

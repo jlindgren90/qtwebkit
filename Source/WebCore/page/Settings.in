@@ -101,7 +101,6 @@ offlineStorageDatabaseEnabled initial=true
 downloadableBinaryFontsEnabled initial=true
 
 xssAuditorEnabled initial=false
-unsafePluginPastingEnabled initial=true
 acceleratedCompositingForFixedPositionEnabled initial=defaultAcceleratedCompositingForFixedPositionEnabled
 acceleratedCompositingForOverflowScrollEnabled initial=false
 rubberBandingForSubScrollableRegionsEnabled initial=true, conditional=RUBBER_BANDING
@@ -109,11 +108,9 @@ rubberBandingForSubScrollableRegionsEnabled initial=true, conditional=RUBBER_BAN
 experimentalNotificationsEnabled initial=false
 webGLEnabled initial=false
 webGLErrorsToConsoleEnabled initial=true
-openGLMultisamplingEnabled initial=true
 forceSoftwareWebGLRendering initial=false
 preferLowPowerWebGLRendering initial=true
 accelerated2dCanvasEnabled initial=false
-antialiased2dCanvasEnabled initial=true
 loadDeferringEnabled initial=true
 webAudioEnabled initial=false
 paginateDuringLayoutEnabled initial=false
@@ -168,7 +165,6 @@ requestAnimationFrameEnabled initial=true
 touchAdjustmentEnabled initial=true
 
 fixedPositionCreatesStackingContext initial=defaultFixedPositionCreatesStackingContext
-syncXHRInDocumentsEnabled initial=true
 cookieEnabled initial=true
 mediaEnabled initial=true
 DOMPasteAllowed initial=false
@@ -187,7 +183,6 @@ primaryPlugInSnapshotDetectionEnabled initial=true
 maximumPlugInSnapshotAttempts type=unsigned, initial=20
 frameFlatteningEnabled initial=false
 
-allowCustomScrollbarInMainFrame initial=true
 webSecurityEnabled initial=true
 spatialNavigationEnabled initial=false
 
@@ -205,7 +200,6 @@ defaultVideoPosterURL type=String
 smartInsertDeleteEnabled initial=defaultSmartInsertDeleteEnabled
 selectTrailingWhitespaceEnabled initial=defaultSelectTrailingWhitespaceEnabled
 
-selectionIncludesAltImageText initial=true
 useLegacyBackgroundSizeShorthandBehavior initial=false
 fixedBackgroundsPaintRelativeToDocument initial=defaultFixedBackgroundsPaintRelativeToDocument
 
@@ -273,8 +267,6 @@ systemLayoutDirection type=TextDirection, initial=LTR
 
 allowContentSecurityPolicySourceStarToMatchAnyProtocol initial=false
 
-allowWindowOpenWithoutUserGesture initial=false
-
 selectionPaintingWithoutSelectionGapsEnabled initial=false
 
 shouldConvertInvalidURLsToBlank initial=true
@@ -299,3 +291,7 @@ largeImageAsyncDecodingEnabled initial=true
 animatedImageAsyncDecodingEnabled initial=true
 
 shouldSuppressKeyboardInputDuringProvisionalNavigation initial=false
+
+langAttributeAwareFormControlUIEnabled initial=false
+
+allowsPageCacheWithWindowOpener initial=false

@@ -706,7 +706,7 @@ void PluginView::storageBlockingStateChanged()
     if (!m_isInitialized || !m_plugin)
         return;
 
-    bool storageBlockingPolicy = !frame()->document()->securityOrigin()->canAccessPluginStorage(frame()->document()->topOrigin());
+    bool storageBlockingPolicy = !frame()->document()->securityOrigin().canAccessPluginStorage(frame()->document()->topOrigin());
 
     m_plugin->storageBlockingStateChanged(storageBlockingPolicy);
 }
@@ -1128,7 +1128,7 @@ void PluginView::focusPluginElement()
     ASSERT(frame());
     
     if (Page* page = frame()->page())
-        page->focusController().setFocusedElement(m_pluginElement.get(), frame());
+        page->focusController().setFocusedElement(m_pluginElement.get(), *frame());
     else
         frame()->document()->setFocusedElement(m_pluginElement.get());
 }
@@ -1176,7 +1176,7 @@ void PluginView::performFrameLoadURLRequest(URLRequest* request)
     if (!frame)
         return;
 
-    if (!m_pluginElement->document().securityOrigin()->canDisplay(request->request().url())) {
+    if (!m_pluginElement->document().securityOrigin().canDisplay(request->request().url())) {
         // We can't load the request, send back a reply to the plug-in.
         m_plugin->frameDidFail(request->requestID(), false);
         return;
@@ -1508,7 +1508,7 @@ void PluginView::setStatusbarText(const String& statusbarText)
     if (!page)
         return;
 
-    page->chrome().setStatusbarText(frame(), statusbarText);
+    page->chrome().setStatusbarText(*frame(), statusbarText);
 }
 
 bool PluginView::isAcceleratedCompositingEnabled()
@@ -1589,7 +1589,12 @@ void PluginView::setCookiesForURL(const String& urlString, const String& cookieS
 
 bool PluginView::getAuthenticationInfo(const ProtectionSpace& protectionSpace, String& username, String& password)
 {
-    Credential credential = CredentialStorage::defaultCredentialStorage().get(protectionSpace);
+#if ENABLE(CACHE_PARTITIONING)
+    String partitionName = m_pluginElement->contentDocument()->topDocument().securityOrigin().domainForCachePartition();
+#else
+    String partitionName = emptyString();
+#endif
+    Credential credential = CredentialStorage::defaultCredentialStorage().get(partitionName, protectionSpace);
     if (credential.isEmpty())
         credential = CredentialStorage::defaultCredentialStorage().getFromPersistentStorage(protectionSpace);
 
@@ -1608,7 +1613,7 @@ bool PluginView::isPrivateBrowsingEnabled()
     if (!frame())
         return true;
 
-    if (!frame()->document()->securityOrigin()->canAccessPluginStorage(frame()->document()->topOrigin()))
+    if (!frame()->document()->securityOrigin().canAccessPluginStorage(frame()->document()->topOrigin()))
         return true;
 
     return frame()->page()->usesEphemeralSession();

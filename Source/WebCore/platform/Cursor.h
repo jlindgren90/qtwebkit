@@ -57,27 +57,31 @@ namespace WebCore {
 class Image;
 
 #if PLATFORM(WIN)
+
 class SharedCursor : public RefCounted<SharedCursor> {
 public:
-    static Ref<SharedCursor> create(HCURSOR nativeCursor) { return adoptRef(*new SharedCursor(nativeCursor)); }
-    ~SharedCursor();
+    static Ref<SharedCursor> create(HCURSOR);
+    WEBCORE_EXPORT ~SharedCursor();
     HCURSOR nativeCursor() const { return m_nativeCursor; }
+
 private:
-    SharedCursor(HCURSOR nativeCursor) : m_nativeCursor(nativeCursor) { }
+    SharedCursor(HCURSOR);
     HCURSOR m_nativeCursor;
 };
-typedef RefPtr<SharedCursor> PlatformCursor;
+
+#endif
+
+#if PLATFORM(WIN)
+using PlatformCursor = RefPtr<SharedCursor>;
 #elif USE(APPKIT)
-typedef NSCursor *PlatformCursor;
+using PlatformCursor = NSCursor *;
 #elif PLATFORM(GTK)
-typedef GRefPtr<GdkCursor> PlatformCursor;
+using PlatformCursor = GRefPtr<GdkCursor>;
 #elif PLATFORM(EFL)
-typedef const char* PlatformCursor;
+using PlatformCursor = const char*;
 #elif PLATFORM(QT) && !defined(QT_NO_CURSOR)
 // Do not need to be shared but need to be created dynamically via ensurePlatformCursor.
 typedef QCursor* PlatformCursor;
-#else
-typedef void* PlatformCursor;
 #endif
 
 class Cursor {
@@ -130,65 +134,52 @@ public:
         Custom
     };
 
+    Cursor() = default;
+
+#if !PLATFORM(IOS)
+
     WEBCORE_EXPORT static const Cursor& fromType(Cursor::Type);
 
-    Cursor()
-#if !PLATFORM(IOS)
-        // This is an invalid Cursor and should never actually get used.
-        : m_type(static_cast<Type>(-1))
-#if ENABLE(MOUSE_CURSOR_SCALE)
-        , m_imageScaleFactor(1)
-#endif
-#if !PLATFORM(QT)
-        , m_platformCursor(nullptr)
-#endif
-#endif // !PLATFORM(IOS)
-    {
-    }
-
-#if !PLATFORM(IOS)
     WEBCORE_EXPORT Cursor(Image*, const IntPoint& hotSpot);
-    WEBCORE_EXPORT Cursor(const Cursor&);
 
 #if ENABLE(MOUSE_CURSOR_SCALE)
     // Hot spot is in image pixels.
     WEBCORE_EXPORT Cursor(Image*, const IntPoint& hotSpot, float imageScaleFactor);
 #endif
 
-    WEBCORE_EXPORT ~Cursor();
-    WEBCORE_EXPORT Cursor& operator=(const Cursor&);
-
     explicit Cursor(Type);
-    Type type() const
-    {
-        ASSERT(m_type >= 0 && m_type <= Custom);
-        return m_type;
-    }
+
+    Type type() const;
     Image* image() const { return m_image.get(); }
     const IntPoint& hotSpot() const { return m_hotSpot; }
+
 #if ENABLE(MOUSE_CURSOR_SCALE)
     // Image scale in image pixels per logical (UI) pixel.
     float imageScaleFactor() const { return m_imageScaleFactor; }
 #endif
+
     WEBCORE_EXPORT PlatformCursor platformCursor() const;
 
- private:
+private:
     void ensurePlatformCursor() const;
 
-    Type m_type;
+    // The type of -1 indicates an invalid Cursor that should never actually get used.
+    Type m_type { static_cast<Type>(-1) };
     RefPtr<Image> m_image;
     IntPoint m_hotSpot;
+
 #if ENABLE(MOUSE_CURSOR_SCALE)
-    float m_imageScaleFactor;
+    float m_imageScaleFactor { 1 };
 #endif
 
 #if PLATFORM(QT)
     mutable std::optional<QCursor> m_platformCursor;
 #elif !USE(APPKIT)
-    mutable PlatformCursor m_platformCursor;
+    mutable PlatformCursor m_platformCursor { nullptr };
 #else
     mutable RetainPtr<NSCursor> m_platformCursor;
 #endif
+
 #endif // !PLATFORM(IOS)
 };
 
@@ -237,5 +228,16 @@ const Cursor& copyCursor();
 const Cursor& noneCursor();
 const Cursor& grabCursor();
 const Cursor& grabbingCursor();
+
+#if !PLATFORM(IOS)
+
+inline Cursor::Type Cursor::type() const
+{
+    ASSERT(m_type >= 0);
+    ASSERT(m_type <= Custom);
+    return m_type;
+}
+
+#endif
 
 } // namespace WebCore

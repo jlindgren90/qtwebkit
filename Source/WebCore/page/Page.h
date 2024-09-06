@@ -21,7 +21,6 @@
 #pragma once
 
 #include "ActivityState.h"
-#include "CPUTime.h"
 #include "FindOptions.h"
 #include "FrameLoaderTypes.h"
 #include "LayoutMilestones.h"
@@ -98,6 +97,7 @@ class HTMLMediaElement;
 class UserInputBridge;
 class InspectorClient;
 class InspectorController;
+class LibWebRTCProvider;
 class MainFrame;
 class MediaCanStartListener;
 class MediaPlaybackTarget;
@@ -105,13 +105,12 @@ class PageConfiguration;
 class PageConsoleClient;
 class PageDebuggable;
 class PageGroup;
+class PerformanceMonitor;
 class PlugInClient;
 class PluginData;
 class PluginInfoProvider;
 class PluginViewBase;
-#if ENABLE(POINTER_LOCK)
 class PointerLockController;
-#endif
 class ProgressTracker;
 class ProgressTrackerClient;
 class Range;
@@ -166,6 +165,7 @@ public:
 
     static void refreshPlugins(bool reload);
     WEBCORE_EXPORT PluginData& pluginData();
+    void clearPluginData();
 
     WEBCORE_EXPORT void setCanStartMedia(bool);
     bool canStartMedia() const { return m_canStartMedia; }
@@ -178,6 +178,8 @@ public:
 
     bool openedByDOM() const;
     void setOpenedByDOM();
+
+    bool openedByWindowOpen() const;
 
     WEBCORE_EXPORT void goToItem(HistoryItem&, FrameLoadType);
 
@@ -222,6 +224,7 @@ public:
 #if ENABLE(POINTER_LOCK)
     PointerLockController& pointerLockController() const { return *m_pointerLockController; }
 #endif
+    LibWebRTCProvider& libWebRTCProvider() { return m_libWebRTCProvider.get(); }
 
     ValidationMessageClient* validationMessageClient() const { return m_validationMessageClient.get(); }
     void updateValidationBubbleStateIfNeeded();
@@ -357,6 +360,8 @@ public:
 
     // Notifications when the Page starts and stops being presented via a native window.
     WEBCORE_EXPORT void setActivityState(ActivityState::Flags);
+    ActivityState::Flags activityState() const { return m_activityState; }
+
     bool isVisibleAndActive() const;
     WEBCORE_EXPORT void setIsVisible(bool);
     WEBCORE_EXPORT void setIsPrerender();
@@ -385,6 +390,9 @@ public:
 #if ENABLE(RESOURCE_USAGE)
     void setResourceUsageOverlayVisible(bool);
 #endif
+
+    void setAsRunningUserScripts() { m_isRunningUserScripts = true; }
+    bool isRunningUserScripts() const { return m_isRunningUserScripts; }
 
     void setDebugger(JSC::Debugger*);
     JSC::Debugger* debugger() const { return m_debugger; }
@@ -563,6 +571,14 @@ public:
     void setEventThrottlingBehaviorOverride(std::optional<EventThrottlingBehavior> throttling) { m_eventThrottlingBehaviorOverride = throttling; }
 
     WebGLStateTracker* webGLStateTracker() const { return m_webGLStateTracker.get(); }
+
+    bool isOnlyNonUtilityPage() const;
+    bool isUtilityPage() const { return m_isUtilityPage; }
+
+#if ENABLE(DATA_INTERACTION)
+    WEBCORE_EXPORT bool hasDataInteractionAtPosition(const FloatPoint&) const;
+#endif
+
 private:
     WEBCORE_EXPORT void initGroup();
 
@@ -575,9 +591,6 @@ private:
 #else
     void checkSubframeCountConsistency() const;
 #endif
-
-    void measurePostLoadCPUUsage();
-    void measurePostBackgroundingCPUUsage();
 
     enum ShouldHighlightMatches { DoNotHighlightMatches, HighlightMatches };
     enum ShouldMarkMatches { DoNotMarkMatches, MarkMatches };
@@ -630,6 +643,8 @@ private:
     std::unique_ptr<ValidationMessageClient> m_validationMessageClient;
     std::unique_ptr<DiagnosticLoggingClient> m_diagnosticLoggingClient;
     std::unique_ptr<WebGLStateTracker> m_webGLStateTracker;
+
+    UniqueRef<LibWebRTCProvider> m_libWebRTCProvider;
 
     int m_nestedRunLoopCount { 0 };
     std::function<void()> m_unnestCallback;
@@ -760,15 +775,15 @@ private:
     bool m_showAllPlugins { false };
     bool m_controlledByAutomation { false };
     bool m_resourceCachingDisabled { false };
+    bool m_isUtilityPage;
     UserInterfaceLayoutDirection m_userInterfaceLayoutDirection { UserInterfaceLayoutDirection::LTR };
     
     // For testing.
     std::optional<EventThrottlingBehavior> m_eventThrottlingBehaviorOverride;
 
-    Timer m_postPageLoadCPUUsageTimer;
-    std::optional<CPUTime> m_postLoadCPUTime;
-    Timer m_postBackgroundingCPUUsageTimer;
-    std::optional<CPUTime> m_postBackgroundingCPUTime;
+    std::unique_ptr<PerformanceMonitor> m_performanceMonitor;
+
+    bool m_isRunningUserScripts { false };
 };
 
 inline PageGroup& Page::group()

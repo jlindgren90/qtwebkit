@@ -133,7 +133,7 @@ public:
 
 struct PasteboardPlainText {
     String text;
-#if PLATFORM(MAC)
+#if PLATFORM(COCOA)
     bool isURL;
 #endif
 };
@@ -187,8 +187,8 @@ public:
     virtual void writePasteboard(const Pasteboard& sourcePasteboard);
 
 #if ENABLE(DRAG_SUPPORT)
-    static std::unique_ptr<Pasteboard> createForDragAndDrop();
-    static std::unique_ptr<Pasteboard> createForDragAndDrop(const DragData&);
+    WEBCORE_EXPORT static std::unique_ptr<Pasteboard> createForDragAndDrop();
+    WEBCORE_EXPORT static std::unique_ptr<Pasteboard> createForDragAndDrop(const DragData&);
 
     virtual void setDragImage(DragImageRef, const IntPoint& hotSpot);
 #endif
@@ -209,7 +209,7 @@ public:
     static String resourceMIMEType(const NSString *mimeType);
 #endif
 
-#if PLATFORM(MAC)
+#if PLATFORM(COCOA)
     explicit Pasteboard(const String& pasteboardName);
 
     const String& name() const { return m_pasteboardName; }
@@ -255,11 +255,7 @@ private:
     String m_name;
 #endif
 
-#if PLATFORM(IOS)
-    long m_changeCount;
-#endif
-
-#if PLATFORM(MAC)
+#if PLATFORM(COCOA)
     String m_pasteboardName;
     long m_changeCount;
 #endif

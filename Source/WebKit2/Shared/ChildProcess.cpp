@@ -199,6 +199,11 @@ void ChildProcess::platformInitialize()
 void ChildProcess::initializeSandbox(const ChildProcessInitializationParameters&, SandboxInitializationParameters&)
 {
 }
+
+void ChildProcess::didReceiveInvalidMessage(IPC::Connection&, IPC::StringReference, IPC::StringReference)
+{
+    CRASH();
+}
 #endif
 
 } // namespace WebKit

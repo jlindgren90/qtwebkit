@@ -22,10 +22,10 @@
 
 #include "ActivityStateChangeObserver.h"
 #include "AlternativeTextClient.h"
-#include "AnimationController.h"
 #include "ApplicationCacheStorage.h"
 #include "BackForwardClient.h"
 #include "BackForwardController.h"
+#include "CSSAnimationController.h"
 #include "Chrome.h"
 #include "ChromeClient.h"
 #include "ClientRectList.h"
@@ -55,6 +55,7 @@
 #include "HistoryItem.h"
 #include "InspectorController.h"
 #include "InspectorInstrumentation.h"
+#include "LibWebRTCProvider.h"
 #include "Logging.h"
 #include "MainFrame.h"
 #include "MediaCanStartListener.h"
@@ -66,6 +67,7 @@
 #include "PageDebuggable.h"
 #include "PageGroup.h"
 #include "PageOverlayController.h"
+#include "PerformanceMonitor.h"
 #include "PlatformMediaSessionManager.h"
 #include "PlugInClient.h"
 #include "PluginData.h"
@@ -79,6 +81,7 @@
 #include "RenderWidget.h"
 #include "ResourceUsageOverlay.h"
 #include "RuntimeEnabledFeatures.h"
+#include "SVGDocumentExtensions.h"
 #include "SchemeRegistry.h"
 #include "ScriptController.h"
 #include "ScrollingCoordinator.h"
@@ -125,15 +128,19 @@
 #include "InProcessIDBServer.h"
 #endif
 
+#if ENABLE(DATA_INTERACTION)
+#include "SelectionRect.h"
+#endif
+
 namespace WebCore {
 
-#define RELEASE_LOG_IF_ALLOWED(channel, fmt, ...) RELEASE_LOG_IF(isAlwaysOnLoggingAllowed(), channel, "%p - Page::" fmt, this, ##__VA_ARGS__)
-
 static HashSet<Page*>* allPages;
+static unsigned nonUtilityPageCount { 0 };
 
-static const std::chrono::seconds cpuUsageMeasurementDelay { 5 };
-static const std::chrono::seconds postLoadCPUUsageMeasurementDuration { 10 };
-static const std::chrono::minutes backgroundCPUUsageMeasurementDuration { 5 };
+static inline bool isUtilityPageChromeClient(ChromeClient& chromeClient)
+{
+    return chromeClient.isEmptyChromeClient() || chromeClient.isSVGImageChromeClient();
+}
 
 DEFINE_DEBUG_ONLY_GLOBAL(WTF::RefCountedLeakCounter, pageCounter, ("Page"));
 
@@ -200,6 +207,7 @@ Page::Page(PageConfiguration&& pageConfiguration)
     , m_validationMessageClient(WTFMove(pageConfiguration.validationMessageClient))
     , m_diagnosticLoggingClient(WTFMove(pageConfiguration.diagnosticLoggingClient))
     , m_webGLStateTracker(WTFMove(pageConfiguration.webGLStateTracker))
+    , m_libWebRTCProvider(WTFMove(pageConfiguration.libWebRTCProvider))
     , m_openedByDOM(false)
     , m_tabKeyCyclesThroughElements(true)
     , m_defersLoading(false)
@@ -253,8 +261,8 @@ Page::Page(PageConfiguration&& pageConfiguration)
     , m_visitedLinkStore(*WTFMove(pageConfiguration.visitedLinkStore))
     , m_sessionID(SessionID::defaultSessionID())
     , m_isClosing(false)
-    , m_postPageLoadCPUUsageTimer(*this, &Page::measurePostLoadCPUUsage)
-    , m_postBackgroundingCPUUsageTimer(*this, &Page::measurePostBackgroundingCPUUsage)
+    , m_isUtilityPage(isUtilityPageChromeClient(chrome().client()))
+    , m_performanceMonitor(isUtilityPage() ? nullptr : std::make_unique<PerformanceMonitor>(*this))
 {
     updateTimerThrottlingState();
 
@@ -271,6 +279,8 @@ Page::Page(PageConfiguration&& pageConfiguration)
 
     ASSERT(!allPages->contains(this));
     allPages->add(this);
+    if (!isUtilityPage())
+        ++nonUtilityPageCount;
 
 #ifndef NDEBUG
     pageCounter.increment();
@@ -295,6 +305,8 @@ Page::~Page()
     m_mainFrame->setView(nullptr);
     setGroupName(String());
     allPages->remove(this);
+    if (!isUtilityPage())
+        --nonUtilityPageCount;
     
     m_settings->pageDestroyed();
 
@@ -314,6 +326,7 @@ Page::~Page()
         m_scrollingCoordinator->pageDestroyed();
 
     backForward().close();
+    PageCache::singleton().removeAllItemsForPage(*this);
 
 #ifndef NDEBUG
     pageCounter.decrement();
@@ -358,7 +371,7 @@ ViewportArguments Page::viewportArguments() const
 ScrollingCoordinator* Page::scrollingCoordinator()
 {
     if (!m_scrollingCoordinator && m_settings->scrollingCoordinatorEnabled()) {
-        m_scrollingCoordinator = chrome().client().createScrollingCoordinator(this);
+        m_scrollingCoordinator = chrome().client().createScrollingCoordinator(*this);
         if (!m_scrollingCoordinator)
             m_scrollingCoordinator = ScrollingCoordinator::create(this);
     }
@@ -456,6 +469,17 @@ void Page::setOpenedByDOM()
     m_openedByDOM = true;
 }
 
+bool Page::openedByWindowOpen() const
+{
+    auto* document = m_mainFrame->document();
+    if (!document)
+        return false;
+    auto* window = document->domWindow();
+    if (!window)
+        return false;
+    return window->opener();
+}
+
 void Page::goToItem(HistoryItem& item, FrameLoadType type)
 {
     // stopAllLoaders may end up running onload handlers, which could cause further history traversals that may lead to the passed in HistoryItem
@@ -532,26 +556,11 @@ void Page::refreshPlugins(bool reload)
 
     HashSet<PluginInfoProvider*> pluginInfoProviders;
 
-    Vector<Ref<Frame>> framesNeedingReload;
-
-    for (auto& page : *allPages) {
+    for (auto& page : *allPages)
         pluginInfoProviders.add(&page->pluginInfoProvider());
-        page->m_pluginData = nullptr;
-
-        if (!reload)
-            continue;
-        
-        for (Frame* frame = &page->mainFrame(); frame; frame = frame->tree().traverseNext()) {
-            if (frame->loader().subframeLoader().containsPlugins())
-                framesNeedingReload.append(*frame);
-        }
-    }
 
     for (auto& pluginInfoProvider : pluginInfoProviders)
-        pluginInfoProvider->refreshPlugins();
-
-    for (auto& frame : framesNeedingReload)
-        frame->loader().reload();
+        pluginInfoProvider->refresh(reload);
 }
 
 PluginData& Page::pluginData()
@@ -561,15 +570,18 @@ PluginData& Page::pluginData()
     return *m_pluginData;
 }
 
+void Page::clearPluginData()
+{
+    m_pluginData = nullptr;
+}
+
 bool Page::showAllPlugins() const
 {
     if (m_showAllPlugins)
         return true;
 
-    if (Document* document = mainFrame().document()) {
-        if (SecurityOrigin* securityOrigin = document->securityOrigin())
-            return securityOrigin->isLocal();
-    }
+    if (Document* document = mainFrame().document())
+        return document->securityOrigin().isLocal();
 
     return false;
 }
@@ -936,91 +948,21 @@ void Page::setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInte
 
 void Page::didStartProvisionalLoad()
 {
-    m_postLoadCPUTime = std::nullopt;
-    m_postPageLoadCPUUsageTimer.stop();
+    if (m_performanceMonitor)
+        m_performanceMonitor->didStartProvisionalLoad();
 }
 
 void Page::didFinishLoad()
 {
     resetRelevantPaintedObjectCounter();
 
-    // Only do post-load CPU usage measurement if there is a single Page in the process in order to reduce noise.
-    if (Settings::isPostLoadCPUUsageMeasurementEnabled() && allPages->size() == 1) {
-        m_postLoadCPUTime = std::nullopt;
-        m_postPageLoadCPUUsageTimer.startOneShot(cpuUsageMeasurementDelay);
-    }
+    if (m_performanceMonitor)
+        m_performanceMonitor->didFinishLoad();
 }
 
-static String foregroundCPUUsageToDiagnosticLogginKey(double cpuUsage)
+bool Page::isOnlyNonUtilityPage() const
 {
-    if (cpuUsage < 10)
-        return ASCIILiteral("Below10");
-    if (cpuUsage < 20)
-        return ASCIILiteral("10to20");
-    if (cpuUsage < 40)
-        return ASCIILiteral("20to40");
-    if (cpuUsage < 60)
-        return ASCIILiteral("40to60");
-    if (cpuUsage < 80)
-        return ASCIILiteral("60to80");
-    return ASCIILiteral("over80");
-}
-
-void Page::measurePostLoadCPUUsage()
-{
-    if (allPages->size() != 1)
-        return;
-
-    if (!m_postLoadCPUTime) {
-        m_postLoadCPUTime = getCPUTime();
-        if (m_postLoadCPUTime)
-            m_postPageLoadCPUUsageTimer.startOneShot(postLoadCPUUsageMeasurementDuration);
-        return;
-    }
-    std::optional<CPUTime> cpuTime = getCPUTime();
-    if (!cpuTime)
-        return;
-
-    double cpuUsage = cpuTime.value().percentageCPUUsageSince(*m_postLoadCPUTime);
-    RELEASE_LOG_IF_ALLOWED(PerformanceLogging, "measurePostLoadCPUUsage: Process was using %.1f%% percent CPU after the page load.", cpuUsage);
-    diagnosticLoggingClient().logDiagnosticMessageWithValue(DiagnosticLoggingKeys::postPageLoadKey(), DiagnosticLoggingKeys::cpuUsageKey(), foregroundCPUUsageToDiagnosticLogginKey(cpuUsage), ShouldSample::No);
-}
-
-static String backgroundCPUUsageToDiagnosticLogginKey(double cpuUsage)
-{
-    if (cpuUsage < 1)
-        return ASCIILiteral("Below1");
-    if (cpuUsage < 5)
-        return ASCIILiteral("1to5");
-    if (cpuUsage < 10)
-        return ASCIILiteral("5to10");
-    if (cpuUsage < 30)
-        return ASCIILiteral("10to30");
-    if (cpuUsage < 50)
-        return ASCIILiteral("30to50");
-    if (cpuUsage < 70)
-        return ASCIILiteral("50to70");
-    return ASCIILiteral("over70");
-}
-
-void Page::measurePostBackgroundingCPUUsage()
-{
-    if (allPages->size() != 1)
-        return;
-
-    if (!m_postBackgroundingCPUTime) {
-        m_postBackgroundingCPUTime = getCPUTime();
-        if (m_postBackgroundingCPUTime)
-            m_postBackgroundingCPUUsageTimer.startOneShot(backgroundCPUUsageMeasurementDuration);
-        return;
-    }
-    std::optional<CPUTime> cpuTime = getCPUTime();
-    if (!cpuTime)
-        return;
-
-    double cpuUsage = cpuTime.value().percentageCPUUsageSince(*m_postBackgroundingCPUTime);
-    RELEASE_LOG_IF_ALLOWED(PerformanceLogging, "measurePostBackgroundingCPUUsage: Process was using %.1f%% percent CPU after becoming non visible.", cpuUsage);
-    diagnosticLoggingClient().logDiagnosticMessageWithValue(DiagnosticLoggingKeys::postPageBackgroundingKey(), DiagnosticLoggingKeys::cpuUsageKey(), backgroundCPUUsageToDiagnosticLogginKey(cpuUsage), ShouldSample::No);
+    return !isUtilityPage() && nonUtilityPageCount == 1;
 }
 
 void Page::setTopContentInset(float contentInset)
@@ -1584,6 +1526,9 @@ void Page::setActivityState(ActivityState::Flags activityState)
 
     if (wasVisibleAndActive != isVisibleAndActive())
         PlatformMediaSessionManager::updateNowPlayingInfoIfNecessary();
+
+    if (m_performanceMonitor)
+        m_performanceMonitor->activityStateChanged(oldActivityState, activityState);
 }
 
 bool Page::isVisibleAndActive() const
@@ -1597,6 +1542,24 @@ void Page::setIsVisible(bool isVisible)
         setActivityState((m_activityState & ~ActivityState::IsVisuallyIdle) | ActivityState::IsVisible | ActivityState::IsVisibleOrOccluded);
     else
         setActivityState((m_activityState & ~(ActivityState::IsVisible | ActivityState::IsVisibleOrOccluded)) | ActivityState::IsVisuallyIdle);
+}
+
+enum class SVGAnimationsState { Paused, Resumed };
+static inline void setSVGAnimationsState(Page& page, SVGAnimationsState state)
+{
+    for (Frame* frame = &page.mainFrame(); frame; frame = frame->tree().traverseNext()) {
+        auto* document = frame->document();
+        if (!document)
+            continue;
+
+        if (!document->svgExtensions())
+            continue;
+
+        if (state == SVGAnimationsState::Paused)
+            document->accessSVGExtensions().pauseAnimations();
+        else
+            document->accessSVGExtensions().unpauseAnimations();
+    }
 }
 
 void Page::setIsVisibleInternal(bool isVisible)
@@ -1618,6 +1581,8 @@ void Page::setIsVisibleInternal(bool isVisible)
         if (m_settings->hiddenPageCSSAnimationSuspensionEnabled())
             mainFrame().animation().resumeAnimations();
 
+        setSVGAnimationsState(*this, SVGAnimationsState::Resumed);
+
         resumeAnimatingImages();
     }
 
@@ -1632,6 +1597,8 @@ void Page::setIsVisibleInternal(bool isVisible)
         if (m_settings->hiddenPageCSSAnimationSuspensionEnabled())
             mainFrame().animation().suspendAnimations();
 
+        setSVGAnimationsState(*this, SVGAnimationsState::Paused);
+
 #if PLATFORM(IOS)
         suspendDeviceMotionAndOrientationUpdates();
 #endif
@@ -1640,13 +1607,6 @@ void Page::setIsVisibleInternal(bool isVisible)
         if (FrameView* view = mainFrame().view())
             view->hide();
     }
-
-    // Measure CPU usage of pages when they are no longer visible.
-    m_postBackgroundingCPUTime = std::nullopt;
-    if (isVisible)
-        m_postBackgroundingCPUUsageTimer.stop();
-    else if (Settings::isPostBackgroundingCPUUsageMeasurementEnabled() && allPages->size() == 1)
-        m_postBackgroundingCPUUsageTimer.startOneShot(cpuUsageMeasurementDelay);
 }
 
 void Page::setIsPrerender()
@@ -2198,7 +2158,7 @@ void Page::setResourceUsageOverlayVisible(bool visible)
         return;
     }
 
-    if (!m_resourceUsageOverlay)
+    if (!m_resourceUsageOverlay && m_settings->acceleratedCompositingEnabled())
         m_resourceUsageOverlay = std::make_unique<ResourceUsageOverlay>(*this);
 }
 #endif
@@ -2242,5 +2202,27 @@ void Page::accessibilitySettingsDidChange()
     if (neededRecalc)
         LOG(Layout, "hasMediaQueriesAffectedByAccessibilitySettingsChange, enqueueing style recalc");
 }
+
+#if ENABLE(DATA_INTERACTION)
+
+bool Page::hasDataInteractionAtPosition(const FloatPoint& position) const
+{
+    auto currentSelection = m_mainFrame->selection().selection();
+    if (!currentSelection.isRange())
+        return false;
+
+    if (auto selectedRange = currentSelection.toNormalizedRange()) {
+        Vector<SelectionRect> selectionRects;
+        selectedRange->collectSelectionRects(selectionRects);
+        for (auto selectionRect : selectionRects) {
+            if (FloatRect(selectionRect.rect()).contains(position))
+                return true;
+        }
+    }
+
+    return false;
+}
+
+#endif
 
 } // namespace WebCore

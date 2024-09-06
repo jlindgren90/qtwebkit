@@ -31,6 +31,8 @@
 #include "ANGLEInstancedArrays.h"
 #include "CachedImage.h"
 #include "DOMWindow.h"
+#include "DiagnosticLoggingClient.h"
+#include "DiagnosticLoggingKeys.h"
 #include "Document.h"
 #include "EXTBlendMinMax.h"
 #include "EXTFragDepth.h"
@@ -104,6 +106,7 @@ namespace WebCore {
 
 const double secondsBetweenRestoreAttempts = 1.0;
 const int maxGLErrorsAllowedToConsole = 256;
+static const std::chrono::seconds checkContextLossHandlingDelay { 3 };
 
 namespace {
     
@@ -392,11 +395,6 @@ std::unique_ptr<WebGLRenderingContextBase> WebGLRenderingContextBase::create(HTM
         }
     }
 
-    if (attributes.antialias) {
-        if (!frame->settings().openGLMultisamplingEnabled())
-            attributes.antialias = false;
-    }
-
     attributes.noExtensions = true;
     attributes.shareResources = false;
 
@@ -465,8 +463,10 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement& passedCa
     , m_attributes(attributes)
     , m_numGLErrorsToConsoleAllowed(maxGLErrorsAllowedToConsole)
     , m_isPendingPolicyResolution(true)
+    , m_checkForContextLossHandlingTimer(*this, &WebGLRenderingContextBase::checkForContextLossHandling)
 {
     registerWithWebGLStateTracker();
+    m_checkForContextLossHandlingTimer.startOneShot(checkContextLossHandlingDelay);
 }
 
 WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement& passedCanvas, Ref<GraphicsContext3D>&& context, WebGLContextAttributes attributes)
@@ -478,6 +478,7 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement& passedCa
     , m_generatedImageCache(4)
     , m_attributes(attributes)
     , m_numGLErrorsToConsoleAllowed(maxGLErrorsAllowedToConsole)
+    , m_checkForContextLossHandlingTimer(*this, &WebGLRenderingContextBase::checkForContextLossHandling)
 {
     m_contextGroup = WebGLContextGroup::create();
     m_contextGroup->addContext(*this);
@@ -489,6 +490,22 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement& passedCa
     setupFlags();
     initializeNewContext();
     registerWithWebGLStateTracker();
+    m_checkForContextLossHandlingTimer.startOneShot(checkContextLossHandlingDelay);
+}
+
+// We check for context loss handling after a few seconds to give the JS a chance to register the event listeners
+// and to discard temporary GL contexts (e.g. feature detection).
+void WebGLRenderingContextBase::checkForContextLossHandling()
+{
+    if (!canvas().renderer())
+        return;
+
+    auto* page = canvas().document().page();
+    if (!page)
+        return;
+
+    bool handlesContextLoss = canvas().hasEventListeners(eventNames().webglcontextlostEvent) && canvas().hasEventListeners(eventNames().webglcontextrestoredEvent);
+    page->diagnosticLoggingClient().logDiagnosticMessage(DiagnosticLoggingKeys::pageHandlesWebGLContextLossKey(), handlesContextLoss ? DiagnosticLoggingKeys::yesKey() : DiagnosticLoggingKeys::noKey(), ShouldSample::No);
 }
 
 void WebGLRenderingContextBase::registerWithWebGLStateTracker()

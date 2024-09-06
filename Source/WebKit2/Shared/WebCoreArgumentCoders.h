@@ -27,6 +27,7 @@
 
 #include "ArgumentCoders.h"
 #include <WebCore/ColorSpace.h>
+#include <WebCore/DiagnosticLoggingClient.h>
 #include <WebCore/FrameLoaderTypes.h>
 #include <WebCore/IndexedDB.h>
 #include <WebCore/PaymentHeaders.h>
@@ -117,6 +118,12 @@ struct Highlight;
 struct PasteboardImage;
 struct PasteboardWebContent;
 struct ViewportArguments;
+}
+#endif
+
+#if USE(SOUP)
+namespace WebCore {
+struct SoupNetworkProxySettings;
 }
 #endif
 
@@ -385,6 +392,13 @@ template<> struct ArgumentCoder<WebCore::PasteboardImage> {
 };
 #endif
 
+#if USE(SOUP)
+template<> struct ArgumentCoder<WebCore::SoupNetworkProxySettings> {
+    static void encode(Encoder&, const WebCore::SoupNetworkProxySettings&);
+    static bool decode(Decoder&, WebCore::SoupNetworkProxySettings&);
+};
+#endif
+
 template<> struct ArgumentCoder<WebCore::CompositionUnderline> {
     static void encode(Encoder&, const WebCore::CompositionUnderline&);
     static bool decode(Decoder&, WebCore::CompositionUnderline&);
@@ -628,6 +642,14 @@ template<> struct EnumTraits<WebCore::HasInsecureContent> {
         WebCore::HasInsecureContent,
         WebCore::HasInsecureContent::No,
         WebCore::HasInsecureContent::Yes
+    >;
+};
+
+template<> struct EnumTraits<WebCore::ShouldSample> {
+    using values = EnumValues<
+        WebCore::ShouldSample,
+        WebCore::ShouldSample::No,
+        WebCore::ShouldSample::Yes
     >;
 };
 

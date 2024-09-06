@@ -28,6 +28,7 @@
 #include "CacheModel.h"
 #include "ChildProcess.h"
 #include "DrawingArea.h"
+#include "LibWebRTCNetwork.h"
 #include "PluginProcessConnectionManager.h"
 #include "ResourceCachesToClear.h"
 #include "SandboxExtension.h"
@@ -67,6 +68,7 @@ class SessionID;
 class UserGestureToken;
 struct PluginInfo;
 struct SecurityOriginData;
+struct SoupNetworkProxySettings;
 }
 
 namespace WebKit {
@@ -115,7 +117,7 @@ public:
     WebConnectionToUIProcess* webConnectionToUIProcess() const { return m_webConnection.get(); }
 
     WebPage* webPage(uint64_t pageID) const;
-    void createWebPage(uint64_t pageID, const WebPageCreationParameters&);
+    void createWebPage(uint64_t pageID, WebPageCreationParameters&&);
     void removeWebPage(uint64_t pageID);
     WebPage* focusedWebPage() const;
 
@@ -163,6 +165,10 @@ public:
     NetworkProcessConnection& networkConnection();
     void networkProcessConnectionClosed(NetworkProcessConnection*);
     WebLoaderStrategy& webLoaderStrategy();
+
+#if USE(LIBWEBRTC)
+    LibWebRTCNetwork& libWebRTCNetwork();
+#endif
 
 #if ENABLE(DATABASE_PROCESS)
     void webToDatabaseProcessConnectionClosed(WebToDatabaseProcessConnection*);
@@ -285,6 +291,10 @@ private:
     void gamepadDisconnected(unsigned index);
 #endif
 
+#if USE(SOUP)
+    void setNetworkProxySettings(const WebCore::SoupNetworkProxySettings&);
+#endif
+
     void releasePageCache();
 
     void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, WebsiteData&);
@@ -328,7 +338,6 @@ private:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
     void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, std::unique_ptr<IPC::Encoder>&) override;
     void didClose(IPC::Connection&) override;
-    void didReceiveInvalidMessage(IPC::Connection&, IPC::StringReference messageReceiverName, IPC::StringReference messageName) override;
 
     // Implemented in generated WebProcessMessageReceiver.cpp
     void didReceiveWebProcessMessage(IPC::Connection&, IPC::Decoder&);
@@ -372,6 +381,11 @@ private:
     void ensureNetworkProcessConnection();
     RefPtr<NetworkProcessConnection> m_networkProcessConnection;
     WebLoaderStrategy& m_webLoaderStrategy;
+
+#if USE(LIBWEBRTC)
+    std::unique_ptr<LibWebRTCNetwork> m_libWebRTCNetwork;
+#endif
+
     HashSet<String> m_dnsPrefetchedHosts;
     WebCore::HysteresisActivity m_dnsPrefetchHystereris;
 

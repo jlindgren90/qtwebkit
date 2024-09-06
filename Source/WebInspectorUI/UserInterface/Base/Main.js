@@ -276,6 +276,8 @@ WebInspector.contentLoaded = function()
     this.splitContentBrowser = new WebInspector.ContentBrowser(document.getElementById("split-content-browser"), this, disableBackForward, disableFindBanner);
     this.splitContentBrowser.navigationBar.element.addEventListener("mousedown", this._consoleResizerMouseDown.bind(this));
 
+    this.clearKeyboardShortcut = new WebInspector.KeyboardShortcut(WebInspector.KeyboardShortcut.Modifier.CommandOrControl, "K", this._clear.bind(this));
+
     this.quickConsole = new WebInspector.QuickConsole(document.getElementById("quick-console"));
     this.quickConsole.addEventListener(WebInspector.QuickConsole.Event.DidResize, this._quickConsoleDidResize, this);
 
@@ -888,6 +890,11 @@ WebInspector.isShowingSplitConsole = function()
     return !this.splitContentBrowser.element.classList.contains("hidden");
 };
 
+WebInspector.dockedConfigurationSupportsSplitContentBrowser = function()
+{
+    return this._dockConfiguration !== WebInspector.DockConfiguration.Bottom;
+};
+
 WebInspector.doesCurrentTabSupportSplitContentBrowser = function()
 {
     var currentContentView = this.tabBrowser.selectedTabContentView;
@@ -949,16 +956,11 @@ WebInspector.hideSplitConsole = function()
 
 WebInspector.showConsoleTab = function(requestedScope)
 {
+    requestedScope = requestedScope || WebInspector.LogContentView.Scopes.All;
+
     this.hideSplitConsole();
 
-    var scope = requestedScope || WebInspector.LogContentView.Scopes.All;
-
-    // If the requested scope is already selected and the console is showing, then switch back to All.
-    if (this.isShowingConsoleTab() && this.consoleContentView.scopeBar.item(scope).selected)
-        scope = WebInspector.LogContentView.Scopes.All;
-
-    if (requestedScope || !this.consoleContentView.scopeBar.selectedItems.length)
-        this.consoleContentView.scopeBar.item(scope).selected = true;
+    this.consoleContentView.scopeBar.item(requestedScope).selected = true;
 
     this.showRepresentedObject(this._consoleRepresentedObject);
 
@@ -1131,9 +1133,9 @@ WebInspector.tabContentViewClassForRepresentedObject = function(representedObjec
     return null;
 };
 
-WebInspector.tabContentViewForRepresentedObject = function(representedObject)
+WebInspector.tabContentViewForRepresentedObject = function(representedObject, options = {})
 {
-    var tabContentView = this.tabBrowser.bestTabContentViewForRepresentedObject(representedObject);
+    let tabContentView = this.tabBrowser.bestTabContentViewForRepresentedObject(representedObject, options);
     if (tabContentView)
         return tabContentView;
 
@@ -1150,9 +1152,9 @@ WebInspector.tabContentViewForRepresentedObject = function(representedObject)
     return tabContentView;
 };
 
-WebInspector.showRepresentedObject = function(representedObject, cookie)
+WebInspector.showRepresentedObject = function(representedObject, cookie, options = {})
 {
-    var tabContentView = this.tabContentViewForRepresentedObject(representedObject);
+    let tabContentView = this.tabContentViewForRepresentedObject(representedObject, options);
     console.assert(tabContentView);
     if (!tabContentView)
         return;
@@ -1161,20 +1163,15 @@ WebInspector.showRepresentedObject = function(representedObject, cookie)
     tabContentView.showRepresentedObject(representedObject, cookie);
 };
 
-WebInspector.showMainFrameDOMTree = function(nodeToSelect)
+WebInspector.showMainFrameDOMTree = function(nodeToSelect, options = {})
 {
     console.assert(WebInspector.frameResourceManager.mainFrame);
     if (!WebInspector.frameResourceManager.mainFrame)
         return;
-    this.showRepresentedObject(WebInspector.frameResourceManager.mainFrame.domTree, {nodeToSelect});
+    this.showRepresentedObject(WebInspector.frameResourceManager.mainFrame.domTree, {nodeToSelect}, options);
 };
 
-WebInspector.showContentFlowDOMTree = function(contentFlow, nodeToSelect)
-{
-    this.showRepresentedObject(contentFlow, {nodeToSelect});
-};
-
-WebInspector.showSourceCodeForFrame = function(frameIdentifier)
+WebInspector.showSourceCodeForFrame = function(frameIdentifier, options = {})
 {
     var frame = WebInspector.frameResourceManager.frameForIdentifier(frameIdentifier);
     if (!frame) {
@@ -1184,11 +1181,13 @@ WebInspector.showSourceCodeForFrame = function(frameIdentifier)
 
     this._frameIdentifierToShowSourceCodeWhenAvailable = undefined;
 
-    this.showRepresentedObject(frame);
+    this.showRepresentedObject(frame, null, options);
 };
 
-WebInspector.showSourceCode = function(sourceCode, positionToReveal, textRangeToSelect, forceUnformatted)
+WebInspector.showSourceCode = function(sourceCode, options = {})
 {
+    const positionToReveal = options.positionToReveal;
+
     console.assert(!positionToReveal || positionToReveal instanceof WebInspector.SourceCodePosition, positionToReveal);
     var representedObject = sourceCode;
 
@@ -1198,33 +1197,43 @@ WebInspector.showSourceCode = function(sourceCode, positionToReveal, textRangeTo
     }
 
     var cookie = positionToReveal ? {lineNumber: positionToReveal.lineNumber, columnNumber: positionToReveal.columnNumber} : {};
-    this.showRepresentedObject(representedObject, cookie);
+    this.showRepresentedObject(representedObject, cookie, options);
 };
 
-WebInspector.showSourceCodeLocation = function(sourceCodeLocation)
+WebInspector.showSourceCodeLocation = function(sourceCodeLocation, options = {})
 {
-    this.showSourceCode(sourceCodeLocation.displaySourceCode, sourceCodeLocation.displayPosition());
+    this.showSourceCode(sourceCodeLocation.displaySourceCode, Object.shallowMerge(options, {
+        positionToReveal: sourceCodeLocation.displayPosition()
+    }));
 };
 
-WebInspector.showOriginalUnformattedSourceCodeLocation = function(sourceCodeLocation)
+WebInspector.showOriginalUnformattedSourceCodeLocation = function(sourceCodeLocation, options = {})
 {
-    this.showSourceCode(sourceCodeLocation.sourceCode, sourceCodeLocation.position(), null, true);
+    this.showSourceCode(sourceCodeLocation.sourceCode, Object.shallowMerge(options, {
+        positionToReveal: sourceCodeLocation.position(),
+        forceUnformatted: true
+    }));
 };
 
-WebInspector.showOriginalOrFormattedSourceCodeLocation = function(sourceCodeLocation)
+WebInspector.showOriginalOrFormattedSourceCodeLocation = function(sourceCodeLocation, options = {})
 {
-    this.showSourceCode(sourceCodeLocation.sourceCode, sourceCodeLocation.formattedPosition());
+    this.showSourceCode(sourceCodeLocation.sourceCode, Object.shallowMerge(options, {
+        positionToReveal: sourceCodeLocation.formattedPosition()
+    }));
 };
 
-WebInspector.showOriginalOrFormattedSourceCodeTextRange = function(sourceCodeTextRange)
+WebInspector.showOriginalOrFormattedSourceCodeTextRange = function(sourceCodeTextRange, options = {})
 {
     var textRangeToSelect = sourceCodeTextRange.formattedTextRange;
-    this.showSourceCode(sourceCodeTextRange.sourceCode, textRangeToSelect.startPosition(), textRangeToSelect);
+    this.showSourceCode(sourceCodeTextRange.sourceCode, Object.shallowMerge(options, {
+        positionToReveal: textRangeToSelect.startPosition(),
+        textRangeToSelect
+    }));
 };
 
-WebInspector.showResourceRequest = function(resource)
+WebInspector.showResourceRequest = function(resource, options = {})
 {
-    this.showRepresentedObject(resource, {[WebInspector.ResourceClusterContentView.ContentViewIdentifierCookieKey]: WebInspector.ResourceClusterContentView.RequestIdentifier});
+    this.showRepresentedObject(resource, {[WebInspector.ResourceClusterContentView.ContentViewIdentifierCookieKey]: WebInspector.ResourceClusterContentView.RequestIdentifier}, options);
 };
 
 WebInspector.debuggerToggleBreakpoints = function(event)
@@ -2018,6 +2027,19 @@ WebInspector._saveAs = function(event)
     WebInspector.saveDataToFile(contentView.saveData, true);
 };
 
+WebInspector._clear = function(event)
+{
+    let contentView = this.focusedOrVisibleContentView();
+    if (!contentView || typeof contentView.handleClearShortcut !== "function") {
+        // If the current content view is unable to handle this event, clear the console to reset
+        // the dashboard counters.
+        this.logManager.requestClearMessages();
+        return;
+    }
+
+    contentView.handleClearShortcut(event);
+};
+
 WebInspector._copy = function(event)
 {
     var selection = window.getSelection();
@@ -2573,7 +2595,7 @@ Object.defineProperty(WebInspector, "targets",
 WebInspector.assumingMainTarget = function()
 {
     return WebInspector.mainTarget;
-}
+};
 
 // OpenResourceDialog delegate
 

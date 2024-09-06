@@ -109,7 +109,6 @@ private:
     BOOL _allowsInlineMediaPlayback;
     BOOL _inlineMediaPlaybackRequiresPlaysInlineAttribute;
     BOOL _allowsInlineMediaPlaybackAfterFullscreen;
-    unsigned _contentUpdateFrequency;
 #endif
 
     BOOL _invisibleAutoplayNotPermitted;
@@ -131,6 +130,8 @@ private:
     BOOL _applePayEnabled;
 #endif
     BOOL _needsStorageAccessFromFileURLsQuirk;
+
+    NSString *_overrideContentSecurityPolicy;
 }
 
 - (instancetype)init
@@ -149,7 +150,6 @@ private:
     else
         _mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAll;
     _ignoresViewportScaleLimits = NO;
-    _contentUpdateFrequency = 60;
 #else
     _mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeNone;
     _mediaDataLoadsAutomatically = YES;
@@ -302,7 +302,6 @@ private:
     configuration->_alwaysRunsAtForegroundPriority = _alwaysRunsAtForegroundPriority;
     configuration->_selectionGranularity = self->_selectionGranularity;
     configuration->_ignoresViewportScaleLimits = self->_ignoresViewportScaleLimits;
-    configuration->_contentUpdateFrequency = self->_contentUpdateFrequency;
 #endif
 #if PLATFORM(MAC)
     configuration->_userInterfaceDirectionPolicy = self->_userInterfaceDirectionPolicy;
@@ -321,6 +320,7 @@ private:
     configuration->_applePayEnabled = self->_applePayEnabled;
 #endif
     configuration->_needsStorageAccessFromFileURLsQuirk = self->_needsStorageAccessFromFileURLsQuirk;
+    configuration->_overrideContentSecurityPolicy = self->_overrideContentSecurityPolicy;
 
     return configuration;
 }
@@ -588,16 +588,6 @@ static NSString *defaultApplicationNameForUserAgent()
 {
     _allowsInlineMediaPlaybackAfterFullscreen = allows;
 }
-
-- (NSUInteger)_contentUpdateFrequency
-{
-    return _contentUpdateFrequency;
-}
-
-- (void)_setContentUpdateFrequency:(NSUInteger)contentUpdateFrequency
-{
-    _contentUpdateFrequency = contentUpdateFrequency;
-}
 #endif // PLATFORM(IOS)
 
 - (BOOL)_invisibleAutoplayNotPermitted
@@ -763,6 +753,16 @@ static NSString *defaultApplicationNameForUserAgent()
 - (void)_setNeedsStorageAccessFromFileURLsQuirk:(BOOL)needsLocalStorageQuirk
 {
     _needsStorageAccessFromFileURLsQuirk = needsLocalStorageQuirk;
+}
+
+- (NSString *)_overrideContentSecurityPolicy
+{
+    return _overrideContentSecurityPolicy;
+}
+
+- (void)_setOverrideContentSecurityPolicy:(NSString *)overrideContentSecurityPolicy
+{
+    _overrideContentSecurityPolicy = overrideContentSecurityPolicy;
 }
 
 @end

@@ -29,6 +29,7 @@
 #include "APIObject.h"
 #include "WebPreferencesStore.h"
 #include <WebCore/SessionID.h>
+#include <wtf/Forward.h>
 #include <wtf/GetPtr.h>
 
 namespace WebKit {
@@ -88,9 +89,6 @@ public:
 #if PLATFORM(IOS)
     bool alwaysRunsAtForegroundPriority() { return m_alwaysRunsAtForegroundPriority; }
     void setAlwaysRunsAtForegroundPriority(bool alwaysRunsAtForegroundPriority) { m_alwaysRunsAtForegroundPriority = alwaysRunsAtForegroundPriority; } 
-    
-    uint32_t contentUpdateFrequency() const { return m_contentUpdateFrequency; }
-    void setContentUpdateFrequency(uint32_t updateFrequency) { m_contentUpdateFrequency = updateFrequency; }
 #endif
     bool initialCapitalizationEnabled() { return m_initialCapitalizationEnabled; }
     void setInitialCapitalizationEnabled(bool initialCapitalizationEnabled) { m_initialCapitalizationEnabled = initialCapitalizationEnabled; }
@@ -100,6 +98,9 @@ public:
 
     bool isControlledByAutomation() const { return m_controlledByAutomation; }
     void setControlledByAutomation(bool controlledByAutomation) { m_controlledByAutomation = controlledByAutomation; }
+
+    const WTF::String& overrideContentSecurityPolicy() const { return m_overrideContentSecurityPolicy; }
+    void setOverrideContentSecurityPolicy(const WTF::String& overrideContentSecurityPolicy) { m_overrideContentSecurityPolicy = overrideContentSecurityPolicy; }
 
 private:
 
@@ -119,11 +120,12 @@ private:
     bool m_treatsSHA1SignedCertificatesAsInsecure = true;
 #if PLATFORM(IOS)
     bool m_alwaysRunsAtForegroundPriority = false;
-    uint32_t m_contentUpdateFrequency { 0 };
 #endif
     bool m_initialCapitalizationEnabled = true;
     bool m_waitsForPaintAfterViewDidMoveToWindow = true;
     bool m_controlledByAutomation = false;
+
+    WTF::String m_overrideContentSecurityPolicy;
 };
 
 } // namespace API

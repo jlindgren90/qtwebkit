@@ -339,7 +339,6 @@ sub determineArchitecture
             }
         }
     } elsif (isCMakeBuild()) {
-        my $host_processor = "";
         if (open my $cmake_sysinfo, "cmake --system-information |") {
             while (<$cmake_sysinfo>) {
                 next unless index($_, 'CMAKE_SYSTEM_PROCESSOR') == 0;
@@ -848,41 +847,12 @@ sub setArchitecture
     $architecture = $passedArchitecture if $passedArchitecture;
 }
 
-sub skipSafariExecutableEntitlementChecks
-{
-    return `defaults read /Library/Preferences/org.webkit.BuildConfiguration SkipSafariExecutableEntitlementChecks 2>/dev/null` eq "1\n";
-}
-
-sub executableHasEntitlements
-{
-    my $executablePath = shift;
-    return (`codesign -d --entitlements - $executablePath 2>&1` =~ /<key>/);
-}
-
-sub safariPathFromSafariBundle
-{
-    my ($safariBundle) = @_;
-
-    die "Safari path is only relevant on Apple Mac platform\n" unless isAppleMacWebKit();
-
-    my $safariPath = "$safariBundle/Contents/MacOS/Safari";
-    return $safariPath if skipSafariExecutableEntitlementChecks();
-
-    my $safariForWebKitDevelopmentPath = "$safariBundle/Contents/MacOS/SafariForWebKitDevelopment";
-    return $safariForWebKitDevelopmentPath if -f $safariForWebKitDevelopmentPath && executableHasEntitlements($safariPath);
-
-    return $safariPath;
-}
-
-sub installedSafariPath
-{
-    return safariPathFromSafariBundle("/Applications/Safari.app");
-}
-
 # Locate Safari.
 sub safariPath
 {
     die "Safari path is only relevant on Apple Mac platform\n" unless isAppleMacWebKit();
+
+    my $safariPath;
 
     # Use WEBKIT_SAFARI environment variable if present.
     my $safariBundle = $ENV{WEBKIT_SAFARI};
@@ -892,11 +862,14 @@ sub safariPath
         if (-d "$configurationProductDir/Safari.app") {
             $safariBundle = "$configurationProductDir/Safari.app";
         }
-        if (!$safariBundle) {
-            return installedSafariPath();
-        }
     }
-    my $safariPath = safariPathFromSafariBundle($safariBundle);
+
+    if ($safariBundle) {
+        $safariPath = "$safariBundle/Contents/MacOS/Safari";
+    } else {
+        $safariPath = "/Applications/Safari.app/Contents/MacOS/SafariForWebKitDevelopment";
+    }
+
     die "Can't find executable at $safariPath.\n" if !-x $safariPath;
     return $safariPath;
 }

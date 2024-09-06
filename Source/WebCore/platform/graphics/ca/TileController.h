@@ -113,7 +113,6 @@ public:
     int rightMarginWidth() const override;
     TileCoverage tileCoverage() const override { return m_tileCoverage; }
     void adjustTileCoverageRect(FloatRect& coverageRect, const FloatSize& newSize, const FloatRect& previousVisibleRect, const FloatRect& currentVisibleRect, float contentsScale) const override;
-    bool unparentsOffscreenTiles() const override { return m_unparentsOffscreenTiles; }
     bool scrollingPerformanceLoggingEnabled() const override { return m_scrollingPerformanceLoggingEnabled; }
 
     IntRect boundsAtLastRevalidate() const { return m_boundsAtLastRevalidate; }
@@ -136,7 +135,6 @@ private:
 
     void scheduleTileRevalidation(double interval);
 
-    bool isInWindow() const { return m_isInWindow; }
     float topContentInset() const { return m_topContentInset; }
 
     // TiledBacking member functions.
@@ -150,12 +148,12 @@ private:
     void setScrollability(Scrollability) override;
     void prepopulateRect(const FloatRect&) override;
     void setIsInWindow(bool) override;
+    bool isInWindow() const override { return m_isInWindow; }
     void setTileCoverage(TileCoverage) override;
     void revalidateTiles() override;
     void forceRepaint() override;
     IntRect tileGridExtent() const override;
     void setScrollingPerformanceLoggingEnabled(bool flag) override { m_scrollingPerformanceLoggingEnabled = flag; }
-    void setUnparentsOffscreenTiles(bool flag) override { m_unparentsOffscreenTiles = flag; }
     double retainedTileBackingStoreMemory() const override;
     IntRect tileCoverageRect() const override;
 #if USE(CA)
@@ -216,7 +214,6 @@ private:
     
     bool m_isInWindow { false };
     bool m_scrollingPerformanceLoggingEnabled { false };
-    bool m_unparentsOffscreenTiles { false };
     bool m_acceleratesDrawing { false };
     bool m_tilesAreOpaque { false };
     bool m_hasTilesWithTemporaryScaleFactor { false }; // Used to make low-res tiles when zooming.

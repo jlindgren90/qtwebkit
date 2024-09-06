@@ -39,6 +39,7 @@
 #include "HTMLDocument.h"
 #include "InspectorInstrumentation.h"
 #include "JSBlob.h"
+#include "JSDOMConvert.h"
 #include "JSDOMFormData.h"
 #include "JSDOMWindowCustom.h"
 #include "JSDocument.h"
@@ -105,19 +106,20 @@ JSValue JSXMLHttpRequest::send(ExecState& state)
 {
     InspectorInstrumentation::willSendXMLHttpRequest(wrapped().scriptExecutionContext(), wrapped().url());
 
+    VM& vm = state.vm();
     JSValue value = state.argument(0);
     ExceptionOr<void> result;
     if (value.isUndefinedOrNull())
         result = wrapped().send();
-    else if (value.inherits(JSDocument::info()))
-        result = wrapped().send(*JSDocument::toWrapped(value));
-    else if (value.inherits(JSBlob::info()))
-        result = wrapped().send(*JSBlob::toWrapped(value));
-    else if (value.inherits(JSDOMFormData::info()))
-        result = wrapped().send(*JSDOMFormData::toWrapped(value));
-    else if (RefPtr<ArrayBuffer> arrayBuffer = toUnsharedArrayBuffer(value))
+    else if (value.inherits(vm, JSDocument::info()))
+        result = wrapped().send(*JSDocument::toWrapped(vm, value));
+    else if (value.inherits(vm, JSBlob::info()))
+        result = wrapped().send(*JSBlob::toWrapped(vm, value));
+    else if (value.inherits(vm, JSDOMFormData::info()))
+        result = wrapped().send(*JSDOMFormData::toWrapped(vm, value));
+    else if (RefPtr<ArrayBuffer> arrayBuffer = toUnsharedArrayBuffer(vm, value))
         result = wrapped().send(*arrayBuffer);
-    else if (RefPtr<ArrayBufferView> arrayBufferView = toUnsharedArrayBufferView(value))
+    else if (RefPtr<ArrayBufferView> arrayBufferView = toUnsharedArrayBufferView(vm, value))
         result = wrapped().send(*arrayBufferView);
     else {
         // FIXME: If toString raises an exception, should we exit before calling willSendXMLHttpRequest?
@@ -188,16 +190,16 @@ JSValue JSXMLHttpRequest::retrieveResponse(ExecState& state)
     case XMLHttpRequest::ResponseType::Document: {
         auto document = wrapped().responseXML();
         ASSERT(!document.hasException());
-        value = toJS(&state, globalObject(), document.releaseReturnValue());
+        value = toJS<IDLInterface<Document>>(state, *globalObject(), document.releaseReturnValue());
         break;
     }
 
     case XMLHttpRequest::ResponseType::Blob:
-        value = toJSNewlyCreated(&state, globalObject(), wrapped().createResponseBlob());
+        value = toJSNewlyCreated<IDLInterface<Blob>>(state, *globalObject(), wrapped().createResponseBlob());
         break;
 
     case XMLHttpRequest::ResponseType::Arraybuffer:
-        value = toJS(&state, globalObject(), wrapped().createResponseArrayBuffer());
+        value = toJS<IDLInterface<ArrayBuffer>>(state, *globalObject(), wrapped().createResponseArrayBuffer());
         break;
     }
 

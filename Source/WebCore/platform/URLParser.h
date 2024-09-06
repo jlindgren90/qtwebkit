@@ -46,7 +46,7 @@ public:
     WEBCORE_EXPORT static bool enabled();
     WEBCORE_EXPORT static void setEnabled(bool);
     
-    typedef Vector<std::pair<String, String>> URLEncodedForm;
+    typedef Vector<WTF::KeyValuePair<String, String>> URLEncodedForm;
     WEBCORE_EXPORT static URLEncodedForm parseURLEncodedForm(StringView);
     static String serialize(const URLEncodedForm&);
 
@@ -110,7 +110,7 @@ private:
 
     using IPv4Address = uint32_t;
     void serializeIPv4(IPv4Address);
-    template<typename CharacterType> std::optional<IPv4Address> parseIPv4Host(CodePointIterator<CharacterType>);
+    template<typename CharacterTypeForSyntaxViolation, typename CharacterType> std::optional<IPv4Address> parseIPv4Host(const CodePointIterator<CharacterTypeForSyntaxViolation>&, CodePointIterator<CharacterType>);
     template<typename CharacterType> std::optional<uint32_t> parseIPv4Piece(CodePointIterator<CharacterType>&, bool& syntaxViolation);
     using IPv6Address = std::array<uint16_t, 8>;
     template<typename CharacterType> std::optional<IPv6Address> parseIPv6Host(CodePointIterator<CharacterType>);

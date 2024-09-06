@@ -313,9 +313,11 @@ list(APPEND WebCore_SOURCES
     platform/cf/SharedBufferCF.cpp
     platform/cf/URLCF.cpp
 
+    platform/cocoa/CPUTimeCocoa.mm
     platform/cocoa/ContentFilterUnblockHandlerCocoa.mm
     platform/cocoa/CoreVideoSoftLink.cpp
     platform/cocoa/DisplaySleepDisablerCocoa.cpp
+    platform/cocoa/FileSystemCocoa.mm
     platform/cocoa/KeyEventCocoa.mm
     platform/cocoa/LocalizedStringsCocoa.mm
     platform/cocoa/MIMETypeRegistryCocoa.mm
@@ -331,8 +333,6 @@ list(APPEND WebCore_SOURCES
     platform/cocoa/TelephoneNumberDetectorCocoa.cpp
     platform/cocoa/ThemeCocoa.mm
     platform/cocoa/WebCoreNSErrorExtras.mm
-
-    platform/crypto/commoncrypto/CryptoDigestCommonCrypto.cpp
 
     platform/gamepad/mac/HIDGamepad.cpp
     platform/gamepad/mac/HIDGamepadProvider.cpp
@@ -651,6 +651,8 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 
     platform/graphics/ca/cocoa
 
+    platform/mediastream/libwebrtc
+
     platform/network/cf
     platform/network/cocoa
     platform/network/mac
@@ -747,6 +749,7 @@ list(APPEND WebCoreTestSupport_SOURCES
     testing/Internals.mm
     testing/MockContentFilter.cpp
     testing/MockContentFilterSettings.cpp
+    testing/MockQuickLookHandleClient.cpp
 
     testing/cocoa/WebArchiveDumpSupport.mm
 )

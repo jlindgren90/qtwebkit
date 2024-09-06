@@ -3736,7 +3736,10 @@ void WebViewImpl::dragImageForView(NSView *view, NSImage *image, CGPoint clientP
 {
     // The call below could release the view.
     RetainPtr<NSView> protector(m_view);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
+#pragma clang diagnostic pop
     [pasteboard setString:@"" forType:PasteboardTypes::WebDummyPboardType];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -4634,8 +4637,6 @@ bool WebViewImpl::performKeyEquivalent(NSEvent *event)
         // first performs the original key equivalent, and if that isn't handled, it dispatches a synthetic Cmd+'+'.
         return [m_view _web_superPerformKeyEquivalent:event];
     }
-
-    ASSERT(event == [NSApp currentEvent]);
 
     disableComplexTextInputIfNecessary();
 
