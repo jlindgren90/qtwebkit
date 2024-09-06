@@ -452,7 +452,12 @@ inline AccessibilityObjectInclusion AXComputedObjectAttributeCache::getIgnored(A
 inline AccessibilityReplacedText::AccessibilityReplacedText(const VisibleSelection&) { }
 inline void AccessibilityReplacedText::postTextStateChangeNotification(AXObjectCache*, AXTextEditType, const String&, const VisibleSelection&) { }
 inline void AXComputedObjectAttributeCache::setIgnored(AXID, AccessibilityObjectInclusion) { }
-inline AXObjectCache::AXObjectCache(Document& document) : m_document(document), m_notificationPostTimer(nullptr), m_passwordNotificationPostTimer(nullptr), m_liveRegionChangedPostTimer(nullptr) { }
+inline AXObjectCache::AXObjectCache(Document& document)
+    : m_document(document)
+    , m_notificationPostTimer(nullptr)
+    , m_passwordNotificationPostTimer(nullptr)
+    , m_liveRegionChangedPostTimer(nullptr)
+    , m_focusAriaModalNodeTimer(nullptr) { }
 inline AXObjectCache::~AXObjectCache() { }
 inline AccessibilityObject* AXObjectCache::focusedUIElementForPage(const Page*) { return nullptr; }
 inline AccessibilityObject* AXObjectCache::get(RenderObject*) { return nullptr; }
@@ -467,6 +472,8 @@ inline AccessibilityObject* AXObjectCache::rootObjectForFrame(Frame*) { return n
 inline bool nodeHasRole(Node*, const String&) { return false; }
 inline void AXObjectCache::startCachingComputedObjectAttributesUntilTreeMutates() { }
 inline void AXObjectCache::stopCachingComputedObjectAttributes() { }
+inline void AXObjectCache::recomputeDeferredIsIgnored(RenderBlock&) { }
+inline void AXObjectCache::performDeferredIsIgnoredChange() { }
 inline bool isNodeAriaVisible(Node*) { return true; }
 inline const Element* AXObjectCache::rootAXEditableElement(const Node*) { return nullptr; }
 inline Node* AXObjectCache::ariaModalNode() { return nullptr; }

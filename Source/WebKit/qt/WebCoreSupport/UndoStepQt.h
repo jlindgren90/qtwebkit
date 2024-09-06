@@ -35,9 +35,9 @@ class QWEBKIT_EXPORT UndoStepQt  {
         QString text() const;
 
     private:
-        UndoStepQt(WTF::RefPtr<WebCore::UndoStep>);
+        UndoStepQt(WebCore::UndoStep&);
 
-        WTF::RefPtr<WebCore::UndoStep> m_step;
+        WTF::Ref<WebCore::UndoStep> m_step;
         bool m_first;
         QString m_text;
         friend class QWebPageAdapter;

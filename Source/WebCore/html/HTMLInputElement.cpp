@@ -1982,7 +1982,7 @@ ExceptionOr<String> HTMLInputElement::selectionDirectionForBindings() const
     if (!canHaveSelection())
         return Exception { TypeError };
 
-    return String { selectionDirection() };
+    return String { selectionDirection().string() };
 }
 
 ExceptionOr<void> HTMLInputElement::setSelectionDirectionForBindings(const String& direction)

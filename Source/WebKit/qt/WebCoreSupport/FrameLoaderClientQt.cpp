@@ -441,12 +441,12 @@ void FrameLoaderClientQt::dispatchDidReceiveTitle(const StringWithDirection& tit
 {
     // FIXME: Use direction of title.
     if (dumpFrameLoaderCallbacks)
-        printf("%s - didReceiveTitle: %s\n", qPrintable(drtDescriptionSuitableForTestResult(m_frame)), qPrintable(QString(title.string())));
+        printf("%s - didReceiveTitle: %s\n", qPrintable(drtDescriptionSuitableForTestResult(m_frame)), qPrintable(QString(title.string)));
 
     if (!m_webFrame)
         return;
 
-    emit titleChanged(title.string());
+    emit titleChanged(title.string);
 }
 
 
@@ -525,7 +525,7 @@ void FrameLoaderClientQt::cancelPolicyCheck()
 }
 
 
-void FrameLoaderClientQt::dispatchWillSubmitForm(PassRefPtr<FormState>, FramePolicyFunction function)
+void FrameLoaderClientQt::dispatchWillSubmitForm(FormState&, FramePolicyFunction function)
 {
     notImplemented();
     // FIXME: This is surely too simple.
@@ -635,7 +635,7 @@ void FrameLoaderClientQt::setTitle(const StringWithDirection& title, const URL& 
     if (dumpHistoryCallbacks) {
         printf("WebView updated the title for history URL \"%s\" to \"%s\".\n",
             qPrintable(drtDescriptionSuitableForTestResult(url)),
-            qPrintable(QString(title.string())));
+            qPrintable(QString(title.string)));
     }
 }
 
@@ -710,7 +710,7 @@ void FrameLoaderClientQt::updateGlobalHistory()
     if (dumpHistoryCallbacks) {
         printf("WebView navigated to url \"%s\" with title \"%s\" with HTTP equivalent method \"%s\".  The navigation was %s and was %s%s.\n",
             qPrintable(drtDescriptionSuitableForTestResult(loader->urlForHistory())),
-            qPrintable(QString(loader->title().string())),
+            qPrintable(QString(loader->title().string)),
             qPrintable(QString(loader->request().httpMethod())),
             ((loader->substituteData().isValid() || (loader->response().httpStatusCode() >= 400)) ? "a failure" : "successful"),
             ((!loader->clientRedirectSourceForHistory().isEmpty()) ? "a client redirect from " : "not a client redirect"),
@@ -1147,7 +1147,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::Resourc
         callPolicyFunction(function, PolicyDownload);
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, PassRefPtr<WebCore::FormState>, const WTF::String&, FramePolicyFunction function)
+void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, const WTF::String&, FramePolicyFunction function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(request.toNetworkRequest(m_frame->loader().networkingContext()));
@@ -1167,7 +1167,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::
     callPolicyFunction(function, PolicyUse);
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, PassRefPtr<WebCore::FormState>, FramePolicyFunction function)
+void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, FramePolicyFunction function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(request.toNetworkRequest(m_frame->loader().networkingContext()));
@@ -1228,12 +1228,12 @@ void FrameLoaderClientQt::startDownload(const WebCore::ResourceRequest& request,
         m_webFrame->pageAdapter->emitDownloadRequested(r);
 }
 
-RefPtr<Frame> FrameLoaderClientQt::createFrame(const URL& url, const String& name, HTMLFrameOwnerElement* ownerElement, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight)
+RefPtr<Frame> FrameLoaderClientQt::createFrame(const URL& url, const String& name, HTMLFrameOwnerElement& ownerElement, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight)
 {
     if (!m_webFrame)
         return 0;
 
-    QWebFrameData frameData(m_frame->page(), m_frame, ownerElement, name);
+    QWebFrameData frameData(m_frame->page(), m_frame, &ownerElement, name);
 
     frameData.referrer = referrer;
     frameData.allowsScrolling = allowsScrolling;
@@ -1388,7 +1388,7 @@ private:
 };
 
 
-RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTMLPlugInElement* element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
+RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTMLPlugInElement& element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
 {
     // qDebug()<<"------ Creating plugin in FrameLoaderClientQt::createPlugin for "<<url.string() << mimeType;
     // qDebug()<<"------\t url = "<<url.string();
@@ -1398,7 +1398,7 @@ RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTML
 
     QStringList params;
     QStringList values;
-    QString classid(element->getAttribute("classid"));
+    QString classid(element.getAttribute("classid"));
 
     for (unsigned i = 0; i < paramNames.size(); ++i) {
         params.append(paramNames[i]);
@@ -1420,7 +1420,7 @@ RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTML
         if (widget && mimeType == "application/x-qt-styled-widget") {
 
             StringBuilder styleSheet;
-            styleSheet.append(element->getAttribute("style"));
+            styleSheet.append(element.getAttribute("style"));
             if (!styleSheet.isEmpty())
                 styleSheet.append(';');
 
@@ -1429,7 +1429,7 @@ RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTML
 
                 styleSheet.append(getPropertyName(property));
                 styleSheet.append(':');
-                styleSheet.append(CSSComputedStyleDeclaration::create(*element)->getPropertyValue(property));
+                styleSheet.append(CSSComputedStyleDeclaration::create(element)->getPropertyValue(property));
                 styleSheet.append(';');
             }
 
@@ -1475,7 +1475,7 @@ RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTML
                 values[wmodeIndex] = "opaque";
         }
 
-        RefPtr<PluginView> pluginView = PluginView::create(m_frame, pluginSize, element, url,
+        RefPtr<PluginView> pluginView = PluginView::create(m_frame, pluginSize, &element, url,
             params, values, mimeType, loadManually);
         return pluginView;
     }
@@ -1494,7 +1494,7 @@ void FrameLoaderClientQt::redirectDataToPlugin(Widget* pluginWidget)
     m_hasSentResponseToPlugin = false;
 }
 
-PassRefPtr<Widget> FrameLoaderClientQt::createJavaAppletWidget(const IntSize& pluginSize, HTMLAppletElement* element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues)
+RefPtr<Widget> FrameLoaderClientQt::createJavaAppletWidget(const IntSize& pluginSize, HTMLAppletElement& element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues)
 {
     return createPlugin(pluginSize, element, url, paramNames, paramValues, "application/x-java-applet", true);
 }
@@ -1507,7 +1507,7 @@ String FrameLoaderClientQt::overrideMediaType() const
     return String();
 }
 
-PassRefPtr<FrameNetworkingContext> FrameLoaderClientQt::createNetworkingContext()
+Ref<FrameNetworkingContext> FrameLoaderClientQt::createNetworkingContext()
 {
     QVariant value = m_webFrame->pageAdapter->handle()->property("_q_MIMESniffingDisabled");
     bool MIMESniffingDisabled = value.isValid() && value.toBool();

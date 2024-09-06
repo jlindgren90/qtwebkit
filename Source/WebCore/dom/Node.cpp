@@ -2228,7 +2228,7 @@ bool Node::dispatchGestureEvent(const PlatformGestureEvent& event)
     if (downcast<Element>(*this).isDisabledFormControl())
         return false;
 
-    EventDispatcher::dispatchEvent(this, *gestureEvent);
+    EventDispatcher::dispatchEvent(*this, *gestureEvent);
 
     ASSERT(!gestureEvent->defaultPrevented());
     return gestureEvent->defaultHandled() || gestureEvent->defaultPrevented();

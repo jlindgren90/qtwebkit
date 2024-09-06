@@ -70,10 +70,10 @@ public:
 
 #if PLATFORM(QT)
     // FIXME: Wrap QNetworkAccessManager into a NetworkStorageSession to make the code cross-platform.
-    virtual QObject* originatingObject() const = 0;
-    virtual QNetworkAccessManager* networkAccessManager() const = 0;
-    virtual bool mimeSniffingEnabled() const = 0;
-    virtual bool thirdPartyCookiePolicyPermission(const QUrl&) const = 0;
+    virtual QObject* originatingObject() const { return nullptr; }
+    virtual QNetworkAccessManager* networkAccessManager() const { return nullptr; }
+    virtual bool mimeSniffingEnabled() const { return false; }
+    virtual bool thirdPartyCookiePolicyPermission(const QUrl&) const { return false; }
 #endif
 
 #if PLATFORM(WIN)

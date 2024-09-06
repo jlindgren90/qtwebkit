@@ -149,10 +149,6 @@ public:
     virtual IntRect visibleRectForTiledBackingStore() const;
 #endif
 
-#if ENABLE(TOUCH_EVENTS)
-    void needTouchEvents(bool) final { }
-#endif
-
     void isPlayingMediaDidChange(MediaProducer::MediaStateFlags, uint64_t) final;
 
 #if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)) || USE(QT_MULTIMEDIA))
@@ -173,8 +169,8 @@ public:
     std::unique_ptr<ColorChooser> createColorChooser(ColorChooserClient*, const Color&) final;
 #endif
 
-    void runOpenPanel(Frame*, PassRefPtr<FileChooser>) final;
-    void loadIconForFiles(const Vector<String>&, FileIconLoader*) final;
+    void runOpenPanel(Frame&, FileChooser&) final;
+    void loadIconForFiles(const Vector<String>&, FileIconLoader&) final;
 
     void setCursor(const Cursor&) final;
     void setCursorHiddenUntilMouseMoves(bool) final { }

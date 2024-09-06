@@ -40,9 +40,9 @@ FrameNetworkingContextQt::FrameNetworkingContextQt(Frame* frame, QObject* origin
 {
 }
 
-PassRefPtr<FrameNetworkingContextQt> FrameNetworkingContextQt::create(Frame* frame, QObject* originatingObject, bool mimeSniffingEnabled)
+Ref<FrameNetworkingContextQt> FrameNetworkingContextQt::create(Frame* frame, QObject* originatingObject, bool mimeSniffingEnabled)
 {
-    return adoptRef(new FrameNetworkingContextQt(frame, originatingObject, mimeSniffingEnabled));
+    return adoptRef(*new FrameNetworkingContextQt(frame, originatingObject, mimeSniffingEnabled));
 }
 
 NetworkStorageSession& FrameNetworkingContextQt::storageSession() const

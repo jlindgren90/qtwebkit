@@ -325,10 +325,12 @@ void NetworkConnectionToWebProcess::writeBlobsToTemporaryFiles(const Vector<Stri
     });
 }
 
+#if ENABLE(NETWORK_CACHE)
 void NetworkConnectionToWebProcess::storeDerivedDataToCache(const WebKit::NetworkCache::DataKey& dataKey, const IPC::DataReference& data)
 {
     NetworkCache::singleton().storeData(dataKey, data.data(), data.size());
 }
+#endif
 
 void NetworkConnectionToWebProcess::ensureLegacyPrivateBrowsingSession()
 {

@@ -575,31 +575,29 @@ std::unique_ptr<ColorChooser> ChromeClientQt::createColorChooser(ColorChooserCli
 }
 #endif
 
-void ChromeClientQt::runOpenPanel(Frame* frame, PassRefPtr<FileChooser> prpFileChooser)
+void ChromeClientQt::runOpenPanel(Frame& frame, FileChooser& fileChooser)
 {
-    RefPtr<FileChooser> fileChooser = prpFileChooser;
-
     QStringList suggestedFileNames;
-    for (unsigned i = 0; i < fileChooser->settings().selectedFiles.size(); ++i)
-        suggestedFileNames += fileChooser->settings().selectedFiles[i];
+    for (unsigned i = 0; i < fileChooser.settings().selectedFiles.size(); ++i)
+        suggestedFileNames += fileChooser.settings().selectedFiles[i];
 
-    const bool allowMultiple = fileChooser->settings().allowsMultipleFiles;
+    const bool allowMultiple = fileChooser.settings().allowsMultipleFiles;
 
-    QStringList result = m_webPage->chooseFiles(QWebFrameAdapter::kit(frame), allowMultiple, suggestedFileNames);
+    QStringList result = m_webPage->chooseFiles(QWebFrameAdapter::kit(&frame), allowMultiple, suggestedFileNames);
     if (!result.isEmpty()) {
         if (allowMultiple) {
             Vector<String> names;
             for (int i = 0; i < result.count(); ++i)
                 names.append(result.at(i));
-            fileChooser->chooseFiles(names);
+            fileChooser.chooseFiles(names);
         } else
-            fileChooser->chooseFile(result.first());
+            fileChooser.chooseFile(result.first());
     }
 }
 
-void ChromeClientQt::loadIconForFiles(const Vector<String>& filenames, FileIconLoader* loader)
+void ChromeClientQt::loadIconForFiles(const Vector<String>& filenames, FileIconLoader& loader)
 {
-    loader->notifyFinished(Icon::createIconForFiles(filenames));
+    loader.iconLoaded(Icon::createIconForFiles(filenames));
 }
 
 void ChromeClientQt::setCursor(const Cursor& cursor)

@@ -294,8 +294,9 @@ bool PluginView::start()
 void PluginView::mediaCanStart(Document&)
 {
     ASSERT(!m_isStarted);
-    if (!start())
-        static_cast<WebFrameLoaderClient&>(parentFrame()->loader().client()).dispatchDidFailToStartPlugin(this);
+    // FIXME: WebFrameLoaderClient does not name a type
+    // if (!start())
+    //    static_cast<WebFrameLoaderClient&>(parentFrame()->loader().client()).dispatchDidFailToStartPlugin(this);
 }
 
 PluginView::~PluginView()

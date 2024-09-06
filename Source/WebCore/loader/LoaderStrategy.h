@@ -61,7 +61,9 @@ public:
 
     virtual void createPingHandle(NetworkingContext*, ResourceRequest&, bool shouldUseCredentialStorage, bool shouldFollowRedirects) = 0;
 
+#if ENABLE(NETWORK_CACHE)
     virtual void storeDerivedDataToCache(const SHA1::Digest& bodyKey, const String& type, const String& partition, WebCore::SharedBuffer&) = 0;
+#endif
 
 protected:
     virtual ~LoaderStrategy();

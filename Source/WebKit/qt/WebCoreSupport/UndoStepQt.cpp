@@ -133,11 +133,11 @@ static QString undoNameForEditAction(const EditAction editAction)
     return QString();
 }
 
-UndoStepQt::UndoStepQt(WTF::RefPtr<UndoStep> step)
+UndoStepQt::UndoStepQt(UndoStep& step)
     : m_step(step)
     , m_first(true)
 {
-    m_text = undoNameForEditAction(step->editingAction());
+    m_text = undoNameForEditAction(step.editingAction());
 }
 
 
@@ -151,15 +151,13 @@ void UndoStepQt::redo()
         m_first = false;
         return;
     }
-    if (m_step)
-        m_step->reapply();
+    m_step->reapply();
 }
 
 
 void UndoStepQt::undo()
 {
-    if (m_step)
-        m_step->unapply();
+    m_step->unapply();
 }
 
 QString UndoStepQt::text() const

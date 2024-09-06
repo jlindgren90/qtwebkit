@@ -42,6 +42,7 @@
 #include "ShadowRoot.h"
 #include "Text.h"
 #include <wtf/text/TextBreakIterator.h>
+#include <unicode/ubrk.h>
 
 namespace WebCore {
 
@@ -162,12 +163,12 @@ static inline void appendContextSubtargetsForNode(Node* node, SubtargetGeometryL
     if (textRenderer->frame().editor().behavior().shouldSelectOnContextualMenuClick()) {
         // Make subtargets out of every word.
         String textValue = textNode->data();
-        TextBreakIterator* wordIterator = wordBreakIterator(StringView(textValue));
-        int lastOffset = textBreakFirst(wordIterator);
+        UBreakIterator* wordIterator = wordBreakIterator(StringView(textValue));
+        int lastOffset = ubrk_first(wordIterator);
         if (lastOffset == -1)
             return;
         int offset;
-        while ((offset = textBreakNext(wordIterator)) != -1) {
+        while ((offset = ubrk_next(wordIterator)) != -1) {
             if (isWordTextBreak(wordIterator)) {
                 Vector<FloatQuad> quads = textRenderer->absoluteQuadsForRange(lastOffset, offset);
                 appendQuadsToSubtargetList(quads, textNode, subtargets);

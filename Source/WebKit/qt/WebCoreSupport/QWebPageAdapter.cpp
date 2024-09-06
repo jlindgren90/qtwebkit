@@ -105,9 +105,7 @@
 #include <QWheelEvent>
 
 #if ENABLE(DEVICE_ORIENTATION)
-#include "DeviceMotionClientMock.h"
 #include "DeviceMotionController.h"
-#include "DeviceOrientationClientMock.h"
 #include "DeviceOrientationController.h"
 #if HAVE(QTSENSORS)
 #include "DeviceMotionClientQt.h"
@@ -116,7 +114,6 @@
 #endif
 
 #if ENABLE(GEOLOCATION)
-#include "GeolocationClientMock.h"
 #include "GeolocationController.h"
 #if HAVE(QTPOSITIONING)
 #include "GeolocationClientQt.h"
@@ -229,9 +226,6 @@ QWebPageAdapter::QWebPageAdapter()
 
 void QWebPageAdapter::initializeWebCorePage()
 {
-#if ENABLE(GEOLOCATION) || ENABLE(DEVICE_ORIENTATION)
-    const bool useMock = QWebPageAdapter::drtRun;
-#endif
     PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
                                         SocketProvider::create());
     pageConfiguration.backForwardClient = BackForwardList::create();
@@ -250,34 +244,15 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();
     page = new Page(std::move(pageConfiguration));
 
-#if ENABLE(GEOLOCATION)
-    if (useMock) {
-        // In case running in DumpRenderTree mode set the controller to mock provider.
-        GeolocationClientMock* mock = new GeolocationClientMock;
-        WebCore::provideGeolocationTo(page, mock);
-        mock->setController(WebCore::GeolocationController::from(page));
-    }
-#if HAVE(QTPOSITIONING)
-    else
-        WebCore::provideGeolocationTo(page, new GeolocationClientQt(this));
-#endif
+#if ENABLE(GEOLOCATION) && HAVE(QTPOSITIONING)
+    WebCore::provideGeolocationTo(page, new GeolocationClientQt(this));
 #endif
 
-#if ENABLE(DEVICE_ORIENTATION)
-    if (useMock) {
-        m_deviceOrientationClient = new DeviceOrientationClientMock;
-        m_deviceMotionClient = new DeviceMotionClientMock;
-    }
-#if HAVE(QTSENSORS)
-    else {
-        m_deviceOrientationClient =  new DeviceOrientationClientQt;
-        m_deviceMotionClient = new DeviceMotionClientQt;
-    }
-#endif
-    if (m_deviceOrientationClient)
-        WebCore::provideDeviceOrientationTo(page, m_deviceOrientationClient);
-    if (m_deviceMotionClient)
-        WebCore::provideDeviceMotionTo(page, m_deviceMotionClient);
+#if ENABLE(DEVICE_ORIENTATION) && HAVE(QTSENSORS)
+    m_deviceOrientationClient = new DeviceOrientationClientQt;
+    m_deviceMotionClient = new DeviceMotionClientQt;
+    WebCore::provideDeviceOrientationTo(page, m_deviceOrientationClient);
+    WebCore::provideDeviceMotionTo(page, m_deviceMotionClient);
 #endif
 
     // By default each page is put into their own unique page group, which affects popup windows
@@ -332,7 +307,7 @@ ViewportArguments QWebPageAdapter::viewportArguments() const
 }
 
 
-void QWebPageAdapter::registerUndoStep(WTF::PassRefPtr<WebCore::UndoStep> step)
+void QWebPageAdapter::registerUndoStep(WebCore::UndoStep& step)
 {
     createUndoStep(QSharedPointer<UndoStepQt>(new UndoStepQt(step)));
 }

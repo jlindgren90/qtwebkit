@@ -393,11 +393,13 @@ void WebLoaderStrategy::createPingHandle(NetworkingContext* networkingContext, R
     WebProcess::singleton().networkConnection().connection().send(Messages::NetworkConnectionToWebProcess::LoadPing(loadParameters), 0);
 }
 
+#if ENABLE(NETWORK_CACHE)
 void WebLoaderStrategy::storeDerivedDataToCache(const SHA1::Digest& bodyHash, const String& type, const String& partition, WebCore::SharedBuffer& data)
 {
     NetworkCache::DataKey key { partition, type, bodyHash };
     IPC::SharedBufferDataReference dataReference { &data };
     WebProcess::singleton().networkConnection().connection().send(Messages::NetworkConnectionToWebProcess::StoreDerivedDataToCache(key, dataReference), 0);
 }
+#endif
 
 } // namespace WebKit

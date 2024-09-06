@@ -139,7 +139,7 @@ bool EditorClientQt::shouldInsertText(const String& string, Range* range, Editor
         };
 
         printf("EDITING DELEGATE: shouldInsertText:%s replacingDOMRange:%s givenAction:%s\n",
-            QString(string).toUtf8().constData(), dumpRange(range).toUtf8().constData(), insertactionstring[action]);
+            QString(string).toUtf8().constData(), dumpRange(range).toUtf8().constData(), insertactionstring[(int)action]);
     }
     return acceptsEditing;
 }
@@ -229,7 +229,7 @@ void EditorClientQt::getClientPasteboardDataForRange(Range*, Vector<String>&, Ve
 {
 }
 
-void EditorClientQt::registerUndoStep(WTF::PassRefPtr<WebCore::UndoStep> step)
+void EditorClientQt::registerUndoStep(WebCore::UndoStep& step)
 {
 #ifndef QT_NO_UNDOSTACK
     Frame& frame = m_page->page->focusController().focusedOrMainFrame();
@@ -239,7 +239,7 @@ void EditorClientQt::registerUndoStep(WTF::PassRefPtr<WebCore::UndoStep> step)
 #endif // QT_NO_UNDOSTACK
 }
 
-void EditorClientQt::registerRedoStep(WTF::PassRefPtr<WebCore::UndoStep>)
+void EditorClientQt::registerRedoStep(WebCore::UndoStep&)
 {
 }
 
@@ -306,7 +306,7 @@ bool EditorClientQt::shouldInsertNode(Node* node, Range* range, EditorInsertActi
         };
 
         printf("EDITING DELEGATE: shouldInsertNode:%s replacingDOMRange:%s givenAction:%s\n", dumpPath(*node).toUtf8().constData(),
-            dumpRange(range).toUtf8().constData(), insertactionstring[action]);
+            dumpRange(range).toUtf8().constData(), insertactionstring[(int)action]);
     }
     return acceptsEditing;
 }

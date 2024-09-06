@@ -1211,17 +1211,6 @@ static RefPtr<Node> findInsertionPoint(PassRefPtr<Node> root)
     while (node->hasChildNodes() && node->firstChild()->isElementNode())
         node = node->firstChild();
 
-    // TODO: Implement SVG support
-    if (node->isHTMLElement()) {
-        HTMLElement* element = static_cast<HTMLElement*>(node.get());
-
-        // The insert point could be a non-enclosable tag and it can thus
-        // never have children, so go one up. Get the parent element, and not
-        // note as a root note will always exist.
-        if (element->ieForbidsInsertHTML())
-            node = node->parentElement();
-    }
-
     return node;
 }
 

@@ -41,10 +41,8 @@
 #include <QTemporaryFile>
 #include <wtf/text/CString.h>
 #include <wtf/text/WTFString.h>
-
-#if !defined(Q_OS_WIN)
+#include <sys/stat.h>
 #include <sys/statvfs.h>
-#endif
 
 namespace WebCore {
 
@@ -231,18 +229,13 @@ long long seekFile(PlatformFileHandle handle, long long offset, FileSeekOrigin o
 
 bool getVolumeFreeSpace(const String& path, uint64_t& freeSpace)
 {
-#if defined(Q_OS_WIN)
-    return false; // FIXME
-#else
     struct statvfs volumeInfo;
-    if (statvfs(path.utf8().data(), &volumeInfo))
+    if (statvfs(path.utf8().data(), &volumeInfo) != 0)
         return false;
 
     freeSpace = (uint64_t)volumeInfo.f_bavail * (uint64_t)volumeInfo.f_frsize;
     return true;
-#endif
 }
-
 
 int writeToFile(PlatformFileHandle handle, const char* data, int length)
 {
@@ -275,6 +268,16 @@ bool unloadModule(PlatformModule module)
 bool hardLinkOrCopyFile(const String& source, const String& destination)
 {
     return QFile::copy(source, destination);
+}
+
+// copied from FileSystemPOSIX
+std::optional<int32_t> getFileDeviceId(const CString& fsFile)
+{
+    struct stat fileStat;
+    if (stat(fsFile.data(), &fileStat) != 0)
+        return std::nullopt;
+
+    return fileStat.st_dev;
 }
 
 }

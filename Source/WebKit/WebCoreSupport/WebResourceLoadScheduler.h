@@ -56,7 +56,9 @@ public:
 
     void createPingHandle(WebCore::NetworkingContext*, WebCore::ResourceRequest&, bool shouldUseCredentialStorage, bool shouldFollowRedirects) override;
 
+#if ENABLE(NETWORK_CACHE)
     void storeDerivedDataToCache(const SHA1::Digest&, const String&, const String&, WebCore::SharedBuffer&) override { }
+#endif
 
     bool isSerialLoadingEnabled() const { return m_isSerialLoadingEnabled; }
     void setSerialLoadingEnabled(bool b) { m_isSerialLoadingEnabled = b; }

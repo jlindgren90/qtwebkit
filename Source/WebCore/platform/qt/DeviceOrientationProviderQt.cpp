@@ -66,9 +66,11 @@ bool DeviceOrientationProviderQt::filter(QRotationReading* reading)
         // The Z (alpha) rotation angle is checked via hasAlpha() private method,
         // depending if the device is able do detect the alpha rotation. X (beta) and
         // Y (gamma) axis are availble in this context.
-        m_lastOrientation = DeviceOrientationData::create(hasAlpha(), reading->z(),
-                /* x available */ true, reading->x(),
-                /* y available */ true, reading->y());
+        m_lastOrientation = DeviceOrientationData::create(
+                hasAlpha() ? std::make_optional(reading->z()) : std::nullopt,
+                std::make_optional(reading->x()),
+                std::make_optional(reading->y()),
+                std::nullopt);
         m_controller->didChangeDeviceOrientation(m_lastOrientation.get());
     }
 
