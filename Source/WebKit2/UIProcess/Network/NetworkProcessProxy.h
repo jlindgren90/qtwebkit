@@ -129,7 +129,8 @@ private:
     HashMap<uint64_t, std::function<void ()>> m_pendingDeleteWebsiteDataForOriginsCallbacks;
 
     std::unique_ptr<DownloadProxyMap> m_downloadProxyMap;
-    CustomProtocolManagerProxy m_customProtocolManagerProxy;
+    // FIXME: Qt port
+    // CustomProtocolManagerProxy m_customProtocolManagerProxy;
     ProcessThrottler m_throttler;
     ProcessThrottler::BackgroundActivityToken m_tokenForHoldingLockedFiles;
 };

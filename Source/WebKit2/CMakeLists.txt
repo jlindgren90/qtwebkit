@@ -96,7 +96,8 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
 endif ()
 
 set(NetworkProcess_COMMON_SOURCES
-    NetworkProcess/CustomProtocols/CustomProtocolManager.cpp
+    # FIXME: Qt port
+    # NetworkProcess/CustomProtocols/CustomProtocolManager.cpp
 
     NetworkProcess/NetworkConnectionToWebProcess.cpp
     NetworkProcess/NetworkDataTask.cpp
@@ -594,7 +595,8 @@ set(WebKit2_MESSAGES_IN_FILES
 
     DatabaseProcess/IndexedDB/WebIDBConnectionToClient.messages.in
 
-    NetworkProcess/CustomProtocols/CustomProtocolManager.messages.in
+    # FIXME: Qt port
+    # NetworkProcess/CustomProtocols/CustomProtocolManager.messages.in
 
     NetworkProcess/NetworkConnectionToWebProcess.messages.in
     NetworkProcess/NetworkProcess.messages.in
@@ -634,7 +636,8 @@ set(WebKit2_MESSAGES_IN_FILES
 
     UIProcess/Network/NetworkProcessProxy.messages.in
 
-    UIProcess/Network/CustomProtocols/CustomProtocolManagerProxy.messages.in
+    # FIXME: Qt port
+    # UIProcess/Network/CustomProtocols/CustomProtocolManagerProxy.messages.in
 
     UIProcess/Plugins/PluginProcessProxy.messages.in
 

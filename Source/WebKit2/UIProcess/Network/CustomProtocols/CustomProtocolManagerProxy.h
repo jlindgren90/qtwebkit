@@ -26,6 +26,8 @@
 #ifndef CustomProtocolManagerProxy_h
 #define CustomProtocolManagerProxy_h
 
+#if 0 // FIXME: Qt port
+
 #include "MessageReceiver.h"
 
 #if PLATFORM(COCOA)
@@ -80,5 +82,7 @@ private:
 };
 
 } // namespace WebKit
+
+#endif
 
 #endif // CustomProtocolManagerProxy_h

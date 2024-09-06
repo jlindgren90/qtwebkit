@@ -25,6 +25,8 @@
 
 #pragma once
 
+#if 0 // FIXME: Qt port
+
 #include "MessageReceiver.h"
 #include "NetworkProcessSupplement.h"
 #include <wtf/HashMap.h>
@@ -135,3 +137,4 @@ private:
 
 } // namespace WebKit
 
+#endif

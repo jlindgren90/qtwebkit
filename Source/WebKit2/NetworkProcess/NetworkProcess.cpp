@@ -108,9 +108,11 @@ NetworkProcess::NetworkProcess()
 
     addSupplement<AuthenticationManager>();
     addSupplement<WebCookieManager>();
+#if 0 // FIXME: Qt port
     addSupplement<CustomProtocolManager>();
 #if USE(NETWORK_SESSION) && PLATFORM(COCOA)
     NetworkSessionCocoa::setCustomProtocolManager(supplement<CustomProtocolManager>());
+#endif
 #endif
 }
 

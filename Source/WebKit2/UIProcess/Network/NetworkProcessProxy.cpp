@@ -67,7 +67,8 @@ Ref<NetworkProcessProxy> NetworkProcessProxy::create(WebProcessPool& processPool
 NetworkProcessProxy::NetworkProcessProxy(WebProcessPool& processPool)
     : m_processPool(processPool)
     , m_numPendingConnectionRequests(0)
-    , m_customProtocolManagerProxy(this, processPool)
+    // FIXME: Qt port
+    // , m_customProtocolManagerProxy(this, processPool)
     , m_throttler(*this)
 {
     connect();
@@ -219,7 +220,8 @@ void NetworkProcessProxy::didClose(IPC::Connection&)
 {
     if (m_downloadProxyMap)
         m_downloadProxyMap->processDidClose();
-    m_customProtocolManagerProxy.processDidClose();
+    // FIXME: Qt port
+    // m_customProtocolManagerProxy.processDidClose();
 
     m_tokenForHoldingLockedFiles = nullptr;
 

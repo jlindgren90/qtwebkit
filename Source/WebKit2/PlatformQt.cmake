@@ -61,8 +61,6 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
 list(APPEND WebKit2_SOURCES
     DatabaseProcess/qt/DatabaseProcessMainQt.cpp
 
-    NetworkProcess/CustomProtocols/qt/CustomProtocolManagerQt.cpp
-
     NetworkProcess/Downloads/qt/DownloadQt.cpp
     NetworkProcess/Downloads/qt/QtFileDownloader.cpp
 
@@ -146,8 +144,6 @@ list(APPEND WebKit2_SOURCES
     UIProcess/InspectorServer/qt/WebSocketServerQt.cpp
 
     UIProcess/Launcher/qt/ProcessLauncherQt.cpp
-
-    UIProcess/Network/CustomProtocols/qt/CustomProtocolManagerProxyQt.cpp
 
     UIProcess/Plugins/qt/PluginProcessProxyQt.cpp
 
