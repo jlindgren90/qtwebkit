@@ -33,6 +33,9 @@
 
 #if USE(SOUP) || PLATFORM(QT)
 #include "HTTPCookieAcceptPolicy.h"
+#endif
+
+#if USE(SOUP)
 #include <WebCore/SoupNetworkProxySettings.h>
 #endif
 
@@ -102,6 +105,9 @@ struct NetworkProcessCreationParameters {
     HTTPCookieAcceptPolicy cookieAcceptPolicy;
     bool ignoreTLSErrors;
     Vector<String> languages;
+#endif
+
+#if USE(SOUP)
     WebCore::SoupNetworkProxySettings proxySettings;
 #endif
 

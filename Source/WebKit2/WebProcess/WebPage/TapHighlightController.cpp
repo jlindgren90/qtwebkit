@@ -64,7 +64,7 @@ void TapHighlightController::highlight(Node* node)
     if (!m_overlay) {
         RefPtr<PageOverlay> overlay = PageOverlay::create(*this);
         m_overlay = overlay.get();
-        m_webPage->mainFrame()->pageOverlayController().installPageOverlay(overlay.release(), PageOverlay::FadeMode::Fade);
+        m_webPage->mainFrame()->pageOverlayController().installPageOverlay(*overlay, PageOverlay::FadeMode::Fade);
     } else
         m_overlay->setNeedsDisplay();
 }
@@ -72,7 +72,7 @@ void TapHighlightController::highlight(Node* node)
 void TapHighlightController::hideHighlight()
 {
     if (m_overlay)
-        m_webPage->mainFrame()->pageOverlayController().uninstallPageOverlay(m_overlay, PageOverlay::FadeMode::Fade);
+        m_webPage->mainFrame()->pageOverlayController().uninstallPageOverlay(*m_overlay, PageOverlay::FadeMode::Fade);
 }
 
 void TapHighlightController::willMoveToPage(PageOverlay&, WebCore::Page* webPage)

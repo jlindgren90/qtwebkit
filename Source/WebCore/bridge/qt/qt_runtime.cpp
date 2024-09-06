@@ -502,11 +502,13 @@ QVariant convertValueToQVariant(JSContextRef context, JSValueRef value, QMetaTyp
 
         case QMetaType::QByteArray: {
             if (type == RTUint8Array) {
-                RefPtr<JSC::Uint8Array> arr = toPossiblySharedUint8Array(toJS(toJS(context), value));
+                JSC::ExecState* exec = toJS(context);
+                RefPtr<JSC::Uint8Array> arr = toPossiblySharedUint8Array(exec->vm(), toJS(exec, value));
                 ret = QVariant(QByteArray(reinterpret_cast<const char*>(arr->data()), arr->length()));
                 dist = 0;
             } else if (type == RTUint8ClampedArray) {
-                RefPtr<JSC::Uint8ClampedArray> arr = toPossiblySharedUint8ClampedArray(toJS(toJS(context), value));
+                JSC::ExecState* exec = toJS(context);
+                RefPtr<JSC::Uint8ClampedArray> arr = toPossiblySharedUint8ClampedArray(exec->vm(), toJS(exec, value));
                 ret = QVariant(QByteArray(reinterpret_cast<const char*>(arr->data()), arr->length()));
                 dist = 0;
             } else {
@@ -764,11 +766,11 @@ JSValueRef convertQVariantToValue(JSContextRef context, PassRefPtr<RootObject> r
         if (!root->globalObject()->inherits(JSDOMWindow::info()))
             return JSValueMakeUndefined(context);
 
-        Document* document = JSDOMWindow::toWrapped(root->globalObject())->document();
-        if (!document)
-            return JSValueMakeUndefined(context);
         ExecState* exec = toJS(context);
         JSLockHolder locker(exec);
+        Document* document = JSDOMWindow::toWrapped(exec->vm(), root->globalObject())->document();
+        if (!document)
+            return JSValueMakeUndefined(context);
         return toRef(exec, customRuntimeConversions()->value(type).toJSValueFunc(exec, toJSDOMGlobalObject(document, exec), variant));
     }
 

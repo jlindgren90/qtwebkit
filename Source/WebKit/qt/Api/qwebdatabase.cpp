@@ -143,7 +143,7 @@ QString QWebDatabase::fileName() const
 */
 QWebSecurityOrigin QWebDatabase::origin() const
 {
-    QWebSecurityOriginPrivate* priv = new QWebSecurityOriginPrivate(d->origin.get());
+    QWebSecurityOriginPrivate* priv = new QWebSecurityOriginPrivate(*d->origin);
     QWebSecurityOrigin origin(priv);
     return origin;
 }
@@ -155,7 +155,6 @@ QWebSecurityOrigin QWebDatabase::origin() const
 void QWebDatabase::removeDatabase(const QWebDatabase& db)
 {
     // FIXME
-    // DatabaseManager::singleton().deleteDatabase(db.d->origin.get(), db.d->name);
 }
 
 /*!
@@ -168,7 +167,6 @@ void QWebDatabase::removeDatabase(const QWebDatabase& db)
 void QWebDatabase::removeAllDatabases()
 {
     // FIXME
-    // DatabaseManager::singleton().deleteAllDatabasesImmediately();
 }
 
 /*!

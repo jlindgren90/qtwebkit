@@ -2873,7 +2873,7 @@ bool EventHandler::handleGestureEvent(const PlatformGestureEvent& gestureEvent)
 
     // FIXME: A more general scroll system (https://bugs.webkit.org/show_bug.cgi?id=80596) will
     // eliminate the need for this.
-    SetForScope<PlatformEvent::Type> baseEventType(m_baseEventType, gestureEvent.type());
+    // SetForScope<PlatformEvent::Type> baseEventType(m_baseEventType, gestureEvent.type());
 
     switch (gestureEvent.type()) {
     case PlatformEvent::GestureTap:

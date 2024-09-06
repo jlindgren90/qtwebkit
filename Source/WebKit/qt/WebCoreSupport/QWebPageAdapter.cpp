@@ -53,6 +53,7 @@
 #include "InspectorClientQt.h"
 #include "InspectorController.h"
 #include "InspectorServerQt.h"
+#include "LibWebRTCProvider.h"
 #include "LocalizedStrings.h"
 #include "MIMETypeRegistry.h"
 #include "MainFrame.h"
@@ -227,7 +228,8 @@ QWebPageAdapter::QWebPageAdapter()
 void QWebPageAdapter::initializeWebCorePage()
 {
     PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
-                                        SocketProvider::create());
+                                        SocketProvider::create(),
+                                        WTF::makeUniqueRef<LibWebRTCProvider>());
     pageConfiguration.backForwardClient = BackForwardList::create();
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
@@ -1574,7 +1576,7 @@ void QWebPageAdapter::openNewWindow(const QUrl& url, Frame* frame)
         WindowFeatures features;
         NavigationAction action;
         FrameLoadRequest request = frameLoadRequest(url, frame);
-        if (Page* newPage = oldPage->chrome().createWindow(frame, request, features, action)) {
+        if (Page* newPage = oldPage->chrome().createWindow(*frame, request, features, action)) {
             newPage->mainFrame().loader().loadFrameRequest(request, /*event*/ 0, /*FormState*/ 0);
             newPage->chrome().show();
         }

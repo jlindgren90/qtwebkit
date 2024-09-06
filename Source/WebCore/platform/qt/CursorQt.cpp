@@ -44,29 +44,6 @@
 
 namespace WebCore {
 
-Cursor::Cursor(const Cursor& other)
-    : m_type(other.m_type)
-    , m_image(other.m_image)
-    , m_hotSpot(other.m_hotSpot)
-#ifndef QT_NO_CURSOR
-    , m_platformCursor(other.m_platformCursor)
-#endif
-{
-}
-
-Cursor::~Cursor() = default;
-
-Cursor& Cursor::operator=(const Cursor& other)
-{
-    m_type = other.m_type;
-    m_image = other.m_image;
-    m_hotSpot = other.m_hotSpot;
-#ifndef QT_NO_CURSOR
-    m_platformCursor = other.m_platformCursor;
-#endif
-    return *this;
-}
-
 #ifndef QT_NO_CURSOR
 static std::optional<QCursor> createCustomCursor(Image* image, const IntPoint& hotSpot)
 {

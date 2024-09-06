@@ -93,6 +93,8 @@ void NetworkProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder.encodeEnum(cookieAcceptPolicy);
     encoder << ignoreTLSErrors;
     encoder << languages;
+#endif
+#if USE(SOUP)
     encoder << proxySettings;
 #endif
 #if OS(LINUX)
@@ -190,6 +192,8 @@ bool NetworkProcessCreationParameters::decode(IPC::Decoder& decoder, NetworkProc
         return false;
     if (!decoder.decode(result.languages))
         return false;
+#endif
+#if USE(SOUP)
     if (!decoder.decode(result.proxySettings))
         return false;
 #endif

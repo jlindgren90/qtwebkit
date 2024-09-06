@@ -108,6 +108,9 @@ public:
     bool inherits(VM&, const ClassInfo*) const;
     bool isAPIValueWrapper() const;
     
+    // FIXME: keeping for Qt port
+    inline bool inherits(const ClassInfo* info) const { return inherits(*vm(), info); }
+
     // Each cell has a built-in lock. Currently it's simply available for use if you need it. It's
     // a full-blown WTF::Lock. Note that this lock is currently used in JSArray and that lock's
     // ordering with the Structure lock is that the Structure lock must be acquired first.

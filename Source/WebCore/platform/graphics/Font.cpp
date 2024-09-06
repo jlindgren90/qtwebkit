@@ -29,6 +29,7 @@
 
 #include "config.h"
 #include "Font.h"
+#include <algorithm>
 
 #if PLATFORM(COCOA)
 #include "CoreTextSPI.h"
@@ -380,8 +381,13 @@ bool Font::applyTransforms(GlyphBufferGlyph* glyphs, GlyphBufferAdvance* advance
     CTFontTransformOptions options = (enableKerning ? kCTFontTransformApplyPositioning : 0) | (requiresShaping ? kCTFontTransformApplyShaping : 0);
     return CTFontTransformGlyphs(m_platformData.ctFont(), glyphs, reinterpret_cast<CGSize*>(advances), glyphCount, options);
 #elif PLATFORM(QT)
+    Vector<QPointF> points(glyphCount);
     QRawFont::LayoutFlags flags = enableKerning ? QRawFont::KernedAdvances : QRawFont::SeparateAdvances;
-    return m_platformData.rawFont().advancesForGlyphIndexes(glyphs, advances, glyphCount, flags);
+    if (!m_platformData.rawFont().advancesForGlyphIndexes(glyphs, points.data(), glyphCount, flags))
+        return false;
+    std::transform(points.begin(), points.end(), advances,
+        [](const QPointF& p) { return FloatSize(p.x(), p.y()); });
+    return true;
 #else
     UNUSED_PARAM(glyphs);
     UNUSED_PARAM(advances);

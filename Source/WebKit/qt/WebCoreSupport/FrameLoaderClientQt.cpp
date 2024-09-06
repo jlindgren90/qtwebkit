@@ -760,7 +760,7 @@ void FrameLoaderClientQt::didDisplayInsecureContent()
     notImplemented();
 }
 
-void FrameLoaderClientQt::didRunInsecureContent(WebCore::SecurityOrigin*, const URL&)
+void FrameLoaderClientQt::didRunInsecureContent(WebCore::SecurityOrigin&, const URL&)
 {
     if (dumpFrameLoaderCallbacks)
         printf("didRunInsecureContent\n");

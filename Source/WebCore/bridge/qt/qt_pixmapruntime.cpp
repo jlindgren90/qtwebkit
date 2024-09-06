@@ -138,7 +138,7 @@ static JSValueRef assignToHTMLImageElement(JSContextRef context, JSObjectRef /*f
 
     // We now know that we have a valid <img> element as the argument, we can attach the pixmap to it.
     RefPtr<StillImage> stillImage = WebCore::StillImage::create(toPixmap(data));
-    HTMLImageElement* imageElement = JSHTMLImageElement::toWrapped(jsObject);
+    HTMLImageElement* imageElement = JSHTMLImageElement::toWrapped(*jsObject->vm(), jsObject);
     imageElement->setCachedImage(new CachedImage(stillImage.get(), SessionID::defaultSessionID()));
     return JSValueMakeUndefined(context);
 }
@@ -221,7 +221,7 @@ QVariant QtPixmapRuntime::toQt(JSContextRef context, JSObjectRef obj, QMetaType:
     if (!jsObject->inherits(JSHTMLImageElement::info()))
         return emptyVariantForHint(hint);
 
-    HTMLImageElement* imageElement = JSHTMLImageElement::toWrapped(jsObject);
+    HTMLImageElement* imageElement = JSHTMLImageElement::toWrapped(*jsObject->vm(), jsObject);
 
     if (!imageElement)
         return emptyVariantForHint(hint);

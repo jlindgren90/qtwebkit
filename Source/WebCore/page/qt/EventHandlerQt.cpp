@@ -61,7 +61,7 @@ const double EventHandler::TextDragDelay = 0.0;
 #endif
 #endif
 
-bool EventHandler::tabsToAllFormControls(KeyboardEvent* event) const
+bool EventHandler::tabsToAllFormControls(KeyboardEvent& event) const
 {
     return !isKeyboardOptionTab(event);
 }
@@ -97,7 +97,7 @@ bool EventHandler::widgetDidHandleWheelEvent(const PlatformWheelEvent& event, Wi
 }
 
 #if ENABLE(DRAG_SUPPORT)
-PassRefPtr<DataTransfer> EventHandler::createDraggingDataTransfer() const
+Ref<DataTransfer> EventHandler::createDraggingDataTransfer() const
 {
     return DataTransfer::createForDragAndDrop();
 }

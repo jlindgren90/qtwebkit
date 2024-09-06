@@ -80,7 +80,7 @@ public:
     void focusedElementChanged(Element*) final;
     void focusedFrameChanged(Frame*) final;
 
-    Page* createWindow(Frame*, const FrameLoadRequest&, const WindowFeatures&, const NavigationAction&) final;
+    Page* createWindow(Frame&, const FrameLoadRequest&, const WindowFeatures&, const NavigationAction&) final;
     void show() final;
 
     bool canRunModal() final;
@@ -103,13 +103,13 @@ public:
     void addMessageToConsole(MessageSource, MessageLevel, const String& message, unsigned lineNumber, unsigned columnNumber, const String& sourceID) final;
 
     bool canRunBeforeUnloadConfirmPanel() final;
-    bool runBeforeUnloadConfirmPanel(const String& message, Frame*) final;
+    bool runBeforeUnloadConfirmPanel(const String& message, Frame&) final;
 
     void closeWindowSoon() final;
 
-    void runJavaScriptAlert(Frame*, const String&) final;
-    bool runJavaScriptConfirm(Frame*, const String&) final;
-    bool runJavaScriptPrompt(Frame*, const String& message, const String& defaultValue, String& result) final;
+    void runJavaScriptAlert(Frame&, const String&) final;
+    bool runJavaScriptConfirm(Frame&, const String&) final;
+    bool runJavaScriptPrompt(Frame&, const String& message, const String& defaultValue, String& result) final;
 
     void setStatusbarText(const String&) final;
 
@@ -126,20 +126,20 @@ public:
     IntPoint screenToRootView(const IntPoint&) const final;
     IntRect rootViewToScreen(const IntRect&) const final;
     PlatformPageClient platformPageClient() const final;
-    void contentsSizeChanged(Frame*, const IntSize&) const final;
+    void contentsSizeChanged(Frame&, const IntSize&) const final;
 
     void scrollbarsModeDidChange() const final { }
     void mouseDidMoveOverElement(const HitTestResult&, unsigned modifierFlags) final;
 
     void setToolTip(const String&, TextDirection) final;
 
-    void print(Frame*) final;
-    void exceededDatabaseQuota(Frame*, const String&, DatabaseDetails) final;
+    void print(Frame&) final;
+    void exceededDatabaseQuota(Frame&, const String&, DatabaseDetails) final;
     void reachedMaxAppCacheSize(int64_t spaceNeeded) final;
-    void reachedApplicationCacheOriginQuota(SecurityOrigin*, int64_t totalSpaceNeeded) final;
+    void reachedApplicationCacheOriginQuota(SecurityOrigin&, int64_t totalSpaceNeeded) final;
 
     // This is a hook for WebCore to tell us what we need to do with the GraphicsLayers.
-    void attachRootGraphicsLayer(Frame*, GraphicsLayer*) final;
+    void attachRootGraphicsLayer(Frame&, GraphicsLayer*) final;
     void setNeedsOneShotDrawingSynchronization() final;
     void scheduleCompositingLayerFlush() final;
     CompositingTriggerFlags allowedCompositingTriggers() const final;
@@ -160,13 +160,13 @@ public:
 #endif
 
 #if ENABLE(FULLSCREEN_API)
-    bool supportsFullScreenForElement(const Element*, bool) override;
-    void enterFullScreenForElement(Element*) override;
+    bool supportsFullScreenForElement(const Element&, bool) override;
+    void enterFullScreenForElement(Element&) override;
     void exitFullScreenForElement(Element*) override;
 #endif
 
 #if ENABLE(INPUT_TYPE_COLOR)
-    std::unique_ptr<ColorChooser> createColorChooser(ColorChooserClient*, const Color&) final;
+    std::unique_ptr<ColorChooser> createColorChooser(ColorChooserClient&, const Color&) final;
 #endif
 
     void runOpenPanel(Frame&, FileChooser&) final;
@@ -185,8 +185,8 @@ public:
     bool selectItemWritingDirectionIsNatural() final;
     bool selectItemAlignmentFollowsMenuWritingDirection() final;
     bool hasOpenedPopup() const final;
-    RefPtr<PopupMenu> createPopupMenu(PopupMenuClient*) const final;
-    RefPtr<SearchPopupMenu> createSearchPopupMenu(PopupMenuClient*) const final;
+    RefPtr<PopupMenu> createPopupMenu(PopupMenuClient&) const final;
+    RefPtr<SearchPopupMenu> createSearchPopupMenu(PopupMenuClient&) const final;
 
     std::unique_ptr<QWebSelectMethod> createSelectPopup() const;
 
@@ -194,7 +194,7 @@ public:
 
     void wheelEventHandlersChanged(bool) final { }
 
-    void attachViewOverlayGraphicsLayer(Frame *, GraphicsLayer *) final;
+    void attachViewOverlayGraphicsLayer(Frame&, GraphicsLayer*) final;
 
     QWebFullScreenVideoHandler* createFullScreenVideoHandler();
 

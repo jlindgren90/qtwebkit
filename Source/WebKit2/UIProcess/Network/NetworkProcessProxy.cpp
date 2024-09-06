@@ -27,7 +27,8 @@
 #include "NetworkProcessProxy.h"
 
 #include "AuthenticationChallengeProxy.h"
-#include "CustomProtocolManagerProxyMessages.h"
+// FIXME: Qt port
+// #include "CustomProtocolManagerProxyMessages.h"
 #include "DatabaseProcessMessages.h"
 #include "DownloadProxyMessages.h"
 #include "Logging.h"

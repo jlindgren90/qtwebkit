@@ -279,7 +279,7 @@ QWebSecurityOrigin::QWebSecurityOrigin(const QUrl& url)
 */
 void QWebSecurityOrigin::addAccessWhitelistEntry(const QString& scheme, const QString& host, SubdomainSetting subdomainSetting)
 {
-    SecurityPolicy::addOriginAccessWhitelistEntry(*(d->origin), scheme, host, subdomainSetting == AllowSubdomains);
+    SecurityPolicy::addOriginAccessWhitelistEntry(d->origin, scheme, host, subdomainSetting == AllowSubdomains);
 }
 
 /*!
@@ -288,7 +288,7 @@ void QWebSecurityOrigin::addAccessWhitelistEntry(const QString& scheme, const QS
 */
 void QWebSecurityOrigin::removeAccessWhitelistEntry(const QString& scheme, const QString& host, SubdomainSetting subdomainSetting)
 {
-    SecurityPolicy::removeOriginAccessWhitelistEntry(*(d->origin), scheme, host, subdomainSetting == AllowSubdomains);
+    SecurityPolicy::removeOriginAccessWhitelistEntry(d->origin, scheme, host, subdomainSetting == AllowSubdomains);
 }
 
 

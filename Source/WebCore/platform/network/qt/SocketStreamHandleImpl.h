@@ -57,7 +57,7 @@ namespace WebCore {
 
     class SocketStreamHandleImpl final : public SocketStreamHandle {
     public:
-        static Ref<SocketStreamHandleImpl> create(const URL& url, SocketStreamHandleClient& client, SessionID) { return adoptRef(*new SocketStreamHandleImpl(url, client)); }
+        static Ref<SocketStreamHandleImpl> create(const URL& url, SocketStreamHandleClient& client, SessionID, const String&) { return adoptRef(*new SocketStreamHandleImpl(url, client)); }
         static Ref<SocketStreamHandleImpl> create(QTcpSocket* socket, SocketStreamHandleClient& client) { return adoptRef(*new SocketStreamHandleImpl(socket, client)); }
 
         ~SocketStreamHandleImpl();

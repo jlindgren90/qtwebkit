@@ -33,7 +33,8 @@
 #include "APILegacyContextHistoryClient.h"
 #include "APIPageConfiguration.h"
 #include "APIProcessPoolConfiguration.h"
-#include "CustomProtocolManagerMessages.h"
+// FIXME: Qt port
+// #include "CustomProtocolManagerMessages.h"
 #include "DownloadProxy.h"
 #include "DownloadProxyMessages.h"
 #include "GamepadData.h"
@@ -1386,7 +1387,8 @@ void WebProcessPool::registerSchemeForCustomProtocol(const String& scheme)
 #if USE(SOUP)
     m_urlSchemesRegisteredForCustomProtocols.add(scheme);
 #endif
-    sendToNetworkingProcess(Messages::CustomProtocolManager::RegisterScheme(scheme));
+    // FIXME: Qt port
+    // sendToNetworkingProcess(Messages::CustomProtocolManager::RegisterScheme(scheme));
 }
 
 void WebProcessPool::unregisterSchemeForCustomProtocol(const String& scheme)
@@ -1394,7 +1396,8 @@ void WebProcessPool::unregisterSchemeForCustomProtocol(const String& scheme)
 #if USE(SOUP)
     m_urlSchemesRegisteredForCustomProtocols.remove(scheme);
 #endif
-    sendToNetworkingProcess(Messages::CustomProtocolManager::UnregisterScheme(scheme));
+    // FIXME: Qt port
+    // sendToNetworkingProcess(Messages::CustomProtocolManager::UnregisterScheme(scheme));
 }
 
 #if ENABLE(NETSCAPE_PLUGIN_API)

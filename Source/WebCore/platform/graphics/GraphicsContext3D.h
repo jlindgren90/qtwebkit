@@ -1435,7 +1435,7 @@ private:
     QOpenGLExtensions* m_functions;
 #endif
 
-#if USE(TEXTURE_MAPPER) && !PLATFORM(EFL)
+#if USE(TEXTURE_MAPPER) && !PLATFORM(EFL) && !PLATFORM(QT)
     friend class TextureMapperGC3DPlatformLayer;
     std::unique_ptr<TextureMapperGC3DPlatformLayer> m_texmapLayer;
 #else

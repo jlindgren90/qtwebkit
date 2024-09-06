@@ -146,7 +146,7 @@ public:
     void updateGlobalHistoryRedirectLinks() override;
     bool shouldGoToHistoryItem(HistoryItem*) const override;
     void didDisplayInsecureContent() override;
-    void didRunInsecureContent(SecurityOrigin*, const URL&) override;
+    void didRunInsecureContent(SecurityOrigin&, const URL&) override;
     void didDetectXSS(const URL&, bool didBlockEntirePage) override;
 
     ResourceError cancelledError(const ResourceRequest&) override;

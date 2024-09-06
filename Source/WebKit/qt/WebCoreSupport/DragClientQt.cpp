@@ -90,7 +90,7 @@ void DragClientQt::willPerformDragSourceAction(DragSourceAction, const IntPoint&
 {
 }
 
-void DragClientQt::startDrag(DragImageRef dragImage, const IntPoint& dragImageOrigin, const IntPoint& eventPos, DataTransfer& dataTransfer, Frame& frame, bool)
+void DragClientQt::startDrag(DragImageRef dragImage, const IntPoint& dragImageOrigin, const IntPoint& eventPos, const FloatPoint&, DataTransfer& dataTransfer, Frame& frame, bool)
 {
 #if ENABLE(DRAG_SUPPORT)
     QMimeData* clipboardData = dataTransfer.pasteboard().clipboardData();

@@ -2066,7 +2066,7 @@ static QVariant convertJSValueToWebElementVariant(JSC::JSObject* object, int *di
     Element* element = 0;
     QVariant ret;
     if (object && object->inherits(JSElement::info())) {
-        element = JSElement::toWrapped(object);
+        element = JSElement::toWrapped(*object->vm(), object);
         *distance = 0;
         // Allow other objects to reach this one. This won't cause our algorithm to
         // loop since when we find an Element we do not recurse.
@@ -2076,7 +2076,7 @@ static QVariant convertJSValueToWebElementVariant(JSC::JSObject* object, int *di
         // conversion from 'document' to the QWebElement representing the 'document.documentElement'.
         // We can't simply use a QVariantMap in nodesFromRect() because it currently times out
         // when serializing DOMMimeType and DOMPlugin, even if we limit the recursion.
-        element = JSDocument::toWrapped(object)->documentElement();
+        element = JSDocument::toWrapped(*object->vm(), object)->documentElement();
     }
 
     return QVariant::fromValue<QWebElement>(QtWebElementRuntime::create(element));
