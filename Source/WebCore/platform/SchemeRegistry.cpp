@@ -39,9 +39,6 @@ static URLSchemesMap& localURLSchemes()
 #if PLATFORM(COCOA)
         localSchemes.get().add("applewebdata");
 #endif
-#if PLATFORM(QT)
-        localSchemes.get().add("qrc");
-#endif
     }
 
     return localSchemes;
@@ -64,6 +61,9 @@ static URLSchemesMap& secureSchemes()
         secureSchemes.get().add("wss");
 #if PLATFORM(GTK)
         secureSchemes.get().add("resource");
+#endif
+#if PLATFORM(QT)
+        secureSchemes.get().add("qrc");
 #endif
     }
 
