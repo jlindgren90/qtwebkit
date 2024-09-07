@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,16 +23,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef LineMetadata_h
-#define LineMetadata_h
+#ifndef EndTag_h
+#define EndTag_h
+
+#include "BoundaryTag.h"
 
 namespace bmalloc {
 
-struct LineMetadata {
-    unsigned short startOffset;
-    unsigned short objectCount;
+class EndTag : public BoundaryTag {
+public:
+    void init(BeginTag*);
 };
+
+inline void EndTag::init(BeginTag* other)
+{
+    // To save space, an object can have only one tag, representing both
+    // its begin and its end. In that case, we must avoid initializing the
+    // end tag, since there is no end tag.
+    if (static_cast<BoundaryTag*>(this) == static_cast<BoundaryTag*>(other))
+        return;
+
+    std::memcpy(this, other, sizeof(BoundaryTag));
+    setEnd(true);
+}
 
 } // namespace bmalloc
 
-#endif // LineMetadata_h
+#endif // EndTag_h

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,57 +23,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include "XLargeMap.h"
-#include <utility>
+#ifndef SuperChunk_h
+#define SuperChunk_h
+
+#include "LargeChunk.h"
+#include "MediumChunk.h"
+#include "SmallChunk.h"
 
 namespace bmalloc {
 
-XLargeRange XLargeMap::remove(size_t alignment, size_t size)
+class SuperChunk {
+public:
+    static SuperChunk* create();
+
+    SmallChunk* smallChunk();
+    MediumChunk* mediumChunk();
+    LargeChunk* largeChunk();
+
+private:
+    SuperChunk();
+};
+
+inline SuperChunk* SuperChunk::create()
 {
-    size_t alignmentMask = alignment - 1;
-
-    XLargeRange* candidate = m_free.end();
-    for (XLargeRange* it = m_free.begin(); it != m_free.end(); ++it) {
-        if (it->size() < size)
-            continue;
-
-        if (candidate != m_free.end() && candidate->begin() < it->begin())
-            continue;
-
-        if (test(it->begin(), alignmentMask)) {
-            char* aligned = roundUpToMultipleOf(alignment, it->begin());
-            if (aligned < it->begin()) // Check for overflow.
-                continue;
-
-            char* alignedEnd = aligned + size;
-            if (alignedEnd < aligned) // Check for overflow.
-                continue;
-
-            if (alignedEnd > it->end())
-                continue;
-        }
-
-        candidate = it;
-    }
-    
-    if (candidate == m_free.end())
-        return XLargeRange();
-
-    return m_free.pop(candidate);
+    void* result = static_cast<char*>(vmAllocate(superChunkSize, superChunkSize));
+    return new (result) SuperChunk;
 }
 
-void XLargeMap::add(const XLargeRange& range)
+inline SuperChunk::SuperChunk()
 {
-    XLargeRange merged = range;
+    new (smallChunk()) SmallChunk;
+    new (mediumChunk()) MediumChunk;
+    new (largeChunk()) LargeChunk;
+}
 
-    for (size_t i = 0; i < m_free.size(); ++i) {
-        if (!canMerge(merged, m_free[i]))
-            continue;
+inline SmallChunk* SuperChunk::smallChunk()
+{
+    return reinterpret_cast<SmallChunk*>(
+        reinterpret_cast<char*>(this) + smallChunkOffset);
+}
 
-        merged = merge(merged, m_free.pop(i--));
-    }
-    
-    m_free.push(merged);
+inline MediumChunk* SuperChunk::mediumChunk()
+{
+    return reinterpret_cast<MediumChunk*>(
+        reinterpret_cast<char*>(this) + mediumChunkOffset);
+}
+
+inline LargeChunk* SuperChunk::largeChunk()
+{
+    return reinterpret_cast<LargeChunk*>(
+        reinterpret_cast<char*>(this) + largeChunkOffset);
 }
 
 } // namespace bmalloc
+
+#endif // SuperChunk_h

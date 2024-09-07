@@ -23,16 +23,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef LineMetadata_h
-#define LineMetadata_h
+#ifndef MediumChunk_h
+#define MediumChunk_h
+
+#include "Chunk.h"
+#include "MediumLine.h"
+#include "MediumPage.h"
+#include "MediumTraits.h"
 
 namespace bmalloc {
 
-struct LineMetadata {
-    unsigned short startOffset;
-    unsigned short objectCount;
-};
+typedef Chunk<MediumTraits> MediumChunk;
 
-} // namespace bmalloc
+}; // namespace bmalloc
 
-#endif // LineMetadata_h
+#endif // MediumChunk

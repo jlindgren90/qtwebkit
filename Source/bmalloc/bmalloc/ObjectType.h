@@ -31,13 +31,29 @@
 
 namespace bmalloc {
 
-enum class ObjectType : unsigned char { Small, Large };
+enum ObjectType { Small, Medium, Large, XLarge };
 
 ObjectType objectType(void*);
 
-inline bool mightBeLarge(void* object)
+inline bool isSmallOrMedium(void* object)
 {
-    return !test(object, largeAlignmentMask);
+    return test(object, smallOrMediumTypeMask);
+}
+
+inline bool isSmall(void* smallOrMedium)
+{
+    BASSERT(isSmallOrMedium(smallOrMedium));
+    return test(smallOrMedium, smallOrMediumSmallTypeMask);
+}
+
+inline bool isMedium(void* smallOrMedium)
+{
+    return !isSmall(smallOrMedium);
+}
+
+inline bool isXLarge(void* object)
+{
+    return !test(object, superChunkSize - 1);
 }
 
 } // namespace bmalloc
