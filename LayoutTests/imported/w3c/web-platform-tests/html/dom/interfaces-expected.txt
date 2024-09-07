@@ -1786,7 +1786,7 @@ FAIL HTMLIFrameElement interface: attribute seamless assert_true: The prototype 
 FAIL HTMLIFrameElement interface: attribute allowFullscreen assert_true: The prototype object must have a property "allowFullscreen" expected true got false
 PASS HTMLIFrameElement interface: attribute width 
 PASS HTMLIFrameElement interface: attribute height 
-PASS HTMLIFrameElement interface: attribute contentDocument 
+FAIL HTMLIFrameElement interface: attribute contentDocument assert_true: The prototype object must have a property "contentDocument" expected true got false
 PASS HTMLIFrameElement interface: attribute contentWindow 
 PASS HTMLIFrameElement interface: attribute align 
 PASS HTMLIFrameElement interface: attribute scrolling 
@@ -1828,7 +1828,7 @@ PASS HTMLObjectElement interface: attribute useMap
 PASS HTMLObjectElement interface: attribute form 
 PASS HTMLObjectElement interface: attribute width 
 PASS HTMLObjectElement interface: attribute height 
-PASS HTMLObjectElement interface: attribute contentDocument 
+FAIL HTMLObjectElement interface: attribute contentDocument assert_true: The prototype object must have a property "contentDocument" expected true got false
 FAIL HTMLObjectElement interface: attribute contentWindow assert_true: The prototype object must have a property "contentWindow" expected true got false
 PASS HTMLObjectElement interface: attribute willValidate 
 PASS HTMLObjectElement interface: attribute validity 
@@ -2184,14 +2184,14 @@ PASS MediaError interface: constant MEDIA_ERR_DECODE on interface object
 PASS MediaError interface: constant MEDIA_ERR_DECODE on interface prototype object 
 PASS MediaError interface: constant MEDIA_ERR_SRC_NOT_SUPPORTED on interface object 
 PASS MediaError interface: constant MEDIA_ERR_SRC_NOT_SUPPORTED on interface prototype object 
-PASS MediaError interface: attribute code 
+FAIL MediaError interface: attribute code assert_true: The prototype object must have a property "code" expected true got false
 PASS MediaError must be primary interface of errorVideo.error 
 PASS Stringification of errorVideo.error 
 PASS MediaError interface: errorVideo.error must inherit property "MEDIA_ERR_ABORTED" with the proper type (0) 
 PASS MediaError interface: errorVideo.error must inherit property "MEDIA_ERR_NETWORK" with the proper type (1) 
 PASS MediaError interface: errorVideo.error must inherit property "MEDIA_ERR_DECODE" with the proper type (2) 
 PASS MediaError interface: errorVideo.error must inherit property "MEDIA_ERR_SRC_NOT_SUPPORTED" with the proper type (3) 
-PASS MediaError interface: errorVideo.error must inherit property "code" with the proper type (4) 
+FAIL MediaError interface: errorVideo.error must inherit property "code" with the proper type (4) assert_inherits: property "code" found on object expected in prototype chain
 PASS AudioTrackList interface: existence and properties of interface object 
 PASS AudioTrackList interface object length 
 PASS AudioTrackList interface object name 
@@ -4260,10 +4260,10 @@ PASS ErrorEvent interface object length
 PASS ErrorEvent interface object name 
 PASS ErrorEvent interface: existence and properties of interface prototype object 
 PASS ErrorEvent interface: existence and properties of interface prototype object's "constructor" property 
-PASS ErrorEvent interface: attribute message 
-PASS ErrorEvent interface: attribute filename 
-PASS ErrorEvent interface: attribute lineno 
-PASS ErrorEvent interface: attribute colno 
+FAIL ErrorEvent interface: attribute message assert_true: The prototype object must have a property "message" expected true got false
+FAIL ErrorEvent interface: attribute filename assert_true: The prototype object must have a property "filename" expected true got false
+FAIL ErrorEvent interface: attribute lineno assert_true: The prototype object must have a property "lineno" expected true got false
+FAIL ErrorEvent interface: attribute colno assert_true: The prototype object must have a property "colno" expected true got false
 FAIL ErrorEvent interface: attribute error assert_true: The prototype object must have a property "error" expected true got false
 PASS Navigator interface: existence and properties of interface object 
 PASS Navigator interface object length 
@@ -4759,7 +4759,7 @@ PASS HTMLFrameElement interface: attribute src
 PASS HTMLFrameElement interface: attribute frameBorder 
 PASS HTMLFrameElement interface: attribute longDesc 
 PASS HTMLFrameElement interface: attribute noResize 
-PASS HTMLFrameElement interface: attribute contentDocument 
+FAIL HTMLFrameElement interface: attribute contentDocument assert_true: The prototype object must have a property "contentDocument" expected true got false
 PASS HTMLFrameElement interface: attribute contentWindow 
 PASS HTMLFrameElement interface: attribute marginHeight 
 PASS HTMLFrameElement interface: attribute marginWidth 
@@ -4771,7 +4771,7 @@ PASS HTMLFrameElement interface: document.createElement("frame") must inherit pr
 PASS HTMLFrameElement interface: document.createElement("frame") must inherit property "frameBorder" with the proper type (3) 
 PASS HTMLFrameElement interface: document.createElement("frame") must inherit property "longDesc" with the proper type (4) 
 PASS HTMLFrameElement interface: document.createElement("frame") must inherit property "noResize" with the proper type (5) 
-PASS HTMLFrameElement interface: document.createElement("frame") must inherit property "contentDocument" with the proper type (6) 
+FAIL HTMLFrameElement interface: document.createElement("frame") must inherit property "contentDocument" with the proper type (6) assert_inherits: property "contentDocument" found on object expected in prototype chain
 PASS HTMLFrameElement interface: document.createElement("frame") must inherit property "contentWindow" with the proper type (7) 
 PASS HTMLFrameElement interface: document.createElement("frame") must inherit property "marginHeight" with the proper type (8) 
 PASS HTMLFrameElement interface: document.createElement("frame") must inherit property "marginWidth" with the proper type (9) 

@@ -57,7 +57,6 @@ fast/history/page-cache-suspended-audiocontext.html
 # No mousewheel events on iOS
 fast/scrolling/iframe-scrollable-after-back.html [ Skip ]
 fast/scrolling/overflow-scrollable-after-back.html [ Skip ]
-fast/events/wheel-event-destroys-frame.html [ Skip ]
 
 # Not supported on iOS
 batterystatus
@@ -130,8 +129,6 @@ webkit.org/b/112755 fast/css3-text/css3-text-indent
 
 # Unsupported on certain OS versions
 webkit.org/b/152491 fast/text/woff2.html [ Skip ]
-
-webkit.org/b/162668 fast/text/woff2-totalsfntsize.html [ Skip ]
 
 # Needs testRunner.enableAutoResizeMode()
 fast/autoresize
@@ -1634,9 +1631,6 @@ fast/events/selectstart-by-arrow-keys.html [ Failure ]
 fast/events/selectstart-by-double-triple-clicks.html [ Failure ]
 fast/events/selectstart-by-drag.html [ Failure ]
 fast/events/selectstart-by-single-click-with-shift.html [ Failure ]
-fast/events/shift-drag-selection-no-drag-n-drop.html [ Failure ]
-fast/events/shift-drag-selection-on-link-triggers-drag-n-drop.html [ Failure ]
-fast/events/shift-drag-selection-on-image-triggers-drag-n-drop.html [ Failure ]
 fast/events/selectstart-prevent-selection-on-right-click.html [ Failure ]
 fast/events/shadow-event-path.html [ Failure ]
 fast/events/show-modal-dialog-onblur-onfocus.html [ Failure ]
