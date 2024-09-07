@@ -28,9 +28,7 @@
 #if PLATFORM(QT)
 #include "ImageDecoderQt.h"
 #endif
-#if !PLATFORM(QT) || USE(LIBJPEG)
 #include "JPEGImageDecoder.h"
-#endif
 #include "PNGImageDecoder.h"
 #include "SharedBuffer.h"
 #if USE(WEBP)
@@ -117,10 +115,8 @@ ImageDecoder* ImageDecoder::create(const SharedBuffer& data, ImageSource::AlphaO
     if (matchesICOSignature(contents) || matchesCURSignature(contents))
         return new ICOImageDecoder(alphaOption, gammaAndColorProfileOption);
 
-#if !PLATFORM(QT) || USE(LIBJPEG)
     if (matchesJPEGSignature(contents))
         return new JPEGImageDecoder(alphaOption, gammaAndColorProfileOption);
-#endif
 
 #if USE(WEBP)
     if (matchesWebPSignature(contents))

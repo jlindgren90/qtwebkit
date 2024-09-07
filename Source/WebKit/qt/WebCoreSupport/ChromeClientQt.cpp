@@ -76,14 +76,11 @@
 #include <wtf/CurrentTime.h>
 
 
-#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)) || USE(QT_MULTIMEDIA))
+#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)))
 #include "FullScreenVideoQt.h"
 #include "HTMLMediaElement.h"
 #include "HTMLNames.h"
 #include "HTMLVideoElement.h"
-#if USE(QT_MULTIMEDIA)
-#include "MediaPlayerPrivateQt.h"
-#endif
 #endif
 
 namespace WebCore {
@@ -127,7 +124,7 @@ bool ChromeClientQt::dumpVisitedLinksCallbacks = false;
 ChromeClientQt::ChromeClientQt(QWebPageAdapter* webPageAdapter)
     : m_webPage(webPageAdapter)
     , m_eventLoop(0)
-#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)) || USE(QT_MULTIMEDIA))
+#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)))
     , m_fullScreenVideo(0)
 #endif
 {
@@ -139,7 +136,7 @@ ChromeClientQt::~ChromeClientQt()
     if (m_eventLoop)
         m_eventLoop->exit();
 
-#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)) || USE(QT_MULTIMEDIA))
+#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)))
     delete m_fullScreenVideo;
 #endif
 }
@@ -683,7 +680,7 @@ void ChromeClientQt::isPlayingMediaDidChange(MediaProducer::MediaStateFlags stat
     m_webPage->recentlyAudibleChanged(m_mediaState & MediaProducer::IsPlayingAudio);
 }
 
-#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)) || USE(QT_MULTIMEDIA))
+#if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)))
 FullScreenVideoQt* ChromeClientQt::fullScreenVideo()
 {
     if (!m_fullScreenVideo)
@@ -746,16 +743,6 @@ void ChromeClientQt::dispatchViewportPropertiesDidChange(const ViewportArguments
 {
     m_webPage->emitViewportChangeRequested();
 }
-
-#if USE(QT_MULTIMEDIA)
-QWebFullScreenVideoHandler* ChromeClientQt::createFullScreenVideoHandler()
-{
-    QWebFullScreenVideoHandler* handler = m_platformPlugin.createFullScreenVideoHandler().release();
-    if (!handler)
-        handler = m_webPage->createFullScreenVideoHandler();
-    return handler;
-}
-#endif
 
 bool ChromeClientQt::selectItemWritingDirectionIsNatural()
 {

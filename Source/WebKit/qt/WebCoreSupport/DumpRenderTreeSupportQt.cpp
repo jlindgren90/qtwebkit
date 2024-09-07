@@ -87,11 +87,6 @@
 #include "qwebhistory_p.h"
 #include "qwebscriptworld.h"
 
-#if ENABLE(VIDEO) && USE(QT_MULTIMEDIA)
-#include "HTMLVideoElement.h"
-#include "MediaPlayerPrivateQt.h"
-#endif
-
 #include <QPainter>
 #include <wtf/CurrentTime.h>
 
@@ -691,32 +686,7 @@ void DumpRenderTreeSupportQt::enableMockScrollbars()
 
 QUrl DumpRenderTreeSupportQt::mediaContentUrlByElementId(QWebFrameAdapter* adapter, const QString& elementId)
 {
-    QUrl res;
-
-#if ENABLE(VIDEO) && USE(QT_MULTIMEDIA)
-    Frame* coreFrame = adapter->frame;
-    if (!coreFrame)
-        return res;
-
-    Document* doc = coreFrame->document();
-    if (!doc)
-        return res;
-
-    Node* coreNode = doc->getElementById(String(elementId));
-    if (!coreNode)
-        return res;
-
-    HTMLVideoElement* videoElement = downcast<HTMLVideoElement>(coreNode);
-    PlatformMedia platformMedia = videoElement->platformMedia();
-    if (platformMedia.type != PlatformMedia::QtMediaPlayerType)
-        return res;
-
-    MediaPlayerPrivateQt* mediaPlayerQt = static_cast<MediaPlayerPrivateQt*>(platformMedia.media.qtMediaPlayer);
-    if (mediaPlayerQt && mediaPlayerQt->mediaPlayer())
-        res = mediaPlayerQt->mediaPlayer()->media().canonicalUrl();
-#endif
-
-    return res;
+    return QUrl();
 }
 
 // API Candidate?

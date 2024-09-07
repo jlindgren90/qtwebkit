@@ -29,9 +29,6 @@ class QWebNotificationPresenter;
 class QWebHapticFeedbackPlayer;
 class QWebSelectData;
 class QWebTouchModifier;
-#if ENABLE(VIDEO) && USE(QT_MULTIMEDIA)
-class QWebFullScreenVideoHandler;
-#endif
 class QWebSpellChecker;
 
 namespace WebCore {
@@ -50,9 +47,6 @@ public:
     std::unique_ptr<QWebNotificationPresenter> createNotificationPresenter();
     std::unique_ptr<QWebHapticFeedbackPlayer> createHapticFeedbackPlayer();
     std::unique_ptr<QWebTouchModifier> createTouchModifier();
-#if ENABLE(VIDEO) && USE(QT_MULTIMEDIA)
-    std::unique_ptr<QWebFullScreenVideoHandler> createFullScreenVideoHandler();
-#endif
     std::unique_ptr<QWebSpellChecker> createSpellChecker();
 
     QWebKitPlatformPlugin* plugin();

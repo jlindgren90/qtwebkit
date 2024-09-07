@@ -82,10 +82,6 @@
 #include <QX11Info>
 #endif
 
-#if USE(QT_MULTIMEDIA)
-#include "DefaultFullScreenVideoHandler.h"
-#endif
-
 using namespace WebCore;
 
 // Lookup table mapping QWebPage::WebActions to the associated Editor commands
@@ -332,13 +328,6 @@ void QWebPagePrivate::setToolTip(const QString &tip)
     Q_UNUSED(tip);
 #endif
 }
-
-#if USE(QT_MULTIMEDIA)
-QWebFullScreenVideoHandler *QWebPagePrivate::createFullScreenVideoHandler()
-{
-    return new WebKit::DefaultFullScreenVideoHandler;
-}
-#endif
 
 QWebFrameAdapter& QWebPagePrivate::mainFrameAdapter()
 {
