@@ -239,18 +239,6 @@ void NetworkProcess::createNetworkConnectionToWebProcess()
 
     IPC::Attachment clientSocket(socketPair.client);
     parentProcessConnection()->send(Messages::NetworkProcessProxy::DidCreateNetworkConnectionToWebProcess(clientSocket), 0);
-#elif OS(WINDOWS)
-    IPC::Connection::Identifier serverIdentifier, clientIdentifier;
-    if (!IPC::Connection::createServerAndClientIdentifiers(serverIdentifier, clientIdentifier)) {
-        // log it?
-        return;
-    }
-
-    RefPtr<NetworkConnectionToWebProcess> connection = NetworkConnectionToWebProcess::create(serverIdentifier);
-    m_webProcessConnections.append(connection.release());
-
-    IPC::Attachment clientSocket(clientIdentifier);
-    parentProcessConnection()->send(Messages::NetworkProcessProxy::DidCreateNetworkConnectionToWebProcess(clientSocket), 0);
 #elif OS(DARWIN)
     // Create the listening port.
     mach_port_t listeningPort;
@@ -288,8 +276,8 @@ static void fetchDiskCacheEntries(SessionID sessionID, std::function<void (Vecto
     if (NetworkCache::singleton().isEnabled()) {
         auto* origins = new HashSet<RefPtr<SecurityOrigin>>();
 
-        NetworkCache::singleton().traverse([completionHandler, origins](const NetworkCache::Cache::TraversalEntry *traversalEntry) {
-            if (!traversalEntry) {
+        NetworkCache::singleton().traverse([completionHandler, origins](const NetworkCache::Entry *entry) {
+            if (!entry) {
                 Vector<WebsiteData::Entry> entries;
 
                 for (auto& origin : *origins)
@@ -304,7 +292,7 @@ static void fetchDiskCacheEntries(SessionID sessionID, std::function<void (Vecto
                 return;
             }
 
-            origins->add(SecurityOrigin::create(traversalEntry->entry.response().url()));
+            origins->add(SecurityOrigin::create(entry->response().url()));
         });
 
         return;
@@ -400,11 +388,11 @@ static void clearDiskCacheEntries(const Vector<SecurityOriginData>& origins, std
 
         auto* cacheKeysToDelete = new Vector<NetworkCache::Key>;
 
-        NetworkCache::singleton().traverse([completionHandler, originsToDelete, cacheKeysToDelete](const NetworkCache::Cache::TraversalEntry *traversalEntry) {
+        NetworkCache::singleton().traverse([completionHandler, originsToDelete, cacheKeysToDelete](const NetworkCache::Entry *entry) {
 
-            if (traversalEntry) {
-                if (originsToDelete->contains(SecurityOrigin::create(traversalEntry->entry.response().url())))
-                    cacheKeysToDelete->append(traversalEntry->entry.key());
+            if (entry) {
+                if (originsToDelete->contains(SecurityOrigin::create(entry->response().url())))
+                    cacheKeysToDelete->append(entry->key());
                 return;
             }
 
@@ -463,13 +451,6 @@ void NetworkProcess::cancelDownload(DownloadID downloadID)
 {
     downloadManager().cancelDownload(downloadID);
 }
-
-#if PLATFORM(QT)
-void NetworkProcess::startTransfer(DownloadID downloadID, const String& destination)
-{
-    downloadManager().startTransfer(downloadID, destination);
-}
-#endif
     
 #if USE(NETWORK_SESSION)
 void NetworkProcess::continueCanAuthenticateAgainstProtectionSpace(DownloadID downloadID, bool canAuthenticate)

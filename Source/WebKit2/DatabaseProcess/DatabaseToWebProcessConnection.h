@@ -27,6 +27,7 @@
 #define DatabaseToWebProcessConnection_h
 
 #include "Connection.h"
+#include "DatabaseProcessIDBConnection.h"
 #include "MessageSender.h"
 
 #include <wtf/HashMap.h>
@@ -37,7 +38,7 @@ namespace WebKit {
 
 class WebIDBConnectionToClient;
 
-class DatabaseToWebProcessConnection : public RefCounted<DatabaseToWebProcessConnection>, private IPC::Connection::Client, private IPC::MessageSender {
+class DatabaseToWebProcessConnection : public RefCounted<DatabaseToWebProcessConnection>, public IPC::Connection::Client, public IPC::MessageSender {
 public:
     static Ref<DatabaseToWebProcessConnection> create(IPC::Connection::Identifier);
     ~DatabaseToWebProcessConnection();
@@ -55,15 +56,21 @@ private:
     virtual IPC::ProcessType localProcessType() override { return IPC::ProcessType::Database; }
     virtual IPC::ProcessType remoteProcessType() override { return IPC::ProcessType::Web; }
     void didReceiveDatabaseToWebProcessConnectionMessage(IPC::Connection&, IPC::MessageDecoder&);
-    void didReceiveSyncDatabaseToWebProcessConnectionMessage(IPC::Connection&, IPC::MessageDecoder&, std::unique_ptr<IPC::MessageEncoder>&);
 
     // IPC::MessageSender
     virtual IPC::Connection* messageSenderConnection() override { return m_connection.get(); }
     virtual uint64_t messageSenderDestinationID() override { return 0; }
 
 #if ENABLE(INDEXED_DATABASE)
+    // Messages handlers (Legacy IDB)
+    void establishIDBConnection(uint64_t serverConnectionIdentifier);
+    void removeDatabaseProcessIDBConnection(uint64_t serverConnectionIdentifier);
+
+    typedef HashMap<uint64_t, RefPtr<DatabaseProcessIDBConnection>> IDBConnectionMap;
+    IDBConnectionMap m_idbConnections;
+
     // Messages handlers (Modern IDB)
-    void establishIDBConnectionToServer(uint64_t& serverConnectionIdentifier);
+    void establishIDBConnectionToServer(uint64_t serverConnectionIdentifier);
     void removeIDBConnectionToServer(uint64_t serverConnectionIdentifier);
 
     HashMap<uint64_t, RefPtr<WebIDBConnectionToClient>> m_webIDBConnections;

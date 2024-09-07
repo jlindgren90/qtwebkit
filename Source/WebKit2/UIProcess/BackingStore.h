@@ -29,11 +29,6 @@
 #include <WebCore/IntRect.h>
 #include <wtf/Noncopyable.h>
 
-#if PLATFORM(QT)
-#include <QtGui/QPainter>
-#include <QtGui/QPixmap>
-#endif
-
 #if USE(CAIRO)
 #include <WebCore/BackingStoreBackendCairo.h>
 #endif
@@ -54,9 +49,7 @@ public:
     const WebCore::IntSize& size() const { return m_size; }
     float deviceScaleFactor() const { return m_deviceScaleFactor; }
 
-#if PLATFORM(QT)
-    typedef QPainter* PlatformGraphicsContext;
-#elif USE(CAIRO)
+#if USE(CAIRO)
     typedef cairo_t* PlatformGraphicsContext;
 #endif
 
@@ -76,8 +69,6 @@ private:
     WebPageProxy& m_webPageProxy;
 #if USE(CAIRO)
     std::unique_ptr<WebCore::BackingStoreBackendCairo> m_backend;
-#elif PLATFORM(QT)
-    QPixmap m_pixmap;
 #endif
 };
 

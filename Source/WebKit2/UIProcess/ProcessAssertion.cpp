@@ -30,7 +30,7 @@
 
 namespace WebKit {
 
-ProcessAssertion::ProcessAssertion(PlatformProcessIdentifier, AssertionState assertionState)
+ProcessAssertion::ProcessAssertion(pid_t, AssertionState assertionState)
     : m_assertionState(assertionState)
 {
 }
@@ -47,7 +47,7 @@ void ProcessAssertion::setState(AssertionState assertionState)
     m_assertionState = assertionState;
 }
 
-ProcessAndUIAssertion::ProcessAndUIAssertion(PlatformProcessIdentifier pid, AssertionState assertionState)
+ProcessAndUIAssertion::ProcessAndUIAssertion(pid_t pid, AssertionState assertionState)
     : ProcessAssertion(pid, assertionState)
 {
 }

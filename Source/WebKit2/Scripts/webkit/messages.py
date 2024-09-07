@@ -1,4 +1,4 @@
-# Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+# Copyright (C) 2010, 2011 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -23,7 +23,6 @@
 import collections
 import re
 import sys
-
 from webkit import parser
 
 WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
@@ -169,11 +168,11 @@ def forward_declarations_for_namespace(namespace, kind_and_types):
 def forward_declarations_and_headers(receiver):
     types_by_namespace = collections.defaultdict(set)
 
-    header_conditions = {
-        '"Arguments.h"' : [],
-        '"MessageEncoder.h"' : [],
-        '"StringReference.h"': []
-    }
+    headers = set([
+        '"Arguments.h"',
+        '"MessageEncoder.h"',
+        '"StringReference.h"',
+    ])
 
     non_template_wtf_types = frozenset([
         'String',
@@ -181,46 +180,37 @@ def forward_declarations_and_headers(receiver):
 
     for message in receiver.messages:
         if message.reply_parameters != None and message.has_attribute(DELAYED_ATTRIBUTE):
-            header_conditions['<wtf/ThreadSafeRefCounted.h>'] = []
+            headers.add('<wtf/ThreadSafeRefCounted.h>')
             types_by_namespace['IPC'].update([('class', 'Connection')])
 
-    type_conditions = {}
     for parameter in receiver.iterparameters():
-        if not parameter.type in type_conditions:
-            type_conditions[parameter.type] = []
-
-        if not parameter.condition in type_conditions[parameter.type]:
-            type_conditions[parameter.type].append(parameter.condition)
-
-    for parameter in receiver.iterparameters():
+        kind = parameter.kind
         type = parameter.type
-        conditions = type_conditions[type]
 
-        argument_encoder_headers = argument_coder_headers_for_type(type)
-        if argument_encoder_headers:
-            for header in argument_encoder_headers:
-                if header not in header_conditions:
-                    header_conditions[header] = []
-                header_conditions[header].extend(conditions)
+        if type.find('<') != -1:
+            # Don't forward declare class templates.
+            headers.update(headers_for_type(type))
+            continue
 
-        type_headers = headers_for_type(type)
-        for header in type_headers:
-            if header not in header_conditions:
-                header_conditions[header] = []
-            header_conditions[header].extend(conditions)
+        split = type.split('::')
+
+        # Handle WTF types even if the WTF:: prefix is not given
+        if split[0] in non_template_wtf_types:
+            split.insert(0, 'WTF')
+
+        if len(split) == 2:
+            namespace = split[0]
+            inner_type = split[1]
+            types_by_namespace[namespace].add((kind, inner_type))
+        elif len(split) > 2:
+            # We probably have a nested struct, which means we can't forward declare it.
+            # Include its header instead.
+            headers.update(headers_for_type(type))
 
     forward_declarations = '\n'.join([forward_declarations_for_namespace(namespace, types) for (namespace, types) in sorted(types_by_namespace.items())])
-    headers = []
-    for header in sorted(header_conditions):
-        if header_conditions[header] and not None in header_conditions[header]:
-            headers.append('#if %s\n' % ' || '.join(set(header_conditions[header])))
-            headers += ['#include %s\n' % header]
-            headers.append('#endif\n')
-        else:
-            headers += ['#include %s\n' % header]
+    headers = ['#include %s\n' % header for header in sorted(headers)]
 
     return (forward_declarations, headers)
-
 
 def generate_messages_header(file):
     receiver = parser.parse(file)
@@ -312,7 +302,7 @@ def class_template_headers(template_string):
 
     match = re.match('(?P<template_name>.+?)<(?P<parameter_string>.+)>', template_string)
     if not match:
-        return {'header_infos': [], 'types': [template_string]}
+        return {'header_infos':[], 'types':[template_string]}
 
     template_name = match.groupdict()['template_name']
     if template_name not in class_template_types:
@@ -325,10 +315,10 @@ def class_template_headers(template_string):
     for parameter in parser.split_parameters_string(match.groupdict()['parameter_string']):
         parameter_header_infos_and_types = class_template_headers(parameter)
 
-        header_infos += parameter_header_infos_and_types['header_infos']
+        header_infos += parameter_header_infos_and_types['header_infos'];
         types += parameter_header_infos_and_types['types']
 
-    return {'header_infos': header_infos, 'types': types}
+    return {'header_infos':header_infos, 'types':types}
 
 
 def argument_coder_headers_for_type(type):
@@ -355,7 +345,6 @@ def argument_coder_headers_for_type(type):
             headers.append('"WebCoreArgumentCoders.h"')
 
     return headers
-
 
 def headers_for_type(type):
     header_infos_and_types = class_template_headers(type)
@@ -413,7 +402,6 @@ def headers_for_type(type):
 
     return headers
 
-
 def generate_message_handler(file):
     receiver = parser.parse(file)
     header_conditions = {
@@ -463,6 +451,7 @@ def generate_message_handler(file):
                     if header not in header_conditions:
                         header_conditions[header] = []
                     header_conditions[header].append(message.condition)
+
 
     result = []
 

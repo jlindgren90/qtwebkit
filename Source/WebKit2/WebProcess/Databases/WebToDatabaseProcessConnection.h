@@ -30,7 +30,6 @@
 #include "Connection.h"
 #include "MessageSender.h"
 #include "WebIDBConnectionToServer.h"
-#include <WebCore/SessionID.h>
 #include <wtf/RefCounted.h>
 
 #if ENABLE(DATABASE_PROCESS)
@@ -41,7 +40,10 @@ class SessionID;
 
 namespace WebKit {
 
-class WebToDatabaseProcessConnection : public RefCounted<WebToDatabaseProcessConnection>, private IPC::Connection::Client, private IPC::MessageSender {
+class WebIDBServerConnection;
+class WebProcessIDBDatabaseBackend;
+
+class WebToDatabaseProcessConnection : public RefCounted<WebToDatabaseProcessConnection>, public IPC::Connection::Client, public IPC::MessageSender {
 public:
     static Ref<WebToDatabaseProcessConnection> create(IPC::Connection::Identifier connectionIdentifier)
     {
@@ -52,6 +54,9 @@ public:
     IPC::Connection* connection() const { return m_connection.get(); }
 
 #if ENABLE(INDEXED_DATABASE)
+    void registerWebIDBServerConnection(WebIDBServerConnection&);
+    void removeWebIDBServerConnection(WebIDBServerConnection&);
+
     WebIDBConnectionToServer& idbConnectionToServerForSession(const WebCore::SessionID&);
 #endif
 
@@ -72,8 +77,9 @@ private:
     RefPtr<IPC::Connection> m_connection;
 
 #if ENABLE(INDEXED_DATABASE)
-    HashMap<WebCore::SessionID, RefPtr<WebIDBConnectionToServer>> m_webIDBConnectionsBySession;
-    HashMap<uint64_t, RefPtr<WebIDBConnectionToServer>> m_webIDBConnectionsByIdentifier;
+    HashMap<uint64_t, WebIDBServerConnection*> m_webIDBServerConnections;
+
+    HashMap<uint64_t, RefPtr<WebIDBConnectionToServer>> m_webIDBConnections;
 #endif
 };
 

@@ -1,11 +1,9 @@
-include(CheckCXXSourceCompiles)
-include(CheckFunctionExists)
-
 set(WebKit2_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/llint"
     "${WEBKIT2_DIR}"
     "${WEBKIT2_DIR}/DatabaseProcess"
     "${WEBKIT2_DIR}/DatabaseProcess/IndexedDB"
+    "${WEBKIT2_DIR}/DatabaseProcess/IndexedDB/sqlite"
     "${WEBKIT2_DIR}/NetworkProcess"
     "${WEBKIT2_DIR}/NetworkProcess/CustomProtocols"
     "${WEBKIT2_DIR}/NetworkProcess/Downloads"
@@ -73,6 +71,7 @@ set(WebKit2_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/battery"
     "${WEBCORE_DIR}/Modules/indexeddb"
     "${WEBCORE_DIR}/Modules/indexeddb/client"
+    "${WEBCORE_DIR}/Modules/indexeddb/legacy"
     "${WEBCORE_DIR}/Modules/indexeddb/server"
     "${WEBCORE_DIR}/Modules/indexeddb/shared"
     "${WEBCORE_DIR}/Modules/mediastream"
@@ -156,9 +155,7 @@ set(WebKit2_INCLUDE_DIRECTORIES
     "${CMAKE_SOURCE_DIR}/WebKitLibraries"
 )
 
-set(WebKit2_SYSTEM_INCLUDE_DIRECTORIES
-    ${ICU_INCLUDE_DIRS}
-)
+set(WebKit2_SYSTEM_INCLUDE_DIRECTORIES "")
 
 if (ENABLE_GRAPHICS_CONTEXT_3D)
     list(APPEND WebKit2_INCLUDE_DIRECTORIES
@@ -197,7 +194,15 @@ set(WebKit2_SOURCES
     DatabaseProcess/DatabaseProcess.cpp
     DatabaseProcess/DatabaseToWebProcessConnection.cpp
 
+    DatabaseProcess/IndexedDB/DatabaseProcessIDBConnection.cpp
+    DatabaseProcess/IndexedDB/IDBSerialization.cpp
+    DatabaseProcess/IndexedDB/LegacyUniqueIDBDatabase.cpp
+    DatabaseProcess/IndexedDB/LegacyUniqueIDBDatabaseIdentifier.cpp
     DatabaseProcess/IndexedDB/WebIDBConnectionToClient.cpp
+
+    DatabaseProcess/IndexedDB/sqlite/SQLiteIDBCursor.cpp
+    DatabaseProcess/IndexedDB/sqlite/SQLiteIDBTransaction.cpp
+    DatabaseProcess/IndexedDB/sqlite/UniqueIDBDatabaseBackingStoreSQLite.cpp
 
     NetworkProcess/NetworkProcessCreationParameters.cpp
     NetworkProcess/NetworkResourceLoadParameters.cpp
@@ -389,8 +394,6 @@ set(WebKit2_SOURCES
     UIProcess/WebProcessProxy.cpp
     UIProcess/WebTextChecker.cpp
     UIProcess/WebTextCheckerClient.cpp
-    UIProcess/WebURLSchemeHandler.cpp
-    UIProcess/WebURLSchemeHandlerTask.cpp
     UIProcess/WebVibrationProvider.cpp
     UIProcess/WebVibrationProxy.cpp
     UIProcess/WebViewportAttributes.cpp
@@ -403,7 +406,6 @@ set(WebKit2_SOURCES
     UIProcess/API/APIProcessPoolConfiguration.cpp
     UIProcess/API/APISession.cpp
     UIProcess/API/APISessionState.cpp
-    UIProcess/API/APIURLSchemeHandlerTask.cpp
     UIProcess/API/APIUserContentExtension.cpp
     UIProcess/API/APIUserContentExtensionStore.cpp
     UIProcess/API/APIWebsiteDataStore.cpp
@@ -509,6 +511,8 @@ set(WebKit2_SOURCES
     WebProcess/Databases/WebToDatabaseProcessConnection.cpp
 
     WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp
+    WebProcess/Databases/IndexedDB/WebIDBFactoryBackend.cpp
+    WebProcess/Databases/IndexedDB/WebIDBServerConnection.cpp
 
     WebProcess/FileAPI/BlobRegistryProxy.cpp
 
@@ -615,7 +619,6 @@ set(WebKit2_SOURCES
     WebProcess/WebPage/FindController.cpp
     WebProcess/WebPage/LayerTreeHost.cpp
     WebProcess/WebPage/PageBanner.cpp
-    WebProcess/WebPage/TapHighlightController.cpp
     WebProcess/WebPage/VisitedLinkTableController.cpp
     WebProcess/WebPage/WebBackForwardListProxy.cpp
     WebProcess/WebPage/WebContextMenu.cpp
@@ -628,9 +631,9 @@ set(WebKit2_SOURCES
     WebProcess/WebPage/WebPage.cpp
     WebProcess/WebPage/WebPageGroupProxy.cpp
     WebProcess/WebPage/WebPageOverlay.cpp
-    WebProcess/WebPage/WebURLSchemeHandlerProxy.cpp
-    WebProcess/WebPage/WebURLSchemeHandlerTaskProxy.cpp
     WebProcess/WebPage/WebUndoStep.cpp
+
+
 
     ${NetworkProcess_COMMON_SOURCES}
 )
@@ -639,6 +642,7 @@ set(WebKit2_MESSAGES_IN_FILES
     DatabaseProcess/DatabaseProcess.messages.in
     DatabaseProcess/DatabaseToWebProcessConnection.messages.in
 
+    DatabaseProcess/IndexedDB/DatabaseProcessIDBConnection.messages.in
     DatabaseProcess/IndexedDB/WebIDBConnectionToClient.messages.in
 
     NetworkProcess/CustomProtocols/CustomProtocolManager.messages.in
@@ -693,6 +697,7 @@ set(WebKit2_MESSAGES_IN_FILES
     WebProcess/Cookies/WebCookieManager.messages.in
 
     WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.messages.in
+    WebProcess/Databases/IndexedDB/WebIDBServerConnection.messages.in
 
     WebProcess/FullScreen/WebFullScreenManager.messages.in
 
@@ -743,33 +748,11 @@ set(PluginProcess_LIBRARIES
     WebKit2
 )
 
-if (COMPILER_IS_GCC_OR_CLANG)
-    set(ATOMIC_TEST_SOURCE
-    "
-        #include <atomic>
-        int main() { std::atomic<int64_t> i(0); i++; return 0; }
-    "
-    )
-    check_cxx_source_compiles("${ATOMIC_TEST_SOURCE}" ATOMIC_INT64_IS_BUILTIN)
-    if (NOT ATOMIC_INT64_IS_BUILTIN)
-        set(CMAKE_REQUIRED_LIBRARIES atomic)
-        check_cxx_source_compiles("${ATOMIC_TEST_SOURCE}" ATOMIC_INT64_REQUIRES_LIBATOMIC)
-        if (ATOMIC_INT64_REQUIRES_LIBATOMIC)
-            list(APPEND WebKit2_LIBRARIES atomic)
-        endif ()
-        unset(CMAKE_REQUIRED_LIBRARIES)
-    endif ()
-endif ()
-
-if (UNIX)
-    check_function_exists(shm_open SHM_OPEN_EXISTS)
-    if (NOT SHM_OPEN_EXISTS)
-        set(CMAKE_REQUIRED_LIBRARIES rt)
-        check_function_exists(shm_open SHM_OPEN_REQUIRES_LIBRT)
-        if (SHM_OPEN_REQUIRES_LIBRT)
-            list(APPEND WebKit2_LIBRARIES rt)
-        endif ()
-    endif ()
+# librt is needed for shm_open on Linux.
+find_library(LIBRT_LIBRARIES NAMES rt)
+mark_as_advanced(LIBRT_LIBRARIES)
+if (LIBRT_LIBRARIES)
+    list(APPEND WebKit2_LIBRARIES ${LIBRT_LIBRARIES})
 endif ()
 
 macro(ADD_WEBKIT2_PREFIX_HEADER _target)
@@ -786,19 +769,24 @@ WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
 GENERATE_WEBKIT2_MESSAGE_SOURCES(WebKit2_DERIVED_SOURCES "${WebKit2_MESSAGES_IN_FILES}")
 
-WEBKIT_FRAMEWORK(WebKit2)
+include_directories(${WebKit2_INCLUDE_DIRECTORIES})
+include_directories(SYSTEM ${WebKit2_SYSTEM_INCLUDE_DIRECTORIES})
+add_library(WebKit2 ${WebKit2_LIBRARY_TYPE} ${WebKit2_SOURCES} ${WebKit2_DERIVED_SOURCES})
+
 add_dependencies(WebKit2 WebCore ${WEBKIT2_EXTRA_DEPENDENCIES})
 add_webkit2_prefix_header(WebKit2)
-
-QT_ADD_EXTRA_WEBKIT_TARGET_EXPORT(WebKit2)
+target_link_libraries(WebKit2 ${WebKit2_LIBRARIES})
+set_target_properties(WebKit2 PROPERTIES FOLDER "WebKit")
 
 # Suppress unused parameter warnings for sources in WebKit2.
-if (COMPILER_IS_GCC_OR_CLANG)
-    ADD_TARGET_PROPERTIES(WebKit2 COMPILE_FLAGS "-Wno-unused-parameter")
-endif ()
+ADD_TARGET_PROPERTIES(WebKit2 COMPILE_FLAGS "-Wno-unused-parameter")
 
 if (WebKit2_VERSION_SCRIPT)
     ADD_TARGET_PROPERTIES(WebKit2 LINK_FLAGS "${WebKit2_VERSION_SCRIPT}")
+endif ()
+
+if (WebKit2_OUTPUT_NAME)
+    set_target_properties(WebKit2 PROPERTIES OUTPUT_NAME ${WebKit2_OUTPUT_NAME})
 endif ()
 
 add_executable(WebProcess ${WebProcess_SOURCES})
@@ -845,12 +833,14 @@ if (ENABLE_DATABASE_PROCESS)
     endif ()
 endif ()
 
-if (NOT PORT STREQUAL "Mac")
-    POPULATE_LIBRARY_VERSION(WEBKIT2)
-    set_target_properties(WebKit2 PROPERTIES VERSION ${WEBKIT2_VERSION} SOVERSION ${WEBKIT2_VERSION_MAJOR})
+POPULATE_LIBRARY_VERSION(WEBKIT2)
+set_target_properties(WebKit2 PROPERTIES VERSION ${WEBKIT2_VERSION} SOVERSION ${WEBKIT2_VERSION_MAJOR})
 
-    install(TARGETS WebProcess NetworkProcess DESTINATION "${LIBEXEC_INSTALL_DIR}")
-    if (SHARED_CORE OR NOT PORT STREQUAL "Qt")
-        install(TARGETS WebKit2 DESTINATION "${LIB_INSTALL_DIR}")
-    endif ()
+if (APPLE)
+    WEBKIT_FRAMEWORK(WebKit2)
+else ()
+    install(TARGETS WebKit2 WebProcess NetworkProcess
+        LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
+        RUNTIME DESTINATION "${LIBEXEC_INSTALL_DIR}"
+    )
 endif ()

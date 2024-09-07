@@ -68,6 +68,16 @@ DrawingAreaImpl::DrawingAreaImpl(WebPage& webPage, const WebPageCreationParamete
     , m_displayTimer(RunLoop::main(), this, &DrawingAreaImpl::displayTimerFired)
     , m_exitCompositingTimer(RunLoop::main(), this, &DrawingAreaImpl::exitAcceleratedCompositingMode)
 {
+
+#if USE(COORDINATED_GRAPHICS_THREADED)
+    webPage.corePage()->settings().setForceCompositingMode(true);
+#endif
+
+    if (webPage.corePage()->settings().acceleratedDrawingEnabled() || webPage.corePage()->settings().forceCompositingMode())
+        m_alwaysUseCompositing = true;
+
+    if (m_alwaysUseCompositing)
+        enterAcceleratedCompositingMode(0);
 }
 
 void DrawingAreaImpl::setNeedsDisplay()
@@ -247,10 +257,6 @@ void DrawingAreaImpl::updatePreferences(const WebPreferencesStore& store)
     settings.setAcceleratedCompositingForFixedPositionEnabled(true);
     settings.setFixedPositionCreatesStackingContext(true);
 #endif
-
-    m_alwaysUseCompositing = settings.acceleratedDrawingEnabled() && settings.forceCompositingMode();
-    if (m_alwaysUseCompositing && !m_layerTreeHost)
-        enterAcceleratedCompositingMode(nullptr);
 }
 
 void DrawingAreaImpl::layerHostDidFlushLayers()
@@ -636,8 +642,7 @@ void DrawingAreaImpl::display(UpdateInfo& updateInfo)
     updateInfo.viewSize = m_webPage.size();
     updateInfo.deviceScaleFactor = m_webPage.corePage()->deviceScaleFactor();
 
-    // Always render the whole page when we don't render the background.
-    IntRect bounds = m_webPage.drawsBackground() ? m_dirtyRegion.bounds() : m_webPage.bounds();
+    IntRect bounds = m_dirtyRegion.bounds();
     ASSERT(m_webPage.bounds().contains(bounds));
 
     IntSize bitmapSize = bounds.size();
@@ -650,16 +655,12 @@ void DrawingAreaImpl::display(UpdateInfo& updateInfo)
     if (!bitmap->createHandle(updateInfo.bitmapHandle))
         return;
 
-    Vector<IntRect> rects;
-    if (m_webPage.drawsBackground()) {
-        rects = m_dirtyRegion.rects();
+    Vector<IntRect> rects = m_dirtyRegion.rects();
 
-        if (shouldPaintBoundsRect(bounds, rects)) {
-            rects.clear();
-            rects.append(bounds);
-        }
-    } else
+    if (shouldPaintBoundsRect(bounds, rects)) {
+        rects.clear();
         rects.append(bounds);
+    }
 
     updateInfo.scrollRect = m_scrollRect;
     updateInfo.scrollOffset = m_scrollOffset;

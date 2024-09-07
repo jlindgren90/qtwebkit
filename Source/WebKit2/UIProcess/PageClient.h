@@ -66,10 +66,6 @@ class WebContextMenuProxy;
 class WebEditCommandProxy;
 class WebPopupMenuProxy;
 
-#if ENABLE(QT_GESTURE_EVENTS)
-class WebGestureEvent;
-#endif
-
 #if ENABLE(TOUCH_EVENTS)
 class NativeWebTouchEvent;
 #endif
@@ -156,7 +152,7 @@ public:
     virtual void didFindZoomableArea(const WebCore::IntPoint&, const WebCore::IntRect&) = 0;
 #endif
 
-#if PLATFORM(EFL) || PLATFORM(QT)
+#if PLATFORM(EFL)
     virtual void updateTextInputState() = 0;
 #endif // PLATFORM(EFL)
 
@@ -166,16 +162,9 @@ public:
 
     virtual void didChangeContentSize(const WebCore::IntSize&) = 0;
 
-#if (PLATFORM(QT) || PLATFORM(GTK)) && ENABLE(DRAG_SUPPORT)
+#if PLATFORM(GTK) && ENABLE(DRAG_SUPPORT)
     virtual void startDrag(const WebCore::DragData&, PassRefPtr<ShareableBitmap> dragImage) = 0;
 #endif
-
-#if PLATFORM(QT)
-    virtual void handleAuthenticationRequiredRequest(const String& hostname, const String& realm, const String& prefilledUsername, String& username, String& password) = 0;
-    virtual void handleCertificateVerificationRequest(const String& hostname, bool& ignoreErrors) = 0;
-    virtual void handleProxyAuthenticationRequiredRequest(const String& hostname, uint16_t port, const String& prefilledUsername, String& username, String& password) = 0;
-    virtual void handleWillSetInputMethodState() = 0;
-#endif // PLATFORM(QT).
 
     virtual void setCursor(const WebCore::Cursor&) = 0;
     virtual void setCursorHiddenUntilMouseMoves(bool) = 0;
@@ -227,9 +216,6 @@ public:
 #endif
     
     virtual void doneWithKeyEvent(const NativeWebKeyboardEvent&, bool wasEventHandled) = 0;
-#if ENABLE(QT_GESTURE_EVENTS)
-    virtual void doneWithGestureEvent(const WebGestureEvent&, bool wasEventHandled) = 0;
-#endif
 #if ENABLE(TOUCH_EVENTS)
     virtual void doneWithTouchEvent(const NativeWebTouchEvent&, bool wasEventHandled) = 0;
 #endif

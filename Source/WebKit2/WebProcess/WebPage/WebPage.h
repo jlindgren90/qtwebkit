@@ -49,7 +49,6 @@
 #include "ShareableBitmap.h"
 #include "UserData.h"
 #include "UserMediaPermissionRequestManager.h"
-#include "WebURLSchemeHandler.h"
 #include <WebCore/DictationAlternative.h>
 #include <WebCore/DictionaryPopupInfo.h>
 #include <WebCore/DragData.h>
@@ -77,11 +76,6 @@
 #include <wtf/RefPtr.h>
 #include <wtf/RunLoop.h>
 #include <wtf/text/WTFString.h>
-
-#if PLATFORM(QT)
-#include "ArgumentCodersQt.h"
-#include "TapHighlightController.h"
-#endif
 
 #if HAVE(ACCESSIBILITY) && (PLATFORM(GTK) || PLATFORM(EFL))
 #include "WebPageAccessibilityObject.h"
@@ -181,7 +175,6 @@ class WebInspectorClient;
 class WebInspectorUI;
 class WebGestureEvent;
 class WebKeyboardEvent;
-class WebURLSchemeHandlerProxy;
 class WebMouseEvent;
 class WebNotificationClient;
 class WebOpenPanelResultListener;
@@ -204,10 +197,6 @@ struct WebPreferencesStore;
 
 #if PLATFORM(COCOA)
 class RemoteLayerTreeTransaction;
-#endif
-
-#if ENABLE(QT_GESTURE_EVENTS)
-class WebGestureEvent;
 #endif
 
 #if ENABLE(TOUCH_EVENTS)
@@ -483,9 +472,6 @@ public:
     static const WebEvent* currentEvent();
 
     FindController& findController() { return m_findController; }
-#if ENABLE(TOUCH_EVENTS) && PLATFORM(QT)
-    TapHighlightController& tapHighlightController() { return m_tapHighlightController; }
-#endif
 
 #if ENABLE(GEOLOCATION)
     GeolocationPermissionRequestManager& geolocationPermissionRequestManager() { return m_geolocationPermissionRequestManager; }
@@ -639,7 +625,7 @@ public:
     void setThemePath(const String&);
 #endif
 
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
     void setComposition(const String& text, const Vector<WebCore::CompositionUnderline>& underlines, uint64_t selectionStart, uint64_t selectionEnd, uint64_t replacementRangeStart, uint64_t replacementRangeLength);
     void confirmComposition(const String& text, int64_t selectionStart, int64_t selectionLength);
     void cancelComposition();
@@ -723,7 +709,7 @@ public:
     void restoreSelectionInFocusedEditableElement();
 
 #if ENABLE(DRAG_SUPPORT)
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
     void performDragControllerAction(uint64_t action, WebCore::DragData);
 #else
     void performDragControllerAction(uint64_t action, WebCore::IntPoint clientPosition, WebCore::IntPoint globalPosition, uint64_t draggingSourceOperationMask, const WTF::String& dragStorageName, uint32_t flags, const SandboxExtension::Handle&, const SandboxExtension::HandleArray&);
@@ -800,15 +786,12 @@ public:
     void contextMenuShowing() { m_isShowingContextMenu = true; }
 #endif
 
-#if PLATFORM(QT)
-    void setUserScripts(const Vector<String>&);
-#endif
     void wheelEvent(const WebWheelEvent&);
 
     void wheelEventHandlersChanged(bool);
     void recomputeShortCircuitHorizontalWheelEventsState();
 
-#if ENABLE(MAC_GESTURE_EVENTS) || ENABLE(QT_GESTURE_EVENTS)
+#if ENABLE(MAC_GESTURE_EVENTS)
     void gestureEvent(const WebGestureEvent&);
 #endif
 
@@ -941,8 +924,6 @@ public:
 
     void didRestoreScrollPosition();
 
-    WebURLSchemeHandlerProxy* urlSchemeHandlerForScheme(const String&);
-
 private:
     WebPage(uint64_t pageID, const WebPageCreationParameters&);
 
@@ -1024,10 +1005,6 @@ private:
     void touchEventSync(const WebTouchEvent&, bool& handled);
 #elif ENABLE(TOUCH_EVENTS)
     void touchEvent(const WebTouchEvent&);
-    void touchEventSyncForTesting(const WebTouchEvent&, bool& handled);
-#if PLATFORM(QT)
-    void highlightPotentialActivation(const WebCore::IntPoint&, const WebCore::IntSize& area);
-#endif
 #endif
 #if ENABLE(CONTEXT_MENUS)
     void contextMenuHidden() { m_isShowingContextMenu = false; }
@@ -1038,8 +1015,6 @@ private:
 
     void loadURLInFrame(const String&, uint64_t frameID);
 
-    enum class WasRestoredByAPIRequest { No, Yes };
-    void restoreSessionInternal(const Vector<BackForwardListItemState>&, WasRestoredByAPIRequest);
     void restoreSession(const Vector<BackForwardListItemState>&);
     void didRemoveBackForwardItem(uint64_t);
 
@@ -1120,10 +1095,6 @@ private:
 #if PLATFORM(GTK)
     void failedToShowPopupMenu();
 #endif
-#if PLATFORM(QT)
-    void hidePopupMenu();
-    void selectedIndex(int32_t newIndex);
-#endif
 
 #if PLATFORM(IOS)
     void didChooseFilesForOpenPanelWithDisplayStringAndIcon(const Vector<String>&, const String& displayString, const IPC::DataReference& iconData);
@@ -1201,12 +1172,6 @@ private:
 #if ENABLE(VIDEO) && USE(GSTREAMER)
     void didEndRequestInstallMissingMediaPlugins(uint32_t result);
 #endif
-
-    void registerURLSchemeHandler(uint64_t identifier, const String& scheme);
-
-    void urlSchemeHandlerTaskDidReceiveResponse(uint64_t handlerIdentifier, uint64_t taskIdentifier, const WebCore::ResourceResponse&);
-    void urlSchemeHandlerTaskDidReceiveData(uint64_t handlerIdentifier, uint64_t taskIdentifier, const IPC::DataReference&);
-    void urlSchemeHandlerTaskDidComplete(uint64_t handlerIdentifier, uint64_t taskIdentifier, const WebCore::ResourceError&);
 
     uint64_t m_pageID;
 
@@ -1317,9 +1282,6 @@ private:
     InjectedBundlePageDiagnosticLoggingClient m_logDiagnosticMessageClient;
 
     FindController m_findController;
-#if ENABLE(TOUCH_EVENTS) && PLATFORM(QT)
-    TapHighlightController m_tapHighlightController { this };
-#endif
 
     RefPtr<WebInspector> m_inspector;
     RefPtr<WebInspectorUI> m_inspectorUI;
@@ -1467,9 +1429,6 @@ private:
 #if ENABLE(VIDEO) && USE(GSTREAMER)
     RefPtr<WebCore::MediaPlayerRequestInstallMissingPluginsCallback> m_installMediaPluginsCallback;
 #endif
-
-    HashMap<String, std::unique_ptr<WebURLSchemeHandlerProxy>> m_schemeToURLSchemeHandlerProxyMap;
-    HashMap<uint64_t, WebURLSchemeHandlerProxy*> m_identifierToURLSchemeHandlerProxyMap;
 };
 
 } // namespace WebKit

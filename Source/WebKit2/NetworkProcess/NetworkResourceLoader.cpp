@@ -91,7 +91,7 @@ NetworkResourceLoader::NetworkResourceLoader(const NetworkResourceLoadParameters
         }
     }
 
-    if (originalRequest().url().protocolIsBlob()) {
+    if (originalRequest().url().protocolIs("blob")) {
         ASSERT(!m_parameters.resourceSandboxExtension);
         m_fileReferences.appendVector(NetworkBlobRegistry::singleton().filesInBlob(connection, originalRequest().url()));
     }
@@ -377,8 +377,8 @@ void NetworkResourceLoader::didFailLoading(const ResourceError& error)
     if (isSynchronous()) {
         m_synchronousLoadData->error = error;
         sendReplyToSynchronousRequest(*m_synchronousLoadData, nullptr);
-    } else if (auto* connection = messageSenderConnection())
-        connection->send(Messages::WebResourceLoader::DidFailResourceLoad(error), messageSenderDestinationID(), 0);
+    } else
+        send(Messages::WebResourceLoader::DidFailResourceLoad(error));
 
     cleanup();
 }

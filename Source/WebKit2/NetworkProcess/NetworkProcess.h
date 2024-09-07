@@ -41,10 +41,6 @@
 #include "WebSQLiteDatabaseTracker.h"
 #endif
 
-#if PLATFORM(QT)
-#include "QtNetworkAccessManager.h"
-#endif
-
 namespace WebCore {
 class CertificateInfo;
 class NetworkStorageSession;
@@ -59,7 +55,7 @@ class NetworkConnectionToWebProcess;
 class NetworkProcessSupplement;
 struct NetworkProcessCreationParameters;
 
-class NetworkProcess : public ChildProcess, public DownloadManager::Client {
+class NetworkProcess : public ChildProcess, private DownloadManager::Client {
     WTF_MAKE_NONCOPYABLE(NetworkProcess);
     friend class NeverDestroyed<NetworkProcess>;
     friend class NeverDestroyed<DownloadManager>;
@@ -103,15 +99,10 @@ public:
     void clearHSTSCache(WebCore::NetworkStorageSession&, std::chrono::system_clock::time_point modifiedSince);
 #endif
 
-#if PLATFORM(QT)
-    QNetworkAccessManager& networkAccessManager() { return m_networkAccessManager; }
-#endif
-
     void prefetchDNS(const String&);
 
-    NetworkProcess();
-
 private:
+    NetworkProcess();
     ~NetworkProcess();
 
     void platformInitializeNetworkProcess(const NetworkProcessCreationParameters&);
@@ -163,9 +154,6 @@ private:
     void downloadRequest(WebCore::SessionID, DownloadID, const WebCore::ResourceRequest&);
     void resumeDownload(WebCore::SessionID, DownloadID, const IPC::DataReference& resumeData, const String& path, const SandboxExtension::Handle&);
     void cancelDownload(DownloadID);
-#if PLATFORM(QT)
-    void startTransfer(DownloadID, const String& destination);
-#endif
 #if USE(NETWORK_SESSION)
     void continueCanAuthenticateAgainstProtectionSpace(DownloadID, bool canAuthenticate);
     void continueWillSendRequest(DownloadID, const WebCore::ResourceRequest&);
@@ -208,10 +196,6 @@ private:
 
 #if PLATFORM(IOS)
     WebSQLiteDatabaseTracker m_webSQLiteDatabaseTracker;
-#endif
-
-#if PLATFORM(QT)
-    QtNetworkAccessManager m_networkAccessManager;
 #endif
 };
 

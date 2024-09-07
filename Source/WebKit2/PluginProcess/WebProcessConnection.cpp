@@ -38,23 +38,13 @@
 #include "PluginProcessConnectionMessages.h"
 #include "PluginProxyMessages.h"
 #include "WebProcessConnectionMessages.h"
+#include <unistd.h>
 #include <wtf/RunLoop.h>
 #include <wtf/TemporaryChange.h>
-
-#if OS(UNIX)
-#include <unistd.h>
-#endif
 
 using namespace WebCore;
 
 namespace WebKit {
-
-#if OS(WINDOWS)
-static void sleep(unsigned seconds)
-{
-    ::Sleep(seconds * 1000);
-}
-#endif
 
 static IPC::Connection* currentConnection;
 

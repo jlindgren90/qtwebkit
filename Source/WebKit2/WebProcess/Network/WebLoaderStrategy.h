@@ -35,7 +35,6 @@
 namespace WebKit {
 
 class NetworkProcessConnection;
-class WebURLSchemeHandlerTaskProxy;
 typedef uint64_t ResourceLoadIdentifier;
 
 class WebLoaderStrategy : public WebCore::LoaderStrategy {
@@ -73,7 +72,6 @@ private:
     RunLoop::Timer<WebLoaderStrategy> m_internallyFailedLoadTimer;
     
     HashMap<unsigned long, RefPtr<WebResourceLoader>> m_webResourceLoaders;
-    HashMap<unsigned long, std::unique_ptr<WebURLSchemeHandlerTaskProxy>> m_urlSchemeHandlerTasks;
 };
 
 } // namespace WebKit

@@ -233,16 +233,5 @@ void DownloadProxy::didCancel(const IPC::DataReference& resumeData)
     m_downloadProxyMap.downloadFinished(this);
 }
 
-#if PLATFORM(QT)
-void DownloadProxy::startTransfer(const String& filename)
-{
-    if (!m_processPool)
-        return;
-
-    if (NetworkProcessProxy* networkProcess = m_processPool->networkProcess())
-        networkProcess->connection()->send(Messages::NetworkProcess::StartTransfer(m_downloadID, filename), 0);
-}
-#endif
-
 } // namespace WebKit
 

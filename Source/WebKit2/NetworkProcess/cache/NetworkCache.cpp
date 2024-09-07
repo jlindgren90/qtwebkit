@@ -520,26 +520,12 @@ void Cache::remove(const WebCore::ResourceRequest& request)
     remove(makeCacheKey(request));
 }
 
-void Cache::traverse(const std::function<void (const TraversalEntry*)>& traverseHandler)
+void Cache::traverse(std::function<void (const Entry*)>&& traverseHandler)
 {
     ASSERT(isEnabled());
 
-    // Protect against clients making excessive traversal requests.
-    const unsigned maximumTraverseCount = 3;
-    if (m_traverseCount >= maximumTraverseCount) {
-        WTFLogAlways("Maximum parallel cache traverse count exceeded. Ignoring traversal request.");
-
-        RunLoop::main().dispatch([traverseHandler] {
-            traverseHandler(nullptr);
-        });
-        return;
-    }
-
-    ++m_traverseCount;
-
-    m_storage->traverse(resourceType(), 0, [this, traverseHandler](const Storage::Record* record, const Storage::RecordInfo& recordInfo) {
+    m_storage->traverse(resourceType(), 0, [traverseHandler](const Storage::Record* record, const Storage::RecordInfo&) {
         if (!record) {
-            --m_traverseCount;
             traverseHandler(nullptr);
             return;
         }
@@ -548,8 +534,7 @@ void Cache::traverse(const std::function<void (const TraversalEntry*)>& traverse
         if (!entry)
             return;
 
-        TraversalEntry traversalEntry { *entry, recordInfo };
-        traverseHandler(&traversalEntry);
+        traverseHandler(entry.get());
     });
 }
 

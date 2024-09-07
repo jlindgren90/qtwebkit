@@ -41,8 +41,6 @@ void PlatformPopupMenuData::encode(IPC::ArgumentEncoder& encoder) const
     encoder << shouldPopOver;
     encoder << hideArrows;
     encoder.encodeEnum(menuSize);
-#elif PLATFORM(QT)
-    encoder << multipleSelections;
 #else
     UNUSED_PARAM(encoder);
 #endif
@@ -58,9 +56,6 @@ bool PlatformPopupMenuData::decode(IPC::ArgumentDecoder& decoder, PlatformPopupM
     if (!decoder.decode(data.hideArrows))
         return false;
     if (!decoder.decodeEnum(data.menuSize))
-        return false;
-#elif PLATFORM(QT)
-    if (!decoder.decode(data.multipleSelections))
         return false;
 #else
     UNUSED_PARAM(decoder);

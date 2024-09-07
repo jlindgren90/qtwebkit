@@ -54,6 +54,12 @@ void PluginProcessProxy::platformGetLaunchOptions(ProcessLauncher::LaunchOptions
 {
     launchOptions.processType = ProcessLauncher::ProcessType::Plugin64;
 
+#if PLATFORM(EFL) && !defined(NDEBUG)
+    const char* commandPrefix = getenv("PLUGIN_PROCESS_COMMAND_PREFIX");
+    if (commandPrefix && *commandPrefix)
+        launchOptions.processCmdPrefix = String::fromUTF8(commandPrefix);
+#endif
+
     launchOptions.extraInitializationData.add("plugin-path", pluginProcessAttributes.moduleInfo.path);
 #if PLATFORM(GTK)
     if (pluginProcessAttributes.moduleInfo.requiresGtk2)
@@ -83,15 +89,12 @@ bool PluginProcessProxy::scanPlugin(const String& pluginPath, RawPluginMetaData&
 
 #if PLATFORM(GTK)
     bool requiresGtk2 = pluginRequiresGtk2(pluginPath);
-    if (requiresGtk2) {
+    if (requiresGtk2)
 #if ENABLE(PLUGIN_PROCESS_GTK2)
         pluginProcessPath.append('2');
-        if (!fileExists(pluginProcessPath))
-            return false;
 #else
         return false;
 #endif
-    }
 #endif
 
     CString binaryPath = fileSystemRepresentation(pluginProcessPath);

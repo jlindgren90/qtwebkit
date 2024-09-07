@@ -33,10 +33,6 @@
 #include <wtf/RetainPtr.h>
 #endif
 
-#if PLATFORM(QT)
-#include <QLibrary>
-#endif
-
 #if PLATFORM(GTK)
 typedef struct _GModule GModule;
 #endif
@@ -73,13 +69,11 @@ private:
     void* platformFunctionPointer(const char* functionName) const;
 
     String m_path;
-#if USE(CF) && !PLATFORM(QT)
+#if USE(CF)
     RetainPtr<CFBundleRef> m_bundle;
 #if !defined(__LP64__)
     CFBundleRefNum m_bundleResourceMap;
 #endif
-#elif PLATFORM(QT)
-    QLibrary m_lib;
 #elif PLATFORM(GTK)
     GModule* m_handle;
 #elif PLATFORM(EFL)

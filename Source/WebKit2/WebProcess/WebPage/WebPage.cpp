@@ -100,7 +100,6 @@
 #include "WebProcessProxyMessages.h"
 #include "WebProgressTrackerClient.h"
 #include "WebStorageNamespaceProvider.h"
-#include "WebURLSchemeHandlerProxy.h"
 #include "WebUndoStep.h"
 #include "WebUserContentController.h"
 #include "WebUserMediaClient.h"
@@ -196,15 +195,6 @@
 #include "WKStringCF.h"
 #include "WebVideoFullscreenManager.h"
 #include <WebCore/LegacyWebArchive.h>
-#endif
-
-#if PLATFORM(QT)
-#if ENABLE(DEVICE_ORIENTATION) && HAVE(QTSENSORS)
-#include "DeviceMotionClientQt.h"
-#include "DeviceOrientationClientQt.h"
-#endif
-#include "HitTestResult.h"
-#include <QMimeData>
 #endif
 
 #if PLATFORM(GTK)
@@ -412,7 +402,6 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 #endif
 
     m_page = std::make_unique<Page>(pageConfiguration);
-    updatePreferences(parameters.store);
 
     m_drawingArea = DrawingArea::create(*this, parameters);
     m_drawingArea->setPaintingEnabled(false);
@@ -426,17 +415,12 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 #endif
 
     m_mainFrame = WebFrame::createWithCoreMainFrame(this, &m_page->mainFrame());
-    m_drawingArea->updatePreferences(parameters.store);
 
 #if ENABLE(BATTERY_STATUS)
     WebCore::provideBatteryTo(m_page.get(), new WebBatteryClient(this));
 #endif
 #if ENABLE(GEOLOCATION)
     WebCore::provideGeolocationTo(m_page.get(), new WebGeolocationClient(this));
-#endif
-#if ENABLE(DEVICE_ORIENTATION) && PLATFORM(QT) && HAVE(QTSENSORS)
-    WebCore::provideDeviceMotionTo(m_page.get(), new DeviceMotionClientQt);
-    WebCore::provideDeviceOrientationTo(m_page.get(), new DeviceOrientationClientQt);
 #endif
 #if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
     WebCore::provideNotification(m_page.get(), new WebNotificationClient(this));
@@ -465,6 +449,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     m_page->setTextAutosizingWidth(parameters.textAutosizingWidth);
 #endif
 
+    updatePreferences(parameters.store);
     platformInitialize();
 
     setUseFixedLayout(parameters.useFixedLayout);
@@ -505,7 +490,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     WebBackForwardListProxy::setHighestItemIDFromUIProcess(parameters.highestUsedBackForwardItemID);
     
     if (!parameters.itemStates.isEmpty())
-        restoreSessionInternal(parameters.itemStates, WasRestoredByAPIRequest::No);
+        restoreSession(parameters.itemStates);
 
     if (parameters.sessionID.isValid())
         setSessionID(parameters.sessionID);
@@ -557,9 +542,6 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 #if PLATFORM(IOS)
     m_page->settings().setContentDispositionAttachmentSandboxEnabled(true);
 #endif
-
-    for (auto iterator : parameters.urlSchemeHandlers)
-        registerURLSchemeHandler(iterator.value, iterator.key);
 }
 
 void WebPage::reinitializeWebPage(const WebPageCreationParameters& parameters)
@@ -796,18 +778,6 @@ WebCore::WebGLLoadPolicy WebPage::resolveWebGLPolicyForURL(WebFrame*, const Stri
 }
 #endif
 
-#if PLATFORM(QT)
-
-static Element* rootEditableElementRespectingShadowTree(const Frame& frame)
-{
-    Element* selectionRoot = frame.selection().selection().rootEditableElement();
-    if (selectionRoot && selectionRoot->isInShadowTree())
-        selectionRoot = selectionRoot->shadowHost();
-    return selectionRoot;
-}
-
-#endif
-
 EditorState WebPage::editorState(IncludePostLayoutDataHint shouldIncludePostLayoutData) const
 {
     Frame& frame = m_page->focusController().focusedOrMainFrame();
@@ -834,75 +804,6 @@ EditorState WebPage::editorState(IncludePostLayoutDataHint shouldIncludePostLayo
     result.shouldIgnoreCompositionSelectionChange = frame.editor().ignoreCompositionSelectionChange();
     
     platformEditorState(frame, result, shouldIncludePostLayoutData);
-
-#if PLATFORM(QT)
-    size_t location = 0;
-    size_t length = 0;
-
-    Element* selectionRoot = rootEditableElementRespectingShadowTree(frame);
-    Element* scope = selectionRoot ? selectionRoot : frame.document()->documentElement();
-
-    if (!scope)
-        return result;
-
-    if (is<HTMLInputElement>(scope)) {
-        HTMLInputElement* input = downcast<HTMLInputElement>(scope);
-        if (input->isTelephoneField())
-            result.inputMethodHints |= Qt::ImhDialableCharactersOnly;
-        else if (input->isNumberField())
-            result.inputMethodHints |= Qt::ImhDigitsOnly;
-        else if (input->isEmailField()) {
-            result.inputMethodHints |= Qt::ImhEmailCharactersOnly;
-            result.inputMethodHints |= Qt::ImhNoAutoUppercase;
-        } else if (input->isURLField()) {
-            result.inputMethodHints |= Qt::ImhUrlCharactersOnly;
-            result.inputMethodHints |= Qt::ImhNoAutoUppercase;
-        } else if (input->isPasswordField()) {
-            // Set ImhHiddenText flag for password fields. The Qt platform
-            // is responsible for determining which widget will receive input
-            // method events for password fields.
-            result.inputMethodHints |= Qt::ImhHiddenText;
-            result.inputMethodHints |= Qt::ImhNoAutoUppercase;
-            result.inputMethodHints |= Qt::ImhNoPredictiveText;
-            result.inputMethodHints |= Qt::ImhSensitiveData;
-        }
-    }
-
-    if (selectionRoot && selectionRoot->renderer())
-        result.editorRect = frame.view()->contentsToWindow(selectionRoot->renderer()->absoluteBoundingBoxRect());
-
-    RefPtr<Range> range;
-    if (result.hasComposition && (range = frame.editor().compositionRange())) {
-        frame.editor().getCompositionSelection(result.anchorPosition, result.cursorPosition);
-
-        result.compositionRect = frame.view()->contentsToWindow(range->absoluteBoundingBox());
-    }
-
-    if (!result.hasComposition && !result.selectionIsNone && (range = frame.selection().selection().firstRange())) {
-        TextIterator::getLocationAndLengthFromRange(scope, range.get(), location, length);
-        bool baseIsFirst = frame.selection().selection().isBaseFirst();
-
-        result.cursorPosition = (baseIsFirst) ? location + length : location;
-        result.anchorPosition = (baseIsFirst) ? location : location + length;
-        result.selectedText = range->text();
-    }
-
-    if (range)
-        result.cursorRect = frame.view()->contentsToWindow(frame.editor().firstRectForRange(range.get()));
-
-    // FIXME: We should only transfer innerText when it changes and do this on the UI side.
-    if (result.isContentEditable) {
-        if (is<HTMLTextFormControlElement>(scope))
-            result.surroundingText = downcast<HTMLTextFormControlElement>(scope)->innerTextValue();
-        else
-            result.surroundingText = scope->innerText();
-
-        if (result.hasComposition) {
-            // The anchor is always the left position when they represent a composition.
-            result.surroundingText.remove(result.anchorPosition, result.cursorPosition - result.anchorPosition);
-        }
-    }
-#endif
 
     return result;
 }
@@ -2275,67 +2176,13 @@ void WebPage::executeEditCommand(const String& commandName, const String& argume
     executeEditingCommand(commandName, argument);
 }
 
-void WebPage::restoreSessionInternal(const Vector<BackForwardListItemState>& itemStates, WasRestoredByAPIRequest restoredByAPIRequest)
-{
-    for (const auto& itemState : itemStates) {
-        auto historyItem = toHistoryItem(itemState.pageState);
-        historyItem->setWasRestoredFromSession(restoredByAPIRequest == WasRestoredByAPIRequest::Yes);
-        WebBackForwardListProxy::addItemFromUIProcess(itemState.identifier, WTFMove(historyItem), m_pageID);
-    }
-}
-
 void WebPage::restoreSession(const Vector<BackForwardListItemState>& itemStates)
 {
-    restoreSessionInternal(itemStates, WasRestoredByAPIRequest::Yes);
+    for (const auto& itemState : itemStates)
+        WebBackForwardListProxy::addItemFromUIProcess(itemState.identifier, toHistoryItem(itemState.pageState), m_pageID);
 }
 
 #if ENABLE(TOUCH_EVENTS)
-#if PLATFORM(QT)
-void WebPage::highlightPotentialActivation(const IntPoint& point, const IntSize& area)
-{
-    if (point == IntPoint::zero()) {
-        // An empty point deactivates the highlighting.
-        tapHighlightController().hideHighlight();
-    } else {
-        Frame* mainframe = &m_page->mainFrame();
-        Node* activationNode = 0;
-        Node* adjustedNode = 0;
-        IntPoint adjustedPoint;
-
-#if ENABLE(TOUCH_ADJUSTMENT)
-        if (!mainframe->eventHandler().bestClickableNodeForTouchPoint(point, IntSize(area.width() / 2, area.height() / 2), adjustedPoint, adjustedNode))
-            return;
-
-#else
-        HitTestResult result = mainframe->eventHandler().hitTestResultAtPoint(mainframe->view()->windowToContents(point), HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowShadowContent);
-        adjustedNode = result.innerNode();
-#endif
-        // Find the node to highlight. This is not the same as the node responding the tap gesture, because many
-        // pages has a global click handler and we do not want to highlight the body.
-        for (Node* node = adjustedNode; node; node = node->parentOrShadowHostNode()) {
-            if (node->isDocumentNode() || node->isFrameOwnerElement())
-                break;
-
-            // We always highlight focusable (form-elements), image links or content-editable elements.
-            if ((node->isElementNode() && downcast<Element>(node)->isMouseFocusable()) || node->isLink() || node->isContentEditable())
-                activationNode = node;
-            else if (node->willRespondToMouseClickEvents()) {
-                // Highlight elements with default mouse-click handlers, but highlight only inline elements with
-                // scripted event-handlers.
-                if (!node->Node::willRespondToMouseClickEvents() || (node->renderer() && node->renderer()->isInline()))
-                    activationNode = node;
-            }
-
-            if (activationNode)
-                break;
-        }
-
-        if (activationNode)
-            tapHighlightController().highlight(activationNode);
-    }
-}
-#endif
-
 static bool handleTouchEvent(const WebTouchEvent& touchEvent, Page* page)
 {
     if (!page->mainFrame().view())
@@ -2379,7 +2226,7 @@ void WebPage::touchEvent(const WebTouchEvent& touchEvent)
 }
 #endif
 
-#if ENABLE(MAC_GESTURE_EVENTS) || ENABLE(QT_GESTURE_EVENTS)
+#if ENABLE(MAC_GESTURE_EVENTS)
 static bool handleGestureEvent(const WebGestureEvent& event, Page* page)
 {
     if (!page->mainFrame().view())
@@ -3277,18 +3124,13 @@ bool WebPage::handleEditingKeyboardEvent(KeyboardEvent* evt)
 
 #if ENABLE(DRAG_SUPPORT)
 
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
 void WebPage::performDragControllerAction(uint64_t action, WebCore::DragData dragData)
 {
     if (!m_page) {
         send(Messages::WebPageProxy::DidPerformDragControllerAction(DragOperationNone, false, 0));
-#if PLATFORM(QT)
-        QMimeData* data = const_cast<QMimeData*>(dragData.platformData());
-        delete data;
-#elif PLATFORM(GTK)
         DataObjectGtk* data = const_cast<DataObjectGtk*>(dragData.platformData());
         data->deref();
-#endif
         return;
     }
 
@@ -3316,13 +3158,8 @@ void WebPage::performDragControllerAction(uint64_t action, WebCore::DragData dra
         ASSERT_NOT_REACHED();
     }
     // DragData does not delete its platformData so we need to do that here.
-#if PLATFORM(QT)
-    QMimeData* data = const_cast<QMimeData*>(dragData.platformData());
-    delete data;
-#elif PLATFORM(GTK)
     DataObjectGtk* data = const_cast<DataObjectGtk*>(dragData.platformData());
     data->deref();
-#endif
 }
 
 #else
@@ -4310,7 +4147,7 @@ bool WebPage::canHandleRequest(const WebCore::ResourceRequest& request)
     if (SchemeRegistry::shouldLoadURLSchemeAsEmptyDocument(request.url().protocol()))
         return true;
 
-    if (request.url().protocolIsBlob())
+    if (request.url().protocolIs("blob"))
         return true;
 
     return platformCanHandleRequest(request);
@@ -4493,8 +4330,6 @@ void WebPage::insertTextAsync(const String& text, const EditingRange& replacemen
 {
     Frame& frame = m_page->focusController().focusedOrMainFrame();
 
-    Ref<Frame> protector(frame);
-
     if (replacementEditingRange.location != notFound) {
         RefPtr<Range> replacementRange = rangeFromEditingRange(frame, replacementEditingRange, static_cast<EditingRangeIsRelativeTo>(editingRangeIsRelativeTo));
         if (replacementRange)
@@ -4601,7 +4436,7 @@ void WebPage::confirmCompositionAsync()
 
 #endif // PLATFORM(COCOA)
 
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
 static Frame* targetFrameForEditing(WebPage* page)
 {
     Frame& targetFrame = page->corePage()->focusController().focusedOrMainFrame();
@@ -4656,8 +4491,6 @@ void WebPage::setComposition(const String& text, const Vector<CompositionUnderli
         send(Messages::WebPageProxy::EditorStateChanged(editorState()));
         return;
     }
-
-    Ref<Frame> protector(*targetFrame);
 
     if (replacementLength > 0) {
         // The layout needs to be uptodate before setting a selection
@@ -5325,44 +5158,6 @@ void WebPage::dispatchDidLayout(WebCore::LayoutMilestones milestones)
 void WebPage::didRestoreScrollPosition()
 {
     send(Messages::WebPageProxy::DidRestoreScrollPosition());
-}
-
-WebURLSchemeHandlerProxy* WebPage::urlSchemeHandlerForScheme(const String& scheme)
-{
-    return m_schemeToURLSchemeHandlerProxyMap.get(scheme);
-}
-
-void WebPage::registerURLSchemeHandler(uint64_t handlerIdentifier, const String& scheme)
-{
-    auto schemeResult = m_schemeToURLSchemeHandlerProxyMap.add(scheme, std::make_unique<WebURLSchemeHandlerProxy>(*this, handlerIdentifier));
-    ASSERT(schemeResult.isNewEntry);
-
-    auto identifierResult = m_identifierToURLSchemeHandlerProxyMap.add(handlerIdentifier, schemeResult.iterator->value.get());
-    ASSERT_UNUSED(identifierResult, identifierResult.isNewEntry);
-}
-
-void WebPage::urlSchemeHandlerTaskDidReceiveResponse(uint64_t handlerIdentifier, uint64_t taskIdentifier, const ResourceResponse& response)
-{
-    auto* handler = m_identifierToURLSchemeHandlerProxyMap.get(handlerIdentifier);
-    ASSERT(handler);
-
-    handler->taskDidReceiveResponse(taskIdentifier, response);
-}
-
-void WebPage::urlSchemeHandlerTaskDidReceiveData(uint64_t handlerIdentifier, uint64_t taskIdentifier, const IPC::DataReference& data)
-{
-    auto* handler = m_identifierToURLSchemeHandlerProxyMap.get(handlerIdentifier);
-    ASSERT(handler);
-
-    handler->taskDidReceiveData(taskIdentifier, data.size(), data.data());
-}
-
-void WebPage::urlSchemeHandlerTaskDidComplete(uint64_t handlerIdentifier, uint64_t taskIdentifier, const ResourceError& error)
-{
-    auto* handler = m_identifierToURLSchemeHandlerProxyMap.get(handlerIdentifier);
-    ASSERT(handler);
-
-    handler->taskDidComplete(taskIdentifier, error);
 }
 
 } // namespace WebKit

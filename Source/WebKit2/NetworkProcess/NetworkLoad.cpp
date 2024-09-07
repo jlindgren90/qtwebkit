@@ -49,7 +49,7 @@ NetworkLoad::NetworkLoad(NetworkLoadClient& client, const NetworkLoadParameters&
     , m_currentRequest(parameters.request)
 {
 #if USE(NETWORK_SESSION)
-    if (parameters.request.url().protocolIsBlob()) {
+    if (parameters.request.url().protocolIs("blob")) {
         m_handle = ResourceHandle::create(nullptr, parameters.request, this, parameters.defersLoading, parameters.contentSniffingPolicy == SniffContent);
         return;
     }
@@ -60,6 +60,7 @@ NetworkLoad::NetworkLoad(NetworkLoadClient& client, const NetworkLoadParameters&
     } else
         ASSERT_NOT_REACHED();
 #else
+    ASSERT(SessionTracker::storageSession(parameters.sessionID));
     m_handle = ResourceHandle::create(m_networkingContext.get(), parameters.request, this, parameters.defersLoading, parameters.contentSniffingPolicy == SniffContent);
 #endif
 }
@@ -348,15 +349,13 @@ void NetworkLoad::continueCanAuthenticateAgainstProtectionSpace(bool result)
         return;
     }
     
-    if (m_task) {
-        if (auto* pendingDownload = m_task->pendingDownload())
-            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(*pendingDownload, m_challenge, completionHandler);
-        else
-            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(m_parameters.webPageID, m_parameters.webFrameID, m_challenge, completionHandler);
-    }
+    if (auto* pendingDownload = m_task->pendingDownload())
+        NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(*pendingDownload, m_challenge, completionHandler);
+    else
+        NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(m_parameters.webPageID, m_parameters.webFrameID, m_challenge, completionHandler);
+#else
+    m_handle->continueCanAuthenticateAgainstProtectionSpace(result);
 #endif
-    if (m_handle)
-        m_handle->continueCanAuthenticateAgainstProtectionSpace(result);
 }
 #endif
 

@@ -66,7 +66,7 @@ bool WebsiteDataStore::isPersistent()
     return m_websiteDataStore->isPersistent();
 }
 
-#if !PLATFORM(COCOA) && !PLATFORM(EFL) && !PLATFORM(GTK) && !PLATFORM(QT)
+#if !PLATFORM(COCOA) && !PLATFORM(EFL) && !PLATFORM(GTK)
 WebKit::WebsiteDataStore::Configuration WebsiteDataStore::defaultDataStoreConfiguration()
 {
     // FIXME: Fill everything in.

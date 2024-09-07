@@ -27,10 +27,7 @@
 #include "ChildProcess.h"
 
 #include "SandboxInitializationParameters.h"
-
-#if !OS(WINDOWS)
 #include <unistd.h>
-#endif
 
 namespace WebKit {
 

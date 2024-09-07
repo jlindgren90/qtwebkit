@@ -344,8 +344,8 @@ private:
     TimerMap m_timers;
     unsigned m_nextTimerID;
 
-    bool m_privateBrowsingState { false };
-    bool m_storageBlockingState { false };
+    bool m_privateBrowsingState;
+    bool m_storageBlockingState;
 
 #if PLUGIN_ARCHITECTURE(MAC)
     NPDrawingModel m_drawingModel;

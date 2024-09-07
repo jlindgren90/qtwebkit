@@ -41,19 +41,11 @@
 #include <WebKitAdditions/PlatformGestureEventMac.h>
 #endif
 
-#if ENABLE(QT_GESTURE_EVENTS)
-#include <WebCore/PlatformGestureEvent.h>
-#endif
-
 namespace WebKit {
 
 class WebMouseEvent;
 class WebWheelEvent;
 class WebKeyboardEvent;
-
-#if ENABLE(QT_GESTURE_EVENTS)
-class WebGestureEvent;
-#endif
 
 #if ENABLE(TOUCH_EVENTS)
 class WebTouchEvent;
@@ -67,10 +59,6 @@ class WebGestureEvent;
 WebCore::PlatformMouseEvent platform(const WebMouseEvent&);
 WebCore::PlatformWheelEvent platform(const WebWheelEvent&);
 WebCore::PlatformKeyboardEvent platform(const WebKeyboardEvent&);
-
-#if ENABLE(QT_GESTURE_EVENTS)
-WebCore::PlatformGestureEvent platform(const WebGestureEvent&);
-#endif
 
 #if ENABLE(TOUCH_EVENTS)
 WebCore::PlatformTouchEvent platform(const WebTouchEvent&);

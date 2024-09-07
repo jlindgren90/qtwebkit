@@ -85,7 +85,6 @@ void WebPageCreationParameters::encode(IPC::ArgumentEncoder& encoder) const
 #endif
     encoder << appleMailPaginationQuirkEnabled;
     encoder << shouldScaleViewToFitDocument;
-    encoder << urlSchemeHandlers;
 }
 
 bool WebPageCreationParameters::decode(IPC::ArgumentDecoder& decoder, WebPageCreationParameters& parameters)
@@ -190,9 +189,6 @@ bool WebPageCreationParameters::decode(IPC::ArgumentDecoder& decoder, WebPageCre
         return false;
 
     if (!decoder.decode(parameters.shouldScaleViewToFitDocument))
-        return false;
-
-    if (!decoder.decode(parameters.urlSchemeHandlers))
         return false;
 
     return true;

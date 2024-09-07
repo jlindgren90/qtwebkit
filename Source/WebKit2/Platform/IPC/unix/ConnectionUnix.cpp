@@ -41,9 +41,6 @@
 
 #if PLATFORM(GTK)
 #include <gio/gio.h>
-#elif PLATFORM(QT)
-#include <QPointer>
-#include <QSocketNotifier>
 #endif
 
 // Although it's available on Darwin, SOCK_SEQPACKET seems to work differently
@@ -135,12 +132,10 @@ private:
 void Connection::platformInitialize(Identifier identifier)
 {
     m_socketDescriptor = identifier;
-    m_readBuffer.reserveInitialCapacity(messageMaxSize);
-    m_fileDescriptors.reserveInitialCapacity(attachmentMaxAmount);
-
-#if PLATFORM(QT)
-    m_socketNotifier = 0;
-#endif
+    m_readBuffer.resize(messageMaxSize);
+    m_readBufferSize = 0;
+    m_fileDescriptors.resize(attachmentMaxAmount);
+    m_fileDescriptorsSize = 0;
 }
 
 void Connection::platformInvalidate()
@@ -160,38 +155,13 @@ void Connection::platformInvalidate()
     m_connectionQueue->unregisterSocketEventHandler(m_socketDescriptor);
 #endif
 
-#if PLATFORM(QT)
-    delete m_socketNotifier;
-    m_socketNotifier = 0;
-#endif
-
     m_socketDescriptor = -1;
     m_isConnected = false;
 }
 
-#if PLATFORM(QT)
-class SocketNotifierResourceGuard {
-public:
-    SocketNotifierResourceGuard(QSocketNotifier* socketNotifier)
-        : m_socketNotifier(socketNotifier)
-    {
-        m_socketNotifier.data()->setEnabled(false);
-    }
-
-    ~SocketNotifierResourceGuard()
-    {
-        if (m_socketNotifier)
-            m_socketNotifier.data()->setEnabled(true);
-    }
-
-private:
-    QPointer<QSocketNotifier> const m_socketNotifier;
-};
-#endif
-
 bool Connection::processMessage()
 {
-    if (m_readBuffer.size() < sizeof(MessageInfo))
+    if (m_readBufferSize < sizeof(MessageInfo))
         return false;
 
     uint8_t* messageData = m_readBuffer.data();
@@ -199,13 +169,8 @@ bool Connection::processMessage()
     memcpy(&messageInfo, messageData, sizeof(messageInfo));
     messageData += sizeof(messageInfo);
 
-    if (messageInfo.attachmentCount() > attachmentMaxAmount || (!messageInfo.isMessageBodyIsOutOfLine() && messageInfo.bodySize() > messageMaxSize)) {
-        ASSERT_NOT_REACHED();
-        return false;
-    }
-
     size_t messageLength = sizeof(MessageInfo) + messageInfo.attachmentCount() * sizeof(AttachmentInfo) + (messageInfo.isMessageBodyIsOutOfLine() ? 0 : messageInfo.bodySize());
-    if (m_readBuffer.size() < messageLength)
+    if (m_readBufferSize < messageLength)
         return false;
 
     size_t attachmentFileDescriptorCount = 0;
@@ -261,7 +226,7 @@ bool Connection::processMessage()
     if (messageInfo.isMessageBodyIsOutOfLine()) {
         ASSERT(messageInfo.bodySize());
 
-        if (attachmentInfo[attachmentCount].isNull() || attachmentInfo[attachmentCount].getSize() != messageInfo.bodySize()) {
+        if (attachmentInfo[attachmentCount].isNull()) {
             ASSERT_NOT_REACHED();
             return false;
         }
@@ -286,25 +251,25 @@ bool Connection::processMessage()
 
     processIncomingMessage(WTFMove(decoder));
 
-    if (m_readBuffer.size() > messageLength) {
-        memmove(m_readBuffer.data(), m_readBuffer.data() + messageLength, m_readBuffer.size() - messageLength);
-        m_readBuffer.shrink(m_readBuffer.size() - messageLength);
+    if (m_readBufferSize > messageLength) {
+        memmove(m_readBuffer.data(), m_readBuffer.data() + messageLength, m_readBufferSize - messageLength);
+        m_readBufferSize -= messageLength;
     } else
-        m_readBuffer.shrink(0);
+        m_readBufferSize = 0;
 
     if (attachmentFileDescriptorCount) {
-        if (m_fileDescriptors.size() > attachmentFileDescriptorCount) {
-            memmove(m_fileDescriptors.data(), m_fileDescriptors.data() + attachmentFileDescriptorCount, (m_fileDescriptors.size() - attachmentFileDescriptorCount) * sizeof(int));
-            m_fileDescriptors.shrink(m_fileDescriptors.size() - attachmentFileDescriptorCount);
+        if (m_fileDescriptorsSize > attachmentFileDescriptorCount) {
+            memmove(m_fileDescriptors.data(), m_fileDescriptors.data() + attachmentFileDescriptorCount, (m_fileDescriptorsSize - attachmentFileDescriptorCount) * sizeof(int));
+            m_fileDescriptorsSize -= attachmentFileDescriptorCount;
         } else
-            m_fileDescriptors.shrink(0);
+            m_fileDescriptorsSize = 0;
     }
 
 
     return true;
 }
 
-static ssize_t readBytesFromSocket(int socketDescriptor, Vector<uint8_t>& buffer, Vector<int>& fileDescriptors)
+static ssize_t readBytesFromSocket(int socketDescriptor, uint8_t* buffer, int count, int* fileDescriptors, size_t* fileDescriptorsCount)
 {
     struct msghdr message;
     memset(&message, 0, sizeof(message));
@@ -317,10 +282,8 @@ static ssize_t readBytesFromSocket(int socketDescriptor, Vector<uint8_t>& buffer
     memset(attachmentDescriptorBuffer.get(), 0, sizeof(char) * message.msg_controllen);
     message.msg_control = attachmentDescriptorBuffer.get();
 
-    size_t previousBufferSize = buffer.size();
-    buffer.grow(buffer.capacity());
-    iov[0].iov_base = buffer.data() + previousBufferSize;
-    iov[0].iov_len = buffer.size() - previousBufferSize;
+    iov[0].iov_base = buffer;
+    iov[0].iov_len = count;
 
     message.msg_iov = iov;
     message.msg_iovlen = 1;
@@ -332,33 +295,33 @@ static ssize_t readBytesFromSocket(int socketDescriptor, Vector<uint8_t>& buffer
             if (errno == EINTR)
                 continue;
 
-            buffer.shrink(previousBufferSize);
             return -1;
         }
 
+        bool found = false;
         struct cmsghdr* controlMessage;
         for (controlMessage = CMSG_FIRSTHDR(&message); controlMessage; controlMessage = CMSG_NXTHDR(&message, controlMessage)) {
             if (controlMessage->cmsg_level == SOL_SOCKET && controlMessage->cmsg_type == SCM_RIGHTS) {
-                if (controlMessage->cmsg_len < CMSG_LEN(0) || controlMessage->cmsg_len > attachmentMaxAmount) {
-                    ASSERT_NOT_REACHED();
-                    break;
-                }
-                size_t previousFileDescriptorsSize = fileDescriptors.size();
-                size_t fileDescriptorsCount = (controlMessage->cmsg_len - CMSG_LEN(0)) / sizeof(int);
-                fileDescriptors.grow(fileDescriptors.size() + fileDescriptorsCount);
-                memcpy(fileDescriptors.data() + previousFileDescriptorsSize, CMSG_DATA(controlMessage), sizeof(int) * fileDescriptorsCount);
+                *fileDescriptorsCount = (controlMessage->cmsg_len - CMSG_LEN(0)) / sizeof(int);
+                memcpy(fileDescriptors, CMSG_DATA(controlMessage), sizeof(int) * *fileDescriptorsCount);
 
-                for (size_t i = 0; i < fileDescriptorsCount; ++i) {
-                    if (!setCloseOnExec(fileDescriptors[previousFileDescriptorsSize + i])) {
-                        ASSERT_NOT_REACHED();
-                        break;
+                for (size_t i = 0; i < *fileDescriptorsCount; ++i) {
+                    while (fcntl(fileDescriptors[i], F_SETFD, FD_CLOEXEC) == -1) {
+                        if (errno != EINTR) {
+                            ASSERT_NOT_REACHED();
+                            break;
+                        }
                     }
                 }
+
+                found = true;
                 break;
             }
         }
 
-        buffer.shrink(previousBufferSize + bytesRead);
+        if (!found)
+            *fileDescriptorsCount = 0;
+
         return bytesRead;
     }
 
@@ -367,12 +330,11 @@ static ssize_t readBytesFromSocket(int socketDescriptor, Vector<uint8_t>& buffer
 
 void Connection::readyReadHandler()
 {
-#if PLATFORM(QT)
-    SocketNotifierResourceGuard socketNotifierEnabler(m_socketNotifier);
-#endif
-
     while (true) {
-        ssize_t bytesRead = readBytesFromSocket(m_socketDescriptor, m_readBuffer, m_fileDescriptors);
+        size_t fileDescriptorsCount = 0;
+        size_t bytesToRead = m_readBuffer.size() - m_readBufferSize;
+        ssize_t bytesRead = readBytesFromSocket(m_socketDescriptor, m_readBuffer.data() + m_readBufferSize, bytesToRead,
+                                                m_fileDescriptors.data() + m_fileDescriptorsSize, &fileDescriptorsCount);
 
         if (bytesRead < 0) {
             // EINTR was already handled by readBytesFromSocket.
@@ -385,6 +347,9 @@ void Connection::readyReadHandler()
             }
             return;
         }
+
+        m_readBufferSize += bytesRead;
+        m_fileDescriptorsSize += fileDescriptorsCount;
 
         if (!bytesRead) {
             connectionDidClose();
@@ -401,10 +366,6 @@ void Connection::readyReadHandler()
 
 bool Connection::open()
 {
-#if PLATFORM(QT)
-    ASSERT(!m_socketNotifier);
-#endif
-
     int flags = fcntl(m_socketDescriptor, F_GETFL, 0);
     while (fcntl(m_socketDescriptor, F_SETFL, flags | O_NONBLOCK) == -1) {
         if (errno != EINTR) {
@@ -431,11 +392,6 @@ bool Connection::open()
         ASSERT_NOT_REACHED();
         return G_SOURCE_REMOVE;
     });
-#elif PLATFORM(QT)
-    m_socketNotifier = m_connectionQueue->registerSocketEventHandler(m_socketDescriptor, QSocketNotifier::Read,
-        [protectedThis] {
-            protectedThis->readyReadHandler();
-        });
 #elif PLATFORM(EFL)
     m_connectionQueue->registerSocketEventHandler(m_socketDescriptor,
         [protectedThis] {
@@ -458,10 +414,6 @@ bool Connection::platformCanSendOutgoingMessages() const
 
 bool Connection::sendOutgoingMessage(std::unique_ptr<MessageEncoder> encoder)
 {
-#if PLATFORM(QT)
-    ASSERT(m_socketNotifier);
-#endif
-
     COMPILE_ASSERT(sizeof(MessageInfo) + attachmentMaxAmount * sizeof(size_t) <= messageMaxSize, AttachmentsFitToMessageInline);
 
     Vector<Attachment> attachments = encoder->releaseAttachments();
@@ -588,14 +540,14 @@ Connection::SocketPair Connection::createPlatformConnection(unsigned options)
 
     if (options & SetCloexecOnServer) {
         // Don't expose the child socket to the parent process.
-        if (!setCloseOnExec(sockets[1]))
-            RELEASE_ASSERT_NOT_REACHED();
+        while (fcntl(sockets[1], F_SETFD, FD_CLOEXEC)  == -1)
+            RELEASE_ASSERT(errno != EINTR);
     }
 
     if (options & SetCloexecOnClient) {
         // Don't expose the parent socket to potential future children.
-        if (!setCloseOnExec(sockets[0]))
-            RELEASE_ASSERT_NOT_REACHED();
+        while (fcntl(sockets[0], F_SETFD, FD_CLOEXEC) == -1)
+            RELEASE_ASSERT(errno != EINTR);
     }
 
     SocketPair socketPair = { sockets[0], sockets[1] };
@@ -611,16 +563,5 @@ void Connection::didReceiveSyncReply(unsigned flags)
 {
     UNUSED_PARAM(flags);    
 }
-
-#if PLATFORM(QT)
-void Connection::setShouldCloseConnectionOnProcessTermination(WebKit::PlatformProcessIdentifier process)
-{
-    RefPtr<Connection> protectedThis(this);
-    m_connectionQueue->dispatchOnTermination(process,
-        [protectedThis] {
-            protectedThis->connectionDidClose();
-        });
-}
-#endif
 
 } // namespace IPC

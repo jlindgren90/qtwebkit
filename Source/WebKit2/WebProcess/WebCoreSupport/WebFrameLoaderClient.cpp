@@ -706,8 +706,7 @@ void WebFrameLoaderClient::dispatchDecidePolicyForResponse(const ResourceRespons
     uint64_t policyAction;
     DownloadID downloadID;
 
-    Ref<WebFrame> protect(*m_frame);
-    WebCore::Frame* coreFrame = m_frame->coreFrame();
+    WebCore::Frame* coreFrame = m_frame ? m_frame->coreFrame() : nullptr;
     if (!webPage->sendSync(Messages::WebPageProxy::DecidePolicyForResponseSync(m_frame->frameID(), SecurityOriginData::fromFrame(coreFrame), response, request, canShowMIMEType, listenerID, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get())), Messages::WebPageProxy::DecidePolicyForResponseSync::Reply(receivedPolicyAction, policyAction, downloadID), std::chrono::milliseconds::max(), IPC::InformPlatformProcessWillSuspend)) {
         m_frame->didReceivePolicyDecision(listenerID, PolicyIgnore, 0, { });
         return;
@@ -819,7 +818,6 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
         documentLoader = static_cast<WebDocumentLoader*>(coreFrame->loader().documentLoader());
 
     // Notify the UIProcess.
-    Ref<WebFrame> protect(*m_frame);
     WebCore::Frame* originatingCoreFrame = originatingFrame ? originatingFrame->coreFrame() : nullptr;
     if (!webPage->sendSync(Messages::WebPageProxy::DecidePolicyForNavigationAction(m_frame->frameID(), SecurityOriginData::fromFrame(coreFrame), documentLoader->navigationID(), navigationActionData, originatingFrame ? originatingFrame->frameID() : 0, SecurityOriginData::fromFrame(originatingCoreFrame), navigationAction.resourceRequest(), request, listenerID, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get())), Messages::WebPageProxy::DecidePolicyForNavigationAction::Reply(receivedPolicyAction, newNavigationID, policyAction, downloadID))) {
         m_frame->didReceivePolicyDecision(listenerID, PolicyIgnore, 0, { });
@@ -1154,13 +1152,6 @@ bool WebFrameLoaderClient::shouldFallBack(const ResourceError& error)
     if (error.errorCode() == pluginWillHandleLoadError.get().errorCode() && error.domain() == pluginWillHandleLoadError.get().domain())
         return false;
 
-#if PLATFORM(QT)
-    static NeverDestroyed<const ResourceError> errorInterruptedForPolicyChange(this->interruptedForPolicyChangeError(ResourceRequest()));
-
-    if (error.errorCode() == errorInterruptedForPolicyChange.get().errorCode() && error.domain() == errorInterruptedForPolicyChange.get().domain())
-        return false;
-#endif
-
     return true;
 }
 
@@ -1329,11 +1320,7 @@ void WebFrameLoaderClient::transitionToCommittedForNewPage()
     m_frameHasCustomContentProvider = isMainFrame && webPage->shouldUseCustomContentProviderForResponse(response);
     m_frameCameFromPageCache = false;
 
-#if PLATFORM(QT)
-    ScrollbarMode defaultScrollbarMode = ScrollbarAuto;
-#else
     ScrollbarMode defaultScrollbarMode = shouldHideScrollbars ? ScrollbarAlwaysOff : ScrollbarAuto;
-#endif
 
     m_frame->coreFrame()->createView(webPage->size(), backgroundColor, isTransparent,
         webPage->fixedLayoutSize(), fixedVisibleContentRect, shouldUseFixedLayout,

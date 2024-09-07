@@ -42,7 +42,6 @@
 #include "MessageSender.h"
 #include "NotificationPermissionRequestManagerProxy.h"
 #include "PageLoadState.h"
-#include "PlatformProcessIdentifier.h"
 #include "ProcessThrottler.h"
 #include "SandboxExtension.h"
 #include "ShareableBitmap.h"
@@ -109,11 +108,6 @@ OBJC_CLASS _WKRemoteObjectRegistry;
 #include "AttributedString.h"
 #endif
 
-#if PLATFORM(QT)
-#include "ArgumentCodersQt.h"
-#include "QtNetworkRequestData.h"
-#endif
-
 #if PLATFORM(IOS)
 #include "ProcessThrottler.h"
 #endif
@@ -135,10 +129,6 @@ OBJC_CLASS _WKRemoteObjectRegistry;
 namespace WebCore {
 class MediaSessionMetadata;
 }
-#endif
-
-#if PLATFORM(QT)
-class QQuickNetworkReply;
 #endif
 
 namespace API {
@@ -209,7 +199,6 @@ class WebFullScreenManagerProxy;
 class WebNavigationState;
 class WebVideoFullscreenManagerProxy;
 class WebKeyboardEvent;
-class WebURLSchemeHandler;
 class WebMouseEvent;
 class WebOpenPanelResultListenerProxy;
 class WebPageGroup;
@@ -224,10 +213,6 @@ struct EditorState;
 struct PlatformPopupMenuData;
 struct PrintInfo;
 struct WebPopupItem;
-
-#if ENABLE(QT_GESTURE_EVENTS)
-class WebGestureEvent;
-#endif
 
 #if ENABLE(VIBRATION)
 class WebVibrationProxy;
@@ -546,16 +531,11 @@ public:
     void didRenderFrame(const WebCore::IntSize& contentsSize, const WebCore::IntRect& coveredRect);
     void commitPageTransitionViewport();
 #endif
-#if PLATFORM(QT)
-    void authenticationRequiredRequest(const String& hostname, const String& realm, const String& prefilledUsername, String& username, String& password);
-    void certificateVerificationRequest(const String& hostname, bool& ignoreErrors);
-    void proxyAuthenticationRequiredRequest(const String& hostname, uint16_t port, const String& prefilledUsername, String& username, String& password);
-#endif // PLATFORM(QT).
 #if PLATFORM(EFL)
     void setThemePath(const String&);
 #endif
 
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
     void setComposition(const String& text, Vector<WebCore::CompositionUnderline> underlines, uint64_t selectionStart, uint64_t selectionEnd, uint64_t replacementRangeStart, uint64_t replacementRangeEnd);
     void confirmComposition(const String& compositionString, int64_t selectionStart, int64_t selectionLength);
     void cancelComposition();
@@ -632,19 +612,12 @@ public:
     void handleGestureEvent(const NativeWebGestureEvent&);
 #endif
 
-#if ENABLE(QT_GESTURE_EVENTS)
-    void handleGestureEvent(const WebGestureEvent&);
-#endif
-
 #if ENABLE(IOS_TOUCH_EVENTS)
     void handleTouchEventSynchronously(const NativeWebTouchEvent&);
     void handleTouchEventAsynchronously(const NativeWebTouchEvent&);
 
 #elif ENABLE(TOUCH_EVENTS)
     void handleTouchEvent(const NativeWebTouchEvent&);
-#if PLATFORM(QT)
-    void handlePotentialActivation(const WebCore::IntPoint& touchPoint, const WebCore::IntSize& touchArea);
-#endif
 #endif
 
     void scrollBy(WebCore::ScrollDirection, WebCore::ScrollGranularity);
@@ -829,7 +802,7 @@ public:
     void setPromisedDataForAttachment(const String& pasteboardName, const String& filename, const String& extension, const String& title, const String& url, const String& visibleURL);
 #endif
 #endif
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
     void startDrag(const WebCore::DragData&, const ShareableBitmap::Handle& dragImage);
 #endif
 #endif
@@ -862,7 +835,7 @@ public:
 #endif
 
     WebProcessProxy& process() { return m_process; }
-    PlatformProcessIdentifier processIdentifier() const;
+    pid_t processIdentifier() const;
 
     WebPreferences& preferences() { return m_preferences; }
     void setPreferences(WebPreferences&);
@@ -870,8 +843,6 @@ public:
     WebPageGroup& pageGroup() { return m_pageGroup; }
 
     bool isValid() const;
-
-    const String& urlAtProcessExit() const { return m_urlAtProcessExit; }
 
 #if ENABLE(DRAG_SUPPORT)
     WebCore::DragOperation currentDragOperation() const { return m_currentDragOperation; }
@@ -1119,9 +1090,6 @@ public:
 
     void didRestoreScrollPosition();
 
-    void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
-    WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
-
 private:
     WebPageProxy(PageClient&, WebProcessProxy&, uint64_t pageID, Ref<API::PageConfiguration>&&);
     void platformInitialize();
@@ -1154,10 +1122,6 @@ private:
     virtual void setTextFromItemForPopupMenu(WebPopupMenuProxy*, int32_t index) override;
 #if PLATFORM(GTK)
     virtual void failedToShowPopupMenu() override;
-#endif
-#if PLATFORM(QT)
-    void changeSelectedIndex(int32_t newSelectedIndex) override;
-    void closePopupMenu() override;
 #endif
 
     void didCreateMainFrame(uint64_t frameID);
@@ -1284,9 +1248,6 @@ private:
 
     void editorStateChanged(const EditorState&);
     void compositionWasCanceled(const EditorState&);
-#if PLATFORM(QT)
-    void willSetInputMethodState();
-#endif
 
     // Back/Forward list management
     void backForwardAddItem(uint64_t itemID);
@@ -1517,9 +1478,6 @@ private:
 #endif
 #endif
 
-    void startURLSchemeHandlerTask(uint64_t handlerIdentifier, uint64_t resourceIdentifier, const WebCore::ResourceRequest&);
-    void stopURLSchemeHandlerTask(uint64_t handlerIdentifier, uint64_t resourceIdentifier);
-
     void handleAutoFillButtonClick(const UserData&);
 
     void finishInitializingWebPageAfterProcessLaunch();
@@ -1549,7 +1507,6 @@ private:
 
     std::unique_ptr<WebNavigationState> m_navigationState;
     String m_failingProvisionalLoadURL;
-    bool m_isLoadingAlternateHTMLStringForFailingProvisionalLoad { false };
 
     std::unique_ptr<DrawingAreaProxy> m_drawingArea;
 #if ENABLE(ASYNC_SCROLLING)
@@ -1642,8 +1599,6 @@ private:
 
     String m_toolTip;
 
-    String m_urlAtProcessExit;
-
     EditorState m_editorState;
     bool m_isEditable;
 
@@ -1701,9 +1656,6 @@ private:
     DownloadID m_syncNavigationActionPolicyDownloadID;
     bool m_shouldSuppressAppLinksInNextNavigationPolicyDecision { false };
 
-#if ENABLE(QT_GESTURE_EVENTS)
-    Deque<WebGestureEvent> m_gestureEventQueue;
-#endif
     Deque<NativeWebKeyboardEvent> m_keyEventQueue;
     Deque<NativeWebWheelEvent> m_wheelEventQueue;
     Deque<std::unique_ptr<Vector<NativeWebWheelEvent>>> m_currentlyProcessedWheelEvents;
@@ -1813,9 +1765,6 @@ private:
     bool m_shouldScaleViewToFitDocument { false };
     bool m_suppressNavigationSnapshotting { false };
 
-#if PLATFORM(QT)
-    WTF::HashSet<RefPtr<QtRefCountedNetworkRequestData>> m_applicationSchemeRequests;
-#endif
 #if PLATFORM(COCOA)
     HashMap<String, String> m_temporaryPDFFiles;
     std::unique_ptr<WebCore::RunLoopObserver> m_viewStateChangeDispatcher;
@@ -1850,9 +1799,6 @@ private:
     bool m_hasDeferredStartAssistingNode { false };
     std::unique_ptr<NodeAssistanceArguments> m_deferredNodeAssistanceArguments;
 #endif
-
-    HashMap<String, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByScheme;
-    HashMap<uint64_t, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByIdentifier;
 };
 
 } // namespace WebKit

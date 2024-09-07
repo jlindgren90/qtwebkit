@@ -60,32 +60,6 @@ void ChildProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions& launchO
 {
     if (const char* userDirectorySuffix = getenv("DIRHELPER_USER_DIR_SUFFIX"))
         launchOptions.extraInitializationData.add(ASCIILiteral("user-directory-suffix"), userDirectorySuffix);
-
-#if !defined(NDEBUG) && (PLATFORM(GTK) || PLATFORM(EFL))
-    const char* varname;
-    switch (launchOptions.processType) {
-    case ProcessLauncher::ProcessType::Web:
-        varname = "WEB_PROCESS_CMD_PREFIX";
-        break;
-#if ENABLE(NETSCAPE_PLUGIN_API)
-    case ProcessLauncher::ProcessType::Plugin64:
-    case ProcessLauncher::ProcessType::Plugin32:
-        varname = "PLUGIN_PROCESS_CMD_PREFIX";
-        break;
-#endif
-    case ProcessLauncher::ProcessType::Network:
-        varname = "NETWORK_PROCESS_CMD_PREFIX";
-        break;
-#if ENABLE(DATABASE_PROCESS)
-    case ProcessLauncher::ProcessType::Database:
-        varname = "DATABASE_PROCESS_CMD_PREFIX";
-        break;
-#endif
-    }
-    const char* processCmdPrefix = getenv(varname);
-    if (processCmdPrefix && *processCmdPrefix)
-        launchOptions.processCmdPrefix = String::fromUTF8(processCmdPrefix);
-#endif // !defined(NDEBUG) && (PLATFORM(GTK) || PLATFORM(EFL)
 }
 
 void ChildProcessProxy::connect()
@@ -172,10 +146,8 @@ void ChildProcessProxy::didFinishLaunching(ProcessLauncher*, IPC::Connection::Id
     ASSERT(!m_connection);
 
     m_connection = IPC::Connection::createServerConnection(connectionIdentifier, *this);
-#if (PLATFORM(MAC) || PLATFORM(QT) && USE(MACH_PORTS)) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
     m_connection->setShouldCloseConnectionOnMachExceptions();
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-    m_connection->setShouldCloseConnectionOnProcessTermination(processIdentifier());
 #endif
 
     connectionWillOpen(*m_connection);

@@ -103,7 +103,6 @@
 #include "WebProcessPool.h"
 #include "WebProcessProxy.h"
 #include "WebProtectionSpace.h"
-#include "WebURLSchemeHandler.h"
 #include "WebUserContentControllerProxy.h"
 #include "WebsiteDataStore.h"
 #include <WebCore/BitmapImage.h>
@@ -126,10 +125,6 @@
 
 #if ENABLE(ASYNC_SCROLLING)
 #include "RemoteScrollingCoordinatorProxy.h"
-#endif
-
-#if PLATFORM(QT)
-#include "ArgumentCodersQt.h"
 #endif
 
 #if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
@@ -180,27 +175,6 @@
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_process->connection())
 #define MESSAGE_CHECK_URL(url) MESSAGE_CHECK_BASE(m_process->checkURLReceivedFromWebProcess(url), m_process->connection())
 
-// Instead of URLParser class added later
-namespace URLParser
-{
-static WTF::Optional<String> maybeCanonicalizeScheme(const String& scheme)
-{
-    if (scheme.isEmpty())
-        return WTF::Nullopt;
-
-    if (!isASCIIAlpha(scheme[0]))
-        return WTF::Nullopt;
-
-    for (size_t i = 1; i < scheme.length(); ++i) {
-        if (isASCIIAlphanumeric(scheme[i]) || scheme[i] == '+' || scheme[i] == '-' || scheme[i] == '.')
-            continue;
-        return WTF::Nullopt;
-    }
-
-    return scheme.convertToASCIILowercase();
-}
-}
-
 using namespace WebCore;
 
 // Represents the number of wheel events we can hold in the queue before we start pushing them preemptively.
@@ -237,9 +211,8 @@ public:
     bool areBeingProcessed() const { return !!m_currentRecord; }
     Record* next();
 
-    ExceededDatabaseQuotaRecords() { }
-
 private:
+    ExceededDatabaseQuotaRecords() { }
     ~ExceededDatabaseQuotaRecords() { }
 
     Deque<std::unique_ptr<Record>> m_records;
@@ -523,9 +496,7 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
 
 WebPageProxy::~WebPageProxy()
 {
-    // QtWebPageSGNode may be the last owner of WebPageProxy, but it is destroyed
-    // in the renderer thread which causes assertion failure when accessing globalPageMap
-    ASSERT(!RunLoop::isMain() || m_process->webPage(m_pageID) != this);
+    ASSERT(m_process->webPage(m_pageID) != this);
 #if !ASSERT_DISABLED
     for (WebPageProxy* page : m_process->pages())
         ASSERT(page != this);
@@ -552,7 +523,7 @@ const API::PageConfiguration& WebPageProxy::configuration() const
     return m_configuration.get();
 }
 
-PlatformProcessIdentifier WebPageProxy::processIdentifier() const
+pid_t WebPageProxy::processIdentifier() const
 {
     if (m_isClosed)
         return 0;
@@ -874,7 +845,6 @@ void WebPageProxy::close()
     resetState(ResetStateReason::PageInvalidated);
 
     m_loaderClient = std::make_unique<API::LoaderClient>();
-    m_navigationClient = nullptr;
     m_policyClient = std::make_unique<API::PolicyClient>();
     m_formClient = std::make_unique<API::FormClient>();
     m_uiClient = std::make_unique<API::UIClient>();
@@ -997,7 +967,7 @@ RefPtr<API::Navigation> WebPageProxy::loadData(API::Data* data, const String& MI
 
     auto transaction = m_pageLoadState.transaction();
 
-    m_pageLoadState.setPendingAPIRequestURL(transaction, !baseURL.isEmpty() ? baseURL : blankURL().string());
+    m_pageLoadState.setPendingAPIRequestURL(transaction, !baseURL.isEmpty() ? baseURL : ASCIILiteral("about:blank"));
 
     if (!isValid())
         reattachToWebProcess();
@@ -1019,7 +989,7 @@ RefPtr<API::Navigation> WebPageProxy::loadHTMLString(const String& htmlString, c
 
     auto transaction = m_pageLoadState.transaction();
 
-    m_pageLoadState.setPendingAPIRequestURL(transaction, !baseURL.isEmpty() ? baseURL : blankURL().string());
+    m_pageLoadState.setPendingAPIRequestURL(transaction, !baseURL.isEmpty() ? baseURL : ASCIILiteral("about:blank"));
 
     if (!isValid())
         reattachToWebProcess();
@@ -1033,21 +1003,14 @@ RefPtr<API::Navigation> WebPageProxy::loadHTMLString(const String& htmlString, c
 
 void WebPageProxy::loadAlternateHTMLString(const String& htmlString, const String& baseURL, const String& unreachableURL, API::Object* userData)
 {
-    // When the UIProcess is in the process of handling a failing provisional load, do not attempt to
-    // start a second alternative HTML load as this will prevent the page load state from being
-    // handled properly.
-    if (m_isClosed || m_isLoadingAlternateHTMLStringForFailingProvisionalLoad)
+    if (m_isClosed)
         return;
-
-    if (!m_failingProvisionalLoadURL.isEmpty())
-        m_isLoadingAlternateHTMLStringForFailingProvisionalLoad = true;
 
     if (!isValid())
         reattachToWebProcess();
 
     auto transaction = m_pageLoadState.transaction();
 
-    m_pageLoadState.setPendingAPIRequestURL(transaction, unreachableURL);
     m_pageLoadState.setUnreachableURL(transaction, unreachableURL);
 
     if (m_mainFrame)
@@ -1067,9 +1030,6 @@ void WebPageProxy::loadPlainTextString(const String& string, API::Object* userDa
     if (!isValid())
         reattachToWebProcess();
 
-    auto transaction = m_pageLoadState.transaction();
-    m_pageLoadState.setPendingAPIRequestURL(transaction, blankURL().string());
-
     m_process->send(Messages::WebPage::LoadPlainTextString(string, UserData(process().transformObjectsToHandles(userData).get())), m_pageID);
     m_process->responsivenessTimer().start();
 }
@@ -1081,9 +1041,6 @@ void WebPageProxy::loadWebArchiveData(API::Data* webArchiveData, API::Object* us
 
     if (!isValid())
         reattachToWebProcess();
-
-    auto transaction = m_pageLoadState.transaction();
-    m_pageLoadState.setPendingAPIRequestURL(transaction, blankURL().string());
 
     m_process->send(Messages::WebPage::LoadWebArchiveData(webArchiveData->dataReference(), UserData(process().transformObjectsToHandles(userData).get())), m_pageID);
     m_process->responsivenessTimer().start();
@@ -1117,11 +1074,8 @@ RefPtr<API::Navigation> WebPageProxy::reload(bool reloadFromOrigin, bool content
 {
     SandboxExtension::Handle sandboxExtensionHandle;
 
-    String url = m_pageLoadState.activeURL();
-    if (url.isEmpty() && m_backForwardList->currentItem())
-        url = m_backForwardList->currentItem()->url();
-
-    if (!url.isEmpty()) {
+    if (m_backForwardList->currentItem()) {
+        String url = m_backForwardList->currentItem()->url();
         auto transaction = m_pageLoadState.transaction();
         m_pageLoadState.setPendingAPIRequestURL(transaction, url);
 
@@ -1686,7 +1640,7 @@ void WebPageProxy::performDragControllerAction(DragControllerAction action, Drag
 {
     if (!isValid())
         return;
-#if PLATFORM(GTK) || PLATFORM(QT)
+#if PLATFORM(GTK)
     UNUSED_PARAM(dragStorageName);
     UNUSED_PARAM(sandboxExtensionHandle);
     UNUSED_PARAM(sandboxExtensionsForUpload);
@@ -1709,7 +1663,7 @@ void WebPageProxy::didPerformDragControllerAction(uint64_t dragOperation, bool m
     m_currentDragNumberOfFilesToBeAccepted = numberOfItemsToBeAccepted;
 }
 
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
 void WebPageProxy::startDrag(const DragData& dragData, const ShareableBitmap::Handle& dragImageHandle)
 {
     RefPtr<ShareableBitmap> dragImage = 0;
@@ -1955,19 +1909,6 @@ void WebPageProxy::findPlugin(const String& mimeType, uint32_t processType, cons
 
 #endif // ENABLE(NETSCAPE_PLUGIN_API)
 
-#if ENABLE(QT_GESTURE_EVENTS)
-void WebPageProxy::handleGestureEvent(const WebGestureEvent& event)
-{
-    if (!isValid())
-        return;
-
-    m_gestureEventQueue.append(event);
-
-    m_process->responsivenessTimer().start();
-    m_process->send(Messages::EventDispatcher::GestureEvent(m_pageID, event), 0);
-}
-#endif
-
 #if ENABLE(TOUCH_EVENTS)
 
 bool WebPageProxy::shouldStartTrackingTouchEvents(const WebTouchEvent& touchStartEvent) const
@@ -2041,14 +1982,6 @@ void WebPageProxy::handleTouchEventAsynchronously(const NativeWebTouchEvent& eve
 }
 
 #elif ENABLE(TOUCH_EVENTS)
-
-#if PLATFORM(QT)
-void WebPageProxy::handlePotentialActivation(const IntPoint& touchPoint, const IntSize& touchArea)
-{
-    m_process->send(Messages::WebPage::HighlightPotentialActivation(touchPoint, touchArea), m_pageID);
-}
-#endif
-
 void WebPageProxy::handleTouchEvent(const NativeWebTouchEvent& event)
 {
     if (!isValid())
@@ -3193,8 +3126,6 @@ void WebPageProxy::didFinishLoadForFrame(uint64_t frameID, uint64_t navigationID
 
     if (isMainFrame)
         m_pageClient.didFinishLoadForMainFrame();
-
-    m_isLoadingAlternateHTMLStringForFailingProvisionalLoad = false;
 }
 
 void WebPageProxy::didFailLoadForFrame(uint64_t frameID, uint64_t navigationID, const ResourceError& error, const UserData& userData)
@@ -4627,9 +4558,6 @@ void WebPageProxy::didReceiveEvent(uint32_t opaqueType, bool handled)
     case WebEvent::KeyUp:
     case WebEvent::RawKeyDown:
     case WebEvent::Char:
-#if ENABLE(QT_GESTURE_EVENTS)
-    case WebEvent::GestureSingleTap:
-#endif
 #if ENABLE(TOUCH_EVENTS)
     case WebEvent::TouchStart:
     case WebEvent::TouchMove:
@@ -4655,16 +4583,6 @@ void WebPageProxy::didReceiveEvent(uint32_t opaqueType, bool handled)
         break;
     case WebEvent::MouseDown:
         break;
-#if ENABLE(QT_GESTURE_EVENTS)
-    case WebEvent::GestureSingleTap: {
-        WebGestureEvent event = m_gestureEventQueue.first();
-        MESSAGE_CHECK(type == event.type());
-
-        m_gestureEventQueue.removeFirst();
-        m_pageClient.doneWithGestureEvent(event, handled);
-        break;
-    }
-#endif
     case WebEvent::MouseUp:
         m_currentlyProcessedMouseDownEvent = nullptr;
         break;
@@ -5188,9 +5106,6 @@ void WebPageProxy::resetStateAfterProcessExited()
 
     m_editorState = EditorState();
 
-    if (m_mainFrame)
-        m_urlAtProcessExit = m_mainFrame->url();
-
     m_pageClient.processDidExit();
 
     resetState(ResetStateReason::WebProcessExited);
@@ -5199,9 +5114,6 @@ void WebPageProxy::resetStateAfterProcessExited()
     m_pendingLearnOrIgnoreWordMessageCount = 0;
 
     // Can't expect DidReceiveEvent notifications from a crashed web process.
-#if ENABLE(QT_GESTURE_EVENTS)
-    m_gestureEventQueue.clear();
-#endif
     m_keyEventQueue.clear();
     m_wheelEventQueue.clear();
     m_currentlyProcessedWheelEvents.clear();
@@ -5289,9 +5201,6 @@ WebPageCreationParameters WebPageProxy::creationParameters()
     parameters.appleMailPaginationQuirkEnabled = false;
 #endif
     parameters.shouldScaleViewToFitDocument = m_shouldScaleViewToFitDocument;
-
-    for (auto& iterator : m_urlSchemeHandlersByScheme)
-        parameters.urlSchemeHandlers.set(iterator.key, iterator.value->identifier());
 
     return parameters;
 }
@@ -5794,7 +5703,7 @@ PassRefPtr<ViewSnapshot> WebPageProxy::takeViewSnapshot()
 }
 #endif
 
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
 void WebPageProxy::setComposition(const String& text, Vector<CompositionUnderline> underlines, uint64_t selectionStart, uint64_t selectionEnd, uint64_t replacementRangeStart, uint64_t replacementRangeEnd)
 {
     // FIXME: We need to find out how to proper handle the crashes case.
@@ -5819,7 +5728,7 @@ void WebPageProxy::cancelComposition()
 
     process().send(Messages::WebPage::CancelComposition(), m_pageID);
 }
-#endif // PLATFORM(QT) || PLATFORM(GTK)
+#endif // PLATFORM(GTK)
 
 void WebPageProxy::didSaveToPageCache()
 {
@@ -6267,43 +6176,6 @@ void WebPageProxy::setShouldScaleViewToFitDocument(bool shouldScaleViewToFitDocu
 void WebPageProxy::didRestoreScrollPosition()
 {
     m_pageClient.didRestoreScrollPosition();
-}
-
-void WebPageProxy::setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&& handler, const String& scheme)
-{
-    auto canonicalizedScheme = URLParser::maybeCanonicalizeScheme(scheme);
-    ASSERT(canonicalizedScheme);
-//    ASSERT(!URLParser::isSpecialScheme(canonicalizedScheme.value()));
-
-    auto schemeResult = m_urlSchemeHandlersByScheme.add(canonicalizedScheme.value(), handler.ptr());
-    ASSERT_UNUSED(schemeResult, schemeResult.isNewEntry);
-
-    auto identifier = handler->identifier();
-    auto identifierResult = m_urlSchemeHandlersByIdentifier.add(identifier, WTFMove(handler));
-    ASSERT_UNUSED(identifierResult, identifierResult.isNewEntry);
-
-    m_process->send(Messages::WebPage::RegisterURLSchemeHandler(identifier, canonicalizedScheme.value()), m_pageID);
-}
-
-WebURLSchemeHandler* WebPageProxy::urlSchemeHandlerForScheme(const String& scheme)
-{
-    return scheme.isNull() ? nullptr : m_urlSchemeHandlersByScheme.get(scheme);
-}
-
-void WebPageProxy::startURLSchemeHandlerTask(uint64_t handlerIdentifier, uint64_t resourceIdentifier, const WebCore::ResourceRequest& request)
-{
-    auto iterator = m_urlSchemeHandlersByIdentifier.find(handlerIdentifier);
-    ASSERT(iterator != m_urlSchemeHandlersByIdentifier.end());
-
-    iterator->value->startTask(*this, resourceIdentifier, request);
-}
-
-void WebPageProxy::stopURLSchemeHandlerTask(uint64_t handlerIdentifier, uint64_t resourceIdentifier)
-{
-    auto iterator = m_urlSchemeHandlersByIdentifier.find(handlerIdentifier);
-    ASSERT(iterator != m_urlSchemeHandlersByIdentifier.end());
-
-    iterator->value->stopTask(*this, resourceIdentifier);
 }
 
 } // namespace WebKit

@@ -97,27 +97,10 @@
 #include <wtf/RefCountedLeakCounter.h>
 #endif
 
-#if PLATFORM(QT)
-#include <QProcess>
-#endif
-
 using namespace WebCore;
 using namespace WebKit;
 
 namespace WebKit {
-
-#if PLATFORM(QT)
-static int qProcessId(QProcess* process)
-{
-#if QT_VERSION >= QT_VERSION_CHECK(5, 3, 0)
-    return static_cast<int>(process->processId());
-#elif OS(WINDOWS)
-    return static_cast<int>(process->pid()->dwProcessId);
-#else
-    return static_cast<int>(process->pid());
-#endif
-}
-#endif
 
 DEFINE_DEBUG_ONLY_GLOBAL(WTF::RefCountedLeakCounter, processPoolCounter, ("WebProcessPool"));
 
@@ -716,11 +699,7 @@ void WebProcessPool::processDidFinishLaunching(WebProcessProxy* process)
     if (m_memorySamplerEnabled) {
         SandboxExtension::Handle sampleLogSandboxHandle;        
         double now = WTF::currentTime();
-#if PLATFORM(QT)
-        String sampleLogFilePath = String::format("WebProcess%llupid%d", static_cast<unsigned long long>(now), qProcessId(process->processIdentifier()));
-#else
         String sampleLogFilePath = String::format("WebProcess%llupid%d", static_cast<unsigned long long>(now), process->processIdentifier());
-#endif
         sampleLogFilePath = SandboxExtension::createHandleForTemporaryFile(sampleLogFilePath, SandboxExtension::ReadWrite, sampleLogSandboxHandle);
         
         process->send(Messages::WebProcess::StartMemorySampler(sampleLogSandboxHandle, sampleLogFilePath, m_memorySamplerInterval), 0);
@@ -801,11 +780,6 @@ DownloadProxy* WebProcessPool::download(WebPageProxy* initiatingPage, const Reso
         return downloadProxy;
     }
 
-#if PLATFORM(QT)
-    ASSERT(initiatingPage); // Our design does not suppport downloads without a WebPage.
-    initiatingPage->handleDownloadRequest(downloadProxy);
-#endif
-
     return downloadProxy;
 }
 
@@ -856,7 +830,7 @@ void WebProcessPool::setAdditionalPluginsDirectory(const String& directory)
 }
 #endif // ENABLE(NETSCAPE_PLUGIN_API)
 
-PlatformProcessIdentifier WebProcessPool::networkProcessIdentifier()
+pid_t WebProcessPool::networkProcessIdentifier()
 {
     if (!m_networkProcess)
         return 0;
@@ -1096,18 +1070,6 @@ void WebProcessPool::clearCachedCredentials()
     sendToAllProcesses(Messages::WebProcess::ClearCachedCredentials());
     if (m_networkProcess)
         m_networkProcess->send(Messages::NetworkProcess::ClearCachedCredentials(), 0);
-}
-
-void WebProcessPool::terminateDatabaseProcess()
-{
-#if ENABLE(DATABASE_PROCESS)
-    ASSERT(m_processes.isEmpty());
-    if (!m_databaseProcess)
-        return;
-
-    m_databaseProcess->terminate();
-    m_databaseProcess = nullptr;
-#endif
 }
 
 void WebProcessPool::allowSpecificHTTPSCertificateForHost(const WebCertificateInfo* certificate, const String& host)

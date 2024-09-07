@@ -95,10 +95,6 @@ public:
     IPC::Connection* downloadProxyConnection();
     AuthenticationManager& downloadsAuthenticationManager();
 
-#if PLATFORM(QT)
-    void startTransfer(DownloadID, const String& destination);
-#endif
-
 private:
     Client& m_client;
 #if USE(NETWORK_SESSION)

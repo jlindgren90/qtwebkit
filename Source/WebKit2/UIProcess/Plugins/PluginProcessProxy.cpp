@@ -76,9 +76,6 @@ PluginProcessProxy::PluginProcessProxy(PluginProcessManager* PluginProcessManage
 
 PluginProcessProxy::~PluginProcessProxy()
 {
-    if (m_connection)
-        m_connection->invalidate();
-
     ASSERT(m_pendingFetchWebsiteDataRequests.isEmpty());
     ASSERT(m_pendingFetchWebsiteDataCallbacks.isEmpty());
     ASSERT(m_pendingDeleteWebsiteDataRequests.isEmpty());
@@ -157,7 +154,7 @@ void PluginProcessProxy::pluginProcessCrashedOrFailedToLaunch()
     while (!m_pendingConnectionReplies.isEmpty()) {
         RefPtr<Messages::WebProcessProxy::GetPluginProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
 
-#if USE(UNIX_DOMAIN_SOCKETS) || OS(WINDOWS)
+#if USE(UNIX_DOMAIN_SOCKETS)
         reply->send(IPC::Attachment(), false);
 #elif OS(DARWIN)
         reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND), false);
@@ -217,10 +214,8 @@ void PluginProcessProxy::didFinishLaunching(ProcessLauncher*, IPC::Connection::I
     }
 
     m_connection = IPC::Connection::createServerConnection(connectionIdentifier, *this);
-#if (PLATFORM(MAC) || PLATFORM(QT) && USE(MACH_PORTS)) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
     m_connection->setShouldCloseConnectionOnMachExceptions();
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-    m_connection->setShouldCloseConnectionOnProcessTermination(processIdentifier());
 #endif
 
     m_connection->open();
@@ -273,7 +268,7 @@ void PluginProcessProxy::didCreateWebProcessConnection(const IPC::Attachment& co
     // Grab the first pending connection reply.
     RefPtr<Messages::WebProcessProxy::GetPluginProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
 
-#if USE(UNIX_DOMAIN_SOCKETS) || OS(WINDOWS)
+#if USE(UNIX_DOMAIN_SOCKETS)
     reply->send(connectionIdentifier, supportsAsynchronousPluginInitialization);
 #elif OS(DARWIN)
     reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND), supportsAsynchronousPluginInitialization);

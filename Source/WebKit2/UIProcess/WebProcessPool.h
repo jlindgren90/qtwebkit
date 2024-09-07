@@ -186,7 +186,7 @@ public:
     void clearPluginClientPolicies();
 #endif
 
-    PlatformProcessIdentifier networkProcessIdentifier();
+    pid_t networkProcessIdentifier();
 
     void setAlwaysUsesComplexTextCodePath(bool);
     void setShouldUseFontSmoothing(bool);
@@ -243,7 +243,6 @@ public:
     bool isUsingTestingNetworkSession() const { return m_shouldUseTestingNetworkSession; }
 
     void clearCachedCredentials();
-    void terminateDatabaseProcess();
 
     void allowSpecificHTTPSCertificateForHost(const WebCertificateInfo*, const String& host);
 

@@ -39,7 +39,6 @@
 #include <WebCore/ScrollTypes.h>
 #include <WebCore/SessionID.h>
 #include <WebCore/ViewState.h>
-#include <wtf/HashMap.h>
 #include <wtf/text/WTFString.h>
 
 #if PLATFORM(MAC)
@@ -132,8 +131,6 @@ struct WebPageCreationParameters {
 #endif
     bool appleMailPaginationQuirkEnabled;
     bool shouldScaleViewToFitDocument;
-
-    HashMap<String, uint64_t> urlSchemeHandlers;
 };
 
 } // namespace WebKit

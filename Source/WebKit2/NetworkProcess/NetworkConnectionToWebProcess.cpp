@@ -60,7 +60,6 @@ NetworkConnectionToWebProcess::NetworkConnectionToWebProcess(IPC::Connection::Id
 
 NetworkConnectionToWebProcess::~NetworkConnectionToWebProcess()
 {
-    m_connection->invalidate();
 }
 
 void NetworkConnectionToWebProcess::didCleanupResourceLoader(NetworkResourceLoader& loader)

@@ -91,6 +91,7 @@
 #include <WebCore/SchemeRegistry.h>
 #include <WebCore/SecurityOrigin.h>
 #include <WebCore/Settings.h>
+#include <unistd.h>
 #include <wtf/CurrentTime.h>
 #include <wtf/HashCountedSet.h>
 #include <wtf/PassRefPtr.h>
@@ -107,10 +108,6 @@
 
 #if ENABLE(SEC_ITEM_SHIM)
 #include "SecItemShim.h"
-#endif
-
-#if !OS(WINDOWS)
-#include <unistd.h>
 #endif
 
 #if ENABLE(DATABASE_PROCESS)
@@ -381,8 +378,6 @@ void WebProcess::ensureNetworkProcessConnection()
     IPC::Connection::Identifier connectionIdentifier = encodedConnectionIdentifier.releaseFileDescriptor();
 #elif OS(DARWIN)
     IPC::Connection::Identifier connectionIdentifier(encodedConnectionIdentifier.port());
-#elif OS(WINDOWS)
-    IPC::Connection::Identifier connectionIdentifier(encodedConnectionIdentifier.handle());
 #else
     ASSERT_NOT_REACHED();
 #endif
@@ -1054,8 +1049,6 @@ void WebProcess::ensureWebToDatabaseProcessConnection()
     IPC::Connection::Identifier connectionIdentifier = encodedConnectionIdentifier.releaseFileDescriptor();
 #elif OS(DARWIN)
     IPC::Connection::Identifier connectionIdentifier(encodedConnectionIdentifier.port());
-#elif OS(WINDOWS)
-    IPC::Connection::Identifier connectionIdentifier(encodedConnectionIdentifier.handle());
 #else
     ASSERT_NOT_REACHED();
 #endif

@@ -31,7 +31,7 @@
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
-#if USE(SOUP) || PLATFORM(QT)
+#if USE(SOUP)
 #include "HTTPCookieAcceptPolicy.h"
 #endif
 
@@ -90,7 +90,7 @@ struct NetworkProcessCreationParameters {
 #endif
 #endif
 
-#if USE(SOUP) || PLATFORM(QT)
+#if USE(SOUP)
     String cookiePersistentStoragePath;
     uint32_t cookiePersistentStorageType;
     HTTPCookieAcceptPolicy cookieAcceptPolicy;

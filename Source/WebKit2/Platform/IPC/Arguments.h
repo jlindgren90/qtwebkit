@@ -29,8 +29,6 @@
 #include "ArgumentDecoder.h"
 #include "ArgumentEncoder.h"
 
-#include <tuple>
-
 namespace IPC {
 
 template<size_t index, typename... Elements>
