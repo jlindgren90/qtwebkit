@@ -148,8 +148,7 @@ TEST(WTF, StringOperators)
     EXPECT_N_WTF_STRING_COPIES(2, atomicString + (literal + string + literal));
     EXPECT_N_WTF_STRING_COPIES(2, (atomicString + literal) + (string + literal));
 
-// FIXME: Fix compatibility with ICU >= 58.1
-#if COMPILER(MSVC) && !PLATFORM(QT)
+#if COMPILER(MSVC)
     EXPECT_N_WTF_STRING_COPIES(1, L"wide string" + string);
     EXPECT_N_WTF_STRING_COPIES(1, string + L"wide string");
     EXPECT_N_WTF_STRING_COPIES(1, L"wide string" + atomicString);
