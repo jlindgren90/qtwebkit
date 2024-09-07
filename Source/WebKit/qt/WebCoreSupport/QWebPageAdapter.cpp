@@ -66,8 +66,6 @@
 #include "PlatformMouseEvent.h"
 #include "PlatformTouchEvent.h"
 #include "PlatformWheelEvent.h"
-#include "PluginDatabase.h"
-#include "PluginPackage.h"
 #include "ProgressTracker.h"
 #include "ProgressTrackerClientQt.h"
 #include "QWebFrameAdapter.h"
@@ -968,22 +966,12 @@ static void extractContentTypeFromHash(const HashSet<String, ASCIICaseInsensitiv
         list << type;
 }
 
-static void extractContentTypeFromPluginVector(const Vector<PluginPackage*>& plugins, QStringList& list)
-{
-    for (auto* plugin : plugins) {
-        for (auto& mimeToDescription :  plugin->mimeToDescriptions().keys())
-            list << mimeToDescription;
-    }
-}
-
 QStringList QWebPageAdapter::supportedContentTypes() const
 {
     QStringList mimeTypes;
 
     extractContentTypeFromHash(MIMETypeRegistry::getSupportedImageMIMETypes(), mimeTypes);
     extractContentTypeFromHash(MIMETypeRegistry::getSupportedNonImageMIMETypes(), mimeTypes);
-    if (page->settings().arePluginsEnabled())
-        extractContentTypeFromPluginVector(PluginDatabase::installedPlugins()->plugins(), mimeTypes);
 
     return mimeTypes;
 }
@@ -1009,10 +997,6 @@ bool QWebPageAdapter::supportsContentType(const QString& mimeType) const
         return true;
 
     if (MIMETypeRegistry::isSupportedNonImageMIMEType(type))
-        return true;
-
-    if (page->settings().arePluginsEnabled()
-        && PluginDatabase::installedPlugins()->isMIMETypeRegistered(type))
         return true;
 
     return false;

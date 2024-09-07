@@ -41,7 +41,6 @@
 #include "NetworkStateNotifier.h"
 #include "Page.h"
 #include "PageCache.h"
-#include "PluginDatabase.h"
 #include "RuntimeEnabledFeatures.h"
 #include "Settings.h"
 #include "SharedBuffer.h"
@@ -806,16 +805,7 @@ QIcon QWebSettings::iconForUrl(const QUrl& url)
 */
 void QWebSettings::setPluginSearchPaths(const QStringList& paths)
 {
-    WebCore::initializeWebCoreQt();
-
-    Vector<String> directories;
-
-    for (int i = 0; i < paths.count(); ++i)
-        directories.append(paths.at(i));
-
-    WebCore::PluginDatabase::installedPlugins()->setPluginDirectories(directories);
-    // PluginDatabase::setPluginDirectories() does not refresh the database.
-    WebCore::PluginDatabase::installedPlugins()->refresh();
+    // stub
 }
 
 /*!
@@ -825,29 +815,9 @@ void QWebSettings::setPluginSearchPaths(const QStringList& paths)
 */
 QStringList QWebSettings::pluginSearchPaths()
 {
-    WebCore::initializeWebCoreQt();
-
-    QStringList paths;
-
-    const Vector<String>& directories = WebCore::PluginDatabase::installedPlugins()->pluginDirectories();
-    for (unsigned i = 0; i < directories.size(); ++i)
-        paths.append(directories[i]);
-
-    return paths;
+    // stub
+    return QStringList();
 }
-
-/*
-    Returns the plugin database object.
-
-QWebPluginDatabase *QWebSettings::pluginDatabase()
-{
-    WebCore::initializeWebCoreQt();
-    static QWebPluginDatabase* database = 0;
-    if (!database)
-        database = new QWebPluginDatabase();
-    return database;
-}
-*/
 
 static const char* resourceNameForWebGraphic(QWebSettings::WebGraphic type)
 {

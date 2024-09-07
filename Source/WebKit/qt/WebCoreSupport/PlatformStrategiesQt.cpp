@@ -34,7 +34,6 @@
 #include "ChromeClientQt.h"
 #include "QWebPageAdapter.h"
 #include "qwebhistoryinterface.h"
-#include "qwebpluginfactory.h"
 #include "WebResourceLoadScheduler.h"
 
 #include <BlobRegistryImpl.h>
@@ -43,7 +42,6 @@
 #include <Page.h>
 #include <PageGroup.h>
 #include <PlatformCookieJar.h>
-#include <PluginDatabase.h>
 #include <QCoreApplication>
 #include <QLocale>
 #include <wtf/MathExtras.h>
@@ -115,63 +113,12 @@ void PlatformStrategiesQt::deleteCookie(const NetworkStorageSession& session, co
 
 void PlatformStrategiesQt::refreshPlugins()
 {
-    PluginDatabase::installedPlugins()->refresh();
+    // stub
 }
 
 void PlatformStrategiesQt::getPluginInfo(const WebCore::Page* page, Vector<WebCore::PluginInfo>& outPlugins)
 {
-    QWebPageAdapter* qPage = 0;
-    if (!page->chrome().client().isEmptyChromeClient())
-        qPage = static_cast<ChromeClientQt&>(page->chrome().client()).m_webPage;
-
-    QWebPluginFactory* factory;
-    if (qPage && (factory = qPage->pluginFactory)) {
-
-        QList<QWebPluginFactory::Plugin> qplugins = factory->plugins();
-        for (int i = 0; i < qplugins.count(); ++i) {
-            const QWebPluginFactory::Plugin& qplugin = qplugins.at(i);
-            PluginInfo info;
-            info.name = qplugin.name;
-            info.desc = qplugin.description;
-
-            for (int j = 0; j < qplugin.mimeTypes.count(); ++j) {
-                const QWebPluginFactory::MimeType& mimeType = qplugin.mimeTypes.at(j);
-
-                MimeClassInfo mimeInfo;
-                mimeInfo.type = mimeType.name;
-                mimeInfo.desc = mimeType.description;
-                for (int k = 0; k < mimeType.fileExtensions.count(); ++k)
-                    mimeInfo.extensions.append(mimeType.fileExtensions.at(k));
-
-                info.mimes.append(mimeInfo);
-            }
-            outPlugins.append(info);
-        }
-    }
-
-    PluginDatabase* db = PluginDatabase::installedPlugins();
-    const Vector<PluginPackage*> &plugins = db->plugins();
-
-    for (auto* package : plugins) {
-        PluginInfo info;
-        info.name = package->name();
-        info.file = package->fileName();
-        info.desc = package->description();
-
-        const auto& mimeToDescriptions = package->mimeToDescriptions();
-        for (auto it = mimeToDescriptions.begin(); it != mimeToDescriptions.end(); ++it) {
-            MimeClassInfo mime;
-
-            mime.type = it->key;
-            mime.desc = it->value;
-            mime.extensions = package->mimeToExtensions().get(mime.type);
-
-            info.mimes.append(mime);
-        }
-
-        outPlugins.append(info);
-    }
-
+    // stub
 }
 
 void PlatformStrategiesQt::getWebVisiblePluginInfo(const Page* page, Vector<PluginInfo>& outPlugins)

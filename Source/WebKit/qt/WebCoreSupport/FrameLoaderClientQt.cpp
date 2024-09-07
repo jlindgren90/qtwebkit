@@ -57,8 +57,6 @@
 #include "Page.h"
 #include "PlatformMouseEvent.h"
 #include "PluginData.h"
-#include "PluginDatabase.h"
-#include "PluginView.h"
 #include "PolicyChecker.h"
 #include "QNetworkReplyHandler.h"
 #include "QWebFrameAdapter.h"
@@ -79,7 +77,6 @@
 #include "qwebhistory.h"
 #include "qwebhistory_p.h"
 #include "qwebhistoryinterface.h"
-#include "qwebpluginfactory.h"
 #include "qwebsettings.h"
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -210,8 +207,6 @@ static const char* navigationTypeToString(NavigationType type)
 FrameLoaderClientQt::FrameLoaderClientQt()
     : m_frame(0)
     , m_webFrame(0)
-    , m_pluginView(0)
-    , m_hasSentResponseToPlugin(false)
     , m_isOriginatingLoad(false)
     , m_isDisplayingErrorPage(false)
     , m_shouldSuppressLoadStarted(false)
@@ -565,11 +560,7 @@ void FrameLoaderClientQt::didChangeTitle(DocumentLoader*)
 
 void FrameLoaderClientQt::finishedLoading(DocumentLoader*)
 {
-    if (!m_pluginView)
-        return;
-    m_pluginView->didFinishLoading();
-    m_pluginView = nullptr;
-    m_hasSentResponseToPlugin = false;
+    // stub
 }
 
 bool FrameLoaderClientQt::canShowMIMETypeAsHTML(const String& MIMEType) const
@@ -583,10 +574,6 @@ bool FrameLoaderClientQt::canShowMIMEType(const String& MIMEType) const
     String type = MIMEType;
     type.convertToASCIILowercase(); // FIXME: Do we really need it?
     if (MIMETypeRegistry::canShowMIMEType(type))
-        return true;
-
-    if (m_frame && m_frame->settings().arePluginsEnabled()
-        && PluginDatabase::installedPlugins()->isMIMETypeRegistered(type))
         return true;
 
     return false;
@@ -802,36 +789,18 @@ bool FrameLoaderClientQt::canCachePage() const
 
 void FrameLoaderClientQt::setMainDocumentError(WebCore::DocumentLoader* loader, const WebCore::ResourceError& error)
 {
-    if (!m_pluginView)
-        return;
-    m_pluginView->didFail(error);
-    m_pluginView = 0;
-    m_hasSentResponseToPlugin = false;
+    // stub
 }
 
 // FIXME: This function should be moved into WebCore.
 void FrameLoaderClientQt::committedLoad(WebCore::DocumentLoader* loader, const char* data, int length)
 {
-    if (!m_pluginView)
-        loader->commitData(data, length);
+    // FIXME: still needed?
+    loader->commitData(data, length);
 
     // If we are sending data to MediaDocument, we should stop here and cancel the request.
     if (m_frame->document()->isMediaDocument())
         loader->cancelMainResourceLoad(pluginWillHandleLoadError(loader->response()));
-
-    // We re-check here as the plugin can have been created.
-    if (m_pluginView) {
-        if (!m_hasSentResponseToPlugin) {
-            m_pluginView->didReceiveResponse(loader->response());
-            // The function didReceiveResponse sets up a new stream to the plug-in.
-            // On a full-page plug-in, a failure in setting up this stream can cause the
-            // main document load to be cancelled, setting m_pluginView to null.
-            if (!m_pluginView)
-                return;
-            m_hasSentResponseToPlugin = true;
-        }
-        m_pluginView->didReceiveData(data, length);
-    }
 }
 
 WebCore::ResourceError FrameLoaderClientQt::cancelledError(const WebCore::ResourceRequest& request)
@@ -1299,29 +1268,12 @@ ObjectContentType FrameLoaderClientQt::objectContentType(const URL& url, const S
     if (!mimeType.length())
         mimeType = MIMETypeRegistry::getMIMETypeForExtension(extension);
 
-    bool arePluginsEnabled = (m_frame && m_frame->settings().arePluginsEnabled());
-    if (arePluginsEnabled && !mimeType.length())
-        mimeType = PluginDatabase::installedPlugins()->MIMETypeForExtension(extension);
-
     if (!mimeType.length())
         return ObjectContentFrame;
-
-    ObjectContentType plugInType = ObjectContentNone;
-    if (arePluginsEnabled && PluginDatabase::installedPlugins()->isMIMETypeRegistered(mimeType))
-        plugInType = ObjectContentNetscapePlugin;
-    else if (m_frame->page()) {
-        bool allowPlugins = m_frame->loader().subframeLoader().allowPlugins();
-        if ((m_frame->page()->pluginData().supportsMimeType(mimeType, PluginData::AllPlugins) && allowPlugins)
-            || m_frame->page()->pluginData().supportsMimeType(mimeType, PluginData::OnlyApplicationPlugins))
-                plugInType = ObjectContentOtherPlugin;
-    }
 
     if (MIMETypeRegistry::isSupportedImageMIMEType(mimeType))
         return ObjectContentImage;
     
-    if (plugInType != ObjectContentNone)
-        return plugInType;
-
     if (MIMETypeRegistry::isSupportedNonImageMIMEType(mimeType))
         return ObjectContentFrame;
 
@@ -1341,180 +1293,21 @@ static const CSSPropertyID qstyleSheetProperties[] = {
 
 const unsigned numqStyleSheetProperties = sizeof(qstyleSheetProperties) / sizeof(qstyleSheetProperties[0]);
 
-class QtPluginWidget: public Widget {
-public:
-    QtPluginWidget(QtPluginWidgetAdapter* w)
-        : Widget(w->handle())
-        , m_adapter(w)
-    {
-        setBindingObject(w->handle());
-    }
-
-    ~QtPluginWidget()
-    {
-        delete m_adapter;
-    }
-
-    inline QtPluginWidgetAdapter* widgetAdapter() const
-    {
-        return m_adapter;
-    }
-
-    void invalidateRect(const IntRect& r) override
-    { 
-        if (platformWidget())
-            widgetAdapter()->update(r);
-    }
-    void frameRectsChanged() override
-    {
-        QtPluginWidgetAdapter* widget = widgetAdapter();
-        if (!widget)
-            return;
-        QRect windowRect = convertToContainingWindow(IntRect(0, 0, frameRect().width(), frameRect().height()));
-
-        ScrollView* parentScrollView = parent();
-        QRect clipRect;
-        if (parentScrollView) {
-            ASSERT_WITH_SECURITY_IMPLICATION(parentScrollView->isFrameView());
-            clipRect = downcast<FrameView>(parentScrollView)->windowClipRect();
-            clipRect.translate(-windowRect.x(), -windowRect.y());
-        }
-        widget->setGeometryAndClip(windowRect, clipRect, isVisible());
-    }
-
-    void show() override
-    {
-        Widget::show();
-        handleVisibility();
-    }
-    void hide() override
-    {
-        Widget::hide();
-        if (platformWidget())
-            widgetAdapter()->setVisible(false);
-    }
-
-private:
-    QtPluginWidgetAdapter* m_adapter;
-
-    void handleVisibility()
-    {
-        if (!isVisible())
-            return;
-        widgetAdapter()->setVisible(true);
-    }
-};
-
-
 RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTMLPlugInElement* element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
 {
-    // qDebug()<<"------ Creating plugin in FrameLoaderClientQt::createPlugin for "<<url.string() << mimeType;
-    // qDebug()<<"------\t url = "<<url.string();
-
-    if (!m_webFrame)
-        return 0;
-
-    QStringList params;
-    QStringList values;
-    QString classid(element->getAttribute("classid"));
-
-    for (unsigned i = 0; i < paramNames.size(); ++i) {
-        params.append(paramNames[i]);
-        if (paramNames[i] == "classid")
-            classid = paramValues[i];
-    }
-    for (unsigned i = 0; i < paramValues.size(); ++i)
-        values.append(paramValues[i]);
-
-    QString urlStr(url.string());
-    QUrl qurl = urlStr;
-
-    QObject* pluginAdapter = 0;
-
-    if (mimeType == "application/x-qt-plugin" || mimeType == "application/x-qt-styled-widget") {
-        pluginAdapter = m_webFrame->pageAdapter->createPlugin(classid, qurl, params, values);
-#ifndef QT_NO_STYLE_STYLESHEET
-        QtPluginWidgetAdapter* widget = qobject_cast<QtPluginWidgetAdapter*>(pluginAdapter);
-        if (widget && mimeType == "application/x-qt-styled-widget") {
-
-            StringBuilder styleSheet;
-            styleSheet.append(element->getAttribute("style"));
-            if (!styleSheet.isEmpty())
-                styleSheet.append(';');
-
-            for (unsigned i = 0; i < numqStyleSheetProperties; ++i) {
-                CSSPropertyID property = qstyleSheetProperties[i];
-
-                styleSheet.append(getPropertyName(property));
-                styleSheet.append(':');
-                styleSheet.append(CSSComputedStyleDeclaration::create(element)->getPropertyValue(property));
-                styleSheet.append(';');
-            }
-
-            widget->setStyleSheet(styleSheet.toString());
-        }
-#endif // QT_NO_STYLE_STYLESHEET
-    }
-
-    if (!pluginAdapter) {
-        QWebPluginFactory* factory = m_webFrame->pageAdapter->pluginFactory;
-        if (factory)
-            pluginAdapter = m_webFrame->pageAdapter->adapterForWidget(factory->create(mimeType, qurl, params, values));
-    }
-    if (pluginAdapter) {
-        QtPluginWidgetAdapter* widget = qobject_cast<QtPluginWidgetAdapter*>(pluginAdapter);
-        if (widget) {
-            QObject* parentWidget = 0;
-            if (m_webFrame->pageAdapter->client)
-                parentWidget = m_webFrame->pageAdapter->client->pluginParent();
-            if (parentWidget) // Don't reparent to nothing (i.e. keep whatever parent QWebPage::createPlugin() chose.
-                widget->setWidgetParent(parentWidget);
-            widget->setVisible(false);
-            RefPtr<QtPluginWidget> w = adoptRef(new QtPluginWidget(widget));
-            // Make sure it's invisible until properly placed into the layout.
-            w->setFrameRect(IntRect(0, 0, 0, 0));
-            return w;
-        }
-
-        // FIXME: Make things work for widgetless plugins as well.
-        delete pluginAdapter;
-    }
-#if ENABLE(NETSCAPE_PLUGIN_API)
-    else { // NPAPI Plugins
-        Vector<String> params = paramNames;
-        Vector<String> values = paramValues;
-        if (mimeType == "application/x-shockwave-flash") {
-            // Inject wmode=opaque when there is no client or the client is not a QWebView.
-            size_t wmodeIndex = params.find("wmode");
-            if (wmodeIndex == WTF::notFound) {
-                params.append("wmode");
-                values.append("opaque");
-            } else if (equalLettersIgnoringASCIICase(values[wmodeIndex], "window"))
-                values[wmodeIndex] = "opaque";
-        }
-
-        RefPtr<PluginView> pluginView = PluginView::create(m_frame, pluginSize, element, url,
-            params, values, mimeType, loadManually);
-        return pluginView;
-    }
-#endif // ENABLE(NETSCAPE_PLUGIN_API)
-
-    return 0;
+    // stub
+    return nullptr;
 }
 
 void FrameLoaderClientQt::redirectDataToPlugin(Widget* pluginWidget)
 {
-    if (!pluginWidget || !pluginWidget->isPluginView()) {
-        m_pluginView = nullptr;
-        return;
-    }
-    m_pluginView = toPluginView(pluginWidget);
-    m_hasSentResponseToPlugin = false;
+    // stub
 }
 
 PassRefPtr<Widget> FrameLoaderClientQt::createJavaAppletWidget(const IntSize& pluginSize, HTMLAppletElement* element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues)
 {
-    return createPlugin(pluginSize, element, url, paramNames, paramValues, "application/x-java-applet", true);
+    // stub
+    return nullptr;
 }
 
 String FrameLoaderClientQt::overrideMediaType() const

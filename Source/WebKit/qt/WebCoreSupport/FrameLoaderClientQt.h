@@ -52,7 +52,6 @@ class Element;
 class FormState;
 class NavigationAction;
 class FrameNetworkingContext;
-class PluginView;
 class ResourceLoader;
 
 struct LoadErrorResetToken;
@@ -245,10 +244,6 @@ private:
     Frame *m_frame;
     QWebFrameAdapter *m_webFrame;
     ResourceResponse m_response;
-
-    // Plugin view to redirect data to
-    WebCore::PluginView* m_pluginView;
-    bool m_hasSentResponseToPlugin;
 
     URL m_lastRequestedUrl;
     bool m_isOriginatingLoad;

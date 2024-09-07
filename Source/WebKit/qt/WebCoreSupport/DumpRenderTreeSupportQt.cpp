@@ -60,7 +60,6 @@
 #include "Page.h"
 #include "PageGroup.h"
 #include "PluginDatabase.h"
-#include "PluginView.h"
 #include "PositionError.h"
 #include "PrintContext.h"
 #include "ProgressTrackerClientQt.h"
@@ -216,10 +215,6 @@ void DumpRenderTreeSupportQt::overwritePluginDirectories()
 void DumpRenderTreeSupportQt::setDumpRenderTreeModeEnabled(bool b)
 {
     QWebPageAdapter::drtRun = b;
-#if ENABLE(NETSCAPE_PLUGIN_API) && defined(XP_UNIX)
-    // PluginViewQt (X11) needs a few workarounds when running under DRT
-    PluginView::setIsRunningUnderDRT(b);
-#endif
 }
 
 void DumpRenderTreeSupportQt::setFrameFlatteningEnabled(QWebPageAdapter* adapter, bool enabled)
