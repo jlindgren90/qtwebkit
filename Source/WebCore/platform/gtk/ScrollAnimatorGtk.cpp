@@ -66,11 +66,12 @@ void ScrollAnimatorGtk::ensureSmoothScrollingAnimation()
     if (m_animation)
         return;
 
-    m_animation = std::make_unique<ScrollAnimationSmooth>(m_scrollableArea, m_currentPosition, [this](FloatPoint&& position) {
+    m_animation = std::make_unique<ScrollAnimationSmooth>(m_scrollableArea, [this](FloatPoint&& position) {
         FloatSize delta = position - m_currentPosition;
         m_currentPosition = WTFMove(position);
         notifyPositionChanged(delta);
     });
+    m_animation->setCurrentPosition(m_currentPosition);
 }
 
 bool ScrollAnimatorGtk::scroll(ScrollbarOrientation orientation, ScrollGranularity granularity, float step, float multiplier)
@@ -153,13 +154,13 @@ void ScrollAnimatorGtk::updateOverlayScrollbarsOpacity()
     if (m_verticalOverlayScrollbar && m_overlayScrollbarAnimationCurrent != m_verticalOverlayScrollbar->opacity()) {
         m_verticalOverlayScrollbar->setOpacity(m_overlayScrollbarAnimationCurrent);
         if (m_verticalOverlayScrollbar->hoveredPart() == NoPart)
-            m_verticalOverlayScrollbar->invalidate();
+            ScrollbarTheme::theme().invalidatePart(*m_verticalOverlayScrollbar, ThumbPart);
     }
 
     if (m_horizontalOverlayScrollbar && m_overlayScrollbarAnimationCurrent != m_horizontalOverlayScrollbar->opacity()) {
         m_horizontalOverlayScrollbar->setOpacity(m_overlayScrollbarAnimationCurrent);
         if (m_horizontalOverlayScrollbar->hoveredPart() == NoPart)
-            m_horizontalOverlayScrollbar->invalidate();
+            ScrollbarTheme::theme().invalidatePart(*m_horizontalOverlayScrollbar, ThumbPart);
     }
 }
 
