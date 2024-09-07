@@ -4,11 +4,6 @@ set(TARGETS_WITH_AUTOMOC
     WebKit
     WebKitWidgets
 )
-if (ENABLE_WEBKIT2)
-    list(APPEND TARGETS_WITH_AUTOMOC
-        WebKit2
-    )
-endif ()
 set_property(TARGET ${TARGETS_WITH_AUTOMOC} PROPERTY AUTOMOC ON)
 
 
@@ -34,23 +29,8 @@ if (USE_MINIMAL_DEBUG_INFO AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif ()
 
     target_compile_options(WebKit            PRIVATE -g1 -O1)
-    target_compile_options(WebKit2           PRIVATE -g1 -O1)
-    if (NOT APPLE)
+    if (TRUE)
         target_compile_options(WebKit        PRIVATE -fdebug-types-section)
-        target_compile_options(WebKit2       PRIVATE -fdebug-types-section)
-    endif ()
-endif ()
-
-if (USE_MINIMAL_DEBUG_INFO_MSVC AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_RELEASE})
-    set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_RELEASE})
-
-    target_compile_options(WebKit             PRIVATE /Zi)
-    if (TARGET WebKit2)
-        target_compile_options(WebKit2        PRIVATE /Zi)
-    endif ()
-    if (TARGET WebKitWidgets)
-        target_compile_options(WebKitWidgets  PRIVATE /Zi)
     endif ()
 endif ()
 
@@ -58,7 +38,6 @@ if (FORCE_DEBUG_INFO)
     if (COMPILER_IS_GCC_OR_CLANG)
         if (NOT APPLE)
             target_compile_options(WebKit        PRIVATE -fdebug-types-section)
-            target_compile_options(WebKit2       PRIVATE -fdebug-types-section)
         endif ()
     endif ()
 endif ()
@@ -92,19 +71,6 @@ if (QT_ORIGIN_RPATH)
 
     if (TARGET WebKitWidgets)
         list(APPEND WEBKIT_SHARED_LIBRARY_TARGETS WebKitWidgets)
-    endif ()
-
-    if (TARGET WebKit2)
-        set(WEBKIT2_EXECUTABLES WebProcess NetworkProcess)
-        if (ENABLE_PLUGIN_PROCESS)
-            list(APPEND WEBKIT2_EXECUTABLES PluginProcess)
-        endif ()
-        if (ENABLE_DATABASE_PROCESS)
-            list(APPEND WEBKIT2_EXECUTABLES DatabaseProcess)
-        endif ()
-        set_target_properties(${WEBKIT2_EXECUTABLES} PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
-        set_target_properties(qmlwebkitplugin PROPERTIES INSTALL_RPATH "\$ORIGIN/../../lib")
-        set_target_properties(qmlwebkitexperimentalplugin PROPERTIES INSTALL_RPATH "\$ORIGIN/../../../lib")
     endif ()
 
     set_target_properties(${WEBKIT_SHARED_LIBRARY_TARGETS} PROPERTIES INSTALL_RPATH "\$ORIGIN")
@@ -242,9 +208,7 @@ else ()
     set(DOC_INSTALL_DIR "doc")
 endif ()
 
-if (WIN32)
-    set(EXPORT_VAR set)
-else ()
+if (TRUE)
     set(EXPORT_VAR export)
 endif ()
 

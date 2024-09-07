@@ -23,10 +23,3 @@ if (QT_STATIC_BUILD)
         ${STATIC_LIB_DEPENDENCIES}
     )
 endif ()
-
-# From PlatformWin.cmake
-if (WIN32)
-    list(REMOVE_ITEM JavaScriptCore_SOURCES
-        inspector/JSGlobalObjectInspectorController.cpp
-    )
-endif ()

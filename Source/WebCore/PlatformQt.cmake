@@ -2,12 +2,6 @@ include(platform/ImageDecoders.cmake)
 include(platform/Linux.cmake)
 include(platform/TextureMapper.cmake)
 
-if (NOT USE_LIBJPEG)
-    list(REMOVE_ITEM WebCore_SOURCES
-        platform/image-decoders/jpeg/JPEGImageDecoder.cpp
-    )
-endif ()
-
 if (JPEG_DEFINITIONS)
     add_definitions(${JPEG_DEFINITIONS})
 endif ()
@@ -225,34 +219,6 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
     )
 endif ()
 
-if (ENABLE_NETSCAPE_PLUGIN_API)
-    if (WIN32)
-        list(APPEND WebCore_FORWARDING_HEADERS_FILES
-            platform/graphics/win/LocalWindowsContext.h
-
-            platform/win/BitmapInfo.h
-            platform/win/WebCoreInstanceHandle.h
-        )
-        list(APPEND WebCore_SOURCES
-            platform/graphics/win/TransformationMatrixWin.cpp
-
-            platform/win/BitmapInfo.cpp
-            platform/win/WebCoreInstanceHandle.cpp
-        )
-        list(APPEND WebCore_LIBRARIES
-            shlwapi
-            version
-        )
-    elseif (PLUGIN_BACKEND_XLIB)
-        list(APPEND WebCore_FORWARDING_HEADERS_FILES
-           plugins/qt/QtX11ImageConversion.h
-        )
-        list(APPEND WebCore_SOURCES
-            plugins/qt/QtX11ImageConversion.cpp
-        )
-    endif ()
-endif ()
-
 if (ENABLE_SMOOTH_SCROLLING)
     list(APPEND WebCore_SOURCES
         platform/ScrollAnimationSmooth.cpp
@@ -316,22 +282,6 @@ list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
     ${WEBCORE_DIR}/css/themeQtNoListboxes.css
 )
 
-if (ENABLE_WEBKIT2)
-    list(APPEND WebCore_SOURCES
-        page/qt/GestureTapHighlighter.cpp
-    )
-    if (USE_MACH_PORTS)
-        list(APPEND WebCore_FORWARDING_HEADERS_FILES
-            platform/cocoa/MachSendRight.h
-
-            platform/spi/cocoa/MachVMSPI.h
-        )
-        list(APPEND WebCore_SOURCES
-            platform/cocoa/MachSendRight.cpp
-        )
-    endif ()
-endif ()
-
 if (ENABLE_OPENGL)
     list(APPEND WebCore_SOURCES
         platform/graphics/opengl/Extensions3DOpenGLCommon.cpp
@@ -358,7 +308,7 @@ if (ENABLE_OPENGL)
     endif ()
 endif ()
 
-if (USE_GLIB)
+if (TRUE)
     list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
         ${GIO_UNIX_INCLUDE_DIRS}
         ${GLIB_INCLUDE_DIRS}
@@ -375,26 +325,6 @@ if (USE_GSTREAMER)
     list(APPEND WebCore_SOURCES
         platform/graphics/gstreamer/ImageGStreamerQt.cpp
     )
-endif ()
-
-if (USE_MEDIA_FOUNDATION)
-    list(APPEND WebCore_SOURCES
-        platform/graphics/win/MediaPlayerPrivateMediaFoundation.cpp
-    )
-    list(APPEND WebCore_LIBRARIES
-        mfuuid
-        strmbase
-    )
-endif ()
-
-if (USE_QT_MULTIMEDIA)
-    list(APPEND WebCore_SOURCES
-        platform/graphics/qt/MediaPlayerPrivateQt.cpp
-    )
-    list(APPEND WebCore_LIBRARIES
-        ${Qt5Multimedia_LIBRARIES}
-    )
-    QTWEBKIT_GENERATE_MOC_FILES_H(WebCore platform/graphics/qt/MediaPlayerPrivateQt.h)
 endif ()
 
 if (ENABLE_VIDEO)
@@ -447,31 +377,6 @@ list(APPEND WebCoreTestSupport_LIBRARIES
 if (HAVE_FONTCONFIG)
     list(APPEND WebCoreTestSupport_LIBRARIES
         ${FONTCONFIG_LIBRARIES}
-    )
-endif ()
-
-# From PlatformWin.cmake
-
-if (WIN32)
-    # Eliminate C2139 errors
-    if (MSVC)
-        add_compile_options(/D_ENABLE_EXTENDED_ALIGNED_STORAGE)
-    endif ()
-
-    if (${JavaScriptCore_LIBRARY_TYPE} MATCHES STATIC)
-        add_definitions(-DSTATICALLY_LINKED_WITH_WTF -DSTATICALLY_LINKED_WITH_JavaScriptCore)
-    endif ()
-
-    list(APPEND WebCore_SOURCES
-        platform/win/SystemInfo.cpp
-    )
-endif ()
-
-if (APPLE)
-    list(APPEND WebCore_SOURCES
-        platform/VNodeTracker.cpp
-
-        platform/cf/SharedBufferCF.cpp
     )
 endif ()
 

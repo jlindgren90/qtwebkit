@@ -27,22 +27,14 @@ if (QT_STATIC_BUILD)
     )
 endif ()
 
-if (USE_MACH_PORTS)
-    list(APPEND WTF_SOURCES
-        cocoa/WorkQueueCocoa.cpp
-    )
-endif ()
-
-if (USE_UNIX_DOMAIN_SOCKETS)
+if (TRUE)
     list(APPEND WTF_SOURCES
         UniStdExtras.cpp
 
         qt/WorkQueueQt.cpp
     )
     QTWEBKIT_GENERATE_MOC_FILES_CPP(WTF qt/WorkQueueQt.cpp)
-endif ()
 
-if (USE_GLIB)
     list(APPEND WTF_SOURCES
         glib/GRefPtr.cpp
     )
@@ -53,36 +45,7 @@ if (USE_GLIB)
         ${GLIB_GOBJECT_LIBRARIES}
         ${GLIB_LIBRARIES}
     )
-endif ()
 
-if (WIN32)
-    list(REMOVE_ITEM WTF_SOURCES
-        threads/BinarySemaphore.cpp
-    )
-    list(APPEND WTF_SOURCES
-        threads/win/BinarySemaphoreWin.cpp
-
-        win/WorkItemWin.cpp
-        win/WorkQueueWin.cpp
-    )
-    list(APPEND WTF_LIBRARIES
-        winmm
-    )
-endif ()
-
-if (APPLE)
-    list(APPEND WTF_SOURCES
-        text/cf/AtomicStringImplCF.cpp
-        text/cf/StringCF.cpp
-        text/cf/StringImplCF.cpp
-        text/cf/StringViewCF.cpp
-    )
-    list(APPEND WTF_LIBRARIES
-        ${COREFOUNDATION_LIBRARY}
-    )
-endif ()
-
-if (UNIX AND NOT APPLE)
     check_function_exists(clock_gettime CLOCK_GETTIME_EXISTS)
     if (NOT CLOCK_GETTIME_EXISTS)
         set(CMAKE_REQUIRED_LIBRARIES rt)
