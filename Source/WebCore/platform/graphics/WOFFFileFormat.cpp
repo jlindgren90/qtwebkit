@@ -30,11 +30,6 @@
 #include "SharedBuffer.h"
 #include <wtf/ByteOrder.h>
 
-#if USE(WOFF2)
-#include <woff2/decode.h>
-static const uint32_t kWoff2Signature = 0x774f4632; // "wOF2"
-#endif
-
 namespace WebCore {
 
 static bool readUInt32(SharedBuffer& buffer, size_t& offset, uint32_t& value)
@@ -80,51 +75,8 @@ bool isWOFF(SharedBuffer& buffer)
     size_t offset = 0;
     uint32_t signature;
 
-    if (!readUInt32(buffer, offset, signature))
-        return false;
-
-#if USE(WOFF2)
-    return signature == woffSignature || signature == kWoff2Signature;
-#else
-    return signature == woffSignature;
-#endif
+    return readUInt32(buffer, offset, signature) && signature == woffSignature;
 }
-
-#if USE(WOFF2)
-class WOFF2VectorOut : public woff2::WOFF2Out {
-public:
-    WOFF2VectorOut(Vector<char>& vector)
-        : m_vector(vector)
-    { }
-
-    bool Write(const void* data, size_t n) override
-    {
-        if (!m_vector.tryReserveCapacity(m_vector.size() + n))
-            return false;
-        m_vector.append(static_cast<const char*>(data), n);
-        return true;
-    }
-
-    bool Write(const void* data, size_t offset, size_t n) override
-    {
-        if (!m_vector.tryReserveCapacity(offset + n))
-            return false;
-        if (offset + n > m_vector.size())
-            m_vector.resize(offset + n);
-        m_vector.remove(offset, n);
-        m_vector.insert(offset, static_cast<const char*>(data), n);
-        return true;
-    }
-
-    size_t Size() override
-    {
-        return m_vector.size();
-    }
-
-private:
-    Vector<char>& m_vector;
-};
-#endif
 
 bool convertWOFFToSfnt(SharedBuffer& woff, Vector<char>& sfnt)
 {
@@ -134,26 +86,7 @@ bool convertWOFFToSfnt(SharedBuffer& woff, Vector<char>& sfnt)
 
     // Read the WOFF header.
     uint32_t signature;
-    if (!readUInt32(woff, offset, signature)) {
-        ASSERT_NOT_REACHED();
-        return false;
-    }
-
-#if USE(WOFF2)
-    if (signature == kWoff2Signature) {
-        const uint8_t* woffData = reinterpret_cast_ptr<const uint8_t*>(woff.data());
-        const size_t woffSize = woff.size();
-        const size_t sfntSize = woff2::ComputeWOFF2FinalSize(woffData, woffSize);
-
-        if (!sfnt.tryReserveCapacity(sfntSize))
-            return false;
-
-        WOFF2VectorOut out(sfnt);
-        return woff2::ConvertWOFF2ToTTF(woffData, woffSize, &out);
-    }
-#endif
-
-    if (signature != woffSignature) {
+    if (!readUInt32(woff, offset, signature) || signature != woffSignature) {
         ASSERT_NOT_REACHED();
         return false;
     }
