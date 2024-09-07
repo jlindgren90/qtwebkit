@@ -53,9 +53,6 @@ def platform_options(use_globs=False):
         optparse.make_option('--gtk', action='store_const', dest='platform',
             const=('gtk*' if use_globs else 'gtk'),
             help=('Alias for --platform=gtk*' if use_globs else 'Alias for --platform=gtk')),
-        optparse.make_option('--qt', action='store_const', dest='platform',
-            const=('qt*' if use_globs else 'qt'),
-            help=('Alias for --platform=qt*' if use_globs else 'Alias for --platform=qt')),
         ]
 
 
@@ -97,7 +94,6 @@ class PortFactory(object):
         'ios.IOSPort',
         'mac.MacPort',
         'mock_drt.MockDRTPort',
-        'qt.QtPort',
         'test.TestPort',
         'win.WinCairoPort',
         'win.WinPort',

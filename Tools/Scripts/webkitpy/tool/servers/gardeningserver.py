@@ -22,7 +22,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
 import BaseHTTPServer
 import SocketServer
 import logging
@@ -95,7 +94,7 @@ class GardeningHTTPRequestHandler(ReflectionHandler):
 
         _log.debug("calling %s, input='%s'", command, json_input)
         return_code, output, error = self._run_webkit_patch(command, json_input)
-        print(error, file=sys.stderr)
+        print >> sys.stderr, error
         if return_code:
             _log.error("rebaseline-json failed: %d, output='%s'" % (return_code, output))
         else:

@@ -26,9 +26,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
 import sys
 
 if sys.version < '2.7' or sys.version >= '2.8':
-    print("Unsupported Python version: WebKit only supports 2.7.x, and you're running %s." % sys.version.split()[0], file=sys.stderr)
+    print >> sys.stderr, "Unsupported Python version: WebKit only supports 2.7.x, and you're running %s." % sys.version.split()[0]
     sys.exit(1)

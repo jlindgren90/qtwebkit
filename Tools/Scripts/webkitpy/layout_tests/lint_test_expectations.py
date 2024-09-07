@@ -26,7 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
 import logging
 import optparse
 import signal
@@ -106,7 +105,7 @@ def main(argv, _, stderr):
     except KeyboardInterrupt:
         exit_status = INTERRUPTED_EXIT_STATUS
     except Exception as e:
-        print('\n%s raised: %s' % (e.__class__.__name__, str(e)), file=stderr)
+        print >> stderr, '\n%s raised: %s' % (e.__class__.__name__, str(e))
         traceback.print_exc(file=stderr)
         exit_status = EXCEPTIONAL_EXIT_STATUS
 

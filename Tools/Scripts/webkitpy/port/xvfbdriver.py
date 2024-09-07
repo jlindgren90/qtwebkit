@@ -60,7 +60,7 @@ class XvfbDriver(Driver):
         while fd_set:
             try:
                 fd_list = select.select(fd_set, [], [])[0]
-            except select.error as e:
+            except select.error, e:
                 if e.args[0] == errno.EINTR:
                     continue
                 raise
