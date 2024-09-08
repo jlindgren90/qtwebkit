@@ -42,7 +42,6 @@
 #include "FrameLoaderClientQt.h"
 #include "FrameSelection.h"
 #include "FrameView.h"
-#include "GeolocationPermissionClientQt.h"
 #include "HTMLFormElement.h"
 #include "HTMLFrameOwnerElement.h"
 #include "HTMLInputElement.h"
@@ -98,25 +97,6 @@
 #include <QTextCharFormat>
 #include <QTouchEvent>
 #include <QWheelEvent>
-
-#if ENABLE(DEVICE_ORIENTATION)
-#include "DeviceMotionClientMock.h"
-#include "DeviceMotionController.h"
-#include "DeviceOrientationClientMock.h"
-#include "DeviceOrientationController.h"
-#if HAVE(QTSENSORS)
-#include "DeviceMotionClientQt.h"
-#include "DeviceOrientationClientQt.h"
-#endif
-#endif
-
-#if ENABLE(GEOLOCATION)
-#include "GeolocationClientMock.h"
-#include "GeolocationController.h"
-#if HAVE(QTPOSITIONING)
-#include "GeolocationClientQt.h"
-#endif
-#endif
 
 // from text/qfont.cpp
 QT_BEGIN_NAMESPACE
@@ -217,9 +197,6 @@ QWebPageAdapter::QWebPageAdapter()
 
 void QWebPageAdapter::initializeWebCorePage()
 {
-#if ENABLE(GEOLOCATION) || ENABLE(DEVICE_ORIENTATION)
-    const bool useMock = QWebPageAdapter::drtRun;
-#endif
     PageConfiguration pageConfiguration;
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
@@ -234,36 +211,6 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.userContentController = &userContentProvider();
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();
     page = new Page(pageConfiguration);
-
-#if ENABLE(GEOLOCATION)
-    if (useMock) {
-        // In case running in DumpRenderTree mode set the controller to mock provider.
-        GeolocationClientMock* mock = new GeolocationClientMock;
-        WebCore::provideGeolocationTo(page, mock);
-        mock->setController(WebCore::GeolocationController::from(page));
-    }
-#if HAVE(QTPOSITIONING)
-    else
-        WebCore::provideGeolocationTo(page, new GeolocationClientQt(this));
-#endif
-#endif
-
-#if ENABLE(DEVICE_ORIENTATION)
-    if (useMock) {
-        m_deviceOrientationClient = new DeviceOrientationClientMock;
-        m_deviceMotionClient = new DeviceMotionClientMock;
-    }
-#if HAVE(QTSENSORS)
-    else {
-        m_deviceOrientationClient =  new DeviceOrientationClientQt;
-        m_deviceMotionClient = new DeviceMotionClientQt;
-    }
-#endif
-    if (m_deviceOrientationClient)
-        WebCore::provideDeviceOrientationTo(page, m_deviceOrientationClient);
-    if (m_deviceMotionClient)
-        WebCore::provideDeviceMotionTo(page, m_deviceMotionClient);
-#endif
 
     // By default each page is put into their own unique page group, which affects popup windows
     // and visited links. Page groups (per process only) is a feature making it possible to use
@@ -290,10 +237,6 @@ QWebPageAdapter::~QWebPageAdapter()
 
 #if ENABLE(NOTIFICATIONS)
     NotificationPresenterClientQt::notificationPresenter()->removeClient();
-#endif
-#if ENABLE(DEVICE_ORIENTATION)
-    delete m_deviceMotionClient;
-    delete m_deviceOrientationClient;
 #endif
 }
 
@@ -451,38 +394,7 @@ bool QWebPageAdapter::findText(const QString& subString, FindFlag options)
 
 void QWebPageAdapter::adjustPointForClicking(QMouseEvent* ev)
 {
-#if ENABLE(TOUCH_ADJUSTMENT)
-    QtPlatformPlugin platformPlugin;
-    std::unique_ptr<QWebTouchModifier> touchModifier = platformPlugin.createTouchModifier();
-    if (!touchModifier)
-        return;
-
-    unsigned topPadding = touchModifier->hitTestPaddingForTouch(QWebTouchModifier::Up);
-    unsigned rightPadding = touchModifier->hitTestPaddingForTouch(QWebTouchModifier::Right);
-    unsigned bottomPadding = touchModifier->hitTestPaddingForTouch(QWebTouchModifier::Down);
-    unsigned leftPadding = touchModifier->hitTestPaddingForTouch(QWebTouchModifier::Left);
-
-    touchModifier = nullptr;
-
-    if (!topPadding && !rightPadding && !bottomPadding && !leftPadding)
-        return;
-
-    FrameView* view = page->mainFrame().view();
-    ASSERT(view);
-    if (view->scrollbarAtPoint(ev->pos()))
-        return;
-
-    IntRect touchRect(ev->pos().x() - leftPadding, ev->pos().y() - topPadding, leftPadding + rightPadding, topPadding + bottomPadding);
-    IntPoint adjustedPoint;
-    Node* adjustedNode;
-    bool foundClickableNode = page->mainFrame().eventHandler().bestClickableNodeForTouchPoint(touchRect.center(), touchRect.size(), adjustedPoint, adjustedNode);
-    if (!foundClickableNode)
-        return;
-
-    *ev = QMouseEvent(ev->type(), QPoint(adjustedPoint), ev->globalPos(), ev->button(), ev->buttons(), ev->modifiers());
-#else
     Q_UNUSED(ev);
-#endif
 }
 
 bool QWebPageAdapter::tryClosePage()
@@ -1299,14 +1211,6 @@ void QWebPageAdapter::setSystemTrayIcon(QObject *icon)
 }
 #endif // QT_NO_SYSTEMTRAYICON
 #endif // ENABLE(NOTIFICATIONS)
-
-#if ENABLE(GEOLOCATION) && HAVE(QTPOSITIONING)
-void QWebPageAdapter::setGeolocationEnabledForFrame(QWebFrameAdapter* frame, bool on)
-{
-    GeolocationPermissionClientQt::geolocationPermissionClient()->setPermission(frame, on);
-}
-#endif
-
 
 QString QWebPageAdapter::defaultUserAgentString()
 {

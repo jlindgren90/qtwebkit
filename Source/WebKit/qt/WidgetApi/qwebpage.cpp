@@ -967,39 +967,8 @@ void QWebPagePrivate::shortcutOverrideEvent(QKeyEvent* event)
 
 bool QWebPagePrivate::gestureEvent(QGestureEvent* event)
 {
-    QWebFrameAdapter* frame = mainFrame.data()->d;
-    if (!frame->hasView())
-        return false;
-    // QGestureEvents can contain updates for multiple gestures.
-    bool handled = false;
-#if ENABLE(QT_GESTURE_EVENTS)
-    // QGestureEvent lives in Widgets, we'll need a dummy struct to mule the info it contains to the "other side"
-    QGestureEventFacade gestureFacade;
-
-    QGesture* gesture = event->gesture(Qt::TapGesture);
-    // Beware that gestures send by DumpRenderTree will have state Qt::NoGesture,
-    // due to not originating from a GestureRecognizer.
-    if (gesture && (gesture->state() == Qt::GestureStarted || gesture->state() == Qt::NoGesture)) {
-        gestureFacade.type = Qt::TapGesture;
-        QPointF globalPos = static_cast<const QTapGesture*>(gesture)->position();
-        gestureFacade.globalPos = globalPos.toPoint();
-        gestureFacade.pos = event->widget()->mapFromGlobal(globalPos.toPoint());
-        frame->handleGestureEvent(&gestureFacade);
-        handled = true;
-    }
-    gesture = event->gesture(Qt::TapAndHoldGesture);
-    if (gesture && (gesture->state() == Qt::GestureStarted || gesture->state() == Qt::NoGesture)) {
-        gestureFacade.type = Qt::TapAndHoldGesture;
-        QPointF globalPos = static_cast<const QTapAndHoldGesture*>(gesture)->position();
-        gestureFacade.globalPos = globalPos.toPoint();
-        gestureFacade.pos = event->widget()->mapFromGlobal(globalPos.toPoint());
-        frame->handleGestureEvent(&gestureFacade);
-        handled = true;
-    }
-#endif // ENABLE(QT_GESTURE_EVENTS)
-
-    event->setAccepted(handled);
-    return handled;
+    // stub
+    return false;
 }
 
 /*!
@@ -1672,7 +1641,7 @@ bool QWebPage::shouldInterruptJavaScript()
 */
 void QWebPage::setFeaturePermission(QWebFrame* frame, Feature feature, PermissionPolicy policy)
 {
-#if !ENABLE(NOTIFICATIONS) && !ENABLE(GEOLOCATION)
+#if !ENABLE(NOTIFICATIONS)
     Q_UNUSED(frame);
     Q_UNUSED(policy);
 #endif
@@ -1684,10 +1653,6 @@ void QWebPage::setFeaturePermission(QWebFrame* frame, Feature feature, Permissio
 #endif
         break;
     case Geolocation:
-#if ENABLE(GEOLOCATION) && HAVE(QTPOSITIONING)
-        if (policy != PermissionUnknown)
-            d->setGeolocationEnabledForFrame(frame->d, (policy == PermissionGrantedByUser));
-#endif
         break;
 
     default:

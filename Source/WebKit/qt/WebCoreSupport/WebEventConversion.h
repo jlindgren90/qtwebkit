@@ -48,11 +48,6 @@ PlatformWheelEvent convertWheelEvent(QWheelEvent*, int wheelScrollLines);
 class PlatformTouchEvent;
 PlatformTouchEvent convertTouchEvent(QTouchEvent*);
 #endif
-
-#if ENABLE(QT_GESTURE_EVENTS)
-class PlatformGestureEvent;
-PlatformGestureEvent convertGesture(QGestureEventFacade*);
-#endif
 }
 
 #endif

@@ -158,12 +158,6 @@ void QWebSettingsPrivate::apply()
 
         settings->setAcceleratedCompositingEnabled(value);
 
-#if ENABLE(ACCELERATED_2D_CANVAS)
-        value = value && attributes.value(QWebSettings::Accelerated2dCanvasEnabled,
-                                          global->attributes.value(QWebSettings::Accelerated2dCanvasEnabled));
-        settings->setAccelerated2dCanvasEnabled(value);
-#endif
-
         bool showDebugVisuals = qgetenv("WEBKIT_SHOW_COMPOSITING_DEBUG_VISUALS") == "1";
         settings->setShowDebugBorders(showDebugVisuals);
         settings->setShowRepaintCounter(showDebugVisuals);
@@ -284,12 +278,6 @@ void QWebSettingsPrivate::apply()
         value = attributes.value(QWebSettings::TiledBackingStoreEnabled,
                                       global->attributes.value(QWebSettings::TiledBackingStoreEnabled));
         settings->setTiledBackingStoreEnabled(value);
-#endif
-
-#if ENABLE(SMOOTH_SCROLLING)
-        value = attributes.value(QWebSettings::ScrollAnimatorEnabled,
-                                      global->attributes.value(QWebSettings::ScrollAnimatorEnabled));
-        settings->setScrollAnimatorEnabled(value);
 #endif
 
         value = attributes.value(QWebSettings::CaretBrowsingEnabled,

@@ -96,11 +96,6 @@ class Widget;
 
 struct DragState;
 
-#if ENABLE(QT_GESTURE_EVENTS)
-class PlatformGestureEvent;
-class RenderObject;
-#endif
-
 #if ENABLE(DRAG_SUPPORT)
 extern const int LinkDragHysteresis;
 extern const int ImageDragHysteresis;
@@ -222,12 +217,6 @@ public:
     typedef HashSet<RefPtr<EventTarget>> EventTargetSet;
 #endif
 
-#if ENABLE(QT_GESTURE_EVENTS)
-    bool handleGestureEvent(const PlatformGestureEvent&);
-    bool handleGestureTap(const PlatformGestureEvent&);
-    bool handleGestureLongPress(const PlatformGestureEvent&);
-#endif
-
 #if ENABLE(IOS_TOUCH_EVENTS)
     bool dispatchTouchEvent(const PlatformTouchEvent&, const AtomicString&, const EventTargetTouchMap&, float, float);
     bool dispatchSimulatedTouchEvent(IntPoint location);
@@ -244,22 +233,9 @@ public:
     void defaultTouchEventHandler(Node*, TouchEvent*);
 #endif
 
-#if ENABLE(TOUCH_ADJUSTMENT)
-    bool shouldApplyTouchAdjustment(const PlatformGestureEvent&) const;
-
-    bool bestClickableNodeForTouchPoint(const IntPoint& touchCenter, const IntSize& touchRadius, IntPoint& targetPoint, Node*& targetNode);
-    bool bestContextMenuNodeForTouchPoint(const IntPoint& touchCenter, const IntSize& touchRadius, IntPoint& targetPoint, Node*& targetNode);
-    bool bestZoomableAreaForTouchPoint(const IntPoint& touchCenter, const IntSize& touchRadius, IntRect& targetArea, Node*& targetNode);
-
-    bool adjustGesturePosition(const PlatformGestureEvent&, IntPoint& adjustedPoint);
-#endif
-
 #if ENABLE(CONTEXT_MENUS)
     WEBCORE_EXPORT bool sendContextMenuEvent(const PlatformMouseEvent&);
     bool sendContextMenuEventForKey();
-#if ENABLE(QT_GESTURE_EVENTS)
-    bool sendContextMenuEventForGesture(const PlatformGestureEvent&);
-#endif
 #endif
 
     void setMouseDownMayStartAutoscroll() { m_mouseDownMayStartAutoscroll = true; }
@@ -473,10 +449,6 @@ private:
 
 #if ENABLE(FULLSCREEN_API)
     bool isKeyEventAllowedInFullScreen(const PlatformKeyboardEvent&) const;
-#endif
-
-#if ENABLE(QT_GESTURE_EVENTS)
-    bool handleGestureForTextSelectionOrContextMenu(const PlatformGestureEvent&);
 #endif
 
     void setLastKnownMousePosition(const PlatformMouseEvent&);

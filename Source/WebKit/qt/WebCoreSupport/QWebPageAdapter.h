@@ -349,9 +349,6 @@ public:
     QString contextMenuItemTagForAction(MenuAction, bool* checkable) const;
 
     QStringList supportedContentTypes() const;
-#if ENABLE(GEOLOCATION) && HAVE(QTPOSITIONING)
-    void setGeolocationEnabledForFrame(QWebFrameAdapter*, bool);
-#endif
 #if ENABLE(NOTIFICATIONS)
     void setNotificationsAllowedForFrame(QWebFrameAdapter*, bool allowed);
     void addNotificationPresenterClient();

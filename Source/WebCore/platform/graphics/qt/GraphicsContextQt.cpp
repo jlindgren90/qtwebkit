@@ -1572,32 +1572,6 @@ void GraphicsContext::setCTM(const AffineTransform& transform)
     m_data->p()->setWorldTransform(transform);
 }
 
-#if ENABLE(3D_TRANSFORMS)
-TransformationMatrix GraphicsContext::get3DTransform() const
-{
-    if (paintingDisabled())
-        return TransformationMatrix();
-
-    return platformContext()->worldTransform();
-}
-
-void GraphicsContext::concat3DTransform(const TransformationMatrix& transform)
-{
-    if (paintingDisabled())
-        return;
-
-    m_data->p()->setWorldTransform(transform, true);
-}
-
-void GraphicsContext::set3DTransform(const TransformationMatrix& transform)
-{
-    if (paintingDisabled())
-        return;
-
-    m_data->p()->setWorldTransform(transform, false);
-}
-#endif
-
 void GraphicsContext::setURLForRect(const URL& url, const IntRect& rect)
 {
 #if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0) && !defined(QT_NO_PDF)

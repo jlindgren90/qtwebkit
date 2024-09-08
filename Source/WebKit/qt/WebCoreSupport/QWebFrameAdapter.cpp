@@ -65,11 +65,6 @@
 #include <QFileInfo>
 #include <QNetworkRequest>
 
-#if ENABLE(QT_GESTURE_EVENTS)
-#include "PlatformGestureEvent.h"
-#include "WebEventConversion.h"
-#endif
-
 using namespace WebCore;
 
 static inline ResourceRequestCachePolicy cacheLoadControlToCachePolicy(uint cacheLoadControl)
@@ -165,23 +160,6 @@ bool QWebFrameAdapter::hasView() const
 {
     return frame && frame->view();
 }
-
-#if ENABLE(QT_GESTURE_EVENTS)
-void QWebFrameAdapter::handleGestureEvent(QGestureEventFacade* gestureEvent)
-{
-    ASSERT(frame && frame->view());
-    switch (gestureEvent->type) {
-    case Qt::TapGesture:
-        frame->eventHandler().handleGestureEvent(convertGesture(gestureEvent));
-        break;
-    case Qt::TapAndHoldGesture:
-        frame->eventHandler().sendContextMenuEventForGesture(convertGesture(gestureEvent));
-        break;
-    default:
-        ASSERT_NOT_REACHED();
-    }
-}
-#endif
 
 QVariant QWebFrameAdapter::evaluateJavaScript(const QString &scriptSource)
 {

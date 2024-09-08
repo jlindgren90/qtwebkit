@@ -75,10 +75,6 @@ class SVGQualifiedName;
 class ShadowRoot;
 class TagCollection;
 
-#if ENABLE(QT_GESTURE_EVENTS)
-class PlatformGestureEvent;
-#endif
-
 #if ENABLE(INDIE_UI)
 class UIRequestEvent;
 #endif
@@ -538,9 +534,6 @@ public:
     void dispatchSubtreeModifiedEvent();
     bool dispatchDOMActivateEvent(int detail, PassRefPtr<Event> underlyingEvent);
 
-#if ENABLE(QT_GESTURE_EVENTS)
-    bool dispatchGestureEvent(const PlatformGestureEvent&);
-#endif
 #if ENABLE(TOUCH_EVENTS)
     virtual bool allowsDoubleTapGesture() const { return true; }
 #endif

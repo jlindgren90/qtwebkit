@@ -34,10 +34,6 @@
 #include <QPaintDevice>
 #include <QPainter>
 
-#if ENABLE(ACCELERATED_2D_CANVAS)
-#include <QOpenGLContext>
-#endif
-
 #include <wtf/RefPtr.h>
 
 namespace WebCore {
@@ -66,9 +62,6 @@ struct ImageBufferDataPrivate {
 class ImageBufferData {
 public:
     ImageBufferData(const FloatSize&, float resolutionScale);
-#if ENABLE(ACCELERATED_2D_CANVAS)
-    ImageBufferData(const FloatSize&, QOpenGLContext*);
-#endif
     ~ImageBufferData();
     QPainter* m_painter;
     std::unique_ptr<GraphicsContext> m_context;

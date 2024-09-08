@@ -51,12 +51,6 @@ public:
         // PlatformWheelEvent
         Wheel,
 
-#if ENABLE(QT_GESTURE_EVENTS)
-        // PlatformGestureEvent
-        GestureTap,
-        GestureLongPress,
-#endif
-
 #if ENABLE(TOUCH_EVENTS)
         // PlatformTouchEvent
         TouchStart,

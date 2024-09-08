@@ -35,6 +35,7 @@
 
 #include <QtNetwork/QNetworkRequest>
 
+#define QT_NO_OPENGL 1 // GL disabled
 #ifndef QT_NO_OPENGL
 #include <QtOpenGL/QGLWidget>
 #endif
