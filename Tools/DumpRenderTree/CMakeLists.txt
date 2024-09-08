@@ -1,5 +1,3 @@
-QTWEBKIT_SKIP_AUTOMOC(DumpRenderTree)
-
 set(DumpRenderTree_SOURCES
     AccessibilityController.cpp
     AccessibilityTextMarker.cpp
@@ -73,32 +71,32 @@ set(DumpRenderTree_INCLUDE_DIRECTORIES
 )
 
 set(TestNetscapePlugin_SOURCES
-    TestNetscapePlugIn/PluginObject.cpp
-    TestNetscapePlugIn/PluginTest.cpp
-    TestNetscapePlugIn/TestObject.cpp
-    TestNetscapePlugIn/main.cpp
+    TestNetscapePlugin/PluginObject.cpp
+    TestNetscapePlugin/PluginTest.cpp
+    TestNetscapePlugin/TestObject.cpp
+    TestNetscapePlugin/main.cpp
 
-    TestNetscapePlugIn/Tests/DocumentOpenInDestroyStream.cpp
-    TestNetscapePlugIn/Tests/EvaluateJSAfterRemovingPluginElement.cpp
-    TestNetscapePlugIn/Tests/FormValue.cpp
-    TestNetscapePlugIn/Tests/GetURLNotifyWithURLThatFailsToLoad.cpp
-    TestNetscapePlugIn/Tests/GetURLWithJavaScriptURL.cpp
-    TestNetscapePlugIn/Tests/GetURLWithJavaScriptURLDestroyingPlugin.cpp
-    TestNetscapePlugIn/Tests/GetUserAgentWithNullNPPFromNPPNew.cpp
-    TestNetscapePlugIn/Tests/LogNPPSetWindow.cpp
-    TestNetscapePlugIn/Tests/NPDeallocateCalledBeforeNPShutdown.cpp
-    TestNetscapePlugIn/Tests/NPPNewFails.cpp
-    TestNetscapePlugIn/Tests/NPPSetWindowCalledDuringDestruction.cpp
-    TestNetscapePlugIn/Tests/NPRuntimeCallsWithNullNPP.cpp
-    TestNetscapePlugIn/Tests/NPRuntimeObjectFromDestroyedPlugin.cpp
-    TestNetscapePlugIn/Tests/NPRuntimeRemoveProperty.cpp
-    TestNetscapePlugIn/Tests/NullNPPGetValuePointer.cpp
-    TestNetscapePlugIn/Tests/PassDifferentNPPStruct.cpp
-    TestNetscapePlugIn/Tests/PluginScriptableNPObjectInvokeDefault.cpp
-    TestNetscapePlugIn/Tests/PluginScriptableObjectOverridesAllProperties.cpp
-    TestNetscapePlugIn/Tests/PrivateBrowsing.cpp
-    TestNetscapePlugIn/Tests/ToStringAndValueOfObject.cpp
-    TestNetscapePlugIn/Tests/URLRedirect.cpp
+    TestNetscapePlugin/Tests/DocumentOpenInDestroyStream.cpp
+    TestNetscapePlugin/Tests/EvaluateJSAfterRemovingPluginElement.cpp
+    TestNetscapePlugin/Tests/FormValue.cpp
+    TestNetscapePlugin/Tests/GetURLNotifyWithURLThatFailsToLoad.cpp
+    TestNetscapePlugin/Tests/GetURLWithJavaScriptURL.cpp
+    TestNetscapePlugin/Tests/GetURLWithJavaScriptURLDestroyingPlugin.cpp
+    TestNetscapePlugin/Tests/GetUserAgentWithNullNPPFromNPPNew.cpp
+    TestNetscapePlugin/Tests/LogNPPSetWindow.cpp
+    TestNetscapePlugin/Tests/NPDeallocateCalledBeforeNPShutdown.cpp
+    TestNetscapePlugin/Tests/NPPNewFails.cpp
+    TestNetscapePlugin/Tests/NPPSetWindowCalledDuringDestruction.cpp
+    TestNetscapePlugin/Tests/NPRuntimeCallsWithNullNPP.cpp
+    TestNetscapePlugin/Tests/NPRuntimeObjectFromDestroyedPlugin.cpp
+    TestNetscapePlugin/Tests/NPRuntimeRemoveProperty.cpp
+    TestNetscapePlugin/Tests/NullNPPGetValuePointer.cpp
+    TestNetscapePlugin/Tests/PassDifferentNPPStruct.cpp
+    TestNetscapePlugin/Tests/PluginScriptableNPObjectInvokeDefault.cpp
+    TestNetscapePlugin/Tests/PluginScriptableObjectOverridesAllProperties.cpp
+    TestNetscapePlugin/Tests/PrivateBrowsing.cpp
+    TestNetscapePlugin/Tests/ToStringAndValueOfObject.cpp
+    TestNetscapePlugin/Tests/URLRedirect.cpp
 )
 
 set(TestNetscapePlugin_LIBRARIES
@@ -115,24 +113,15 @@ list(APPEND TestNetscapePlugin_LIBRARIES
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
 include_directories(${DumpRenderTree_INCLUDE_DIRECTORIES})
-include_directories(SYSTEM ${DumpRenderTree_SYSTEM_INCLUDE_DIRECTORIES})
 
 add_executable(DumpRenderTree ${DumpRenderTree_SOURCES})
 target_link_libraries(DumpRenderTree ${DumpRenderTree_LIBRARIES})
 set_target_properties(DumpRenderTree PROPERTIES FOLDER "Tools")
 
-if (ENABLE_NETSCAPE_PLUGIN_API)
-    add_library(TestNetscapePlugin SHARED ${TestNetscapePlugin_SOURCES})
-    target_link_libraries(TestNetscapePlugin ${TestNetscapePlugin_LIBRARIES})
-endif ()
+add_library(TestNetscapePlugin SHARED ${TestNetscapePlugin_SOURCES})
+target_link_libraries(TestNetscapePlugin ${TestNetscapePlugin_LIBRARIES})
+set_target_properties(TestNetscapePlugin PROPERTIES FOLDER "Tools")
 
 if (WIN32)
     add_dependencies(DumpRenderTree DumpRenderTreeLib)
-endif ()
-
-if (${PORT} STREQUAL "Qt")
-    set_target_properties(DumpRenderTree PROPERTIES AUTOMOC ON)
-    if (ENABLE_NETSCAPE_PLUGIN_API)
-        target_compile_definitions(TestNetscapePlugin PRIVATE QT_NO_VERSION_TAGGING)
-    endif ()
 endif ()

@@ -29,11 +29,7 @@
 #include "config.h"
 #include "WorkQueue.h"
 
-#if PLATFORM(QT)
-#include "WorkQueueItemQt.h"
-#else
 #include "WorkQueueItem.h"
-#endif
 #include <wtf/Assertions.h>
 #include <wtf/NeverDestroyed.h>
 

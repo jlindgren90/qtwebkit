@@ -49,12 +49,8 @@
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuilder.h>
 
-#if USE(CF) && !PLATFORM(QT)
+#if USE(CF)
 #include "WebArchiveDumpSupport.h"
-#endif
-
-#if PLATFORM(QT)
-#include "DumpRenderTreeSupportQt.h"
 #endif
 
 using namespace std;
@@ -429,11 +425,7 @@ void InjectedBundlePage::resetAfterTest()
     WKBundleFrameFocus(frame);
 
     JSGlobalContextRef context = WKBundleFrameGetJavaScriptContext(frame);
-#if PLATFORM(QT)
-    DumpRenderTreeSupportQt::resetInternalsObject(context);
-#else
     WebCoreTestSupport::resetInternalsObject(context);
-#endif
     assignedUrlsCache.clear();
 
     // User scripts need to be removed after the test and before loading about:blank, as otherwise they would run in about:blank, and potentially leak results into a subsequest test.
@@ -844,14 +836,11 @@ void InjectedBundlePage::dumpAllFramesText(StringBuilder& stringBuilder)
 
 void InjectedBundlePage::dumpDOMAsWebArchive(WKBundleFrameRef frame, StringBuilder& stringBuilder)
 {
-#if USE(CF) && !PLATFORM(QT)
+#if USE(CF)
     WKRetainPtr<WKDataRef> wkData = adoptWK(WKBundleFrameCopyWebArchive(frame));
     RetainPtr<CFDataRef> cfData = adoptCF(CFDataCreate(0, WKDataGetBytes(wkData.get()), WKDataGetSize(wkData.get())));
     RetainPtr<CFStringRef> cfString = adoptCF(createXMLStringFromWebArchiveData(cfData.get()));
     stringBuilder.append(cfString.get());
-#else
-    UNUSED_PARAM(frame);
-    UNUSED_PARAM(stringBuilder);
 #endif
 }
 
@@ -1001,11 +990,7 @@ void InjectedBundlePage::didClearWindowForFrame(WKBundleFrameRef frame, WKBundle
     injectedBundle.textInputController()->makeWindowObject(context, window, &exception);
     injectedBundle.accessibilityController()->makeWindowObject(context, window, &exception);
 
-#if PLATFORM(QT)
-    DumpRenderTreeSupportQt::injectInternalsObject(context);
-#else
     WebCoreTestSupport::injectInternalsObject(context);
-#endif
 }
 
 void InjectedBundlePage::didCancelClientRedirectForFrame(WKBundleFrameRef frame)
