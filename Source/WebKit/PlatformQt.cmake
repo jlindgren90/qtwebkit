@@ -108,12 +108,15 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform"
     "${WEBCORE_DIR}/platform/animation"
     "${WEBCORE_DIR}/platform/audio"
+    "${WEBCORE_DIR}/platform/cairo"
     "${WEBCORE_DIR}/platform/graphics"
+    "${WEBCORE_DIR}/platform/graphics/cairo"
     "${WEBCORE_DIR}/platform/graphics/cpu/arm"
     "${WEBCORE_DIR}/platform/graphics/cpu/arm/filters"
     "${WEBCORE_DIR}/platform/graphics/displaylists"
     "${WEBCORE_DIR}/platform/graphics/filters"
     "${WEBCORE_DIR}/platform/graphics/filters/texmap"
+    "${WEBCORE_DIR}/platform/graphics/freetype"
     "${WEBCORE_DIR}/platform/graphics/harfbuzz"
     "${WEBCORE_DIR}/platform/graphics/harfbuzz/ng"
     "${WEBCORE_DIR}/platform/graphics/opentype"
@@ -219,7 +222,6 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/QWebPageAdapter.cpp
     qt/WebCoreSupport/QtPlatformPlugin.cpp
     qt/WebCoreSupport/QtPluginWidgetAdapter.cpp
-    qt/WebCoreSupport/QtPrintContext.cpp
     qt/WebCoreSupport/SearchPopupMenuQt.cpp
     qt/WebCoreSupport/TextCheckerClientQt.cpp
     qt/WebCoreSupport/TextureMapperLayerClientQt.cpp
@@ -231,6 +233,11 @@ list(APPEND WebKit_SOURCES
 
 # Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
 list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
+    ${CAIRO_INCLUDE_DIRS}
+    ${FREETYPE2_INCLUDE_DIRS}
+    ${GIO_UNIX_INCLUDE_DIRS}
+    ${GLIB_INCLUDE_DIRS}
+    ${HARFBUZZ_INCLUDE_DIRS}
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
@@ -468,9 +475,6 @@ set(WebKitWidgets_SYSTEM_INCLUDE_DIRECTORIES
 )
 
 set(WebKitWidgets_LIBRARIES
-    PRIVATE
-        ${Qt5MultimediaWidgets_LIBRARIES}
-        ${Qt5PrintSupport_LIBRARIES}
     PUBLIC
         ${Qt5Widgets_LIBRARIES}
         WebKit

@@ -263,10 +263,12 @@ endif ()
 
 SET_AND_EXPOSE_TO_BUILD(USE_TEXTURE_MAPPER TRUE)
 
-if (TRUE)
-    find_package(Sqlite REQUIRED)
-endif ()
-
+find_package(Cairo 1.10.2 REQUIRED)
+find_package(Fontconfig 2.8.0 REQUIRED)
+find_package(Freetype2 2.4.2 REQUIRED)
+find_package(GLIB 2.36 REQUIRED COMPONENTS gio gobject)
+find_package(HarfBuzz 0.9.2 REQUIRED)
+find_package(Sqlite REQUIRED)
 find_package(Threads REQUIRED)
 
 if (TRUE)
@@ -378,9 +380,6 @@ if (NOT ENABLE_VIDEO)
         set(USE_GSTREAMER OFF) # TODO: What about MEDIA_STREAM?
     endif ()
 endif ()
-
-SET_AND_EXPOSE_TO_BUILD(USE_GLIB 1)
-find_package(GLIB 2.36 REQUIRED COMPONENTS gio gobject)
 
 # From OptionsGTK.cmake
 # FIXME: Refactor to avoid duplication

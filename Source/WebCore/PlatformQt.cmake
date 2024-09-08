@@ -36,14 +36,15 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/page/qt"
     "${WEBCORE_DIR}/platform/qt"
     "${WEBCORE_DIR}/platform/audio/qt"
+    "${WEBCORE_DIR}/platform/cairo"
+    "${WEBCORE_DIR}/platform/graphics/cairo"
     "${WEBCORE_DIR}/platform/graphics/egl"
     "${WEBCORE_DIR}/platform/graphics/glx"
-    "${WEBCORE_DIR}/platform/graphics/gpu/qt"
+    "${WEBCORE_DIR}/platform/graphics/freetype"
+    "${WEBCORE_DIR}/platform/graphics/harfbuzz/"
+    "${WEBCORE_DIR}/platform/graphics/harfbuzz/ng"
     "${WEBCORE_DIR}/platform/graphics/opengl"
-    "${WEBCORE_DIR}/platform/graphics/surfaces"
-    "${WEBCORE_DIR}/platform/graphics/surfaces/qt"
-    "${WEBCORE_DIR}/platform/graphics/qt"
-    "${WEBCORE_DIR}/platform/graphics/win"
+    "${WEBCORE_DIR}/platform/graphics/opentype"
     "${WEBCORE_DIR}/platform/network/qt"
     "${WEBCORE_DIR}/platform/text/qt"
     "${WEBCORE_DIR}/platform/win"
@@ -58,7 +59,6 @@ list(APPEND WebCore_SOURCES
 
     bridge/qt/qt_class.cpp
     bridge/qt/qt_instance.cpp
-    bridge/qt/qt_pixmapruntime.cpp
     bridge/qt/qt_runtime.cpp
 
     editing/qt/EditorQt.cpp
@@ -77,6 +77,40 @@ list(APPEND WebCore_SOURCES
     platform/graphics/PlatformDisplay.cpp
     platform/graphics/WOFFFileFormat.cpp
 
+    platform/graphics/cairo/BackingStoreBackendCairoImpl.cpp
+    platform/graphics/cairo/BackingStoreBackendCairoX11.cpp
+    platform/graphics/cairo/BitmapImageCairo.cpp
+    platform/graphics/cairo/CairoUtilities.cpp
+    platform/graphics/cairo/FloatRectCairo.cpp
+    platform/graphics/cairo/FontCairo.cpp
+    platform/graphics/cairo/FontCairoHarfbuzzNG.cpp
+    platform/graphics/cairo/GradientCairo.cpp
+    platform/graphics/cairo/GraphicsContext3DCairo.cpp
+    platform/graphics/cairo/GraphicsContextCairo.cpp
+    platform/graphics/cairo/ImageBufferCairo.cpp
+    platform/graphics/cairo/ImageCairo.cpp
+    platform/graphics/cairo/IntRectCairo.cpp
+    platform/graphics/cairo/PathCairo.cpp
+    platform/graphics/cairo/PatternCairo.cpp
+    platform/graphics/cairo/PlatformContextCairo.cpp
+    platform/graphics/cairo/PlatformPathCairo.cpp
+    platform/graphics/cairo/RefPtrCairo.cpp
+    platform/graphics/cairo/TransformationMatrixCairo.cpp
+
+    platform/graphics/freetype/FontCacheFreeType.cpp
+    platform/graphics/freetype/FontCustomPlatformDataFreeType.cpp
+    platform/graphics/freetype/FontPlatformDataFreeType.cpp
+    platform/graphics/freetype/GlyphPageTreeNodeFreeType.cpp
+    platform/graphics/freetype/SimpleFontDataFreeType.cpp
+
+    platform/graphics/gstreamer/ImageGStreamerCairo.cpp
+
+    platform/graphics/harfbuzz/HarfBuzzFace.cpp
+    platform/graphics/harfbuzz/HarfBuzzFaceCairo.cpp
+    platform/graphics/harfbuzz/HarfBuzzShaper.cpp
+
+    platform/graphics/opentype/OpenTypeVerticalData.cpp
+
     platform/graphics/texmap/BitmapTextureImageBuffer.cpp
     platform/graphics/texmap/TextureMapperImageBuffer.cpp
 
@@ -84,32 +118,16 @@ list(APPEND WebCore_SOURCES
     platform/graphics/qt/FloatPointQt.cpp
     platform/graphics/qt/FloatRectQt.cpp
     platform/graphics/qt/FloatSizeQt.cpp
-    platform/graphics/qt/FontCacheQt.cpp
-    platform/graphics/qt/FontCascadeQt.cpp
-    platform/graphics/qt/FontCustomPlatformDataQt.cpp
-    platform/graphics/qt/FontPlatformDataQt.cpp
-    platform/graphics/qt/FontQt.cpp
-    platform/graphics/qt/GlyphPageTreeNodeQt.cpp
-    platform/graphics/qt/GradientQt.cpp
-    platform/graphics/qt/GraphicsContextQt.cpp
     platform/graphics/qt/IconQt.cpp
-    platform/graphics/qt/ImageBufferDataQt.cpp
-    platform/graphics/qt/ImageBufferQt.cpp
-    platform/graphics/qt/ImageDecoderQt.cpp
     platform/graphics/qt/ImageQt.cpp
     platform/graphics/qt/IntPointQt.cpp
     platform/graphics/qt/IntRectQt.cpp
     platform/graphics/qt/IntSizeQt.cpp
-    platform/graphics/qt/PathQt.cpp
-    platform/graphics/qt/PatternQt.cpp
-    platform/graphics/qt/StillImageQt.cpp
-    platform/graphics/qt/TileQt.cpp
-    platform/graphics/qt/TransformationMatrixQt.cpp
-
-    platform/graphics/surfaces/qt/GraphicsSurfaceQt.cpp
 
     platform/graphics/x11/PlatformDisplayX11.cpp
     platform/graphics/x11/XUniqueResource.cpp
+
+    platform/image-decoders/cairo/ImageDecoderCairo.cpp
 
     platform/network/NetworkStorageSessionStub.cpp
     platform/network/MIMESniffing.cpp
@@ -197,6 +215,11 @@ endif ()
 
 # Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
 list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
+    ${CAIRO_INCLUDE_DIRS}
+    ${FREETYPE2_INCLUDE_DIRS}
+    ${GIO_UNIX_INCLUDE_DIRS}
+    ${GLIB_INCLUDE_DIRS}
+    ${HARFBUZZ_INCLUDE_DIRS}
     ${HYPHEN_INCLUDE_DIR}
     ${LIBXML2_INCLUDE_DIR}
     ${LIBXSLT_INCLUDE_DIR}
@@ -210,6 +233,13 @@ list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
 )
 
 list(APPEND WebCore_LIBRARIES
+    ${CAIRO_LIBRARIES}
+    ${FONTCONFIG_LIBRARIES}
+    ${FREETYPE2_LIBRARIES}
+    ${GLIB_GIO_LIBRARIES}
+    ${GLIB_GOBJECT_LIBRARIES}
+    ${GLIB_LIBRARIES}
+    ${HARFBUZZ_LIBRARIES}
     ${HYPHEN_LIBRARIES}
     ${LIBXML2_LIBRARIES}
     ${LIBXSLT_LIBRARIES}
@@ -230,23 +260,8 @@ list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
     ${WEBCORE_DIR}/css/themeQtNoListboxes.css
 )
 
-if (TRUE)
-    list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
-        ${GIO_UNIX_INCLUDE_DIRS}
-        ${GLIB_INCLUDE_DIRS}
-    )
-    list(APPEND WebCore_LIBRARIES
-        ${GLIB_GIO_LIBRARIES}
-        ${GLIB_GOBJECT_LIBRARIES}
-        ${GLIB_LIBRARIES}
-    )
-endif ()
-
 if (USE_GSTREAMER)
     include(platform/GStreamer.cmake)
-    list(APPEND WebCore_SOURCES
-        platform/graphics/gstreamer/ImageGStreamerQt.cpp
-    )
 endif ()
 
 if (ENABLE_VIDEO)
