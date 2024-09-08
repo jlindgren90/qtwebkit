@@ -17,9 +17,3 @@ list(APPEND JavaScriptCore_SYSTEM_INCLUDE_DIRECTORIES
 list(APPEND JavaScriptCore_LIBRARIES
     ${Qt5Core_LIBRARIES}
 )
-
-if (QT_STATIC_BUILD)
-    list(APPEND JavaScriptCore_LIBRARIES
-        ${STATIC_LIB_DEPENDENCIES}
-    )
-endif ()

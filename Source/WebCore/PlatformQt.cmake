@@ -61,8 +61,6 @@ list(APPEND WebCore_SOURCES
     bridge/qt/qt_pixmapruntime.cpp
     bridge/qt/qt_runtime.cpp
 
-    dom/qt/GestureEvent.cpp
-
     editing/qt/EditorQt.cpp
 
     page/qt/DragControllerQt.cpp
@@ -197,50 +195,6 @@ if (COMPILER_IS_GCC_OR_CLANG)
     )
 endif ()
 
-if (ENABLE_DEVICE_ORIENTATION)
-    list(APPEND WebCore_SOURCES
-        platform/qt/DeviceMotionClientQt.cpp
-        platform/qt/DeviceMotionProviderQt.cpp
-        platform/qt/DeviceOrientationClientQt.cpp
-        platform/qt/DeviceOrientationProviderQt.cpp
-    )
-endif ()
-
-if (ENABLE_GAMEPAD_DEPRECATED)
-    list(APPEND WebCore_SOURCES
-        platform/qt/GamepadsQt.cpp
-    )
-    QTWEBKIT_GENERATE_MOC_FILES_CPP(WebCore platform/qt/GamepadsQt.cpp)
-endif ()
-
-if (ENABLE_GRAPHICS_CONTEXT_3D)
-    list(APPEND WebCore_SOURCES
-        platform/graphics/qt/GraphicsContext3DQt.cpp
-    )
-endif ()
-
-if (ENABLE_SMOOTH_SCROLLING)
-    list(APPEND WebCore_SOURCES
-        platform/ScrollAnimationSmooth.cpp
-        platform/ScrollAnimatorSmooth.cpp
-    )
-endif ()
-
-# Do it in the WebCore to support SHARED_CORE since WebKitWidgets won't load WebKit in that case.
-# This should match the opposite statement in WebKit/PlatformQt.cmake
-if (SHARED_CORE)
-    qt5_add_resources(WebCore_SOURCES
-        WebCore.qrc
-    )
-
-    if (ENABLE_INSPECTOR_UI)
-        include("${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/PlatformQt.cmake")
-        list(APPEND WebCore_SOURCES
-            "${DERIVED_SOURCES_WEBINSPECTORUI_DIR}/qrc_WebInspector.cpp"
-        )
-    endif ()
-endif ()
-
 # Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
 list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
     ${HYPHEN_INCLUDE_DIR}
@@ -268,12 +222,6 @@ list(APPEND WebCore_LIBRARIES
     ${ZLIB_LIBRARIES}
 )
 
-if (QT_STATIC_BUILD)
-    list(APPEND WebCore_LIBRARIES
-        ${STATIC_LIB_DEPENDENCIES}
-    )
-endif ()
-
 list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
 #    ${WEBCORE_DIR}/css/mediaControlsGtk.css
 #    ${WEBCORE_DIR}/css/mediaControlsQt.css
@@ -281,32 +229,6 @@ list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
     ${WEBCORE_DIR}/css/mobileThemeQt.css
     ${WEBCORE_DIR}/css/themeQtNoListboxes.css
 )
-
-if (ENABLE_OPENGL)
-    list(APPEND WebCore_SOURCES
-        platform/graphics/opengl/Extensions3DOpenGLCommon.cpp
-        platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
-        platform/graphics/opengl/TemporaryOpenGLSetting.cpp
-
-        platform/graphics/qt/QFramebufferPaintDevice.cpp
-    )
-
-    if (${Qt5Gui_OPENGL_IMPLEMENTATION} STREQUAL GLESv2)
-        list(APPEND WebCore_SOURCES
-            platform/graphics/opengl/Extensions3DOpenGLES.cpp
-            platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp
-        )
-        list(APPEND WebCore_LIBRARIES
-            ${Qt5Gui_EGL_LIBRARIES}
-            ${Qt5Gui_OPENGL_LIBRARIES}
-        )
-    else ()
-        list(APPEND WebCore_SOURCES
-            platform/graphics/opengl/Extensions3DOpenGL.cpp
-            platform/graphics/opengl/GraphicsContext3DOpenGL.cpp
-        )
-    endif ()
-endif ()
 
 if (TRUE)
     list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES

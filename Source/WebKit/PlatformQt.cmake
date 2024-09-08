@@ -253,28 +253,9 @@ list(APPEND WebKit_LIBRARIES
         ${Qt5Network_LIBRARIES}
 )
 
-if (ENABLE_GEOLOCATION)
-    list(APPEND WebKit_SOURCES
-        qt/WebCoreSupport/GeolocationClientQt.cpp
-        qt/WebCoreSupport/GeolocationPermissionClientQt.cpp
-    )
-endif ()
-
-if (ENABLE_TEST_SUPPORT)
-    list(APPEND WebKit_SOURCES
-        qt/WebCoreSupport/DumpRenderTreeSupportQt.cpp
-        qt/WebCoreSupport/QtTestSupport.cpp
-    )
-    if (SHARED_CORE)
-        list(APPEND WebKit_LIBRARIES PUBLIC WebCoreTestSupport)
-    else ()
-        list(APPEND WebKit_LIBRARIES PRIVATE WebCoreTestSupport)
-    endif ()
-endif ()
-
 # Resources have to be included directly in the final binary.
 # The linker won't pick them from a static library since they aren't referenced.
-if (NOT SHARED_CORE)
+if (TRUE)
     qt5_add_resources(WebKit_SOURCES
         "${WEBCORE_DIR}/WebCore.qrc"
     )
@@ -364,48 +345,9 @@ set(WEBKIT_PRI_DEPS "core gui network")
 set(WEBKIT_PRI_EXTRA_LIBS "")
 set(WEBKIT_PRI_RUNTIME_DEPS "core_private gui_private")
 
-if (ENABLE_GEOLOCATION)
-    set(WEBKIT_PRI_RUNTIME_DEPS "positioning ${WEBKIT_PRI_RUNTIME_DEPS}")
-endif ()
-if (ENABLE_DEVICE_ORIENTATION)
-    set(WEBKIT_PRI_RUNTIME_DEPS "sensors ${WEBKIT_PRI_RUNTIME_DEPS}")
-endif ()
-
 set(WEBKITWIDGETS_PKGCONFIG_DEPS "${WEBKIT_PKGCONFIG_DEPS} Qt5Widgets Qt5WebKit")
 set(WEBKITWIDGETS_PRI_DEPS "${WEBKIT_PRI_DEPS} widgets webkit")
 set(WEBKITWIDGETS_PRI_RUNTIME_DEPS "${WEBKIT_PRI_RUNTIME_DEPS} widgets_private")
-
-if (Qt5OpenGL_FOUND)
-    set(WEBKITWIDGETS_PRI_RUNTIME_DEPS "${WEBKITWIDGETS_PRI_RUNTIME_DEPS} opengl")
-endif ()
-
-if (ENABLE_PRINT_SUPPORT)
-    set(WEBKITWIDGETS_PRI_RUNTIME_DEPS "${WEBKITWIDGETS_PRI_RUNTIME_DEPS} printsupport")
-endif ()
-
-if (QT_STATIC_BUILD)
-    set(WEBKITWIDGETS_PKGCONFIG_DEPS "${WEBKITWIDGETS_PKGCONFIG_DEPS} Qt5PrintSupport")
-    set(WEBKITWIDGETS_PRI_DEPS "${WEBKITWIDGETS_PRI_DEPS} printsupport")
-    set(EXTRA_LIBS_NAMES WebCore JavaScriptCore WTF)
-    append_lib_names_to_list(EXTRA_LIBS_NAMES ${LIBXML2_LIBRARIES} ${SQLITE_LIBRARIES} ${ZLIB_LIBRARIES} ${JPEG_LIBRARIES} ${PNG_LIBRARIES})
-    if (NOT USE_SYSTEM_MALLOC)
-        list(APPEND EXTRA_LIBS_NAMES bmalloc)
-    endif ()
-    if (ENABLE_XSLT)
-        append_lib_names_to_list(EXTRA_LIBS_NAMES ${LIBXSLT_LIBRARIES})
-    endif ()
-    if (USE_LIBHYPHEN)
-        append_lib_names_to_list(EXTRA_LIBS_NAMES ${HYPHEN_LIBRARIES})
-    endif ()
-    if (USE_WEBP)
-        append_lib_names_to_list(EXTRA_LIBS_NAMES ${WEBP_LIBRARIES})
-    endif ()
-    list(REMOVE_DUPLICATES EXTRA_LIBS_NAMES)
-    foreach (LIB_NAME ${EXTRA_LIBS_NAMES})
-        set(WEBKIT_PKGCONFIG_DEPS "${WEBKIT_PKGCONFIG_DEPS} ${LIB_PREFIX}${LIB_NAME}")
-        set(WEBKIT_PRI_EXTRA_LIBS "${WEBKIT_PRI_EXTRA_LIBS} -l${LIB_PREFIX}${LIB_NAME}")
-    endforeach ()
-endif ()
 
 if (TRUE)
     ecm_generate_pkgconfig_file(
@@ -487,9 +429,7 @@ install(
     COMPONENT Data
 )
 
-if (QT_STATIC_BUILD)
-    set(WebKit_LIBRARY_TYPE STATIC)
-else ()
+if (TRUE)
     set(WebKit_LIBRARY_TYPE SHARED)
 endif ()
 
@@ -681,9 +621,7 @@ install(
     COMPONENT Data
 )
 
-if (QT_STATIC_BUILD)
-    set(WebKitWidgets_LIBRARY_TYPE STATIC)
-else ()
+if (TRUE)
     set(WebKitWidgets_LIBRARY_TYPE SHARED)
 endif ()
 
