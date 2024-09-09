@@ -10,6 +10,7 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/geolocation"
     "${WEBCORE_DIR}/Modules/indexeddb"
     "${WEBCORE_DIR}/Modules/indexeddb/client"
+    "${WEBCORE_DIR}/Modules/indexeddb/legacy"
     "${WEBCORE_DIR}/Modules/indexeddb/server"
     "${WEBCORE_DIR}/Modules/indexeddb/shared"
     "${WEBCORE_DIR}/Modules/indieui"
@@ -826,6 +827,7 @@ set(WebCore_SOURCES
     Modules/indexeddb/IDBDatabase.cpp
     Modules/indexeddb/IDBDatabaseException.cpp
     Modules/indexeddb/IDBDatabaseIdentifier.cpp
+    Modules/indexeddb/IDBDatabaseMetadata.cpp
     Modules/indexeddb/IDBEventDispatcher.cpp
     Modules/indexeddb/IDBFactory.cpp
     Modules/indexeddb/IDBGetResult.cpp
