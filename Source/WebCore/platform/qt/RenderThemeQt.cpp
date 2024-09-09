@@ -43,6 +43,7 @@
 #include "NotImplemented.h"
 #include "Page.h"
 #include "PaintInfo.h"
+#include "QGraphicsUtils.h"
 #include "RenderBox.h"
 #include "RenderProgress.h"
 #include "RenderTheme.h"
@@ -877,9 +878,7 @@ String RenderThemeQt::fileListNameForWidth(const FileList* fileList, const FontC
         string = fileButtonNoFileSelectedLabel();
     else if (fileList->length() == 1) {
         String fname = fileList->item(0)->path();
-        // FIXME: use the correct font
-        // QFontMetrics fm(font.syntheticFont());
-        QFontMetrics fm { QFont() };
+        QFontMetrics fm(toQFont(font));
         string = fm.elidedText(fname, Qt::ElideLeft, width);
     } else {
         int n = fileList->length();

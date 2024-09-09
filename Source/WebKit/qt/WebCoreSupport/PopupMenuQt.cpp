@@ -29,6 +29,7 @@
 #include "ChromeClientQt.h"
 #include "FrameView.h"
 #include "PopupMenuClient.h"
+#include "QGraphicsUtils.h"
 #include "qwebkitplatformplugin.h"
 
 class SelectData : public QWebSelectData {
@@ -102,8 +103,7 @@ void PopupMenuQt::show(const IntRect& rect, FrameView* view, int index)
     QRect geometry(rect);
     geometry.moveTopLeft(view->contentsToWindow(rect.location()));
     m_popup->setGeometry(geometry);
-    // FIXME: use the correct font
-    // m_popup->setFont(m_popupClient->menuStyle().font().syntheticFont());
+    m_popup->setFont(toQFont(m_popupClient->menuStyle().font()));
 
     m_selectData = std::make_unique<SelectData>(m_popupClient);
     m_popup->show(*m_selectData.get());

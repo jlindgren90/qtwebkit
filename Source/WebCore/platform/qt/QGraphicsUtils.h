@@ -28,12 +28,23 @@
 #ifndef QGraphicsUtils_h
 #define QGraphicsUtils_h
 
+#include "FontCascade.h"
 #include "NativeImagePtr.h"
+
+#include <QFont>
 #include <QImage>
 #include <QPixmap>
 #include <cairo.h>
 
 namespace WebCore {
+
+inline QFont toQFont(const FontCascade& fontCascade)
+{
+    // just make it the right size
+    QFont font;
+    font.setPixelSize(fontCascade.pixelSize());
+    return font;
+}
 
 inline QImage toQImage(NativeImagePtr&& nativeImg)
 {

@@ -67,6 +67,7 @@
 #include "PlatformWheelEvent.h"
 #include "ProgressTracker.h"
 #include "ProgressTrackerClientQt.h"
+#include "QGraphicsUtils.h"
 #include "QWebFrameAdapter.h"
 #include "RenderTextControl.h"
 #include "SchemeRegistry.h"
@@ -666,12 +667,10 @@ QVariant QWebPageAdapter::inputMethodQuery(Qt::InputMethodQuery property) const
         return QVariant(view->contentsToWindow(frame->selection().absoluteCaretBounds()));
     }
     case Qt::ImFont: {
-#if 0 // FIXME
         if (renderTextControl) {
             RenderStyle& renderStyle = renderTextControl->style();
-            return QVariant(QFont(renderStyle.fontCascade().syntheticFont()));
+            return QVariant(toQFont(renderStyle.fontCascade()));
         }
-#endif
         return QVariant(QFont());
     }
     case Qt::ImCursorPosition: {

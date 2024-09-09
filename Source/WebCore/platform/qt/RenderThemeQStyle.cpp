@@ -217,9 +217,7 @@ static int extendFixedPadding(Length oldPadding, int padding)
 void RenderThemeQStyle::computeSizeBasedOnStyle(RenderStyle& renderStyle) const
 {
     QSize size(0, 0);
-    // FIXME: use the correct font
-    // const QFontMetrics fm(renderStyle.fontCascade().syntheticFont());
-    const QFontMetrics fm { QFont() };
+    const QFontMetrics fm(toQFont(renderStyle.fontCascade()));
 
     switch (renderStyle.appearance()) {
     case TextAreaPart:
