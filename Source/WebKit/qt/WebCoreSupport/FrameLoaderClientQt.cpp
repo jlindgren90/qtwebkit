@@ -59,6 +59,7 @@
 #include "PluginData.h"
 #include "PolicyChecker.h"
 #include "QNetworkReplyHandler.h"
+#include "QGraphicsUtils.h"
 #include "QWebFrameAdapter.h"
 #include "QWebFrameData.h"
 #include "QWebPageAdapter.h"
@@ -274,9 +275,10 @@ void FrameLoaderClientQt::transitionToCommittedForNewPage()
     // The HistoryController will update the scroll position later if needed.
     IntRect currentVisibleContentRect = m_frame->view() ? IntRect(IntPoint::zero(), m_frame->view()->fixedVisibleContentRect().size()) : IntRect();
 
-    m_frame->createView(qWebPage->property("viewportSize").toSize(),
-        backgroundColor, !backgroundColor.alpha(),
-        preferredLayoutSize.isValid() ? IntSize(preferredLayoutSize) : IntSize(),
+    m_frame->createView(
+        fromQSize(qWebPage->property("viewportSize").toSize()),
+        fromQColor(backgroundColor), !backgroundColor.alpha(),
+        preferredLayoutSize.isValid() ? fromQSize(preferredLayoutSize) : IntSize(),
         currentVisibleContentRect,
         preferredLayoutSize.isValid(),
         hScrollbar, hLock,

@@ -43,10 +43,10 @@ public:
     int itemCount() const override { return d ? d->listSize() : 0; }
     bool itemIsSelected(int idx) const override { return d ? d->itemIsSelected(idx) : false; }
     bool multiple() const override;
-    QColor backgroundColor() const override { return d ? QColor(d->menuStyle().backgroundColor()) : QColor(); }
-    QColor foregroundColor() const override { return d ? QColor(d->menuStyle().foregroundColor()) : QColor(); }
-    QColor itemBackgroundColor(int idx) const override { return d ? QColor(d->itemStyle(idx).backgroundColor()) : QColor(); }
-    QColor itemForegroundColor(int idx) const override { return d ? QColor(d->itemStyle(idx).foregroundColor()) : QColor(); }
+    QColor backgroundColor() const override { return d ? toQColor(d->menuStyle().backgroundColor()) : QColor(); }
+    QColor foregroundColor() const override { return d ? toQColor(d->menuStyle().foregroundColor()) : QColor(); }
+    QColor itemBackgroundColor(int idx) const override { return d ? toQColor(d->itemStyle(idx).backgroundColor()) : QColor(); }
+    QColor itemForegroundColor(int idx) const override { return d ? toQColor(d->itemStyle(idx).foregroundColor()) : QColor(); }
 
 private:
     WebCore::PopupMenuClient*& d;
@@ -100,8 +100,8 @@ void PopupMenuQt::show(const IntRect& rect, FrameView* view, int index)
         connect(m_popup.get(), SIGNAL(selectItem(int, bool, bool)), this, SLOT(selectItem(int, bool, bool)));
     }
 
-    QRect geometry(rect);
-    geometry.moveTopLeft(view->contentsToWindow(rect.location()));
+    QRect geometry = toQRect(rect);
+    geometry.moveTopLeft(toQPoint(view->contentsToWindow(rect.location())));
     m_popup->setGeometry(geometry);
     m_popup->setFont(toQFont(m_popupClient->menuStyle().font()));
 

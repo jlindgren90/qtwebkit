@@ -52,6 +52,7 @@
 #include "NotImplemented.h"
 #include "Page.h"
 #include "PopupMenuQt.h"
+#include "QGraphicsUtils.h"
 #include "QWebFrameAdapter.h"
 #include "QWebPageAdapter.h"
 #include "QWebPageClient.h"
@@ -156,7 +157,7 @@ FloatRect ChromeClientQt::windowRect()
 {
     if (!platformPageClient())
         return FloatRect();
-    return platformPageClient()->windowRect();
+    return fromQRectF(platformPageClient()->windowRect());
 }
 
 bool ChromeClientQt::allowsAcceleratedCompositing() const
@@ -170,7 +171,7 @@ FloatRect ChromeClientQt::pageRect()
 {
     if (!m_webPage)
         return FloatRect();
-    return FloatRect(QRectF(QPointF(0, 0), m_webPage->viewportSize()));
+    return fromQRectF(QRectF(QPointF(0, 0), m_webPage->viewportSize()));
 }
 
 void ChromeClientQt::focus()
@@ -426,12 +427,12 @@ void ChromeClientQt::invalidateContentsAndRootView(const IntRect& windowRect)
 {
     // No double buffer, so only update the QWidget if content changed.
     if (platformPageClient()) {
-        QRect rect(windowRect);
-        rect = rect.intersected(QRect(QPoint(0, 0), m_webPage->viewportSize()));
+        QRect rect = toQRect(windowRect).intersected(QRect(QPoint(0, 0), m_webPage->viewportSize()));
         if (!rect.isEmpty())
             platformPageClient()->update(rect);
     }
-    QMetaObject::invokeMethod(m_webPage->handle(), "repaintRequested", Qt::QueuedConnection, Q_ARG(QRect, windowRect));
+    QMetaObject::invokeMethod(m_webPage->handle(), "repaintRequested",
+        Qt::QueuedConnection, Q_ARG(QRect, toQRect(windowRect)));
 
     // FIXME: There is no "immediate" support for window painting. This should be done always whenever the flag
     // is set.
@@ -445,8 +446,10 @@ void ChromeClientQt::invalidateContentsForSlowScroll(const IntRect& windowRect)
 void ChromeClientQt::scroll(const IntSize& delta, const IntRect& scrollViewRect, const IntRect&)
 {
     if (platformPageClient())
-        platformPageClient()->scroll(delta.width(), delta.height(), scrollViewRect);
-    QMetaObject::invokeMethod(m_webPage->handle(), "scrollRequested", Q_ARG(int, delta.width()), Q_ARG(int, delta.height()), Q_ARG(QRect, scrollViewRect));
+        platformPageClient()->scroll(delta.width(), delta.height(), toQRect(scrollViewRect));
+    QMetaObject::invokeMethod(m_webPage->handle(), "scrollRequested",
+        Q_ARG(int, delta.width()), Q_ARG(int, delta.height()),
+        Q_ARG(QRect, toQRect(scrollViewRect)));
 }
 
 #if USE(COORDINATED_GRAPHICS)
@@ -472,10 +475,10 @@ IntRect ChromeClientQt::rootViewToScreen(const IntRect& rect) const
     if (!ownerWindow)
         return rect;
 
-    QRect screenRect(rect);
+    QRect screenRect = toQRect(rect);
     screenRect.translate(ownerWindow->mapToGlobal(m_webPage->viewRectRelativeToWindow().topLeft()));
 
-    return screenRect;
+    return fromQRect(screenRect);
 }
 
 IntPoint ChromeClientQt::screenToRootView(const IntPoint& point) const
@@ -488,7 +491,7 @@ IntPoint ChromeClientQt::screenToRootView(const IntPoint& point) const
     if (!ownerWindow)
         return point;
 
-    return ownerWindow->mapFromGlobal(point) - m_webPage->viewRectRelativeToWindow().topLeft();
+    return fromQPoint(ownerWindow->mapFromGlobal(toQPoint(point)) - m_webPage->viewRectRelativeToWindow().topLeft());
 }
 
 PlatformPageClient ChromeClientQt::platformPageClient() const
@@ -499,7 +502,7 @@ PlatformPageClient ChromeClientQt::platformPageClient() const
 void ChromeClientQt::contentsSizeChanged(Frame* frame, const IntSize& size) const
 {
     if (frame->loader().networkingContext())
-        QWebFrameAdapter::kit(frame)->contentsSizeDidChange(size);
+        QWebFrameAdapter::kit(frame)->contentsSizeDidChange(toQSize(size));
 }
 
 void ChromeClientQt::mouseDidMoveOverElement(const HitTestResult& result, unsigned)
@@ -560,8 +563,8 @@ void ChromeClientQt::reachedApplicationCacheOriginQuota(SecurityOrigin* origin, 
 #if ENABLE(INPUT_TYPE_COLOR)
 std::unique_ptr<ColorChooser> ChromeClientQt::createColorChooser(ColorChooserClient* client, const Color& color)
 {
-    const QColor selectedColor = m_webPage->colorSelectionRequested(QColor(color));
-    client->didChooseColor(selectedColor);
+    const QColor selectedColor = m_webPage->colorSelectionRequested(toQColor(color));
+    client->didChooseColor(fromQColor(selectedColor));
     client->didEndChooser();
     return nullptr;
 }

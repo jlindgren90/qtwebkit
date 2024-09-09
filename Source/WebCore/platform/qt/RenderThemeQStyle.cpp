@@ -203,7 +203,7 @@ void RenderThemeQStyle::computeControlRect(QStyleFacade::ButtonType part, QRect&
 
 void RenderThemeQStyle::computeControlRect(QStyleFacade::ButtonType part, FloatRect& originalRect) const
 {
-    inflateCheckBoxRectImpl(originalRect, indicatorRect(part, enclosingIntRect(originalRect)));
+    inflateCheckBoxRectImpl(originalRect, indicatorRect(part, toQRect(enclosingIntRect(originalRect))));
 }
 
 static int extendFixedPadding(Length oldPadding, int padding)
@@ -354,7 +354,7 @@ bool RenderThemeQStyle::paintButton(const RenderObject& o, const PaintInfo& i, c
     if (!p.isValid())
         return true;
 
-    p.styleOption.rect = r;
+    p.styleOption.rect = toQRect(r);
     p.styleOption.state |= QStyleFacade::State_Small;
 
     if (p.appearance == PushButtonPart || p.appearance == ButtonPart) {
@@ -377,7 +377,7 @@ bool RenderThemeQStyle::paintTextField(const RenderObject& o, const PaintInfo& i
     if (!p.isValid())
         return true;
 
-    p.styleOption.rect = IntRect(r); // FIXME: check rounding mode
+    p.styleOption.rect = toQRect(IntRect(r)); // FIXME: check rounding mode
     p.styleOption.state |= QStyleFacade::State_Sunken;
 
     // Get the correct theme data for a text field
@@ -429,7 +429,7 @@ bool RenderThemeQStyle::paintMenuList(const RenderObject& o, const PaintInfo& i,
     if (!p.isValid())
         return true;
 
-    p.styleOption.rect = IntRect(r); // FIXME: check rounding mode
+    p.styleOption.rect = toQRect(IntRect(r)); // FIXME: check rounding mode
     p.paintComboBox();
     return false;
 }
@@ -449,7 +449,7 @@ bool RenderThemeQStyle::paintMenuListButtonDecorations(const RenderBox& o, const
     if (!p.isValid())
         return true;
 
-    p.styleOption.rect = IntRect(r);
+    p.styleOption.rect = toQRect(IntRect(r));
     p.paintComboBoxArrow();
     return false;
 }
@@ -459,7 +459,7 @@ double RenderThemeQStyle::animationDurationForProgressBar(RenderProgress& render
     if (renderProgress.position() >= 0)
         return 0;
 
-    IntSize size = roundedIntSize(renderProgress.size());
+    QSize size = toQSize(roundedIntSize(renderProgress.size()));
     // FIXME: Until http://bugreports.qt.nokia.com/browse/QTBUG-9171 is fixed,
     // we simulate one square animating across the progress bar.
     return (size.width() / m_qStyle->progressBarChunkWidth(size)) * animationRepeatIntervalForProgressBar(renderProgress);
@@ -474,7 +474,7 @@ bool RenderThemeQStyle::paintProgressBar(const RenderObject& o, const PaintInfo&
     if (!p.isValid())
         return true;
 
-    p.styleOption.rect = r;
+    p.styleOption.rect = toQRect(r);
     auto& renderProgress = downcast<RenderProgress>(o);
     p.paintProgressBar(renderProgress.position(), renderProgress.animationProgress());
     return false;
@@ -486,10 +486,10 @@ bool RenderThemeQStyle::paintSliderTrack(const RenderObject& o, const PaintInfo&
     if (!p.isValid())
         return true;
 
-    const QPoint topLeft = r.location();
+    const QPoint topLeft = toQPoint(r.location());
     p.painter->translate(topLeft);
 
-    p.styleOption.rect = r;
+    p.styleOption.rect = toQRect(r);
     p.styleOption.rect.moveTo(QPoint(0, 0));
 
     if (p.appearance == SliderVerticalPart)
@@ -531,10 +531,10 @@ bool RenderThemeQStyle::paintSliderThumb(const RenderObject& o, const PaintInfo&
     if (!p.isValid())
         return true;
 
-    const QPoint topLeft = r.location();
+    const QPoint topLeft = toQPoint(r.location());
     p.painter->translate(topLeft);
 
-    p.styleOption.rect = r;
+    p.styleOption.rect = toQRect(r);
     p.styleOption.rect.moveTo(QPoint(0, 0));
     p.styleOption.slider.orientation = Qt::Horizontal;
     if (p.appearance == SliderThumbVerticalPart)
@@ -591,7 +591,7 @@ bool RenderThemeQStyle::paintInnerSpinButton(const RenderObject& o, const PaintI
     if (!p.isValid())
         return true;
 
-    p.styleOption.rect = rect;
+    p.styleOption.rect = toQRect(rect);
     p.paintInnerSpinButton(isSpinUpButtonPartPressed(o));
     return false;
 }
@@ -654,6 +654,8 @@ ControlPart RenderThemeQStyle::initializeCommonQStyleOptions(QStyleFacadeOption 
     case RadioPart:
     case CheckboxPart:
         option.state |= (isChecked(o) ? QStyleFacade::State_On : QStyleFacade::State_Off);
+    default:
+        break;
     }
 
     return result;

@@ -26,6 +26,7 @@
 #include "PlatformTouchEvent.h"
 #include "PlatformTouchPoint.h"
 #include "PlatformWheelEvent.h"
+#include "QGraphicsUtils.h"
 #include <QTouchEvent>
 #include <QWheelEvent>
 #include <wtf/CurrentTime.h>
@@ -95,8 +96,8 @@ WebKitPlatformMouseEvent::WebKitPlatformMouseEvent(QInputEvent* event, int click
         isContextMenuEvent = true;
         m_type = PlatformEvent::MousePressed;
         QContextMenuEvent* ce = static_cast<QContextMenuEvent*>(event);
-        m_position = IntPoint(ce->pos());
-        m_globalPosition = IntPoint(ce->globalPos());
+        m_position = fromQPoint(ce->pos());
+        m_globalPosition = fromQPoint(ce->globalPos());
         m_button = RightButton;
     }
 #endif
@@ -106,8 +107,8 @@ WebKitPlatformMouseEvent::WebKitPlatformMouseEvent(QInputEvent* event, int click
         QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 
         m_type = type;
-        m_position = IntPoint(mouseEvent->pos());
-        m_globalPosition = IntPoint(mouseEvent->globalPos());
+        m_position = fromQPoint(mouseEvent->pos());
+        m_globalPosition = fromQPoint(mouseEvent->globalPos());
     }
 
     m_clickCount = clickCount;
@@ -150,8 +151,8 @@ WebKitPlatformWheelEvent::WebKitPlatformWheelEvent(QWheelEvent* e, int wheelScro
 {
     m_timestamp = WTF::currentTime();
     mouseEventModifiersFromQtKeyboardModifiers(e->modifiers(), m_modifiers);
-    m_position = e->pos();
-    m_globalPosition = e->globalPos();
+    m_position = fromQPoint(e->pos());
+    m_globalPosition = fromQPoint(e->globalPos());
     m_granularity = ScrollByPixelWheelEvent;
     m_directionInvertedFromDevice = false;
     applyDelta(e->delta(), e->orientation(), wheelScrollLines);
@@ -182,6 +183,8 @@ WebKitPlatformTouchEvent::WebKitPlatformTouchEvent(QTouchEvent* event)
         break;
     case QEvent::TouchCancel:
         m_type = PlatformEvent::TouchCancel;
+        break;
+    default:
         break;
     }
 
@@ -222,8 +225,8 @@ WebKitPlatformTouchPoint::WebKitPlatformTouchPoint(const QTouchEvent::TouchPoint
     // The QTouchEvent::TouchPoint API states that ids will be >= 0.
     m_id = point.id();
     m_state = state;
-    m_screenPos = point.screenPos().toPoint();
-    m_pos = point.pos().toPoint();
+    m_screenPos = fromQPoint(point.screenPos().toPoint());
+    m_pos = fromQPoint(point.pos().toPoint());
     // Qt reports touch point size as rectangles, but we will pretend it is an oval.
     QRect touchRect = point.rect().toAlignedRect();
     if (touchRect.isValid()) {

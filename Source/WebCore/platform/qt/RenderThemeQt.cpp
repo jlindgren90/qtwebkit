@@ -228,8 +228,7 @@ void RenderThemeQt::adjustRepaintRect(const RenderObject& o, FloatRect& rect)
         break;
     case PushButtonPart:
     case ButtonPart: {
-        QRectF inflatedRect = inflateButtonRect(rect);
-        rect = FloatRect(inflatedRect.x(), inflatedRect.y(), inflatedRect.width(), inflatedRect.height());
+        rect = fromQRectF(inflateButtonRect(toQRectF(rect)));
         break;
     }
     case MenulistPart:
@@ -241,27 +240,27 @@ void RenderThemeQt::adjustRepaintRect(const RenderObject& o, FloatRect& rect)
 
 Color RenderThemeQt::platformActiveSelectionBackgroundColor() const
 {
-    return colorPalette().brush(QPalette::Active, QPalette::Highlight).color();
+    return fromQColor(colorPalette().brush(QPalette::Active, QPalette::Highlight).color());
 }
 
 Color RenderThemeQt::platformInactiveSelectionBackgroundColor() const
 {
-    return colorPalette().brush(QPalette::Inactive, QPalette::Highlight).color();
+    return fromQColor(colorPalette().brush(QPalette::Inactive, QPalette::Highlight).color());
 }
 
 Color RenderThemeQt::platformActiveSelectionForegroundColor() const
 {
-    return colorPalette().brush(QPalette::Active, QPalette::HighlightedText).color();
+    return fromQColor(colorPalette().brush(QPalette::Active, QPalette::HighlightedText).color());
 }
 
 Color RenderThemeQt::platformInactiveSelectionForegroundColor() const
 {
-    return colorPalette().brush(QPalette::Inactive, QPalette::HighlightedText).color();
+    return fromQColor(colorPalette().brush(QPalette::Inactive, QPalette::HighlightedText).color());
 }
 
 Color RenderThemeQt::platformFocusRingColor() const
 {
-    return colorPalette().brush(QPalette::Active, QPalette::Highlight).color();
+    return fromQColor(colorPalette().brush(QPalette::Active, QPalette::Highlight).color());
 }
 
 Color RenderThemeQt::systemColor(CSSValueID cssValueId) const
@@ -269,9 +268,9 @@ Color RenderThemeQt::systemColor(CSSValueID cssValueId) const
     QPalette pal = colorPalette();
     switch (cssValueId) {
     case CSSValueButtontext:
-        return pal.brush(QPalette::Active, QPalette::ButtonText).color();
+        return fromQColor(pal.brush(QPalette::Active, QPalette::ButtonText).color());
     case CSSValueCaptiontext:
-        return pal.brush(QPalette::Active, QPalette::Text).color();
+        return fromQColor(pal.brush(QPalette::Active, QPalette::Text).color());
     default:
         return RenderTheme::systemColor(cssValueId);
     }

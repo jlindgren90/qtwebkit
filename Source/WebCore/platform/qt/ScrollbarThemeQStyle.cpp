@@ -30,6 +30,7 @@
 
 #include "GraphicsContext.h"
 #include "PlatformMouseEvent.h"
+#include "QGraphicsUtils.h"
 #include "RenderThemeQStyle.h"
 #include "ScrollView.h"
 #include "Scrollbar.h"
@@ -66,6 +67,8 @@ static QStyleFacade::SubControl scPart(const ScrollbarPart& part)
     case ForwardButtonStartPart:
     case ForwardButtonEndPart:
         return QStyleFacade::SC_ScrollBarAddLine;
+    default:
+        break;
     }
 
     return QStyleFacade::SC_None;
@@ -87,6 +90,8 @@ static ScrollbarPart scrollbarPart(const QStyleFacade::SubControl& sc)
         return ForwardTrackPart;
     case QStyleFacade::SC_ScrollBarAddLine:
         return ForwardButtonStartPart;
+    default:
+        break;
     }
     return NoPart;
 }
@@ -105,7 +110,7 @@ static QStyleFacadeOption initSliderStyleOption(Scrollbar& scrollbar, QObject* w
 
     opt.state &= ~QStyleFacade::State_HasFocus;
 
-    opt.rect = scrollbar.frameRect();
+    opt.rect = toQRect(scrollbar.frameRect());
     if (scrollbar.enabled())
         opt.state |= QStyleFacade::State_Enabled;
     if (scrollbar.controlSize() != RegularScrollbar)
@@ -154,7 +159,7 @@ bool ScrollbarThemeQStyle::paint(Scrollbar& scrollbar, GraphicsContext& graphics
     p.painter->save();
     p.styleOption = initSliderStyleOption(scrollbar, m_qStyle->widgetForPainter(p.painter));
 
-    p.painter->setClipRect(p.styleOption.rect.intersected(dirtyRect), Qt::IntersectClip);
+    p.painter->setClipRect(p.styleOption.rect.intersected(toQRect(dirtyRect)), Qt::IntersectClip);
     p.paintScrollBar();
     p.painter->restore();
     return true;
@@ -163,7 +168,7 @@ bool ScrollbarThemeQStyle::paint(Scrollbar& scrollbar, GraphicsContext& graphics
 ScrollbarPart ScrollbarThemeQStyle::hitTest(Scrollbar& scrollbar, const IntPoint& position)
 {
     QStyleFacadeOption opt = initSliderStyleOption(scrollbar);
-    const QPoint pos = scrollbar.convertFromContainingWindow(position);
+    const QPoint pos = toQPoint(scrollbar.convertFromContainingWindow(position));
     opt.rect.moveTo(QPoint(0, 0));
     QStyleFacade::SubControl sc = m_qStyle->hitTestScrollBar(opt, pos);
     return scrollbarPart(sc);
@@ -243,7 +248,7 @@ void ScrollbarThemeQStyle::paintScrollCorner(ScrollView*, GraphicsContext& conte
     if (!p.isValid())
         return;
 
-    p.paintScrollCorner(rect);
+    p.paintScrollCorner(toQRect(rect));
 }
 
 }

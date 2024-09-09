@@ -28,15 +28,60 @@
 #ifndef QGraphicsUtils_h
 #define QGraphicsUtils_h
 
+#include "Color.h"
+#include "FloatPoint.h"
+#include "FloatRect.h"
+#include "FloatSize.h"
 #include "FontCascade.h"
+#include "IntPoint.h"
+#include "IntRect.h"
+#include "IntSize.h"
 #include "NativeImagePtr.h"
 
+#include <QColor>
 #include <QFont>
 #include <QImage>
 #include <QPixmap>
+#include <QPoint>
+#include <QPointF>
+#include <QRect>
+#include <QRectF>
+#include <QSize>
+#include <QSizeF>
 #include <cairo.h>
 
 namespace WebCore {
+
+inline Color fromQColor(const QColor& c)
+{
+    if (c.isValid())
+        return Color(c.red(), c.green(), c.blue(), c.alpha());
+    else
+        return Color();
+}
+
+inline QColor toQColor(const Color& c)
+{
+    if (c.isValid())
+        return QColor(c.red(), c.green(), c.blue(), c.alpha());
+    else
+        return QColor();
+}
+
+inline IntPoint fromQPoint(const QPoint& p) { return { p.x(), p.y() }; }
+inline QPoint toQPoint(const IntPoint& p) { return { p.x(), p.y() }; }
+inline FloatPoint fromQPointF(const QPointF& p)  { return { (float)p.x(), (float)p.y() }; }
+inline QPointF toQPointF(const FloatPoint& p) { return { p.x(), p.y() }; }
+
+inline IntRect fromQRect(const QRect& r) { return { r.x(), r.y(), r.width(), r.height() }; }
+inline QRect toQRect(const IntRect& r) { return { r.x(), r.y(), r.width(), r.height() }; }
+inline FloatRect fromQRectF(const QRectF& r) { return { (float)r.x(), (float)r.y(), (float)r.width(), (float)r.height() }; }
+inline QRectF toQRectF(const FloatRect& r) { return { r.x(), r.y(), r.width(), r.height() }; }
+
+inline IntSize fromQSize(const QSize& s) { return { s.width(), s.height() }; }
+inline QSize toQSize(const IntSize& s) { return { s.width(), s.height() }; }
+inline FloatSize fromQSizeF(const QSizeF& s) { return { (float)s.width(), (float)s.height() }; }
+inline QSizeF toQSizeF(const FloatSize& s) { return { s.width(), s.height() }; }
 
 inline QFont toQFont(const FontCascade& fontCascade)
 {

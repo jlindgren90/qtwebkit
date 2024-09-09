@@ -32,6 +32,7 @@
 #include "FrameView.h"
 #include "GraphicsContext.h"
 #include "HTMLElement.h"
+#include "QGraphicsUtils.h"
 #include "StyleProperties.h"
 #include "StyleRule.h"
 #include "Completion.h"
@@ -541,7 +542,7 @@ QRect QWebElement::geometry() const
     if (!renderer)
         return QRect();
 
-    return renderer->absoluteBoundingBoxRect();
+    return toQRect(renderer->absoluteBoundingBoxRect());
 }
 
 /*!
@@ -1436,6 +1437,7 @@ void QWebElement::render(QPainter* painter)
 */
 void QWebElement::render(QPainter* painter, const QRect& clip)
 {
+#if 0 // FIXME
     WebCore::Element* e = m_element;
     if (!e)
         return;
@@ -1461,7 +1463,6 @@ void QWebElement::render(QPainter* painter, const QRect& clip)
     if (!clip.isEmpty())
         rect.intersect(clip.translated(rect.location()));
 
-#if 0 // FIXME
     GraphicsContext context(painter);
 
     context.save();

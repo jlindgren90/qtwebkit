@@ -36,7 +36,7 @@ IntSize dragImageSize(DragImageRef image)
     if (!image)
         return IntSize();
 
-    return image->size();
+    return fromQSize(image->size());
 }
 
 void deleteDragImage(DragImageRef image)

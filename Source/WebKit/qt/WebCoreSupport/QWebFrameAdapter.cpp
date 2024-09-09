@@ -284,7 +284,7 @@ QRect QWebFrameAdapter::frameRect() const
 {
     if (!frame || !frame->view())
         return QRect();
-    return QRect(frame->view()->frameRect());
+    return toQRect(frame->view()->frameRect());
 }
 
 QSize QWebFrameAdapter::contentsSize() const
@@ -363,7 +363,10 @@ QWebHitTestResultPrivate* QWebFrameAdapter::hitTestContent(const QPoint& pos) co
     if (!frame->view() || !frame->contentRenderer())
         return 0;
 
-    HitTestResult result = frame->eventHandler().hitTestResultAtPoint(frame->view()->windowToContents(pos), HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowShadowContent);
+    HitTestResult result = frame->eventHandler().hitTestResultAtPoint(
+        frame->view()->windowToContents(fromQPoint(pos)),
+        HitTestRequest::ReadOnly | HitTestRequest::Active |
+            HitTestRequest::IgnoreClipping | HitTestRequest::DisallowShadowContent);
 
     if (result.scrollbar())
         return 0;
@@ -438,44 +441,14 @@ QString QWebFrameAdapter::uniqueName() const
     return frame->tree().uniqueName();
 }
 
-// This code is copied from ChromeClientGtk.cpp.
-static void coalesceRectsIfPossible(const QRect& clipRect, QVector<QRect>& rects)
-{
-    const int rectThreshold = 10;
-    const float wastedSpaceThreshold = 0.75f;
-    bool useUnionedRect = (rects.size() <= 1) || (rects.size() > rectThreshold);
-    if (!useUnionedRect) {
-        // Attempt to guess whether or not we should use the unioned rect or the individual rects.
-        // We do this by computing the percentage of "wasted space" in the union. If that wasted space
-        // is too large, then we will do individual rect painting instead.
-        float unionPixels = (clipRect.width() * clipRect.height());
-        float singlePixels = 0;
-        for (auto& rect : rects)
-            singlePixels += rect.width() * rect.height();
-        float wastedSpace = 1 - (singlePixels / unionPixels);
-        if (wastedSpace <= wastedSpaceThreshold)
-            useUnionedRect = true;
-    }
-
-    if (!useUnionedRect)
-        return;
-
-    rects.clear();
-    rects.append(clipRect);
-}
-
 void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const QRegion& clip)
 {
     if (!frame->view() || !frame->contentRenderer())
         return;
 
-    QVector<QRect> vector = clip.rects();
-    if (vector.isEmpty())
-        return;
-
     WebCore::FrameView* view = frame->view();
     IntRect frameRect = view->frameRect();
-    if (frameRect.isEmpty())
+    if (frameRect.isEmpty() || clip.isEmpty())
         return;
 
     // I do not know how to make cairo render directly to a QPaintDevice.
@@ -495,15 +468,11 @@ void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const
     view->updateLayoutAndStyleIfNeededRecursive();
 
     if (layers & ContentsLayer) {
-        QRect clipBoundingRect = clip.boundingRect();
-        coalesceRectsIfPossible(clipBoundingRect, vector);
-        for (int i = 0; i < vector.size(); ++i) {
-            const QRect& clipRect = vector.at(i);
-
-            QRect rect = clipRect.intersected(view->frameRect());
+        for (const QRect& clipRect : clip) {
+            QRect rect = clipRect.intersected(toQRect(frameRect));
 
             context.save();
-            context.clip(QRectF(clipRect));
+            context.clip(FloatRect(fromQRect(rect)));
 
             int x = view->x();
             int y = view->y();
@@ -517,11 +486,10 @@ void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const
             rect.translate(scrollX, scrollY);
             context.clip(view->visibleContentRect());
 
-            view->paintContents(context, rect);
+            view->paintContents(context, fromQRect(rect));
 
             context.restore();
         }
-        renderCompositedLayers(context, IntRect(clipBoundingRect));
     }
     renderFrameExtras(context, layers, clip);
 
@@ -540,14 +508,13 @@ void QWebFrameAdapter::renderFrameExtras(GraphicsContext& context, int layers, c
     if (!(layers & (PanIconLayer | ScrollBarLayer)))
         return;
     WebCore::FrameView* view = frame->view();
-    QVector<QRect> vector = clip.rects();
-    for (int i = 0; i < vector.size(); ++i) {
-        const QRect& clipRect = vector.at(i);
+    IntRect frameRect = view->frameRect();
 
-        QRect intersectedRect = clipRect.intersected(view->frameRect());
+    for (const QRect& clipRect : clip) {
+        QRect rect = clipRect.intersected(toQRect(frameRect));
 
         context.save();
-        context.clip(QRectF(clipRect));
+        context.clip(FloatRect(fromQRect(rect)));
 
         int x = view->x();
         int y = view->y();
@@ -556,10 +523,9 @@ void QWebFrameAdapter::renderFrameExtras(GraphicsContext& context, int layers, c
             && !view->scrollbarsSuppressed()
             && (view->horizontalScrollbar() || view->verticalScrollbar())) {
 
-            QRect rect = intersectedRect;
             context.translate(x, y);
             rect.translate(-x, -y);
-            view->paintScrollbars(context, rect);
+            view->paintScrollbars(context, fromQRect(rect));
             context.translate(-x, -y);
         }
 
@@ -763,7 +729,7 @@ QRect QWebFrameAdapter::scrollBarGeometry(Qt::Orientation orientation) const
     Scrollbar* sb;
     sb = (orientation == Qt::Horizontal) ? horizontalScrollBar() : verticalScrollBar();
     if (sb)
-        return sb->frameRect();
+        return toQRect(sb->frameRect());
     return QRect();
 }
 
@@ -785,7 +751,7 @@ WebCore::Scrollbar* QWebFrameAdapter::verticalScrollBar() const
 void QWebFrameAdapter::updateBackgroundRecursively(const QColor& backgroundColor)
 {
     ASSERT(frame->view());
-    frame->view()->updateBackgroundRecursively(backgroundColor, /*transparent*/ !backgroundColor.alpha());
+    frame->view()->updateBackgroundRecursively(fromQColor(backgroundColor), /*transparent*/ !backgroundColor.alpha());
 }
 
 void QWebFrameAdapter::cancelLoad()
@@ -803,7 +769,7 @@ QWebHitTestResultPrivate::QWebHitTestResultPrivate(const WebCore::HitTestResult 
 {
     if (!hitTest.innerNode())
         return;
-    pos = hitTest.roundedPointInInnerNodeFrame();
+    pos = toQPoint(hitTest.roundedPointInInnerNodeFrame());
     WebCore::TextDirection dir;
     title = hitTest.title(dir);
     linkText = hitTest.textContent();
@@ -816,7 +782,8 @@ QWebHitTestResultPrivate::QWebHitTestResultPrivate(const WebCore::HitTestResult 
     innerNode->ref();
     innerNonSharedNode = hitTest.innerNonSharedNode();
     innerNonSharedNode->ref();
-    boundingRect = (innerNonSharedNode && innerNonSharedNode->renderer())? innerNonSharedNode->renderer()->absoluteBoundingBoxRect() : IntRect();
+    boundingRect = (innerNonSharedNode && innerNonSharedNode->renderer()) ?
+        toQRect(innerNonSharedNode->renderer()->absoluteBoundingBoxRect()) : QRect();
     WebCore::Image *img = hitTest.image();
     if (img) {
         pixmap = WebCore::toQPixmap(img->nativeImageForCurrentFrame());
@@ -918,7 +885,7 @@ QSize QWebFrameAdapter::customLayoutSize() const
     FrameView* view = frame->view();
     ASSERT(view);
     if (view->useFixedLayout())
-        return view->fixedLayoutSize();
+        return toQSize(view->fixedLayoutSize());
     return QSize();
 }
 
@@ -930,7 +897,7 @@ void QWebFrameAdapter::setCustomLayoutSize(const QSize& size)
 
     if (size.isValid()) {
         view->setUseFixedLayout(true);
-        view->setFixedLayoutSize(size);
+        view->setFixedLayoutSize(fromQSize(size));
     } else if (view->useFixedLayout())
         view->setUseFixedLayout(false);
 
@@ -942,7 +909,7 @@ void QWebFrameAdapter::setFixedVisibleContentRect(const QRect& rect)
     ASSERT(&pageAdapter->mainFrameAdapter() == this);
     FrameView* view = frame->view();
     ASSERT(view);
-    view->setFixedVisibleContentRect(rect);
+    view->setFixedVisibleContentRect(fromQRect(rect));
 }
 
 void QWebFrameAdapter::setViewportSize(const QSize& size)
@@ -950,7 +917,7 @@ void QWebFrameAdapter::setViewportSize(const QSize& size)
     ASSERT(&pageAdapter->mainFrameAdapter() == this);
     FrameView* view = frame->view();
     ASSERT(view);
-    view->resize(size);
+    view->resize(fromQSize(size));
     if (view->needsLayout())
         view->layout();
     view->adjustViewSize();

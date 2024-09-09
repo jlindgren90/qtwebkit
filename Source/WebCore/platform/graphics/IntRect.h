@@ -49,10 +49,6 @@ typedef struct _NSRect NSRect;
 
 #if PLATFORM(WIN)
 typedef struct tagRECT RECT;
-#elif PLATFORM(QT)
-QT_BEGIN_NAMESPACE
-class QRect;
-QT_END_NAMESPACE
 #endif
 
 #if USE(CAIRO)
@@ -172,9 +168,6 @@ public:
 #if PLATFORM(WIN)
     IntRect(const RECT&);
     operator RECT() const;
-#elif PLATFORM(QT)
-    IntRect(const QRect&);
-    operator QRect() const;
 #elif PLATFORM(EFL)
     explicit IntRect(const Eina_Rectangle&);
     operator Eina_Rectangle() const;

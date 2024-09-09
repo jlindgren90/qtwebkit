@@ -29,6 +29,7 @@
 #include "Document.h"
 #include "DocumentFragment.h"
 #include "Frame.h"
+#include "QGraphicsUtils.h"
 #include "Range.h"
 #include "markup.h"
 
@@ -103,7 +104,7 @@ Color DragData::asColor() const
 {
     if (!m_platformDragData)
         return Color();
-    return qvariant_cast<QColor>(m_platformDragData->colorData());
+    return fromQColor(qvariant_cast<QColor>(m_platformDragData->colorData()));
 }
 
 bool DragData::containsCompatibleContent() const

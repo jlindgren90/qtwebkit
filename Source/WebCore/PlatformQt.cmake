@@ -110,15 +110,8 @@ list(APPEND WebCore_SOURCES
 
     platform/graphics/opentype/OpenTypeVerticalData.cpp
 
-    platform/graphics/qt/ColorQt.cpp
-    platform/graphics/qt/FloatPointQt.cpp
-    platform/graphics/qt/FloatRectQt.cpp
-    platform/graphics/qt/FloatSizeQt.cpp
     platform/graphics/qt/IconQt.cpp
     platform/graphics/qt/ImageQt.cpp
-    platform/graphics/qt/IntPointQt.cpp
-    platform/graphics/qt/IntRectQt.cpp
-    platform/graphics/qt/IntSizeQt.cpp
 
     platform/graphics/x11/PlatformDisplayX11.cpp
     platform/graphics/x11/XUniqueResource.cpp

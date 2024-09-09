@@ -34,6 +34,7 @@
 #include "Page.h"
 #include "Pasteboard.h"
 #include "PlatformMouseEvent.h"
+#include "QGraphicsUtils.h"
 
 #include <QDrag>
 #include <QMimeData>
@@ -101,7 +102,7 @@ void DragClientQt::startDrag(DragImageRef dragImage, const IntPoint& dragImageOr
         QDrag* drag = new QDrag(view);
         if (dragImage) {
             drag->setPixmap(*dragImage);
-            drag->setHotSpot(IntPoint(eventPos - dragImageOrigin));
+            drag->setHotSpot(toQPoint(IntPoint(eventPos - dragImageOrigin)));
         } else if (clipboardData && clipboardData->hasImage())
             drag->setPixmap(qvariant_cast<QPixmap>(clipboardData->imageData()));
         DragOperation dragOperationMask = dataTransfer.sourceOperation();
@@ -109,7 +110,9 @@ void DragClientQt::startDrag(DragImageRef dragImage, const IntPoint& dragImageOr
         Qt::DropAction actualDropAction = drag->exec(dragOperationsToDropActions(dragOperationMask));
 
         // Send dragEnd event
-        PlatformMouseEvent me(m_chromeClient->screenToRootView(QCursor::pos()), QCursor::pos(), LeftButton, PlatformEvent::MouseMoved, 0, false, false, false, false, 0, ForceAtClick);
+        PlatformMouseEvent me(m_chromeClient->screenToRootView(fromQPoint(QCursor::pos())),
+            fromQPoint(QCursor::pos()), LeftButton, PlatformEvent::MouseMoved,
+            0, false, false, false, false, 0, ForceAtClick);
         frame.eventHandler().dragSourceEndedAt(me, dropActionToDragOperation(actualDropAction));
     }
     frame.page()->dragController().dragEnded();

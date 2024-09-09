@@ -37,6 +37,7 @@
 #include "MainFrame.h"
 #include "NotImplemented.h"
 #include "Page.h"
+#include "QGraphicsUtils.h"
 #include "QWebFrameAdapter.h"
 #include "QWebPageAdapter.h"
 #include "ScriptDebugServer.h"
@@ -240,7 +241,7 @@ void InspectorClientQt::hideHighlight()
     WebCore::Frame& frame = m_inspectedWebPage->page->mainFrame();
     QRect rect = m_inspectedWebPage->mainFrameAdapter().frameRect();
     if (!rect.isEmpty())
-        frame.view()->invalidateRect(rect);
+        frame.view()->invalidateRect(fromQRect(rect));
 }
 
 InspectorClientQt::ConnectionType InspectorClientQt::connectionType() const

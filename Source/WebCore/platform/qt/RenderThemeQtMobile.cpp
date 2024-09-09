@@ -32,6 +32,7 @@
 #include "HTMLSelectElement.h"
 #include "Page.h"
 #include "PaintInfo.h"
+#include "QGraphicsUtils.h"
 #include "RenderBox.h"
 #include "RenderProgress.h"
 #include "StyleResolver.h"
@@ -747,11 +748,11 @@ bool RenderThemeQtMobile::paintButton(const RenderObject& o, const PaintInfo& i,
 
     ControlPart appearance = o.style().appearance();
     if (appearance == PushButtonPart || appearance == ButtonPart) {
-        p.drawPushButton(r, isPressed(o), isEnabled(o));
+        p.drawPushButton(toQRect(r), isPressed(o), isEnabled(o));
     } else if (appearance == RadioPart)
-       p.drawRadioButton(r, isChecked(o), isEnabled(o));
+       p.drawRadioButton(toQRect(r), isChecked(o), isEnabled(o));
     else if (appearance == CheckboxPart)
-       p.drawCheckBox(r, isChecked(o), isEnabled(o));
+       p.drawCheckBox(toQRect(r), isChecked(o), isEnabled(o));
 
     return false;
 }
@@ -794,17 +795,17 @@ bool RenderThemeQtMobile::paintTextField(const RenderObject& o, const PaintInfo&
         p.painter->setPen(borderPen());
         p.painter->setBrush(Qt::white);
         const int radius = checkBoxWidth * radiusFactor;
-        p.painter->drawRoundedRect(r, radius, radius);
+        p.painter->drawRoundedRect(toQRectF(r), radius, radius);
 
         if (isFocused(o)) {
             QPen focusPen(highlightColor, 1.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
             p.painter->setPen(focusPen);
             p.painter->setBrush(Qt::NoBrush);
-            p.painter->drawRoundedRect(r, radius, radius);
+            p.painter->drawRoundedRect(toQRectF(r), radius, radius);
         }
         p.painter->setRenderHint(QPainter::Antialiasing, previousAntialiasing);
     } else
-        p.drawLineEdit(r, isFocused(o), isEnabled(o));
+        p.drawLineEdit(toQRectF(r), isFocused(o), isEnabled(o));
     return false;
 }
 
@@ -832,7 +833,7 @@ bool RenderThemeQtMobile::paintMenuList(const RenderObject& o, const PaintInfo& 
     if (!p.isValid())
         return true;
 
-    p.drawComboBox(r, checkMultiple(o), isEnabled(o));
+    p.drawComboBox(toQRectF(r), checkMultiple(o), isEnabled(o));
     return false;
 }
 
@@ -843,7 +844,7 @@ bool RenderThemeQtMobile::paintMenuListButton(RenderObject& o, const PaintInfo& 
     if (!p.isValid())
         return true;
 
-    p.drawComboBox(r, checkMultiple(o), isEnabled(o));
+    p.drawComboBox(toQRect(r), checkMultiple(o), isEnabled(o));
 
     return false;
 }
@@ -870,9 +871,9 @@ bool RenderThemeQtMobile::paintProgressBar(const RenderObject& o, const PaintInf
     const bool isRTL = (renderProgress.style().direction() == RTL);
 
     if (renderProgress.isDeterminate())
-        p.drawProgress(r, renderProgress.position(), !isRTL);
+        p.drawProgress(toQRect(r), renderProgress.position(), !isRTL);
     else
-        p.drawProgress(r, renderProgress.animationProgress(), !isRTL, true);
+        p.drawProgress(toQRect(r), renderProgress.animationProgress(), !isRTL, true);
 
     return false;
 }
@@ -890,7 +891,7 @@ bool RenderThemeQtMobile::paintSliderTrack(const RenderObject& o, const PaintInf
     const double max = slider->maximum();
     const double progress = (max - min > 0) ? (slider->valueAsNumber() - min) / (max - min) : 0;
 
-    QRect rect(r);
+    QRect rect = toQRect(r);
     const bool vertical = (o.style().appearance() == SliderVerticalPart);
     const int groovePadding = vertical ? r.width() * sliderGrooveBorderRatio : r.height() * sliderGrooveBorderRatio;
     if (vertical) {
@@ -912,7 +913,7 @@ bool RenderThemeQtMobile::paintSliderThumb(const RenderObject& o, const PaintInf
     if (!p.isValid())
         return true;
 
-    p.drawSliderThumb(r, isPressed(o));
+    p.drawSliderThumb(toQRect(r), isPressed(o));
 
     return false;
 }

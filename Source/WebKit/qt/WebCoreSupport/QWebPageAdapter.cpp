@@ -508,7 +508,8 @@ void QWebPageAdapter::handleSoftwareInputPanel(Qt::MouseButton button, const QPo
         && frame->document()->focusedElement()
             && button == Qt::LeftButton && qGuiApp->property("autoSipEnabled").toBool()) {
         if (!clickCausedFocus || requestSoftwareInputPanel()) {
-            HitTestResult result = frame->eventHandler().hitTestResultAtPoint(frame->view()->windowToContents(pos));
+            HitTestResult result = frame->eventHandler().hitTestResultAtPoint(
+                frame->view()->windowToContents(fromQPoint(pos)));
             if (result.isContentEditable()) {
                 QEvent event(QEvent::RequestSoftwareInputPanel);
                 QGuiApplication::sendEvent(client->ownerWidget(), &event);
@@ -536,25 +537,25 @@ void QWebPageAdapter::wheelEvent(QWheelEvent *ev, int wheelScrollLines)
 
 Qt::DropAction QWebPageAdapter::dragEntered(const QMimeData *data, const QPoint &pos, Qt::DropActions possibleActions)
 {
-    DragData dragData(data, pos, QCursor::pos(), dropActionToDragOp(possibleActions));
+    DragData dragData(data, fromQPoint(pos), fromQPoint(QCursor::pos()), dropActionToDragOp(possibleActions));
     return dragOpToDropAction(page->dragController().dragEntered(dragData));
 }
 
 void QWebPageAdapter::dragLeaveEvent()
 {
-    DragData dragData(0, IntPoint(), QCursor::pos(), DragOperationNone);
+    DragData dragData(0, IntPoint(), fromQPoint(QCursor::pos()), DragOperationNone);
     page->dragController().dragExited(dragData);
 }
 
 Qt::DropAction QWebPageAdapter::dragUpdated(const QMimeData *data, const QPoint &pos, Qt::DropActions possibleActions)
 {
-    DragData dragData(data, pos, QCursor::pos(), dropActionToDragOp(possibleActions));
+    DragData dragData(data, fromQPoint(pos), fromQPoint(QCursor::pos()), dropActionToDragOp(possibleActions));
     return dragOpToDropAction(page->dragController().dragUpdated(dragData));
 }
 
 bool QWebPageAdapter::performDrag(const QMimeData *data, const QPoint &pos, Qt::DropActions possibleActions)
 {
-    DragData dragData(data, pos, QCursor::pos(), dropActionToDragOp(possibleActions));
+    DragData dragData(data, fromQPoint(pos), fromQPoint(QCursor::pos()), dropActionToDragOp(possibleActions));
     return page->dragController().performDragOperation(dragData);
 }
 
@@ -664,7 +665,7 @@ QVariant QWebPageAdapter::inputMethodQuery(Qt::InputMethodQuery property) const
             // We can't access absoluteCaretBounds() while the view needs to layout.
             return QVariant();
         }
-        return QVariant(view->contentsToWindow(frame->selection().absoluteCaretBounds()));
+        return QVariant(toQRect(view->contentsToWindow(frame->selection().absoluteCaretBounds())));
     }
     case Qt::ImFont: {
         if (renderTextControl) {
@@ -857,7 +858,8 @@ QWebHitTestResultPrivate* QWebPageAdapter::updatePositionDependentMenuActions(co
 {
     ASSERT(visitedWebActions);
     WebCore::Frame& focusedFrame = page->focusController().focusedOrMainFrame();
-    HitTestResult result = focusedFrame.eventHandler().hitTestResultAtPoint(focusedFrame.view()->windowToContents(pos));
+    HitTestResult result = focusedFrame.eventHandler().hitTestResultAtPoint(
+        focusedFrame.view()->windowToContents(fromQPoint(pos)));
     page->contextMenuController().setHitTestResult(result);
 
     if (page->inspectorController().enabled())
@@ -1246,8 +1248,10 @@ QWebPageAdapter::ViewportAttributes QWebPageAdapter::viewportAttributesForSize(c
 
     float devicePixelRatio = qt_defaultDpi() / WebCore::ViewportArguments::deprecatedTargetDPI;
 
-    WebCore::ViewportAttributes conf = WebCore::computeViewportAttributes(viewportArguments(), desktopWidth, deviceSize.width(), deviceSize.height(), devicePixelRatio, availableSize);
-    WebCore::restrictMinimumScaleFactorToViewportSize(conf, availableSize, devicePixelRatio);
+    WebCore::ViewportAttributes conf = WebCore::computeViewportAttributes(
+        viewportArguments(), desktopWidth, deviceSize.width(), deviceSize.height(),
+        devicePixelRatio, fromQSize(availableSize));
+    WebCore::restrictMinimumScaleFactorToViewportSize(conf, fromQSize(availableSize), devicePixelRatio);
     WebCore::restrictScaleFactorToInitialScaleIfNotUserScalable(conf);
 
     page->setDeviceScaleFactor(devicePixelRatio);
@@ -1449,7 +1453,7 @@ bool QWebPageAdapter::swallowContextMenuEvent(QContextMenuEvent *event, QWebFram
                 // thumb to the new position
                 int position = theme.trackPosition(*scrollBar) + theme.thumbPosition(*scrollBar) + theme.thumbLength(*scrollBar) / 2;
                 scrollBar->setPressedPos(position);
-                const QPoint pos = scrollBar->convertFromContainingWindow(event->pos());
+                IntPoint pos = scrollBar->convertFromContainingWindow(fromQPoint(event->pos()));
                 scrollBar->moveThumb(horizontal ? pos.x() : pos.y());
             } else
                 scrollBar->scrollableArea().scroll(WebCore::ScrollDirection(direction), WebCore::ScrollGranularity(granularity));
