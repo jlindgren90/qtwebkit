@@ -372,6 +372,12 @@ std::unique_ptr<IDBDatabaseInfo> SQLiteIDBBackingStore::createAndPopulateInitial
         return nullptr;
     }
 
+    if (!ensureValidIndexRecordsTable()) {
+        LOG_ERROR("Could not create IndexRecords table in database (%i) - %s", m_sqliteDB->lastError(), m_sqliteDB->lastErrorMsg());
+        m_sqliteDB = nullptr;
+        return nullptr;
+    }
+
     if (!m_sqliteDB->executeCommand("CREATE TABLE KeyGenerators (objectStoreID INTEGER NOT NULL ON CONFLICT FAIL UNIQUE ON CONFLICT REPLACE, currentKey INTEGER NOT NULL ON CONFLICT FAIL);")) {
         LOG_ERROR("Could not create KeyGenerators table in database (%i) - %s", m_sqliteDB->lastError(), m_sqliteDB->lastErrorMsg());
         m_sqliteDB = nullptr;
@@ -557,14 +563,14 @@ String SQLiteIDBBackingStore::fullDatabasePath() const
     return pathByAppendingComponent(fullDatabaseDirectory(), "IndexedDB.sqlite3");
 }
 
-IDBError SQLiteIDBBackingStore::getOrEstablishDatabaseInfo(IDBDatabaseInfo& info)
+const IDBDatabaseInfo& SQLiteIDBBackingStore::getOrEstablishDatabaseInfo()
 {
     LOG(IndexedDB, "SQLiteIDBBackingStore::getOrEstablishDatabaseInfo - database %s", m_identifier.databaseName().utf8().data());
 
-    if (m_databaseInfo) {
-        info = *m_databaseInfo;
-        return { };
-    }
+    if (m_databaseInfo)
+        return *m_databaseInfo;
+
+    m_databaseInfo = std::make_unique<IDBDatabaseInfo>(m_identifier.databaseName(), 0);
 
     makeAllDirectories(fullDatabaseDirectory());
     String dbFilename = fullDatabasePath();
@@ -576,37 +582,28 @@ IDBError SQLiteIDBBackingStore::getOrEstablishDatabaseInfo(IDBDatabaseInfo& info
     }
 
     if (!m_sqliteDB)
-        return { IDBDatabaseException::UnknownError, ASCIILiteral("Unable to open database file on disk") };
+        return *m_databaseInfo;
 
-    m_sqliteDB->setCollationFunction("IDBKEY", [](int aLength, const void* a, int bLength, const void* b) {
+    m_sqliteDB->setCollationFunction("IDBKEY", [this](int aLength, const void* a, int bLength, const void* b) {
         return idbKeyCollate(aLength, a, bLength, b);
     });
 
     if (!ensureValidRecordsTable()) {
         LOG_ERROR("Error creating or migrating Records table in database");
         m_sqliteDB = nullptr;
-        return { IDBDatabaseException::UnknownError, ASCIILiteral("Error creating or migrating Records table in database") };
-    }
-
-    if (!ensureValidIndexRecordsTable()) {
-        LOG_ERROR("Error creating or migrating Index Records table in database");
-        m_sqliteDB = nullptr;
-        return { IDBDatabaseException::UnknownError, ASCIILiteral("Error creating or migrating Index Records table in database") };
+        return *m_databaseInfo;
     }
 
     auto databaseInfo = extractExistingDatabaseInfo();
     if (!databaseInfo)
         databaseInfo = createAndPopulateInitialDatabaseInfo();
 
-    if (!databaseInfo) {
+    if (!databaseInfo)
         LOG_ERROR("Unable to establish IDB database at path '%s'", dbFilename.utf8().data());
-        m_sqliteDB = nullptr;
-        return { IDBDatabaseException::UnknownError, ASCIILiteral("Unable to establish IDB database file") };
-    }
+    else
+        m_databaseInfo = WTFMove(databaseInfo);
 
-    m_databaseInfo = WTFMove(databaseInfo);
-    info = *m_databaseInfo;
-    return { };
+    return *m_databaseInfo;
 }
 
 IDBError SQLiteIDBBackingStore::beginTransaction(const IDBTransactionInfo& info)
@@ -626,15 +623,8 @@ IDBError SQLiteIDBBackingStore::beginTransaction(const IDBTransactionInfo& info)
     addResult.iterator->value = std::make_unique<SQLiteIDBTransaction>(*this, info);
 
     auto error = addResult.iterator->value->begin(*m_sqliteDB);
-    if (error.isNull() && info.mode() == IndexedDB::TransactionMode::VersionChange) {
+    if (error.isNull() && info.mode() == IndexedDB::TransactionMode::VersionChange)
         m_originalDatabaseInfoBeforeVersionChange = std::make_unique<IDBDatabaseInfo>(*m_databaseInfo);
-
-        SQLiteStatement sql(*m_sqliteDB, ASCIILiteral("UPDATE IDBDatabaseInfo SET value = ? where key = 'DatabaseVersion';"));
-        if (sql.prepare() != SQLITE_OK
-            || sql.bindText(1, String::number(info.newVersion())) != SQLITE_OK
-            || sql.step() != SQLITE_DONE)
-            error = { IDBDatabaseException::UnknownError, ASCIILiteral("Failed to store new database version in database") };
-    }
 
     return error;
 }
