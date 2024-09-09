@@ -41,6 +41,7 @@
 #include "NetworkStateNotifier.h"
 #include "Page.h"
 #include "PageCache.h"
+#include "QGraphicsUtils.h"
 #include "RuntimeEnabledFeatures.h"
 #include "Settings.h"
 #include "SharedBuffer.h"
@@ -778,12 +779,8 @@ void QWebSettings::clearIconDatabase()
 QIcon QWebSettings::iconForUrl(const QUrl& url)
 {
     WebCore::initializeWebCoreQt();
-    QPixmap* icon = WebCore::iconDatabase().synchronousNativeIconForPageURL(WebCore::URL(url).string(),
-                                WebCore::IntSize(16, 16));
-    if (!icon)
-        return QIcon();
-
-    return* icon;
+    return WebCore::toQPixmap(WebCore::iconDatabase().synchronousNativeIconForPageURL(
+        WebCore::URL(url).string(), WebCore::IntSize(16, 16)));
 }
 
 /*!
@@ -849,10 +846,7 @@ QPixmap QWebSettings::webGraphic(WebGraphic type)
     RefPtr<WebCore::Image> img = WebCore::Image::loadPlatformResource(resourceNameForWebGraphic(type));
     if (!img)
         return QPixmap();
-    QPixmap* pixmap = img->nativeImageForCurrentFrame();
-    if (!pixmap)
-        return QPixmap();
-    return *pixmap;
+    return WebCore::toQPixmap(img->nativeImageForCurrentFrame());
 }
 
 /*!

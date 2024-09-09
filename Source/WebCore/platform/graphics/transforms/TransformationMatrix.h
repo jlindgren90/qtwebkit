@@ -40,12 +40,9 @@ typedef struct CATransform3D CATransform3D;
 typedef struct CGAffineTransform CGAffineTransform;
 #elif USE(CAIRO)
 #include <cairo.h>
-#elif PLATFORM(QT)
-#include <QMatrix4x4>
-#include <QTransform>
 #endif
 
-#if PLATFORM(WIN) || (PLATFORM(GTK) && OS(WINDOWS)) || (PLATFORM(QT) && OS(WINDOWS))
+#if PLATFORM(WIN) || (PLATFORM(GTK) && OS(WINDOWS))
 #if COMPILER(MINGW) && !COMPILER(MINGW64)
 typedef struct _XFORM XFORM;
 #else
@@ -91,11 +88,6 @@ public:
     {
         setMatrix(m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34, m41, m42, m43, m44);
     }
-
-#if PLATFORM(QT)
-    TransformationMatrix(const QTransform&);
-    TransformationMatrix(const QMatrix4x4&);
-#endif
 
     void setMatrix(double a, double b, double c, double d, double e, double f)
     {
@@ -302,7 +294,7 @@ public:
     bool decompose4(Decomposed4Type&) const;
     void recompose4(const Decomposed4Type&);
 
-    WEBCORE_EXPORT void blend(const TransformationMatrix& from, double progress);
+    void blend(const TransformationMatrix& from, double progress);
     void blend2(const TransformationMatrix& from, double progress);
     void blend4(const TransformationMatrix& from, double progress);
 
@@ -362,12 +354,9 @@ public:
     operator CGAffineTransform() const;
 #elif USE(CAIRO)
     operator cairo_matrix_t() const;
-#elif PLATFORM(QT)
-    operator QTransform() const;
-    operator QMatrix4x4() const;
 #endif
 
-#if PLATFORM(WIN) || (PLATFORM(GTK) && OS(WINDOWS)) || (PLATFORM(QT) && OS(WINDOWS))
+#if PLATFORM(WIN) || (PLATFORM(GTK) && OS(WINDOWS))
     operator XFORM() const;
 #endif
 

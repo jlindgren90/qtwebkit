@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2007 Apple Inc.  All rights reserved.
+ * Copyright (C) 2024 John Lindgren <john@jlindgren.net>
+ *
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,58 +22,45 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "DragImage.h"
+#ifndef QGraphicsUtils_h
+#define QGraphicsUtils_h
 
-#include "Image.h"
-#include "QGraphicsUtils.h"
+#include "NativeImagePtr.h"
+#include <QImage>
+#include <QPixmap>
+#include <cairo.h>
 
 namespace WebCore {
 
-IntSize dragImageSize(DragImageRef image)
+inline QImage toQImage(NativeImagePtr&& nativeImg)
 {
-    if (!image)
-        return IntSize();
+    cairo_surface_t* surface = nativeImg.leakRef();
+    if (!surface || cairo_surface_get_type(surface) != CAIRO_SURFACE_TYPE_IMAGE
+                 || cairo_image_surface_get_format(surface) != CAIRO_FORMAT_ARGB32)
+        return QImage();
 
-    return image->size();
+    cairo_surface_flush(surface);
+    auto cleanup = [](void* s) {
+        cairo_surface_mark_dirty((cairo_surface_t*)s);
+        cairo_surface_destroy((cairo_surface_t*)s);
+    };
+
+    return QImage(cairo_image_surface_get_data(surface),
+                  cairo_image_surface_get_width(surface),
+                  cairo_image_surface_get_height(surface),
+                  cairo_image_surface_get_stride(surface),
+                  QImage::Format_ARGB32_Premultiplied,
+                  cleanup, surface);
 }
 
-void deleteDragImage(DragImageRef image)
+inline QPixmap toQPixmap(NativeImagePtr&& nativeImg)
 {
-    delete image;
+    return QPixmap::fromImage(toQImage(std::move(nativeImg)));
 }
 
-DragImageRef scaleDragImage(DragImageRef image, FloatSize scale)
-{
-    if (!image)
-        return 0;
+} // namespace WebCore
 
-    int scaledWidth = image->width() * scale.width();
-    int scaledHeight = image->height() * scale.height();
-
-    *image = image->scaled(scaledWidth, scaledHeight);
-    return image;
-}
-
-DragImageRef dissolveDragImageToFraction(DragImageRef image, float)
-{
-    return image;
-}
-
-DragImageRef createDragImageFromImage(Image* image, ImageOrientationDescription)
-{
-    if (!image || !image->nativeImageForCurrentFrame())
-        return 0;
-
-    return new QPixmap(toQPixmap(image->nativeImageForCurrentFrame()));
-}
-
-DragImageRef createDragImageIconForCachedImageFilename(const String&)
-{
-    return 0;
-}
-
-}
+#endif

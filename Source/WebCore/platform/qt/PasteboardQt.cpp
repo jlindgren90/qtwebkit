@@ -37,6 +37,7 @@
 #include "HTMLElement.h"
 #include "Image.h"
 #include "NotImplemented.h"
+#include "QGraphicsUtils.h"
 #include "RenderImage.h"
 #include "markup.h"
 #include <qclipboard.h>
@@ -245,12 +246,12 @@ void Pasteboard::writeImage(Element& node, const URL& url, const String& title)
     Image* image = cachedImage->imageForRenderer(node.renderer());
     ASSERT(image);
 
-    QPixmap* pixmap = image->nativeImageForCurrentFrame();
-    if (!pixmap)
+    QImage qimg = toQImage(image->nativeImageForCurrentFrame());
+    if (qimg.isNull())
         return;
     if (!m_writableData)
         m_writableData = new QMimeData;
-    m_writableData->setImageData(pixmap->toImage());
+    m_writableData->setImageData(qimg);
     if (!title.isEmpty())
         m_writableData->setText(title);
     m_writableData->setUrls(QList<QUrl>() << url);

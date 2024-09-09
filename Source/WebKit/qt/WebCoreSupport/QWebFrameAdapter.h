@@ -20,6 +20,7 @@
 #ifndef QWebFrameAdapter_h
 #define QWebFrameAdapter_h
 
+#include "RefPtrCairo.h"
 #if ENABLE(ORIENTATION_EVENTS) && HAVE(QTSENSORS)
 #include "qorientationsensor.h"
 #endif // ENABLE(ORIENTATION_EVENTS).
@@ -224,6 +225,9 @@ public:
     static QWebFrameAdapter* kit(const WebCore::Frame*);
 
 //    friend class ChromeClientQt;
+
+private:
+    RefPtr<cairo_surface_t> frameBuffer;
 };
 
 #endif // QWebFrameAdapter_h

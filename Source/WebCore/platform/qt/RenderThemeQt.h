@@ -26,6 +26,7 @@
 #include "RenderTheme.h"
 
 #include <QBrush>
+#include <QImage>
 #include <QPalette>
 #include <QSharedPointer>
 #include <QString>
@@ -187,20 +188,17 @@ protected:
 };
 
 class StylePainter {
+    WTF_MAKE_NONCOPYABLE(StylePainter);
 public:
     virtual ~StylePainter();
 
     bool isValid() const { return painter; }
 
+    QImage imageTarget; // must last lifetime of painter
     QPainter* painter;
 
 protected:
     StylePainter(GraphicsContext&);
-
-private:
-    QBrush m_previousBrush;
-    bool m_previousAntialiasing;
-
 };
 
 }

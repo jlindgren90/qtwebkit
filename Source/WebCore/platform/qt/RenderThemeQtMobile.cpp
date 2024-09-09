@@ -41,6 +41,7 @@
 #include <QColor>
 #include <QFile>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPixmapCache>
 
 namespace WebCore {

@@ -40,7 +40,6 @@
 
 namespace WebCore {
 
-#if !PLATFORM(QT)
 float Path::length() const
 {
     PathTraversalState traversalState(PathTraversalState::Action::TotalLength);
@@ -51,7 +50,6 @@ float Path::length() const
 
     return traversalState.totalLength();
 }
-#endif
 
 PathTraversalState Path::traversalStateAtLength(float length, bool& success) const
 {
@@ -65,7 +63,6 @@ PathTraversalState Path::traversalStateAtLength(float length, bool& success) con
     return traversalState;
 }
 
-#if !PLATFORM(QT)
 FloatPoint Path::pointAtLength(float length, bool& success) const
 {
     return traversalStateAtLength(length, success).current();
@@ -75,7 +72,6 @@ float Path::normalAngleAtLength(float length, bool& success) const
 {
     return traversalStateAtLength(length, success).normalAngle();
 }
-#endif
 
 void Path::addRoundedRect(const FloatRect& rect, const FloatSize& roundingRadii, RoundedRectStrategy strategy)
 {
@@ -181,12 +177,10 @@ Path Path::polygonPathFromPoints(const Vector<FloatPoint>& points)
     return path;
 }
 
-#if !PLATFORM(QT)
 FloatRect Path::fastBoundingRect() const
 {
     return boundingRect();
 }
-#endif
 #endif
 
 #ifndef NDEBUG

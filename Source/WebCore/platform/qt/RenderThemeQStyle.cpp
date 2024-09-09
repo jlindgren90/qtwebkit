@@ -41,6 +41,7 @@
 #include "NotImplemented.h"
 #include "Page.h"
 #include "PaintInfo.h"
+#include "QGraphicsUtils.h"
 #include "QWebPageClient.h"
 #include "RenderBox.h"
 #include "RenderProgress.h"
@@ -49,6 +50,7 @@
 #include "UserAgentStyleSheets.h"
 
 #include <QPainter>
+#include <QVariant>
 
 namespace WebCore {
 
@@ -215,7 +217,9 @@ static int extendFixedPadding(Length oldPadding, int padding)
 void RenderThemeQStyle::computeSizeBasedOnStyle(RenderStyle& renderStyle) const
 {
     QSize size(0, 0);
-    const QFontMetrics fm(renderStyle.fontCascade().syntheticFont());
+    // FIXME: use the correct font
+    // const QFontMetrics fm(renderStyle.fontCascade().syntheticFont());
+    const QFontMetrics fm { QFont() };
 
     switch (renderStyle.appearance()) {
     case TextAreaPart:

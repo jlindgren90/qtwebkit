@@ -57,7 +57,7 @@
 #include <QFile>
 #include <QFontMetrics>
 #include <QGuiApplication>
-
+#include <QPainter>
 #include <QStyleHints>
 
 #if ENABLE(VIDEO)
@@ -877,7 +877,9 @@ String RenderThemeQt::fileListNameForWidth(const FileList* fileList, const FontC
         string = fileButtonNoFileSelectedLabel();
     else if (fileList->length() == 1) {
         String fname = fileList->item(0)->path();
-        QFontMetrics fm(font.syntheticFont());
+        // FIXME: use the correct font
+        // QFontMetrics fm(font.syntheticFont());
+        QFontMetrics fm { QFont() };
         string = fm.elidedText(fname, Qt::ElideLeft, width);
     } else {
         int n = fileList->length();
@@ -900,27 +902,13 @@ void RenderThemeQt::updateCachedSystemFontDescription(CSSValueID, FontCascadeDes
 }
 
 StylePainter::StylePainter(GraphicsContext& context)
-    : painter(context.platformContext())
+    : painter(context.createQPainter(imageTarget))
 {
-    if (painter) {
-        // the styles often assume being called with a pristine painter where no brush is set,
-        // so reset it manually
-        m_previousBrush = painter->brush();
-        painter->setBrush(Qt::NoBrush);
-
-        // painting the widget with anti-aliasing will make it blurry
-        // disable it here and restore it later
-        m_previousAntialiasing = painter->testRenderHint(QPainter::Antialiasing);
-        painter->setRenderHint(QPainter::Antialiasing, false);
-    }
 }
 
 StylePainter::~StylePainter()
 {
-    if (painter) {
-        painter->setBrush(m_previousBrush);
-        painter->setRenderHints(QPainter::Antialiasing, m_previousAntialiasing);
-    }
+    delete painter;
 }
 
 }

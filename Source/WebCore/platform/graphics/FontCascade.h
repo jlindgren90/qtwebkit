@@ -37,13 +37,6 @@
 #include <wtf/WeakPtr.h>
 #include <wtf/unicode/CharacterNames.h>
 
-#if PLATFORM(QT)
-#include <QRawFont>
-QT_BEGIN_NAMESPACE
-class QTextLayout;
-QT_END_NAMESPACE
-#endif
-
 // "X11/X.h" defines Complex to 0 and conflicts
 // with Complex value in CodePath enum.
 #ifdef Complex
@@ -226,11 +219,6 @@ public:
 
     WeakPtr<FontCascade> createWeakPtr() const { return m_weakPtrFactory.createWeakPtr(); }
 
-#if PLATFORM(QT)
-    QRawFont rawFont() const;
-    QFont syntheticFont() const;
-#endif
-
 private:
     enum ForTextEmphasisOrNot { NotForTextEmphasis, ForTextEmphasis };
 
@@ -251,9 +239,6 @@ private:
 
     // Returns the initial in-stream advance.
     float getGlyphsAndAdvancesForComplexText(const TextRun&, int from, int to, GlyphBuffer&, ForTextEmphasisOrNot = NotForTextEmphasis) const;
-#if PLATFORM(QT)
-    void drawComplexText(GraphicsContext&, const TextRun&, const FloatPoint&, int from, int to) const;
-#endif
     void drawEmphasisMarksForComplexText(GraphicsContext&, const TextRun&, const AtomicString& mark, const FloatPoint&, int from, int to) const;
     float floatWidthForComplexText(const TextRun&, HashSet<const Font*>* fallbackFonts = 0, GlyphOverflow* = 0) const;
     int offsetForPositionForComplexText(const TextRun&, float position, bool includePartialGlyphs) const;
@@ -340,10 +325,6 @@ private:
 #endif
         return advancedTextRenderingMode();
     }
-
-#if PLATFORM(QT)
-    void initFormatForTextLayout(QTextLayout*, const TextRun&) const;
-#endif
 
     FontCascadeDescription m_fontDescription;
     mutable RefPtr<FontCascadeFonts> m_fonts;

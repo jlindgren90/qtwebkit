@@ -107,6 +107,7 @@ void TextureMapperLayerClientQt::renderCompositedLayers(GraphicsContext& context
     if (!m_rootTextureMapperLayer || !m_textureMapper)
         return;
 
+#if 0 // FIXME
     m_textureMapper->setGraphicsContext(&context);
     // GraphicsContext::imageInterpolationQuality is always InterpolationDefault here,
     // but 'default' may be interpreted differently due to a different backend QPainter,
@@ -145,6 +146,7 @@ void TextureMapperLayerClientQt::renderCompositedLayers(GraphicsContext& context
     m_fpsCounter.updateFPSAndDisplay(*m_textureMapper.get(), IntPoint::zero(), matrix);
     m_textureMapper->endClip();
     m_textureMapper->endPainting();
+#endif
 }
 
 QWebPageClient* TextureMapperLayerClientQt::pageClient() const

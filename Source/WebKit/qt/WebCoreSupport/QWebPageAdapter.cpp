@@ -666,10 +666,12 @@ QVariant QWebPageAdapter::inputMethodQuery(Qt::InputMethodQuery property) const
         return QVariant(view->contentsToWindow(frame->selection().absoluteCaretBounds()));
     }
     case Qt::ImFont: {
+#if 0 // FIXME
         if (renderTextControl) {
             RenderStyle& renderStyle = renderTextControl->style();
             return QVariant(QFont(renderStyle.fontCascade().syntheticFont()));
         }
+#endif
         return QVariant(QFont());
     }
     case Qt::ImCursorPosition: {

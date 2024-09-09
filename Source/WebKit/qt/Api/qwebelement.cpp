@@ -1461,6 +1461,7 @@ void QWebElement::render(QPainter* painter, const QRect& clip)
     if (!clip.isEmpty())
         rect.intersect(clip.translated(rect.location()));
 
+#if 0 // FIXME
     GraphicsContext context(painter);
 
     context.save();
@@ -1470,6 +1471,7 @@ void QWebElement::render(QPainter* painter, const QRect& clip)
     view->paintContents(context, finalClipRect);
     view->setNodeToDraw(0);
     context.restore();
+#endif
 }
 
 void QWebElement::beginEnterFullScreen()

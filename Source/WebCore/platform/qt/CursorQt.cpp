@@ -34,6 +34,7 @@
 
 #include "Image.h"
 #include "IntPoint.h"
+#include "QGraphicsUtils.h"
 
 #include "NotImplemented.h"
 
@@ -73,7 +74,7 @@ static Optional<QCursor> createCustomCursor(Image* image, const IntPoint& hotSpo
     if (!image->nativeImageForCurrentFrame())
         return Nullopt;
     IntPoint effectiveHotSpot = determineHotSpot(image, hotSpot);
-    return QCursor(*(image->nativeImageForCurrentFrame()), effectiveHotSpot.x(), effectiveHotSpot.y());
+    return QCursor(toQPixmap(image->nativeImageForCurrentFrame()), effectiveHotSpot.x(), effectiveHotSpot.y());
 }
 #endif
 

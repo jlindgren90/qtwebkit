@@ -46,7 +46,6 @@
 #include "qobject.h"
 #include "qstringlist.h"
 #include "qt_instance.h"
-#include "qt_pixmapruntime.h"
 #include "qvarlengtharray.h"
 #include <JSFunction.h>
 
@@ -638,9 +637,7 @@ QVariant convertValueToQVariant(JSContextRef context, JSValueRef value, QMetaTyp
                 ret = QVariant::fromValue(convertToList<int>(context, type, object, value, &dist, visitedObjects, recursionLimit, exception));
                 break;
             }
-            if (QtPixmapRuntime::canHandle(static_cast<QMetaType::Type>(hint))) {
-                ret = QtPixmapRuntime::toQt(context, object, static_cast<QMetaType::Type>(hint), exception);
-            } else if (customRuntimeConversions()->contains(hint)) {
+            if (customRuntimeConversions()->contains(hint)) {
                 ret = customRuntimeConversions()->value(hint).toVariantFunc(toJS(object), &dist, visitedObjects);
                 if (dist == 0)
                     break;
@@ -756,9 +753,6 @@ JSValueRef convertQVariantToValue(JSContextRef context, PassRefPtr<RootObject> r
         JSLockHolder locker(exec);
         return toRef(exec, QtInstance::getQtInstance(obj, root, QtInstance::QtOwnership)->createRuntimeObject(exec));
     }
-
-    if (QtPixmapRuntime::canHandle(static_cast<QMetaType::Type>(variant.type())))
-        return QtPixmapRuntime::toJS(context, variant, exception);
 
     if (customRuntimeConversions()->contains(type)) {
         if (!root->globalObject()->inherits(JSDOMWindow::info()))

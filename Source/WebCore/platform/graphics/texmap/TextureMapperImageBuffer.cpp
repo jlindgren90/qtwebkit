@@ -116,7 +116,7 @@ void TextureMapperImageBuffer::drawSolidColor(const FloatRect& rect, const Trans
 
 void TextureMapperImageBuffer::drawBorder(const Color& color, float borderWidth , const FloatRect& rect, const TransformationMatrix& matrix)
 {
-#if PLATFORM(QT)
+#if 0 // FIXME
     GraphicsContext* context = currentContext();
     if (!context)
         return;
@@ -142,7 +142,7 @@ void TextureMapperImageBuffer::drawBorder(const Color& color, float borderWidth 
 
 void TextureMapperImageBuffer::drawNumber(int number, const Color& color, const FloatPoint& targetPoint, const TransformationMatrix& matrix)
 {
-#if PLATFORM(QT)
+#if 0 // FIXME
     GraphicsContext* context = currentContext();
     if (!context)
         return;

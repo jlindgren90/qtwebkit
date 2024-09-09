@@ -31,6 +31,7 @@
 #include "KeyedEncoderQt.h"
 #include "Page.h"
 #include "PageGroup.h"
+#include "QGraphicsUtils.h"
 #include "URL.h"
 #include "VisitedLinkStoreQt.h"
 #include <QWebPageAdapter.h>
@@ -160,10 +161,11 @@ QDateTime QWebHistoryItem::lastVisited() const
 */
 QIcon QWebHistoryItem::icon() const
 {
-    if (d->item)
-        return *WebCore::iconDatabase().synchronousNativeIconForPageURL(d->item->url(), WebCore::IntSize(16, 16));
+    if (!d->item)
+        return QIcon();
 
-    return QIcon();
+    return WebCore::toQPixmap(WebCore::iconDatabase().synchronousNativeIconForPageURL(
+        d->item->url(), WebCore::IntSize(16, 16)));
 }
 
 /*!

@@ -42,6 +42,7 @@
 #include "NetworkingContext.h"
 #include "NodeList.h"
 #include "Page.h"
+#include "QGraphicsUtils.h"
 #include "QWebFrameData.h"
 #include "QWebPageAdapter.h"
 #include "RenderObject.h"
@@ -64,6 +65,7 @@
 #include <IntSize.h>
 #include <QFileInfo>
 #include <QNetworkRequest>
+#include <QPainter>
 
 using namespace WebCore;
 
@@ -469,10 +471,6 @@ static void coalesceRectsIfPossible(const QRect& clipRect, QVector<QRect>& rects
 
 void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const QRegion& clip)
 {
-    GraphicsContext context(painter);
-    if (context.paintingDisabled() && !context.updatingControlTints())
-        return;
-
     if (!frame->view() || !frame->contentRenderer())
         return;
 
@@ -481,6 +479,24 @@ void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const
         return;
 
     WebCore::FrameView* view = frame->view();
+    IntRect frameRect = view->frameRect();
+    if (frameRect.isEmpty())
+        return;
+
+    // I do not know how to make cairo render directly to a QPaintDevice.
+    // So we have to render to an offscreen buffer, and then copy.
+    if (!frameBuffer || cairo_image_surface_get_width(frameBuffer.get()) != frameRect.width()
+                     || cairo_image_surface_get_height(frameBuffer.get()) != frameRect.height())
+        frameBuffer = adoptRef(cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+            frameRect.width(), frameRect.height()));
+
+    std::unique_ptr<cairo_t, decltype(&cairo_destroy)> cr
+        { cairo_create(frameBuffer.get()), cairo_destroy };
+
+    GraphicsContext context(cr.get());
+    if (context.paintingDisabled() && !context.updatingControlTints())
+        return;
+
     view->updateLayoutAndStyleIfNeededRecursive();
 
     if (layers & ContentsLayer) {
@@ -492,7 +508,7 @@ void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const
             QRect rect = clipRect.intersected(view->frameRect());
 
             context.save();
-            painter->setClipRect(clipRect, Qt::IntersectClip);
+            context.clip(QRectF(clipRect));
 
             int x = view->x();
             int y = view->y();
@@ -519,13 +535,15 @@ void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const
         frame->page()->inspectorController().drawHighlight(context);
         context.restore();
     }
+
+    painter->setClipRegion(clip, Qt::IntersectClip);
+    painter->drawImage(0, 0, toQImage(frameBuffer.copyRef()));
 }
 
 void QWebFrameAdapter::renderFrameExtras(GraphicsContext& context, int layers, const QRegion& clip)
 {
     if (!(layers & (PanIconLayer | ScrollBarLayer)))
         return;
-    QPainter* painter = context.platformContext();
     WebCore::FrameView* view = frame->view();
     QVector<QRect> vector = clip.rects();
     for (int i = 0; i < vector.size(); ++i) {
@@ -533,8 +551,8 @@ void QWebFrameAdapter::renderFrameExtras(GraphicsContext& context, int layers, c
 
         QRect intersectedRect = clipRect.intersected(view->frameRect());
 
-        painter->save();
-        painter->setClipRect(clipRect, Qt::IntersectClip);
+        context.save();
+        context.clip(QRectF(clipRect));
 
         int x = view->x();
         int y = view->y();
@@ -555,7 +573,7 @@ void QWebFrameAdapter::renderFrameExtras(GraphicsContext& context, int layers, c
             view->paintPanScrollIcon(context);
 #endif
 
-        painter->restore();
+        context.restore();
     }
 }
 
@@ -806,9 +824,7 @@ QWebHitTestResultPrivate::QWebHitTestResultPrivate(const WebCore::HitTestResult 
     boundingRect = (innerNonSharedNode && innerNonSharedNode->renderer())? innerNonSharedNode->renderer()->absoluteBoundingBoxRect() : IntRect();
     WebCore::Image *img = hitTest.image();
     if (img) {
-        QPixmap* pix = img->nativeImageForCurrentFrame();
-        if (pix)
-            pixmap = *pix;
+        pixmap = WebCore::toQPixmap(img->nativeImageForCurrentFrame());
     }
     WebCore::Frame *wframe = hitTest.targetFrame();
     if (wframe) {

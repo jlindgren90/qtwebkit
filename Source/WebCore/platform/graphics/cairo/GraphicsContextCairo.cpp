@@ -63,6 +63,11 @@
 #include <cairo-win32.h>
 #endif
 
+#if PLATFORM(QT)
+#include "QGraphicsUtils.h"
+#include <QPainter>
+#endif
+
 using namespace std;
 
 namespace WebCore {
@@ -1251,6 +1256,24 @@ void GraphicsContext::set3DTransform(const TransformationMatrix& transform)
     setCTM(transform.toAffineTransform());
 }
 #endif // ENABLE(3D_TRANSFORMS) && USE(TEXTURE_MAPPER)
+
+#if PLATFORM(QT)
+QPainter* GraphicsContext::createQPainter(QImage& imageTarget)
+{
+    cairo_t* cr = platformContext()->cr();
+    cairo_surface_t* surface = cairo_get_target(cr);
+    imageTarget = toQImage(NativeImagePtr(surface));
+
+    cairo_matrix_t matrix;
+    cairo_get_matrix(cr, &matrix);
+
+    auto* painter = new QPainter(&imageTarget);
+    painter->setWorldTransform(QTransform(/*m11*/ matrix.xx, /*m12*/ matrix.yx,
+                                          /*m21*/ matrix.xy, /*m22*/ matrix.yy,
+                                          /*dx*/ matrix.x0, /*dy*/ matrix.y0));
+    return painter;
+}
+#endif
 
 } // namespace WebCore
 

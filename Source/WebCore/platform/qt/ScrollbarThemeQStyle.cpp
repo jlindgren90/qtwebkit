@@ -35,6 +35,7 @@
 #include "Scrollbar.h"
 
 #include <QGuiApplication>
+#include <QPainter>
 
 namespace WebCore {
 

@@ -243,8 +243,10 @@ void HarfBuzzShaper::setNormalizedBuffer(NormalizeMode normalizeMode)
     // 3) Convert mirrored characters such as parenthesis for rtl text.
 
     // Convert to NFC form if the text has diacritical marks.
+#if U_SHOW_CPLUSPLUS_API // FIXME
     icu::UnicodeString normalizedString;
     UErrorCode error = U_ZERO_ERROR;
+#endif
 
     const UChar* runCharacters;
     String stringFor8BitRun;
@@ -254,6 +256,7 @@ void HarfBuzzShaper::setNormalizedBuffer(NormalizeMode normalizeMode)
     } else
         runCharacters = m_run.characters16();
 
+#if U_SHOW_CPLUSPLUS_API // FIXME
     for (unsigned i = 0; i < m_run.length(); ++i) {
         UChar ch = runCharacters[i];
         if (::ublock_getCode(ch) == UBLOCK_COMBINING_DIACRITICAL_MARKS) {
@@ -265,15 +268,20 @@ void HarfBuzzShaper::setNormalizedBuffer(NormalizeMode normalizeMode)
             break;
         }
     }
+#endif
 
     const UChar* sourceText;
+#if U_SHOW_CPLUSPLUS_API // FIXME
     if (normalizedString.isEmpty()) {
+#endif
         m_normalizedBufferLength = m_run.length();
         sourceText = runCharacters;
+#if U_SHOW_CPLUSPLUS_API // FIXME
     } else {
         m_normalizedBufferLength = normalizedString.length();
         sourceText = normalizedString.getBuffer();
     }
+#endif
 
     m_normalizedBuffer = std::make_unique<UChar[]>(m_normalizedBufferLength + 1);
     normalizeSpacesAndMirrorChars(sourceText, m_normalizedBuffer.get(), m_normalizedBufferLength, normalizeMode);
