@@ -30,6 +30,7 @@
 #include "FloatPoint.h"
 #include "FloatRect.h"
 #include "GraphicsContext.h"
+#include "GraphicsLayerFactory.h"
 #include "LayoutRect.h"
 #include "RotateTransformOperation.h"
 #include "TextStream.h"
@@ -908,6 +909,26 @@ String GraphicsLayer::layerTreeAsText(LayerTreeAsTextBehavior behavior) const
     dumpLayer(ts, 0, behavior);
     return ts.release();
 }
+
+#if PLATFORM(QT)
+// FIXME: do we need more than a stub?
+class StubGraphicsLayer : public GraphicsLayer
+{
+public:
+    using GraphicsLayer::GraphicsLayer;
+
+    void setNeedsDisplay() override { }
+    void setNeedsDisplayInRect(const FloatRect&, ShouldClipToLayer) override { }
+};
+
+std::unique_ptr<GraphicsLayer> GraphicsLayer::create(GraphicsLayerFactory* factory, GraphicsLayerClient& client, Type layerType)
+{
+    if (factory)
+        return factory->createGraphicsLayer(layerType, client);
+
+    return std::unique_ptr<GraphicsLayer>(new StubGraphicsLayer(layerType, client));
+}
+#endif
 
 } // namespace WebCore
 

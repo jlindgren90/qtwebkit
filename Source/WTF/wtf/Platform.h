@@ -930,7 +930,7 @@
 #endif
 #endif
 
-#if PLATFORM(WIN_CAIRO) || PLATFORM(QT)
+#if PLATFORM(WIN_CAIRO)
 #define USE_TEXTURE_MAPPER 1
 #endif
 

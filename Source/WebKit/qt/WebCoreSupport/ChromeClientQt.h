@@ -58,7 +58,6 @@ struct ViewportArguments;
 #if ENABLE(VIDEO)
 class FullScreenVideoQt;
 #endif
-class TextureMapperLayerClientQt;
 
 class ChromeClientQt final : public ChromeClient {
 public:
@@ -223,8 +222,6 @@ public:
     static bool dumpVisitedLinksCallbacks;
 
     mutable QtPlatformPlugin m_platformPlugin;
-
-    std::unique_ptr<TextureMapperLayerClientQt> m_textureMapperLayerClient;
 };
 }
 

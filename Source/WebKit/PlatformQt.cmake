@@ -224,7 +224,6 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/QtPluginWidgetAdapter.cpp
     qt/WebCoreSupport/SearchPopupMenuQt.cpp
     qt/WebCoreSupport/TextCheckerClientQt.cpp
-    qt/WebCoreSupport/TextureMapperLayerClientQt.cpp
     qt/WebCoreSupport/UndoStepQt.cpp
     qt/WebCoreSupport/VisitedLinkStoreQt.cpp
     qt/WebCoreSupport/WebDatabaseProviderQt.cpp

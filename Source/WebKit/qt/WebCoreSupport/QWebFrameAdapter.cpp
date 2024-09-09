@@ -50,7 +50,6 @@
 #include "ScriptSourceCode.h"
 #include "ScriptValue.h"
 #include "SubstituteData.h"
-#include "TextureMapperLayerClientQt.h"
 #if USE(TILED_BACKING_STORE)
 #include "TiledBackingStore.h"
 #endif
@@ -414,11 +413,7 @@ QUrl QWebFrameAdapter::baseUrl() const
 
 void QWebFrameAdapter::renderCompositedLayers(WebCore::GraphicsContext& context, const WebCore::IntRect& clip)
 {
-    WebCore::Page* page = frame->page();
-    if (!page)
-        return;
-    if (TextureMapperLayerClientQt* client = static_cast<ChromeClientQt&>(page->chrome().client()).m_textureMapperLayerClient.get())
-        client->renderCompositedLayers(context, clip);
+    // stub
 }
 
 // FIXME: this might not be necessary, but for the sake of not breaking things, we'll use that for now.

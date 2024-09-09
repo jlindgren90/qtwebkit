@@ -1,6 +1,5 @@
 include(platform/ImageDecoders.cmake)
 include(platform/Linux.cmake)
-include(platform/TextureMapper.cmake)
 
 if (JPEG_DEFINITIONS)
     add_definitions(${JPEG_DEFINITIONS})
@@ -110,9 +109,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/harfbuzz/HarfBuzzShaper.cpp
 
     platform/graphics/opentype/OpenTypeVerticalData.cpp
-
-    platform/graphics/texmap/BitmapTextureImageBuffer.cpp
-    platform/graphics/texmap/TextureMapperImageBuffer.cpp
 
     platform/graphics/qt/ColorQt.cpp
     platform/graphics/qt/FloatPointQt.cpp

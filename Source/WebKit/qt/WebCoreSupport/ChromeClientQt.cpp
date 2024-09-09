@@ -58,7 +58,6 @@
 #include "ScrollbarTheme.h"
 #include "SearchPopupMenuQt.h"
 #include "SecurityOrigin.h"
-#include "TextureMapperLayerClientQt.h"
 #if USE(TILED_BACKING_STORE)
 #include "TiledBackingStore.h"
 #endif
@@ -623,23 +622,17 @@ void ChromeClientQt::serviceScriptedAnimations()
 
 void ChromeClientQt::attachRootGraphicsLayer(Frame* frame, GraphicsLayer* graphicsLayer)
 {
-    if (!m_textureMapperLayerClient)
-        m_textureMapperLayerClient = std::make_unique<TextureMapperLayerClientQt>(m_webPage->mainFrameAdapter());
-    m_textureMapperLayerClient->setRootGraphicsLayer(graphicsLayer);
+    // stub
 }
 
 void ChromeClientQt::setNeedsOneShotDrawingSynchronization()
 {
-    // we want the layers to synchronize next time we update the screen anyway
-    if (m_textureMapperLayerClient)
-        m_textureMapperLayerClient->markForSync(false);
+    // stub
 }
 
 void ChromeClientQt::scheduleCompositingLayerFlush()
 {
-    // we want the layers to synchronize ASAP
-    if (m_textureMapperLayerClient)
-        m_textureMapperLayerClient->markForSync(true);
+    // stub
 }
 
 ChromeClient::CompositingTriggerFlags ChromeClientQt::allowedCompositingTriggers() const

@@ -261,8 +261,6 @@ if (TRUE)
     set(WebCoreTestSupport_LIBRARY_TYPE STATIC)
 endif ()
 
-SET_AND_EXPOSE_TO_BUILD(USE_TEXTURE_MAPPER TRUE)
-
 find_package(Cairo 1.10.2 REQUIRED)
 find_package(Fontconfig 2.8.0 REQUIRED)
 find_package(Freetype2 2.4.2 REQUIRED)
