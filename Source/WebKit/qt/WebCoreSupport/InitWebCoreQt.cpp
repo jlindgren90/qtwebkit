@@ -73,6 +73,16 @@ Q_DECL_EXPORT void initializeWebKitQt()
         WebCore::RenderThemeQStyle::setStyleFactoryFunction(createStyleForPage);
         WebCore::RenderThemeQt::setCustomTheme(WebCore::RenderThemeQStyle::create, new WebCore::ScrollbarThemeQStyle);
     }
+
+    // There used to be a catch of std::bad_alloc in BlobUrlConversion,
+    // which is now gone. Unfortunately this created a versioned symbol
+    // which programs linked to QtWebkit now require. To force the
+    // symbol to exist, we include a try/catch block below.
+    try {
+        delete new int;
+    } catch (const std::bad_alloc&) {
+        // nothing
+    }
 }
 
 Q_DECL_EXPORT void setImagePlatformResource(const char* name, const QPixmap& pixmap)

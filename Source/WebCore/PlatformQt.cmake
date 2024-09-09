@@ -44,9 +44,8 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/graphics/harfbuzz/ng"
     "${WEBCORE_DIR}/platform/graphics/opengl"
     "${WEBCORE_DIR}/platform/graphics/opentype"
-    "${WEBCORE_DIR}/platform/network/qt"
+    "${WEBCORE_DIR}/platform/network/soup"
     "${WEBCORE_DIR}/platform/text/qt"
-    "${WEBCORE_DIR}/platform/win"
     "${WEBCORE_DIR}/platform/graphics/x11"
     "${WTF_DIR}"
 )
@@ -61,6 +60,9 @@ list(APPEND WebCore_SOURCES
     bridge/qt/qt_runtime.cpp
 
     editing/qt/EditorQt.cpp
+
+    loader/soup/CachedRawResourceSoup.cpp
+    loader/soup/SubresourceLoaderSoup.cpp
 
     page/qt/DragControllerQt.cpp
     page/qt/EventHandlerQt.cpp
@@ -118,22 +120,23 @@ list(APPEND WebCore_SOURCES
 
     platform/image-decoders/cairo/ImageDecoderCairo.cpp
 
-    platform/network/NetworkStorageSessionStub.cpp
-    platform/network/MIMESniffing.cpp
-
-    platform/network/qt/BlobUrlConversion.cpp
-    platform/network/qt/CookieJarQt.cpp
-    platform/network/qt/CredentialStorageQt.cpp
-    platform/network/qt/DNSQt.cpp
-    platform/network/qt/NetworkStateNotifierQt.cpp
-    platform/network/qt/ProxyServerQt.cpp
-    platform/network/qt/QNetworkReplyHandler.cpp
-    platform/network/qt/QtMIMETypeSniffer.cpp
-    platform/network/qt/ResourceHandleQt.cpp
-    platform/network/qt/ResourceRequestQt.cpp
-    platform/network/qt/ResourceResponseQt.cpp
-    platform/network/qt/SocketStreamHandleQt.cpp
-    platform/network/qt/SynchronousLoaderClientQt.cpp
+    platform/network/soup/AuthenticationChallengeSoup.cpp
+    platform/network/soup/CertificateInfo.cpp
+    platform/network/soup/CookieJarSoup.cpp
+    platform/network/soup/CookieStorageSoup.cpp
+    platform/network/soup/CredentialStorageSoup.cpp
+    platform/network/soup/DNSSoup.cpp
+    platform/network/soup/GRefPtrSoup.cpp
+    platform/network/soup/NetworkStorageSessionSoup.cpp
+    platform/network/soup/ProxyServerSoup.cpp
+    platform/network/soup/ResourceErrorSoup.cpp
+    platform/network/soup/ResourceHandleSoup.cpp
+    platform/network/soup/ResourceRequestSoup.cpp
+    platform/network/soup/ResourceResponseSoup.cpp
+    platform/network/soup/SocketStreamHandleSoup.cpp
+    platform/network/soup/SoupNetworkSession.cpp
+    platform/network/soup/SynchronousLoaderClientSoup.cpp
+    platform/network/soup/WebKitSoupRequestGeneric.cpp
 
     platform/qt/CursorQt.cpp
     platform/qt/DataTransferItemListQt.cpp
@@ -161,10 +164,13 @@ list(APPEND WebCore_SOURCES
     platform/qt/SharedBufferQt.cpp
     platform/qt/SoundQt.cpp
     platform/qt/TemporaryLinkStubsQt.cpp
-    platform/qt/ThirdPartyCookiesQt.cpp
     platform/qt/URLQt.cpp
     platform/qt/UserAgentQt.cpp
     platform/qt/WidgetQt.cpp
+
+    platform/soup/PublicSuffixSoup.cpp
+    platform/soup/SharedBufferSoup.cpp
+    platform/soup/URLSoup.cpp
 
     platform/text/Hyphenation.cpp
     platform/text/LocaleICU.cpp
@@ -175,34 +181,10 @@ list(APPEND WebCore_SOURCES
 )
 
 QTWEBKIT_GENERATE_MOC_FILES_CPP(WebCore
-    platform/network/qt/DNSQt.cpp
     platform/qt/MainThreadSharedTimerQt.cpp
 )
 
-QTWEBKIT_GENERATE_MOC_FILES_H(WebCore
-    platform/network/qt/CookieJarQt.h
-    platform/network/qt/QNetworkReplyHandler.h
-    platform/network/qt/QtMIMETypeSniffer.h
-)
-
-QTWEBKIT_GENERATE_MOC_FILE_H(WebCore platform/network/qt/NetworkStateNotifierPrivate.h platform/network/qt/NetworkStateNotifierQt.cpp)
-QTWEBKIT_GENERATE_MOC_FILE_H(WebCore platform/network/qt/SocketStreamHandlePrivate.h platform/network/qt/SocketStreamHandleQt.cpp)
-
-if (COMPILER_IS_GCC_OR_CLANG)
-    set_source_files_properties(
-        platform/graphics/qt/ImageBufferDataQt.cpp
-    PROPERTIES
-        COMPILE_FLAGS "-frtti -UQT_NO_DYNAMIC_CAST"
-    )
-
-    set_source_files_properties(
-        platform/network/qt/BlobUrlConversion.cpp
-    PROPERTIES
-        COMPILE_FLAGS "-fexceptions -UQT_NO_EXCEPTIONS"
-    )
-endif ()
-
-# Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
+# Note: Qt5Gui_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
 list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
     ${CAIRO_INCLUDE_DIRS}
     ${FREETYPE2_INCLUDE_DIRS}
@@ -210,13 +192,11 @@ list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
     ${GLIB_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
     ${HYPHEN_INCLUDE_DIR}
+    ${LIBSOUP_INCLUDE_DIRS}
     ${LIBXML2_INCLUDE_DIR}
     ${LIBXSLT_INCLUDE_DIR}
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
-    ${Qt5Network_INCLUDE_DIRS}
-    ${Qt5Network_PRIVATE_INCLUDE_DIRS}
-    ${Qt5Sensors_INCLUDE_DIRS}
     ${SQLITE_INCLUDE_DIR}
     ${ZLIB_INCLUDE_DIRS}
 )
@@ -230,12 +210,11 @@ list(APPEND WebCore_LIBRARIES
     ${GLIB_LIBRARIES}
     ${HARFBUZZ_LIBRARIES}
     ${HYPHEN_LIBRARIES}
+    ${LIBSOUP_LIBRARIES}
     ${LIBXML2_LIBRARIES}
     ${LIBXSLT_LIBRARIES}
     ${Qt5Core_LIBRARIES}
     ${Qt5Gui_LIBRARIES}
-    ${Qt5Network_LIBRARIES}
-    ${Qt5Sensors_LIBRARIES}
     ${SQLITE_LIBRARIES}
     ${X11_X11_LIB}
     ${ZLIB_LIBRARIES}
@@ -291,7 +270,7 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     platform/sql
     platform/text
 
-    platform/network/qt
+    platform/network/soup
 )
 
 WEBKIT_CREATE_FORWARDING_HEADERS(WebCore DIRECTORIES ${WebCore_FORWARDING_HEADERS_DIRECTORIES} FILES ${WebCore_FORWARDING_HEADERS_FILES})

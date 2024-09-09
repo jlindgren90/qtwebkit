@@ -502,10 +502,10 @@
 #define USE_GLIB 1
 #define USE_FREETYPE 1
 #define USE_HARFBUZZ 1
+#define USE_SOUP 1
 #endif
 
 #if PLATFORM(GTK) || PLATFORM(EFL)
-#define USE_SOUP 1
 #define USE_WEBP 1
 #endif
 

@@ -58,7 +58,6 @@
 #include "PlatformMouseEvent.h"
 #include "PluginData.h"
 #include "PolicyChecker.h"
-#include "QNetworkReplyHandler.h"
 #include "QGraphicsUtils.h"
 #include "QWebFrameAdapter.h"
 #include "QWebFrameData.h"
@@ -203,6 +202,14 @@ static const char* navigationTypeToString(NavigationType type)
         return "other";
     }
     return "illegal value";
+}
+
+static QNetworkRequest toNetworkRequest(const ResourceRequest& r, NetworkingContext* context)
+{
+    QNetworkRequest request;
+    request.setUrl(r.url());
+    request.setOriginatingObject(context ? context->originatingObject() : 0);
+    return request;
 }
 
 FrameLoaderClientQt::FrameLoaderClientQt()
@@ -891,6 +898,7 @@ Ref<WebCore::DocumentLoader> FrameLoaderClientQt::createDocumentLoader(const Web
 
 void FrameLoaderClientQt::convertMainResourceLoadToDownload(DocumentLoader* documentLoader, SessionID, const ResourceRequest& request, const ResourceResponse&)
 {
+#if 0 // FIXME
     if (!m_webFrame)
         return;
 
@@ -909,6 +917,7 @@ void FrameLoaderClientQt::convertMainResourceLoadToDownload(DocumentLoader* docu
             reply->deleteLater();
         }
     }
+#endif
 }
 
 void FrameLoaderClientQt::assignIdentifierToInitialRequest(unsigned long identifier, WebCore::DocumentLoader*, const WebCore::ResourceRequest& request)
@@ -1139,7 +1148,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::Resourc
 void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, PassRefPtr<WebCore::FormState>, const WTF::String&, FramePolicyFunction function)
 {
     Q_ASSERT(m_webFrame);
-    QNetworkRequest r(request.toNetworkRequest(m_frame->loader().networkingContext()));
+    QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
 
     if (!m_webFrame->pageAdapter->acceptNavigationRequest(0, r, (int)action.type())) {
         if (action.type() == NavigationType::FormSubmitted || action.type() == NavigationType::FormResubmitted)
@@ -1159,7 +1168,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::
 void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, PassRefPtr<WebCore::FormState>, FramePolicyFunction function)
 {
     Q_ASSERT(m_webFrame);
-    QNetworkRequest r(request.toNetworkRequest(m_frame->loader().networkingContext()));
+    QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
     PolicyAction result;
 
     // Currently, this is only enabled by DRT.
@@ -1212,7 +1221,7 @@ void FrameLoaderClientQt::startDownload(const WebCore::ResourceRequest& request,
     if (!m_webFrame)
         return;
 
-    QNetworkRequest r = request.toNetworkRequest(m_frame->loader().networkingContext());
+    QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
     if (r.url().isValid())
         m_webFrame->pageAdapter->emitDownloadRequested(r);
 }

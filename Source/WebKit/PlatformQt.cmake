@@ -168,7 +168,7 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/graphics/gpu/qt"
     "${WEBCORE_DIR}/platform/graphics/surfaces/qt"
     "${WEBCORE_DIR}/platform/network"
-    "${WEBCORE_DIR}/platform/network/qt"
+    "${WEBCORE_DIR}/platform/network/soup"
     "${WEBCORE_DIR}/platform/text/qt"
     "${WEBCORE_DIR}/rendering"
     "${WEBCORE_DIR}/rendering/style"
@@ -230,6 +230,14 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/WebEventConversion.cpp
 )
 
+if (COMPILER_IS_GCC_OR_CLANG)
+    set_source_files_properties(
+        qt/WebCoreSupport/InitWebCoreQt.cpp
+    PROPERTIES
+        COMPILE_FLAGS "-fexceptions" # for std::bad_alloc symbol
+    )
+endif ()
+
 # Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
 list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
     ${CAIRO_INCLUDE_DIRS}
@@ -237,10 +245,10 @@ list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
     ${GIO_UNIX_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
+    ${LIBSOUP_INCLUDE_DIRS}
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
-    ${Qt5Positioning_INCLUDE_DIRS}
     ${SQLITE_INCLUDE_DIR}
 )
 # Build the include path with duplicates removed
@@ -249,7 +257,6 @@ list(REMOVE_DUPLICATES WebKit_SYSTEM_INCLUDE_DIRECTORIES)
 list(APPEND WebKit_LIBRARIES
     PRIVATE
         ${ICU_LIBRARIES}
-        ${Qt5Positioning_LIBRARIES}
         ${X11_X11_LIB}
         ${X11_Xcomposite_LIB}
         ${X11_Xrender_LIB}

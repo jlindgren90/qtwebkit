@@ -20,6 +20,8 @@
 #ifndef GUniquePtrSoup_h
 #define GUniquePtrSoup_h
 
+#undef signals // defined by Qt, conflicts with gio
+
 #include <libsoup/soup.h>
 #include <wtf/glib/GUniquePtr.h>
 

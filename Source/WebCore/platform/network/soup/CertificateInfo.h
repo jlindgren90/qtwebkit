@@ -27,6 +27,8 @@
 #ifndef CertificateInfo_h
 #define CertificateInfo_h
 
+#undef signals // defined by Qt, conflicts with gio
+
 #include "NotImplemented.h"
 #include <libsoup/soup.h>
 #include <wtf/glib/GRefPtr.h>

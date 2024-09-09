@@ -266,6 +266,7 @@ find_package(Fontconfig 2.8.0 REQUIRED)
 find_package(Freetype2 2.4.2 REQUIRED)
 find_package(GLIB 2.36 REQUIRED COMPONENTS gio gobject)
 find_package(HarfBuzz 0.9.2 REQUIRED)
+find_package(LibSoup 2.42.0 REQUIRED)
 find_package(Sqlite REQUIRED)
 find_package(Threads REQUIRED)
 

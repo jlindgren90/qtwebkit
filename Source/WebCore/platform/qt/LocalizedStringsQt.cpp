@@ -784,6 +784,12 @@ String validationMessageStepMismatchText(const String&, const String&)
     return String();
 }
 
+String unacceptableTLSCertificate()
+{
+    notImplemented();
+    return String();
+}
+
 String validationMessageBadInputForNumberText()
 {
     notImplemented();
