@@ -21,7 +21,6 @@
 #include "config.h"
 #include "qwebframe.h"
 
-#include "QtPrintContext.h"
 #include "qwebelement.h"
 #include "qwebframe_p.h"
 #include "qwebpage.h"
