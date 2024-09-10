@@ -36,6 +36,6 @@ class UpdateBase(webapp.RequestHandler):
         try:
             int_value = int(string_value)
             return int_value
-        except ValueError as TypeError:
+        except ValueError, TypeError:
             pass
         return None

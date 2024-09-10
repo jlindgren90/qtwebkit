@@ -154,7 +154,7 @@
 		0F24E54317EA9F5900ABB217 /* FPRInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F24E53E17EA9F5900ABB217 /* FPRInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F24E54417EA9F5900ABB217 /* GPRInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F24E53F17EA9F5900ABB217 /* GPRInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F24E54C17EE274900ABB217 /* JITOperations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F24E54517EE274900ABB217 /* JITOperations.cpp */; };
-		0F24E54D17EE274900ABB217 /* JITOperations.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F24E54617EE274900ABB217 /* JITOperations.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		0F24E54D17EE274900ABB217 /* JITOperations.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F24E54617EE274900ABB217 /* JITOperations.h */; };
 		0F24E54F17EE274900ABB217 /* TempRegisterSet.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F24E54817EE274900ABB217 /* TempRegisterSet.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F24E55017EE274900ABB217 /* Repatch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F24E54917EE274900ABB217 /* Repatch.cpp */; };
 		0F24E55117EE274900ABB217 /* Repatch.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F24E54A17EE274900ABB217 /* Repatch.h */; };
@@ -403,7 +403,6 @@
 		0F5A52D017ADD717008ECB2D /* CopyToken.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F5A52CF17ADD717008ECB2D /* CopyToken.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F5A6283188C98D40072C9DF /* FTLValueRange.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F5A6281188C98D40072C9DF /* FTLValueRange.cpp */; };
 		0F5A6284188C98D40072C9DF /* FTLValueRange.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F5A6282188C98D40072C9DF /* FTLValueRange.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		0F5B4A331C84F0D600F1B17E /* SlowPathReturnType.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F5B4A321C84F0D600F1B17E /* SlowPathReturnType.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F5D085D1B8CF99D001143B4 /* DFGNodeOrigin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F5D085C1B8CF99D001143B4 /* DFGNodeOrigin.cpp */; };
 		0F5EF91E16878F7A003E5C25 /* JITThunks.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F5EF91B16878F78003E5C25 /* JITThunks.cpp */; };
 		0F5EF91F16878F7D003E5C25 /* JITThunks.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F5EF91C16878F78003E5C25 /* JITThunks.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -892,6 +891,8 @@
 		0FF42740158EBE8B004CB9FF /* udis86_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FF42734158EBD94004CB9FF /* udis86_decode.c */; };
 		0FF42741158EBE8D004CB9FF /* udis86_decode.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FF42735158EBD94004CB9FF /* udis86_decode.h */; };
 		0FF42742158EBE91004CB9FF /* udis86_extern.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FF42736158EBD94004CB9FF /* udis86_extern.h */; };
+		0FF42743158EBE91004CB9FF /* udis86_input.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FF42737158EBD94004CB9FF /* udis86_input.c */; };
+		0FF42744158EBE91004CB9FF /* udis86_input.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FF42738158EBD94004CB9FF /* udis86_input.h */; };
 		0FF42745158EBE91004CB9FF /* udis86_syn-att.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FF42739158EBD94004CB9FF /* udis86_syn-att.c */; };
 		0FF42746158EBE91004CB9FF /* udis86_syn-intel.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FF4273A158EBD94004CB9FF /* udis86_syn-intel.c */; };
 		0FF42747158EBE91004CB9FF /* udis86_syn.c in Sources */ = {isa = PBXBuildFile; fileRef = 0FF4273B158EBD94004CB9FF /* udis86_syn.c */; };
@@ -1467,7 +1468,7 @@
 		99DA00A31BD5993100F4575C /* builtins_generator.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA009A1BD5992700F4575C /* builtins_generator.py */; settings = {ATTRIBUTES = (Private, ); }; };
 		99DA00A41BD5993100F4575C /* builtins_model.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA009B1BD5992700F4575C /* builtins_model.py */; settings = {ATTRIBUTES = (Private, ); }; };
 		99DA00A51BD5993100F4575C /* builtins_templates.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA009C1BD5992700F4575C /* builtins_templates.py */; settings = {ATTRIBUTES = (Private, ); }; };
-		99DA00A61BD5993100F4575C /* wkbuiltins.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA009D1BD5992700F4575C /* wkbuiltins.py */; settings = {ATTRIBUTES = (Private, ); }; };
+		99DA00A61BD5993100F4575C /* builtins.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA009D1BD5992700F4575C /* builtins.py */; settings = {ATTRIBUTES = (Private, ); }; };
 		99DA00A71BD5993100F4575C /* builtins_generate_combined_header.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA009E1BD5992700F4575C /* builtins_generate_combined_header.py */; settings = {ATTRIBUTES = (Private, ); }; };
 		99DA00A81BD5993100F4575C /* builtins_generate_combined_implementation.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA009F1BD5992700F4575C /* builtins_generate_combined_implementation.py */; settings = {ATTRIBUTES = (Private, ); }; };
 		99DA00A91BD5993100F4575C /* builtins_generate_separate_header.py in Headers */ = {isa = PBXBuildFile; fileRef = 99DA00A01BD5992700F4575C /* builtins_generate_separate_header.py */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2542,7 +2543,6 @@
 		0F5A52CF17ADD717008ECB2D /* CopyToken.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CopyToken.h; sourceTree = "<group>"; };
 		0F5A6281188C98D40072C9DF /* FTLValueRange.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FTLValueRange.cpp; path = ftl/FTLValueRange.cpp; sourceTree = "<group>"; };
 		0F5A6282188C98D40072C9DF /* FTLValueRange.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FTLValueRange.h; path = ftl/FTLValueRange.h; sourceTree = "<group>"; };
-		0F5B4A321C84F0D600F1B17E /* SlowPathReturnType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SlowPathReturnType.h; sourceTree = "<group>"; };
 		0F5D085C1B8CF99D001143B4 /* DFGNodeOrigin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DFGNodeOrigin.cpp; path = dfg/DFGNodeOrigin.cpp; sourceTree = "<group>"; };
 		0F5EF91B16878F78003E5C25 /* JITThunks.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JITThunks.cpp; sourceTree = "<group>"; };
 		0F5EF91C16878F78003E5C25 /* JITThunks.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JITThunks.h; sourceTree = "<group>"; };
@@ -3037,6 +3037,8 @@
 		0FF42734158EBD94004CB9FF /* udis86_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = udis86_decode.c; path = disassembler/udis86/udis86_decode.c; sourceTree = "<group>"; };
 		0FF42735158EBD94004CB9FF /* udis86_decode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = udis86_decode.h; path = disassembler/udis86/udis86_decode.h; sourceTree = "<group>"; };
 		0FF42736158EBD94004CB9FF /* udis86_extern.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = udis86_extern.h; path = disassembler/udis86/udis86_extern.h; sourceTree = "<group>"; };
+		0FF42737158EBD94004CB9FF /* udis86_input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = udis86_input.c; path = disassembler/udis86/udis86_input.c; sourceTree = "<group>"; };
+		0FF42738158EBD94004CB9FF /* udis86_input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = udis86_input.h; path = disassembler/udis86/udis86_input.h; sourceTree = "<group>"; };
 		0FF42739158EBD94004CB9FF /* udis86_syn-att.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "udis86_syn-att.c"; path = "disassembler/udis86/udis86_syn-att.c"; sourceTree = "<group>"; };
 		0FF4273A158EBD94004CB9FF /* udis86_syn-intel.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "udis86_syn-intel.c"; path = "disassembler/udis86/udis86_syn-intel.c"; sourceTree = "<group>"; };
 		0FF4273B158EBD94004CB9FF /* udis86_syn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = udis86_syn.c; path = disassembler/udis86/udis86_syn.c; sourceTree = "<group>"; };
@@ -3265,7 +3267,6 @@
 		43AB26C41C1A52F700D82AE6 /* B3MathExtras.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3MathExtras.cpp; path = b3/B3MathExtras.cpp; sourceTree = "<group>"; };
 		43AB26C51C1A52F700D82AE6 /* B3MathExtras.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3MathExtras.h; path = b3/B3MathExtras.h; sourceTree = "<group>"; };
 		43C392AA1C3BEB0000241F53 /* AssemblerCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssemblerCommon.h; sourceTree = "<group>"; };
-		43CBA1601CAB67BA00328A5C /* udis86_udint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = udis86_udint.h; path = disassembler/udis86/udis86_udint.h; sourceTree = "<group>"; };
 		449097EE0F8F81B50076A327 /* FeatureDefines.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = FeatureDefines.xcconfig; sourceTree = "<group>"; };
 		451539B812DC994500EF7AC4 /* Yarr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Yarr.h; path = yarr/Yarr.h; sourceTree = "<group>"; };
 		45E12D8806A49B0F00E9DF84 /* jsc.cpp */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = jsc.cpp; sourceTree = "<group>"; tabWidth = 4; };
@@ -3658,7 +3659,7 @@
 		99DA009A1BD5992700F4575C /* builtins_generator.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = builtins_generator.py; sourceTree = "<group>"; };
 		99DA009B1BD5992700F4575C /* builtins_model.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = builtins_model.py; sourceTree = "<group>"; };
 		99DA009C1BD5992700F4575C /* builtins_templates.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = builtins_templates.py; sourceTree = "<group>"; };
-		99DA009D1BD5992700F4575C /* wkbuiltins.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = wkbuiltins.py; sourceTree = "<group>"; };
+		99DA009D1BD5992700F4575C /* builtins.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = builtins.py; sourceTree = "<group>"; };
 		99DA009E1BD5992700F4575C /* builtins_generate_combined_header.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = builtins_generate_combined_header.py; sourceTree = "<group>"; };
 		99DA009F1BD5992700F4575C /* builtins_generate_combined_implementation.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = builtins_generate_combined_implementation.py; sourceTree = "<group>"; };
 		99DA00A01BD5992700F4575C /* builtins_generate_separate_header.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = builtins_generate_separate_header.py; sourceTree = "<group>"; };
@@ -4854,8 +4855,9 @@
 				0FF42734158EBD94004CB9FF /* udis86_decode.c */,
 				0FF42735158EBD94004CB9FF /* udis86_decode.h */,
 				0FF42736158EBD94004CB9FF /* udis86_extern.h */,
+				0FF42737158EBD94004CB9FF /* udis86_input.c */,
+				0FF42738158EBD94004CB9FF /* udis86_input.h */,
 				0FF4274C158EBFE1004CB9FF /* udis86_itab_holder.c */,
-				43CBA1601CAB67BA00328A5C /* udis86_udint.h */,
 				0FF42739158EBD94004CB9FF /* udis86_syn-att.c */,
 				0FF4273A158EBD94004CB9FF /* udis86_syn-intel.c */,
 				0FF4273B158EBD94004CB9FF /* udis86_syn.c */,
@@ -5877,7 +5879,6 @@
 				A7299DA017D12848005F5FF9 /* SetPrototype.h */,
 				0F2B66D617B6B5AB00A7AE3F /* SimpleTypedArrayController.cpp */,
 				0F2B66D717B6B5AB00A7AE3F /* SimpleTypedArrayController.h */,
-				0F5B4A321C84F0D600F1B17E /* SlowPathReturnType.h */,
 				93303FE80E6A72B500786E6A /* SmallStrings.cpp */,
 				93303FEA0E6A72C000786E6A /* SmallStrings.h */,
 				0F0CD4C315F6B6B50032F1C0 /* SparseArrayValueMap.cpp */,
@@ -6589,11 +6590,11 @@
 			path = Scripts;
 			sourceTree = "<group>";
 		};
-		99DA00971BD598E000F4575C /* wkbuiltins */ = {
+		99DA00971BD598E000F4575C /* builtins */ = {
 			isa = PBXGroup;
 			children = (
 				99DA00991BD5992700F4575C /* __init__.py */,
-				99DA009D1BD5992700F4575C /* wkbuiltins.py */,
+				99DA009D1BD5992700F4575C /* builtins.py */,
 				99DA009E1BD5992700F4575C /* builtins_generate_combined_header.py */,
 				99DA009F1BD5992700F4575C /* builtins_generate_combined_implementation.py */,
 				99DA00A01BD5992700F4575C /* builtins_generate_separate_header.py */,
@@ -6602,7 +6603,7 @@
 				99DA009B1BD5992700F4575C /* builtins_model.py */,
 				99DA009C1BD5992700F4575C /* builtins_templates.py */,
 			);
-			path = wkbuiltins;
+			path = builtins;
 			sourceTree = "<group>";
 		};
 		99E45A0C18A01E930026D88F /* replay */ = {
@@ -6990,7 +6991,7 @@
 				FEA08620182B7A0400F6D851 /* Breakpoint.h in Headers */,
 				A7D801A51880D66E0026C39B /* BuiltinExecutables.h in Headers */,
 				A75EE9B218AAB7E200AAD043 /* BuiltinNames.h in Headers */,
-				99DA00A61BD5993100F4575C /* wkbuiltins.py in Headers */,
+				99DA00A61BD5993100F4575C /* builtins.py in Headers */,
 				99DA00A71BD5993100F4575C /* builtins_generate_combined_header.py in Headers */,
 				99DA00A81BD5993100F4575C /* builtins_generate_combined_implementation.py in Headers */,
 				99DA00A91BD5993100F4575C /* builtins_generate_separate_header.py in Headers */,
@@ -7937,7 +7938,6 @@
 				BC18C46B0E16F5CD00B34460 /* SymbolTable.h in Headers */,
 				A784A26411D16622005776AC /* SyntaxChecker.h in Headers */,
 				70ECA6081AFDBEA200449739 /* TemplateRegistry.h in Headers */,
-				0F5B4A331C84F0D600F1B17E /* SlowPathReturnType.h in Headers */,
 				70ECA6091AFDBEA200449739 /* TemplateRegistryKey.h in Headers */,
 				0F24E54F17EE274900ABB217 /* TempRegisterSet.h in Headers */,
 				0FA2C17C17D7CF84009D015F /* TestRunnerUtils.h in Headers */,
@@ -7965,6 +7965,7 @@
 				0FF4274B158EBE91004CB9FF /* udis86.h in Headers */,
 				0FF42741158EBE8D004CB9FF /* udis86_decode.h in Headers */,
 				0FF42742158EBE91004CB9FF /* udis86_extern.h in Headers */,
+				0FF42744158EBE91004CB9FF /* udis86_input.h in Headers */,
 				0FF42748158EBE91004CB9FF /* udis86_syn.h in Headers */,
 				0FF42749158EBE91004CB9FF /* udis86_types.h in Headers */,
 				A7E5AB391799E4B200D2833D /* UDis86Disassembler.h in Headers */,
@@ -9272,6 +9273,7 @@
 				0F6B8AE41C4EFE1700969052 /* B3FixSSA.cpp in Sources */,
 				0FF4274A158EBE91004CB9FF /* udis86.c in Sources */,
 				0FF42740158EBE8B004CB9FF /* udis86_decode.c in Sources */,
+				0FF42743158EBE91004CB9FF /* udis86_input.c in Sources */,
 				FEA1E4391C213A2B00277A16 /* ValueProfile.cpp in Sources */,
 				0FF4274D158EBFE6004CB9FF /* udis86_itab_holder.c in Sources */,
 				0FF42745158EBE91004CB9FF /* udis86_syn-att.c in Sources */,
