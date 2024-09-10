@@ -39,7 +39,7 @@
 
 #if PLATFORM(EFL)
 #include <wtf/MainThread.h>
-#elif USE(GLIB) && !PLATFORM(QT)
+#elif USE(GLIB)
 #include <glib.h>
 #endif
 
@@ -47,7 +47,7 @@ namespace JSC {
 
 bool GCActivityCallback::s_shouldCreateGCTimer = true;
 
-#if USE(CF) || USE(GLIB) || PLATFORM(QT)
+#if USE(CF) || USE(GLIB)
 
 const double timerSlop = 2.0; // Fudge factor to avoid performance cost of resetting timer.
 
@@ -66,7 +66,7 @@ GCActivityCallback::GCActivityCallback(Heap* heap)
     : GCActivityCallback(heap->vm(), WTF::isMainThread())
 {
 }
-#elif PLATFORM(QT) || USE(GLIB)
+#elif USE(GLIB)
 GCActivityCallback::GCActivityCallback(Heap* heap)
     : GCActivityCallback(heap->vm())
 {
@@ -122,20 +122,6 @@ void GCActivityCallback::cancelTimer()
 {
     m_delay = s_hour;
     stop();
-}
-#elif PLATFORM(QT)
-void GCActivityCallback::scheduleTimer(double newDelay)
-{
-    if (newDelay * timerSlop > m_delay)
-        return;
-    m_delay = newDelay;
-    m_timer.start(newDelay * 1000, this);
-}
-
-void GCActivityCallback::cancelTimer()
-{
-    m_delay = s_hour;
-    m_timer.stop();
 }
 #elif USE(GLIB)
 void GCActivityCallback::scheduleTimer(double newDelay)

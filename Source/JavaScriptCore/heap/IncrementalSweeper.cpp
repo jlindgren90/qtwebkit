@@ -38,13 +38,13 @@
 #if PLATFORM(EFL)
 #include <Ecore.h>
 #include <wtf/CurrentTime.h>
-#elif USE(GLIB) && !PLATFORM(QT)
+#elif USE(GLIB)
 #include <glib.h>
 #endif
 
 namespace JSC {
 
-#if USE(CF) || PLATFORM(EFL) || USE(GLIB) || PLATFORM(QT)
+#if USE(CF) || PLATFORM(EFL) || USE(GLIB)
 
 static const double sweepTimeSlice = .01; // seconds
 static const double sweepTimeTotal = .10;
@@ -85,22 +85,6 @@ void IncrementalSweeper::scheduleTimer()
 void IncrementalSweeper::cancelTimer()
 {
     ecore_timer_freeze(m_timer);
-}
-#elif PLATFORM(QT)
-IncrementalSweeper::IncrementalSweeper(Heap* heap)
-    : HeapTimer(heap->vm())
-    , m_blocksToSweep(heap->m_blockSnapshot)
-{
-}
-
-void IncrementalSweeper::scheduleTimer()
-{
-    m_timer.start(sweepTimeSlice * sweepTimeMultiplier * 1000, this);
-}
-
-void IncrementalSweeper::cancelTimer()
-{
-    m_timer.stop();
 }
 #elif USE(GLIB)
 IncrementalSweeper::IncrementalSweeper(Heap* heap)

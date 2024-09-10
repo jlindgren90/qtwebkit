@@ -49,7 +49,7 @@ public:
     bool sweepNextBlock();
     void willFinishSweeping();
 
-#if USE(CF) || PLATFORM(EFL) || USE(GLIB) || PLATFORM(QT)
+#if USE(CF) || PLATFORM(EFL) || USE(GLIB)
 private:
     void doSweep(double startTime);
     void scheduleTimer();

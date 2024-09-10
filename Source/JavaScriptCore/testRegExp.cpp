@@ -45,11 +45,6 @@
 #include <windows.h>
 #endif
 
-#if PLATFORM(QT)
-#include <QCoreApplication>
-#include <QDateTime>
-#endif
-
 const int MaxLineLength = 100 * 1024;
 
 using namespace JSC;
@@ -179,10 +174,6 @@ int main(int argc, char** argv)
 #endif
 
     timeBeginPeriod(1);
-#endif
-
-#if PLATFORM(QT)
-    QCoreApplication app(argc, argv);
 #endif
 
     // Initialize JSC before getting VM.

@@ -30,7 +30,7 @@
 
 namespace JSC {
 
-#if USE(CF) || USE(GLIB) || PLATFORM(QT)
+#if USE(CF) || USE(GLIB)
 
 EdenGCActivityCallback::EdenGCActivityCallback(Heap* heap)
     : GCActivityCallback(heap)

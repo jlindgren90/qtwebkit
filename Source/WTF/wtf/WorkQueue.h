@@ -44,18 +44,10 @@
 #include <wtf/glib/GRefPtr.h>
 #elif PLATFORM(EFL)
 #include <DispatchQueueEfl.h>
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-#include <QSocketNotifier>
 #elif OS(WINDOWS)
 #include <wtf/HashMap.h>
 #include <wtf/Vector.h>
 #include <wtf/win/WorkItemWin.h>
-#endif
-
-#if PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-QT_BEGIN_NAMESPACE
-class QProcess;
-QT_END_NAMESPACE
 #endif
 
 namespace WTF {
@@ -87,12 +79,6 @@ public:
 #elif PLATFORM(EFL)
     void registerSocketEventHandler(int, std::function<void ()>);
     void unregisterSocketEventHandler(int);
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-    QSocketNotifier* registerSocketEventHandler(int, QSocketNotifier::Type, std::function<void()>);
-    void dispatchOnTermination(QProcess*, std::function<void()>);
-#elif PLATFORM(QT) && OS(WINDOWS)
-    void registerHandle(HANDLE, const std::function<void()>&);
-    void unregisterAndCloseHandle(HANDLE);
 #elif OS(DARWIN)
     dispatch_queue_t dispatchQueue() const { return m_dispatchQueue; }
 #endif
@@ -103,7 +89,7 @@ private:
     void platformInitialize(const char* name, Type, QOS);
     void platformInvalidate();
 
-#if PLATFORM(WIN) || (PLATFORM(QT) && OS(WINDOWS))
+#if OS(WINDOWS)
     static void CALLBACK handleCallback(void* context, BOOLEAN timerOrWaitFired);
     static void CALLBACK timerCallback(void* context, BOOLEAN timerOrWaitFired);
     static DWORD WINAPI workThreadCallback(void* context);
@@ -125,10 +111,6 @@ private:
     Condition m_terminateRunLoopCondition;
 #elif PLATFORM(EFL)
     RefPtr<DispatchQueue> m_dispatchQueue;
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-    class WorkItemQt;
-    QThread* m_workThread;
-    friend class WorkItemQt;
 #elif OS(DARWIN)
     static void executeFunction(void*);
     dispatch_queue_t m_dispatchQueue;
