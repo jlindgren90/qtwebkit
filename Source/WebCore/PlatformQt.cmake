@@ -66,7 +66,6 @@ list(APPEND WebCore_SOURCES
 
     page/qt/DragControllerQt.cpp
     page/qt/EventHandlerQt.cpp
-    page/qt/TouchAdjustment.cpp
 
     platform/KillRingNone.cpp
 

@@ -1,42 +1,28 @@
 list(APPEND WTF_SOURCES
-    qt/MainThreadQt.cpp
-    qt/RunLoopQt.cpp
+    UniStdExtras.cpp
+
+    glib/GRefPtr.cpp
+    glib/MainThreadGLib.cpp
+    glib/RunLoopGLib.cpp
+    glib/WorkQueueGLib.cpp
 
     text/qt/StringQt.cpp
 )
-QTWEBKIT_GENERATE_MOC_FILES_CPP(WTF qt/MainThreadQt.cpp qt/RunLoopQt.cpp)
 
 list(APPEND WTF_SYSTEM_INCLUDE_DIRECTORIES
+    ${GLIB_INCLUDE_DIRS}
     ${Qt5Core_INCLUDE_DIRS}
 )
 
 list(APPEND WTF_LIBRARIES
+    ${GLIB_GOBJECT_LIBRARIES}
+    ${GLIB_LIBRARIES}
     ${Qt5Core_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
 if (TRUE)
     set(WTF_LIBRARY_TYPE STATIC)
-endif ()
-
-if (TRUE)
-    list(APPEND WTF_SOURCES
-        UniStdExtras.cpp
-
-        qt/WorkQueueQt.cpp
-    )
-    QTWEBKIT_GENERATE_MOC_FILES_CPP(WTF qt/WorkQueueQt.cpp)
-
-    list(APPEND WTF_SOURCES
-        glib/GRefPtr.cpp
-    )
-    list(APPEND WTF_SYSTEM_INCLUDE_DIRECTORIES
-        ${GLIB_INCLUDE_DIRS}
-    )
-    list(APPEND WTF_LIBRARIES
-        ${GLIB_GOBJECT_LIBRARIES}
-        ${GLIB_LIBRARIES}
-    )
 
     check_function_exists(clock_gettime CLOCK_GETTIME_EXISTS)
     if (NOT CLOCK_GETTIME_EXISTS)
