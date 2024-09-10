@@ -892,7 +892,7 @@ String RenderThemeQt::fileListNameForWidth(const FileList* fileList, const FontC
 void RenderThemeQt::updateCachedSystemFontDescription(CSSValueID, FontCascadeDescription& fontDescription) const
 {
     QFontInfo fi(qGuiApp->font());
-    fontDescription.setOneFamily(fi.family());
+    fontDescription.setOneFamily(String(fi.family()));
     fontDescription.setSpecifiedSize(fi.pixelSize());
     fontDescription.setIsAbsoluteSize(true);
     fontDescription.setWeight((fi.bold() ? FontWeightBold : FontWeightNormal));

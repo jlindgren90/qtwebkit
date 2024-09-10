@@ -97,7 +97,7 @@ static QMap<unsigned long, QString> dumpAssignedUrls;
 static QString drtDescriptionSuitableForTestResult(WebCore::Frame* webCoreFrame)
 {
     QWebFrameAdapter* frame = QWebFrameAdapter::kit(webCoreFrame);
-    QString name = webCoreFrame->tree().uniqueName();
+    QString name = webCoreFrame->tree().uniqueName().string();
 
     bool isMainFrame = frame == &frame->pageAdapter->mainFrameAdapter();
     if (isMainFrame) {

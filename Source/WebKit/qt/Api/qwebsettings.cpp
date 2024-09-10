@@ -101,8 +101,8 @@ void QWebSettingsPrivate::apply()
 
         QWebSettingsPrivate* global = QWebSettings::globalSettings()->d;
 
-        QString family = fontFamilies.value(QWebSettings::StandardFont,
-                                            global->fontFamilies.value(QWebSettings::StandardFont));
+        String family = fontFamilies.value(QWebSettings::StandardFont,
+                                           global->fontFamilies.value(QWebSettings::StandardFont));
         settings->setStandardFontFamily(family);
 
         family = fontFamilies.value(QWebSettings::FixedFont,
