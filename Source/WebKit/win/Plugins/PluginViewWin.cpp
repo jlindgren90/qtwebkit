@@ -71,7 +71,6 @@
 #include <runtime/JSLock.h>
 #include <wtf/ASCIICType.h>
 #include <wtf/text/WTFString.h>
-#include <wtf/text/win/WCharStringExtras.h>
 #include <wtf/win/GDIObject.h>
 
 #if USE(CAIRO)
@@ -79,33 +78,9 @@
 #include <cairo-win32.h>
 #endif
 
-#if PLATFORM(GTK)
-#include <gdk/gdkwin32.h>
-#include <gtk/gtk.h>
-#endif
-
-#if PLATFORM(QT)
-#include "QWebPageClient.h"
-#include <QWindow>
-#endif
-
 static inline HWND windowHandleForPageClient(PlatformPageClient client)
 {
-#if PLATFORM(GTK)
-    if (!client)
-        return 0;
-    if (GdkWindow* window = gtk_widget_get_window(client))
-        return static_cast<HWND>(GDK_WINDOW_HWND(window));
-    return 0;
-#elif PLATFORM(QT)
-    if (!client)
-        return 0;
-    if (QWindow* window = client->ownerWindow())
-        return reinterpret_cast<HWND>(window->winId());
-    return 0;
-#else
     return client;
-#endif
 }
 
 using JSC::ExecState;
@@ -136,7 +111,7 @@ static BYTE* endPaint;
 typedef HDC (WINAPI *PtrBeginPaint)(HWND, PAINTSTRUCT*);
 typedef BOOL (WINAPI *PtrEndPaint)(HWND, const PAINTSTRUCT*);
 
-#if OS(WINDOWS) && CPU(X86_64) && COMPILER(MSVC)
+#if CPU(X86_64)
 extern "C" HDC __stdcall _HBeginPaint(HWND hWnd, LPPAINTSTRUCT lpPaint);
 extern "C" BOOL __stdcall _HEndPaint(HWND hWnd, const PAINTSTRUCT* lpPaint);
 #endif
@@ -153,17 +128,7 @@ HDC WINAPI PluginView::hookedBeginPaint(HWND hWnd, PAINTSTRUCT* lpPaint)
         return pluginView->m_wmPrintHDC;
     }
 
-#if COMPILER(GCC)
-    HDC result;
-    asm ("push    %2\n"
-         "push    %3\n"
-         "call    *%4\n"
-         : "=a" (result)
-         : "a" (beginPaintSysCall), "g" (lpPaint), "g" (hWnd), "m" (beginPaint)
-         : "memory"
-        );
-    return result;
-#elif defined(_M_IX86)
+#if defined(_M_IX86)
     // Call through to the original BeginPaint.
     __asm   mov     eax, beginPaintSysCall
     __asm   push    lpPaint
@@ -183,16 +148,7 @@ BOOL WINAPI PluginView::hookedEndPaint(HWND hWnd, const PAINTSTRUCT* lpPaint)
         return TRUE;
     }
 
-#if COMPILER(GCC)
-    BOOL result;
-    asm ("push   %2\n"
-         "push   %3\n"
-         "call   *%4\n"
-         : "=a" (result)
-         : "a" (endPaintSysCall), "g" (lpPaint), "g" (hWnd), "m" (endPaint)
-        );
-    return result;
-#elif defined (_M_IX86)
+#if defined (_M_IX86)
     // Call through to the original EndPaint.
     __asm   mov     eax, endPaintSysCall
     __asm   push    lpPaint
@@ -212,7 +168,7 @@ static void hook(const char* module, const char* proc, unsigned& sysCallID, BYTE
 
     pProc = reinterpret_cast<BYTE*>(reinterpret_cast<ptrdiff_t>(GetProcAddress(hMod, proc)));
 
-#if COMPILER(GCC) || defined(_M_IX86)
+#if defined(_M_IX86)
     if (pProc[0] != 0xB8)
         return;
 
@@ -283,10 +239,6 @@ static bool registerPluginView()
 
     haveRegisteredWindowClass = true;
 
-#if PLATFORM(GTK) || PLATFORM(QT)
-    WebCore::setInstanceHandle((HINSTANCE)(GetModuleHandle(0)));
-#endif
-
     ASSERT(WebCore::instanceHandle());
 
     WNDCLASSEX wcex;
@@ -326,37 +278,14 @@ static bool isWindowsMessageUserGesture(UINT message)
     }
 }
 
-static inline bool isWebViewVisible(FrameView* view)
-{
-#if PLATFORM(QT)
-    if (PlatformPageClient client = view->hostWindow()->platformPageClient())
-        return client->isViewVisible();
-    return false;
-#else
-    return true;
-#endif // PLATFORM(QT)
-}
-
 static inline IntPoint contentsToNativeWindow(FrameView* view, const IntPoint& point)
 {
-#if PLATFORM(QT)
-    // Our web view's QWidget isn't necessarily a native window itself. Map the position
-    // all the way up to the QWidget associated with the HWND returned as NPNVnetscapeWindow.
-    if (PlatformPageClient client = view->hostWindow()->platformPageClient())
-        return client->mapToOwnerWindow(view->contentsToWindow(point));
-#endif
     return view->contentsToWindow(point);
 }
 
 static inline IntRect contentsToNativeWindow(FrameView* view, const IntRect& rect)
 {
-#if PLATFORM(QT)
-    // This only handles translation of the rect.
-    ASSERT(view->contentsToWindow(rect).size() == rect.size());
-    return IntRect(contentsToNativeWindow(view, rect.location()), rect.size());
-#else
     return view->contentsToWindow(rect);
-#endif
 }
 
 LRESULT
@@ -440,6 +369,7 @@ void PluginView::updatePluginWidget()
     m_windowRect.scale(deviceScaleFactor());
     m_clipRect = windowClipRect();
     m_clipRect.move(-m_windowRect.x(), -m_windowRect.y());
+
     if (platformPluginWidget() && (!m_haveUpdatedPluginWidget || m_windowRect != oldWindowRect || m_clipRect != oldClipRect)) {
 
         setCallingPlugin(true);
@@ -457,10 +387,8 @@ void PluginView::updatePluginWidget()
             ::SetWindowRgn(platformPluginWidget(), rgn.leak(), TRUE);
         }
 
-        if (!m_haveUpdatedPluginWidget || m_windowRect != oldWindowRect) {
-            IntRect nativeWindowRect = contentsToNativeWindow(&frameView, frameRect());
-            ::MoveWindow(platformPluginWidget(), nativeWindowRect.x(), nativeWindowRect.y(), nativeWindowRect.width(), nativeWindowRect.height(), TRUE);
-        }
+        if (!m_haveUpdatedPluginWidget || m_windowRect != oldWindowRect)
+            ::MoveWindow(platformPluginWidget(), m_windowRect.x(), m_windowRect.y(), m_windowRect.width(), m_windowRect.height(), TRUE);
 
         if (clipToZeroRect) {
             auto rgn = adoptGDIObject(::CreateRectRgn(m_clipRect.x(), m_clipRect.y(), m_clipRect.maxX(), m_clipRect.maxY()));
@@ -496,10 +424,9 @@ void PluginView::show()
 {
     setSelfVisible(true);
 
-    if (isParentVisible() && platformPluginWidget()) {
+    if (isParentVisible() && platformPluginWidget())
         ShowWindow(platformPluginWidget(), SW_SHOWNA);
-        forceRedraw();
-    }
+
     Widget::show();
 }
 
@@ -632,21 +559,11 @@ void PluginView::paint(GraphicsContext& context, const IntRect& rect)
         return;
     }
 
-    // In the GTK and Qt ports we draw in an offscreen buffer and don't want to use the window
-    // coordinates.
-#if PLATFORM(GTK) || PLATFORM(QT)
-    IntRect rectInWindow(rect);
-    rectInWindow.intersect(frameRect());
-#else
     IntRect rectInWindow = downcast<FrameView>(*parent()).contentsToWindow(frameRect());
-#endif
     LocalWindowsContext windowsContext(context, rectInWindow, m_isTransparent);
 
     // On Safari/Windows without transparency layers the GraphicsContext returns the HDC
     // of the window and the plugin expects that the passed in DC has window coordinates.
-    // In the GTK and Qt ports we always draw in an offscreen buffer and therefore need
-    // to preserve the translation set in getWindowsContext.
-#if !PLATFORM(QT)
     if (context.hdc() == windowsContext.hdc()) {
         XFORM transform;
         GetWorldTransform(windowsContext.hdc(), &transform);
@@ -654,7 +571,6 @@ void PluginView::paint(GraphicsContext& context, const IntRect& rect)
         transform.eDy = 0;
         SetWorldTransform(windowsContext.hdc(), &transform);
     }
-#endif
 
     paintIntoTransformedContext(windowsContext.hdc());
 }
@@ -751,13 +667,11 @@ void PluginView::handleMouseEvent(MouseEvent* event)
     if (dispatchNPEvent(npEvent))
         event->setDefaultHandled();
 
-#if !PLATFORM(QT)
     // Currently, Widget::setCursor is always called after this function in EventHandler.cpp
     // and since we don't want that we set ignoreNextSetCursor to true here to prevent that.
     ignoreNextSetCursor = true;
     if (Page* page = m_parentFrame->page())
         page->chrome().client().setLastSetCursorToCurrentCursor();
-#endif
 }
 
 void PluginView::setParent(ScrollView* parent)
@@ -787,10 +701,9 @@ void PluginView::setParentVisible(bool visible)
     Widget::setParentVisible(visible);
 
     if (isSelfVisible() && platformPluginWidget()) {
-        if (visible) {
+        if (visible)
             ShowWindow(platformPluginWidget(), SW_SHOWNA);
-            forceRedraw();
-        } else
+        else
             ShowWindow(platformPluginWidget(), SW_HIDE);
     }
 }
@@ -802,13 +715,7 @@ void PluginView::setNPWindowRect(const IntRect& rect)
 
     float scaleFactor = deviceScaleFactor();
 
-    // In the GTK port we draw in an offscreen buffer and don't want to use the window
-    // coordinates.
-# if PLATFORM(GTK) || PLATFORM(QT)
-    IntPoint p = rect.location();
-# else
     IntPoint p = downcast<FrameView>(*parent()).contentsToWindow(rect.location());
-# endif
     p.scale(scaleFactor, scaleFactor);
 
     IntSize s = rect.size();
@@ -853,13 +760,13 @@ NPError PluginView::handlePostReadFile(Vector<char>& buffer, uint32_t len, const
 
     // Get file info
     WIN32_FILE_ATTRIBUTE_DATA attrs;
-    if (!GetFileAttributesExW(stringToNullTerminatedWChar(filename).data(), GetFileExInfoStandard, &attrs))
+    if (GetFileAttributesExW(filename.charactersWithNullTermination().data(), GetFileExInfoStandard, &attrs) == 0)
         return NPERR_FILE_NOT_FOUND;
 
     if (attrs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
         return NPERR_FILE_NOT_FOUND;
 
-    HANDLE fileHandle = CreateFileW(stringToNullTerminatedWChar(filename).data(), FILE_READ_DATA, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    HANDLE fileHandle = CreateFileW(filename.charactersWithNullTermination().data(), FILE_READ_DATA, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
     
     if (fileHandle == INVALID_HANDLE_VALUE)
         return NPERR_FILE_NOT_FOUND;
@@ -971,23 +878,18 @@ bool PluginView::platformStart()
         setUpOffscreenPaintingHooks(hookedBeginPaint, hookedEndPaint);
 
         DWORD flags = WS_CHILD;
-        auto* frameView = downcast<FrameView>(parent());
-        if (isSelfVisible() && isWebViewVisible(frameView))
+        if (isSelfVisible())
             flags |= WS_VISIBLE;
 
         HWND parentWindowHandle = windowHandleForPageClient(m_parentFrame->view()->hostWindow()->platformPageClient());
         HWND window = ::CreateWindowEx(0, kWebPluginViewClassName, 0, flags,
                                        0, 0, 0, 0, parentWindowHandle, 0, WebCore::instanceHandle(), 0);
 
-#if OS(WINDOWS) && (PLATFORM(GTK) || PLATFORM(QT))
-        m_window = window;
-#else
         setPlatformWidget(window);
-#endif
 
         // Calling SetWindowLongPtrA here makes the window proc ASCII, which is required by at least
         // the Shockwave Director plug-in.
-#if OS(WINDOWS) && CPU(X86_64)
+#if CPU(X86_64)
         ::SetWindowLongPtrA(platformPluginWidget(), GWLP_WNDPROC, (LONG_PTR)DefWindowProcA);
 #else
         ::SetWindowLongPtrA(platformPluginWidget(), GWL_WNDPROC, (LONG)DefWindowProcA);
@@ -1020,7 +922,7 @@ void PluginView::platformDestroy()
 
 PassRefPtr<Image> PluginView::snapshot()
 {
-#if !PLATFORM(GTK) && !USE(WINGDI)
+#if !USE(WINGDI)
     auto hdc = adoptGDIObject(::CreateCompatibleDC(0));
 
     if (!m_isWindowed) {

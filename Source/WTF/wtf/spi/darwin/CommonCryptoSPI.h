@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007 Apple Inc.  All rights reserved.
+ * Copyright (C) 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,31 +20,22 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PluginDebug_h
-#define PluginDebug_h
+#ifndef CommonCryptoSPI_h
+#define CommonCryptoSPI_h
 
-#include "Logging.h"
-#include "npruntime_internal.h"
-#include <wtf/text/CString.h>
+#if OS(DARWIN)
 
-#define LOG_NPERROR(err) if (err != NPERR_NO_ERROR) LOG_VERBOSE(Plugins, "%s\n", prettyNameForNPError(err))
-#define LOG_PLUGIN_NET_ERROR() LOG_VERBOSE(Plugins, "Stream failed due to problems with network, disk I/O, lack of memory, or other problems.\n")
+#if USE(APPLE_INTERNAL_SDK)
+#include <CommonCrypto/CommonRandomSPI.h>
+#endif
 
-#if !LOG_DISABLED
+typedef struct __CCRandom* CCRandomRef;
+extern const CCRandomRef kCCRandomDefault;
+extern "C" int CCRandomCopyBytes(CCRandomRef rnd, void *bytes, size_t count);
 
-namespace WebCore {
+#endif // OS(DARWIN)
 
-const char* prettyNameForNPError(NPError error);
-
-CString prettyNameForNPNVariable(NPNVariable variable);
-CString prettyNameForNPPVariable(NPPVariable variable, void* value);
-CString prettyNameForNPNURLVariable(NPNURLVariable variable);
-
-} // namespace WebCore
-
-#endif // !LOG_DISABLED
-
-#endif // PluginDebug_h
+#endif /* CommonCryptoSPI_h */

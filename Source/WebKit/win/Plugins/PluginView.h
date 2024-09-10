@@ -46,30 +46,7 @@
 #include "npruntime_internal.h"
 #endif
 
-#if OS(WINDOWS) && (PLATFORM(GTK) || PLATFORM(QT))
-typedef struct HWND__* HWND;
-typedef HWND PlatformPluginWidget;
-#else
 typedef PlatformWidget PlatformPluginWidget;
-#endif
-#if PLATFORM(QT)
-#if USE(TEXTURE_MAPPER)
-#include "TextureMapperPlatformLayer.h"
-#endif
-
-#include <QImage>
-QT_BEGIN_NAMESPACE
-class QPainter;
-QT_END_NAMESPACE
-#endif
-#if PLATFORM(GTK)
-typedef struct _GtkSocket GtkSocket;
-#endif
-
-#if PLATFORM(X11)
-typedef unsigned long Window;
-typedef struct _XDisplay Display;
-#endif
 
 namespace JSC {
     namespace Bindings {
@@ -85,7 +62,7 @@ namespace WebCore {
     class KeyboardEvent;
     class MouseEvent;
     class URL;
-#if OS(WINDOWS) && ENABLE(NETSCAPE_PLUGIN_API)
+#if ENABLE(NETSCAPE_PLUGIN_API)
     class PluginMessageThrottlerWin;
 #endif
     class PluginPackage;
@@ -185,38 +162,36 @@ namespace WebCore {
         void pushPopupsEnabledState(bool state);
         void popPopupsEnabledState();
 
-        void invalidateRect(const IntRect&) override;
+        virtual void invalidateRect(const IntRect&);
 
         bool arePopupsAllowed() const;
 
-        void setJavaScriptPaused(bool) override;
+        void setJavaScriptPaused(bool);
 
-        void privateBrowsingStateChanged(bool) override;
+        void privateBrowsingStateChanged(bool);
 
         void disconnectStream(PluginStream*);
-#if ENABLE(NETSCAPE_PLUGIN_API)
-        void streamDidFinishLoading(PluginStream* stream) override { disconnectStream(stream); }
-#endif
+        void streamDidFinishLoading(PluginStream* stream) { disconnectStream(stream); }
 
         // Widget functions
-        void setFrameRect(const IntRect&) override;
-        void frameRectsChanged() override;
-        void setFocus(bool) override;
-        void show() override;
-        void hide() override;
-        void paint(GraphicsContext&, const IntRect&) override;
-        void clipRectChanged() override;
+        virtual void setFrameRect(const IntRect&);
+        virtual void frameRectsChanged();
+        virtual void setFocus(bool);
+        virtual void show();
+        virtual void hide();
+        virtual void paint(GraphicsContext&, const IntRect&);
+        virtual void clipRectChanged() override;
 
         // This method is used by plugins on all platforms to obtain a clip rect that includes clips set by WebCore,
         // e.g., in overflow:auto sections.  The clip rects coordinates are in the containing window's coordinate space.
         // This clip includes any clips that the widget itself sets up for its children.
         IntRect windowClipRect() const;
 
-        void handleEvent(Event*) override;
-        void setParent(ScrollView*) override;
-        void setParentVisible(bool) override;
+        virtual void handleEvent(Event*);
+        virtual void setParent(ScrollView*);
+        virtual void setParentVisible(bool);
 
-        bool isPluginView() const override { return true; }
+        virtual bool isPluginView() const override { return true; }
 
         Frame* parentFrame() const { return m_parentFrame.get(); }
 
@@ -226,21 +201,17 @@ namespace WebCore {
         const String& mimeType() const { return m_mimeType; }
         const URL& url() const { return m_url; }
 
-#if defined(XP_MACOSX) && ENABLE(NETSCAPE_PLUGIN_API)
-        bool popUpContextMenu(NPMenu*);
-#endif
-
-#if OS(WINDOWS) && ENABLE(NETSCAPE_PLUGIN_API)
+#if ENABLE(NETSCAPE_PLUGIN_API)
         static LRESULT CALLBACK PluginViewWndProc(HWND, UINT, WPARAM, LPARAM);
         LRESULT wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
         WNDPROC pluginWndProc() const { return m_pluginWndProc; }
 #endif
 
         // Used for manual loading
-        void didReceiveResponse(const ResourceResponse&) override;
-        void didReceiveData(const char*, int) override;
-        void didFinishLoading() override;
-        void didFail(const ResourceError&) override;
+        void didReceiveResponse(const ResourceResponse&);
+        void didReceiveData(const char*, int);
+        void didFinishLoading();
+        void didFail(const ResourceError&);
 
         static bool isCallingPlugin();
 
@@ -254,11 +225,6 @@ namespace WebCore {
 #if PLATFORM(X11)
         static Display* getPluginDisplay(Frame*);
         static Window getRootWindow(Frame* parentFrame);
-#endif
-
-#if PLATFORM(QT) && ENABLE(NETSCAPE_PLUGIN_API) && defined(XP_UNIX)
-        // PluginViewQt (X11) needs a few workarounds when running under DRT
-        static void setIsRunningUnderDRT(bool flag) { s_isRunningUnderDRT = flag; }
 #endif
 
     private:
@@ -281,9 +247,9 @@ namespace WebCore {
 
         void invalidateWindowlessPluginRect(const IntRect&);
 
-        void mediaCanStart() override;
+        virtual void mediaCanStart();
 
-#if OS(WINDOWS) && ENABLE(NETSCAPE_PLUGIN_API)
+#if ENABLE(NETSCAPE_PLUGIN_API)
         void paintWindowedPluginIntoContext(GraphicsContext&, const IntRect&);
         static HDC WINAPI hookedBeginPaint(HWND, PAINTSTRUCT*);
         static BOOL WINAPI hookedEndPaint(HWND, const PAINTSTRUCT*);
@@ -318,30 +284,15 @@ namespace WebCore {
 #if ENABLE(NETSCAPE_PLUGIN_API)
         bool dispatchNPEvent(NPEvent&);
 #endif
-#if defined(XP_MACOSX) && ENABLE(NETSCAPE_PLUGIN_API)
-        int16_t dispatchNPCocoaEvent(NPCocoaEvent&);
-        bool m_updatedCocoaTextInputRequested;
-        bool m_keyDownSent;
-        uint16_t m_disregardKeyUpCounter;
-#endif
 
-#if defined(XP_MACOSX)
-        void handleWheelEvent(WheelEvent*);
-#endif
         void updatePluginWidget();
         void paintMissingPluginIcon(GraphicsContext&, const IntRect&);
 
         void handleKeyboardEvent(KeyboardEvent*);
         void handleMouseEvent(MouseEvent*);
-#if defined(XP_UNIX) && ENABLE(NETSCAPE_PLUGIN_API)
-        void handleFocusInEvent();
-        void handleFocusOutEvent();
-#endif
 
-#if OS(WINDOWS)
         void paintIntoTransformedContext(HDC);
         PassRefPtr<Image> snapshot();
-#endif
 
         float deviceScaleFactor() const;
 
@@ -370,11 +321,7 @@ namespace WebCore {
         bool m_haveInitialized;
         bool m_isWaitingToStart;
 
-#if defined(XP_UNIX)
-        bool m_needsXEmbed;
-#endif
-
-#if OS(WINDOWS) && ENABLE(NETSCAPE_PLUGIN_API)
+#if ENABLE(NETSCAPE_PLUGIN_API)
         std::unique_ptr<PluginMessageThrottlerWin> m_messageThrottler;
         WNDPROC m_pluginWndProc;
         unsigned m_lastMessage;
@@ -383,57 +330,11 @@ namespace WebCore {
         bool m_haveUpdatedPluginWidget;
 #endif
 
-#if PLATFORM(QT) && OS(WINDOWS)
-        // On Mac OSX and Qt/Windows the plugin does not have its own native widget,
-        // but is using the containing window as its reference for positioning/painting.
-        PlatformPluginWidget m_window;
-public:
-        PlatformPluginWidget platformPluginWidget() const { return m_window; }
-        void setPlatformPluginWidget(PlatformPluginWidget widget) { m_window = widget; }
-#else
 public:
         void setPlatformPluginWidget(PlatformPluginWidget widget) { setPlatformWidget(widget); }
         PlatformPluginWidget platformPluginWidget() const { return platformWidget(); }
-#endif
 
 private:
-
-#if defined(XP_UNIX) || PLATFORM(GTK)
-        void setNPWindowIfNeeded();
-#elif defined(XP_MACOSX)
-        NP_CGContext m_npCgContext;
-        CGContextRef m_contextRef;
-
-        void setNPWindowIfNeeded();
-#endif
-
-#if defined(XP_UNIX) && ENABLE(NETSCAPE_PLUGIN_API)
-        bool m_hasPendingGeometryChange;
-        Pixmap m_drawable;
-        Visual* m_visual;
-        Colormap m_colormap;
-        Display* m_pluginDisplay;
-
-        void initXEvent(XEvent* event);
-#endif
-
-#if PLATFORM(QT)
-#if defined(XP_UNIX) && ENABLE(NETSCAPE_PLUGIN_API)
-        static bool s_isRunningUnderDRT;
-        static void setXKeyEventSpecificFields(XEvent*, KeyboardEvent*);
-        void paintUsingXPixmap(QPainter* painter, const QRect &exposedRect);
-        QWebPageClient* platformPageClient() const;
-#endif
-#endif // PLATFORM(QT)
-
-#if PLATFORM(GTK)
-        static gboolean plugRemovedCallback(GtkSocket*, PluginView*);
-        static void plugAddedCallback(GtkSocket*, PluginView*);
-        void updateWidgetAllocationAndClip();
-        bool m_plugAdded;
-        IntRect m_delayedAllocation;
-#endif
-
         IntRect m_clipRect; // The clip rect to apply to a windowed plug-in
         IntRect m_windowRect; // Our window rect.
 

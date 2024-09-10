@@ -66,7 +66,7 @@ public:
 
     virtual void platformColorsDidChange() override;
 
-    virtual int minimumMenuListSize(const RenderStyle&) const override;
+    virtual int minimumMenuListSize(RenderStyle&) const override;
 
     virtual void adjustSliderThumbSize(RenderStyle&, Element*) const override;
 
@@ -75,8 +75,11 @@ public:
     virtual int sliderTickOffsetFromTrackCenter() const override;
 #endif
 
-    LengthBox popupInternalPaddingBox(const RenderStyle&) const override;
-    PopupMenuStyle::PopupMenuSize popupMenuSize(const RenderStyle&, IntRect&) const override;
+    virtual int popupInternalPaddingLeft(RenderStyle&) const override;
+    virtual int popupInternalPaddingRight(RenderStyle&) const override;
+    virtual int popupInternalPaddingTop(RenderStyle&) const override;
+    virtual int popupInternalPaddingBottom(RenderStyle&) const override;
+    virtual PopupMenuStyle::PopupMenuSize popupMenuSize(const RenderStyle&, IntRect&) const override;
 
     virtual bool popsMenuByArrowKeys() const override { return true; }
 
@@ -172,13 +175,13 @@ private:
     virtual Color systemColor(CSSValueID) const override;
 
     // Get the control size based off the font. Used by some of the controls (like buttons).
-    NSControlSize controlSizeForFont(const RenderStyle&) const;
-    NSControlSize controlSizeForSystemFont(const RenderStyle&) const;
+    NSControlSize controlSizeForFont(RenderStyle&) const;
+    NSControlSize controlSizeForSystemFont(RenderStyle&) const;
     NSControlSize controlSizeForCell(NSCell*, const IntSize* sizes, const IntSize& minSize, float zoomLevel = 1.0f) const;
     void setControlSize(NSCell*, const IntSize* sizes, const IntSize& minSize, float zoomLevel = 1.0f);
     void setSizeFromFont(RenderStyle&, const IntSize* sizes) const;
-    IntSize sizeForFont(const RenderStyle&, const IntSize* sizes) const;
-    IntSize sizeForSystemFont(const RenderStyle&, const IntSize* sizes) const;
+    IntSize sizeForFont(RenderStyle&, const IntSize* sizes) const;
+    IntSize sizeForSystemFont(RenderStyle&, const IntSize* sizes) const;
     void setFontFromControlSize(StyleResolver&, RenderStyle&, NSControlSize) const;
 
     void updateCheckedState(NSCell*, const RenderObject&);
@@ -214,7 +217,7 @@ private:
     NSLevelIndicatorCell *levelIndicatorFor(const RenderMeter&) const;
 #endif
 
-    int minimumProgressBarHeight(const RenderStyle&) const;
+    int minimumProgressBarHeight(RenderStyle&) const;
     const IntSize* progressBarSizes() const;
     const int* progressBarMargins(NSControlSize) const;
 

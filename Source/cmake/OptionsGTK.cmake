@@ -1,7 +1,7 @@
 include(GNUInstallDirs)
 
 set(PROJECT_VERSION_MAJOR 2)
-set(PROJECT_VERSION_MINOR 12)
+set(PROJECT_VERSION_MINOR 11)
 set(PROJECT_VERSION_MICRO 5)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_MICRO})
 set(WEBKITGTK_API_VERSION 4.0)
@@ -15,8 +15,8 @@ endif ()
 
 # Libtool library version, not to be confused with API version.
 # See http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html
-CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(WEBKIT2 50 11 13)
-CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(JAVASCRIPTCORE 21 13 3)
+CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(WEBKIT2 50 2 13)
+CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(JAVASCRIPTCORE 21 4 3)
 
 # These are shared variables, but we special case their definition so that we can use the
 # CMAKE_INSTALL_* variables that are populated by the GNUInstallDirs macro.
@@ -207,7 +207,7 @@ set(GDK_LIBRARIES ${GDK3_LIBRARIES})
 set(GDK_INCLUDE_DIRS ${GDK3_INCLUDE_DIRS})
 
 SET_AND_EXPOSE_TO_BUILD(HAVE_GTK_GESTURES ${GTK3_SUPPORTS_GESTURES})
-SET_AND_EXPOSE_TO_BUILD(HAVE_GTK_UNIX_PRINTING ${GTKUnixPrint_FOUND})
+SET_AND_EXPOSE_TO_BUILD(HAVE_GTK_UNIX_PRINTING ${GTK_UNIX_PRINT_FOUND})
 
 set(glib_components gio gobject gthread gmodule)
 if (ENABLE_GAMEPAD_DEPRECATED OR ENABLE_GEOLOCATION)
@@ -424,15 +424,10 @@ if (USE_LIBHYPHEN)
     endif ()
 endif ()
 
-# Override the cached variables, gtk-doc and gobject-introspection do not really work when cross-building.
-if (CMAKE_CROSSCOMPILING)
+# Override the cached variables, gtk-doc and gobject-introspection do not really work when cross-building or when building on Mac.
+if (CMAKE_CROSSCOMPILING OR APPLE)
     set(ENABLE_GTKDOC OFF)
     set(ENABLE_INTROSPECTION OFF)
-endif ()
-
-# Override the cached variable, gtk-doc does not really work when building on Mac.
-if (APPLE)
-    set(ENABLE_GTKDOC OFF)
 endif ()
 
 set(DERIVED_SOURCES_GOBJECT_DOM_BINDINGS_DIR ${DERIVED_SOURCES_DIR}/webkitdom)

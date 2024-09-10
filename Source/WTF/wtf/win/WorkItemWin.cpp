@@ -26,6 +26,7 @@
 #include "config.h"
 #include "WorkItemWin.h"
 
+#include <Windows.h>
 #include <wtf/Threading.h>
 #include <wtf/WorkQueue.h>
 

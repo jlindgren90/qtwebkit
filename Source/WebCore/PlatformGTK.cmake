@@ -82,8 +82,6 @@ list(APPEND WebCore_SOURCES
 
     platform/audio/glib/AudioBusGLib.cpp
 
-    platform/crypto/gnutls/CryptoDigestGnuTLS.cpp
-
     platform/geoclue/GeolocationProviderGeoclue1.cpp
     platform/geoclue/GeolocationProviderGeoclue2.cpp
 
@@ -218,7 +216,6 @@ list(APPEND WebCorePlatformGTK_SOURCES
     platform/gtk/PlatformMouseEventGtk.cpp
     platform/gtk/PlatformScreenGtk.cpp
     platform/gtk/PlatformWheelEventGtk.cpp
-    platform/gtk/RenderThemeGadget.cpp
     platform/gtk/ScrollbarThemeGtk.cpp
     platform/gtk/SoundGtk.cpp
     platform/gtk/WidgetGtk.cpp
@@ -560,6 +557,7 @@ list(APPEND GObjectDOMBindingsUnstable_IDL_FILES
     loader/appcache/DOMApplicationCache.idl
 
     page/BarProp.idl
+    page/DOMSecurityPolicy.idl
     page/DOMSelection.idl
     page/History.idl
     page/Location.idl
@@ -802,6 +800,7 @@ if (ENABLE_SUBTLE_CRYPTO)
         crypto/gnutls/CryptoAlgorithmRSASSA_PKCS1_v1_5GnuTLS.cpp
         crypto/gnutls/CryptoAlgorithmRSA_OAEPGnuTLS.cpp
         crypto/gnutls/CryptoAlgorithmRegistryGnuTLS.cpp
+        crypto/gnutls/CryptoDigestGnuTLS.cpp
         crypto/gnutls/CryptoKeyRSAGnuTLS.cpp
         crypto/gnutls/SerializedCryptoKeyWrapGnuTLS.cpp
 

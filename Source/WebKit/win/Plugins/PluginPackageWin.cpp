@@ -34,11 +34,10 @@
 #include "PluginDebug.h"
 #include "Timer.h"
 #include "npruntime_impl.h"
-#include <shlwapi.h>
 #include <string.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/CString.h>
-#include <wtf/text/win/WCharStringExtras.h>
+#include <shlwapi.h>
 
 namespace WebCore {
 
@@ -48,7 +47,7 @@ static String getVersionInfo(const LPVOID versionInfoData, const String& info)
     UINT bufferLength;
     String subInfo = "\\StringfileInfo\\040904E4\\" + info;
     bool retval = VerQueryValueW(versionInfoData,
-        stringToNullTerminatedWChar(subInfo).data(),
+        const_cast<UChar*>(subInfo.charactersWithNullTermination().data()),
         &buffer, &bufferLength);
     if (!retval || bufferLength == 0)
         return String();
@@ -168,13 +167,14 @@ void PluginPackage::determineQuirks(const String& mimeType)
 bool PluginPackage::fetchInfo()
 {
     DWORD versionInfoSize, zeroHandle;
-    versionInfoSize = GetFileVersionInfoSizeW(stringToNullTerminatedWChar(m_path).data(), &zeroHandle);
+    versionInfoSize = GetFileVersionInfoSizeW(const_cast<UChar*>(m_path.charactersWithNullTermination().data()), &zeroHandle);
     if (versionInfoSize == 0)
         return false;
 
     auto versionInfoData = std::make_unique<char[]>(versionInfoSize);
 
-    if (!GetFileVersionInfoW(stringToNullTerminatedWChar(m_path).data(), 0, versionInfoSize, versionInfoData.get()))
+    if (!GetFileVersionInfoW(const_cast<UChar*>(m_path.charactersWithNullTermination().data()),
+            0, versionInfoSize, versionInfoData.get()))
         return false;
 
     m_name = getVersionInfo(versionInfoData.get(), "ProductName");
@@ -244,11 +244,11 @@ bool PluginPackage::load()
 
         String path = m_path.substring(0, m_path.reverseFind('\\'));
 
-        if (!::SetCurrentDirectoryW(stringToNullTerminatedWChar(path).data()))
+        if (!::SetCurrentDirectoryW(path.charactersWithNullTermination().data()))
             return false;
 
         // Load the library
-        m_module = ::LoadLibraryExW(stringToNullTerminatedWChar(m_path).data(), 0, LOAD_WITH_ALTERED_SEARCH_PATH);
+        m_module = ::LoadLibraryExW(m_path.charactersWithNullTermination().data(), 0, LOAD_WITH_ALTERED_SEARCH_PATH);
 
         if (!::SetCurrentDirectoryW(currentPath)) {
             if (m_module)
