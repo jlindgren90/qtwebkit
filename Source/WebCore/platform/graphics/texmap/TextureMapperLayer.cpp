@@ -25,6 +25,8 @@
 #include "Region.h"
 #include <wtf/MathExtras.h>
 
+#if USE(TEXTURE_MAPPER)
+
 namespace WebCore {
 
 class TextureMapperPaintOptions {
@@ -238,7 +240,7 @@ void TextureMapperLayer::setAnimatedFilters(const FilterOperations& filters)
     m_currentFilters = filters;
 }
 
-static void resolveOverlaps(Region& newRegion, Region& overlapRegion, Region& nonOverlapRegion)
+static void resolveOverlaps(Region newRegion, Region& overlapRegion, Region& nonOverlapRegion)
 {
     Region newOverlapRegion(newRegion);
     newOverlapRegion.intersect(nonOverlapRegion);
@@ -368,7 +370,7 @@ void TextureMapperLayer::applyMask(const TextureMapperPaintOptions& options)
 
 PassRefPtr<BitmapTexture> TextureMapperLayer::paintIntoSurface(const TextureMapperPaintOptions& options, const IntSize& size)
 {
-    RefPtr<BitmapTexture> surface = options.textureMapper.acquireTextureFromPool(size, BitmapTexture::SupportsAlpha | BitmapTexture::FBOAttachment);
+    RefPtr<BitmapTexture> surface = options.textureMapper.acquireTextureFromPool(size);
     TextureMapperPaintOptions paintOptions(options);
     paintOptions.surface = surface;
     options.textureMapper.bindSurface(surface.get());
@@ -442,16 +444,9 @@ TextureMapperLayer::~TextureMapperLayer()
         child->m_parent = nullptr;
 
     removeFromParent();
-
-    if (m_effectTarget) {
-        if (m_effectTarget->m_state.maskLayer == this)
-            m_effectTarget->m_state.maskLayer = nullptr;
-        if (m_effectTarget->m_state.replicaLayer == this)
-            m_effectTarget->m_state.replicaLayer = nullptr;
-    }
 }
 
-#if !USE(COORDINATED_GRAPHICS) || PLATFORM(QT)
+#if !USE(COORDINATED_GRAPHICS)
 void TextureMapperLayer::setChildren(const Vector<GraphicsLayer*>& newChildren)
 {
     removeAllChildren();
@@ -770,3 +765,4 @@ void TextureMapperLayer::didCommitScrollOffset(const IntSize& offset)
 }
 
 }
+#endif

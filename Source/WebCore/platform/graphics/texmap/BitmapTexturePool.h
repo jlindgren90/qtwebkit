@@ -44,14 +44,11 @@ class BitmapTexturePool {
     WTF_MAKE_NONCOPYABLE(BitmapTexturePool);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-#if PLATFORM(QT)
-    BitmapTexturePool();
-#endif
 #if USE(TEXTURE_MAPPER_GL)
     explicit BitmapTexturePool(RefPtr<GraphicsContext3D>&&);
 #endif
 
-    RefPtr<BitmapTexture> acquireTexture(const IntSize&, const BitmapTexture::Flags);
+    RefPtr<BitmapTexture> acquireTexture(const IntSize&);
 
 private:
     struct Entry {
@@ -62,19 +59,18 @@ private:
         void markIsInUse() { m_lastUsedTime = monotonicallyIncreasingTime(); }
 
         RefPtr<BitmapTexture> m_texture;
-        double m_lastUsedTime { 0.0 };
+        double m_lastUsedTime;
     };
 
     void scheduleReleaseUnusedTextures();
     void releaseUnusedTexturesTimerFired();
-    RefPtr<BitmapTexture> createTexture(const BitmapTexture::Flags);
+    RefPtr<BitmapTexture> createTexture();
 
 #if USE(TEXTURE_MAPPER_GL)
     RefPtr<GraphicsContext3D> m_context3D;
 #endif
 
     Vector<Entry> m_textures;
-    Vector<Entry> m_attachmentTextures;
     Timer m_releaseUnusedTexturesTimer;
 };
 

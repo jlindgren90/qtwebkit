@@ -20,6 +20,8 @@
 #ifndef TextureMapperLayer_h
 #define TextureMapperLayer_h
 
+#if USE(TEXTURE_MAPPER)
+
 #include "FilterOperations.h"
 #include "FloatRect.h"
 #include "GraphicsLayerTransform.h"
@@ -76,7 +78,7 @@ public:
     TextureMapper* textureMapper() const { return rootLayer().m_textureMapper; }
     void setTextureMapper(TextureMapper* texmap) { m_textureMapper = texmap; }
 
-#if !USE(COORDINATED_GRAPHICS) || PLATFORM(QT)
+#if !USE(COORDINATED_GRAPHICS)
     void setChildren(const Vector<GraphicsLayer*>&);
 #endif
     void setChildren(const Vector<TextureMapperLayer*>&);
@@ -262,5 +264,6 @@ private:
 };
 
 }
+#endif
 
 #endif // TextureMapperLayer_h

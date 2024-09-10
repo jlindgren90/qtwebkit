@@ -35,10 +35,7 @@
 #if PLATFORM(IOS)
 #include <OpenGLES/ES2/glext.h>
 #else
-#if PLATFORM(QT)
-#define FUNCTIONS m_context->m_functions
-#include "OpenGLShimsQt.h"
-#elif USE(OPENGL_ES_2)
+#if USE(OPENGL_ES_2)
 #include "OpenGLESShims.h"
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>

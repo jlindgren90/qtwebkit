@@ -20,6 +20,8 @@
 #ifndef TextureMapperTile_h
 #define TextureMapperTile_h
 
+#if USE(TEXTURE_MAPPER)
+
 #include "FloatRect.h"
 #include "Image.h"
 #include "TextureMapper.h"
@@ -53,5 +55,6 @@ private:
 };
 
 }
+#endif
 
 #endif

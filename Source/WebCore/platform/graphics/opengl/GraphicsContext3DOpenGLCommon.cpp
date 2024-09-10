@@ -67,16 +67,7 @@
 #define GL_RGBA32F_ARB                      0x8814
 #define GL_RGB32F_ARB                       0x8815
 #else
-#if PLATFORM(QT)
-#define FUNCTIONS m_functions
-#include "OpenGLShimsQt.h"
-
-#define glGetError(...)  m_functions->glGetError(__VA_ARGS__)
-#define glIsEnabled(...) m_functions->glIsEnabled(__VA_ARGS__)
-
-#define scopedScissor(c, s) scopedScissor(m_functions, c, s)
-#define scopedDither(c, s)  scopedDither(m_functions, c, s)
-#elif USE(OPENGL_ES_2)
+#if USE(OPENGL_ES_2)
 #include "OpenGLESShims.h"
 #elif PLATFORM(MAC)
 #include <OpenGL/gl.h>
@@ -308,7 +299,7 @@ void GraphicsContext3D::reshape(int width, int height)
 
     markContextChanged();
 
-#if (PLATFORM(QT) || PLATFORM(EFL)) && USE(GRAPHICS_SURFACE)
+#if PLATFORM(EFL) && USE(GRAPHICS_SURFACE)
     ::glFlush(); // Make sure all GL calls have been committed before resizing.
     createGraphicsSurfaces(IntSize(width, height));
 #endif
@@ -412,7 +403,7 @@ bool GraphicsContext3D::checkVaryingsPacking(Platform3DObject vertexShader, Plat
     }
 
     GC3Dint maxVaryingVectors = 0;
-#if !PLATFORM(IOS) && !((PLATFORM(WIN) || PLATFORM(GTK) || PLATFORM(QT)) && USE(OPENGL_ES_2))
+#if !PLATFORM(IOS) && !((PLATFORM(WIN) || PLATFORM(GTK)) && USE(OPENGL_ES_2))
     GC3Dint maxVaryingFloats = 0;
     ::glGetIntegerv(GL_MAX_VARYING_FLOATS, &maxVaryingFloats);
     maxVaryingVectors = maxVaryingFloats / 4;
@@ -1021,7 +1012,7 @@ GC3Denum GraphicsContext3D::getError()
     }
 
     makeContextCurrent();
-    return glGetError();
+    return ::glGetError();
 }
 
 String GraphicsContext3D::getString(GC3Denum name)
@@ -1048,7 +1039,7 @@ GC3Dboolean GraphicsContext3D::isBuffer(Platform3DObject buffer)
 GC3Dboolean GraphicsContext3D::isEnabled(GC3Denum cap)
 {
     makeContextCurrent();
-    return glIsEnabled(cap);
+    return ::glIsEnabled(cap);
 }
 
 GC3Dboolean GraphicsContext3D::isFramebuffer(Platform3DObject framebuffer)
@@ -1391,7 +1382,6 @@ void GraphicsContext3D::viewport(GC3Dint x, GC3Dint y, GC3Dsizei width, GC3Dsize
     ::glViewport(x, y, width, height);
 }
 
-#if !PLATFORM(QT) || ENABLE(WEBGL2)
 Platform3DObject GraphicsContext3D::createVertexArray()
 {
     makeContextCurrent();
@@ -1442,7 +1432,6 @@ void GraphicsContext3D::bindVertexArray(Platform3DObject array)
     UNUSED_PARAM(array);
 #endif
 }
-#endif
 
 void GraphicsContext3D::getBooleanv(GC3Denum pname, GC3Dboolean* value)
 {

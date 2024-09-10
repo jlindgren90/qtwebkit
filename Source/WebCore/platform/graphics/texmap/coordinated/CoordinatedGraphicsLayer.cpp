@@ -42,7 +42,6 @@
 
 namespace WebCore {
 
-#if !PLATFORM(QT)
 std::unique_ptr<GraphicsLayer> GraphicsLayer::create(GraphicsLayerFactory* factory, GraphicsLayerClient& client, Type layerType)
 {
     if (!factory)
@@ -50,7 +49,6 @@ std::unique_ptr<GraphicsLayer> GraphicsLayer::create(GraphicsLayerFactory* facto
 
     return factory->createGraphicsLayer(layerType, client);
 }
-#endif
 
 static CoordinatedLayerID toCoordinatedLayerID(GraphicsLayer* layer)
 {
@@ -378,16 +376,9 @@ void CoordinatedGraphicsLayer::setContentsTilePhase(const FloatSize& p)
     didChangeLayerState();
 }
 
-static bool s_shouldSupportContentsTiling = false;
-
-void CoordinatedGraphicsLayer::setShouldSupportContentsTiling(bool s)
-{
-    s_shouldSupportContentsTiling = s;
-}
-
 bool GraphicsLayer::supportsContentsTiling()
 {
-    return s_shouldSupportContentsTiling;
+    return true;
 }
 
 void CoordinatedGraphicsLayer::setContentsNeedsDisplay()

@@ -23,31 +23,29 @@
 #include "BitmapTexturePool.h"
 #include "FilterOperations.h"
 #include "GraphicsLayer.h"
-#include "TextureMapperImageBuffer.h"
 #include "Timer.h"
 #include <wtf/CurrentTime.h>
+
+#if USE(TEXTURE_MAPPER)
 
 namespace WebCore {
 
 PassRefPtr<BitmapTexture> TextureMapper::acquireTextureFromPool(const IntSize& size, const BitmapTexture::Flags flags)
 {
-    RefPtr<BitmapTexture> selectedTexture = m_texturePool->acquireTexture(size, flags);
+    RefPtr<BitmapTexture> selectedTexture = m_texturePool->acquireTexture(size);
     selectedTexture->reset(size, flags);
     return selectedTexture.release();
 }
 
-std::unique_ptr<TextureMapper> TextureMapper::create(AccelerationMode mode)
+std::unique_ptr<TextureMapper> TextureMapper::create()
 {
-    if (mode == SoftwareMode)
-        return std::make_unique<TextureMapperImageBuffer>();
     return platformCreateAccelerated();
 }
 
-TextureMapper::TextureMapper(AccelerationMode accelerationMode)
+TextureMapper::TextureMapper()
     : m_context(0)
     , m_interpolationQuality(InterpolationDefault)
     , m_textDrawingMode(TextModeFill)
-    , m_accelerationMode(accelerationMode)
     , m_isMaskMode(false)
     , m_wrapMode(StretchWrap)
 { }
@@ -56,3 +54,5 @@ TextureMapper::~TextureMapper()
 { }
 
 } // namespace
+
+#endif

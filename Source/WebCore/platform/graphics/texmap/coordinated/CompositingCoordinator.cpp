@@ -58,9 +58,6 @@ CompositingCoordinator::CompositingCoordinator(Page* page, CompositingCoordinato
     , m_lastAnimationServiceTime(0)
 #endif
 {
-    // This is a temporary way to enable this only in the GL case, until TextureMapperImageBuffer is removed.
-    // See https://bugs.webkit.org/show_bug.cgi?id=114869
-    CoordinatedGraphicsLayer::setShouldSupportContentsTiling(true);
 }
 
 CompositingCoordinator::~CompositingCoordinator()

@@ -37,10 +37,6 @@
 #include <wtf/RefCounted.h>
 #include <wtf/TemporaryChange.h>
 
-#if PLATFORM(QT)
-#include <QPaintEngine>
-#endif
-
 #if USE(CAIRO)
 #include "CairoUtilities.h"
 #include "RefPtrCairo.h"
@@ -62,7 +58,7 @@ BitmapTextureGL* toBitmapTextureGL(BitmapTexture* texture)
     return static_cast<BitmapTextureGL*>(texture);
 }
 
-BitmapTextureGL::BitmapTextureGL(PassRefPtr<GraphicsContext3D> context3D, const Flags flags)
+BitmapTextureGL::BitmapTextureGL(PassRefPtr<GraphicsContext3D> context3D)
     : m_id(0)
     , m_fbo(0)
     , m_rbo(0)
@@ -75,19 +71,15 @@ BitmapTextureGL::BitmapTextureGL(PassRefPtr<GraphicsContext3D> context3D, const 
     , m_type(GraphicsContext3D::UNSIGNED_BYTE)
 #endif
 {
-    if (flags & FBOAttachment)
-        m_internalFormat = m_format = GraphicsContext3D::RGBA;
-    else {
-        // If GL_EXT_texture_format_BGRA8888 is supported in the OpenGLES
-        // internal and external formats need to be BGRA
-        m_internalFormat = GraphicsContext3D::RGBA;
-        m_format = GraphicsContext3D::BGRA;
-        if (m_context3D->isGLES2Compliant()) {
-            if (m_context3D->getExtensions()->supports("GL_EXT_texture_format_BGRA8888"))
-                m_internalFormat = GraphicsContext3D::BGRA;
-            else
-                m_format = GraphicsContext3D::RGBA;
-        }
+    // If GL_EXT_texture_format_BGRA8888 is supported in the OpenGLES
+    // internal and external formats need to be BGRA
+    m_internalFormat = GraphicsContext3D::RGBA;
+    m_format = GraphicsContext3D::BGRA;
+    if (m_context3D->isGLES2Compliant()) {
+        if (m_context3D->getExtensions()->supports("GL_EXT_texture_format_BGRA8888"))
+            m_internalFormat = GraphicsContext3D::BGRA;
+        else
+            m_format = GraphicsContext3D::RGBA;
     }
 }
 
@@ -203,20 +195,6 @@ void BitmapTextureGL::updateContents(Image* image, const IntRect& targetRect, co
     cairo_surface_t* surface = frameImage.get();
     imageData = reinterpret_cast<const char*>(cairo_image_surface_get_data(surface));
     bytesPerLine = cairo_image_surface_get_stride(surface);
-#elif PLATFORM(QT)
-    QImage qImage;
-    QPaintEngine* paintEngine = frameImage->paintEngine();
-    if (paintEngine && paintEngine->type() == QPaintEngine::Raster) {
-        // QRasterPixmapData::toImage() will deep-copy the backing QImage if there's an active QPainter on it.
-        // For performance reasons, we don't want that here, so we temporarily redirect the paint engine.
-        QPaintDevice* currentPaintDevice = paintEngine->paintDevice();
-        paintEngine->setPaintDevice(0);
-        qImage = frameImage->toImage();
-        paintEngine->setPaintDevice(currentPaintDevice);
-    } else
-        qImage = frameImage->toImage();
-    imageData = reinterpret_cast<const char*>(qImage.constBits());
-    bytesPerLine = qImage.bytesPerLine();
 #endif
 
     updateContents(imageData, targetRect, offset, bytesPerLine, updateContentsFlag);
@@ -265,7 +243,7 @@ PassRefPtr<BitmapTexture> BitmapTextureGL::applyFilters(TextureMapper& textureMa
             bool last = (i == filters.size() - 1) && (j == numPasses - 1);
             if (!last) {
                 if (!intermediateSurface)
-                    intermediateSurface = texmapGL.acquireTextureFromPool(contentSize(), BitmapTexture::SupportsAlpha | BitmapTexture::FBOAttachment);
+                    intermediateSurface = texmapGL.acquireTextureFromPool(contentSize());
                 texmapGL.bindSurface(intermediateSurface.get());
             }
 

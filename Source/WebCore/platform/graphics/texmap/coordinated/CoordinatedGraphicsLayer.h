@@ -146,7 +146,6 @@ public:
     void setNeedsVisibleRectAdjustment();
     void purgeBackingStores();
 
-    static void setShouldSupportContentsTiling(bool);
     CoordinatedGraphicsLayer* findFirstDescendantWithContentsRecursively();
 
 private:
@@ -251,7 +250,7 @@ private:
 #endif
     Timer m_animationStartedTimer;
     TextureMapperAnimations m_animations;
-    double m_lastAnimationStartTime { 0.0 };
+    double m_lastAnimationStartTime;
 
     ScrollableArea* m_scrollableArea;
 };

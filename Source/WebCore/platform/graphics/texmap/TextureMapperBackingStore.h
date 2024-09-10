@@ -20,6 +20,8 @@
 #ifndef TextureMapperBackingStore_h
 #define TextureMapperBackingStore_h
 
+#if USE(TEXTURE_MAPPER)
+
 #include "FloatRect.h"
 #include "Image.h"
 #include "TextureMapper.h"
@@ -46,5 +48,6 @@ protected:
 };
 
 }
+#endif
 
 #endif // TextureMapperBackingStore_h
