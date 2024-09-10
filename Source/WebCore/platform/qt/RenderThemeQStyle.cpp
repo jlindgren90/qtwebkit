@@ -146,8 +146,10 @@ void RenderThemeQStyle::setPaletteFromPageClientIfExists(QPalette& palette) cons
     if (!m_page)
         return;
 
+#if 0 // FIXME: using a fixed palette to avoid visual issues
     if (QWebPageClient* pageClient = m_page->chrome().client().platformPageClient())
         palette = pageClient->palette();
+#endif
 }
 
 QRect RenderThemeQStyle::indicatorRect(QStyleFacade::ButtonType part, const QRect& originalRect) const
@@ -617,7 +619,7 @@ ControlPart RenderThemeQStyle::initializeCommonQStyleOptions(QStyleFacadeOption 
     if (isHovered(o))
         option.state |= QStyleFacade::State_MouseOver;
 
-    setPaletteFromPageClientIfExists(option.palette);
+    option.palette = colorPalette();
 
     if (!isEnabled(o)) {
         option.palette.setCurrentColorGroup(QPalette::Disabled);

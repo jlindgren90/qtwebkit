@@ -78,6 +78,48 @@ static const float maxCancelButtonSize = 21;
 static QtThemeFactoryFunction themeFactory;
 static ScrollbarTheme* scrollbarTheme;
 
+// from qt_fusionPalette
+static QPalette makeDefaultPalette()
+{
+    const QColor windowText = Qt::black;
+    const QColor backGround = QColor(239, 239, 239);
+    const QColor light = backGround.lighter(150);
+    const QColor mid = (backGround.darker(130));
+    const QColor midLight = mid.lighter(110);
+    const QColor base = Qt::white;
+    const QColor disabledBase(backGround);
+    const QColor dark = backGround.darker(150);
+    const QColor darkDisabled = QColor(209, 209, 209).darker(110);
+    const QColor text = Qt::black;
+    const QColor highlight = QColor(48, 140, 198);
+    const QColor hightlightedText = Qt::white;
+    const QColor disabledText = QColor(190, 190, 190);
+    const QColor button = backGround;
+    const QColor shadow = dark.darker(135);
+    const QColor disabledShadow = shadow.lighter(150);
+    const QColor disabledHighlight(145, 145, 145);
+    QColor placeholder = text;
+    placeholder.setAlpha(128);
+
+    QPalette palette(windowText, backGround, light, dark, mid, text, base);
+    palette.setBrush(QPalette::Midlight, midLight);
+    palette.setBrush(QPalette::Button, button);
+    palette.setBrush(QPalette::Shadow, shadow);
+    palette.setBrush(QPalette::HighlightedText, hightlightedText);
+    palette.setBrush(QPalette::Disabled, QPalette::Text, disabledText);
+    palette.setBrush(QPalette::Disabled, QPalette::WindowText, disabledText);
+    palette.setBrush(QPalette::Disabled, QPalette::ButtonText, disabledText);
+    palette.setBrush(QPalette::Disabled, QPalette::Base, disabledBase);
+    palette.setBrush(QPalette::Disabled, QPalette::Dark, darkDisabled);
+    palette.setBrush(QPalette::Disabled, QPalette::Shadow, disabledShadow);
+    palette.setBrush(QPalette::Active, QPalette::Highlight, highlight);
+    palette.setBrush(QPalette::Inactive, QPalette::Highlight, highlight);
+    palette.setBrush(QPalette::Disabled, QPalette::Highlight, disabledHighlight);
+    palette.setBrush(QPalette::PlaceholderText, placeholder);
+
+    return palette;
+}
+
 RenderThemeQt::RenderThemeQt(Page* page)
     : RenderTheme()
     , m_page(page)
@@ -442,7 +484,9 @@ static FloatPoint convertToPaintingPosition(const RenderBox& inputRenderer, cons
 
 QPalette RenderThemeQt::colorPalette() const
 {
-    return QGuiApplication::palette();
+    // FIXME: using a fixed palette to avoid visual issues
+    static QPalette palette = makeDefaultPalette();
+    return palette;
 }
 
 bool RenderThemeQt::paintSearchFieldCancelButton(const RenderBox& box, const PaintInfo& pi,
