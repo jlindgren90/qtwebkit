@@ -1267,10 +1267,19 @@ QPainter* GraphicsContext::createQPainter(QImage& imageTarget)
     cairo_matrix_t matrix;
     cairo_get_matrix(cr, &matrix);
 
+    QRegion clipRegion;
+    cairo_rectangle_list_t* clipList = cairo_copy_clip_rectangle_list(cr);
+    for (int i = 0; i < clipList->num_rectangles; i++) {
+        cairo_rectangle_t* r = &clipList->rectangles[i];
+        clipRegion += QRect(r->x, r->y, r->width, r->height);
+    }
+    cairo_rectangle_list_destroy(clipList);
+
     auto* painter = new QPainter(&imageTarget);
     painter->setWorldTransform(QTransform(/*m11*/ matrix.xx, /*m12*/ matrix.yx,
                                           /*m21*/ matrix.xy, /*m22*/ matrix.yy,
                                           /*dx*/ matrix.x0, /*dy*/ matrix.y0));
+    painter->setClipRegion(clipRegion);
     return painter;
 }
 #endif
