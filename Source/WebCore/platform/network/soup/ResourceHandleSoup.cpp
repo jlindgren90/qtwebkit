@@ -58,6 +58,7 @@
 #include <unistd.h>
 #endif
 #include <wtf/CurrentTime.h>
+#include <wtf/MainThread.h>
 #include <wtf/SHA1.h>
 #include <wtf/glib/GRefPtr.h>
 #include <wtf/text/Base64.h>
@@ -68,6 +69,11 @@
 
 #if PLATFORM(GTK)
 #include "CredentialBackingStore.h"
+#endif
+
+#if PLATFORM(QT)
+#include <QFile>
+#include <QUrl>
 #endif
 
 namespace WebCore {
@@ -1012,6 +1018,24 @@ bool ResourceHandle::start()
     // If both the frame and the page are not null the context is valid.
     if (d->m_context && !d->m_context->isValid())
         return false;
+
+#if PLATFORM(QT)
+    URL url(firstRequest().url());
+    if (url.protocolIs("qrc")) {
+        QFile file(':' + QUrl(url).path());
+        if (file.open(QFile::ReadOnly)) {
+            QByteArray data = file.readAll();
+            ResourceResponse response(url, MIMETypeRegistry::getMIMETypeForPath(url), data.size(), String());
+            RefPtr<ResourceHandle> me(this);
+            callOnMainThread([me, data, response] {
+                me->client()->didReceiveResponse(me.get(), response);
+                me->client()->didReceiveData(me.get(), data.data(), data.size(), data.size());
+                me->client()->didFinishLoading(me.get(), 0);
+            });
+            return true;
+        }
+    }
+#endif
 
     // Only allow the POST and GET methods for non-HTTP requests.
     const ResourceRequest& request = firstRequest();
