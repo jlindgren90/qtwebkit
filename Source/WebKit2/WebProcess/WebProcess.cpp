@@ -86,6 +86,7 @@
 #include <WebCore/PageGroup.h>
 #include <WebCore/PlatformMediaSessionManager.h>
 #include <WebCore/ResourceHandle.h>
+#include <WebCore/RuntimeApplicationChecks.h>
 #include <WebCore/RuntimeEnabledFeatures.h>
 #include <WebCore/SchemeRegistry.h>
 #include <WebCore/SecurityOrigin.h>
@@ -327,6 +328,7 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
         setShouldUseFontSmoothing(true);
 
 #if PLATFORM(COCOA) || USE(CFNETWORK)
+    setApplicationBundleIdentifier(parameters.uiProcessBundleIdentifier);
     SessionTracker::setIdentifierBase(parameters.uiProcessBundleIdentifier);
 #endif
 
@@ -479,6 +481,11 @@ void WebProcess::destroyPrivateBrowsingSession(SessionID sessionID)
     SessionTracker::destroySession(sessionID);
 }
 
+void WebProcess::ensureLegacyPrivateBrowsingSessionInNetworkProcess()
+{
+    networkConnection()->connection()->send(Messages::NetworkConnectionToWebProcess::EnsureLegacyPrivateBrowsingSession(), 0);
+}
+
 #if ENABLE(NETSCAPE_PLUGIN_API)
 PluginProcessConnectionManager& WebProcess::pluginProcessConnectionManager()
 {
@@ -500,7 +507,7 @@ void WebProcess::setCacheModel(uint32_t cm)
 void WebProcess::clearCachedCredentials()
 {
     NetworkStorageSession::defaultStorageSession().credentialStorage().clearCredentials();
-#if USE(NETWORK_SESSION)
+#if USE(NETWORK_SESSION) && !USE(CREDENTIAL_STORAGE_WITH_NETWORK_SESSION)
     NetworkSession::defaultSession().clearCredentials();
 #endif
 }

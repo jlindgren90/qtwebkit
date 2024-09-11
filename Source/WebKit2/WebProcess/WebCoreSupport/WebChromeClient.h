@@ -244,8 +244,12 @@ private:
 
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     virtual bool supportsVideoFullscreen(WebCore::HTMLMediaElementEnums::VideoFullscreenMode) override;
+    virtual void setUpVideoControlsManager(WebCore::HTMLVideoElement&) override;
     virtual void enterVideoFullscreenForVideoElement(WebCore::HTMLVideoElement&, WebCore::HTMLMediaElementEnums::VideoFullscreenMode) override;
     virtual void exitVideoFullscreenForVideoElement(WebCore::HTMLVideoElement&) override;
+#if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+    virtual void exitVideoFullscreenToModeWithoutAnimation(WebCore::HTMLVideoElement&, WebCore::HTMLMediaElementEnums::VideoFullscreenMode) override;
+#endif
 #endif
 
 #if ENABLE(FULLSCREEN_API)
@@ -317,7 +321,7 @@ private:
 #if ENABLE(WIRELESS_PLAYBACK_TARGET) && !PLATFORM(IOS)
     void addPlaybackTargetPickerClient(uint64_t /*contextId*/) override;
     void removePlaybackTargetPickerClient(uint64_t /*contextId*/) override;
-    void showPlaybackTargetPicker(uint64_t contextId, const WebCore::IntPoint&, bool) override;
+    void showPlaybackTargetPicker(uint64_t /*contextId*/, const WebCore::IntPoint&, bool, const String&) override;
     void playbackTargetPickerClientStateDidChange(uint64_t, WebCore::MediaProducer::MediaStateFlags) override;
     void setMockMediaPlaybackTargetPickerEnabled(bool) override;
     void setMockMediaPlaybackTargetPickerState(const String&, WebCore::MediaPlaybackTargetContext::State) override;

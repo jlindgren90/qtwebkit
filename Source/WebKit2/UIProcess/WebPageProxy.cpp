@@ -5994,7 +5994,15 @@ void WebPageProxy::isPlayingMediaDidChange(MediaProducer::MediaStateFlags state,
     if ((oldState & MediaProducer::IsPlayingAudio) == (m_mediaState & MediaProducer::IsPlayingAudio))
         return;
 
+#if PLATFORM(MAC)
+    m_pageClient.isPlayingMediaDidChange();
+#endif
     m_uiClient->isPlayingAudioDidChange(*this);
+}
+
+bool WebPageProxy::isPlayingVideoWithAudio() const
+{
+    return m_mediaState & MediaProducer::IsPlayingAudio && m_mediaState & MediaProducer::IsPlayingVideo;
 }
 
 #if ENABLE(MEDIA_SESSION)
@@ -6106,9 +6114,9 @@ void WebPageProxy::removePlaybackTargetPickerClient(uint64_t contextId)
     m_pageClient.mediaSessionManager().removePlaybackTargetPickerClient(*this, contextId);
 }
 
-void WebPageProxy::showPlaybackTargetPicker(uint64_t contextId, const WebCore::FloatRect& rect, bool hasVideo)
+void WebPageProxy::showPlaybackTargetPicker(uint64_t contextId, const WebCore::FloatRect& rect, bool hasVideo, const String& customMenuItemTitle)
 {
-    m_pageClient.mediaSessionManager().showPlaybackTargetPicker(*this, contextId, m_pageClient.rootViewToScreen(IntRect(rect)), hasVideo);
+    m_pageClient.mediaSessionManager().showPlaybackTargetPicker(*this, contextId, m_pageClient.rootViewToScreen(IntRect(rect)), hasVideo, customMenuItemTitle);
 }
 
 void WebPageProxy::playbackTargetPickerClientStateDidChange(uint64_t contextId, WebCore::MediaProducer::MediaStateFlags state)
@@ -6148,6 +6156,14 @@ void WebPageProxy::setShouldPlayToPlaybackTarget(uint64_t contextId, bool should
         return;
 
     m_process->send(Messages::WebPage::SetShouldPlayToPlaybackTarget(contextId, shouldPlay), m_pageID);
+}
+
+void WebPageProxy::customPlaybackActionSelected(uint64_t contextId)
+{
+    if (!isValid())
+        return;
+
+    m_process->send(Messages::WebPage::CustomPlaybackActionSelected(contextId), m_pageID);
 }
 #endif
 

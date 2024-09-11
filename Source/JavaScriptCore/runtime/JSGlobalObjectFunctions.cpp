@@ -882,14 +882,9 @@ EncodedJSValue JSC_HOST_CALL globalFuncProtoSetter(ExecState* exec)
     if (!value.isObject() && !value.isNull())
         return JSValue::encode(jsUndefined());
 
-    if (thisObject->prototype() == value)
-        return JSValue::encode(jsUndefined());
-
-    if (!thisObject->isExtensible())
-        return throwVMError(exec, createTypeError(exec, StrictModeReadonlyPropertyWriteError));
-
-    if (!thisObject->setPrototypeWithCycleCheck(exec, value))
-        exec->vm().throwException(exec, createError(exec, ASCIILiteral("cyclic __proto__ value")));
+    VM& vm = exec->vm();
+    bool shouldThrowIfCantSet = true;
+    thisObject->setPrototype(vm, exec, value, shouldThrowIfCantSet);
     return JSValue::encode(jsUndefined());
 }
     

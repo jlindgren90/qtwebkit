@@ -1,3 +1,115 @@
+2016-03-03  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Unreviewed fix after r197505 (Run the run-benchmark script on the performance bot.)
+        https://bugs.webkit.org/show_bug.cgi?id=154595
+
+        Unreviewed fix after r197505.
+
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg:
+        (RunBenchmarkTests.start):
+
+2016-03-03  Daniel Bates  <dabates@apple.com>
+
+        Add unit tests for WTF::OptionSet
+        https://bugs.webkit.org/show_bug.cgi?id=154925
+        <rdar://problem/24964211>
+
+        Reviewed by Darin Adler.
+
+        Add tests to ensure that we do not regress the behavior of WTF::OptionSet.
+
+        * TestWebKitAPI/CMakeLists.txt: Add file TestWebKitAPI/Tests/WTF/OptionSet.cpp.
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj: Ditto.
+        * TestWebKitAPI/Tests/WTF/OptionSet.cpp: Added.
+        (TestWebKitAPI::TEST):
+
+2016-03-03  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197442.
+        https://bugs.webkit.org/show_bug.cgi?id=154967
+
+        Broke tests, and also uses a wrong approach (Requested by ap
+        on #webkit).
+
+        Reverted changeset:
+
+        "Disable FTL JIT testing on 32-bit JSC tester bots"
+        https://bugs.webkit.org/show_bug.cgi?id=154858
+        http://trac.webkit.org/changeset/197442
+
+2016-03-03  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Run the run-benchmark script on the performance bot.
+        https://bugs.webkit.org/show_bug.cgi?id=154595
+
+        Reviewed by Carlos Garcia Campos.
+
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg: Add new RunBenchmarkTests step on the perf bots (only for the GTK+ port at this moment).
+        (RunBenchmarkTests):
+        (RunBenchmarkTests.start):
+        (RunBenchmarkTests.getText):
+        (RunBenchmarkTests.getText2):
+        (BuildAndPerfTestFactory.__init__):
+        (DownloadAndPerfTestFactory.__init__):
+        * BuildSlaveSupport/build.webkit.org-config/mastercfg_unittest.py: Add new test for RunBenchmarkTests and update expected steps of GTK+ perf bot.
+        (RunBenchmarkTest):
+        (RunBenchmarkTest.assertResults):
+        (RunBenchmarkTest.test_success):
+        (RunBenchmarkTest.test_tests_failed):
+        * Scripts/webkitpy/benchmark_runner/benchmark_runner.py: Log both the current iteration as also the total iterations for the current benchmark/plan.
+        (BenchmarkRunner._run_benchmark):
+        * Scripts/webkitpy/benchmark_runner/browser_driver/gtk_minibrowser_driver.py: Use python logging also for errors.
+        (GTKMiniBrowserDriver.close_browsers):
+        * Scripts/webkitpy/benchmark_runner/run_benchmark.py: Implement support for running all available benchmark plans.
+        (parse_args):
+        (start):
+        (main):
+
+2016-03-03  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Remove u-szeged.hu SVN mirror in EFL perf bot
+        https://bugs.webkit.org/show_bug.cgi?id=154960
+
+        Reviewed by Csaba Osztrogonác.
+
+        * BuildSlaveSupport/build.webkit.org-config/config.json: Remove szeged univ's svn mirror.
+        * BuildSlaveSupport/build.webkit.org-config/mastercfg_unittest.py:
+
+2016-03-03  Frederic Wang  <fwang@igalia.com>
+
+        [jhbuild] Remove LLVM dependency.
+        https://bugs.webkit.org/show_bug.cgi?id=153274
+
+        Reviewed by Carlos Garcia Campos.
+
+        * gtk/jhbuild.modules:
+
+2016-03-02  Alejandro G. Castro  <alex@igalia.com>
+
+        Unreviewed build fix for media-stream after r197114.
+
+        * TestWebKitAPI/Tests/WebKit2/UserMedia.cpp:
+        (TestWebKitAPI::decidePolicyForUserMediaPermissionRequestCallBack):
+
+2016-03-01  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Disable FTL JIT testing on 32-bit JSC tester bots
+        https://bugs.webkit.org/show_bug.cgi?id=154858
+
+        Reviewed by Saam Barati.
+
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg:
+        (Run32bitJSCTests):
+
+2016-03-01  Dean Johnson  <dean_johnson@apple.com>
+
+        Fix iOS EWS.
+        https://bugs.webkit.org/show_bug.cgi?id=154880
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Scripts/copy-webkitlibraries-to-product-directory:
+
 2016-02-29  Chris Dumez  <cdumez@apple.com>
 
         Have parseHTMLInteger() / parseHTMLNonNegativeInteger() use WTF::Optional

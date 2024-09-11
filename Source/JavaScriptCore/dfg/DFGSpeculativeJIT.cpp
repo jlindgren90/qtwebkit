@@ -6736,13 +6736,18 @@ void SpeculativeJIT::speculateFinalObject(Edge edge)
     speculateCellType(edge, operand.gpr(), SpecFinalObject, FinalObjectType);
 }
 
+void SpeculativeJIT::speculateRegExpObject(Edge edge, GPRReg cell)
+{
+    speculateCellType(edge, cell, SpecRegExpObject, RegExpObjectType);
+}
+
 void SpeculativeJIT::speculateRegExpObject(Edge edge)
 {
     if (!needsTypeCheck(edge, SpecRegExpObject))
         return;
     
     SpeculateCellOperand operand(this, edge);
-    speculateCellType(edge, operand.gpr(), SpecRegExpObject, RegExpObjectType);
+    speculateRegExpObject(edge, operand.gpr());
 }
 
 void SpeculativeJIT::speculateObjectOrOther(Edge edge)
@@ -7647,6 +7652,33 @@ void SpeculativeJIT::compilePutAccessorByVal(Node* node)
 #endif
     m_jit.exceptionCheck();
 
+    noResult(node);
+}
+
+void SpeculativeJIT::compileGetRegExpObjectLastIndex(Node* node)
+{
+    SpeculateCellOperand regExp(this, node->child1());
+    JSValueRegsTemporary result(this);
+    GPRReg regExpGPR = regExp.gpr();
+    JSValueRegs resultRegs = result.regs();
+    speculateRegExpObject(node->child1(), regExpGPR);
+    m_jit.loadValue(JITCompiler::Address(regExpGPR, RegExpObject::offsetOfLastIndex()), resultRegs);
+    jsValueResult(resultRegs, node);
+}
+
+void SpeculativeJIT::compileSetRegExpObjectLastIndex(Node* node)
+{
+    SpeculateCellOperand regExp(this, node->child1());
+    JSValueOperand value(this, node->child2());
+    GPRReg regExpGPR = regExp.gpr();
+    JSValueRegs valueRegs = value.jsValueRegs();
+    speculateRegExpObject(node->child1(), regExpGPR);
+    speculationCheck(
+        ExoticObjectMode, JSValueRegs(), nullptr,
+        m_jit.branchTest8(
+            JITCompiler::Zero,
+            JITCompiler::Address(regExpGPR, RegExpObject::offsetOfLastIndexIsWritable())));
+    m_jit.storeValue(valueRegs, JITCompiler::Address(regExpGPR, RegExpObject::offsetOfLastIndex()));
     noResult(node);
 }
 

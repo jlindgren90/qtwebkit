@@ -678,6 +678,10 @@
 #define HAVE_VIRTUALALLOC 1
 #endif
 
+#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200) || (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000)
+#define HAVE_CFNETWORK_STORAGE_PARTITIONING 1
+#endif
+
 /* ENABLE macro defaults */
 
 /* FIXME: move out all ENABLE() defines from here to FeatureDefines.h */
@@ -893,6 +897,16 @@
 #define ENABLE_MASM_PROBE 1
 #else
 #define ENABLE_MASM_PROBE 0
+#endif
+
+/* Pick which allocator to use; we only need an executable allocator if the assembler is compiled in.
+   On non-Windows x86-64, iOS, and ARM64 we use a single fixed mmap, on other platforms we mmap on demand. */
+#if ENABLE(ASSEMBLER)
+#if CPU(X86_64) || PLATFORM(IOS) || CPU(ARM64)
+#define ENABLE_EXECUTABLE_ALLOCATOR_FIXED 1
+#else
+#define ENABLE_EXECUTABLE_ALLOCATOR_DEMAND 1
+#endif
 #endif
 
 /* CSS Selector JIT Compiler */

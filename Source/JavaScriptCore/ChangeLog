@@ -1,3 +1,1628 @@
+2016-03-04  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES6] Arrow function syntax. Lexical bind "super" inside of the arrow function in generator.
+        https://bugs.webkit.org/show_bug.cgi?id=152575
+
+        Reviewed by Yusuke Suzuki.
+
+        Added support of the 'SuperProperty' in arrow function within of the generator 
+        method of class. Before patch parser  did not recognize that current arrow function 
+        is declated inside of the generator and raise SyntaxError.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseFunctionInfo):
+        * parser/Parser.h:
+        (JSC::Scope::Scope):
+        (JSC::Scope::isGeneratorBoundary):
+        (JSC::Scope::setIsFunction):
+        (JSC::Scope::setIsGenerator):
+        (JSC::Parser::closestParentOrdinaryFunctionNonLexicalScope):
+        * tests/stress/arrowfunction-lexical-bind-superproperty.js:
+
+2016-03-03  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG/FTL should inline accesses to RegExpObject::m_lastIndex
+        https://bugs.webkit.org/show_bug.cgi?id=155003
+
+        Reviewed by Benjamin Poulain.
+
+        The Octane/regexp benchmark sets RegExps' lastIndex a lot. I could imagine this being
+        something that people want to do. Right now, I'm not convinced that making the RegExp object
+        be more plain-JS would be a good idea considering that pretty much all uses of it will
+        require some special compiler magic. Also, it's good that this patch teaches the compiler
+        how to reason about lastIndex since some of my other plans for regexp involve having the
+        compiler treat more regexp stuff as intrinsic.
+
+        This is a smaller Octane/regexp speed-up than I hoped - maybe around 1%. It's an enormous
+        speed-up on the microbenchmarks attached to this patch.
+
+        * dfg/DFGAbstractHeap.h:
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGHeapLocation.h:
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        (JSC::DFG::PredictionPropagationPhase::propagate):
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compilePutAccessorByVal):
+        (JSC::DFG::SpeculativeJIT::compileGetRegExpObjectLastIndex):
+        (JSC::DFG::SpeculativeJIT::compileSetRegExpObjectLastIndex):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGStoreBarrierInsertionPhase.cpp:
+        * ftl/FTLAbstractHeapRepository.cpp:
+        * ftl/FTLAbstractHeapRepository.h:
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileStringReplace):
+        (JSC::FTL::DFG::LowerDFGToB3::compileGetRegExpObjectLastIndex):
+        (JSC::FTL::DFG::LowerDFGToB3::compileSetRegExpObjectLastIndex):
+        (JSC::FTL::DFG::LowerDFGToB3::didOverflowStack):
+        (JSC::FTL::DFG::LowerDFGToB3::lowObject):
+        (JSC::FTL::DFG::LowerDFGToB3::lowRegExpObject):
+        (JSC::FTL::DFG::LowerDFGToB3::lowString):
+        * runtime/RegExpObject.h:
+        (JSC::RegExpObject::createStructure):
+        (JSC::RegExpObject::offsetOfLastIndex):
+
+2016-03-03  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r196770): Unable to use HipChat Mac app
+        https://bugs.webkit.org/show_bug.cgi?id=154999
+        <rdar://problem/24931959>
+
+        Reviewed by Darin Adler.
+
+        Add a setter to PutPropertySlot to override the 'isStrictMode' flag.
+
+        * runtime/PutPropertySlot.h:
+        (JSC::PutPropertySlot::setStrictMode):
+
+2016-03-03  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Add support for MADD, MSUB and MNEG to Air
+        https://bugs.webkit.org/show_bug.cgi?id=154997
+
+        Reviewed by Filip Pizlo.
+
+        ARM64 can do an Add/Sub in the Multiply units.
+        LLVM was doing so but we lost that when switching to B3.
+
+        This patch adds those instructions in Air.
+
+        There are more ALUs than multiply units, thus we are more
+        likely to successfully schedule a Multiply+Add than 2 Multiply.
+        I am conservative and only emit a multiply-add if the value
+        can be interned. As far as I can tell from what is generated
+        by LLVM, that backend had the same rule.
+
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::multiplyAdd32):
+        (JSC::MacroAssemblerARM64::multiplySub32):
+        (JSC::MacroAssemblerARM64::multiplyNeg32):
+        (JSC::MacroAssemblerARM64::multiplyAdd64):
+        (JSC::MacroAssemblerARM64::multiplySub64):
+        (JSC::MacroAssemblerARM64::multiplyNeg64):
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/air/AirOpcode.opcodes:
+        * b3/testb3.cpp:
+        (JSC::B3::populateWithInterestingValues):
+        (JSC::B3::floatingPointOperands):
+        (JSC::B3::int64Operands):
+        (JSC::B3::int32Operands):
+        (JSC::B3::testMulAddArgsLeft):
+        (JSC::B3::testMulAddArgsRight):
+        (JSC::B3::testMulAddArgsLeft32):
+        (JSC::B3::testMulAddArgsRight32):
+        (JSC::B3::testMulSubArgsLeft):
+        (JSC::B3::testMulSubArgsRight):
+        (JSC::B3::testMulSubArgsLeft32):
+        (JSC::B3::testMulSubArgsRight32):
+        (JSC::B3::testMulNegArgs):
+        (JSC::B3::testMulNegArgs32):
+        (JSC::B3::run):
+
+2016-03-03  Saam Barati  <sbarati@apple.com>
+
+        [ES6] Implement Proxy.[[SetPrototypeOf]]
+        https://bugs.webkit.org/show_bug.cgi?id=154931
+
+        Reviewed by Ryosuke Niwa.
+
+        This patch is a straight forward implementation of Proxy.[[SetPrototypeOf]]
+        with respect to section 9.5.2 of the ECMAScript spec.
+        https://tc39.github.io/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-setprototypeof-v
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::putInlineSlow):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::put):
+        (JSC::ProxyObject::getGenericPropertyNames):
+        (JSC::ProxyObject::performSetPrototype):
+        (JSC::ProxyObject::setPrototype):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        * tests/es6.yaml:
+        * tests/stress/proxy-set-prototype-of.js: Added.
+        (assert):
+        (throw.new.Error.let.handler.get setPrototypeOf):
+        (throw.new.Error.set let):
+        (throw.new.Error.set catch):
+        (throw.new.Error):
+        (assert.let.handler.setPrototypeOf):
+        (assert.set let):
+        (assert.set catch):
+        (let.handler.setPrototypeOf):
+        (set let):
+        (set catch):
+
+2016-03-03  Keith Miller  <keith_miller@apple.com>
+
+        JSArrayBuffers should be collected less aggressively
+        https://bugs.webkit.org/show_bug.cgi?id=154982
+
+        Reviewed by Geoffrey Garen.
+
+        We are currently too aggressive in our collection of ArrayBuffer wrappers.
+        There are three cases where we need to avoid collecting ArrayBuffer wrappers.
+        1. If the wrapper has custom properties.
+        2. If the wrapper is a subclass of ArrayBuffer.
+        3. If the wrapper is in a WeakMap/WeakSet.
+
+        Currently, we only pass the first case in WebCore and none in the jsc CLI.
+        This patch removes some optimizations that cause us to collect when we
+        should not. Namely, always skipping the object unless it has custom
+        properties. Additionally, in the case of subclassing, we also need a way
+        for custom JSArrayBuffer objects to register themselves as the wrapper for
+        an ArrayBuffer class.
+
+        Finally, this patch fixes an issue where views would not mark their ArrayBuffer
+        as an opaque root. This patch also moves an associated ASSERT that the
+        ArrayBuffer held by a view is not null in JSGenericTypedArrayView::visitChildren
+        into JSArrayBufferView::visitChildren, where we add the opaque root.
+
+        * runtime/JSArrayBuffer.cpp:
+        (JSC::JSArrayBuffer::finishCreation):
+        (JSC::JSArrayBuffer::create):
+        (JSC::JSArrayBuffer::createWithoutWrapping):
+        * runtime/JSArrayBuffer.h:
+        * runtime/JSArrayBufferView.cpp:
+        (JSC::JSArrayBufferView::visitChildren):
+        * runtime/JSArrayBufferView.h:
+        * runtime/JSGenericTypedArrayViewInlines.h:
+        (JSC::JSGenericTypedArrayView<Adaptor>::visitChildren): Deleted.
+        * runtime/SimpleTypedArrayController.cpp:
+        (JSC::SimpleTypedArrayController::toJS):
+        (JSC::SimpleTypedArrayController::registerWrapper):
+        (JSC::SimpleTypedArrayController::JSArrayBufferOwner::isReachableFromOpaqueRoots):
+        (JSC::SimpleTypedArrayController::JSArrayBufferOwner::finalize):
+        * runtime/SimpleTypedArrayController.h:
+        * runtime/TypedArrayController.h:
+
+2016-03-03  Filip Pizlo  <fpizlo@apple.com>
+
+        Octane/regexp's Exec function should benefit from array length accessor inlining
+        https://bugs.webkit.org/show_bug.cgi?id=154994
+
+        Reviewed by Benjamin Poulain.
+
+        It does:
+
+            var thingy = blahbitty.blah;
+            if (thingy)
+                foo = thingy.length;
+
+        So, 'thingy' is SpecArray | SpecOther, which prevents the array length accessor inlining from
+        kicking in. Our strategy for this elsewhere in the DFG is to allow a one-time speculation that
+        we won't see SpecOther, since *usually* we see SpecOther mixed with other stuff in cases like
+        this where there is some null check guarding the code.
+
+        This gives another slight speed-up on Octane/regexp.
+
+        * bytecode/SpeculatedType.h:
+        (JSC::isCellSpeculation):
+        (JSC::isCellOrOtherSpeculation):
+        (JSC::isNotCellSpeculation):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::shouldSpeculateCell):
+        (JSC::DFG::Node::shouldSpeculateCellOrOther):
+        (JSC::DFG::Node::shouldSpeculateNotCell):
+
+2016-03-03  Saam Barati  <sbarati@apple.com>
+
+        Add Proxy tests for exceptions that depend on an object being non-extensible and having configurable properties
+        https://bugs.webkit.org/show_bug.cgi?id=154745
+
+        Reviewed by Geoffrey Garen.
+
+        This patch is mostly an implementation of Proxy.[[OwnPropertyKeys]] 
+        with respect to section 9.5.11 of the ECMAScript spec.
+        https://tc39.github.io/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-ownpropertykeys
+
+        This patch also changes call sites of getOwnPropertyNames and
+        getPropertyNames to expect that an exception can be thrown.
+
+        * dfg/DFGOperations.cpp:
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::iteratorEntries):
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        * runtime/IntlObject.cpp:
+        (JSC::supportedLocales):
+        * runtime/JSCJSValue.h:
+        * runtime/JSCJSValueInlines.h:
+        (JSC::JSValue::get):
+        (JSC::JSValue::put):
+        * runtime/JSONObject.cpp:
+        (JSC::Stringifier::Holder::appendNextProperty):
+        (JSC::Walker::walk):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::getPropertyNames):
+        (JSC::JSObject::getGenericPropertyNames):
+        * runtime/JSObject.h:
+        (JSC::makeIdentifier):
+        (JSC::createListFromArrayLike):
+        * runtime/JSPropertyNameEnumerator.h:
+        (JSC::propertyNameEnumerator):
+        * runtime/JSPropertyNameIterator.cpp:
+        (JSC::JSPropertyNameIterator::create):
+        * runtime/MapConstructor.cpp:
+        (JSC::constructMap):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::defineProperties):
+        (JSC::objectConstructorSeal):
+        (JSC::objectConstructorFreeze):
+        (JSC::objectConstructorIsSealed):
+        (JSC::objectConstructorIsFrozen):
+        (JSC::ownPropertyKeys):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::getOwnPropertySlotByIndex):
+        (JSC::ProxyObject::deleteProperty):
+        (JSC::ProxyObject::deletePropertyByIndex):
+        (JSC::ProxyObject::defineOwnProperty):
+        (JSC::ProxyObject::performGetOwnPropertyNames):
+        (JSC::ProxyObject::getOwnPropertyNames):
+        (JSC::ProxyObject::getOwnNonIndexPropertyNames):
+        (JSC::ProxyObject::getStructurePropertyNames):
+        (JSC::ProxyObject::getGenericPropertyNames):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        (JSC::ProxyObject::create):
+        (JSC::ProxyObject::createStructure):
+        * runtime/Structure.cpp:
+        (JSC::Structure::Structure):
+        (JSC::Structure::add):
+        (JSC::Structure::getPropertyNamesFromStructure):
+        (JSC::Structure::checkConsistency):
+        (JSC::Structure::canCachePropertyNameEnumerator):
+        (JSC::Structure::canAccessPropertiesQuicklyForEnumeration):
+        (JSC::Structure::canAccessPropertiesQuickly): Deleted.
+        * runtime/Structure.h:
+        * runtime/WeakMapConstructor.cpp:
+        (JSC::constructWeakMap):
+        * tests/es6.yaml:
+        * tests/stress/proxy-own-keys.js: Added.
+        (assert):
+        (throw.new.Error.let.handler.ownKeys):
+        (throw.new.Error):
+        (assert.let.handler.get ownKeys):
+        (assert.let.handler.ownKeys):
+        (let.handler.ownKeys):
+        (i.catch):
+        (shallowEq):
+        (let.handler.getOwnPropertyDescriptor):
+        (i.set assert):
+        (set add):
+        (set assert):
+        (set if):
+
+2016-03-03  Keith Miller  <keith_miller@apple.com>
+
+        Array prototype JS builtins should support Symbol.species
+        https://bugs.webkit.org/show_bug.cgi?id=154710
+
+        Reviewed by Geoffrey Garen.
+
+        Add support for Symbol.species in the Array.prototype JS
+        builtin functions.
+
+        * builtins/ArrayPrototype.js:
+        (filter):
+        (map):
+        * runtime/ArrayConstructor.cpp:
+        (JSC::ArrayConstructor::finishCreation):
+        (JSC::arrayConstructorPrivateFuncIsArrayConstructor):
+        * runtime/ArrayConstructor.h:
+        (JSC::ArrayConstructor::create):
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * tests/stress/array-species-functions.js:
+        (id):
+
+2016-03-03  Michael Saboff  <msaboff@apple.com>
+
+        [ES6] Make Unicode RegExp pattern parsing conform to the spec
+        https://bugs.webkit.org/show_bug.cgi?id=154988
+
+        Reviewed by Benjamin Poulain.
+
+        Updated RegExp pattern processing with 'u' (Unicode) flag to conform to the
+        spec (https://tc39.github.io/ecma262/2016/#sec-patterns).  In the spec, the
+        grammar is annotated with [U] annotations.  Productions that are prefixed with
+        [+U] are only available with the Unicode flags while productions prefixed with
+        [~U] are only available without the Unicode flag.
+        
+        Added flags argument to Yarr::checkSyntax() so we can catch Unicode flag related
+        parsing errors at syntax checking time.  Restricted what escapes are available for
+        non Unicode patterns.  Most of this is defined in the IdentityEscape rule in the
+        pattern grammar.
+
+        Added \- as a CharacterClass only escape in Unicode patterns.
+
+        Updated the tests for these changes.
+
+        Made changes suggested in https://bugs.webkit.org/show_bug.cgi?id=154842#c22 after
+        change set r197426 was landed.
+
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::createRegExp):
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parsePrimaryExpression):
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::createRegExp):
+        * yarr/YarrInterpreter.cpp:
+        (JSC::Yarr::Interpreter::InputStream::readChecked):
+        (JSC::Yarr::Interpreter::InputStream::readSurrogatePairChecked):
+        (JSC::Yarr::Interpreter::InputStream::reread):
+        (JSC::Yarr::Interpreter::InputStream::uncheckInput):
+        (JSC::Yarr::Interpreter::InputStream::atStart):
+        (JSC::Yarr::Interpreter::InputStream::atEnd):
+        (JSC::Yarr::Interpreter::testCharacterClass):
+        (JSC::Yarr::Interpreter::backtrackPatternCharacter):
+        (JSC::Yarr::Interpreter::matchDisjunction):
+        (JSC::Yarr::ByteCompiler::atomPatternCharacter):
+        * yarr/YarrParser.h:
+        (JSC::Yarr::Parser::Parser):
+        (JSC::Yarr::Parser::isIdentityEscapeAnError):
+        (JSC::Yarr::Parser::parseEscape):
+        (JSC::Yarr::Parser::parse):
+        * yarr/YarrPattern.cpp:
+        (JSC::Yarr::CharacterClassConstructor::putChar):
+        (JSC::Yarr::CharacterClassConstructor::putRange):
+        (JSC::Yarr::CharacterClassConstructor::addSorted):
+        (JSC::Yarr::YarrPatternConstructor::setupAlternativeOffsets):
+        * yarr/YarrSyntaxChecker.cpp:
+        (JSC::Yarr::SyntaxChecker::disjunction):
+        (JSC::Yarr::checkSyntax):
+        * yarr/YarrSyntaxChecker.h:
+
+2016-03-03  Saam barati  <sbarati@apple.com>
+
+        [ES6] Implement Proxy.[[DefineOwnProperty]]
+        https://bugs.webkit.org/show_bug.cgi?id=154759
+
+        Reviewed by Geoffrey Garen and Mark Lam.
+
+        This patch is a straight forward implementation of Proxy.[[DefineOwnProperty]]
+        with respect to section 9.5.6 of the ECMAScript spec.
+        https://tc39.github.io/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-defineownproperty-p-desc
+
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorGetOwnPropertyDescriptor):
+        (JSC::objectConstructorGetOwnPropertyDescriptors):
+        * runtime/ObjectConstructor.h:
+        (JSC::constructEmptyObject):
+        (JSC::constructObjectFromPropertyDescriptor):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::isExtensible):
+        (JSC::ProxyObject::performDefineOwnProperty):
+        (JSC::ProxyObject::defineOwnProperty):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        * tests/es6.yaml:
+        * tests/stress/proxy-define-own-property.js: Added.
+        (assert):
+        (throw.new.Error):
+        (assert.let.handler.get defineProperty):
+        (assert.let.handler.defineProperty):
+        (let.handler.defineProperty):
+        (i.catch):
+        (assert.try.):
+        (assert.set get catch):
+        (assert.let.setter):
+        (assert.let.getter):
+        (assert.set get let.handler.defineProperty):
+        (assert.set get let):
+        (assert.):
+
+2016-03-03  Keith Miller  <keith_miller@apple.com>
+
+        [ES6] Add support for Symbol.toPrimitive
+        https://bugs.webkit.org/show_bug.cgi?id=154877
+
+        Reviewed by Saam Barati.
+
+        This patch adds suport for Symbol.toPrimitive. Since we don't currently
+        generate snippits for one side of a binary operation we only need to change
+        the JSObject::ToPrimitive function and update some optimizations in the DFG
+        that need to know how conversions to primitive values should work. As of
+        ES6, the date prototype is also no longer special cased in the ToPrimitive
+        operation. Instead, Date.prototype has a Symbol.species function that
+        replicates the old behavior.
+
+        * bytecode/ObjectPropertyConditionSet.cpp:
+        (JSC::generateConditionsForPropertyMissConcurrently):
+        * bytecode/ObjectPropertyConditionSet.h:
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::watchConditions):
+        (JSC::DFG::Graph::canOptimizeStringObjectAccess):
+        * dfg/DFGGraph.h:
+        * runtime/CommonIdentifiers.h:
+        * runtime/DatePrototype.cpp:
+        (JSC::DatePrototype::finishCreation):
+        (JSC::dateProtoFuncToPrimitiveSymbol):
+        * runtime/Error.cpp:
+        (JSC::throwTypeError):
+        * runtime/Error.h:
+        * runtime/JSCJSValueInlines.h:
+        (JSC::toPreferredPrimitiveType):
+        * runtime/JSObject.cpp:
+        (JSC::callToPrimitiveFunction):
+        (JSC::JSObject::ordinaryToPrimitive):
+        (JSC::JSObject::defaultValue):
+        (JSC::JSObject::toPrimitive):
+        (JSC::JSObject::getPrimitiveNumber):
+        (JSC::callDefaultValueFunction): Deleted.
+        (JSC::throwTypeError): Deleted.
+        * runtime/JSObject.h:
+        (JSC::JSObject::toPrimitive): Deleted.
+        * runtime/SmallStrings.h:
+        * runtime/SymbolPrototype.cpp:
+        (JSC::SymbolPrototype::finishCreation):
+        * runtime/SymbolPrototype.h:
+        (JSC::SymbolPrototype::create):
+        * tests/es6.yaml:
+        * tests/stress/date-symbol-toprimitive.js: Added.
+        * tests/stress/ropes-symbol-toprimitive.js: Added.
+        (ropify):
+        (String.prototype.Symbol.toPrimitive):
+        * tests/stress/symbol-toprimitive.js: Added.
+        (foo.Symbol.toPrimitive):
+        (catch):
+
+2016-03-03  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG should be able to compile StringReplace
+        https://bugs.webkit.org/show_bug.cgi?id=154979
+
+        Reviewed by Benjamin Poulain.
+
+        Adds support for StringReplace to the DFG tier. This is a 3% speed-up on Octane/regexp.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::speculateFinalObject):
+        (JSC::DFG::SpeculativeJIT::speculateRegExpObject):
+        (JSC::DFG::SpeculativeJIT::speculateObjectOrOther):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * jit/JITOperations.h:
+
+2016-03-03  Saam barati  <sbarati@apple.com>
+
+        [[SetPrototypeOf]] isn't properly implemented everywhere
+        https://bugs.webkit.org/show_bug.cgi?id=154943
+
+        Reviewed by Benjamin Poulain.
+
+        We were copy-pasting implememntation bits that belong in OrdinarySetPrototypeOf 
+        in a few different places that call O.[[SetPrototypeOf]](v)
+        rather than having those bits in OrdinarySetPrototypeOf itself.
+        We need to put those copy-pasted bits into OrdinarySetPrototypeOf
+        and not the call sites of O.[[SetPrototypeOf]](v) because
+        O.[[SetPrototypeOf]](v) won't always call into OrdinarySetPrototypeOf.
+        This is needed for correctness because this behavior is now observable
+        with the ES6 Proxy object.
+
+        * runtime/ClassInfo.h:
+        * runtime/JSCell.cpp:
+        (JSC::JSCell::isExtensible):
+        (JSC::JSCell::setPrototype):
+        * runtime/JSCell.h:
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoSetter):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::setPrototypeDirect):
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::JSObject::setPrototype):
+        (JSC::JSObject::allowsAccessFrom):
+        * runtime/JSObject.h:
+        (JSC::JSObject::mayInterceptIndexedAccesses):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorSetPrototypeOf):
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectSetPrototypeOf):
+
+2016-03-03  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build after r197489.
+
+        * jsc.cpp:
+
+2016-03-02  Filip Pizlo  <fpizlo@apple.com>
+
+        RegExpExec/RegExpTest should not unconditionally speculate cell
+        https://bugs.webkit.org/show_bug.cgi?id=154901
+
+        Reviewed by Benjamin Poulain.
+
+        This is a three part change. It all started with a simple goal: end the rage-recompiles in
+        Octane/regexp by enabling the DFG and FTL to do untyped RegExpExec/RegExpTest. This keeps us
+        in the optimized code when you do a regexp match on a number, for example.
+
+        While implementing this, I realized that DFGOperations.cpp was bad at exception checking. When
+        it did check for exceptions, it used exec->hadException() instead of vm.exception(). So I
+        fixed that. I also made sure that the regexp operations checked for exception after doing
+        toString().
+
+        Unfortunately, the introduction of untyped RegExpExec/RegExpTest caused a regression on
+        Octane/regexp. This was because we were simultaneously scheduling replacement and OSR compiles
+        of some large functions with the FTL JIT. The OSR compiles were not useful. This was a
+        regression from the previous changes to make OSR compiles happen sooner. The problem is that
+        this change also removed the throttling of OSR compiles even in those cases where we suspect
+        that replacement is more likely. This patch reintroduces that throttling, but only in the
+        replacement path.
+
+        This change ends up being neutral overall.
+
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileRegExpExec):
+        (JSC::FTL::DFG::LowerDFGToB3::compileRegExpTest):
+        (JSC::FTL::DFG::LowerDFGToB3::compileNewRegexp):
+        * tests/stress/regexp-exec-effect-after-exception.js: Added.
+
+2016-03-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] JSCell_freeListNext and JSCell_structureID are considered not overlapping
+        https://bugs.webkit.org/show_bug.cgi?id=154947
+
+        Reviewed by Filip Pizlo.
+
+        This bug was discovered while testing https://bugs.webkit.org/show_bug.cgi?id=154894.
+
+        The problem was that JSCell_freeListNext and JSCell_structureID were
+        considered as disjoint. When reordering instructions, the scheduler
+        could move the write of the StructureID first to reduce dependencies.
+        This would erase half of JSCell_freeListNext before we get a chance
+        to load the value.
+
+        This patch changes the hierarchy to make sure nothing is written
+        until JSCell_freeListNext is processed.
+
+        All credits for this patch go to Filip.
+
+        * ftl/FTLAbstractHeapRepository.cpp:
+        (JSC::FTL::AbstractHeapRepository::AbstractHeapRepository):
+        * ftl/FTLAbstractHeapRepository.h:
+
+2016-03-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Improve Select of Doubles based on Double condition
+        https://bugs.webkit.org/show_bug.cgi?id=154572
+
+        Reviewed by Filip Pizlo.
+
+        Octane has a bunch of Select on Double based on comparing Doubles.
+        A few nodes generate that: ValueRep, Min, Max, etc.
+
+        On ARM64, we can improve our code a lot. ARM can do a select
+        based on flags with the FCSEL instruction.
+
+        On x86, this patch adds aggressive aliasing for moveDoubleConditionallyXXX.
+        This has obviously a much more limited impact.
+
+        * assembler/MacroAssembler.h:
+        (JSC::MacroAssembler::moveDoubleConditionally32): Deleted.
+        (JSC::MacroAssembler::moveDoubleConditionally64): Deleted.
+        (JSC::MacroAssembler::moveDoubleConditionallyTest32): Deleted.
+        (JSC::MacroAssembler::moveDoubleConditionallyTest64): Deleted.
+        (JSC::MacroAssembler::moveDoubleConditionallyDouble): Deleted.
+        (JSC::MacroAssembler::moveDoubleConditionallyFloat): Deleted.
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::moveDoubleConditionallyAfterFloatingPointCompare):
+        (JSC::MacroAssemblerARM64::moveDoubleConditionallyDouble):
+        (JSC::MacroAssemblerARM64::moveDoubleConditionallyFloat):
+        (JSC::MacroAssemblerARM64::moveConditionally32):
+        (JSC::MacroAssemblerARM64::moveDoubleConditionally32):
+        (JSC::MacroAssemblerARM64::moveDoubleConditionally64):
+        (JSC::MacroAssemblerARM64::moveDoubleConditionallyTest32):
+        (JSC::MacroAssemblerARM64::moveDoubleConditionallyTest64):
+        (JSC::MacroAssemblerARM64::branch64):
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::moveConditionally32):
+        (JSC::MacroAssemblerX86Common::moveDoubleConditionally32):
+        (JSC::MacroAssemblerX86Common::moveDoubleConditionallyTest32):
+        (JSC::MacroAssemblerX86Common::moveDoubleConditionallyDouble):
+        (JSC::MacroAssemblerX86Common::moveDoubleConditionallyFloat):
+        * assembler/MacroAssemblerX86_64.h:
+        (JSC::MacroAssemblerX86_64::moveDoubleConditionally64):
+        (JSC::MacroAssemblerX86_64::moveDoubleConditionallyTest64):
+        * b3/air/AirInstInlines.h:
+        (JSC::B3::Air::Inst::shouldTryAliasingDef):
+        * b3/air/AirOpcode.opcodes:
+        * b3/testb3.cpp:
+        (JSC::B3::populateWithInterestingValues):
+        (JSC::B3::floatingPointOperands):
+        (JSC::B3::int64Operands):
+        (JSC::B3::int32Operands):
+        (JSC::B3::testSelectCompareFloat):
+        (JSC::B3::testSelectCompareFloatToDouble):
+        (JSC::B3::testSelectDoubleCompareDouble):
+        (JSC::B3::testSelectDoubleCompareDoubleWithAliasing):
+        (JSC::B3::testSelectFloatCompareFloat):
+        (JSC::B3::testSelectFloatCompareFloatWithAliasing):
+        (JSC::B3::run):
+
+2016-03-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Add ability to generate a Heap Snapshot
+        https://bugs.webkit.org/show_bug.cgi?id=154847
+
+        Reviewed by Mark Lam.
+
+        This adds HeapSnapshot, HeapSnapshotBuilder, and HeapProfiler.
+
+        HeapProfiler hangs off of the VM and holds the list of snapshots.
+        I expect to add other HeapProfiling features, such as allocation
+        tracking, to the profiler.
+
+        HeapSnapshot contains a collection of live cells and their identifiers.
+        It can point to a previous HeapSnapshot, to ensure that a cell that
+        already received an identifier maintains the same identifier across
+        multiple snapshots. When a snapshotted cell gets garbage collected,
+        the cell will be swept from the HeapSnapshot at the end of collection
+        to ensure the list contains only live cells.
+
+        When building a HeapSnapshot nodes are added in increasing node
+        identifier order. When done building, the list of nodes is complete
+        and the snapshot is finalized. At this point the nodes are sorted
+        by JSCell* address to allow for quick lookup of a JSCell*.
+
+        HeapSnapshotBuilder is where snapshotting begins. The builder
+        will initiate a specialized heap snapshotting garbage collection.
+        During this collection the builder will be notified of all marked
+        (live) cells, and connections between cells, as seen by SlotVisitors.
+        The builder can reference the previous, readonly, HeapSnapshots to
+        avoid creating new nodes for cells that have already been snapshotted.
+        When it is determined that we are visiting a live cell for the first
+        time, we give the cell a unique identifier and add it to the the
+        snapshot we are building.
+
+        Since edge data is costly, and of little long term utility, this
+        data is only held by the builder for serialization, and not stored
+        long term with the HeapSnapshot node data.
+
+        The goals of HeapSnapshotting at this time are:
+        - minimal impact on performance when not profiling the heap
+        - unique identifier for cells, so they may be identified across multiple snapshots
+        - nodes and edges to be able to construct a graph of which nodes reference/retain which other nodes
+        - node data - identifier, type (class name), size
+        - edge data - from cell, to cell, type / data (to come in a follow-up patch)
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * JavaScriptCore.vcxproj/JavaScriptCore.vcxproj:
+        * JavaScriptCore.vcxproj/JavaScriptCore.vcxproj.filters:
+        Add new files to the build.
+
+        * heap/Heap.cpp:
+        (JSC::Heap::isHeapSnapshotting):
+        (JSC::RemoveDeadHeapSnapshotNodes::RemoveDeadHeapSnapshotNodes):
+        (JSC::RemoveDeadHeapSnapshotNodes::operator()):
+        (JSC::Heap::removeDeadHeapSnapshotNodes):
+        (JSC::Heap::collectImpl):
+        After every collection, sweep dead cells from in memory snapshots.
+
+        * runtime/VM.cpp:
+        (JSC::VM::ensureHeapProfiler):
+        * runtime/VM.h:
+        (JSC::VM::heapProfiler):
+        * heap/Heap.h:
+        * heap/HeapProfiler.cpp: Added.
+        (JSC::HeapProfiler::HeapProfiler):
+        (JSC::HeapProfiler::~HeapProfiler):
+        (JSC::HeapProfiler::mostRecentSnapshot):
+        (JSC::HeapProfiler::appendSnapshot):
+        (JSC::HeapProfiler::clearSnapshots):
+        (JSC::HeapProfiler::setActiveSnapshotBuilder):
+        * heap/HeapProfiler.h: Added.
+        (JSC::HeapProfiler::vm):
+        (JSC::HeapProfiler::activeSnapshotBuilder):
+        VM and Heap can look at the profiler to determine if we are building a
+        snapshot, or the "head" snapshot to use for sweeping.
+
+        * heap/HeapSnapshot.cpp: Added.
+        (JSC::HeapSnapshot::HeapSnapshot):
+        (JSC::HeapSnapshot::~HeapSnapshot):
+        (JSC::HeapSnapshot::appendNode):
+        Add a node to the unfinalized list of new cells.
+
+        (JSC::HeapSnapshot::sweepCell):
+        (JSC::HeapSnapshot::shrinkToFit):
+        Collect a list of cells for sweeping and then remove them all at once
+        in shrinkToFit. This is done to avoid thrashing of individual removes
+        that could cause many overlapping moves within the Vector.
+
+        (JSC::HeapSnapshot::finalize):
+        Sort the list, and also cache the bounding start/stop identifiers.
+        No other snapshot can contain an identifier in this range, so it will
+        improve lookup of a node from an identifier.
+
+        (JSC::HeapSnapshot::nodeForCell):
+        (JSC::HeapSnapshot::nodeForObjectIdentifier):
+        Search helpers.
+
+        * heap/HeapSnapshotBuilder.h: Added.
+        (JSC::HeapSnapshotNode::HeapSnapshotNode):
+        (JSC::HeapSnapshotEdge::HeapSnapshotEdge):
+        Node and Edge struct types the builder creates.
+
+        * heap/HeapSnapshotBuilder.cpp: Added.
+        (JSC::HeapSnapshotBuilder::getNextObjectIdentifier):
+        (JSC::HeapSnapshotBuilder::HeapSnapshotBuilder):
+        (JSC::HeapSnapshotBuilder::~HeapSnapshotBuilder):
+        (JSC::HeapSnapshotBuilder::buildSnapshot):
+        (JSC::HeapSnapshotBuilder::appendNode):
+        (JSC::HeapSnapshotBuilder::appendEdge):
+        When building the snapshot, generating the next identifier, and
+        appending to any of the lists must be guarded by a lock because
+        SlotVisitors running in parallel may be accessing the builder.
+
+        (JSC::HeapSnapshotBuilder::hasExistingNodeForCell):
+        Looking up if a node already exists in a previous snapshot can be
+        done without a lock because at this point the data is readonly.
+
+        (JSC::edgeTypeToNumber):
+        (JSC::edgeTypeToString):
+        (JSC::HeapSnapshotBuilder::json):
+        JSON serialization of a heap snapshot contains node and edge data.
+
+        * heap/SlotVisitor.h:
+        * heap/SlotVisitor.cpp:
+        (JSC::SlotVisitor::didStartMarking):
+        (JSC::SlotVisitor::reset):
+        Set/clear the active snapshot builder to know if this will be a
+        snapshotting GC or not.
+
+        (JSC::SlotVisitor::append):
+        (JSC::SlotVisitor::setMarkedAndAppendToMarkStack):
+        Inform the builder of a new node or edge.
+
+        (JSC::SlotVisitor::visitChildren):
+        Remember the current cell we are visiting so that if we need to
+        inform the builder of edges we know the "from" cell.
+
+        * jsc.cpp:
+        (SimpleObject::SimpleObject):
+        (SimpleObject::create):
+        (SimpleObject::finishCreation):
+        (SimpleObject::visitChildren):
+        (SimpleObject::createStructure):
+        (SimpleObject::hiddenValue):
+        (SimpleObject::setHiddenValue):
+        Create a new class "SimpleObject" that can be used by heap snapshotting
+        tests. It is easy to filter for this new class name and test internal
+        edge relationships created by garbage collection visiting the cell.
+
+        (functionCreateSimpleObject):
+        (functionGetHiddenValue):
+        (functionSetHiddenValue):
+        Expose methods to create and interact with a SimpleObject.
+
+        (functionGenerateHeapSnapshot):
+        Expose methods to create a heap snapshot. This currently automatically
+        turns the serialized string into a JSON object. That may change.
+
+        * tests/heapProfiler.yaml: Added.
+        * tests/heapProfiler/basic-edges.js: Added.
+        (excludeStructure):
+        * tests/heapProfiler/basic-nodes.js: Added.
+        (hasDifferentSizeNodes):
+        (hasAllInternalNodes):
+        Add tests for basic node and edge data.
+
+        * tests/heapProfiler/driver/driver.js: Added.
+        (assert):
+        (CheapHeapSnapshotNode):
+        (CheapHeapSnapshotEdge):
+        (CheapHeapSnapshotEdge.prototype.get from):
+        (CheapHeapSnapshotEdge.prototype.get to):
+        (CheapHeapSnapshot):
+        (CheapHeapSnapshot.prototype.get nodes):
+        (CheapHeapSnapshot.prototype.get edges):
+        (CheapHeapSnapshot.prototype.nodeWithIdentifier):
+        (CheapHeapSnapshot.prototype.nodesWithClassName):
+        (CheapHeapSnapshot.prototype.classNameFromTableIndex):
+        (CheapHeapSnapshot.prototype.edgeTypeFromTableIndex):
+        (createCheapHeapSnapshot):
+        (HeapSnapshotNode):
+        (HeapSnapshotEdge):
+        (HeapSnapshot):
+        (HeapSnapshot.prototype.nodesWithClassName):
+        (createHeapSnapshot):
+        Add two HeapSnapshot representations.
+        CheapHeapSnapshot creates two lists of node and edge data that
+        lazily creates objects as needed.
+        HeapSnapshot creates an object for each node and edge. This
+        is wasteful but easier to use.
+
+2016-03-02  Filip Pizlo  <fpizlo@apple.com>
+
+        RegExpPrototype should check for exceptions after calling toString and doing so should not be expensive
+        https://bugs.webkit.org/show_bug.cgi?id=154927
+
+        Reviewed by Saam Barati.
+
+        While working on regexp optimizations, I found that RegExpPrototype calls toString(), an
+        effectful operation that could do anything, without then checking for hadException().
+
+        So I added a call to hadException().
+
+        But that regressed Octane/regexp by 5%!  That's a lot!  It turns out that
+        exec->hadException() is soooper slow. So, I made it cheaper to check for exceptions from
+        toString(): there is now a variant called toStringFast() that returns null iff it throws an
+        exception.
+
+        This allowed me to add the exception check without regressing perf.
+
+        Note that toString() must retain its old behavior of returning an empty string on exception.
+        There is just too much code that relies on that behavior.
+
+        * runtime/JSCJSValue.cpp:
+        (JSC::JSValue::isValidCallee):
+        (JSC::JSValue::toStringSlowCase):
+        (JSC::JSValue::toWTFStringSlowCase):
+        * runtime/JSCJSValue.h:
+        (JSC::JSValue::asValue):
+        * runtime/JSString.h:
+        (JSC::JSValue::toString):
+        (JSC::JSValue::toStringFast):
+        (JSC::JSValue::toWTFString):
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncTest):
+        (JSC::regExpProtoFuncExec):
+        (JSC::regExpProtoFuncCompile):
+
+2016-03-02  Saam barati  <sbarati@apple.com>
+
+        clean up JSObject::isExtensibleInline and JSObject::setPrototypeOfInline, and rename setPrototypeOf to setPrototype
+        https://bugs.webkit.org/show_bug.cgi?id=154942
+
+        Reviewed by Benjamin Poulain.
+
+        These don't need to be inlined in the way they are.
+        Doing dynamic dispatch is ok performance wise until
+        we have evidence stating otherwise.
+
+        * API/JSObjectRef.cpp:
+        (JSObjectSetPrototype):
+        (JSObjectHasProperty):
+        * runtime/ClassInfo.h:
+        * runtime/IntlCollatorConstructor.cpp:
+        (JSC::constructIntlCollator):
+        * runtime/IntlDateTimeFormatConstructor.cpp:
+        (JSC::constructIntlDateTimeFormat):
+        * runtime/IntlNumberFormatConstructor.cpp:
+        (JSC::constructIntlNumberFormat):
+        * runtime/JSCell.cpp:
+        (JSC::JSCell::isExtensible):
+        (JSC::JSCell::setPrototype):
+        (JSC::JSCell::setPrototypeOf): Deleted.
+        * runtime/JSCell.h:
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoSetter):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::JSObject::setPrototype):
+        (JSC::JSObject::allowsAccessFrom):
+        (JSC::JSObject::isExtensible):
+        (JSC::JSObject::reifyAllStaticProperties):
+        (JSC::JSObject::defineOwnNonIndexProperty):
+        (JSC::JSObject::setPrototypeOf): Deleted.
+        * runtime/JSObject.h:
+        (JSC::JSObject::mayInterceptIndexedAccesses):
+        (JSC::JSObject::indexingShouldBeSparse):
+        (JSC::JSObject::setPrototypeOfInline): Deleted.
+        (JSC::JSObject::isExtensibleInline): Deleted.
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorSetPrototypeOf):
+        (JSC::objectConstructorIsSealed):
+        (JSC::objectConstructorIsFrozen):
+        (JSC::objectConstructorIsExtensible):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::performInternalMethodGetOwnProperty):
+        (JSC::ProxyObject::performHasProperty):
+        (JSC::ProxyObject::performPreventExtensions):
+        (JSC::ProxyObject::performIsExtensible):
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectIsExtensible):
+        (JSC::reflectObjectSetPrototypeOf):
+        * runtime/StringObject.cpp:
+        (JSC::StringObject::defineOwnProperty):
+
+2016-03-02  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Moved PRE/POST_BUILD_COMMAND to WEBKIT_FRAMEWORK.
+        https://bugs.webkit.org/show_bug.cgi?id=154651
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt: Moved shared code to WEBKIT_FRAMEWORK macro.
+
+2016-03-02  Saam barati  <sbarati@apple.com>
+
+        [[SetPrototypeOf]] should be a fully virtual method in ClassInfo::methodTable
+        https://bugs.webkit.org/show_bug.cgi?id=154897
+
+        Reviewed by Filip Pizlo.
+
+        This patch makes us more consistent with how the ES6 specification models the
+        [[SetPrototypeOf]] trap. Moving this method into ClassInfo::methodTable 
+        is a prerequisite for implementing Proxy.[[SetPrototypeOf]]. This patch
+        still allows directly setting the prototype for situations where this
+        is the desired behavior. This is equivalent to setting the internal
+        [[Prototype]] field as described in the specification. 
+
+        * API/JSClassRef.cpp:
+        (OpaqueJSClass::prototype):
+        * API/JSObjectRef.cpp:
+        (JSObjectMake):
+        (JSObjectSetPrototype):
+        (JSObjectHasProperty):
+        * API/JSWrapperMap.mm:
+        (makeWrapper):
+        * runtime/ClassInfo.h:
+        * runtime/IntlCollatorConstructor.cpp:
+        (JSC::constructIntlCollator):
+        * runtime/IntlDateTimeFormatConstructor.cpp:
+        (JSC::constructIntlDateTimeFormat):
+        * runtime/IntlNumberFormatConstructor.cpp:
+        (JSC::constructIntlNumberFormat):
+        * runtime/JSCell.cpp:
+        (JSC::JSCell::isExtensible):
+        (JSC::JSCell::setPrototypeOf):
+        * runtime/JSCell.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::resetPrototype):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoSetter):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::switchToSlowPutArrayStorage):
+        (JSC::JSObject::setPrototypeDirect):
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::JSObject::setPrototypeOf):
+        (JSC::JSObject::allowsAccessFrom):
+        (JSC::JSObject::setPrototype): Deleted.
+        * runtime/JSObject.h:
+        (JSC::JSObject::setPrototypeOfInline):
+        (JSC::JSObject::mayInterceptIndexedAccesses):
+        * runtime/JSProxy.cpp:
+        (JSC::JSProxy::setTarget):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorSetPrototypeOf):
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectSetPrototypeOf):
+
+2016-03-02  Saam barati  <sbarati@apple.com>
+
+        SIGSEGV in Proxy [[Get]] and [[Set]] recursion
+        https://bugs.webkit.org/show_bug.cgi?id=154854
+
+        Reviewed by Yusuke Suzuki.
+
+        We need to be aware of the possibility that the VM
+        may recurse and that we can stack overflow.
+
+        * runtime/ProxyObject.cpp:
+        (JSC::performProxyGet):
+        (JSC::ProxyObject::performPut):
+        * tests/stress/proxy-get-and-set-recursion-stack-overflow.js: Added.
+        (assert):
+        (testStackOverflowGet):
+        (testStackOverflowIndexedGet):
+        (testStackOverflowSet):
+        (testStackOverflowIndexedSet):
+
+2016-03-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Use a Move without REX byte when possible
+        https://bugs.webkit.org/show_bug.cgi?id=154801
+
+        Reviewed by Alex Christensen.
+
+        Filip wrote an optimization in the register allocator
+        to use 32bit "Move" when we don't care about the top bytes.
+
+        When I moved the commutative ops to the fake 3 operands instruction
+        I largely destroyed this since all the "Moves" became full register.
+
+        In this patch, I switch back to 32bit "Moves" for 32bit operations.
+
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::and32):
+        (JSC::MacroAssemblerX86Common::lshift32):
+        (JSC::MacroAssemblerX86Common::mul32):
+        (JSC::MacroAssemblerX86Common::or32):
+        (JSC::MacroAssemblerX86Common::rshift32):
+        (JSC::MacroAssemblerX86Common::urshift32):
+        (JSC::MacroAssemblerX86Common::xor32):
+        (JSC::MacroAssemblerX86Common::branchAdd32):
+        (JSC::MacroAssemblerX86Common::branchMul32):
+        (JSC::MacroAssemblerX86Common::branchSub32):
+        (JSC::MacroAssemblerX86Common::move32IfNeeded):
+
+2016-03-01  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Simplify ArithMod(ArithMod(x, const1), const2) if const2 >= const1
+        https://bugs.webkit.org/show_bug.cgi?id=154904
+
+        Reviewed by Saam Barati.
+
+        The ASM test "ubench" has a "x % 10 % 255".
+        The second modulo should be eliminated.
+
+        This is a 15% improvement on ASMJS' ubench.
+
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+        * tests/stress/arith-modulo-twice.js: Added.
+        (opaqueModuloSmaller):
+        (opaqueModuloEqual):
+        (opaqueModuloLarger):
+        (opaqueModuloSmallerNeg):
+        (opaqueModuloEqualNeg):
+        (opaqueModuloLargerNeg):
+        (opaqueExpectedOther):
+
+2016-03-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Unreviewed. Update the status of Proxy objects to "In Development".
+
+        * features.json:
+
+2016-03-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197226 and r197256.
+        https://bugs.webkit.org/show_bug.cgi?id=154910
+
+        Caused crashes on Mac 32-bit and on ARM (Requested by ap on
+        #webkit).
+
+        Reverted changesets:
+
+        "Remove the on demand executable allocator"
+        https://bugs.webkit.org/show_bug.cgi?id=154749
+        http://trac.webkit.org/changeset/197226
+
+        "CLoop build fix."
+        http://trac.webkit.org/changeset/197256
+
+2016-03-01  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Simplify some StringBuilder appends
+        https://bugs.webkit.org/show_bug.cgi?id=154902
+
+        Reviewed by Mark Lam.
+
+        * runtime/ExceptionHelpers.cpp:
+        (JSC::notAFunctionSourceAppender):
+        * runtime/SamplingProfiler.cpp:
+        (JSC::SamplingProfiler::stackTracesAsJSON):
+        Use StringBuilder::append(char) instead of append(char*) where possible.
+
+2016-03-01  Keith Miller  <keith_miller@apple.com>
+
+        Promise.prototype.then should use Symbol.species to construct the return Promise
+        https://bugs.webkit.org/show_bug.cgi?id=154862
+
+        Reviewed by Saam Barati.
+
+        * builtins/PromisePrototype.js:
+        * tests/stress/promise-species-functions.js: Added.
+        (Symbol.species):
+        (id):
+        (funcThrows):
+        (makeC):
+        (test.species):
+        (test.speciesThrows):
+        (test):
+
+2016-03-01  Michael Saboff  <msaboff@apple.com>
+
+        [ES6] Add support for Unicode regular expressions
+        https://bugs.webkit.org/show_bug.cgi?id=154842
+
+        Reviewed by Filip Pizlo.
+
+        Added processing of Unicode regular expressions to the Yarr interpreter.
+
+        Changed parsing of regular expression patterns and PatternTerms to process characters as
+        UChar32 in the Yarr code.  The parser converts matched surrogate pairs into the appropriate
+        Unicode character when the expression is parsed.  When matching a unicode expression and
+        reading source characters, we convert proper surrogate pair into a Unicode character and
+        advance the source cursor, "pos", one more position.  The exception to this is when we
+        know when generating a fixed character atom that we need to match a unicode character
+        that doesn't fit in 16 bits.  The code calls this an extendedUnicodeCharacter and has a
+        helper to determine this.
+
+        Added 'u' flag and 'unicode' identifier to regular expression classes.  Added an "isUnicode"
+        parameter to YarrPattern pattern() and internal users of that function.
+
+        Updated the generation of the canonicalization tables to include a new set a tables that
+        follow the ES 6.0, 21.2.2.8.2 Step 2.  Renamed the YarrCanonicalizeUCS2.* files to
+        YarrCanonicalizeUnicode.*. 
+
+        Added a new Layout/js test that tests the added functionality.  Updated other tests that
+        have minor es6 unicode checks and look for valid flags.
+
+        Ran the ChakraCore Unicode regular expression tests as well.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.vcxproj/JavaScriptCore.vcxproj:
+        * JavaScriptCore.vcxproj/JavaScriptCore.vcxproj.filters:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+
+        * inspector/ContentSearchUtilities.cpp:
+        (Inspector::ContentSearchUtilities::findMagicComment):
+        * yarr/RegularExpression.cpp:
+        (JSC::Yarr::RegularExpression::Private::compile):
+        Updated use of pattern().
+
+        * runtime/CommonIdentifiers.h:
+        * runtime/RegExp.cpp:
+        (JSC::regExpFlags):
+        (JSC::RegExpFunctionalTestCollector::outputOneTest):
+        (JSC::RegExp::finishCreation):
+        (JSC::RegExp::compile):
+        (JSC::RegExp::compileMatchOnly):
+        * runtime/RegExp.h:
+        * runtime/RegExpKey.h:
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncCompile):
+        (JSC::flagsString):
+        (JSC::regExpProtoGetterMultiline):
+        (JSC::regExpProtoGetterUnicode):
+        (JSC::regExpProtoGetterFlags):
+        Updated for new 'y' (unicode) flag.  Add check to use the interpreter for unicode regular expressions.
+
+        * tests/es6.yaml:
+        * tests/stress/static-getter-in-names.js:
+        Updated tests for new flag and for passing the minimal es6 regular expression processing.
+
+        * yarr/Yarr.h: Updated the size of information now kept for backtracking.
+
+        * yarr/YarrCanonicalizeUCS2.cpp: Removed.
+        * yarr/YarrCanonicalizeUCS2.h: Removed.
+        * yarr/YarrCanonicalizeUCS2.js: Removed.
+        * yarr/YarrCanonicalizeUnicode.cpp: Copied from Source/JavaScriptCore/yarr/YarrCanonicalizeUCS2.cpp.
+        * yarr/YarrCanonicalizeUnicode.h: Copied from Source/JavaScriptCore/yarr/YarrCanonicalizeUCS2.h.
+        (JSC::Yarr::canonicalCharacterSetInfo):
+        (JSC::Yarr::canonicalRangeInfoFor):
+        (JSC::Yarr::getCanonicalPair):
+        (JSC::Yarr::isCanonicallyUnique):
+        (JSC::Yarr::areCanonicallyEquivalent):
+        (JSC::Yarr::rangeInfoFor): Deleted.
+        * yarr/YarrCanonicalizeUnicode.js: Copied from Source/JavaScriptCore/yarr/YarrCanonicalizeUCS2.js.
+        (printHeader):
+        (printFooter):
+        (hex):
+        (canonicalize):
+        (canonicalizeUnicode):
+        (createUCS2CanonicalGroups):
+        (createUnicodeCanonicalGroups):
+        (cu.in.groupedCanonically.characters.sort): Deleted.
+        (cu.in.groupedCanonically.else): Deleted.
+        Refactored to output two sets of tables, one for UCS2 and one for Unicode.  The UCS2 tables follow
+        the legacy canonicalization rules now specified in ES 6.0, 21.2.2.8.2 Step 3.  The new Unicode
+        tables follow the rules specified in ES 6.0, 21.2.2.8.2 Step 2.  Eliminated the unused Latin1 tables.
+
+        * yarr/YarrInterpreter.cpp:
+        (JSC::Yarr::Interpreter::InputStream::InputStream):
+        (JSC::Yarr::Interpreter::InputStream::readChecked):
+        (JSC::Yarr::Interpreter::InputStream::readSurrogatePairChecked):
+        (JSC::Yarr::Interpreter::InputStream::reread):
+        (JSC::Yarr::Interpreter::InputStream::prev):
+        (JSC::Yarr::Interpreter::testCharacterClass):
+        (JSC::Yarr::Interpreter::checkCharacter):
+        (JSC::Yarr::Interpreter::checkSurrogatePair):
+        (JSC::Yarr::Interpreter::checkCasedCharacter):
+        (JSC::Yarr::Interpreter::tryConsumeBackReference):
+        (JSC::Yarr::Interpreter::backtrackPatternCharacter):
+        (JSC::Yarr::Interpreter::matchCharacterClass):
+        (JSC::Yarr::Interpreter::backtrackCharacterClass):
+        (JSC::Yarr::Interpreter::matchParenthesesTerminalEnd):
+        (JSC::Yarr::Interpreter::matchDisjunction):
+        (JSC::Yarr::Interpreter::Interpreter):
+        (JSC::Yarr::ByteCompiler::assertionWordBoundary):
+        (JSC::Yarr::ByteCompiler::atomPatternCharacter):
+        * yarr/YarrInterpreter.h:
+        (JSC::Yarr::ByteTerm::ByteTerm):
+        (JSC::Yarr::BytecodePattern::BytecodePattern):
+        * yarr/YarrJIT.cpp:
+        (JSC::Yarr::YarrGenerator::optimizeAlternative):
+        (JSC::Yarr::YarrGenerator::matchCharacterClassRange):
+        (JSC::Yarr::YarrGenerator::matchCharacterClass):
+        (JSC::Yarr::YarrGenerator::notAtEndOfInput):
+        (JSC::Yarr::YarrGenerator::jumpIfCharNotEquals):
+        (JSC::Yarr::YarrGenerator::generatePatternCharacterOnce):
+        (JSC::Yarr::YarrGenerator::generatePatternCharacterFixed):
+        (JSC::Yarr::YarrGenerator::generatePatternCharacterGreedy):
+        (JSC::Yarr::YarrGenerator::backtrackPatternCharacterNonGreedy):
+        * yarr/YarrParser.h:
+        (JSC::Yarr::Parser::CharacterClassParserDelegate::atomPatternCharacter):
+        (JSC::Yarr::Parser::Parser):
+        (JSC::Yarr::Parser::parseEscape):
+        (JSC::Yarr::Parser::consumePossibleSurrogatePair):
+        (JSC::Yarr::Parser::parseCharacterClass):
+        (JSC::Yarr::Parser::parseTokens):
+        (JSC::Yarr::Parser::parse):
+        (JSC::Yarr::Parser::atEndOfPattern):
+        (JSC::Yarr::Parser::patternRemaining):
+        (JSC::Yarr::Parser::peek):
+        (JSC::Yarr::parse):
+        * yarr/YarrPattern.cpp:
+        (JSC::Yarr::CharacterClassConstructor::CharacterClassConstructor):
+        (JSC::Yarr::CharacterClassConstructor::append):
+        (JSC::Yarr::CharacterClassConstructor::putChar):
+        (JSC::Yarr::CharacterClassConstructor::putUnicodeIgnoreCase):
+        (JSC::Yarr::CharacterClassConstructor::putRange):
+        (JSC::Yarr::CharacterClassConstructor::charClass):
+        (JSC::Yarr::CharacterClassConstructor::addSorted):
+        (JSC::Yarr::CharacterClassConstructor::addSortedRange):
+        (JSC::Yarr::YarrPatternConstructor::YarrPatternConstructor):
+        (JSC::Yarr::YarrPatternConstructor::assertionWordBoundary):
+        (JSC::Yarr::YarrPatternConstructor::atomPatternCharacter):
+        (JSC::Yarr::YarrPatternConstructor::atomCharacterClassBegin):
+        (JSC::Yarr::YarrPatternConstructor::atomCharacterClassAtom):
+        (JSC::Yarr::YarrPatternConstructor::atomCharacterClassRange):
+        (JSC::Yarr::YarrPatternConstructor::setupAlternativeOffsets):
+        (JSC::Yarr::YarrPattern::compile):
+        (JSC::Yarr::YarrPattern::YarrPattern):
+        * yarr/YarrPattern.h:
+        (JSC::Yarr::CharacterRange::CharacterRange):
+        (JSC::Yarr::CharacterClass::CharacterClass):
+        (JSC::Yarr::PatternTerm::PatternTerm):
+        (JSC::Yarr::YarrPattern::reset):
+        * yarr/YarrSyntaxChecker.cpp:
+        (JSC::Yarr::SyntaxChecker::assertionBOL):
+        (JSC::Yarr::SyntaxChecker::assertionEOL):
+        (JSC::Yarr::SyntaxChecker::assertionWordBoundary):
+        (JSC::Yarr::SyntaxChecker::atomPatternCharacter):
+        (JSC::Yarr::SyntaxChecker::atomBuiltInCharacterClass):
+        (JSC::Yarr::SyntaxChecker::atomCharacterClassBegin):
+        (JSC::Yarr::SyntaxChecker::atomCharacterClassAtom):
+        (JSC::Yarr::checkSyntax):
+
+2016-03-01  Saam barati  <sbarati@apple.com>
+
+        Remove FIXMEs and add valid test cases after necessary patch has landed.
+
+        Rubber stamped by Mark Lam.
+
+        * tests/stress/proxy-prevent-extensions.js:
+        (assert.Object.isSealed):
+        (assert):
+
+2016-03-01  Saam barati  <sbarati@apple.com>
+
+        [ES6] Implement Proxy.[[IsExtensible]]
+        https://bugs.webkit.org/show_bug.cgi?id=154872
+
+        Reviewed by Oliver Hunt.
+
+        This patch is a direct implementation of Proxy.[[IsExtensible]] with respect to section 9.5.3
+        of the ECMAScript 6 spec.
+        https://tc39.github.io/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-isextensible
+
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::preventExtensions):
+        (JSC::ProxyObject::performIsExtensible):
+        (JSC::ProxyObject::isExtensible):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        * tests/es6.yaml:
+        * tests/stress/proxy-is-extensible.js: Added.
+        (assert):
+        (throw.new.Error.let.handler.get isExtensible):
+        (throw.new.Error):
+        (assert.let.handler.isExtensible):
+        (assert.):
+        (let.handler.isExtensible):
+
+2016-03-01  Saam barati  <sbarati@apple.com>
+
+        [ES6] Implement Proxy.[[PreventExtensions]]
+        https://bugs.webkit.org/show_bug.cgi?id=154873
+
+        Reviewed by Oliver Hunt.
+
+        This patch is a direct implementation of Proxy.[[PreventExtensions]] with respect to section 9.5.4
+        of the ECMAScript 6 spec.
+        https://tc39.github.io/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-preventextensions
+
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::deletePropertyByIndex):
+        (JSC::ProxyObject::performPreventExtensions):
+        (JSC::ProxyObject::preventExtensions):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        * tests/es6.yaml:
+        * tests/stress/proxy-prevent-extensions.js: Added.
+        (assert):
+        (throw.new.Error.let.handler.get preventExtensions):
+        (throw.new.Error):
+        (assert.let.handler.preventExtensions):
+        (assert.):
+        (let.handler.preventExtensions):
+        (assert.Object.isSealed.let.handler.preventExtensions):
+        (assert.Object.isSealed):
+
+2016-03-01  Filip Pizlo  <fpizlo@apple.com>
+
+        FTL should simplify StringReplace with an empty replacement string
+        https://bugs.webkit.org/show_bug.cgi?id=154871
+
+        Reviewed by Michael Saboff.
+
+        This is a simple and hugely profitable change. If we do a string.replace(/things/, ""), then
+        this calls directly into StringPrototype's replace-with-empty-string logic instead of going
+        through stuff that does checks before reaching that same conclusion.
+
+        This speeds up Octane/regexp by about 6-10%. It also speeds up the attached microbenchmark by
+        about 7%.
+
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileStringReplace):
+        * runtime/StringPrototype.cpp:
+        (JSC::jsSpliceSubstringsWithSeparators):
+        (JSC::removeUsingRegExpSearch):
+        (JSC::replaceUsingRegExpSearch):
+        (JSC::operationStringProtoFuncReplaceRegExpEmptyStr):
+        (JSC::operationStringProtoFuncReplaceRegExpString):
+        * runtime/StringPrototype.h:
+
+2016-03-01  Alex Christensen  <achristensen@webkit.org>
+
+        Reduce size of internal windows build output
+        https://bugs.webkit.org/show_bug.cgi?id=154763
+
+        Reviewed by Brent Fulgham.
+
+        * JavaScriptCore.vcxproj/JavaScriptCore.proj:
+
+2016-03-01  Saam barati  <sbarati@apple.com>
+
+        [[IsExtensible]] should be a virtual method in the method table
+        https://bugs.webkit.org/show_bug.cgi?id=154799
+
+        Reviewed by Mark Lam.
+
+        This patch makes us more consistent with how the ES6 specification models the
+        [[IsExtensible]] trap. Moving this method into ClassInfo::methodTable 
+        is a prerequisite for implementing Proxy.[[IsExtensible]].
+
+        * runtime/ClassInfo.h:
+        * runtime/JSCell.cpp:
+        (JSC::JSCell::preventExtensions):
+        (JSC::JSCell::isExtensible):
+        * runtime/JSCell.h:
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoSetter):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::preventExtensions):
+        (JSC::JSObject::isExtensible):
+        (JSC::JSObject::reifyAllStaticProperties):
+        (JSC::JSObject::defineOwnIndexedProperty):
+        (JSC::JSObject::putByIndexBeyondVectorLengthWithArrayStorage):
+        (JSC::JSObject::putDirectIndexBeyondVectorLengthWithArrayStorage):
+        (JSC::JSObject::defineOwnNonIndexProperty):
+        (JSC::JSObject::defineOwnProperty):
+        * runtime/JSObject.h:
+        (JSC::JSObject::isSealed):
+        (JSC::JSObject::isFrozen):
+        (JSC::JSObject::isExtensibleImpl):
+        (JSC::JSObject::isStructureExtensible):
+        (JSC::JSObject::isExtensibleInline):
+        (JSC::JSObject::indexingShouldBeSparse):
+        (JSC::JSObject::putDirectInternal):
+        (JSC::JSObject::isExtensible): Deleted.
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorSetPrototypeOf):
+        (JSC::objectConstructorIsSealed):
+        (JSC::objectConstructorIsFrozen):
+        (JSC::objectConstructorIsExtensible):
+        (JSC::objectConstructorIs):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::performInternalMethodGetOwnProperty):
+        (JSC::ProxyObject::performHasProperty):
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectIsExtensible):
+        (JSC::reflectObjectSetPrototypeOf):
+        * runtime/SparseArrayValueMap.cpp:
+        (JSC::SparseArrayValueMap::putEntry):
+        (JSC::SparseArrayValueMap::putDirect):
+        * runtime/StringObject.cpp:
+        (JSC::StringObject::defineOwnProperty):
+        * runtime/Structure.cpp:
+        (JSC::Structure::isSealed):
+        (JSC::Structure::isFrozen):
+        * runtime/Structure.h:
+
+2016-03-01  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, fix CLOOP build.
+
+        * jit/JITOperations.h:
+
+2016-03-01  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES6] Arrow function. Some not used byte code is emited
+        https://bugs.webkit.org/show_bug.cgi?id=154639
+
+        Reviewed by Saam Barati.
+
+        Currently bytecode that is generated for arrow function is not optimal. 
+        Current fix removed following unnecessary bytecode:
+        1.create_lexical_environment not emited always for arrow function, only if some of 
+        features(this/super/arguments/eval) is used inside of the arrow function. 
+        2.load 'this' from arrow function scope in constructor is done only if super 
+        contains in arrow function 
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::isSuperCallUsedInInnerArrowFunction):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::ThisNode::emitBytecode):
+        (JSC::FunctionNode::emitBytecode):
+        * parser/Nodes.h:
+        (JSC::ScopeNode::doAnyInnerArrowFunctionsUseAnyFeature):
+        * tests/stress/arrowfunction-lexical-bind-supercall-4.js:
+
+2016-02-29  Filip Pizlo  <fpizlo@apple.com>
+
+        Turn String.prototype.replace into an intrinsic
+        https://bugs.webkit.org/show_bug.cgi?id=154835
+
+        Reviewed by Michael Saboff.
+
+        Octane/regexp spends a lot of time in String.prototype.replace(). That function does a lot
+        of checks to see if the parameters are what they are likely to often be (a string, a
+        regexp, and a string). The intuition of this patch is that it's good to remove those checks
+        and it's good to call the native function as directly as possible.
+
+        This yields a 10% speed-up on a replace microbenchmark and a 3% speed-up on Octane/regexp.
+        It also improves Octane/jquery.
+
+        This is only the beginning of what I want to do with replace optimizations. The other
+        optimizations will rely on StringReplace being revealed as a construct in DFG IR.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/SpeculatedType.cpp:
+        (JSC::dumpSpeculation):
+        (JSC::speculationToAbbreviatedString):
+        (JSC::speculationFromClassInfo):
+        * bytecode/SpeculatedType.h:
+        (JSC::isStringOrStringObjectSpeculation):
+        (JSC::isRegExpObjectSpeculation):
+        (JSC::isBoolInt32Speculation):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::shouldSpeculateStringOrStringObject):
+        (JSC::DFG::Node::shouldSpeculateRegExpObject):
+        (JSC::DFG::Node::shouldSpeculateSymbol):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        (JSC::DFG::PredictionPropagationPhase::propagate):
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::SafeToExecuteEdge::operator()):
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::speculateFinalObject):
+        (JSC::DFG::SpeculativeJIT::speculateRegExpObject):
+        (JSC::DFG::SpeculativeJIT::speculateObjectOrOther):
+        (JSC::DFG::SpeculativeJIT::speculate):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGUseKind.cpp:
+        (WTF::printInternal):
+        * dfg/DFGUseKind.h:
+        (JSC::DFG::typeFilterFor):
+        (JSC::DFG::isCell):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileNewRegexp):
+        (JSC::FTL::DFG::LowerDFGToB3::compileStringReplace):
+        (JSC::FTL::DFG::LowerDFGToB3::didOverflowStack):
+        (JSC::FTL::DFG::LowerDFGToB3::speculate):
+        (JSC::FTL::DFG::LowerDFGToB3::speculateFinalObject):
+        (JSC::FTL::DFG::LowerDFGToB3::speculateRegExpObject):
+        (JSC::FTL::DFG::LowerDFGToB3::speculateString):
+        * jit/JITOperations.h:
+        * runtime/Intrinsic.h:
+        * runtime/JSType.h:
+        * runtime/RegExpObject.h:
+        (JSC::RegExpObject::createStructure):
+        * runtime/StringPrototype.cpp:
+        (JSC::StringPrototype::finishCreation):
+        (JSC::removeUsingRegExpSearch):
+        (JSC::replaceUsingRegExpSearch):
+        (JSC::operationStringProtoFuncReplaceRegExpString):
+        (JSC::replaceUsingStringSearch):
+        (JSC::stringProtoFuncRepeat):
+        (JSC::replace):
+        (JSC::stringProtoFuncReplace):
+        (JSC::operationStringProtoFuncReplaceGeneric):
+        (JSC::stringProtoFuncToString):
+        * runtime/StringPrototype.h:
+
+2016-03-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197056.
+        https://bugs.webkit.org/show_bug.cgi?id=154870
+
+        broke win ews (Requested by alexchristensen on #webkit).
+
+        Reverted changeset:
+
+        "[cmake] Moved PRE/POST_BUILD_COMMAND to WEBKIT_FRAMEWORK."
+        https://bugs.webkit.org/show_bug.cgi?id=154651
+        http://trac.webkit.org/changeset/197056
+
 2016-02-29  Saam barati  <sbarati@apple.com>
 
         [[PreventExtensions]] should be a virtual method in the method table.

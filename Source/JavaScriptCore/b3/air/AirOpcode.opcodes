@@ -797,7 +797,7 @@ MoveDoubleConditionally32 U:G:32, U:G:32, U:G:32, U:F:64, U:F:64, D:F:64
 
 MoveDoubleConditionallyTest32 U:G:32, U:G:32, U:G:32, U:F:64, U:F:64, D:F:64
     ResCond, Tmp, Tmp, Tmp, Tmp, Tmp
-    ResCond, Tmp, BitImm, Tmp, Tmp, Tmp
+    x86: ResCond, Tmp, Imm, Tmp, Tmp, Tmp
     x86: ResCond, Addr, Imm, Tmp, Tmp, Tmp
     x86: ResCond, Index, Imm, Tmp, Tmp, Tmp
 

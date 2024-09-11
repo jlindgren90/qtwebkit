@@ -119,6 +119,8 @@ public:
     void applicationDidBecomeActive();
     bool isVisible() const;
 
+    PlatformWebVideoFullscreenInterface* controlsManagerInterface();
+
 private:
     friend class WebVideoFullscreenModelContext;
 
@@ -133,6 +135,7 @@ private:
 
     // Messages from WebVideoFullscreenManager
     void setupFullscreenWithID(uint64_t contextId, uint32_t videoLayerID, const WebCore::IntRect& initialRect, float hostingScaleFactor, WebCore::HTMLMediaElementEnums::VideoFullscreenMode, bool allowsPictureInPicture);
+    void setUpVideoControlsManagerWithID(uint64_t contextId);
     void resetMediaState(uint64_t contextId);
     void setCurrentTime(uint64_t contextId, double currentTime, double hostTime);
     void setBufferedTime(uint64_t contextId, double bufferedTime);
@@ -149,6 +152,9 @@ private:
     void exitFullscreen(uint64_t contextId, WebCore::IntRect finalRect);
     void cleanupFullscreen(uint64_t contextId);
     void preparedToReturnToInline(uint64_t contextId, bool visible, WebCore::IntRect inlineRect);
+#if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+    void exitFullscreenWithoutAnimationToMode(uint64_t contextId, WebCore::HTMLMediaElementEnums::VideoFullscreenMode);
+#endif
 
     // Messages to WebVideoFullscreenManager
     void play(uint64_t contextId);
@@ -175,6 +181,7 @@ private:
 
     WebPageProxy* m_page;
     HashMap<uint64_t, ModelInterfaceTuple> m_contextMap;
+    uint64_t m_controlsManagerContextId { 0 };
 
 };
     

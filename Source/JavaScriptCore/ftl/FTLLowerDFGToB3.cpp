@@ -923,6 +923,15 @@ private:
         case NewRegexp:
             compileNewRegexp();
             break;
+        case StringReplace:
+            compileStringReplace();
+            break;
+        case GetRegExpObjectLastIndex:
+            compileGetRegExpObjectLastIndex();
+            break;
+        case SetRegExpObjectLastIndex:
+            compileSetRegExpObjectLastIndex();
+            break;
 
         case PhantomLocal:
         case LoopHint:
@@ -6431,18 +6440,36 @@ private:
 
     void compileRegExpExec()
     {
-        LValue base = lowCell(m_node->child1());
-        LValue argument = lowCell(m_node->child2());
+        if (m_node->child1().useKind() == CellUse
+            && m_node->child2().useKind() == CellUse) {
+            LValue base = lowCell(m_node->child1());
+            LValue argument = lowCell(m_node->child2());
+            setJSValue(
+                vmCall(Int64, m_out.operation(operationRegExpExec), m_callFrame, base, argument));
+            return;
+        }
+        
+        LValue base = lowJSValue(m_node->child1());
+        LValue argument = lowJSValue(m_node->child2());
         setJSValue(
-            vmCall(Int64, m_out.operation(operationRegExpExec), m_callFrame, base, argument));
+            vmCall(Int64, m_out.operation(operationRegExpExecGeneric), m_callFrame, base, argument));
     }
 
     void compileRegExpTest()
     {
-        LValue base = lowCell(m_node->child1());
-        LValue argument = lowCell(m_node->child2());
+        if (m_node->child1().useKind() == CellUse
+            && m_node->child2().useKind() == CellUse) {
+            LValue base = lowCell(m_node->child1());
+            LValue argument = lowCell(m_node->child2());
+            setBoolean(
+                vmCall(Int32, m_out.operation(operationRegExpTest), m_callFrame, base, argument));
+            return;
+        }
+
+        LValue base = lowJSValue(m_node->child1());
+        LValue argument = lowJSValue(m_node->child2());
         setBoolean(
-            vmCall(Int32, m_out.operation(operationRegExpTest), m_callFrame, base, argument));
+            vmCall(Int32, m_out.operation(operationRegExpTestGeneric), m_callFrame, base, argument));
     }
 
     void compileNewRegexp()
@@ -6457,6 +6484,63 @@ private:
             m_out.constIntPtr(codeBlock()->regexp(m_node->regexpIndex())));
         
         setJSValue(result);
+    }
+
+    void compileStringReplace()
+    {
+        if (m_node->child1().useKind() == StringUse
+            && m_node->child2().useKind() == RegExpObjectUse
+            && m_node->child3().useKind() == StringUse) {
+
+            if (JSString* replace = m_node->child3()->dynamicCastConstant<JSString*>()) {
+                if (!replace->length()) {
+                    LValue string = lowString(m_node->child1());
+                    LValue regExp = lowRegExpObject(m_node->child2());
+
+                    LValue result = vmCall(
+                        Int64, m_out.operation(operationStringProtoFuncReplaceRegExpEmptyStr),
+                        m_callFrame, string, regExp);
+
+                    setJSValue(result);
+                    return;
+                }
+            }
+            
+            LValue string = lowString(m_node->child1());
+            LValue regExp = lowRegExpObject(m_node->child2());
+            LValue replace = lowString(m_node->child3());
+
+            LValue result = vmCall(
+                Int64, m_out.operation(operationStringProtoFuncReplaceRegExpString),
+                m_callFrame, string, regExp, replace);
+
+            setJSValue(result);
+            return;
+        }
+        
+        LValue result = vmCall(
+            Int64, m_out.operation(operationStringProtoFuncReplaceGeneric), m_callFrame,
+            lowJSValue(m_node->child1()), lowJSValue(m_node->child2()),
+            lowJSValue(m_node->child3()));
+
+        setJSValue(result);
+    }
+
+    void compileGetRegExpObjectLastIndex()
+    {
+        setJSValue(m_out.load64(lowRegExpObject(m_node->child1()), m_heaps.RegExpObject_lastIndex));
+    }
+
+    void compileSetRegExpObjectLastIndex()
+    {
+        LValue regExp = lowRegExpObject(m_node->child1());
+        LValue value = lowJSValue(m_node->child2());
+
+        speculate(
+            ExoticObjectMode, noValue(), nullptr,
+            m_out.isZero32(m_out.load8ZeroExt32(regExp, m_heaps.RegExpObject_lastIndexIsWritable)));
+        
+        m_out.store64(value, regExp, m_heaps.RegExpObject_lastIndex);
     }
 
     LValue didOverflowStack()
@@ -8885,6 +8969,13 @@ private:
         
         LValue result = lowCell(edge, mode);
         speculateObject(edge, result);
+        return result;
+    }
+
+    LValue lowRegExpObject(Edge edge)
+    {
+        LValue result = lowCell(edge);
+        speculateRegExpObject(edge, result);
         return result;
     }
     

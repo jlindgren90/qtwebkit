@@ -201,9 +201,15 @@ void HTMLTextAreaElement::parseAttribute(const QualifiedName& name, const Atomic
     } else if (name == accesskeyAttr) {
         // ignore for the moment
     } else if (name == maxlengthAttr)
-        updateValidity();
+        maxLengthAttributeChanged(value);
     else
         HTMLTextFormControlElement::parseAttribute(name, value);
+}
+
+void HTMLTextAreaElement::maxLengthAttributeChanged(const AtomicString& newValue)
+{
+    m_maxLength = parseHTMLNonNegativeInteger(newValue).valueOr(-1);
+    updateValidity();
 }
 
 RenderPtr<RenderElement> HTMLTextAreaElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
@@ -291,7 +297,7 @@ void HTMLTextAreaElement::handleBeforeTextInsertedEvent(BeforeTextInsertedEvent*
 {
     ASSERT(event);
     ASSERT(renderer());
-    int signedMaxLength = maxLength();
+    int signedMaxLength = effectiveMaxLength();
     if (signedMaxLength < 0)
         return;
     unsigned unsignedMaxLength = static_cast<unsigned>(signedMaxLength);
@@ -421,22 +427,6 @@ void HTMLTextAreaElement::setDefaultValue(const String& defaultValue)
         setNonDirtyValue(value);
 }
 
-int HTMLTextAreaElement::maxLength() const
-{
-    auto optionalMaxLength = parseHTMLNonNegativeInteger(fastGetAttribute(maxlengthAttr));
-    if (!optionalMaxLength)
-        return -1;
-    return optionalMaxLength.value();
-}
-
-void HTMLTextAreaElement::setMaxLength(int newValue, ExceptionCode& ec)
-{
-    if (newValue < 0)
-        ec = INDEX_SIZE_ERR;
-    else
-        setIntegralAttribute(maxlengthAttr, newValue);
-}
-
 String HTMLTextAreaElement::validationMessage() const
 {
     if (!willValidate())
@@ -449,7 +439,7 @@ String HTMLTextAreaElement::validationMessage() const
         return validationMessageValueMissingText();
 
     if (tooLong())
-        return validationMessageTooLongText(computeLengthForSubmission(value()), maxLength());
+        return validationMessageTooLongText(computeLengthForSubmission(value()), effectiveMaxLength());
 
     return String();
 }
@@ -471,7 +461,7 @@ bool HTMLTextAreaElement::tooLong(const String& value, NeedsToCheckDirtyFlag che
     if (check == CheckDirtyFlag && !m_wasModifiedByUser)
         return false;
 
-    int max = maxLength();
+    int max = effectiveMaxLength();
     if (max < 0)
         return false;
     unsigned unsignedMax = static_cast<unsigned>(max);
@@ -538,6 +528,22 @@ void HTMLTextAreaElement::updatePlaceholderText()
 bool HTMLTextAreaElement::willRespondToMouseClickEvents()
 {
     return !isDisabledFormControl();
+}
+
+Ref<RenderStyle> HTMLTextAreaElement::createInnerTextStyle(const RenderStyle& style) const
+{
+    auto textBlockStyle = RenderStyle::create();
+    textBlockStyle.get().inheritFrom(&style);
+    adjustInnerTextStyle(style, textBlockStyle.get());
+    textBlockStyle.get().setDisplay(BLOCK);
+
+#if PLATFORM(IOS)
+    // We're adding three extra pixels of padding to line textareas up with text fields.  
+    textBlockStyle.get().setPaddingLeft(Length(3, Fixed));
+    textBlockStyle.get().setPaddingRight(Length(3, Fixed));
+#endif
+
+    return textBlockStyle;
 }
 
 } // namespace WebCore
