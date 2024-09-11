@@ -136,7 +136,11 @@ void FetchBody::blob(BlobPromise&& promise)
     }
     if (m_type == Type::Text) {
         String contentType = Blob::normalizedContentType(extractMIMETypeFromMediaType(m_mimeType));
-        promise.resolve(Blob::create(extractFromText(), contentType));
+        // FIXME: char vs. uint8_t mismatch with extractFromText()
+        CString data = m_text.utf8();
+        Vector<uint8_t> value(data.length());
+        memcpy(value.data(), data.data(), data.length());
+        promise.resolve(Blob::create(value, contentType));
         return;
     }
 
