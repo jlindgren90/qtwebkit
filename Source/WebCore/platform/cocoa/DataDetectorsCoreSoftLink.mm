@@ -47,6 +47,9 @@ SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDResultHasProperties,
 SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDResultGetSubResults, CFArrayRef, (DDResultRef result), (result))
 SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDResultGetQueryRangeForURLification, DDQueryRange, (DDResultRef result), (result))
 SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDURLStringForResult, NSString *, (DDResultRef currentResult, NSString * resultIdentifier, DDURLifierPhoneNumberDetectionTypes includingTelGroups, NSDate * referenceDate, NSTimeZone * referenceTimeZone), (currentResult, resultIdentifier, includingTelGroups, referenceDate, referenceTimeZone))
+SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDURLTapAndHoldSchemes, NSArray *, (), ())
+SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDShouldImmediatelyShowActionSheetForURL, BOOL, (NSURL *url), (url))
+SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDShouldImmediatelyShowActionSheetForResult, BOOL, (DDResultRef result), (result))
 SOFT_LINK_POINTER_FOR_SOURCE(WebCore, DataDetectorsCore, DDBinderHttpURLKey, CFStringRef)
 SOFT_LINK_POINTER_FOR_SOURCE(WebCore, DataDetectorsCore, DDBinderWebURLKey, CFStringRef)
 SOFT_LINK_POINTER_FOR_SOURCE(WebCore, DataDetectorsCore, DDBinderMailURLKey, CFStringRef)
@@ -58,4 +61,8 @@ SOFT_LINK_POINTER_FOR_SOURCE(WebCore, DataDetectorsCore, DDBinderSignatureBlockK
 SOFT_LINK_POINTER_FOR_SOURCE(WebCore, DataDetectorsCore, DDURLScheme, NSString *)
 SOFT_LINK_CONSTANT_FOR_SOURCE(WebCore, DataDetectorsCore, DDScannerCopyResultsOptionsForPassiveUse, DDScannerCopyResultsOptions)
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, DataDetectorsCore, DDScannerEnableOptionalSource, void, (DDScannerRef scanner, DDScannerSource source, Boolean enable), (scanner, source, enable))
 #endif
+
+#endif // PLATFORM(IOS)

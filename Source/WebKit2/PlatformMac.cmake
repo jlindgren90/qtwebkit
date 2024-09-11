@@ -2,6 +2,8 @@ add_definitions("-ObjC++ -std=c++11")
 link_directories(../../WebKitLibraries)
 find_library(CARBON_LIBRARY Carbon)
 find_library(QUARTZ_LIBRARY Quartz)
+find_library(AVFOUNDATION_LIBRARY AVFoundation)
+find_library(AVFAUDIO_LIBRARY AVFAudio HINTS ${AVFOUNDATION_LIBRARY}/Versions/*/Frameworks)
 add_definitions(-iframework ${QUARTZ_LIBRARY}/Frameworks)
 add_definitions(-iframework ${CARBON_LIBRARY}/Frameworks)
 add_definitions(-DWK_XPC_SERVICE_SUFFIX=".Development")
@@ -10,16 +12,25 @@ list(APPEND WebKit2_LIBRARIES
     WebKit
 )
 
+if (NOT AVFAUDIO_LIBRARY-NOTFOUND)
+    list(APPEND WebKit2_LIBRARIES ${AVFAUDIO_LIBRARY})
+endif ()
+
 list(APPEND WebKit2_SOURCES
     DatabaseProcess/mac/DatabaseProcessMac.mm
 
     NetworkProcess/CustomProtocols/Cocoa/CustomProtocolManagerCocoa.mm
+
+    NetworkProcess/Downloads/PendingDownload.cpp
+
+    NetworkProcess/Downloads/cocoa/DownloadCocoa.mm
 
     NetworkProcess/Downloads/mac/DownloadMac.mm
 
     NetworkProcess/cache/NetworkCacheDataCocoa.mm
     NetworkProcess/cache/NetworkCacheIOChannelCocoa.mm
 
+    NetworkProcess/cocoa/NetworkDataTaskCocoa.mm
     NetworkProcess/cocoa/NetworkProcessCocoa.mm
     NetworkProcess/cocoa/NetworkSessionCocoa.mm
 
@@ -155,6 +166,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/WKBrowsingContextController.mm
     UIProcess/API/Cocoa/WKBrowsingContextGroup.mm
     UIProcess/API/Cocoa/WKConnection.mm
+    UIProcess/API/Cocoa/WKElementInfo.mm
     UIProcess/API/Cocoa/WKError.mm
     UIProcess/API/Cocoa/WKFrameInfo.mm
     UIProcess/API/Cocoa/WKMenuItemIdentifiers.mm
@@ -164,6 +176,9 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/WKNavigationData.mm
     UIProcess/API/Cocoa/WKNavigationResponse.mm
     UIProcess/API/Cocoa/WKPreferences.mm
+    UIProcess/API/Cocoa/WKPreviewActionItem.mm
+    UIProcess/API/Cocoa/WKPreviewActionItemIdentifiers.mm
+    UIProcess/API/Cocoa/WKPreviewElementInfo.mm
     UIProcess/API/Cocoa/WKProcessGroup.mm
     UIProcess/API/Cocoa/WKProcessPool.mm
     UIProcess/API/Cocoa/WKScriptMessage.mm
@@ -181,16 +196,17 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/_WKContextMenuElementInfo.mm
     UIProcess/API/Cocoa/_WKDownload.mm
     UIProcess/API/Cocoa/_WKElementAction.mm
-    UIProcess/API/Cocoa/_WKElementInfo.mm
     UIProcess/API/Cocoa/_WKErrorRecoveryAttempting.mm
     UIProcess/API/Cocoa/_WKProcessPoolConfiguration.mm
     UIProcess/API/Cocoa/_WKSessionState.mm
     UIProcess/API/Cocoa/_WKThumbnailView.mm
     UIProcess/API/Cocoa/_WKUserContentExtensionStore.mm
     UIProcess/API/Cocoa/_WKUserContentFilter.mm
+    UIProcess/API/Cocoa/_WKUserContentWorld.mm
     UIProcess/API/Cocoa/_WKUserStyleSheet.mm
     UIProcess/API/Cocoa/_WKVisitedLinkProvider.mm
     UIProcess/API/Cocoa/_WKVisitedLinkStore.mm
+    UIProcess/API/Cocoa/_WKWebsiteDataSize.mm
     UIProcess/API/Cocoa/_WKWebsiteDataStore.mm
 
     UIProcess/API/mac/WKView.mm
@@ -207,6 +223,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/Cocoa/VersionChecks.mm
     UIProcess/Cocoa/WKReloadFrameErrorRecoveryAttempter.mm
     UIProcess/Cocoa/WKWebViewContentProviderRegistry.mm
+    UIProcess/Cocoa/WebAutomationSessionCocoa.mm
     UIProcess/Cocoa/WebPageProxyCocoa.mm
     UIProcess/Cocoa/WebPasteboardProxyCocoa.mm
     UIProcess/Cocoa/WebProcessPoolCocoa.mm

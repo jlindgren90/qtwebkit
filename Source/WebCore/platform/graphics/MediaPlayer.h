@@ -241,6 +241,7 @@ public:
     virtual CachedResourceLoader* mediaPlayerCachedResourceLoader() { return 0; }
     virtual RefPtr<PlatformMediaResourceLoader> mediaPlayerCreateResourceLoader() { return nullptr; }
     virtual bool doesHaveAttribute(const AtomicString&, AtomicString* = 0) const { return false; }
+    virtual bool mediaPlayerShouldUsePersistentCache() const { return true; }
 
 #if ENABLE(VIDEO_TRACK)
     virtual void mediaPlayerDidAddAudioTrack(PassRefPtr<AudioTrackPrivate>) { }
@@ -428,7 +429,7 @@ public:
     // http://src.chromium.org/viewvc/chrome/trunk/src/gpu/command_buffer/service/gles2_cmd_copy_texture_chromium.cc via shaders.
     bool copyVideoTextureToPlatformTexture(GraphicsContext3D*, Platform3DObject texture, GC3Denum target, GC3Dint level, GC3Denum internalFormat, GC3Denum format, GC3Denum type, bool premultiplyAlpha, bool flipY);
 
-    PassNativeImagePtr nativeImageForCurrentTime();
+    NativeImagePtr nativeImageForCurrentTime();
 
     using MediaPlayerEnums::NetworkState;
     NetworkState networkState();

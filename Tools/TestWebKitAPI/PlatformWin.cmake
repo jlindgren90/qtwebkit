@@ -18,6 +18,7 @@ set(test_main_SOURCES
 include_directories(
     ${DERIVED_SOURCES_DIR}
     ${DERIVED_SOURCES_DIR}/ForwardingHeaders
+    ${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore
     ${TESTWEBKITAPI_DIR}/win
     ${DERIVED_SOURCES_DIR}/WebKit/Interfaces
 )
@@ -31,6 +32,7 @@ set(test_webcore_LIBRARIES
     Shlwapi
     Usp10
     WebCore${DEBUG_SUFFIX}
+    WebCoreDerivedSources${DEBUG_SUFFIX}
     WebKit${DEBUG_SUFFIX}
     gtest
 )
@@ -43,6 +45,7 @@ set(TestWebCoreLib_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/HTMLParserIdioms.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/LayoutUnit.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/ParsedContentRange.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WebCore/SharedBuffer.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/TimeRanges.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/URL.cpp
 )

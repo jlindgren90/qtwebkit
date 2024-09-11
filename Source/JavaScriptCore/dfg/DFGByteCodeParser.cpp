@@ -1605,12 +1605,6 @@ bool ByteCodeParser::attemptToInlineCall(Node* callTargetNode, int resultOperand
     if (!inliningBalance)
         return false;
     
-    bool didInsertChecks = false;
-    auto insertChecksWithAccounting = [&] () {
-        insertChecks(nullptr);
-        didInsertChecks = true;
-    };
-    
     if (verbose)
         dataLog("    Considering callee ", callee, "\n");
     
@@ -1622,6 +1616,13 @@ bool ByteCodeParser::attemptToInlineCall(Node* callTargetNode, int resultOperand
     // exit to: LoadVarargs is effectful and it's part of the op_call_varargs, so we can't exit without
     // calling LoadVarargs twice.
     if (!InlineCallFrame::isVarargs(kind)) {
+
+        bool didInsertChecks = false;
+        auto insertChecksWithAccounting = [&] () {
+            insertChecks(nullptr);
+            didInsertChecks = true;
+        };
+    
         if (InternalFunction* function = callee.internalFunction()) {
             if (handleConstantInternalFunction(callTargetNode, resultOperand, function, registerOffset, argumentCountIncludingThis, specializationKind, insertChecksWithAccounting)) {
                 RELEASE_ASSERT(didInsertChecks);
@@ -1643,8 +1644,9 @@ bool ByteCodeParser::attemptToInlineCall(Node* callTargetNode, int resultOperand
                 inliningBalance--;
                 return true;
             }
+
             RELEASE_ASSERT(!didInsertChecks);
-            return false;
+            // We might still try to inline the Intrinsic because it might be a builtin JS function.
         }
     }
     
@@ -3552,9 +3554,12 @@ bool ByteCodeParser::parseBlock(unsigned limit)
 
         // === Misc operations ===
 
-        case op_debug:
-            addToGraph(Breakpoint);
+        case op_debug: {
+            // This is a nop in the DFG/FTL because when we set a breakpoint in the debugger,
+            // we will jettison all optimized CodeBlocks that contains the breakpoint.
+            addToGraph(Check); // We add a nop here so that basic block linking doesn't break.
             NEXT_OPCODE(op_debug);
+        }
 
         case op_profile_will_call: {
             addToGraph(ProfileWillCall);
@@ -4619,11 +4624,11 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             NEXT_OPCODE(op_create_scoped_arguments);
         }
 
-        case op_create_out_of_band_arguments: {
+        case op_create_cloned_arguments: {
             noticeArgumentsUse();
             Node* createArguments = addToGraph(CreateClonedArguments);
             set(VirtualRegister(currentInstruction[1].u.operand), createArguments);
-            NEXT_OPCODE(op_create_out_of_band_arguments);
+            NEXT_OPCODE(op_create_cloned_arguments);
         }
             
         case op_get_from_arguments: {
@@ -4671,6 +4676,13 @@ bool ByteCodeParser::parseBlock(unsigned limit)
                 // Curly braces are necessary
                 NEXT_OPCODE(op_new_arrow_func_exp);
             }
+        }
+
+        case op_set_function_name: {
+            Node* func = get(VirtualRegister(currentInstruction[1].u.operand));
+            Node* name = get(VirtualRegister(currentInstruction[2].u.operand));
+            addToGraph(SetFunctionName, func, name);
+            NEXT_OPCODE(op_set_function_name);
         }
 
         case op_typeof: {
@@ -5110,7 +5122,6 @@ bool ByteCodeParser::parse()
 
 bool parse(Graph& graph)
 {
-    SamplingRegion samplingRegion("DFG Parsing");
     return ByteCodeParser(graph).parse();
 }
 

@@ -269,29 +269,27 @@ RefPtr<FetchRequest> FetchRequest::create(ScriptExecutionContext& context, const
     return adoptRef(*new FetchRequest(context, WTFMove(body), headers.releaseNonNull(), WTFMove(internalRequest)));
 }
 
-RefPtr<FetchRequest> FetchRequest::create(ScriptExecutionContext& context, FetchRequest* input, const Dictionary& init, ExceptionCode& ec)
+RefPtr<FetchRequest> FetchRequest::create(ScriptExecutionContext& context, FetchRequest& input, const Dictionary& init, ExceptionCode& ec)
 {
-    ASSERT(input);
-
-    if (input->isDisturbed()) {
+    if (input.isDisturbed()) {
         ec = TypeError;
         return nullptr;
     }
 
-    FetchRequest::InternalRequest internalRequest(input->m_internalRequest);
+    FetchRequest::InternalRequest internalRequest(input.m_internalRequest);
 
     if (!buildOptions(internalRequest, context, init)) {
         ec = TypeError;
         return nullptr;
     }
 
-    RefPtr<FetchHeaders> headers = buildHeaders(init, internalRequest, input->m_headers.ptr());
+    RefPtr<FetchHeaders> headers = buildHeaders(init, internalRequest, input.m_headers.ptr());
     if (!headers) {
         ec = TypeError;
         return nullptr;
     }
 
-    FetchBody body = buildBody(init, *headers, &input->m_body);
+    FetchBody body = buildBody(init, *headers, &input.m_body);
     if (!validateBodyAndMethod(body, internalRequest)) {
         ec = TypeError;
         return nullptr;
@@ -435,7 +433,15 @@ String FetchRequest::redirect() const
     return String();
 }
 
-RefPtr<FetchRequest> FetchRequest::clone(ScriptExecutionContext* context, ExceptionCode& ec)
+ResourceRequest FetchRequest::internalRequest() const
+{
+    ResourceRequest request = m_internalRequest.request;
+    request.setHTTPHeaderFields(m_headers->internalHeaders());
+    request.setHTTPBody(body().bodyForInternalRequest());
+    return request;
+}
+
+RefPtr<FetchRequest> FetchRequest::clone(ScriptExecutionContext& context, ExceptionCode& ec)
 {
     if (isDisturbed()) {
         ec = TypeError;
@@ -443,7 +449,7 @@ RefPtr<FetchRequest> FetchRequest::clone(ScriptExecutionContext* context, Except
     }
 
     // FIXME: Validate body teeing.
-    return adoptRef(*new FetchRequest(*context, FetchBody(m_body), FetchHeaders::create(m_headers.get()), FetchRequest::InternalRequest(m_internalRequest)));
+    return adoptRef(*new FetchRequest(context, FetchBody(m_body), FetchHeaders::create(m_headers.get()), FetchRequest::InternalRequest(m_internalRequest)));
 }
 
 const char* FetchRequest::activeDOMObjectName() const
@@ -453,7 +459,8 @@ const char* FetchRequest::activeDOMObjectName() const
 
 bool FetchRequest::canSuspendForDocumentSuspension() const
 {
-    return true;
+    // FIXME: We can probably do the same strategy as XHR.
+    return !isActive();
 }
 
 } // namespace WebCore

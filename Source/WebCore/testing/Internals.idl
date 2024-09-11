@@ -64,6 +64,7 @@ enum AutoFillButtonType {
 };
 
 [
+    UsePointersEvenForNonNullableObjectArguments,
     NoInterfaceObject,
 ] interface Internals {
     DOMString address(Node node);
@@ -443,4 +444,6 @@ enum AutoFillButtonType {
     [RaisesException] void setCanShowModalDialogOverride(boolean allow);
 
     DOMString composedTreeAsText(Node parent);
+
+    void setViewportForceAlwaysUserScalable(boolean scalable);
 };

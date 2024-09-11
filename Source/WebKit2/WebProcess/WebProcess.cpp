@@ -41,6 +41,7 @@
 #include "SessionTracker.h"
 #include "StatisticsData.h"
 #include "UserData.h"
+#include "WebAutomationSessionProxy.h"
 #include "WebConnectionToUIProcess.h"
 #include "WebCookieManager.h"
 #include "WebCoreArgumentCoders.h"
@@ -268,7 +269,8 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
 
     platformInitializeWebProcess(WTFMove(parameters));
 
-    WTF::setCurrentThreadIsUserInitiated();
+    // Match the QoS of the UIProcess and the scrolling thread but use a slightly lower priority.
+    WTF::setCurrentThreadIsUserInteractive(-1);
 
     m_suppressMemoryPressureHandler = parameters.shouldSuppressMemoryPressureHandler;
     if (!m_suppressMemoryPressureHandler)
@@ -344,7 +346,6 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
         setShouldUseFontSmoothing(true);
 
 #if PLATFORM(COCOA) || USE(CFNETWORK)
-    setApplicationBundleIdentifier(parameters.uiProcessBundleIdentifier);
     SessionTracker::setIdentifierBase(parameters.uiProcessBundleIdentifier);
 #endif
 
@@ -374,6 +375,10 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
         RetainPtr<CFDataRef> auditData = adoptCF(CFDataCreate(nullptr, (const UInt8*)&auditToken, sizeof(auditToken)));
         Inspector::RemoteInspector::singleton().setParentProcessInformation(presenterApplicationPid(), auditData);
     }
+#endif
+
+#if USE(NETWORK_SESSION)
+    NetworkSession::setSourceApplicationAuditTokenData(sourceApplicationAuditData());
 #endif
 
 #if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
@@ -1433,6 +1438,16 @@ void WebProcess::setEnabledServices(bool hasImageServices, bool hasSelectionServ
     m_hasRichContentServices = hasRichContentServices;
 }
 #endif
+
+void WebProcess::ensureAutomationSessionProxy(const String& sessionIdentifier)
+{
+    m_automationSessionProxy = std::make_unique<WebAutomationSessionProxy>(sessionIdentifier);
+}
+
+void WebProcess::destroyAutomationSessionProxy()
+{
+    m_automationSessionProxy = nullptr;
+}
 
 void WebProcess::prefetchDNS(const String& hostname)
 {

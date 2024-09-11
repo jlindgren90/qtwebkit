@@ -93,6 +93,7 @@ messages -> WebPage LegacyReceiver {
     GetLookupContextAtPoint(WebCore::IntPoint point, uint64_t callbackID)
     SetAllowsMediaDocumentInlinePlayback(bool allows)
     HandleTwoFingerTapAtPoint(WebCore::IntPoint point, uint64_t callbackID)
+    UpdateForceAlwaysUserScalable()
 #endif
 
     SetControlledByAutomation(bool controlled)
@@ -426,4 +427,6 @@ messages -> WebPage LegacyReceiver {
 #if ENABLE(VIDEO) && USE(GSTREAMER)
     DidEndRequestInstallMissingMediaPlugins(uint32_t result)
 #endif
+
+    SetResourceCachingDisabled(bool disabled)
 }

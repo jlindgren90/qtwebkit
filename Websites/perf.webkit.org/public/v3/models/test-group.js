@@ -1,3 +1,4 @@
+'use strict';
 
 class TestGroup extends LabeledObject {
 
@@ -99,9 +100,9 @@ class TestGroup extends LabeledObject {
         this._allRootSets = null;
     }
 
-    hasCompleted()
+    hasFinished()
     {
-        return this._buildRequests.every(function (request) { return request.hasCompleted(); });
+        return this._buildRequests.every(function (request) { return request.hasFinished(); });
     }
 
     hasStarted()
@@ -126,7 +127,7 @@ class TestGroup extends LabeledObject {
 
         var result = {changeType: null, status: 'failed', label: 'Failed', fullLabel: 'Failed', isStatisticallySignificant: false};
 
-        var hasCompleted = this.hasCompleted();
+        var hasCompleted = this.hasFinished();
         if (!hasCompleted) {
             if (this.hasStarted()) {
                 result.status = 'running';
@@ -222,8 +223,10 @@ class TestGroup extends LabeledObject {
         });
 
         var rootIdMap = {};
-        for (var root of data['roots'])
+        for (var root of data['roots']) {
             rootIdMap[root.id] = root;
+            root.repository = Repository.findById(root.repository);
+        }
 
         var rootSets = data['rootSets'].map(function (row) {
             row.roots = row.roots.map(function (rootId) { return rootIdMap[rootId]; });
@@ -239,3 +242,6 @@ class TestGroup extends LabeledObject {
         return testGroups;
     }
 }
+
+if (typeof module != 'undefined')
+    module.exports.TestGroup = TestGroup;

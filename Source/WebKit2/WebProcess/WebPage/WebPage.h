@@ -574,6 +574,8 @@ public:
 
     void enableInspectorNodeSearch();
     void disableInspectorNodeSearch();
+    
+    void updateForceAlwaysUserScalable();
 #endif
 
     void setLayerTreeStateIsFrozen(bool);
@@ -929,10 +931,16 @@ public:
 
     void didRestoreScrollPosition();
 
+    bool mediaShouldUsePersistentCache() const { return m_mediaShouldUsePersistentCache; }
+
     bool isControlledByAutomation() const;
     void setControlledByAutomation(bool);
 
     void insertNewlineInQuotedContent();
+
+#if USE(OS_STATE)
+    std::chrono::system_clock::time_point loadCommitTime() const { return m_loadCommitTime; }
+#endif
 
 private:
     WebPage(uint64_t pageID, const WebPageCreationParameters&);
@@ -1141,8 +1149,6 @@ private:
     void changeSelectedIndex(int32_t index);
     void setCanStartMediaTimerFired();
 
-    bool canHandleUserEvents() const;
-
     static bool platformCanHandleRequest(const WebCore::ResourceRequest&);
 
     static PluginView* focusedPluginViewForFrame(WebCore::Frame&);
@@ -1185,6 +1191,8 @@ private:
 #if ENABLE(VIDEO) && USE(GSTREAMER)
     void didEndRequestInstallMissingMediaPlugins(uint32_t result);
 #endif
+
+    void setResourceCachingDisabled(bool);
 
     uint64_t m_pageID;
 
@@ -1391,6 +1399,7 @@ private:
     bool m_hasPendingBlurNotification;
     bool m_useTestingViewportConfiguration;
     bool m_isInStableState;
+    bool m_forceAlwaysUserScalable { false };
     std::chrono::milliseconds m_oldestNonStableUpdateVisibleContentRectsTimestamp;
     std::chrono::milliseconds m_estimatedLatency;
     WebCore::FloatSize m_screenSize;
@@ -1442,6 +1451,12 @@ private:
 #if ENABLE(VIDEO) && USE(GSTREAMER)
     RefPtr<WebCore::MediaPlayerRequestInstallMissingPluginsCallback> m_installMediaPluginsCallback;
 #endif
+
+#if USE(OS_STATE)
+    std::chrono::system_clock::time_point m_loadCommitTime;
+#endif
+
+    bool m_mediaShouldUsePersistentCache;
 };
 
 } // namespace WebKit

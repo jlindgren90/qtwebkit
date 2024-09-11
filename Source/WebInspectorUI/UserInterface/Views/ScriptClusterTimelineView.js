@@ -31,8 +31,6 @@ WebInspector.ScriptClusterTimelineView = class ScriptClusterTimelineView extends
 
         console.assert(timeline.type === WebInspector.TimelineRecord.Type.Script);
 
-        this._extraArguments = extraArguments;
-
         this._currentContentViewSetting = new WebInspector.Setting("script-cluster-timeline-view-current-view", WebInspector.ScriptClusterTimelineView.EventsIdentifier);
 
         let showSelectorArrows = this._canShowProfileView();
@@ -52,8 +50,8 @@ WebInspector.ScriptClusterTimelineView = class ScriptClusterTimelineView extends
         }
 
         // FIXME: We should be able to create these lazily.
-        this._eventsContentView = new WebInspector.ScriptDetailsTimelineView(this.representedObject, this._extraArguments);
-        this._profileContentView = this._canShowProfileView() ? new WebInspector.ScriptProfileTimelineView(this.representedObject, this._extraArguments) : null;
+        this._eventsContentView = new WebInspector.ScriptDetailsTimelineView(this.representedObject, extraArguments);
+        this._profileContentView = this._canShowProfileView() ? new WebInspector.ScriptProfileTimelineView(this.representedObject, extraArguments) : null;
 
         this._showContentViewForIdentifier(this._currentContentViewSetting.value);
 
@@ -189,6 +187,9 @@ WebInspector.ScriptClusterTimelineView = class ScriptClusterTimelineView extends
     _scriptClusterViewCurrentContentViewDidChange(event)
     {
         let currentContentView = this._contentViewContainer.currentContentView;
+        if (!currentContentView)
+            return;
+
         let previousContentView = currentContentView === this._eventsContentView ? this._profileContentView : this._eventsContentView;
 
         currentContentView.zeroTime = previousContentView.zeroTime;
@@ -196,7 +197,7 @@ WebInspector.ScriptClusterTimelineView = class ScriptClusterTimelineView extends
         currentContentView.endTime = previousContentView.endTime;
         currentContentView.currentTime = previousContentView.currentTime;
 
-        currentContentView.timelineSidebarPanel.updateFilter();
+        // FIXME: <https://webkit.org/b/154924> Web Inspector: hook up grid row filtering in the new Timelines UI
     }
 };
 

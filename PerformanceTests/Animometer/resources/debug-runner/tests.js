@@ -162,26 +162,22 @@ Suites.push(new Suite("HTML suite",
             name: "CSS bouncing SVG images"
         },
         {
-            url: "bouncing-particles/bouncing-css-images.html?particleWidth=80&particleHeight=80&imageSrc=../resources/yin-yang.png",
-            name: "CSS bouncing PNG images"
+            url: "bouncing-particles/bouncing-tagged-images.html?particleWidth=100&particleHeight=100",
+            name: "CSS bouncing tagged images"
         },
         {
-            url: "text/layering-text.html",
-            name: "CSS layering text"
+            url: "dom/leaves.html",
+            name: "Leaves 2.0"
         },
         {
-            url: "text/text-boxes.html?particleWidth=280&particleHeight=180",
-            name: "CSS text boxes"
-        },
+            url: "dom/compositing-transforms.html?particleWidth=50&particleHeight=50&filters=yes&imageSrc=../resources/yin-yang.svg",
+            name: "Composited Transforms"
+        }
     ]
 ));
 
 Suites.push(new Suite("Canvas suite",
     [
-        {
-            url: "bouncing-particles/bouncing-canvas-shapes.html?particleWidth=12&particleHeight=12&shape=circle",
-            name: "canvas bouncing circles"
-        },
         {
             url: "bouncing-particles/bouncing-canvas-shapes.html?particleWidth=40&particleHeight=40&shape=rect&clip=star",
             name: "canvas bouncing clipped rects"
@@ -197,6 +193,18 @@ Suites.push(new Suite("Canvas suite",
         {
             url: "bouncing-particles/bouncing-canvas-images.html?particleWidth=80&particleHeight=80&imageSrc=../resources/yin-yang.png",
             name: "canvas bouncing PNG images"
+        },
+        {
+            url: "simple/simple-canvas-paths.html?pathType=strokes",
+            name: "Stroke shapes"
+        },
+        {
+            url: "simple/simple-canvas-paths.html?pathType=fills",
+            name: "Fill shapes"
+        },
+        {
+            url: "simple/tiled-canvas-image.html",
+            name: "Canvas put/get image data"
         },
     ]
 ));
@@ -222,6 +230,15 @@ Suites.push(new Suite("SVG suite",
         {
             url: "bouncing-particles/bouncing-svg-images.html?particleWidth=80&particleHeight=80&imageSrc=../resources/yin-yang.png",
             name: "SVG bouncing PNG images"
+        },
+    ]
+));
+
+Suites.push(new Suite("3D Graphics",
+    [
+        {
+            url: "3d/webgl.html",
+            name: "WebGL"
         },
     ]
 ));
@@ -285,6 +302,10 @@ Suites.push(new Suite("Basic canvas path suite",
             name: "Canvas rects"
         },
         {
+            url: "simple/simple-canvas-paths.html?pathType=ellipse",
+            name: "Canvas ellipses"
+        },
+        {
             url: "simple/simple-canvas-paths.html?pathType=lineFill",
             name: "Canvas line path, fill"
         },
@@ -309,25 +330,8 @@ Suites.push(new Suite("Basic canvas path suite",
             name: "Canvas rects, fill"
         },
         {
-            url: "simple/tiled-canvas-image.html",
-            name: "Canvas put/get image data"
-        },
-    ]
-));
-
-Suites.push(new Suite("Miscellaneous Tests",
-    [
-        {
-            url: "misc/compositing-transforms.html?particleWidth=50&particleHeight=50&filters=yes&imageSrc=../resources/yin-yang.svg",
-            name: "Composited Transforms"
-        },
-        {
-            url: "misc/canvas-electrons.html",
-            name: "Canvas electrons"
-        },
-        {
-            url: "misc/canvas-stars.html",
-            name: "Canvas stars"
-        },
+            url: "simple/simple-canvas-paths.html?pathType=ellipseFill",
+            name: "Canvas ellipses, fill"
+        }
     ]
 ));

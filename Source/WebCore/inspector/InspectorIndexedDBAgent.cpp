@@ -185,13 +185,10 @@ public:
             m_executableWithDatabase->requestCallback().sendFailure("Unexpected result type.");
             return;
         }
-        if (!requestResult->isLegacy()) {
-            m_executableWithDatabase->requestCallback().sendFailure("Only Legacy IDB is supported right now.");
-            return;
-        }
 
         // FIXME (webkit.org/b/154686) - Reimplement this.
-        m_executableWithDatabase->execute();
+        m_executableWithDatabase->requestCallback().sendFailure("Modern IDB is not supported yet");
+        return;
     }
 
 private:
@@ -205,7 +202,13 @@ void ExecutableWithDatabase::start(IDBFactory* idbFactory, SecurityOrigin*, cons
 {
     Ref<OpenDatabaseCallback> callback = OpenDatabaseCallback::create(this);
     ExceptionCode ec = 0;
-    RefPtr<IDBOpenDBRequest> idbOpenDBRequest = idbFactory->open(context(), databaseName, ec);
+
+    if (!context()) {
+        requestCallback().sendFailure("Could not open database.");
+        return;
+    }
+
+    RefPtr<IDBOpenDBRequest> idbOpenDBRequest = idbFactory->open(*context(), databaseName, ec);
     if (ec) {
         requestCallback().sendFailure("Could not open database.");
         return;
@@ -513,7 +516,7 @@ void InspectorIndexedDBAgent::requestDatabaseNames(ErrorString& errorString, con
         return;
 
     ExceptionCode ec = 0;
-    RefPtr<IDBRequest> idbRequest = idbFactory->getDatabaseNames(document, ec);
+    RefPtr<IDBRequest> idbRequest = idbFactory->getDatabaseNames(*document, ec);
     if (!idbRequest || ec) {
         requestCallback->sendFailure("Could not obtain database names.");
         return;

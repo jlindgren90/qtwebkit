@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,12 +36,15 @@
 #import "WeakObjCPtr.h"
 #import "_WKVisitedLinkProvider.h"
 #import "_WKWebsiteDataStoreInternal.h"
+#import <WebCore/RuntimeApplicationChecks.h>
 #import <wtf/RetainPtr.h>
 
 #if PLATFORM(IOS)
 #import "UIKitSPI.h"
 #import <WebCore/Device.h>
 #endif
+
+using namespace WebCore;
 
 template<typename T> class LazyInitialized {
 public:
@@ -104,10 +107,15 @@ private:
     BOOL _alwaysRunsAtForegroundPriority;
     BOOL _allowsInlineMediaPlayback;
     BOOL _inlineMediaPlaybackRequiresPlaysInlineAttribute;
+#endif
+
     BOOL _invisibleAutoplayNotPermitted;
     BOOL _mediaDataLoadsAutomatically;
+    BOOL _attachmentElementEnabled;
+    BOOL _requiresUserActionForVideoPlayback;
     BOOL _requiresUserActionForAudioPlayback;
-#endif
+    BOOL _mainContentUserGestureOverrideEnabled;
+
 #if PLATFORM(MAC)
     BOOL _showsURLsInToolTips;
     BOOL _serviceControlsEnabled;
@@ -126,12 +134,26 @@ private:
     
 #if PLATFORM(IOS)
     _requiresUserActionForMediaPlayback = YES;
-    _requiresUserActionForAudioPlayback = YES;
     _allowsPictureInPictureMediaPlayback = YES;
     _allowsInlineMediaPlayback = WebCore::deviceClass() == MGDeviceClassiPad;
     _inlineMediaPlaybackRequiresPlaysInlineAttribute = !_allowsInlineMediaPlayback;
-    _invisibleAutoplayNotPermitted = YES;
     _mediaDataLoadsAutomatically = NO;
+#else
+    _mediaDataLoadsAutomatically = YES;
+#endif
+    _requiresUserActionForVideoPlayback = NO;
+    _requiresUserActionForAudioPlayback = NO;
+    _mainContentUserGestureOverrideEnabled = NO;
+    _invisibleAutoplayNotPermitted = NO;
+
+// FIXME: <rdar://problem/25135244> Should default to NO once clients have adopted the setting.
+#if PLATFORM(IOS)
+    _attachmentElementEnabled = IOSApplication::isMobileMail();
+#else
+    _attachmentElementEnabled = MacApplication::isAppleMail();
+#endif
+
+#if PLATFORM(IOS)
     _respectsImageOrientation = YES;
     _printsBackgrounds = YES;
 #endif
@@ -153,6 +175,7 @@ private:
     _convertsPositionStyleOnCopy = NO;
     _allowsMetaRefresh = YES;
     _allowUniversalAccessFromFileURLs = NO;
+    _treatsSHA1SignedCertificatesAsInsecure = YES;
 
     return self;
 }
@@ -236,15 +259,19 @@ private:
     configuration->_allowsMetaRefresh = self->_allowsMetaRefresh;
     configuration->_allowUniversalAccessFromFileURLs = self->_allowUniversalAccessFromFileURLs;
 
+    configuration->_invisibleAutoplayNotPermitted = self->_invisibleAutoplayNotPermitted;
+    configuration->_mediaDataLoadsAutomatically = self->_mediaDataLoadsAutomatically;
+    configuration->_attachmentElementEnabled = self->_attachmentElementEnabled;
+    configuration->_requiresUserActionForVideoPlayback = self->_requiresUserActionForVideoPlayback;
+    configuration->_requiresUserActionForAudioPlayback = self->_requiresUserActionForAudioPlayback;
+    configuration->_mainContentUserGestureOverrideEnabled = self->_mainContentUserGestureOverrideEnabled;
+
 #if PLATFORM(IOS)
     configuration->_allowsInlineMediaPlayback = self->_allowsInlineMediaPlayback;
     configuration->_inlineMediaPlaybackRequiresPlaysInlineAttribute = self->_inlineMediaPlaybackRequiresPlaysInlineAttribute;
-    configuration->_invisibleAutoplayNotPermitted = self->_invisibleAutoplayNotPermitted;
-    configuration->_mediaDataLoadsAutomatically = self->_mediaDataLoadsAutomatically;
+    configuration->_requiresUserActionForMediaPlayback = self->_requiresUserActionForMediaPlayback;
     configuration->_allowsPictureInPictureMediaPlayback = self->_allowsPictureInPictureMediaPlayback;
     configuration->_alwaysRunsAtForegroundPriority = _alwaysRunsAtForegroundPriority;
-    configuration->_requiresUserActionForMediaPlayback = self->_requiresUserActionForMediaPlayback;
-    configuration->_requiresUserActionForAudioPlayback = self->_requiresUserActionForAudioPlayback;
     configuration->_selectionGranularity = self->_selectionGranularity;
 #endif
 #if PLATFORM(MAC)
@@ -529,6 +556,7 @@ static NSString *defaultApplicationNameForUserAgent()
 {
     _inlineMediaPlaybackRequiresPlaysInlineAttribute = requires;
 }
+#endif // PLATFORM(IOS)
 
 - (BOOL)_invisibleAutoplayNotPermitted
 {
@@ -550,6 +578,26 @@ static NSString *defaultApplicationNameForUserAgent()
     _mediaDataLoadsAutomatically = mediaDataLoadsAutomatically;
 }
 
+- (BOOL)_attachmentElementEnabled
+{
+    return _attachmentElementEnabled;
+}
+
+- (void)_setAttachmentElementEnabled:(BOOL)attachmentElementEnabled
+{
+    _attachmentElementEnabled = attachmentElementEnabled;
+}
+
+- (BOOL)_requiresUserActionForVideoPlayback
+{
+    return _requiresUserActionForVideoPlayback;
+}
+
+- (void)_setRequiresUserActionForVideoPlayback:(BOOL)requiresUserActionForVideoPlayback
+{
+    _requiresUserActionForVideoPlayback = requiresUserActionForVideoPlayback;
+}
+
 - (BOOL)_requiresUserActionForAudioPlayback
 {
     return _requiresUserActionForAudioPlayback;
@@ -560,7 +608,15 @@ static NSString *defaultApplicationNameForUserAgent()
     _requiresUserActionForAudioPlayback = requiresUserActionForAudioPlayback;
 }
 
-#endif // PLATFORM(IOS)
+- (BOOL)_mainContentUserGestureOverrideEnabled
+{
+    return _mainContentUserGestureOverrideEnabled;
+}
+
+- (void)_setMainContentUserGestureOverrideEnabled:(BOOL)mainContentUserGestureOverrideEnabled
+{
+    _mainContentUserGestureOverrideEnabled = mainContentUserGestureOverrideEnabled;
+}
 
 #if PLATFORM(MAC)
 - (BOOL)_showsURLsInToolTips

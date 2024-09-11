@@ -133,7 +133,8 @@ public:
     void setMediaStreamEnabled(bool isEnabled) { m_isMediaStreamEnabled = isEnabled; }
     bool webkitGetUserMediaEnabled() const { return m_isMediaStreamEnabled; }
     bool webkitMediaStreamEnabled() const { return m_isMediaStreamEnabled; }
-
+#endif
+#if ENABLE(WEBRTC)
     bool peerConnectionEnabled() const { return m_isMediaStreamEnabled && m_isPeerConnectionEnabled; }
     void setPeerConnectionEnabled(bool isEnabled) { m_isPeerConnectionEnabled = isEnabled; }
     bool webkitRTCPeerConnectionEnabled() const { return peerConnectionEnabled(); }
@@ -206,6 +207,16 @@ public:
     bool webAnimationsEnabled() const { return m_areWebAnimationsEnabled; }
 #endif
 
+#if ENABLE(SHADOW_DOM)
+    void setShadowDOMEnabled(bool isEnabled) { m_isShadowDOMEnabled = isEnabled; }
+    bool shadowDOMEnabled() const { return m_isShadowDOMEnabled; }
+#endif
+
+#if ENABLE(CUSTOM_ELEMENTS)
+    void setCustomElementsEnabled(bool areEnabled) { m_areCustomElementsEnabled = areEnabled; }
+    bool customElementsEnabled() const { return m_areCustomElementsEnabled; }
+#endif
+
     WEBCORE_EXPORT static RuntimeEnabledFeatures& sharedFeatures();
 
 private:
@@ -234,6 +245,8 @@ private:
 
 #if ENABLE(MEDIA_STREAM)
     bool m_isMediaStreamEnabled;
+#endif
+#if ENABLE(WEBRTC)
     bool m_isPeerConnectionEnabled;
 #endif
 
@@ -287,6 +300,14 @@ private:
 
 #if ENABLE(WEB_ANIMATIONS)
     bool m_areWebAnimationsEnabled;
+#endif
+    
+#if ENABLE(SHADOW_DOM)
+    bool m_isShadowDOMEnabled;
+#endif
+
+#if ENABLE(CUSTOM_ELEMENTS)
+    bool m_areCustomElementsEnabled;
 #endif
 
     friend class WTF::NeverDestroyed<RuntimeEnabledFeatures>;

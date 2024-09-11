@@ -74,7 +74,7 @@ namespace WebCore {
         void setTimeoutInterval(double timeoutInterval);
         
         WEBCORE_EXPORT const URL& firstPartyForCookies() const;
-        void setFirstPartyForCookies(const URL& firstPartyForCookies);
+        WEBCORE_EXPORT void setFirstPartyForCookies(const URL&);
         
         WEBCORE_EXPORT const String& httpMethod() const;
         WEBCORE_EXPORT void setHTTPMethod(const String& httpMethod);
@@ -107,8 +107,8 @@ namespace WebCore {
         void setHTTPOrigin(const String&);
         WEBCORE_EXPORT void clearHTTPOrigin();
 
-        String httpUserAgent() const;
-        void setHTTPUserAgent(const String&);
+        WEBCORE_EXPORT String httpUserAgent() const;
+        WEBCORE_EXPORT void setHTTPUserAgent(const String&);
         void clearHTTPUserAgent();
 
         String httpAccept() const;
@@ -130,7 +130,7 @@ namespace WebCore {
         WEBCORE_EXPORT void setPriority(ResourceLoadPriority);
 
         WEBCORE_EXPORT bool isConditional() const;
-        void makeUnconditional();
+        WEBCORE_EXPORT void makeUnconditional();
 
         // Whether the associated ResourceHandleClient needs to be notified of
         // upload progress made for that resource.

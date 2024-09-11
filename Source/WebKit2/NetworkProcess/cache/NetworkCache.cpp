@@ -121,8 +121,6 @@ static Key makeCacheKey(const WebCore::ResourceRequest& request)
 #else
     String partition;
 #endif
-    if (partition.isEmpty())
-        partition = ASCIILiteral("No partition");
 
     // FIXME: This implements minimal Range header disk cache support. We don't parse
     // ranges so only the same exact range request will be served from the cache.
@@ -370,7 +368,7 @@ void Cache::retrieve(const WebCore::ResourceRequest& request, const GlobalFrameI
     }
 
 #if ENABLE(NETWORK_CACHE_SPECULATIVE_REVALIDATION)
-    if (m_speculativeLoadManager && m_speculativeLoadManager->retrieve(frameID, storageKey, [request, completionHandler](std::unique_ptr<Entry> entry) {
+    if (m_speculativeLoadManager && m_speculativeLoadManager->retrieve(frameID, storageKey, request, [request, completionHandler](std::unique_ptr<Entry> entry) {
         if (entry && verifyVaryingRequestHeaders(entry->varyingRequestHeaders(), request))
             completionHandler(WTFMove(entry));
         else
@@ -402,7 +400,7 @@ void Cache::retrieve(const WebCore::ResourceRequest& request, const GlobalFrameI
         case UseDecision::Use:
             break;
         case UseDecision::Validate:
-            entry->setNeedsValidation();
+            entry->setNeedsValidation(true);
             break;
         default:
             entry = nullptr;
@@ -495,7 +493,6 @@ std::unique_ptr<Entry> Cache::update(const WebCore::ResourceRequest& originalReq
 
     WebCore::ResourceResponse response = existingEntry.response();
     WebCore::updateResponseHeadersAfterRevalidation(response, validatingResponse);
-    response.setSource(WebCore::ResourceResponse::Source::DiskCache);
 
     auto updateEntry = std::make_unique<Entry>(existingEntry.key(), response, existingEntry.buffer(), collectVaryingRequestHeaders(originalRequest, response));
     auto updateRecord = updateEntry->encodeAsStorageRecord();
@@ -524,8 +521,22 @@ void Cache::traverse(const std::function<void (const TraversalEntry*)>& traverse
 {
     ASSERT(isEnabled());
 
-    m_storage->traverse(resourceType(), 0, [traverseHandler](const Storage::Record* record, const Storage::RecordInfo& recordInfo) {
+    // Protect against clients making excessive traversal requests.
+    const unsigned maximumTraverseCount = 3;
+    if (m_traverseCount >= maximumTraverseCount) {
+        WTFLogAlways("Maximum parallel cache traverse count exceeded. Ignoring traversal request.");
+
+        RunLoop::main().dispatch([traverseHandler] {
+            traverseHandler(nullptr);
+        });
+        return;
+    }
+
+    ++m_traverseCount;
+
+    m_storage->traverse(resourceType(), 0, [this, traverseHandler](const Storage::Record* record, const Storage::RecordInfo& recordInfo) {
         if (!record) {
+            --m_traverseCount;
             traverseHandler(nullptr);
             return;
         }

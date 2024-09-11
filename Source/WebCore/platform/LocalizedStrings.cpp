@@ -549,6 +549,7 @@ String searchMenuClearRecentSearchesText()
 {
     return WEB_UI_STRING("Clear Recent Searches", "menu item in Recent Searches menu that empties menu's contents");
 }
+#endif // !PLATFORM(IOS)
 
 String AXWebAreaText()
 {
@@ -657,8 +658,17 @@ String AXListItemActionVerb()
     notImplemented();
     return "select";
 }
-#endif // !PLATFORM(IOS)
 
+String AXAutoFillCredentialsLabel()
+{
+    return WEB_UI_STRING("password auto fill", "Label for the auto fill credentials button inside a text field.");
+}
+
+String AXAutoFillContactsLabel()
+{
+    return WEB_UI_STRING("contact info auto fill", "Label for the auto fill contacts button inside a text field.");
+}
+    
 #if PLATFORM(COCOA)
 String AXARIAContentGroupText(const String& ariaType)
 {

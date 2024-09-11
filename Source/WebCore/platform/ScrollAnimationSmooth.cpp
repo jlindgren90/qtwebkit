@@ -277,7 +277,6 @@ static inline void getAnimationParametersForGranularity(ScrollGranularity granul
         maximumCoastTime = 1;
         break;
     case ScrollByPixel:
-#if !PLATFORM(QT)
         animationTime = 11 * tickTime;
         repeatMinimumSustainTime = 2 * tickTime;
         attackTime = 3 * tickTime;

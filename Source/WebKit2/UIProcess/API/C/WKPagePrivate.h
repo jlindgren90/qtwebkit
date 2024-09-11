@@ -118,6 +118,16 @@ WK_EXPORT bool WKPageIsPlayingAudio(WKPageRef page);
 WK_EXPORT void WKPageSetMuted(WKPageRef page, bool muted);
 
 enum {
+    kWKMediaIsNotPlaying = 0,
+    kWKMediaIsPlayingAudio = 1 << 0,
+    kWKMediaIsPlayingVideo = 1 << 1,
+    kWKMediaHasActiveCaptureDevice = 1 << 2,
+};
+typedef uint32_t WKMediaState;
+
+WK_EXPORT WKMediaState WKPageGetMediaState(WKPageRef page);
+
+enum {
     kWKMediaEventTypePlayPause,
     kWKMediaEventTypeTrackNext,
     kWKMediaEventTypeTrackPrevious
@@ -131,6 +141,9 @@ WK_EXPORT void WKPageLoadURLWithShouldOpenExternalURLsPolicy(WKPageRef page, WKU
 
 typedef void (*WKPagePostPresentationUpdateFunction)(WKErrorRef, void*);
 WK_EXPORT void WKPageCallAfterNextPresentationUpdate(WKPageRef page, void* context, WKPagePostPresentationUpdateFunction function);
+
+WK_EXPORT bool WKPageGetResourceCachingDisabled(WKPageRef page);
+WK_EXPORT void WKPageSetResourceCachingDisabled(WKPageRef page, bool disabled);
 
 #ifdef __cplusplus
 }

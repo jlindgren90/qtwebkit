@@ -45,39 +45,15 @@
 #import "VisibleUnits.h"
 #import "htmlediting.h"
 
+#if USE(APPLE_INTERNAL_SDK)
+#import <WebKitAdditions/DataDetectorsAdditions.h>
+#endif
+
 const char *dataDetectorsURLScheme = "x-apple-data-detectors";
 const char *dataDetectorsAttributeTypeKey = "x-apple-data-detectors-type";
 const char *dataDetectorsAttributeResultKey = "x-apple-data-detectors-result";
 
 namespace WebCore {
-
-bool DataDetection::isDataDetectorLink(Element* element)
-{
-    return element->getAttribute(dataDetectorsURLScheme) == "true";
-}
-
-String DataDetection::dataDetectorIdentifier(Element* element)
-{
-    return element->getAttribute(dataDetectorsAttributeResultKey);
-}
-
-bool DataDetection::shouldCancelDefaultAction(Element* element)
-{
-#if PLATFORM(MAC)
-    UNUSED_PARAM(element);
-    return false;
-#else
-    // FIXME: We should also compute the DDResultRef and check the result category.
-    if (!is<HTMLAnchorElement>(*element))
-        return false;
-    if (element->getAttribute(dataDetectorsURLScheme) != "true")
-        return false;
-    String type = element->getAttribute(dataDetectorsAttributeTypeKey);
-    if (type == "misc" || type == "calendar-event" || type == "telephone")
-        return true;
-    return false;
-#endif
-}
 
 #if PLATFORM(MAC)
 
@@ -173,7 +149,49 @@ RetainPtr<DDActionContext> DataDetection::detectItemAroundHitTestResult(const Hi
 #endif // PLATFORM(MAC)
 
 #if PLATFORM(IOS)
+bool DataDetection::isDataDetectorLink(Element& element)
+{
+    if (!is<HTMLAnchorElement>(element))
+        return false;
     
+    return [softLink_DataDetectorsCore_DDURLTapAndHoldSchemes() containsObject:(NSString *)downcast<HTMLAnchorElement>(element).href().protocol().convertToASCIILowercase()];
+}
+
+bool DataDetection::requiresExtendedContext(Element& element)
+{
+    return equalIgnoringASCIICase(element.fastGetAttribute(QualifiedName(nullAtom, dataDetectorsAttributeTypeKey, nullAtom)), "calendar-event");
+}
+
+String DataDetection::dataDetectorIdentifier(Element& element)
+{
+    return element.fastGetAttribute(QualifiedName(nullAtom, dataDetectorsAttributeResultKey, nullAtom));
+}
+
+bool DataDetection::shouldCancelDefaultAction(Element& element)
+{
+    if (!isDataDetectorLink(element))
+        return false;
+    
+    if (softLink_DataDetectorsCore_DDShouldImmediatelyShowActionSheetForURL(downcast<HTMLAnchorElement>(element).href()))
+        return true;
+    
+    const AtomicString& resultAttribute = element.fastGetAttribute(QualifiedName(nullAtom, dataDetectorsAttributeResultKey, nullAtom));
+    if (resultAttribute.isEmpty())
+        return false;
+    NSArray *results = element.document().frame()->dataDetectionResults();
+    if (!results)
+        return false;
+    Vector<String> resultIndices;
+    resultAttribute.string().split('/', resultIndices);
+    DDResultRef result = [[results objectAtIndex:resultIndices[0].toInt()] coreResult];
+    // Handle the case of a signature block, where we need to check the correct subresult.
+    for (size_t i = 1; i < resultIndices.size(); i++) {
+        results = (NSArray *)softLink_DataDetectorsCore_DDResultGetSubResults(result);
+        result = (DDResultRef)[results objectAtIndex:resultIndices[i].toInt()];
+    }
+    return softLink_DataDetectorsCore_DDShouldImmediatelyShowActionSheetForResult(result);
+}
+
 static BOOL resultIsURL(DDResultRef result)
 {
     if (!result)
@@ -194,7 +212,10 @@ static NSString *constructURLStringForResult(DDResultRef currentResult, NSString
     
     if (((detectionTypes & DataDetectorTypeAddress) && (DDResultCategoryAddress == category))
         || ((detectionTypes & DataDetectorTypeTrackingNumber) && (CFStringCompare(get_DataDetectorsCore_DDBinderTrackingNumberKey(), type, 0) == kCFCompareEqualTo))
-        || ((detectionTypes & DataDetectorTypeFlight) && (CFStringCompare(get_DataDetectorsCore_DDBinderFlightInformationKey(), type, 0) == kCFCompareEqualTo))
+        || ((detectionTypes & DataDetectorTypeFlightNumber) && (CFStringCompare(get_DataDetectorsCore_DDBinderFlightInformationKey(), type, 0) == kCFCompareEqualTo))
+#if USE(APPLE_INTERNAL_SDK)
+        || ((detectionTypes & DataDetectorTypeSpotlightSuggestion) && (CFStringCompare(DDBinderSpotlightSourceKey, type, 0) == kCFCompareEqualTo))
+#endif
         || ((detectionTypes & DataDetectorTypePhoneNumber) && (DDResultCategoryPhoneNumber == category))
         || ((detectionTypes & DataDetectorTypeLink) && resultIsURL(currentResult))) {
         
@@ -422,6 +443,11 @@ NSArray *DataDetection::detectContentInRange(RefPtr<Range>& contextRange, DataDe
     RetainPtr<DDScanQueryRef> scanQuery = adoptCF(softLink_DataDetectorsCore_DDScanQueryCreate(NULL));
     buildQuery(scanQuery.get(), contextRange.get());
     
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+    if (types & DataDetectorTypeSpotlightSuggestion)
+        softLink_DataDetectorsCore_DDScannerEnableOptionalSource(scanner.get(), DDScannerSourceSpotlight, true);
+#endif
+    
     // FIXME: we should add a timeout to this call to make sure it doesn't take too much time.
     if (!softLink_DataDetectorsCore_DDScannerScanQuery(scanner.get(), scanQuery.get()))
         return nil;
@@ -492,7 +518,13 @@ NSArray *DataDetection::detectContentInRange(RefPtr<Range>& contextRange, DataDe
                 iteratorCount++;
             }
             currentRange = iterator.range();
-            fragmentRanges.append(currentRange);
+            RefPtr<Range> fragmentRange = (fragmentIndex == queryRange.end.queryIndex) ?  Range::create(currentRange->ownerDocument(), &currentRange->startContainer(), currentRange->startOffset(), &currentRange->endContainer(), currentRange->startOffset() + queryRange.end.offset) : currentRange;
+            RefPtr<Range> previousRange = fragmentRanges.last();
+            if (&previousRange->startContainer() == &fragmentRange->startContainer()) {
+                fragmentRange = Range::create(currentRange->ownerDocument(), &previousRange->startContainer(), previousRange->startOffset(), &fragmentRange->endContainer(), fragmentRange->endOffset());
+                fragmentRanges.last() = fragmentRange;
+            } else
+                fragmentRanges.append(fragmentRange);
         }
         allResultRanges.append(fragmentRanges);
     }

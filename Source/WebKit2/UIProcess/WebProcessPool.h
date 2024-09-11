@@ -126,6 +126,7 @@ public:
 
     void addMessageReceiver(IPC::StringReference messageReceiverName, IPC::MessageReceiver&);
     void addMessageReceiver(IPC::StringReference messageReceiverName, uint64_t destinationID, IPC::MessageReceiver&);
+    void removeMessageReceiver(IPC::StringReference messageReceiverName);
     void removeMessageReceiver(IPC::StringReference messageReceiverName, uint64_t destinationID);
 
     bool dispatchMessage(IPC::Connection&, IPC::MessageDecoder&);
@@ -522,7 +523,7 @@ private:
     UserObservablePageCounter m_userObservablePageCounter;
     ProcessSuppressionDisabledCounter m_processSuppressionDisabledForPageCounter;
     HiddenPageThrottlingAutoIncreasesCounter m_hiddenPageThrottlingAutoIncreasesCounter;
-    WebCore::Timer m_hiddenPageThrottlingTimer;
+    RunLoop::Timer<WebProcessPool> m_hiddenPageThrottlingTimer;
 
 #if PLATFORM(COCOA)
     RetainPtr<NSMutableDictionary> m_bundleParameters;

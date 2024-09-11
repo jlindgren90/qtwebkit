@@ -76,6 +76,7 @@ class InjectedBundle;
 class NetworkProcessConnection;
 class ObjCObjectGraph;
 class UserData;
+class WebAutomationSessionProxy;
 class WebConnectionToUIProcess;
 class WebFrame;
 class WebIconDatabaseProxy;
@@ -174,6 +175,7 @@ public:
     void statisticsChangedTimerFired();
 
 #if PLATFORM(COCOA)
+    RetainPtr<CFDataRef> sourceApplicationAuditData() const;
     void destroyRenderingResources();
 #endif
 
@@ -209,12 +211,18 @@ public:
 
     void prefetchDNS(const String&);
 
+    WebAutomationSessionProxy* automationSessionProxy() { return m_automationSessionProxy.get(); }
+
 private:
     WebProcess();
     ~WebProcess();
 
     void initializeWebProcess(WebProcessCreationParameters&&);
     void platformInitializeWebProcess(WebProcessCreationParameters&&);
+
+#if USE(OS_STATE)
+    void registerWithStateDumper();
+#endif
 
     void clearCachedCredentials();
 
@@ -278,6 +286,9 @@ private:
 
     enum class ShouldAcknowledgeWhenReadyToSuspend { No, Yes };
     void actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend);
+
+    void ensureAutomationSessionProxy(const String& sessionIdentifier);
+    void destroyAutomationSessionProxy();
 
     // ChildProcess
     void initializeProcess(const ChildProcessInitializationParameters&) override;
@@ -347,6 +358,8 @@ private:
     WebLoaderStrategy& m_webLoaderStrategy;
     HashSet<String> m_dnsPrefetchedHosts;
     WebCore::HysteresisActivity m_dnsPrefetchHystereris;
+
+    std::unique_ptr<WebAutomationSessionProxy> m_automationSessionProxy;
 
 #if ENABLE(DATABASE_PROCESS)
     void ensureWebToDatabaseProcessConnection();

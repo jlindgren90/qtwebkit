@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2013, 2015 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2012-2013, 2015-2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -97,7 +97,7 @@ UnlinkedFunctionExecutable::UnlinkedFunctionExecutable(VM* vm, Structure* struct
     , m_isBuiltinFunction(kind == UnlinkedBuiltinFunction)
     , m_constructAbility(static_cast<unsigned>(constructAbility))
     , m_constructorKind(static_cast<unsigned>(node->constructorKind()))
-    , m_functionMode(node->functionMode())
+    , m_functionMode(static_cast<unsigned>(node->functionMode()))
     , m_superBinding(static_cast<unsigned>(node->superBinding()))
     , m_derivedContextType(static_cast<unsigned>(derivedContextType))
     , m_sourceParseMode(static_cast<unsigned>(node->parseMode()))
@@ -105,8 +105,16 @@ UnlinkedFunctionExecutable::UnlinkedFunctionExecutable(VM* vm, Structure* struct
     , m_ecmaName(node->ecmaName())
     , m_inferredName(node->inferredName())
     , m_sourceOverride(WTFMove(sourceOverride))
+    , m_classSource(node->classSource())
 {
+    // Make sure these bitfields are adequately wide.
+    ASSERT(m_constructAbility == static_cast<unsigned>(constructAbility));
     ASSERT(m_constructorKind == static_cast<unsigned>(node->constructorKind()));
+    ASSERT(m_functionMode == static_cast<unsigned>(node->functionMode()));
+    ASSERT(m_superBinding == static_cast<unsigned>(node->superBinding()));
+    ASSERT(m_derivedContextType == static_cast<unsigned>(derivedContextType));
+    ASSERT(m_sourceParseMode == static_cast<unsigned>(node->parseMode()));
+
     m_parentScopeTDZVariables.swap(parentScopeTDZVariables);
 }
 
@@ -119,7 +127,7 @@ void UnlinkedFunctionExecutable::visitChildren(JSCell* cell, SlotVisitor& visito
     visitor.append(&thisObject->m_unlinkedCodeBlockForConstruct);
 }
 
-FunctionExecutable* UnlinkedFunctionExecutable::link(VM& vm, const SourceCode& ownerSource, int overrideLineNumber)
+FunctionExecutable* UnlinkedFunctionExecutable::link(VM& vm, const SourceCode& ownerSource, Optional<int> overrideLineNumber, Intrinsic intrinsic)
 {
     SourceCode source = m_sourceOverride ? SourceCode(m_sourceOverride) : ownerSource;
     unsigned firstLine = source.firstLine() + m_firstLineOffset;
@@ -147,9 +155,9 @@ FunctionExecutable* UnlinkedFunctionExecutable::link(VM& vm, const SourceCode& o
         }
     }
 
-    FunctionExecutable* result = FunctionExecutable::create(vm, code, this, firstLine, firstLine + lineCount, startColumn, endColumn);
-    if (overrideLineNumber != -1)
-        result->setOverrideLineNumber(overrideLineNumber);
+    FunctionExecutable* result = FunctionExecutable::create(vm, code, this, firstLine, firstLine + lineCount, startColumn, endColumn, intrinsic);
+    if (overrideLineNumber)
+        result->setOverrideLineNumber(*overrideLineNumber);
 
     if (UNLIKELY(hasFunctionOverride)) {
         result->overrideParameterAndTypeProfilingStartEndOffsets(

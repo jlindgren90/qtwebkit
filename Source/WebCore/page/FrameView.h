@@ -510,6 +510,8 @@ public:
 
     WEBCORE_EXPORT void availableContentSizeChanged(AvailableSizeChangeReason) override;
 
+    void adjustTiledBackingScrollability();
+
     void addPaintPendingMilestones(LayoutMilestones);
     void firePaintRelatedMilestonesIfNeeded();
     void fireLayoutRelatedMilestonesIfNeeded();
@@ -623,7 +625,7 @@ private:
     void delegatesScrollingDidChange() override;
 
     // ScrollableArea interface
-    void invalidateScrollbarRect(Scrollbar*, const IntRect&) override;
+    void invalidateScrollbarRect(Scrollbar&, const IntRect&) override;
     void scrollTo(const ScrollPosition&) override;
     void setVisibleScrollerThumbRect(const IntRect&) override;
     ScrollableArea* enclosingScrollableArea() const override;
@@ -635,6 +637,11 @@ private:
     GraphicsLayer* layerForScrollCorner() const override;
 #if ENABLE(RUBBER_BANDING)
     GraphicsLayer* layerForOverhangAreas() const override;
+#endif
+    void contentsResized() override;
+
+#if PLATFORM(IOS)
+    void unobscuredContentSizeChanged() override;
 #endif
 
     bool usesCompositedScrolling() const override;

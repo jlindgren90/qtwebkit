@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2010, 2013, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -133,7 +133,6 @@ public:
 
     JSC::SourceElements* createSourceElements() { return new (m_parserArena) JSC::SourceElements(); }
 
-    DeclarationStacks::FunctionStack& funcDeclarations() { return m_scope.m_funcDeclarations; }
     int features() const { return m_scope.m_features; }
     int numConstants() const { return m_scope.m_numConstants; }
 
@@ -180,8 +179,10 @@ public:
     }
     ExpressionNode* createNewTargetExpr(const JSTokenLocation location)
     {
+        usesNewTarget();
         return new (m_parserArena) NewTargetNode(location);
     }
+    bool isNewTarget(ExpressionNode* node) { return node->isNewTarget(); }
     ExpressionNode* createResolve(const JSTokenLocation& location, const Identifier& ident, const JSTextPosition& start, const JSTextPosition& end)
     {
         if (m_vm->propertyNames->arguments == ident)
@@ -345,7 +346,8 @@ public:
             auto metadata = static_cast<FuncExprNode*>(rhs)->metadata();
             metadata->setEcmaName(ident);
             metadata->setInferredName(ident);
-        }
+        } else if (rhs->isClassExprNode())
+            static_cast<ClassExprNode*>(rhs)->setEcmaName(ident);
         AssignResolveNode* node = new (m_parserArena) AssignResolveNode(location, ident, rhs, assignmentContext);
         setExceptionLocation(node, start, divot, end);
         return node;
@@ -363,10 +365,11 @@ public:
         return node;
     }
 
-    ClassExprNode* createClassExpr(const JSTokenLocation& location, const Identifier& name, VariableEnvironment& classEnvironment, ExpressionNode* constructor,
+    ClassExprNode* createClassExpr(const JSTokenLocation& location, const ParserClassInfo<ASTBuilder>& classInfo, VariableEnvironment& classEnvironment, ExpressionNode* constructor,
         ExpressionNode* parentClass, PropertyListNode* instanceMethods, PropertyListNode* staticMethods)
     {
-        return new (m_parserArena) ClassExprNode(location, name, classEnvironment, constructor, parentClass, instanceMethods, staticMethods);
+        SourceCode source = m_sourceCode->subExpression(classInfo.startOffset, classInfo.endOffset, classInfo.startLine, classInfo.startColumn);
+        return new (m_parserArena) ClassExprNode(location, *classInfo.className, source, classEnvironment, constructor, parentClass, instanceMethods, staticMethods);
     }
 
     ExpressionNode* createFunctionExpr(const JSTokenLocation& location, const ParserFunctionInfo<ASTBuilder>& functionInfo)
@@ -377,6 +380,14 @@ public:
         return result;
     }
 
+    ExpressionNode* createMethodDefinition(const JSTokenLocation& location, const ParserFunctionInfo<ASTBuilder>& functionInfo)
+    {
+        MethodDefinitionNode* result = new (m_parserArena) MethodDefinitionNode(location, *functionInfo.name, functionInfo.body,
+            m_sourceCode->subExpression(functionInfo.startOffset, functionInfo.endOffset, functionInfo.startLine, functionInfo.bodyStartColumn));
+        functionInfo.body->setLoc(functionInfo.startLine, functionInfo.endLine, location.startOffset, location.lineStartOffset);
+        return result;
+    }
+    
     FunctionMetadataNode* createFunctionMetadata(
         const JSTokenLocation& startLocation, const JSTokenLocation& endLocation, 
         unsigned startColumn, unsigned endColumn, int functionKeywordStart, 
@@ -406,8 +417,8 @@ public:
         functionInfo.body->setEcmaName(*name);
         functionInfo.body->setInferredName(*name);
         SourceCode source = m_sourceCode->subExpression(functionInfo.startOffset, functionInfo.endOffset, functionInfo.startLine, functionInfo.bodyStartColumn);
-        FuncExprNode* funcExpr = new (m_parserArena) FuncExprNode(location, m_vm->propertyNames->nullIdentifier, functionInfo.body, source);
-        return new (m_parserArena) PropertyNode(*name, funcExpr, type, PropertyNode::Unknown, superBinding);
+        MethodDefinitionNode* methodDef = new (m_parserArena) MethodDefinitionNode(location, m_vm->propertyNames->nullIdentifier, functionInfo.body, source);
+        return new (m_parserArena) PropertyNode(*name, methodDef, type, PropertyNode::Unknown, superBinding);
     }
 
     NEVER_INLINE PropertyNode* createGetterOrSetterProperty(const JSTokenLocation& location, PropertyNode::Type type, bool,
@@ -416,8 +427,8 @@ public:
         ASSERT(name);
         functionInfo.body->setLoc(functionInfo.startLine, functionInfo.endLine, location.startOffset, location.lineStartOffset);
         SourceCode source = m_sourceCode->subExpression(functionInfo.startOffset, functionInfo.endOffset, functionInfo.startLine, functionInfo.bodyStartColumn);
-        FuncExprNode* funcExpr = new (m_parserArena) FuncExprNode(location, m_vm->propertyNames->nullIdentifier, functionInfo.body, source);
-        return new (m_parserArena) PropertyNode(name, funcExpr, type, PropertyNode::Unknown, superBinding);
+        MethodDefinitionNode* methodDef = new (m_parserArena) MethodDefinitionNode(location, m_vm->propertyNames->nullIdentifier, functionInfo.body, source);
+        return new (m_parserArena) PropertyNode(name, methodDef, type, PropertyNode::Unknown, superBinding);
     }
 
     NEVER_INLINE PropertyNode* createGetterOrSetterProperty(VM* vm, ParserArena& parserArena, const JSTokenLocation& location, PropertyNode::Type type, bool,
@@ -426,8 +437,8 @@ public:
         functionInfo.body->setLoc(functionInfo.startLine, functionInfo.endLine, location.startOffset, location.lineStartOffset);
         const Identifier& ident = parserArena.identifierArena().makeNumericIdentifier(vm, name);
         SourceCode source = m_sourceCode->subExpression(functionInfo.startOffset, functionInfo.endOffset, functionInfo.startLine, functionInfo.bodyStartColumn);
-        FuncExprNode* funcExpr = new (m_parserArena) FuncExprNode(location, vm->propertyNames->nullIdentifier, functionInfo.body, source);
-        return new (m_parserArena) PropertyNode(ident, funcExpr, type, PropertyNode::Unknown, superBinding);
+        MethodDefinitionNode* methodDef = new (m_parserArena) MethodDefinitionNode(location, vm->propertyNames->nullIdentifier, functionInfo.body, source);
+        return new (m_parserArena) PropertyNode(ident, methodDef, type, PropertyNode::Unknown, superBinding);
     }
 
     ArgumentsNode* createArguments() { return new (m_parserArena) ArgumentsNode(); }
@@ -441,7 +452,8 @@ public:
             auto metadata = static_cast<FuncExprNode*>(node)->metadata();
             metadata->setEcmaName(*propertyName);
             metadata->setInferredName(*propertyName);
-        }
+        } else if (node->isClassExprNode())
+            static_cast<ClassExprNode*>(node)->setEcmaName(*propertyName);
         return new (m_parserArena) PropertyNode(*propertyName, node, type, putType, superBinding);
     }
     PropertyNode* createProperty(VM* vm, ParserArena& parserArena, double propertyName, ExpressionNode* node, PropertyNode::Type type, PropertyNode::PutType putType, bool)
@@ -482,7 +494,6 @@ public:
             m_sourceCode->subExpression(functionInfo.startOffset, functionInfo.endOffset, functionInfo.startLine, functionInfo.bodyStartColumn));
         if (*functionInfo.name == m_vm->propertyNames->arguments)
             usesArguments();
-        m_scope.m_funcDeclarations.append(decl->metadata());
         functionInfo.body->setLoc(functionInfo.startLine, functionInfo.endLine, location.startOffset, location.lineStartOffset);
         return decl;
     }
@@ -496,9 +507,9 @@ public:
         return decl;
     }
 
-    StatementNode* createBlockStatement(const JSTokenLocation& location, JSC::SourceElements* elements, int startLine, int endLine, VariableEnvironment& lexicalVariables)
+    StatementNode* createBlockStatement(const JSTokenLocation& location, JSC::SourceElements* elements, int startLine, int endLine, VariableEnvironment& lexicalVariables, DeclarationStacks::FunctionStack&& functionStack)
     {
-        BlockNode* block = new (m_parserArena) BlockNode(location, elements, lexicalVariables);
+        BlockNode* block = new (m_parserArena) BlockNode(location, elements, lexicalVariables, WTFMove(functionStack));
         block->setLoc(startLine, endLine, location.startOffset, location.lineStartOffset);
         return block;
     }
@@ -628,10 +639,10 @@ public:
         return result;
     }
 
-    StatementNode* createSwitchStatement(const JSTokenLocation& location, ExpressionNode* expr, ClauseListNode* firstClauses, CaseClauseNode* defaultClause, ClauseListNode* secondClauses, int startLine, int endLine, VariableEnvironment& lexicalVariables)
+    StatementNode* createSwitchStatement(const JSTokenLocation& location, ExpressionNode* expr, ClauseListNode* firstClauses, CaseClauseNode* defaultClause, ClauseListNode* secondClauses, int startLine, int endLine, VariableEnvironment& lexicalVariables, DeclarationStacks::FunctionStack&& functionStack)
     {
         CaseBlockNode* cases = new (m_parserArena) CaseBlockNode(firstClauses, defaultClause, secondClauses);
-        SwitchNode* result = new (m_parserArena) SwitchNode(location, expr, cases, lexicalVariables);
+        SwitchNode* result = new (m_parserArena) SwitchNode(location, expr, cases, lexicalVariables, WTFMove(functionStack));
         result->setLoc(startLine, endLine, location.startOffset, location.lineStartOffset);
         return result;
     }
@@ -935,7 +946,6 @@ private:
             , m_numConstants(0)
         {
         }
-        DeclarationStacks::FunctionStack m_funcDeclarations;
         int m_features;
         int m_numConstants;
     };
@@ -958,6 +968,7 @@ private:
         m_evalCount++;
         m_scope.m_features |= EvalFeature;
     }
+    void usesNewTarget() { m_scope.m_features |= NewTargetFeature; }
     ExpressionNode* createIntegerLikeNumber(const JSTokenLocation& location, double d)
     {
         return new (m_parserArena) IntegerNode(location, d);
@@ -1301,7 +1312,8 @@ ExpressionNode* ASTBuilder::makeAssignNode(const JSTokenLocation& location, Expr
                 auto metadata = static_cast<FuncExprNode*>(expr)->metadata();
                 metadata->setEcmaName(resolve->identifier());
                 metadata->setInferredName(resolve->identifier());
-            }
+            } else if (expr->isClassExprNode())
+                static_cast<ClassExprNode*>(expr)->setEcmaName(resolve->identifier());
             AssignResolveNode* node = new (m_parserArena) AssignResolveNode(location, resolve->identifier(), expr, AssignmentContext::AssignmentExpression);
             setExceptionLocation(node, start, divot, end);
             return node;

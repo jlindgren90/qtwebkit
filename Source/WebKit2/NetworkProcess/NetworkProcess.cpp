@@ -215,8 +215,11 @@ void NetworkProcess::initializeNetworkProcess(const NetworkProcessCreationParame
     setCanHandleHTTPSServerTrustEvaluation(parameters.canHandleHTTPSServerTrustEvaluation);
 
 #if PLATFORM(COCOA) || USE(CFNETWORK)
-    setApplicationBundleIdentifier(parameters.uiProcessBundleIdentifier);
     SessionTracker::setIdentifierBase(parameters.uiProcessBundleIdentifier);
+#endif
+
+#if USE(NETWORK_SESSION)
+    NetworkSession::setSourceApplicationAuditTokenData(sourceApplicationAuditData());
 #endif
 
     // FIXME: instead of handling this here, a message should be sent later (scales to multiple sessions)

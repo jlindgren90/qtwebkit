@@ -196,9 +196,6 @@ my @features = (
     { option => "modules", desc => "Toggle ES6 modules support",
       define => "ENABLE_ES6_MODULES", default => 0, value => \$modulesSupport },
 
-    { option => "template-literal-syntax", desc => "Toggle ES6 template literal syntax support",
-      define => "ENABLE_ES6_TEMPLATE_LITERAL_SYNTAX", default => 1, value => \$templateLiteralSyntax },
-
     { option => "csp-next", desc => "Toggle Content Security Policy 1.1 support",
       define => "ENABLE_CSP_NEXT", default => isGtk(), value => \$cspNextSupport },
 
@@ -390,9 +387,6 @@ my @features = (
 
     { option => "request-animation-frame", desc => "Toggle Request Animation Frame support",
       define => "ENABLE_REQUEST_ANIMATION_FRAME", default => 1, value => \$requestAnimationFrameSupport },
-
-    { option => "sampling-profiler", desc => "Toggle JSC Sampling Profiler",
-      define => "ENABLE_SAMPLING_PROFILER", default => 1, value => \$samplingProfilerSupport },
 
     { option => "seccomp-filters", desc => "Toggle Seccomp Filter sandbox",
       define => "ENABLE_SECCOMP_FILTERS", default => 0, value => \$seccompFiltersSupport },

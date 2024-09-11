@@ -769,19 +769,6 @@ void CodeBlock::printLocationOpAndRegisterOperand(PrintStream& out, ExecState* e
     out.printf("%s", registerName(operand).data());
 }
 
-void CodeBlock::dumpFunctionExpr(PrintStream& out, int funcExprIndex)
-{
-    out.printf("f%d", funcExprIndex);
-    if (!isCompilationThread()) {
-        FunctionExecutable* executable = functionExpr(funcExprIndex);
-        String name = executable->inferredName().string();
-        if (name.isEmpty())
-            out.print(":<anon>");
-        else
-            out.print(":", name.utf8());
-    }
-}
-
 void CodeBlock::dumpBytecode(
     PrintStream& out, ExecState* exec, const Instruction* begin, const Instruction*& it,
     const StubInfoMap& stubInfos, const CallLinkInfoMap& callLinkInfos)
@@ -812,9 +799,9 @@ void CodeBlock::dumpBytecode(
             out.printf("%s, %s", registerName(r0).data(), registerName(r1).data());
             break;
         }
-        case op_create_out_of_band_arguments: {
+        case op_create_cloned_arguments: {
             int r0 = (++it)->u.operand;
-            printLocationAndOp(out, exec, location, it, "create_out_of_band_arguments");
+            printLocationAndOp(out, exec, location, it, "create_cloned_arguments");
             out.printf("%s", registerName(r0).data());
             break;
         }
@@ -1349,8 +1336,7 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_func");
-            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
-            dumpFunctionExpr(out, f0);
+            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
             break;
         }
         case op_new_generator_func: {
@@ -1358,8 +1344,7 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_generator_func");
-            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
-            dumpFunctionExpr(out, f0);
+            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
             break;
         }
         case op_new_arrow_func_exp: {
@@ -1367,8 +1352,7 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "op_new_arrow_func_exp");
-            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
-            dumpFunctionExpr(out, f0);
+            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
             break;
         }
         case op_new_func_exp: {
@@ -1376,8 +1360,7 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_func_exp");
-            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
-            dumpFunctionExpr(out, f0);
+            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
             break;
         }
         case op_new_generator_func_exp: {
@@ -1385,8 +1368,14 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_generator_func_exp");
-            out.printf("%s, %s", registerName(r0).data(), registerName(r1).data());
-            dumpFunctionExpr(out, f0);
+            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
+            break;
+        }
+        case op_set_function_name: {
+            int funcReg = (++it)->u.operand;
+            int nameReg = (++it)->u.operand;
+            printLocationAndOp(out, exec, location, it, "set_function_name");
+            out.printf("%s, %s", registerName(funcReg).data(), registerName(nameReg).data());
             break;
         }
         case op_call: {

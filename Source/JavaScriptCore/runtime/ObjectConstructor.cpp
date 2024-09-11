@@ -70,6 +70,7 @@ const ClassInfo ObjectConstructor::s_info = { "Function", &InternalFunction::s_i
   getOwnPropertyDescriptor  objectConstructorGetOwnPropertyDescriptor   DontEnum|Function 2
   getOwnPropertyDescriptors objectConstructorGetOwnPropertyDescriptors  DontEnum|Function 1
   getOwnPropertyNames       objectConstructorGetOwnPropertyNames        DontEnum|Function 1
+  getOwnPropertySymbols     objectConstructorGetOwnPropertySymbols      DontEnum|Function 1
   keys                      objectConstructorKeys                       DontEnum|Function 1
   defineProperty            objectConstructorDefineProperty             DontEnum|Function 3
   defineProperties          objectConstructorDefineProperties           DontEnum|Function 2
@@ -98,7 +99,8 @@ void ObjectConstructor::finishCreation(VM& vm, JSGlobalObject* globalObject, Obj
     // no. of arguments for constructor
     putDirectWithoutTransition(vm, vm.propertyNames->length, jsNumber(1), ReadOnly | DontEnum | DontDelete);
 
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("getOwnPropertySymbols", objectConstructorGetOwnPropertySymbols, DontEnum, 1);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->createPrivateName, objectConstructorCreate, DontEnum, 2);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->definePropertyPrivateName, objectConstructorDefineProperty, DontEnum, 3);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->getPrototypeOfPrivateName, objectConstructorGetPrototypeOf, DontEnum, 1);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->getOwnPropertyNamesPrivateName, objectConstructorGetOwnPropertyNames, DontEnum, 1);
 }
@@ -243,13 +245,17 @@ JSValue objectConstructorGetOwnPropertyDescriptors(ExecState* exec, JSObject* ob
         return jsUndefined();
 
     JSObject* descriptors = constructEmptyObject(exec);
+    if (exec->hadException())
+        return jsUndefined();
 
     for (auto& propertyName : properties) {
         JSValue fromDescriptor = objectConstructorGetOwnPropertyDescriptor(exec, object, propertyName);
         if (exec->hadException())
             return jsUndefined();
 
-        descriptors->putDirect(exec->vm(), propertyName, fromDescriptor, 0);
+        PutPropertySlot slot(descriptors);
+        descriptors->putOwnDataPropertyMayBeIndex(exec, propertyName, fromDescriptor, slot);
+        ASSERT(!exec->hadException());
     }
 
     return descriptors;
@@ -309,84 +315,90 @@ EncodedJSValue JSC_HOST_CALL ownEnumerablePropertyKeys(ExecState* exec)
     return JSValue::encode(ownPropertyKeys(exec, object, PropertyNameMode::StringsAndSymbols, DontEnumPropertiesMode::Exclude));
 }
 
-// ES5 8.10.5 ToPropertyDescriptor
+// ES6 6.2.4.5 ToPropertyDescriptor
+// https://tc39.github.io/ecma262/#sec-topropertydescriptor
 bool toPropertyDescriptor(ExecState* exec, JSValue in, PropertyDescriptor& desc)
 {
+    VM& vm = exec->vm();
     if (!in.isObject()) {
-        exec->vm().throwException(exec, createTypeError(exec, ASCIILiteral("Property description must be an object.")));
+        vm.throwException(exec, createTypeError(exec, ASCIILiteral("Property description must be an object.")));
         return false;
     }
     JSObject* description = asObject(in);
 
-    PropertySlot enumerableSlot(description, PropertySlot::InternalMethodType::HasProperty);
-    if (description->getPropertySlot(exec, exec->propertyNames().enumerable, enumerableSlot)) {
-        desc.setEnumerable(enumerableSlot.getValue(exec, exec->propertyNames().enumerable).toBoolean(exec));
-        if (exec->hadException())
+    if (description->hasProperty(exec, exec->propertyNames().enumerable)) {
+        JSValue value = description->get(exec, exec->propertyNames().enumerable);
+        if (vm.exception())
             return false;
-    }
+        desc.setEnumerable(value.toBoolean(exec));
+    } else if (vm.exception())
+        return false;
 
-    PropertySlot configurableSlot(description, PropertySlot::InternalMethodType::HasProperty);
-    if (description->getPropertySlot(exec, exec->propertyNames().configurable, configurableSlot)) {
-        desc.setConfigurable(configurableSlot.getValue(exec, exec->propertyNames().configurable).toBoolean(exec));
-        if (exec->hadException())
+    if (description->hasProperty(exec, exec->propertyNames().configurable)) {
+        JSValue value = description->get(exec, exec->propertyNames().configurable);
+        if (vm.exception())
             return false;
-    }
+        desc.setConfigurable(value.toBoolean(exec));
+    } else if (vm.exception())
+        return false;
 
     JSValue value;
-    PropertySlot valueSlot(description, PropertySlot::InternalMethodType::HasProperty);
-    if (description->getPropertySlot(exec, exec->propertyNames().value, valueSlot)) {
-        desc.setValue(valueSlot.getValue(exec, exec->propertyNames().value));
-        if (exec->hadException())
+    if (description->hasProperty(exec, exec->propertyNames().value)) {
+        JSValue value = description->get(exec, exec->propertyNames().value);
+        if (vm.exception())
             return false;
-    }
+        desc.setValue(value);
+    } else if (vm.exception())
+        return false;
 
-    PropertySlot writableSlot(description, PropertySlot::InternalMethodType::HasProperty);
-    if (description->getPropertySlot(exec, exec->propertyNames().writable, writableSlot)) {
-        desc.setWritable(writableSlot.getValue(exec, exec->propertyNames().writable).toBoolean(exec));
-        if (exec->hadException())
+    if (description->hasProperty(exec, exec->propertyNames().writable)) {
+        JSValue value = description->get(exec, exec->propertyNames().writable);
+        if (vm.exception())
             return false;
-    }
+        desc.setWritable(value.toBoolean(exec));
+    } else if (vm.exception())
+        return false;
 
-    PropertySlot getSlot(description, PropertySlot::InternalMethodType::HasProperty);
-    if (description->getPropertySlot(exec, exec->propertyNames().get, getSlot)) {
-        JSValue get = getSlot.getValue(exec, exec->propertyNames().get);
-        if (exec->hadException())
+    if (description->hasProperty(exec, exec->propertyNames().get)) {
+        JSValue get = description->get(exec, exec->propertyNames().get);
+        if (vm.exception())
             return false;
         if (!get.isUndefined()) {
             CallData callData;
             if (getCallData(get, callData) == CallType::None) {
-                exec->vm().throwException(exec, createTypeError(exec, ASCIILiteral("Getter must be a function.")));
+                vm.throwException(exec, createTypeError(exec, ASCIILiteral("Getter must be a function.")));
                 return false;
             }
         }
         desc.setGetter(get);
-    }
+    } else if (vm.exception())
+        return false;
 
-    PropertySlot setSlot(description, PropertySlot::InternalMethodType::HasProperty);
-    if (description->getPropertySlot(exec, exec->propertyNames().set, setSlot)) {
-        JSValue set = setSlot.getValue(exec, exec->propertyNames().set);
-        if (exec->hadException())
+    if (description->hasProperty(exec, exec->propertyNames().set)) {
+        JSValue set = description->get(exec, exec->propertyNames().set);
+        if (vm.exception())
             return false;
         if (!set.isUndefined()) {
             CallData callData;
             if (getCallData(set, callData) == CallType::None) {
-                exec->vm().throwException(exec, createTypeError(exec, ASCIILiteral("Setter must be a function.")));
+                vm.throwException(exec, createTypeError(exec, ASCIILiteral("Setter must be a function.")));
                 return false;
             }
         }
         desc.setSetter(set);
-    }
+    } else if (vm.exception())
+        return false;
 
     if (!desc.isAccessorDescriptor())
         return true;
 
     if (desc.value()) {
-        exec->vm().throwException(exec, createTypeError(exec, ASCIILiteral("Invalid property.  'value' present on property with getter or setter.")));
+        vm.throwException(exec, createTypeError(exec, ASCIILiteral("Invalid property.  'value' present on property with getter or setter.")));
         return false;
     }
 
     if (desc.writablePresent()) {
-        exec->vm().throwException(exec, createTypeError(exec, ASCIILiteral("Invalid property.  'writable' present on property with getter or setter.")));
+        vm.throwException(exec, createTypeError(exec, ASCIILiteral("Invalid property.  'writable' present on property with getter or setter.")));
         return false;
     }
     return true;

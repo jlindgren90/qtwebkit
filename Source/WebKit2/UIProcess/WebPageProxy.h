@@ -413,10 +413,7 @@ public:
     void clearSelection();
     void restoreSelectionInFocusedEditableElement();
 
-    void setViewNeedsDisplay(const WebCore::IntRect&);
-    void displayView();
-    bool canScrollView();
-    void scrollView(const WebCore::IntRect& scrollRect, const WebCore::IntSize& scrollOffset); // FIXME: CoordinatedGraphics should use requestScroll().
+    void setViewNeedsDisplay(const WebCore::Region&);
     void requestScroll(const WebCore::FloatPoint& scrollPosition, const WebCore::IntPoint& scrollOrigin, bool isProgrammaticScroll);
     
     void setDelegatesScrolling(bool delegatesScrolling) { m_delegatesScrolling = delegatesScrolling; }
@@ -520,11 +517,13 @@ public:
     void contentSizeCategoryDidChange(const String& contentSizeCategory);
     void getLookupContextAtPoint(const WebCore::IntPoint&, std::function<void(const String&, CallbackBase::Error)>);
     void handleTwoFingerTapAtPoint(const WebCore::IntPoint&, std::function<void(const String&, CallbackBase::Error)>);
+    void updateForceAlwaysUserScalable();
 #endif
 #if ENABLE(DATA_DETECTION)
     void setDataDetectionResult(const DataDetectionResult&);
 #endif
     void didCommitLayerTree(const WebKit::RemoteLayerTreeTransaction&);
+    void layerTreeCommitComplete();
 
 #if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
     void didRenderFrame(const WebCore::IntSize& contentsSize, const WebCore::IntRect& coveredRect);
@@ -1019,6 +1018,7 @@ public:
 
     bool isPlayingAudio() const { return !!(m_mediaState & WebCore::MediaProducer::IsPlayingAudio); }
     void isPlayingMediaDidChange(WebCore::MediaProducer::MediaStateFlags, uint64_t);
+    WebCore::MediaProducer::MediaStateFlags mediaStateFlags() const { return m_mediaState; }
 
     bool isPlayingVideoWithAudio() const;
 
@@ -1053,9 +1053,9 @@ public:
 #endif
 
 #if USE(UNIFIED_TEXT_CHECKING)
-    void checkTextOfParagraph(const String& text, uint64_t checkingTypes, Vector<WebCore::TextCheckingResult>& results);
+    void checkTextOfParagraph(const String& text, uint64_t checkingTypes, int32_t insertionPoint, Vector<WebCore::TextCheckingResult>& results);
 #endif
-    void getGuessesForWord(const String& word, const String& context, Vector<String>& guesses);
+    void getGuessesForWord(const String& word, const String& context, int32_t insertionPoint, Vector<String>& guesses);
 
     void setShouldDispatchFakeMouseMoveEvents(bool);
 
@@ -1094,6 +1094,11 @@ public:
     void didRestoreScrollPosition();
 
     void setFocus(bool focused);
+    void setWindowFrame(const WebCore::FloatRect&);
+    void getWindowFrame(WebCore::FloatRect&);
+
+    bool isResourceCachingDisabled() const { return m_isResourceCachingDisabled; }
+    void setResourceCachingDisabled(bool);
 
 private:
     WebPageProxy(PageClient&, WebProcessProxy&, uint64_t pageID, Ref<API::PageConfiguration>&&);
@@ -1194,8 +1199,6 @@ private:
     void getStatusBarIsVisible(bool& statusBarIsVisible);
     void setIsResizable(bool isResizable);
     void getIsResizable(bool& isResizable);
-    void setWindowFrame(const WebCore::FloatRect&);
-    void getWindowFrame(WebCore::FloatRect&);
     void screenToRootView(const WebCore::IntPoint& screenPoint, WebCore::IntPoint& windowPoint);
     void rootViewToScreen(const WebCore::IntRect& viewRect, WebCore::IntRect& result);
 #if PLATFORM(IOS)
@@ -1328,7 +1331,7 @@ private:
     void updateSpellingUIWithGrammarString(const String& badGrammarPhrase, const WebCore::GrammarDetail&);
     void learnWord(const String& word);
     void ignoreWord(const String& word);
-    void requestCheckingOfString(uint64_t requestID, const WebCore::TextCheckingRequestData&);
+    void requestCheckingOfString(uint64_t requestID, const WebCore::TextCheckingRequestData&, int32_t insertionPoint);
 
     void takeFocus(uint32_t direction);
     void setToolTip(const String&);
@@ -1404,7 +1407,7 @@ private:
 
     void dynamicViewportUpdateChangedTarget(double newTargetScale, const WebCore::FloatPoint& newScrollPosition, uint64_t dynamicViewportSizeUpdateID);
     void couldNotRestorePageState();
-    void restorePageState(const WebCore::FloatRect&, double scale);
+    void restorePageState(const WebCore::FloatRect& exposedContentRect, const WebCore::IntPoint& scrollOrigin, double scale);
     void restorePageCenterAndScale(const WebCore::FloatPoint&, double scale);
 
     void didGetTapHighlightGeometries(uint64_t requestID, const WebCore::Color& color, const Vector<WebCore::FloatQuad>& geometries, const WebCore::IntSize& topLeftRadius, const WebCore::IntSize& topRightRadius, const WebCore::IntSize& bottomLeftRadius, const WebCore::IntSize& bottomRightRadius);
@@ -1790,6 +1793,8 @@ private:
     Vector<uint64_t> m_nextViewStateChangeCallbacks;
 
     WebCore::MediaProducer::MediaStateFlags m_mediaState { WebCore::MediaProducer::IsNotPlaying };
+
+    bool m_isResourceCachingDisabled { false };
 
 #if ENABLE(MEDIA_SESSION)
     bool m_hasMediaSessionWithActiveMediaElements { false };

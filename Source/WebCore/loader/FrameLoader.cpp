@@ -695,7 +695,7 @@ void FrameLoader::didBeginDocument(bool dispatch)
         if (!dnsPrefetchControl.isEmpty())
             m_frame.document()->parseDNSPrefetchControlHeader(dnsPrefetchControl);
 
-        m_frame.document()->contentSecurityPolicy()->didReceiveHeaders(ContentSecurityPolicyResponseHeaders(m_documentLoader->response()));
+        m_frame.document()->contentSecurityPolicy()->didReceiveHeaders(ContentSecurityPolicyResponseHeaders(m_documentLoader->response()), ContentSecurityPolicy::ReportParsingErrors::No);
 
         String headerContentLanguage = m_documentLoader->response().httpHeaderField(HTTPHeaderName::ContentLanguage);
         if (!headerContentLanguage.isEmpty()) {
@@ -899,8 +899,8 @@ void FrameLoader::loadArchive(PassRefPtr<Archive> archive)
     if (!mainResource)
         return;
 
-    ResourceResponse response(URL(), mainResource->mimeType(), mainResource->data()->size(), mainResource->textEncoding());
-    SubstituteData substituteData(mainResource->data(), URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
+    ResourceResponse response(URL(), mainResource->mimeType(), mainResource->data().size(), mainResource->textEncoding());
+    SubstituteData substituteData(&mainResource->data(), URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
     
     ResourceRequest request(mainResource->url());
 #if PLATFORM(MAC)
@@ -1783,10 +1783,6 @@ void FrameLoader::commitProvisionalLoad()
 
         // Same thing with RegExp bytecode and JIT code.
         GCController::singleton().deleteAllRegExpCode();
-
-        // Throw out decoded data for CachedImages when we are switching pages. The majority of it
-        // will not be used by the next page.
-        MemoryCache::singleton().destroyDecodedDataForAllImages();
 #endif
     }
 
@@ -2169,6 +2165,11 @@ FrameLoadType FrameLoader::loadType() const
     
 CachePolicy FrameLoader::subresourceCachePolicy() const
 {
+    if (Page* page = m_frame.page()) {
+        if (page->isResourceCachingDisabled())
+            return CachePolicyReload;
+    }
+
     if (m_isComplete)
         return CachePolicyVerify;
 
@@ -2582,6 +2583,12 @@ void FrameLoader::addExtraFieldsToMainResourceRequest(ResourceRequest& request)
 
 void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadType loadType, bool mainResource)
 {
+    Page* page = frame().page();
+    bool cachingDisabled = page && page->isResourceCachingDisabled();
+
+    if (cachingDisabled)
+        request.setCachePolicy(ReloadIgnoringCacheData);
+
     // Don't set the cookie policy URL if it's already been set.
     // But make sure to set it on all requests regardless of protocol, as it has significance beyond the cookie policy (<rdar://problem/6616664>).
     if (request.firstPartyForCookies().isEmpty()) {
@@ -2597,7 +2604,10 @@ void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadTyp
 
     applyUserAgent(request);
 
-    if (!mainResource) {
+    if (cachingDisabled) {
+        // Cache policy was already set above in the non-HTTP-specific code.
+        loadType = FrameLoadType::ReloadFromOrigin;
+    } else if (!mainResource) {
         if (request.isConditional())
             request.setCachePolicy(ReloadIgnoringCacheData);
         else if (documentLoader()->isLoadingInAPISense()) {
@@ -2634,7 +2644,7 @@ void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadTyp
             request.setHTTPHeaderField(HTTPHeaderName::Pragma, "no-cache");
         }
     }
-    
+
     if (mainResource)
         request.setHTTPAccept(defaultAcceptHeader);
 
@@ -2747,13 +2757,11 @@ unsigned long FrameLoader::loadResourceSynchronously(const ResourceRequest& requ
 #if ENABLE(CONTENT_EXTENSIONS)
     if (error.isNull()) {
         if (auto* page = m_frame.page()) {
-            if (auto* controller = page->userContentController()) {
-                if (m_documentLoader && controller->processContentExtensionRulesForLoad(newRequest, ResourceType::Raw, *m_documentLoader) == ContentExtensions::BlockedStatus::Blocked) {
-                    newRequest = { };
-                    error = ResourceError(errorDomainWebKitInternal, 0, initialRequest.url(), emptyString());
-                    response = { };
-                    data = nullptr;
-                }
+            if (m_documentLoader && page->userContentProvider().processContentExtensionRulesForLoad(newRequest, ResourceType::Raw, *m_documentLoader) == ContentExtensions::BlockedStatus::Blocked) {
+                newRequest = { };
+                error = ResourceError(errorDomainWebKitInternal, 0, initialRequest.url(), emptyString());
+                response = { };
+                data = nullptr;
             }
         }
     }
@@ -3373,7 +3381,7 @@ void FrameLoader::loadDifferentDocumentItem(HistoryItem& item, FrameLoadType loa
         case FrameLoadType::Back:
         case FrameLoadType::Forward:
         case FrameLoadType::IndexedBackForward: {
-#if PLATFORM(IOS)
+#if PLATFORM(COCOA)
             bool allowStaleData = true;
 #else
             bool allowStaleData = !item.wasRestoredFromSession();

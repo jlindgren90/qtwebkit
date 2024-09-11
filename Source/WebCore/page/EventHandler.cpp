@@ -379,6 +379,9 @@ EventHandler::EventHandler(Frame& frame)
 #if ENABLE(CURSOR_SUPPORT)
     , m_cursorUpdateTimer(*this, &EventHandler::cursorUpdateTimerFired)
 #endif
+#if PLATFORM(MAC)
+    , m_pendingMomentumWheelEventsTimer(*this, &EventHandler::clearLatchedState)
+#endif
     , m_autoscrollController(std::make_unique<AutoscrollController>())
 #if !ENABLE(IOS_TOUCH_EVENTS)
     , m_fakeMouseMoveEventTimer(*this, &EventHandler::fakeMouseMoveEventTimerFired)
@@ -427,10 +430,10 @@ void EventHandler::clear()
     m_clickCount = 0;
     m_clickNode = nullptr;
 #if ENABLE(IOS_GESTURE_EVENTS)
+    m_gestureInitialDiameter = GestureUnknown;
     m_gestureInitialRotation = GestureUnknown;
 #endif
 #if ENABLE(IOS_GESTURE_EVENTS) || ENABLE(MAC_GESTURE_EVENTS)
-    m_gestureInitialDiameter = GestureUnknown;
     m_gestureLastDiameter = GestureUnknown;
     m_gestureLastRotation = GestureUnknown;
     m_gestureTargets.clear();
@@ -2586,6 +2589,15 @@ void EventHandler::platformNotifyIfEndGesture(const PlatformWheelEvent&, Scrolla
 {
 }
 
+IntPoint EventHandler::effectiveMousePositionForSelectionAutoscroll() const
+{
+    return m_lastKnownMousePosition;
+}
+
+void EventHandler::clearOrScheduleClearingLatchedStateIfNeeded(const PlatformWheelEvent&)
+{
+    clearLatchedState();
+}
 #endif
 
 bool EventHandler::handleWheelEvent(const PlatformWheelEvent& event)

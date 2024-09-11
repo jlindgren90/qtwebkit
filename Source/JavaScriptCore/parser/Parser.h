@@ -40,13 +40,15 @@
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/RefPtr.h>
+#include <wtf/SmallPtrSet.h>
+
 namespace JSC {
 struct Scope;
 }
 
 namespace WTF {
-template <> struct VectorTraits<JSC::Scope> : SimpleClassVectorTraits {
-    static const bool canInitializeWithMemset = false; // Not all Scope data members initialize to 0.
+template <> struct VectorTraits<JSC::Scope> : VectorTraitsBase</* is pod */ false, void> {
+    static const bool canMoveWithMemcpy = true;
 };
 }
 
@@ -59,6 +61,8 @@ class Identifier;
 class VM;
 class ProgramNode;
 class SourceCode;
+
+typedef SmallPtrSet<UniquedStringImpl*> UniquedStringImplPtrSet;
 
 // Macros to make the more common TreeBuilder types a little less verbose
 #define TreeStatement typename TreeBuilder::Statement
@@ -158,6 +162,9 @@ private:
 };
 
 struct Scope {
+    WTF_MAKE_NONCOPYABLE(Scope);
+
+public:
     Scope(const VM* vm, bool isFunction, bool isGenerator, bool strictMode, bool isArrowFunction)
         : m_vm(vm)
         , m_shadowsArguments(false)
@@ -177,48 +184,13 @@ struct Scope {
         , m_isFunctionBoundary(false)
         , m_isValidStrictMode(true)
         , m_hasArguments(false)
+        , m_isEvalContext(false)
         , m_constructorKind(static_cast<unsigned>(ConstructorKind::None))
         , m_expectedSuperBinding(static_cast<unsigned>(SuperBinding::NotNeeded))
         , m_loopDepth(0)
         , m_switchDepth(0)
         , m_innerArrowFunctionFeatures(0)
     {
-    }
-
-    Scope(const Scope& rhs)
-        : m_vm(rhs.m_vm)
-        , m_shadowsArguments(rhs.m_shadowsArguments)
-        , m_usesEval(rhs.m_usesEval)
-        , m_needsFullActivation(rhs.m_needsFullActivation)
-        , m_hasDirectSuper(rhs.m_hasDirectSuper)
-        , m_needsSuperBinding(rhs.m_needsSuperBinding)
-        , m_allowsVarDeclarations(rhs.m_allowsVarDeclarations)
-        , m_allowsLexicalDeclarations(rhs.m_allowsLexicalDeclarations)
-        , m_strictMode(rhs.m_strictMode)
-        , m_isFunction(rhs.m_isFunction)
-        , m_isGenerator(rhs.m_isGenerator)
-        , m_isGeneratorBoundary(rhs.m_isGeneratorBoundary)
-        , m_isArrowFunction(rhs.m_isArrowFunction)
-        , m_isArrowFunctionBoundary(rhs.m_isArrowFunctionBoundary)
-        , m_isLexicalScope(rhs.m_isLexicalScope)
-        , m_isFunctionBoundary(rhs.m_isFunctionBoundary)
-        , m_isValidStrictMode(rhs.m_isValidStrictMode)
-        , m_hasArguments(rhs.m_hasArguments)
-        , m_constructorKind(rhs.m_constructorKind)
-        , m_expectedSuperBinding(rhs.m_expectedSuperBinding)
-        , m_loopDepth(rhs.m_loopDepth)
-        , m_switchDepth(rhs.m_switchDepth)
-        , m_innerArrowFunctionFeatures(rhs.m_innerArrowFunctionFeatures)
-        , m_moduleScopeData(rhs.m_moduleScopeData)
-    {
-        if (rhs.m_labels) {
-            m_labels = std::make_unique<LabelStack>();
-
-            typedef LabelStack::const_iterator iterator;
-            iterator end = rhs.m_labels->end();
-            for (iterator it = rhs.m_labels->begin(); it != end; ++it)
-                m_labels->append(ScopeLabelInfo { it->uid, it->isLoop });
-        }
     }
 
     void startSwitch() { m_switchDepth++; }
@@ -368,6 +340,37 @@ struct Scope {
         return result;
     }
 
+    DeclarationResultMask declareFunction(const Identifier* ident, bool declareAsVar)
+    {
+        ASSERT(m_allowsVarDeclarations || m_allowsLexicalDeclarations);
+        DeclarationResultMask result = DeclarationResult::Valid;
+        bool isValidStrictMode = !isEvalOrArgumentsIdentifier(m_vm, ident);
+        if (!isValidStrictMode)
+            result |= DeclarationResult::InvalidStrictMode;
+        m_isValidStrictMode = m_isValidStrictMode && isValidStrictMode;
+        auto addResult = declareAsVar ? m_declaredVariables.add(ident->impl()) : m_lexicalVariables.add(ident->impl());
+        addResult.iterator->value.setIsFunction();
+        if (declareAsVar) {
+            addResult.iterator->value.setIsVar();
+            if (m_lexicalVariables.contains(ident->impl()))
+                result |= DeclarationResult::InvalidDuplicateDeclaration;
+        } else {
+            addResult.iterator->value.setIsLet();
+            ASSERT_WITH_MESSAGE(!m_declaredVariables.size(), "We should only declare a function as a lexically scoped variable in scopes where var declarations aren't allowed. I.e, in strict mode and not at the top-level scope of a function or program.");
+            if (!addResult.isNewEntry) 
+                result |= DeclarationResult::InvalidDuplicateDeclaration;
+        }
+        return result;
+    }
+
+    void appendFunction(FunctionMetadataNode* node)
+    { 
+        ASSERT(node);
+        m_functionDeclarations.append(node);
+    }
+    DeclarationStacks::FunctionStack&& takeFunctionDeclarations() { return WTFMove(m_functionDeclarations); }
+    
+
     DeclarationResultMask declareLexicalVariable(const Identifier* ident, bool isConstant, DeclarationImportType importType = DeclarationImportType::NotImported)
     {
         ASSERT(m_allowsLexicalDeclarations);
@@ -421,7 +424,7 @@ struct Scope {
 
     bool hasDeclaredParameter(const RefPtr<UniquedStringImpl>& ident)
     {
-        return m_declaredParameters.contains(ident) || hasDeclaredVariable(ident);
+        return m_declaredParameters.contains(ident.get()) || hasDeclaredVariable(ident);
     }
     
     void declareWrite(const Identifier* ident)
@@ -459,11 +462,7 @@ struct Scope {
         return result;
     }
     
-    void getUsedVariables(IdentifierSet& usedVariables)
-    {
-        usedVariables.swap(m_usedVariables);
-    }
-
+    bool usedVariablesContains(UniquedStringImpl* impl) const { return m_usedVariables.contains(impl); }
     void useVariable(const Identifier* ident, bool isEval)
     {
         m_usesEval |= isEval;
@@ -494,6 +493,9 @@ struct Scope {
     void setInnerArrowFunctionUsesThis() { m_innerArrowFunctionFeatures |= ThisInnerArrowFunctionFeature; }
     void setInnerArrowFunctionUsesNewTarget() { m_innerArrowFunctionFeatures |= NewTargetInnerArrowFunctionFeature; }
     void setInnerArrowFunctionUsesArguments() { m_innerArrowFunctionFeatures |= ArgumentsInnerArrowFunctionFeature; }
+    
+    bool isEvalContext() const { return m_isEvalContext; }
+    void setIsEvalContext(bool isEvalContext) { m_isEvalContext = isEvalContext; }
 
     void setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded()
     {
@@ -512,7 +514,7 @@ struct Scope {
             m_usesEval = true;
 
         {
-            for (const RefPtr<UniquedStringImpl>& impl : nestedScope->m_usedVariables) {
+            for (UniquedStringImpl* impl : nestedScope->m_usedVariables) {
                 if (nestedScope->m_declaredVariables.contains(impl) || nestedScope->m_lexicalVariables.contains(impl))
                     continue;
 
@@ -537,11 +539,10 @@ struct Scope {
         }
 
         if (nestedScope->m_writtenVariables.size()) {
-            IdentifierSet::iterator end = nestedScope->m_writtenVariables.end();
-            for (IdentifierSet::iterator ptr = nestedScope->m_writtenVariables.begin(); ptr != end; ++ptr) {
-                if (nestedScope->m_declaredVariables.contains(*ptr) || nestedScope->m_lexicalVariables.contains(*ptr))
+            for (UniquedStringImpl* impl : nestedScope->m_writtenVariables) {
+                if (nestedScope->m_declaredVariables.contains(impl) || nestedScope->m_lexicalVariables.contains(impl))
                     continue;
-                m_writtenVariables.add(*ptr);
+                m_writtenVariables.add(impl);
             }
         }
     }
@@ -569,11 +570,10 @@ struct Scope {
         if (shadowsArguments())
             modifiedArguments = true;
         if (m_declaredParameters.size()) {
-            IdentifierSet::iterator end = m_writtenVariables.end();
-            for (IdentifierSet::iterator ptr = m_writtenVariables.begin(); ptr != end; ++ptr) {
-                if (*ptr == m_vm->propertyNames->arguments.impl())
+            for (UniquedStringImpl* impl : m_writtenVariables) {
+                if (impl == m_vm->propertyNames->arguments.impl())
                     modifiedArguments = true;
-                if (!m_declaredParameters.contains(*ptr))
+                if (!m_declaredParameters.contains(impl))
                     continue;
                 modifiedParameter = true;
                 break;
@@ -585,13 +585,12 @@ struct Scope {
     bool isValidStrictMode() const { return m_isValidStrictMode; }
     bool shadowsArguments() const { return m_shadowsArguments; }
 
-    void copyCapturedVariablesToVector(const IdentifierSet& capturedVariables, Vector<RefPtr<UniquedStringImpl>>& vector)
+    void copyCapturedVariablesToVector(const UniquedStringImplPtrSet& capturedVariables, Vector<RefPtr<UniquedStringImpl>>& vector)
     {
-        IdentifierSet::iterator end = capturedVariables.end();
-        for (IdentifierSet::iterator it = capturedVariables.begin(); it != end; ++it) {
-            if (m_declaredVariables.contains(*it) || m_lexicalVariables.contains(*it))
+        for (UniquedStringImpl* impl : capturedVariables) {
+            if (m_declaredVariables.contains(impl) || m_lexicalVariables.contains(impl))
                 continue;
-            vector.append(*it);
+            vector.append(impl);
         }
     }
 
@@ -658,39 +657,44 @@ private:
         m_moduleScopeData = ModuleScopeData::create();
     }
 
+    // All the fields in Scope must be able to use memcpy as their
+    // move operation. If you add a field that violates this, make sure
+    // to remove this comment and update WTF::VectorTraits<JSC::Scope>.
     const VM* m_vm;
-    bool m_shadowsArguments : 1;
-    bool m_usesEval : 1;
-    bool m_needsFullActivation : 1;
-    bool m_hasDirectSuper : 1;
-    bool m_needsSuperBinding : 1;
-    bool m_allowsVarDeclarations : 1;
-    bool m_allowsLexicalDeclarations : 1;
-    bool m_strictMode : 1;
-    bool m_isFunction : 1;
-    bool m_isGenerator : 1;
-    bool m_isGeneratorBoundary : 1;
-    bool m_isArrowFunction : 1;
-    bool m_isArrowFunctionBoundary : 1;
-    bool m_isLexicalScope : 1;
-    bool m_isFunctionBoundary : 1;
-    bool m_isValidStrictMode : 1;
-    bool m_hasArguments : 1;
-    unsigned m_constructorKind : 2;
-    unsigned m_expectedSuperBinding : 2;
+    bool m_shadowsArguments;
+    bool m_usesEval;
+    bool m_needsFullActivation;
+    bool m_hasDirectSuper;
+    bool m_needsSuperBinding;
+    bool m_allowsVarDeclarations;
+    bool m_allowsLexicalDeclarations;
+    bool m_strictMode;
+    bool m_isFunction;
+    bool m_isGenerator;
+    bool m_isGeneratorBoundary;
+    bool m_isArrowFunction;
+    bool m_isArrowFunctionBoundary;
+    bool m_isLexicalScope;
+    bool m_isFunctionBoundary;
+    bool m_isValidStrictMode;
+    bool m_hasArguments;
+    bool m_isEvalContext;
+    unsigned m_constructorKind;
+    unsigned m_expectedSuperBinding;
     int m_loopDepth;
     int m_switchDepth;
     InnerArrowFunctionCodeFeatures m_innerArrowFunctionFeatures;
 
     typedef Vector<ScopeLabelInfo, 2> LabelStack;
     std::unique_ptr<LabelStack> m_labels;
-    IdentifierSet m_declaredParameters;
+    UniquedStringImplPtrSet m_declaredParameters;
     VariableEnvironment m_declaredVariables;
     VariableEnvironment m_lexicalVariables;
-    IdentifierSet m_usedVariables;
+    UniquedStringImplPtrSet m_usedVariables;
     IdentifierSet m_closedVariableCandidates;
-    IdentifierSet m_writtenVariables;
-    RefPtr<ModuleScopeData> m_moduleScopeData { };
+    UniquedStringImplPtrSet m_writtenVariables;
+    RefPtr<ModuleScopeData> m_moduleScopeData;
+    DeclarationStacks::FunctionStack m_functionDeclarations;
 };
 
 typedef Vector<Scope, 10> ScopeStack;
@@ -731,9 +735,7 @@ class Parser {
     WTF_MAKE_FAST_ALLOCATED;
 
 public:
-    Parser(
-        VM*, const SourceCode&, JSParserBuiltinMode, JSParserStrictMode, SourceParseMode, SuperBinding,
-        ConstructorKind defaultConstructorKind = ConstructorKind::None, ThisTDZMode = ThisTDZMode::CheckIfNeeded);
+    Parser(VM*, const SourceCode&, JSParserBuiltinMode, JSParserStrictMode, SourceParseMode, SuperBinding, ConstructorKind defaultConstructorKind = ConstructorKind::None, ThisTDZMode = ThisTDZMode::CheckIfNeeded, DerivedContextType = DerivedContextType::None, bool isEvalContext = false);
     ~Parser();
 
     template <class ParsedNode>
@@ -923,6 +925,18 @@ private:
         return ScopeRef(&m_scopeStack, i);
     }
 
+    ScopeRef currentLexicalDeclarationScope()
+    {
+        unsigned i = m_scopeStack.size() - 1;
+        ASSERT(i < m_scopeStack.size());
+        while (!m_scopeStack[i].allowsLexicalDeclarations()) {
+            i--;
+            ASSERT(i < m_scopeStack.size());
+        }
+
+        return ScopeRef(&m_scopeStack, i);
+    }
+
     ScopeRef currentFunctionScope()
     {
         unsigned i = m_scopeStack.size() - 1;
@@ -956,10 +970,10 @@ private:
             isGenerator = m_scopeStack.last().isGenerator();
             isArrowFunction = m_scopeStack.last().isArrowFunction();
         }
-        m_scopeStack.append(Scope(m_vm, isFunction, isGenerator, isStrict, isArrowFunction));
+        m_scopeStack.constructAndAppend(m_vm, isFunction, isGenerator, isStrict, isArrowFunction);
         return currentScope();
     }
-    
+
     void popScopeInternal(ScopeRef& scope, bool shouldTrackClosedVariables)
     {
         ASSERT_UNUSED(scope, scope.index() == m_scopeStack.size() - 1);
@@ -1001,22 +1015,30 @@ private:
         if (type == DeclarationType::VarDeclaration)
             return currentVariableScope()->declareVariable(ident);
 
-        unsigned i = m_scopeStack.size() - 1;
-        ASSERT(i < m_scopeStack.size());
         ASSERT(type == DeclarationType::LetDeclaration || type == DeclarationType::ConstDeclaration);
-
         // Lexical variables declared at a top level scope that shadow arguments or vars are not allowed.
         if (m_statementDepth == 1 && (hasDeclaredParameter(*ident) || hasDeclaredVariable(*ident)))
             return DeclarationResult::InvalidDuplicateDeclaration;
 
-        while (!m_scopeStack[i].allowsLexicalDeclarations()) {
-            i--;
-            ASSERT(i < m_scopeStack.size());
+        return currentLexicalDeclarationScope()->declareLexicalVariable(ident, type == DeclarationType::ConstDeclaration, importType);
+    }
+
+    std::pair<DeclarationResultMask, ScopeRef> declareFunction(const Identifier* ident)
+    {
+        if (m_statementDepth == 1 || !strictMode()) {
+            // Functions declared at the top-most scope (both in sloppy and strict mode) are declared as vars
+            // for backwards compatibility. This allows us to declare functions with the same name more than once.
+            // In sloppy mode, we always declare functions as vars.
+            bool declareAsVar = true;
+            ScopeRef variableScope = currentVariableScope();
+            return std::make_pair(variableScope->declareFunction(ident, declareAsVar), variableScope);
         }
 
-        return m_scopeStack[i].declareLexicalVariable(ident, type == DeclarationType::ConstDeclaration, importType);
+        bool declareAsVar = false;
+        ScopeRef lexicalVariableScope = currentLexicalDeclarationScope();
+        return std::make_pair(lexicalVariableScope->declareFunction(ident, declareAsVar), lexicalVariableScope);
     }
-    
+
     NEVER_INLINE bool hasDeclaredVariable(const Identifier& ident)
     {
         unsigned i = m_scopeStack.size() - 1;
@@ -1061,7 +1083,7 @@ private:
     Parser();
     String parseInner(const Identifier&, SourceParseMode);
 
-    void didFinishParsing(SourceElements*, DeclarationStacks::FunctionStack&, VariableEnvironment&, CodeFeatures, int);
+    void didFinishParsing(SourceElements*, DeclarationStacks::FunctionStack&&, VariableEnvironment&, CodeFeatures, int);
 
     // Used to determine type of error to report.
     bool isFunctionMetadataNode(ScopeNode*) { return false; }
@@ -1479,6 +1501,7 @@ private:
     CodeFeatures m_features;
     int m_numConstants;
     ExpressionErrorClassifier* m_expressionErrorClassifier;
+    bool m_isEvalContext;
     
     struct DepthManager {
         DepthManager(int* depth)
@@ -1546,7 +1569,7 @@ std::unique_ptr<ParsedNode> Parser<LexerType>::parse(ParserError& error, const I
                                     endColumn,
                                     m_sourceElements,
                                     m_varDeclarations,
-                                    m_funcDeclarations,
+                                    WTFMove(m_funcDeclarations),
                                     currentScope()->finalizeLexicalEnvironment(),
                                     m_parameters,
                                     *m_source,
@@ -1597,14 +1620,12 @@ std::unique_ptr<ParsedNode> parse(
     const Identifier& name, JSParserBuiltinMode builtinMode,
     JSParserStrictMode strictMode, SourceParseMode parseMode, SuperBinding superBinding,
     ParserError& error, JSTextPosition* positionBeforeLastNewline = nullptr,
-    ConstructorKind defaultConstructorKind = ConstructorKind::None,
-    ThisTDZMode thisTDZMode = ThisTDZMode::CheckIfNeeded)
+    ConstructorKind defaultConstructorKind = ConstructorKind::None, ThisTDZMode thisTDZMode = ThisTDZMode::CheckIfNeeded,
+    DerivedContextType derivedContextType = DerivedContextType::None)
 {
-    SamplingRegion samplingRegion("Parsing");
-
     ASSERT(!source.provider()->source().isNull());
     if (source.provider()->source().is8Bit()) {
-        Parser<Lexer<LChar>> parser(vm, source, builtinMode, strictMode, parseMode, superBinding, defaultConstructorKind, thisTDZMode);
+        Parser<Lexer<LChar>> parser(vm, source, builtinMode, strictMode, parseMode, superBinding, defaultConstructorKind, thisTDZMode, derivedContextType, isEvalNode<ParsedNode>());
         std::unique_ptr<ParsedNode> result = parser.parse<ParsedNode>(error, name, parseMode);
         if (positionBeforeLastNewline)
             *positionBeforeLastNewline = parser.positionBeforeLastNewline();
@@ -1615,7 +1636,7 @@ std::unique_ptr<ParsedNode> parse(
         return result;
     }
     ASSERT_WITH_MESSAGE(defaultConstructorKind == ConstructorKind::None, "BuiltinExecutables::createDefaultConstructor should always use a 8-bit string");
-    Parser<Lexer<UChar>> parser(vm, source, builtinMode, strictMode, parseMode, superBinding, defaultConstructorKind, thisTDZMode);
+    Parser<Lexer<UChar>> parser(vm, source, builtinMode, strictMode, parseMode, superBinding, defaultConstructorKind, thisTDZMode, derivedContextType, isEvalNode<ParsedNode>());
     std::unique_ptr<ParsedNode> result = parser.parse<ParsedNode>(error, name, parseMode);
     if (positionBeforeLastNewline)
         *positionBeforeLastNewline = parser.positionBeforeLastNewline();

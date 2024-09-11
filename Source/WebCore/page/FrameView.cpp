@@ -2136,6 +2136,13 @@ void FrameView::setScrollPosition(const ScrollPosition& scrollPosition)
     ScrollView::setScrollPosition(scrollPosition);
 }
 
+void FrameView::contentsResized()
+{
+    // For non-delegated scrolling, adjustTiledBackingScrollability() is called via addedOrRemovedScrollbar() which occurs less often.
+    if (delegatesScrolling())
+        adjustTiledBackingScrollability();
+}
+
 void FrameView::delegatesScrollingDidChange()
 {
     // When we switch to delgatesScrolling mode, we should destroy the scrolling/clipping layers in RenderLayerCompositor.
@@ -2466,17 +2473,45 @@ void FrameView::addedOrRemovedScrollbar()
             renderView->compositor().frameViewDidAddOrRemoveScrollbars();
     }
 
-    if (auto* tiledBacking = this->tiledBacking()) {
-        TiledBacking::Scrollability scrollability = TiledBacking::NotScrollable;
-        if (horizontalScrollbar())
-            scrollability = TiledBacking::HorizontallyScrollable;
-
-        if (verticalScrollbar())
-            scrollability |= TiledBacking::VerticallyScrollable;
-
-        tiledBacking->setScrollability(scrollability);
-    }
+    adjustTiledBackingScrollability();
 }
+
+void FrameView::adjustTiledBackingScrollability()
+{
+    auto* tiledBacking = this->tiledBacking();
+    if (!tiledBacking)
+        return;
+    
+    bool horizontallyScrollable;
+    bool verticallyScrollable;
+
+    if (delegatesScrolling()) {
+        IntSize documentSize = contentsSize();
+        IntSize visibleSize = this->visibleSize();
+        
+        horizontallyScrollable = documentSize.width() > visibleSize.width();
+        verticallyScrollable = documentSize.height() > visibleSize.height();
+    } else {
+        horizontallyScrollable = horizontalScrollbar();
+        verticallyScrollable = verticalScrollbar();
+    }
+
+    TiledBacking::Scrollability scrollability = TiledBacking::NotScrollable;
+    if (horizontallyScrollable)
+        scrollability = TiledBacking::HorizontallyScrollable;
+
+    if (verticallyScrollable)
+        scrollability |= TiledBacking::VerticallyScrollable;
+
+    tiledBacking->setScrollability(scrollability);
+}
+
+#if PLATFORM(IOS)
+void FrameView::unobscuredContentSizeChanged()
+{
+    adjustTiledBackingScrollability();
+}
+#endif
 
 static LayerFlushThrottleState::Flags determineLayerFlushThrottleState(Page& page)
 {
@@ -3555,11 +3590,11 @@ float FrameView::adjustScrollStepForFixedContent(float step, ScrollbarOrientatio
     return Scrollbar::pageStep(unobscuredContentRect.height(), unobscuredContentRect.height() - topObscuredArea - bottomObscuredArea);
 }
 
-void FrameView::invalidateScrollbarRect(Scrollbar* scrollbar, const IntRect& rect)
+void FrameView::invalidateScrollbarRect(Scrollbar& scrollbar, const IntRect& rect)
 {
     // Add in our offset within the FrameView.
     IntRect dirtyRect = rect;
-    dirtyRect.moveBy(scrollbar->location());
+    dirtyRect.moveBy(scrollbar.location());
     invalidateRect(dirtyRect);
 }
 
@@ -3580,11 +3615,8 @@ void FrameView::setVisibleScrollerThumbRect(const IntRect& scrollerThumb)
     if (!frame().isMainFrame())
         return;
 
-    Page* page = frame().page();
-    if (!page)
-        return;
-
-    page->chrome().client().notifyScrollerThumbIsVisibleInRect(scrollerThumb);
+    if (Page* page = frame().page())
+        page->chrome().client().notifyScrollerThumbIsVisibleInRect(scrollerThumb);
 }
 
 ScrollableArea* FrameView::enclosingScrollableArea() const

@@ -54,7 +54,10 @@ void InteractionInformationAtPosition::encode(IPC::ArgumentEncoder& encoder) con
     encoder << url;
     encoder << imageURL;
     encoder << title;
+    encoder << idAttribute;
     encoder << bounds;
+    encoder << textBefore;
+    encoder << textAfter;
     encoder << linkIndicator;
 
     ShareableBitmap::Handle handle;
@@ -117,9 +120,18 @@ bool InteractionInformationAtPosition::decode(IPC::ArgumentDecoder& decoder, Int
     if (!decoder.decode(result.title))
         return false;
 
+    if (!decoder.decode(result.idAttribute))
+        return false;
+    
     if (!decoder.decode(result.bounds))
         return false;
 
+    if (!decoder.decode(result.textBefore))
+        return false;
+    
+    if (!decoder.decode(result.textAfter))
+        return false;
+    
     if (!decoder.decode(result.linkIndicator))
         return false;
 

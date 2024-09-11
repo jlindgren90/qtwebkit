@@ -105,7 +105,6 @@ public:
     AccessibilityObject* correspondingControlForLabelElement() const override;
     AccessibilityObject* correspondingLabelForControlElement() const override;
 
-    void ariaOwnsElements(AccessibilityChildrenVector&) const override;
     bool supportsARIAOwns() const override;
     bool isPresentationalChildOfAriaRole() const override;
     bool ariaRoleHasPresentationalChildren() const override;
@@ -171,13 +170,9 @@ public:
     VisiblePositionRange visiblePositionRange() const override;
     VisiblePositionRange visiblePositionRangeForLine(unsigned) const override;
     IntRect boundsForVisiblePositionRange(const VisiblePositionRange&) const override;
+    IntRect boundsForRange(const RefPtr<Range>) const override;
+    IntRect boundsForRects(LayoutRect&, LayoutRect&, RefPtr<Range>) const;
     void setSelectedVisiblePositionRange(const VisiblePositionRange&) const override;
-    bool supportsARIAFlowTo() const override;
-    void ariaFlowToElements(AccessibilityChildrenVector&) const override;
-    bool supportsARIADescribedBy() const override;
-    void ariaDescribedByElements(AccessibilityChildrenVector&) const override;
-    bool supportsARIAControls() const override;
-    void ariaControlsElements(AccessibilityChildrenVector&) const override;
     bool ariaHasPopup() const override;
 
     bool supportsARIADropping() const override;
@@ -198,6 +193,7 @@ public:
     
     String doAXStringForRange(const PlainTextRange&) const override;
     IntRect doAXBoundsForRange(const PlainTextRange&) const override;
+    IntRect doAXBoundsForRangeUsingCharacterOffset(const PlainTextRange&) const override;
     
     String stringValueForMSAA() const override;
     String stringRoleForMSAA() const override;
@@ -210,7 +206,6 @@ public:
 protected:
     explicit AccessibilityRenderObject(RenderObject*);
     void setRenderObject(RenderObject* renderer) { m_renderer = renderer; }
-    void ariaElementsFromAttribute(AccessibilityChildrenVector&, const QualifiedName&) const;
     bool needsToUpdateChildren() const { return m_childrenDirty; }
     ScrollableArea* getScrollableAreaIfScrollable() const override;
     void scrollTo(const IntPoint&) const override;
@@ -238,6 +233,7 @@ private:
     bool isTabItemSelected() const;
     LayoutRect checkboxOrRadioRect() const;
     void addRadioButtonGroupMembers(AccessibilityChildrenVector& linkedUIElements) const;
+    void addRadioButtonGroupChildren(AccessibilityObject*, AccessibilityChildrenVector&) const;
     AccessibilityObject* internalLinkElement() const;
     AccessibilityObject* accessibilityImageMapHitTest(HTMLAreaElement*, const IntPoint&) const;
     AccessibilityObject* accessibilityParentForImageMap(HTMLMapElement*) const;

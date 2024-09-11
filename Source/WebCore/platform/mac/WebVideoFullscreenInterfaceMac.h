@@ -28,8 +28,8 @@
 
 #if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
 
-#include <WebCore/HTMLMediaElementEnums.h>
-#include <WebCore/WebVideoFullscreenInterface.h>
+#include "HTMLMediaElementEnums.h"
+#include "WebVideoFullscreenInterface.h"
 #include <wtf/RefCounted.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/text/WTFString.h>
@@ -66,7 +66,7 @@ public:
     WEBCORE_EXPORT void setCurrentTime(double /*currentTime*/, double /*anchorTime*/) override;
     WEBCORE_EXPORT void setBufferedTime(double) override { }
     WEBCORE_EXPORT void setRate(bool /*isPlaying*/, float /*playbackRate*/) override;
-    WEBCORE_EXPORT void setVideoDimensions(bool /*hasVideo*/, float /*width*/, float /*height*/) override { }
+    WEBCORE_EXPORT void setVideoDimensions(bool hasVideo, float width, float height) final;
     WEBCORE_EXPORT void setSeekableRanges(const TimeRanges&) override;
     WEBCORE_EXPORT void setCanPlayFastReverse(bool) override { }
     WEBCORE_EXPORT void setAudioMediaSelectionOptions(const Vector<WTF::String>& /*options*/, uint64_t /*selectedIndex*/) override { }
@@ -94,6 +94,9 @@ public:
     void applicationDidBecomeActive() { }
 
     WEBCORE_EXPORT WebPlaybackControlsManager *playBackControlsManager();
+#if USE(APPLE_INTERNAL_SDK)
+    WEBCORE_EXPORT WebVideoFullscreenInterfaceMacObjC *videoFullscreenInterfaceObjC();
+#endif
 
 private:
     WebVideoFullscreenModel* m_videoFullscreenModel { nullptr };

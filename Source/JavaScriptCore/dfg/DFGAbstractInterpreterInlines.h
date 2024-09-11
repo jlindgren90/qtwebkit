@@ -1822,7 +1822,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         break;
         
     case CreateClonedArguments:
-        forNode(node).setType(m_graph, SpecObjectOther);
+        forNode(node).set(m_graph, m_codeBlock->globalObjectFor(node->origin.semantic)->clonedArgumentsStructure());
         break;
             
     case NewArrowFunction:
@@ -2094,7 +2094,6 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         }
         break;
     case GetButterfly:
-    case GetButterflyReadOnly:
     case AllocatePropertyStorage:
     case ReallocatePropertyStorage:
         forNode(node).clear(); // The result is not a JS value.
@@ -2625,7 +2624,6 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case CheckWatchdogTimer:
         break;
 
-    case Breakpoint:
     case ProfileWillCall:
     case ProfileDidCall:
     case ProfileType:
@@ -2651,6 +2649,11 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
                 break;
             }
         }
+        break;
+    }
+
+    case SetFunctionName: {
+        clobberWorld(node->origin.semantic, clobberLimit);
         break;
     }
 
@@ -2712,7 +2715,6 @@ template<typename Functor>
 void AbstractInterpreter<AbstractStateType>::forAllValues(
     unsigned clobberLimit, Functor& functor)
 {
-    SamplingRegion samplingRegion("DFG AI For All Values");
     if (clobberLimit >= m_state.block()->size())
         clobberLimit = m_state.block()->size();
     else
@@ -2735,7 +2737,6 @@ void AbstractInterpreter<AbstractStateType>::forAllValues(
 template<typename AbstractStateType>
 void AbstractInterpreter<AbstractStateType>::clobberStructures(unsigned clobberLimit)
 {
-    SamplingRegion samplingRegion("DFG AI Clobber Structures");
     forAllValues(clobberLimit, AbstractValue::clobberStructuresFor);
     setDidClobber();
 }

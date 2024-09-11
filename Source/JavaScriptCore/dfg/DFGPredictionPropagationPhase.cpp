@@ -483,7 +483,6 @@ private:
         }
             
         case GetButterfly:
-        case GetButterflyReadOnly:
         case GetIndexedPropertyStorage:
         case AllocatePropertyStorage:
         case ReallocatePropertyStorage: {
@@ -745,7 +744,6 @@ private:
         case DFG::Jump:
         case Branch:
         case Switch:
-        case Breakpoint:
         case ProfileWillCall:
         case ProfileDidCall:
         case ProfileType:
@@ -753,6 +751,7 @@ private:
         case ThrowReferenceError:
         case ForceOSRExit:
         case SetArgument:
+        case SetFunctionName:
         case CheckStructure:
         case CheckCell:
         case CheckNotEmpty:
@@ -1016,7 +1015,6 @@ private:
     
 bool performPredictionPropagation(Graph& graph)
 {
-    SamplingRegion samplingRegion("DFG Prediction Propagation Phase");
     return runPhase<PredictionPropagationPhase>(graph);
 }
 

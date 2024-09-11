@@ -266,7 +266,11 @@ public:
 
 #if ENABLE(CUSTOM_ELEMENTS)
     bool isCustomElement() const { return getFlag(IsCustomElement); }
-    void setIsCustomElement() { return setFlag(IsCustomElement); }
+    void setIsCustomElement() { setFlag(IsCustomElement); }
+
+    bool isUnresolvedCustomElement() const { return isElementNode() && getFlag(IsEditingTextOrUnresolvedCustomElementFlag); }
+    void setIsUnresolvedCustomElement() { setFlag(IsEditingTextOrUnresolvedCustomElementFlag); }
+    void setCustomElementIsResolved();
 #endif
 
     // Returns null, a child of ShadowRoot, or a legacy shadow root.
@@ -277,7 +281,7 @@ public:
     ContainerNode* parentInComposedTree() const;
     Element* parentOrShadowHostElement() const;
     void setParentNode(ContainerNode*);
-    Node* highestAncestor() const;
+    Node* rootNode() const;
 
     // Use when it's guaranteed to that shadowHost is null.
     ContainerNode* parentNodeGuaranteedHostFree() const;
@@ -321,7 +325,7 @@ public:
     StyleChangeType styleChangeType() const { return static_cast<StyleChangeType>(m_nodeFlags & StyleChangeMask); }
     bool childNeedsStyleRecalc() const { return getFlag(ChildNeedsStyleRecalcFlag); }
     bool styleIsAffectedByPreviousSibling() const { return getFlag(StyleIsAffectedByPreviousSibling); }
-    bool isEditingText() const { return getFlag(IsEditingTextFlag); }
+    bool isEditingText() const { return getFlag(IsTextFlag) && getFlag(IsEditingTextOrUnresolvedCustomElementFlag); }
 
     void setChildNeedsStyleRecalc() { setFlag(ChildNeedsStyleRecalcFlag); }
     void clearChildNeedsStyleRecalc() { m_nodeFlags &= ~(ChildNeedsStyleRecalcFlag | DirectChildNeedsStyleRecalcFlag); }
@@ -596,7 +600,7 @@ protected:
         IsParsingChildrenFinishedFlag = 1 << 13, // Element
 
         StyleChangeMask = 1 << nodeStyleChangeShift | 1 << (nodeStyleChangeShift + 1) | 1 << (nodeStyleChangeShift + 2),
-        IsEditingTextFlag = 1 << 17,
+        IsEditingTextOrUnresolvedCustomElementFlag = 1 << 17,
         IsNamedFlowContentNodeFlag = 1 << 18,
         HasSyntheticAttrChildNodesFlag = 1 << 19,
         HasCustomStyleResolveCallbacksFlag = 1 << 20,
@@ -635,7 +639,7 @@ protected:
         CreateHTMLElement = CreateStyledElement | IsHTMLFlag,
         CreateSVGElement = CreateStyledElement | IsSVGFlag | HasCustomStyleResolveCallbacksFlag,
         CreateDocument = CreateContainer | InDocumentFlag,
-        CreateEditingText = CreateText | IsEditingTextFlag,
+        CreateEditingText = CreateText | IsEditingTextOrUnresolvedCustomElementFlag,
         CreateMathMLElement = CreateStyledElement | IsMathMLFlag
     };
     Node(Document&, ConstructionType);
@@ -769,6 +773,16 @@ inline ContainerNode* Node::parentNodeGuaranteedHostFree() const
     ASSERT(!isShadowRoot());
     return parentNode();
 }
+
+#if ENABLE(CUSTOM_ELEMENTS)
+
+inline void Node::setCustomElementIsResolved()
+{
+    clearFlag(IsEditingTextOrUnresolvedCustomElementFlag);
+    setFlag(IsCustomElement);
+}
+
+#endif
 
 } // namespace WebCore
 

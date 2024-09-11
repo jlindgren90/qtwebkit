@@ -36,6 +36,8 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         WebInspector.heapManager.addEventListener(WebInspector.HeapManager.Event.GarbageCollected, this._garbageCollected, this);
         WebInspector.memoryManager.addEventListener(WebInspector.MemoryManager.Event.MemoryPressure, this._memoryPressure, this);
 
+        this._enabledTimelineTypesSetting = new WebInspector.Setting("enabled-instrument-types", WebInspector.TimelineManager.defaultTimelineTypes());
+
         this._persistentNetworkTimeline = new WebInspector.NetworkTimeline;
 
         this._isCapturing = false;
@@ -51,21 +53,40 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
 
     // Static
 
-    static defaultInstruments()
+    static defaultTimelineTypes()
     {
-        if (WebInspector.debuggableType === WebInspector.DebuggableType.JavaScript)
-            return [new WebInspector.ScriptInstrument];
+        if (WebInspector.debuggableType === WebInspector.DebuggableType.JavaScript) {
+            let defaultTypes = [WebInspector.TimelineRecord.Type.Script];
+            if (WebInspector.HeapAllocationsInstrument.supported())
+                defaultTypes.push(WebInspector.TimelineRecord.Type.HeapAllocations);
+            return defaultTypes;
+        }
 
-        let defaults = [
-            new WebInspector.NetworkInstrument,
-            new WebInspector.LayoutInstrument,
-            new WebInspector.ScriptInstrument,
+        let defaultTypes = [
+            WebInspector.TimelineRecord.Type.Network,
+            WebInspector.TimelineRecord.Type.Layout,
+            WebInspector.TimelineRecord.Type.Script,
         ];
 
         if (WebInspector.FPSInstrument.supported())
-            defaults.push(new WebInspector.FPSInstrument);
+            defaultTypes.push(WebInspector.TimelineRecord.Type.RenderingFrame);
 
-        return defaults;
+        return defaultTypes;
+    }
+
+    static availableTimelineTypes()
+    {
+        let types = WebInspector.TimelineManager.defaultTimelineTypes();
+        if (WebInspector.debuggableType === WebInspector.DebuggableType.JavaScript)
+            return types;
+
+        if (WebInspector.MemoryInstrument.supported())
+            types.push(WebInspector.TimelineRecord.Type.Memory);
+
+        if (WebInspector.HeapAllocationsInstrument.supported())
+            types.push(WebInspector.TimelineRecord.Type.HeapAllocations);
+
+        return types;
     }
 
     // Public
@@ -109,6 +130,17 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         this._autoCaptureOnPageLoad = autoCapture;
     }
 
+    get enabledTimelineTypes()
+    {
+        let availableTimelineTypes = WebInspector.TimelineManager.availableTimelineTypes();
+        return this._enabledTimelineTypesSetting.value.filter((type) => availableTimelineTypes.includes(type));
+    }
+
+    set enabledTimelineTypes(x)
+    {
+        this._enabledTimelineTypesSetting.value = x || [];
+    }
+
     isCapturing()
     {
         return this._isCapturing;
@@ -125,6 +157,8 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
 
         if (!this._activeRecording || shouldCreateRecording)
             this._loadNewRecording();
+
+        this.dispatchEventToListeners(WebInspector.TimelineManager.Event.CapturingWillStart);
 
         this._activeRecording.start();
     }
@@ -303,6 +337,29 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
     memoryTrackingComplete()
     {
         // Called from WebInspector.MemoryObserver.
+    }
+
+    heapTrackingStarted(timestamp, snapshot)
+    {
+        // Called from WebInspector.HeapObserver.
+
+        this._addRecord(new WebInspector.HeapAllocationsTimelineRecord(timestamp, snapshot));
+
+        this.capturingStarted(timestamp);
+    }
+
+    heapTrackingCompleted(timestamp, snapshot)
+    {
+        // Called from WebInspector.HeapObserver.
+
+        this._addRecord(new WebInspector.HeapAllocationsTimelineRecord(timestamp, snapshot));
+    }
+
+    heapSnapshotAdded(timestamp, snapshot)
+    {
+        // Called from WebInspector.HeapAllocationsInstrument.
+
+        this._addRecord(new WebInspector.HeapAllocationsTimelineRecord(timestamp, snapshot));
     }
 
     // Private
@@ -513,12 +570,9 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         if (this._activeRecording && this._activeRecording.isEmpty())
             return;
 
-        // FIXME: <https://webkit.org/b/153672> Web Inspector: Timelines UI redesign: Provide a way to configure which instruments to use
-        // FIXME: Move the list of instruments for a new recording to a Setting when new Instruments are supported.
-        let instruments = WebInspector.TimelineManager.defaultInstruments();
-
-        var identifier = this._nextRecordingIdentifier++;
-        var newRecording = new WebInspector.TimelineRecording(identifier, WebInspector.UIString("Timeline Recording %d").format(identifier), instruments);
+        let instruments = this.enabledTimelineTypes.map((type) => WebInspector.Instrument.createForTimelineType(type));
+        let identifier = this._nextRecordingIdentifier++;
+        let newRecording = new WebInspector.TimelineRecording(identifier, WebInspector.UIString("Timeline Recording %d").format(identifier), instruments);
 
         this._recordings.push(newRecording);
         this.dispatchEventToListeners(WebInspector.TimelineManager.Event.RecordingCreated, {recording: newRecording});
@@ -814,6 +868,7 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
 WebInspector.TimelineManager.Event = {
     RecordingCreated: "timeline-manager-recording-created",
     RecordingLoaded: "timeline-manager-recording-loaded",
+    CapturingWillStart: "timeline-manager-capturing-will-start",
     CapturingStarted: "timeline-manager-capturing-started",
     CapturingStopped: "timeline-manager-capturing-stopped"
 };

@@ -429,7 +429,7 @@ bool AccessibilityObject::hasMisspelling() const
 
     if (unifiedTextCheckerEnabled(frame)) {
         Vector<TextCheckingResult> results;
-        checkTextOfParagraph(*textChecker, stringValue(), TextCheckingTypeSpelling, results);
+        checkTextOfParagraph(*textChecker, stringValue(), TextCheckingTypeSpelling, results, frame->selection().selection());
         if (!results.isEmpty())
             isMisspelled = true;
         return isMisspelled;
@@ -1203,6 +1203,20 @@ VisiblePositionRange AccessibilityObject::visiblePositionRangeForRange(const Pla
     return VisiblePositionRange(startPosition, endPosition);
 }
 
+RefPtr<Range> AccessibilityObject::rangeForPlainTextRange(const PlainTextRange& range) const
+{
+    unsigned textLength = getLengthForTextRange();
+    if (range.start + range.length > textLength)
+        return nullptr;
+    
+    if (AXObjectCache* cache = axObjectCache()) {
+        CharacterOffset start = cache->characterOffsetForIndex(range.start, this);
+        CharacterOffset end = cache->characterOffsetForIndex(range.start + range.length, this);
+        return cache->rangeForUnorderedCharacterOffsets(start, end);
+    }
+    return nullptr;
+}
+
 VisiblePositionRange AccessibilityObject::lineRangeForPosition(const VisiblePosition& visiblePosition) const
 {
     VisiblePosition startPosition = startOfLine(visiblePosition);
@@ -1255,6 +1269,13 @@ String AccessibilityObject::listMarkerTextForNodeAndPosition(Node* node, const V
     if (!isStartOfLine(visiblePositionStart))
         return String();
 
+    // We should speak the list marker only for the first line.
+    RenderListItem* listItem = renderListItemContainerForNode(node);
+    if (!listItem)
+        return String();
+    if (!inSameLine(visiblePositionStart, firstPositionInNode(&listItem->element())))
+        return String();
+    
     return listMarkerTextForNode(node);
 }
 
@@ -1272,7 +1293,9 @@ String AccessibilityObject::stringForRange(RefPtr<Range> range) const
         // non-zero length means textual node, zero length means replaced node (AKA "attachments" in AX)
         if (it.text().length()) {
             // Add a textual representation for list marker text.
-            builder.append(listMarkerTextForNode(it.node()));
+            // Don't add list marker text for new line character.
+            if (it.text().length() != 1 || !isSpaceOrNewline(it.text()[0]))
+                builder.append(listMarkerTextForNodeAndPosition(it.node(), VisiblePosition(range->startPosition())));
             it.appendTextToStringBuilder(builder);
         } else {
             // locate the node and starting offset for this replaced range
@@ -2219,13 +2242,25 @@ Element* AccessibilityObject::element() const
     return nullptr;
 }
     
+bool AccessibilityObject::isValueAutofillAvailable() const
+{
+    if (!isNativeTextControl())
+        return false;
+    
+    Node* node = this->node();
+    if (!is<HTMLInputElement>(node))
+        return false;
+    
+    return downcast<HTMLInputElement>(*node).autoFillButtonType() != AutoFillButtonType::None;
+}
+    
 bool AccessibilityObject::isValueAutofilled() const
 {
     if (!isNativeTextControl())
         return false;
     
     Node* node = this->node();
-    if (!node || !is<HTMLInputElement>(*node))
+    if (!is<HTMLInputElement>(node))
         return false;
     
     return downcast<HTMLInputElement>(*node).isAutoFilled();
@@ -2263,13 +2298,14 @@ bool AccessibilityObject::supportsARIAAttributes() const
     return supportsARIALiveRegion()
         || supportsARIADragging()
         || supportsARIADropping()
-        || supportsARIAFlowTo()
         || supportsARIAOwns()
         || hasAttribute(aria_atomicAttr)
         || hasAttribute(aria_busyAttr)
         || hasAttribute(aria_controlsAttr)
+        || hasAttribute(aria_currentAttr)
         || hasAttribute(aria_describedbyAttr)
         || hasAttribute(aria_disabledAttr)
+        || hasAttribute(aria_flowtoAttr)
         || hasAttribute(aria_haspopupAttr)
         || hasAttribute(aria_invalidAttr)
         || hasAttribute(aria_labelAttr)
@@ -2973,6 +3009,48 @@ void AccessibilityObject::setPreventKeyboardDOMEventDispatch(bool on)
 }
 #endif
 
+AccessibilityObject* AccessibilityObject::focusableAncestor()
+{
+    AccessibilityObject* potentialFocusableAncestor = this;
+    while (potentialFocusableAncestor) {
+        if (potentialFocusableAncestor->canSetFocusAttribute())
+            return potentialFocusableAncestor;
+        potentialFocusableAncestor = potentialFocusableAncestor->parentObject();
+    }
+
+    return nullptr;
+}
+
+AccessibilityObject* AccessibilityObject::editableAncestor()
+{
+    AccessibilityObject* potentialEditableAncestor = this;
+    while (potentialEditableAncestor) {
+        if (potentialEditableAncestor->isTextControl())
+            return potentialEditableAncestor;
+        potentialEditableAncestor = potentialEditableAncestor->parentObject();
+    }
+
+    return nullptr;
+}
+
+AccessibilityObject* AccessibilityObject::highestEditableAncestor()
+{
+    AccessibilityObject* editableAncestor = this->editableAncestor();
+    AccessibilityObject* previousEditableAncestor = nullptr;
+    while (editableAncestor) {
+        if (editableAncestor == previousEditableAncestor) {
+            if (AccessibilityObject* parent = editableAncestor->parentObject()) {
+                editableAncestor = parent->editableAncestor();
+                continue;
+            }
+            break;
+        }
+        previousEditableAncestor = editableAncestor;
+        editableAncestor = editableAncestor->editableAncestor();
+    }
+    return previousEditableAncestor;
+}
+
 bool AccessibilityObject::isStyleFormatGroup() const
 {
     Node* node = this->node();
@@ -2996,6 +3074,44 @@ bool AccessibilityObject::isContainedByPasswordField() const
 
     Element* element = node->shadowHost();
     return is<HTMLInputElement>(element) && downcast<HTMLInputElement>(*element).isPasswordField();
+}
+
+void AccessibilityObject::ariaElementsFromAttribute(AccessibilityChildrenVector& children, const QualifiedName& attributeName) const
+{
+    Vector<Element*> elements;
+    elementsFromAttribute(elements, attributeName);
+    AXObjectCache* cache = axObjectCache();
+    for (const auto& element : elements) {
+        if (AccessibilityObject* axObject = cache->getOrCreate(element))
+            children.append(axObject);
+    }
+}
+
+void AccessibilityObject::ariaControlsElements(AccessibilityChildrenVector& ariaControls) const
+{
+    ariaElementsFromAttribute(ariaControls, aria_controlsAttr);
+}
+
+void AccessibilityObject::ariaDescribedByElements(AccessibilityChildrenVector& ariaDescribedBy) const
+{
+    ariaElementsFromAttribute(ariaDescribedBy, aria_describedbyAttr);
+}
+
+void AccessibilityObject::ariaFlowToElements(AccessibilityChildrenVector& flowTo) const
+{
+    ariaElementsFromAttribute(flowTo, aria_flowtoAttr);
+}
+
+void AccessibilityObject::ariaLabelledByElements(AccessibilityChildrenVector& ariaLabelledBy) const
+{
+    ariaElementsFromAttribute(ariaLabelledBy, aria_labelledbyAttr);
+    if (!ariaLabelledBy.size())
+        ariaElementsFromAttribute(ariaLabelledBy, aria_labeledbyAttr);
+}
+
+void AccessibilityObject::ariaOwnsElements(AccessibilityChildrenVector& axObjects) const
+{
+    ariaElementsFromAttribute(axObjects, aria_ownsAttr);
 }
 
 } // namespace WebCore

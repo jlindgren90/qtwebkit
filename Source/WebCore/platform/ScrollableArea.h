@@ -147,7 +147,7 @@ public:
     virtual bool isActive() const = 0;
     virtual int scrollSize(ScrollbarOrientation) const = 0;
     virtual int scrollOffset(ScrollbarOrientation) const = 0;
-    WEBCORE_EXPORT virtual void invalidateScrollbar(Scrollbar*, const IntRect&);
+    WEBCORE_EXPORT virtual void invalidateScrollbar(Scrollbar&, const IntRect&);
     virtual bool isScrollCornerVisible() const = 0;
     virtual IntRect scrollCornerRect() const = 0;
     WEBCORE_EXPORT virtual void invalidateScrollCorner(const IntRect&);
@@ -159,23 +159,25 @@ public:
     // Convert points and rects between the scrollbar and its containing view.
     // The client needs to implement these in order to be aware of layout effects
     // like CSS transforms.
-    virtual IntRect convertFromScrollbarToContainingView(const Scrollbar* scrollbar, const IntRect& scrollbarRect) const
+    virtual IntRect convertFromScrollbarToContainingView(const Scrollbar& scrollbar, const IntRect& scrollbarRect) const
     {
-        return scrollbar->Widget::convertToContainingView(scrollbarRect);
+        return scrollbar.Widget::convertToContainingView(scrollbarRect);
     }
-    virtual IntRect convertFromContainingViewToScrollbar(const Scrollbar* scrollbar, const IntRect& parentRect) const
+    virtual IntRect convertFromContainingViewToScrollbar(const Scrollbar& scrollbar, const IntRect& parentRect) const
     {
-        return scrollbar->Widget::convertFromContainingView(parentRect);
+        return scrollbar.Widget::convertFromContainingView(parentRect);
     }
-    virtual IntPoint convertFromScrollbarToContainingView(const Scrollbar* scrollbar, const IntPoint& scrollbarPoint) const
+    virtual IntPoint convertFromScrollbarToContainingView(const Scrollbar& scrollbar, const IntPoint& scrollbarPoint) const
     {
-        return scrollbar->Widget::convertToContainingView(scrollbarPoint);
+        return scrollbar.Widget::convertToContainingView(scrollbarPoint);
     }
-    virtual IntPoint convertFromContainingViewToScrollbar(const Scrollbar* scrollbar, const IntPoint& parentPoint) const
+    virtual IntPoint convertFromContainingViewToScrollbar(const Scrollbar& scrollbar, const IntPoint& parentPoint) const
     {
-        return scrollbar->Widget::convertFromContainingView(parentPoint);
+        return scrollbar.Widget::convertFromContainingView(parentPoint);
     }
-    
+
+    int horizontalScrollbarIntrusion() const;
+    int verticalScrollbarIntrusion() const;
     WEBCORE_EXPORT IntSize scrollbarIntrusion() const;
 
     virtual Scrollbar* horizontalScrollbar() const { return 0; }
@@ -310,6 +312,9 @@ public:
     virtual bool usesMockScrollAnimator() const { return false; }
     virtual void logMockScrollAnimatorMessage(const String&) const { };
 
+    bool verticalScrollbarIsOnLeft() const;
+    static bool systemLanguageIsRTL();
+
 protected:
     WEBCORE_EXPORT ScrollableArea();
     WEBCORE_EXPORT virtual ~ScrollableArea();
@@ -318,7 +323,7 @@ protected:
     void resetScrollOriginChanged() { m_scrollOriginChanged = false; }
 
     WEBCORE_EXPORT virtual float adjustScrollStepForFixedContent(float step, ScrollbarOrientation, ScrollGranularity);
-    virtual void invalidateScrollbarRect(Scrollbar*, const IntRect&) = 0;
+    virtual void invalidateScrollbarRect(Scrollbar&, const IntRect&) = 0;
     virtual void invalidateScrollCornerRect(const IntRect&) = 0;
 
     friend class ScrollingCoordinator;
