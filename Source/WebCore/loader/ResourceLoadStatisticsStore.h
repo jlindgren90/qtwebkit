@@ -27,6 +27,7 @@
 #define ResourceLoadStatisticsStore_h
 
 #include "ResourceLoadStatistics.h"
+#include <functional>
 
 namespace WebCore {
 
