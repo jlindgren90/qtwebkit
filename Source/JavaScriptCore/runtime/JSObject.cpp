@@ -429,6 +429,11 @@ void JSObject::putInlineSlow(ExecState* exec, PropertyName propertyName, JSValue
                 }
             }
         }
+        if (obj->type() == ProxyObjectType) {
+            ProxyObject* proxy = jsCast<ProxyObject*>(obj);
+            proxy->ProxyObject::put(proxy, exec, propertyName, value, slot);
+            return;
+        }
         JSValue prototype = obj->prototype();
         if (prototype.isNull())
             break;
@@ -1282,13 +1287,23 @@ void JSObject::putDirectNonIndexAccessor(VM& vm, PropertyName propertyName, JSVa
 // http://www.ecma-international.org/ecma-262/6.0/index.html#sec-hasproperty
 bool JSObject::hasProperty(ExecState* exec, PropertyName propertyName) const
 {
-    PropertySlot slot(this, PropertySlot::InternalMethodType::HasProperty);
-    return const_cast<JSObject*>(this)->getPropertySlot(exec, propertyName, slot);
+    return hasPropertyGeneric(exec, propertyName, PropertySlot::InternalMethodType::HasProperty);
 }
 
 bool JSObject::hasProperty(ExecState* exec, unsigned propertyName) const
 {
-    PropertySlot slot(this, PropertySlot::InternalMethodType::HasProperty);
+    return hasPropertyGeneric(exec, propertyName, PropertySlot::InternalMethodType::HasProperty);
+}
+
+bool JSObject::hasPropertyGeneric(ExecState* exec, PropertyName propertyName, PropertySlot::InternalMethodType internalMethodType) const
+{
+    PropertySlot slot(this, internalMethodType);
+    return const_cast<JSObject*>(this)->getPropertySlot(exec, propertyName, slot);
+}
+
+bool JSObject::hasPropertyGeneric(ExecState* exec, unsigned propertyName, PropertySlot::InternalMethodType internalMethodType) const
+{
+    PropertySlot slot(this, internalMethodType);
     return const_cast<JSObject*>(this)->getPropertySlot(exec, propertyName, slot);
 }
 
@@ -1665,12 +1680,15 @@ void JSObject::freeze(VM& vm)
     setStructure(vm, Structure::freezeTransition(vm, structure(vm)));
 }
 
-void JSObject::preventExtensions(VM& vm)
+bool JSObject::preventExtensions(JSObject* object, ExecState* exec)
 {
-    if (!isExtensible())
-        return;
-    enterDictionaryIndexingMode(vm);
-    setStructure(vm, Structure::preventExtensionsTransition(vm, structure(vm)));
+    if (!object->isExtensible())
+        return true;
+
+    VM& vm = exec->vm();
+    object->enterDictionaryIndexingMode(vm);
+    object->setStructure(vm, Structure::preventExtensionsTransition(vm, object->structure(vm)));
+    return true;
 }
 
 void JSObject::reifyAllStaticProperties(ExecState* exec)
@@ -1927,6 +1945,12 @@ bool JSObject::attemptToInterceptPutByIndexOnHoleForPrototype(ExecState* exec, J
                 iter->value.put(exec, thisValue, storage->m_sparseMap.get(), value, shouldThrow);
                 return true;
             }
+        }
+
+        if (current->type() == ProxyObjectType) {
+            ProxyObject* proxy = jsCast<ProxyObject*>(current);
+            proxy->putByIndexCommon(exec, thisValue, i, value, shouldThrow);
+            return true;
         }
         
         JSValue prototypeValue = current->prototype();

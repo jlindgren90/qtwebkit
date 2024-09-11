@@ -42,6 +42,7 @@
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/Optional.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/text/WTFString.h>
@@ -138,7 +139,6 @@ class Page : public Supplementable<Page> {
 public:
     WEBCORE_EXPORT static void updateStyleForAllPagesAfterGlobalChangeInEnvironment();
     WEBCORE_EXPORT static void clearPreviousItemFromAllPages(HistoryItem*);
-    WEBCORE_EXPORT static void setTabSuspensionEnabled(bool);
 
     WEBCORE_EXPORT explicit Page(PageConfiguration&);
     WEBCORE_EXPORT ~Page();
@@ -372,8 +372,6 @@ public:
     // with exponential growth in the number of frames.
     static const int maxNumberOfFrames = 1000;
 
-    static bool s_tabSuspensionIsEnabled;
-
     void setEditable(bool isEditable) { m_isEditable = isEditable; }
     bool isEditable() { return m_isEditable; }
 
@@ -504,7 +502,8 @@ public:
 
     void setShowAllPlugins(bool showAll) { m_showAllPlugins = showAll; }
     bool showAllPlugins() const;
-    void setIsTabSuspended(bool);
+
+    WEBCORE_EXPORT void setTimerAlignmentIntervalIncreaseLimit(std::chrono::milliseconds);
 
 private:
     WEBCORE_EXPORT void initGroup();
@@ -531,10 +530,8 @@ private:
     void hiddenPageDOMTimerThrottlingStateChanged();
     void setTimerThrottlingEnabled(bool);
     void setDOMTimerAlignmentInterval(double);
-    void timerAlignmentIntervalTimerFired();
-    bool canTabSuspend();
-    void updateTabSuspensionState();
-    void tabSuspensionTimerFired();
+    void timerAlignmentIntervalIncreaseTimerFired();
+    bool timerThrottlingEnabled() const { return !!m_timerThrottlingEnabledTime; }
 
     const std::unique_ptr<Chrome> m_chrome;
     const std::unique_ptr<DragCaretController> m_dragCaretController;
@@ -620,8 +617,10 @@ private:
     ViewMode m_viewMode;
 #endif // ENABLE(VIEW_MODE_CSS_MEDIA)
 
-    bool m_timerThrottlingEnabled;
+    Optional<double> m_timerThrottlingEnabledTime;
     double m_timerAlignmentInterval;
+    Timer m_timerAlignmentIntervalIncreaseTimer;
+    double m_timerAlignmentIntervalIncreaseLimit { 0 };
 
     bool m_isEditable;
     bool m_isPrerender;
@@ -677,8 +676,6 @@ private:
     SessionID m_sessionID;
 
     bool m_isClosing;
-    bool m_isTabSuspended { false };
-    Timer m_tabSuspensionTimer;
 
     MediaProducer::MediaStateFlags m_mediaState { MediaProducer::IsNotPlaying };
     

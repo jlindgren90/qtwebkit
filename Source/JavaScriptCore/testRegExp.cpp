@@ -330,7 +330,10 @@ static RegExp* parseRegExpLine(VM& vm, char* line, int lineLength)
 
     ++i;
 
-    return RegExp::create(vm, pattern.toString(), regExpFlags(line + i));
+    RegExp* r = RegExp::create(vm, pattern.toString(), regExpFlags(line + i));
+    if (r->isValid())
+        return r;
+    return nullptr;
 }
 
 static RegExpTest* parseTestLine(char* line, int lineLength)
@@ -456,6 +459,14 @@ static bool runFromFiles(GlobalObject* globalObject, const Vector<String>& files
                 
                 if (regExpTest)
                     delete regExpTest;
+            } else if (linePtr[0] == '-') {
+                tests++;
+                regexp = 0; // Reset the live regexp to avoid confusing other subsequent tests
+                bool successfullyParsed = parseRegExpLine(vm, linePtr + 1, lineLength - 1);
+                if (successfullyParsed) {
+                    failures++;
+                    fprintf(stderr, "Failure on line %u. '%s' is not a valid regexp\n", lineNumber, linePtr + 1);
+                }
             }
         }
         

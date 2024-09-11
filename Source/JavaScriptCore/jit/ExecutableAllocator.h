@@ -69,14 +69,7 @@ typedef WTF::MetaAllocatorHandle ExecutableMemoryHandle;
 
 #if ENABLE(ASSEMBLER)
 
-#if ENABLE(EXECUTABLE_ALLOCATOR_DEMAND)
-class DemandExecutableAllocator;
-#endif
-
-#if ENABLE(EXECUTABLE_ALLOCATOR_FIXED)
-#if defined(FIXED_EXECUTABLE_MEMORY_POOL_SIZE_IN_MB) && FIXED_EXECUTABLE_MEMORY_POOL_SIZE_IN_MB > 0
-static const size_t fixedExecutableMemoryPoolSize = FIXED_EXECUTABLE_MEMORY_POOL_SIZE_IN_MB * 1024 * 1024;
-#elif CPU(ARM) || CPU(MIPS)
+#if CPU(ARM)
 static const size_t fixedExecutableMemoryPoolSize = 16 * 1024 * 1024;
 #elif CPU(ARM64)
 static const size_t fixedExecutableMemoryPoolSize = 32 * 1024 * 1024;
@@ -92,7 +85,6 @@ static const double executablePoolReservationFraction = 0.25;
 #endif
 
 extern uintptr_t startOfFixedExecutableMemoryPool;
-#endif
 
 class ExecutableAllocator {
     enum ProtectionSetting { Writable, Executable };

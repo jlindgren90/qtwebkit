@@ -53,7 +53,9 @@ public:
     NetworkSession(Type, WebCore::SessionID, CustomProtocolManager*);
     ~NetworkSession();
 
+    static void setCustomProtocolManager(CustomProtocolManager*);
     static NetworkSession& defaultSession();
+    void clearCredentials();
 
     NetworkDataTask* dataTaskForIdentifier(NetworkDataTask::TaskIdentifier);
 

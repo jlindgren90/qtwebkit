@@ -164,8 +164,10 @@ JSCell* JIT_OPERATION operationCreateThis(ExecState* exec, JSObject* constructor
 {
     VM& vm = exec->vm();
     NativeCallFrameTracer tracer(&vm, exec);
+    if (constructor->type() == JSFunctionType)
+        return constructEmptyObject(exec, jsCast<JSFunction*>(constructor)->rareData(exec, inlineCapacity)->objectAllocationProfile()->structure());
 
-    return constructEmptyObject(exec, jsCast<JSFunction*>(constructor)->rareData(exec, inlineCapacity)->objectAllocationProfile()->structure());
+    return constructEmptyObject(exec);
 }
 
 EncodedJSValue JIT_OPERATION operationValueBitAnd(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)
@@ -1606,11 +1608,6 @@ char* JIT_OPERATION triggerOSREntryNow(
 
         if (!codeBlock->hasOptimizedReplacement())
             return nullptr;
-
-        if (jitCode->osrEntryRetry < Options::ftlOSREntryRetryThreshold()) {
-            jitCode->osrEntryRetry++;
-            return nullptr;
-        }
     }
     
     // It's time to try to compile code for OSR entry.

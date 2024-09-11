@@ -65,7 +65,15 @@ void ProxyObject::finishCreation(VM& vm, ExecState* exec, JSValue target, JSValu
         return;
     }
 
-    m_target.set(vm, this, jsCast<JSObject*>(target));
+    JSObject* targetAsObject = jsCast<JSObject*>(target);
+
+    CallData ignoredCallData;
+    m_isCallable = targetAsObject->methodTable(vm)->getCallData(targetAsObject, ignoredCallData) != CallTypeNone;
+
+    ConstructData ignoredConstructData;
+    m_isConstructible = jsCast<JSObject*>(target)->methodTable(vm)->getConstructData(jsCast<JSObject*>(target), ignoredConstructData) != ConstructTypeNone;
+
+    m_target.set(vm, this, targetAsObject);
     m_handler.set(vm, this, handler);
 }
 
@@ -87,6 +95,15 @@ static EncodedJSValue performProxyGet(ExecState* exec, EncodedJSValue thisValue,
     }
 
     ProxyObject* proxyObject = jsCast<ProxyObject*>(proxyObjectAsObject);
+    JSObject* target = proxyObject->target();
+
+    auto performDefaultGet = [&] {
+        return JSValue::encode(target->get(exec, propertyName));
+    };
+
+    if (vm.propertyNames->isPrivateName(Identifier::fromUid(&vm, propertyName.uid())))
+        return performDefaultGet();
+
     JSValue handlerValue = proxyObject->handler();
     if (handlerValue.isNull())
         return throwVMTypeError(exec, ASCIILiteral("Proxy 'handler' is null. It should be an Object."));
@@ -98,15 +115,12 @@ static EncodedJSValue performProxyGet(ExecState* exec, EncodedJSValue thisValue,
     if (exec->hadException())
         return JSValue::encode(jsUndefined());
 
-    JSObject* target = proxyObject->target();
     if (getHandler.isUndefined())
-        return JSValue::encode(target->get(exec, propertyName));
+        return performDefaultGet();
 
     MarkedArgumentBuffer arguments;
     arguments.append(target);
     arguments.append(identifierToSafePublicJSValue(vm, Identifier::fromUid(&vm, propertyName.uid())));
-    if (exec->hadException())
-        return JSValue::encode(jsUndefined());
     arguments.append(thisObject);
     JSValue trapResult = call(exec, getHandler, callType, callData, handler, arguments);
     if (exec->hadException())
@@ -132,7 +146,15 @@ static EncodedJSValue performProxyGet(ExecState* exec, EncodedJSValue thisValue,
 bool ProxyObject::performInternalMethodGetOwnProperty(ExecState* exec, PropertyName propertyName, PropertySlot& slot)
 {
     VM& vm = exec->vm();
-    slot.setValue(this, None, jsUndefined()); // We do this to protect against any bad actors. Nobody should depend on this value.
+    JSObject* target = this->target();
+
+    auto performDefaultGetOwnProperty = [&] {
+        return target->methodTable(vm)->getOwnPropertySlot(target, exec, propertyName, slot);
+    };
+
+    if (vm.propertyNames->isPrivateName(Identifier::fromUid(&vm, propertyName.uid())))
+        return performDefaultGetOwnProperty();
+
     JSValue handlerValue = this->handler();
     if (handlerValue.isNull()) {
         throwVMTypeError(exec, ASCIILiteral("Proxy 'handler' is null. It should be an Object."));
@@ -145,15 +167,12 @@ bool ProxyObject::performInternalMethodGetOwnProperty(ExecState* exec, PropertyN
     JSValue getOwnPropertyDescriptorMethod = handler->getMethod(exec, callData, callType, makeIdentifier(vm, "getOwnPropertyDescriptor"), ASCIILiteral("'getOwnPropertyDescriptor' property of a Proxy's handler should be callable."));
     if (exec->hadException())
         return false;
-    JSObject* target = this->target();
     if (getOwnPropertyDescriptorMethod.isUndefined())
-        return target->methodTable(vm)->getOwnPropertySlot(target, exec, propertyName, slot);
+        return performDefaultGetOwnProperty();
 
     MarkedArgumentBuffer arguments;
     arguments.append(target);
     arguments.append(identifierToSafePublicJSValue(vm, Identifier::fromUid(&vm, propertyName.uid())));
-    if (exec->hadException())
-        return false;
     JSValue trapResult = call(exec, getOwnPropertyDescriptorMethod, callType, callData, handler, arguments);
     if (exec->hadException())
         return false;
@@ -207,14 +226,32 @@ bool ProxyObject::performInternalMethodGetOwnProperty(ExecState* exec, PropertyN
         }
     }
 
+    if (trapResultAsDescriptor.isAccessorDescriptor()) {
+        GetterSetter* getterSetter = trapResultAsDescriptor.slowGetterSetter(exec);
+        if (exec->hadException())
+            return false;
+        slot.setGetterSlot(this, trapResultAsDescriptor.attributes(), getterSetter);
+    } else if (trapResultAsDescriptor.isDataDescriptor())
+        slot.setValue(this, trapResultAsDescriptor.attributes(), trapResultAsDescriptor.value());
+    else
+        slot.setValue(this, trapResultAsDescriptor.attributes(), jsUndefined()); // We use undefined because it's the default value in object properties.
+
     return true;
 }
 
 bool ProxyObject::performHasProperty(ExecState* exec, PropertyName propertyName, PropertySlot& slot)
 {
     VM& vm = exec->vm();
+    JSObject* target = this->target();
     slot.setValue(this, None, jsUndefined()); // Nobody should rely on our value, but be safe and protect against any bad actors reading our value.
-    
+
+    auto performDefaultHasProperty = [&] {
+        return target->methodTable(vm)->getOwnPropertySlot(target, exec, propertyName, slot);
+    };
+
+    if (vm.propertyNames->isPrivateName(Identifier::fromUid(&vm, propertyName.uid())))
+        return performDefaultHasProperty();
+
     JSValue handlerValue = this->handler();
     if (handlerValue.isNull()) {
         throwVMTypeError(exec, ASCIILiteral("Proxy 'handler' is null. It should be an Object."));
@@ -227,15 +264,12 @@ bool ProxyObject::performHasProperty(ExecState* exec, PropertyName propertyName,
     JSValue hasMethod = handler->getMethod(exec, callData, callType, vm.propertyNames->has, ASCIILiteral("'has' property of a Proxy's handler should be callable."));
     if (exec->hadException())
         return false;
-    JSObject* target = this->target();
     if (hasMethod.isUndefined())
-        return target->methodTable(vm)->getOwnPropertySlot(target, exec, propertyName, slot);
+        return performDefaultHasProperty();
 
     MarkedArgumentBuffer arguments;
     arguments.append(target);
     arguments.append(identifierToSafePublicJSValue(vm, Identifier::fromUid(&vm, propertyName.uid())));
-    if (exec->hadException())
-        return false;
     JSValue trapResult = call(exec, hasMethod, callType, callData, handler, arguments);
     if (exec->hadException())
         return false;
@@ -296,6 +330,262 @@ bool ProxyObject::getOwnPropertySlotByIndex(JSObject* object, ExecState* exec, u
     if (exec->hadException())
         return false;
     return thisObject->getOwnPropertySlotCommon(exec, ident.impl(), slot);
+}
+
+template <typename PerformDefaultPutFunction>
+void ProxyObject::performPut(ExecState* exec, JSValue putValue, JSValue thisValue, PropertyName propertyName, PerformDefaultPutFunction performDefaultPut)
+{
+    VM& vm = exec->vm();
+
+    if (vm.propertyNames->isPrivateName(Identifier::fromUid(&vm, propertyName.uid())))
+        return performDefaultPut();
+
+    JSValue handlerValue = this->handler();
+    if (handlerValue.isNull()) {
+        throwVMTypeError(exec, ASCIILiteral("Proxy 'handler' is null. It should be an Object."));
+        return;
+    }
+
+    JSObject* handler = jsCast<JSObject*>(handlerValue);
+    CallData callData;
+    CallType callType;
+    JSValue setMethod = handler->getMethod(exec, callData, callType, vm.propertyNames->set, ASCIILiteral("'set' property of a Proxy's handler should be callable."));
+    if (exec->hadException())
+        return;
+    JSObject* target = this->target();
+    if (setMethod.isUndefined()) {
+        performDefaultPut();
+        return;
+    }
+
+    MarkedArgumentBuffer arguments;
+    arguments.append(target);
+    arguments.append(identifierToSafePublicJSValue(vm, Identifier::fromUid(&vm, propertyName.uid())));
+    arguments.append(putValue);
+    arguments.append(thisValue);
+    JSValue trapResult = call(exec, setMethod, callType, callData, handler, arguments);
+    if (exec->hadException())
+        return;
+    bool trapResultAsBool = trapResult.toBoolean(exec);
+    if (exec->hadException())
+        return;
+    if (!trapResultAsBool)
+        return;
+
+    PropertyDescriptor descriptor;
+    if (target->getOwnPropertyDescriptor(exec, propertyName, descriptor)) {
+        if (descriptor.isDataDescriptor() && !descriptor.configurable() && !descriptor.writable()) {
+            if (!sameValue(exec, descriptor.value(), putValue)) {
+                throwVMTypeError(exec, ASCIILiteral("Proxy handler's 'set' on a non-configurable and non-writable property on 'target' should either return false or be the same value already on the 'target'."));
+                return;
+            }
+        } else if (descriptor.isAccessorDescriptor() && !descriptor.configurable() && descriptor.setter().isUndefined()) {
+            throwVMTypeError(exec, ASCIILiteral("Proxy handler's 'set' method on a non-configurable accessor property without a setter should return false."));
+            return;
+        }
+    }
+}
+
+void ProxyObject::put(JSCell* cell, ExecState* exec, PropertyName propertyName, JSValue value, PutPropertySlot& slot)
+{
+    VM& vm = exec->vm();
+    ProxyObject* thisObject = jsCast<ProxyObject*>(cell);
+    auto performDefaultPut = [&] () {
+        JSObject* target = jsCast<JSObject*>(thisObject->target());
+        target->methodTable(vm)->put(target, exec, propertyName, value, slot);
+    };
+    thisObject->performPut(exec, value, slot.thisValue(), propertyName, performDefaultPut);
+}
+
+void ProxyObject::putByIndexCommon(ExecState* exec, JSValue thisValue, unsigned propertyName, JSValue putValue, bool shouldThrow)
+{
+    VM& vm = exec->vm();
+    Identifier ident = Identifier::from(exec, propertyName); 
+    if (exec->hadException())
+        return;
+    auto performDefaultPut = [&] () {
+        JSObject* target = this->target();
+        bool isStrictMode = shouldThrow;
+        PutPropertySlot slot(thisValue, isStrictMode); // We must preserve the "this" target of the putByIndex.
+        target->methodTable(vm)->put(target, exec, ident.impl(), putValue, slot);
+    };
+    performPut(exec, putValue, thisValue, ident.impl(), performDefaultPut);
+}
+
+void ProxyObject::putByIndex(JSCell* cell, ExecState* exec, unsigned propertyName, JSValue value, bool shouldThrow)
+{
+    ProxyObject* thisObject = jsCast<ProxyObject*>(cell);
+    thisObject->putByIndexCommon(exec, thisObject, propertyName, value, shouldThrow);
+}
+
+static EncodedJSValue JSC_HOST_CALL performProxyCall(ExecState* exec)
+{
+    VM& vm = exec->vm();
+    ProxyObject* proxy = jsCast<ProxyObject*>(exec->callee());
+    JSValue handlerValue = proxy->handler();
+    if (handlerValue.isNull())
+        return throwVMTypeError(exec, ASCIILiteral("Proxy 'handler' is null. It should be an Object."));
+
+    JSObject* handler = jsCast<JSObject*>(handlerValue);
+    CallData callData;
+    CallType callType;
+    JSValue applyMethod = handler->getMethod(exec, callData, callType, makeIdentifier(vm, "apply"), ASCIILiteral("'apply' property of a Proxy's handler should be callable."));
+    if (exec->hadException())
+        return JSValue::encode(jsUndefined());
+    JSObject* target = proxy->target();
+    if (applyMethod.isUndefined()) {
+        CallData callData;
+        CallType callType = target->methodTable(vm)->getCallData(target, callData);
+        RELEASE_ASSERT(callType != CallTypeNone);
+        return JSValue::encode(call(exec, target, callType, callData, exec->thisValue(), ArgList(exec)));
+    }
+
+    JSArray* argArray = constructArray(exec, static_cast<ArrayAllocationProfile*>(nullptr), ArgList(exec));
+    if (exec->hadException())
+        return JSValue::encode(jsUndefined());
+    MarkedArgumentBuffer arguments;
+    arguments.append(target);
+    arguments.append(exec->thisValue());
+    arguments.append(argArray);
+    return JSValue::encode(call(exec, applyMethod, callType, callData, handler, arguments));
+}
+
+CallType ProxyObject::getCallData(JSCell* cell, CallData& callData)
+{
+    ProxyObject* proxy = jsCast<ProxyObject*>(cell);
+    if (!proxy->m_isCallable) {
+        callData.js.functionExecutable = nullptr;
+        callData.js.scope = nullptr;
+        return CallTypeNone;
+    }
+
+    callData.native.function = performProxyCall;
+    return CallTypeHost;
+}
+
+static EncodedJSValue JSC_HOST_CALL performProxyConstruct(ExecState* exec)
+{
+    VM& vm = exec->vm();
+    ProxyObject* proxy = jsCast<ProxyObject*>(exec->callee());
+    JSValue handlerValue = proxy->handler();
+    if (handlerValue.isNull())
+        return throwVMTypeError(exec, ASCIILiteral("Proxy 'handler' is null. It should be an Object."));
+
+    JSObject* handler = jsCast<JSObject*>(handlerValue);
+    CallData callData;
+    CallType callType;
+    JSValue constructMethod = handler->getMethod(exec, callData, callType, makeIdentifier(vm, "construct"), ASCIILiteral("'construct' property of a Proxy's handler should be constructible."));
+    if (exec->hadException())
+        return JSValue::encode(jsUndefined());
+    JSObject* target = proxy->target();
+    if (constructMethod.isUndefined()) {
+        ConstructData constructData;
+        ConstructType constructType = target->methodTable(vm)->getConstructData(target, constructData);
+        RELEASE_ASSERT(constructType != ConstructTypeNone);
+        return JSValue::encode(construct(exec, target, constructType, constructData, ArgList(exec), exec->newTarget()));
+    }
+
+    JSArray* argArray = constructArray(exec, static_cast<ArrayAllocationProfile*>(nullptr), ArgList(exec));
+    if (exec->hadException())
+        return JSValue::encode(jsUndefined());
+    MarkedArgumentBuffer arguments;
+    arguments.append(target);
+    arguments.append(argArray);
+    arguments.append(exec->newTarget());
+    JSValue result = call(exec, constructMethod, callType, callData, handler, arguments);
+    if (exec->hadException())
+        return JSValue::encode(jsUndefined());
+    if (!result.isObject())
+        return throwVMTypeError(exec, ASCIILiteral("Result from Proxy handler's 'construct' method should be an object."));
+    return JSValue::encode(result);
+}
+
+ConstructType ProxyObject::getConstructData(JSCell* cell, ConstructData& constructData)
+{
+    ProxyObject* proxy = jsCast<ProxyObject*>(cell);
+    if (!proxy->m_isConstructible) {
+        constructData.js.functionExecutable = nullptr;
+        constructData.js.scope = nullptr;
+        return ConstructTypeNone;
+    }
+
+    constructData.native.function = performProxyConstruct;
+    return ConstructTypeHost;
+}
+
+template <typename DefaultDeleteFunction>
+bool ProxyObject::performDelete(ExecState* exec, PropertyName propertyName, DefaultDeleteFunction performDefaultDelete)
+{
+    VM& vm = exec->vm();
+
+    if (vm.propertyNames->isPrivateName(Identifier::fromUid(&vm, propertyName.uid())))
+        return performDefaultDelete();
+
+    JSValue handlerValue = this->handler();
+    if (handlerValue.isNull()) {
+        throwVMTypeError(exec, ASCIILiteral("Proxy 'handler' is null. It should be an Object."));
+        return false;
+    }
+
+    JSObject* handler = jsCast<JSObject*>(handlerValue);
+    CallData callData;
+    CallType callType;
+    JSValue deletePropertyMethod = handler->getMethod(exec, callData, callType, makeIdentifier(vm, "deleteProperty"), ASCIILiteral("'deleteProperty' property of a Proxy's handler should be callable."));
+    if (exec->hadException())
+        return false;
+    JSObject* target = this->target();
+    if (deletePropertyMethod.isUndefined())
+        return performDefaultDelete();
+
+    MarkedArgumentBuffer arguments;
+    arguments.append(target);
+    arguments.append(identifierToSafePublicJSValue(vm, Identifier::fromUid(&vm, propertyName.uid())));
+    JSValue trapResult = call(exec, deletePropertyMethod, callType, callData, handler, arguments);
+    if (exec->hadException())
+        return false;
+
+    bool trapResultAsBool = trapResult.toBoolean(exec);
+    if (exec->hadException())
+        return false;
+
+    if (!trapResultAsBool)
+        return false;
+
+    PropertyDescriptor descriptor;
+    if (target->getOwnPropertyDescriptor(exec, propertyName, descriptor)) {
+        if (!descriptor.configurable()) {
+            throwVMTypeError(exec, ASCIILiteral("Proxy handler's 'deleteProperty' method should return false when the target's property is not configurable."));
+            return false;
+        }
+    }
+
+    if (exec->hadException())
+        return false;
+
+    return true;
+}
+
+bool ProxyObject::deleteProperty(JSCell* cell, ExecState* exec, PropertyName propertyName)
+{
+    ProxyObject* thisObject = jsCast<ProxyObject*>(cell);
+    auto performDefaultDelete = [&] () -> bool {
+        JSObject* target = jsCast<JSObject*>(thisObject->target());
+        return target->methodTable(exec->vm())->deleteProperty(target, exec, propertyName);
+    };
+    return thisObject->performDelete(exec, propertyName, performDefaultDelete);
+}
+
+bool ProxyObject::deletePropertyByIndex(JSCell* cell, ExecState* exec, unsigned propertyName)
+{
+    ProxyObject* thisObject = jsCast<ProxyObject*>(cell);
+    Identifier ident = Identifier::from(exec, propertyName); 
+    if (exec->hadException())
+        return false;
+    auto performDefaultDelete = [&] () -> bool {
+        JSObject* target = jsCast<JSObject*>(thisObject->target());
+        return target->methodTable(exec->vm())->deletePropertyByIndex(target, exec, propertyName);
+    };
+    return thisObject->performDelete(exec, ident.impl(), performDefaultDelete);
 }
 
 void ProxyObject::visitChildren(JSCell* cell, SlotVisitor& visitor)

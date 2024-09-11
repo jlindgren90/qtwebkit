@@ -245,6 +245,18 @@
     return IMPL->unforgeableAttr();
 }
 
+- (NSString *)stringAttrTreatingNullAsEmptyString
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->stringAttrTreatingNullAsEmptyString();
+}
+
+- (void)setStringAttrTreatingNullAsEmptyString:(NSString *)newStringAttrTreatingNullAsEmptyString
+{
+    WebCore::JSMainThreadNullState state;
+    IMPL->setStringAttrTreatingNullAsEmptyString(newStringAttrTreatingNullAsEmptyString);
+}
+
 - (DOMTestObj *)XMLObjAttr
 {
     WebCore::JSMainThreadNullState state;
@@ -870,6 +882,18 @@
     IMPL->setNullableLongSettableAttribute(newNullableLongSettableAttribute);
 }
 
+- (NSString *)nullableStringSettableAttribute
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->nullableStringSettableAttribute();
+}
+
+- (void)setNullableStringSettableAttribute:(NSString *)newNullableStringSettableAttribute
+{
+    WebCore::JSMainThreadNullState state;
+    IMPL->setNullableStringSettableAttribute(newNullableStringSettableAttribute);
+}
+
 - (int)nullableStringValue
 {
     WebCore::JSMainThreadNullState state;
@@ -967,6 +991,30 @@
 {
     WebCore::JSMainThreadNullState state;
     return IMPL->unforgeableMethod();
+}
+
+- (void)methodWithArgTreatingNullAsEmptyString:(NSString *)arg
+{
+    WebCore::JSMainThreadNullState state;
+    IMPL->methodWithArgTreatingNullAsEmptyString(arg);
+}
+
+- (NSString *)nullableStringMethod
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->nullableStringMethod();
+}
+
+- (NSString *)nullableStringStaticMethod
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->nullableStringStaticMethod();
+}
+
+- (NSString *)nullableStringSpecialMethod:(unsigned)index
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->nullableStringSpecialMethod(index);
 }
 
 - (void)methodWithEnumArg:(DOMTestEnumType *)enumArg
@@ -1261,16 +1309,16 @@
     IMPL->convert2(core(value));
 }
 
-- (void)convert4:(DOMTestNode *)value
+- (void)convert3:(NSString *)value
 {
     WebCore::JSMainThreadNullState state;
-    IMPL->convert4(core(value));
+    IMPL->convert3(value);
 }
 
-- (void)convert5:(DOMTestNode *)value
+- (void)convert4:(NSString *)value
 {
     WebCore::JSMainThreadNullState state;
-    IMPL->convert5(core(value));
+    IMPL->convert4(value);
 }
 
 - (DOMSVGPoint *)mutablePointFunction

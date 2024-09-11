@@ -89,7 +89,7 @@ private:
 // large. However, due to https://bugs.webkit.org/show_bug.cgi?id=14536 things
 // get rather sluggish when a text field has a larger number of characters than
 // this, even when just clicking in the text field.
-const int HTMLInputElement::maximumLength = 524288;
+const unsigned HTMLInputElement::maximumLength = 524288;
 const int defaultSize = 20;
 const int maxSavedResults = 256;
 
@@ -684,8 +684,8 @@ void HTMLInputElement::parseAttribute(const QualifiedName& name, const AtomicStr
     } else if (name == maxlengthAttr)
         parseMaxLengthAttribute(value);
     else if (name == sizeAttr) {
-        int oldSize = m_size;
-        m_size = limitToOnlyNonNegativeNumbersGreaterThanZero(value.string().toUInt(), defaultSize);
+        unsigned oldSize = m_size;
+        m_size = limitToOnlyHTMLNonNegativeNumbersGreaterThanZero(value, defaultSize);
         if (m_size != oldSize && renderer())
             renderer()->setNeedsLayoutAndPrefWidthsRecalc();
     } else if (name == altAttr)
@@ -896,7 +896,7 @@ void HTMLInputElement::setIndeterminate(bool newValue)
         renderer()->theme().stateChanged(*renderer(), ControlStates::CheckedState);
 }
 
-int HTMLInputElement::size() const
+unsigned HTMLInputElement::size() const
 {
     return m_size;
 }
@@ -1275,7 +1275,7 @@ bool HTMLInputElement::multiple() const
 
 void HTMLInputElement::setSize(unsigned size)
 {
-    setUnsignedIntegralAttribute(sizeAttr, limitToOnlyNonNegativeNumbersGreaterThanZero(size, defaultSize));
+    setUnsignedIntegralAttribute(sizeAttr, limitToOnlyHTMLNonNegativeNumbersGreaterThanZero(size, defaultSize));
 }
 
 void HTMLInputElement::setSize(unsigned size, ExceptionCode& ec)
@@ -1743,11 +1743,7 @@ bool HTMLInputElement::isEmptyValue() const
 
 void HTMLInputElement::parseMaxLengthAttribute(const AtomicString& value)
 {
-    int maxLength;
-    if (!parseHTMLInteger(value, maxLength))
-        maxLength = maximumLength;
-    if (maxLength < 0 || maxLength > maximumLength)
-        maxLength = maximumLength;
+    int maxLength = std::min(parseHTMLNonNegativeInteger(value).valueOr(maximumLength), maximumLength);
     int oldMaxLength = m_maxLength;
     m_maxLength = maxLength;
     if (oldMaxLength != maxLength)

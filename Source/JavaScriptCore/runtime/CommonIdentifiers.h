@@ -349,6 +349,7 @@
     macro(TypeError) \
     macro(typedArrayLength) \
     macro(typedArraySort) \
+    macro(typedArrayGetOriginalConstructor) \
     macro(BuiltinLog) \
     macro(homeObject) \
     macro(getTemplateObject) \

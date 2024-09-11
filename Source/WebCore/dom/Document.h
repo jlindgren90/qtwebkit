@@ -46,6 +46,7 @@
 #include "ScriptExecutionContext.h"
 #include "StringWithDirection.h"
 #include "StyleChange.h"
+#include "Supplementable.h"
 #include "TextResourceDecoder.h"
 #include "Timer.h"
 #include "TreeScope.h"
@@ -93,10 +94,7 @@ class DocumentMarkerController;
 class DocumentParser;
 class DocumentSharedObjectPool;
 class DocumentType;
-class Element;
 class EntityReference;
-class Event;
-class EventListener;
 class ExtensionStyleSheets;
 class FloatRect;
 class FloatQuad;
@@ -141,7 +139,6 @@ class PlatformMouseEvent;
 class ProcessingInstruction;
 class QualifiedName;
 class Range;
-class RegisteredEventListener;
 class RenderView;
 class RenderFullScreen;
 class ScriptableDocumentParser;
@@ -201,9 +198,7 @@ class ScriptedAnimationController;
 class TextAutosizer;
 #endif
 
-#if ENABLE(FONT_LOAD_EVENTS)
-class FontLoader;
-#endif
+class FontFaceSet;
 
 typedef int ExceptionCode;
 
@@ -292,7 +287,12 @@ enum class HttpEquivPolicy {
     DisabledByContentDispositionAttachmentSandbox
 };
 
-class Document : public ContainerNode, public TreeScope, public ScriptExecutionContext, public FontSelectorClient {
+class Document
+    : public ContainerNode
+    , public TreeScope
+    , public ScriptExecutionContext
+    , public FontSelectorClient
+    , public Supplementable<Document> {
 public:
     static Ref<Document> create(Frame* frame, const URL& url)
     {
@@ -718,10 +718,6 @@ public:
 
     MouseEventWithHitTestResults prepareMouseEvent(const HitTestRequest&, const LayoutPoint&, const PlatformMouseEvent&);
 
-    /* Newly proposed CSS3 mechanism for selecting alternate
-       stylesheets using the DOM. May be subject to change as
-       spec matures. - dwh
-    */
     String preferredStylesheetSet() const;
     String selectedStylesheetSet() const;
     void setSelectedStylesheetSet(const String&);
@@ -1272,9 +1268,7 @@ public:
 
     WEBCORE_EXPORT virtual SecurityOrigin* topOrigin() const override final;
 
-#if ENABLE(FONT_LOAD_EVENTS)
-    RefPtr<FontLoader> fonts();
-#endif
+    Ref<FontFaceSet> fonts();
 
     void ensurePlugInsInjectedScript(DOMWrapperWorld&);
 
@@ -1318,6 +1312,9 @@ public:
     void setHasActiveMediaStreamTrack() { m_hasHadActiveMediaStreamTrack = true; }
     bool hasHadActiveMediaStreamTrack() const { return m_hasHadActiveMediaStreamTrack; }
 #endif
+
+    using ContainerNode::setAttributeEventListener;
+    void setAttributeEventListener(const AtomicString& eventType, const QualifiedName& attributeName, const AtomicString& value);
 
 protected:
     enum ConstructionFlags { Synthesized = 1, NonRenderedPlaceholder = 1 << 1 };
@@ -1744,10 +1741,6 @@ private:
 #endif
 
     RefPtr<CSSFontSelector> m_fontSelector;
-
-#if ENABLE(FONT_LOAD_EVENTS)
-    RefPtr<FontLoader> m_fontloader;
-#endif
 
 #if ENABLE(WEB_REPLAY)
     RefPtr<JSC::InputCursor> m_inputCursor;

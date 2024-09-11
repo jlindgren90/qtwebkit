@@ -170,14 +170,14 @@ void HTMLTextAreaElement::collectStyleForPresentationAttribute(const QualifiedNa
 void HTMLTextAreaElement::parseAttribute(const QualifiedName& name, const AtomicString& value)
 {
     if (name == rowsAttr) {
-        unsigned rows = limitToOnlyNonNegativeNumbersGreaterThanZero(value.string().toUInt(), defaultRows);
+        unsigned rows = limitToOnlyHTMLNonNegativeNumbersGreaterThanZero(value, defaultRows);
         if (m_rows != rows) {
             m_rows = rows;
             if (renderer())
                 renderer()->setNeedsLayoutAndPrefWidthsRecalc();
         }
     } else if (name == colsAttr) {
-        unsigned cols = limitToOnlyNonNegativeNumbersGreaterThanZero(value.string().toUInt(), defaultCols);
+        unsigned cols = limitToOnlyHTMLNonNegativeNumbersGreaterThanZero(value, defaultCols);
         if (m_cols != cols) {
             m_cols = cols;
             if (renderer())
@@ -368,7 +368,7 @@ void HTMLTextAreaElement::setValueCommon(const String& newValue)
     m_wasModifiedByUser = false;
     // Code elsewhere normalizes line endings added by the user via the keyboard or pasting.
     // We normalize line endings coming from JavaScript here.
-    String normalizedValue = newValue.isNull() ? "" : newValue;
+    String normalizedValue = newValue.isNull() ? emptyString() : newValue;
     normalizedValue.replace("\r\n", "\n");
     normalizedValue.replace('\r', '\n');
 
@@ -423,9 +423,10 @@ void HTMLTextAreaElement::setDefaultValue(const String& defaultValue)
 
 int HTMLTextAreaElement::maxLength() const
 {
-    bool ok;
-    int value = fastGetAttribute(maxlengthAttr).string().toInt(&ok);
-    return ok && value >= 0 ? value : -1;
+    auto optionalMaxLength = parseHTMLNonNegativeInteger(fastGetAttribute(maxlengthAttr));
+    if (!optionalMaxLength)
+        return -1;
+    return optionalMaxLength.value();
 }
 
 void HTMLTextAreaElement::setMaxLength(int newValue, ExceptionCode& ec)
@@ -491,12 +492,12 @@ void HTMLTextAreaElement::accessKeyAction(bool)
 
 void HTMLTextAreaElement::setCols(unsigned cols)
 {
-    setUnsignedIntegralAttribute(colsAttr, limitToOnlyNonNegativeNumbersGreaterThanZero(cols, defaultCols));
+    setUnsignedIntegralAttribute(colsAttr, limitToOnlyHTMLNonNegativeNumbersGreaterThanZero(cols, defaultCols));
 }
 
 void HTMLTextAreaElement::setRows(unsigned rows)
 {
-    setUnsignedIntegralAttribute(rowsAttr, limitToOnlyNonNegativeNumbersGreaterThanZero(rows, defaultRows));
+    setUnsignedIntegralAttribute(rowsAttr, limitToOnlyHTMLNonNegativeNumbersGreaterThanZero(rows, defaultRows));
 }
 
 bool HTMLTextAreaElement::shouldUseInputMethod()

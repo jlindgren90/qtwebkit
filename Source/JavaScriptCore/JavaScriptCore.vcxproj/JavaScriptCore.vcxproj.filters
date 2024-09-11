@@ -390,9 +390,6 @@
     <ClCompile Include="..\interpreter\StackVisitor.cpp">
       <Filter>interpreter</Filter>
     </ClCompile>
-    <ClCompile Include="..\jit\ExecutableAllocator.cpp">
-      <Filter>jit</Filter>
-    </ClCompile>
     <ClCompile Include="..\jit\GCAwareJITStubRoutine.cpp">
       <Filter>jit</Filter>
     </ClCompile>
@@ -3200,6 +3197,9 @@
       <Filter>runtime</Filter>
     </ClInclude>
     <ClInclude Include="..\runtime\SmallStrings.h">
+      <Filter>runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\runtime\SlowPathReturnType.h">
       <Filter>runtime</Filter>
     </ClInclude>
     <ClInclude Include="..\runtime\SparseArrayValueMap.h">

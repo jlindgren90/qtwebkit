@@ -923,9 +923,6 @@ private:
         case NewRegexp:
             compileNewRegexp();
             break;
-        case StringReplace:
-            compileStringReplace();
-            break;
 
         case PhantomLocal:
         case LoopHint:
@@ -6434,36 +6431,18 @@ private:
 
     void compileRegExpExec()
     {
-        if (m_node->child1().useKind() == CellUse
-            && m_node->child2().useKind() == CellUse) {
-            LValue base = lowCell(m_node->child1());
-            LValue argument = lowCell(m_node->child2());
-            setJSValue(
-                vmCall(Int64, m_out.operation(operationRegExpExec), m_callFrame, base, argument));
-            return;
-        }
-        
-        LValue base = lowJSValue(m_node->child1());
-        LValue argument = lowJSValue(m_node->child2());
+        LValue base = lowCell(m_node->child1());
+        LValue argument = lowCell(m_node->child2());
         setJSValue(
-            vmCall(Int64, m_out.operation(operationRegExpExecGeneric), m_callFrame, base, argument));
+            vmCall(Int64, m_out.operation(operationRegExpExec), m_callFrame, base, argument));
     }
 
     void compileRegExpTest()
     {
-        if (m_node->child1().useKind() == CellUse
-            && m_node->child2().useKind() == CellUse) {
-            LValue base = lowCell(m_node->child1());
-            LValue argument = lowCell(m_node->child2());
-            setBoolean(
-                vmCall(Int32, m_out.operation(operationRegExpTest), m_callFrame, base, argument));
-            return;
-        }
-
-        LValue base = lowJSValue(m_node->child1());
-        LValue argument = lowJSValue(m_node->child2());
+        LValue base = lowCell(m_node->child1());
+        LValue argument = lowCell(m_node->child2());
         setBoolean(
-            vmCall(Int32, m_out.operation(operationRegExpTestGeneric), m_callFrame, base, argument));
+            vmCall(Int32, m_out.operation(operationRegExpTest), m_callFrame, base, argument));
     }
 
     void compileNewRegexp()
@@ -6477,48 +6456,6 @@ private:
             m_out.operation(operationNewRegexp), m_callFrame,
             m_out.constIntPtr(codeBlock()->regexp(m_node->regexpIndex())));
         
-        setJSValue(result);
-    }
-
-    void compileStringReplace()
-    {
-        if (m_node->child1().useKind() == StringUse
-            && m_node->child2().useKind() == RegExpObjectUse
-            && m_node->child3().useKind() == StringUse) {
-
-            if (JSString* replace = m_node->child3()->dynamicCastConstant<JSString*>()) {
-                if (!replace->length()) {
-                    LValue string = lowString(m_node->child1());
-                    LValue regExp = lowCell(m_node->child2());
-                    speculateRegExpObject(m_node->child2(), regExp);
-
-                    LValue result = vmCall(
-                        Int64, m_out.operation(operationStringProtoFuncReplaceRegExpEmptyStr),
-                        m_callFrame, string, regExp);
-
-                    setJSValue(result);
-                    return;
-                }
-            }
-            
-            LValue string = lowString(m_node->child1());
-            LValue regExp = lowCell(m_node->child2());
-            speculateRegExpObject(m_node->child2(), regExp);
-            LValue replace = lowString(m_node->child3());
-
-            LValue result = vmCall(
-                Int64, m_out.operation(operationStringProtoFuncReplaceRegExpString),
-                m_callFrame, string, regExp, replace);
-
-            setJSValue(result);
-            return;
-        }
-        
-        LValue result = vmCall(
-            Int64, m_out.operation(operationStringProtoFuncReplaceGeneric), m_callFrame,
-            lowJSValue(m_node->child1()), lowJSValue(m_node->child2()),
-            lowJSValue(m_node->child3()));
-
         setJSValue(result);
     }
 

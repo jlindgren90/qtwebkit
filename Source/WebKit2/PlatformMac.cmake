@@ -23,10 +23,8 @@ list(APPEND WebKit2_SOURCES
     NetworkProcess/cocoa/NetworkProcessCocoa.mm
     NetworkProcess/cocoa/NetworkSessionCocoa.mm
 
-    NetworkProcess/mac/NetworkDiskCacheMonitor.mm
     NetworkProcess/mac/NetworkLoadMac.mm
     NetworkProcess/mac/NetworkProcessMac.mm
-    NetworkProcess/mac/NetworkResourceLoaderMac.mm
     NetworkProcess/mac/RemoteNetworkingContext.mm
 
     Platform/IPC/MessageRecorder.cpp
@@ -140,7 +138,8 @@ list(APPEND WebKit2_SOURCES
     Shared/mac/WebMemorySampler.mac.mm
 
     UIProcess/ViewGestureController.cpp
-    UIProcess/WebAutomationSession.cpp
+
+    UIProcess/Automation/WebAutomationSession.cpp
 
     UIProcess/API/APIUserScript.cpp
     UIProcess/API/APIUserStyleSheet.cpp

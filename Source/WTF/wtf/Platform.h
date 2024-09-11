@@ -895,16 +895,6 @@
 #define ENABLE_MASM_PROBE 0
 #endif
 
-/* Pick which allocator to use; we only need an executable allocator if the assembler is compiled in.
-   On non-Windows x86-64, iOS, and ARM64 we use a single fixed mmap, on other platforms we mmap on demand. */
-#if ENABLE(ASSEMBLER)
-#if CPU(X86_64) || PLATFORM(IOS) || CPU(ARM64) || CPU(MIPS)
-#define ENABLE_EXECUTABLE_ALLOCATOR_FIXED 1
-#else
-#define ENABLE_EXECUTABLE_ALLOCATOR_DEMAND 1
-#endif
-#endif
-
 /* CSS Selector JIT Compiler */
 #if !defined(ENABLE_CSS_SELECTOR_JIT)
 #if (CPU(X86_64) || CPU(ARM64) || (CPU(ARM_THUMB2) && PLATFORM(IOS))) && ENABLE(JIT) && (OS(DARWIN) || PLATFORM(GTK) || PLATFORM(EFL) || PLATFORM(QT))
@@ -1161,6 +1151,10 @@
 /* While 10.10 has support for fences, it is missing some API important for our integration of them. */
 #if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
 #define HAVE_COREANIMATION_FENCES 1
+#endif
+
+#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200) || (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000)
+#define USE_OS_LOG 1
 #endif
 
 #endif /* WTF_Platform_h */

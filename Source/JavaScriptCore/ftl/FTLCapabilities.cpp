@@ -223,7 +223,6 @@ inline CapabilityLevel canCompile(Node* node)
     case RegExpExec:
     case RegExpTest:
     case NewRegexp:
-    case StringReplace:
         // These are OK.
         break;
 

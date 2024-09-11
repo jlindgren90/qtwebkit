@@ -73,7 +73,8 @@ class CppBackendDispatcherHeaderGenerator(Generator):
         sections = []
         sections.append(self.generate_license())
         sections.append(Template(CppTemplates.HeaderPrelude).substitute(None, **header_args))
-        sections.append(self._generate_alternate_handler_forward_declarations_for_domains(domains))
+        if self.model().framework.setting('alternate_dispatchers', False):
+            sections.append(self._generate_alternate_handler_forward_declarations_for_domains(domains))
         sections.extend(list(map(self._generate_handler_declarations_for_domain, domains)))
         sections.extend(list(map(self._generate_dispatcher_declarations_for_domain, domains)))
         sections.append(Template(CppTemplates.HeaderPostlude).substitute(None, **header_args))
@@ -201,6 +202,14 @@ class CppBackendDispatcherHeaderGenerator(Generator):
         if len(domain.commands) > 0:
             declarations.append('private:')
         declarations.extend(list(map(self._generate_dispatcher_declaration_for_command, domain.commands)))
+
+        declaration_args = {
+            'domainName': domain.domain_name,
+        }
+
+        # Add in a few more declarations at the end if needed.
+        if self.model().framework.setting('alternate_dispatchers', False):
+            declarations.append(Template(CppTemplates.BackendDispatcherHeaderDomainDispatcherAlternatesDeclaration).substitute(None, **declaration_args))
 
         handler_args = {
             'classAndExportMacro': " ".join(classComponents),

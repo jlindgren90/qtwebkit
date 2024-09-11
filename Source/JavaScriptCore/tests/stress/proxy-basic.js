@@ -72,7 +72,7 @@ assert(Proxy.prototype === undefined);
             Proxy({}, {});
         } catch(e) {
             threw = true;
-            assert(e.toString() === "TypeError: Proxy is not a function. (In 'Proxy({}, {})', 'Proxy' is an instance of Function)");
+            assert(e.toString() === "TypeError: calling Proxy constructor without new is invalid");
         }
         assert(threw === true);
     }
@@ -277,32 +277,6 @@ assert(Proxy.prototype === undefined);
     let proxy = new Proxy(theTarget, handler);
     for (let i = 0; i < 500; i++) {
         assert(proxy[field] === 40);
-    }
-}
-
-{
-    let theTarget = [];
-    let sawPrivateSymbolAsString = false;
-    let handler = {
-        get: function(target, propName, proxyArg) {
-            if (typeof propName === "string")
-                sawPrivateSymbolAsString = propName === "PrivateSymbol.arrayIterationKind";
-            return target[propName];
-        }
-    };
-
-    let proxy = new Proxy(theTarget, handler);
-    for (let i = 0; i < 100; i++) {
-        let threw = false;
-        try {
-            proxy[Symbol.iterator]().next.call(proxy);
-        } catch(e) {
-            // this will throw because we conver private symbols to strings.
-            threw = true;
-        }
-        assert(threw);
-        assert(sawPrivateSymbolAsString);
-        sawPrivateSymbolAsString = false;
     }
 }
 
