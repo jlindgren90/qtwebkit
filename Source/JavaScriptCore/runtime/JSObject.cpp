@@ -35,15 +35,16 @@
 #include "Exception.h"
 #include "Executable.h"
 #include "GetterSetter.h"
+#include "HeapSnapshotBuilder.h"
 #include "IndexingHeaderInlines.h"
 #include "JSBoundSlotBaseFunction.h"
+#include "JSCInlines.h"
 #include "JSFunction.h"
 #include "JSGlobalObject.h"
 #include "Lookup.h"
 #include "NativeErrorConstructor.h"
 #include "Nodes.h"
 #include "ObjectPrototype.h"
-#include "JSCInlines.h"
 #include "PropertyDescriptor.h"
 #include "PropertyNameArray.h"
 #include "ProxyObject.h"
@@ -157,12 +158,11 @@ ALWAYS_INLINE void JSObject::copyButterfly(CopyVisitor& visitor, Butterfly* butt
     } 
 }
 
-ALWAYS_INLINE void JSObject::visitButterfly(SlotVisitor& visitor, Butterfly* butterfly, size_t storageSize)
+ALWAYS_INLINE void JSObject::visitButterfly(SlotVisitor& visitor, Butterfly* butterfly, Structure* structure)
 {
     ASSERT(butterfly);
     
-    Structure* structure = this->structure(visitor.vm());
-    
+    size_t storageSize = structure->outOfLineSize();
     size_t propertyCapacity = structure->outOfLineCapacity();
     size_t preCapacity;
     size_t indexingPayloadSizeInBytes;
@@ -177,7 +177,7 @@ ALWAYS_INLINE void JSObject::visitButterfly(SlotVisitor& visitor, Butterfly* but
     size_t capacityInBytes = Butterfly::totalSize(preCapacity, propertyCapacity, hasIndexingHeader, indexingPayloadSizeInBytes);
 
     // Mark the properties.
-    visitor.appendValues(butterfly->propertyStorage() - storageSize, storageSize);
+    visitor.appendValuesHidden(butterfly->propertyStorage() - storageSize, storageSize);
     visitor.copyLater(
         this, ButterflyCopyToken,
         butterfly->base(preCapacity, propertyCapacity), capacityInBytes);
@@ -185,10 +185,10 @@ ALWAYS_INLINE void JSObject::visitButterfly(SlotVisitor& visitor, Butterfly* but
     // Mark the array if appropriate.
     switch (this->indexingType()) {
     case ALL_CONTIGUOUS_INDEXING_TYPES:
-        visitor.appendValues(butterfly->contiguous().data(), butterfly->publicLength());
+        visitor.appendValuesHidden(butterfly->contiguous().data(), butterfly->publicLength());
         break;
     case ALL_ARRAY_STORAGE_INDEXING_TYPES:
-        visitor.appendValues(butterfly->arrayStorage()->m_vector, butterfly->arrayStorage()->vectorLength());
+        visitor.appendValuesHidden(butterfly->arrayStorage()->m_vector, butterfly->arrayStorage()->vectorLength());
         if (butterfly->arrayStorage()->m_sparseMap)
             visitor.append(&butterfly->arrayStorage()->m_sparseMap);
         break;
@@ -217,7 +217,7 @@ void JSObject::visitChildren(JSCell* cell, SlotVisitor& visitor)
 
     Butterfly* butterfly = thisObject->m_butterfly.getWithoutBarrier();
     if (butterfly)
-        thisObject->visitButterfly(visitor, butterfly, thisObject->structure(visitor.vm())->outOfLineSize());
+        thisObject->visitButterfly(visitor, butterfly, thisObject->structure(visitor.vm()));
 
 #if !ASSERT_DISABLED
     visitor.m_isCheckingForDefaultMarkViolation = wasCheckingForDefaultMarkViolation;
@@ -237,6 +237,44 @@ void JSObject::copyBackingStore(JSCell* cell, CopyVisitor& visitor, CopyToken to
         thisObject->copyButterfly(visitor, butterfly, thisObject->structure()->outOfLineSize());
 }
 
+void JSObject::heapSnapshot(JSCell* cell, HeapSnapshotBuilder& builder)
+{
+    JSObject* thisObject = jsCast<JSObject*>(cell);
+    Base::heapSnapshot(cell, builder);
+
+    Structure* structure = thisObject->structure();
+    for (auto& entry : structure->getPropertiesConcurrently()) {
+        JSValue toValue = thisObject->getDirect(entry.offset);
+        if (toValue && toValue.isCell())
+            builder.appendPropertyNameEdge(thisObject, toValue.asCell(), entry.key);
+    }
+
+    Butterfly* butterfly = thisObject->m_butterfly.getWithoutBarrier();
+    if (butterfly) {
+        WriteBarrier<Unknown>* data;
+        uint32_t count = 0;
+
+        switch (thisObject->indexingType()) {
+        case ALL_CONTIGUOUS_INDEXING_TYPES:
+            data = butterfly->contiguous().data();
+            count = butterfly->publicLength();
+            break;
+        case ALL_ARRAY_STORAGE_INDEXING_TYPES:
+            data = butterfly->arrayStorage()->m_vector;
+            count = butterfly->arrayStorage()->vectorLength();
+            break;
+        default:
+            break;
+        }
+
+        for (uint32_t i = 0; i < count; ++i) {
+            JSValue toValue = data[i].get();
+            if (toValue && toValue.isCell())
+                builder.appendIndexEdge(thisObject, toValue.asCell(), i);
+        }
+    }
+}
+
 void JSFinalObject::visitChildren(JSCell* cell, SlotVisitor& visitor)
 {
     JSFinalObject* thisObject = jsCast<JSFinalObject*>(cell);
@@ -248,13 +286,13 @@ void JSFinalObject::visitChildren(JSCell* cell, SlotVisitor& visitor)
     
     JSCell::visitChildren(thisObject, visitor);
 
-    Structure* structure = thisObject->structure();
+    Structure* structure = thisObject->structure(visitor.vm());
     Butterfly* butterfly = thisObject->butterfly();
     if (butterfly)
-        thisObject->visitButterfly(visitor, butterfly, structure->outOfLineSize());
+        thisObject->visitButterfly(visitor, butterfly, structure);
 
     size_t storageSize = structure->inlineSize();
-    visitor.appendValues(thisObject->inlineStorage(), storageSize);
+    visitor.appendValuesHidden(thisObject->inlineStorage(), storageSize);
 
 #if !ASSERT_DISABLED
     visitor.m_isCheckingForDefaultMarkViolation = wasCheckingForDefaultMarkViolation;
@@ -272,7 +310,7 @@ String JSObject::calculatedClassName(JSObject* object)
 {
     String prototypeFunctionName;
     ExecState* exec = object->globalObject()->globalExec();
-    PropertySlot slot(object->structure()->storedPrototype(), PropertySlot::InternalMethodType::VMInquiry);
+    PropertySlot slot(object->getPrototypeDirect(), PropertySlot::InternalMethodType::VMInquiry);
     PropertyName constructor(exec->propertyNames().constructor);
     if (object->getPropertySlot(exec, constructor, slot)) {
         if (slot.isValue()) {
@@ -430,11 +468,14 @@ void JSObject::putInlineSlow(ExecState* exec, PropertyName propertyName, JSValue
             }
         }
         if (obj->type() == ProxyObjectType && propertyName != vm.propertyNames->underscoreProto) {
+            // FIXME: We shouldn't unconditionally perform [[Set]] here.
+            // We need to do more because this is observable behavior.
+            // https://bugs.webkit.org/show_bug.cgi?id=155012
             ProxyObject* proxy = jsCast<ProxyObject*>(obj);
             proxy->ProxyObject::put(proxy, exec, propertyName, value, slot);
             return;
         }
-        JSValue prototype = obj->prototype();
+        JSValue prototype = obj->getPrototypeDirect();
         if (prototype.isNull())
             break;
         obj = asObject(prototype);
@@ -1201,7 +1242,7 @@ bool JSObject::setPrototypeWithCycleCheck(VM& vm, ExecState* exec, JSValue proto
 {
     ASSERT(methodTable(vm)->toThis(this, exec, NotStrictMode) == this);
 
-    if (this->prototype() == prototype)
+    if (this->getPrototypeDirect() == prototype)
         return true;
 
     bool isExtensible = this->isExtensible(exec);
@@ -1215,13 +1256,16 @@ bool JSObject::setPrototypeWithCycleCheck(VM& vm, ExecState* exec, JSValue proto
     }
 
     JSValue nextPrototype = prototype;
+    MethodTable::GetPrototypeFunctionPtr defaultGetPrototype = JSObject::getPrototype;
     while (nextPrototype && nextPrototype.isObject()) {
         if (nextPrototype == this) {
             if (shouldThrowIfCantSet)
                 vm.throwException(exec, createError(exec, ASCIILiteral("cyclic __proto__ value")));
             return false;
         }
-        nextPrototype = asObject(nextPrototype)->prototype();
+        if (UNLIKELY(asObject(nextPrototype)->methodTable(vm)->getPrototype != defaultGetPrototype))
+            break; // We're done. Set the prototype.
+        nextPrototype = asObject(nextPrototype)->getPrototypeDirect();
     }
     setPrototypeDirect(vm, prototype);
     return true;
@@ -1230,6 +1274,11 @@ bool JSObject::setPrototypeWithCycleCheck(VM& vm, ExecState* exec, JSValue proto
 bool JSObject::setPrototype(JSObject* object, ExecState* exec, JSValue prototype, bool shouldThrowIfCantSet)
 {
     return object->setPrototypeWithCycleCheck(exec->vm(), exec, prototype, shouldThrowIfCantSet);
+}
+
+JSValue JSObject::getPrototype(JSObject* object, ExecState*)
+{
+    return object->getPrototypeDirect();
 }
 
 bool JSObject::setPrototype(VM& vm, ExecState* exec, JSValue prototype, bool shouldThrowIfCantSet)
@@ -1443,7 +1492,7 @@ static ALWAYS_INLINE JSValue callToPrimitiveFunction(ExecState* exec, const JSOb
         return JSValue();
     CallData callData;
     CallType callType = getCallData(function, callData);
-    if (callType == CallTypeNone)
+    if (callType == CallType::None)
         return exec->exception();
 
     MarkedArgumentBuffer callArgs;
@@ -1473,7 +1522,7 @@ static ALWAYS_INLINE JSValue callToPrimitiveFunction(ExecState* exec, const JSOb
 }
 
 // ECMA 7.1.1
-inline JSValue JSObject::ordinaryToPrimitive(ExecState* exec, PreferredPrimitiveType hint) const
+JSValue JSObject::ordinaryToPrimitive(ExecState* exec, PreferredPrimitiveType hint) const
 {
     // Make sure that whatever default value methods there are on object's prototype chain are
     // being watched.
@@ -1540,7 +1589,7 @@ bool JSObject::hasInstance(ExecState* exec, JSValue value, JSValue hasInstanceVa
     if (!hasInstanceValue.isUndefinedOrNull() && hasInstanceValue != exec->lexicalGlobalObject()->functionProtoHasInstanceSymbolFunction()) {
         CallData callData;
         CallType callType = JSC::getCallData(hasInstanceValue, callData);
-        if (callType == CallTypeNone) {
+        if (callType == CallType::None) {
             vm.throwException(exec, createInvalidInstanceofParameterErrorhasInstanceValueNotFunction(exec, this));
             return false;
         }
@@ -1577,12 +1626,19 @@ bool JSObject::defaultHasInstance(ExecState* exec, JSValue value, JSValue proto)
         return false;
     }
 
+    VM& vm = exec->vm();
     JSObject* object = asObject(value);
-    while ((object = object->prototype().getObject())) {
+    while (true) {
+        JSValue objectValue = object->getPrototype(vm, exec);
+        if (UNLIKELY(vm.exception()))
+            return false;
+        if (!objectValue.isObject())
+            return false;
+        object = asObject(objectValue);
         if (proto == object)
             return true;
     }
-    return false;
+    ASSERT_NOT_REACHED();
 }
 
 EncodedJSValue JSC_HOST_CALL objectPrivateFuncInstanceOf(ExecState* exec)
@@ -1595,24 +1651,29 @@ EncodedJSValue JSC_HOST_CALL objectPrivateFuncInstanceOf(ExecState* exec)
 
 void JSObject::getPropertyNames(JSObject* object, ExecState* exec, PropertyNameArray& propertyNames, EnumerationMode mode)
 {
-    object->methodTable(exec->vm())->getOwnPropertyNames(object, exec, propertyNames, mode);
-    if (UNLIKELY(exec->hadException()))
-        return;
-
-    if (object->prototype().isNull())
-        return;
-
     VM& vm = exec->vm();
-    JSObject* prototype = asObject(object->prototype());
+    object->methodTable(vm)->getOwnPropertyNames(object, exec, propertyNames, mode);
+    if (UNLIKELY(vm.exception()))
+        return;
+
+    JSValue nextProto = object->getPrototype(vm, exec);
+    if (UNLIKELY(vm.exception()))
+        return;
+    if (nextProto.isNull())
+        return;
+
+    JSObject* prototype = asObject(nextProto);
     while(1) {
         if (prototype->structure(vm)->typeInfo().overridesGetPropertyNames()) {
             prototype->methodTable(vm)->getPropertyNames(prototype, exec, propertyNames, mode);
             break;
         }
         prototype->methodTable(vm)->getOwnPropertyNames(prototype, exec, propertyNames, mode);
-        if (UNLIKELY(exec->hadException()))
+        if (UNLIKELY(vm.exception()))
             return;
-        JSValue nextProto = prototype->prototype();
+        nextProto = prototype->getPrototype(vm, exec);
+        if (UNLIKELY(vm.exception()))
+            return;
         if (nextProto.isNull())
             break;
         prototype = asObject(nextProto);
@@ -2032,7 +2093,7 @@ bool JSObject::attemptToInterceptPutByIndexOnHoleForPrototype(ExecState* exec, J
             return true;
         }
         
-        JSValue prototypeValue = current->prototype();
+        JSValue prototypeValue = current->getPrototypeDirect();
         if (prototypeValue.isNull())
             return false;
         
@@ -2042,7 +2103,7 @@ bool JSObject::attemptToInterceptPutByIndexOnHoleForPrototype(ExecState* exec, J
 
 bool JSObject::attemptToInterceptPutByIndexOnHole(ExecState* exec, unsigned i, JSValue value, bool shouldThrow)
 {
-    JSValue prototypeValue = prototype();
+    JSValue prototypeValue = getPrototypeDirect();
     if (prototypeValue.isNull())
         return false;
     
@@ -3034,13 +3095,16 @@ void JSObject::getGenericPropertyNames(JSObject* object, ExecState* exec, Proper
 {
     VM& vm = exec->vm();
     object->methodTable(vm)->getOwnPropertyNames(object, exec, propertyNames, EnumerationMode(mode, JSObjectPropertiesMode::Exclude));
-    if (UNLIKELY(exec->hadException()))
+    if (UNLIKELY(vm.exception()))
         return;
 
-    if (object->prototype().isNull())
+    JSValue nextProto = object->getPrototype(vm, exec);
+    if (UNLIKELY(vm.exception()))
+        return;
+    if (nextProto.isNull())
         return;
 
-    JSObject* prototype = asObject(object->prototype());
+    JSObject* prototype = asObject(nextProto);
     while (true) {
         if (prototype->structure(vm)->typeInfo().overridesGetPropertyNames()) {
             prototype->methodTable(vm)->getPropertyNames(prototype, exec, propertyNames, mode);
@@ -3049,7 +3113,9 @@ void JSObject::getGenericPropertyNames(JSObject* object, ExecState* exec, Proper
         prototype->methodTable(vm)->getOwnPropertyNames(prototype, exec, propertyNames, mode);
         if (UNLIKELY(exec->hadException()))
             return;
-        JSValue nextProto = prototype->prototype();
+        nextProto = prototype->getPrototype(vm, exec);
+        if (UNLIKELY(vm.exception()))
+            return;
         if (nextProto.isNull())
             break;
         prototype = asObject(nextProto);
@@ -3073,7 +3139,7 @@ JSValue JSObject::getMethod(ExecState* exec, CallData& callData, CallType& callT
     }
 
     callType = method.asCell()->methodTable()->getCallData(method.asCell(), callData);
-    if (callType == CallTypeNone) {
+    if (callType == CallType::None) {
         throwVMTypeError(exec, errorMessage);
         return jsUndefined();
     }

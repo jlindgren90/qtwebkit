@@ -274,6 +274,10 @@ static CString regexpToSourceString(RegExp* regExp)
         postfix[index++] = 'i';
     if (regExp->multiline())
         postfix[index] = 'm';
+    if (regExp->sticky())
+        postfix[index++] = 'y';
+    if (regExp->unicode())
+        postfix[index++] = 'u';
 
     return toCString("/", regExp->pattern().impl(), postfix);
 }
@@ -763,6 +767,19 @@ void CodeBlock::printLocationOpAndRegisterOperand(PrintStream& out, ExecState* e
 {
     printLocationAndOp(out, exec, location, it, op);
     out.printf("%s", registerName(operand).data());
+}
+
+void CodeBlock::dumpFunctionExpr(PrintStream& out, int funcExprIndex)
+{
+    out.printf("f%d", funcExprIndex);
+    if (!isCompilationThread()) {
+        FunctionExecutable* executable = functionExpr(funcExprIndex);
+        String name = executable->inferredName().string();
+        if (name.isEmpty())
+            out.print(":<anon>");
+        else
+            out.print(":", name.utf8());
+    }
 }
 
 void CodeBlock::dumpBytecode(
@@ -1332,7 +1349,8 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_func");
-            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
+            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
+            dumpFunctionExpr(out, f0);
             break;
         }
         case op_new_generator_func: {
@@ -1340,7 +1358,8 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_generator_func");
-            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
+            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
+            dumpFunctionExpr(out, f0);
             break;
         }
         case op_new_arrow_func_exp: {
@@ -1348,7 +1367,8 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "op_new_arrow_func_exp");
-            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
+            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
+            dumpFunctionExpr(out, f0);
             break;
         }
         case op_new_func_exp: {
@@ -1356,7 +1376,8 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_func_exp");
-            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
+            out.printf("%s, %s, ", registerName(r0).data(), registerName(r1).data());
+            dumpFunctionExpr(out, f0);
             break;
         }
         case op_new_generator_func_exp: {
@@ -1364,7 +1385,8 @@ void CodeBlock::dumpBytecode(
             int r1 = (++it)->u.operand;
             int f0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "new_generator_func_exp");
-            out.printf("%s, %s, f%d", registerName(r0).data(), registerName(r1).data(), f0);
+            out.printf("%s, %s", registerName(r0).data(), registerName(r1).data());
+            dumpFunctionExpr(out, f0);
             break;
         }
         case op_call: {
@@ -4220,6 +4242,8 @@ DFG::CapabilityLevel CodeBlock::capabilityLevel()
 
 void CodeBlock::insertBasicBlockBoundariesForControlFlowProfiler(RefCountedArray<Instruction>& instructions)
 {
+    if (!unlinkedCodeBlock()->hasOpProfileControlFlowBytecodeOffsets())
+        return;
     const Vector<size_t>& bytecodeOffsets = unlinkedCodeBlock()->opProfileControlFlowBytecodeOffsets();
     for (size_t i = 0, offsetsLength = bytecodeOffsets.size(); i < offsetsLength; i++) {
         // Because op_profile_control_flow is emitted at the beginning of every basic block, finding 

@@ -54,7 +54,7 @@ class ObjCHeaderGenerator(ObjCGenerator):
         ObjCGenerator.__init__(self, model, input_filepath)
 
     def output_filename(self):
-        return '%s.h' % self.objc_prefix()
+        return '%s.h' % self.protocol_name()
 
     def generate_output(self):
         headers = set([
@@ -165,6 +165,11 @@ class ObjCHeaderGenerator(ObjCGenerator):
         objc_name = self.objc_name_for_type(declaration.type)
         lines.append('__attribute__((visibility ("default")))')
         lines.append('@interface %s : %sJSONObject' % (objc_name, ObjCGenerator.OBJC_STATIC_PREFIX))
+
+        # The initializer that takes a payload is only needed by the frontend.
+        if self.get_generator_setting('generate_frontend', False):
+            lines.append('- (instancetype)initWithPayload:(NSDictionary<NSString *, id> *)payload;')
+
         required_members = [member for member in declaration.type_members if not member.is_optional]
         optional_members = [member for member in declaration.type_members if member.is_optional]
         if required_members:

@@ -791,7 +791,7 @@
 - path: es6/Function_is_subclassable_Function.prototype.call.js
   cmd: runES6 :normal
 - path: es6/function_name_property_accessor_properties.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/function_name_property_bound_functions.js
   cmd: runES6 :normal
 - path: es6/function_name_property_class_expressions.js
@@ -803,7 +803,7 @@
 - path: es6/function_name_property_object_methods_class.js
   cmd: runES6 :fail
 - path: es6/function_name_property_object_methods_function.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/function_name_property_shorthand_methods_no_lexical_binding.js
   cmd: runES6 :fail
 - path: es6/function_name_property_symbol-keyed_methods.js
@@ -811,7 +811,7 @@
 - path: es6/function_name_property_variables_class.js
   cmd: runES6 :fail
 - path: es6/function_name_property_variables_function.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/generators_%GeneratorPrototype%.constructor.js
   cmd: runES6 :normal
 - path: es6/generators_%GeneratorPrototype%.js
@@ -927,7 +927,7 @@
 - path: es6/Proxy_getOwnPropertyDescriptor_handler.js
   cmd: runES6 :normal
 - path: es6/Proxy_getPrototypeOf_handler.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Proxy_has_handler.js
   cmd: runES6 :normal
 - path: es6/Proxy_has_handler_instances_of_proxies.js
@@ -991,7 +991,7 @@
 - path: es6/Proxy_internal_get_calls_Promise_resolve_functions.js
   cmd: runES6 :normal
 - path: es6/Proxy_internal_get_calls_RegExp.prototype.flags.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Proxy_internal_get_calls_RegExp.prototype.test.js
   cmd: runES6 :fail
 - path: es6/Proxy_internal_get_calls_RegExp.prototype[Symbol.match].js
@@ -1063,7 +1063,7 @@
 - path: es6/Proxy_preventExtensions_handler.js
   cmd: runES6 :normal
 - path: es6/Proxy_Proxy.revocable.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Proxy_set_handler.js
   cmd: runES6 :normal
 - path: es6/Proxy_set_handler_instances_of_proxies.js
@@ -1071,11 +1071,11 @@
 - path: es6/Proxy_setPrototypeOf_handler.js
   cmd: runES6 :normal
 - path: es6/Reflect_Reflect.construct.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Reflect_Reflect.construct_creates_instance_from_newTarget_argument.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Reflect_Reflect.construct_sets_new.target_meta_property.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Reflect_Reflect.set.js
   cmd: runES6 :fail
 - path: es6/RegExp.prototype_properties_RegExp.prototype[Symbol.match].js
@@ -1095,9 +1095,9 @@
 - path: es6/RegExp_y_and_u_flags_u_flag_Unicode_code_point_escapes.js
   cmd: runES6 :normal
 - path: es6/RegExp_y_and_u_flags_y_flag.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/RegExp_y_and_u_flags_y_flag_lastIndex.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/rest_parameters_arguments_object_interaction.js
   cmd: runES6 :normal
 - path: es6/rest_parameters_basic_functionality.js

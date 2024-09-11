@@ -769,8 +769,7 @@ LayoutUnit RenderTableSection::calcOuterBorderBefore() const
     }
     if (allHidden)
         return -1;
-
-    return floorToInt(borderWidth / 2);
+    return CollapsedBorderValue::adjustedCollapsedBorderWidth(borderWidth, document().deviceScaleFactor(), false);
 }
 
 LayoutUnit RenderTableSection::calcOuterBorderAfter() const
@@ -820,8 +819,7 @@ LayoutUnit RenderTableSection::calcOuterBorderAfter() const
     }
     if (allHidden)
         return -1;
-
-    return floorToInt((borderWidth + 1) / 2);
+    return CollapsedBorderValue::adjustedCollapsedBorderWidth(borderWidth, document().deviceScaleFactor(), true);
 }
 
 LayoutUnit RenderTableSection::calcOuterBorderStart() const
@@ -864,8 +862,7 @@ LayoutUnit RenderTableSection::calcOuterBorderStart() const
     }
     if (allHidden)
         return -1;
-
-    return floorToInt((borderWidth + (table()->style().isLeftToRightDirection() ? 0 : 1)) / 2);
+    return CollapsedBorderValue::adjustedCollapsedBorderWidth(borderWidth, document().deviceScaleFactor(), !table()->style().isLeftToRightDirection());
 }
 
 LayoutUnit RenderTableSection::calcOuterBorderEnd() const
@@ -908,8 +905,7 @@ LayoutUnit RenderTableSection::calcOuterBorderEnd() const
     }
     if (allHidden)
         return -1;
-
-    return floorToInt((borderWidth + (table()->style().isLeftToRightDirection() ? 1 : 0)) / 2);
+    return CollapsedBorderValue::adjustedCollapsedBorderWidth(borderWidth, document().deviceScaleFactor(), table()->style().isLeftToRightDirection());
 }
 
 void RenderTableSection::recalcOuterBorder()

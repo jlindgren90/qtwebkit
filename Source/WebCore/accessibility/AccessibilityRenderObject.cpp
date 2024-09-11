@@ -2590,12 +2590,8 @@ AccessibilityRole AccessibilityRenderObject::determineAccessibilityRole()
     if (headingLevel())
         return HeadingRole;
     
-    if (m_renderer->isSVGImage())
-        return ImageRole;
     if (m_renderer->isSVGRoot())
         return SVGRootRole;
-    if (node && node->hasTagName(SVGNames::gTag))
-        return GroupRole;
     
     if (isStyleFormatGroup())
         return is<RenderInline>(*m_renderer) ? InlineRole : GroupRole;

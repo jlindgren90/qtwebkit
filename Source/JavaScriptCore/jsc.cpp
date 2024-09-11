@@ -490,11 +490,6 @@ public:
         return simpleObject;
     }
 
-    void finishCreation(VM& vm)
-    {
-        Base::finishCreation(vm);
-    }
-
     static void visitChildren(JSCell* cell, SlotVisitor& visitor)
     {
         SimpleObject* thisObject = jsCast<SimpleObject*>(cell);
@@ -1183,7 +1178,7 @@ EncodedJSValue JSC_HOST_CALL functionCreateElement(ExecState* exec)
     JSLockHolder lock(exec);
     Root* root = jsDynamicCast<Root*>(exec->argument(0));
     if (!root)
-        return JSValue::encode(exec->vm().throwException(exec, createError(exec, ASCIILiteral("Cannot create Element without a Root."))));
+        return JSValue::encode(jsUndefined());
     return JSValue::encode(Element::create(exec->vm(), exec->lexicalGlobalObject(), root));
 }
 
@@ -1236,7 +1231,7 @@ EncodedJSValue JSC_HOST_CALL functionCreateProxy(ExecState* exec)
     if (!target.isObject())
         return JSValue::encode(jsUndefined());
     JSObject* jsTarget = asObject(target.asCell());
-    Structure* structure = JSProxy::createStructure(exec->vm(), exec->lexicalGlobalObject(), jsTarget->prototype());
+    Structure* structure = JSProxy::createStructure(exec->vm(), exec->lexicalGlobalObject(), jsTarget->getPrototypeDirect());
     JSProxy* proxy = JSProxy::create(exec->vm(), structure, jsTarget);
     return JSValue::encode(proxy);
 }

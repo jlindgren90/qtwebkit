@@ -46,12 +46,12 @@ class ObjCBackendDispatcherImplementationGenerator(ObjCGenerator):
         ObjCGenerator.__init__(self, model, input_filepath)
 
     def output_filename(self):
-        return '%sConfiguration.mm' % self.objc_prefix()
+        return '%sConfiguration.mm' % self.protocol_name()
 
     def generate_output(self):
         secondary_headers = [
-            '"%sInternal.h"' % self.objc_prefix(),
-            '"%sBackendDispatchers.h"' % self.objc_prefix(),
+            '"%sInternal.h"' % self.protocol_name(),
+            '"%sBackendDispatchers.h"' % self.protocol_name(),
             '<JavaScriptCore/AlternateDispatchableAgent.h>',
             '<JavaScriptCore/AugmentableInspectorController.h>',
             '<JavaScriptCore/InspectorAlternateBackendDispatchers.h>',
@@ -59,7 +59,7 @@ class ObjCBackendDispatcherImplementationGenerator(ObjCGenerator):
         ]
 
         header_args = {
-            'primaryInclude': '"%sConfiguration.h"' % self.objc_prefix(),
+            'primaryInclude': '"%sConfiguration.h"' % self.protocol_name(),
             'secondaryIncludes': '\n'.join(['#import %s' % header for header in secondary_headers]),
         }
 
@@ -76,7 +76,7 @@ class ObjCBackendDispatcherImplementationGenerator(ObjCGenerator):
 
     def _generate_configuration_implementation_for_domains(self, domains):
         lines = []
-        lines.append('@implementation %sConfiguration' % self.objc_prefix())
+        lines.append('@implementation %sConfiguration' % self.protocol_name())
         lines.append('{')
         lines.append('    AugmentableInspectorController* _controller;')
         lines.extend(self._generate_ivars(domains))

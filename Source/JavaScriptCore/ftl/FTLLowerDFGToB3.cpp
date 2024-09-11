@@ -446,6 +446,9 @@ private:
         case Int52Constant:
             compileInt52Constant();
             break;
+        case LazyJSConstant:
+            compileLazyJSConstant();
+            break;
         case DoubleRep:
             compileDoubleRep();
             break;
@@ -748,6 +751,9 @@ private:
         case SkipScope:
             compileSkipScope();
             break;
+        case GetGlobalObject:
+            compileGetGlobalObject();
+            break;
         case GetClosureVar:
             compileGetClosureVar();
             break;
@@ -1039,6 +1045,18 @@ private:
         
         setInt52(m_out.constInt64(value << JSValue::int52ShiftAmount));
         setStrictInt52(m_out.constInt64(value));
+    }
+
+    void compileLazyJSConstant()
+    {
+        PatchpointValue* patchpoint = m_out.patchpoint(Int64);
+        LazyJSValue value = m_node->lazyJSValue();
+        patchpoint->setGenerator(
+            [=] (CCallHelpers& jit, const StackmapGenerationParams& params) {
+                value.emit(jit, JSValueRegs(params[0].gpr()));
+            });
+        patchpoint->effects = Effects::none();
+        setJSValue(patchpoint);
     }
 
     void compileDoubleRep()
@@ -4475,6 +4493,12 @@ private:
     {
         setJSValue(m_out.loadPtr(lowCell(m_node->child1()), m_heaps.JSScope_next));
     }
+
+    void compileGetGlobalObject()
+    {
+        LValue structure = loadStructure(lowCell(m_node->child1()));
+        setJSValue(m_out.loadPtr(structure, m_heaps.Structure_globalObject));
+    }
     
     void compileGetClosureVar()
     {
@@ -5938,6 +5962,8 @@ private:
         LBasicBlock loop = m_out.newBlock();
         LBasicBlock notYetInstance = m_out.newBlock();
         LBasicBlock continuation = m_out.newBlock();
+        LBasicBlock loadPrototypeDirect = m_out.newBlock();
+        LBasicBlock defaultHasInstanceSlow = m_out.newBlock();
         
         LValue condition;
         if (m_node->child1().useKind() == UntypedUse)
@@ -5955,8 +5981,14 @@ private:
         ValueFromBlock originalValue = m_out.anchor(cell);
         m_out.jump(loop);
         
-        m_out.appendTo(loop, notYetInstance);
+        m_out.appendTo(loop, loadPrototypeDirect);
         LValue value = m_out.phi(m_out.int64, originalValue);
+        LValue type = m_out.load8ZeroExt32(value, m_heaps.JSCell_typeInfoType);
+        m_out.branch(
+            m_out.notEqual(type, m_out.constInt32(ProxyObjectType)),
+            usually(loadPrototypeDirect), rarely(defaultHasInstanceSlow));
+
+        m_out.appendTo(loadPrototypeDirect, notYetInstance);
         LValue structure = loadStructure(value);
         LValue currentPrototype = m_out.load64(structure, m_heaps.Structure_prototype);
         ValueFromBlock isInstanceResult = m_out.anchor(m_out.booleanTrue);
@@ -5964,14 +5996,22 @@ private:
             m_out.equal(currentPrototype, prototype),
             unsure(continuation), unsure(notYetInstance));
         
-        m_out.appendTo(notYetInstance, continuation);
+        m_out.appendTo(notYetInstance, defaultHasInstanceSlow);
         ValueFromBlock notInstanceResult = m_out.anchor(m_out.booleanFalse);
         m_out.addIncomingToPhi(value, m_out.anchor(currentPrototype));
         m_out.branch(isCell(currentPrototype), unsure(loop), unsure(continuation));
+
+        m_out.appendTo(defaultHasInstanceSlow, continuation);
+        // We can use the value that we're looping with because we
+        // can just continue off from wherever we bailed from the
+        // loop.
+        ValueFromBlock defaultHasInstanceResult = m_out.anchor(
+            vmCall(m_out.boolean, m_out.operation(operationDefaultHasInstance), m_callFrame, value, prototype));
+        m_out.jump(continuation);
         
         m_out.appendTo(continuation, lastNext);
         setBoolean(
-            m_out.phi(m_out.boolean, notCellResult, isInstanceResult, notInstanceResult));
+            m_out.phi(m_out.boolean, notCellResult, isInstanceResult, notInstanceResult, defaultHasInstanceResult));
     }
 
     void compileInstanceOfCustom()
@@ -6440,36 +6480,66 @@ private:
 
     void compileRegExpExec()
     {
-        if (m_node->child1().useKind() == CellUse
-            && m_node->child2().useKind() == CellUse) {
-            LValue base = lowCell(m_node->child1());
-            LValue argument = lowCell(m_node->child2());
-            setJSValue(
-                vmCall(Int64, m_out.operation(operationRegExpExec), m_callFrame, base, argument));
+        LValue globalObject = lowCell(m_node->child1());
+        
+        if (m_node->child2().useKind() == RegExpObjectUse) {
+            LValue base = lowRegExpObject(m_node->child2());
+            
+            if (m_node->child3().useKind() == StringUse) {
+                LValue argument = lowString(m_node->child3());
+                LValue result = vmCall(
+                    Int64, m_out.operation(operationRegExpExecString), m_callFrame, globalObject,
+                    base, argument);
+                setJSValue(result);
+                return;
+            }
+            
+            LValue argument = lowJSValue(m_node->child3());
+            LValue result = vmCall(
+                Int64, m_out.operation(operationRegExpExec), m_callFrame, globalObject, base,
+                argument);
+            setJSValue(result);
             return;
         }
         
-        LValue base = lowJSValue(m_node->child1());
-        LValue argument = lowJSValue(m_node->child2());
-        setJSValue(
-            vmCall(Int64, m_out.operation(operationRegExpExecGeneric), m_callFrame, base, argument));
+        LValue base = lowJSValue(m_node->child2());
+        LValue argument = lowJSValue(m_node->child3());
+        LValue result = vmCall(
+            Int64, m_out.operation(operationRegExpExecGeneric), m_callFrame, globalObject, base,
+            argument);
+        setJSValue(result);
     }
 
     void compileRegExpTest()
     {
-        if (m_node->child1().useKind() == CellUse
-            && m_node->child2().useKind() == CellUse) {
-            LValue base = lowCell(m_node->child1());
-            LValue argument = lowCell(m_node->child2());
-            setBoolean(
-                vmCall(Int32, m_out.operation(operationRegExpTest), m_callFrame, base, argument));
+        LValue globalObject = lowCell(m_node->child1());
+        
+        if (m_node->child2().useKind() == RegExpObjectUse) {
+            LValue base = lowRegExpObject(m_node->child2());
+            
+            if (m_node->child3().useKind() == StringUse) {
+                LValue argument = lowString(m_node->child3());
+                LValue result = vmCall(
+                    Int32, m_out.operation(operationRegExpTestString), m_callFrame, globalObject,
+                    base, argument);
+                setBoolean(result);
+                return;
+            }
+
+            LValue argument = lowJSValue(m_node->child3());
+            LValue result = vmCall(
+                Int32, m_out.operation(operationRegExpTest), m_callFrame, globalObject, base,
+                argument);
+            setBoolean(result);
             return;
         }
 
-        LValue base = lowJSValue(m_node->child1());
-        LValue argument = lowJSValue(m_node->child2());
-        setBoolean(
-            vmCall(Int32, m_out.operation(operationRegExpTestGeneric), m_callFrame, base, argument));
+        LValue base = lowJSValue(m_node->child2());
+        LValue argument = lowJSValue(m_node->child3());
+        LValue result = vmCall(
+            Int32, m_out.operation(operationRegExpTestGeneric), m_callFrame, globalObject, base,
+            argument);
+        setBoolean(result);
     }
 
     void compileNewRegexp()

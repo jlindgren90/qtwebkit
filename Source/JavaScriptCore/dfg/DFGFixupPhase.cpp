@@ -881,13 +881,13 @@ private:
             
         case RegExpExec:
         case RegExpTest: {
-            // FIXME: These should probably speculate something stronger than cell.
-            // https://bugs.webkit.org/show_bug.cgi?id=154900
-            if (node->child1()->shouldSpeculateCell()
-                && node->child2()->shouldSpeculateCell()) {
-                fixEdge<CellUse>(node->child1());
-                fixEdge<CellUse>(node->child2());
-                break;
+            fixEdge<KnownCellUse>(node->child1());
+            
+            if (node->child2()->shouldSpeculateRegExpObject()) {
+                fixEdge<RegExpObjectUse>(node->child2());
+
+                if (node->child3()->shouldSpeculateString())
+                    fixEdge<StringUse>(node->child3());
             }
             break;
         }
@@ -1055,7 +1055,8 @@ private:
         case SkipScope:
         case GetScope:
         case GetGetter:
-        case GetSetter: {
+        case GetSetter:
+        case GetGlobalObject: {
             fixEdge<KnownCellUse>(node->child1());
             break;
         }
@@ -1269,7 +1270,6 @@ private:
         case CheckTierUpInLoop:
         case CheckTierUpAtReturn:
         case CheckTierUpAndOSREnter:
-        case CheckTierUpWithNestedTriggerAndOSREnter:
         case InvalidationPoint:
         case CheckArray:
         case CheckInBounds:
@@ -1460,6 +1460,7 @@ private:
         // Have these no-op cases here to ensure that nobody forgets to add handlers for new opcodes.
         case SetArgument:
         case JSConstant:
+        case LazyJSConstant:
         case DoubleConstant:
         case GetLocal:
         case GetCallee:

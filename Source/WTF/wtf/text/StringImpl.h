@@ -589,8 +589,6 @@ public:
 
     inline void ref()
     {
-        ASSERT(!isCompilationThread());
-
         STRING_STATS_REF_STRING(*this);
 
         m_refCount += s_refCountIncrement;
@@ -598,8 +596,6 @@ public:
 
     inline void deref()
     {
-        ASSERT(!isCompilationThread());
-
         STRING_STATS_DEREF_STRING(*this);
 
         unsigned tempRefCount = m_refCount - s_refCountIncrement;

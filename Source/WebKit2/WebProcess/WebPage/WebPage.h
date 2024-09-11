@@ -556,7 +556,7 @@ public:
     WebCore::IntRect rectForElementAtInteractionLocation();
     void updateSelectionAppearance();
     void getLookupContextAtPoint(const WebCore::IntPoint, uint64_t callbackID);
-
+    void handleTwoFingerTapAtPoint(const WebCore::IntPoint&, uint64_t callbackID);
 #if ENABLE(IOS_TOUCH_EVENTS)
     void dispatchAsynchronousTouchEvents(const Vector<WebTouchEvent, 1>& queue);
 #endif
@@ -931,6 +931,8 @@ public:
 
     bool isControlledByAutomation() const;
     void setControlledByAutomation(bool);
+
+    void insertNewlineInQuotedContent();
 
 private:
     WebPage(uint64_t pageID, const WebPageCreationParameters&);

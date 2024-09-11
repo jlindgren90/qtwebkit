@@ -44,6 +44,7 @@ inline CapabilityLevel canCompile(Node* node)
     
     switch (node->op()) {
     case JSConstant:
+    case LazyJSConstant:
     case GetLocal:
     case SetLocal:
     case PutStack:
@@ -111,6 +112,7 @@ inline CapabilityLevel canCompile(Node* node)
     case ExtractOSREntryLocal:
     case LoopHint:
     case SkipScope:
+    case GetGlobalObject:
     case CreateActivation:
     case NewArrowFunction:
     case NewFunction:

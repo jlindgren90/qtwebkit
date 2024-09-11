@@ -254,29 +254,6 @@ webkit.org/b/148408 tiled-drawing/scrolling/scroll-snap/scroll-snap-mandatory-pa
 webkit.org/b/148408 tiled-drawing/scrolling/scroll-snap/scroll-snap-iframe.html [ Pass Failure ]
 webkit.org/b/148408 tiled-drawing/scrolling/root-overflow-with-mousewheel.html [ Pass Failure Timeout ]
 
-# REGRESSION (r197541): tile drawing tests failing in WebKit 2 after new "large tile size" logic was added
-webkit.org/b/155020 tiled-drawing/background-transparency-toggle.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fast-scroll-iframe-latched-iframe-with-handler.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fast-scroll-iframe-latched-iframe.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fast-scroll-iframe-latched-mainframe-with-handler.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fast-scroll-iframe-latched-mainframe.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed-background/fixed-background-no-image.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed-background/fixed-body-background-body-layer.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed-background/fixed-body-background-opacity.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed-background/fixed-body-background-positioned.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed-background/fixed-body-background.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed-background/fixed-html-background.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed-background/fixed-non-propagated-body-background.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/scrolling/fixed/four-bars-zoomed.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/tile-coverage-after-scroll-speculative.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/tile-coverage-after-scroll.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/tile-coverage-scroll-to-bottom.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/tile-coverage-slow-scrolling.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/tile-coverage-speculative.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/tile-size-unscrollable.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/tile-size-vertically-scrollable.html [ Failure ]
-webkit.org/b/155020 tiled-drawing/visible-rect-content-inset.html [ Failure ]
-
 webkit.org/b/139820 fast/frames/lots-of-objects.html [ Timeout ]
 webkit.org/b/139820 fast/frames/lots-of-iframes.html [ Pass Timeout ]
 
@@ -316,6 +293,14 @@ webkit.org/b/151729 [ Yosemite ] http/tests/xmlhttprequest/methods-async.html [ 
 webkit.org/b/152025 [ Debug ] inspector/console/messagesCleared.html [ Pass Timeout ]
 
 webkit.org/b/152492 [ Debug ] inspector/debugger/break-on-exception-catch.html [ Pass Timeout ]
+
+webkit.org/b/155050 storage/indexeddb/intversion-open-in-upgradeneeded.html [ Skip ]
+
+webkit.org/b/155138 [ Yosemite ] inspector/console/addInspectedNode.html [ Pass Timeout ]
+
+webkit.org/b/154606 [ Release Yosemite ] imported/w3c/indexeddb/idbcursor-advance-continue-async.htm [ Pass Timeout ]
+
+webkit.org/b/155151 [ Debug ElCapitan ] media/track/track-cues-pause-on-exit.html [ Pass Timeout ]
 
 ### END OF (1) Classified failures with bug reports
 ########################################

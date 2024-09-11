@@ -103,6 +103,7 @@
 #include "JSModuleLoader.h"
 #include "KeyboardEvent.h"
 #include "Language.h"
+#include "LifecycleCallbackQueue.h"
 #include "LoaderStrategy.h"
 #include "Logging.h"
 #include "MainFrame.h"
@@ -1054,15 +1055,33 @@ bool Document::hasValidNamespaceForAttributes(const QualifiedName& qName)
     return hasValidNamespaceForElements(qName);
 }
 
+static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const QualifiedName& name)
+{
+#if ENABLE(CUSTOM_ELEMENTS)
+    auto* definitions = document.customElementDefinitions();
+    if (UNLIKELY(definitions)) {
+        if (auto* interface = definitions->findInterface(name)) {
+            Ref<HTMLElement> element = HTMLElement::create(name, document);
+            element->setIsCustomElement(); // Pre-upgrade element is still considered a custom element.
+            LifecycleCallbackQueue::enqueueElementUpgrade(element.get(), *interface);
+            return element;
+        }
+    }
+#endif
+    return HTMLUnknownElement::create(name, document);
+}
+
 // FIXME: This should really be in a possible ElementFactory class.
 Ref<Element> Document::createElement(const QualifiedName& name, bool createdByParser)
 {
     RefPtr<Element> element;
 
     // FIXME: Use registered namespaces and look up in a hash to find the right factory.
-    if (name.namespaceURI() == xhtmlNamespaceURI)
-        element = HTMLElementFactory::createElement(name, *this, nullptr, createdByParser);
-    else if (name.namespaceURI() == SVGNames::svgNamespaceURI)
+    if (name.namespaceURI() == xhtmlNamespaceURI) {
+        element = HTMLElementFactory::createKnownElement(name, *this, nullptr, createdByParser);
+        if (UNLIKELY(!element))
+            element = createFallbackHTMLElement(*this, name);
+    } else if (name.namespaceURI() == SVGNames::svgNamespaceURI)
         element = SVGElementFactory::createElement(name, *this, createdByParser);
 #if ENABLE(MATHML)
     else if (name.namespaceURI() == MathMLNames::mathmlNamespaceURI)
@@ -1997,7 +2016,11 @@ Ref<RenderStyle> Document::styleForElementIgnoringPendingStylesheets(Element& el
     Style::PostResolutionCallbackDisabler disabler(*this);
 
     TemporaryChange<bool> change(m_ignorePendingStylesheets, true);
-    return element.resolveStyle(parentStyle);
+    auto elementStyle = element.resolveStyle(parentStyle);
+
+    Style::commitRelationsToDocument(WTFMove(elementStyle.relations));
+
+    return WTFMove(elementStyle.renderStyle);
 }
 
 bool Document::updateLayoutIfDimensionsOutOfDate(Element& element, DimensionsCheck dimensionsCheck)
@@ -2884,7 +2907,7 @@ void Document::writeln(const String& text, Document* ownerDocument)
     write("\n", ownerDocument);
 }
 
-double Document::minimumTimerInterval() const
+std::chrono::milliseconds Document::minimumTimerInterval() const
 {
     auto* page = this->page();
     if (!page)
@@ -2901,9 +2924,9 @@ void Document::setTimerThrottlingEnabled(bool shouldThrottle)
     didChangeTimerAlignmentInterval();
 }
 
-double Document::timerAlignmentInterval(bool hasReachedMaxNestingLevel) const
+std::chrono::milliseconds Document::timerAlignmentInterval(bool hasReachedMaxNestingLevel) const
 {
-    double alignmentInterval = ScriptExecutionContext::timerAlignmentInterval(hasReachedMaxNestingLevel);
+    auto alignmentInterval = ScriptExecutionContext::timerAlignmentInterval(hasReachedMaxNestingLevel);
 
     // Apply Document-level DOMTimer throttling only if timers have reached their maximum nesting level as the Page may still be visible.
     if (m_isTimerThrottlingEnabled && hasReachedMaxNestingLevel)
@@ -6685,6 +6708,7 @@ Document& Document::ensureTemplateDocument()
 
 Ref<FontFaceSet> Document::fonts()
 {
+    updateStyleIfNeeded();
     return fontSelector().fontFaceSet();
 }
 

@@ -2737,6 +2737,8 @@ void SpeculativeJIT::compileInstanceOfForObject(Node*, GPRReg valueReg, GPRReg p
     
     // Walk up the prototype chain of the value (in scratchReg), comparing to prototypeReg.
     MacroAssembler::Label loop(&m_jit);
+    MacroAssembler::Jump performDefaultHasInstance = m_jit.branch8(MacroAssembler::Equal,
+        MacroAssembler::Address(scratchReg, JSCell::typeInfoTypeOffset()), TrustedImm32(ProxyObjectType));
     m_jit.emitLoadStructure(scratchReg, scratchReg, scratch2Reg);
     m_jit.loadPtr(MacroAssembler::Address(scratchReg, Structure::prototypeOffset() + CellPayloadOffset), scratchReg);
     MacroAssembler::Jump isInstance = m_jit.branchPtr(MacroAssembler::Equal, scratchReg, prototypeReg);
@@ -2752,7 +2754,18 @@ void SpeculativeJIT::compileInstanceOfForObject(Node*, GPRReg valueReg, GPRReg p
 #else
     m_jit.move(MacroAssembler::TrustedImm32(0), scratchReg);
 #endif
-    MacroAssembler::Jump putResult = m_jit.jump();
+    MacroAssembler::JumpList doneJumps; 
+    doneJumps.append(m_jit.jump());
+
+    performDefaultHasInstance.link(&m_jit);
+    silentSpillAllRegisters(scratchReg);
+    callOperation(operationDefaultHasInstance, scratchReg, valueReg, prototypeReg); 
+    silentFillAllRegisters(scratchReg);
+    m_jit.exceptionCheck();
+#if USE(JSVALUE64)
+    m_jit.or32(TrustedImm32(ValueFalse), scratchReg);
+#endif
+    doneJumps.append(m_jit.jump());
     
     isInstance.link(&m_jit);
 #if USE(JSVALUE64)
@@ -2761,7 +2774,7 @@ void SpeculativeJIT::compileInstanceOfForObject(Node*, GPRReg valueReg, GPRReg p
     m_jit.move(MacroAssembler::TrustedImm32(1), scratchReg);
 #endif
     
-    putResult.link(&m_jit);
+    doneJumps.link(&m_jit);
 }
 
 void SpeculativeJIT::compileCheckTypeInfoFlags(Node* node)
@@ -5456,6 +5469,16 @@ void SpeculativeJIT::compileSkipScope(Node* node)
     cellResult(result.gpr(), node);
 }
 
+void SpeculativeJIT::compileGetGlobalObject(Node* node)
+{
+    SpeculateCellOperand object(this, node->child1());
+    GPRTemporary result(this);
+    GPRTemporary scratch(this);
+    m_jit.emitLoadStructure(object.gpr(), result.gpr(), scratch.gpr());
+    m_jit.loadPtr(JITCompiler::Address(result.gpr(), Structure::globalObjectOffset()), result.gpr());
+    cellResult(result.gpr(), node);
+}
+
 void SpeculativeJIT::compileGetArrayLength(Node* node)
 {
     switch (node->arrayMode().type()) {
@@ -7680,6 +7703,14 @@ void SpeculativeJIT::compileSetRegExpObjectLastIndex(Node* node)
             JITCompiler::Address(regExpGPR, RegExpObject::offsetOfLastIndexIsWritable())));
     m_jit.storeValue(valueRegs, JITCompiler::Address(regExpGPR, RegExpObject::offsetOfLastIndex()));
     noResult(node);
+}
+
+void SpeculativeJIT::compileLazyJSConstant(Node* node)
+{
+    JSValueRegsTemporary result(this);
+    JSValueRegs resultRegs = result.regs();
+    node->lazyJSValue().emit(m_jit, resultRegs);
+    jsValueResult(resultRegs, node);
 }
 
 } } // namespace JSC::DFG
