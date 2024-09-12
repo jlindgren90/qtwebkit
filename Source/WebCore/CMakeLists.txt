@@ -1123,7 +1123,6 @@ set(WebCore_SOURCES
     bindings/js/JSDOMPromise.cpp
     bindings/js/JSDOMStringListCustom.cpp
     bindings/js/JSDOMStringMapCustom.cpp
-    bindings/js/JSDOMTokenListCustom.cpp
     bindings/js/JSDOMWindowBase.cpp
     bindings/js/JSDOMWindowCustom.cpp
     bindings/js/JSDOMWindowShell.cpp
@@ -1144,6 +1143,7 @@ set(WebCore_SOURCES
     bindings/js/JSEventTargetCustom.cpp
     bindings/js/JSExceptionBase.cpp
     bindings/js/JSFetchResponseCustom.cpp
+    bindings/js/JSFileCustom.cpp
     bindings/js/JSFileReaderCustom.cpp
     bindings/js/JSGeolocationCustom.cpp
     bindings/js/JSHTMLAllCollectionCustom.cpp
@@ -1197,7 +1197,6 @@ set(WebCore_SOURCES
     bindings/js/JSPopStateEventCustom.cpp
     bindings/js/JSReadableStreamPrivateConstructors.cpp
     bindings/js/JSReadableStreamSourceCustom.cpp
-    bindings/js/JSRTCIceCandidateCustom.cpp
     bindings/js/JSRTCPeerConnectionCustom.cpp
     bindings/js/JSRTCSessionDescriptionCustom.cpp
     bindings/js/JSRTCStatsResponseCustom.cpp
@@ -1225,6 +1224,7 @@ set(WebCore_SOURCES
     bindings/js/JSWorkerGlobalScopeBase.cpp
     bindings/js/JSWorkerGlobalScopeCustom.cpp
     bindings/js/JSXMLHttpRequestCustom.cpp
+    bindings/js/JSXPathNSResolverCustom.cpp
     bindings/js/JSXPathResultCustom.cpp
     bindings/js/JSXSLTProcessorCustom.cpp
     bindings/js/ReadableStreamController.cpp
@@ -1736,6 +1736,7 @@ set(WebCore_SOURCES
     html/InputTypeNames.cpp
     html/LabelableElement.cpp
     html/LabelsNodeList.cpp
+    html/LinkIconCollector.cpp
     html/LinkRelAttribute.cpp
     html/MediaController.cpp
     html/MediaDocument.cpp
@@ -2108,8 +2109,10 @@ set(WebCore_SOURCES
     platform/FileChooser.cpp
     platform/FileStream.cpp
     platform/FileSystem.cpp
+    platform/GenericTaskQueue.cpp
     platform/Language.cpp
     platform/Length.cpp
+    platform/LengthBox.cpp
     platform/LengthPoint.cpp
     platform/LengthSize.cpp
     platform/LinkHash.cpp
@@ -2203,6 +2206,7 @@ set(WebCore_SOURCES
     platform/graphics/FontDescription.cpp
     platform/graphics/FontFeatureSettings.cpp
     platform/graphics/FontGenericFamilies.cpp
+    platform/graphics/FontPlatformData.cpp
     platform/graphics/FontRanges.cpp
     platform/graphics/GeneratedImage.cpp
     platform/graphics/GeometryUtilities.cpp
@@ -2282,6 +2286,7 @@ set(WebCore_SOURCES
     platform/graphics/transforms/RotateTransformOperation.cpp
     platform/graphics/transforms/ScaleTransformOperation.cpp
     platform/graphics/transforms/SkewTransformOperation.cpp
+    platform/graphics/transforms/TransformOperation.cpp
     platform/graphics/transforms/TransformOperations.cpp
     platform/graphics/transforms/TransformState.cpp
     platform/graphics/transforms/TransformationMatrix.cpp
@@ -3249,6 +3254,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/Diagnostics.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/DirectiveHandler.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/EmulatePrecision.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ExtensionGLSL.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/glslang_lex.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/glslang_tab.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ForLoopUnroll.cpp
@@ -3271,7 +3277,9 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ParseContext.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/PoolAlloc.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/PruneEmptyDeclarations.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RecordConstantPrecision.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RegenerateStructNames.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RemoveDynamicIndexing.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RemovePow.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RemoveSwitchFallThrough.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RewriteDoWhile.cpp
@@ -3279,6 +3287,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ScalarizeVecAndMatConstructorArgs.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/SearchSymbol.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/SeparateArrayInitialization.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/SeparateExpressionsReturningArrays.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/SeparateDeclarations.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ShaderLang.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ShaderVars.cpp
@@ -3289,6 +3298,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/TranslatorHLSL.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/Types.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UnfoldShortCircuitAST.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UnfoldShortCircuitToIf.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UniformHLSL.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/util.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UtilsHLSL.cpp
@@ -3850,6 +3860,12 @@ if (ENABLE_GRAPHICS_CONTEXT_3D AND NOT WIN32)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         ADD_TARGET_PROPERTIES(ANGLESupport COMPILE_FLAGS "-Wno-null-conversion")
     endif ()
+
+    # Enable the ESSL and GLSL translators.
+    set_property(TARGET ANGLESupport
+        PROPERTY COMPILE_DEFINITIONS
+        ANGLE_ENABLE_ESSL
+        ANGLE_ENABLE_GLSL)
 
     target_include_directories(ANGLESupport PRIVATE
         "${THIRDPARTY_DIR}/ANGLE/include"

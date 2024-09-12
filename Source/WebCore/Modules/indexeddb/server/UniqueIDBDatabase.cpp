@@ -60,7 +60,7 @@ UniqueIDBDatabase::~UniqueIDBDatabase()
 {
     LOG(IndexedDB, "UniqueIDBDatabase::~UniqueIDBDatabase() (%p) %s", this, m_identifier.debugString().utf8().data());
     ASSERT(!hasAnyPendingCallbacks());
-    ASSERT(m_inProgressTransactions.isEmpty());
+    ASSERT(!hasUnfinishedTransactions());
     ASSERT(m_pendingTransactions.isEmpty());
     ASSERT(m_openDatabaseConnections.isEmpty());
     ASSERT(m_closePendingDatabaseConnections.isEmpty());
@@ -74,8 +74,7 @@ const IDBDatabaseInfo& UniqueIDBDatabase::info() const
 
 void UniqueIDBDatabase::openDatabaseConnection(IDBConnectionToClient& connection, const IDBRequestData& requestData)
 {
-    auto operation = ServerOpenDBRequest::create(connection, requestData);
-    m_pendingOpenDBRequests.append(WTFMove(operation));
+    m_pendingOpenDBRequests.add(ServerOpenDBRequest::create(connection, requestData));
 
     // An open operation is already in progress, so we can't possibly handle this one yet.
     if (m_isOpeningBackingStore)
@@ -151,10 +150,10 @@ void UniqueIDBDatabase::performCurrentOpenOperation()
         return;
     }
 
-    Ref<UniqueIDBDatabaseConnection> connection = UniqueIDBDatabaseConnection::create(*this, m_currentOpenDBRequest->connection());
-    UniqueIDBDatabaseConnection* rawConnection = &connection.get();
+    Ref<UniqueIDBDatabaseConnection> connection = UniqueIDBDatabaseConnection::create(*this, *m_currentOpenDBRequest);
 
     if (requestedVersion == m_databaseInfo->version()) {
+        auto* rawConnection = &connection.get();
         addOpenDatabaseConnection(WTFMove(connection));
 
         auto result = IDBResultData::openDatabaseSuccess(m_currentOpenDBRequest->requestData().requestIdentifier(), *rawConnection);
@@ -165,7 +164,7 @@ void UniqueIDBDatabase::performCurrentOpenOperation()
     }
 
     ASSERT(!m_versionChangeDatabaseConnection);
-    m_versionChangeDatabaseConnection = rawConnection;
+    m_versionChangeDatabaseConnection = WTFMove(connection);
 
     // 3.3.7 "versionchange" transaction steps
     // If there's no other open connections to this database, the version change process can begin immediately.
@@ -194,7 +193,7 @@ void UniqueIDBDatabase::performCurrentDeleteOperation()
         return;
     }
 
-    if (!m_inProgressTransactions.isEmpty())
+    if (hasUnfinishedTransactions())
         return;
 
     ASSERT(!hasAnyPendingCallbacks());
@@ -247,12 +246,14 @@ void UniqueIDBDatabase::didDeleteBackingStore(uint64_t deletedVersion)
     ASSERT(isMainThread());
     LOG(IndexedDB, "(main) UniqueIDBDatabase::didDeleteBackingStore");
 
-    ASSERT(m_currentOpenDBRequest);
-    ASSERT(m_currentOpenDBRequest->isDeleteRequest());
     ASSERT(!hasAnyPendingCallbacks());
-    ASSERT(m_inProgressTransactions.isEmpty());
+    ASSERT(!hasUnfinishedTransactions());
     ASSERT(m_pendingTransactions.isEmpty());
     ASSERT(m_openDatabaseConnections.isEmpty());
+
+    // It's possible that the openDBRequest was cancelled from client-side after the delete was already dispatched to the backingstore.
+    // So it's okay if we don't have a currentOpenDBRequest, but if we do it has to be a deleteRequest.
+    ASSERT(!m_currentOpenDBRequest || m_currentOpenDBRequest->isDeleteRequest());
 
     if (m_databaseInfo)
         m_mostRecentDeletedDatabaseInfo = WTFMove(m_databaseInfo);
@@ -263,23 +264,28 @@ void UniqueIDBDatabase::didDeleteBackingStore(uint64_t deletedVersion)
     if (!m_mostRecentDeletedDatabaseInfo)
         m_mostRecentDeletedDatabaseInfo = std::make_unique<IDBDatabaseInfo>(m_identifier.databaseName(), deletedVersion);
 
-    m_currentOpenDBRequest->notifyDidDeleteDatabase(*m_mostRecentDeletedDatabaseInfo);
-    m_currentOpenDBRequest = nullptr;
+    if (m_currentOpenDBRequest) {
+        m_currentOpenDBRequest->notifyDidDeleteDatabase(*m_mostRecentDeletedDatabaseInfo);
+        m_currentOpenDBRequest = nullptr;
+    }
 
     m_deleteBackingStoreInProgress = false;
 
-    if (m_closePendingDatabaseConnections.isEmpty()) {
-        if (m_pendingOpenDBRequests.isEmpty())
-            m_server.closeUniqueIDBDatabase(*this);
-        else
-            invokeOperationAndTransactionTimer();
+    if (m_closePendingDatabaseConnections.isEmpty() && m_pendingOpenDBRequests.isEmpty()) {
+        m_server.closeUniqueIDBDatabase(*this);
+        return;
     }
+
+    invokeOperationAndTransactionTimer();
 }
 
 void UniqueIDBDatabase::handleDatabaseOperations()
 {
     ASSERT(isMainThread());
-    LOG(IndexedDB, "(main) UniqueIDBDatabase::handleDatabaseOperations - There are %zu pending", m_pendingOpenDBRequests.size());
+    LOG(IndexedDB, "(main) UniqueIDBDatabase::handleDatabaseOperations - There are %u pending", m_pendingOpenDBRequests.size());
+
+    if (m_deleteBackingStoreInProgress)
+        return;
 
     if (m_versionChangeDatabaseConnection || m_versionChangeTransaction || m_currentOpenDBRequest) {
         // We can't start any new open-database operations right now, but we might be able to start handling a delete operation.
@@ -297,13 +303,15 @@ void UniqueIDBDatabase::handleDatabaseOperations()
         return;
 
     m_currentOpenDBRequest = m_pendingOpenDBRequests.takeFirst();
-    LOG(IndexedDB, "UniqueIDBDatabase::handleDatabaseOperations - Popped an operation, now there are %zu pending", m_pendingOpenDBRequests.size());
+    LOG(IndexedDB, "UniqueIDBDatabase::handleDatabaseOperations - Popped an operation, now there are %u pending", m_pendingOpenDBRequests.size());
 
     handleCurrentOperation();
 }
 
 void UniqueIDBDatabase::handleCurrentOperation()
 {
+    LOG(IndexedDB, "(main) UniqueIDBDatabase::handleCurrentOperation");
+
     ASSERT(m_currentOpenDBRequest);
 
     RefPtr<UniqueIDBDatabase> protector(this);
@@ -367,7 +375,7 @@ void UniqueIDBDatabase::handleDelete(IDBConnectionToClient& connection, const ID
 {
     LOG(IndexedDB, "(main) UniqueIDBDatabase::handleDelete");
 
-    m_pendingOpenDBRequests.append(ServerOpenDBRequest::create(connection, requestData));
+    m_pendingOpenDBRequests.add(ServerOpenDBRequest::create(connection, requestData));
     handleDatabaseOperations();
 }
 
@@ -465,6 +473,28 @@ void UniqueIDBDatabase::didFireVersionChangeEvent(UniqueIDBDatabaseConnection& c
     ASSERT_UNUSED(requestIdentifier, m_currentOpenDBRequest->requestData().requestIdentifier() == requestIdentifier);
 
     notifyCurrentRequestConnectionClosedOrFiredVersionChangeEvent(connection.identifier());
+}
+
+void UniqueIDBDatabase::openDBRequestCancelled(const IDBResourceIdentifier& requestIdentifier)
+{
+    LOG(IndexedDB, "UniqueIDBDatabase::openDBRequestCancelled - %s", requestIdentifier.loggingString().utf8().data());
+
+    if (m_currentOpenDBRequest && m_currentOpenDBRequest->requestData().requestIdentifier() == requestIdentifier)
+        m_currentOpenDBRequest = nullptr;
+
+    if (m_versionChangeDatabaseConnection && m_versionChangeDatabaseConnection->openRequestIdentifier() == requestIdentifier) {
+        ASSERT(!m_versionChangeTransaction || m_versionChangeTransaction->databaseConnection().openRequestIdentifier() == requestIdentifier);
+        ASSERT(!m_versionChangeTransaction || &m_versionChangeTransaction->databaseConnection() == m_versionChangeDatabaseConnection);
+
+        connectionClosedFromClient(*m_versionChangeDatabaseConnection);
+    }
+
+    for (auto& request : m_pendingOpenDBRequests) {
+        if (request->requestData().requestIdentifier() == requestIdentifier) {
+            m_pendingOpenDBRequests.remove(request);
+            return;
+        }
+    }
 }
 
 void UniqueIDBDatabase::addOpenDatabaseConnection(Ref<UniqueIDBDatabaseConnection>&& connection)
@@ -983,28 +1013,45 @@ void UniqueIDBDatabase::didPerformIterateCursor(uint64_t callbackIdentifier, con
     performGetResultCallback(callbackIdentifier, error, result);
 }
 
+bool UniqueIDBDatabase::prepareToFinishTransaction(UniqueIDBDatabaseTransaction& transaction)
+{
+    auto takenTransaction = m_inProgressTransactions.take(transaction.info().identifier());
+    if (!takenTransaction)
+        return false;
+
+    ASSERT(!m_finishingTransactions.contains(transaction.info().identifier()));
+    m_finishingTransactions.set(transaction.info().identifier(), WTFMove(takenTransaction));
+
+    return true;
+}
+
 void UniqueIDBDatabase::commitTransaction(UniqueIDBDatabaseTransaction& transaction, ErrorCallback callback)
 {
     ASSERT(isMainThread());
-    LOG(IndexedDB, "(main) UniqueIDBDatabase::commitTransaction");
+    LOG(IndexedDB, "(main) UniqueIDBDatabase::commitTransaction - %s", transaction.info().identifier().loggingString().utf8().data());
 
     ASSERT(&transaction.databaseConnection().database() == this);
 
-    if (m_versionChangeTransaction == &transaction) {
-        ASSERT(!m_versionChangeDatabaseConnection || &m_versionChangeTransaction->databaseConnection() == m_versionChangeDatabaseConnection);
-        ASSERT(m_databaseInfo->version() == transaction.info().newVersion());
+    uint64_t callbackID = storeCallback(callback);
 
-        invokeOperationAndTransactionTimer();
+    if (!prepareToFinishTransaction(transaction)) {
+        if (!m_openDatabaseConnections.contains(&transaction.databaseConnection())) {
+            // This database connection is closing or has already closed, so there is no point in messaging back to it about the commit failing.
+            forgetErrorCallback(callbackID);
+            return;
+        }
+
+        performErrorCallback(callbackID, { IDBDatabaseException::UnknownError, ASCIILiteral("Attempt to commit transaction that is already finishing") });
+        return;
     }
 
-    uint64_t callbackID = storeCallback(callback);
     m_server.postDatabaseTask(createCrossThreadTask(*this, &UniqueIDBDatabase::performCommitTransaction, callbackID, transaction.info().identifier()));
 }
 
 void UniqueIDBDatabase::performCommitTransaction(uint64_t callbackIdentifier, const IDBResourceIdentifier& transactionIdentifier)
 {
     ASSERT(!isMainThread());
-    LOG(IndexedDB, "(db) UniqueIDBDatabase::performCommitTransaction");
+    LOG(IndexedDB, "(db) UniqueIDBDatabase::performCommitTransaction - %s", transactionIdentifier.loggingString().utf8().data());
 
     IDBError error = m_backingStore->commitTransaction(transactionIdentifier);
     m_server.postDatabaseTaskReply(createCrossThreadTask(*this, &UniqueIDBDatabase::didPerformCommitTransaction, callbackIdentifier, error, transactionIdentifier));
@@ -1013,31 +1060,43 @@ void UniqueIDBDatabase::performCommitTransaction(uint64_t callbackIdentifier, co
 void UniqueIDBDatabase::didPerformCommitTransaction(uint64_t callbackIdentifier, const IDBError& error, const IDBResourceIdentifier& transactionIdentifier)
 {
     ASSERT(isMainThread());
-    LOG(IndexedDB, "(main) UniqueIDBDatabase::didPerformCommitTransaction");
+    LOG(IndexedDB, "(main) UniqueIDBDatabase::didPerformCommitTransaction - %s", transactionIdentifier.loggingString().utf8().data());
 
     performErrorCallback(callbackIdentifier, error);
 
-    inProgressTransactionCompleted(transactionIdentifier);
+    transactionCompleted(m_finishingTransactions.take(transactionIdentifier));
 }
 
 void UniqueIDBDatabase::abortTransaction(UniqueIDBDatabaseTransaction& transaction, ErrorCallback callback)
 {
     ASSERT(isMainThread());
-    LOG(IndexedDB, "(main) UniqueIDBDatabase::abortTransaction");
+    LOG(IndexedDB, "(main) UniqueIDBDatabase::abortTransaction - %s", transaction.info().identifier().loggingString().utf8().data());
 
     ASSERT(&transaction.databaseConnection().database() == this);
 
     uint64_t callbackID = storeCallback(callback);
+
+    if (!prepareToFinishTransaction(transaction)) {
+        if (!m_openDatabaseConnections.contains(&transaction.databaseConnection())) {
+            // This database connection is closing or has already closed, so there is no point in messaging back to it about the abort failing.
+            forgetErrorCallback(callbackID);
+            return;
+        }
+
+        performErrorCallback(callbackID, { IDBDatabaseException::UnknownError, ASCIILiteral("Attempt to abort transaction that is already finishing") });
+        return;
+    }
+
     m_server.postDatabaseTask(createCrossThreadTask(*this, &UniqueIDBDatabase::performAbortTransaction, callbackID, transaction.info().identifier()));
 }
 
-void UniqueIDBDatabase::didFinishHandlingVersionChange(UniqueIDBDatabaseTransaction& transaction)
+void UniqueIDBDatabase::didFinishHandlingVersionChange(UniqueIDBDatabaseConnection& connection, const IDBResourceIdentifier& transactionIdentifier)
 {
     ASSERT(isMainThread());
     LOG(IndexedDB, "(main) UniqueIDBDatabase::didFinishHandlingVersionChange");
 
-    ASSERT(m_versionChangeTransaction);
-    ASSERT_UNUSED(transaction, m_versionChangeTransaction == &transaction);
+    ASSERT_UNUSED(transactionIdentifier, !m_versionChangeTransaction || m_versionChangeTransaction->info().identifier() == transactionIdentifier);
+    ASSERT_UNUSED(connection, !m_versionChangeDatabaseConnection || m_versionChangeDatabaseConnection.get() == &connection);
 
     m_versionChangeTransaction = nullptr;
     m_versionChangeDatabaseConnection = nullptr;
@@ -1048,7 +1107,7 @@ void UniqueIDBDatabase::didFinishHandlingVersionChange(UniqueIDBDatabaseTransact
 void UniqueIDBDatabase::performAbortTransaction(uint64_t callbackIdentifier, const IDBResourceIdentifier& transactionIdentifier)
 {
     ASSERT(!isMainThread());
-    LOG(IndexedDB, "(db) UniqueIDBDatabase::performAbortTransaction");
+    LOG(IndexedDB, "(db) UniqueIDBDatabase::performAbortTransaction - %s", transactionIdentifier.loggingString().utf8().data());
 
     IDBError error = m_backingStore->abortTransaction(transactionIdentifier);
     m_server.postDatabaseTaskReply(createCrossThreadTask(*this, &UniqueIDBDatabase::didPerformAbortTransaction, callbackIdentifier, error, transactionIdentifier));
@@ -1057,9 +1116,13 @@ void UniqueIDBDatabase::performAbortTransaction(uint64_t callbackIdentifier, con
 void UniqueIDBDatabase::didPerformAbortTransaction(uint64_t callbackIdentifier, const IDBError& error, const IDBResourceIdentifier& transactionIdentifier)
 {
     ASSERT(isMainThread());
-    LOG(IndexedDB, "(main) UniqueIDBDatabase::didPerformAbortTransaction");
+    LOG(IndexedDB, "(main) UniqueIDBDatabase::didPerformAbortTransaction - %s", transactionIdentifier.loggingString().utf8().data());
+
+    auto transaction = m_finishingTransactions.take(transactionIdentifier);
+    ASSERT(transaction);
 
     if (m_versionChangeTransaction && m_versionChangeTransaction->info().identifier() == transactionIdentifier) {
+        ASSERT(m_versionChangeTransaction == transaction);
         ASSERT(!m_versionChangeDatabaseConnection || &m_versionChangeTransaction->databaseConnection() == m_versionChangeDatabaseConnection);
         ASSERT(m_versionChangeTransaction->originalDatabaseInfo());
         m_databaseInfo = std::make_unique<IDBDatabaseInfo>(*m_versionChangeTransaction->originalDatabaseInfo());
@@ -1067,7 +1130,7 @@ void UniqueIDBDatabase::didPerformAbortTransaction(uint64_t callbackIdentifier, 
 
     performErrorCallback(callbackIdentifier, error);
 
-    inProgressTransactionCompleted(transactionIdentifier);
+    transactionCompleted(WTFMove(transaction));
 }
 
 void UniqueIDBDatabase::transactionDestroyed(UniqueIDBDatabaseTransaction& transaction)
@@ -1079,12 +1142,26 @@ void UniqueIDBDatabase::transactionDestroyed(UniqueIDBDatabaseTransaction& trans
 void UniqueIDBDatabase::connectionClosedFromClient(UniqueIDBDatabaseConnection& connection)
 {
     ASSERT(isMainThread());
-    LOG(IndexedDB, "(main) UniqueIDBDatabase::connectionClosedFromClient");
+    LOG(IndexedDB, "(main) UniqueIDBDatabase::connectionClosedFromClient - %s (%" PRIu64 ")", connection.openRequestIdentifier().loggingString().utf8().data(), connection.identifier());
 
-    if (m_versionChangeDatabaseConnection == &connection)
+    Ref<UniqueIDBDatabaseConnection> protectedConnection(connection);
+    m_openDatabaseConnections.remove(&connection);
+
+    if (m_versionChangeDatabaseConnection == &connection) {
+        if (m_versionChangeTransaction) {
+            m_closePendingDatabaseConnections.add(WTFMove(m_versionChangeDatabaseConnection));
+
+            auto transactionIdentifier = m_versionChangeTransaction->info().identifier();
+            if (m_inProgressTransactions.contains(transactionIdentifier)) {
+                ASSERT(!m_finishingTransactions.contains(transactionIdentifier));
+                connection.abortTransactionWithoutCallback(*m_versionChangeTransaction);
+            }
+
+            return;
+        }
+
         m_versionChangeDatabaseConnection = nullptr;
-
-    ASSERT(m_openDatabaseConnections.contains(&connection));
+    }
 
     Deque<RefPtr<UniqueIDBDatabaseTransaction>> pendingTransactions;
     while (!m_pendingTransactions.isEmpty()) {
@@ -1096,14 +1173,11 @@ void UniqueIDBDatabase::connectionClosedFromClient(UniqueIDBDatabaseConnection& 
     if (!pendingTransactions.isEmpty())
         m_pendingTransactions.swap(pendingTransactions);
 
-    RefPtr<UniqueIDBDatabaseConnection> refConnection(&connection);
-    m_openDatabaseConnections.remove(&connection);
-
     if (m_currentOpenDBRequest)
         notifyCurrentRequestConnectionClosedOrFiredVersionChangeEvent(connection.identifier());
 
     if (connection.hasNonFinishedTransactions()) {
-        m_closePendingDatabaseConnections.add(WTFMove(refConnection));
+        m_closePendingDatabaseConnections.add(WTFMove(protectedConnection));
         return;
     }
 
@@ -1127,6 +1201,11 @@ bool UniqueIDBDatabase::isCurrentlyInUse() const
     return !m_openDatabaseConnections.isEmpty() || !m_closePendingDatabaseConnections.isEmpty() || !m_pendingOpenDBRequests.isEmpty() || m_currentOpenDBRequest || m_versionChangeDatabaseConnection || m_versionChangeTransaction || m_isOpeningBackingStore || m_deleteBackingStoreInProgress;
 }
 
+bool UniqueIDBDatabase::hasUnfinishedTransactions() const
+{
+    return !m_inProgressTransactions.isEmpty() || !m_finishingTransactions.isEmpty();
+}
+
 void UniqueIDBDatabase::invokeOperationAndTransactionTimer()
 {
     LOG(IndexedDB, "UniqueIDBDatabase::invokeOperationAndTransactionTimer()");
@@ -1144,7 +1223,7 @@ void UniqueIDBDatabase::operationAndTransactionTimerFired()
     // Assuming it is not ephemeral, the server should now close it to free up resources.
     if (!m_backingStoreIsEphemeral && !isCurrentlyInUse()) {
         ASSERT(m_pendingTransactions.isEmpty());
-        ASSERT(m_inProgressTransactions.isEmpty());
+        ASSERT(!hasUnfinishedTransactions());
         m_server.closeUniqueIDBDatabase(*this);
         return;
     }
@@ -1223,7 +1302,7 @@ template<typename T> bool scopesOverlap(const T& aScopes, const Vector<uint64_t>
 RefPtr<UniqueIDBDatabaseTransaction> UniqueIDBDatabase::takeNextRunnableTransaction(bool& hadDeferredTransactions)
 {
     hadDeferredTransactions = false;
-    if (!m_backingStoreSupportsSimultaneousTransactions && !m_inProgressTransactions.isEmpty()) {
+    if (!m_backingStoreSupportsSimultaneousTransactions && hasUnfinishedTransactions()) {
         LOG(IndexedDB, "UniqueIDBDatabase::takeNextRunnableTransaction - Backing store only supports 1 transaction, and we already have 1");
         return nullptr;
     }
@@ -1279,10 +1358,11 @@ RefPtr<UniqueIDBDatabaseTransaction> UniqueIDBDatabase::takeNextRunnableTransact
     return currentTransaction;
 }
 
-void UniqueIDBDatabase::inProgressTransactionCompleted(const IDBResourceIdentifier& transactionIdentifier)
+void UniqueIDBDatabase::transactionCompleted(RefPtr<UniqueIDBDatabaseTransaction>&& transaction)
 {
-    auto transaction = m_inProgressTransactions.take(transactionIdentifier);
     ASSERT(transaction);
+    ASSERT(!m_inProgressTransactions.contains(transaction->info().identifier()));
+    ASSERT(!m_finishingTransactions.contains(transaction->info().identifier()));
 
     for (auto objectStore : transaction->objectStoreIdentifiers()) {
         if (!transaction->isReadOnly()) {
@@ -1294,6 +1374,9 @@ void UniqueIDBDatabase::inProgressTransactionCompleted(const IDBResourceIdentifi
 
     if (!transaction->databaseConnection().hasNonFinishedTransactions())
         m_closePendingDatabaseConnections.remove(&transaction->databaseConnection());
+
+    if (m_versionChangeTransaction == transaction)
+        m_versionChangeTransaction = nullptr;
 
     // It's possible that this database had its backing store deleted but there were a few outstanding asynchronous operations.
     // If this transaction completing was the last of those operations, we can finally delete this UniqueIDBDatabase.
@@ -1332,6 +1415,12 @@ void UniqueIDBDatabase::performCountCallback(uint64_t callbackIdentifier, const 
     auto callback = m_countCallbacks.take(callbackIdentifier);
     ASSERT(callback);
     callback(error, count);
+}
+
+void UniqueIDBDatabase::forgetErrorCallback(uint64_t callbackIdentifier)
+{
+    ASSERT(m_errorCallbacks.contains(callbackIdentifier));
+    m_errorCallbacks.remove(callbackIdentifier);
 }
 
 } // namespace IDBServer

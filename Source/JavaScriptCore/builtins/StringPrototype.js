@@ -46,27 +46,6 @@ function match(regexp)
     return createdRegExp[@symbolMatch](thisString);
 }
 
-function search(regexp)
-{
-    "use strict";
-
-    if (this == null) {
-        if (this === null)
-            throw new @TypeError("String.prototype.search requires that |this| not be null");
-        throw new @TypeError("String.prototype.search requires that |this| not be undefined");
-    }
-
-    if (regexp != null) {
-        var searcher = regexp[@symbolSearch];
-        if (searcher != @undefined)
-            return searcher.@call(regexp, this);
-    }
-
-    var thisString = @toString(this);
-    var createdRegExp = @regExpCreate(regexp, @undefined);
-    return createdRegExp[@symbolSearch](thisString);
-}
-
 function repeatSlowPath(string, count)
 {
     "use strict";
@@ -105,6 +84,30 @@ function repeatSlowPath(string, count)
     }
 }
 
+
+function repeatCharactersSlowPath(string, count)
+{
+    "use strict";
+    var repeatCount = (count / string.length) | 0;
+    var remainingCharacters = count - repeatCount * string.length;
+    var result = "";
+    var operand = string;
+    // Bit operation onto |repeatCount| is safe because |repeatCount| should be within Int32 range,
+    // Repeat log N times to generate the repeated string rope.
+    while (true) {
+        if (repeatCount & 1)
+            result += operand;
+        repeatCount >>= 1;
+        if (!repeatCount)
+            break;
+        operand += operand;
+    }
+    if (remainingCharacters)
+        result += @stringSubstrInternal.@call(string, 0, remainingCharacters);
+    return result;
+}
+
+
 function repeat(count)
 {
     "use strict";
@@ -124,6 +127,178 @@ function repeat(count)
     }
 
     return @repeatSlowPath(string, count);
+}
+
+function padStart(maxLength/*, fillString*/)
+{
+    "use strict";
+
+    if (this === null)
+        throw new @TypeError("String.prototype.padStart requires that |this| not be null");
+    
+    if (this === @undefined)
+        throw new @TypeError("String.prototype.padStart requires that |this| not be undefined");
+
+    var string = @toString(this);
+    maxLength = @toLength(maxLength);
+    var fillString = arguments[1];
+
+    var stringLength = string.length;
+    if (maxLength <= stringLength)
+        return string;
+
+    var filler;
+    if (arguments[1] === @undefined)
+        filler = " ";
+    else {
+        filler = @toString(arguments[1]);
+        if (filler === "")
+            return string;
+    }
+
+    var fillLength = maxLength - stringLength;
+    var truncatedStringFiller;
+
+    if (filler.length === 1)
+        truncatedStringFiller = @repeatCharacter(filler, fillLength);
+    else
+        truncatedStringFiller = @repeatCharactersSlowPath(filler, fillLength);
+    return truncatedStringFiller + string;
+}
+
+function padEnd(maxLength/*, fillString*/)
+{
+    "use strict";
+
+    if (this === null)
+        throw new @TypeError("String.prototype.padEnd requires that |this| not be null");
+    
+    if (this === @undefined)
+        throw new @TypeError("String.prototype.padEnd requires that |this| not be undefined");
+
+    var string = @toString(this);
+    maxLength = @toLength(maxLength);
+
+    var stringLength = string.length;
+    if (maxLength <= stringLength)
+        return string;
+
+    var filler;
+    if (arguments[1] === @undefined)
+        filler = " ";
+    else {
+        filler = @toString(arguments[1]);
+        if (filler === "")
+            return string;
+    }
+
+    var fillLength = maxLength - stringLength;
+    var truncatedStringFiller;
+
+    if (filler.length === 1)
+        truncatedStringFiller = @repeatCharacter(filler, fillLength);
+    else
+        truncatedStringFiller = @repeatCharactersSlowPath(filler, fillLength);
+    return string + truncatedStringFiller;
+}
+
+function hasObservableSideEffectsForStringReplace(regexp, replacer) {
+    if (replacer !== @regExpPrototypeSymbolReplace)
+        return true;
+    
+    let regexpExec = @tryGetById(regexp, "exec");
+    if (regexpExec !== @regExpBuiltinExec)
+        return true;
+
+    let regexpGlobal = @tryGetById(regexp, "global");
+    if (regexpGlobal !== @regExpProtoGlobalGetter)
+        return true;
+
+    let regexpUnicode = @tryGetById(regexp, "unicode");
+    if (regexpUnicode !== @regExpProtoUnicodeGetter)
+        return true;
+
+    return !@isRegExpObject(regexp);
+}
+
+@intrinsic=StringPrototypeReplaceIntrinsic
+function replace(search, replace)
+{
+    "use strict";
+
+    if (this == null) {
+        if (this === null)
+            throw new @TypeError("String.prototype.replace requires that |this| not be null");
+        throw new @TypeError("String.prototype.replace requires that |this| not be undefined");
+    }
+
+    if (search != null) {
+        let replacer = search[@symbolReplace];
+        if (replacer !== @undefined) {
+            if (!@hasObservableSideEffectsForStringReplace(search, replacer))
+                return @toString(this).@replaceUsingRegExp(search, replace);
+            return replacer.@call(search, this, replace);
+        }
+    }
+
+    let thisString = @toString(this);
+    let searchString = @toString(search);
+    return thisString.@replaceUsingStringSearch(searchString, replace);
+}
+    
+function localeCompare(that/*, locales, options */)
+{
+    "use strict";
+
+    // 13.1.1 String.prototype.localeCompare (that [, locales [, options ]]) (ECMA-402 2.0)
+    // http://ecma-international.org/publications/standards/Ecma-402.htm
+
+    // 1. Let O be RequireObjectCoercible(this value).
+    if (this === null)
+        throw new @TypeError("String.prototype.localeCompare requires that |this| not be null");
+    
+    if (this === @undefined)
+        throw new @TypeError("String.prototype.localeCompare requires that |this| not be undefined");
+
+    // 2. Let S be ToString(O).
+    // 3. ReturnIfAbrupt(S).
+    var thisString = @toString(this);
+
+    // 4. Let That be ToString(that).
+    // 5. ReturnIfAbrupt(That).
+    var thatString = @toString(that);
+
+    // Avoid creating a collator for defaults.
+    if (arguments[1] === @undefined && arguments[2] === @undefined)
+        return @Collator.prototype.compare(thisString, thatString);
+
+    // 6. Let collator be Construct(%Collator%, «locales, options»).
+    // 7. ReturnIfAbrupt(collator).
+    var collator = new @Collator(arguments[1], arguments[2]);
+
+    // 8. Return CompareStrings(collator, S, That).
+    return collator.compare(thisString, thatString);
+}
+
+function search(regexp)
+{
+    "use strict";
+
+    if (this == null) {
+        if (this === null)
+            throw new @TypeError("String.prototype.search requires that |this| not be null");
+        throw new @TypeError("String.prototype.search requires that |this| not be undefined");
+    }
+
+    if (regexp != null) {
+        var searcher = regexp[@symbolSearch];
+        if (searcher != @undefined)
+            return searcher.@call(regexp, this);
+    }
+
+    var thisString = @toString(this);
+    var createdRegExp = @regExpCreate(regexp, @undefined);
+    return createdRegExp[@symbolSearch](thisString);
 }
 
 function split(separator, limit)

@@ -185,7 +185,7 @@ private:
 SamplingProfiler::SamplingProfiler(VM& vm, RefPtr<Stopwatch>&& stopwatch)
     : m_vm(vm)
     , m_stopwatch(WTFMove(stopwatch))
-    , m_timingInterval(std::chrono::microseconds(Options::samplingProfilerTimingInterval()))
+    , m_timingInterval(std::chrono::microseconds(Options::sampleInterval()))
     , m_threadIdentifier(0)
     , m_jscExecutionThread(nullptr)
     , m_isPaused(false)
@@ -675,10 +675,10 @@ int SamplingProfiler::StackFrame::functionStartLine()
 unsigned SamplingProfiler::StackFrame::functionStartColumn()
 {
     if (frameType == FrameType::Unknown || frameType == FrameType::Host)
-        return -1;
+        return std::numeric_limits<unsigned>::max();
 
     if (executable->isHostFunction())
-        return -1;
+        return std::numeric_limits<unsigned>::max();
 
     return static_cast<ScriptExecutable*>(executable)->startColumn();
 }

@@ -55,8 +55,8 @@ enum LineCount {
 
 class RenderBlockFlow : public RenderBlock {
 public:
-    RenderBlockFlow(Element&, Ref<RenderStyle>&&);
-    RenderBlockFlow(Document&, Ref<RenderStyle>&&);
+    RenderBlockFlow(Element&, RenderStyle&&);
+    RenderBlockFlow(Document&, RenderStyle&&);
     virtual ~RenderBlockFlow();
         
     void layoutBlock(bool relayoutChildren, LayoutUnit pageLogicalHeight = 0) override;
@@ -394,6 +394,7 @@ public:
     void updateStylesForColumnChildren();
 
     bool needsLayoutAfterRegionRangeChange() const override;
+    WEBCORE_EXPORT RenderText* findClosestTextAtAbsolutePoint(const FloatPoint&);
 
 protected:
     void computeIntrinsicLogicalWidths(LayoutUnit& minLogicalWidth, LayoutUnit& maxLogicalWidth) const override;

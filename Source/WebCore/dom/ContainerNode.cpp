@@ -130,7 +130,7 @@ void ContainerNode::takeAllChildrenFrom(ContainerNode* oldParent)
         destroyRenderTreeIfNeeded(child);
 
         // FIXME: We need a no mutation event version of adoptNode.
-        RefPtr<Node> adoptedChild = document().adoptNode(&child.get(), ASSERT_NO_EXCEPTION);
+        RefPtr<Node> adoptedChild = document().adoptNode(child, ASSERT_NO_EXCEPTION);
         parserAppendChild(*adoptedChild);
         // FIXME: Together with adoptNode above, the tree scope might get updated recursively twice
         // (if the document changed or oldParent was in a shadow tree, AND *this is in a shadow tree).
@@ -160,13 +160,8 @@ static inline bool isChildTypeAllowed(ContainerNode& newParent, Node& child)
 
 static inline bool isInTemplateContent(const Node* node)
 {
-#if ENABLE(TEMPLATE_ELEMENT)
     Document& document = node->document();
     return &document == document.templateDocument();
-#else
-    UNUSED_PARAM(node);
-    return false;
-#endif
 }
 
 static inline bool containsConsideringHostElements(const Node& newChild, const Node& newParent)
@@ -230,7 +225,7 @@ static inline bool checkPreReplacementValidity(ContainerNode& newParent, Node& n
     return !ec;
 }
 
-bool ContainerNode::insertBefore(Ref<Node>&& newChild, Node* refChild, ExceptionCode& ec)
+bool ContainerNode::insertBefore(Node& newChild, Node* refChild, ExceptionCode& ec)
 {
     // Check that this node is not "floating".
     // If it is, it can be deleted as a side effect of sending mutation events.
@@ -242,7 +237,7 @@ bool ContainerNode::insertBefore(Ref<Node>&& newChild, Node* refChild, Exception
 
     // insertBefore(node, 0) is equivalent to appendChild(node)
     if (!refChild)
-        return appendChild(WTFMove(newChild), ec);
+        return appendChild(newChild, ec);
 
     // Make sure adding the new child is OK.
     if (!ensurePreInsertionValidity(newChild, refChild, ec))
@@ -254,7 +249,7 @@ bool ContainerNode::insertBefore(Ref<Node>&& newChild, Node* refChild, Exception
         return false;
     }
 
-    if (refChild->previousSibling() == newChild.ptr() || refChild == newChild.ptr()) // nothing to do
+    if (refChild->previousSibling() == &newChild || refChild == &newChild) // nothing to do
         return true;
 
     Ref<Node> next(*refChild);
@@ -364,30 +359,28 @@ void ContainerNode::notifyChildRemoved(Node& child, Node* previousSibling, Node*
     childrenChanged(change);
 }
 
-void ContainerNode::parserInsertBefore(Ref<Node>&& newChild, Node& nextChild)
+void ContainerNode::parserInsertBefore(Node& newChild, Node& nextChild)
 {
     ASSERT(nextChild.parentNode() == this);
-    ASSERT(!newChild->isDocumentFragment());
-#if ENABLE(TEMPLATE_ELEMENT)
+    ASSERT(!newChild.isDocumentFragment());
     ASSERT(!hasTagName(HTMLNames::templateTag));
-#endif
 
-    if (nextChild.previousSibling() == newChild.ptr() || &nextChild == newChild.ptr()) // nothing to do
+    if (nextChild.previousSibling() == &newChild || &nextChild == &newChild) // nothing to do
         return;
 
-    if (&document() != &newChild->document())
-        document().adoptNode(newChild.ptr(), ASSERT_NO_EXCEPTION);
+    if (&document() != &newChild.document())
+        document().adoptNode(newChild, ASSERT_NO_EXCEPTION);
 
     insertBeforeCommon(nextChild, newChild);
 
-    newChild->updateAncestorConnectedSubframeCountForInsertion();
+    newChild.updateAncestorConnectedSubframeCountForInsertion();
 
     notifyChildInserted(newChild, ChildChangeSourceParser);
 
-    newChild->setNeedsStyleRecalc(ReconstructRenderTree);
+    newChild.setNeedsStyleRecalc(ReconstructRenderTree);
 }
 
-bool ContainerNode::replaceChild(Ref<Node>&& newChild, Node& oldChild, ExceptionCode& ec)
+bool ContainerNode::replaceChild(Node& newChild, Node& oldChild, ExceptionCode& ec)
 {
     // Check that this node is not "floating".
     // If it is, it can be deleted as a side effect of sending mutation events.
@@ -397,7 +390,7 @@ bool ContainerNode::replaceChild(Ref<Node>&& newChild, Node& oldChild, Exception
 
     ec = 0;
 
-    if (&oldChild == newChild.ptr()) // nothing to do
+    if (&oldChild == &newChild) // nothing to do
         return true;
 
     // Make sure replacing the old child with the new is ok
@@ -413,7 +406,7 @@ bool ContainerNode::replaceChild(Ref<Node>&& newChild, Node& oldChild, Exception
     ChildListMutationScope mutation(*this);
 
     RefPtr<Node> refChild = oldChild.nextSibling();
-    if (refChild.get() == newChild.ptr())
+    if (refChild.get() == &newChild)
         refChild = refChild->nextSibling();
 
     NodeVector targets;
@@ -654,7 +647,7 @@ void ContainerNode::removeChildren()
     dispatchSubtreeModifiedEvent();
 }
 
-bool ContainerNode::appendChild(Ref<Node>&& newChild, ExceptionCode& ec)
+bool ContainerNode::appendChild(Node& newChild, ExceptionCode& ec)
 {
     Ref<ContainerNode> protect(*this);
 
@@ -668,7 +661,7 @@ bool ContainerNode::appendChild(Ref<Node>&& newChild, ExceptionCode& ec)
     if (!ensurePreInsertionValidity(newChild, nullptr, ec))
         return false;
 
-    if (newChild.ptr() == m_lastChild) // nothing to do
+    if (&newChild == m_lastChild) // nothing to do
         return true;
 
     NodeVector targets;
@@ -709,29 +702,27 @@ bool ContainerNode::appendChild(Ref<Node>&& newChild, ExceptionCode& ec)
     return true;
 }
 
-void ContainerNode::parserAppendChild(Ref<Node>&& newChild)
+void ContainerNode::parserAppendChild(Node& newChild)
 {
-    ASSERT(!newChild->parentNode()); // Use appendChild if you need to handle reparenting (and want DOM mutation events).
-    ASSERT(!newChild->isDocumentFragment());
-#if ENABLE(TEMPLATE_ELEMENT)
+    ASSERT(!newChild.parentNode()); // Use appendChild if you need to handle reparenting (and want DOM mutation events).
+    ASSERT(!newChild.isDocumentFragment());
     ASSERT(!hasTagName(HTMLNames::templateTag));
-#endif
 
-    if (&document() != &newChild->document())
-        document().adoptNode(newChild.ptr(), ASSERT_NO_EXCEPTION);
+    if (&document() != &newChild.document())
+        document().adoptNode(newChild, ASSERT_NO_EXCEPTION);
 
     {
         NoEventDispatchAssertion assertNoEventDispatch;
         // FIXME: This method should take a PassRefPtr.
         appendChildCommon(newChild);
-        treeScope().adoptIfNeeded(newChild.ptr());
+        treeScope().adoptIfNeeded(&newChild);
     }
 
-    newChild->updateAncestorConnectedSubframeCountForInsertion();
+    newChild.updateAncestorConnectedSubframeCountForInsertion();
 
     notifyChildInserted(newChild, ChildChangeSourceParser);
 
-    newChild->setNeedsStyleRecalc(ReconstructRenderTree);
+    newChild.setNeedsStyleRecalc(ReconstructRenderTree);
 }
 
 void ContainerNode::childrenChanged(const ChildChange& change)
@@ -748,7 +739,7 @@ void ContainerNode::cloneChildNodes(ContainerNode& clone)
     Document& targetDocument = clone.document();
     for (Node* child = firstChild(); child && !ec; child = child->nextSibling()) {
         Ref<Node> clonedChild = child->cloneNodeInternal(targetDocument, CloningOperation::SelfWithTemplateContent);
-        clone.appendChild(clonedChild.copyRef(), ec);
+        clone.appendChild(clonedChild, ec);
 
         if (!ec && is<ContainerNode>(*child))
             downcast<ContainerNode>(*child).cloneChildNodes(downcast<ContainerNode>(clonedChild.get()));
@@ -925,7 +916,7 @@ void ContainerNode::append(Vector<NodeOrString>&& nodeOrStringVector, ExceptionC
     if (ec || !node)
         return;
 
-    appendChild(node.releaseNonNull(), ec);
+    appendChild(*node, ec);
 }
 
 void ContainerNode::prepend(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
@@ -934,7 +925,7 @@ void ContainerNode::prepend(Vector<NodeOrString>&& nodeOrStringVector, Exception
     if (ec || !node)
         return;
 
-    insertBefore(node.releaseNonNull(), firstChild(), ec);
+    insertBefore(*node, firstChild(), ec);
 }
 
 HTMLCollection* ContainerNode::cachedHTMLCollection(CollectionType type)

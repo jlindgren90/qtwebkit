@@ -362,17 +362,6 @@ void SpeculativeJIT::runSlowPathGenerators(PCToCodeOriginMapBuilder& pcToCodeOri
     }
 }
 
-// On Windows we need to wrap fmod; on other platforms we can call it directly.
-// On ARMv7 we assert that all function pointers have to low bit set (point to thumb code).
-#if CALLING_CONVENTION_IS_STDCALL || CPU(ARM_THUMB2)
-static double JIT_OPERATION fmodAsDFGOperation(double x, double y)
-{
-    return fmod(x, y);
-}
-#else
-#define fmodAsDFGOperation fmod
-#endif
-
 void SpeculativeJIT::clearGenerationInfo()
 {
     for (unsigned i = 0; i < m_generationInfo.size(); ++i)
@@ -609,10 +598,10 @@ void SpeculativeJIT::silentFill(const SilentRegisterSavePlan& plan, GPRReg canTr
         break;
 #if USE(JSVALUE64)
     case SetInt52Constant:
-        m_jit.move(Imm64(plan.node()->asMachineInt() << JSValue::int52ShiftAmount), plan.gpr());
+        m_jit.move(Imm64(plan.node()->asAnyInt() << JSValue::int52ShiftAmount), plan.gpr());
         break;
     case SetStrictInt52Constant:
-        m_jit.move(Imm64(plan.node()->asMachineInt()), plan.gpr());
+        m_jit.move(Imm64(plan.node()->asAnyInt()), plan.gpr());
         break;
 #endif // USE(JSVALUE64)
     case SetBooleanConstant:
@@ -976,7 +965,7 @@ void SpeculativeJIT::compileTryGetById(Node* node)
 
         base.use();
 
-        cachedGetById(node->origin.semantic, baseRegs, resultRegs, node->identifierNumber(), JITCompiler::Jump(), DontSpill, AccessType::GetPure);
+        cachedGetById(node->origin.semantic, baseRegs, resultRegs, node->identifierNumber(), JITCompiler::Jump(), NeedToSpill, AccessType::GetPure);
 
         jsValueResult(resultRegs, node, DataFormatJS, UseChildrenCalledExplicitly);
         break;
@@ -1078,6 +1067,26 @@ void SpeculativeJIT::compileDeleteById(Node* node)
 
     flushRegisters();
     callOperation(operationDeleteById, resultGPR, valueRegs, identifierUID(node->identifierNumber()));
+    m_jit.exceptionCheck();
+
+    unblessedBooleanResult(resultGPR, node, UseChildrenCalledExplicitly);
+}
+
+void SpeculativeJIT::compileDeleteByVal(Node* node)
+{
+    JSValueOperand base(this, node->child1());
+    JSValueOperand key(this, node->child2());
+    GPRFlushedCallResult result(this);
+
+    JSValueRegs baseRegs = base.jsValueRegs();
+    JSValueRegs keyRegs = key.jsValueRegs();
+    GPRReg resultGPR = result.gpr();
+
+    base.use();
+    key.use();
+
+    flushRegisters();
+    callOperation(operationDeleteByVal, resultGPR, baseRegs, keyRegs);
     m_jit.exceptionCheck();
 
     unblessedBooleanResult(resultGPR, node, UseChildrenCalledExplicitly);
@@ -1484,13 +1493,12 @@ bool SpeculativeJIT::compilePeepHoleBranch(Node* node, MacroAssembler::Relationa
         else if (node->isBinaryUseKind(Int52RepUse))
             compilePeepHoleInt52Branch(node, branchNode, condition);
 #endif // USE(JSVALUE64)
-        else if (node->isBinaryUseKind(DoubleRepUse))
+        else if (node->isBinaryUseKind(StringUse) || node->isBinaryUseKind(StringIdentUse)) {
+            // Use non-peephole comparison, for now.
+            return false;
+        } else if (node->isBinaryUseKind(DoubleRepUse))
             compilePeepHoleDoubleBranch(node, branchNode, doubleCondition);
         else if (node->op() == CompareEq) {
-            if (node->isBinaryUseKind(StringUse) || node->isBinaryUseKind(StringIdentUse)) {
-                // Use non-peephole comparison, for now.
-                return false;
-            }
             if (node->isBinaryUseKind(BooleanUse))
                 compilePeepHoleBooleanBranch(node, branchNode, condition);
             else if (node->isBinaryUseKind(SymbolUse))
@@ -1612,6 +1620,7 @@ void SpeculativeJIT::compileCurrentBlock()
         }
 
         m_interpreter.startExecuting();
+        m_interpreter.executeKnownEdgeTypes(m_currentNode);
         m_jit.setForNode(m_currentNode);
         m_origin = m_currentNode->origin;
         if (validationEnabled())
@@ -1957,6 +1966,7 @@ void SpeculativeJIT::compileGetByValOnString(Node* node)
 #endif
 
         JSGlobalObject* globalObject = m_jit.globalObjectFor(node->origin.semantic);
+        bool prototypeChainIsSane = false;
         if (globalObject->stringPrototypeChainIsSane()) {
             // FIXME: This could be captured using a Speculation mode that means "out-of-bounds
             // loads return a trivial value". Something like SaneChainOutOfBounds. This should
@@ -1964,6 +1974,11 @@ void SpeculativeJIT::compileGetByValOnString(Node* node)
             // on a stringPrototypeChainIsSane() guaranteeing that the prototypes have no negative
             // indexed properties either.
             // https://bugs.webkit.org/show_bug.cgi?id=144668
+            m_jit.graph().watchpoints().addLazily(globalObject->stringPrototype()->structure()->transitionWatchpointSet());
+            m_jit.graph().watchpoints().addLazily(globalObject->objectPrototype()->structure()->transitionWatchpointSet());
+            prototypeChainIsSane = globalObject->stringPrototypeChainIsSane();
+        }
+        if (prototypeChainIsSane) {
             m_jit.graph().watchpoints().addLazily(globalObject->stringPrototype()->structure()->transitionWatchpointSet());
             m_jit.graph().watchpoints().addLazily(globalObject->objectPrototype()->structure()->transitionWatchpointSet());
             
@@ -2631,7 +2646,7 @@ void SpeculativeJIT::compileGetByValOnIntTypedArray(Node* node, TypedArrayType t
     }
     
 #if USE(JSVALUE64)
-    if (node->shouldSpeculateMachineInt()) {
+    if (node->shouldSpeculateAnyInt()) {
         m_jit.zeroExtend32ToPtr(resultReg, resultReg);
         strictInt52Result(resultReg, node);
         return;
@@ -3556,8 +3571,8 @@ void SpeculativeJIT::compileArithAdd(Node* node)
 
         // Will we need an overflow check? If we can prove that neither input can be
         // Int52 then the overflow check will not be necessary.
-        if (!m_state.forNode(node->child1()).couldBeType(SpecInt52)
-            && !m_state.forNode(node->child2()).couldBeType(SpecInt52)) {
+        if (!m_state.forNode(node->child1()).couldBeType(SpecInt52Only)
+            && !m_state.forNode(node->child2()).couldBeType(SpecInt52Only)) {
             SpeculateWhicheverInt52Operand op1(this, node->child1());
             SpeculateWhicheverInt52Operand op2(this, node->child2(), op1);
             GPRTemporary result(this, Reuse, op1);
@@ -3748,8 +3763,8 @@ void SpeculativeJIT::compileArithSub(Node* node)
 
         // Will we need an overflow check? If we can prove that neither input can be
         // Int52 then the overflow check will not be necessary.
-        if (!m_state.forNode(node->child1()).couldBeType(SpecInt52)
-            && !m_state.forNode(node->child2()).couldBeType(SpecInt52)) {
+        if (!m_state.forNode(node->child1()).couldBeType(SpecInt52Only)
+            && !m_state.forNode(node->child2()).couldBeType(SpecInt52Only)) {
             SpeculateWhicheverInt52Operand op1(this, node->child1());
             SpeculateWhicheverInt52Operand op2(this, node->child2(), op1);
             GPRTemporary result(this, Reuse, op1);
@@ -3870,7 +3885,7 @@ void SpeculativeJIT::compileArithNegate(Node* node)
     case Int52RepUse: {
         ASSERT(shouldCheckOverflow(node->arithMode()));
         
-        if (!m_state.forNode(node->child1()).couldBeType(SpecInt52)) {
+        if (!m_state.forNode(node->child1()).couldBeType(SpecInt52Only)) {
             SpeculateWhicheverInt52Operand op1(this, node->child1());
             GPRTemporary result(this);
             GPRReg op1GPR = op1.gpr();
@@ -3965,10 +3980,9 @@ void SpeculativeJIT::compileArithMul(Node* node)
         // We can perform truncated multiplications if we get to this point, because if the
         // fixup phase could not prove that it would be safe, it would have turned us into
         // a double multiplication.
-        if (!shouldCheckOverflow(node->arithMode())) {
-            m_jit.move(reg1, result.gpr());
-            m_jit.mul32(reg2, result.gpr());
-        } else {
+        if (!shouldCheckOverflow(node->arithMode()))
+            m_jit.mul32(reg1, reg2, result.gpr());
+        else {
             speculationCheck(
                 Overflow, JSValueRegs(), 0,
                 m_jit.branchMul32(MacroAssembler::Overflow, reg1, reg2, result.gpr()));
@@ -4032,10 +4046,10 @@ void SpeculativeJIT::compileArithMul(Node* node)
                 MacroAssembler::NonZero, resultGPR);
             speculationCheck(
                 NegativeZero, JSValueRegs(), 0,
-                m_jit.branch64(MacroAssembler::LessThan, op1GPR, TrustedImm64(0)));
+                m_jit.branch64(MacroAssembler::LessThan, op1GPR, TrustedImm32(0)));
             speculationCheck(
                 NegativeZero, JSValueRegs(), 0,
-                m_jit.branch64(MacroAssembler::LessThan, op2GPR, TrustedImm64(0)));
+                m_jit.branch64(MacroAssembler::LessThan, op2GPR, TrustedImm32(0)));
             resultNonZero.link(&m_jit);
         }
         
@@ -4734,7 +4748,7 @@ void SpeculativeJIT::compileArithMod(Node* node)
         
         FPRResult result(this);
         
-        callOperation(fmodAsDFGOperation, result.fpr(), op1FPR, op2FPR);
+        callOperation(jsMod, result.fpr(), op1FPR, op2FPR);
         
         doubleResult(result.fpr(), node);
         return;
@@ -4867,7 +4881,7 @@ void SpeculativeJIT::compileArithSqrt(Node* node)
 static MacroAssembler::Jump compileArithPowIntegerFastPath(JITCompiler& assembler, FPRReg xOperand, GPRReg yOperand, FPRReg result)
 {
     MacroAssembler::JumpList skipFastPath;
-    skipFastPath.append(assembler.branch32(MacroAssembler::Above, yOperand, MacroAssembler::TrustedImm32(1000)));
+    skipFastPath.append(assembler.branch32(MacroAssembler::Above, yOperand, MacroAssembler::TrustedImm32(maxExponentForIntegerMathPow)));
 
     static const double oneConstant = 1.0;
     assembler.loadDouble(MacroAssembler::TrustedImmPtr(&oneConstant), result);
@@ -4915,6 +4929,69 @@ void SpeculativeJIT::compileArithPow(Node* node)
         skipFallback.link(&m_jit);
         doubleResult(resultFpr, node);
         return;
+    }
+
+    if (node->child2()->isDoubleConstant()) {
+        double exponent = node->child2()->asNumber();
+        static const double infinityConstant = std::numeric_limits<double>::infinity();
+        static const double minusInfinityConstant = -std::numeric_limits<double>::infinity();
+        if (exponent == 0.5) {
+            SpeculateDoubleOperand xOperand(this, node->child1());
+            FPRTemporary result(this);
+            FPRReg xOperandFpr = xOperand.fpr();
+            FPRReg resultFpr = result.fpr();
+
+            m_jit.moveZeroToDouble(resultFpr);
+            MacroAssembler::Jump xIsZeroOrNegativeZero = m_jit.branchDouble(MacroAssembler::DoubleEqual, xOperandFpr, resultFpr);
+
+            m_jit.loadDouble(TrustedImmPtr(&minusInfinityConstant), resultFpr);
+            MacroAssembler::Jump xIsMinusInfinity = m_jit.branchDouble(MacroAssembler::DoubleEqual, xOperandFpr, resultFpr);
+            m_jit.sqrtDouble(xOperandFpr, resultFpr);
+            MacroAssembler::Jump doneWithSqrt = m_jit.jump();
+
+            xIsMinusInfinity.link(&m_jit);
+            if (isX86())
+                m_jit.loadDouble(TrustedImmPtr(&infinityConstant), resultFpr);
+            else
+                m_jit.absDouble(resultFpr, resultFpr);
+
+            xIsZeroOrNegativeZero.link(&m_jit);
+            doneWithSqrt.link(&m_jit);
+            doubleResult(resultFpr, node);
+            return;
+        }
+        if (exponent == -0.5) {
+            SpeculateDoubleOperand xOperand(this, node->child1());
+            FPRTemporary scratch(this);
+            FPRTemporary result(this);
+            FPRReg xOperandFpr = xOperand.fpr();
+            FPRReg scratchFPR = scratch.fpr();
+            FPRReg resultFpr = result.fpr();
+
+            m_jit.moveZeroToDouble(resultFpr);
+            MacroAssembler::Jump xIsZeroOrNegativeZero = m_jit.branchDouble(MacroAssembler::DoubleEqual, xOperandFpr, resultFpr);
+
+            m_jit.loadDouble(TrustedImmPtr(&minusInfinityConstant), resultFpr);
+            MacroAssembler::Jump xIsMinusInfinity = m_jit.branchDouble(MacroAssembler::DoubleEqual, xOperandFpr, resultFpr);
+
+            static const double oneConstant = 1.;
+            m_jit.loadDouble(TrustedImmPtr(&oneConstant), resultFpr);
+            m_jit.sqrtDouble(xOperandFpr, scratchFPR);
+            m_jit.divDouble(resultFpr, scratchFPR, resultFpr);
+            MacroAssembler::Jump doneWithSqrt = m_jit.jump();
+
+            xIsZeroOrNegativeZero.link(&m_jit);
+            m_jit.loadDouble(TrustedImmPtr(&infinityConstant), resultFpr);
+            MacroAssembler::Jump doneWithBaseZero = m_jit.jump();
+
+            xIsMinusInfinity.link(&m_jit);
+            m_jit.moveZeroToDouble(resultFpr);
+
+            doneWithBaseZero.link(&m_jit);
+            doneWithSqrt.link(&m_jit);
+            doubleResult(resultFpr, node);
+            return;
+        }
     }
 
     SpeculateDoubleOperand xOperand(this, node->child1());
@@ -4979,20 +5056,26 @@ bool SpeculativeJIT::compare(Node* node, MacroAssembler::RelationalCondition con
         compileDoubleCompare(node, doubleCondition);
         return false;
     }
-    
-    if (node->op() == CompareEq) {
-        if (node->isBinaryUseKind(StringUse)) {
+
+    if (node->isBinaryUseKind(StringUse)) {
+        if (node->op() == CompareEq)
             compileStringEquality(node);
-            return false;
-        }
-        
+        else
+            compileStringCompare(node, condition);
+        return false;
+    }
+
+    if (node->isBinaryUseKind(StringIdentUse)) {
+        if (node->op() == CompareEq)
+            compileStringIdentEquality(node);
+        else
+            compileStringIdentCompare(node, condition);
+        return false;
+    }
+
+    if (node->op() == CompareEq) {
         if (node->isBinaryUseKind(BooleanUse)) {
             compileBooleanCompare(node, condition);
-            return false;
-        }
-
-        if (node->isBinaryUseKind(StringIdentUse)) {
-            compileStringIdentEquality(node);
             return false;
         }
 
@@ -5442,6 +5525,76 @@ void SpeculativeJIT::compileStringIdentToNotStringVarEquality(
     notString.link(&m_jit);
     
     unblessedBooleanResult(rightTempGPR, node);
+}
+
+void SpeculativeJIT::compileStringCompare(Node* node, MacroAssembler::RelationalCondition condition)
+{
+    SpeculateCellOperand left(this, node->child1());
+    SpeculateCellOperand right(this, node->child2());
+    GPRReg leftGPR = left.gpr();
+    GPRReg rightGPR = right.gpr();
+
+    speculateString(node->child1(), leftGPR);
+    speculateString(node->child2(), rightGPR);
+
+    C_JITOperation_B_EJssJss compareFunction = nullptr;
+    if (condition == MacroAssembler::LessThan)
+        compareFunction = operationCompareStringLess;
+    else if (condition == MacroAssembler::LessThanOrEqual)
+        compareFunction = operationCompareStringLessEq;
+    else if (condition == MacroAssembler::GreaterThan)
+        compareFunction = operationCompareStringGreater;
+    else if (condition == MacroAssembler::GreaterThanOrEqual)
+        compareFunction = operationCompareStringGreaterEq;
+    else
+        RELEASE_ASSERT_NOT_REACHED();
+
+    GPRFlushedCallResult result(this);
+    GPRReg resultGPR = result.gpr();
+
+    flushRegisters();
+    callOperation(compareFunction, resultGPR, leftGPR, rightGPR);
+    m_jit.exceptionCheck();
+
+    unblessedBooleanResult(resultGPR, node);
+}
+
+void SpeculativeJIT::compileStringIdentCompare(Node* node, MacroAssembler::RelationalCondition condition)
+{
+    SpeculateCellOperand left(this, node->child1());
+    SpeculateCellOperand right(this, node->child2());
+    GPRFlushedCallResult result(this);
+    GPRTemporary leftTemp(this);
+    GPRTemporary rightTemp(this);
+
+    GPRReg leftGPR = left.gpr();
+    GPRReg rightGPR = right.gpr();
+    GPRReg resultGPR = result.gpr();
+    GPRReg leftTempGPR = leftTemp.gpr();
+    GPRReg rightTempGPR = rightTemp.gpr();
+
+    speculateString(node->child1(), leftGPR);
+    speculateString(node->child2(), rightGPR);
+
+    C_JITOperation_TT compareFunction = nullptr;
+    if (condition == MacroAssembler::LessThan)
+        compareFunction = operationCompareStringImplLess;
+    else if (condition == MacroAssembler::LessThanOrEqual)
+        compareFunction = operationCompareStringImplLessEq;
+    else if (condition == MacroAssembler::GreaterThan)
+        compareFunction = operationCompareStringImplGreater;
+    else if (condition == MacroAssembler::GreaterThanOrEqual)
+        compareFunction = operationCompareStringImplGreaterEq;
+    else
+        RELEASE_ASSERT_NOT_REACHED();
+
+    speculateStringIdentAndLoadStorage(node->child1(), leftGPR, leftTempGPR);
+    speculateStringIdentAndLoadStorage(node->child2(), rightGPR, rightTempGPR);
+
+    flushRegisters();
+    callOperation(compareFunction, resultGPR, leftTempGPR, rightTempGPR);
+
+    unblessedBooleanResult(resultGPR, node);
 }
 
 void SpeculativeJIT::compileStringZeroLength(Node* node)
@@ -6780,7 +6933,8 @@ void SpeculativeJIT::compileNewTypedArray(Node* node)
 {
     JSGlobalObject* globalObject = m_jit.graph().globalObjectFor(node->origin.semantic);
     TypedArrayType type = node->typedArrayType();
-    Structure* structure = globalObject->typedArrayStructure(type);
+    Structure* structure = globalObject->typedArrayStructureConcurrently(type);
+    RELEASE_ASSERT(structure);
     
     SpeculateInt32Operand size(this, node->child1());
     GPRReg sizeGPR = size.gpr();
@@ -6878,7 +7032,7 @@ void SpeculativeJIT::speculateCellType(
 
 void SpeculativeJIT::speculateInt32(Edge edge)
 {
-    if (!needsTypeCheck(edge, SpecInt32))
+    if (!needsTypeCheck(edge, SpecInt32Only))
         return;
     
     (SpeculateInt32Operand(this, edge)).gpr();
@@ -6898,7 +7052,7 @@ void SpeculativeJIT::speculateNumber(Edge edge)
 #else
     GPRReg tagGPR = value.tagGPR();
     DFG_TYPE_CHECK(
-        value.jsValueRegs(), edge, ~SpecInt32,
+        value.jsValueRegs(), edge, ~SpecInt32Only,
         m_jit.branch32(MacroAssembler::Equal, tagGPR, TrustedImm32(JSValue::Int32Tag)));
     DFG_TYPE_CHECK(
         value.jsValueRegs(), edge, SpecBytecodeNumber,
@@ -7226,7 +7380,7 @@ void SpeculativeJIT::speculateMisc(Edge edge, JSValueRegs regs)
         m_jit.branch64(MacroAssembler::Above, regs.gpr(), MacroAssembler::TrustedImm64(TagBitTypeOther | TagBitBool | TagBitUndefined)));
 #else
     DFG_TYPE_CHECK(
-        regs, edge, ~SpecInt32,
+        regs, edge, ~SpecInt32Only,
         m_jit.branch32(MacroAssembler::Equal, regs.tagGPR(), MacroAssembler::TrustedImm32(JSValue::Int32Tag)));
     DFG_TYPE_CHECK(
         regs, edge, SpecMisc,
@@ -7249,13 +7403,13 @@ void SpeculativeJIT::speculate(Node*, Edge edge)
     case UntypedUse:
         break;
     case KnownInt32Use:
-        ASSERT(!needsTypeCheck(edge, SpecInt32));
+        ASSERT(!needsTypeCheck(edge, SpecInt32Only));
         break;
     case DoubleRepUse:
         ASSERT(!needsTypeCheck(edge, SpecFullDouble));
         break;
     case Int52RepUse:
-        ASSERT(!needsTypeCheck(edge, SpecMachineInt));
+        ASSERT(!needsTypeCheck(edge, SpecAnyInt));
         break;
     case KnownCellUse:
         ASSERT(!needsTypeCheck(edge, SpecCell));
@@ -7279,11 +7433,11 @@ void SpeculativeJIT::speculate(Node*, Edge edge)
         speculateDoubleRepReal(edge);
         break;
 #if USE(JSVALUE64)
-    case MachineIntUse:
-        speculateMachineInt(edge);
+    case AnyIntUse:
+        speculateAnyInt(edge);
         break;
-    case DoubleRepMachineIntUse:
-        speculateDoubleRepMachineInt(edge);
+    case DoubleRepAnyIntUse:
+        speculateDoubleRepAnyInt(edge);
         break;
 #endif
     case BooleanUse:

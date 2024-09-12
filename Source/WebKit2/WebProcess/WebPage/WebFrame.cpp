@@ -330,7 +330,7 @@ String WebFrame::contentsAsString() const
     RefPtr<Range> range = document->createRange();
 
     ExceptionCode ec = 0;
-    range->selectNode(documentElement.get(), ec);
+    range->selectNode(*documentElement, ec);
     if (ec)
         return String();
 
@@ -600,7 +600,7 @@ PassRefPtr<InjectedBundleHitTestResult> WebFrame::hitTest(const IntPoint point) 
     if (!m_coreFrame)
         return 0;
 
-    return InjectedBundleHitTestResult::create(m_coreFrame->eventHandler().hitTestResultAtPoint(point, HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowShadowContent));
+    return InjectedBundleHitTestResult::create(m_coreFrame->eventHandler().hitTestResultAtPoint(point, HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowUserAgentShadowContent));
 }
 
 bool WebFrame::getDocumentBackgroundColor(double* red, double* green, double* blue, double* alpha)

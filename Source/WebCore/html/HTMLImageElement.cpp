@@ -257,9 +257,9 @@ const AtomicString& HTMLImageElement::altText() const
     return fastGetAttribute(titleAttr);
 }
 
-RenderPtr<RenderElement> HTMLImageElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
+RenderPtr<RenderElement> HTMLImageElement::createElementRenderer(RenderStyle&& style, const RenderTreePosition&)
 {
-    if (style.get().hasContent())
+    if (style.hasContent())
         return RenderElement::createFor(*this, WTFMove(style));
 
     return createRenderer<RenderImage>(*this, WTFMove(style), nullptr, m_imageDevicePixelRatio);
@@ -610,7 +610,7 @@ void HTMLImageElement::tryCreateImageControls()
     if (!imageControls)
         return;
 
-    ensureUserAgentShadowRoot().appendChild(imageControls.releaseNonNull());
+    ensureUserAgentShadowRoot().appendChild(*imageControls);
 
     auto* renderObject = renderer();
     if (!renderObject)

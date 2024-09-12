@@ -388,13 +388,13 @@ public:
     RefPtr<Attr> createAttribute(const String& name, ExceptionCode&);
     RefPtr<Attr> createAttributeNS(const String& namespaceURI, const String& qualifiedName, ExceptionCode&, bool shouldIgnoreNamespaceChecks = false);
     RefPtr<EntityReference> createEntityReference(const String& name, ExceptionCode&);
-    RefPtr<Node> importNode(Node* importedNode, ExceptionCode& ec) { return importNode(importedNode, false, ec); }
-    RefPtr<Node> importNode(Node* importedNode, bool deep, ExceptionCode&);
+    RefPtr<Node> importNode(Node& nodeToImport, bool deep, ExceptionCode&);
     WEBCORE_EXPORT RefPtr<Element> createElementNS(const String& namespaceURI, const String& qualifiedName, ExceptionCode&);
     WEBCORE_EXPORT Ref<Element> createElement(const QualifiedName&, bool createdByParser);
 
-    bool cssRegionsEnabled() const;
-    bool cssCompositingEnabled() const;
+#if ENABLE(CSS_GRID_LAYOUT)
+    bool isCSSGridLayoutEnabled() const;
+#endif
 #if ENABLE(CSS_REGIONS)
     RefPtr<DOMNamedFlowCollection> webkitGetNamedFlows();
 #endif
@@ -458,7 +458,7 @@ public:
     void setTimerThrottlingEnabled(bool);
     bool isTimerThrottlingEnabled() const { return m_isTimerThrottlingEnabled; }
 
-    RefPtr<Node> adoptNode(Node* source, ExceptionCode&);
+    RefPtr<Node> adoptNode(Node& source, ExceptionCode&);
 
     Ref<HTMLCollection> images();
     Ref<HTMLCollection> embeds();
@@ -548,15 +548,11 @@ public:
 
     WEBCORE_EXPORT Ref<Range> createRange();
 
-    RefPtr<NodeIterator> createNodeIterator(Node* root, unsigned long whatToShow, RefPtr<NodeFilter>&&, bool, ExceptionCode&); // For ObjC bindings.
-    RefPtr<NodeIterator> createNodeIterator(Node* root, unsigned long whatToShow, RefPtr<NodeFilter>&&, ExceptionCode&);
-    RefPtr<NodeIterator> createNodeIterator(Node* root, unsigned long whatToShow, ExceptionCode&);
-    RefPtr<NodeIterator> createNodeIterator(Node* root, ExceptionCode&);
+    // The last bool parameter is for ObjC bindings.
+    Ref<NodeIterator> createNodeIterator(Node& root, unsigned long whatToShow = 0xFFFFFFFF, RefPtr<NodeFilter>&& = nullptr, bool = false);
 
-    RefPtr<TreeWalker> createTreeWalker(Node* root, unsigned long whatToShow, RefPtr<NodeFilter>&&, bool, ExceptionCode&); // For ObjC bindings.
-    RefPtr<TreeWalker> createTreeWalker(Node* root, unsigned long whatToShow, RefPtr<NodeFilter>&&, ExceptionCode&);
-    RefPtr<TreeWalker> createTreeWalker(Node* root, unsigned long whatToShow, ExceptionCode&);
-    RefPtr<TreeWalker> createTreeWalker(Node* root, ExceptionCode&);
+    // The last bool parameter is for ObjC bindings.
+    Ref<TreeWalker> createTreeWalker(Node& root, unsigned long whatToShow = 0xFFFFFFFF, RefPtr<NodeFilter>&& = nullptr, bool = false);
 
     // Special support for editing
     Ref<CSSStyleDeclaration> createCSSStyleDeclaration();
@@ -576,7 +572,7 @@ public:
     };
     WEBCORE_EXPORT void updateLayoutIgnorePendingStylesheets(RunPostLayoutTasks = RunPostLayoutTasks::Asynchronously);
 
-    Ref<RenderStyle> styleForElementIgnoringPendingStylesheets(Element&, RenderStyle* parentStyle);
+    std::unique_ptr<RenderStyle> styleForElementIgnoringPendingStylesheets(Element&, const RenderStyle* parentStyle);
 
     // Returns true if page box (margin boxes and page borders) is visible.
     WEBCORE_EXPORT bool isPageBoxVisible(int pageIndex);
@@ -956,9 +952,9 @@ public:
     uint64_t domTreeVersion() const { return m_domTreeVersion; }
 
     // XPathEvaluator methods
-    RefPtr<XPathExpression> createExpression(const String& expression, XPathNSResolver*, ExceptionCode&);
+    RefPtr<XPathExpression> createExpression(const String& expression, RefPtr<XPathNSResolver>&&, ExceptionCode&);
     RefPtr<XPathNSResolver> createNSResolver(Node* nodeResolver);
-    RefPtr<XPathResult> evaluate(const String& expression, Node* contextNode, XPathNSResolver*, unsigned short type, XPathResult*, ExceptionCode&);
+    RefPtr<XPathResult> evaluate(const String& expression, Node* contextNode, RefPtr<XPathNSResolver>&&, unsigned short type, XPathResult*, ExceptionCode&);
 
     enum PendingSheetLayout { NoLayoutWithPendingSheets, DidLayoutWithPendingSheets, IgnoreLayoutWithPendingSheets };
 
@@ -1253,12 +1249,10 @@ public:
     // Return a Locale for the default locale if the argument is null or empty.
     Locale& getCachedLocale(const AtomicString& locale = nullAtom);
 
-#if ENABLE(TEMPLATE_ELEMENT)
     const Document* templateDocument() const;
     Document& ensureTemplateDocument();
     void setTemplateDocumentHost(Document* templateDocumentHost) { m_templateDocumentHost = templateDocumentHost; }
     Document* templateDocumentHost() { return m_templateDocumentHost; }
-#endif
 
     void didAssociateFormControl(Element*);
     bool hasDisabledFieldsetElement() const { return m_disabledFieldsetElementsCount; }
@@ -1635,7 +1629,7 @@ private:
     Deque<RefPtr<Node>> m_fullScreenErrorEventTargetQueue;
     bool m_isAnimatingFullScreen;
     LayoutRect m_savedPlaceholderFrameRect;
-    RefPtr<RenderStyle> m_savedPlaceholderRenderStyle;
+    std::unique_ptr<RenderStyle> m_savedPlaceholderRenderStyle;
 #endif
 
     HashSet<HTMLPictureElement*> m_viewportDependentPictures;
@@ -1733,10 +1727,8 @@ private:
     typedef HashMap<AtomicString, std::unique_ptr<Locale>> LocaleIdentifierToLocaleMap;
     LocaleIdentifierToLocaleMap m_localeCache;
 
-#if ENABLE(TEMPLATE_ELEMENT)
     RefPtr<Document> m_templateDocument;
     Document* m_templateDocumentHost; // Manually managed weakref (backpointer from m_templateDocument).
-#endif
 
 #if ENABLE(CUSTOM_ELEMENTS)
     std::unique_ptr<CustomElementDefinitions> m_customElementDefinitions;
@@ -1782,7 +1774,7 @@ private:
 #endif
 
 #if ENABLE(INDEXED_DATABASE)
-    std::unique_ptr<IDBClient::IDBConnectionProxy> m_idbConnectionProxy;
+    RefPtr<IDBClient::IDBConnectionProxy> m_idbConnectionProxy;
 #endif
 };
 
@@ -1799,12 +1791,10 @@ inline TextEncoding Document::textEncoding() const
     return TextEncoding();
 }
 
-#if ENABLE(TEMPLATE_ELEMENT)
 inline const Document* Document::templateDocument() const
 {
     return m_templateDocumentHost ? this : m_templateDocument.get();
 }
-#endif
 
 // Put these methods here, because they require the Document definition, but we really want to inline them.
 

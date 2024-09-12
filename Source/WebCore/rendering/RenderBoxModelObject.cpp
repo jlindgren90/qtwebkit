@@ -161,12 +161,12 @@ void RenderBoxModelObject::suspendAnimations(double time)
     layer()->backing()->suspendAnimations(time);
 }
 
-RenderBoxModelObject::RenderBoxModelObject(Element& element, Ref<RenderStyle>&& style, BaseTypeFlags baseTypeFlags)
+RenderBoxModelObject::RenderBoxModelObject(Element& element, RenderStyle&& style, BaseTypeFlags baseTypeFlags)
     : RenderLayerModelObject(element, WTFMove(style), baseTypeFlags | RenderBoxModelObjectFlag)
 {
 }
 
-RenderBoxModelObject::RenderBoxModelObject(Document& document, Ref<RenderStyle>&& style, BaseTypeFlags baseTypeFlags)
+RenderBoxModelObject::RenderBoxModelObject(Document& document, RenderStyle&& style, BaseTypeFlags baseTypeFlags)
     : RenderLayerModelObject(document, WTFMove(style), baseTypeFlags | RenderBoxModelObjectFlag)
 {
 }
@@ -452,7 +452,7 @@ FloatRect RenderBoxModelObject::constrainingRectForStickyPosition() const
         FloatPoint scrollOffset = FloatPoint() + enclosingClippingLayer->scrollOffset();
 
         float scrollbarOffset = 0;
-        if (enclosingClippingBox.hasLayer() && enclosingClippingBox.style().shouldPlaceBlockDirectionScrollbarOnLeft())
+        if (enclosingClippingBox.hasLayer() && enclosingClippingBox.shouldPlaceBlockDirectionScrollbarOnLeft())
             scrollbarOffset = enclosingClippingBox.layer()->verticalScrollbarWidth(IgnoreOverlayScrollbarSize);
 
         constrainingRect.setLocation(FloatPoint(scrollOffset.x() + scrollbarOffset, scrollOffset.y()));
@@ -581,7 +581,7 @@ RoundedRect RenderBoxModelObject::backgroundRoundedRectAdjustedForBleedAvoidance
     return getBackgroundRoundedRect(borderRect, box, boxSize.width(), boxSize.height(), includeLogicalLeftEdge, includeLogicalRightEdge);
 }
 
-static void applyBoxShadowForBackground(GraphicsContext& context, RenderStyle* style)
+static void applyBoxShadowForBackground(GraphicsContext& context, const RenderStyle* style)
 {
     const ShadowData* boxShadow = style->boxShadow();
     while (boxShadow->style() != Normal)
@@ -727,8 +727,7 @@ void RenderBoxModelObject::paintFillLayerExtended(const PaintInfo& paintInfo, co
         context.clip(thisBox.overflowClipRect(rect.location(), currentRenderNamedFlowFragment()));
         
         // Adjust the paint rect to reflect a scrolled content box with borders at the ends.
-        IntSize offset = thisBox.scrolledContentOffset();
-        scrolledPaintRect.move(-offset);
+        scrolledPaintRect.moveBy(-thisBox.scrollPosition());
         scrolledPaintRect.setWidth(bLeft + layer()->scrollWidth() + bRight);
         scrolledPaintRect.setHeight(borderTop() + layer()->scrollHeight() + borderBottom());
     }

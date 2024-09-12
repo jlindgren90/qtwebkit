@@ -98,6 +98,11 @@ void JSDictionary::convertValue(ExecState* exec, JSValue value, int& result)
     result = value.toInt32(exec);
 }
 
+void JSDictionary::convertValue(ExecState* exec, JSValue value, long int& result)
+{
+    result = value.toInt32(exec);
+}
+
 void JSDictionary::convertValue(ExecState* exec, JSValue value, unsigned& result)
 {
     result = value.toUInt32(exec);
@@ -117,6 +122,12 @@ void JSDictionary::convertValue(ExecState* exec, JSValue value, unsigned long lo
 {
     double d = value.toNumber(exec);
     doubleToInteger(d, result);
+}
+
+void JSDictionary::convertValue(ExecState* exec, JSValue value, long long& result)
+{
+    double d = value.toNumber(exec);
+    result = llrint(d);
 }
 
 void JSDictionary::convertValue(ExecState* exec, JSValue value, double& result)
@@ -162,14 +173,14 @@ void JSDictionary::convertValue(ExecState* exec, JSValue value, RefPtr<Serialize
     result = SerializedScriptValue::create(exec, value, 0, 0);
 }
 
-void JSDictionary::convertValue(ExecState*, JSValue value, RefPtr<DOMWindow>& result)
+void JSDictionary::convertValue(ExecState* state, JSValue value, RefPtr<DOMWindow>& result)
 {
-    result = JSDOMWindow::toWrapped(value);
+    result = JSDOMWindow::toWrapped(*state, value);
 }
 
-void JSDictionary::convertValue(ExecState*, JSValue value, RefPtr<EventTarget>& result)
+void JSDictionary::convertValue(ExecState* state, JSValue value, RefPtr<EventTarget>& result)
 {
-    result = JSEventTarget::toWrapped(value);
+    result = JSEventTarget::toWrapped(*state, value);
 }
 
 void JSDictionary::convertValue(ExecState*, JSValue value, RefPtr<Node>& result)

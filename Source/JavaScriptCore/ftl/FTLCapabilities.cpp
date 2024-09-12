@@ -169,6 +169,7 @@ inline CapabilityLevel canCompile(Node* node)
     case TryGetById:
     case GetById:
     case GetByIdFlush:
+    case GetByIdWithThis:
     case ToThis:
     case MultiGetByOffset:
     case MultiPutByOffset:
@@ -179,6 +180,7 @@ inline CapabilityLevel canCompile(Node* node)
     case IsArrayObject:
     case IsJSArray:
     case IsArrayConstructor:
+    case IsEmpty:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -217,6 +219,7 @@ inline CapabilityLevel canCompile(Node* node)
     case PhantomDirectArguments:
     case PhantomClonedArguments:
     case GetMyArgumentByVal:
+    case GetMyArgumentByValOutOfBounds:
     case ForwardVarargs:
     case Switch:
     case TypeOf:
@@ -231,6 +234,7 @@ inline CapabilityLevel canCompile(Node* node)
     case RegExpTest:
     case NewRegexp:
     case StringReplace:
+    case StringReplaceRegExp: 
     case GetRegExpObjectLastIndex:
     case SetRegExpObjectLastIndex:
     case RecordRegExpCachedResult:
@@ -259,6 +263,8 @@ inline CapabilityLevel canCompile(Node* node)
         if (node->child1().useKind() == CellUse)
             break;
         return CannotCompile;
+    case PutByIdWithThis:
+        break;
     case GetIndexedPropertyStorage:
         if (node->arrayMode().type() == Array::String)
             break;
@@ -323,6 +329,8 @@ inline CapabilityLevel canCompile(Node* node)
             return CannotCompile;
         }
         break;
+    case GetByValWithThis:
+        break;
     case PutByVal:
     case PutByValAlias:
     case PutByValDirect:
@@ -338,6 +346,8 @@ inline CapabilityLevel canCompile(Node* node)
                 return CanCompileAndOSREnter;
             return CannotCompile;
         }
+        break;
+    case PutByValWithThis:
         break;
     case ArrayPush:
     case ArrayPop:
@@ -416,6 +426,10 @@ inline CapabilityLevel canCompile(Node* node)
             break;
         if (node->isBinaryUseKind(DoubleRepUse))
             break;
+        if (node->isBinaryUseKind(StringIdentUse))
+            break;
+        if (node->isBinaryUseKind(StringUse))
+            break;
         if (node->isBinaryUseKind(UntypedUse))
             break;
         return CannotCompile;
@@ -437,6 +451,12 @@ CapabilityLevel canCompile(Graph& graph)
     if (graph.m_codeBlock->codeType() != FunctionCode) {
         if (verboseCapabilities())
             dataLog("FTL rejecting ", *graph.m_codeBlock, " because it doesn't belong to a function.\n");
+        return CannotCompile;
+    }
+
+    if (UNLIKELY(graph.m_codeBlock->ownerScriptExecutable()->neverFTLOptimize())) {
+        if (verboseCapabilities())
+            dataLog("FTL rejecting ", *graph.m_codeBlock, " because it is marked as never FTL compile.\n");
         return CannotCompile;
     }
     
@@ -489,8 +509,8 @@ CapabilityLevel canCompile(Graph& graph)
                 case MiscUse:
                 case StringIdentUse:
                 case NotStringVarUse:
-                case MachineIntUse:
-                case DoubleRepMachineIntUse:
+                case AnyIntUse:
+                case DoubleRepAnyIntUse:
                     // These are OK.
                     break;
                 default:

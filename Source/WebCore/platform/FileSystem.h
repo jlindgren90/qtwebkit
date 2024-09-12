@@ -165,6 +165,7 @@ WEBCORE_EXPORT bool getFileModificationTime(const String&, time_t& result);
 WEBCORE_EXPORT bool getFileCreationTime(const String&, time_t& result); // Not all platforms store file creation time.
 bool getFileMetadata(const String&, FileMetadata&);
 WEBCORE_EXPORT String pathByAppendingComponent(const String& path, const String& component);
+String lastComponentOfPathIgnoringTrailingSlash(const String& path);
 WEBCORE_EXPORT bool makeAllDirectories(const String& path);
 String homeDirectoryPath();
 WEBCORE_EXPORT String pathGetFileName(const String&);
@@ -214,6 +215,7 @@ bool unloadModule(PlatformModule);
 
 // Encode a string for use within a file name.
 WEBCORE_EXPORT String encodeForFileName(const String&);
+String decodeFromFilename(const String&);
 
 #if USE(CF)
 RetainPtr<CFURLRef> pathAsURL(const String&);

@@ -217,7 +217,6 @@ VM::VM(VMType vmType, HeapType heapType)
     terminatedExecutionErrorStructure.set(*this, TerminatedExecutionError::createStructure(*this, 0, jsNull()));
     stringStructure.set(*this, JSString::createStructure(*this, 0, jsNull()));
     propertyNameEnumeratorStructure.set(*this, JSPropertyNameEnumerator::createStructure(*this, 0, jsNull()));
-    getterSetterStructure.set(*this, GetterSetter::createStructure(*this, 0, jsNull()));
     customGetterSetterStructure.set(*this, CustomGetterSetter::createStructure(*this, 0, jsNull()));
     scopedArgumentsTableStructure.set(*this, ScopedArgumentsTable::createStructure(*this, 0, jsNull()));
     apiWrapperStructure.set(*this, JSAPIValueWrapper::createStructure(*this, 0, jsNull()));
@@ -475,8 +474,6 @@ static ThunkGenerator thunkGeneratorForIntrinsic(Intrinsic intrinsic)
         return fromCharCodeThunkGenerator;
     case SqrtIntrinsic:
         return sqrtThunkGenerator;
-    case PowIntrinsic:
-        return powThunkGenerator;
     case AbsIntrinsic:
         return absThunkGenerator;
     case FloorIntrinsic:
@@ -495,32 +492,37 @@ static ThunkGenerator thunkGeneratorForIntrinsic(Intrinsic intrinsic)
         return imulThunkGenerator;
     case RandomIntrinsic:
         return randomThunkGenerator;
+    case BoundThisNoArgsFunctionCallIntrinsic:
+        return boundThisNoArgsFunctionCallGenerator;
     default:
-        return 0;
+        return nullptr;
     }
 }
 
-NativeExecutable* VM::getHostFunction(NativeFunction function, NativeFunction constructor, const String& name)
-{
-    return jitStubs->hostFunctionStub(this, function, constructor, name);
-}
-NativeExecutable* VM::getHostFunction(NativeFunction function, Intrinsic intrinsic, const String& name)
-{
-    ASSERT(canUseJIT());
-    return jitStubs->hostFunctionStub(this, function, intrinsic != NoIntrinsic ? thunkGeneratorForIntrinsic(intrinsic) : 0, intrinsic, name);
-}
-
-#else // !ENABLE(JIT)
+#endif // ENABLE(JIT)
 
 NativeExecutable* VM::getHostFunction(NativeFunction function, NativeFunction constructor, const String& name)
 {
+    return getHostFunction(function, NoIntrinsic, constructor, name);
+}
+
+NativeExecutable* VM::getHostFunction(NativeFunction function, Intrinsic intrinsic, NativeFunction constructor, const String& name)
+{
+#if ENABLE(JIT)
+    if (canUseJIT()) {
+        return jitStubs->hostFunctionStub(
+            this, function, constructor,
+            intrinsic != NoIntrinsic ? thunkGeneratorForIntrinsic(intrinsic) : 0,
+            intrinsic, name);
+    }
+#else // ENABLE(JIT)
+    UNUSED_PARAM(intrinsic);
+#endif // ENABLE(JIT)
     return NativeExecutable::create(*this,
         adoptRef(new NativeJITCode(MacroAssemblerCodeRef::createLLIntCodeRef(llint_native_call_trampoline), JITCode::HostCallThunk)), function,
         adoptRef(new NativeJITCode(MacroAssemblerCodeRef::createLLIntCodeRef(llint_native_construct_trampoline), JITCode::HostCallThunk)), constructor,
         NoIntrinsic, name);
 }
-
-#endif // !ENABLE(JIT)
 
 VM::ClientData::~ClientData()
 {

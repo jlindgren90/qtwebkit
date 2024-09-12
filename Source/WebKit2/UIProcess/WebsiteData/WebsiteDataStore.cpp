@@ -78,6 +78,7 @@ WebsiteDataStore::WebsiteDataStore(Configuration configuration)
     , m_sessionID(WebCore::SessionID::defaultSessionID())
     , m_networkCacheDirectory(WTFMove(configuration.networkCacheDirectory))
     , m_applicationCacheDirectory(WTFMove(configuration.applicationCacheDirectory))
+    , m_applicationCacheFlatFileSubdirectoryName(WTFMove(configuration.applicationCacheFlatFileSubdirectoryName))
     , m_mediaCacheDirectory(WTFMove(configuration.mediaCacheDirectory))
     , m_webSQLDatabaseDirectory(WTFMove(configuration.webSQLDatabaseDirectory))
     , m_mediaKeysStorageDirectory(WTFMove(configuration.mediaKeysStorageDirectory))
@@ -260,6 +261,7 @@ void WebsiteDataStore::fetchData(OptionSet<WebsiteDataType> dataTypes, OptionSet
     if (dataTypes.contains(WebsiteDataType::DiskCache)) {
         StringCapture mediaCacheDirectory { m_mediaCacheDirectory };
         
+#if ENABLE(VIDEO)
         callbackAggregator->addPendingCallback();
         m_queue->dispatch([fetchOptions, mediaCacheDirectory, callbackAggregator] {
             HashSet<RefPtr<WebCore::SecurityOrigin>> origins = WebCore::HTMLMediaElement::originsInMediaCache(mediaCacheDirectory.string());
@@ -276,6 +278,7 @@ void WebsiteDataStore::fetchData(OptionSet<WebsiteDataType> dataTypes, OptionSet
                 delete websiteData;
             });
         });
+#endif
     }
 
     auto networkProcessAccessType = computeNetworkProcessAccessTypeForDataFetch(dataTypes, !isPersistent());
@@ -355,11 +358,12 @@ void WebsiteDataStore::fetchData(OptionSet<WebsiteDataType> dataTypes, OptionSet
 
     if (dataTypes.contains(WebsiteDataType::OfflineWebApplicationCache) && isPersistent()) {
         StringCapture applicationCacheDirectory { m_applicationCacheDirectory };
+        StringCapture applicationCacheFlatFileSubdirectoryName { m_applicationCacheFlatFileSubdirectoryName };
 
         callbackAggregator->addPendingCallback();
 
-        m_queue->dispatch([fetchOptions, applicationCacheDirectory, callbackAggregator] {
-            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), "ApplicationCache");
+        m_queue->dispatch([fetchOptions, applicationCacheDirectory, applicationCacheFlatFileSubdirectoryName, callbackAggregator] {
+            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), applicationCacheFlatFileSubdirectoryName.string());
 
             WebsiteData* websiteData = new WebsiteData;
 
@@ -555,6 +559,7 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, std::chr
     if (dataTypes.contains(WebsiteDataType::DiskCache)) {
         StringCapture mediaCacheDirectory { m_mediaCacheDirectory };
 
+#if ENABLE(VIDEO)
         callbackAggregator->addPendingCallback();
         m_queue->dispatch([modifiedSince, mediaCacheDirectory, callbackAggregator] {
             WebCore::HTMLMediaElement::clearMediaCache(mediaCacheDirectory.string(), modifiedSince);
@@ -563,6 +568,7 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, std::chr
                 callbackAggregator->removePendingCallback();
             });
         });
+#endif
     }
 
     auto networkProcessAccessType = computeNetworkProcessAccessTypeForDataRemoval(dataTypes, !isPersistent());
@@ -632,11 +638,12 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, std::chr
 
     if (dataTypes.contains(WebsiteDataType::OfflineWebApplicationCache) && isPersistent()) {
         StringCapture applicationCacheDirectory { m_applicationCacheDirectory };
+        StringCapture applicationCacheFlatFileSubdirectoryName { m_applicationCacheFlatFileSubdirectoryName };
 
         callbackAggregator->addPendingCallback();
 
-        m_queue->dispatch([applicationCacheDirectory, callbackAggregator] {
-            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), "ApplicationCache");
+        m_queue->dispatch([applicationCacheDirectory, applicationCacheFlatFileSubdirectoryName, callbackAggregator] {
+            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), applicationCacheFlatFileSubdirectoryName.string());
 
             storage->deleteAllCaches();
 
@@ -800,6 +807,7 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, const Ve
                 origins.add(origin);
         }
         
+#if ENABLE(VIDEO)
         callbackAggregator->addPendingCallback();
         m_queue->dispatch([origins, mediaCacheDirectory, callbackAggregator] {
             WebCore::HTMLMediaElement::clearMediaCacheForOrigins(mediaCacheDirectory.string(), origins);
@@ -808,6 +816,7 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, const Ve
                 callbackAggregator->removePendingCallback();
             });
         });
+#endif
     }
     
     auto networkProcessAccessType = computeNetworkProcessAccessTypeForDataRemoval(dataTypes, !isPersistent());
@@ -884,6 +893,7 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, const Ve
 
     if (dataTypes.contains(WebsiteDataType::OfflineWebApplicationCache) && isPersistent()) {
         StringCapture applicationCacheDirectory { m_applicationCacheDirectory };
+        StringCapture applicationCacheFlatFileSubdirectoryName { m_applicationCacheFlatFileSubdirectoryName };
 
         HashSet<RefPtr<WebCore::SecurityOrigin>> origins;
         for (const auto& dataRecord : dataRecords) {
@@ -892,8 +902,8 @@ void WebsiteDataStore::removeData(OptionSet<WebsiteDataType> dataTypes, const Ve
         }
 
         callbackAggregator->addPendingCallback();
-        m_queue->dispatch([origins, applicationCacheDirectory, callbackAggregator] {
-            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), "ApplicationCache");
+        m_queue->dispatch([origins, applicationCacheDirectory, applicationCacheFlatFileSubdirectoryName, callbackAggregator] {
+            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), applicationCacheFlatFileSubdirectoryName.string());
 
             for (const auto& origin : origins)
                 storage->deleteCacheForOrigin(*origin);

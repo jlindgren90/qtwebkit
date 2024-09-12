@@ -398,56 +398,40 @@ Element* Node::nextElementSibling() const
     return ElementTraversal::nextSibling(*this);
 }
 
-bool Node::insertBefore(PassRefPtr<Node> newChild, Node* refChild, ExceptionCode& ec)
+bool Node::insertBefore(Node& newChild, Node* refChild, ExceptionCode& ec)
 {
-    if (!newChild) {
-        ec = TypeError;
-        return false;
-    }
     if (!is<ContainerNode>(*this)) {
         ec = HIERARCHY_REQUEST_ERR;
         return false;
     }
-    return downcast<ContainerNode>(*this).insertBefore(*newChild, refChild, ec);
+    return downcast<ContainerNode>(*this).insertBefore(newChild, refChild, ec);
 }
 
-bool Node::replaceChild(PassRefPtr<Node> newChild, Node* oldChild, ExceptionCode& ec)
+bool Node::replaceChild(Node& newChild, Node& oldChild, ExceptionCode& ec)
 {
-    if (!newChild || !oldChild) {
-        ec = TypeError;
-        return false;
-    }
     if (!is<ContainerNode>(*this)) {
         ec = HIERARCHY_REQUEST_ERR;
         return false;
     }
-    return downcast<ContainerNode>(*this).replaceChild(*newChild, *oldChild, ec);
+    return downcast<ContainerNode>(*this).replaceChild(newChild, oldChild, ec);
 }
 
-bool Node::removeChild(Node* oldChild, ExceptionCode& ec)
+bool Node::removeChild(Node& oldChild, ExceptionCode& ec)
 {
-    if (!oldChild) {
-        ec = TypeError;
-        return false;
-    }
     if (!is<ContainerNode>(*this)) {
         ec = NOT_FOUND_ERR;
         return false;
     }
-    return downcast<ContainerNode>(*this).removeChild(*oldChild, ec);
+    return downcast<ContainerNode>(*this).removeChild(oldChild, ec);
 }
 
-bool Node::appendChild(PassRefPtr<Node> newChild, ExceptionCode& ec)
+bool Node::appendChild(Node& newChild, ExceptionCode& ec)
 {
-    if (!newChild) {
-        ec = TypeError;
-        return false;
-    }
     if (!is<ContainerNode>(*this)) {
         ec = HIERARCHY_REQUEST_ERR;
         return false;
     }
-    return downcast<ContainerNode>(*this).appendChild(*newChild, ec);
+    return downcast<ContainerNode>(*this).appendChild(newChild, ec);
 }
 
 static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const Vector<NodeOrString>& nodeOrStringVector)
@@ -502,7 +486,7 @@ void Node::before(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
     else
         viablePreviousSibling = parent->firstChild();
 
-    parent->insertBefore(node.releaseNonNull(), viablePreviousSibling.get(), ec);
+    parent->insertBefore(*node, viablePreviousSibling.get(), ec);
 }
 
 void Node::after(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
@@ -518,7 +502,7 @@ void Node::after(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
     if (ec || !node)
         return;
 
-    parent->insertBefore(node.releaseNonNull(), viableNextSibling.get(), ec);
+    parent->insertBefore(*node, viableNextSibling.get(), ec);
 }
 
 void Node::replaceWith(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
@@ -536,11 +520,11 @@ void Node::replaceWith(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode&
 
     if (parentNode() == parent) {
         if (node)
-            parent->replaceChild(node.releaseNonNull(), *this, ec);
+            parent->replaceChild(*node, *this, ec);
         else
             parent->removeChild(*this);
     } else if (node)
-        parent->insertBefore(node.releaseNonNull(), viableNextSibling.get(), ec);
+        parent->insertBefore(*node, viableNextSibling.get(), ec);
 }
 
 void Node::remove(ExceptionCode& ec)
@@ -659,7 +643,7 @@ static Node::Editability computeEditabilityFromComputedStyle(const Node& startNo
     // would fire in the middle of Document::setFocusedElement().
 
     for (const Node* node = &startNode; node; node = node->parentNode()) {
-        RenderStyle* style = node->isDocumentNode() ? node->renderStyle() : const_cast<Node*>(node)->computedStyle();
+        auto* style = node->isDocumentNode() ? node->renderStyle() : const_cast<Node*>(node)->computedStyle();
         if (!style)
             continue;
         if (style->display() == NONE)
@@ -937,7 +921,6 @@ bool Node::containsIncludingShadowDOM(const Node* node) const
 
 bool Node::containsIncludingHostElements(const Node* node) const
 {
-#if ENABLE(TEMPLATE_ELEMENT)
     while (node) {
         if (node == this)
             return true;
@@ -947,9 +930,65 @@ bool Node::containsIncludingHostElements(const Node* node) const
             node = node->parentOrShadowHostNode();
     }
     return false;
-#else
-    return containsIncludingShadowDOM(node);
-#endif
+}
+
+static inline Node* ancestor(Node* node, unsigned depth)
+{
+    for (unsigned i = 0; i < depth; ++i)
+        node = node->parentNode();
+    return node;
+}
+
+Node* commonAncestor(Node& thisNode, Node& otherNode)
+{
+    unsigned thisDepth = 0;
+    for (auto node = &thisNode; node; node = node->parentNode()) {
+        if (node == &otherNode)
+            return node;
+        thisDepth++;
+    }
+    unsigned otherDepth = 0;
+    for (auto node = &otherNode; node; node = node->parentNode()) {
+        if (node == &thisNode)
+            return &thisNode;
+        otherDepth++;
+    }
+
+    Node* thisAncestor = &thisNode;
+    Node* otherAncestor = &otherNode;
+    if (thisDepth > otherDepth)
+        thisAncestor = ancestor(thisAncestor, thisDepth - otherDepth);
+    else if (otherDepth > thisDepth)
+        otherAncestor = ancestor(otherAncestor, otherDepth - thisDepth);
+
+    for (; thisAncestor; thisAncestor = thisAncestor->parentNode()) {
+        if (thisAncestor == otherAncestor)
+            return thisAncestor;
+        otherAncestor = otherAncestor->parentNode();
+    }
+    ASSERT(!otherAncestor);
+    return nullptr;
+}
+
+Node* commonAncestorCrossingShadowBoundary(Node& node, Node& other)
+{
+    if (&node == &other)
+        return &node;
+
+    Element* shadowHost = node.shadowHost();
+    // FIXME: This test might be wrong for user-authored shadow trees.
+    if (shadowHost && shadowHost == other.shadowHost())
+        return shadowHost;
+
+    TreeScope* scope = commonTreeScope(&node, &other);
+    if (!scope)
+        return nullptr;
+
+    Node* parentNode = scope->ancestorInThisScope(&node);
+    ASSERT(parentNode);
+    Node* parentOther = scope->ancestorInThisScope(&other);
+    ASSERT(parentOther);
+    return commonAncestor(*parentNode, *parentOther);
 }
 
 Node* Node::pseudoAwarePreviousSibling() const
@@ -1006,7 +1045,7 @@ Node* Node::pseudoAwareLastChild() const
     return lastChild();
 }
 
-RenderStyle* Node::computedStyle(PseudoId pseudoElementSpecifier)
+const RenderStyle* Node::computedStyle(PseudoId pseudoElementSpecifier)
 {
     auto* composedParent = composedTreeAncestors(*this).first();
     if (!composedParent)
@@ -1056,6 +1095,28 @@ ShadowRoot* Node::containingShadowRoot() const
 {
     ContainerNode& root = treeScope().rootNode();
     return is<ShadowRoot>(root) ? downcast<ShadowRoot>(&root) : nullptr;
+}
+
+// http://w3c.github.io/webcomponents/spec/shadow/#dfn-unclosed-node
+bool Node::isUnclosedNode(const Node& otherNode) const
+{
+    // Use Vector instead of HashSet since we expect the number of ancestor tree scopes to be small.
+    Vector<TreeScope*, 8> ancestorScopesOfThisNode;
+
+    for (auto* scope = &treeScope(); scope; scope = scope->parentTreeScope())
+        ancestorScopesOfThisNode.append(scope);
+
+    for (auto* treeScopeThatCanAccessOtherNode = &otherNode.treeScope(); treeScopeThatCanAccessOtherNode; treeScopeThatCanAccessOtherNode = treeScopeThatCanAccessOtherNode->parentTreeScope()) {
+        for (auto* scope : ancestorScopesOfThisNode) {
+            if (scope == treeScopeThatCanAccessOtherNode)
+                return true; // treeScopeThatCanAccessOtherNode is a shadow-including inclusive ancestor of this node.
+        }
+        auto& root = treeScopeThatCanAccessOtherNode->rootNode();
+        if (is<ShadowRoot>(root) && downcast<ShadowRoot>(root).type() != ShadowRoot::Type::Open)
+            break;
+    }
+
+    return false;
 }
 
 #if ENABLE(SHADOW_DOM)
@@ -2326,7 +2387,7 @@ void Node::removedLastRef()
 void Node::textRects(Vector<IntRect>& rects) const
 {
     RefPtr<Range> range = Range::create(document());
-    range->selectNodeContents(const_cast<Node*>(this), IGNORE_EXCEPTION);
+    range->selectNodeContents(const_cast<Node&>(*this), IGNORE_EXCEPTION);
     range->absoluteTextRects(rects);
 }
 

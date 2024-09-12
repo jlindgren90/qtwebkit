@@ -424,6 +424,27 @@ Object.defineProperty(DocumentFragment.prototype, "createChild",
     value: Element.prototype.createChild
 });
 
+Object.defineProperty(Array, "shallowEqual",
+{
+    value: function(a, b)
+    {
+        if (a === b)
+            return true;
+
+        let length = a.length;
+
+        if (length !== b.length)
+            return false;
+
+        for (var i = 0; i < length; ++i) {
+            if (a[i] !== b[i])
+                return false;
+        }
+
+        return true;
+    }
+});
+
 Object.defineProperty(Array.prototype, "lastValue",
 {
     get: function()
@@ -1256,7 +1277,16 @@ Object.defineProperty(Array.prototype, "binaryIndexOf",
 
 function appendWebInspectorSourceURL(string)
 {
+    if (string.includes("//# sourceURL"))
+        return string;
     return "\n//# sourceURL=__WebInspectorInternal__\n" + string;
+}
+
+function appendWebInspectorConsoleEvaluationSourceURL(string)
+{
+    if (string.includes("//# sourceURL"))
+        return string;
+    return "\n//# sourceURL=__WebInspectorConsoleEvaluation__\n" + string;
 }
 
 function isWebInspectorInternalScript(url)
@@ -1264,8 +1294,15 @@ function isWebInspectorInternalScript(url)
     return url === "__WebInspectorInternal__";
 }
 
+function isWebInspectorConsoleEvaluationScript(url)
+{
+    return url === "__WebInspectorConsoleEvaluation__";
+}
+
 function isWebKitInternalScript(url)
 {
+    if (isWebInspectorConsoleEvaluationScript(url))
+        return false;
     return url && url.startsWith("__Web") && url.endsWith("__");
 }
 

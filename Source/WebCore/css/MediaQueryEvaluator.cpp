@@ -75,21 +75,17 @@ static FunctionMap* gFunctionMap;
  */
 
 MediaQueryEvaluator::MediaQueryEvaluator(bool mediaFeatureResult)
-    : m_frame(0)
-    , m_style(0)
-    , m_expResult(mediaFeatureResult)
+    : m_expResult(mediaFeatureResult)
 {
 }
 
 MediaQueryEvaluator::MediaQueryEvaluator(const String& acceptedMediaType, bool mediaFeatureResult)
     : m_mediaType(acceptedMediaType)
-    , m_frame(0)
-    , m_style(0)
     , m_expResult(mediaFeatureResult)
 {
 }
 
-MediaQueryEvaluator::MediaQueryEvaluator(const String& acceptedMediaType, Frame* frame, RenderStyle* style)
+MediaQueryEvaluator::MediaQueryEvaluator(const String& acceptedMediaType, Frame* frame, const RenderStyle* style)
     : m_mediaType(acceptedMediaType)
     , m_frame(frame)
     , m_style(style)
@@ -725,14 +721,12 @@ static bool any_pointerMediaFeatureEval(CSSValue* value, const CSSToLengthConver
     return pointerMediaFeatureEval(value, cssToLengthConversionData, frame, prefix);
 }
 
-// FIXME: Remove unnecessary '&' from the following 'ADD_TO_FUNCTIONMAP' definition
-// once we switch to a non-broken Visual Studio compiler.  https://bugs.webkit.org/show_bug.cgi?id=121235
 static void createFunctionMap()
 {
     // Create the table.
     gFunctionMap = new FunctionMap;
 #define ADD_TO_FUNCTIONMAP(name, str)  \
-    gFunctionMap->set(name##MediaFeature.impl(), &name##MediaFeatureEval);
+    gFunctionMap->set(name##MediaFeature.impl(), name##MediaFeatureEval);
     CSS_MEDIAQUERY_NAMES_FOR_EACH_MEDIAFEATURE(ADD_TO_FUNCTIONMAP);
 #undef ADD_TO_FUNCTIONMAP
 }
@@ -753,7 +747,7 @@ bool MediaQueryEvaluator::eval(const MediaQueryExp* expr) const
     // used
     EvalFunc func = gFunctionMap->get(expr->mediaFeature().impl());
     if (func) {
-        CSSToLengthConversionData conversionData(m_style.get(),
+        CSSToLengthConversionData conversionData(m_style,
             m_frame->document()->documentElement()->renderStyle(),
             m_frame->document()->renderView(), 1, false);
         return func(expr->value(), conversionData, m_frame, NoPrefix);

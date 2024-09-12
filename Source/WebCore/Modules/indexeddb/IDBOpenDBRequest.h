@@ -36,8 +36,8 @@ class IDBResultData;
 
 class IDBOpenDBRequest final : public IDBRequest {
 public:
-    static RefPtr<IDBOpenDBRequest> maybeCreateDeleteRequest(ScriptExecutionContext&, const IDBDatabaseIdentifier&);
-    static RefPtr<IDBOpenDBRequest> maybeCreateOpenRequest(ScriptExecutionContext&, const IDBDatabaseIdentifier&, uint64_t version);
+    static Ref<IDBOpenDBRequest> createDeleteRequest(ScriptExecutionContext&, IDBClient::IDBConnectionProxy&, const IDBDatabaseIdentifier&);
+    static Ref<IDBOpenDBRequest> createOpenRequest(ScriptExecutionContext&, IDBClient::IDBConnectionProxy&, const IDBDatabaseIdentifier&, uint64_t version);
 
     virtual ~IDBOpenDBRequest();
     
@@ -52,9 +52,11 @@ public:
     void fireErrorAfterVersionChangeCompletion();
 
 private:
-    IDBOpenDBRequest(ScriptExecutionContext&, uint64_t serverConnectionIdentifier, const IDBDatabaseIdentifier&, uint64_t version, IndexedDB::RequestType);
+    IDBOpenDBRequest(ScriptExecutionContext&, IDBClient::IDBConnectionProxy&, const IDBDatabaseIdentifier&, uint64_t version, IndexedDB::RequestType);
 
     bool dispatchEvent(Event&) final;
+
+    void cancelForStop() final;
 
     void onError(const IDBResultData&);
     void onSuccess(const IDBResultData&);

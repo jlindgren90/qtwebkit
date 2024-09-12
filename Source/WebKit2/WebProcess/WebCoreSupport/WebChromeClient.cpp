@@ -668,7 +668,7 @@ void WebChromeClient::reachedApplicationCacheOriginQuota(SecurityOrigin* origin,
     if (m_page->injectedBundleUIClient().didReachApplicationCacheOriginQuota(m_page, securityOrigin.get(), totalBytesNeeded))
         return;
 
-    auto& cacheStorage = ApplicationCacheStorage::singleton();
+    auto& cacheStorage = m_page->corePage()->applicationCacheStorage();
     int64_t currentQuota = 0;
     if (!cacheStorage.calculateQuotaForOrigin(origin, currentQuota))
         return;
@@ -850,7 +850,7 @@ PassRefPtr<ScrollingCoordinator> WebChromeClient::createScrollingCoordinator(Pag
 }
 #endif
 
-#if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
+#if (PLATFORM(IOS) && HAVE(AVKIT)) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
 bool WebChromeClient::supportsVideoFullscreen(WebCore::HTMLMediaElementEnums::VideoFullscreenMode mode)
 {
     return m_page->videoFullscreenManager().supportsVideoFullscreen(mode);

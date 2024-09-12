@@ -126,7 +126,6 @@ my (
     $resourceTimingSupport,
     $samplingProfilerSupport,
     $scriptedSpeechSupport,
-    $seccompFiltersSupport,
     $shadowDOMSupport,
     $streamsAPISupport,
     $styleScopedSupport,
@@ -252,7 +251,7 @@ my @features = (
       define => "ENABLE_DOM4_EVENTS_CONSTRUCTOR", default => (isAppleWebKit() || isGtk() || isEfl() || isQt()), value => \$dom4EventsConstructor },
 
     { option => "download-attribute", desc => "Toggle Download Attribute support",
-      define => "ENABLE_DOWNLOAD_ATTRIBUTE", default => (isEfl() || isQt()), value => \$downloadAttributeSupport },
+      define => "ENABLE_DOWNLOAD_ATTRIBUTE", default => (isEfl() || isGtk() || isQt()), value => \$downloadAttributeSupport },
 
     { option => "fetch-api", desc => "Toggle Fetch API support",
       define => "ENABLE_FETCH_API", default => 1, value => \$fetchAPISupport },
@@ -279,7 +278,7 @@ my @features = (
       define => "ENABLE_ICONDATABASE", default => !isIOSWebKit(), value => \$icondatabaseSupport },
 
     { option => "indexed-database", desc => "Toggle Indexed Database support",
-      define => "ENABLE_INDEXED_DATABASE", default => (isEfl() || isGtk() || isQt()), value => \$indexedDatabaseSupport },
+      define => "ENABLE_INDEXED_DATABASE", default => (isAppleMacWebKit() || isEfl() || isGtk() || isQt()), value => \$indexedDatabaseSupport },
 
     { option => "input-speech", desc => "Toggle Input Speech support",
       define => "ENABLE_INPUT_SPEECH", default => 0, value => \$inputSpeechSupport },
@@ -389,9 +388,6 @@ my @features = (
     { option => "request-animation-frame", desc => "Toggle Request Animation Frame support",
       define => "ENABLE_REQUEST_ANIMATION_FRAME", default => 1, value => \$requestAnimationFrameSupport },
 
-    { option => "seccomp-filters", desc => "Toggle Seccomp Filter sandbox",
-      define => "ENABLE_SECCOMP_FILTERS", default => 0, value => \$seccompFiltersSupport },
-
     { option => "scripted-speech", desc => "Toggle Scripted Speech support",
       define => "ENABLE_SCRIPTED_SPEECH", default => 0, value => \$scriptedSpeechSupport },
 
@@ -409,9 +405,6 @@ my @features = (
 
     { option => "system-malloc", desc => "Toggle system allocator instead of bmalloc",
       define => "USE_SYSTEM_MALLOC", default => 0, value => \$systemMallocSupport },
-
-    { option => "template-element", desc => "Toggle HTMLTemplateElement support",
-      define => "ENABLE_TEMPLATE_ELEMENT", default => 1, value => \$templateElementSupport },
 
     { option => "threaded-compositor", desc => "Toggle threaded compositor support",
       define => "ENABLE_THREADED_COMPOSITOR", default => 0, value => \$threadedCompositorSupport },

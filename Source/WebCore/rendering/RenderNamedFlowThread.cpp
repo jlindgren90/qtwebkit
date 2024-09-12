@@ -46,7 +46,7 @@
 
 namespace WebCore {
 
-RenderNamedFlowThread::RenderNamedFlowThread(Document& document, Ref<RenderStyle>&& style, Ref<WebKitNamedFlow>&& namedFlow)
+RenderNamedFlowThread::RenderNamedFlowThread(Document& document, RenderStyle&& style, Ref<WebKitNamedFlow>&& namedFlow)
     : RenderFlowThread(document, WTFMove(style))
     , m_hasRegionsWithStyling(false)
     , m_dispatchRegionOversetChangeEvent(false)
@@ -92,8 +92,8 @@ void RenderNamedFlowThread::updateWritingMode()
         return;
 
     // The first region defines the principal writing mode for the entire flow.
-    auto newStyle = RenderStyle::clone(&style());
-    newStyle.get().setWritingMode(firstFragment->style().writingMode());
+    auto newStyle = RenderStyle::clone(style());
+    newStyle.setWritingMode(firstFragment->style().writingMode());
     setStyle(WTFMove(newStyle));
 }
 
@@ -296,26 +296,26 @@ LayoutRect RenderNamedFlowThread::decorationsClipRectForBoxInNamedFlowFragment(c
     flipForWritingModeLocalCoordinates(visualOverflowRect);
 
     // Take the scrolled offset of this object's parents into consideration.
-    IntSize scrolledContentOffset;
+    ScrollPosition scrollPosition;
     RenderBlock* containingBlock = box.containingBlock();
     while (containingBlock && !is<RenderView>(*containingBlock)) {
         if (containingBlock->isRenderNamedFlowThread()) {
             // We've reached the flow thread, take the scrolled offset of the region into consideration.
             ASSERT(containingBlock == this);
-            scrolledContentOffset += fragment.fragmentContainer().scrolledContentOffset();
+            scrollPosition += toIntSize(fragment.fragmentContainer().scrollPosition());
             break;
         }
         
-        scrolledContentOffset += containingBlock->scrolledContentOffset();
+        scrollPosition += toIntSize(containingBlock->scrollPosition());
         containingBlock = containingBlock->containingBlock();
     }
 
-    if (!scrolledContentOffset.isZero()) {
+    if (!scrollPosition.isZero()) {
         if (style().isFlippedBlocksWritingMode())
-            scrolledContentOffset = -scrolledContentOffset;
+            scrollPosition = -scrollPosition;
         
-        visualOverflowRect.inflateX(scrolledContentOffset.width());
-        visualOverflowRect.inflateY(scrolledContentOffset.height());
+        visualOverflowRect.inflateX(scrollPosition.x());
+        visualOverflowRect.inflateY(scrollPosition.y());
     }
     
     // Layers are in physical coordinates so the origin must be moved to the physical top-left of the flowthread.
@@ -694,8 +694,8 @@ void RenderNamedFlowThread::getRanges(Vector<RefPtr<Range>>& rangeObjects, const
             if (!boxIntersectsRegion(logicalTopForRenderer, logicalBottomForRenderer, logicalTopForRegion, logicalBottomForRegion)) {
                 if (foundStartPosition) {
                     if (!startsAboveRegion) {
-                        if (range->intersectsNode(node, IGNORE_EXCEPTION))
-                            range->setEndBefore(node, IGNORE_EXCEPTION);
+                        if (range->intersectsNode(*node, IGNORE_EXCEPTION))
+                            range->setEndBefore(*node, IGNORE_EXCEPTION);
                         rangeObjects.append(range->cloneRange());
                         range = Range::create(contentElement->document());
                         startsAboveRegion = true;
@@ -703,7 +703,7 @@ void RenderNamedFlowThread::getRanges(Vector<RefPtr<Range>>& rangeObjects, const
                         skipOverOutsideNodes = true;
                 }
                 if (skipOverOutsideNodes)
-                    range->setStartAfter(node, IGNORE_EXCEPTION);
+                    range->setStartAfter(*node, IGNORE_EXCEPTION);
                 foundStartPosition = false;
                 continue;
             }
@@ -733,7 +733,7 @@ void RenderNamedFlowThread::getRanges(Vector<RefPtr<Range>>& rangeObjects, const
                 // the range is closed.
                 if (startsAboveRegion) {
                     startsAboveRegion = false;
-                    range->setStartBefore(node, IGNORE_EXCEPTION);
+                    range->setStartBefore(*node, IGNORE_EXCEPTION);
                 }
             }
             skipOverOutsideNodes  = false;
@@ -770,7 +770,7 @@ void RenderNamedFlowThread::getRanges(Vector<RefPtr<Range>>& rangeObjects, const
                 // for elements that ends inside the region, set the end position to be after them
                 // allow this end position to be changed only by other elements that are not descendants of the current end node
                 if (endsBelowRegion || (!endsBelowRegion && !node->isDescendantOf(lastEndNode))) {
-                    range->setEndAfter(node, IGNORE_EXCEPTION);
+                    range->setEndAfter(*node, IGNORE_EXCEPTION);
                     endsBelowRegion = false;
                     lastEndNode = node;
                 }

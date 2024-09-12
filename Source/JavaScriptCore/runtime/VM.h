@@ -288,7 +288,6 @@ public:
     Strong<Structure> stringStructure;
     Strong<Structure> propertyNameIteratorStructure;
     Strong<Structure> propertyNameEnumeratorStructure;
-    Strong<Structure> getterSetterStructure;
     Strong<Structure> customGetterSetterStructure;
     Strong<Structure> scopedArgumentsTableStructure;
     Strong<Structure> apiWrapperStructure;
@@ -399,7 +398,6 @@ public:
     {
         return jitStubs->ctiStub(this, generator);
     }
-    NativeExecutable* getHostFunction(NativeFunction, Intrinsic, const String& name);
     
     std::unique_ptr<RegisterAtOffsetList> allCalleeSaveRegisterOffsets;
     
@@ -411,6 +409,7 @@ public:
     std::unique_ptr<FTL::Thunks> ftlThunks;
 #endif
     NativeExecutable* getHostFunction(NativeFunction, NativeFunction constructor, const String& name);
+    NativeExecutable* getHostFunction(NativeFunction, Intrinsic intrinsic, NativeFunction constructor, const String& name);
 
     static ptrdiff_t exceptionOffset()
     {
@@ -602,6 +601,8 @@ public:
 
     JS_EXPORT_PRIVATE void queueMicrotask(JSGlobalObject*, PassRefPtr<Microtask>);
     JS_EXPORT_PRIVATE void drainMicrotasks();
+    JS_EXPORT_PRIVATE void setGlobalConstRedeclarationShouldThrow(bool globalConstRedeclarationThrow) { m_globalConstRedeclarationShouldThrow = globalConstRedeclarationThrow; }
+    ALWAYS_INLINE bool globalConstRedeclarationShouldThrow() const { return m_globalConstRedeclarationShouldThrow; }
 
     inline bool shouldTriggerTermination(ExecState*);
 
@@ -611,6 +612,9 @@ public:
     BytecodeIntrinsicRegistry& bytecodeIntrinsicRegistry() { return *m_bytecodeIntrinsicRegistry; }
     
     ShadowChicken& shadowChicken() { return *m_shadowChicken; }
+    
+    template<typename Func>
+    void logEvent(CodeBlock*, const char* summary, const Func& func);
 
 private:
     friend class LLIntOffsetsExtractor;
@@ -662,6 +666,7 @@ private:
     Exception* m_lastException { nullptr };
     bool m_failNextNewCodeBlock { false };
     bool m_inDefineOwnProperty;
+    bool m_globalConstRedeclarationShouldThrow { true };
     bool m_shouldBuildPCToCodeOriginMapping { false };
     std::unique_ptr<CodeCache> m_codeCache;
     LegacyProfiler* m_enabledProfiler;

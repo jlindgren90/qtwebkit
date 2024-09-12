@@ -127,7 +127,6 @@ enum AccessibilityRole {
     DocumentArticleRole,
     DocumentMathRole,
     DocumentNoteRole,
-    DocumentRegionRole,            
     DrawerRole,
     EditableTextRole,
     FooterRole,
@@ -151,6 +150,7 @@ enum AccessibilityRole {
     LandmarkContentInfoRole,
     LandmarkMainRole,
     LandmarkNavigationRole,
+    LandmarkRegionRole,
     LandmarkSearchRole,
     LegendRole,
     LinkRole,
@@ -556,6 +556,8 @@ public:
     bool isSplitter() const { return roleValue() == SplitterRole; }
     bool isToolbar() const { return roleValue() == ToolbarRole; }
     bool isStyleFormatGroup() const;
+    bool isSubscriptStyleGroup() const;
+    bool isSuperscriptStyleGroup() const;
     
     virtual bool isChecked() const { return false; }
     virtual bool isEnabled() const { return false; }

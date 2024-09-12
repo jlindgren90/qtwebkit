@@ -140,6 +140,7 @@ private:
     _mediaDataLoadsAutomatically = NO;
 #else
     _mediaDataLoadsAutomatically = YES;
+    _userInterfaceDirectionPolicy = WKUserInterfaceDirectionPolicyContent;
 #endif
     _requiresUserActionForVideoPlayback = NO;
     _requiresUserActionForAudioPlayback = NO;
@@ -197,13 +198,15 @@ private:
     [coder encodeBool:self.suppressesIncrementalRendering forKey:@"suppressesIncrementalRendering"];
     [coder encodeObject:self.applicationNameForUserAgent forKey:@"applicationNameForUserAgent"];
     [coder encodeBool:self.allowsAirPlayForMediaPlayback forKey:@"allowsAirPlayForMediaPlayback"];
-    [coder encodeInteger:self.dataDetectorTypes forKey:@"dataDetectorTypes"];
 
 #if PLATFORM(IOS)
+    [coder encodeInteger:self.dataDetectorTypes forKey:@"dataDetectorTypes"];
     [coder encodeBool:self.allowsInlineMediaPlayback forKey:@"allowsInlineMediaPlayback"];
     [coder encodeBool:self.requiresUserActionForMediaPlayback forKey:@"requiresUserActionForMediaPlayback"];
     [coder encodeInteger:self.selectionGranularity forKey:@"selectionGranularity"];
     [coder encodeBool:self.allowsPictureInPictureMediaPlayback forKey:@"allowsPictureInPictureMediaPlayback"];
+#else
+    [coder encodeInteger:self.userInterfaceDirectionPolicy forKey:@"userInterfaceDirectionPolicy"];
 #endif
 }
 
@@ -220,13 +223,17 @@ private:
     self.suppressesIncrementalRendering = [coder decodeBoolForKey:@"suppressesIncrementalRendering"];
     self.applicationNameForUserAgent = [coder decodeObjectForKey:@"applicationNameForUserAgent"];
     self.allowsAirPlayForMediaPlayback = [coder decodeBoolForKey:@"allowsAirPlayForMediaPlayback"];
-    self.dataDetectorTypes = [coder decodeIntegerForKey:@"dataDetectorTypes"];
 
 #if PLATFORM(IOS)
+    self.dataDetectorTypes = [coder decodeIntegerForKey:@"dataDetectorTypes"];
     self.allowsInlineMediaPlayback = [coder decodeBoolForKey:@"allowsInlineMediaPlayback"];
     self.requiresUserActionForMediaPlayback = [coder decodeBoolForKey:@"requiresUserActionForMediaPlayback"];
     self.selectionGranularity = static_cast<WKSelectionGranularity>([coder decodeIntegerForKey:@"selectionGranularity"]);
     self.allowsPictureInPictureMediaPlayback = [coder decodeBoolForKey:@"allowsPictureInPictureMediaPlayback"];
+#else
+    auto userInterfaceDirectionPolicyCandidate = static_cast<WKUserInterfaceDirectionPolicy>([coder decodeIntegerForKey:@"userInterfaceDirectionPolicy"]);
+    if (userInterfaceDirectionPolicyCandidate == WKUserInterfaceDirectionPolicyContent || userInterfaceDirectionPolicyCandidate == WKUserInterfaceDirectionPolicySystem)
+        self.userInterfaceDirectionPolicy = userInterfaceDirectionPolicyCandidate;
 #endif
 
     return self;
@@ -275,11 +282,12 @@ private:
     configuration->_selectionGranularity = self->_selectionGranularity;
 #endif
 #if PLATFORM(MAC)
+    configuration->_userInterfaceDirectionPolicy = self->_userInterfaceDirectionPolicy;
     configuration->_showsURLsInToolTips = self->_showsURLsInToolTips;
     configuration->_serviceControlsEnabled = self->_serviceControlsEnabled;
     configuration->_imageControlsEnabled = self->_imageControlsEnabled;
 #endif
-#if ENABLE(DATA_DETECTION)
+#if ENABLE(DATA_DETECTION) && PLATFORM(IOS)
     configuration->_dataDetectorTypes = self->_dataDetectorTypes;
 #endif
 #if ENABLE(WIRELESS_TARGET_PLAYBACK)

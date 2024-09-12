@@ -159,7 +159,7 @@ bool MediaElementSession::playbackPermitted(const HTMLMediaElement& element) con
         return false;
     }
 
-    if (m_restrictions & RequireUserGestureForAudioRateChange && (!element.isVideo() || element.hasAudio()) && !ScriptController::processingUserGestureForMedia()) {
+    if (m_restrictions & RequireUserGestureForAudioRateChange && (!element.isVideo() || element.hasAudio()) && !element.muted() && !ScriptController::processingUserGestureForMedia()) {
         LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of audio rate change restriction");
         return false;
     }
@@ -511,9 +511,13 @@ static bool isMainContent(const HTMLMediaElement& element)
         return false;
 
     // Elements which are hidden by style, or have been scrolled out of view, cannot be main content.
+    // But elements which have audio & video and are already playing should not stop playing because
+    // they are scrolled off the page.
     if (renderer->style().visibility() != VISIBLE
-        || renderer->visibleInViewportState() != RenderElement::VisibleInViewport)
+        || (renderer->visibleInViewportState() != RenderElement::VisibleInViewport && !element.isPlaying())
+        ) {
         return false;
+    }
 
     // Main content elements must be in the main frame.
     Document& document = element.document();
@@ -530,7 +534,7 @@ static bool isMainContent(const HTMLMediaElement& element)
     IntRect rectRelativeToView = element.clientRect();
     ScrollPosition scrollPosition = mainFrame.view()->documentScrollPositionRelativeToViewOrigin();
     IntRect rectRelativeToTopDocument(rectRelativeToView.location() + scrollPosition, rectRelativeToView.size());
-    HitTestRequest request(HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::AllowChildFrameContent | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowShadowContent);
+    HitTestRequest request(HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::AllowChildFrameContent | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowUserAgentShadowContent);
     HitTestResult result(rectRelativeToTopDocument.center());
 
     // Elements which are obscured by other elements cannot be main content.

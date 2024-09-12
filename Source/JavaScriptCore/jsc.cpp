@@ -29,7 +29,6 @@
 #include "CodeBlock.h"
 #include "Completion.h"
 #include "CopiedSpaceInlines.h"
-#include "DFGPlan.h"
 #include "Disassembler.h"
 #include "Exception.h"
 #include "ExceptionHelpers.h"
@@ -39,6 +38,7 @@
 #include "HeapStatistics.h"
 #include "InitializeThreading.h"
 #include "Interpreter.h"
+#include "JIT.h"
 #include "JSArray.h"
 #include "JSArrayBuffer.h"
 #include "JSCInlines.h"
@@ -591,6 +591,7 @@ static EncodedJSValue JSC_HOST_CALL functionReadline(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionPreciseTime(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionNeverInlineFunction(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionNoDFG(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionNoFTL(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionOptimizeNextInvocation(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionNumberOfDFGCompiles(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionReoptimizationRetryCount(ExecState*);
@@ -634,6 +635,7 @@ static EncodedJSValue JSC_HOST_CALL functionClearSamplingFlags(ExecState*);
 #endif
 
 static EncodedJSValue JSC_HOST_CALL functionShadowChickenFunctionsOnStack(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionSetGlobalConstRedeclarationShouldNotThrow(ExecState*);
 
 struct Script {
     bool isFile;
@@ -767,6 +769,7 @@ protected:
         addFunction(vm, "neverInlineFunction", functionNeverInlineFunction, 1);
         addFunction(vm, "noInline", functionNeverInlineFunction, 1);
         addFunction(vm, "noDFG", functionNoDFG, 1);
+        addFunction(vm, "noFTL", functionNoFTL, 1);
         addFunction(vm, "numberOfDFGCompiles", functionNumberOfDFGCompiles, 1);
         addFunction(vm, "optimizeNextInvocation", functionOptimizeNextInvocation, 1);
         addFunction(vm, "reoptimizationRetryCount", functionReoptimizationRetryCount, 1);
@@ -777,6 +780,7 @@ protected:
         addFunction(vm, "clearSamplingFlags", functionClearSamplingFlags, 1);
 #endif
         addFunction(vm, "shadowChickenFunctionsOnStack", functionShadowChickenFunctionsOnStack, 0);
+        addFunction(vm, "setGlobalConstRedeclarationShouldNotThrow", functionSetGlobalConstRedeclarationShouldNotThrow, 0);
         addConstructableFunction(vm, "Root", functionCreateRoot, 0);
         addConstructableFunction(vm, "Element", functionCreateElement, 1);
         addFunction(vm, "getElement", functionGetElement, 1);
@@ -1490,6 +1494,12 @@ EncodedJSValue JSC_HOST_CALL functionShadowChickenFunctionsOnStack(ExecState* ex
     return JSValue::encode(exec->vm().shadowChicken().functionsOnStack(exec));
 }
 
+EncodedJSValue JSC_HOST_CALL functionSetGlobalConstRedeclarationShouldNotThrow(ExecState* exec)
+{
+    exec->vm().setGlobalConstRedeclarationShouldThrow(false);
+    return JSValue::encode(jsUndefined());
+}
+
 EncodedJSValue JSC_HOST_CALL functionReadline(ExecState* exec)
 {
     Vector<char, 256> line;
@@ -1517,6 +1527,16 @@ EncodedJSValue JSC_HOST_CALL functionNeverInlineFunction(ExecState* exec)
 EncodedJSValue JSC_HOST_CALL functionNoDFG(ExecState* exec)
 {
     return JSValue::encode(setNeverOptimize(exec));
+}
+
+EncodedJSValue JSC_HOST_CALL functionNoFTL(ExecState* exec)
+{
+    if (JSFunction* function = jsDynamicCast<JSFunction*>(exec->argument(0))) {
+        FunctionExecutable* executable = function->jsExecutable();
+        executable->setNeverFTLOptimize(true);
+    }
+
+    return JSValue::encode(jsUndefined());
 }
 
 EncodedJSValue JSC_HOST_CALL functionOptimizeNextInvocation(ExecState* exec)
@@ -2086,8 +2106,9 @@ static NO_RETURN void printUsageStatement(bool help = false)
     fprintf(stderr, "  -p <file>  Outputs profiling data to a file\n");
     fprintf(stderr, "  -x         Output exit code before terminating\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  --sample                   Collects and outputs sampling profiler data\n");
     fprintf(stderr, "  --options                  Dumps all JSC VM options and exits\n");
-    fprintf(stderr, "  --dumpOptions              Dumps all JSC VM options before continuing\n");
+    fprintf(stderr, "  --dumpOptions              Dumps all non-default JSC VM options before continuing\n");
     fprintf(stderr, "  --<jsc VM option>=<value>  Sets the specified JSC VM option\n");
     fprintf(stderr, "\n");
 
@@ -2099,7 +2120,7 @@ void CommandLine::parseArguments(int argc, char** argv)
     Options::initialize();
     
     int i = 1;
-    bool needToDumpOptions = false;
+    JSC::Options::DumpLevel dumpOptionsLevel = JSC::Options::DumpLevel::None;
     bool needToExit = false;
 
     bool hasBadJSCOptions = false;
@@ -2157,15 +2178,15 @@ void CommandLine::parseArguments(int argc, char** argv)
             printUsageStatement(true);
 
         if (!strcmp(arg, "--options")) {
-            needToDumpOptions = true;
+            dumpOptionsLevel = JSC::Options::DumpLevel::Verbose;
             needToExit = true;
             continue;
         }
         if (!strcmp(arg, "--dumpOptions")) {
-            needToDumpOptions = true;
+            dumpOptionsLevel = JSC::Options::DumpLevel::Overridden;
             continue;
         }
-        if (!strcmp(arg, "--reportSamplingProfilerData")) {
+        if (!strcmp(arg, "--sample")) {
             JSC::Options::useSamplingProfiler() = true;
             JSC::Options::collectSamplingProfilerDataForJSCShell() = true;
             m_dumpSamplingProfilerData = true;
@@ -2195,8 +2216,12 @@ void CommandLine::parseArguments(int argc, char** argv)
     for (; i < argc; ++i)
         m_arguments.append(argv[i]);
 
-    if (needToDumpOptions)
-        JSC::Options::dumpAllOptions(stderr, JSC::Options::DumpLevel::Overridden, "All JSC runtime options:");
+    if (dumpOptionsLevel != JSC::Options::DumpLevel::None) {
+        const char* optionsTitle = (dumpOptionsLevel == JSC::Options::DumpLevel::Overridden)
+            ? "Modified JSC runtime options:"
+            : "All JSC runtime options:";
+        JSC::Options::dumpAllOptions(stderr, dumpOptionsLevel, optionsTitle);
+    }
     JSC::Options::ensureOptionsAreCoherent();
     if (needToExit)
         jscExit(EXIT_SUCCESS);
@@ -2237,14 +2262,15 @@ static int NEVER_INLINE runJSC(VM* vm, CommandLine options)
         printf("JSC OSR EXIT FUZZ: encountered %u static checks.\n", numberOfStaticOSRExitFuzzChecks());
         printf("JSC OSR EXIT FUZZ: encountered %u dynamic checks.\n", numberOfOSRExitFuzzChecks());
     }
-#endif
-    auto compileTimeStats = DFG::Plan::compileTimeStats();
+
+    auto compileTimeStats = JIT::compileTimeStats();
     Vector<CString> compileTimeKeys;
     for (auto& entry : compileTimeStats)
         compileTimeKeys.append(entry.key);
     std::sort(compileTimeKeys.begin(), compileTimeKeys.end());
     for (CString key : compileTimeKeys)
         printf("%40s: %.3lf ms\n", key.data(), compileTimeStats.get(key));
+#endif
 
     return result;
 }

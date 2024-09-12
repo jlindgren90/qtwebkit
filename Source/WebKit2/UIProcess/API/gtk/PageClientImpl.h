@@ -95,7 +95,7 @@ private:
     void willEnterAcceleratedCompositingMode() override;
 
     void handleDownloadRequest(DownloadProxy*) override;
-    void didChangeContentSize(const WebCore::IntSize&) override { }
+    void didChangeContentSize(const WebCore::IntSize&) override;
     void didCommitLoadForMainFrame(const String& mimeType, bool useCustomContentProvider) override;
     void didFailLoadForMainFrame() override { }
 
@@ -130,6 +130,8 @@ private:
 #if ENABLE(TOUCH_EVENTS)
     void doneWithTouchEvent(const NativeWebTouchEvent&, bool wasEventHandled) override;
 #endif
+
+    void wheelEventWasNotHandledByWebCore(const NativeWebWheelEvent&) override;
 
     void didChangeBackgroundColor() override;
 

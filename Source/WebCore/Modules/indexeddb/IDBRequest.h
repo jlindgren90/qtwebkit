@@ -48,6 +48,7 @@ class ScopeGuard;
 class ThreadSafeDataBuffer;
 
 namespace IDBClient {
+class IDBConnectionProxy;
 class IDBConnectionToServer;
 }
 
@@ -103,18 +104,17 @@ public:
 
     bool hasPendingActivity() const final;
 
+    ThreadIdentifier originThreadID() const { return m_originThreadID; }
+
 protected:
-    IDBRequest(ScriptExecutionContext&, uint64_t connectionIdentifier);
+    IDBRequest(ScriptExecutionContext&, IDBClient::IDBConnectionProxy&);
 
     void enqueueEvent(Ref<Event>&&);
     bool dispatchEvent(Event&) override;
 
     void setResult(Ref<IDBDatabase>&&);
 
-    // FIXME: Temporarily required during bringup of IDB-in-Workers.
-    // Once all IDB object reliance on the IDBConnectionToServer has been shifted to reliance on
-    // IDBConnectionProxy, remove this.
-    IDBClient::IDBConnectionToServer* connectionToServer();
+    IDBClient::IDBConnectionProxy& connectionProxy() { return m_connectionProxy.get(); }
 
     // FIXME: Protected data members aren't great for maintainability.
     // Consider adding protected helper functions and making these private.
@@ -139,6 +139,7 @@ private:
     const char* activeDOMObjectName() const final;
     bool canSuspendForDocumentSuspension() const final;
     void stop() final;
+    virtual void cancelForStop();
 
     void refEventTarget() final { RefCounted::ref(); }
     void derefEventTarget() final { RefCounted::deref(); }
@@ -170,6 +171,10 @@ private:
     RefPtr<IDBCursor> m_pendingCursor;
 
     std::unique_ptr<ScopeGuard> m_cursorRequestNotifier;
+
+    Ref<IDBClient::IDBConnectionProxy> m_connectionProxy;
+
+    ThreadIdentifier m_originThreadID { currentThread() };
 };
 
 } // namespace WebCore

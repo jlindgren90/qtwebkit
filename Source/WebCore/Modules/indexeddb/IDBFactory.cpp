@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,6 @@
 #include "ExceptionCode.h"
 #include "IDBBindingUtilities.h"
 #include "IDBConnectionProxy.h"
-#include "IDBConnectionToServer.h"
 #include "IDBDatabaseIdentifier.h"
 #include "IDBKey.h"
 #include "IDBOpenDBRequest.h"
@@ -63,12 +62,13 @@ static bool shouldThrowSecurityException(ScriptExecutionContext& context)
     return false;
 }
 
-Ref<IDBFactory> IDBFactory::create()
+Ref<IDBFactory> IDBFactory::create(IDBClient::IDBConnectionProxy& connectionProxy)
 {
-    return adoptRef(*new IDBFactory);
+    return adoptRef(*new IDBFactory(connectionProxy));
 }
 
-IDBFactory::IDBFactory()
+IDBFactory::IDBFactory(IDBClient::IDBConnectionProxy& connectionProxy)
+    : m_connectionProxy(connectionProxy)
 {
 }
 
@@ -76,24 +76,17 @@ IDBFactory::~IDBFactory()
 {
 }
 
-RefPtr<IDBOpenDBRequest> IDBFactory::open(ScriptExecutionContext& context, const String& name, ExceptionCodeWithMessage& ec)
+RefPtr<IDBOpenDBRequest> IDBFactory::open(ScriptExecutionContext& context, const String& name, Optional<uint64_t> version, ExceptionCodeWithMessage& ec)
 {
     LOG(IndexedDB, "IDBFactory::open");
     
-    return openInternal(context, name, 0, ec);
-}
-
-RefPtr<IDBOpenDBRequest> IDBFactory::open(ScriptExecutionContext& context, const String& name, unsigned long long version, ExceptionCodeWithMessage& ec)
-{
-    LOG(IndexedDB, "IDBFactory::open");
-    
-    if (!version) {
+    if (version && !version.value()) {
         ec.code = TypeError;
         ec.message = ASCIILiteral("IDBFactory.open() called with a version of 0");
         return nullptr;
     }
 
-    return openInternal(context, name, version, ec);
+    return openInternal(context, name, version.valueOr(0), ec);
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::openInternal(ScriptExecutionContext& context, const String& name, unsigned long long version, ExceptionCodeWithMessage& ec)
@@ -119,14 +112,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::openInternal(ScriptExecutionContext& contex
         return nullptr;
     }
 
-    auto* connectionProxy = context.idbConnectionProxy();
-    if (!connectionProxy) {
-        ec.code = SECURITY_ERR;
-        ec.message = ASCIILiteral("IDBFactory.open() called at an invalid time");
-        return nullptr;
-    }
-
-    return connectionProxy->openDatabase(context, databaseIdentifier, version);
+    return m_connectionProxy->openDatabase(context, databaseIdentifier, version);
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::deleteDatabase(ScriptExecutionContext& context, const String& name, ExceptionCodeWithMessage& ec)
@@ -153,14 +139,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::deleteDatabase(ScriptExecutionContext& cont
         return nullptr;
     }
 
-    auto* connectionProxy = context.idbConnectionProxy();
-    if (!connectionProxy) {
-        ec.code = SECURITY_ERR;
-        ec.message = ASCIILiteral("IDBFactory.deleteDatabase() called at an invalid time");
-        return nullptr;
-    }
-
-    return connectionProxy->deleteDatabase(context, databaseIdentifier);
+    return m_connectionProxy->deleteDatabase(context, databaseIdentifier);
 }
 
 short IDBFactory::cmp(ScriptExecutionContext& context, JSValue firstValue, JSValue secondValue, ExceptionCodeWithMessage& ec)
@@ -178,6 +157,11 @@ short IDBFactory::cmp(ScriptExecutionContext& context, JSValue firstValue, JSVal
     }
 
     return first->compare(second.get());
+}
+
+void IDBFactory::getAllDatabaseNames(const SecurityOrigin& mainFrameOrigin, const SecurityOrigin& openingOrigin, std::function<void (const Vector<String>&)> callback)
+{
+    m_connectionProxy->getAllDatabaseNames(mainFrameOrigin, openingOrigin, callback);
 }
 
 } // namespace WebCore

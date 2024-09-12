@@ -439,7 +439,7 @@ bool SVGSVGElement::rendererIsNeeded(const RenderStyle& style)
     return StyledElement::rendererIsNeeded(style);
 }
 
-RenderPtr<RenderElement> SVGSVGElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
+RenderPtr<RenderElement> SVGSVGElement::createElementRenderer(RenderStyle&& style, const RenderTreePosition&)
 {
     if (isOutermostSVGSVGElement())
         return createRenderer<RenderSVGRoot>(*this, WTFMove(style));
@@ -672,6 +672,9 @@ void SVGSVGElement::resumeFromDocumentSuspension()
 // See http://www.w3.org/TR/SVG11/struct.html#InterfaceSVGSVGElement
 Element* SVGSVGElement::getElementById(const AtomicString& id)
 {
+    if (id.isNull())
+        return nullptr;
+
     Element* element = treeScope().getElementById(id);
     if (element && element->isDescendantOf(this))
         return element;

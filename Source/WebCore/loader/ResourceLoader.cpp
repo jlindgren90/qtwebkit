@@ -346,8 +346,11 @@ void ResourceLoader::willSendRequestInternal(ResourceRequest& request, const Res
     if (frameLoader()) {
         Page* page = frameLoader()->frame().page();
         if (page && m_documentLoader) {
-            if (page->userContentProvider().processContentExtensionRulesForLoad(request, m_resourceType, *m_documentLoader) == ContentExtensions::BlockedStatus::Blocked)
+            if (page->userContentProvider().processContentExtensionRulesForLoad(request, m_resourceType, *m_documentLoader) == ContentExtensions::BlockedStatus::Blocked) {
                 request = { };
+                didFail(blockedByContentBlockerError());
+                return;
+            }
         }
     }
 #endif
@@ -403,7 +406,7 @@ void ResourceLoader::didSendData(unsigned long long, unsigned long long)
 
 static void logResourceResponseSource(Frame* frame, ResourceResponse::Source source)
 {
-    if (!frame)
+    if (!frame || !frame->page())
         return;
 
     String sourceKey;
@@ -423,7 +426,7 @@ static void logResourceResponseSource(Frame* frame, ResourceResponse::Source sou
         return;
     }
 
-    frame->mainFrame().diagnosticLoggingClient().logDiagnosticMessageWithValue(DiagnosticLoggingKeys::resourceResponseKey(), DiagnosticLoggingKeys::sourceKey(), sourceKey, ShouldSample::Yes);
+    frame->page()->diagnosticLoggingClient().logDiagnosticMessageWithValue(DiagnosticLoggingKeys::resourceResponseKey(), DiagnosticLoggingKeys::sourceKey(), sourceKey, ShouldSample::Yes);
 }
 
 void ResourceLoader::didReceiveResponse(const ResourceResponse& r)
@@ -601,6 +604,11 @@ ResourceError ResourceLoader::cancelledError()
 ResourceError ResourceLoader::blockedError()
 {
     return frameLoader()->client().blockedError(m_request);
+}
+
+ResourceError ResourceLoader::blockedByContentBlockerError()
+{
+    return frameLoader()->client().blockedByContentBlockerError(m_request);
 }
 
 ResourceError ResourceLoader::cannotShowURLError()

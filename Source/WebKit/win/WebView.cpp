@@ -37,6 +37,7 @@
 #include "SoftLinking.h"
 #include "SubframeLoader.h"
 #include "TextIterator.h"
+#include "WebApplicationCache.h"
 #include "WebBackForwardList.h"
 #include "WebChromeClient.h"
 #include "WebContextMenuClient.h"
@@ -1738,7 +1739,7 @@ bool WebView::gestureNotify(WPARAM wParam, LPARAM lParam)
     IntPoint logicalGestureBeginPoint(gestureBeginPoint);
     logicalGestureBeginPoint.scale(inverseScaleFactor, inverseScaleFactor);
 
-    HitTestRequest request(HitTestRequest::ReadOnly | HitTestRequest::DisallowShadowContent);
+    HitTestRequest request(HitTestRequest::ReadOnly | HitTestRequest::DisallowUserAgentShadowContent);
     for (Frame* childFrame = &m_page->mainFrame(); childFrame; childFrame = EventHandler::subframeForTargetNode(m_gestureTargetNode.get())) {
         FrameView* frameView = childFrame->view();
         if (!frameView)
@@ -2828,26 +2829,6 @@ HRESULT WebView::URLTitleFromPasteboard(_In_opt_ IDataObject* /*pasteboard*/, _D
     return E_NOTIMPL;
 }
 
-static void WebKitSetApplicationCachePathIfNecessary()
-{
-    static bool initialized = false;
-    if (initialized)
-        return;
-
-    String path = localUserSpecificStorageDirectory();
-
-#if USE(CF)
-    RetainPtr<CFPropertyListRef> cacheDirectoryPreference = adoptCF(CFPreferencesCopyAppValue(WebKitLocalCacheDefaultsKey, kCFPreferencesCurrentApplication));
-    if (cacheDirectoryPreference && (CFStringGetTypeID() == CFGetTypeID(cacheDirectoryPreference.get())))
-        path = static_cast<CFStringRef>(cacheDirectoryPreference.get());
-#endif
-
-    if (!path.isNull())
-        ApplicationCacheStorage::singleton().setCacheDirectory(path);
-
-    initialized = true;
-}
-
 bool WebView::shouldInitializeTrackPointHack()
 {
     static bool shouldCreateScrollbars;
@@ -2916,7 +2897,6 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
         WebPlatformStrategies::initialize();
 
         WebKitInitializeWebDatabasesIfNecessary();
-        WebKitSetApplicationCachePathIfNecessary();
 
         MemoryPressureHandler::singleton().install();
 
@@ -2936,6 +2916,7 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
     configuration.dragClient = new WebDragClient(this);
     configuration.inspectorClient = m_inspectorClient;
     configuration.loaderClientForMainFrame = new WebFrameLoaderClient;
+    configuration.applicationCacheStorage = &WebApplicationCache::storage();
     configuration.databaseProvider = &WebDatabaseProvider::singleton();
     configuration.storageNamespaceProvider = &m_webViewGroup->storageNamespaceProvider();
     configuration.progressTrackerClient = static_cast<WebFrameLoaderClient*>(configuration.loaderClientForMainFrame);
@@ -5053,10 +5034,9 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
         return hr;
     settings.setPluginsEnabled(!!enabled);
 
-    hr = preferences->isCSSRegionsEnabled(&enabled);
-    if (FAILED(hr))
-        return hr;
-    RuntimeEnabledFeatures::sharedFeatures().setCSSRegionsEnabled(!!enabled);
+#if ENABLE(INDEXED_DATABASE)
+    RuntimeEnabledFeatures::sharedFeatures().setWebkitIndexedDBEnabled(true);
+#endif
 
     hr = preferences->privateBrowsingEnabled(&enabled);
     if (FAILED(hr))
@@ -6114,7 +6094,7 @@ LRESULT WebView::onIMERequestCharPosition(Frame* targetFrame, IMECHARPOSITION* c
     if (RefPtr<Range> range = targetFrame->editor().hasComposition() ? targetFrame->editor().compositionRange() : targetFrame->selection().selection().toNormalizedRange()) {
         ExceptionCode ec = 0;
         RefPtr<Range> tempRange = range->cloneRange();
-        tempRange->setStart(&tempRange->startContainer(), tempRange->startOffset() + charPos->dwCharPos, ec);
+        tempRange->setStart(tempRange->startContainer(), tempRange->startOffset() + charPos->dwCharPos, ec);
         caret = targetFrame->editor().firstRectForRange(tempRange.get());
     }
     caret = targetFrame->view()->contentsToWindow(caret);

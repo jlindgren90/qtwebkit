@@ -32,6 +32,7 @@
 #include "HitTestLocation.h"
 #include "InlineTextBox.h"
 #include "LayoutRepainter.h"
+#include "Logging.h"
 #include "RenderCombineText.h"
 #include "RenderFlowThread.h"
 #include "RenderInline.h"
@@ -94,7 +95,7 @@ RenderBlockFlow::MarginInfo::MarginInfo(const RenderBlockFlow& block, LayoutUnit
     m_negativeMargin = (m_canCollapseMarginBeforeWithChildren && !block.mustDiscardMarginBefore()) ? block.maxNegativeMarginBefore() : LayoutUnit();
 }
 
-RenderBlockFlow::RenderBlockFlow(Element& element, Ref<RenderStyle>&& style)
+RenderBlockFlow::RenderBlockFlow(Element& element, RenderStyle&& style)
     : RenderBlock(element, WTFMove(style), RenderBlockFlowFlag)
 #if ENABLE(IOS_TEXT_AUTOSIZING)
     , m_widthForTextAutosizing(-1)
@@ -104,7 +105,7 @@ RenderBlockFlow::RenderBlockFlow(Element& element, Ref<RenderStyle>&& style)
     setChildrenInline(true);
 }
 
-RenderBlockFlow::RenderBlockFlow(Document& document, Ref<RenderStyle>&& style)
+RenderBlockFlow::RenderBlockFlow(Document& document, RenderStyle&& style)
     : RenderBlock(document, WTFMove(style), RenderBlockFlowFlag)
 #if ENABLE(IOS_TEXT_AUTOSIZING)
     , m_widthForTextAutosizing(-1)
@@ -120,7 +121,7 @@ RenderBlockFlow::~RenderBlockFlow()
 
 void RenderBlockFlow::createMultiColumnFlowThread()
 {
-    RenderMultiColumnFlowThread* flowThread = new RenderMultiColumnFlowThread(document(), RenderStyle::createAnonymousStyleWithDisplay(&style(), BLOCK));
+    RenderMultiColumnFlowThread* flowThread = new RenderMultiColumnFlowThread(document(), RenderStyle::createAnonymousStyleWithDisplay(style(), BLOCK));
     flowThread->initializeStyle();
     setChildrenInline(false); // Do this to avoid wrapping inline children that are just going to move into the flow thread.
     deleteLines();
@@ -563,7 +564,7 @@ void RenderBlockFlow::layoutBlock(bool relayoutChildren, LayoutUnit pageLogicalH
 
         if (hasOverflowClip()) {
             // Adjust repaint rect for scroll offset
-            repaintRect.move(-scrolledContentOffset());
+            repaintRect.moveBy(-scrollPosition());
 
             // Don't allow this rect to spill out of our overflow box.
             repaintRect.intersect(LayoutRect(LayoutPoint(), size()));
@@ -828,7 +829,7 @@ LayoutUnit RenderBlockFlow::marginOffsetForSelfCollapsingBlock()
 void RenderBlockFlow::determineLogicalLeftPositionForChild(RenderBox& child, ApplyLayoutDeltaMode applyDelta)
 {
     LayoutUnit startPosition = borderStart() + paddingStart();
-    if (style().shouldPlaceBlockDirectionScrollbarOnLeft())
+    if (shouldPlaceBlockDirectionScrollbarOnLeft())
         startPosition += (style().isLeftToRightDirection() ? 1 : -1) * verticalScrollbarWidth();
     LayoutUnit totalAvailableLogicalWidth = borderAndPaddingLogicalWidth() + availableLogicalWidth();
 
@@ -1615,7 +1616,7 @@ LayoutUnit RenderBlockFlow::adjustBlockChildForPagination(LayoutUnit logicalTopA
     return result;
 }
 
-static inline LayoutUnit calculateMinimumPageHeight(RenderStyle& renderStyle, RootInlineBox& lastLine, LayoutUnit lineTop, LayoutUnit lineBottom)
+static inline LayoutUnit calculateMinimumPageHeight(const RenderStyle& renderStyle, RootInlineBox& lastLine, LayoutUnit lineTop, LayoutUnit lineBottom)
 {
     // We may require a certain minimum number of lines per page in order to satisfy
     // orphans and widows, and that may affect the minimum page height.
@@ -1643,7 +1644,7 @@ static inline bool needsAppleMailPaginationQuirk(RootInlineBox& lineBox)
     if (!renderer.document().settings()->appleMailPaginationQuirkEnabled())
         return false;
 
-    if (renderer.element() && renderer.element()->hasID() && renderer.element()->idForStyleResolution() == "messageContentContainer")
+    if (renderer.element() && renderer.element()->idForStyleResolution() == "messageContentContainer")
         return true;
 
     return false;
@@ -2046,7 +2047,7 @@ void RenderBlockFlow::styleDidChange(StyleDifference diff, const RenderStyle* ol
 void RenderBlockFlow::updateStylesForColumnChildren()
 {
     for (auto* child = firstChildBox(); child && (child->isInFlowRenderFlowThread() || child->isRenderMultiColumnSet()); child = child->nextSiblingBox())
-        child->setStyle(RenderStyle::createAnonymousStyleWithDisplay(&style(), BLOCK));
+        child->setStyle(RenderStyle::createAnonymousStyleWithDisplay(style(), BLOCK));
 }
 
 void RenderBlockFlow::styleWillChange(StyleDifference diff, const RenderStyle& newStyle)
@@ -3151,7 +3152,7 @@ GapRects RenderBlockFlow::inlineSelectionGaps(RenderBlock& rootBlock, const Layo
 
 void RenderBlockFlow::createRenderNamedFlowFragmentIfNeeded()
 {
-    if (!document().cssRegionsEnabled() || renderNamedFlowFragment() || isRenderNamedFlowFragment())
+    if (renderNamedFlowFragment() || isRenderNamedFlowFragment())
         return;
 
     // FIXME: Multicolumn regions not yet supported (http://dev.w3.org/csswg/css-regions/#multi-column-regions)
@@ -3363,6 +3364,71 @@ Position RenderBlockFlow::positionForBox(InlineBox *box, bool start) const
 
     auto& textBox = downcast<InlineTextBox>(*box);
     return createLegacyEditingPosition(textBox.renderer().nonPseudoNode(), start ? textBox.start() : textBox.start() + textBox.len());
+}
+
+RenderText* RenderBlockFlow::findClosestTextAtAbsolutePoint(const FloatPoint& point)
+{
+    // A light, non-recursive version of RenderBlock::positionForCoordinates that looks at
+    // whether a point lies within the gaps between its root line boxes, to be called against
+    // a node returned from elementAtPoint. We make the assumption that either the node or one
+    // of its immediate children contains the root line boxes in question.
+    // See <rdar://problem/6824650> for context.
+    
+    RenderBlock* block = this;
+    
+    FloatPoint localPoint = block->absoluteToLocal(point);
+    
+    if (!block->childrenInline()) {
+        // Look among our immediate children for an alternate box that contains the point.
+        for (RenderBox* child = block->firstChildBox(); child; child = child->nextSiblingBox()) {
+            if (!child->height() || child->style().visibility() != WebCore::VISIBLE || child->isFloatingOrOutOfFlowPositioned())
+                continue;
+            float top = child->y();
+            
+            RenderBox* nextChild = child->nextSiblingBox();
+            while (nextChild && nextChild->isFloatingOrOutOfFlowPositioned())
+                nextChild = nextChild->nextSiblingBox();
+            if (!nextChild) {
+                if (localPoint.y() >= top) {
+                    block = downcast<RenderBlock>(child);
+                    break;
+                }
+                continue;
+            }
+            
+            float bottom = nextChild->y();
+            
+            if (localPoint.y() >= top && localPoint.y() < bottom && is<RenderBlock>(*child)) {
+                block = downcast<RenderBlock>(child);
+                break;
+            }
+        }
+        
+        if (!block->childrenInline())
+            return nullptr;
+        
+        localPoint = block->absoluteToLocal(point);
+    }
+    
+    RenderBlockFlow& blockFlow = downcast<RenderBlockFlow>(*block);
+    
+    // Only check the gaps between the root line boxes. We deliberately ignore overflow because
+    // experience has shown that hit tests on an exploded text node can fail when within the
+    // overflow region.
+    for (RootInlineBox* current = blockFlow.firstRootBox(); current && current != blockFlow.lastRootBox(); current = current->nextRootBox()) {
+        float currentBottom = current->y() + current->logicalHeight();
+        if (localPoint.y() < currentBottom)
+            return nullptr;
+        
+        RootInlineBox* next = current->nextRootBox();
+        float nextTop = next->y();
+        if (localPoint.y() < nextTop) {
+            InlineBox* inlineBox = current->closestLeafChildForLogicalLeftPosition(localPoint.x());
+            if (inlineBox && inlineBox->behavesLikeText() && is<RenderText>(inlineBox->renderer()))
+                return &downcast<RenderText>(inlineBox->renderer());
+        }
+    }
+    return nullptr;
 }
 
 VisiblePosition RenderBlockFlow::positionForPointWithInlineChildren(const LayoutPoint& pointInLogicalContents, const RenderRegion* region)
@@ -3683,12 +3749,12 @@ int RenderBlockFlow::lineCountForTextAutosizing()
     return count;
 }
 
-static bool isNonBlocksOrNonFixedHeightListItems(const RenderObject* render)
+static bool isNonBlocksOrNonFixedHeightListItems(const RenderObject& render)
 {
-    if (!render->isRenderBlock())
+    if (!render.isRenderBlock())
         return true;
-    if (render->isListItem())
-        return render->style().height().type() != Fixed;
+    if (render.isListItem())
+        return render.style().height().type() != Fixed;
     return false;
 }
 
@@ -3706,6 +3772,8 @@ static inline float textMultiplier(float specifiedSize)
 
 void RenderBlockFlow::adjustComputedFontSizes(float size, float visibleWidth)
 {
+    LOG(TextAutosizing, "RenderBlockFlow %p adjustComputedFontSizes, size=%f visibleWidth=%f, width()=%f. Bailing: %d", this, size, visibleWidth, width().toFloat(), visibleWidth >= width());
+
     // Don't do any work if the block is smaller than the visible area.
     if (visibleWidth >= width())
         return;
@@ -3732,8 +3800,8 @@ void RenderBlockFlow::adjustComputedFontSizes(float size, float visibleWidth)
     
     for (RenderObject* descendent = traverseNext(this, isNonBlocksOrNonFixedHeightListItems); descendent; descendent = descendent->traverseNext(this, isNonBlocksOrNonFixedHeightListItems)) {
         if (isVisibleRenderText(descendent) && resizeTextPermitted(descendent)) {
-            RenderText& text = downcast<RenderText>(*descendent);
-            RenderStyle& oldStyle = text.style();
+            auto& text = downcast<RenderText>(*descendent);
+            auto& oldStyle = text.style();
             auto fontDescription = oldStyle.fontDescription();
             float specifiedSize = fontDescription.specifiedSize();
             float scaledSize = roundf(specifiedSize * scale);

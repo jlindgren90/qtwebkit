@@ -419,7 +419,7 @@ void Editor::setDictationPhrasesAsChildOfElement(const Vector<Vector<String>>& d
     
     ExceptionCode ec;    
     RefPtr<Range> context = document().createRange();
-    context->selectNodeContents(&element, ec);
+    context->selectNodeContents(element, ec);
 
     StringBuilder dictationPhrasesBuilder;
     for (auto& interpretations : dictationPhrases)
@@ -593,7 +593,7 @@ void Editor::confirmMarkedText()
         confirmComposition();
 }
 
-void Editor::setTextAsChildOfElement(const String& text, Element* elem)
+void Editor::setTextAsChildOfElement(const String& text, Element& element)
 {
     // Clear the composition
     clear();
@@ -604,7 +604,7 @@ void Editor::setTextAsChildOfElement(const String& text, Element* elem)
     
     // If the element is empty already and we're not adding text, we can early return and avoid clearing/setting
     // a selection at [0, 0] and the expense involved in creation VisiblePositions.
-    if (!elem->firstChild() && text.isEmpty())
+    if (!element.firstChild() && text.isEmpty())
         return;
     
     // As a side effect this function sets a caret selection after the inserted content.  Much of what 
@@ -612,7 +612,7 @@ void Editor::setTextAsChildOfElement(const String& text, Element* elem)
     m_frame.selection().clear();
     
     // clear out all current children of element
-    elem->removeChildren();
+    element.removeChildren();
 
     if (text.length()) {
         // insert new text
@@ -621,29 +621,28 @@ void Editor::setTextAsChildOfElement(const String& text, Element* elem)
         // (even if it is only temporary).  ReplaceSelectionCommand doesn't bother doing this when it inserts
         // content, why should we here?
         ExceptionCode ec;
-        RefPtr<Node> parent = elem->parentNode();
-        RefPtr<Node> siblingAfter = elem->nextSibling();
+        RefPtr<Node> parent = element.parentNode();
+        RefPtr<Node> siblingAfter = element.nextSibling();
         if (parent)
-            elem->remove(ec);    
+            element.remove(ec);
             
-        RefPtr<Range> context = document().createRange();
-        context->selectNodeContents(elem, ec);
-        Ref<DocumentFragment> fragment = createFragmentFromText(*context.get(), text);
-        elem->appendChild(WTFMove(fragment), ec);
+        auto context = document().createRange();
+        context->selectNodeContents(element, ec);
+        element.appendChild(createFragmentFromText(context, text), ec);
     
         // restore element to document
         if (parent) {
             if (siblingAfter)
-                parent->insertBefore(elem, siblingAfter.get(), ec);
+                parent->insertBefore(element, siblingAfter.get(), ec);
             else
-                parent->appendChild(elem, ec);
+                parent->appendChild(element, ec);
         }
     }
 
     // set the selection to the end
     VisibleSelection selection;
 
-    Position pos = createLegacyEditingPosition(elem, elem->countChildNodes());
+    Position pos = createLegacyEditingPosition(&element, element.countChildNodes());
 
     VisiblePosition visiblePos(pos, VP_DEFAULT_AFFINITY);
     if (visiblePos.isNull())
@@ -799,34 +798,34 @@ bool Editor::canDecreaseSelectionListLevel()
     return canEditRichly() && DecreaseSelectionListLevelCommand::canDecreaseSelectionListLevel(&document());
 }
 
-PassRefPtr<Node> Editor::increaseSelectionListLevel()
+RefPtr<Node> Editor::increaseSelectionListLevel()
 {
     if (!canEditRichly() || m_frame.selection().isNone())
-        return 0;
+        return nullptr;
     
     RefPtr<Node> newList = IncreaseSelectionListLevelCommand::increaseSelectionListLevel(&document());
     revealSelectionAfterEditingOperation();
     return newList;
 }
 
-PassRefPtr<Node> Editor::increaseSelectionListLevelOrdered()
+RefPtr<Node> Editor::increaseSelectionListLevelOrdered()
 {
     if (!canEditRichly() || m_frame.selection().isNone())
-        return 0;
+        return nullptr;
     
     RefPtr<Node> newList = IncreaseSelectionListLevelCommand::increaseSelectionListLevelOrdered(&document());
     revealSelectionAfterEditingOperation();
-    return newList.release();
+    return newList;
 }
 
-PassRefPtr<Node> Editor::increaseSelectionListLevelUnordered()
+RefPtr<Node> Editor::increaseSelectionListLevelUnordered()
 {
     if (!canEditRichly() || m_frame.selection().isNone())
-        return 0;
+        return nullptr;
     
     RefPtr<Node> newList = IncreaseSelectionListLevelCommand::increaseSelectionListLevelUnordered(&document());
     revealSelectionAfterEditingOperation();
-    return newList.release();
+    return newList;
 }
 
 void Editor::decreaseSelectionListLevel()
@@ -1954,14 +1953,16 @@ void Editor::advanceToNextMisspelling(bool startBeforeSelection)
             return;
         
         Position rangeCompliantPosition = position.parentAnchoredEquivalent();
-        spellingSearchRange->setStart(rangeCompliantPosition.deprecatedNode(), rangeCompliantPosition.deprecatedEditingOffset(), IGNORE_EXCEPTION);
+        if (rangeCompliantPosition.deprecatedNode())
+            spellingSearchRange->setStart(*rangeCompliantPosition.deprecatedNode(), rangeCompliantPosition.deprecatedEditingOffset(), IGNORE_EXCEPTION);
         startedWithSelection = false; // won't need to wrap
     }
     
     // topNode defines the whole range we want to operate on 
     Node* topNode = highestEditableRoot(position);
     // FIXME: lastOffsetForEditing() is wrong here if editingIgnoresContent(highestEditableRoot()) returns true (e.g. a <table>)
-    spellingSearchRange->setEnd(topNode, lastOffsetForEditing(topNode), IGNORE_EXCEPTION);
+    if (topNode)
+        spellingSearchRange->setEnd(*topNode, lastOffsetForEditing(topNode), IGNORE_EXCEPTION);
 
     // If spellingSearchRange starts in the middle of a word, advance to the next word so we start checking
     // at a word boundary. Going back by one char and then forward by a word does the trick.
@@ -2015,7 +2016,7 @@ void Editor::advanceToNextMisspelling(bool startBeforeSelection)
             // Stop looking at start of next misspelled word
             CharacterIterator chars(*grammarSearchRange);
             chars.advance(misspellingOffset);
-            grammarSearchRange->setEnd(&chars.range()->startContainer(), chars.range()->startOffset(), IGNORE_EXCEPTION);
+            grammarSearchRange->setEnd(chars.range()->startContainer(), chars.range()->startOffset(), IGNORE_EXCEPTION);
         }
     
         if (isGrammarCheckingEnabled())
@@ -2026,9 +2027,10 @@ void Editor::advanceToNextMisspelling(bool startBeforeSelection)
     // If we found neither bad grammar nor a misspelled word, wrap and try again (but don't bother if we started at the beginning of the
     // block rather than at a selection).
     if (startedWithSelection && !misspelledWord && !badGrammarPhrase) {
-        spellingSearchRange->setStart(topNode, 0, IGNORE_EXCEPTION);
+        if (topNode)
+            spellingSearchRange->setStart(*topNode, 0, IGNORE_EXCEPTION);
         // going until the end of the very first chunk we tested is far enough
-        spellingSearchRange->setEnd(&searchEndNodeAfterWrap, searchEndOffsetAfterWrap, IGNORE_EXCEPTION);
+        spellingSearchRange->setEnd(searchEndNodeAfterWrap, searchEndOffsetAfterWrap, IGNORE_EXCEPTION);
         
         if (unifiedTextCheckerEnabled()) {
             grammarSearchRange = spellingSearchRange->cloneRange();
@@ -2049,7 +2051,7 @@ void Editor::advanceToNextMisspelling(bool startBeforeSelection)
                 // Stop looking at start of next misspelled word
                 CharacterIterator chars(*grammarSearchRange);
                 chars.advance(misspellingOffset);
-                grammarSearchRange->setEnd(&chars.range()->startContainer(), chars.range()->startOffset(), IGNORE_EXCEPTION);
+                grammarSearchRange->setEnd(chars.range()->startContainer(), chars.range()->startOffset(), IGNORE_EXCEPTION);
             }
 
             if (isGrammarCheckingEnabled())
@@ -3146,22 +3148,22 @@ bool Editor::findString(const String& target, FindOptions options)
     return true;
 }
 
-PassRefPtr<Range> Editor::findStringAndScrollToVisible(const String& target, Range* previousMatch, FindOptions options)
+RefPtr<Range> Editor::findStringAndScrollToVisible(const String& target, Range* previousMatch, FindOptions options)
 {
     RefPtr<Range> nextMatch = rangeOfString(target, previousMatch, options);
     if (!nextMatch)
-        return 0;
+        return nullptr;
 
     nextMatch->firstNode()->renderer()->scrollRectToVisible(nextMatch->absoluteBoundingBox(),
         ScrollAlignment::alignCenterIfNeeded, ScrollAlignment::alignCenterIfNeeded);
 
-    return nextMatch.release();
+    return nextMatch;
 }
 
-PassRefPtr<Range> Editor::rangeOfString(const String& target, Range* referenceRange, FindOptions options)
+RefPtr<Range> Editor::rangeOfString(const String& target, Range* referenceRange, FindOptions options)
 {
     if (target.isEmpty())
-        return 0;
+        return nullptr;
 
     // Start from an edge of the reference range, if there's a reference range that's not in shadow content. Which edge
     // is used depends on whether we're searching forward or backward, and whether startInSelection is set.
@@ -3179,12 +3181,12 @@ PassRefPtr<Range> Editor::rangeOfString(const String& target, Range* referenceRa
     RefPtr<Node> shadowTreeRoot = referenceRange ? referenceRange->startContainer().nonBoundaryShadowTreeRootNode() : nullptr;
     if (shadowTreeRoot) {
         if (forward)
-            searchRange->setEnd(shadowTreeRoot.get(), shadowTreeRoot->countChildNodes());
+            searchRange->setEnd(*shadowTreeRoot, shadowTreeRoot->countChildNodes());
         else
-            searchRange->setStart(shadowTreeRoot.get(), 0);
+            searchRange->setStart(*shadowTreeRoot, 0);
     }
 
-    RefPtr<Range> resultRange(findPlainText(*searchRange, target, options));
+    RefPtr<Range> resultRange = findPlainText(*searchRange, target, options);
     // If we started in the reference range and the found range exactly matches the reference range, find again.
     // Build a selection with the found range to remove collapsed whitespace.
     // Compare ranges instead of selection objects to ignore the way that the current selection was made.
@@ -3197,9 +3199,9 @@ PassRefPtr<Range> Editor::rangeOfString(const String& target, Range* referenceRa
 
         if (shadowTreeRoot) {
             if (forward)
-                searchRange->setEnd(shadowTreeRoot.get(), shadowTreeRoot->countChildNodes());
+                searchRange->setEnd(*shadowTreeRoot, shadowTreeRoot->countChildNodes());
             else
-                searchRange->setStart(shadowTreeRoot.get(), 0);
+                searchRange->setStart(*shadowTreeRoot, 0);
         }
 
         resultRange = findPlainText(*searchRange, target, options);
@@ -3208,10 +3210,12 @@ PassRefPtr<Range> Editor::rangeOfString(const String& target, Range* referenceRa
     // If nothing was found in the shadow tree, search in main content following the shadow tree.
     if (resultRange->collapsed() && shadowTreeRoot) {
         searchRange = rangeOfContents(document());
-        if (forward)
-            searchRange->setStartAfter(shadowTreeRoot->shadowHost());
-        else
-            searchRange->setEndBefore(shadowTreeRoot->shadowHost());
+        if (shadowTreeRoot->shadowHost()) {
+            if (forward)
+                searchRange->setStartAfter(*shadowTreeRoot->shadowHost());
+            else
+                searchRange->setEndBefore(*shadowTreeRoot->shadowHost());
+        }
 
         resultRange = findPlainText(*searchRange, target, options);
     }
@@ -3226,7 +3230,7 @@ PassRefPtr<Range> Editor::rangeOfString(const String& target, Range* referenceRa
         // this should be a success case instead, so we'll just fall through in that case.
     }
 
-    return resultRange->collapsed() ? nullptr : resultRange.release();
+    return resultRange->collapsed() ? nullptr : resultRange;
 }
 
 static bool isFrameInRange(Frame* frame, Range* range)
@@ -3234,7 +3238,7 @@ static bool isFrameInRange(Frame* frame, Range* range)
     bool inRange = false;
     for (HTMLFrameOwnerElement* ownerElement = frame->ownerElement(); ownerElement; ownerElement = ownerElement->document().ownerElement()) {
         if (&ownerElement->document() == &range->ownerDocument()) {
-            inRange = range->intersectsNode(ownerElement, IGNORE_EXCEPTION);
+            inRange = range->intersectsNode(*ownerElement, IGNORE_EXCEPTION);
             break;
         }
     }
@@ -3266,8 +3270,8 @@ unsigned Editor::countMatchesForText(const String& target, Range* range, FindOpt
             if (!resultRange->startContainer().isInShadowTree())
                 break;
 
-            searchRange->setStartAfter(resultRange->startContainer().shadowHost(), IGNORE_EXCEPTION);
-            searchRange->setEnd(&originalEndContainer, originalEndOffset, IGNORE_EXCEPTION);
+            searchRange->setStartAfter(*resultRange->startContainer().shadowHost(), IGNORE_EXCEPTION);
+            searchRange->setEnd(originalEndContainer, originalEndOffset, IGNORE_EXCEPTION);
             continue;
         }
 
@@ -3286,11 +3290,11 @@ unsigned Editor::countMatchesForText(const String& target, Range* range, FindOpt
         // result range. There is no need to use a VisiblePosition here,
         // since findPlainText will use a TextIterator to go over the visible
         // text nodes. 
-        searchRange->setStart(&resultRange->endContainer(), resultRange->endOffset(), IGNORE_EXCEPTION);
+        searchRange->setStart(resultRange->endContainer(), resultRange->endOffset(), IGNORE_EXCEPTION);
 
         Node* shadowTreeRoot = searchRange->shadowRoot();
         if (searchRange->collapsed() && shadowTreeRoot)
-            searchRange->setEnd(shadowTreeRoot, shadowTreeRoot->countChildNodes(), IGNORE_EXCEPTION);
+            searchRange->setEnd(*shadowTreeRoot, shadowTreeRoot->countChildNodes(), IGNORE_EXCEPTION);
     } while (true);
 
     return matchCount;

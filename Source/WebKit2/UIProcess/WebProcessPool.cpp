@@ -128,6 +128,7 @@ static WebsiteDataStore::Configuration legacyWebsiteDataStoreConfiguration(API::
     configuration.localStorageDirectory = processPoolConfiguration.localStorageDirectory();
     configuration.webSQLDatabaseDirectory = processPoolConfiguration.webSQLDatabaseDirectory();
     configuration.applicationCacheDirectory = processPoolConfiguration.applicationCacheDirectory();
+    configuration.applicationCacheFlatFileSubdirectoryName = processPoolConfiguration.applicationCacheFlatFileSubdirectoryName();
     configuration.mediaCacheDirectory = processPoolConfiguration.mediaCacheDirectory();
     configuration.mediaKeysStorageDirectory = processPoolConfiguration.mediaKeysStorageDirectory();
     configuration.networkCacheDirectory = processPoolConfiguration.diskCacheDirectory();
@@ -352,10 +353,6 @@ NetworkProcessProxy& WebProcessPool::ensureNetworkProcess()
     if (!parameters.diskCacheDirectory.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(parameters.diskCacheDirectory, parameters.diskCacheDirectoryExtensionHandle);
 
-#if ENABLE(SECCOMP_FILTERS)
-    parameters.cookieStorageDirectory = this->cookieStorageDirectory();
-#endif
-
 #if PLATFORM(IOS)
     String cookieStorageDirectory = this->cookieStorageDirectory();
     if (!cookieStorageDirectory.isEmpty())
@@ -538,6 +535,8 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
         SandboxExtension::createHandle(parameters.injectedBundlePath, SandboxExtension::ReadOnly, parameters.injectedBundlePathExtensionHandle);
 
     parameters.applicationCacheDirectory = m_configuration->applicationCacheDirectory();
+    parameters.applicationCacheFlatFileSubdirectoryName = m_configuration->applicationCacheFlatFileSubdirectoryName();
+
     if (!parameters.applicationCacheDirectory.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(parameters.applicationCacheDirectory, parameters.applicationCacheDirectoryExtensionHandle);
 
@@ -548,10 +547,6 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
     parameters.mediaCacheDirectory = m_configuration->mediaCacheDirectory();
     if (!parameters.mediaCacheDirectory.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(parameters.mediaCacheDirectory, parameters.mediaCacheDirectoryExtensionHandle);
-    
-#if ENABLE(SECCOMP_FILTERS)
-    parameters.cookieStorageDirectory = this->cookieStorageDirectory();
-#endif
 
 #if PLATFORM(IOS)
     String cookieStorageDirectory = this->cookieStorageDirectory();
@@ -645,9 +640,6 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
 
 #if PLATFORM(COCOA)
     process->send(Messages::WebProcess::SetQOS(webProcessLatencyQOS(), webProcessThroughputQOS()), 0);
-#endif
-#if PLATFORM(IOS)
-    ApplicationCacheStorage::singleton().setDefaultOriginQuota(25ULL * 1024 * 1024);
 #endif
 
     if (WebPreferences::anyPagesAreUsingPrivateBrowsing())
@@ -1081,17 +1073,6 @@ String WebProcessPool::iconDatabasePath() const
 
     return platformDefaultIconDatabasePath();
 }
-
-#if ENABLE(SECCOMP_FILTERS)
-String WebProcessPool::cookieStorageDirectory() const
-{
-    if (!m_overrideCookieStorageDirectory.isEmpty())
-        return m_overrideCookieStorageDirectory;
-
-    // FIXME: This doesn't make much sense. Is this function used at all? We used to call platform code, but no existing platforms implemented that function.
-    return emptyString();
-}
-#endif
 
 void WebProcessPool::useTestingNetworkSession()
 {

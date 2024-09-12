@@ -44,6 +44,7 @@
 #include "DFGVariableAccessDataDump.h"
 #include "FullBytecodeLiveness.h"
 #include "FunctionExecutableDump.h"
+#include "GetterSetter.h"
 #include "JIT.h"
 #include "JSLexicalEnvironment.h"
 #include "MaxFrameExtentForSlowPathCall.h"
@@ -1445,46 +1446,50 @@ void Graph::ensureNaturalLoops()
         m_naturalLoops = std::make_unique<NaturalLoops>(*this);
 }
 
-ValueProfile* Graph::valueProfileFor(Node* node)
-{
-    if (!node)
-        return nullptr;
-        
-    CodeBlock* profiledBlock = baselineCodeBlockFor(node->origin.semantic);
-        
-    if (node->hasLocal(*this)) {
-        if (!node->local().isArgument())
-            return nullptr;
-        int argument = node->local().toArgument();
-        Node* argumentNode = m_arguments[argument];
-        if (!argumentNode)
-            return nullptr;
-        if (node->variableAccessData() != argumentNode->variableAccessData())
-            return nullptr;
-        return profiledBlock->valueProfileForArgument(argument);
-    }
-        
-    if (node->hasHeapPrediction())
-        return profiledBlock->valueProfileForBytecodeOffset(node->origin.semantic.bytecodeIndex);
-        
-    return nullptr;
-}
-
 MethodOfGettingAValueProfile Graph::methodOfGettingAValueProfileFor(Node* node)
 {
-    if (!node)
-        return MethodOfGettingAValueProfile();
-    
-    if (ValueProfile* valueProfile = valueProfileFor(node))
-        return MethodOfGettingAValueProfile(valueProfile);
-    
-    if (node->op() == GetLocal) {
+    while (node) {
         CodeBlock* profiledBlock = baselineCodeBlockFor(node->origin.semantic);
         
-        return MethodOfGettingAValueProfile::fromLazyOperand(
-            profiledBlock,
-            LazyOperandValueProfileKey(
-                node->origin.semantic.bytecodeIndex, node->local()));
+        if (node->hasLocal(*this)) {
+            ValueProfile* result = [&] () -> ValueProfile* {
+                if (!node->local().isArgument())
+                    return nullptr;
+                int argument = node->local().toArgument();
+                Node* argumentNode = m_arguments[argument];
+                if (!argumentNode)
+                    return nullptr;
+                if (node->variableAccessData() != argumentNode->variableAccessData())
+                    return nullptr;
+                return profiledBlock->valueProfileForArgument(argument);
+            }();
+            if (result)
+                return result;
+            
+            if (node->op() == GetLocal) {
+                return MethodOfGettingAValueProfile::fromLazyOperand(
+                    profiledBlock,
+                    LazyOperandValueProfileKey(
+                        node->origin.semantic.bytecodeIndex, node->local()));
+            }
+        }
+        
+        if (node->hasHeapPrediction())
+            return profiledBlock->valueProfileForBytecodeOffset(node->origin.semantic.bytecodeIndex);
+        
+        if (ResultProfile* result = profiledBlock->resultProfileForBytecodeOffset(node->origin.semantic.bytecodeIndex))
+            return result;
+        
+        switch (node->op()) {
+        case Identity:
+        case ValueRep:
+        case DoubleRep:
+        case Int52Rep:
+            node = node->child1().node();
+            break;
+        default:
+            node = nullptr;
+        }
     }
     
     return MethodOfGettingAValueProfile();
@@ -1508,6 +1513,34 @@ bool Graph::isStringPrototypeMethodSane(JSObject* stringPrototype, Structure* st
     if (function->executable()->intrinsicFor(CodeForCall) != StringPrototypeValueOfIntrinsic)
         return false;
     
+    return true;
+}
+
+bool Graph::getRegExpPrototypeProperty(JSObject* regExpPrototype, Structure* regExpPrototypeStructure, UniquedStringImpl* uid, JSValue& returnJSValue)
+{
+    unsigned attributesUnused;
+    PropertyOffset offset = regExpPrototypeStructure->getConcurrently(uid, attributesUnused);
+    if (!isValidOffset(offset))
+        return false;
+
+    JSValue value = tryGetConstantProperty(regExpPrototype, regExpPrototypeStructure, offset);
+    if (!value)
+        return false;
+
+    // We only care about functions and getters at this point. If you want to access other properties
+    // you'll have to add code for those types.
+    JSFunction* function = jsDynamicCast<JSFunction*>(value);
+    if (!function) {
+        GetterSetter* getterSetter = jsDynamicCast<GetterSetter*>(value);
+
+        if (!getterSetter)
+            return false;
+
+        returnJSValue = JSValue(getterSetter);
+        return true;
+    }
+
+    returnJSValue = value;
     return true;
 }
 

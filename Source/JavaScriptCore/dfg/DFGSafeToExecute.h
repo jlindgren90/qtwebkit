@@ -69,12 +69,12 @@ public:
         case NotCellUse:
         case OtherUse:
         case MiscUse:
-        case MachineIntUse:
-        case DoubleRepMachineIntUse:
+        case AnyIntUse:
+        case DoubleRepAnyIntUse:
             return;
             
         case KnownInt32Use:
-            if (m_state.forNode(edge).m_type & ~SpecInt32)
+            if (m_state.forNode(edge).m_type & ~SpecInt32Only)
                 m_result = false;
             return;
 
@@ -193,10 +193,15 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case ValueAdd:
     case TryGetById:
     case DeleteById:
+    case DeleteByVal:
     case GetById:
+    case GetByIdWithThis:
+    case GetByValWithThis:
     case GetByIdFlush:
     case PutById:
     case PutByIdFlush:
+    case PutByIdWithThis:
+    case PutByValWithThis:
     case PutByIdDirect:
     case PutGetterById:
     case PutSetterById:
@@ -256,6 +261,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case IsArrayObject:
     case IsJSArray:
     case IsArrayConstructor:
+    case IsEmpty:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -339,9 +345,11 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case PhantomDirectArguments:
     case PhantomClonedArguments:
     case GetMyArgumentByVal:
+    case GetMyArgumentByValOutOfBounds:
     case ForwardVarargs:
     case CopyRest:
     case StringReplace:
+    case StringReplaceRegExp:
     case GetRegExpObjectLastIndex:
     case SetRegExpObjectLastIndex:
     case RecordRegExpCachedResult:

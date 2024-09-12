@@ -716,8 +716,8 @@ void SpeculativeJIT::emitCall(Node* node)
     }
 
     Edge calleeEdge = m_jit.graph().child(node, 0);
-    GPRReg calleeTagGPR;
-    GPRReg calleePayloadGPR;
+    GPRReg calleeTagGPR = InvalidGPRReg;
+    GPRReg calleePayloadGPR = InvalidGPRReg;
     CallFrameShuffleData shuffleData;
     
     // Gotta load the arguments somehow. Varargs is trickier.
@@ -943,9 +943,9 @@ GPRReg SpeculativeJIT::fillSpeculateInt32Internal(Edge edge, DataFormat& returnF
 {
     AbstractValue& value = m_state.forNode(edge);
     SpeculatedType type = value.m_type;
-    ASSERT(edge.useKind() != KnownInt32Use || !(value.m_type & ~SpecInt32));
+    ASSERT(edge.useKind() != KnownInt32Use || !(value.m_type & ~SpecInt32Only));
 
-    m_interpreter.filter(value, SpecInt32);
+    m_interpreter.filter(value, SpecInt32Only);
     if (value.isClear()) {
         terminateSpeculativeExecution(Uncountable, JSValueRegs(), 0);
         returnFormat = DataFormatInt32;
@@ -972,7 +972,7 @@ GPRReg SpeculativeJIT::fillSpeculateInt32Internal(Edge edge, DataFormat& returnF
         ASSERT_UNUSED(spillFormat, (spillFormat & DataFormatJS) || spillFormat == DataFormatInt32);
 
         // If we know this was spilled as an integer we can fill without checking.
-        if (type & ~SpecInt32)
+        if (type & ~SpecInt32Only)
             speculationCheck(BadType, JSValueSource(JITCompiler::addressFor(virtualRegister)), edge, m_jit.branch32(MacroAssembler::NotEqual, JITCompiler::tagFor(virtualRegister), TrustedImm32(JSValue::Int32Tag)));
 
         GPRReg gpr = allocate();
@@ -990,7 +990,7 @@ GPRReg SpeculativeJIT::fillSpeculateInt32Internal(Edge edge, DataFormat& returnF
         GPRReg payloadGPR = info.payloadGPR();
         m_gprs.lock(tagGPR);
         m_gprs.lock(payloadGPR);
-        if (type & ~SpecInt32)
+        if (type & ~SpecInt32Only)
             speculationCheck(BadType, JSValueRegs(tagGPR, payloadGPR), edge, m_jit.branch32(MacroAssembler::NotEqual, tagGPR, TrustedImm32(JSValue::Int32Tag)));
         m_gprs.unlock(tagGPR);
         m_gprs.release(tagGPR);
@@ -1899,8 +1899,8 @@ void SpeculativeJIT::compile(Node* node)
             break;
         }
         case Int52RepUse: 
-        case MachineIntUse:
-        case DoubleRepMachineIntUse: {
+        case AnyIntUse:
+        case DoubleRepAnyIntUse: {
             RELEASE_ASSERT_NOT_REACHED();   
             break;
         }
@@ -2428,11 +2428,11 @@ void SpeculativeJIT::compile(Node* node)
             GPRReg resultTagGPR = resultTag.gpr();
             GPRReg resultPayloadGPR = resultPayload.gpr();
 
-            use(node->child1());
-            index.use();
-
             speculationCheck(OutOfBounds, JSValueRegs(), node,
                 m_jit.branch32(MacroAssembler::LessThan, indexGPR, MacroAssembler::TrustedImm32(0)));
+
+            use(node->child1());
+            index.use();
 
             m_jit.move(MacroAssembler::TrustedImm32(JSValue::UndefinedTag), resultTagGPR);
             m_jit.move(MacroAssembler::TrustedImm32(0), resultPayloadGPR);
@@ -2681,6 +2681,30 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case GetByValWithThis: {
+        JSValueOperand base(this, node->child1());
+        GPRReg baseTag = base.tagGPR();
+        GPRReg basePayload = base.payloadGPR();
+        JSValueOperand thisValue(this, node->child2());
+        GPRReg thisValueTag = thisValue.tagGPR();
+        GPRReg thisValuePayload = thisValue.payloadGPR();
+        JSValueOperand subscript(this, node->child3());
+        GPRReg subscriptTag = subscript.tagGPR();
+        GPRReg subscriptPayload = subscript.payloadGPR();
+
+        GPRFlushedCallResult resultPayload(this);
+        GPRFlushedCallResult2 resultTag(this);
+        GPRReg resultPayloadGPR = resultPayload.gpr();
+        GPRReg resultTagGPR = resultTag.gpr();
+
+        flushRegisters();
+        callOperation(operationGetByValWithThis, resultTagGPR, resultPayloadGPR, baseTag, basePayload, thisValueTag, thisValuePayload, subscriptTag, subscriptPayload);
+        m_jit.exceptionCheck();
+
+        jsValueResult(resultTagGPR, resultPayloadGPR, node);
+        break;
+    }
+
     case PutByValDirect:
     case PutByVal:
     case PutByValAlias: {
@@ -2859,6 +2883,76 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case PutByValWithThis: {
+#if CPU(X86)
+        // We don't have enough registers on X86 to do this
+        // without setting up the call frame incrementally.
+        unsigned index = 0;
+        m_jit.poke(GPRInfo::callFrameRegister, index++);
+
+        {
+            JSValueOperand base(this, m_jit.graph().varArgChild(node, 0));
+            GPRReg baseTag = base.tagGPR();
+            GPRReg basePayload = base.payloadGPR();
+
+            JSValueOperand thisValue(this, m_jit.graph().varArgChild(node, 1));
+            GPRReg thisValueTag = thisValue.tagGPR();
+            GPRReg thisValuePayload = thisValue.payloadGPR();
+
+            JSValueOperand property(this, m_jit.graph().varArgChild(node, 2));
+            GPRReg propertyTag = property.tagGPR();
+            GPRReg propertyPayload = property.payloadGPR();
+
+            m_jit.poke(basePayload, index++);
+            m_jit.poke(baseTag, index++);
+
+            m_jit.poke(thisValuePayload, index++);
+            m_jit.poke(thisValueTag, index++);
+
+            m_jit.poke(propertyPayload, index++);
+            m_jit.poke(propertyTag, index++);
+
+            flushRegisters();
+        }
+
+        JSValueOperand value(this, m_jit.graph().varArgChild(node, 3));
+        GPRReg valueTag = value.tagGPR();
+        GPRReg valuePayload = value.payloadGPR();
+        m_jit.poke(valuePayload, index++);
+        m_jit.poke(valueTag, index++);
+
+        flushRegisters();
+        appendCall(m_jit.isStrictModeFor(node->origin.semantic) ? operationPutByValWithThisStrict : operationPutByValWithThis);
+        m_jit.exceptionCheck();
+#else
+        static_assert(GPRInfo::numberOfRegisters >= 8, "We are assuming we have enough registers to make this call without incrementally setting up the arguments.");
+
+        JSValueOperand base(this, m_jit.graph().varArgChild(node, 0));
+        GPRReg baseTag = base.tagGPR();
+        GPRReg basePayload = base.payloadGPR();
+
+        JSValueOperand thisValue(this, m_jit.graph().varArgChild(node, 1));
+        GPRReg thisValueTag = thisValue.tagGPR();
+        GPRReg thisValuePayload = thisValue.payloadGPR();
+
+        JSValueOperand property(this, m_jit.graph().varArgChild(node, 2));
+        GPRReg propertyTag = property.tagGPR();
+        GPRReg propertyPayload = property.payloadGPR();
+
+        JSValueOperand value(this, m_jit.graph().varArgChild(node, 3));
+        GPRReg valueTag = value.tagGPR();
+        GPRReg valuePayload = value.payloadGPR();
+
+        flushRegisters();
+        callOperation(m_jit.isStrictModeFor(node->origin.semantic) ? operationPutByValWithThisStrict : operationPutByValWithThis,
+            NoResult, baseTag, basePayload, thisValueTag, thisValuePayload, propertyTag, propertyPayload, valueTag, valuePayload);
+        m_jit.exceptionCheck();
+#endif // CPU(X86)
+
+        noResult(node);
+        break;
+    }
+
     case RegExpExec: {
         SpeculateCellOperand globalObject(this, node->child1());
         GPRReg globalObjectGPR = globalObject.gpr();
@@ -2981,7 +3075,8 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
-    case StringReplace: {
+    case StringReplace:
+    case StringReplaceRegExp: {
         if (node->child1().useKind() == StringUse
             && node->child2().useKind() == RegExpObjectUse
             && node->child3().useKind() == StringUse) {
@@ -3026,14 +3121,19 @@ void SpeculativeJIT::compile(Node* node)
             cellResult(resultPayload.gpr(), node);
             break;
         }
+
+        // If we fixed up the edge of child2, we inserted a Check(@child2, String).
+        OperandSpeculationMode child2SpeculationMode = AutomaticOperandSpeculation;
+        if (node->child2().useKind() == StringUse)
+            child2SpeculationMode = ManualOperandSpeculation;
         
         JSValueOperand string(this, node->child1());
-        JSValueOperand regExp(this, node->child2());
+        JSValueOperand search(this, node->child2(), child2SpeculationMode);
         JSValueOperand replace(this, node->child3());
         GPRReg stringTagGPR = string.tagGPR();
         GPRReg stringPayloadGPR = string.payloadGPR();
-        GPRReg regExpTagGPR = regExp.tagGPR();
-        GPRReg regExpPayloadGPR = regExp.payloadGPR();
+        GPRReg searchTagGPR = search.tagGPR();
+        GPRReg searchPayloadGPR = search.payloadGPR();
         GPRReg replaceTagGPR = replace.tagGPR();
         GPRReg replacePayloadGPR = replace.payloadGPR();
         
@@ -3042,7 +3142,7 @@ void SpeculativeJIT::compile(Node* node)
         GPRFlushedCallResult resultPayload(this);
         callOperation(
             operationStringProtoFuncReplaceGeneric, resultTag.gpr(), resultPayload.gpr(),
-            stringTagGPR, stringPayloadGPR, regExpTagGPR, regExpPayloadGPR, replaceTagGPR,
+            stringTagGPR, stringPayloadGPR, searchTagGPR, searchPayloadGPR, replaceTagGPR,
             replacePayloadGPR);
         m_jit.exceptionCheck();
         cellResult(resultPayload.gpr(), node);
@@ -3798,7 +3898,7 @@ void SpeculativeJIT::compile(Node* node)
             JSGlobalObject* globalObject = m_jit.graph().globalObjectFor(node->origin.semantic);
             callOperation(
                 operationNewTypedArrayWithOneArgumentForType(node->typedArrayType()),
-                resultGPR, globalObject->typedArrayStructure(node->typedArrayType()),
+                resultGPR, globalObject->typedArrayStructureConcurrently(node->typedArrayType()),
                 argumentTagGPR, argumentPayloadGPR);
             m_jit.exceptionCheck();
             
@@ -4030,6 +4130,27 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case GetByIdWithThis: {
+        JSValueOperand base(this, node->child1());
+        GPRReg baseTag = base.tagGPR();
+        GPRReg basePayload = base.payloadGPR();
+        JSValueOperand thisValue(this, node->child2());
+        GPRReg thisTag = thisValue.tagGPR();
+        GPRReg thisPayload = thisValue.payloadGPR();
+
+        GPRFlushedCallResult resultPayload(this);
+        GPRFlushedCallResult2 resultTag(this);
+        GPRReg resultPayloadGPR = resultPayload.gpr();
+        GPRReg resultTagGPR = resultTag.gpr();
+
+        flushRegisters();
+        callOperation(operationGetByIdWithThis, resultTagGPR, resultPayloadGPR, baseTag, basePayload, thisTag, thisPayload, identifierUID(node->identifierNumber()));
+        m_jit.exceptionCheck();
+
+        jsValueResult(resultTagGPR, resultPayloadGPR, node);
+        break;
+    }
+
     case GetByIdFlush: {
         if (!node->prediction()) {
             terminateSpeculativeExecution(InadequateCoverage, JSValueRegs(), 0);
@@ -4092,6 +4213,11 @@ void SpeculativeJIT::compile(Node* node)
 
     case DeleteById: {
         compileDeleteById(node);
+        break;
+    }
+
+    case DeleteByVal: {
+        compileDeleteByVal(node);
         break;
     }
         
@@ -4302,6 +4428,26 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case PutByIdWithThis: {
+        JSValueOperand base(this, node->child1());
+        GPRReg baseTag = base.tagGPR();
+        GPRReg basePayload = base.payloadGPR();
+        JSValueOperand thisValue(this, node->child2());
+        GPRReg thisValueTag = thisValue.tagGPR();
+        GPRReg thisValuePayload = thisValue.payloadGPR();
+        JSValueOperand value(this, node->child3());
+        GPRReg valueTag = value.tagGPR();
+        GPRReg valuePayload = value.payloadGPR();
+
+        flushRegisters();
+        callOperation(m_jit.isStrictModeFor(node->origin.semantic) ? operationPutByIdWithThisStrict : operationPutByIdWithThis,
+            NoResult, baseTag, basePayload, thisValueTag, thisValuePayload, valueTag, valuePayload, identifierUID(node->identifierNumber()));
+        m_jit.exceptionCheck();
+
+        noResult(node);
+        break;
+    }
+
     case PutGetterById:
     case PutSetterById: {
         compilePutAccessorById(node);
@@ -4372,6 +4518,7 @@ void SpeculativeJIT::compile(Node* node)
         JSValueOperand hasInstanceValue(this, node->child2());
         GPRTemporary result(this);
 
+        GPRReg baseGPR = base.gpr();
         GPRReg resultGPR = result.gpr();
 
         // If we have proven that the constructor's Symbol.hasInstance will always be the one on
@@ -4387,7 +4534,7 @@ void SpeculativeJIT::compile(Node* node)
         }
 
         // Check that constructor 'ImplementsDefaultHasInstance'.
-        m_jit.test8(MacroAssembler::Zero, MacroAssembler::Address(base.gpr(), JSCell::typeInfoFlagsOffset()), MacroAssembler::TrustedImm32(ImplementsDefaultHasInstance), resultGPR);
+        m_jit.test8(MacroAssembler::Zero, MacroAssembler::Address(baseGPR, JSCell::typeInfoFlagsOffset()), MacroAssembler::TrustedImm32(ImplementsDefaultHasInstance), resultGPR);
         MacroAssembler::Jump done = m_jit.jump();
 
         if (!hasInstanceValueNode->isCellConstant()) {
@@ -4408,6 +4555,14 @@ void SpeculativeJIT::compile(Node* node)
 
     case InstanceOfCustom: {
         compileInstanceOfCustom(node);
+        break;
+    }
+
+    case IsEmpty: {        
+        JSValueOperand value(this, node->child1());
+        GPRTemporary result(this, Reuse, value, TagWord);
+        m_jit.comparePtr(JITCompiler::Equal, value.tagGPR(), TrustedImm32(JSValue::EmptyValueTag), result.gpr());
+        booleanResult(result.gpr(), node);
         break;
     }
 
@@ -5098,7 +5253,7 @@ void SpeculativeJIT::compile(Node* node)
     case KillStack:
     case GetStack:
     case GetMyArgumentByVal:
-    case StringReplace:
+    case GetMyArgumentByValOutOfBounds:
         DFG_CRASH(m_jit.graph(), node, "unexpected node in DFG backend");
         break;
     }
