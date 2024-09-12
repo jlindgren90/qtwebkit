@@ -464,6 +464,18 @@ String AXSearchFieldCancelButtonText()
     return String();
 }
 
+String AXAutoFillCredentialsLabel()
+{
+    notImplemented();
+    return String();
+}
+
+String AXAutoFillContactsLabel()
+{
+    notImplemented();
+    return String();
+}
+
 String AXButtonActionVerb()
 {
     notImplemented();

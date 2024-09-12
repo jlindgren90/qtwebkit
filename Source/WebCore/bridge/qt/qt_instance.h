@@ -89,7 +89,7 @@ public:
     static PassRefPtr<QtInstance> getQtInstance(QObject*, PassRefPtr<RootObject>, ValueOwnership);
 
     bool getOwnPropertySlot(JSObject*, ExecState*, PropertyName, PropertySlot&) final;
-    void put(JSObject*, ExecState*, PropertyName, JSValue, PutPropertySlot&) final;
+    bool put(JSObject*, ExecState*, PropertyName, JSValue, PutPropertySlot&) final;
 
     static QtInstance* getInstance(JSObject*);
 

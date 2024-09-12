@@ -982,7 +982,7 @@ void QWebElement::appendInside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment =  createContextualFragment(markup, downcast<HTMLElement>(m_element), AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
     if (!fragment)
         return;
 
@@ -1029,7 +1029,7 @@ void QWebElement::prependInside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment =  createContextualFragment(markup, downcast<HTMLElement>(m_element), AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
     if (!fragment)
         return;
 
@@ -1082,7 +1082,7 @@ void QWebElement::prependOutside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(markup, downcast<HTMLElement>(parent), AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
 
     parent->insertBefore(fragment, m_element, exception);
 }
@@ -1132,7 +1132,7 @@ void QWebElement::appendOutside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(markup, downcast<HTMLElement>(parent), AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
 
     if (!m_element->nextSibling())
         parent->appendChild(fragment, exception);
@@ -1279,7 +1279,7 @@ void QWebElement::encloseContentsWith(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment =  createContextualFragment(markup, downcast<HTMLElement>(m_element), AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
 
     if (!fragment || !fragment->firstChild())
         return;
@@ -1353,7 +1353,7 @@ void QWebElement::encloseWith(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(markup, downcast<HTMLElement>(parent), AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
 
     if (!fragment || !fragment->firstChild())
         return;

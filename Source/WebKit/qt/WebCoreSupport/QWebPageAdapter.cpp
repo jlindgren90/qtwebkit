@@ -209,7 +209,7 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.databaseProvider = &WebDatabaseProvider::singleton();
     pageConfiguration.storageNamespaceProvider = WebStorageNamespaceProvider::create(
         QWebSettings::globalSettings()->localStoragePath());
-    pageConfiguration.userContentController = &userContentProvider();
+    pageConfiguration.userContentProvider = &userContentProvider();
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();
     page = new Page(pageConfiguration);
 
@@ -1227,8 +1227,11 @@ bool QWebPageAdapter::treatSchemeAsLocal(const QString& scheme)
 
 QObject* QWebPageAdapter::currentFrame() const
 {
+#if 0 // FIXME
     Frame& frame = page->focusController().focusedOrMainFrame();
     return frame.loader().networkingContext()->originatingObject();
+#endif
+    return nullptr;
 }
 
 bool QWebPageAdapter::hasFocusedNode() const

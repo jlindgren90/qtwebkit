@@ -208,7 +208,8 @@ static QNetworkRequest toNetworkRequest(const ResourceRequest& r, NetworkingCont
 {
     QNetworkRequest request;
     request.setUrl(r.url());
-    request.setOriginatingObject(context ? context->originatingObject() : 0);
+    // FIXME
+    // request.setOriginatingObject(context ? context->originatingObject() : 0);
     return request;
 }
 
@@ -1081,7 +1082,7 @@ bool FrameLoaderClientQt::callErrorPageExtension(const WebCore::ResourceError& e
     WTF::RefPtr<WebCore::SharedBuffer> buffer = WebCore::SharedBuffer::create(output.content.constData(), output.content.length());
     WebCore::ResourceResponse response(failingUrl, output.contentType, buffer->size(), output.encoding);
     // FIXME: visibility?
-    WebCore::SubstituteData substituteData(buffer, failingUrl, response, SubstituteData::SessionHistoryVisibility::Hidden);
+    WebCore::SubstituteData substituteData(std::move(buffer), failingUrl, response, SubstituteData::SessionHistoryVisibility::Hidden);
     m_frame->loader().load(WebCore::FrameLoadRequest(m_frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
 
     m_shouldSuppressLoadStarted = false;

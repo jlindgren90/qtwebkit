@@ -34,8 +34,10 @@ namespace WebCore {
 
 FrameNetworkingContextQt::FrameNetworkingContextQt(Frame* frame, QObject* originatingObject, bool mimeSniffingEnabled)
     : FrameNetworkingContext(frame)
+#if 0 // FIXME
     , m_originatingObject(originatingObject)
     , m_mimeSniffingEnabled(mimeSniffingEnabled)
+#endif
 {
 }
 
@@ -49,6 +51,7 @@ NetworkStorageSession& FrameNetworkingContextQt::storageSession() const
     return NetworkStorageSession::defaultStorageSession();
 }
 
+#if 0 // FIXME
 QObject* FrameNetworkingContextQt::originatingObject() const
 {
     return m_originatingObject;
@@ -81,5 +84,6 @@ bool FrameNetworkingContextQt::thirdPartyCookiePolicyPermission(const QUrl& url)
 
     return false;
 }
+#endif
 
 }

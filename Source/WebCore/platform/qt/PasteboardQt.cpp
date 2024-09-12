@@ -160,8 +160,8 @@ void Pasteboard::read(PasteboardPlainText& text)
         text.text =  data->text();
 }
 
-PassRefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& context,
-                                                          bool allowPlainText, bool& chosePlainText)
+RefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& context,
+                                                      bool allowPlainText, bool& chosePlainText)
 {
     const QMimeData* mimeData = readData();
     if (!mimeData)

@@ -33,6 +33,7 @@ private:
 
     NetworkStorageSession& storageSession() const override;
 
+#if 0 // FIXME
     QObject* originatingObject() const override;
     QNetworkAccessManager* networkAccessManager() const override;
     bool mimeSniffingEnabled() const override;
@@ -40,6 +41,7 @@ private:
 
     QObject* m_originatingObject;
     bool m_mimeSniffingEnabled;
+#endif
 };
 
 }
