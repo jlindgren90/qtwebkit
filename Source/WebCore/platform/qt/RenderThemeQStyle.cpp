@@ -626,7 +626,7 @@ ControlPart RenderThemeQStyle::initializeCommonQStyleOptions(QStyleFacadeOption 
         option.state &= ~QStyleFacade::State_Enabled;
     }
 
-    RenderStyle& style = o.style();
+    const RenderStyle& style = o.style();
 
     ControlPart result = style.appearance();
     if (supportsFocus(result) && isFocused(o)) {

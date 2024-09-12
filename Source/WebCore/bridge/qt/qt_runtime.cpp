@@ -758,11 +758,11 @@ JSValueRef convertQVariantToValue(JSContextRef context, PassRefPtr<RootObject> r
         if (!root->globalObject()->inherits(JSDOMWindow::info()))
             return JSValueMakeUndefined(context);
 
-        Document* document = JSDOMWindow::toWrapped(root->globalObject())->document();
-        if (!document)
-            return JSValueMakeUndefined(context);
         ExecState* exec = toJS(context);
         JSLockHolder locker(exec);
+        Document* document = JSDOMWindow::toWrapped(*exec, root->globalObject())->document();
+        if (!document)
+            return JSValueMakeUndefined(context);
         return toRef(exec, customRuntimeConversions()->value(type).toJSValueFunc(exec, toJSDOMGlobalObject(document, exec), variant));
     }
 

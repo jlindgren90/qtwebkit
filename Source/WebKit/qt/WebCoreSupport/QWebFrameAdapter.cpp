@@ -365,8 +365,8 @@ QWebHitTestResultPrivate* QWebFrameAdapter::hitTestContent(const QPoint& pos) co
 
     HitTestResult result = frame->eventHandler().hitTestResultAtPoint(
         frame->view()->windowToContents(fromQPoint(pos)),
-        HitTestRequest::ReadOnly | HitTestRequest::Active |
-            HitTestRequest::IgnoreClipping | HitTestRequest::DisallowShadowContent);
+        HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping |
+            HitTestRequest::DisallowUserAgentShadowContent);
 
     if (result.scrollbar())
         return 0;

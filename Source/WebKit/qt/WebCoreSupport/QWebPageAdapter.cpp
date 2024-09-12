@@ -21,6 +21,7 @@
 #include "config.h"
 #include "QWebPageAdapter.h"
 
+#include "ApplicationCacheStorage.h"
 #include "BackForwardController.h"
 #include "CSSComputedStyleDeclaration.h"
 #include "CSSParser.h"
@@ -206,6 +207,7 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.inspectorClient = new InspectorClientQt(this);
     pageConfiguration.loaderClientForMainFrame = new FrameLoaderClientQt();
     pageConfiguration.progressTrackerClient = new ProgressTrackerClientQt(this);
+    pageConfiguration.applicationCacheStorage = ApplicationCacheStorage::create(String(), "ApplicationCache");
     pageConfiguration.databaseProvider = &WebDatabaseProvider::singleton();
     pageConfiguration.storageNamespaceProvider = WebStorageNamespaceProvider::create(
         QWebSettings::globalSettings()->localStoragePath());
@@ -589,6 +591,7 @@ void QWebPageAdapter::inputMethodEvent(QInputMethodEvent *ev)
         }
         case QInputMethodEvent::Cursor: {
             frame.selection().setCaretVisible(a.length); // if length is 0 cursor is invisible
+#if 0 // FIXME: RenderObject::style() is const now
             if (a.length > 0) {
                 RenderObject* caretRenderer = frame.selection().caretRendererWithoutUpdatingLayout();
                 if (caretRenderer) {
@@ -596,6 +599,7 @@ void QWebPageAdapter::inputMethodEvent(QInputMethodEvent *ev)
                     caretRenderer->style().setColor(Color(makeRGBA(qcolor.red(), qcolor.green(), qcolor.blue(), qcolor.alpha())));
                 }
             }
+#endif
             break;
         }
         case QInputMethodEvent::Selection: {
@@ -669,7 +673,7 @@ QVariant QWebPageAdapter::inputMethodQuery(Qt::InputMethodQuery property) const
     }
     case Qt::ImFont: {
         if (renderTextControl) {
-            RenderStyle& renderStyle = renderTextControl->style();
+            const RenderStyle& renderStyle = renderTextControl->style();
             return QVariant(toQFont(renderStyle.fontCascade()));
         }
         return QVariant(QFont());

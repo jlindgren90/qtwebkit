@@ -1083,7 +1083,7 @@ void QWebElement::prependOutside(const QString &markup)
     ExceptionCode exception = 0;
     RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
 
-    parent->insertBefore(fragment, m_element, exception);
+    parent->insertBefore(*fragment, m_element, exception);
 }
 
 /*!
@@ -1134,9 +1134,9 @@ void QWebElement::appendOutside(const QString &markup)
     RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
 
     if (!m_element->nextSibling())
-        parent->appendChild(fragment, exception);
+        parent->appendChild(*fragment, exception);
     else
-        parent->insertBefore(fragment, m_element->nextSibling(), exception);
+        parent->insertBefore(*fragment, m_element->nextSibling(), exception);
 }
 
 /*!
@@ -1250,7 +1250,7 @@ void QWebElement::encloseContentsWith(const QWebElement &element)
     // reparent children
     for (RefPtr<Node> child = m_element->firstChild(); child;) {
         RefPtr<Node> next = child->nextSibling();
-        insertionPoint->appendChild(child, exception);
+        insertionPoint->appendChild(*child, exception);
         child = next;
     }
 
@@ -1291,7 +1291,7 @@ void QWebElement::encloseContentsWith(const QString &markup)
     // reparent children
     for (RefPtr<Node> child = m_element->firstChild(); child;) {
         RefPtr<Node> next = child->nextSibling();
-        insertionPoint->appendChild(child, exception);
+        insertionPoint->appendChild(*child, exception);
         child = next;
     }
 
@@ -1325,12 +1325,12 @@ void QWebElement::encloseWith(const QWebElement &element)
     Node* siblingNode = m_element->nextSibling();
 
     ExceptionCode exception = 0;
-    insertionPoint->appendChild(m_element, exception);
+    insertionPoint->appendChild(*m_element, exception);
 
     if (!siblingNode)
-        parent->appendChild(element.m_element, exception);
+        parent->appendChild(*element.m_element, exception);
     else
-        parent->insertBefore(element.m_element, siblingNode, exception);
+        parent->insertBefore(*element.m_element, siblingNode, exception);
 }
 
 /*!
@@ -1368,12 +1368,12 @@ void QWebElement::encloseWith(const QString &markup)
     // we no longer have access to the nodes it contained.
     Node* siblingNode = m_element->nextSibling();
 
-    insertionPoint->appendChild(m_element, exception);
+    insertionPoint->appendChild(*m_element, exception);
 
     if (!siblingNode)
-        parent->appendChild(fragment, exception);
+        parent->appendChild(*fragment, exception);
     else
-        parent->insertBefore(fragment, siblingNode, exception);
+        parent->insertBefore(*fragment, siblingNode, exception);
 }
 
 /*!
