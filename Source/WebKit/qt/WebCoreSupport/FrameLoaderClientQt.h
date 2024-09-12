@@ -109,7 +109,6 @@ public:
     void dispatchDidReceiveIcon() override;
     void dispatchDidStartProvisionalLoad() override;
     void dispatchDidReceiveTitle(const StringWithDirection&) override;
-    void dispatchDidChangeIcons(WebCore::IconType) override;
     void dispatchDidCommitLoad() override;
     void dispatchDidFailProvisionalLoad(const ResourceError&) override;
     void dispatchDidFailLoad(const WebCore::ResourceError&) override;

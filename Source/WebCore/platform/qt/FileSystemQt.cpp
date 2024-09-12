@@ -275,6 +275,11 @@ bool unloadModule(PlatformModule module)
 #endif
 }
 
+bool hardLinkOrCopyFile(const String& source, const String& destination)
+{
+    return QFile::copy(source, destination);
+}
+
 }
 
 // vim: ts=4 sw=4 et

@@ -167,11 +167,11 @@ QVariant QWebFrameAdapter::evaluateJavaScript(const QString &scriptSource)
     ScriptController& scriptController = frame->script();
     QVariant rc;
     int distance = 0;
-    Deprecated::ScriptValue value = scriptController.executeScript(ScriptSourceCode(scriptSource));
+    JSC::JSValue value = scriptController.executeScript(ScriptSourceCode(scriptSource));
     JSC::ExecState* exec = scriptController.globalObject(mainThreadNormalWorld())->globalExec();
     JSValueRef* ignoredException = 0;
     exec->vm().apiLock().lock();
-    JSValueRef valueRef = toRef(exec, value.jsValue());
+    JSValueRef valueRef = toRef(exec, value);
     exec->vm().apiLock().unlock();
     rc = JSC::Bindings::convertValueToQVariant(toRef(exec), valueRef, QMetaType::Void, &distance, ignoredException);
     return rc;

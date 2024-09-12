@@ -1,10 +1,11 @@
 list(APPEND WTF_SOURCES
     UniStdExtras.cpp
 
+    generic/WorkQueueGeneric.cpp
+
     glib/GRefPtr.cpp
     glib/MainThreadGLib.cpp
     glib/RunLoopGLib.cpp
-    glib/WorkQueueGLib.cpp
 
     text/qt/StringQt.cpp
 )

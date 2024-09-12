@@ -166,7 +166,7 @@ void QWebDatabase::removeDatabase(const QWebDatabase& db)
 */
 void QWebDatabase::removeAllDatabases()
 {
-    DatabaseManager::singleton().deleteAllDatabases();
+    DatabaseManager::singleton().deleteAllDatabasesImmediately();
 }
 
 /*!

@@ -28,8 +28,10 @@
 #include "MainThreadNotifier.h"
 #include "MediaPlayerPrivate.h"
 #include "PlatformLayer.h"
+#if 0 // FIXME
 #include "TextureMapperPlatformLayer.h"
 #include "TextureMapperPlatformLayerProxy.h"
+#endif
 #include <glib.h>
 #include <wtf/Condition.h>
 #include <wtf/Forward.h>

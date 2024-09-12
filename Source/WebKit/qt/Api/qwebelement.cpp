@@ -47,7 +47,6 @@
 #include "RenderImage.h"
 #include "ScriptController.h"
 #include "ScriptSourceCode.h"
-#include "ScriptState.h"
 #include "StaticNodeList.h"
 #include "StyleResolver.h"
 #include "markup.h"
@@ -699,7 +698,7 @@ QWebFrame *QWebElement::webFrame() const
     return frameAdapter->apiHandle();
 }
 
-static bool setupScriptContext(WebCore::Element* element, ScriptState*& state)
+static bool setupScriptContext(WebCore::Element* element, JSC::ExecState*& state)
 {
     if (!element)
         return false;
@@ -730,7 +729,7 @@ QVariant QWebElement::evaluateJavaScript(const QString& scriptSource)
     if (scriptSource.isEmpty())
         return QVariant();
 
-    ScriptState* state = 0;
+    JSC::ExecState* state = 0;
 
     if (!setupScriptContext(m_element, state))
         return QVariant();

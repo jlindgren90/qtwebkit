@@ -1076,7 +1076,7 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
         if (HTMLMediaElement* mediaElt = mediaElement(hitTestResult->innerNonSharedNode)) {
             if (mediaElt->isVideo() && mediaElt->supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenModeStandard)) {
                 UserGestureIndicator indicator(DefinitelyProcessingUserGesture);
-                mediaElt->toggleFullscreenState();
+                mediaElt->toggleStandardFullscreenState();
             }
         }
         break;
@@ -1176,12 +1176,12 @@ QString QWebPageAdapter::contextMenuItemTagForAction(QWebPageAdapter::MenuAction
         *checkable = true;
         return contextMenuItemTagToggleMediaLoop();
     case ToggleMediaPlayPause:
-        return contextMenuItemTagMediaPlayPause();
+        return QString(); // FIXME: contextMenuItemTagMediaPlayPause();
     case ToggleMediaMute:
         *checkable = true;
         return contextMenuItemTagMediaMute();
     case ToggleVideoFullscreen:
-        return contextMenuItemTagToggleVideoFullscreen();
+        return QString(); // FIXME: contextMenuItemTagToggleVideoFullscreen();
 
     case InspectElement:
         return contextMenuItemTagInspectElement();
