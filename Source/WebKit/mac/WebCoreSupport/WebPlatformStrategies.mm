@@ -26,13 +26,12 @@
 #import "WebPlatformStrategies.h"
 
 #import "WebFrameNetworkingContext.h"
-#import "WebPluginDatabase.h"
 #import "WebPluginPackage.h"
 #import "WebResourceLoadScheduler.h"
 #import <WebCore/BlobRegistryImpl.h>
-#import <WebCore/BlockExceptions.h>
 #import <WebCore/Color.h>
 #import <WebCore/MainFrame.h>
+#import <WebCore/NetworkStorageSession.h>
 #import <WebCore/Page.h>
 #import <WebCore/PageGroup.h>
 #import <WebCore/PlatformCookieJar.h>
@@ -40,6 +39,7 @@
 #import <WebCore/SharedBuffer.h>
 #import <WebCore/SubframeLoader.h>
 #import <WebKitSystemInterface.h>
+#import <wtf/BlockObjCExceptions.h>
 #import <wtf/NeverDestroyed.h>
 
 using namespace WebCore;
@@ -72,11 +72,6 @@ PasteboardStrategy* WebPlatformStrategies::createPasteboardStrategy()
     return this;
 }
 
-PluginStrategy* WebPlatformStrategies::createPluginStrategy()
-{
-    return this;
-}
-
 BlobRegistry* WebPlatformStrategies::createBlobRegistry()
 {
     return new WebCore::BlobRegistryImpl;
@@ -102,6 +97,12 @@ String WebPlatformStrategies::cookieRequestHeaderFieldValue(const NetworkStorage
     return WebCore::cookieRequestHeaderFieldValue(session, firstParty, url);
 }
 
+String WebPlatformStrategies::cookieRequestHeaderFieldValue(SessionID sessionID, const URL& firstParty, const URL& url)
+{
+    auto& session = sessionID.isEphemeral() ? WebFrameNetworkingContext::ensurePrivateBrowsingSession() : NetworkStorageSession::defaultStorageSession();
+    return WebCore::cookieRequestHeaderFieldValue(session, firstParty, url);
+}
+
 bool WebPlatformStrategies::getRawCookies(const NetworkStorageSession& session, const URL& firstParty, const URL& url, Vector<Cookie>& rawCookies)
 {
     return WebCore::getRawCookies(session, firstParty, url, rawCookies);
@@ -116,48 +117,6 @@ void WebPlatformStrategies::addCookie(const NetworkStorageSession& session, cons
 {
     WebCore::addCookie(session, url, cookie);
 }
-
-void WebPlatformStrategies::refreshPlugins()
-{
-    [[WebPluginDatabase sharedDatabaseIfExists] refresh];
-}
-
-void WebPlatformStrategies::getPluginInfo(const Page* page, Vector<PluginInfo>& plugins)
-{
-    BEGIN_BLOCK_OBJC_EXCEPTIONS;
-
-    // WebKit1 has no application plug-ins, so we don't need to add them here.
-    if (!page->mainFrame().loader().subframeLoader().allowPlugins())
-        return;
-
-    NSArray* pluginsArray = [[WebPluginDatabase sharedDatabase] plugins];
-    for (unsigned int i = 0; i < [pluginsArray count]; ++i) {
-        WebPluginPackage *plugin = [pluginsArray objectAtIndex:i];
-
-        plugins.append([plugin pluginInfo]);
-    }
-    
-    END_BLOCK_OBJC_EXCEPTIONS;
-}
-
-void WebPlatformStrategies::getWebVisiblePluginInfo(const Page* page, Vector<PluginInfo>& plugins)
-{
-    getPluginInfo(page, plugins);
-}
-
-#if PLATFORM(MAC)
-void WebPlatformStrategies::setPluginLoadClientPolicy(PluginLoadClientPolicy, const String&, const String&, const String&)
-{
-}
-
-void WebPlatformStrategies::setPrivateBrowsingPluginLoadClientPolicy(PluginLoadClientPolicy, const String&, const String&, const String&)
-{
-}
-
-void WebPlatformStrategies::clearPluginClientPolicies()
-{
-}
-#endif
 
 void WebPlatformStrategies::getTypes(Vector<String>& types, const String& pasteboardName)
 {
@@ -214,7 +173,7 @@ long WebPlatformStrategies::setTypes(const Vector<String>& pasteboardTypes, cons
     return PlatformPasteboard(pasteboardName).setTypes(pasteboardTypes);
 }
 
-long WebPlatformStrategies::setBufferForType(PassRefPtr<SharedBuffer> buffer, const String& pasteboardType, const String& pasteboardName)
+long WebPlatformStrategies::setBufferForType(SharedBuffer* buffer, const String& pasteboardType, const String& pasteboardName)
 {
     return PlatformPasteboard(pasteboardName).setBufferForType(buffer, pasteboardType);
 }

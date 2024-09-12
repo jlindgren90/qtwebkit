@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2013, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,9 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         this._persistentNetworkTimeline = new WebInspector.NetworkTimeline;
 
         this._isCapturing = false;
+        this._initiatedByBackendStart = false;
+        this._initiatedByBackendStop = false;
+        this._waitingForCapturingStartedEvent = false;
         this._isCapturingPageReload = false;
         this._autoCaptureOnPageLoad = false;
         this._mainResourceForAutoCapturing = null;
@@ -134,10 +137,15 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
 
     set autoCaptureOnPageLoad(autoCapture)
     {
+        autoCapture = !!autoCapture;
+
+        if (this._autoCaptureOnPageLoad === autoCapture)
+            return;
+
         this._autoCaptureOnPageLoad = autoCapture;
 
         if (window.TimelineAgent && TimelineAgent.setAutoCaptureEnabled)
-            TimelineAgent.setAutoCaptureEnabled(autoCapture);
+            TimelineAgent.setAutoCaptureEnabled(this._autoCaptureOnPageLoad);
     }
 
     get enabledTimelineTypes()
@@ -170,16 +178,18 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         if (!this._activeRecording || shouldCreateRecording)
             this._loadNewRecording();
 
+        this._waitingForCapturingStartedEvent = true;
+
         this.dispatchEventToListeners(WebInspector.TimelineManager.Event.CapturingWillStart);
 
-        this._activeRecording.start();
+        this._activeRecording.start(this._initiatedByBackendStart);
     }
 
     stopCapturing()
     {
         console.assert(this._isCapturing, "TimelineManager is not capturing.");
 
-        this._activeRecording.stop();
+        this._activeRecording.stop(this._initiatedByBackendStop);
 
         // NOTE: Always stop immediately instead of waiting for a Timeline.recordingStopped event.
         // This way the UI feels as responsive to a stop as possible.
@@ -221,6 +231,7 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         if (this._isCapturing)
             return;
 
+        this._waitingForCapturingStartedEvent = false;
         this._isCapturing = true;
 
         this._lastDeadTimeTickle = 0;
@@ -254,20 +265,56 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         this._isCapturingPageReload = false;
         this._shouldSetAutoCapturingMainResource = false;
         this._mainResourceForAutoCapturing = null;
+        this._initiatedByBackendStart = false;
+        this._initiatedByBackendStop = false;
 
         this.dispatchEventToListeners(WebInspector.TimelineManager.Event.CapturingStopped, {endTime});
     }
 
-    autoCaptureStarted(startTime)
+    autoCaptureStarted()
     {
         // Called from WebInspector.TimelineObserver.
 
         if (this._isCapturing)
             this.stopCapturing();
 
-        this.startCapturing(true);
+        this._initiatedByBackendStart = true;
+
+        // We may already have an fresh TimelineRecording created if autoCaptureStarted is received
+        // between sending the Timeline.start command and receiving Timeline.capturingStarted event.
+        // In that case, there is no need to call startCapturing again. Reuse the fresh recording.
+        if (!this._waitingForCapturingStartedEvent) {
+            const createNewRecording = true;
+            this.startCapturing(createNewRecording);
+        }
 
         this._shouldSetAutoCapturingMainResource = true;
+    }
+
+    programmaticCaptureStarted()
+    {
+        // Called from WebInspector.TimelineObserver.
+
+        this._initiatedByBackendStart = true;
+
+        this._activeRecording.addScriptInstrumentForProgrammaticCapture();
+
+        const createNewRecording = false;
+        this.startCapturing(createNewRecording);
+    }
+
+    programmaticCaptureStopped()
+    {
+        // Called from WebInspector.TimelineObserver.
+
+        this._initiatedByBackendStop = true;
+
+        // FIXME: This is purely to avoid a noisy assert. Previously
+        // it was impossible to stop without stopping from the UI.
+        console.assert(!this._isCapturing);
+        this._isCapturing = true;
+
+        this.stopCapturing();
     }
 
     eventRecorded(recordPayload)
@@ -477,7 +524,8 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
 
         case TimelineAgent.EventType.ConsoleProfile:
             var profileData = recordPayload.data.profile;
-            console.assert(profileData);
+            // COMPATIBILITY (iOS 9): With the Sampling Profiler, profiles no longer include legacy profile data.
+            console.assert(profileData || TimelineAgent.setInstruments);
             return new WebInspector.ScriptTimelineRecord(WebInspector.ScriptTimelineRecord.EventType.ConsoleProfileRecorded, startTime, endTime, callFrames, sourceCodeLocation, recordPayload.data.title, profileData);
 
         case TimelineAgent.EventType.TimerFire:
@@ -826,6 +874,24 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         }
     }
 
+    scriptProfilerProgrammaticCaptureStarted()
+    {
+        // FIXME: <https://webkit.org/b/158753> Generalize the concept of Instruments on the backend to work equally for JSContext and Web inspection
+        console.assert(WebInspector.debuggableType === WebInspector.DebuggableType.JavaScript);
+        console.assert(!this._isCapturing);
+
+        this.programmaticCaptureStarted();
+    }
+
+    scriptProfilerProgrammaticCaptureStopped()
+    {
+        // FIXME: <https://webkit.org/b/158753> Generalize the concept of Instruments on the backend to work equally for JSContext and Web inspection
+        console.assert(WebInspector.debuggableType === WebInspector.DebuggableType.JavaScript);
+        console.assert(this._isCapturing);
+
+        this.programmaticCaptureStopped();
+    }
+
     scriptProfilerTrackingStarted(timestamp)
     {
         this._scriptProfilerRecords = [];
@@ -857,6 +923,8 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
             let {stackTraces} = samples;
             let topDownCallingContextTree = this.activeRecording.topDownCallingContextTree;
             let bottomUpCallingContextTree = this.activeRecording.bottomUpCallingContextTree;
+            let topFunctionsTopDownCallingContextTree = this.activeRecording.topFunctionsTopDownCallingContextTree;
+            let topFunctionsBottomUpCallingContextTree = this.activeRecording.topFunctionsBottomUpCallingContextTree;
 
             // Calculate a per-sample duration.
             let timestampIndex = 0;
@@ -893,6 +961,8 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
             for (let i = 0; i < stackTraces.length; i++) {
                 topDownCallingContextTree.updateTreeWithStackTrace(stackTraces[i], sampleDurations[i]);
                 bottomUpCallingContextTree.updateTreeWithStackTrace(stackTraces[i], sampleDurations[i]);
+                topFunctionsTopDownCallingContextTree.updateTreeWithStackTrace(stackTraces[i], sampleDurations[i]);
+                topFunctionsBottomUpCallingContextTree.updateTreeWithStackTrace(stackTraces[i], sampleDurations[i]);
             }
 
             // FIXME: This transformation should not be needed after introducing ProfileView.
@@ -978,7 +1048,7 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
         if (!window.TimelineAgent)
             return;
 
-        if (!TimelineAgent.setAutoCaptureInstruments)
+        if (!TimelineAgent.setInstruments)
             return;
 
         let instrumentSet = new Set;
@@ -1003,7 +1073,7 @@ WebInspector.TimelineManager = class TimelineManager extends WebInspector.Object
             }
         }
 
-        TimelineAgent.setAutoCaptureInstruments([...instrumentSet]);
+        TimelineAgent.setInstruments([...instrumentSet]);
     }
 };
 

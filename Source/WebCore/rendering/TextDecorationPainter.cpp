@@ -202,7 +202,7 @@ static DashArray translateIntersectionPointsToSkipInkBoundaries(const DashArray&
 }
 
 static void drawSkipInkUnderline(GraphicsContext& context, const FontCascade& font, const TextRun& textRun, const FloatPoint& textOrigin, const FloatPoint& localOrigin,
-    float underlineOffset, float width, bool isPrinting, bool doubleLines)
+    float underlineOffset, float width, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle)
 {
     FloatPoint adjustedLocalOrigin = localOrigin;
     adjustedLocalOrigin.move(0, underlineOffset);
@@ -210,7 +210,7 @@ static void drawSkipInkUnderline(GraphicsContext& context, const FontCascade& fo
     DashArray intersections = font.dashesForIntersectionsWithRect(textRun, textOrigin, underlineBoundingBox);
     DashArray a = translateIntersectionPointsToSkipInkBoundaries(intersections, underlineBoundingBox.height(), width);
     ASSERT(!(a.size() % 2));
-    context.drawLinesForText(adjustedLocalOrigin, a, isPrinting, doubleLines);
+    context.drawLinesForText(adjustedLocalOrigin, a, isPrinting, doubleLines, strokeStyle);
 }
 #endif
 
@@ -270,7 +270,6 @@ void TextDecorationPainter::paintTextDecoration(const TextRun& textRun, const Fl
         UNUSED_PARAM(offset);
 #endif
         m_context.setStrokeColor(color);
-        m_context.setStrokeStyle(strokeStyle);
 
         if (style == TextDecorationStyleWavy)
             strokeWavyTextDecoration(m_context, start, end, textDecorationThickness);
@@ -278,15 +277,15 @@ void TextDecorationPainter::paintTextDecoration(const TextRun& textRun, const Fl
 #if ENABLE(CSS3_TEXT_DECORATION_SKIP_INK)
             if ((m_lineStyle.textDecorationSkip() == TextDecorationSkipInk || m_lineStyle.textDecorationSkip() == TextDecorationSkipAuto) && m_isHorizontal) {
                 if (!m_context.paintingDisabled())
-                    drawSkipInkUnderline(m_context, *m_font, textRun, textOrigin, localOrigin, offset, m_width, m_isPrinting, style == TextDecorationStyleDouble);
+                    drawSkipInkUnderline(m_context, *m_font, textRun, textOrigin, localOrigin, offset, m_width, m_isPrinting, style == TextDecorationStyleDouble, strokeStyle);
             } else
                 // FIXME: Need to support text-decoration-skip: none.
 #endif
-                m_context.drawLineForText(start, m_width, m_isPrinting, style == TextDecorationStyleDouble);
+                m_context.drawLineForText(start, m_width, m_isPrinting, style == TextDecorationStyleDouble, strokeStyle);
             
         } else {
             ASSERT(decoration == TextDecorationLineThrough);
-            m_context.drawLineForText(start, m_width, m_isPrinting, style == TextDecorationStyleDouble);
+            m_context.drawLineForText(start, m_width, m_isPrinting, style == TextDecorationStyleDouble, strokeStyle);
         }
     };
 

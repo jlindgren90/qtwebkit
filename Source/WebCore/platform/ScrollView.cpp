@@ -83,48 +83,33 @@ void ScrollView::removeChild(Widget& child)
 
 bool ScrollView::setHasHorizontalScrollbar(bool hasBar, bool* contentSizeAffected)
 {
-    ASSERT(!hasBar || !avoidScrollbarCreation());
-    if (hasBar && !m_horizontalScrollbar) {
-        m_horizontalScrollbar = createScrollbar(HorizontalScrollbar);
-        addChild(m_horizontalScrollbar.get());
-        didAddScrollbar(m_horizontalScrollbar.get(), HorizontalScrollbar);
-        m_horizontalScrollbar->styleChanged();
-        if (contentSizeAffected)
-            *contentSizeAffected = !m_horizontalScrollbar->isOverlayScrollbar();
-        return true;
-    }
-    
-    if (!hasBar && m_horizontalScrollbar) {
-        bool wasOverlayScrollbar = m_horizontalScrollbar->isOverlayScrollbar();
-        willRemoveScrollbar(m_horizontalScrollbar.get(), HorizontalScrollbar);
-        removeChild(*m_horizontalScrollbar);
-        m_horizontalScrollbar = nullptr;
-        if (contentSizeAffected)
-            *contentSizeAffected = !wasOverlayScrollbar;
-        return true;
-    }
-
-    return false;
+    return setHasScrollbarInternal(m_horizontalScrollbar, HorizontalScrollbar, hasBar, contentSizeAffected);
 }
 
 bool ScrollView::setHasVerticalScrollbar(bool hasBar, bool* contentSizeAffected)
 {
+    return setHasScrollbarInternal(m_verticalScrollbar, VerticalScrollbar, hasBar, contentSizeAffected);
+}
+
+bool ScrollView::setHasScrollbarInternal(RefPtr<Scrollbar>& scrollbar, ScrollbarOrientation orientation, bool hasBar, bool* contentSizeAffected)
+{
     ASSERT(!hasBar || !avoidScrollbarCreation());
-    if (hasBar && !m_verticalScrollbar) {
-        m_verticalScrollbar = createScrollbar(VerticalScrollbar);
-        addChild(m_verticalScrollbar.get());
-        didAddScrollbar(m_verticalScrollbar.get(), VerticalScrollbar);
-        m_verticalScrollbar->styleChanged();
+
+    if (hasBar && !scrollbar) {
+        scrollbar = createScrollbar(orientation);
+        addChild(scrollbar.get());
+        didAddScrollbar(scrollbar.get(), orientation);
+        scrollbar->styleChanged();
         if (contentSizeAffected)
-            *contentSizeAffected = !m_verticalScrollbar->isOverlayScrollbar();
+            *contentSizeAffected = !scrollbar->isOverlayScrollbar();
         return true;
     }
     
-    if (!hasBar && m_verticalScrollbar) {
-        bool wasOverlayScrollbar = m_verticalScrollbar->isOverlayScrollbar();
-        willRemoveScrollbar(m_verticalScrollbar.get(), VerticalScrollbar);
-        removeChild(*m_verticalScrollbar);
-        m_verticalScrollbar = nullptr;
+    if (!hasBar && scrollbar) {
+        bool wasOverlayScrollbar = scrollbar->isOverlayScrollbar();
+        willRemoveScrollbar(scrollbar.get(), orientation);
+        removeChild(*scrollbar);
+        scrollbar = nullptr;
         if (contentSizeAffected)
             *contentSizeAffected = !wasOverlayScrollbar;
         return true;
@@ -272,7 +257,7 @@ IntSize ScrollView::unscaledVisibleContentSizeIncludingObscuredArea(VisibleConte
     if (platformWidget())
         return platformVisibleContentSizeIncludingObscuredArea(scrollbarInclusion == IncludeScrollbars);
 
-    if (!m_fixedVisibleContentRect.isEmpty())
+    if (m_useFixedLayout && !m_fixedVisibleContentRect.isEmpty())
         return m_fixedVisibleContentRect.size();
 
     IntSize scrollbarSpace;
@@ -289,7 +274,7 @@ IntSize ScrollView::unscaledUnobscuredVisibleContentSize(VisibleContentRectInclu
     if (platformWidget())
         return platformVisibleContentSize(scrollbarInclusion == IncludeScrollbars);
 
-    if (!m_fixedVisibleContentRect.isEmpty())
+    if (m_useFixedLayout && !m_fixedVisibleContentRect.isEmpty())
         return visibleContentSize;
 
     visibleContentSize.setHeight(visibleContentSize.height() - topContentInset());
@@ -313,7 +298,7 @@ IntRect ScrollView::visibleContentRectInternal(VisibleContentRectIncludesScrollb
     if (platformWidget())
         return platformVisibleContentRect(scrollbarInclusion == IncludeScrollbars);
 
-    if (!m_fixedVisibleContentRect.isEmpty())
+    if (m_useFixedLayout && !m_fixedVisibleContentRect.isEmpty())
         return m_fixedVisibleContentRect;
 
     return unobscuredContentRect(scrollbarInclusion);
@@ -442,7 +427,7 @@ void ScrollView::scrollOffsetChangedViaPlatformWidget(const ScrollOffset& oldOff
     // is not complete. Instead, defer the scroll event until the layout finishes.
     if (shouldDeferScrollUpdateAfterContentSizeChange()) {
         // We only care about the most recent scroll position change request
-        m_deferredScrollOffsets = std::make_unique<std::pair<ScrollOffset, ScrollOffset>>(std::make_pair(oldOffset, newOffset));
+        m_deferredScrollOffsets = std::make_pair(oldOffset, newOffset);
         return;
     }
 
@@ -459,12 +444,12 @@ void ScrollView::handleDeferredScrollUpdateAfterContentSizeChange()
     ASSERT(static_cast<bool>(m_deferredScrollDelta) != static_cast<bool>(m_deferredScrollOffsets));
 
     if (m_deferredScrollDelta)
-        completeUpdatesAfterScrollTo(*m_deferredScrollDelta);
+        completeUpdatesAfterScrollTo(m_deferredScrollDelta.value());
     else if (m_deferredScrollOffsets)
-        scrollOffsetChangedViaPlatformWidgetImpl(m_deferredScrollOffsets->first, m_deferredScrollOffsets->second);
+        scrollOffsetChangedViaPlatformWidgetImpl(m_deferredScrollOffsets.value().first, m_deferredScrollOffsets.value().second);
     
-    m_deferredScrollDelta = nullptr;
-    m_deferredScrollOffsets = nullptr;
+    m_deferredScrollDelta = Nullopt;
+    m_deferredScrollOffsets = Nullopt;
 }
 
 void ScrollView::scrollTo(const ScrollPosition& newPosition)
@@ -490,7 +475,7 @@ void ScrollView::scrollTo(const ScrollPosition& newPosition)
     // is not complete. Instead, defer the scroll event until the layout finishes.
     if (shouldDeferScrollUpdateAfterContentSizeChange()) {
         ASSERT(!m_deferredScrollDelta);
-        m_deferredScrollDelta = std::make_unique<IntSize>(scrollDelta);
+        m_deferredScrollDelta = scrollDelta;
         return;
     }
 
@@ -1028,7 +1013,7 @@ void ScrollView::setScrollbarOverlayStyle(ScrollbarOverlayStyle overlayStyle)
 
 void ScrollView::setFrameRect(const IntRect& newRect)
 {
-    Ref<ScrollView> protect(*this);
+    Ref<ScrollView> protectedThis(*this);
     IntRect oldRect = frameRect();
     
     if (newRect == oldRect)

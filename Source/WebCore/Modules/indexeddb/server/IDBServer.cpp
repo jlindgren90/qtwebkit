@@ -28,12 +28,14 @@
 
 #if ENABLE(INDEXED_DATABASE)
 
-#include "CrossThreadCopier.h"
 #include "IDBRequestData.h"
 #include "IDBResultData.h"
 #include "Logging.h"
 #include "MemoryIDBBackingStore.h"
+#include "SQLiteFileSystem.h"
 #include "SQLiteIDBBackingStore.h"
+#include "SecurityOrigin.h"
+#include <wtf/CrossThreadCopier.h>
 #include <wtf/Locker.h>
 #include <wtf/MainThread.h>
 
@@ -78,6 +80,8 @@ void IDBServer::unregisterConnection(IDBConnectionToClient& connection)
     ASSERT(m_connectionMap.contains(connection.identifier()));
     ASSERT(m_connectionMap.get(connection.identifier()) == &connection);
 
+    connection.connectionToClientClosed();
+
     m_connectionMap.remove(connection.identifier());
 }
 
@@ -109,6 +113,8 @@ void IDBServer::unregisterDatabaseConnection(UniqueIDBDatabaseConnection& connec
 
 UniqueIDBDatabase& IDBServer::getOrCreateUniqueIDBDatabase(const IDBDatabaseIdentifier& identifier)
 {
+    ASSERT(isMainThread());
+
     auto uniqueIDBDatabase = m_uniqueIDBDatabaseMap.add(identifier, nullptr);
     if (uniqueIDBDatabase.isNewEntry)
         uniqueIDBDatabase.iterator->value = UniqueIDBDatabase::create(*this, identifier);
@@ -145,7 +151,8 @@ void IDBServer::openDatabase(const IDBRequestData& requestData)
 void IDBServer::deleteDatabase(const IDBRequestData& requestData)
 {
     LOG(IndexedDB, "IDBServer::deleteDatabase - %s", requestData.databaseIdentifier().debugString().utf8().data());
-    
+    ASSERT(isMainThread());
+
     auto connection = m_connectionMap.get(requestData.requestIdentifier().connectionIdentifier());
     if (!connection) {
         // If the connection back to the client is gone, there's no way to delete the database as
@@ -163,9 +170,9 @@ void IDBServer::deleteDatabase(const IDBRequestData& requestData)
 void IDBServer::closeUniqueIDBDatabase(UniqueIDBDatabase& database)
 {
     LOG(IndexedDB, "IDBServer::closeUniqueIDBDatabase");
+    ASSERT(isMainThread());
 
-    auto deletedDatabase = m_uniqueIDBDatabaseMap.take(database.identifier());
-    ASSERT_UNUSED(deletedDatabase, deletedDatabase.get() == &database);
+    m_uniqueIDBDatabaseMap.remove(database.identifier());
 }
 
 void IDBServer::abortTransaction(const IDBResourceIdentifier& transactionIdentifier)
@@ -252,7 +259,7 @@ void IDBServer::putOrAdd(const IDBRequestData& requestData, const IDBKeyData& ke
     transaction->putOrAdd(requestData, keyData, value, overwriteMode);
 }
 
-void IDBServer::getRecord(const IDBRequestData& requestData, const IDBKeyRangeData& keyRangeData)
+void IDBServer::getRecord(const IDBRequestData& requestData, const IDBGetRecordData& getRecordData)
 {
     LOG(IndexedDB, "IDBServer::getRecord");
 
@@ -260,7 +267,7 @@ void IDBServer::getRecord(const IDBRequestData& requestData, const IDBKeyRangeDa
     if (!transaction)
         return;
 
-    transaction->getRecord(requestData, keyRangeData);
+    transaction->getRecord(requestData, getRecordData);
 }
 
 void IDBServer::getCount(const IDBRequestData& requestData, const IDBKeyRangeData& keyRangeData)
@@ -380,12 +387,21 @@ void IDBServer::didFireVersionChangeEvent(uint64_t databaseConnectionIdentifier,
 void IDBServer::openDBRequestCancelled(const IDBRequestData& requestData)
 {
     LOG(IndexedDB, "IDBServer::openDBRequestCancelled");
+    ASSERT(isMainThread());
 
     auto* uniqueIDBDatabase = m_uniqueIDBDatabaseMap.get(requestData.databaseIdentifier());
     if (!uniqueIDBDatabase)
         return;
 
     uniqueIDBDatabase->openDBRequestCancelled(requestData.requestIdentifier());
+}
+
+void IDBServer::confirmDidCloseFromServer(uint64_t databaseConnectionIdentifier)
+{
+    LOG(IndexedDB, "IDBServer::confirmDidCloseFromServer");
+
+    if (auto databaseConnection = m_databaseConnections.get(databaseConnectionIdentifier))
+        databaseConnection->confirmDidCloseFromServer();
 }
 
 void IDBServer::getAllDatabaseNames(uint64_t serverConnectionIdentifier, const SecurityOriginData& mainFrameOrigin, const SecurityOriginData& openingOrigin, uint64_t callbackID)
@@ -417,13 +433,13 @@ void IDBServer::didGetAllDatabaseNames(uint64_t serverConnectionIdentifier, uint
     connection->didGetAllDatabaseNames(callbackID, databaseNames);
 }
 
-void IDBServer::postDatabaseTask(std::unique_ptr<CrossThreadTask>&& task)
+void IDBServer::postDatabaseTask(CrossThreadTask&& task)
 {
     ASSERT(isMainThread());
     m_databaseQueue.append(WTFMove(task));
 }
 
-void IDBServer::postDatabaseTaskReply(std::unique_ptr<CrossThreadTask>&& task)
+void IDBServer::postDatabaseTaskReply(CrossThreadTask&& task)
 {
     ASSERT(!isMainThread());
     m_databaseReplyQueue.append(WTFMove(task));
@@ -453,8 +469,8 @@ void IDBServer::databaseRunLoop()
         Locker<Lock> locker(m_databaseThreadCreationLock);
     }
 
-    while (auto task = m_databaseQueue.waitForMessage())
-        task->performTask();
+    while (!m_databaseQueue.isKilled())
+        m_databaseQueue.waitForMessage().performTask();
 }
 
 void IDBServer::handleTaskRepliesOnMainThread()
@@ -466,6 +482,153 @@ void IDBServer::handleTaskRepliesOnMainThread()
 
     while (auto task = m_databaseReplyQueue.tryGetMessage())
         task->performTask();
+}
+
+static uint64_t generateDeleteCallbackID()
+{
+    ASSERT(isMainThread());
+    static uint64_t currentID = 0;
+    return ++currentID;
+}
+
+void IDBServer::closeAndDeleteDatabasesModifiedSince(std::chrono::system_clock::time_point modificationTime, std::function<void ()> completionHandler)
+{
+    uint64_t callbackID = generateDeleteCallbackID();
+    auto addResult = m_deleteDatabaseCompletionHandlers.add(callbackID, WTFMove(completionHandler));
+    ASSERT_UNUSED(addResult, addResult.isNewEntry);
+
+    // If the modification time is in the future, don't both doing anything.
+    if (modificationTime > std::chrono::system_clock::now()) {
+        postDatabaseTaskReply(createCrossThreadTask(*this, &IDBServer::didPerformCloseAndDeleteDatabases, callbackID));
+        return;
+    }
+
+    HashSet<RefPtr<UniqueIDBDatabase>> openDatabases;
+    for (auto* connection : m_databaseConnections.values())
+        openDatabases.add(&connection->database());
+
+    for (auto& database : openDatabases)
+        database->immediateCloseForUserDelete();
+
+    postDatabaseTask(createCrossThreadTask(*this, &IDBServer::performCloseAndDeleteDatabasesModifiedSince, modificationTime, callbackID));
+}
+
+void IDBServer::closeAndDeleteDatabasesForOrigins(const Vector<SecurityOriginData>& origins, std::function<void ()> completionHandler)
+{
+    uint64_t callbackID = generateDeleteCallbackID();
+    auto addResult = m_deleteDatabaseCompletionHandlers.add(callbackID, WTFMove(completionHandler));
+    ASSERT_UNUSED(addResult, addResult.isNewEntry);
+
+    HashSet<RefPtr<UniqueIDBDatabase>> openDatabases;
+    for (auto* connection : m_databaseConnections.values()) {
+        const auto& identifier = connection->database().identifier();
+        for (auto& origin : origins) {
+            if (identifier.isRelatedToOrigin(origin)) {
+                openDatabases.add(&connection->database());
+                break;
+            }
+        }
+    }
+
+    for (auto& database : openDatabases)
+        database->immediateCloseForUserDelete();
+
+    postDatabaseTask(createCrossThreadTask(*this, &IDBServer::performCloseAndDeleteDatabasesForOrigins, origins, callbackID));
+}
+
+static void removeAllDatabasesForOriginPath(const String& originPath, std::chrono::system_clock::time_point modifiedSince)
+{
+    Vector<String> databasePaths = listDirectory(originPath, "*");
+
+    for (auto& databasePath : databasePaths) {
+        String databaseFile = pathByAppendingComponent(databasePath, "IndexedDB.sqlite3");
+
+        if (modifiedSince > std::chrono::system_clock::time_point::min() && fileExists(databaseFile)) {
+            time_t modificationTime;
+            if (!getFileModificationTime(databaseFile, modificationTime))
+                continue;
+
+            if (std::chrono::system_clock::from_time_t(modificationTime) < modifiedSince)
+                continue;
+        }
+
+        // Deleting this database means we need to delete all files that represent it.
+        // This includes:
+        //     - The directory itself, which is named after the database.
+        //     - IndexedDB.sqlite3 and related SQLite files.
+        //     - Blob files that we stored in the directory.
+        //
+        // To be conservative, we should *not* try to delete files that are unexpected;
+        // We should only delete files we think we put there.
+        //
+        // IndexedDB blob files are named "N.blob" where N is a decimal integer,
+        // so those are the only blob files we should be trying to delete.
+        for (auto& blobPath : listDirectory(databasePath, "[0-9]*.blob")) {
+            // Globbing can't give us only filenames starting with 1-or-more digits.
+            // The above globbing gives us files that start with a digit and ends with ".blob", but there might be non-digits in between.
+            // We need to validate that each filename contains only digits before deleting it, as any other files are not ones we put there.
+            String filename = pathGetFileName(blobPath);
+            auto filenameLength = filename.length();
+
+            ASSERT(filenameLength >= 6);
+            ASSERT(filename.endsWith(".blob"));
+
+            if (filename.length() < 6)
+                continue;
+            if (!filename.endsWith(".blob"))
+                continue;
+
+            bool validFilename = true;
+            for (unsigned i = 0; i < filenameLength - 5; ++i) {
+                if (!isASCIIDigit(filename[i])) {
+                    validFilename = false;
+                    break;
+                }
+            }
+
+            if (validFilename)
+                deleteFile(blobPath);
+        }
+
+        // Now delete IndexedDB.sqlite3 and related SQLite files.
+        SQLiteFileSystem::deleteDatabaseFile(databaseFile);
+
+        // And finally, if we can, delete the empty directory.
+        deleteEmptyDirectory(databasePath);
+    }
+
+    // If no databases remain for this origin, we can delete the origin directory as well.
+    deleteEmptyDirectory(originPath);
+}
+
+void IDBServer::performCloseAndDeleteDatabasesModifiedSince(std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID)
+{
+    if (!m_databaseDirectoryPath.isEmpty()) {
+        Vector<String> originPaths = listDirectory(m_databaseDirectoryPath, "*");
+        for (auto& originPath : originPaths)
+            removeAllDatabasesForOriginPath(originPath, modifiedSince);
+    }
+
+    postDatabaseTaskReply(createCrossThreadTask(*this, &IDBServer::didPerformCloseAndDeleteDatabases, callbackID));
+}
+
+void IDBServer::performCloseAndDeleteDatabasesForOrigins(const Vector<SecurityOriginData>& origins, uint64_t callbackID)
+{
+    if (!m_databaseDirectoryPath.isEmpty()) {
+        for (const auto& origin : origins) {
+            String originPath = pathByAppendingComponent(m_databaseDirectoryPath, origin.securityOrigin()->databaseIdentifier());
+            removeAllDatabasesForOriginPath(originPath, std::chrono::system_clock::time_point::min());
+        }
+    }
+
+    postDatabaseTaskReply(createCrossThreadTask(*this, &IDBServer::didPerformCloseAndDeleteDatabases, callbackID));
+}
+
+void IDBServer::didPerformCloseAndDeleteDatabases(uint64_t callbackID)
+{
+    auto callback = m_deleteDatabaseCompletionHandlers.take(callbackID);
+    ASSERT(callback);
+    callback();
 }
 
 } // namespace IDBServer

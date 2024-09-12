@@ -25,11 +25,11 @@
 
 WebInspector.ProfileDataGridNode = class ProfileDataGridNode extends WebInspector.DataGridNode
 {
-    constructor(cctNode, tree)
+    constructor(callingContextTreeNode, tree)
     {
-        super(cctNode, false);
+        super(callingContextTreeNode, false);
 
-        this._node = cctNode;
+        this._node = callingContextTreeNode;
         this._tree = tree;
 
         this._childrenToChargeToSelf = new Set;
@@ -46,7 +46,7 @@ WebInspector.ProfileDataGridNode = class ProfileDataGridNode extends WebInspecto
 
     // Public
 
-    get node() { return this._node; }
+    get callingContextTreeNode() { return this._node; }
 
     displayName()
     {
@@ -124,6 +124,21 @@ WebInspector.ProfileDataGridNode = class ProfileDataGridNode extends WebInspecto
         contextMenu.appendSeparator();
     }
 
+    // Protected
+
+    filterableDataForColumn(columnIdentifier)
+    {
+        if (columnIdentifier === "function") {
+            let filterableData = [this.displayName()];
+            let script = WebInspector.debuggerManager.scriptForIdentifier(this._node.sourceID);
+            if (script && script.url && this._node.line >= 0 && this._node.column >= 0)
+                filterableData.push(script.url);
+            return filterableData;
+        }
+
+        return super.filterableDataForColumn(columnIdentifier);
+    }
+
     // Private
 
     _updateChildrenForModifiers()
@@ -174,7 +189,7 @@ WebInspector.ProfileDataGridNode = class ProfileDataGridNode extends WebInspecto
         // Remove child data grid nodes that have been charged to us.
         if (!this.shouldRefreshChildren && this._childrenToChargeToSelf.size) {
             for (let childDataGridNode of this.children) {
-                if (this._childrenToChargeToSelf.has(childDataGridNode.node))
+                if (this._childrenToChargeToSelf.has(childDataGridNode.callingContextTreeNode))
                     this.removeChild(childDataGridNode);
             }
         }

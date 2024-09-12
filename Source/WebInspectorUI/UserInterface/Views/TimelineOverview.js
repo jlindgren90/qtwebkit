@@ -64,6 +64,7 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
 
         let instrumentsNavigationBar = new WebInspector.NavigationBar;
         instrumentsNavigationBar.element.classList.add("timelines");
+        instrumentsNavigationBar.addNavigationItem(new WebInspector.FlexibleSpaceNavigationItem);
         instrumentsNavigationBar.addNavigationItem(this._editInstrumentsButton);
         this.addSubview(instrumentsNavigationBar);
 
@@ -421,6 +422,11 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
         }
     }
 
+    discontinuitiesInTimeRange(startTime, endTime)
+    {
+        return this._recording.discontinuitiesInTimeRange(startTime, endTime);
+    }
+
     // Protected
 
     get timelineRuler()
@@ -428,11 +434,8 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
         return this._timelineRuler;
     }
 
-    layout(layoutReason)
+    layout()
     {
-        if (layoutReason === WebInspector.View.LayoutReason.Resize)
-            this._cachedScrollContainerWidth = NaN;
-
         let startTime = this._startTime;
         let endTime = this._endTime;
         let currentTime = this._currentTime;
@@ -485,6 +488,11 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
             overviewGraph.currentTime = currentTime;
             overviewGraph.endTime = scrollStartTime + visibleDuration;
         }
+    }
+
+    sizeDidChange()
+    {
+        this._cachedScrollContainerWidth = NaN;
     }
 
     // Private
@@ -634,16 +642,19 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
         console.assert(instrument instanceof WebInspector.Instrument, instrument);
 
         let timeline = this._recording.timelineForInstrument(instrument);
-        console.assert(this._overviewGraphsByTypeMap.has(timeline.type), timeline);
+        let overviewGraph = this._overviewGraphsByTypeMap.get(timeline.type);
+        console.assert(overviewGraph, "Missing overview graph for timeline type", timeline.type);
 
-        let overviewGraph = this._overviewGraphsByTypeMap.take(timeline.type);
-        overviewGraph.removeEventListener(WebInspector.TimelineOverviewGraph.Event.RecordSelected, this._recordSelected, this);
-        this._graphsContainerView.removeSubview(overviewGraph);
-
-        let treeElement = this._treeElementsByTypeMap.take(timeline.type);
+        let treeElement = this._treeElementsByTypeMap.get(timeline.type);
         let shouldSuppressOnDeselect = false;
         let shouldSuppressSelectSibling = true;
         this._timelinesTreeOutline.removeChild(treeElement, shouldSuppressOnDeselect, shouldSuppressSelectSibling);
+
+        overviewGraph.removeEventListener(WebInspector.TimelineOverviewGraph.Event.RecordSelected, this._recordSelected, this);
+        this._graphsContainerView.removeSubview(overviewGraph);
+
+        this._overviewGraphsByTypeMap.delete(timeline.type);
+        this._treeElementsByTypeMap.delete(timeline.type);
     }
 
     _markerAdded(event)
@@ -886,6 +897,11 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
 
                 let insertionIndex = insertionIndexForObjectInListSortedByFunction(treeElement, this._timelinesTreeOutline.children, this._compareTimelineTreeElements.bind(this));
                 this._timelinesTreeOutline.insertChild(treeElement, insertionIndex);
+
+                let placeholderGraph = new WebInspector.View;
+                placeholderGraph.element.classList.add("timeline-overview-graph");
+                treeElement[WebInspector.TimelineOverview.PlaceholderOverviewGraph] = placeholderGraph;
+                this._graphsContainerView.insertSubviewBefore(placeholderGraph, this._graphsContainerView.subviews[insertionIndex]);
             }
 
             treeElement.editing = true;
@@ -917,6 +933,10 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
         let placeholderTreeElements = this._timelinesTreeOutline.children.filter((treeElement) => treeElement.placeholder);
         for (let treeElement of placeholderTreeElements) {
             this._timelinesTreeOutline.removeChild(treeElement);
+
+            let placeholderGraph = treeElement[WebInspector.TimelineOverview.PlaceholderOverviewGraph];
+            console.assert(placeholderGraph);
+            this._graphsContainerView.removeSubview(placeholderGraph);
 
             if (treeElement.status.checked) {
                 let instrument = WebInspector.Instrument.createForTimelineType(treeElement.representedObject.type);
@@ -970,6 +990,8 @@ WebInspector.TimelineOverview = class TimelineOverview extends WebInspector.View
         this._editInstrumentsButton.enabled = enabled;
     }
 };
+
+WebInspector.TimelineOverview.PlaceholderOverviewGraph = Symbol("placeholder-overview-graph");
 
 WebInspector.TimelineOverview.ScrollDeltaDenominator = 500;
 WebInspector.TimelineOverview.EditInstrumentsStyleClassName = "edit-instruments";

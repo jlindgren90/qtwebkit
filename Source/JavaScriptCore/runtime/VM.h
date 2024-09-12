@@ -34,9 +34,6 @@
 #include "DateInstanceCache.h"
 #include "ExecutableAllocator.h"
 #include "FunctionHasExecutedCache.h"
-#if ENABLE(JIT)
-#include "GPRInfo.h"
-#endif
 #include "Heap.h"
 #include "Intrinsic.h"
 #include "JITThunks.h"
@@ -91,13 +88,13 @@ class TypeProfilerLog;
 class HeapProfiler;
 class Identifier;
 class Interpreter;
-class JSBoundSlotBaseFunction;
+class JSCustomGetterSetterFunction;
 class JSGlobalObject;
 class JSObject;
 class LLIntOffsetsExtractor;
-class LegacyProfiler;
 class NativeExecutable;
 class RegExpCache;
+class Register;
 class RegisterAtOffsetList;
 #if ENABLE(SAMPLING_PROFILER)
 class SamplingProfiler;
@@ -111,6 +108,7 @@ class Structure;
 #if ENABLE(REGEXP_TRACING)
 class RegExp;
 #endif
+class Symbol;
 class UnlinkedCodeBlock;
 class UnlinkedEvalCodeBlock;
 class UnlinkedFunctionExecutable;
@@ -256,8 +254,8 @@ public:
     JS_EXPORT_PRIVATE HeapProfiler& ensureHeapProfiler();
 
 #if ENABLE(SAMPLING_PROFILER)
-    SamplingProfiler* samplingProfiler() { return m_samplingProfiler.get(); }
-    JS_EXPORT_PRIVATE void ensureSamplingProfiler(RefPtr<Stopwatch>&&);
+    JS_EXPORT_PRIVATE SamplingProfiler* samplingProfiler() { return m_samplingProfiler.get(); }
+    JS_EXPORT_PRIVATE SamplingProfiler& ensureSamplingProfiler(RefPtr<Stopwatch>&&);
 #endif
 
 private:
@@ -281,7 +279,11 @@ public:
     VMType vmType;
     ClientData* clientData;
     VMEntryFrame* topVMEntryFrame;
-    ExecState* topCallFrame;
+    // NOTE: When throwing an exception while rolling back the call frame, this may be equal to
+    // topVMEntryFrame.
+    // FIXME: This should be a void*, because it might not point to a CallFrame.
+    // https://bugs.webkit.org/show_bug.cgi?id=160441
+    ExecState* topCallFrame; 
     Strong<Structure> structureStructure;
     Strong<Structure> structureRareDataStructure;
     Strong<Structure> terminatedExecutionErrorStructure;
@@ -341,27 +343,46 @@ public:
     NumericStrings numericStrings;
     DateInstanceCache dateInstanceCache;
     WTF::SimpleStats machineCodeBytesPerBytecodeWordForBaselineJIT;
-    WeakGCMap<std::pair<CustomGetterSetter*, int>, JSBoundSlotBaseFunction> customGetterSetterFunctionMap;
+    WeakGCMap<std::pair<CustomGetterSetter*, int>, JSCustomGetterSetterFunction> customGetterSetterFunctionMap;
     WeakGCMap<StringImpl*, JSString, PtrHash<StringImpl*>> stringCache;
     Strong<JSString> lastCachedString;
 
     AtomicStringTable* atomicStringTable() const { return m_atomicStringTable; }
     WTF::SymbolRegistry& symbolRegistry() { return m_symbolRegistry; }
 
-    void setInDefineOwnProperty(bool inDefineOwnProperty)
+    WeakGCMap<SymbolImpl*, Symbol, PtrHash<SymbolImpl*>> symbolImplToSymbolMap;
+
+    enum class DeletePropertyMode {
+        // Default behaviour of deleteProperty, matching the spec.
+        Default,
+        // This setting causes deleteProperty to force deletion of all
+        // properties including those that are non-configurable (DontDelete).
+        IgnoreConfigurable
+    };
+
+    DeletePropertyMode deletePropertyMode()
     {
-        m_inDefineOwnProperty = inDefineOwnProperty;
+        return m_deletePropertyMode;
     }
 
-    bool isInDefineOwnProperty()
-    {
-        return m_inDefineOwnProperty;
-    }
+    class DeletePropertyModeScope {
+    public:
+        DeletePropertyModeScope(VM& vm, DeletePropertyMode mode)
+            : m_vm(vm)
+            , m_previousMode(vm.m_deletePropertyMode)
+        {
+            m_vm.m_deletePropertyMode = mode;
+        }
 
-    LegacyProfiler* enabledProfiler() { return m_enabledProfiler; }
-    void setEnabledProfiler(LegacyProfiler*);
+        ~DeletePropertyModeScope()
+        {
+            m_vm.m_deletePropertyMode = m_previousMode;
+        }
 
-    void* enabledProfilerAddress() { return &m_enabledProfiler; }
+    private:
+        VM& m_vm;
+        DeletePropertyMode m_previousMode;
+    };
 
 #if ENABLE(JIT)
     bool canUseJIT() { return m_canUseJIT; }
@@ -384,15 +405,6 @@ public:
     SourceProviderCacheMap sourceProviderCacheMap;
     Interpreter* interpreter;
 #if ENABLE(JIT)
-#if NUMBER_OF_CALLEE_SAVES_REGISTERS > 0
-    intptr_t calleeSaveRegistersBuffer[NUMBER_OF_CALLEE_SAVES_REGISTERS];
-
-    static ptrdiff_t calleeSaveRegistersBufferOffset()
-    {
-        return OBJECT_OFFSETOF(VM, calleeSaveRegistersBuffer);
-    }
-#endif // NUMBER_OF_CALLEE_SAVES_REGISTERS > 0
-
     std::unique_ptr<JITThunks> jitStubs;
     MacroAssemblerCodeRef getCTIStub(ThunkGenerator generator)
     {
@@ -454,27 +466,24 @@ public:
     void* stackPointerAtVMEntry() const { return m_stackPointerAtVMEntry; }
     void setStackPointerAtVMEntry(void*);
 
-    size_t reservedZoneSize() const { return m_reservedZoneSize; }
-    size_t updateReservedZoneSize(size_t reservedZoneSize);
+    size_t softReservedZoneSize() const { return m_currentSoftReservedZoneSize; }
+    size_t updateSoftReservedZoneSize(size_t softReservedZoneSize);
 
-#if ENABLE(FTL_JIT)
-    void updateFTLLargestStackSize(size_t);
-    void** addressOfFTLStackLimit() { return &m_ftlStackLimit; }
-#endif
+    static size_t committedStackByteCount();
+    inline bool ensureStackCapacityFor(Register* newTopOfStack);
 
-#if !ENABLE(JIT)
-    void* jsStackLimit() { return m_jsStackLimit; }
-    void setJSStackLimit(void* limit) { m_jsStackLimit = limit; }
-#endif
     void* stackLimit() { return m_stackLimit; }
-    void** addressOfStackLimit() { return &m_stackLimit; }
+    void* softStackLimit() { return m_softStackLimit; }
+    void** addressOfSoftStackLimit() { return &m_softStackLimit; }
+#if !ENABLE(JIT)
+    void* cloopStackLimit() { return m_cloopStackLimit; }
+    void setCLoopStackLimit(void* limit) { m_cloopStackLimit = limit; }
+#endif
 
-    bool isSafeToRecurse(size_t neededStackInBytes = 0) const
+    inline bool isSafeToRecurseSoft() const;
+    bool isSafeToRecurse() const
     {
-        ASSERT(wtfThreadData().stack().isGrowingDownward());
-        int8_t* curr = reinterpret_cast<int8_t*>(&curr);
-        int8_t* limit = reinterpret_cast<int8_t*>(m_stackLimit);
-        return curr >= limit && static_cast<size_t>(curr - limit) >= neededStackInBytes;
+        return isSafeToRecurse(m_stackLimit);
     }
 
     void* lastStackTop() { return m_lastStackTop; }
@@ -577,7 +586,6 @@ public:
 
     JS_EXPORT_PRIVATE void deleteAllCode();
     JS_EXPORT_PRIVATE void deleteAllLinkedCode();
-    JS_EXPORT_PRIVATE void deleteAllRegExpCode();
 
     WatchpointSet* ensureWatchpointSetForImpureProperty(const Identifier&);
     void registerWatchpointForImpureProperty(const Identifier&, Watchpoint*);
@@ -624,7 +632,14 @@ private:
     static VM*& sharedInstanceInternal();
     void createNativeThunk();
 
-    void updateStackLimit();
+    void updateStackLimits();
+
+    bool isSafeToRecurse(void* stackLimit) const
+    {
+        ASSERT(wtfThreadData().stack().isGrowingDownward());
+        void* curr = reinterpret_cast<void*>(&curr);
+        return curr >= stackLimit;
+    }
 
     void setException(Exception* exception)
     {
@@ -644,32 +659,23 @@ private:
 #if ENABLE(GC_VALIDATION)
     const ClassInfo* m_initializingObjectClass;
 #endif
+
     void* m_stackPointerAtVMEntry;
-    size_t m_reservedZoneSize;
+    size_t m_currentSoftReservedZoneSize;
+    void* m_stackLimit { nullptr };
+    void* m_softStackLimit { nullptr };
 #if !ENABLE(JIT)
-    struct {
-        void* m_stackLimit;
-        void* m_jsStackLimit;
-    };
-#else
-    union {
-        void* m_stackLimit;
-        void* m_jsStackLimit;
-    };
-#if ENABLE(FTL_JIT)
-    void* m_ftlStackLimit;
-    size_t m_largestFTLStackSize;
-#endif
+    void* m_cloopStackLimit { nullptr };
 #endif
     void* m_lastStackTop;
+
     Exception* m_exception { nullptr };
     Exception* m_lastException { nullptr };
     bool m_failNextNewCodeBlock { false };
-    bool m_inDefineOwnProperty;
+    DeletePropertyMode m_deletePropertyMode { DeletePropertyMode::Default };
     bool m_globalConstRedeclarationShouldThrow { true };
     bool m_shouldBuildPCToCodeOriginMapping { false };
     std::unique_ptr<CodeCache> m_codeCache;
-    LegacyProfiler* m_enabledProfiler;
     std::unique_ptr<BuiltinExecutables> m_builtinExecutables;
     HashMap<String, RefPtr<WatchpointSet>> m_impurePropertyWatchpointSets;
     std::unique_ptr<TypeProfiler> m_typeProfiler;

@@ -22,6 +22,7 @@
 [
     CustomToJSObject,
     ConstructorTemplate=Event,
+    Exposed=(Window,Worker),
     ObjCPolymorphic,
 ] interface Event {
 
@@ -31,7 +32,6 @@
     const unsigned short AT_TARGET           = 2;
     const unsigned short BUBBLING_PHASE      = 3;
 
-#if !defined(LANGUAGE_OBJECTIVE_C) || !LANGUAGE_OBJECTIVE_C
     // Reverse-engineered from Netscape
     const unsigned short MOUSEDOWN           = 1;
     const unsigned short MOUSEUP             = 2;
@@ -49,7 +49,6 @@
     const unsigned short BLUR                = 8192;
     const unsigned short SELECT              = 16384;
     const unsigned short CHANGE              = 32768;
-#endif
 
     readonly attribute DOMString        type;
     readonly attribute EventTarget      target;
@@ -57,19 +56,15 @@
     readonly attribute unsigned short   eventPhase;
     [InitializedByEventConstructor] readonly attribute boolean bubbles;
     [InitializedByEventConstructor] readonly attribute boolean cancelable;
-    [InitializedByEventConstructor, Conditional=SHADOW_DOM, EnabledAtRuntime=ShadowDOM] readonly attribute boolean scoped;
-    [InitializedByEventConstructor, Conditional=SHADOW_DOM, EnabledAtRuntime=ShadowDOM] readonly attribute boolean relatedTargetScoped;
+    [InitializedByEventConstructor, EnabledAtRuntime=ShadowDOM] readonly attribute boolean composed;
     readonly attribute DOMTimeStamp     timeStamp;
 
-    [Conditional=SHADOW_DOM, EnabledAtRuntime=ShadowDOM] sequence<Node> composedPath();
+    [EnabledAtRuntime=ShadowDOM] sequence<Node> composedPath();
 
     void               stopPropagation();
     void               preventDefault();
 
-    // FIXME: Using "undefined" as default parameter value is wrong.
-    [ObjCLegacyUnnamedParameters] void initEvent(optional DOMString eventTypeArg = "undefined",
-                                  optional boolean canBubbleArg = false,
-                                  optional boolean cancelableArg = false);
+    [ObjCLegacyUnnamedParameters] void initEvent(DOMString eventTypeArg, boolean canBubbleArg, boolean cancelableArg);
 
     // DOM Level 3 Additions.
     readonly attribute boolean defaultPrevented;

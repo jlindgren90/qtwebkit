@@ -31,7 +31,9 @@
 #include "IDBRequest.h"
 #include "IDBRequestData.h"
 #include "IDBResourceIdentifier.h"
+#include "IDBResultData.h"
 #include "IDBTransaction.h"
+#include <wtf/MainThread.h>
 #include <wtf/Threading.h>
 
 namespace WebCore {
@@ -60,6 +62,19 @@ public:
         m_performFunction = { };
     }
 
+    void performCompleteOnOriginThread(const IDBResultData& data, RefPtr<TransactionOperation>&& lastRef)
+    {
+        ASSERT(isMainThread());
+
+        if (m_originThreadID == currentThread())
+            completed(data);
+        else {
+            m_transaction->performCallbackOnOriginThread(*this, &TransactionOperation::completed, data);
+            m_transaction->callFunctionOnOriginThread([lastRef = WTFMove(lastRef)]() {
+            });
+        }
+    }
+
     void completed(const IDBResultData& data)
     {
         ASSERT(m_originThreadID == currentThread());
@@ -76,8 +91,6 @@ public:
     const IDBResourceIdentifier& identifier() const { return m_identifier; }
 
     ThreadIdentifier originThreadID() const { return m_originThreadID; }
-
-    ScriptExecutionContext* scriptExecutionContext() const;
 
 protected:
     TransactionOperation(IDBTransaction& transaction)
@@ -114,15 +127,15 @@ public:
     TransactionOperationImpl(IDBTransaction& transaction, void (IDBTransaction::*completeMethod)(const IDBResultData&), void (IDBTransaction::*performMethod)(TransactionOperation&, Arguments...), Arguments&&... arguments)
         : TransactionOperation(transaction)
     {
-        RefPtr<TransactionOperation> self(this);
+        RefPtr<TransactionOperation> protectedThis(this);
 
         ASSERT(performMethod);
-        m_performFunction = [self, this, performMethod, arguments...] {
+        m_performFunction = [protectedThis, this, performMethod, arguments...] {
             (&m_transaction.get()->*performMethod)(*this, arguments...);
         };
 
         if (completeMethod) {
-            m_completeFunction = [self, this, completeMethod](const IDBResultData& resultData) {
+            m_completeFunction = [protectedThis, this, completeMethod](const IDBResultData& resultData) {
                 if (completeMethod)
                     (&m_transaction.get()->*completeMethod)(resultData);
             };
@@ -132,16 +145,16 @@ public:
     TransactionOperationImpl(IDBTransaction& transaction, IDBRequest& request, void (IDBTransaction::*completeMethod)(IDBRequest&, const IDBResultData&), void (IDBTransaction::*performMethod)(TransactionOperation&, Arguments...), Arguments&&... arguments)
         : TransactionOperation(transaction, request)
     {
-        RefPtr<TransactionOperation> self(this);
+        RefPtr<TransactionOperation> protectedThis(this);
 
         ASSERT(performMethod);
-        m_performFunction = [self, this, performMethod, arguments...] {
+        m_performFunction = [protectedThis, this, performMethod, arguments...] {
             (&m_transaction.get()->*performMethod)(*this, arguments...);
         };
 
         if (completeMethod) {
             RefPtr<IDBRequest> refRequest(&request);
-            m_completeFunction = [self, this, refRequest, completeMethod](const IDBResultData& resultData) {
+            m_completeFunction = [protectedThis, this, refRequest, completeMethod](const IDBResultData& resultData) {
                 if (completeMethod)
                     (&m_transaction.get()->*completeMethod)(*refRequest, resultData);
             };

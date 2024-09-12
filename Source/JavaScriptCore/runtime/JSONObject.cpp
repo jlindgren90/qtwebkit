@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Apple Inc. All rights reserved.
+ * Copyright (C) 2009, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -200,8 +200,12 @@ JSValue PropertyNameForFunctionCall::value(ExecState* exec) const
     if (!m_value) {
         if (m_identifier)
             m_value = jsString(exec, m_identifier->string());
-        else
-            m_value = jsNumber(m_number);
+        else {
+            VM& vm = exec->vm();
+            if (m_number <= 9)
+                return vm.smallStrings.singleCharacterString(m_number + '0');
+            m_value = jsNontrivialString(&vm, vm.numericStrings.add(m_number));
+        }
     }
     return m_value;
 }
@@ -364,7 +368,7 @@ Stringifier::StringifyResult Stringifier::appendStringifiedValue(StringBuilder& 
     // Handle cycle detection, and put the holder on the stack.
     for (unsigned i = 0; i < m_holderStack.size(); i++) {
         if (m_holderStack[i].object() == object) {
-            m_exec->vm().throwException(m_exec, createTypeError(m_exec, ASCIILiteral("JSON.stringify cannot serialize cyclic structures.")));
+            throwTypeError(m_exec, ASCIILiteral("JSON.stringify cannot serialize cyclic structures."));
             return StringifyFailed;
         }
     }
@@ -476,12 +480,12 @@ bool Stringifier::Holder::appendNextProperty(Stringifier& stringifier, StringBui
             value = asArray(m_object.get())->getIndexQuickly(index);
         else {
             PropertySlot slot(m_object.get(), PropertySlot::InternalMethodType::Get);
-            if (m_object->methodTable()->getOwnPropertySlotByIndex(m_object.get(), exec, index, slot)) {
+            if (m_object->methodTable()->getOwnPropertySlotByIndex(m_object.get(), exec, index, slot))
                 value = slot.getValue(exec, index);
-                if (exec->hadException())
-                    return false;
-            } else
+            else
                 value = jsUndefined();
+            if (UNLIKELY(exec->hadException()))
+                return false;
         }
 
         // Append the separator string.
@@ -552,11 +556,6 @@ const ClassInfo JSONObject::s_info = { "JSON", &JSNonFinalObject::s_info, &jsonT
 
 // ECMA 15.8
 
-bool JSONObject::getOwnPropertySlot(JSObject* object, ExecState* exec, PropertyName propertyName, PropertySlot& slot)
-{
-    return getStaticFunctionSlot<JSObject>(exec, jsonTable, jsCast<JSONObject*>(object), propertyName, slot);
-}
-
 class Walker {
 public:
     Walker(ExecState* exec, Handle<JSObject> function, CallType callType, CallData callData)
@@ -594,6 +593,7 @@ NEVER_INLINE JSValue Walker::walk(JSValue unfiltered)
     Vector<uint32_t, 16, UnsafeVectorOverflow> indexStack;
     LocalStack<JSObject, 16> objectStack(m_exec->vm());
     LocalStack<JSArray, 16> arrayStack(m_exec->vm());
+    Vector<unsigned, 16, UnsafeVectorOverflow> arrayLengthStack;
     
     Vector<WalkerState, 16, UnsafeVectorOverflow> stateStack;
     WalkerState state = StateUnknown;
@@ -611,6 +611,7 @@ NEVER_INLINE JSValue Walker::walk(JSValue unfiltered)
 
                 JSArray* array = asArray(inValue);
                 arrayStack.push(array);
+                arrayLengthStack.append(array->length());
                 indexStack.append(0);
             }
             arrayStartVisitMember:
@@ -618,9 +619,11 @@ NEVER_INLINE JSValue Walker::walk(JSValue unfiltered)
             case ArrayStartVisitMember: {
                 JSArray* array = arrayStack.peek();
                 uint32_t index = indexStack.last();
-                if (index == array->length()) {
+                unsigned arrayLength = arrayLengthStack.last();
+                if (index == arrayLength) {
                     outValue = array;
                     arrayStack.pop();
+                    arrayLengthStack.removeLast();
                     indexStack.removeLast();
                     break;
                 }
@@ -632,6 +635,8 @@ NEVER_INLINE JSValue Walker::walk(JSValue unfiltered)
                         inValue = slot.getValue(m_exec, index);
                     else
                         inValue = jsUndefined();
+                    if (m_exec->hadException())
+                        return jsNull();
                 }
                     
                 if (inValue.isObject()) {

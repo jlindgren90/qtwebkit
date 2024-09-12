@@ -28,16 +28,20 @@
 #include "MainThreadNotifier.h"
 #include "MediaPlayerPrivate.h"
 #include "PlatformLayer.h"
-#if 0 // FIXME
-#include "TextureMapperPlatformLayer.h"
-#include "TextureMapperPlatformLayerProxy.h"
-#endif
 #include <glib.h>
+#include <gst/gst.h>
 #include <wtf/Condition.h>
 #include <wtf/Forward.h>
 #include <wtf/RunLoop.h>
 
-typedef struct _GstMessage GstMessage;
+#if USE(TEXTURE_MAPPER)
+#include "TextureMapperPlatformLayer.h"
+#include "TextureMapperPlatformLayerProxy.h"
+#if USE(TEXTURE_MAPPER_GL)
+#include "TextureMapperGL.h"
+#endif
+#endif
+
 typedef struct _GstStreamVolume GstStreamVolume;
 typedef struct _GstVideoInfo GstVideoInfo;
 typedef struct _GstGLContext GstGLContext;
@@ -118,9 +122,18 @@ public:
     NativeImagePtr nativeImageForCurrentTime() override;
 #endif
 
+    void setVideoSourceOrientation(const ImageOrientation&);
+
 protected:
     MediaPlayerPrivateGStreamerBase(MediaPlayer*);
     virtual GstElement* createVideoSink();
+
+#if USE(GSTREAMER_GL)
+    static GstFlowReturn newSampleCallback(GstElement*, MediaPlayerPrivateGStreamerBase*);
+    static GstFlowReturn newPrerollCallback(GstElement*, MediaPlayerPrivateGStreamerBase*);
+    GstElement* createGLAppSink();
+    GstElement* createVideoSinkGL();
+#endif
 
     void setStreamVolumeElement(GstStreamVolume*);
     virtual GstElement* createAudioSink() { return 0; }
@@ -134,9 +147,6 @@ protected:
     void repaint();
 
     static void repaintCallback(MediaPlayerPrivateGStreamerBase*, GstSample*);
-#if USE(GSTREAMER_GL)
-    static gboolean drawCallback(MediaPlayerPrivateGStreamerBase*, GstGLContext*, GstSample*);
-#endif
 
     void notifyPlayerOfVolumeChange();
     void notifyPlayerOfMute();
@@ -153,6 +163,7 @@ protected:
 #if ENABLE(VIDEO_TRACK)
         TextChanged = 1 << 5,
 #endif
+        SizeChanged = 1 << 6
     };
 
     MainThreadNotifier<MainThreadNotification> m_notifier;
@@ -190,6 +201,11 @@ protected:
     RefPtr<GraphicsContext3D> m_context3D;
     Condition m_drawCondition;
     Lock m_drawMutex;
+#endif
+
+    ImageOrientation m_videoSourceOrientation;
+#if USE(TEXTURE_MAPPER_GL)
+    TextureMapperGL::Flags m_textureMapperRotationFlag;
 #endif
 };
 }

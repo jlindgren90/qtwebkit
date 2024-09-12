@@ -48,14 +48,6 @@ namespace JSC {
 
 static const bool verbose = false;
 
-// EncodedJSValue in JSVALUE32_64 is a 64-bit integer. When being compiled in ARM EABI, it must be aligned on an even-numbered register (r0, r2 or [sp]).
-// To prevent the assembler from using wrong registers, let's occupy r1 or r3 with a dummy argument when necessary.
-#if (COMPILER_SUPPORTS(EABI) && CPU(ARM)) || CPU(MIPS)
-#define EABI_32BIT_DUMMY_ARG      CCallHelpers::TrustedImm32(0),
-#else
-#define EABI_32BIT_DUMMY_ARG
-#endif
-
 void AccessGenerationResult::dump(PrintStream& out) const
 {
     out.print(m_kind);
@@ -172,7 +164,7 @@ CallSiteIndex AccessGenerationState::originalCallSiteIndex() const { return stub
 void AccessGenerationState::emitExplicitExceptionHandler()
 {
     restoreScratch();
-    jit->copyCalleeSavesToVMCalleeSavesBuffer();
+    jit->copyCalleeSavesToVMEntryFrameCalleeSavesBuffer();
     if (needsToRestoreRegistersIfException()) {
         // To the JIT that produces the original exception handling
         // call site, they will expect the OSR exit to be arrived
@@ -955,7 +947,7 @@ void AccessCase::generateImpl(AccessGenerationState& state)
 
         jit.store32(
             CCallHelpers::TrustedImm32(state.callSiteIndexForExceptionHandlingOrOriginal().bits()),
-            CCallHelpers::tagFor(static_cast<VirtualRegister>(JSStack::ArgumentCount)));
+            CCallHelpers::tagFor(static_cast<VirtualRegister>(CallFrameSlot::argumentCount)));
 
         if (m_type == Getter || m_type == Setter) {
             // Create a JS call using a JS call inline cache. Assume that:
@@ -1010,7 +1002,7 @@ void AccessCase::generateImpl(AccessGenerationState& state)
             CCallHelpers::Jump returnUndefined = jit.branchTestPtr(
                 CCallHelpers::Zero, loadedValueGPR);
 
-            unsigned numberOfRegsForCall = JSStack::CallFrameHeaderSize + numberOfParameters;
+            unsigned numberOfRegsForCall = CallFrame::headerSizeInRegisters + numberOfParameters;
 
             unsigned numberOfBytesForCall =
                 numberOfRegsForCall * sizeof(Register) - sizeof(CallerFrameAndPC);
@@ -1028,10 +1020,10 @@ void AccessCase::generateImpl(AccessGenerationState& state)
 
             jit.store32(
                 CCallHelpers::TrustedImm32(numberOfParameters),
-                calleeFrame.withOffset(JSStack::ArgumentCount * sizeof(Register) + PayloadOffset));
+                calleeFrame.withOffset(CallFrameSlot::argumentCount * sizeof(Register) + PayloadOffset));
 
             jit.storeCell(
-                loadedValueGPR, calleeFrame.withOffset(JSStack::Callee * sizeof(Register)));
+                loadedValueGPR, calleeFrame.withOffset(CallFrameSlot::callee * sizeof(Register)));
 
             jit.storeCell(
                 baseForGetGPR,
@@ -1095,6 +1087,8 @@ void AccessCase::generateImpl(AccessGenerationState& state)
             // getter: EncodedJSValue (*GetValueFunc)(ExecState*, EncodedJSValue thisValue, PropertyName);
             // setter: void (*PutValueFunc)(ExecState*, EncodedJSValue thisObject, EncodedJSValue value);
             // Custom values are passed the slotBase (the property holder), custom accessors are passed the thisVaule (reciever).
+            // FIXME: Remove this differences in custom values and custom accessors.
+            // https://bugs.webkit.org/show_bug.cgi?id=158014
             GPRReg baseForCustomValue = m_type == CustomValueGetter || m_type == CustomValueSetter ? baseForAccessGPR : baseForGetGPR;
 #if USE(JSVALUE64)
             if (m_type == CustomValueGetter || m_type == CustomAccessorGetter) {
@@ -1266,7 +1260,7 @@ void AccessCase::generateImpl(AccessGenerationState& state)
                 jit.store32(
                     CCallHelpers::TrustedImm32(
                         state.callSiteIndexForExceptionHandlingOrOriginal().bits()),
-                    CCallHelpers::tagFor(static_cast<VirtualRegister>(JSStack::ArgumentCount)));
+                    CCallHelpers::tagFor(static_cast<VirtualRegister>(CallFrameSlot::argumentCount)));
                 
                 jit.makeSpaceOnStackForCCall();
                 
@@ -1425,7 +1419,7 @@ PolymorphicAccess::~PolymorphicAccess() { }
 
 AccessGenerationResult PolymorphicAccess::addCases(
     VM& vm, CodeBlock* codeBlock, StructureStubInfo& stubInfo, const Identifier& ident,
-    Vector<std::unique_ptr<AccessCase>> originalCasesToAdd)
+    Vector<std::unique_ptr<AccessCase>, 2> originalCasesToAdd)
 {
     SuperSamplerScope superSamplerScope(false);
     
@@ -1486,7 +1480,7 @@ AccessGenerationResult PolymorphicAccess::addCase(
     VM& vm, CodeBlock* codeBlock, StructureStubInfo& stubInfo, const Identifier& ident,
     std::unique_ptr<AccessCase> newAccess)
 {
-    Vector<std::unique_ptr<AccessCase>> newAccesses;
+    Vector<std::unique_ptr<AccessCase>, 2> newAccesses;
     newAccesses.append(WTFMove(newAccess));
     return addCases(vm, codeBlock, stubInfo, ident, WTFMove(newAccesses));
 }
@@ -1557,11 +1551,7 @@ AccessGenerationResult PolymorphicAccess::regenerate(
     state.ident = &ident;
     
     state.baseGPR = static_cast<GPRReg>(stubInfo.patch.baseGPR);
-    state.valueRegs = JSValueRegs(
-#if USE(JSVALUE32_64)
-        static_cast<GPRReg>(stubInfo.patch.valueTagGPR),
-#endif
-        static_cast<GPRReg>(stubInfo.patch.valueGPR));
+    state.valueRegs = stubInfo.valueRegs();
 
     ScratchRegisterAllocator allocator(stubInfo.patch.usedRegisters);
     state.allocator = &allocator;
@@ -1759,14 +1749,11 @@ AccessGenerationResult PolymorphicAccess::regenerate(
         return AccessGenerationResult::GaveUp;
     }
 
-    CodeLocationLabel successLabel =
-        stubInfo.callReturnLocation.labelAtOffset(stubInfo.patch.deltaCallToDone);
+    CodeLocationLabel successLabel = stubInfo.doneLocation();
         
     linkBuffer.link(state.success, successLabel);
 
-    linkBuffer.link(
-        failure,
-        stubInfo.callReturnLocation.labelAtOffset(stubInfo.patch.deltaCallToSlowCase));
+    linkBuffer.link(failure, stubInfo.slowPathStartLocation());
     
     if (verbose)
         dataLog(*codeBlock, " ", stubInfo.codeOrigin, ": Generating polymorphic access stub for ", listDump(cases), "\n");

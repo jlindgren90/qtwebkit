@@ -31,6 +31,7 @@
 #define AccessibilityObject_h
 
 #include "FloatQuad.h"
+#include "HTMLTextFormControlElement.h"
 #include "LayoutRect.h"
 #include "Path.h"
 #include "Range.h"
@@ -512,6 +513,7 @@ public:
     virtual bool isSliderThumb() const { return false; }
     virtual bool isInputSlider() const { return false; }
     virtual bool isControl() const { return false; }
+    virtual bool isLabel() const { return false; }
     virtual bool isList() const { return false; }
     virtual bool isTable() const { return false; }
     virtual bool isDataTable() const { return false; }
@@ -903,6 +905,7 @@ public:
     virtual String passwordFieldValue() const { return String(); }
     bool isValueAutofilled() const;
     bool isValueAutofillAvailable() const;
+    AutoFillButtonType valueAutofillButtonType() const;
     
     // Used by an ARIA tree to get all its rows.
     void ariaTreeRows(AccessibilityChildrenVector&);
@@ -994,6 +997,7 @@ public:
     virtual String mathFencedOpenString() const { return String(); }
     virtual String mathFencedCloseString() const { return String(); }
     virtual int mathLineThickness() const { return 0; }
+    virtual bool isAnonymousMathOperator() const { return false; }
     
     // Multiscripts components.
     typedef Vector<std::pair<AccessibilityObject*, AccessibilityObject*>> AccessibilityMathMultiscriptPairs;
@@ -1036,6 +1040,7 @@ public:
 
 #if PLATFORM(IOS)
     int accessibilityPasswordFieldLength();
+    bool hasTouchEventListener() const;
 #endif
     
     // allows for an AccessibilityObject to update its render tree or perform

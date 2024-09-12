@@ -73,6 +73,7 @@ AccessibilityUIElement::~AccessibilityUIElement()
 - (NSArray *)accessibilityHeaderElements;
 - (NSString *)accessibilityPlaceholderValue;
 - (NSString *)stringForRange:(NSRange)range;
+- (NSAttributedString *)attributedStringForRange:(NSRange)range;
 - (NSArray *)elementsForRange:(NSRange)range;
 - (NSString *)selectionRangeString;
 - (CGPoint)accessibilityClickPoint;
@@ -94,6 +95,7 @@ AccessibilityUIElement::~AccessibilityUIElement()
 - (NSUInteger)accessibilityARIAColumnIndex;
 - (UIAccessibilityTraits)_axContainedByFieldsetTrait;
 - (id)_accessibilityFieldsetAncestor;
+- (BOOL)_accessibilityHasTouchEventListener;
 
 // TextMarker related
 - (NSArray *)textMarkerRange;
@@ -365,9 +367,15 @@ JSStringRef AccessibilityUIElement::stringForRange(unsigned location, unsigned l
     return [stringForRange createJSStringRef];
 }
 
-JSStringRef AccessibilityUIElement::attributedStringForRange(unsigned, unsigned)
+JSStringRef AccessibilityUIElement::attributedStringForRange(unsigned location, unsigned length)
 {
-    return JSStringCreateWithCharacters(0, 0);
+    NSRange range = NSMakeRange(location, length);
+    NSAttributedString* string = [m_element attributedStringForRange:range];
+    if (![string isKindOfClass:[NSAttributedString class]])
+        return 0;
+    
+    NSString* stringWithAttrs = [string description];
+    return [stringWithAttrs createJSStringRef];
 }
 
 bool AccessibilityUIElement::attributedStringRangeIsMisspelled(unsigned, unsigned)
@@ -660,6 +668,8 @@ bool AccessibilityUIElement::isDecrementActionSupported()
 
 bool AccessibilityUIElement::boolAttributeValue(JSStringRef attribute)
 {
+    if (JSStringIsEqualToUTF8CString(attribute, "AXHasTouchEventListener"))
+        return [m_element _accessibilityHasTouchEventListener];
     return false;
 }
 

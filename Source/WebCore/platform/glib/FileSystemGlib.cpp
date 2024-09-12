@@ -232,14 +232,19 @@ CString sharedResourcesPath()
     return cachedPath;
 }
 
-uint64_t getVolumeFreeSizeForPath(const char* path)
+bool getVolumeFreeSpace(const String& path, uint64_t& freeSpace)
 {
-    GRefPtr<GFile> file = adoptGRef(g_file_new_for_path(path));
+    GUniquePtr<gchar> filename = unescapedFilename(path);
+    if (!filename)
+        return false;
+
+    GRefPtr<GFile> file = adoptGRef(g_file_new_for_path(filename.get()));
     GRefPtr<GFileInfo> fileInfo = adoptGRef(g_file_query_filesystem_info(file.get(), G_FILE_ATTRIBUTE_FILESYSTEM_FREE, 0, 0));
     if (!fileInfo)
-        return 0;
+        return false;
 
-    return g_file_info_get_attribute_uint64(fileInfo.get(), G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
+    freeSpace = g_file_info_get_attribute_uint64(fileInfo.get(), G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
+    return !!freeSpace;
 }
 
 String directoryName(const String& path)
@@ -363,6 +368,19 @@ int readFromFile(PlatformFileHandle handle, char* data, int length)
     return -1;
 }
 
+bool moveFile(const String& oldPath, const String& newPath)
+{
+    GUniquePtr<gchar> oldFilename = unescapedFilename(oldPath);
+    if (!oldFilename)
+        return false;
+
+    GUniquePtr<gchar> newFilename = unescapedFilename(newPath);
+    if (!newFilename)
+        return false;
+
+    return g_rename(oldFilename.get(), newFilename.get()) != -1;
+}
+
 bool unloadModule(PlatformModule module)
 {
 #if OS(WINDOWS)
@@ -372,10 +390,27 @@ bool unloadModule(PlatformModule module)
 #endif
 }
 
-bool hardLinkOrCopyFile(const String&, const String&)
+bool hardLinkOrCopyFile(const String& source, const String& destination)
 {
-    // FIXME: Implement
-    return false;
+#if OS(WINDOWS)
+    return !!::CopyFile(source.charactersWithNullTermination().data(), destination.charactersWithNullTermination().data(), TRUE);
+#else
+    GUniquePtr<gchar> sourceFilename = unescapedFilename(source);
+    if (!sourceFilename)
+        return false;
+
+    GUniquePtr<gchar> destinationFilename = unescapedFilename(destination);
+    if (!destinationFilename)
+        return false;
+
+    if (!link(sourceFilename.get(), destinationFilename.get()))
+        return true;
+
+    // Hard link failed. Perform a copy instead.
+    GRefPtr<GFile> sourceFile = adoptGRef(g_file_new_for_path(sourceFilename.get()));
+    GRefPtr<GFile> destinationFile = adoptGRef(g_file_new_for_path(destinationFilename.get()));
+    return g_file_copy(sourceFile.get(), destinationFile.get(), G_FILE_COPY_NONE, nullptr, nullptr, nullptr, nullptr);
+#endif
 }
 
 }

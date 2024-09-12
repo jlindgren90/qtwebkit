@@ -19,25 +19,18 @@
  *
  */
 
-#ifndef StyleResolver_h
-#define StyleResolver_h
+#pragma once
 
 #include "CSSToLengthConversionData.h"
 #include "CSSToStyleMap.h"
-#include "CSSValueList.h"
 #include "DocumentRuleSets.h"
 #include "InspectorCSSOMWrappers.h"
-#include "LinkHash.h"
 #include "MediaQueryEvaluator.h"
 #include "RenderStyle.h"
 #include "RuleFeature.h"
 #include "RuleSet.h"
-#include "RuntimeEnabledFeatures.h"
-#include "ScrollTypes.h"
 #include "SelectorChecker.h"
-#include "StyleInheritedData.h"
-#include "StyleRelations.h"
-#include "ViewportStyleResolver.h"
+#include "StylePendingResources.h"
 #include <bitset>
 #include <memory>
 #include <wtf/HashMap.h>
@@ -62,6 +55,7 @@ class CSSProperty;
 class CSSSelector;
 class CSSStyleSheet;
 class CSSValue;
+class CSSVariableDependentValue;
 class ContainerNode;
 class Document;
 class Element;
@@ -155,6 +149,7 @@ public:
     const RenderStyle* rootElementStyle() const { return m_state.rootElementStyle(); }
     const Element* element() { return m_state.element(); }
     Document& document() { return m_document; }
+    const Document& document() const { return m_document; }
     Settings* documentSettings() { return m_document.settings(); }
 
     void appendAuthorStyleSheets(const Vector<RefPtr<CSSStyleSheet>>&);
@@ -162,7 +157,7 @@ public:
     DocumentRuleSets& ruleSets() { return m_ruleSets; }
     const DocumentRuleSets& ruleSets() const { return m_ruleSets; }
 
-    const MediaQueryEvaluator& mediaQueryEvaluator() const { return *m_medium; }
+    const MediaQueryEvaluator& mediaQueryEvaluator() const { return m_mediaQueryEvaluator; }
 
     void setOverrideDocumentElementStyle(RenderStyle* style) { m_overrideDocumentElementStyle = style; }
 
@@ -208,11 +203,11 @@ public:
     ViewportStyleResolver* viewportStyleResolver() { return m_viewportStyleResolver.get(); }
 #endif
 
-    void addViewportDependentMediaQueryResult(const MediaQueryExp*, bool result);
+    void addViewportDependentMediaQueryResult(const MediaQueryExpression&, bool result);
     bool hasViewportDependentMediaQueries() const { return !m_viewportDependentMediaQueryResults.isEmpty(); }
     bool hasMediaQueriesAffectedByViewportChange() const;
 
-    void addKeyframeStyle(PassRefPtr<StyleRuleKeyframes>);
+    void addKeyframeStyle(Ref<StyleRuleKeyframes>&&);
 
     bool checkRegionStyle(const Element* regionElement);
 
@@ -256,6 +251,7 @@ public:
             struct {
                 unsigned linkMatchType : 2;
                 unsigned whitelistType : 2;
+                unsigned treeContextOrdinal : 28;
             };
             // Used to make sure all memory is zero-initialized since we compute the hash over the bytes of this object.
             void* possiblyPaddedMember;
@@ -270,7 +266,7 @@ public:
 
         const Vector<MatchedProperties, 64>& matchedProperties() const { return m_matchedProperties; }
 
-        void addMatchedProperties(const StyleProperties&, StyleRule* = nullptr, unsigned linkMatchType = SelectorChecker::MatchAll, PropertyWhitelistType = PropertyWhitelistNone);
+        void addMatchedProperties(const StyleProperties&, StyleRule* = nullptr, unsigned linkMatchType = SelectorChecker::MatchAll, PropertyWhitelistType = PropertyWhitelistNone, unsigned treeContextOrdinal = 0);
     private:
         Vector<MatchedProperties, 64> m_matchedProperties;
     };
@@ -290,7 +286,9 @@ public:
 
         bool hasProperty(CSSPropertyID) const;
         Property& property(CSSPropertyID);
-        void addMatches(const MatchResult&, bool important, int startIndex, int endIndex, bool inheritedOnly = false);
+
+        void addNormalMatches(const MatchResult&, int startIndex, int endIndex, bool inheritedOnly = false);
+        void addImportantMatches(const MatchResult&, int startIndex, int endIndex, bool inheritedOnly = false);
 
         void set(CSSPropertyID, CSSValue&, unsigned linkMatchType, CascadeLevel);
         void setDeferred(CSSPropertyID, CSSValue&, unsigned linkMatchType, CascadeLevel);
@@ -302,6 +300,7 @@ public:
         Property customProperty(const String&) const;
         
     private:
+        void addMatch(const MatchResult&, unsigned index, bool isImportant, bool inheritedOnly);
         void addStyleProperties(const StyleProperties&, StyleRule&, bool isImportant, bool inheritedOnly, PropertyWhitelistType, unsigned linkMatchType, CascadeLevel);
         static void setPropertyInternal(Property&, CSSPropertyID, CSSValue&, unsigned linkMatchType, CascadeLevel);
 
@@ -384,9 +383,6 @@ public:
         void setApplyPropertyToVisitedLinkStyle(bool isApply) { m_applyPropertyToVisitedLinkStyle = isApply; }
         bool applyPropertyToRegularStyle() const { return m_applyPropertyToRegularStyle; }
         bool applyPropertyToVisitedLinkStyle() const { return m_applyPropertyToVisitedLinkStyle; }
-        PendingImagePropertyMap& pendingImageProperties() { return m_pendingImageProperties; }
-        
-        Vector<RefPtr<ReferenceFilterOperation>>& filtersWithPendingSVGDocuments() { return m_filtersWithPendingSVGDocuments; }
 
         void setFontDirty(bool isDirty) { m_fontDirty = isDirty; }
         bool fontDirty() const { return m_fontDirty; }
@@ -409,7 +405,10 @@ public:
 
         bool useSVGZoomRules() const { return m_element && m_element->isSVGElement(); }
 
-        CSSToLengthConversionData cssToLengthConversionData() const { return m_cssToLengthConversionData; }
+        Style::PendingResources& ensurePendingResources();
+        std::unique_ptr<Style::PendingResources> takePendingResources() { return WTFMove(m_pendingResources); }
+
+        const CSSToLengthConversionData& cssToLengthConversionData() const { return m_cssToLengthConversionData; }
 
         CascadeLevel cascadeLevel() const { return m_cascadeLevel; }
         void setCascadeLevel(CascadeLevel level) { m_cascadeLevel = level; }
@@ -445,8 +444,7 @@ public:
         FillLayer m_backgroundData { BackgroundFillLayer };
         Color m_backgroundColor;
 
-        PendingImagePropertyMap m_pendingImageProperties;
-        Vector<RefPtr<ReferenceFilterOperation>> m_filtersWithPendingSVGDocuments;
+        std::unique_ptr<Style::PendingResources> m_pendingResources;
         CSSToLengthConversionData m_cssToLengthConversionData;
         
         CascadeLevel m_cascadeLevel { UserAgentLevel };
@@ -457,10 +455,11 @@ public:
     };
 
     State& state() { return m_state; }
+    const State& state() const { return m_state; }
 
-    PassRefPtr<StyleImage> styleImage(CSSPropertyID, CSSValue&);
-    RefPtr<StyleImage> cachedOrPendingFromValue(CSSPropertyID, CSSImageValue&);
-    PassRefPtr<StyleImage> generatedOrPendingFromValue(CSSPropertyID, CSSImageGeneratorValue&);
+    RefPtr<StyleImage> styleImage(CSSPropertyID, CSSValue&);
+    Ref<StyleImage> cachedOrPendingFromValue(CSSPropertyID, CSSImageValue&);
+    Ref<StyleImage> generatedOrPendingFromValue(CSSPropertyID, CSSImageGeneratorValue&);
 #if ENABLE(CSS_IMAGE_SET)
     RefPtr<StyleImage> setOrPendingFromValue(CSSPropertyID, CSSImageSetValue&);
 #endif
@@ -492,12 +491,7 @@ private:
 
     void applySVGProperty(CSSPropertyID, CSSValue*);
 
-    PassRefPtr<StyleImage> loadPendingImage(const StylePendingImage&, const ResourceLoaderOptions&);
-    PassRefPtr<StyleImage> loadPendingImage(const StylePendingImage&);
     void loadPendingImages();
-#if ENABLE(CSS_SHAPES)
-    void loadPendingShapeImage(ShapeValue*);
-#endif
 
     static unsigned computeMatchedPropertiesHash(const MatchedProperties*, unsigned size);
     struct MatchedPropertiesCacheItem {
@@ -520,7 +514,7 @@ private:
 
     Timer m_matchedPropertiesCacheSweepTimer;
 
-    std::unique_ptr<MediaQueryEvaluator> m_medium;
+    MediaQueryEvaluator m_mediaQueryEvaluator;
     std::unique_ptr<RenderStyle> m_rootDefaultStyle;
 
     Document& m_document;
@@ -529,7 +523,7 @@ private:
 
     RenderStyle* m_overrideDocumentElementStyle { nullptr };
 
-    Vector<std::unique_ptr<MediaQueryResult>> m_viewportDependentMediaQueryResults;
+    Vector<MediaQueryResult> m_viewportDependentMediaQueryResults;
 
 #if ENABLE(CSS_DEVICE_ADAPTATION)
     RefPtr<ViewportStyleResolver> m_viewportStyleResolver;
@@ -585,5 +579,3 @@ inline bool checkRegionSelector(const CSSSelector* regionSelector, const Element
 }
 
 } // namespace WebCore
-
-#endif // StyleResolver_h

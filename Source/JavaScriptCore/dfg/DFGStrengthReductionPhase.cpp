@@ -639,7 +639,7 @@ private:
             }
 
             String replace = m_node->child3()->tryGetString(m_graph);
-            if (!string)
+            if (!replace)
                 break;
 
             StringBuilder builder;
@@ -744,13 +744,18 @@ private:
     
     void handleCommutativity()
     {
+        // It's definitely not sound to swap the lhs and rhs when we may be performing effectful
+        // calls on the lhs/rhs for valueOf.
+        if (m_node->child1().useKind() == UntypedUse || m_node->child2().useKind() == UntypedUse)
+            return;
+
         // If the right side is a constant then there is nothing left to do.
         if (m_node->child2()->hasConstant())
             return;
         
         // This case ensures that optimizations that look for x + const don't also have
         // to look for const + x.
-        if (m_node->child1()->hasConstant()) {
+        if (m_node->child1()->hasConstant() && !m_node->child1()->asJSValue().isCell()) {
             std::swap(m_node->child1(), m_node->child2());
             m_changed = true;
             return;

@@ -360,7 +360,7 @@ String AccessibilityObject::computedLabel()
 {
     // This method is being called by WebKit inspector, which may happen at any time, so we need to update our backing store now.
     // Also hold onto this object in case updateBackingStore deletes this node.
-    RefPtr<AccessibilityObject> protector(this);
+    RefPtr<AccessibilityObject> protectedThis(this);
     updateBackingStore();
     Vector<AccessibilityText> text;
     accessibilityText(text);
@@ -646,11 +646,11 @@ static RefPtr<Range> rangeClosestToRange(Range* referenceRange, RefPtr<Range>&& 
     
     // The treeScope for shadow nodes may not be the same scope as another element in a document.
     // Comparisons may fail in that case, which are expected behavior and should not assert.
-    if (afterRange && ((afterRange->startPosition().anchorNode()->compareDocumentPosition(referenceRange->endPosition().anchorNode()) & Node::DOCUMENT_POSITION_DISCONNECTED) == Node::DOCUMENT_POSITION_DISCONNECTED))
+    if (afterRange && (referenceRange->endPosition().isNull() || ((afterRange->startPosition().anchorNode()->compareDocumentPosition(*referenceRange->endPosition().anchorNode()) & Node::DOCUMENT_POSITION_DISCONNECTED) == Node::DOCUMENT_POSITION_DISCONNECTED)))
         return nullptr;
     ASSERT(!afterRange || afterRange->startPosition() >= referenceRange->endPosition());
     
-    if (beforeRange && ((beforeRange->endPosition().anchorNode()->compareDocumentPosition(referenceRange->startPosition().anchorNode()) & Node::DOCUMENT_POSITION_DISCONNECTED) == Node::DOCUMENT_POSITION_DISCONNECTED))
+    if (beforeRange && (referenceRange->startPosition().isNull() || ((beforeRange->endPosition().anchorNode()->compareDocumentPosition(*referenceRange->startPosition().anchorNode()) & Node::DOCUMENT_POSITION_DISCONNECTED) == Node::DOCUMENT_POSITION_DISCONNECTED)))
         return nullptr;
     ASSERT(!beforeRange || beforeRange->endPosition() <= referenceRange->startPosition());
     
@@ -920,9 +920,13 @@ bool AccessibilityObject::press()
     if (hitTestElement && hitTestElement->isDescendantOf(pressElement))
         pressElement = hitTestElement;
     
-    UserGestureIndicator gestureIndicator(DefinitelyProcessingUserGesture, document);
+    UserGestureIndicator gestureIndicator(ProcessingUserGesture, document);
     
-    bool dispatchedTouchEvent = dispatchTouchEvent();
+    bool dispatchedTouchEvent = false;
+#if PLATFORM(IOS)
+    if (hasTouchEventListener())
+        dispatchedTouchEvent = dispatchTouchEvent();
+#endif
     if (!dispatchedTouchEvent)
         pressElement->accessKeyAction(true);
     
@@ -937,7 +941,7 @@ bool AccessibilityObject::dispatchTouchEvent()
     if (!frame)
         return false;
 
-    frame->eventHandler().dispatchSimulatedTouchEvent(clickPoint());
+    handled = frame->eventHandler().dispatchSimulatedTouchEvent(clickPoint());
 #endif
     return handled;
 }
@@ -1589,7 +1593,7 @@ String AccessibilityObject::ariaReadOnlyValue() const
     if (!hasAttribute(aria_readonlyAttr))
         return ariaRoleAttribute() != UnknownRole && supportsARIAReadOnly() ? "false" : String();
 
-    return String(getAttribute(aria_readonlyAttr)).convertToASCIILowercase();
+    return getAttribute(aria_readonlyAttr).string().convertToASCIILowercase();
 }
 
 bool AccessibilityObject::contentEditableAttributeIsEnabled(Element* element)
@@ -1597,7 +1601,7 @@ bool AccessibilityObject::contentEditableAttributeIsEnabled(Element* element)
     if (!element)
         return false;
     
-    const AtomicString& contentEditableValue = element->fastGetAttribute(contenteditableAttr);
+    const AtomicString& contentEditableValue = element->attributeWithoutSynchronization(contenteditableAttr);
     if (contentEditableValue.isNull())
         return false;
     
@@ -1679,7 +1683,7 @@ unsigned AccessibilityObject::doAXLineForIndex(unsigned index)
 void AccessibilityObject::updateBackingStore()
 {
     // Updating the layout may delete this object.
-    RefPtr<AccessibilityObject> protector(this);
+    RefPtr<AccessibilityObject> protectedThis(this);
 
     if (Document* document = this->document()) {
         if (!document->view()->isInRenderTreeLayout())
@@ -1993,13 +1997,13 @@ bool AccessibilityObject::hasAttribute(const QualifiedName& attribute) const
     if (!is<Element>(node))
         return false;
     
-    return downcast<Element>(*node).fastHasAttribute(attribute);
+    return downcast<Element>(*node).hasAttributeWithoutSynchronization(attribute);
 }
     
 const AtomicString& AccessibilityObject::getAttribute(const QualifiedName& attribute) const
 {
     if (Element* element = this->element())
-        return element->fastGetAttribute(attribute);
+        return element->attributeWithoutSynchronization(attribute);
     return nullAtom;
 }
     
@@ -2217,7 +2221,7 @@ bool AccessibilityObject::supportsPressAction() const
             // Search within for immediate descendants that are static text. If we find more than one
             // then this is an event delegator actionElement and we should expose the press action.
             Vector<AccessibilitySearchKey> keys({ StaticTextSearchKey, ControlSearchKey, GraphicSearchKey, HeadingSearchKey, LinkSearchKey });
-            AccessibilitySearchCriteria criteria(axObj, SearchDirectionNext, "", 2, false, false);
+            AccessibilitySearchCriteria criteria(axObj, SearchDirectionNext, emptyString(), 2, false, false);
             criteria.searchKeys = keys;
             axObj->findMatchingObjects(&criteria, results);
             if (results.size() > 1)
@@ -2252,6 +2256,14 @@ bool AccessibilityObject::isValueAutofillAvailable() const
         return false;
     
     return downcast<HTMLInputElement>(*node).autoFillButtonType() != AutoFillButtonType::None;
+}
+
+AutoFillButtonType AccessibilityObject::valueAutofillButtonType() const
+{
+    if (!isValueAutofillAvailable())
+        return AutoFillButtonType::None;
+    
+    return downcast<HTMLInputElement>(*this->node()).autoFillButtonType();
 }
     
 bool AccessibilityObject::isValueAutofilled() const
@@ -2498,7 +2510,7 @@ AccessibilityButtonState AccessibilityObject::checkboxOrRadioValue() const
         return ButtonStateMixed;
     }
     
-    if (equalLettersIgnoringASCIICase(getAttribute(indeterminateAttr), "true"))
+    if (isIndeterminate())
         return ButtonStateMixed;
     
     return ButtonStateOff;

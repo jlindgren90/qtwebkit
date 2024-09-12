@@ -222,6 +222,10 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 #define ENABLE_VIEW_MODE_CSS_MEDIA 0
 #endif
 
+#if !defined(ENABLE_WEBASSEMBLY)
+#define ENABLE_WEBASSEMBLY 0
+#endif
+
 #if !defined(ENABLE_WEB_ARCHIVE)
 #define ENABLE_WEB_ARCHIVE 1
 #endif
@@ -370,14 +374,6 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 
 #if !defined(ENABLE_CHANNEL_MESSAGING)
 #define ENABLE_CHANNEL_MESSAGING 1
-#endif
-
-#if !defined(ENABLE_ES6_ARROWFUNCTION_SYNTAX)
-#define ENABLE_ES6_ARROWFUNCTION_SYNTAX 1
-#endif
-
-#if !defined(ENABLE_ES6_GENERATORS)
-#define ENABLE_ES6_GENERATORS 1
 #endif
 
 #if !defined(ENABLE_ES6_MODULES)

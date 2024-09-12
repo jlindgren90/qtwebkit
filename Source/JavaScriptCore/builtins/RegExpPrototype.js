@@ -23,6 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+@globalPrivate
 function advanceStringIndex(string, index, unicode)
 {
     // This function implements AdvanceStringIndex described in ES6 21.2.5.2.3.
@@ -45,6 +46,7 @@ function advanceStringIndex(string, index, unicode)
     return index + 2;
 }
 
+@globalPrivate
 function regExpExec(regexp, str)
 {
     "use strict";
@@ -60,6 +62,7 @@ function regExpExec(regexp, str)
     return builtinExec.@call(regexp, str);
 }
 
+@globalPrivate
 function hasObservableSideEffectsForRegExpMatch(regexp) {
     // This is accessed by the RegExpExec internal function.
     let regexpExec = @tryGetById(regexp, "exec");
@@ -97,7 +100,11 @@ function match(strArg)
     let unicode = regexp.unicode;
     regexp.lastIndex = 0;
     let resultList = [];
-    let stringLength = str.length;
+
+    // FIXME: It would be great to implement a solution similar to what we do in
+    // RegExpObject::matchGlobal(). It's not clear if this is possible, since this loop has
+    // effects. https://bugs.webkit.org/show_bug.cgi?id=158145
+    const maximumReasonableMatchSize = 100000000;
 
     while (true) {
         let result = @regExpExec(regexp, str);
@@ -107,6 +114,9 @@ function match(strArg)
                 return null;
             return resultList;
         }
+
+        if (resultList.length > maximumReasonableMatchSize)
+            throw new @Error("Out of memory");
 
         if (!@isObject(result))
             throw new @TypeError("RegExp.prototype.@@match call to RegExp.exec didn't return null or an object");
@@ -319,6 +329,7 @@ function search(strArg)
     return result.index;
 }
 
+@globalPrivate
 function hasObservableSideEffectsForRegExpSplit(regexp) {
     // This is accessed by the RegExpExec internal function.
     let regexpExec = @tryGetById(regexp, "exec");

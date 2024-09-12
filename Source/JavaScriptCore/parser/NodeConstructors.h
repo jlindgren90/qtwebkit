@@ -157,9 +157,8 @@ namespace JSC {
     {
     }
 
-    inline ThisNode::ThisNode(const JSTokenLocation& location, ThisTDZMode thisTDZMode)
+    inline ThisNode::ThisNode(const JSTokenLocation& location)
         : ExpressionNode(location)
-        , m_shouldAlwaysEmitTDZCheck(thisTDZMode == ThisTDZMode::AlwaysCheck)
     {
     }
 
@@ -495,6 +494,11 @@ namespace JSC {
         , m_expr2(expr2)
         , m_opcodeID(opcodeID)
         , m_rightHasAssignments(rightHasAssignments)
+    {
+    }
+
+    inline PowNode::PowNode(const JSTokenLocation& location, ExpressionNode* expr1, ExpressionNode* expr2, bool rightHasAssignments)
+        : BinaryOpNode(location, ResultType::numberType(), expr1, expr2, op_pow, rightHasAssignments)
     {
     }
 
@@ -1044,13 +1048,12 @@ namespace JSC {
     {
     }
 
-    inline RestParameterNode::RestParameterNode(const Identifier& name, unsigned numParametersToSkip, const JSTextPosition& start, const JSTextPosition& end)
+    inline RestParameterNode::RestParameterNode(DestructuringPatternNode* pattern, unsigned numParametersToSkip)
         : DestructuringPatternNode()
-        , m_name(name)
+        , m_pattern(pattern)
         , m_numParametersToSkip(numParametersToSkip)
-        , m_divotStart(start)
-        , m_divotEnd(end)
     {
+        ASSERT(!pattern->isRestParameter());
     }
 
     inline DestructuringAssignmentNode::DestructuringAssignmentNode(const JSTokenLocation& location, DestructuringPatternNode* bindings, ExpressionNode* initializer)

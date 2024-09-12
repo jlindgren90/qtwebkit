@@ -1,17 +1,18 @@
-add_definitions("-ObjC++ -std=c++11")
+add_definitions("-ObjC++ -std=c++14")
 link_directories(../../WebKitLibraries)
-find_library(APPLICATION_SERVICES_LIBRARY ApplicationServices)
+find_library(APPLICATIONSERVICES_LIBRARY ApplicationServices)
 find_library(CARBON_LIBRARY Carbon)
 find_library(QUARTZ_LIBRARY Quartz)
 find_library(AVFOUNDATION_LIBRARY AVFoundation)
 find_library(AVFAUDIO_LIBRARY AVFAudio HINTS ${AVFOUNDATION_LIBRARY}/Versions/*/Frameworks)
 add_definitions(-iframework ${QUARTZ_LIBRARY}/Frameworks)
 add_definitions(-iframework ${CARBON_LIBRARY}/Frameworks)
+add_definitions(-iframework ${APPLICATIONSERVICES_LIBRARY}/Versions/Current/Frameworks)
 add_definitions(-DWK_XPC_SERVICE_SUFFIX=".Development")
 
 list(APPEND WebKit2_LIBRARIES
     PRIVATE WebKit
-    ${APPLICATION_SERVICES_LIBRARY}
+    ${APPLICATIONSERVICES_LIBRARY}
 )
 
 if (NOT AVFAUDIO_LIBRARY-NOTFOUND)
@@ -29,6 +30,7 @@ list(APPEND WebKit2_SOURCES
 
     NetworkProcess/Downloads/mac/DownloadMac.mm
 
+    NetworkProcess/cache/NetworkCacheCodersCocoa.cpp
     NetworkProcess/cache/NetworkCacheDataCocoa.mm
     NetworkProcess/cache/NetworkCacheIOChannelCocoa.mm
 
@@ -98,6 +100,7 @@ list(APPEND WebKit2_SOURCES
     Shared/Cocoa/APIObject.mm
     Shared/Cocoa/CompletionHandlerCallChecker.mm
     Shared/Cocoa/DataDetectionResult.mm
+    Shared/Cocoa/LoadParametersCocoa.mm
     Shared/Cocoa/WKNSArray.mm
     Shared/Cocoa/WKNSData.mm
     Shared/Cocoa/WKNSDictionary.mm
@@ -172,7 +175,6 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/WKBrowsingContextController.mm
     UIProcess/API/Cocoa/WKBrowsingContextGroup.mm
     UIProcess/API/Cocoa/WKConnection.mm
-    UIProcess/API/Cocoa/WKElementInfo.mm
     UIProcess/API/Cocoa/WKError.mm
     UIProcess/API/Cocoa/WKFrameInfo.mm
     UIProcess/API/Cocoa/WKMenuItemIdentifiers.mm
@@ -211,6 +213,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/_WKUserContentExtensionStore.mm
     UIProcess/API/Cocoa/_WKUserContentFilter.mm
     UIProcess/API/Cocoa/_WKUserContentWorld.mm
+    UIProcess/API/Cocoa/_WKUserInitiatedAction.mm
     UIProcess/API/Cocoa/_WKUserStyleSheet.mm
     UIProcess/API/Cocoa/_WKVisitedLinkProvider.mm
     UIProcess/API/Cocoa/_WKVisitedLinkStore.mm
@@ -333,6 +336,7 @@ list(APPEND WebKit2_SOURCES
     WebProcess/WebPage/ViewGestureGeometryCollector.cpp
 
     WebProcess/WebPage/Cocoa/RemoteLayerTreeDisplayRefreshMonitor.mm
+    WebProcess/WebPage/Cocoa/WebPageCocoa.mm
 
     WebProcess/WebPage/mac/GraphicsLayerCARemote.cpp
     WebProcess/WebPage/mac/PageBannerMac.mm

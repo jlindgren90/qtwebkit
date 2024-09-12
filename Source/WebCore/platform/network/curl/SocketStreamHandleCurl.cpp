@@ -35,7 +35,6 @@
 #if USE(CURL)
 
 #include "Logging.h"
-#include "NotImplemented.h"
 #include "SocketStreamHandleClient.h"
 #include "URL.h"
 #include <wtf/MainThread.h>
@@ -43,10 +42,10 @@
 
 namespace WebCore {
 
-SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient* client)
+SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient& client)
     : SocketStreamHandleBase(url, client)
 {
-    LOG(Network, "SocketStreamHandle %p new client %p", this, m_client);
+    LOG(Network, "SocketStreamHandle %p new client %p", this, &m_client);
     ASSERT(isMainThread());
     startThread();
 }
@@ -81,8 +80,7 @@ void SocketStreamHandle::platformClose()
 
     stopThread();
 
-    if (m_client)
-        m_client->didCloseSocketStream(this);
+    m_client.didCloseSocketStream(*this);
 }
 
 bool SocketStreamHandle::readData(CURL* curlHandle)
@@ -257,8 +255,8 @@ void SocketStreamHandle::didReceiveData()
 
     for (auto& socketData : receiveData) {
         if (socketData.size > 0) {
-            if (m_client && state() == Open)
-                m_client->didReceiveSocketStreamData(this, socketData.data.get(), socketData.size);
+            if (state() == Open)
+                m_client.didReceiveSocketStreamData(*this, socketData.data.get(), socketData.size);
         } else
             platformClose();
     }
@@ -270,8 +268,7 @@ void SocketStreamHandle::didOpenSocket()
 
     m_state = Open;
 
-    if (m_client)
-        m_client->didOpenSocketStream(this);
+    m_client.didOpenSocketStream(*this);
 }
 
 std::unique_ptr<char[]> SocketStreamHandle::createCopy(const char* data, int length)
@@ -280,36 +277,6 @@ std::unique_ptr<char[]> SocketStreamHandle::createCopy(const char* data, int len
     memcpy(copy.get(), data, length);
 
     return WTFMove(copy);
-}
-
-void SocketStreamHandle::didReceiveAuthenticationChallenge(const AuthenticationChallenge&)
-{
-    notImplemented();
-}
-
-void SocketStreamHandle::receivedCredential(const AuthenticationChallenge&, const Credential&)
-{
-    notImplemented();
-}
-
-void SocketStreamHandle::receivedRequestToContinueWithoutCredential(const AuthenticationChallenge&)
-{
-    notImplemented();
-}
-
-void SocketStreamHandle::receivedCancellation(const AuthenticationChallenge&)
-{
-    notImplemented();
-}
-
-void SocketStreamHandle::receivedRequestToPerformDefaultHandling(const AuthenticationChallenge&)
-{
-    notImplemented();
-}
-
-void SocketStreamHandle::receivedChallengeRejection(const AuthenticationChallenge&)
-{
-    notImplemented();
 }
 
 } // namespace WebCore

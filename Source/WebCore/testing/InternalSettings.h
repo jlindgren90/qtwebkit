@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Google Inc. All rights reserved.
- * Copyright (C) 2013, 2014, 2015, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,6 +79,8 @@ public:
         bool m_originalUsesOverlayScrollbars;
         bool m_langAttributeAwareFormControlUIEnabled;
         bool m_imagesEnabled;
+        bool m_preferMIMETypeForImages;
+        bool m_cachedPDFImageEnabled;
         std::chrono::milliseconds m_minimumTimerInterval;
 #if ENABLE(VIDEO_TRACK)
         bool m_shouldDisplaySubtitles;
@@ -93,6 +95,7 @@ public:
         bool m_pluginReplacementEnabled;
         bool m_shouldConvertPositionStyleOnCopy;
         bool m_fontFallbackPrefersPictographs;
+        bool m_webFontsAlwaysFallBack;
         bool m_backgroundShouldExtendBeyondPage;
         SecurityOrigin::StorageBlockingPolicy m_storageBlockingPolicy;
         bool m_scrollingTreeIncludesFrames;
@@ -103,6 +106,7 @@ public:
         bool m_allowsAirPlayForMediaPlayback;
 #endif
         bool m_allowsInlineMediaPlayback;
+        bool m_allowsInlineMediaPlaybackAfterFullscreen;
         bool m_inlineMediaPlaybackRequiresPlaysInlineAttribute;
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
         bool m_indexedDBWorkersEnabled;
@@ -135,8 +139,10 @@ public:
     void setTextAutosizingFontScaleFactor(float fontScaleFactor, ExceptionCode&);
     void setMediaTypeOverride(const String& mediaType, ExceptionCode&);
     void setCanStartMedia(bool, ExceptionCode&);
-    void setWirelessPlaybackDisabled(bool);
+    void setAllowsAirPlayForMediaPlayback(bool);
     void setEditingBehavior(const String&, ExceptionCode&);
+    void setPreferMIMETypeForImages(bool, ExceptionCode&);
+    void setCachedPDFImageEnabled(bool, ExceptionCode&);
     void setShouldDisplayTrackKind(const String& kind, bool enabled, ExceptionCode&);
     bool shouldDisplayTrackKind(const String& kind, ExceptionCode&);
     void setStorageBlockingPolicy(const String&, ExceptionCode&);
@@ -149,17 +155,21 @@ public:
     void setUseLegacyBackgroundSizeShorthandBehavior(bool, ExceptionCode&);
     void setAutoscrollForDragAndDropEnabled(bool, ExceptionCode&);
     void setFontFallbackPrefersPictographs(bool, ExceptionCode&);
+    void setWebFontsAlwaysFallBack(bool, ExceptionCode&);
     void setPluginReplacementEnabled(bool);
     void setBackgroundShouldExtendBeyondPage(bool, ExceptionCode&);
     void setShouldConvertPositionStyleOnCopy(bool, ExceptionCode&);
     void setScrollingTreeIncludesFrames(bool, ExceptionCode&);
     void setAllowsInlineMediaPlayback(bool, ExceptionCode&);
+    void setAllowsInlineMediaPlaybackAfterFullscreen(bool, ExceptionCode&);
     void setInlineMediaPlaybackRequiresPlaysInlineAttribute(bool, ExceptionCode&);
     void setIndexedDBWorkersEnabled(bool, ExceptionCode&);
     String userInterfaceDirectionPolicy(ExceptionCode&);
     void setUserInterfaceDirectionPolicy(const String& policy, ExceptionCode&);
     String systemLayoutDirection(ExceptionCode&);
     void setSystemLayoutDirection(const String& direction, ExceptionCode&);
+
+    static void setAllowsAnySSLCertificate(bool);
 
 private:
     explicit InternalSettings(Page*);

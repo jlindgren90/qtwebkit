@@ -332,7 +332,7 @@ sub SkipIncludeHeader
     return 1 if $object->IsPrimitiveType($type);
     return 1 if $object->IsTypedArrayType($type);
     return 1 if $type eq "Array";
-    return 1 if $type eq "DOMString";
+    return 1 if $type eq "DOMString" or $type eq "USVString";
     return 1 if $type eq "DOMTimeStamp";
     return 1 if $type eq "SVGNumber";
     return 1 if $type eq "any";
@@ -355,6 +355,15 @@ sub IsNumericType
 
     return 1 if $integerTypeHash{$type};
     return 1 if $floatingPointTypeHash{$type};
+    return 0;
+}
+
+sub IsStringOrEnumType
+{
+    my ($object, $type) = @_;
+    
+    return 1 if $type eq "DOMString" or $type eq "USVString";
+    return 1 if $object->IsEnumType($type);
     return 0;
 }
 
@@ -383,14 +392,15 @@ sub IsPrimitiveType
     return 0;
 }
 
-# Deprecated: Just check for "DOMString" instead.
 # Currently used outside WebKit in an internal Apple project; can be removed soon.
 sub IsStringType
 {
     my $object = shift;
     my $type = shift;
 
-    return $type eq "DOMString";
+    return 1 if $type eq "DOMString";
+    return 1 if $type eq "USVString";
+    return 0;
 }
 
 sub IsEnumType
@@ -461,8 +471,8 @@ sub IsRefPtrType
     return 0 if $object->IsPrimitiveType($type);
     return 0 if $object->IsDictionaryType($type);
     return 0 if $object->IsEnumType($type);
-    return 0 if $object->GetArrayOrSequenceType($type);
-    return 0 if $type eq "DOMString";
+    return 0 if $object->GetSequenceType($type);
+    return 0 if $type eq "DOMString" or $type eq "USVString";
     return 0 if $type eq "any";
 
     return 1;
@@ -516,30 +526,6 @@ sub GetSequenceType
     return "";
 }
 
-sub GetArrayType
-{
-    my $object = shift;
-    my $type = shift;
-
-    return $1 if $type =~ /^([\w\d_\s]+)\[\]/;
-    return "";
-}
-
-sub GetArrayOrSequenceType
-{
-    my $object = shift;
-    my $type = shift;
-
-    return $object->GetArrayType($type) || $object->GetSequenceType($type);
-}
-
-sub AssertNotSequenceType
-{
-    my $object = shift;
-    my $type = shift;
-    die "Sequences must not be used as the type of an attribute, constant or exception field." if $object->GetSequenceType($type);
-}
-
 # These match WK_lcfirst and WK_ucfirst defined in builtins_generator.py.
 # Uppercase the first letter while respecting WebKit style guidelines.
 # E.g., xmlEncoding becomes XMLEncoding, but xmlllang becomes Xmllang.
@@ -559,6 +545,7 @@ sub WK_lcfirst
 {
     my ($object, $param) = @_;
     my $ret = lcfirst($param);
+    $ret =~ s/dOM/dom/ if $ret =~ /^dOM/;
     $ret =~ s/hTML/html/ if $ret =~ /^hTML/;
     $ret =~ s/uRL/url/ if $ret =~ /^uRL/;
     $ret =~ s/jS/js/ if $ret =~ /^jS/;
@@ -603,6 +590,13 @@ sub LinkOverloadedFunctions
         push(@{$nameToFunctionsMap{$name}}, $function);
         $function->{overloads} = $nameToFunctionsMap{$name};
         $function->{overloadIndex} = @{$nameToFunctionsMap{$name}};
+    }
+
+    my $index = 1;
+    foreach my $constructor (@{$interface->constructors}) {
+        $constructor->{overloads} = $interface->constructors;
+        $constructor->{overloadIndex} = $index;
+        $index++;
     }
 }
 
@@ -654,7 +648,7 @@ sub GetterExpression
     if ($attribute->signature->extendedAttributes->{"URL"}) {
         $functionName = "getURLAttribute";
     } elsif ($attributeType eq "boolean") {
-        $functionName = "fastHasAttribute";
+        $functionName = "hasAttributeWithoutSynchronization";
     } elsif ($attributeType eq "long") {
         $functionName = "getIntegralAttribute";
     } elsif ($attributeType eq "unsigned long") {
@@ -669,7 +663,7 @@ sub GetterExpression
         } elsif ($generator->IsSVGAnimatedType($attributeType)) {
             $functionName = "getAttribute";
         } else {
-            $functionName = "fastGetAttribute";
+            $functionName = "attributeWithoutSynchronization";
         }
     }
 

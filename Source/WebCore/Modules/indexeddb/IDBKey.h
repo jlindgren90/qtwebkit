@@ -71,7 +71,7 @@ public:
 
             bool skip = false;
             for (auto& resultKey : result) {
-                if (key->isEqual(resultKey.get())) {
+                if (key->isEqual(*resultKey)) {
                     skip = true;
                     break;
                 }
@@ -124,9 +124,9 @@ public:
         return m_number;
     }
 
-    int compare(const IDBKey* other) const;
-    bool isLessThan(const IDBKey* other) const;
-    bool isEqual(const IDBKey* other) const;
+    int compare(const IDBKey& other) const;
+    bool isLessThan(const IDBKey& other) const;
+    bool isEqual(const IDBKey& other) const;
 
     size_t sizeEstimate() const { return m_sizeEstimate; }
 
@@ -138,7 +138,7 @@ public:
     using RefCounted<IDBKey>::ref;
     using RefCounted<IDBKey>::deref;
 
-#ifndef NDEBUG
+#if !LOG_DISABLED
     String loggingString() const;
 #endif
 

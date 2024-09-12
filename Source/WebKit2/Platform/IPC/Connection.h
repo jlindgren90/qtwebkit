@@ -205,6 +205,8 @@ public:
 
     void allowFullySynchronousModeForTesting() { m_fullySynchronousModeIsAllowedForTesting = true; }
 
+    void ignoreTimeoutsForTesting() { m_ignoreTimeoutsForTesting = true; }
+
 private:
     Connection(Identifier, bool isServer, Client&);
     void platformInitialize(Identifier);
@@ -239,6 +241,8 @@ private:
 
     void willSendSyncMessage(unsigned syncSendFlags);
     void didReceiveSyncReply(unsigned syncSendFlags);
+
+    std::chrono::milliseconds timeoutRespectingIgnoreTimeoutsForTesting(std::chrono::milliseconds) const;
     
     Client* m_client;
     bool m_isServer;
@@ -258,6 +262,7 @@ private:
     unsigned m_inDispatchMessageMarkedDispatchWhenWaitingForSyncReplyCount;
     unsigned m_inDispatchMessageMarkedToUseFullySynchronousModeForTesting { 0 };
     bool m_fullySynchronousModeIsAllowedForTesting { false };
+    bool m_ignoreTimeoutsForTesting { false };
     bool m_didReceiveInvalidMessage;
 
     // Incoming messages.
@@ -325,9 +330,7 @@ private:
     bool processMessage();
 
     Vector<uint8_t> m_readBuffer;
-    size_t m_readBufferSize;
     Vector<int> m_fileDescriptors;
-    size_t m_fileDescriptorsSize;
     int m_socketDescriptor;
 #if PLATFORM(GTK)
     GSocketMonitor m_socketMonitor;

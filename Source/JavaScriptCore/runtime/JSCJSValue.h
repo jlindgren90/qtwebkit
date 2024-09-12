@@ -287,6 +287,8 @@ public:
     JSValue get(ExecState*, uint64_t propertyName) const;
 
     bool getPropertySlot(ExecState*, PropertyName, PropertySlot&) const;
+    template<typename CallbackWhenNoException> typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type getPropertySlot(ExecState*, PropertyName, CallbackWhenNoException) const;
+    template<typename CallbackWhenNoException> typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type getPropertySlot(ExecState*, PropertyName, PropertySlot&, CallbackWhenNoException) const;
 
     bool put(ExecState*, PropertyName, JSValue, PutPropertySlot&);
     bool putInline(ExecState*, PropertyName, JSValue, PutPropertySlot&);
@@ -579,6 +581,16 @@ ALWAYS_INLINE JSValue jsNumber(long long i)
 ALWAYS_INLINE JSValue jsNumber(unsigned long long i)
 {
     return JSValue(i);
+}
+
+ALWAYS_INLINE EncodedJSValue encodedJSUndefined()
+{
+    return JSValue::encode(jsUndefined());
+}
+
+ALWAYS_INLINE EncodedJSValue encodedJSValue()
+{
+    return JSValue::encode(JSValue());
 }
 
 inline bool operator==(const JSValue a, const JSCell* b) { return a == JSValue(b); }

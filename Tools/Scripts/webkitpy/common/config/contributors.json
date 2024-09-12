@@ -906,6 +906,16 @@
             "epoger"
          ]
       },
+      "Enrique Oca\u00F1a Gonz\u00E1lez" : {
+         "emails" : [
+            "eocanha@igalia.com",
+            "eocanha@gmail.com"
+         ],
+         "expertise" : "GStreamer, Media Source Extensions",
+         "nicks" : [
+            "eocanha"
+         ]
+      },
       "Eric Roman" : {
          "emails" : [
             "eroman@chromium.org"
@@ -1538,15 +1548,6 @@
             "johnnyding"
          ]
       },
-      "Jon Lee" : {
-         "emails" : [
-            "jonlee@apple.com"
-         ],
-         "expertise" : "Forms, Notifications",
-         "nicks" : [
-            "jonlee"
-         ]
-      },
       "Jonathan Davis" : {
          "emails" : [
             "jond@apple.com",
@@ -1959,16 +1960,6 @@
             "maheshkk"
          ]
       },
-      "Manuel Rego Casasnovas" : {
-         "emails" : [
-            "rego@igalia.com"
-         ],
-         "expertise" : "WebKitGTK+ port, WebKit2",
-         "nicks" : [
-            "rego",
-            "mrego"
-         ]
-      },
       "Marcelo Lira" : {
          "emails" : [
             "marcelo.lira@openbossa.org",
@@ -2007,11 +1998,6 @@
          ],
          "nicks" : [
             "marywu"
-         ]
-      },
-      "Matt Baker" : {
-         "emails" : [
-            "mattbaker@apple.com"
          ]
       },
       "Matt Daiter" : {
@@ -2235,6 +2221,15 @@
             "nadav"
          ]
       },
+      "Nael Ouedraogo" : {
+         "emails" : [
+           "nael.ouedraogo@crf.canon.fr",
+           "nael.ouedp@gmail.com"
+         ],
+         "nicks" : [
+            "nael"
+         ]
+      },
       "Naoki Takano" : {
          "emails" : [
             "honten@chromium.org",
@@ -2336,14 +2331,6 @@
          ],
          "nicks" : [
             "podivilov"
-         ]
-      },
-      "Per Arne Vollan" : {
-         "emails" : [
-            "peavo@outlook.com"
-         ],
-         "nicks" : [
-            "peavo"
          ]
       },
       "Peter Beverloo" : {
@@ -2836,6 +2823,7 @@
       },
       "Tibor Meszaros" : {
          "emails" : [
+            "mtiborinf@gmail.com",
             "tmeszaros.u-szeged@partner.samsung.com",
             "mtibor@inf.u-szeged.hu",
             "tmeszaros@inf.u-szeged.hu"
@@ -4419,6 +4407,15 @@
             "jhoneycutt"
          ]
       },
+      "Jon Lee" : {
+         "emails" : [
+            "jonlee@apple.com"
+         ],
+         "expertise" : "Forms, Notifications, Media controls",
+         "nicks" : [
+            "jonlee"
+         ]
+      },
       "Joseph Pecoraro" : {
          "emails" : [
             "joepeck@webkit.org",
@@ -4600,6 +4597,16 @@
             "othermaciej"
          ]
       },
+      "Manuel Rego Casasnovas" : {
+         "emails" : [
+            "rego@igalia.com"
+         ],
+         "expertise" : "Layout, CSS, Selection, WebKitGTK+ port",
+         "nicks" : [
+            "rego",
+            "mrego"
+         ]
+      },
       "Mario Sanchez Prada" : {
          "emails" : [
             "mario@webkit.org",
@@ -4641,6 +4648,15 @@
          "expertise" : "The WebKitGTK+ Port, Cairo graphics backend, soup HTTP backend",
          "nicks" : [
             "mrobinson"
+         ]
+      },
+      "Matt Baker" : {
+         "emails" : [
+            "mattbaker@apple.com"
+         ],
+         "expertise" : "Web Inspector",
+         "nicks" : [
+            "mattbaker"
          ]
       },
       "Michael Catanzaro" : {
@@ -4768,6 +4784,15 @@
          "expertise" : "Developer Tools, Web Inspector",
          "nicks" : [
             "pfeldman"
+         ]
+      },
+      "Per Arne Vollan" : {
+         "emails" : [
+            "pvollan@apple.com",
+            "peavo@outlook.com"
+         ],
+         "nicks" : [
+            "peavo"
          ]
       },
       "Philip Rogers" : {

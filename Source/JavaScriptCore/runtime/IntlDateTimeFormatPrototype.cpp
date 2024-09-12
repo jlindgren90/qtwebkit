@@ -28,6 +28,7 @@
 
 #if ENABLE(INTL)
 
+#include "BuiltinNames.h"
 #include "DateConstructor.h"
 #include "Error.h"
 #include "IntlDateTimeFormat.h"
@@ -80,11 +81,6 @@ void IntlDateTimeFormatPrototype::finishCreation(VM& vm, Structure*)
     Base::finishCreation(vm);
 }
 
-bool IntlDateTimeFormatPrototype::getOwnPropertySlot(JSObject* object, ExecState* state, PropertyName propertyName, PropertySlot& slot)
-{
-    return getStaticFunctionSlot<JSObject>(state, dateTimeFormatPrototypeTable, jsCast<IntlDateTimeFormatPrototype*>(object), propertyName, slot);
-}
-
 static EncodedJSValue JSC_HOST_CALL IntlDateTimeFormatFuncFormatDateTime(ExecState* state)
 {
     // 12.3.4 DateTime Format Functions (ECMA-402 2.0)
@@ -119,8 +115,9 @@ EncodedJSValue JSC_HOST_CALL IntlDateTimeFormatPrototypeGetterFormat(ExecState* 
     IntlDateTimeFormat* dtf = jsDynamicCast<IntlDateTimeFormat*>(state->thisValue());
 
     // FIXME: Workaround to provide compatibility with ECMA-402 1.0 call/apply patterns.
+    // https://bugs.webkit.org/show_bug.cgi?id=153679
     if (!dtf)
-        dtf = jsDynamicCast<IntlDateTimeFormat*>(state->thisValue().get(state, state->vm().propertyNames->intlSubstituteValuePrivateName));
+        dtf = jsDynamicCast<IntlDateTimeFormat*>(state->thisValue().get(state, state->vm().propertyNames->builtinNames().intlSubstituteValuePrivateName()));
 
     // 2. ReturnIfAbrupt(dtf).
     if (!dtf)
@@ -155,8 +152,9 @@ EncodedJSValue JSC_HOST_CALL IntlDateTimeFormatPrototypeFuncResolvedOptions(Exec
     IntlDateTimeFormat* dateTimeFormat = jsDynamicCast<IntlDateTimeFormat*>(state->thisValue());
 
     // FIXME: Workaround to provide compatibility with ECMA-402 1.0 call/apply patterns.
+    // https://bugs.webkit.org/show_bug.cgi?id=153679
     if (!dateTimeFormat)
-        dateTimeFormat = jsDynamicCast<IntlDateTimeFormat*>(state->thisValue().get(state, state->vm().propertyNames->intlSubstituteValuePrivateName));
+        dateTimeFormat = jsDynamicCast<IntlDateTimeFormat*>(state->thisValue().get(state, state->vm().propertyNames->builtinNames().intlSubstituteValuePrivateName()));
 
     if (!dateTimeFormat)
         return JSValue::encode(throwTypeError(state, ASCIILiteral("Intl.DateTimeFormat.prototype.resolvedOptions called on value that's not an object initialized as a DateTimeFormat")));

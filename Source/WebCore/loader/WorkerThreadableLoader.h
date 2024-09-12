@@ -45,16 +45,14 @@ namespace WebCore {
     class ResourceRequest;
     class WorkerGlobalScope;
     class WorkerLoaderProxy;
-    struct CrossThreadResourceResponseData;
-    struct CrossThreadResourceRequestData;
 
     class WorkerThreadableLoader : public RefCounted<WorkerThreadableLoader>, public ThreadableLoader {
         WTF_MAKE_FAST_ALLOCATED;
     public:
-        static void loadResourceSynchronously(WorkerGlobalScope*, const ResourceRequest&, ThreadableLoaderClient&, const ThreadableLoaderOptions&);
-        static Ref<WorkerThreadableLoader> create(WorkerGlobalScope* workerGlobalScope, ThreadableLoaderClient* client, const String& taskMode, const ResourceRequest& request, const ThreadableLoaderOptions& options)
+        static void loadResourceSynchronously(WorkerGlobalScope&, ResourceRequest&&, ThreadableLoaderClient&, const ThreadableLoaderOptions&);
+        static Ref<WorkerThreadableLoader> create(WorkerGlobalScope& workerGlobalScope, ThreadableLoaderClient& client, const String& taskMode, ResourceRequest&& request, const ThreadableLoaderOptions& options)
         {
-            return adoptRef(*new WorkerThreadableLoader(workerGlobalScope, client, taskMode, request, options));
+            return adoptRef(*new WorkerThreadableLoader(workerGlobalScope, client, taskMode, WTFMove(request), options));
         }
 
         ~WorkerThreadableLoader();
@@ -87,12 +85,12 @@ namespace WebCore {
         // case 2. xhr gets aborted and the worker context continues running.
         //    The ThreadableLoaderClientWrapper has the underlying client cleared, so no more calls
         //    go through it.  All tasks posted from the worker object's thread to the worker context's
-        //    thread contain the RefPtr<ThreadableLoaderClientWrapper> object, so the 
+        //    thread contain the RefPtr<ThreadableLoaderClientWrapper> object, so the
         //    ThreadableLoaderClientWrapper instance is there until all tasks are executed.
         class MainThreadBridge : public ThreadableLoaderClient {
         public:
             // All executed on the worker context's thread.
-            MainThreadBridge(ThreadableLoaderClientWrapper&, WorkerLoaderProxy&, const String& taskMode, const ResourceRequest&, const ThreadableLoaderOptions&, const String& outgoingReferrer, const SecurityOrigin*, const ContentSecurityPolicy*);
+            MainThreadBridge(ThreadableLoaderClientWrapper&, WorkerLoaderProxy&, const String& taskMode, ResourceRequest&&, const ThreadableLoaderOptions&, const String& outgoingReferrer, const SecurityOrigin*, const ContentSecurityPolicy*);
             void cancel();
             void destroy();
 
@@ -106,8 +104,6 @@ namespace WebCore {
             void didReceiveData(const char*, int dataLength) override;
             void didFinishLoading(unsigned long identifier, double finishTime) override;
             void didFail(const ResourceError&) override;
-            void didFailAccessControlCheck(const ResourceError&) override;
-            void didFailRedirectCheck() override;
 
             // Only to be used on the main thread.
             RefPtr<ThreadableLoader> m_mainThreadLoader;
@@ -124,10 +120,10 @@ namespace WebCore {
             String m_taskMode;
         };
 
-        WorkerThreadableLoader(WorkerGlobalScope*, ThreadableLoaderClient*, const String& taskMode, const ResourceRequest&, const ThreadableLoaderOptions&);
+        WorkerThreadableLoader(WorkerGlobalScope&, ThreadableLoaderClient&, const String& taskMode, ResourceRequest&&, const ThreadableLoaderOptions&);
 
-        RefPtr<WorkerGlobalScope> m_workerGlobalScope;
-        RefPtr<ThreadableLoaderClientWrapper> m_workerClientWrapper;
+        Ref<WorkerGlobalScope> m_workerGlobalScope;
+        Ref<ThreadableLoaderClientWrapper> m_workerClientWrapper;
         MainThreadBridge& m_bridge;
     };
 

@@ -27,11 +27,12 @@
 
 #if ENABLE(INDEXED_DATABASE)
 
-#include "CrossThreadTask.h"
 #include "IDBConnectionToServer.h"
 #include "IDBResourceIdentifier.h"
 #include "TransactionOperation.h"
 #include <functional>
+#include <wtf/CrossThreadQueue.h>
+#include <wtf/CrossThreadTask.h>
 #include <wtf/HashMap.h>
 #include <wtf/MainThread.h>
 #include <wtf/MessageQueue.h>
@@ -49,6 +50,8 @@ class IDBResultData;
 class IDBTransaction;
 class ScriptExecutionContext;
 class SecurityOrigin;
+
+struct IDBGetRecordData;
 
 namespace IDBClient {
 
@@ -69,8 +72,8 @@ public:
     void clearObjectStore(TransactionOperation&, uint64_t objectStoreIdentifier);
     void createIndex(TransactionOperation&, const IDBIndexInfo&);
     void deleteIndex(TransactionOperation&, uint64_t objectStoreIdentifier, const String& indexName);
-    void putOrAdd(TransactionOperation&, IDBKey*, const IDBValue&, const IndexedDB::ObjectStoreOverwriteMode);
-    void getRecord(TransactionOperation&, const IDBKeyRangeData&);
+    void putOrAdd(TransactionOperation&, IDBKeyData&&, const IDBValue&, const IndexedDB::ObjectStoreOverwriteMode);
+    void getRecord(TransactionOperation&, const IDBGetRecordData&);
     void getCount(TransactionOperation&, const IDBKeyRangeData&);
     void deleteRecord(TransactionOperation&, const IDBKeyRangeData&);
     void openCursor(TransactionOperation&, const IDBCursorInfo&);
@@ -93,6 +96,11 @@ public:
     void didFinishHandlingVersionChangeTransaction(uint64_t databaseConnectionIdentifier, IDBTransaction&);
     void databaseConnectionClosed(IDBDatabase&);
 
+    void didCloseFromServer(uint64_t databaseConnectionIdentifier, const IDBError&);
+    void confirmDidCloseFromServer(IDBDatabase&);
+
+    void connectionToServerLost(const IDBError&);
+
     void abortOpenAndUpgradeNeeded(uint64_t databaseConnectionIdentifier, const IDBResourceIdentifier& transactionIdentifier);
 
     void completeOperation(const IDBResultData&);
@@ -107,7 +115,8 @@ public:
     void registerDatabaseConnection(IDBDatabase&);
     void unregisterDatabaseConnection(IDBDatabase&);
 
-    RefPtr<IDBOpenDBRequest> takeIDBOpenDBRequest(IDBOpenDBRequest&);
+    void forgetActiveOperations(const Vector<RefPtr<TransactionOperation>>&);
+    void forgetActivityForCurrentThread();
 
 private:
     void completeOpenDBRequest(const IDBResultData&);
@@ -119,7 +128,7 @@ private:
     void callConnectionOnMainThread(void (IDBConnectionToServer::*method)(Parameters...), Arguments&&... arguments)
     {
         if (isMainThread())
-            (m_connectionToServer.*method)(arguments...);
+            (m_connectionToServer.*method)(std::forward<Arguments>(arguments)...);
         else
             postMainThreadTask(m_connectionToServer, method, arguments...);
     }
@@ -153,7 +162,7 @@ private:
     HashMap<IDBResourceIdentifier, RefPtr<TransactionOperation>> m_activeOperations;
     Lock m_transactionOperationLock;
 
-    MessageQueue<CrossThreadTask> m_mainThreadQueue;
+    CrossThreadQueue<CrossThreadTask> m_mainThreadQueue;
     Lock m_mainThreadTaskLock;
     RefPtr<IDBConnectionToServer> m_mainThreadProtector;
 };

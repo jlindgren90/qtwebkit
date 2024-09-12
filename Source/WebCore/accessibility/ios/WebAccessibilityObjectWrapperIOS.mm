@@ -61,6 +61,10 @@
 
 #import <CoreText/CoreText.h>
 
+enum {
+    NSAttachmentCharacter = 0xfffc    /* To denote attachments. */
+};
+
 @interface NSObject (AccessibilityPrivate)
 - (void)_accessibilityUnregister;
 - (NSString *)accessibilityLabel;
@@ -106,6 +110,7 @@ static NSString * const UIAccessibilityTokenBold = @"UIAccessibilityTokenBold";
 static NSString * const UIAccessibilityTokenItalic = @"UIAccessibilityTokenItalic";
 static NSString * const UIAccessibilityTokenUnderline = @"UIAccessibilityTokenUnderline";
 static NSString * const UIAccessibilityTokenLanguage = @"UIAccessibilityTokenLanguage";
+static NSString * const UIAccessibilityTokenAttachment = @"UIAccessibilityTokenAttachment";
 
 static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityObjectWrapper *wrapper)
 {
@@ -321,6 +326,7 @@ static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityO
 - (uint64_t)_axContainedByFieldsetTrait { return (1 << 22); }
 - (uint64_t)_axSearchFieldTrait { return (1 << 23); }
 - (uint64_t)_axTextAreaTrait { return (1 << 24); }
+- (uint64_t)_axUpdatesFrequentlyTrait { return (1 << 25); }
 
 - (BOOL)accessibilityCanFuzzyHitTest
 {
@@ -496,6 +502,15 @@ static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityO
     return m_object->language();
 }
 
+- (BOOL)accessibilityIsDialog
+{
+    if (![self _prepareAccessibilityCall])
+        return NO;
+
+    AccessibilityRole roleValue = m_object->roleValue();
+    return roleValue == ApplicationDialogRole || roleValue == ApplicationAlertDialogRole;
+}
+
 - (BOOL)_accessibilityIsLandmarkRole:(AccessibilityRole)role
 {
     switch (role) {
@@ -583,8 +598,15 @@ static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityO
                 // to the heading level. If it was a static text element, we need to store
                 // the value as the label, because the heading level needs to the value.
                 AccessibilityObjectWrapper* wrapper = parent->wrapper();
-                if (role == StaticTextRole) 
-                    [self setAccessibilityLabel:m_object->stringValue()];                
+                if (role == StaticTextRole) {
+                    // We should only set the text value as the label when there's no
+                    // alternate text on the heading parent.
+                    NSString *headingLabel = [wrapper accessibilityLabel];
+                    if (![headingLabel length])
+                        [self setAccessibilityLabel:m_object->stringValue()];
+                    else
+                        [self setAccessibilityLabel:headingLabel];
+                }
                 [self setAccessibilityValue:[wrapper accessibilityValue]];
                 break;
             }
@@ -684,6 +706,9 @@ static AccessibilityObjectWrapper* AccessibilityUnignoredAncestor(AccessibilityO
             break;
     }
 
+    if (m_object->isAttachmentElement())
+        traits |= [self _axUpdatesFrequentlyTrait];
+    
     if (m_object->isSelected())
         traits |= [self _axSelectedTrait];
 
@@ -922,6 +947,14 @@ static void appendStringToResult(NSMutableString *result, NSString *string)
     if ([result length])
         [result appendString:@", "];
     [result appendString:string];
+}
+
+- (BOOL)_accessibilityHasTouchEventListener
+{
+    if (![self _prepareAccessibilityCall])
+        return NO;
+    
+    return m_object->hasTouchEventListener();
 }
 
 - (BOOL)_accessibilityValueIsAutofilled
@@ -1259,6 +1292,14 @@ static void appendStringToResult(NSMutableString *result, NSString *string)
         return [NSString stringWithFormat:@"%d", m_object->headingLevel()];
     
     return nil;
+}
+
+- (BOOL)accessibilityIsAttachmentElement
+{
+    if (![self _prepareAccessibilityCall])
+        return NO;
+
+    return is<AccessibilityAttachment>(m_object);
 }
 
 - (BOOL)accessibilityIsComboBox
@@ -2285,10 +2326,14 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
     Class returnClass = attributed ? [NSMutableAttributedString class] : [NSMutableString class];
     id returnValue = [[(NSString *)[returnClass alloc] init] autorelease];
     
+    const unichar attachmentChar = NSAttachmentCharacter;
     NSInteger count = [array count];
     for (NSInteger k = 0; k < count; ++k) {
         id object = [array objectAtIndex:k];
 
+        if (attributed && [object isKindOfClass:[WebAccessibilityObjectWrapper class]])
+            object = [[[NSMutableAttributedString alloc] initWithString:[NSString stringWithCharacters:&attachmentChar length:1] attributes:@{ UIAccessibilityTokenAttachment : object }] autorelease];
+        
         if (![object isKindOfClass:returnClass])
             continue;
         
@@ -2855,13 +2900,10 @@ static void AXAttributedStringAppendText(NSMutableAttributedString* attrString, 
     return m_object->clickPoint();
 }
 
-#ifndef NDEBUG
 - (NSString *)description
 {
-    CGRect frame = [self accessibilityFrame];
-    return [NSString stringWithFormat:@"Role: (%d) - Text: %@: Value: %@ -- Frame: %f %f %f %f", m_object ? m_object->roleValue() : 0, [self accessibilityLabel], [self accessibilityValue], frame.origin.x, frame.origin.y, frame.size.width, frame.size.height];
+    return [NSString stringWithFormat:@"%@: %@", [self class], [self accessibilityLabel]];
 }
-#endif
 
 @end
 

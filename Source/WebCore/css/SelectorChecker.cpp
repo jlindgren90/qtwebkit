@@ -207,7 +207,6 @@ bool SelectorChecker::match(const CSSSelector& selector, const Element& element,
     return true;
 }
 
-#if ENABLE(SHADOW_DOM)
 bool SelectorChecker::matchHostPseudoClass(const CSSSelector& selector, const Element& element, CheckingContext& checkingContext, unsigned& specificity) const
 {
     ASSERT(element.shadowRoot());
@@ -232,7 +231,6 @@ bool SelectorChecker::matchHostPseudoClass(const CSSSelector& selector, const El
     }
     return true;
 }
-#endif
 
 inline static bool hasScrollbarPseudoElement(const PseudoIdSet& dynamicPseudoIdSet)
 {
@@ -280,7 +278,7 @@ SelectorChecker::MatchResult SelectorChecker::matchRecursively(CheckingContext& 
                 if (context.element->shadowPseudoId() != context.selector->value())
                     return MatchResult::fails(Match::SelectorFailsLocally);
 
-                if (context.selector->pseudoElementType() == CSSSelector::PseudoElementWebKitCustom && root->type() != ShadowRoot::Type::UserAgent)
+                if (context.selector->isWebKitCustomPseudoElement() && root->type() != ShadowRoot::Type::UserAgent)
                     return MatchResult::fails(Match::SelectorFailsLocally);
             } else
                 return MatchResult::fails(Match::SelectorFailsLocally);
@@ -946,9 +944,16 @@ bool SelectorChecker::checkOne(CheckingContext& checkingContext, const LocalCont
             break;
         case CSSSelector::PseudoClassFocus:
             return matchesFocusPseudoClass(element);
+        case CSSSelector::PseudoClassFocusWithin:
+            addStyleRelation(checkingContext, element, Style::Relation::AffectedByFocusWithin);
+            return element.hasFocusWithin();
         case CSSSelector::PseudoClassHover:
             if (m_strictParsing || element.isLink() || canMatchHoverOrActiveInQuirksMode(context)) {
                 addStyleRelation(checkingContext, element, Style::Relation::AffectedByHover);
+
+                // See the comment in generateElementIsHovered() in SelectorCompiler.
+                if (checkingContext.resolvingMode == SelectorChecker::Mode::CollectingRulesIgnoringVirtualPseudoElements && !context.isMatchElement)
+                    return true;
 
                 if (element.hovered() || InspectorInstrumentation::forcePseudoState(element, CSSSelector::PseudoClassHover))
                     return true;
@@ -967,7 +972,7 @@ bool SelectorChecker::checkOne(CheckingContext& checkingContext, const LocalCont
         case CSSSelector::PseudoClassFullPageMedia:
             return isMediaDocument(element);
         case CSSSelector::PseudoClassDefault:
-            return isDefaultButtonForForm(element);
+            return matchesDefaultPseudoClass(element);
         case CSSSelector::PseudoClassDisabled:
             return isDisabled(element);
         case CSSSelector::PseudoClassReadOnly:
@@ -985,7 +990,7 @@ bool SelectorChecker::checkOne(CheckingContext& checkingContext, const LocalCont
         case CSSSelector::PseudoClassChecked:
             return isChecked(element);
         case CSSSelector::PseudoClassIndeterminate:
-            return shouldAppearIndeterminate(element);
+            return matchesIndeterminatePseudoClass(element);
         case CSSSelector::PseudoClassRoot:
             if (&element == element.document().documentElement())
                 return true;
@@ -1023,11 +1028,9 @@ bool SelectorChecker::checkOne(CheckingContext& checkingContext, const LocalCont
                     return true;
                 break;
             }
-#if ENABLE(SHADOW_DOM)
         case CSSSelector::PseudoClassHost:
             // :host matches based on context. Cases that reach selector checker don't match.
             return false;
-#endif
 #if ENABLE(CUSTOM_ELEMENTS)
         case CSSSelector::PseudoClassDefined:
             return isDefinedElement(element);
@@ -1080,13 +1083,11 @@ bool SelectorChecker::checkOne(CheckingContext& checkingContext, const LocalCont
         return false;
     }
 #endif
-#if ENABLE(SHADOW_DOM)
     if (selector.match() == CSSSelector::PseudoElement && selector.pseudoElementType() == CSSSelector::PseudoElementSlotted) {
         // We see ::slotted() pseudo elements when collecting slotted rules from the slot shadow tree only.
         ASSERT(checkingContext.resolvingMode == Mode::CollectingRules);
         return is<HTMLSlotElement>(element);
     }
-#endif
     return true;
 }
 

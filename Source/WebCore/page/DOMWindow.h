@@ -27,6 +27,7 @@
 #ifndef DOMWindow_h
 #define DOMWindow_h
 
+#include "Base64Utilities.h"
 #include "ContextDestructionObserver.h"
 #include "EventTarget.h"
 #include "FrameDestructionObserver.h"
@@ -34,6 +35,7 @@
 #include "Supplementable.h"
 #include <functional>
 #include <memory>
+#include <wtf/HashSet.h>
 #include <wtf/Optional.h>
 #include <wtf/WeakPtr.h>
 
@@ -47,6 +49,7 @@ namespace WebCore {
     class CSSRuleList;
     class CSSStyleDeclaration;
     class Crypto;
+    class CustomElementsRegistry;
     class DOMApplicationCache;
     class DOMSelection;
     class DOMURL;
@@ -97,6 +100,7 @@ namespace WebCore {
         , public EventTargetWithInlineData
         , public ContextDestructionObserver
         , public FrameDestructionObserver
+        , public Base64Utilities
         , public Supplementable<DOMWindow> {
     public:
         static Ref<DOMWindow> create(Document* document) { return adoptRef(*new DOMWindow(document)); }
@@ -123,7 +127,7 @@ namespace WebCore {
         void suspendForDocumentSuspension();
         void resumeFromDocumentSuspension();
 
-        PassRefPtr<MediaQueryList> matchMedia(const String&);
+        RefPtr<MediaQueryList> matchMedia(const String&);
 
         WEBCORE_EXPORT unsigned pendingUnloadEventListeners() const;
 
@@ -160,23 +164,21 @@ namespace WebCore {
         Element* frameElement() const;
 
         WEBCORE_EXPORT void focus(bool allowFocus = false);
-        void focus(Document&);
+        void focus(DOMWindow& callerWindow);
         void blur();
         WEBCORE_EXPORT void close();
         void close(Document&);
         void print();
         void stop();
 
-        WEBCORE_EXPORT PassRefPtr<DOMWindow> open(const String& urlString, const AtomicString& frameName, const String& windowFeaturesString,
+        WEBCORE_EXPORT RefPtr<DOMWindow> open(const String& urlString, const AtomicString& frameName, const String& windowFeaturesString,
             DOMWindow& activeWindow, DOMWindow& firstWindow);
 
         void showModalDialog(const String& urlString, const String& dialogFeaturesString, DOMWindow& activeWindow, DOMWindow& firstWindow, std::function<void (DOMWindow&)> prepareDialogFunction);
 
-        void alert(const String& message);
+        void alert(const String& message = emptyString());
         bool confirm(const String& message);
         String prompt(const String& message, const String& defaultValue);
-        String btoa(const String& stringToEncode, ExceptionCode&);
-        String atob(const String& encodedString, ExceptionCode&);
 
         bool find(const String&, bool caseSensitive, bool backwards, bool wrap, bool wholeWord, bool searchInFrames, bool showDialog) const;
 
@@ -223,19 +225,19 @@ namespace WebCore {
 
         // CSSOM View Module
 
-        PassRefPtr<StyleMedia> styleMedia() const;
+        RefPtr<StyleMedia> styleMedia() const;
 
         // DOM Level 2 Style Interface
 
-        PassRefPtr<CSSStyleDeclaration> getComputedStyle(Element*, const String& pseudoElt) const;
+        RefPtr<CSSStyleDeclaration> getComputedStyle(Element&, const String& pseudoElt) const;
 
         // WebKit extensions
 
-        PassRefPtr<CSSRuleList> getMatchedCSSRules(Element*, const String& pseudoElt, bool authorOnly = true) const;
+        RefPtr<CSSRuleList> getMatchedCSSRules(Element*, const String& pseudoElt, bool authorOnly = true) const;
         double devicePixelRatio() const;
 
-        PassRefPtr<WebKitPoint> webkitConvertPointFromPageToNode(Node*, const WebKitPoint*) const;
-        PassRefPtr<WebKitPoint> webkitConvertPointFromNodeToPage(Node*, const WebKitPoint*) const;
+        RefPtr<WebKitPoint> webkitConvertPointFromPageToNode(Node*, const WebKitPoint*) const;
+        RefPtr<WebKitPoint> webkitConvertPointFromNodeToPage(Node*, const WebKitPoint*) const;
 
         PageConsoleClient* console() const;
 
@@ -243,14 +245,18 @@ namespace WebCore {
         String crossDomainAccessErrorMessage(const DOMWindow& activeWindow);
 
         void postMessage(PassRefPtr<SerializedScriptValue> message, const MessagePortArray*, const String& targetOrigin, DOMWindow& source, ExceptionCode&);
-        // Needed for Objective-C bindings (see bug 28774).
-        void postMessage(PassRefPtr<SerializedScriptValue> message, MessagePort*, const String& targetOrigin, DOMWindow& source, ExceptionCode&);
         void postMessageTimerFired(PostMessageTimer&);
         void dispatchMessageEventWithOriginCheck(SecurityOrigin* intendedTargetOrigin, Event&, PassRefPtr<Inspector::ScriptCallStack>);
 
-        void scrollBy(int x, int y) const;
-        void scrollTo(int x, int y) const;
-        void scroll(int x, int y) const { scrollTo(x, y); }
+        struct ScrollToOptions {
+            Optional<double> left;
+            Optional<double> top;
+        };
+
+        void scrollBy(const ScrollToOptions&) const;
+        void scrollBy(double x, double y) const;
+        void scrollTo(const ScrollToOptions&) const;
+        void scrollTo(double x, double y) const;
 
         void moveBy(float x, float y) const;
         void moveTo(float x, float y) const;
@@ -273,8 +279,8 @@ namespace WebCore {
 
         // Events
         // EventTarget API
-        bool addEventListener(const AtomicString& eventType, RefPtr<EventListener>&&, bool useCapture) override;
-        bool removeEventListener(const AtomicString& eventType, EventListener*, bool useCapture) override;
+        bool addEventListener(const AtomicString& eventType, Ref<EventListener>&&, const AddEventListenerOptions&) override;
+        bool removeEventListener(const AtomicString& eventType, EventListener&, const ListenerOptions&) override;
         void removeAllEventListeners() override;
 
         using EventTarget::dispatchEvent;
@@ -299,6 +305,11 @@ namespace WebCore {
         DOMApplicationCache* applicationCache() const;
         DOMApplicationCache* optionalApplicationCache() const { return m_applicationCache.get(); }
 
+#if ENABLE(CUSTOM_ELEMENTS)
+        CustomElementsRegistry* customElementsRegistry() { return m_customElementsRegistry.get(); }
+        CustomElementsRegistry& ensureCustomElementsRegistry();
+#endif
+
 #if ENABLE(ORIENTATION_EVENTS)
         // This is the interface orientation in degrees. Some examples are:
         //  0 is straight up; -90 is when the device is rotated 90 clockwise;
@@ -309,6 +320,7 @@ namespace WebCore {
 #if ENABLE(WEB_TIMING)
         Performance* performance() const;
 #endif
+        double nowTimestamp() const;
 
 #if PLATFORM(IOS)
         void incrementScrollEventListenersCount();
@@ -409,6 +421,10 @@ namespace WebCore {
         mutable RefPtr<Storage> m_sessionStorage;
         mutable RefPtr<Storage> m_localStorage;
         mutable RefPtr<DOMApplicationCache> m_applicationCache;
+
+#if ENABLE(CUSTOM_ELEMENTS)
+        RefPtr<CustomElementsRegistry> m_customElementsRegistry;
+#endif
 
 #if ENABLE(WEB_TIMING)
         mutable RefPtr<Performance> m_performance;

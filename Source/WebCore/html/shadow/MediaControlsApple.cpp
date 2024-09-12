@@ -30,8 +30,10 @@
 #include "MediaControlsApple.h"
 
 #include "CSSValueKeywords.h"
+#include "EventNames.h"
 #include "ExceptionCodePlaceholder.h"
 #include "HTMLNames.h"
+#include "Page.h"
 #include "WheelEvent.h"
 
 namespace WebCore {
@@ -509,15 +511,15 @@ void MediaControlsApple::showClosedCaptionTrackList()
     m_panel->setInlineStyleProperty(CSSPropertyPointerEvents, CSSValueNone);
 
     EventListener& listener = eventListener();
-    m_closedCaptionsContainer->addEventListener(eventNames().wheelEvent, &listener, true);
+    m_closedCaptionsContainer->addEventListener(eventNames().wheelEvent, listener, true);
 
     // Track click events in the capture phase at two levels, first at the document level
     // such that a click outside of the <video> may dismiss the track list, second at the
     // media controls level such that a click anywhere outside of the track list hides the
     // track list. These two levels are necessary since it would not be possible to get a
     // reference to the track list when handling the event outside of the shadow tree.
-    document().addEventListener(eventNames().clickEvent, &listener, true);
-    addEventListener(eventNames().clickEvent, &listener, true);
+    document().addEventListener(eventNames().clickEvent, listener, true);
+    addEventListener(eventNames().clickEvent, listener, true);
 }
 
 void MediaControlsApple::hideClosedCaptionTrackList()
@@ -531,9 +533,9 @@ void MediaControlsApple::hideClosedCaptionTrackList()
     m_panel->removeInlineStyleProperty(CSSPropertyPointerEvents);
 
     EventListener& listener = eventListener();
-    m_closedCaptionsContainer->removeEventListener(eventNames().wheelEvent, &listener, true);
-    document().removeEventListener(eventNames().clickEvent, &listener, true);
-    removeEventListener(eventNames().clickEvent, &listener, true);
+    m_closedCaptionsContainer->removeEventListener(eventNames().wheelEvent, listener, true);
+    document().removeEventListener(eventNames().clickEvent, listener, true);
+    removeEventListener(eventNames().clickEvent, listener, true);
 }
 
 void MediaControlsApple::setFullscreenSliderVolume()
@@ -595,7 +597,7 @@ void MediaControlsAppleEventListener::handleEvent(ScriptExecutionContext*, Event
     }
 }
 
-bool MediaControlsAppleEventListener::operator==(const EventListener& listener)
+bool MediaControlsAppleEventListener::operator==(const EventListener& listener) const
 {
     if (const MediaControlsAppleEventListener* mediaControlsAppleEventListener = MediaControlsAppleEventListener::cast(&listener))
         return m_mediaControls == mediaControlsAppleEventListener->m_mediaControls;

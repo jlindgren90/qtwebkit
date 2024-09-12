@@ -30,6 +30,7 @@
 
 #include "JITOperations.h"
 #include "JSCInlines.h"
+#include "LinkBuffer.h"
 
 namespace JSC {
 
@@ -293,7 +294,7 @@ void AssemblyHelpers::jitAssertIsNull(GPRReg gpr)
 
 void AssemblyHelpers::jitAssertArgumentCountSane()
 {
-    Jump ok = branch32(Below, payloadFor(JSStack::ArgumentCount), TrustedImm32(10000000));
+    Jump ok = branch32(Below, payloadFor(CallFrameSlot::argumentCount), TrustedImm32(10000000));
     abortWithReason(AHInsaneArgumentCount);
     ok.link(this);
 }
@@ -544,7 +545,7 @@ void AssemblyHelpers::emitRandomThunk(JSGlobalObject* globalObject, GPRReg scrat
 
 void AssemblyHelpers::emitRandomThunk(GPRReg scratch0, GPRReg scratch1, GPRReg scratch2, GPRReg scratch3, FPRReg result)
 {
-    emitGetFromCallFrameHeaderPtr(JSStack::Callee, scratch3);
+    emitGetFromCallFrameHeaderPtr(CallFrameSlot::callee, scratch3);
     emitLoadStructure(scratch3, scratch3, scratch0);
     loadPtr(Address(scratch3, Structure::globalObjectOffset()), scratch3);
     // Now, scratch3 holds JSGlobalObject*.
@@ -566,25 +567,63 @@ void AssemblyHelpers::emitRandomThunk(GPRReg scratch0, GPRReg scratch1, GPRReg s
 }
 #endif
 
-void AssemblyHelpers::restoreCalleeSavesFromVMCalleeSavesBuffer()
+void AssemblyHelpers::restoreCalleeSavesFromVMEntryFrameCalleeSavesBuffer()
 {
 #if NUMBER_OF_CALLEE_SAVES_REGISTERS > 0
-    char* sourceBuffer = bitwise_cast<char*>(m_vm->calleeSaveRegistersBuffer);
-
     RegisterAtOffsetList* allCalleeSaves = m_vm->getAllCalleeSaveRegisterOffsets();
     RegisterSet dontRestoreRegisters = RegisterSet::stackRegisters();
     unsigned registerCount = allCalleeSaves->size();
-    
+
+    GPRReg scratch = InvalidGPRReg;
+    unsigned scratchGPREntryIndex = 0;
+
+    // Use the first GPR entry's register as our scratch.
     for (unsigned i = 0; i < registerCount; i++) {
         RegisterAtOffset entry = allCalleeSaves->at(i);
         if (dontRestoreRegisters.get(entry.reg()))
             continue;
-        if (entry.reg().isGPR())
-            loadPtr(static_cast<void*>(sourceBuffer + entry.offset()), entry.reg().gpr());
-        else
-            loadDouble(TrustedImmPtr(sourceBuffer + entry.offset()), entry.reg().fpr());
+        if (entry.reg().isGPR()) {
+            scratchGPREntryIndex = i;
+            scratch = entry.reg().gpr();
+            break;
+        }
     }
+    ASSERT(scratch != InvalidGPRReg);
+
+    loadPtr(&m_vm->topVMEntryFrame, scratch);
+    addPtr(TrustedImm32(VMEntryFrame::calleeSaveRegistersBufferOffset()), scratch);
+
+    // Restore all callee saves except for the scratch.
+    for (unsigned i = 0; i < registerCount; i++) {
+        RegisterAtOffset entry = allCalleeSaves->at(i);
+        if (dontRestoreRegisters.get(entry.reg()))
+            continue;
+        if (entry.reg().isGPR()) {
+            if (i != scratchGPREntryIndex)
+                loadPtr(Address(scratch, entry.offset()), entry.reg().gpr());
+        } else
+            loadDouble(Address(scratch, entry.offset()), entry.reg().fpr());
+    }
+
+    // Restore the callee save value of the scratch.
+    RegisterAtOffset entry = allCalleeSaves->at(scratchGPREntryIndex);
+    ASSERT(!dontRestoreRegisters.get(entry.reg()));
+    ASSERT(entry.reg().isGPR());
+    ASSERT(scratch == entry.reg().gpr());
+    loadPtr(Address(scratch, entry.offset()), scratch);
 #endif
+}
+
+void AssemblyHelpers::emitDumbVirtualCall(CallLinkInfo* info)
+{
+    move(TrustedImmPtr(info), GPRInfo::regT2);
+    Call call = nearCall();
+    addLinkTask(
+        [=] (LinkBuffer& linkBuffer) {
+            MacroAssemblerCodeRef virtualThunk = virtualThunkFor(&linkBuffer.vm(), *info);
+            info->setSlowStub(createJITStubRoutine(virtualThunk, linkBuffer.vm(), nullptr, true));
+            linkBuffer.link(call, CodeLocationLabel(virtualThunk.code()));
+        });
 }
 
 } // namespace JSC

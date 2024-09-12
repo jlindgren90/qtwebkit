@@ -37,7 +37,6 @@
 #include "ProfilerDatabase.h"
 #include "TypeProfiler.h"
 #include "VMInlines.h"
-#include "WASMFunctionParser.h"
 #include <wtf/CommaPrinter.h>
 #include <wtf/Vector.h>
 #include <wtf/text/StringBuilder.h>
@@ -177,7 +176,8 @@ void ScriptExecutable::installCode(VM& vm, CodeBlock* genericCodeBlock, CodeType
 {
     ASSERT(vm.heap.isDeferred());
     
-    CODEBLOCK_LOG_EVENT(genericCodeBlock, "installCode", ());
+    if (genericCodeBlock)
+        CODEBLOCK_LOG_EVENT(genericCodeBlock, "installCode", ());
     
     CodeBlock* oldCodeBlock = nullptr;
     
@@ -312,10 +312,9 @@ CodeBlock* ScriptExecutable::newCodeBlockFor(
     JSGlobalObject* globalObject = scope->globalObject();
     ParserError error;
     DebuggerMode debuggerMode = globalObject->hasInteractiveDebugger() ? DebuggerOn : DebuggerOff;
-    ProfilerMode profilerMode = globalObject->hasLegacyProfiler() ? ProfilerOn : ProfilerOff;
     UnlinkedFunctionCodeBlock* unlinkedCodeBlock = 
         executable->m_unlinkedExecutable->unlinkedCodeBlockFor(
-            *vm, executable->m_source, kind, debuggerMode, profilerMode, error, 
+            *vm, executable->m_source, kind, debuggerMode, error, 
             executable->parseMode());
     recordParse(
         executable->m_unlinkedExecutable->features(), 
@@ -400,16 +399,17 @@ static void setupJIT(VM& vm, CodeBlock* codeBlock)
 }
 
 JSObject* ScriptExecutable::prepareForExecutionImpl(
-    ExecState* exec, JSFunction* function, JSScope* scope, CodeSpecializationKind kind)
+    ExecState* exec, JSFunction* function, JSScope* scope, CodeSpecializationKind kind, CodeBlock*& resultCodeBlock)
 {
     VM& vm = exec->vm();
-    DeferGC deferGC(vm.heap);
+    DeferGCForAWhile deferGC(vm.heap);
 
     if (vm.getAndClearFailNextNewCodeBlock())
         return createError(exec->callerFrame(), ASCIILiteral("Forced Failure"));
 
     JSObject* exception = 0;
     CodeBlock* codeBlock = newCodeBlockFor(kind, function, scope, exception);
+    resultCodeBlock = codeBlock;
     if (!codeBlock) {
         RELEASE_ASSERT(exception);
         return exception;
@@ -424,12 +424,12 @@ JSObject* ScriptExecutable::prepareForExecutionImpl(
         setupJIT(vm, codeBlock);
     
     installCode(*codeBlock->vm(), codeBlock, codeBlock->codeType(), codeBlock->specializationKind());
-    return 0;
+    return nullptr;
 }
 
 const ClassInfo EvalExecutable::s_info = { "EvalExecutable", &ScriptExecutable::s_info, 0, CREATE_METHOD_TABLE(EvalExecutable) };
 
-EvalExecutable* EvalExecutable::create(ExecState* exec, const SourceCode& source, bool isInStrictContext, ThisTDZMode thisTDZMode, DerivedContextType derivedContextType, bool isArrowFunctionContext, EvalContextType evalContextType, const VariableEnvironment* variablesUnderTDZ)
+EvalExecutable* EvalExecutable::create(ExecState* exec, const SourceCode& source, bool isInStrictContext, DerivedContextType derivedContextType, bool isArrowFunctionContext, EvalContextType evalContextType, const VariableEnvironment* variablesUnderTDZ)
 {
     JSGlobalObject* globalObject = exec->lexicalGlobalObject();
     if (!globalObject->evalEnabled()) {
@@ -440,7 +440,7 @@ EvalExecutable* EvalExecutable::create(ExecState* exec, const SourceCode& source
     EvalExecutable* executable = new (NotNull, allocateCell<EvalExecutable>(*exec->heap())) EvalExecutable(exec, source, isInStrictContext, derivedContextType, isArrowFunctionContext, evalContextType);
     executable->finishCreation(exec->vm());
 
-    UnlinkedEvalCodeBlock* unlinkedEvalCode = globalObject->createEvalCodeBlock(exec, executable, thisTDZMode, variablesUnderTDZ);
+    UnlinkedEvalCodeBlock* unlinkedEvalCode = globalObject->createEvalCodeBlock(exec, executable, variablesUnderTDZ);
     if (!unlinkedEvalCode)
         return 0;
 
@@ -606,9 +606,16 @@ JSObject* ProgramExecutable::initializeGlobalProperties(VM& vm, CallFrame* callF
         // Check if any new "let"/"const"/"class" will shadow any pre-existing global property names, or "var"/"let"/"const" variables.
         // It's an error to introduce a shadow.
         for (auto& entry : lexicalDeclarations) {
-            if (globalObject->hasProperty(exec, entry.key.get()))
-                return createSyntaxError(exec, makeString("Can't create duplicate variable that shadows a global property: '", String(entry.key.get()), "'"));
-
+            if (globalObject->hasProperty(exec, entry.key.get())) {
+                // The ES6 spec says that just RestrictedGlobalProperty can't be shadowed
+                // This carried out section 8.1.1.4.14 of the ES6 spec: http://www.ecma-international.org/ecma-262/6.0/index.html#sec-hasrestrictedglobalproperty
+                PropertyDescriptor descriptor;
+                globalObject->getOwnPropertyDescriptor(exec, entry.key.get(), descriptor);
+                
+                if (descriptor.value() != jsUndefined() && !descriptor.configurable())
+                    return createSyntaxError(exec, makeString("Can't create duplicate variable that shadows a global property: '", String(entry.key.get()), "'"));
+            }
+                
             if (globalLexicalEnvironment->hasProperty(exec, entry.key.get())) {
                 if (UNLIKELY(entry.value.isConst() && !vm.globalConstRedeclarationShouldThrow() && !isStrictMode())) {
                     // We only allow "const" duplicate declarations under this setting.
@@ -757,28 +764,6 @@ void WebAssemblyExecutable::visitChildren(JSCell* cell, SlotVisitor& visitor)
     if (thisObject->m_codeBlockForCall)
         thisObject->m_codeBlockForCall->visitWeakly(visitor);
     visitor.append(&thisObject->m_module);
-}
-
-void WebAssemblyExecutable::prepareForExecution(ExecState* exec)
-{
-    if (hasJITCodeForCall())
-        return;
-
-    VM& vm = exec->vm();
-    DeferGC deferGC(vm.heap);
-
-    WebAssemblyCodeBlock* codeBlock = WebAssemblyCodeBlock::create(&vm,
-        this, exec->lexicalGlobalObject());
-
-    WASMFunctionParser::compile(vm, codeBlock, m_module.get(), m_source, m_functionIndex);
-
-    m_jitCodeForCall = codeBlock->jitCode();
-    m_jitCodeForCallWithArityCheck = MacroAssemblerCodePtr();
-    m_numParametersForCall = codeBlock->numParameters();
-
-    m_codeBlockForCall.set(vm, this, codeBlock);
-
-    Heap::heap(this)->writeBarrier(this);
 }
 #endif
 

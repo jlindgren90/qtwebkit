@@ -142,13 +142,10 @@ RefPtr<IDBOpenDBRequest> IDBFactory::deleteDatabase(ScriptExecutionContext& cont
     return m_connectionProxy->deleteDatabase(context, databaseIdentifier);
 }
 
-short IDBFactory::cmp(ScriptExecutionContext& context, JSValue firstValue, JSValue secondValue, ExceptionCodeWithMessage& ec)
+short IDBFactory::cmp(ExecState& execState, JSValue firstValue, JSValue secondValue, ExceptionCodeWithMessage& ec)
 {
-    RefPtr<IDBKey> first = scriptValueToIDBKey(context, firstValue);
-    RefPtr<IDBKey> second = scriptValueToIDBKey(context, secondValue);
-
-    ASSERT(first);
-    ASSERT(second);
+    Ref<IDBKey> first = scriptValueToIDBKey(execState, firstValue);
+    Ref<IDBKey> second = scriptValueToIDBKey(execState, secondValue);
 
     if (!first->isValid() || !second->isValid()) {
         ec.code = IDBDatabaseException::DataError;

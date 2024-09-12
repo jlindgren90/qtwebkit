@@ -6,13 +6,13 @@
  * are met:
  *
  * 1.  Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer. 
+ *     notice, this list of conditions and the following disclaimer.
  * 2.  Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution. 
+ *     documentation and/or other materials provided with the distribution.
  * 3.  Neither the name of Apple Inc. ("Apple") nor the names of
  *     its contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission. 
+ *     from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -61,7 +61,7 @@ namespace WebCore {
 
 DEFINE_DEBUG_ONLY_GLOBAL(WTF::RefCountedLeakCounter, subresourceLoaderCounter, ("SubresourceLoader"));
 
-SubresourceLoader::RequestCountTracker::RequestCountTracker(CachedResourceLoader& cachedResourceLoader, CachedResource* resource)
+SubresourceLoader::RequestCountTracker::RequestCountTracker(CachedResourceLoader& cachedResourceLoader, const CachedResource& resource)
     : m_cachedResourceLoader(cachedResourceLoader)
     , m_resource(resource)
 {
@@ -73,18 +73,18 @@ SubresourceLoader::RequestCountTracker::~RequestCountTracker()
     m_cachedResourceLoader.decrementRequestCount(m_resource);
 }
 
-SubresourceLoader::SubresourceLoader(Frame* frame, CachedResource* resource, const ResourceLoaderOptions& options)
+SubresourceLoader::SubresourceLoader(Frame& frame, CachedResource& resource, const ResourceLoaderOptions& options)
     : ResourceLoader(frame, options)
-    , m_resource(resource)
+    , m_resource(&resource)
     , m_loadingMultipartContent(false)
     , m_state(Uninitialized)
-    , m_requestCountTracker(std::make_unique<RequestCountTracker>(frame->document()->cachedResourceLoader(), resource))
+    , m_requestCountTracker(InPlace, frame.document()->cachedResourceLoader(), resource)
 {
 #ifndef NDEBUG
     subresourceLoaderCounter.increment();
 #endif
 #if ENABLE(CONTENT_EXTENSIONS)
-    m_resourceType = toResourceType(resource->type());
+    m_resourceType = toResourceType(resource.type());
 #endif
 }
 
@@ -97,7 +97,7 @@ SubresourceLoader::~SubresourceLoader()
 #endif
 }
 
-RefPtr<SubresourceLoader> SubresourceLoader::create(Frame* frame, CachedResource* resource, const ResourceRequest& request, const ResourceLoaderOptions& options)
+RefPtr<SubresourceLoader> SubresourceLoader::create(Frame& frame, CachedResource& resource, const ResourceRequest& request, const ResourceLoaderOptions& options)
 {
     RefPtr<SubresourceLoader> subloader(adoptRef(new SubresourceLoader(frame, resource, options)));
 #if PLATFORM(IOS)
@@ -150,9 +150,8 @@ bool SubresourceLoader::init(const ResourceRequest& request)
 
     // FIXME: https://bugs.webkit.org/show_bug.cgi?id=155633.
     // SubresourceLoader could use the document origin as a default and set PotentiallyCrossOriginEnabled requests accordingly.
-    // This would simplify resource loader users as they would only need to set the policy to PotentiallyCrossOriginEnabled.
-    if (options().requestOriginPolicy() == PotentiallyCrossOriginEnabled)
-        m_origin = SecurityOrigin::createFromString(request.httpOrigin());
+    // This would simplify resource loader users as they would only need to set fetch mode to Cors.
+    m_origin = m_resource->origin();
 
     return true;
 }
@@ -166,7 +165,7 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
 {
     // Store the previous URL because the call to ResourceLoader::willSendRequest will modify it.
     URL previousURL = request().url();
-    Ref<SubresourceLoader> protect(*this);
+    Ref<SubresourceLoader> protectedThis(*this);
 
     if (!newRequest.url().isValid()) {
         cancel(cannotShowURLError());
@@ -175,6 +174,19 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
 
     ASSERT(!newRequest.isNull());
     if (!redirectResponse.isNull()) {
+        if (options().redirect != FetchOptions::Redirect::Follow) {
+            if (options().redirect == FetchOptions::Redirect::Error) {
+                cancel();
+                return;
+            }
+
+            ResourceResponse opaqueRedirectedResponse;
+            opaqueRedirectedResponse.setType(ResourceResponse::Type::Opaqueredirect);
+            m_resource->responseReceived(opaqueRedirectedResponse);
+            didFinishLoading(currentTime());
+            return;
+        }
+
         // CachedResources are keyed off their original request URL.
         // Requesting the same original URL a second time can redirect to a unique second resource.
         // Therefore, if a redirect to a different destination URL occurs, we should no longer consider this a revalidation of the first resource.
@@ -191,8 +203,12 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
             return;
         }
 
-        if (options().requestOriginPolicy() == PotentiallyCrossOriginEnabled && !checkCrossOriginAccessControl(request(), redirectResponse, newRequest)) {
-            cancel();
+        String errorDescription;
+        if (!checkRedirectionCrossOriginAccessControl(request(), redirectResponse, newRequest, errorDescription)) {
+            String errorMessage = "Cross-origin redirection to " + newRequest.url().string() + " denied by Cross-Origin Resource Sharing policy: " + errorDescription;
+            if (m_frame && m_frame->document())
+                m_frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, errorMessage);
+            cancel(ResourceError(String(), 0, request().url(), errorMessage, ResourceError::Type::AccessControl));
             return;
         }
 
@@ -216,7 +232,7 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
 void SubresourceLoader::didSendData(unsigned long long bytesSent, unsigned long long totalBytesToBeSent)
 {
     ASSERT(m_state == Initialized);
-    Ref<SubresourceLoader> protect(*this);
+    Ref<SubresourceLoader> protectedThis(*this);
     m_resource->didSendData(bytesSent, totalBytesToBeSent);
 }
 
@@ -227,7 +243,7 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
 
     // Reference the object in this method since the additional processing can do
     // anything including removing the last reference to this object; one example of this is 3266216.
-    Ref<SubresourceLoader> protect(*this);
+    Ref<SubresourceLoader> protectedThis(*this);
 
     if (shouldIncludeCertificateInfo())
         response.includeCertificateInfo();
@@ -272,7 +288,7 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
         m_loadingMultipartContent = true;
 
         // We don't count multiParts in a CachedResourceLoader's request count
-        m_requestCountTracker = nullptr;
+        m_requestCountTracker = Nullopt;
         if (!m_resource->isImage()) {
             cancel();
             return;
@@ -284,8 +300,8 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
         // The resource data will change as the next part is loaded, so we need to make a copy.
         m_resource->finishLoading(buffer->copy().ptr());
         clearResourceData();
-        // Since a subresource loader does not load multipart sections progressively, data was delivered to the loader all at once.        
-        // After the first multipart section is complete, signal to delegates that this load is "finished" 
+        // Since a subresource loader does not load multipart sections progressively, data was delivered to the loader all at once.
+        // After the first multipart section is complete, signal to delegates that this load is "finished"
         m_documentLoader->subresourceLoaderFinishedLoadingOnePart(this);
         didFinishLoadingOnePart(0);
     }
@@ -295,15 +311,15 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
 
 void SubresourceLoader::didReceiveData(const char* data, unsigned length, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
-    didReceiveDataOrBuffer(data, length, 0, encodedDataLength, dataPayloadType);
+    didReceiveDataOrBuffer(data, length, nullptr, encodedDataLength, dataPayloadType);
 }
 
-void SubresourceLoader::didReceiveBuffer(PassRefPtr<SharedBuffer> buffer, long long encodedDataLength, DataPayloadType dataPayloadType)
+void SubresourceLoader::didReceiveBuffer(Ref<SharedBuffer>&& buffer, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
-    didReceiveDataOrBuffer(0, 0, buffer, encodedDataLength, dataPayloadType);
+    didReceiveDataOrBuffer(nullptr, 0, WTFMove(buffer), encodedDataLength, dataPayloadType);
 }
 
-void SubresourceLoader::didReceiveDataOrBuffer(const char* data, int length, PassRefPtr<SharedBuffer> prpBuffer, long long encodedDataLength, DataPayloadType dataPayloadType)
+void SubresourceLoader::didReceiveDataOrBuffer(const char* data, int length, RefPtr<SharedBuffer>&& prpBuffer, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
     if (m_resource->response().httpStatusCode() >= 400 && !m_resource->shouldIgnoreHTTPStatusCodeErrors())
         return;
@@ -312,10 +328,10 @@ void SubresourceLoader::didReceiveDataOrBuffer(const char* data, int length, Pas
     ASSERT(m_state == Initialized);
     // Reference the object in this method since the additional processing can do
     // anything including removing the last reference to this object; one example of this is 3266216.
-    Ref<SubresourceLoader> protect(*this);
+    Ref<SubresourceLoader> protectedThis(*this);
     RefPtr<SharedBuffer> buffer = prpBuffer;
     
-    ResourceLoader::didReceiveDataOrBuffer(data, length, buffer, encodedDataLength, dataPayloadType);
+    ResourceLoader::didReceiveDataOrBuffer(data, length, WTFMove(buffer), encodedDataLength, dataPayloadType);
 
     if (!m_loadingMultipartContent) {
         if (auto* resourceData = this->resourceData())
@@ -385,27 +401,45 @@ static void logResourceLoaded(Frame* frame, CachedResource::Type type)
     frame->page()->diagnosticLoggingClient().logDiagnosticMessageWithValue(DiagnosticLoggingKeys::resourceKey(), DiagnosticLoggingKeys::loadedKey(), resourceType, ShouldSample::Yes);
 }
 
-bool SubresourceLoader::checkCrossOriginAccessControl(const ResourceRequest& previousRequest, const ResourceResponse& redirectResponse, ResourceRequest& newRequest)
+bool SubresourceLoader::checkRedirectionCrossOriginAccessControl(const ResourceRequest& previousRequest, const ResourceResponse& redirectResponse, ResourceRequest& newRequest, String& errorMessage)
 {
-    if (m_origin->canRequest(newRequest.url()))
+    bool crossOriginFlag = m_resource->isCrossOrigin();
+    bool isNextRequestCrossOrigin = m_origin && !m_origin->canRequest(newRequest.url());
+
+    if (isNextRequestCrossOrigin)
+        m_resource->setCrossOrigin();
+
+    ASSERT(options().mode != FetchOptions::Mode::SameOrigin || !m_resource->isCrossOrigin());
+
+    if (options().mode != FetchOptions::Mode::Cors)
         return true;
 
-    String errorDescription;
-    bool responsePassesCORS = m_origin->canRequest(previousRequest.url())
-        || passesAccessControlCheck(redirectResponse, options().allowCredentials(), m_origin.get(), errorDescription);
-    if (!responsePassesCORS || !isValidCrossOriginRedirectionURL(newRequest.url())) {
-        if (m_frame && m_frame->document()) {
-            String errorMessage = "Cross-origin redirection denied by Cross-Origin Resource Sharing policy: " +
-                (!responsePassesCORS ? errorDescription : "Redirected to either a non-HTTP URL or a URL that contains credentials.");
-            m_frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, errorMessage);
-        }
+    // Implementing https://fetch.spec.whatwg.org/#concept-http-redirect-fetch step 8 & 9.
+    if (m_resource->isCrossOrigin() && !isValidCrossOriginRedirectionURL(newRequest.url())) {
+        errorMessage = ASCIILiteral("URL is either a non-HTTP URL or contains credentials.");
         return false;
     }
 
-    // If the request URL origin is not the same as the original origin, the request origin should be set to a globally unique identifier.
-    m_origin = SecurityOrigin::createUnique();
-    cleanRedirectedRequestForAccessControl(newRequest);
-    updateRequestForAccessControl(newRequest, m_origin.get(), options().allowCredentials());
+    ASSERT(m_origin);
+    if (crossOriginFlag && !passesAccessControlCheck(redirectResponse, options().allowCredentials, *m_origin, errorMessage))
+        return false;
+
+    bool redirectingToNewOrigin = false;
+    if (m_resource->isCrossOrigin()) {
+        if (!crossOriginFlag && isNextRequestCrossOrigin)
+            redirectingToNewOrigin = true;
+        else
+            redirectingToNewOrigin = !SecurityOrigin::create(previousRequest.url())->canRequest(newRequest.url());
+    }
+
+    // Implementing https://fetch.spec.whatwg.org/#concept-http-redirect-fetch step 10.
+    if (crossOriginFlag && redirectingToNewOrigin)
+        m_origin = SecurityOrigin::createUnique();
+
+    if (redirectingToNewOrigin) {
+        cleanRedirectedRequestForAccessControl(newRequest);
+        updateRequestForAccessControl(newRequest, *m_origin, options().allowCredentials);
+    }
 
     return true;
 }
@@ -421,7 +455,7 @@ void SubresourceLoader::didFinishLoading(double finishTime)
     LOG(ResourceLoading, "Received '%s'.", m_resource->url().string().latin1().data());
     logResourceLoaded(m_frame.get(), m_resource->type());
 
-    Ref<SubresourceLoader> protect(*this);
+    Ref<SubresourceLoader> protectedThis(*this);
     CachedResourceHandle<CachedResource> protectResource(m_resource);
 
     m_state = Finishing;
@@ -446,7 +480,7 @@ void SubresourceLoader::didFail(const ResourceError& error)
     ASSERT(!reachedTerminalState());
     LOG(ResourceLoading, "Failed to load '%s'.\n", m_resource->url().string().latin1().data());
 
-    Ref<SubresourceLoader> protect(*this);
+    Ref<SubresourceLoader> protectedThis(*this);
     CachedResourceHandle<CachedResource> protectResource(m_resource);
     m_state = Finishing;
     if (m_resource->resourceToRevalidate())
@@ -476,7 +510,7 @@ void SubresourceLoader::willCancel(const ResourceError& error)
     ASSERT(!reachedTerminalState());
     LOG(ResourceLoading, "Cancelled load of '%s'.\n", m_resource->url().string().latin1().data());
 
-    Ref<SubresourceLoader> protect(*this);
+    Ref<SubresourceLoader> protectedThis(*this);
 #if PLATFORM(IOS)
     m_state = m_state == Uninitialized ? CancelledWhileInitializing : Finishing;
 #else
@@ -503,7 +537,7 @@ void SubresourceLoader::notifyDone()
     if (reachedTerminalState())
         return;
 
-    m_requestCountTracker = nullptr;
+    m_requestCountTracker = Nullopt;
 #if PLATFORM(IOS)
     m_documentLoader->cachedResourceLoader().loadDone(m_resource, m_state != CancelledWhileInitializing);
 #else

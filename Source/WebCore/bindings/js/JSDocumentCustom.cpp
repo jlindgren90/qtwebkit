@@ -20,7 +20,6 @@
 #include "config.h"
 #include "JSDocument.h"
 
-#include "CustomElementDefinitions.h"
 #include "ExceptionCode.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -30,7 +29,7 @@
 #include "JSHTMLDocument.h"
 #include "JSLocation.h"
 #include "JSNodeOrString.h"
-#include "JSSVGDocument.h"
+#include "JSXMLDocument.h"
 #include "Location.h"
 #include "NodeTraversal.h"
 #include "SVGDocument.h"
@@ -52,56 +51,60 @@ using namespace JSC;
 
 namespace WebCore {
 
-static inline JSValue createNewDocumentWrapper(ExecState& state, JSDOMGlobalObject& globalObject, Document& document)
+static inline JSValue createNewDocumentWrapper(ExecState& state, JSDOMGlobalObject& globalObject, Ref<Document>&& passedDocument)
 {
+    auto& document = passedDocument.get();
     JSObject* wrapper;
     if (document.isHTMLDocument())
-        wrapper = CREATE_DOM_WRAPPER(&globalObject, HTMLDocument, &document);
-    else if (document.isSVGDocument())
-        wrapper = CREATE_DOM_WRAPPER(&globalObject, SVGDocument, &document);
+        wrapper = CREATE_DOM_WRAPPER(&globalObject, HTMLDocument, WTFMove(passedDocument));
     else if (document.isXMLDocument())
-        wrapper = CREATE_DOM_WRAPPER(&globalObject, XMLDocument, &document);
+        wrapper = CREATE_DOM_WRAPPER(&globalObject, XMLDocument, WTFMove(passedDocument));
     else
-        wrapper = CREATE_DOM_WRAPPER(&globalObject, Document, &document);
+        wrapper = CREATE_DOM_WRAPPER(&globalObject, Document, WTFMove(passedDocument));
 
-    // Make sure the document is kept around by the window object, and works right with the
-    // back/forward cache.
-    if (!document.frame()) {
-        size_t nodeCount = 0;
-        for (Node* n = &document; n; n = NodeTraversal::next(*n))
-            ++nodeCount;
-
-        // FIXME: Adopt reportExtraMemoryVisited, and switch to reportExtraMemoryAllocated.
-        // https://bugs.webkit.org/show_bug.cgi?id=142595
-        state.heap()->deprecatedReportExtraMemory(nodeCount * sizeof(Node));
-    }
+    reportMemoryForDocumentIfFrameless(state, document);
 
     return wrapper;
 }
 
-JSValue toJS(ExecState* state, JSDOMGlobalObject* globalObject, Document* document)
+JSObject* cachedDocumentWrapper(ExecState& state, JSDOMGlobalObject& globalObject, Document& document)
 {
-    if (!document)
-        return jsNull();
-
-    JSObject* wrapper = getCachedWrapper(globalObject->world(), document);
-    if (wrapper)
+    if (auto* wrapper = getCachedWrapper(globalObject.world(), document))
         return wrapper;
 
-    if (DOMWindow* domWindow = document->domWindow()) {
-        globalObject = toJSDOMWindow(toJS(state, domWindow));
-        // Creating a wrapper for domWindow might have created a wrapper for document as well.
-        wrapper = getCachedWrapper(globalObject->world(), document);
-        if (wrapper)
-            return wrapper;
-    }
+    auto* window = document.domWindow();
+    if (!window)
+        return nullptr;
 
-    return createNewDocumentWrapper(*state, *globalObject, *document);
+    // Creating a wrapper for domWindow might have created a wrapper for document as well.
+    return getCachedWrapper(toJSDOMWindow(toJS(&state, *window))->world(), document);
 }
 
-JSValue toJSNewlyCreated(ExecState* state, JSDOMGlobalObject* globalObject, Document* document)
+void reportMemoryForDocumentIfFrameless(ExecState& state, Document& document)
 {
-    return document ? createNewDocumentWrapper(*state, *globalObject, *document) : jsNull();
+    // Make sure the document is kept around by the window object, and works right with the back/forward cache.
+    if (document.frame())
+        return;
+
+    size_t memoryCost = 0;
+    for (Node* node = &document; node; node = NodeTraversal::next(*node))
+        memoryCost += node->approximateMemoryCost();
+
+    // FIXME: Adopt reportExtraMemoryVisited, and switch to reportExtraMemoryAllocated.
+    // https://bugs.webkit.org/show_bug.cgi?id=142595
+    state.heap()->deprecatedReportExtraMemory(memoryCost);
+}
+
+JSValue toJSNewlyCreated(ExecState* state, JSDOMGlobalObject* globalObject, Ref<Document>&& document)
+{
+    return createNewDocumentWrapper(*state, *globalObject, WTFMove(document));
+}
+
+JSValue toJS(ExecState* state, JSDOMGlobalObject* globalObject, Document& document)
+{
+    if (auto* wrapper = cachedDocumentWrapper(*state, *globalObject, document))
+        return wrapper;
+    return toJSNewlyCreated(state, globalObject, Ref<Document>(document));
 }
 
 JSValue JSDocument::prepend(ExecState& state)
@@ -125,71 +128,16 @@ JSValue JSDocument::append(ExecState& state)
 #if ENABLE(TOUCH_EVENTS)
 JSValue JSDocument::createTouchList(ExecState& state)
 {
-    RefPtr<TouchList> touchList = TouchList::create();
+    auto touchList = TouchList::create();
 
-    for (size_t i = 0; i < state.argumentCount(); i++)
-        touchList->append(JSTouch::toWrapped(state.argument(i)));
+    for (size_t i = 0; i < state.argumentCount(); ++i) {
+        auto* item = JSTouch::toWrapped(state.uncheckedArgument(i));
+        if (!item)
+            return JSValue::decode(throwArgumentTypeError(state, i, "touches", "Document", "createTouchList", "Touch"));
 
-    return toJS(&state, globalObject(), touchList.release());
-}
-#endif
-
-#if ENABLE(CUSTOM_ELEMENTS)
-JSValue JSDocument::defineElement(ExecState& state)
-{
-    AtomicString tagName(state.argument(0).toString(&state)->toAtomicString(&state));
-    if (UNLIKELY(state.hadException()))
-        return jsUndefined();
-
-    JSObject* object = state.argument(1).getObject();
-    ConstructData callData;
-    if (!object || object->methodTable()->getConstructData(object, callData) == ConstructType::None)
-        return throwTypeError(&state, "The second argument must be a constructor");
-
-    Document& document = wrapped();
-    if (!document.domWindow()) {
-        throwNotSupportedError(state, "Cannot define a custom element in a docuemnt without a browsing context");
-        return jsUndefined();
+        touchList->append(*item);
     }
-
-    switch (CustomElementDefinitions::checkName(tagName)) {
-    case CustomElementDefinitions::NameStatus::Valid:
-        break;
-    case CustomElementDefinitions::NameStatus::ConflictsWithBuiltinNames:
-        return throwSyntaxError(&state, "Custom element name cannot be same as one of the builtin elements");
-    case CustomElementDefinitions::NameStatus::NoHyphen:
-        return throwSyntaxError(&state, "Custom element name must contain a hyphen");
-    case CustomElementDefinitions::NameStatus::ContainsUpperCase:
-        return throwSyntaxError(&state, "Custom element name cannot contain an upper case letter");
-    }
-
-    auto& definitions = document.ensureCustomElementDefinitions();
-    if (definitions.findInterface(tagName)) {
-        throwNotSupportedError(state, "Cannot define multiple custom elements with the same tag name");
-        return jsUndefined();
-    }
-
-    if (definitions.containsConstructor(object)) {
-        throwNotSupportedError(state, "Cannot define multiple custom elements with the same class");
-        return jsUndefined();
-    }
-
-    // FIXME: 10. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
-    // FIXME: 11. If Type(prototype) is not Object, throw a TypeError exception.
-    // FIXME: 12. Let attachedCallback be Get(prototype, "attachedCallback"). Rethrow any exceptions.
-    // FIXME: 13. Let detachedCallback be Get(prototype, "detachedCallback"). Rethrow any exceptions.
-    // FIXME: 14. Let attributeChangedCallback be Get(prototype, "attributeChangedCallback"). Rethrow any exceptions.
-
-    PrivateName uniquePrivateName;
-    globalObject()->putDirect(globalObject()->vm(), uniquePrivateName, object);
-
-    QualifiedName name(nullAtom, tagName, HTMLNames::xhtmlNamespaceURI);
-    definitions.addElementDefinition(JSCustomElementInterface::create(name, object, globalObject()));
-
-    // FIXME: 17. Let map be registry's upgrade candidates map.
-    // FIXME: 18. Upgrade a newly-defined element given map and definition.
-
-    return jsUndefined();
+    return toJSNewlyCreated(&state, globalObject(), WTFMove(touchList));
 }
 #endif
 

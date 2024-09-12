@@ -1,3 +1,60 @@
+2016-07-13  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] DLLs are missing version information.
+        https://bugs.webkit.org/show_bug.cgi?id=159349
+
+        Reviewed by Alex Christensen.
+
+        Avoid using environment variable WEBKIT_LIBRARIES when finding version stamper utility,
+        in case it is not defined. Instead, use the location of the perl script to find the
+        utility.
+
+        * win/tools/scripts/version-stamp.pl:
+
+2016-07-12  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] DLLs are missing version information.
+        https://bugs.webkit.org/show_bug.cgi?id=159349
+
+        Reviewed by Brent Fulgham.
+
+        The version stamping will fail if the target path has forward slashes.
+
+        * win/tools/scripts/version-stamp.pl: Replace forward slashes with backslashes.
+
+2016-06-14  Lucas Forschler  <lforschler@apple.com>
+
+        Update existing WebKitSystemInterface Libraries.
+        Add macOS Sierra WebKitSystemInterface.
+
+        Rubber-stamped by Alexey Proskuryakov.
+
+        * libWebKitSystemInterfaceElCapitan.a:
+        * libWebKitSystemInterfaceIOSDevice9.2.a:
+        * libWebKitSystemInterfaceIOSSimulator9.2.a:
+        * libWebKitSystemInterfaceOSX10.12.a: Added.
+        * libWebKitSystemInterfaceYosemite.a:
+
+2016-06-09  Alex Christensen  <achristensen@webkit.org>
+
+        Clean up Visual Studio properties files after switching to CMake.
+
+        * win/tools/WinTools.make: Removed.
+        * win/tools/vsprops: Removed.
+        * win/tools/vsprops/FeatureDefines.props: Removed.
+        * win/tools/vsprops/FeatureDefinesCairo.props: Removed.
+        * win/tools/vsprops/GStreamer32.props: Removed.
+        * win/tools/vsprops/GStreamer64.props: Removed.
+        * win/tools/vsprops/GStreamerCommon.props: Removed.
+        * win/tools/vsprops/WinCairo.props: Removed.
+        * win/tools/vsprops/cURL.props: Removed.
+        * win/tools/vsprops/common.props: Removed.
+        * win/tools/vsprops/debug.props: Removed.
+        * win/tools/vsprops/debug_wincairo.props: Removed.
+        * win/tools/vsprops/debugsuffix.props: Removed.
+        * win/tools/vsprops/production.props: Removed.
+        * win/tools/vsprops/release.props: Removed.
+
 2016-04-28  Dean Jackson  <dino@apple.com>
 
         Update WebKitSystemInterface to internal version 82799.

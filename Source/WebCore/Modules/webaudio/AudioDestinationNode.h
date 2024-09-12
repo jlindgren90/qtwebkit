@@ -30,6 +30,7 @@
 #include "AudioIOCallback.h"
 #include "AudioNode.h"
 #include "AudioSourceProvider.h"
+#include <wtf/Function.h>
 
 namespace WebCore {
 
@@ -58,9 +59,9 @@ public:
     virtual void enableInput(const String& inputDeviceId) = 0;
 
     virtual void startRendering() = 0;
-    virtual void resume(std::function<void()>) { }
-    virtual void suspend(std::function<void()>) { }
-    virtual void close(std::function<void()>) { }
+    virtual void resume(WTF::Function<void ()>&&) { }
+    virtual void suspend(WTF::Function<void ()>&&) { }
+    virtual void close(WTF::Function<void ()>&&) { }
 
     virtual bool isPlaying() { return false; }
     void isPlayingDidChange() override;

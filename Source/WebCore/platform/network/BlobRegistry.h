@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2010 Google Inc. All rights reserved.
+ * Copyright (C) 2013, 2014, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -28,11 +29,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BlobRegistry_h
-#define BlobRegistry_h
+#pragma once
 
 #include <functional>
 #include <wtf/Forward.h>
+#include <wtf/Function.h>
 #include <wtf/Vector.h>
 
 namespace WebCore {
@@ -49,7 +50,7 @@ class WEBCORE_EXPORT BlobRegistry {
 public:
 
     // Registers a blob URL referring to the specified file.
-    virtual void registerFileBlobURL(const URL&, RefPtr<BlobDataFileReference>&&, const String& contentType) = 0;
+    virtual void registerFileBlobURL(const URL&, Ref<BlobDataFileReference>&&, const String& contentType) = 0;
 
     // Registers a blob URL referring to the specified blob data.
     virtual void registerBlobURL(const URL&, Vector<BlobPart>, const String& contentType) = 0;
@@ -58,7 +59,7 @@ public:
     virtual void registerBlobURL(const URL&, const URL& srcURL) = 0;
 
     // Registers a new blob URL referring to the blob data identified by the specified srcURL or, if none found, referring to the file found at the given path.
-    virtual void registerBlobURLOptionallyFileBacked(const URL&, const URL& srcURL, RefPtr<BlobDataFileReference>&&) = 0;
+    virtual void registerBlobURLOptionallyFileBacked(const URL&, const URL& srcURL, RefPtr<BlobDataFileReference>&&, const String& contentType) = 0;
 
     // Negative start and end values select from the end.
     virtual void registerBlobURLForSlice(const URL&, const URL& srcURL, long long start, long long end) = 0;
@@ -67,7 +68,7 @@ public:
 
     virtual unsigned long long blobSize(const URL&) = 0;
 
-    virtual void writeBlobsToTemporaryFiles(const Vector<String>& blobURLs, std::function<void (const Vector<String>& filePaths)> completionHandler) = 0;
+    virtual void writeBlobsToTemporaryFiles(const Vector<String>& blobURLs, WTF::Function<void (const Vector<String>& filePaths)>&& completionHandler) = 0;
 
     virtual bool isBlobRegistryImpl() const { return false; }
 
@@ -76,5 +77,3 @@ protected:
 };
 
 } // namespace WebCore
-
-#endif // BlobRegistry_h

@@ -39,10 +39,6 @@
 #include <sys/mman.h>
 #endif
 
-#if OS(LINUX)
-#include <stdio.h>
-#endif
-
 #include "LinkBuffer.h"
 #include "MacroAssembler.h"
 

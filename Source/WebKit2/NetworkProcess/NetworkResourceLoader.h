@@ -72,7 +72,7 @@ public:
 #if USE(PROTECTION_SPACE_AUTH_CALLBACK)
     void continueCanAuthenticateAgainstProtectionSpace(bool);
 #endif
-    void continueWillSendRequest(const WebCore::ResourceRequest& newRequest);
+    void continueWillSendRequest(WebCore::ResourceRequest&& newRequest);
 
     WebCore::SharedBuffer* bufferedData() { return m_bufferedData.get(); }
     const WebCore::ResourceResponse& response() const { return m_response; }
@@ -80,6 +80,8 @@ public:
     NetworkConnectionToWebProcess& connectionToWebProcess() { return m_connection; }
     WebCore::SessionID sessionID() const { return m_parameters.sessionID; }
     ResourceLoadIdentifier identifier() const { return m_parameters.identifier; }
+    uint64_t frameID() const { return m_parameters.webFrameID; }
+    uint64_t pageID() const { return m_parameters.webPageID; }
 
     struct SynchronousLoadData;
 
@@ -87,9 +89,9 @@ public:
     void didSendData(unsigned long long bytesSent, unsigned long long totalBytesToBeSent) override;
     void canAuthenticateAgainstProtectionSpaceAsync(const WebCore::ProtectionSpace&) override;
     bool isSynchronous() const override;
-    void willSendRedirectedRequest(const WebCore::ResourceRequest&, const WebCore::ResourceRequest& redirectRequest, const WebCore::ResourceResponse& redirectResponse) override;
-    ShouldContinueDidReceiveResponse didReceiveResponse(const WebCore::ResourceResponse&) override;
-    void didReceiveBuffer(RefPtr<WebCore::SharedBuffer>&&, int reportedEncodedDataLength) override;
+    void willSendRedirectedRequest(WebCore::ResourceRequest&&, WebCore::ResourceRequest&& redirectRequest, WebCore::ResourceResponse&&) override;
+    ShouldContinueDidReceiveResponse didReceiveResponse(WebCore::ResourceResponse&&) override;
+    void didReceiveBuffer(Ref<WebCore::SharedBuffer>&&, int reportedEncodedDataLength) override;
     void didFinishLoading(double finishTime) override;
     void didFailLoading(const WebCore::ResourceError&) override;
 #if USE(NETWORK_SESSION)

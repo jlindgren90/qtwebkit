@@ -32,13 +32,15 @@ WebInspector.HeapSnapshotDataGridTree = class HeapSnapshotDataGridTree extends W
         console.assert(heapSnapshot instanceof WebInspector.HeapSnapshotProxy || heapSnapshot instanceof WebInspector.HeapSnapshotDiffProxy);
 
         this._heapSnapshot = heapSnapshot;
+        this._heapSnapshot.addEventListener(WebInspector.HeapSnapshotProxy.Event.CollectedNodes, this._heapSnapshotCollectedNodes, this);
 
         this._children = [];
         this._sortComparator = sortComparator;
 
         this._visible = false;
         this._popover = null;
-        this._popoverNode = null;
+        this._popoverGridNode = null;
+        this._popoverTargetElement = null;
 
         this.populateTopLevel();
     }
@@ -68,27 +70,23 @@ WebInspector.HeapSnapshotDataGridTree = class HeapSnapshotDataGridTree extends W
 
     get heapSnapshot() { return this._heapSnapshot; }
 
-    get visible()
-    {
-        return this._visible;
-    }
+    get visible() { return this._visible; }
+    get popoverGridNode() { return this._popoverGridNode; }
+    set popoverGridNode(x) { this._popoverGridNode = x; }
+    get popoverTargetElement() { return this._popoverTargetElement; }
+    set popoverTargetElement(x) { this._popoverTargetElement = x; }
 
     get popover()
     {
-        if (!this._popover)
+        if (!this._popover) {
             this._popover = new WebInspector.Popover(this);
+            this._popover.windowResizeHandler = () => {
+                let bounds = WebInspector.Rect.rectFromClientRect(this._popoverTargetElement.getBoundingClientRect());
+                this._popover.present(bounds.pad(2), [WebInspector.RectEdge.MAX_Y, WebInspector.RectEdge.MIN_Y, WebInspector.RectEdge.MAX_X]);
+            };
+        }
 
         return this._popover;
-    }
-
-    get popoverNode()
-    {
-        return this._popoverNode;
-    }
-
-    set popoverNode(x)
-    {
-        this._popoverNode = x;
     }
 
     get children()
@@ -104,6 +102,11 @@ WebInspector.HeapSnapshotDataGridTree = class HeapSnapshotDataGridTree extends W
     insertChild(node, index)
     {
         this._children.splice(index, 0, node);
+    }
+
+    removeChild(node)
+    {
+        this._children.remove(node, true);
     }
 
     removeChildren()
@@ -145,7 +148,8 @@ WebInspector.HeapSnapshotDataGridTree = class HeapSnapshotDataGridTree extends W
 
     willDismissPopover(popover)
     {
-        this._popoverNode = null;
+        this._popoverGridNode = null;
+        this._popoverTargetElement = null;
     }
 
     // Protected
@@ -160,11 +164,23 @@ WebInspector.HeapSnapshotDataGridTree = class HeapSnapshotDataGridTree extends W
         // Implemented by subclasses.
     }
 
+    removeCollectedNodes(collectedNodes)
+    {
+        // Implemented by subclasses.
+    }
+
     didPopulate()
     {
         this.sort();
 
         this.dispatchEventToListeners(WebInspector.HeapSnapshotDataGridTree.Event.DidPopulate);
+    }
+
+    // Private
+
+    _heapSnapshotCollectedNodes(event)
+    {
+        this.removeCollectedNodes(event.data.collectedNodes);
     }
 };
 
@@ -182,13 +198,32 @@ WebInspector.HeapSnapshotInstancesDataGridTree = class HeapSnapshotInstancesData
     populateTopLevel()
     {
         // Populate the first level with the different non-internal classes.
-        for (let [className, {size, retainedSize, count, internalCount}] of this.heapSnapshot.categories) {
+        for (let [className, {size, retainedSize, count, internalCount, deadCount}] of this.heapSnapshot.categories) {
             if (count === internalCount)
                 continue;
-            this.appendChild(new WebInspector.HeapSnapshotClassDataGridNode({className, size, retainedSize, count}, this));
+
+            // FIXME: <https://webkit.org/b/157905> Web Inspector: Provide a way to toggle between showing only live objects and live+dead objects
+            let liveCount = count - deadCount;
+            if (!liveCount)
+                continue;
+
+            this.appendChild(new WebInspector.HeapSnapshotClassDataGridNode({className, size, retainedSize, count: liveCount}, this));
         }
 
         this.didPopulate()
+    }
+
+    removeCollectedNodes(collectedNodes)
+    {
+        for (let classDataGridNode of this.children) {
+            let {count, deadCount} = this.heapSnapshot.categories.get(classDataGridNode.data.className);
+            let liveCount = count - deadCount;
+            classDataGridNode.updateCount(liveCount);
+            if (liveCount)
+                classDataGridNode.removeCollectedNodes(collectedNodes);
+        }
+
+        this.didPopulate();
     }
 };
 

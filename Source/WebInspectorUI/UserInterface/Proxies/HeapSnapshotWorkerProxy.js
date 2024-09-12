@@ -34,6 +34,8 @@ WebInspector.HeapSnapshotWorkerProxy = class HeapSnapshotWorkerProxy extends Web
 
         this._nextCallId = 1;
         this._callbacks = new Map;
+
+        WebInspector.Frame.addEventListener(WebInspector.Frame.Event.MainResourceDidChange, this._mainResourceDidChange, this);
     }
 
     // Static
@@ -46,6 +48,11 @@ WebInspector.HeapSnapshotWorkerProxy = class HeapSnapshotWorkerProxy extends Web
     }
 
     // Actions
+
+    clearSnapshots(callback)
+    {
+        this.performAction("clearSnapshots", callback);
+    }
 
     createSnapshot(snapshotStringData, callback)
     {
@@ -88,6 +95,16 @@ WebInspector.HeapSnapshotWorkerProxy = class HeapSnapshotWorkerProxy extends Web
 
     // Private
 
+    _mainResourceDidChange(event)
+    {
+        if (!event.target.isMainFrame())
+            return;
+
+        this.clearSnapshots(() => {
+            WebInspector.HeapSnapshotProxy.invalidateSnapshotProxies();
+        });
+    }
+
     _postMessage()
     {
         this._heapSnapshotWorker.postMessage(...arguments);
@@ -96,6 +113,13 @@ WebInspector.HeapSnapshotWorkerProxy = class HeapSnapshotWorkerProxy extends Web
     _handleMessage(event)
     {
         let data = event.data;
+
+        // Error.
+        if (data.error) {
+            console.assert(data.callId);
+            this._callbacks.delete(data.callId);
+            return;
+        }
 
         // Event.
         if (data.eventName) {

@@ -26,7 +26,7 @@
 
 namespace JSC {
 
-IndexingType JSArray::memCopyWithIndexingType(IndexingType other)
+IndexingType JSArray::mergeIndexingTypeForCopying(IndexingType other)
 {
     IndexingType type = indexingType();
     if (!(type & IsArray && other & IsArray))
@@ -58,11 +58,11 @@ IndexingType JSArray::memCopyWithIndexingType(IndexingType other)
 
 bool JSArray::canFastCopy(VM& vm, JSArray* otherArray)
 {
-    if (hasAnyArrayStorage(this->indexingType()) || hasAnyArrayStorage(otherArray->indexingType()))
+    if (hasAnyArrayStorage(indexingType()) || hasAnyArrayStorage(otherArray->indexingType()))
         return false;
     // FIXME: We should have a watchpoint for indexed properties on Array.prototype and Object.prototype
     // instead of walking the prototype chain. https://bugs.webkit.org/show_bug.cgi?id=155592
-    if (otherArray->structure(vm)->holesMustForwardToPrototype(vm)
+    if (structure(vm)->holesMustForwardToPrototype(vm)
         || otherArray->structure(vm)->holesMustForwardToPrototype(vm))
         return false;
     return true;

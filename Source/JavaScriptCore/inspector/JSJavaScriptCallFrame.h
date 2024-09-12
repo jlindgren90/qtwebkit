@@ -58,7 +58,7 @@ public:
 
     // Functions.
     JSC::JSValue evaluateWithScopeExtension(JSC::ExecState*);
-    JSC::JSValue scopeType(JSC::ExecState*);
+    JSC::JSValue scopeDescriptions(JSC::ExecState*);
 
     // Attributes.
     JSC::JSValue caller(JSC::ExecState*) const;
@@ -69,6 +69,7 @@ public:
     JSC::JSValue scopeChain(JSC::ExecState*) const;
     JSC::JSValue thisObject(JSC::ExecState*) const;
     JSC::JSValue type(JSC::ExecState*) const;
+    JSC::JSValue isTailDeleted(JSC::ExecState*) const;
 
     // Constants.
     static const unsigned short GLOBAL_SCOPE = 0;

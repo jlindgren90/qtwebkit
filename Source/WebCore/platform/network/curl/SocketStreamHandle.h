@@ -29,8 +29,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SocketStreamHandle_h
-#define SocketStreamHandle_h
+#pragma once
 
 #include "SocketStreamHandleBase.h"
 
@@ -38,8 +37,8 @@
 #include <winsock2.h>
 #endif
 
+#include "SessionID.h"
 #include <curl/curl.h>
-
 #include <wtf/Deque.h>
 #include <wtf/Lock.h>
 #include <wtf/RefCounted.h>
@@ -47,19 +46,16 @@
 
 namespace WebCore {
 
-class AuthenticationChallenge;
-class Credential;
-class NetworkingContext;
 class SocketStreamHandleClient;
 
 class SocketStreamHandle : public ThreadSafeRefCounted<SocketStreamHandle>, public SocketStreamHandleBase {
 public:
-    static Ref<SocketStreamHandle> create(const URL& url, SocketStreamHandleClient* client, NetworkingContext&, bool) { return adoptRef(*new SocketStreamHandle(url, client)); }
+    static Ref<SocketStreamHandle> create(const URL& url, SocketStreamHandleClient& client, SessionID) { return adoptRef(*new SocketStreamHandle(url, client)); }
 
     virtual ~SocketStreamHandle();
 
 private:
-    SocketStreamHandle(const URL&, SocketStreamHandleClient*);
+    SocketStreamHandle(const URL&, SocketStreamHandleClient&);
 
     int platformSend(const char* data, int length) override;
     void platformClose() override;
@@ -75,14 +71,6 @@ private:
     void didOpenSocket();
 
     static std::unique_ptr<char[]> createCopy(const char* data, int length);
-
-    // No authentication for streams per se, but proxy may ask for credentials.
-    void didReceiveAuthenticationChallenge(const AuthenticationChallenge&);
-    void receivedCredential(const AuthenticationChallenge&, const Credential&);
-    void receivedRequestToContinueWithoutCredential(const AuthenticationChallenge&);
-    void receivedCancellation(const AuthenticationChallenge&);
-    void receivedRequestToPerformDefaultHandling(const AuthenticationChallenge&);
-    void receivedChallengeRejection(const AuthenticationChallenge&);
 
     struct SocketData {
         SocketData(std::unique_ptr<char[]>&& source, int length)
@@ -111,5 +99,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // SocketStreamHandle_h

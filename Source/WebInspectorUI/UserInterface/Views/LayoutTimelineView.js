@@ -31,7 +31,7 @@ WebInspector.LayoutTimelineView = class LayoutTimelineView extends WebInspector.
 
         console.assert(timeline.type === WebInspector.TimelineRecord.Type.Layout, timeline);
 
-        let columns = {type: {}, name: {}, location: {}, width: {}, height: {}, startTime: {}, totalTime: {}};
+        let columns = {type: {}, name: {}, location: {}, area: {}, width: {}, height: {}, startTime: {}, totalTime: {}};
 
         columns.name.title = WebInspector.UIString("Type");
         columns.name.width = "15%";
@@ -44,14 +44,19 @@ WebInspector.LayoutTimelineView = class LayoutTimelineView extends WebInspector.
 
         columns.type.scopeBar = WebInspector.TimelineDataGrid.createColumnScopeBar("layout", typeToLabelMap);
         columns.type.hidden = true;
+        columns.type.locked = true;
 
         columns.name.disclosure = true;
         columns.name.icon = true;
+        columns.name.locked = true;
 
         this._scopeBar = columns.type.scopeBar;
 
         columns.location.title = WebInspector.UIString("Initiator");
         columns.location.width = "25%";
+
+        columns.area.title = WebInspector.UIString("Area");
+        columns.area.width = "8%";
 
         columns.width.title = WebInspector.UIString("Width");
         columns.width.width = "8%";
@@ -75,8 +80,9 @@ WebInspector.LayoutTimelineView = class LayoutTimelineView extends WebInspector.
 
         this.setupDataGrid(this._dataGrid);
 
-        this._dataGrid.sortColumnIdentifierSetting = new WebInspector.Setting("layout-timeline-view-sort", "startTime");
-        this._dataGrid.sortOrderSetting = new WebInspector.Setting("layout-timeline-view-sort-order", WebInspector.DataGrid.SortOrder.Ascending);
+        this._dataGrid.sortColumnIdentifier = "startTime";
+        this._dataGrid.sortOrder = WebInspector.DataGrid.SortOrder.Ascending;
+        this._dataGrid.createSettings("layout-timeline-view");
 
         this._hoveredTreeElement = null;
         this._hoveredDataGridNode = null;

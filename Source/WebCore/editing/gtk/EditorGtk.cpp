@@ -31,13 +31,16 @@
 #include "DataObjectGtk.h"
 #include "DocumentFragment.h"
 #include "Frame.h"
+#include "HTMLEmbedElement.h"
 #include "HTMLImageElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLNames.h"
+#include "HTMLObjectElement.h"
 #include "HTMLParserIdioms.h"
 #include "Pasteboard.h"
 #include "RenderImage.h"
 #include "SVGElement.h"
+#include "SVGImageElement.h"
 #include "XLinkNames.h"
 #include "markup.h"
 
@@ -80,9 +83,9 @@ void Editor::pasteWithPasteboard(Pasteboard* pasteboard, bool allowPlainText, Ma
 static const AtomicString& elementURL(Element& element)
 {
     if (is<HTMLImageElement>(element) || is<HTMLInputElement>(element))
-        return element.fastGetAttribute(HTMLNames::srcAttr);
+        return element.attributeWithoutSynchronization(HTMLNames::srcAttr);
     if (is<SVGImageElement>(element))
-        return element.fastGetAttribute(XLinkNames::hrefAttr);
+        return element.attributeWithoutSynchronization(XLinkNames::hrefAttr);
     if (is<HTMLEmbedElement>(element) || is<HTMLObjectElement>(element))
         return element.imageSourceURL();
     return nullAtom;

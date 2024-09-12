@@ -26,8 +26,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ImageDecoder_h
-#define ImageDecoder_h
+#pragma once
 
 #include "IntRect.h"
 #include "ImageSource.h"
@@ -40,6 +39,8 @@
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
+
+using ColorProfile = Vector<char>;
 
     // ImageFrame represents the decoded image data.  This buffer is what all
     // decoders write a single frame into.
@@ -270,9 +271,9 @@ namespace WebCore {
             return !m_failed && m_sizeAvailable;
         }
 
-        virtual IntSize size() const { return m_size; }
+        virtual IntSize size() { return isSizeAvailable() ? m_size : IntSize(); }
 
-        IntSize scaledSize() const
+        IntSize scaledSize()
         {
             return m_scaled ? IntSize(m_scaledColumns.size(), m_scaledRows.size()) : size();
         }
@@ -282,7 +283,7 @@ namespace WebCore {
         // sizes.  This does NOT differ from size() for GIF, since decoding GIFs
         // composites any smaller frames against previous frames to create full-
         // size frames.
-        virtual IntSize frameSizeAtIndex(size_t, SubsamplingLevel) const
+        virtual IntSize frameSizeAtIndex(size_t, SubsamplingLevel)
         {
             return size();
         }
@@ -411,5 +412,3 @@ namespace WebCore {
     };
 
 } // namespace WebCore
-
-#endif

@@ -26,7 +26,6 @@
 #import "config.h"
 #import "Editor.h"
 
-#import "BlockExceptions.h"
 #import "CSSPrimitiveValueMappings.h"
 #import "CSSValuePool.h"
 #import "CachedResourceLoader.h"
@@ -45,6 +44,7 @@
 #import "HTMLAttachmentElement.h"
 #import "HTMLConverter.h"
 #import "HTMLElement.h"
+#include "HTMLImageElement.h"
 #import "HTMLNames.h"
 #import "LegacyWebArchive.h"
 #import "MIMETypeRegistry.h"
@@ -57,6 +57,7 @@
 #import "RenderBlock.h"
 #import "RenderImage.h"
 #import "RuntimeApplicationChecks.h"
+#import "Settings.h"
 #import "Sound.h"
 #import "StyleProperties.h"
 #import "Text.h"
@@ -65,6 +66,7 @@
 #import "WebNSAttributedStringExtras.h"
 #import "htmlediting.h"
 #import "markup.h"
+#import <wtf/BlockObjCExceptions.h>
 
 namespace WebCore {
 
@@ -286,7 +288,7 @@ void Editor::replaceNodeFromPasteboard(Node* node, const String& pasteboardName)
 String Editor::stringSelectionForPasteboard()
 {
     if (!canCopy())
-        return "";
+        return emptyString();
     String text = selectedText();
     text.replace(noBreakSpace, ' ');
     return text;
@@ -295,7 +297,7 @@ String Editor::stringSelectionForPasteboard()
 String Editor::stringSelectionForPasteboardWithImageAltText()
 {
     if (!canCopy())
-        return "";
+        return emptyString();
     String text = selectedTextForDataTransfer();
     text.replace(noBreakSpace, ' ');
     return text;
@@ -474,6 +476,9 @@ private:
 
 bool Editor::WebContentReader::readWebArchive(SharedBuffer* buffer)
 {
+    if (frame.settings().preferMIMETypeForImages())
+        return false;
+
     if (!frame.document())
         return false;
 
@@ -560,12 +565,18 @@ bool Editor::WebContentReader::readHTML(const String& string)
 
 bool Editor::WebContentReader::readRTFD(SharedBuffer& buffer)
 {
+    if (frame.settings().preferMIMETypeForImages())
+        return false;
+
     fragment = frame.editor().createFragmentAndAddResources(adoptNS([[NSAttributedString alloc] initWithRTFD:buffer.createNSData().get() documentAttributes:nullptr]).get());
     return fragment;
 }
 
 bool Editor::WebContentReader::readRTF(SharedBuffer& buffer)
 {
+    if (frame.settings().preferMIMETypeForImages())
+        return false;
+
     fragment = frame.editor().createFragmentAndAddResources(adoptNS([[NSAttributedString alloc] initWithRTF:buffer.createNSData().get() documentAttributes:nullptr]).get());
     return fragment;
 }
@@ -587,7 +598,7 @@ bool Editor::WebContentReader::readURL(const URL& url, const String& title)
         return false;
 
     auto anchor = frame.document()->createElement(HTMLNames::aTag, false);
-    anchor->setAttribute(HTMLNames::hrefAttr, url.string());
+    anchor->setAttributeWithoutSynchronization(HTMLNames::hrefAttr, url.string());
     anchor->appendChild(frame.document()->createTextNode([title precomposedStringWithCanonicalMapping]));
 
     fragment = frame.document()->createDocumentFragment();
@@ -623,12 +634,12 @@ RefPtr<DocumentFragment> Editor::createFragmentForImageResourceAndAddResource(Re
     if (!resource)
         return nullptr;
 
-    auto imageElement = document().createElement(HTMLNames::imgTag, false);
-    imageElement->setAttribute(HTMLNames::srcAttr, resource->url().string());
-
-    // FIXME: The code in createFragmentAndAddResources calls setDefersLoading(true). Don't we need that here?
+    String resourceURL = resource->url().string();
     if (DocumentLoader* loader = m_frame.loader().documentLoader())
         loader->addArchiveResource(resource.releaseNonNull());
+
+    auto imageElement = HTMLImageElement::create(*m_frame.document());
+    imageElement->setAttributeWithoutSynchronization(HTMLNames::srcAttr, resourceURL);
 
     auto fragment = document().createDocumentFragment();
     fragment->appendChild(imageElement);

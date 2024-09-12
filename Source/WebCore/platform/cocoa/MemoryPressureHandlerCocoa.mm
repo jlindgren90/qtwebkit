@@ -26,6 +26,7 @@
 #import "config.h"
 #import "MemoryPressureHandler.h"
 
+#import "GCController.h"
 #import "IOSurfacePool.h"
 #import "LayerPool.h"
 #import "Logging.h"
@@ -47,6 +48,18 @@ extern "C" void _sqlite3_purgeEligiblePagerCacheMemory(void);
 
 namespace WebCore {
 
+void MemoryPressureHandler::platformInitialize()
+{
+    int dummy;
+    notify_register_dispatch("com.apple.WebKit.fullGC", &dummy, dispatch_get_main_queue(), ^(int) {
+        GCController::singleton().garbageCollectNow();
+    });
+    notify_register_dispatch("com.apple.WebKit.deleteAllCode", &dummy, dispatch_get_main_queue(), ^(int) {
+        GCController::singleton().deleteAllCode();
+        GCController::singleton().garbageCollectNow();
+    });
+}
+
 void MemoryPressureHandler::platformReleaseMemory(Critical critical)
 {
     {
@@ -66,7 +79,7 @@ void MemoryPressureHandler::platformReleaseMemory(Critical critical)
     }
 #endif
 
-    if (critical == Critical::Yes && !isUnderMemoryPressure()) {
+    if (critical == Critical::Yes && (!isUnderMemoryPressure() || m_isSimulatingMemoryPressure)) {
         // libcache listens to OS memory notifications, but for process suspension
         // or memory pressure simulation, we need to prod it manually:
         ReliefLogger log("Purging libcache caches");
@@ -129,14 +142,9 @@ void MemoryPressureHandler::install()
 #if ENABLE(FMW_FOOTPRINT_COMPARISON)
         auto footprintBefore = pagesPerVMTag();
 #endif
-
-        bool wasUnderMemoryPressure = m_underMemoryPressure;
-        m_underMemoryPressure = true;
-
-        MemoryPressureHandler::singleton().respondToMemoryPressure(Critical::Yes, Synchronous::Yes);
+        beginSimulatedMemoryPressure();
 
         WTF::releaseFastMallocFreeMemory();
-
         malloc_zone_pressure_relief(nullptr, 0);
 
 #if ENABLE(FMW_FOOTPRINT_COMPARISON)
@@ -144,9 +152,8 @@ void MemoryPressureHandler::install()
         logFootprintComparison(footprintBefore, footprintAfter);
 #endif
 
-        // Since this is a simulation, unset the "under memory pressure" flag on next runloop.
         dispatch_async(dispatch_get_main_queue(), ^{
-            MemoryPressureHandler::singleton().setUnderMemoryPressure(wasUnderMemoryPressure);
+            endSimulatedMemoryPressure();
         });
     });
 

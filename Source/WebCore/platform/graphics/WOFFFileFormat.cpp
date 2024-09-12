@@ -105,8 +105,8 @@ bool convertWOFFToSfnt(SharedBuffer& woff, Vector<char>& sfnt)
 
 #if USE(WOFF2)
     if (signature == woff2::kWoff2Signature) {
-        const uint8_t* woffData = reinterpret_cast_ptr<const uint8_t*>(woff->data());
-        const size_t woffSize = woff->size();
+        const uint8_t* woffData = reinterpret_cast_ptr<const uint8_t*>(woff.data());
+        const size_t woffSize = woff.size();
         const size_t sfntSize = woff2::ComputeWOFF2FinalSize(woffData, woffSize);
 
         if (!sfnt.tryReserveCapacity(sfntSize))

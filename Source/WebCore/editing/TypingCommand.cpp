@@ -106,7 +106,7 @@ void TypingCommand::deleteSelection(Document& document, Options options)
         return;
     }
 
-    TypingCommand::create(document, DeleteSelection, "", options)->apply();
+    TypingCommand::create(document, DeleteSelection, emptyString(), options)->apply();
 }
 
 void TypingCommand::deleteKeyPressed(Document& document, Options options, TextGranularity granularity)
@@ -120,7 +120,7 @@ void TypingCommand::deleteKeyPressed(Document& document, Options options, TextGr
         }
     }
 
-    TypingCommand::create(document, DeleteKey, "", options, granularity)->apply();
+    TypingCommand::create(document, DeleteKey, emptyString(), options, granularity)->apply();
 }
 
 void TypingCommand::forwardDeleteKeyPressed(Document& document, Options options, TextGranularity granularity)
@@ -136,7 +136,7 @@ void TypingCommand::forwardDeleteKeyPressed(Document& document, Options options,
         }
     }
 
-    TypingCommand::create(document, ForwardDeleteKey, "", options, granularity)->apply();
+    TypingCommand::create(document, ForwardDeleteKey, emptyString(), options, granularity)->apply();
 }
 
 void TypingCommand::updateSelectionIfDifferentFromCurrentSelection(TypingCommand* typingCommand, Frame* frame)
@@ -199,7 +199,7 @@ void TypingCommand::insertLineBreak(Document& document, Options options)
         return;
     }
 
-    applyCommand(TypingCommand::create(document, InsertLineBreak, "", options));
+    applyCommand(TypingCommand::create(document, InsertLineBreak, emptyString(), options));
 }
 
 void TypingCommand::insertParagraphSeparatorInQuotedContent(Document& document)
@@ -220,7 +220,7 @@ void TypingCommand::insertParagraphSeparator(Document& document, Options options
         return;
     }
 
-    applyCommand(TypingCommand::create(document, InsertParagraphSeparator, "", options));
+    applyCommand(TypingCommand::create(document, InsertParagraphSeparator, emptyString(), options));
 }
 
 RefPtr<TypingCommand> TypingCommand::lastTypingCommandIfStillOpenForTyping(Frame& frame)
@@ -256,14 +256,14 @@ void TypingCommand::postTextStateChangeNotificationForDeletion(const VisibleSele
     VisiblePositionIndexRange range;
     range.startIndex.value = indexForVisiblePosition(selection.start(), range.startIndex.scope);
     range.endIndex.value = indexForVisiblePosition(selection.end(), range.endIndex.scope);
-    composition()->setTextInsertedByUnapplyRange(range);
+    composition()->setRangeDeletedByUnapply(range);
 }
 
 void TypingCommand::doApply()
 {
-    if (!endingSelection().isNonOrphanedCaretOrRange())
+    if (endingSelection().isNoneOrOrphaned())
         return;
-        
+
     if (m_commandType == DeleteKey)
         if (m_commands.isEmpty())
             m_openedByBackwardDelete = true;
@@ -383,7 +383,7 @@ void TypingCommand::insertTextAndNotifyAccessibility(const String &text, bool se
     AccessibilityReplacedText replacedText(frame().selection().selection());
     insertText(text, selectInsertedText);
     replacedText.postTextStateChangeNotification(document().existingAXObjectCache(), AXTextEditTypeTyping, text, frame().selection().selection());
-    composition()->setTextInsertedByUnapplyRange(replacedText.replacedRange());
+    composition()->setRangeDeletedByUnapply(replacedText.replacedRange());
 }
 
 void TypingCommand::insertTextRunWithoutNewlines(const String &text, bool selectInsertedText)
@@ -410,7 +410,7 @@ void TypingCommand::insertLineBreakAndNotifyAccessibility()
     AccessibilityReplacedText replacedText(frame().selection().selection());
     insertLineBreak();
     replacedText.postTextStateChangeNotification(document().existingAXObjectCache(), AXTextEditTypeTyping, "\n", frame().selection().selection());
-    composition()->setTextInsertedByUnapplyRange(replacedText.replacedRange());
+    composition()->setRangeDeletedByUnapply(replacedText.replacedRange());
 }
 
 void TypingCommand::insertParagraphSeparator()
@@ -427,7 +427,7 @@ void TypingCommand::insertParagraphSeparatorAndNotifyAccessibility()
     AccessibilityReplacedText replacedText(frame().selection().selection());
     insertParagraphSeparator();
     replacedText.postTextStateChangeNotification(document().existingAXObjectCache(), AXTextEditTypeTyping, "\n", frame().selection().selection());
-    composition()->setTextInsertedByUnapplyRange(replacedText.replacedRange());
+    composition()->setRangeDeletedByUnapply(replacedText.replacedRange());
 }
 
 void TypingCommand::insertParagraphSeparatorInQuotedContent()
@@ -448,7 +448,7 @@ void TypingCommand::insertParagraphSeparatorInQuotedContentAndNotifyAccessibilit
     AccessibilityReplacedText replacedText(frame().selection().selection());
     insertParagraphSeparatorInQuotedContent();
     replacedText.postTextStateChangeNotification(document().existingAXObjectCache(), AXTextEditTypeTyping, "\n", frame().selection().selection());
-    composition()->setTextInsertedByUnapplyRange(replacedText.replacedRange());
+    composition()->setRangeDeletedByUnapply(replacedText.replacedRange());
 }
 
 bool TypingCommand::makeEditableRootEmpty()
@@ -622,7 +622,7 @@ void TypingCommand::forwardDeleteKeyPressed(TextGranularity granularity, bool sh
             downstreamEnd = visibleEnd.next(CannotCrossEditingBoundary).deepEquivalent().downstream();
         // When deleting tables: Select the table first, then perform the deletion
         if (downstreamEnd.containerNode() && downstreamEnd.containerNode()->renderer() && downstreamEnd.containerNode()->renderer()->isTable()
-            && downstreamEnd.computeOffsetInContainerNode() <= caretMinOffset(downstreamEnd.containerNode())) {
+            && downstreamEnd.computeOffsetInContainerNode() <= caretMinOffset(*downstreamEnd.containerNode())) {
             setEndingSelection(VisibleSelection(endingSelection().end(), positionAfterNode(downstreamEnd.containerNode()), DOWNSTREAM, endingSelection().isDirectional()));
             typingAddedToOpenCommand(ForwardDeleteKey);
             return;

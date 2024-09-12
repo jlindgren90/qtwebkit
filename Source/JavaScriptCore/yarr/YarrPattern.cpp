@@ -31,6 +31,7 @@
 #include "YarrCanonicalize.h"
 #include "YarrParser.h"
 #include <wtf/Vector.h>
+#include <wtf/WTFThreadData.h>
 
 using namespace WTF;
 
@@ -274,9 +275,10 @@ private:
 
 class YarrPatternConstructor {
 public:
-    YarrPatternConstructor(YarrPattern& pattern)
+    YarrPatternConstructor(YarrPattern& pattern, void* stackLimit)
         : m_pattern(pattern)
         , m_characterClassConstructor(pattern.ignoreCase(), pattern.unicode() ? CanonicalMode::Unicode : CanonicalMode::UCS2)
+        , m_stackLimit(stackLimit)
         , m_invertParentheticalAssertion(false)
     {
         auto body = std::make_unique<PatternDisjunction>();
@@ -349,12 +351,9 @@ public:
             m_alternative->m_terms.append(PatternTerm(m_pattern.spacesCharacterClass(), invert));
             break;
         case WordClassID:
-            if (m_pattern.unicode() && m_pattern.ignoreCase()) {
-                if (invert)
-                    m_alternative->m_terms.append(PatternTerm(m_pattern.nonwordUnicodeIgnoreCaseCharCharacterClass(), false));
-                else
-                    m_alternative->m_terms.append(PatternTerm(m_pattern.wordUnicodeIgnoreCaseCharCharacterClass(), false));
-            } else
+            if (m_pattern.unicode() && m_pattern.ignoreCase())
+                m_alternative->m_terms.append(PatternTerm(m_pattern.wordUnicodeIgnoreCaseCharCharacterClass(), invert));
+            else
                 m_alternative->m_terms.append(PatternTerm(m_pattern.wordcharCharacterClass(), invert));
             break;
         case NewlineClassID:
@@ -579,10 +578,14 @@ public:
         m_alternative = m_alternative->m_parent->addNewAlternative();
     }
 
-    unsigned setupAlternativeOffsets(PatternAlternative* alternative, unsigned currentCallFrameSize, unsigned initialInputPosition)
+    YarrPattern::ErrorCode setupAlternativeOffsets(PatternAlternative* alternative, unsigned currentCallFrameSize, unsigned initialInputPosition, unsigned& newCallFrameSize) WARN_UNUSED_RETURN
     {
+        if (UNLIKELY(!isSafeToRecurse()))
+            return YarrPattern::TooManyDisjunctions;
+
+        YarrPattern::ErrorCode error = YarrPattern::NoError;
         alternative->m_hasFixedSize = true;
-        Checked<unsigned> currentInputPosition = initialInputPosition;
+        Checked<unsigned, RecordOverflow> currentInputPosition = initialInputPosition;
 
         for (unsigned i = 0; i < alternative->m_terms.size(); ++i) {
             PatternTerm& term = alternative->m_terms[i];
@@ -637,18 +640,25 @@ public:
                 if (term.quantityCount == 1 && !term.parentheses.isCopy) {
                     if (term.quantityType != QuantifierFixedCount)
                         currentCallFrameSize += YarrStackSpaceForBackTrackInfoParenthesesOnce;
-                    currentCallFrameSize = setupDisjunctionOffsets(term.parentheses.disjunction, currentCallFrameSize, currentInputPosition.unsafeGet());
+                    error = setupDisjunctionOffsets(term.parentheses.disjunction, currentCallFrameSize, currentInputPosition.unsafeGet(), currentCallFrameSize);
+                    if (error)
+                        return error;
                     // If quantity is fixed, then pre-check its minimum size.
                     if (term.quantityType == QuantifierFixedCount)
                         currentInputPosition += term.parentheses.disjunction->m_minimumSize;
                     term.inputPosition = currentInputPosition.unsafeGet();
                 } else if (term.parentheses.isTerminal) {
                     currentCallFrameSize += YarrStackSpaceForBackTrackInfoParenthesesTerminal;
-                    currentCallFrameSize = setupDisjunctionOffsets(term.parentheses.disjunction, currentCallFrameSize, currentInputPosition.unsafeGet());
+                    error = setupDisjunctionOffsets(term.parentheses.disjunction, currentCallFrameSize, currentInputPosition.unsafeGet(), currentCallFrameSize);
+                    if (error)
+                        return error;
                     term.inputPosition = currentInputPosition.unsafeGet();
                 } else {
                     term.inputPosition = currentInputPosition.unsafeGet();
-                    setupDisjunctionOffsets(term.parentheses.disjunction, 0, currentInputPosition.unsafeGet());
+                    unsigned ignoredCallFrameSize;
+                    error = setupDisjunctionOffsets(term.parentheses.disjunction, 0, currentInputPosition.unsafeGet(), ignoredCallFrameSize);
+                    if (error)
+                        return error;
                     currentCallFrameSize += YarrStackSpaceForBackTrackInfoParentheses;
                 }
                 // Fixed count of 1 could be accepted, if they have a fixed size *AND* if all alternatives are of the same length.
@@ -658,7 +668,9 @@ public:
             case PatternTerm::TypeParentheticalAssertion:
                 term.inputPosition = currentInputPosition.unsafeGet();
                 term.frameLocation = currentCallFrameSize;
-                currentCallFrameSize = setupDisjunctionOffsets(term.parentheses.disjunction, currentCallFrameSize + YarrStackSpaceForBackTrackInfoParentheticalAssertion, currentInputPosition.unsafeGet());
+                error = setupDisjunctionOffsets(term.parentheses.disjunction, currentCallFrameSize + YarrStackSpaceForBackTrackInfoParentheticalAssertion, currentInputPosition.unsafeGet(), currentCallFrameSize);
+                if (error)
+                    return error;
                 break;
 
             case PatternTerm::TypeDotStarEnclosure:
@@ -666,24 +678,34 @@ public:
                 term.inputPosition = initialInputPosition;
                 break;
             }
+            if (currentInputPosition.hasOverflowed())
+                return YarrPattern::OffsetTooLarge;
         }
 
         alternative->m_minimumSize = (currentInputPosition - initialInputPosition).unsafeGet();
-        return currentCallFrameSize;
+        newCallFrameSize = currentCallFrameSize;
+        return error;
     }
 
-    unsigned setupDisjunctionOffsets(PatternDisjunction* disjunction, unsigned initialCallFrameSize, unsigned initialInputPosition)
+    YarrPattern::ErrorCode setupDisjunctionOffsets(PatternDisjunction* disjunction, unsigned initialCallFrameSize, unsigned initialInputPosition, unsigned& callFrameSize)
     {
+        if (UNLIKELY(!isSafeToRecurse()))
+            return YarrPattern::TooManyDisjunctions;
+
         if ((disjunction != m_pattern.m_body) && (disjunction->m_alternatives.size() > 1))
             initialCallFrameSize += YarrStackSpaceForBackTrackInfoAlternative;
 
         unsigned minimumInputSize = UINT_MAX;
         unsigned maximumCallFrameSize = 0;
         bool hasFixedSize = true;
+        YarrPattern::ErrorCode error = YarrPattern::NoError;
 
         for (unsigned alt = 0; alt < disjunction->m_alternatives.size(); ++alt) {
             PatternAlternative* alternative = disjunction->m_alternatives[alt].get();
-            unsigned currentAlternativeCallFrameSize = setupAlternativeOffsets(alternative, initialCallFrameSize, initialInputPosition);
+            unsigned currentAlternativeCallFrameSize;
+            error = setupAlternativeOffsets(alternative, initialCallFrameSize, initialInputPosition, currentAlternativeCallFrameSize);
+            if (error)
+                return error;
             minimumInputSize = std::min(minimumInputSize, alternative->m_minimumSize);
             maximumCallFrameSize = std::max(maximumCallFrameSize, currentAlternativeCallFrameSize);
             hasFixedSize &= alternative->m_hasFixedSize;
@@ -697,12 +719,18 @@ public:
         disjunction->m_hasFixedSize = hasFixedSize;
         disjunction->m_minimumSize = minimumInputSize;
         disjunction->m_callFrameSize = maximumCallFrameSize;
-        return maximumCallFrameSize;
+        callFrameSize = maximumCallFrameSize;
+        return error;
     }
 
-    void setupOffsets()
+    const char* setupOffsets()
     {
-        setupDisjunctionOffsets(m_pattern.m_body, 0, 0);
+        // FIXME: Yarr should not use the stack to handle subpatterns (rdar://problem/26436314).
+        unsigned ignoredCallFrameSize;
+        YarrPattern::ErrorCode error = setupDisjunctionOffsets(m_pattern.m_body, 0, 0, ignoredCallFrameSize);
+        if (error)
+            return YarrPattern::errorMessage(error);
+        return nullptr;
     }
 
     // This optimization identifies sets of parentheses that we will never need to backtrack.
@@ -842,16 +870,52 @@ public:
     }
 
 private:
+    bool isSafeToRecurse() const
+    {
+        if (!m_stackLimit)
+            return true;
+        ASSERT(wtfThreadData().stack().isGrowingDownward());
+        int8_t* curr = reinterpret_cast<int8_t*>(&curr);
+        int8_t* limit = reinterpret_cast<int8_t*>(m_stackLimit);
+        return curr >= limit;
+    }
+
     YarrPattern& m_pattern;
     PatternAlternative* m_alternative;
     CharacterClassConstructor m_characterClassConstructor;
+    void* m_stackLimit;
     bool m_invertCharacterClass;
     bool m_invertParentheticalAssertion;
 };
 
-const char* YarrPattern::compile(const String& patternString)
+const char* YarrPattern::errorMessage(YarrPattern::ErrorCode error)
 {
-    YarrPatternConstructor constructor(*this);
+#define REGEXP_ERROR_PREFIX "Invalid regular expression: "
+    // The order of this array must match the ErrorCode enum.
+    static const char* errorMessages[NumberOfErrorCodes] = {
+        nullptr, // NoError
+        REGEXP_ERROR_PREFIX "regular expression too large",
+        REGEXP_ERROR_PREFIX "numbers out of order in {} quantifier",
+        REGEXP_ERROR_PREFIX "nothing to repeat",
+        REGEXP_ERROR_PREFIX "number too large in {} quantifier",
+        REGEXP_ERROR_PREFIX "missing )",
+        REGEXP_ERROR_PREFIX "unmatched parentheses",
+        REGEXP_ERROR_PREFIX "unrecognized character after (?",
+        REGEXP_ERROR_PREFIX "missing terminating ] for character class",
+        REGEXP_ERROR_PREFIX "range out of order in character class",
+        REGEXP_ERROR_PREFIX "\\ at end of pattern",
+        REGEXP_ERROR_PREFIX "invalid unicode {} escape",
+        REGEXP_ERROR_PREFIX "invalid escaped character for unicode pattern",
+        REGEXP_ERROR_PREFIX "too many nested disjunctions",
+        REGEXP_ERROR_PREFIX "pattern exceeds string length limits"
+    };
+
+    return errorMessages[error];
+}
+
+const char* YarrPattern::compile(const String& patternString, void* stackLimit)
+{
+    YarrPatternConstructor constructor(*this, stackLimit);
 
     if (const char* error = parse(constructor, patternString, unicode()))
         return error;
@@ -877,12 +941,13 @@ const char* YarrPattern::compile(const String& patternString)
     constructor.optimizeDotStarWrappedExpressions();
     constructor.optimizeBOL();
         
-    constructor.setupOffsets();
+    if (const char* error = constructor.setupOffsets())
+        return error;
 
-    return 0;
+    return nullptr;
 }
 
-YarrPattern::YarrPattern(const String& pattern, RegExpFlags flags, const char** error)
+YarrPattern::YarrPattern(const String& pattern, RegExpFlags flags, const char** error, void* stackLimit)
     : m_containsBackreferences(false)
     , m_containsBOL(false)
     , m_containsUnsignedLengthPattern(false)
@@ -899,7 +964,7 @@ YarrPattern::YarrPattern(const String& pattern, RegExpFlags flags, const char** 
     , nonwordcharCached(0)
     , nonwordUnicodeIgnoreCasecharCached(0)
 {
-    *error = compile(pattern);
+    *error = compile(pattern, stackLimit);
 }
 
 } }

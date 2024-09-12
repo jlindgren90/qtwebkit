@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef HTMLAttachmentElement_h
-#define HTMLAttachmentElement_h
+#pragma once
 
 #if ENABLE(ATTACHMENT_ELEMENT)
 
@@ -33,25 +32,35 @@
 namespace WebCore {
 
 class File;
+class RenderAttachment;
 
 class HTMLAttachmentElement final : public HTMLElement {
 public:
     static Ref<HTMLAttachmentElement> create(const QualifiedName&, Document&);
+
     WEBCORE_EXPORT File* file() const;
     void setFile(File*);
 
     WEBCORE_EXPORT String attachmentTitle() const;
     String attachmentType() const;
 
+    RenderAttachment* renderer() const;
+
 private:
     HTMLAttachmentElement(const QualifiedName&, Document&);
     virtual ~HTMLAttachmentElement();
 
-    RenderPtr<RenderElement> createElementRenderer(RenderStyle&&, const RenderTreePosition&) override;
+    RenderPtr<RenderElement> createElementRenderer(RenderStyle&&, const RenderTreePosition&) final;
 
-    bool shouldSelectOnMouseDown() override { return true; }
-    bool canContainRangeEndPoint() const override { return false; }
-    void parseAttribute(const QualifiedName&, const AtomicString&) override;
+    bool shouldSelectOnMouseDown() final {
+#if PLATFORM(IOS)
+        return false;
+#else
+        return true;
+#endif
+    }
+    bool canContainRangeEndPoint() const final { return false; }
+    void parseAttribute(const QualifiedName&, const AtomicString&) final;
     
     RefPtr<File> m_file;
 };
@@ -59,4 +68,3 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(ATTACHMENT_ELEMENT)
-#endif // HTMLAttachmentElement_h

@@ -463,7 +463,7 @@ static void* openFunc(const char* uri)
         // FIXME: We should restore the original global error handler as well.
 
         if (cachedResourceLoader->frame())
-            cachedResourceLoader->frame()->loader().loadResourceSynchronously(url, AllowStoredCredentials, DoNotAskClientForCrossOriginCredentials, error, response, data);
+            cachedResourceLoader->frame()->loader().loadResourceSynchronously(url, AllowStoredCredentials, ClientCredentialPolicy::MayAskClientForCredentials, error, response, data);
     }
 
     // We have to check the URL again after the load to catch redirects.
@@ -680,7 +680,7 @@ void XMLDocumentParser::doWrite(const String& parseString)
     if (parseString.length()) {
         // JavaScript may cause the parser to detach during xmlParseChunk
         // keep this alive until this function is done.
-        Ref<XMLDocumentParser> protect(*this);
+        Ref<XMLDocumentParser> protectedThis(*this);
 
         XMLDocumentParserScope scope(&document()->cachedResourceLoader());
 
@@ -761,7 +761,7 @@ static inline void handleElementAttributes(Vector<Attribute>& prefixedAttributes
         int valueLength = static_cast<int>(attributes[i].end - attributes[i].value);
         AtomicString attrValue = toAtomicString(attributes[i].value, valueLength);
         String attrPrefix = toString(attributes[i].prefix);
-        AtomicString attrURI = attrPrefix.isEmpty() ? AtomicString() : toAtomicString(attributes[i].uri);
+        AtomicString attrURI = attrPrefix.isEmpty() ? nullAtom : toAtomicString(attributes[i].uri);
         AtomicString attrQName = attrPrefix.isEmpty() ? toAtomicString(attributes[i].localname) : attrPrefix + ":" + toString(attributes[i].localname);
 
         QualifiedName parsedName = anyName;
@@ -849,7 +849,7 @@ void XMLDocumentParser::startElementNs(const xmlChar* xmlLocalName, const xmlCha
         return;
 
     if (is<HTMLTemplateElement>(newElement))
-        pushCurrentNode(downcast<HTMLTemplateElement>(newElement.get()).content());
+        pushCurrentNode(&downcast<HTMLTemplateElement>(newElement.get()).content());
     else
         pushCurrentNode(newElement.ptr());
 
@@ -872,7 +872,7 @@ void XMLDocumentParser::endElementNs()
 
     // JavaScript can detach the parser.  Make sure this is not released
     // before the end of this method.
-    Ref<XMLDocumentParser> protect(*this);
+    Ref<XMLDocumentParser> protectedThis(*this);
 
     if (!updateLeafTextNode())
         return;

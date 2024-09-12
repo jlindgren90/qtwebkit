@@ -60,6 +60,7 @@
 #include <runtime/Error.h>
 #include <runtime/Exception.h>
 #include <runtime/ExceptionHelpers.h>
+#include <runtime/IterationKind.h>
 #include <runtime/JSArrayBuffer.h>
 #include <runtime/JSArrayBufferView.h>
 #include <runtime/JSCInlines.h>
@@ -79,6 +80,7 @@
 #include <runtime/TypedArrays.h>
 #include <wtf/HashTraits.h>
 #include <wtf/MainThread.h>
+#include <wtf/RunLoop.h>
 #include <wtf/Vector.h>
 
 using namespace JSC;
@@ -1353,7 +1355,7 @@ SerializationReturnCode CloneSerializer::serialize(JSValue in)
                 JSMap* inMap = jsCast<JSMap*>(inValue);
                 if (!startMap(inMap))
                     break;
-                JSMapIterator* iterator = JSMapIterator::create(m_exec->vm(), m_exec->lexicalGlobalObject()->mapIteratorStructure(), inMap, MapIterateKeyValue);
+                JSMapIterator* iterator = JSMapIterator::create(m_exec->vm(), m_exec->lexicalGlobalObject()->mapIteratorStructure(), inMap, IterateKeyValue);
                 m_gcBuffer.append(inMap);
                 m_gcBuffer.append(iterator);
                 mapIteratorStack.append(iterator);
@@ -1397,7 +1399,7 @@ SerializationReturnCode CloneSerializer::serialize(JSValue in)
                 JSSet* inSet = jsCast<JSSet*>(inValue);
                 if (!startSet(inSet))
                     break;
-                JSSetIterator* iterator = JSSetIterator::create(m_exec->vm(), m_exec->lexicalGlobalObject()->setIteratorStructure(), inSet, SetIterateKey);
+                JSSetIterator* iterator = JSSetIterator::create(m_exec->vm(), m_exec->lexicalGlobalObject()->setIteratorStructure(), inSet, IterateKey);
                 m_gcBuffer.append(inSet);
                 m_gcBuffer.append(iterator);
                 setIteratorStack.append(iterator);
@@ -1568,7 +1570,7 @@ private:
 
     void throwValidationError()
     {
-        m_exec->vm().throwException(m_exec, createTypeError(m_exec, "Unable to deserialize data."));
+        throwTypeError(m_exec, ASCIILiteral("Unable to deserialize data."));
     }
 
     bool isValid() const { return m_version <= CurrentVersion; }
@@ -2362,7 +2364,7 @@ private:
                 fail();
                 return JSValue();
             }
-            JSValue result = JSArrayBuffer::create(m_exec->vm(), m_globalObject->arrayBufferStructure(), arrayBuffer.release());
+            JSValue result = JSArrayBuffer::create(m_exec->vm(), m_globalObject->arrayBufferStructure(), WTFMove(arrayBuffer));
             m_gcBuffer.append(result);
             return result;
         }
@@ -2471,6 +2473,8 @@ DeserializationResult CloneDeserializer::deserialize()
                 goto error;
             }
             JSArray* outArray = constructEmptyArray(m_exec, 0, m_globalObject, length);
+            if (UNLIKELY(m_exec->hadException()))
+                goto error;
             m_gcBuffer.append(outArray);
             outputObjectStack.append(outArray);
         }
@@ -2769,7 +2773,7 @@ void SerializedScriptValue::maybeThrowExceptionIfSerializationFailed(ExecState* 
         exec->vm().throwException(exec, createStackOverflowError(exec));
         break;
     case ValidationError:
-        exec->vm().throwException(exec, createTypeError(exec, "Unable to deserialize data."));
+        throwTypeError(exec, ASCIILiteral("Unable to deserialize data."));
         break;
     case DataCloneError:
         setDOMException(exec, DATA_CLONE_ERR);
@@ -2804,13 +2808,13 @@ Vector<String> SerializedScriptValue::blobURLsIsolatedCopy() const
     return result;
 }
 
-void SerializedScriptValue::writeBlobsToDiskForIndexedDB(std::function<void (const IDBValue&)> completionHandler)
+void SerializedScriptValue::writeBlobsToDiskForIndexedDB(WTF::Function<void (const IDBValue&)>&& completionHandler)
 {
     ASSERT(isMainThread());
     ASSERT(hasBlobURLs());
 
-    RefPtr<SerializedScriptValue> protector(this);
-    blobRegistry().writeBlobsToTemporaryFiles(m_blobURLs, [completionHandler, this, protector](const Vector<String>& blobFilePaths) {
+    RefPtr<SerializedScriptValue> protectedThis(this);
+    blobRegistry().writeBlobsToTemporaryFiles(m_blobURLs, [completionHandler = WTFMove(completionHandler), this, protectedThis = WTFMove(protectedThis)](auto& blobFilePaths) {
         ASSERT(isMainThread());
 
         if (blobFilePaths.isEmpty()) {
@@ -2825,6 +2829,30 @@ void SerializedScriptValue::writeBlobsToDiskForIndexedDB(std::function<void (con
         completionHandler({ *this, m_blobURLs, blobFilePaths });
     });
 }
+
+IDBValue SerializedScriptValue::writeBlobsToDiskForIndexedDBSynchronously()
+{
+    ASSERT(!isMainThread());
+
+    IDBValue value;
+    Lock lock;
+    Condition condition;
+    lock.lock();
+
+    RunLoop::main().dispatch([this, conditionPtr = &condition, valuePtr = &value] {
+        writeBlobsToDiskForIndexedDB([conditionPtr, valuePtr](const IDBValue& result) {
+            ASSERT(isMainThread());
+            valuePtr->setAsIsolatedCopy(result);
+
+            conditionPtr->notifyAll();
+        });
+    });
+
+    condition.wait(lock);
+
+    return value;
+}
+
 #endif // ENABLE(INDEXED_DATABASE)
 
 } // namespace WebCore

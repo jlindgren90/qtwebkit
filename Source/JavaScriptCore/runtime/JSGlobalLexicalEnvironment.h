@@ -35,7 +35,7 @@ class JSGlobalLexicalEnvironment : public JSSegmentedVariableObject {
 public:
     typedef JSSegmentedVariableObject Base;
 
-    static const unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot;
+    static const unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | OverridesToThis;
 
     static JSGlobalLexicalEnvironment* create(VM& vm, Structure* structure, JSScope* parentScope)
     {
@@ -43,14 +43,21 @@ public:
             new (NotNull, allocateCell<JSGlobalLexicalEnvironment>(vm.heap)) JSGlobalLexicalEnvironment(vm, structure, parentScope);
         result->finishCreation(vm);
         result->symbolTable()->setScopeType(SymbolTable::ScopeType::GlobalLexicalScope);
+        vm.heap.addFinalizer(result, destroy);
         return result;
     }
 
     static bool getOwnPropertySlot(JSObject*, ExecState*, PropertyName, PropertySlot&);
     static bool put(JSCell*, ExecState*, PropertyName, JSValue, PutPropertySlot&);
 
+    static void destroy(JSCell*);
+    // We don't need a destructor because we use a finalizer instead.
+    static const bool needsDestruction = false;
+
     bool isEmpty() const { return !symbolTable()->size(); }
     bool isConstVariable(UniquedStringImpl*);
+
+    static JSValue toThis(JSCell*, ExecState*, ECMAMode);
     
     DECLARE_INFO;
 

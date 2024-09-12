@@ -41,36 +41,33 @@ PASS "a𐄣X".match(/a𐄣b|a𐄣x/iu)[0].length is 4
 PASS "Ťx".match(/ťx/iu)[0].length is 2
 PASS /\w/iu.test("ſ") is true
 PASS /\w/iu.test("K") is true
-PASS /!\w/iu.test("ſ") is false
-PASS /!\w/iu.test("K") is false
-PASS /\W/iu.test("ſ") is true
-PASS /\W/iu.test("K") is true
-PASS /!\W/iu.test("ſ") is false
-PASS /!\W/iu.test("K") is false
+PASS /\W/iu.test("ſ") is false
+PASS /\W/iu.test("K") is false
 PASS /[\w\d]/iu.test("ſ") is true
 PASS /[\w\d]/iu.test("K") is true
 PASS /[^\w\d]/iu.test("ſ") is false
 PASS /[^\w\d]/iu.test("K") is false
-PASS /[\W\d]/iu.test("ſ") is true
-PASS /[\W\d]/iu.test("K") is true
-PASS /[^\W\d]/iu.test("ſ") is false
-PASS /[^\W\d]/iu.test("K") is false
+PASS /[\W\d]/iu.test("ſ") is false
+PASS /[\W\d]/iu.test("K") is false
+PASS /[^\W\d]/iu.test("ſ") is true
+PASS /[^\W\d]/iu.test("K") is true
 PASS /\w/iu.test("S") is true
 PASS /\w/iu.test("K") is true
-PASS /!\w/iu.test("S") is false
-PASS /!\w/iu.test("K") is false
-PASS /\W/iu.test("S") is true
-PASS /\W/iu.test("K") is true
-PASS /!\W/iu.test("S") is false
-PASS /!\W/iu.test("K") is false
+PASS /\W/iu.test("S") is false
+PASS /\W/iu.test("K") is false
 PASS /[\w\d]/iu.test("S") is true
 PASS /[\w\d]/iu.test("K") is true
 PASS /[^\w\d]/iu.test("S") is false
 PASS /[^\w\d]/iu.test("K") is false
-PASS /[\W\d]/iu.test("S") is true
-PASS /[\W\d]/iu.test("K") is true
-PASS /[^\W\d]/iu.test("S") is false
-PASS /[^\W\d]/iu.test("K") is false
+PASS /[\W\d]/iu.test("S") is false
+PASS /[\W\d]/iu.test("K") is false
+PASS /[^\W\d]/iu.test("S") is true
+PASS /[^\W\d]/iu.test("K") is true
+PASS "Grasſoden is old German for grass".match(/.*?\Bs\u017foden/iu)[0] is "Grasſoden"
+PASS "Grasſoden is old German for grass".match(/.*?\B\u017foden/iu)[0] is "Grasſoden"
+PASS "Grasſoden is old German for grass".match(/.*?\Boden/iu)[0] is "Grasſoden"
+PASS "Grasſoden is old German for grass".match(/.*?\Bden/iu)[0] is "Grasſoden"
+PASS "Water freezes at 273K which is 0C.".split(/\b\s/iu) is ["Water","freezes","at","273K","which","is","0C."]
 PASS "𝌆".match(/^.$/u)[0].length is 2
 PASS "It is 78°".match(/.*/u)[0].length is 9
 PASS stringWithDanglingFirstSurrogate.match(/.*/u)[0].length is 3
@@ -151,6 +148,8 @@ PASS r = new RegExp("\\x", "u") threw exception SyntaxError: Invalid regular exp
 PASS r = new RegExp("[\\x]", "u") threw exception SyntaxError: Invalid regular expression: invalid escaped character for unicode pattern.
 PASS r = new RegExp("\\u", "u") threw exception SyntaxError: Invalid regular expression: invalid escaped character for unicode pattern.
 PASS r = new RegExp("[\\u]", "u") threw exception SyntaxError: Invalid regular expression: invalid escaped character for unicode pattern.
+PASS r = new RegExp("\\u{", "u") threw exception SyntaxError: Invalid regular expression: invalid unicode {} escape.
+PASS r = new RegExp("\\u{\udead", "u") threw exception SyntaxError: Invalid regular expression: invalid unicode {} escape.
 PASS successfullyParsed is true
 
 TEST COMPLETE

@@ -119,23 +119,15 @@ Structure* JSDataViewPrototype::createStructure(
         vm, globalObject, prototype, TypeInfo(ObjectType, StructureFlags), info());
 }
 
-bool JSDataViewPrototype::getOwnPropertySlot(
-    JSObject* object, ExecState* exec, PropertyName propertyName, PropertySlot& slot)
-{
-    return getStaticFunctionSlot<JSObject>(
-        exec, dataViewTable, jsCast<JSDataViewPrototype*>(object),
-        propertyName, slot);
-}
-
 template<typename Adaptor>
 EncodedJSValue getData(ExecState* exec)
 {
     JSDataView* dataView = jsDynamicCast<JSDataView*>(exec->thisValue());
     if (!dataView)
-        return throwVMError(exec, createTypeError(exec, ASCIILiteral("Receiver of DataView method must be a DataView")));
+        return throwVMTypeError(exec, ASCIILiteral("Receiver of DataView method must be a DataView"));
     
     if (!exec->argumentCount())
-        return throwVMError(exec, createTypeError(exec, ASCIILiteral("Need at least one argument (the byteOffset)")));
+        return throwVMTypeError(exec, ASCIILiteral("Need at least one argument (the byteOffset)"));
     
     unsigned byteOffset = exec->uncheckedArgument(0).toUInt32(exec);
     if (exec->hadException())
@@ -177,10 +169,10 @@ EncodedJSValue setData(ExecState* exec)
 {
     JSDataView* dataView = jsDynamicCast<JSDataView*>(exec->thisValue());
     if (!dataView)
-        return throwVMError(exec, createTypeError(exec, ASCIILiteral("Receiver of DataView method must be a DataView")));
+        return throwVMTypeError(exec, ASCIILiteral("Receiver of DataView method must be a DataView"));
     
     if (exec->argumentCount() < 2)
-        return throwVMError(exec, createTypeError(exec, ASCIILiteral("Need at least two argument (the byteOffset and value)")));
+        return throwVMTypeError(exec, ASCIILiteral("Need at least two argument (the byteOffset and value)"));
     
     unsigned byteOffset = exec->uncheckedArgument(0).toUInt32(exec);
     if (exec->hadException())

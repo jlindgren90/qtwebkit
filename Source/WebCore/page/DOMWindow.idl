@@ -58,25 +58,25 @@
 
     [CheckSecurityForNode] readonly attribute Element frameElement;
 
-    [DoNotCheckSecurity, CallWith=Document, ForwardDeclareInHeader] void focus();
+    [DoNotCheckSecurity, CallWith=CallerWindow, ForwardDeclareInHeader] void focus();
     [DoNotCheckSecurity, ForwardDeclareInHeader] void blur();
-    [DoNotCheckSecurity, CallWith=Document, ForwardDeclareInHeader] void close();
+    [DoNotCheckSecurity, CallWith=CallerDocument, ForwardDeclareInHeader] void close();
 
     void print();
     void stop();
 
-    [Custom] DOMWindow open(DOMString url,
-                            DOMString name,
-                            optional DOMString options);
+    [Custom] DOMWindow open(optional USVString url = "about:blank", optional DOMString target = "_blank", [TreatNullAs=EmptyString] optional DOMString features = "");
 
     [Custom] any showModalDialog(DOMString url,
                                        optional any dialogArgs,
                                        optional DOMString featureArgs);
 
-    // FIXME: Using "undefined" as default parameter value is wrong.
-    void alert(optional DOMString message = "undefined");
-    boolean confirm(optional DOMString message = "undefined");
-    DOMString? prompt(optional DOMString message = "undefined", optional DOMString? defaultValue = null);
+#if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
+    void alert();
+#endif
+    void alert(DOMString message);
+    boolean confirm(optional DOMString message = "");
+    DOMString? prompt(optional DOMString message = "", optional DOMString defaultValue = "");
 
     // FIXME: Using "undefined" as default parameter value is wrong.
     boolean find(optional DOMString string = "undefined",
@@ -102,9 +102,16 @@
     readonly attribute long pageXOffset;
     readonly attribute long pageYOffset;
 
-    void scrollBy(optional long x = 0, optional long y = 0);
-    void scrollTo(optional long x = 0, optional long y = 0);
-    void scroll(optional long x = 0, optional long y = 0);
+    void scrollBy(unrestricted double x, unrestricted double y);
+    void scrollTo(unrestricted double x, unrestricted double y);
+    [ImplementedAs=scrollTo] void scroll(unrestricted double x, unrestricted double y);
+
+#if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
+    void scrollBy(optional ScrollToOptions option);
+    void scrollTo(optional ScrollToOptions options);
+    [ImplementedAs=scrollTo] void scroll(optional ScrollToOptions options);
+#endif
+
     void moveBy(optional unrestricted float x = NaN, optional unrestricted float y = NaN); // FIXME: this should take longs not floats.
     void moveTo(optional unrestricted float x = NaN, optional unrestricted float y = NaN); // FIXME: this should take longs not floats.
     void resizeBy(optional unrestricted float x = NaN, optional unrestricted float y = NaN); // FIXME: this should take longs not floats.
@@ -142,7 +149,7 @@
     readonly attribute StyleMedia styleMedia;
 
     // DOM Level 2 Style Interface
-    CSSStyleDeclaration getComputedStyle(optional Element? element = null, optional DOMString? pseudoElement = null);
+    [NewObject] CSSStyleDeclaration getComputedStyle(Element element, optional DOMString? pseudoElement = null);
 
     // WebKit extensions
 #if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
@@ -168,7 +175,7 @@
 
     // cross-document messaging
 #if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
-    [DoNotCheckSecurity, Custom, RaisesException, ForwardDeclareInHeader] void postMessage(SerializedScriptValue message, DOMString targetOrigin, optional Array messagePorts);
+    [DoNotCheckSecurity, Custom, RaisesException, ForwardDeclareInHeader] void postMessage(SerializedScriptValue message, USVString targetOrigin, optional Array messagePorts);
 #else
     // There's no good way to expose an array via the ObjC bindings, so for now just allow passing in a single port.
     [DoNotCheckSecurity, Custom, RaisesException, ForwardDeclareInHeader] void postMessage(SerializedScriptValue message, optional MessagePort messagePort, DOMString targetOrigin);
@@ -188,14 +195,15 @@
 #if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
     // Additional constructors.
     [CustomGetter, CustomConstructor] attribute HTMLImageElementNamedConstructor Image; // Usable with new operator
-    attribute DOMTokenListConstructor DOMSettableTokenList; // Map DOMSettableTokenList to DOMTokenList for backward compatibility.
-
-    [Conditional=IOS_TOUCH_EVENTS, CustomGetter] attribute TouchConstructor Touch; // Usable with the new operator
-    [Conditional=IOS_TOUCH_EVENTS, CustomGetter] attribute TouchListConstructor TouchList; // Usable with the new operator
+    attribute XMLDocumentConstructor SVGDocument;
 
     attribute DOMURLConstructor webkitURL; // FIXME: deprecate this.
     attribute MutationObserverConstructor WebKitMutationObserver; // FIXME: Add metrics to determine when we can remove this.
 #endif // defined(LANGUAGE_JAVASCRIPT)
+
+#if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
+    [Conditional=CUSTOM_ELEMENTS, ImplementedAs=ensureCustomElementsRegistry] readonly attribute CustomElementsRegistry customElements;
+#endif
 
 
     // Event Handlers
@@ -220,7 +228,12 @@
     [NotEnumerable, Conditional=PROXIMITY_EVENTS] attribute EventHandler onwebkitdeviceproximity;
 };
 
+// FIXME: Support ScrollBehavior.
+dictionary ScrollToOptions {
+    unrestricted double left;
+    unrestricted double top;
+};
+
 DOMWindow implements GlobalEventHandlers;
-DOMWindow implements WindowBase64;
 DOMWindow implements WindowEventHandlers;
-DOMWindow implements WindowTimers;
+DOMWindow implements WindowOrWorkerGlobalScope;

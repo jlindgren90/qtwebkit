@@ -138,8 +138,6 @@ void Connection::platformInvalidate()
         m_exceptionPort = MACH_PORT_NULL;
     }
 #endif
-
-    m_xpcConnection = nullptr;
 }
     
 void Connection::terminateSoon(double intervalInSeconds)
@@ -481,6 +479,20 @@ void Connection::receiveSourceEventHandler()
     if (!header)
         return;
 
+    switch (header->msgh_id) {
+    case MACH_NOTIFY_NO_SENDERS:
+        ASSERT(m_isServer);
+        if (!m_sendPort)
+            connectionDidClose();
+        return;
+
+    case MACH_NOTIFY_SEND_ONCE:
+        return;
+
+    default:
+        break;
+    }
+
     std::unique_ptr<MessageDecoder> decoder = createMessageDecoder(header);
     ASSERT(decoder);
 
@@ -502,6 +514,12 @@ void Connection::receiveSourceEventHandler()
         m_sendPort = port.port();
         
         if (m_sendPort) {
+            mach_port_t previousNotificationPort;
+            mach_port_request_notification(mach_task_self(), m_receivePort, MACH_NOTIFY_NO_SENDERS, 0, MACH_PORT_NULL, MACH_MSG_TYPE_MOVE_SEND_ONCE, &previousNotificationPort);
+
+            if (previousNotificationPort != MACH_PORT_NULL)
+                mach_port_deallocate(mach_task_self(), previousNotificationPort);
+
             initializeDeadNameSource();
             dispatch_resume(m_deadNameSource);
         }
@@ -518,13 +536,13 @@ void Connection::receiveSourceEventHandler()
     if (decoder->messageReceiverName() == "IPC" && decoder->messageName() == "SetExceptionPort") {
         if (m_isServer) {
             // Server connections aren't supposed to have their exception ports overriden. Treat this as an invalid message.
-            RefPtr<Connection> protectedThis(this);
-            StringReference messageReceiverName = decoder->messageReceiverName();
-            StringCapture capturedMessageReceiverName(String(messageReceiverName.data(), messageReceiverName.size()));
-            StringReference messageName = decoder->messageName();
-            StringCapture capturedMessageName(String(messageName.data(), messageName.size()));
-            RunLoop::main().dispatch([protectedThis, capturedMessageReceiverName, capturedMessageName] {
-                protectedThis->dispatchDidReceiveInvalidMessage(capturedMessageReceiverName.string().utf8(), capturedMessageName.string().utf8());
+            StringReference messageReceiverNameReference = decoder->messageReceiverName();
+            String messageReceiverName(String(messageReceiverNameReference.data(), messageReceiverNameReference.size()));
+            StringReference messageNameReference = decoder->messageName();
+            String messageName(String(messageNameReference.data(), messageNameReference.size()));
+
+            RunLoop::main().dispatch([protectedThis = makeRef(*this), messageReceiverName = WTFMove(messageReceiverName), messageName = WTFMove(messageName)]() mutable {
+                protectedThis->dispatchDidReceiveInvalidMessage(messageReceiverName.utf8(), messageName.utf8());
             });
             return;
         }

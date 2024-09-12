@@ -93,7 +93,7 @@ private:
     JSString(VM& vm, PassRefPtr<StringImpl> value)
         : JSCell(vm, vm.stringStructure.get())
         , m_flags(0)
-        , m_value(value)
+        , m_value(RefPtr<StringImpl>(value))
     {
     }
 
@@ -132,8 +132,7 @@ public:
     static JSString* create(VM& vm, PassRefPtr<StringImpl> value)
     {
         ASSERT(value);
-        int32_t length = value->length();
-        RELEASE_ASSERT(length >= 0);
+        unsigned length = value->length();
         size_t cost = value->cost();
         JSString* newString = new (NotNull, allocateCell<JSString>(vm.heap)) JSString(vm, value);
         newString->finishCreation(vm, length, cost);
@@ -298,8 +297,8 @@ private:
     void finishCreation(VM& vm, ExecState* exec, JSString* base, unsigned offset, unsigned length)
     {
         Base::finishCreation(vm);
-        ASSERT(!sumOverflows<int32_t>(offset, length));
-        ASSERT(offset + length <= base->length());
+        RELEASE_ASSERT(!sumOverflows<int32_t>(offset, length));
+        RELEASE_ASSERT(offset + length <= base->length());
         m_length = length;
         setIs8Bit(base->is8Bit());
         setIsSubstring(true);
@@ -322,8 +321,8 @@ private:
     ALWAYS_INLINE void finishCreationSubstringOfResolved(VM& vm, JSString* base, unsigned offset, unsigned length)
     {
         Base::finishCreation(vm);
-        ASSERT(!sumOverflows<int32_t>(offset, length));
-        ASSERT(offset + length <= base->length());
+        RELEASE_ASSERT(!sumOverflows<int32_t>(offset, length));
+        RELEASE_ASSERT(offset + length <= base->length());
         m_length = length;
         setIs8Bit(base->is8Bit());
         setIsSubstring(true);
@@ -603,7 +602,7 @@ inline JSString* jsSubstring(VM* vm, const String& s, unsigned offset, unsigned 
         if (c <= maxSingleCharacterString)
             return vm->smallStrings.singleCharacterString(c);
     }
-    return JSString::createHasOtherOwner(*vm, StringImpl::createSubstringSharingImpl(s.impl(), offset, length));
+    return JSString::createHasOtherOwner(*vm, StringImpl::createSubstringSharingImpl(*s.impl(), offset, length));
 }
 
 inline JSString* jsOwnedString(VM* vm, const String& s)

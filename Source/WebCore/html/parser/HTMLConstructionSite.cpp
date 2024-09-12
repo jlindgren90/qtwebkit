@@ -28,7 +28,8 @@
 #include "HTMLTreeBuilder.h"
 
 #include "Comment.h"
-#include "CustomElementDefinitions.h"
+#include "CustomElementsRegistry.h"
+#include "DOMWindow.h"
 #include "DocumentFragment.h"
 #include "DocumentType.h"
 #include "Frame.h"
@@ -101,7 +102,7 @@ static inline bool isAllWhitespace(const String& string)
 static inline void insert(HTMLConstructionSiteTask& task)
 {
     if (is<HTMLTemplateElement>(*task.parent))
-        task.parent = downcast<HTMLTemplateElement>(*task.parent).content();
+        task.parent = &downcast<HTMLTemplateElement>(*task.parent).content();
 
     if (ContainerNode* parent = task.child->parentNode())
         parent->parserRemoveChild(*task.child);
@@ -482,10 +483,10 @@ void HTMLConstructionSite::insertHTMLElement(AtomicHTMLToken& token)
 
 JSCustomElementInterface* HTMLConstructionSite::insertHTMLElementOrFindCustomElementInterface(AtomicHTMLToken& token)
 {
-    JSCustomElementInterface* interface = nullptr;
-    RefPtr<Element> element = createHTMLElementOrFindCustomElementInterface(token, &interface);
-    if (UNLIKELY(interface))
-        return interface;
+    JSCustomElementInterface* elementInterface = nullptr;
+    RefPtr<Element> element = createHTMLElementOrFindCustomElementInterface(token, &elementInterface);
+    if (UNLIKELY(elementInterface))
+        return elementInterface;
     attachLater(currentNode(), *element);
     m_openElements.push(HTMLStackItem::create(element.releaseNonNull(), token));
     return nullptr;
@@ -558,7 +559,7 @@ void HTMLConstructionSite::insertTextNode(const String& characters, WhitespaceMo
         findFosterSite(task);
 
     if (is<HTMLTemplateElement>(*task.parent))
-        task.parent = downcast<HTMLTemplateElement>(*task.parent).content();
+        task.parent = &downcast<HTMLTemplateElement>(*task.parent).content();
 
     // Strings composed entirely of whitespace are likely to be repeated.
     // Turn them into AtomicString so we share a single string for each.
@@ -641,7 +642,7 @@ Ref<Element> HTMLConstructionSite::createElement(AtomicHTMLToken& token, const A
 inline Document& HTMLConstructionSite::ownerDocumentForCurrentNode()
 {
     if (is<HTMLTemplateElement>(currentNode()))
-        return downcast<HTMLTemplateElement>(currentNode()).content()->document();
+        return downcast<HTMLTemplateElement>(currentNode()).content().document();
     return currentNode().document();
 }
 
@@ -658,11 +659,12 @@ RefPtr<Element> HTMLConstructionSite::createHTMLElementOrFindCustomElementInterf
     RefPtr<Element> element = HTMLElementFactory::createKnownElement(localName, ownerDocument, insideTemplateElement ? nullptr : form(), true);
     if (UNLIKELY(!element)) {
 #if ENABLE(CUSTOM_ELEMENTS)
-        if (customElementInterface) {
-            auto* definitions = ownerDocument.customElementDefinitions();
-            if (UNLIKELY(definitions)) {
-                if (auto* interface = definitions->findInterface(localName)) {
-                    *customElementInterface = interface;
+        auto* window = ownerDocument.domWindow();
+        if (customElementInterface && window) {
+            auto* registry = window->customElementsRegistry();
+            if (UNLIKELY(registry)) {
+                if (auto* elementInterface = registry->findInterface(localName)) {
+                    *customElementInterface = elementInterface;
                     return nullptr;
                 }
             }
@@ -673,10 +675,10 @@ RefPtr<Element> HTMLConstructionSite::createHTMLElementOrFindCustomElementInterf
 
         QualifiedName qualifiedName(nullAtom, localName, xhtmlNamespaceURI);
 #if ENABLE(CUSTOM_ELEMENTS)
-        if (CustomElementDefinitions::checkName(localName) == CustomElementDefinitions::NameStatus::Valid) {
+        if (window && Document::validateCustomElementName(localName) == CustomElementNameValidationStatus::Valid) {
             element = HTMLElement::create(qualifiedName, ownerDocument);
             element->setIsUnresolvedCustomElement();
-            ownerDocument.ensureCustomElementDefinitions().addUpgradeCandidate(*element);
+            window->ensureCustomElementsRegistry().addUpgradeCandidate(*element);
         } else
 #endif
             element = HTMLUnknownElement::create(qualifiedName, ownerDocument);

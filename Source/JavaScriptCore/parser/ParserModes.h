@@ -35,11 +35,9 @@ enum class JSParserStrictMode { NotStrict, Strict };
 enum class JSParserBuiltinMode { NotBuiltin, Builtin };
 enum class JSParserCodeType { Program, Function, Module };
 
-enum class ConstructorKind { None, Base, Derived };
+enum class ConstructorKind { None, Base, Extends };
 enum class SuperBinding { Needed, NotNeeded };
-enum class ThisTDZMode { AlwaysCheck, CheckIfNeeded };
 
-enum ProfilerMode { ProfilerOff, ProfilerOn };
 enum DebuggerMode { DebuggerOff, DebuggerOn };
 
 enum class FunctionMode { FunctionExpression, FunctionDeclaration, MethodDefinition };

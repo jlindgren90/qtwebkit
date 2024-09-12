@@ -45,17 +45,20 @@
 #include "FrameSelection.h"
 #include "HTMLAreaElement.h"
 #include "HTMLAudioElement.h"
+#include "HTMLDetailsElement.h"
 #include "HTMLFormElement.h"
 #include "HTMLFrameElementBase.h"
 #include "HTMLImageElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLLabelElement.h"
 #include "HTMLMapElement.h"
+#include "HTMLMeterElement.h"
 #include "HTMLNames.h"
 #include "HTMLOptGroupElement.h"
 #include "HTMLOptionElement.h"
 #include "HTMLOptionsCollection.h"
 #include "HTMLSelectElement.h"
+#include "HTMLSummaryElement.h"
 #include "HTMLTableElement.h"
 #include "HTMLTextAreaElement.h"
 #include "HTMLVideoElement.h"
@@ -63,7 +66,6 @@
 #include "HitTestResult.h"
 #include "Image.h"
 #include "LocalizedStrings.h"
-#include "MathMLNames.h"
 #include "NodeList.h"
 #include "Page.h"
 #include "ProgressTracker.h"
@@ -80,9 +82,6 @@
 #include "RenderListItem.h"
 #include "RenderListMarker.h"
 #include "RenderMathMLBlock.h"
-#include "RenderMathMLFraction.h"
-#include "RenderMathMLOperator.h"
-#include "RenderMathMLRoot.h"
 #include "RenderMenuList.h"
 #include "RenderSVGRoot.h"
 #include "RenderSVGShape.h"
@@ -187,6 +186,12 @@ static inline RenderObject* firstChildConsideringContinuation(RenderObject& rend
 {
     RenderObject* firstChild = renderer.firstChildSlow();
 
+    // We don't want to include the end of a continuation as the firstChild of the
+    // anonymous parent, because everything has already been linked up via continuation.
+    // CSS first-letter selector is an example of this case.
+    if (renderer.isAnonymous() && firstChild && firstChild->isInlineElementContinuation())
+        firstChild = nullptr;
+    
     if (!firstChild && isInlineWithContinuation(renderer))
         firstChild = firstChildInContinuation(downcast<RenderInline>(renderer));
 
@@ -399,6 +404,13 @@ AccessibilityObject* AccessibilityRenderObject::nextSibling() const
         // Case 5b: continuation is an inline - in this case the inline's first child is the next sibling
         else
             nextSibling = firstChildConsideringContinuation(continuation);
+        
+        // After case 4, there are chances that nextSibling has the same node as the current renderer,
+        // which might lead to adding the same child repeatedly.
+        if (nextSibling && nextSibling->node() == m_renderer->node()) {
+            if (AccessibilityObject* nextObj = axObjectCache()->getOrCreate(nextSibling))
+                return nextObj->nextSibling();
+        }
     }
 
     if (!nextSibling)
@@ -620,15 +632,6 @@ String AccessibilityRenderObject::textUnderElement(AccessibilityTextUnderElement
 
     bool isRenderText = is<RenderText>(*m_renderer);
 
-#if ENABLE(MATHML)
-    // Math operators create RenderText nodes on the fly that are not tied into the DOM in a reasonable way,
-    // so rangeOfContents does not work for them (nor does regular text selection).
-    if (isRenderText && m_renderer->isAnonymous() && ancestorsOfType<RenderMathMLOperator>(*m_renderer).first())
-        return downcast<RenderText>(*m_renderer).text();
-    if (is<RenderMathMLOperator>(*m_renderer) && !m_renderer->isAnonymous())
-        return downcast<RenderMathMLOperator>(*m_renderer).element().textContent();
-#endif
-
     if (shouldGetTextFromNode(mode))
         return AccessibilityNodeObject::textUnderElement(mode);
 
@@ -751,7 +754,7 @@ String AccessibilityRenderObject::stringValue() const
         
     if (is<RenderText>(*m_renderer))
         return textUnderElement();
-    
+
     if (is<RenderMenuList>(cssBox)) {
         // RenderMenuList will go straight to the text() of its selected item.
         // This has to be overridden in the case where the selected item has an ARIA label.
@@ -759,7 +762,7 @@ String AccessibilityRenderObject::stringValue() const
         int selectedIndex = selectElement.selectedIndex();
         const Vector<HTMLElement*>& listItems = selectElement.listItems();
         if (selectedIndex >= 0 && static_cast<size_t>(selectedIndex) < listItems.size()) {
-            const AtomicString& overriddenDescription = listItems[selectedIndex]->fastGetAttribute(aria_labelAttr);
+            const AtomicString& overriddenDescription = listItems[selectedIndex]->attributeWithoutSynchronization(aria_labelAttr);
             if (!overriddenDescription.isNull())
                 return overriddenDescription;
         }
@@ -1059,7 +1062,7 @@ bool AccessibilityRenderObject::exposesTitleUIElement() const
     // otherwise its inner text will be announced by a screenreader.
     if (is<HTMLInputElement>(*this->node()) || AccessibilityObject::isARIAInput(ariaRoleAttribute())) {
         if (HTMLLabelElement* label = labelForElement(downcast<Element>(node()))) {
-            if (!label->fastGetAttribute(aria_labelAttr).isEmpty())
+            if (!label->attributeWithoutSynchronization(aria_labelAttr).isEmpty())
                 return false;
         }
     }
@@ -1671,7 +1674,7 @@ void AccessibilityRenderObject::setFocused(bool on)
     // When a node is told to set focus, that can cause it to be deallocated, which means that doing
     // anything else inside this object will crash. To fix this, we added a RefPtr to protect this object
     // long enough for duration.
-    RefPtr<AccessibilityObject> protect(this);
+    RefPtr<AccessibilityObject> protectedThis(this);
     
     // If this node is already the currently focused node, then calling focus() won't do anything.
     // That is a problem when focus is removed from the webpage to chrome, and then returns.
@@ -1883,10 +1886,10 @@ VisiblePosition AccessibilityRenderObject::visiblePositionForIndex(int index) co
     return visiblePositionForIndexUsingCharacterIterator(*node, index);
 }
     
-int AccessibilityRenderObject::indexForVisiblePosition(const VisiblePosition& pos) const
+int AccessibilityRenderObject::indexForVisiblePosition(const VisiblePosition& position) const
 {
     if (isNativeTextControl())
-        return downcast<RenderTextControl>(*m_renderer).textFormControlElement().indexForVisiblePosition(pos);
+        return downcast<RenderTextControl>(*m_renderer).textFormControlElement().indexForVisiblePosition(position);
 
     if (!isTextControl())
         return 0;
@@ -1895,7 +1898,7 @@ int AccessibilityRenderObject::indexForVisiblePosition(const VisiblePosition& po
     if (!node)
         return 0;
 
-    Position indexPosition = pos.deepEquivalent();
+    Position indexPosition = position.deepEquivalent();
     if (indexPosition.isNull() || highestEditableRoot(indexPosition, HasEditableAXRole) != node)
         return 0;
 
@@ -1907,7 +1910,7 @@ int AccessibilityRenderObject::indexForVisiblePosition(const VisiblePosition& po
     bool forSelectionPreservation = false;
 #endif
 
-    return WebCore::indexForVisiblePosition(node, pos, forSelectionPreservation);
+    return WebCore::indexForVisiblePosition(*node, position, forSelectionPreservation);
 }
 
 Element* AccessibilityRenderObject::rootEditableElementForPosition(const Position& position) const
@@ -2245,7 +2248,7 @@ AccessibilityObject* AccessibilityRenderObject::accessibilityImageMapHitTest(HTM
 
 AccessibilityObject* AccessibilityRenderObject::remoteSVGElementHitTest(const IntPoint& point) const
 {
-    AccessibilityObject* remote = remoteSVGRootElement();
+    AccessibilityObject* remote = remoteSVGRootElement(Create);
     if (!remote)
         return nullptr;
     
@@ -2546,7 +2549,7 @@ AccessibilityRole AccessibilityRenderObject::determineAccessibilityRole()
 
     if (node && node->isLink())
         return WebCoreLinkRole;
-    if (node && is<HTMLImageElement>(*node) && downcast<HTMLImageElement>(*node).fastHasAttribute(usemapAttr))
+    if (node && is<HTMLImageElement>(*node) && downcast<HTMLImageElement>(*node).hasAttributeWithoutSynchronization(usemapAttr))
         return ImageMapRole;
     if ((cssBox && cssBox->isListItem()) || (node && node->hasTagName(liTag)))
         return ListItemRole;
@@ -2616,15 +2619,6 @@ AccessibilityRole AccessibilityRenderObject::determineAccessibilityRole()
     
     if (isStyleFormatGroup())
         return is<RenderInline>(*m_renderer) ? InlineRole : GroupRole;
-    
-#if ENABLE(MATHML)
-    if (node && node->hasTagName(MathMLNames::mathTag))
-        return DocumentMathRole;
-#endif
-    // It's not clear which role a platform should choose for a math element.
-    // Declaring a math element role should give flexibility to platforms to choose.
-    if (isMathElement())
-        return MathElementRole;
     
     if (node && node->hasTagName(ddTag))
         return DescriptionListDetailRole;
@@ -2958,16 +2952,16 @@ void AccessibilityRenderObject::addTextFieldChildren()
     
 bool AccessibilityRenderObject::isSVGImage() const
 {
-    return remoteSVGRootElement();
+    return remoteSVGRootElement(Create);
 }
     
 void AccessibilityRenderObject::detachRemoteSVGRoot()
 {
-    if (AccessibilitySVGRoot* root = remoteSVGRootElement())
+    if (AccessibilitySVGRoot* root = remoteSVGRootElement(Retrieve))
         root->setParent(nullptr);
 }
 
-AccessibilitySVGRoot* AccessibilityRenderObject::remoteSVGRootElement() const
+AccessibilitySVGRoot* AccessibilityRenderObject::remoteSVGRootElement(CreationChoice createIfNecessary) const
 {
     if (!is<RenderImage>(m_renderer))
         return nullptr;
@@ -2989,7 +2983,7 @@ AccessibilitySVGRoot* AccessibilityRenderObject::remoteSVGRootElement() const
     if (!is<SVGDocument>(document))
         return nullptr;
     
-    SVGSVGElement* rootElement = downcast<SVGDocument>(*document).rootElement();
+    SVGSVGElement* rootElement = SVGDocument::rootElement(*document);
     if (!rootElement)
         return nullptr;
     RenderObject* rendererRoot = rootElement->renderer();
@@ -2999,12 +2993,12 @@ AccessibilitySVGRoot* AccessibilityRenderObject::remoteSVGRootElement() const
     AXObjectCache* cache = frame.document()->axObjectCache();
     if (!cache)
         return nullptr;
-    AccessibilityObject* rootSVGObject = cache->getOrCreate(rendererRoot);
+    AccessibilityObject* rootSVGObject = createIfNecessary == Create ? cache->getOrCreate(rendererRoot) : cache->get(rendererRoot);
 
     // In order to connect the AX hierarchy from the SVG root element from the loaded resource
     // the parent must be set, because there's no other way to get back to who created the image.
-    ASSERT(rootSVGObject);
-    if (!is<AccessibilitySVGRoot>(*rootSVGObject))
+    ASSERT(!createIfNecessary || rootSVGObject);
+    if (!is<AccessibilitySVGRoot>(rootSVGObject))
         return nullptr;
     
     return downcast<AccessibilitySVGRoot>(rootSVGObject);
@@ -3012,7 +3006,7 @@ AccessibilitySVGRoot* AccessibilityRenderObject::remoteSVGRootElement() const
     
 void AccessibilityRenderObject::addRemoteSVGChildren()
 {
-    AccessibilitySVGRoot* root = remoteSVGRootElement();
+    AccessibilitySVGRoot* root = remoteSVGRootElement(Create);
     if (!root)
         return;
     
@@ -3235,7 +3229,7 @@ void AccessibilityRenderObject::ariaSelectedRows(AccessibilityChildrenVector& re
     }
 
     // Get all the rows.
-    auto rowsIteration = [&](const AccessibilityChildrenVector& rows) {
+    auto rowsIteration = [&](auto& rows) {
         for (auto& row : rows) {
             if (row->isSelected()) {
                 result.append(row);
@@ -3594,392 +3588,12 @@ void AccessibilityRenderObject::scrollTo(const IntPoint& point) const
 }
 
 #if ENABLE(MATHML)
-bool AccessibilityRenderObject::isMathElement() const
-{
-    if (!m_renderer)
-        return false;
-    
-    return is<MathMLElement>(node());
-}
-
-bool AccessibilityRenderObject::isMathFraction() const
-{
-    return m_renderer && m_renderer->isRenderMathMLFraction();
-}
-
-bool AccessibilityRenderObject::isMathFenced() const
-{
-    return m_renderer && m_renderer->isRenderMathMLFenced();
-}
-
-bool AccessibilityRenderObject::isMathSubscriptSuperscript() const
-{
-    return m_renderer && m_renderer->isRenderMathMLScripts() && !isMathMultiscript();
-}
-
-bool AccessibilityRenderObject::isMathRow() const
-{
-    return m_renderer && m_renderer->isRenderMathMLRow();
-}
-
-bool AccessibilityRenderObject::isMathUnderOver() const
-{
-    return m_renderer && m_renderer->isRenderMathMLUnderOver();
-}
-
-bool AccessibilityRenderObject::isMathSquareRoot() const
-{
-    return m_renderer && m_renderer->isRenderMathMLSquareRoot();
-}
-    
-bool AccessibilityRenderObject::isMathToken() const
-{
-    return m_renderer && m_renderer->isRenderMathMLToken();
-}
-
-bool AccessibilityRenderObject::isMathRoot() const
-{
-    return m_renderer && m_renderer->isRenderMathMLRoot();
-}
-
-bool AccessibilityRenderObject::isMathOperator() const
-{
-    if (!m_renderer || !m_renderer->isRenderMathMLOperator())
-        return false;
-
-    return true;
-}
-
-bool AccessibilityRenderObject::isMathFenceOperator() const
-{
-    if (!is<RenderMathMLOperator>(m_renderer))
-        return false;
-
-    return downcast<RenderMathMLOperator>(*m_renderer).hasOperatorFlag(MathMLOperatorDictionary::Fence);
-}
-
-bool AccessibilityRenderObject::isMathSeparatorOperator() const
-{
-    if (!is<RenderMathMLOperator>(m_renderer))
-        return false;
-
-    return downcast<RenderMathMLOperator>(*m_renderer).hasOperatorFlag(MathMLOperatorDictionary::Separator);
-}
-    
-bool AccessibilityRenderObject::isMathText() const
-{
-    return node() && (node()->hasTagName(MathMLNames::mtextTag) || hasTagName(MathMLNames::msTag));
-}
-
-bool AccessibilityRenderObject::isMathNumber() const
-{
-    return node() && node()->hasTagName(MathMLNames::mnTag);
-}
-
-bool AccessibilityRenderObject::isMathIdentifier() const
-{
-    return node() && node()->hasTagName(MathMLNames::miTag);
-}
-
-bool AccessibilityRenderObject::isMathMultiscript() const
-{
-    return node() && node()->hasTagName(MathMLNames::mmultiscriptsTag);
-}
-    
-bool AccessibilityRenderObject::isMathTable() const
-{
-    return node() && node()->hasTagName(MathMLNames::mtableTag);
-}
-
-bool AccessibilityRenderObject::isMathTableRow() const
-{
-    return node() && (node()->hasTagName(MathMLNames::mtrTag) || hasTagName(MathMLNames::mlabeledtrTag));
-}
-
-bool AccessibilityRenderObject::isMathTableCell() const
-{
-    return node() && node()->hasTagName(MathMLNames::mtdTag);
-}
-
-bool AccessibilityRenderObject::isMathScriptObject(AccessibilityMathScriptObjectType type) const
-{
-    AccessibilityObject* parent = parentObjectUnignored();
-    if (!parent)
-        return false;
-
-    return type == Subscript ? this == parent->mathSubscriptObject() : this == parent->mathSuperscriptObject();
-}
-
-bool AccessibilityRenderObject::isMathMultiscriptObject(AccessibilityMathMultiscriptObjectType type) const
-{
-    AccessibilityObject* parent = parentObjectUnignored();
-    if (!parent || !parent->isMathMultiscript())
-        return false;
-
-    // The scripts in a MathML <mmultiscripts> element consist of one or more
-    // subscript, superscript pairs. In order to determine if this object is
-    // a scripted token, we need to examine each set of pairs to see if the
-    // this token is present and in the position corresponding with the type.
-
-    AccessibilityMathMultiscriptPairs pairs;
-    if (type == PreSubscript || type == PreSuperscript)
-        parent->mathPrescripts(pairs);
-    else
-        parent->mathPostscripts(pairs);
-
-    for (const auto& pair : pairs) {
-        if (this == pair.first)
-            return (type == PreSubscript || type == PostSubscript);
-        if (this == pair.second)
-            return (type == PreSuperscript || type == PostSuperscript);
-    }
-
-    return false;
-}
-    
 bool AccessibilityRenderObject::isIgnoredElementWithinMathTree() const
 {
-    if (!m_renderer)
-        return true;
-    
-    // We ignore anonymous renderers inside math blocks.
-    // However, we do not exclude anonymous RenderMathMLOperator nodes created by the mfenced element nor RenderText nodes created by math operators so that the text can be exposed by AccessibilityRenderObject::textUnderElement.
-    if (m_renderer->isAnonymous()) {
-        if (m_renderer->isRenderMathMLOperator())
-            return false;
-        for (AccessibilityObject* parent = parentObject(); parent; parent = parent->parentObject()) {
-            if (parent->isMathElement())
-                return !(m_renderer->isText() && ancestorsOfType<RenderMathMLOperator>(*m_renderer).first());
-        }
-    }
-
-    // Only math elements that we explicitly recognize should be included
-    // We don't want things like <mstyle> to appear in the tree.
-    if (isMathElement()) {
-        if (isMathFraction() || isMathFenced() || isMathSubscriptSuperscript() || isMathRow()
-            || isMathUnderOver() || isMathRoot() || isMathText() || isMathNumber()
-            || isMathOperator() || isMathFenceOperator() || isMathSeparatorOperator()
-            || isMathIdentifier() || isMathTable() || isMathTableRow() || isMathTableCell() || isMathMultiscript())
-            return false;
-        return true;
-    }
-
-    return false;
+    // We ignore anonymous boxes inserted into RenderMathMLBlocks to honor CSS rules.
+    // See https://www.w3.org/TR/css3-box/#block-level0
+    return m_renderer && m_renderer->isAnonymous() && m_renderer->parent() && is<RenderMathMLBlock>(m_renderer->parent());
 }
-
-AccessibilityObject* AccessibilityRenderObject::mathRadicandObject()
-{
-    if (!isMathRoot())
-        return nullptr;
-    RenderMathMLRoot* root = &downcast<RenderMathMLRoot>(*m_renderer);
-    AccessibilityObject* rootRadicandWrapper = axObjectCache()->getOrCreate(root->baseWrapper());
-    if (!rootRadicandWrapper)
-        return nullptr;
-    AccessibilityObject* rootRadicand = rootRadicandWrapper->children().first().get();
-    ASSERT(rootRadicand && children().contains(rootRadicand));
-    return rootRadicand;
-}
-
-AccessibilityObject* AccessibilityRenderObject::mathRootIndexObject()
-{
-    if (!isMathRoot())
-        return nullptr;
-    RenderMathMLRoot* root = &downcast<RenderMathMLRoot>(*m_renderer);
-    AccessibilityObject* rootIndexWrapper = axObjectCache()->getOrCreate(root->indexWrapper());
-    if (!rootIndexWrapper)
-        return nullptr;
-    AccessibilityObject* rootIndex = rootIndexWrapper->children().first().get();
-    ASSERT(rootIndex && children().contains(rootIndex));
-    return rootIndex;
-}
-
-AccessibilityObject* AccessibilityRenderObject::mathNumeratorObject()
-{
-    if (!isMathFraction())
-        return nullptr;
-    
-    const auto& children = this->children();
-    if (children.size() != 2)
-        return nullptr;
-    
-    return children[0].get();
-}
-    
-AccessibilityObject* AccessibilityRenderObject::mathDenominatorObject()
-{
-    if (!isMathFraction())
-        return nullptr;
-
-    const auto& children = this->children();
-    if (children.size() != 2)
-        return nullptr;
-    
-    return children[1].get();
-}
-    
-AccessibilityObject* AccessibilityRenderObject::mathUnderObject()
-{
-    if (!isMathUnderOver() || !node())
-        return nullptr;
-    
-    const auto& children = this->children();
-    if (children.size() < 2)
-        return nullptr;
-    
-    if (node()->hasTagName(MathMLNames::munderTag) || node()->hasTagName(MathMLNames::munderoverTag))
-        return children[1].get();
-    
-    return nullptr;
-}
-
-AccessibilityObject* AccessibilityRenderObject::mathOverObject()
-{
-    if (!isMathUnderOver() || !node())
-        return nullptr;
-    
-    const auto& children = this->children();
-    if (children.size() < 2)
-        return nullptr;
-    
-    if (node()->hasTagName(MathMLNames::moverTag))
-        return children[1].get();
-    if (node()->hasTagName(MathMLNames::munderoverTag))
-        return children[2].get();
-
-    return nullptr;
-}
-
-AccessibilityObject* AccessibilityRenderObject::mathBaseObject()
-{
-    if (!isMathSubscriptSuperscript() && !isMathUnderOver() && !isMathMultiscript())
-        return nullptr;
-    
-    const auto& children = this->children();
-    // The base object in question is always the first child.
-    if (children.size() > 0)
-        return children[0].get();
-
-    return nullptr;
-}
-
-AccessibilityObject* AccessibilityRenderObject::mathSubscriptObject()
-{
-    if (!isMathSubscriptSuperscript() || !node())
-        return nullptr;
-    
-    const auto& children = this->children();
-    if (children.size() < 2)
-        return nullptr;
-
-    if (node()->hasTagName(MathMLNames::msubTag) || node()->hasTagName(MathMLNames::msubsupTag))
-        return children[1].get();
-    
-    return nullptr;
-}
-
-AccessibilityObject* AccessibilityRenderObject::mathSuperscriptObject()
-{
-    if (!isMathSubscriptSuperscript() || !node())
-        return nullptr;
-    
-    const auto& children = this->children();
-    unsigned count = children.size();
-
-    if (count >= 2 && node()->hasTagName(MathMLNames::msupTag))
-        return children[1].get();
-
-    if (count >= 3 && node()->hasTagName(MathMLNames::msubsupTag))
-        return children[2].get();
-    
-    return nullptr;
-}
-    
-String AccessibilityRenderObject::mathFencedOpenString() const
-{
-    if (!isMathFenced())
-        return String();
-    
-    return getAttribute(MathMLNames::openAttr);
-}
-
-String AccessibilityRenderObject::mathFencedCloseString() const
-{
-    if (!isMathFenced())
-        return String();
-    
-    return getAttribute(MathMLNames::closeAttr);
-}
-    
-void AccessibilityRenderObject::mathPrescripts(AccessibilityMathMultiscriptPairs& prescripts)
-{
-    if (!isMathMultiscript() || !node())
-        return;
-    
-    bool foundPrescript = false;
-    std::pair<AccessibilityObject*, AccessibilityObject*> prescriptPair;
-    for (Node* child = node()->firstChild(); child; child = child->nextSibling()) {
-        if (foundPrescript) {
-            AccessibilityObject* axChild = axObjectCache()->getOrCreate(child);
-            if (axChild && axChild->isMathElement()) {
-                if (!prescriptPair.first)
-                    prescriptPair.first = axChild;
-                else {
-                    prescriptPair.second = axChild;
-                    prescripts.append(prescriptPair);
-                    prescriptPair.first = nullptr;
-                    prescriptPair.second = nullptr;
-                }
-            }
-        } else if (child->hasTagName(MathMLNames::mprescriptsTag))
-            foundPrescript = true;
-    }
-    
-    // Handle the odd number of pre scripts case.
-    if (prescriptPair.first)
-        prescripts.append(prescriptPair);
-}
-
-void AccessibilityRenderObject::mathPostscripts(AccessibilityMathMultiscriptPairs& postscripts)
-{
-    if (!isMathMultiscript() || !node())
-        return;
-
-    // In Multiscripts, the post-script elements start after the first element (which is the base)
-    // and continue until a <mprescripts> tag is found
-    std::pair<AccessibilityObject*, AccessibilityObject*> postscriptPair;
-    bool foundBaseElement = false;
-    for (Node* child = node()->firstChild(); child; child = child->nextSibling()) {
-        if (child->hasTagName(MathMLNames::mprescriptsTag))
-            break;
-
-        AccessibilityObject* axChild = axObjectCache()->getOrCreate(child);
-        if (axChild && axChild->isMathElement()) {
-            if (!foundBaseElement)
-                foundBaseElement = true;
-            else if (!postscriptPair.first)
-                postscriptPair.first = axChild;
-            else {
-                postscriptPair.second = axChild;
-                postscripts.append(postscriptPair);
-                postscriptPair.first = nullptr;
-                postscriptPair.second = nullptr;
-            }
-        }
-    }
-
-    // Handle the odd number of post scripts case.
-    if (postscriptPair.first)
-        postscripts.append(postscriptPair);
-}
-
-int AccessibilityRenderObject::mathLineThickness() const
-{
-    if (!is<RenderMathMLFraction>(m_renderer))
-        return -1;
-    
-    return downcast<RenderMathMLFraction>(*m_renderer).relativeLineThickness();
-}
-
 #endif
     
 } // namespace WebCore

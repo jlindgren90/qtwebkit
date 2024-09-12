@@ -80,7 +80,7 @@ public:
 
     const URL& url() const;
     State readyState() const;
-    unsigned long bufferedAmount() const;
+    unsigned bufferedAmount() const;
 
     String protocol() const;
     String extensions() const;
@@ -96,13 +96,14 @@ public:
     using RefCounted<WebSocket>::deref;
 
     // WebSocketChannelClient functions.
-    void didConnect() override;
-    void didReceiveMessage(const String& message) override;
-    void didReceiveBinaryData(Vector<uint8_t>&&) override;
-    void didReceiveMessageError() override;
-    void didUpdateBufferedAmount(unsigned long bufferedAmount) override;
-    void didStartClosingHandshake() override;
-    void didClose(unsigned long unhandledBufferedAmount, ClosingHandshakeCompletionStatus, unsigned short code, const String& reason) override;
+    void didConnect() final;
+    void didReceiveMessage(const String& message) final;
+    void didReceiveBinaryData(Vector<uint8_t>&&) final;
+    void didReceiveMessageError() final;
+    void didUpdateBufferedAmount(unsigned bufferedAmount) final;
+    void didStartClosingHandshake() final;
+    void didClose(unsigned unhandledBufferedAmount, ClosingHandshakeCompletionStatus, unsigned short code, const String& reason) final;
+    void didUpgradeURL() final;
 
 private:
     explicit WebSocket(ScriptExecutionContext&);
@@ -133,8 +134,8 @@ private:
 
     State m_state;
     URL m_url;
-    unsigned long m_bufferedAmount;
-    unsigned long m_bufferedAmountAfterClose;
+    unsigned m_bufferedAmount;
+    unsigned m_bufferedAmountAfterClose;
     BinaryType m_binaryType;
     String m_subprotocol;
     String m_extensions;

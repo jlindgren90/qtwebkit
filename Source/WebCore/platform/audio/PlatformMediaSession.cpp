@@ -100,7 +100,9 @@ void PlatformMediaSession::beginInterruption(InterruptionType type)
 {
     LOG(Media, "PlatformMediaSession::beginInterruption(%p), state = %s, interruption type = %s, interruption count = %i", this, stateName(m_state), interruptionName(type), m_interruptionCount);
 
-    if (++m_interruptionCount > 1)
+    // When interruptions are overridden, m_interruptionType doesn't get set.
+    // Give nested interruptions a chance when the previous interruptions were overridden.
+    if (++m_interruptionCount > 1 && m_interruptionType != NoInterruption)
         return;
 
     if (client().shouldOverrideBackgroundPlaybackRestriction(type)) {
@@ -186,8 +188,7 @@ bool PlatformMediaSession::clientWillPausePlayback()
     
     setState(Paused);
     PlatformMediaSessionManager::sharedManager().sessionWillEndPlayback(*this);
-    if (!m_clientDataBufferingTimer.isActive())
-        m_clientDataBufferingTimer.startOneShot(kClientDataBufferingTimerThrottleDelay);
+    scheduleClientDataBufferingCheck();
     return true;
 }
 
@@ -241,12 +242,22 @@ bool PlatformMediaSession::canReceiveRemoteControlCommands() const
     return m_client.canReceiveRemoteControlCommands();
 }
 
-void PlatformMediaSession::didReceiveRemoteControlCommand(RemoteControlCommandType command)
+void PlatformMediaSession::didReceiveRemoteControlCommand(RemoteControlCommandType command, const PlatformMediaSession::RemoteCommandArgument* argument)
 {
-    m_client.didReceiveRemoteControlCommand(command);
+    m_client.didReceiveRemoteControlCommand(command, argument);
+}
+
+bool PlatformMediaSession::supportsSeeking() const
+{
+    return m_client.supportsSeeking();
 }
 
 void PlatformMediaSession::visibilityChanged()
+{
+    scheduleClientDataBufferingCheck();
+}
+
+void PlatformMediaSession::scheduleClientDataBufferingCheck()
 {
     if (!m_clientDataBufferingTimer.isActive())
         m_clientDataBufferingTimer.startOneShot(kClientDataBufferingTimerThrottleDelay);
@@ -281,6 +292,11 @@ void PlatformMediaSession::updateClientDataBuffering()
 bool PlatformMediaSession::isHidden() const
 {
     return m_client.elementIsHidden();
+}
+
+bool PlatformMediaSession::shouldOverrideBackgroundLoadingRestriction() const
+{
+    return m_client.shouldOverrideBackgroundLoadingRestriction();
 }
 
 void PlatformMediaSession::isPlayingToWirelessPlaybackTargetChanged(bool isWireless)

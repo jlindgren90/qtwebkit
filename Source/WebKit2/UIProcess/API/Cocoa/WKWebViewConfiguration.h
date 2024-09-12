@@ -49,7 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 typedef NS_ENUM(NSInteger, WKSelectionGranularity) {
     WKSelectionGranularityDynamic,
     WKSelectionGranularityCharacter,
-} WK_ENUM_AVAILABLE_IOS(8_0);
+} WK_API_AVAILABLE(ios(8.0));
 
 /*! @enum WKDataDetectorTypes
  @abstract The type of data detected.
@@ -69,9 +69,11 @@ typedef NS_OPTIONS(NSUInteger, WKDataDetectorTypes) {
     WKDataDetectorTypeCalendarEvent = 1 << 3,
     WKDataDetectorTypeTrackingNumber = 1 << 4,
     WKDataDetectorTypeFlightNumber = 1 << 5,
-    WKDataDetectorTypeSpotlightSuggestion = 1 << 6,
-    WKDataDetectorTypeAll = NSUIntegerMax
-} WK_ENUM_AVAILABLE(NA, WK_IOS_TBA);
+    WKDataDetectorTypeLookupSuggestion = 1 << 6,
+    WKDataDetectorTypeAll = NSUIntegerMax,
+
+    WKDataDetectorTypeSpotlightSuggestion WK_API_DEPRECATED_WITH_REPLACEMENT("WKDataDetectorTypeLookupSuggestion", ios(WK_IOS_TBA, WK_IOS_TBA)) = WKDataDetectorTypeLookupSuggestion,
+} WK_API_AVAILABLE(ios(WK_IOS_TBA));
 
 #else
 
@@ -89,15 +91,29 @@ typedef NS_OPTIONS(NSUInteger, WKDataDetectorTypes) {
 typedef NS_ENUM(NSInteger, WKUserInterfaceDirectionPolicy) {
     WKUserInterfaceDirectionPolicyContent,
     WKUserInterfaceDirectionPolicySystem,
-} WK_ENUM_AVAILABLE(WK_MAC_TBA, NA);
+} WK_API_AVAILABLE(macosx(WK_MAC_TBA));
 
 #endif
+
+/*! @enum WKAudiovisualMediaTypes
+ @abstract The types of audiovisual media which will require a user gesture to begin playing.
+ @constant WKAudiovisualMediaTypeNone No audiovisual media will require a user gesture to begin playing.
+ @constant WKAudiovisualMediaTypeAudio Audiovisual media containing audio will require a user gesture to begin playing.
+ @constant WKAudiovisualMediaTypeVideo Audiovisual media containing video will require a user gesture to begin playing.
+ @constant WKAudiovisualMediaTypeAll All audiovisual media will require a user gesture to begin playing.
+*/
+typedef NS_OPTIONS(NSUInteger, WKAudiovisualMediaTypes) {
+    WKAudiovisualMediaTypeNone = 0,
+    WKAudiovisualMediaTypeAudio = 1 << 0,
+    WKAudiovisualMediaTypeVideo = 1 << 1,
+    WKAudiovisualMediaTypeAll = NSUIntegerMax
+} WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
 
 /*! A WKWebViewConfiguration object is a collection of properties with
  which to initialize a web view.
  @helps Contains properties used to configure a @link WKWebView @/link.
  */
-WK_CLASS_AVAILABLE(10_10, 8_0)
+WK_CLASS_AVAILABLE(macosx(10.10), ios(8.0))
 @interface WKWebViewConfiguration : NSObject <NSCoding, NSCopying>
 
 /*! @abstract The process pool from which to obtain the view's web content
@@ -118,7 +134,7 @@ WK_CLASS_AVAILABLE(10_10, 8_0)
 
 /*! @abstract The website data store to be used by the web view.
  */
-@property (nonatomic, strong) WKWebsiteDataStore *websiteDataStore WK_AVAILABLE(10_11, 9_0);
+@property (nonatomic, strong) WKWebsiteDataStore *websiteDataStore WK_API_AVAILABLE(macosx(10.11), ios(9.0));
 
 /*! @abstract A Boolean value indicating whether the web view suppresses
  content rendering until it is fully loaded into memory.
@@ -128,12 +144,14 @@ WK_CLASS_AVAILABLE(10_10, 8_0)
 
 /*! @abstract The name of the application as used in the user agent string.
 */
-@property (nullable, nonatomic, copy) NSString *applicationNameForUserAgent WK_AVAILABLE(10_11, 9_0);
+@property (nullable, nonatomic, copy) NSString *applicationNameForUserAgent WK_API_AVAILABLE(macosx(10.11), ios(9.0));
 
 /*! @abstract A Boolean value indicating whether AirPlay is allowed.
  @discussion The default value is YES.
  */
-@property (nonatomic) BOOL allowsAirPlayForMediaPlayback WK_AVAILABLE(10_11, 9_0);
+@property (nonatomic) BOOL allowsAirPlayForMediaPlayback WK_API_AVAILABLE(macosx(10.11), ios(9.0));
+
+@property (nonatomic) WKAudiovisualMediaTypes mediaTypesRequiringUserActionForPlayback WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
 
 #if TARGET_OS_IPHONE
 /*! @abstract A Boolean value indicating whether HTML5 videos play inline
@@ -141,12 +159,6 @@ WK_CLASS_AVAILABLE(10_10, 8_0)
  @discussion The default value is NO.
  */
 @property (nonatomic) BOOL allowsInlineMediaPlayback;
-
-/*! @abstract A Boolean value indicating whether HTML5 videos require the
- user to start playing them (YES) or can play automatically (NO).
- @discussion The default value is YES.
- */
-@property (nonatomic) BOOL requiresUserActionForMediaPlayback WK_AVAILABLE(NA, 9_0);
 
 /*! @abstract The level of granularity with which the user can interactively
  select content in the web view.
@@ -159,7 +171,7 @@ WK_CLASS_AVAILABLE(10_10, 8_0)
  picture-in-picture.
  @discussion The default value is YES.
  */
-@property (nonatomic) BOOL allowsPictureInPictureMediaPlayback WK_AVAILABLE(NA, 9_0);
+@property (nonatomic) BOOL allowsPictureInPictureMediaPlayback WK_API_AVAILABLE(ios(9_0));
 
 /*! @abstract An enum value indicating the type of data detection desired.
  @discussion The default value is WKDataDetectorTypeNone.
@@ -168,7 +180,13 @@ WK_CLASS_AVAILABLE(10_10, 8_0)
  if the dataDetectorTypes property is set to WKDataDetectorTypePhoneNumber | WKDataDetectorTypeLink | WKDataDetectorTypeCalendarEvent.
 
  */
-@property (nonatomic) WKDataDetectorTypes dataDetectorTypes WK_AVAILABLE(NA, WK_IOS_TBA);
+@property (nonatomic) WKDataDetectorTypes dataDetectorTypes WK_API_AVAILABLE(ios(WK_IOS_TBA));
+
+/*! @abstract A Boolean value indicating whether the WKWebView should always allow scaling of the web page, regardless of author intent.
+ @discussion This will override the user-scalable property.
+ The default value is NO.
+ */
+@property (nonatomic) BOOL ignoresViewportScaleLimits WK_API_AVAILABLE(ios(WK_IOS_TBA));
 
 #else
 
@@ -176,7 +194,7 @@ WK_CLASS_AVAILABLE(10_10, 8_0)
  @discussion Possible values are described in WKUserInterfaceDirectionPolicy.
  The default value is WKUserInterfaceDirectionPolicyContent.
  */
-@property (nonatomic) WKUserInterfaceDirectionPolicy userInterfaceDirectionPolicy WK_AVAILABLE(WK_MAC_TBA, NA);
+@property (nonatomic) WKUserInterfaceDirectionPolicy userInterfaceDirectionPolicy WK_API_AVAILABLE(macosx(WK_MAC_TBA));
 
 #endif
 
@@ -185,8 +203,9 @@ WK_CLASS_AVAILABLE(10_10, 8_0)
 @interface WKWebViewConfiguration (WKDeprecated)
 
 #if TARGET_OS_IPHONE
-@property (nonatomic) BOOL mediaPlaybackRequiresUserAction WK_DEPRECATED(NA, NA, 8_0, 9_0, "Please use requiresUserActionForMediaPlayback");
-@property (nonatomic) BOOL mediaPlaybackAllowsAirPlay WK_DEPRECATED(NA, NA, 8_0, 9_0, "Please use allowsAirPlayForMediaPlayback");
+@property (nonatomic) BOOL mediaPlaybackRequiresUserAction WK_API_DEPRECATED_WITH_REPLACEMENT("requiresUserActionForMediaPlayback", ios(8.0, 9.0));
+@property (nonatomic) BOOL mediaPlaybackAllowsAirPlay WK_API_DEPRECATED_WITH_REPLACEMENT("allowsAirPlayForMediaPlayback", ios(8.0, 9.0));
+@property (nonatomic) BOOL requiresUserActionForMediaPlayback WK_API_DEPRECATED_WITH_REPLACEMENT("mediaTypesRequiringUserActionForPlayback", ios(9.0, WK_IOS_TBA));
 #endif
 
 @end

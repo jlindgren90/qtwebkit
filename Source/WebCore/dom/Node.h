@@ -35,6 +35,7 @@
 #include <wtf/ListHashSet.h>
 #include <wtf/MainThread.h>
 #include <wtf/TypeCasts.h>
+#include <wtf/Variant.h>
 
 // This needs to be here because Document.h also depends on it.
 #define DUMP_NODE_STATISTICS 0
@@ -51,7 +52,6 @@ class MathMLQualifiedName;
 class NamedNodeMap;
 class NodeList;
 class NodeListsNodeData;
-class NodeOrString;
 class NodeRareData;
 class QualifiedName;
 class RenderBox;
@@ -143,6 +143,7 @@ public:
     virtual String nodeValue() const;
     virtual void setNodeValue(const String&, ExceptionCode&);
     virtual NodeType nodeType() const = 0;
+    virtual size_t approximateMemoryCost() const { return sizeof(*this); }
     ContainerNode* parentNode() const;
     static ptrdiff_t parentNodeMemoryOffset() { return OBJECT_OFFSETOF(Node, m_parentNode); }
     Element* parentElement() const;
@@ -160,7 +161,7 @@ public:
     Node* pseudoAwareFirstChild() const;
     Node* pseudoAwareLastChild() const;
 
-    URL baseURI() const;
+    const URL& baseURI() const;
     
     void getSubresourceURLs(ListHashSet<URL>&) const;
 
@@ -207,9 +208,9 @@ public:
     Element* nextElementSibling() const;
 
     // From the ChildNode - https://dom.spec.whatwg.org/#childnode
-    void before(Vector<NodeOrString>&&, ExceptionCode&);
-    void after(Vector<NodeOrString>&&, ExceptionCode&);
-    void replaceWith(Vector<NodeOrString>&&, ExceptionCode&);
+    void before(Vector<std::variant<Ref<Node>, String>>&&, ExceptionCode&);
+    void after(Vector<std::variant<Ref<Node>, String>>&&, ExceptionCode&);
+    void replaceWith(Vector<std::variant<Ref<Node>, String>>&&, ExceptionCode&);
     WEBCORE_EXPORT void remove(ExceptionCode&);
 
     // Other methods (not part of DOM)
@@ -246,7 +247,6 @@ public:
     bool isDocumentFragment() const { return getFlag(IsDocumentFragmentFlag); }
     bool isShadowRoot() const { return isDocumentFragment() && isTreeScope(); }
 
-    bool isNamedFlowContentNode() const { return getFlag(IsNamedFlowContentNodeFlag); }
     bool hasCustomStyleResolveCallbacks() const { return getFlag(HasCustomStyleResolveCallbacksFlag); }
 
     bool hasSyntheticAttrChildNodes() const { return getFlag(HasSyntheticAttrChildNodesFlag); }
@@ -261,9 +261,8 @@ public:
     ShadowRoot* shadowRoot() const;
     bool isUnclosedNode(const Node&) const;
 
-#if ENABLE(SHADOW_DOM)
     HTMLSlotElement* assignedSlot() const;
-#endif
+    HTMLSlotElement* assignedSlotForBindings() const;
 
 #if ENABLE(CUSTOM_ELEMENTS)
     bool isCustomElement() const { return getFlag(IsCustomElement); }
@@ -336,9 +335,6 @@ public:
 
     bool isLink() const { return getFlag(IsLinkFlag); }
     void setIsLink(bool flag) { setFlag(flag, IsLinkFlag); }
-
-    void setIsNamedFlowContentNode() { setFlag(IsNamedFlowContentNodeFlag); }
-    void clearIsNamedFlowContentNode() { clearFlag(IsNamedFlowContentNodeFlag); }
 
     bool hasEventTargetData() const { return getFlag(HasEventTargetDataFlag); }
     void setHasEventTargetData(bool flag) { setFlag(flag, HasEventTargetDataFlag); }
@@ -498,15 +494,15 @@ public:
     virtual bool willRespondToMouseClickEvents();
     virtual bool willRespondToMouseWheelEvents();
 
-    WEBCORE_EXPORT unsigned short compareDocumentPosition(Node*);
+    WEBCORE_EXPORT unsigned short compareDocumentPosition(Node&);
 
     Node* toNode() override;
 
     EventTargetInterface eventTargetInterface() const override;
     ScriptExecutionContext* scriptExecutionContext() const final; // Implemented in Document.h
 
-    bool addEventListener(const AtomicString& eventType, RefPtr<EventListener>&&, bool useCapture) override;
-    bool removeEventListener(const AtomicString& eventType, EventListener*, bool useCapture) override;
+    bool addEventListener(const AtomicString& eventType, Ref<EventListener>&&, const AddEventListenerOptions&) override;
+    bool removeEventListener(const AtomicString& eventType, EventListener&, const ListenerOptions&) override;
 
     using EventTarget::dispatchEvent;
     bool dispatchEvent(Event&) override;
@@ -572,6 +568,7 @@ public:
     static int32_t flagIsElement() { return IsElementFlag; }
     static int32_t flagIsHTML() { return IsHTMLFlag; }
     static int32_t flagIsLink() { return IsLinkFlag; }
+    static int32_t flagHasFocusWithin() { return HasFocusWithin; }
     static int32_t flagHasRareData() { return HasRareDataFlag; }
     static int32_t flagIsParsingChildrenFinished() { return IsParsingChildrenFinishedFlag; }
     static int32_t flagChildrenAffectedByFirstChildRulesFlag() { return ChildrenAffectedByFirstChildRulesFlag; }
@@ -602,7 +599,7 @@ protected:
 
         StyleChangeMask = 1 << nodeStyleChangeShift | 1 << (nodeStyleChangeShift + 1) | 1 << (nodeStyleChangeShift + 2),
         IsEditingTextOrUnresolvedCustomElementFlag = 1 << 17,
-        IsNamedFlowContentNodeFlag = 1 << 18,
+        HasFocusWithin = 1 << 18,
         HasSyntheticAttrChildNodesFlag = 1 << 19,
         HasCustomStyleResolveCallbacksFlag = 1 << 20,
         HasEventTargetDataFlag = 1 << 21,
@@ -664,6 +661,8 @@ protected:
     void setStyleChange(StyleChangeType changeType) { m_nodeFlags = (m_nodeFlags & ~StyleChangeMask) | changeType; }
     void updateAncestorsForStyleRecalc();
 
+    RefPtr<Node> convertNodesOrStringsIntoNode(Vector<std::variant<Ref<Node>, String>>&&, ExceptionCode&);
+
 private:
     virtual PseudoId customPseudoId() const
     {
@@ -675,8 +674,6 @@ private:
 
     void refEventTarget() override;
     void derefEventTarget() override;
-
-    Element* ancestorElement() const;
 
     void trackForDebugging();
     void materializeRareData();
@@ -784,9 +781,6 @@ inline void Node::setCustomElementIsResolved()
 }
 
 #endif
-
-Node* commonAncestor(Node&, Node&);
-Node* commonAncestorCrossingShadowBoundary(Node&, Node&);
 
 } // namespace WebCore
 

@@ -33,7 +33,9 @@
 #include "HTMLFormControlElement.h"
 #include "HTMLFormElement.h"
 #include "HTMLOptGroupElement.h"
+#include "HTMLOptionElement.h"
 #include "HTMLParserIdioms.h"
+#include "HTMLTableElement.h"
 #include "JSCustomElementInterface.h"
 #include "LocalizedStrings.h"
 #include "NotImplemented.h"
@@ -53,8 +55,8 @@ using namespace HTMLNames;
 
 #if ENABLE(CUSTOM_ELEMENTS)
 
-CustomElementConstructionData::CustomElementConstructionData(Ref<JSCustomElementInterface>&& interface, const AtomicString& name, const Vector<Attribute>& attributes)
-    : interface(WTFMove(interface))
+CustomElementConstructionData::CustomElementConstructionData(Ref<JSCustomElementInterface>&& customElementInterface, const AtomicString& name, const Vector<Attribute>& attributes)
+    : elementInterface(WTFMove(customElementInterface))
     , name(name)
     , attributes(attributes) // FIXME: Avoid copying attributes.
 { }
@@ -468,7 +470,7 @@ void HTMLTreeBuilder::processIsindexStartTagForInBody(AtomicHTMLToken& token)
     notImplemented(); // Acknowledge self-closing flag
     processFakeStartTag(formTag);
     if (Attribute* actionAttribute = findAttribute(token.attributes(), actionAttr))
-        m_tree.form()->setAttribute(actionAttr, actionAttribute->value());
+        m_tree.form()->setAttributeWithoutSynchronization(actionAttr, actionAttribute->value());
     processFakeStartTag(hrTag);
     processFakeStartTag(labelTag);
     if (Attribute* promptAttribute = findAttribute(token.attributes(), promptAttr))
@@ -573,11 +575,12 @@ static HashMap<AtomicString, QualifiedName> createForeignAttributesMap()
 {
     HashMap<AtomicString, QualifiedName> map;
 
-    addNamesWithPrefix(map, xlinkAtom, XLinkNames::getXLinkAttrs(), XLinkNames::XLinkAttrsCount);
+    AtomicString xlinkName("xlink", AtomicString::ConstructFromLiteral);
+    addNamesWithPrefix(map, xlinkName, XLinkNames::getXLinkAttrs(), XLinkNames::XLinkAttrsCount);
     addNamesWithPrefix(map, xmlAtom, XMLNames::getXMLAttrs(), XMLNames::XMLAttrsCount);
 
     map.add(WTF::xmlnsAtom, XMLNSNames::xmlnsAttr);
-    map.add("xmlns:xlink", QualifiedName(xmlnsAtom, xlinkAtom, XMLNSNames::xmlnsNamespaceURI));
+    map.add("xmlns:xlink", QualifiedName(xmlnsAtom, xlinkName, XMLNSNames::xmlnsNamespaceURI));
 
     return map;
 }
@@ -907,9 +910,9 @@ void HTMLTreeBuilder::processStartTagForInBody(AtomicHTMLToken& token)
 inline void HTMLTreeBuilder::insertGenericHTMLElement(AtomicHTMLToken& token)
 {
 #if ENABLE(CUSTOM_ELEMENTS)
-    auto* interface = m_tree.insertHTMLElementOrFindCustomElementInterface(token);
-    if (UNLIKELY(interface))
-        m_customElementToConstruct = std::make_unique<CustomElementConstructionData>(*interface, token.name(), token.attributes());
+    auto* elementInterface = m_tree.insertHTMLElementOrFindCustomElementInterface(token);
+    if (UNLIKELY(elementInterface))
+        m_customElementToConstruct = std::make_unique<CustomElementConstructionData>(*elementInterface, token.name(), token.attributes());
 #else
     m_tree.insertHTMLElement(token);
 #endif

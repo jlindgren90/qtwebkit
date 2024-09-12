@@ -43,7 +43,7 @@
 #include "Settings.h"
 #include "SimpleLineLayoutFunctions.h"
 #include "Text.h"
-#include "TextBreakIterator.h"
+#include <wtf/text/TextBreakIterator.h>
 #include "TextResourceDecoder.h"
 #include "VisiblePosition.h"
 #include "break_lines.h"
@@ -442,7 +442,7 @@ VisiblePosition RenderText::positionForPoint(const LayoutPoint& point, const Ren
     return m_lineBoxes.positionForPoint(*this, point);
 }
 
-LayoutRect RenderText::localCaretRect(InlineBox* inlineBox, int caretOffset, LayoutUnit* extraWidthToEndOfLine)
+LayoutRect RenderText::localCaretRect(InlineBox* inlineBox, unsigned caretOffset, LayoutUnit* extraWidthToEndOfLine)
 {
     if (!inlineBox)
         return LayoutRect();
@@ -1372,13 +1372,12 @@ LayoutRect RenderText::collectSelectionRectsForLineBoxes(const RenderLayerModelO
 
     if (selectionState() == SelectionNone)
         return LayoutRect();
-    RenderBlock* cb = containingBlock();
-    if (!cb)
+    if (!containingBlock())
         return LayoutRect();
 
     // Now calculate startPos and endPos for painting selection.
     // We include a selection while endPos > 0
-    int startPos, endPos;
+    unsigned startPos, endPos;
     if (selectionState() == SelectionInside) {
         // We are fully selected.
         startPos = 0;
@@ -1528,7 +1527,7 @@ int RenderText::previousOffsetForBackwardDeletion(int current) const
 #if PLATFORM(COCOA) || PLATFORM(EFL) || PLATFORM(GTK)
     bool sawRegionalIndicator = false;
     bool sawEmojiGroupCandidate = false;
-    bool sawEmojiModifier = false;
+    bool sawEmojiFitzpatrickModifier = false;
     
     while (current > 0) {
         UChar32 character;
@@ -1544,8 +1543,8 @@ int RenderText::previousOffsetForBackwardDeletion(int current) const
             break;
         }
 
-        if (sawEmojiModifier) {
-            if (isEmojiModifier(character)) {
+        if (sawEmojiFitzpatrickModifier) {
+            if (isEmojiFitzpatrickModifier(character)) {
                 // Don't treat two emoji modifiers in a row as a group.
                 U16_FWD_1_UNSAFE(text, current);
                 break;
@@ -1573,8 +1572,8 @@ int RenderText::previousOffsetForBackwardDeletion(int current) const
             continue;
         }
         
-        if (isEmojiModifier(character)) {
-            sawEmojiModifier = true;
+        if (isEmojiFitzpatrickModifier(character)) {
+            sawEmojiFitzpatrickModifier = true;
             continue;
         }
 

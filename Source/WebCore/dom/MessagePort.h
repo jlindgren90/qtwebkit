@@ -51,8 +51,6 @@ namespace WebCore {
         virtual ~MessagePort();
 
         void postMessage(RefPtr<SerializedScriptValue>&& message, const MessagePortArray*, ExceptionCode&);
-        // Needed for Objective-C bindings (see bug 28774).
-        void postMessage(RefPtr<SerializedScriptValue>&& message, MessagePort*, ExceptionCode&);
 
         void start();
         void close();
@@ -92,7 +90,7 @@ namespace WebCore {
         // A port gets neutered when it is transferred to a new owner via postMessage().
         bool isNeutered() { return !m_entangledChannel; }
 
-        bool addEventListener(const AtomicString& eventType, RefPtr<EventListener>&&, bool useCapture) override;
+        bool addEventListener(const AtomicString& eventType, Ref<EventListener>&&, const AddEventListenerOptions&) override;
 
     private:
         explicit MessagePort(ScriptExecutionContext&);

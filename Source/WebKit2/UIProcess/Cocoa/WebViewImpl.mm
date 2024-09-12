@@ -46,6 +46,7 @@
 #import "TextChecker.h"
 #import "TextCheckerState.h"
 #import "TiledCoreAnimationDrawingAreaProxy.h"
+#import "UIGamepadProvider.h"
 #import "ViewGestureController.h"
 #import "WKBrowsingContextControllerInternal.h"
 #import "WKFullScreenWindowController.h"
@@ -90,6 +91,7 @@
 #import <WebCore/WebCoreNSStringExtras.h>
 #import <WebKitSystemInterface.h>
 #import <sys/stat.h>
+#import <wtf/NeverDestroyed.h>
 
 #if USE(APPLE_INTERNAL_SDK)
 #import <WebKitAdditions/WebViewImplIncludes.h>
@@ -452,6 +454,11 @@ void WebViewImpl::webViewImplAdditionsWillDestroyView()
 {
 }
 
+void WebViewImpl::setEditableElementIsFocused(bool editableElementIsFocused)
+{
+    m_editableElementIsFocused = editableElementIsFocused;
+}
+
 } // namespace WebKit
 #endif // __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200 && USE(APPLE_INTERNAL_SDK)
 
@@ -749,7 +756,10 @@ void WebViewImpl::updateWindowAndViewFrames()
 
 void WebViewImpl::setFixedLayoutSize(CGSize fixedLayoutSize)
 {
-    m_page->setFixedLayoutSize(WebCore::expandedIntSize(WebCore::FloatSize(fixedLayoutSize)));
+    m_lastRequestedFixedLayoutSize = fixedLayoutSize;
+
+    if (supportsArbitraryLayoutModes())
+        m_page->setFixedLayoutSize(WebCore::expandedIntSize(WebCore::FloatSize(fixedLayoutSize)));
 }
 
 CGSize WebViewImpl::fixedLayoutSize() const
@@ -1000,16 +1010,20 @@ void WebViewImpl::updateSupportsArbitraryLayoutModes()
     if (!supportsArbitraryLayoutModes()) {
         WKLayoutMode oldRequestedLayoutMode = m_lastRequestedLayoutMode;
         CGFloat oldRequestedViewScale = m_lastRequestedViewScale;
+        CGSize oldRequestedFixedLayoutSize = m_lastRequestedFixedLayoutSize;
         setViewScale(1);
         setLayoutMode(kWKLayoutModeViewSize);
+        setFixedLayoutSize(CGSizeZero);
 
         // The 'last requested' parameters will have been overwritten by setting them above, but we don't
         // want this to count as a request (only changes from the client count), so reset them.
         m_lastRequestedLayoutMode = oldRequestedLayoutMode;
         m_lastRequestedViewScale = oldRequestedViewScale;
+        m_lastRequestedFixedLayoutSize = oldRequestedFixedLayoutSize;
     } else if (m_lastRequestedLayoutMode != [m_layoutStrategy layoutMode]) {
         setViewScale(m_lastRequestedViewScale);
         setLayoutMode(m_lastRequestedLayoutMode);
+        setFixedLayoutSize(m_lastRequestedFixedLayoutSize);
     }
 }
 
@@ -1043,6 +1057,9 @@ void WebViewImpl::windowDidOrderOnScreen()
 void WebViewImpl::windowDidBecomeKey(NSWindow *keyWindow)
 {
     if (keyWindow == m_view.window || keyWindow == m_view.window.attachedSheet) {
+#if ENABLE(GAMEPAD)
+        UIGamepadProvider::singleton().viewBecameActive(m_page.get());
+#endif
         updateSecureInputState();
         m_page->viewStateDidChange(WebCore::ViewState::WindowIsActive);
     }
@@ -1051,6 +1068,9 @@ void WebViewImpl::windowDidBecomeKey(NSWindow *keyWindow)
 void WebViewImpl::windowDidResignKey(NSWindow *formerKeyWindow)
 {
     if (formerKeyWindow == m_view.window || formerKeyWindow == m_view.window.attachedSheet) {
+#if ENABLE(GAMEPAD)
+        UIGamepadProvider::singleton().viewBecameInactive(m_page.get());
+#endif
         updateSecureInputState();
         m_page->viewStateDidChange(WebCore::ViewState::WindowIsActive);
     }
@@ -1088,7 +1108,7 @@ void WebViewImpl::windowDidChangeBackingProperties(CGFloat oldBackingScaleFactor
 void WebViewImpl::windowDidChangeScreen()
 {
     NSWindow *window = m_targetWindowForMovePreparation ? m_targetWindowForMovePreparation : m_view.window;
-    m_page->windowScreenDidChange((PlatformDisplayID)[[[[window screen] deviceDescription] objectForKey:@"NSScreenNumber"] intValue]);
+    m_page->windowScreenDidChange([[[[window screen] deviceDescription] objectForKey:@"NSScreenNumber"] intValue]);
 }
 
 void WebViewImpl::windowDidChangeLayerHosting()
@@ -1190,7 +1210,7 @@ void WebViewImpl::viewDidMoveToWindow()
         windowDidChangeScreen();
 
         WebCore::ViewState::Flags viewStateChanges = WebCore::ViewState::WindowIsActive | WebCore::ViewState::IsVisible;
-        if (m_isDeferringViewInWindowChanges)
+        if (m_shouldDeferViewInWindowChanges)
             m_viewInWindowChangeWasDeferred = true;
         else
             viewStateChanges |= WebCore::ViewState::IsInWindow;
@@ -1219,7 +1239,7 @@ void WebViewImpl::viewDidMoveToWindow()
             [m_view addGestureRecognizer:m_immediateActionGestureRecognizer.get()];
     } else {
         WebCore::ViewState::Flags viewStateChanges = WebCore::ViewState::WindowIsActive | WebCore::ViewState::IsVisible;
-        if (m_isDeferringViewInWindowChanges)
+        if (m_shouldDeferViewInWindowChanges)
             m_viewInWindowChangeWasDeferred = true;
         else
             viewStateChanges |= WebCore::ViewState::IsInWindow;
@@ -1578,7 +1598,7 @@ NSInteger WebViewImpl::spellCheckerDocumentTag()
 
 void WebViewImpl::pressureChangeWithEvent(NSEvent *event)
 {
-#if defined(__LP64__) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101003
+#if defined(__LP64__)
     if (event == m_lastPressureEvent)
         return;
 
@@ -2777,7 +2797,7 @@ void WebViewImpl::draggedImage(NSImage *image, CGPoint endPoint, NSDragOperation
     // Prevent queued mouseDragged events from coming after the drag and fake mouseUp event.
     m_ignoresMouseDraggedEvents = true;
 
-    m_page->dragEnded(WebCore::IntPoint(windowMouseLoc), WebCore::globalPoint(windowMouseLoc, m_view.window), operation);
+    m_page->dragEnded(WebCore::IntPoint(windowMouseLoc), WebCore::IntPoint(WebCore::globalPoint(windowMouseLoc, m_view.window)), operation);
 }
 
 static WebCore::DragApplicationFlags applicationFlagsForDrag(NSView *view, id <NSDraggingInfo> draggingInfo)
@@ -2917,6 +2937,7 @@ void WebViewImpl::registerDraggedTypes()
 {
     auto types = adoptNS([[NSMutableSet alloc] initWithArray:PasteboardTypes::forEditing()]);
     [types addObjectsFromArray:PasteboardTypes::forURL()];
+    [types addObject:PasteboardTypes::WebDummyPboardType];
     [m_view registerForDraggedTypes:[types allObjects]];
 }
 #endif // ENABLE(DRAG_SUPPORT)
@@ -2932,14 +2953,15 @@ void WebViewImpl::dragImageForView(NSView *view, NSImage *image, CGPoint clientP
 {
     // The call below could release the view.
     RetainPtr<NSView> protector(m_view);
-
+    NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName:NSDragPboard];
+    [pasteboard setString:@"" forType:PasteboardTypes::WebDummyPboardType];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [view dragImage:image
                  at:NSPointFromCGPoint(clientPoint)
              offset:NSZeroSize
               event:linkDrag ? [NSApp currentEvent] : m_lastMouseDownEvent.get()
-         pasteboard:[NSPasteboard pasteboardWithName:NSDragPboard]
+         pasteboard:pasteboard
              source:m_view
           slideBack:YES];
 #pragma clang diagnostic pop
@@ -3001,8 +3023,8 @@ void WebViewImpl::setPromisedDataForAttachment(NSString *filename, NSString *ext
 void WebViewImpl::pasteboardChangedOwner(NSPasteboard *pasteboard)
 {
     m_promisedImage = nullptr;
-    m_promisedFilename = "";
-    m_promisedURL = "";
+    m_promisedFilename = emptyString();
+    m_promisedURL = emptyString();
 }
 
 void WebViewImpl::provideDataForPasteboard(NSPasteboard *pasteboard, NSString *type)
@@ -4026,7 +4048,29 @@ bool WebViewImpl::windowIsFrontWindowUnderMouse(NSEvent *event)
     return m_view.window.windowNumber != eventWindowNumber;
 }
 
-    
+static WebCore::UserInterfaceLayoutDirection toUserInterfaceLayoutDirection(NSUserInterfaceLayoutDirection direction)
+{
+    switch (direction) {
+    case NSUserInterfaceLayoutDirectionLeftToRight:
+        return WebCore::UserInterfaceLayoutDirection::LTR;
+    case NSUserInterfaceLayoutDirectionRightToLeft:
+        return WebCore::UserInterfaceLayoutDirection::RTL;
+    }
+
+    ASSERT_NOT_REACHED();
+    return WebCore::UserInterfaceLayoutDirection::LTR;
+}
+
+WebCore::UserInterfaceLayoutDirection WebViewImpl::userInterfaceLayoutDirection()
+{
+    return toUserInterfaceLayoutDirection(m_view.userInterfaceLayoutDirection);
+}
+
+void WebViewImpl::setUserInterfaceLayoutDirection(NSUserInterfaceLayoutDirection direction)
+{
+    m_page->setUserInterfaceLayoutDirection(toUserInterfaceLayoutDirection(direction));
+}
+
 } // namespace WebKit
 
 #endif // PLATFORM(MAC)

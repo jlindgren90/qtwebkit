@@ -59,6 +59,7 @@
 #include "Page.h"
 #include "PageConsoleAgent.h"
 #include "PageDebuggerAgent.h"
+#include "PageHeapAgent.h"
 #include "PageRuntimeAgent.h"
 #include "PageScriptDebugServer.h"
 #include "Settings.h"
@@ -70,9 +71,7 @@
 #include <inspector/InspectorFrontendDispatchers.h>
 #include <inspector/InspectorFrontendRouter.h>
 #include <inspector/agents/InspectorAgent.h>
-#include <inspector/agents/InspectorHeapAgent.h>
 #include <inspector/agents/InspectorScriptProfilerAgent.h>
-#include <profiler/LegacyProfiler.h>
 #include <runtime/JSLock.h>
 #include <wtf/Stopwatch.h>
 
@@ -158,7 +157,7 @@ InspectorController::InspectorController(Page& page, InspectorClient* inspectorC
     InspectorDOMStorageAgent* domStorageAgent = domStorageAgentPtr.get();
     m_agents.append(WTFMove(domStorageAgentPtr));
 
-    auto heapAgentPtr = std::make_unique<InspectorHeapAgent>(pageContext);
+    auto heapAgentPtr = std::make_unique<PageHeapAgent>(pageContext);
     InspectorHeapAgent* heapAgent = heapAgentPtr.get();
     m_agents.append(WTFMove(heapAgentPtr));
 
@@ -171,14 +170,11 @@ InspectorController::InspectorController(Page& page, InspectorClient* inspectorC
     m_instrumentingAgents->setWebConsoleAgent(consoleAgentPtr.get());
     m_agents.append(WTFMove(consoleAgentPtr));
 
-    auto timelineAgentPtr = std::make_unique<InspectorTimelineAgent>(pageContext, scriptProfilerAgent, heapAgent, pageAgent);
-    m_timelineAgent = timelineAgentPtr.get();
-    m_agents.append(WTFMove(timelineAgentPtr));
-
     auto debuggerAgentPtr = std::make_unique<PageDebuggerAgent>(pageContext, pageAgent, m_overlay.get());
     PageDebuggerAgent* debuggerAgent = debuggerAgentPtr.get();
     m_agents.append(WTFMove(debuggerAgentPtr));
 
+    m_agents.append(std::make_unique<InspectorTimelineAgent>(pageContext, scriptProfilerAgent, heapAgent, pageAgent));
     m_agents.append(std::make_unique<InspectorDOMDebuggerAgent>(pageContext, m_domAgent, debuggerAgent));
     m_agents.append(std::make_unique<InspectorApplicationCacheAgent>(pageContext, pageAgent));
     m_agents.append(std::make_unique<InspectorLayerTreeAgent>(pageContext));
@@ -345,6 +341,17 @@ void InspectorController::setProcessId(long processId)
     IdentifiersFactory::setProcessId(processId);
 }
 
+void InspectorController::setIsUnderTest(bool value)
+{
+    if (value == m_isUnderTest)
+        return;
+
+    m_isUnderTest = value;
+
+    // <rdar://problem/26768628> Try to catch suspicious scenarios where we may have a dangling frontend while running tests.
+    RELEASE_ASSERT(!m_isUnderTest || !m_frontendRouter->hasFrontends());
+}
+
 void InspectorController::evaluateForTestInFrontend(const String& script)
 {
     m_inspectorAgent->evaluateForTestInFrontend(script);
@@ -412,27 +419,6 @@ void InspectorController::setIndicating(bool indicating)
     else
         m_inspectorClient->hideInspectorIndication();
 #endif
-}
-
-bool InspectorController::legacyProfilerEnabled() const
-{
-    return m_legacyProfilerEnabled;
-}
-
-void InspectorController::setLegacyProfilerEnabled(bool enable)
-{
-    m_legacyProfilerEnabled = enable;
-
-    ErrorString unused;
-    if (enable) {
-        m_instrumentingAgents->setPersistentInspectorTimelineAgent(m_timelineAgent);
-        m_scriptDebugServer.recompileAllJSFunctions();
-        m_timelineAgent->start(unused);
-    } else {
-        m_instrumentingAgents->setPersistentInspectorTimelineAgent(nullptr);
-        m_scriptDebugServer.recompileAllJSFunctions();
-        m_timelineAgent->stop(unused);
-    }
 }
 
 bool InspectorController::developerExtrasEnabled() const

@@ -34,35 +34,41 @@
 #include <WebCore/NotImplemented.h>
 #include <WebCore/ResourceHandle.h>
 #include <WebCore/SessionID.h>
+#include <WebCore/SharedBuffer.h>
 #include <wtf/MainThread.h>
 
 namespace WebKit {
 
 using namespace WebCore;
 
-NetworkLoad::NetworkLoad(NetworkLoadClient& client, const NetworkLoadParameters& parameters)
-    : m_client(client)
-    , m_parameters(parameters)
-#if !USE(NETWORK_SESSION)
-    , m_networkingContext(RemoteNetworkingContext::create(parameters.sessionID, parameters.shouldClearReferrerOnHTTPSToHTTPRedirect))
-#endif
-    , m_currentRequest(parameters.request)
-{
 #if USE(NETWORK_SESSION)
-    if (parameters.request.url().protocolIsBlob()) {
-        m_handle = ResourceHandle::create(nullptr, parameters.request, this, parameters.defersLoading, parameters.contentSniffingPolicy == SniffContent);
+
+NetworkLoad::NetworkLoad(NetworkLoadClient& client, NetworkLoadParameters&& parameters, NetworkSession& networkSession)
+    : m_client(client)
+    , m_parameters(WTFMove(parameters))
+    , m_currentRequest(m_parameters.request)
+{
+    if (m_parameters.request.url().protocolIsBlob()) {
+        m_handle = ResourceHandle::create(nullptr, m_parameters.request, this, m_parameters.defersLoading, m_parameters.contentSniffingPolicy == SniffContent);
         return;
     }
-    if (auto* networkSession = SessionTracker::networkSession(parameters.sessionID)) {
-        m_task = NetworkDataTask::create(*networkSession, *this, parameters.request, parameters.allowStoredCredentials, parameters.contentSniffingPolicy, parameters.shouldClearReferrerOnHTTPSToHTTPRedirect);
-        if (!parameters.defersLoading)
-            m_task->resume();
-    } else
-        WTFLogAlways("Attempted to create a NetworkLoad with a session (id=%" PRIu64 ") that does not exist.", parameters.sessionID.sessionID());
-#else
-    m_handle = ResourceHandle::create(m_networkingContext.get(), parameters.request, this, parameters.defersLoading, parameters.contentSniffingPolicy == SniffContent);
-#endif
+    m_task = NetworkDataTask::create(networkSession, *this, m_parameters.request, m_parameters.allowStoredCredentials, m_parameters.contentSniffingPolicy, m_parameters.shouldClearReferrerOnHTTPSToHTTPRedirect);
+    if (!m_parameters.defersLoading)
+        m_task->resume();
 }
+
+#else
+
+NetworkLoad::NetworkLoad(NetworkLoadClient& client, NetworkLoadParameters&& parameters)
+    : m_client(client)
+    , m_parameters(WTFMove(parameters))
+    , m_networkingContext(RemoteNetworkingContext::create(m_parameters.sessionID, m_parameters.shouldClearReferrerOnHTTPSToHTTPRedirect))
+    , m_currentRequest(m_parameters.request)
+{
+    m_handle = ResourceHandle::create(m_networkingContext.get(), m_parameters.request, this, m_parameters.defersLoading, m_parameters.contentSniffingPolicy == SniffContent);
+}
+
+#endif
 
 NetworkLoad::~NetworkLoad()
 {
@@ -70,8 +76,13 @@ NetworkLoad::~NetworkLoad()
 #if USE(NETWORK_SESSION)
     if (m_responseCompletionHandler)
         m_responseCompletionHandler(PolicyIgnore);
+    if (m_challengeCompletionHandler)
+        m_challengeCompletionHandler(AuthenticationChallengeDisposition::Cancel, { });
     if (m_task)
         m_task->clearClient();
+#elif USE(PROTECTION_SPACE_AUTH_CALLBACK)
+    if (m_handle && m_waitingForContinueCanAuthenticateAgainstProtectionSpace)
+        m_handle->continueCanAuthenticateAgainstProtectionSpace(false);
 #endif
     if (m_handle)
         m_handle->clearClient();
@@ -101,7 +112,7 @@ void NetworkLoad::cancel()
         m_handle->cancel();
 }
 
-void NetworkLoad::continueWillSendRequest(const WebCore::ResourceRequest& newRequest)
+void NetworkLoad::continueWillSendRequest(WebCore::ResourceRequest&& newRequest)
 {
 #if PLATFORM(COCOA)
     m_currentRequest.updateFromDelegatePreservingOldProperties(newRequest.nsURLRequest(DoNotUpdateHTTPBody));
@@ -124,8 +135,10 @@ void NetworkLoad::continueWillSendRequest(const WebCore::ResourceRequest& newReq
             redirectCompletionHandler({ });
 #endif
         return;
-    } else if (m_handle)
-        m_handle->continueWillSendRequest(m_currentRequest);
+    } else if (m_handle) {
+        auto currentRequestCopy = m_currentRequest;
+        m_handle->continueWillSendRequest(WTFMove(currentRequestCopy));
+    }
 
 #if USE(NETWORK_SESSION)
     if (redirectCompletionHandler)
@@ -146,30 +159,29 @@ void NetworkLoad::continueDidReceiveResponse()
         m_handle->continueDidReceiveResponse();
 }
 
-NetworkLoadClient::ShouldContinueDidReceiveResponse NetworkLoad::sharedDidReceiveResponse(const ResourceResponse& receivedResponse)
+NetworkLoadClient::ShouldContinueDidReceiveResponse NetworkLoad::sharedDidReceiveResponse(ResourceResponse&& response)
 {
-    ResourceResponse response = receivedResponse;
     response.setSource(ResourceResponse::Source::Network);
     if (m_parameters.needsCertificateInfo)
         response.includeCertificateInfo();
 
-    return m_client.didReceiveResponse(response);
+    return m_client.didReceiveResponse(WTFMove(response));
 }
 
-void NetworkLoad::sharedWillSendRedirectedRequest(const ResourceRequest& request, const ResourceResponse& redirectResponse)
+void NetworkLoad::sharedWillSendRedirectedRequest(ResourceRequest&& request, ResourceResponse&& redirectResponse)
 {
     // We only expect to get the willSendRequest callback from ResourceHandle as the result of a redirect.
     ASSERT(!redirectResponse.isNull());
     ASSERT(RunLoop::isMain());
 
-    auto oldRequest = m_currentRequest;
+    auto oldRequest = WTFMove(m_currentRequest);
     m_currentRequest = request;
-    m_client.willSendRedirectedRequest(oldRequest, request, redirectResponse);
+    m_client.willSendRedirectedRequest(WTFMove(oldRequest), WTFMove(request), WTFMove(redirectResponse));
 }
 
 #if USE(NETWORK_SESSION)
 
-void NetworkLoad::convertTaskToDownload(DownloadID downloadID, const ResourceRequest& updatedRequest)
+void NetworkLoad::convertTaskToDownload(DownloadID downloadID, const ResourceRequest& updatedRequest, const ResourceResponse& response)
 {
     if (!m_task)
         return;
@@ -178,7 +190,7 @@ void NetworkLoad::convertTaskToDownload(DownloadID downloadID, const ResourceReq
     
     ASSERT(m_responseCompletionHandler);
     if (m_responseCompletionHandler)
-        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), std::exchange(m_responseCompletionHandler, nullptr), updatedRequest);
+        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), std::exchange(m_responseCompletionHandler, nullptr), updatedRequest, response);
 }
 
 void NetworkLoad::setPendingDownloadID(DownloadID downloadID)
@@ -197,18 +209,15 @@ void NetworkLoad::setPendingDownload(PendingDownload& pendingDownload)
     m_task->setPendingDownload(pendingDownload);
 }
 
-void NetworkLoad::willPerformHTTPRedirection(const ResourceResponse& response, const ResourceRequest& request, RedirectCompletionHandler completionHandler)
+void NetworkLoad::willPerformHTTPRedirection(ResourceResponse&& response, ResourceRequest&& request, RedirectCompletionHandler&& completionHandler)
 {
     ASSERT(!m_redirectCompletionHandler);
-    m_redirectCompletionHandler = completionHandler;
-    sharedWillSendRedirectedRequest(request, response);
+    m_redirectCompletionHandler = WTFMove(completionHandler);
+    sharedWillSendRedirectedRequest(WTFMove(request), WTFMove(response));
 }
 
-void NetworkLoad::didReceiveChallenge(const AuthenticationChallenge& challenge, std::function<void(AuthenticationChallengeDisposition, const Credential&)> completionHandler)
+void NetworkLoad::didReceiveChallenge(const AuthenticationChallenge& challenge, ChallengeCompletionHandler&& completionHandler)
 {
-    // NetworkResourceLoader does not know whether the request is cross origin, so Web process computes an applicable credential policy for it.
-    ASSERT(m_parameters.clientCredentialPolicy != DoNotAskClientForCrossOriginCredentials);
-
     // Handle server trust evaluation at platform-level if requested, for performance reasons.
     if (challenge.protectionSpace().authenticationScheme() == ProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested
         && !NetworkProcess::singleton().canHandleHTTPSServerTrustEvaluation()) {
@@ -219,33 +228,26 @@ void NetworkLoad::didReceiveChallenge(const AuthenticationChallenge& challenge, 
         return;
     }
 
-    m_challengeCompletionHandler = completionHandler;
+    m_challengeCompletionHandler = WTFMove(completionHandler);
     m_challenge = challenge;
 
-    if (m_client.isSynchronous()) {
-        // FIXME: We should ask the WebProcess like the asynchronous case below does.
-        // This is currently impossible as the WebProcess is blocked waiting on this synchronous load.
-        // It's possible that we can jump straight to the UI process to resolve this.
-        continueCanAuthenticateAgainstProtectionSpace(true);
-        return;
-    } else
-        m_client.canAuthenticateAgainstProtectionSpaceAsync(challenge.protectionSpace());
+    m_client.canAuthenticateAgainstProtectionSpaceAsync(challenge.protectionSpace());
 }
 
-void NetworkLoad::didReceiveResponseNetworkSession(const ResourceResponse& response, ResponseCompletionHandler completionHandler)
+void NetworkLoad::didReceiveResponseNetworkSession(ResourceResponse&& response, ResponseCompletionHandler&& completionHandler)
 {
     ASSERT(isMainThread());
     if (m_task && m_task->pendingDownloadID().downloadID())
-        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), completionHandler, m_task->currentRequest());
-    else if (sharedDidReceiveResponse(response) == NetworkLoadClient::ShouldContinueDidReceiveResponse::Yes)
+        NetworkProcess::singleton().findPendingDownloadLocation(*m_task.get(), WTFMove(completionHandler), m_task->currentRequest(), response);
+    else if (sharedDidReceiveResponse(WTFMove(response)) == NetworkLoadClient::ShouldContinueDidReceiveResponse::Yes)
         completionHandler(PolicyUse);
     else
-        m_responseCompletionHandler = completionHandler;
+        m_responseCompletionHandler = WTFMove(completionHandler);
 }
 
-void NetworkLoad::didReceiveData(RefPtr<SharedBuffer>&& buffer)
+void NetworkLoad::didReceiveData(Ref<SharedBuffer>&& buffer)
 {
-    ASSERT(buffer);
+    // FIXME: This should be the encoded data length, not the decoded data length.
     auto size = buffer->size();
     m_client.didReceiveBuffer(WTFMove(buffer), size);
 }
@@ -280,10 +282,10 @@ void NetworkLoad::cannotShowURL()
     
 #endif
 
-void NetworkLoad::didReceiveResponseAsync(ResourceHandle* handle, const ResourceResponse& receivedResponse)
+void NetworkLoad::didReceiveResponseAsync(ResourceHandle* handle, ResourceResponse&& receivedResponse)
 {
     ASSERT_UNUSED(handle, handle == m_handle);
-    if (sharedDidReceiveResponse(receivedResponse) == NetworkLoadClient::ShouldContinueDidReceiveResponse::Yes)
+    if (sharedDidReceiveResponse(WTFMove(receivedResponse)) == NetworkLoadClient::ShouldContinueDidReceiveResponse::Yes)
         m_handle->continueDidReceiveResponse();
 }
 
@@ -294,7 +296,7 @@ void NetworkLoad::didReceiveData(ResourceHandle*, const char* /* data */, unsign
     ASSERT_NOT_REACHED();
 }
 
-void NetworkLoad::didReceiveBuffer(ResourceHandle* handle, PassRefPtr<SharedBuffer> buffer, int reportedEncodedDataLength)
+void NetworkLoad::didReceiveBuffer(ResourceHandle* handle, Ref<SharedBuffer>&& buffer, int reportedEncodedDataLength)
 {
     ASSERT_UNUSED(handle, handle == m_handle);
     m_client.didReceiveBuffer(WTFMove(buffer), reportedEncodedDataLength);
@@ -314,10 +316,10 @@ void NetworkLoad::didFail(ResourceHandle* handle, const ResourceError& error)
     m_client.didFailLoading(error);
 }
 
-void NetworkLoad::willSendRequestAsync(ResourceHandle* handle, const ResourceRequest& request, const ResourceResponse& redirectResponse)
+void NetworkLoad::willSendRequestAsync(ResourceHandle* handle, ResourceRequest&& request, ResourceResponse&& redirectResponse)
 {
     ASSERT_UNUSED(handle, handle == m_handle);
-    sharedWillSendRedirectedRequest(request, redirectResponse);
+    sharedWillSendRedirectedRequest(WTFMove(request), WTFMove(redirectResponse));
 }
 
 #if USE(PROTECTION_SPACE_AUTH_CALLBACK)
@@ -333,14 +335,9 @@ void NetworkLoad::canAuthenticateAgainstProtectionSpaceAsync(ResourceHandle* han
         return;
     }
 
-    if (m_client.isSynchronous()) {
-        // FIXME: We should ask the WebProcess like the asynchronous case below does.
-        // This is currently impossible as the WebProcess is blocked waiting on this synchronous load.
-        // It's possible that we can jump straight to the UI process to resolve this.
-        continueCanAuthenticateAgainstProtectionSpace(true);
-        return;
-    }
-
+#if !USE(NETWORK_SESSION)
+    m_waitingForContinueCanAuthenticateAgainstProtectionSpace = true;
+#endif
     m_client.canAuthenticateAgainstProtectionSpaceAsync(protectionSpace);
 }
 #endif
@@ -353,29 +350,26 @@ void NetworkLoad::continueCanAuthenticateAgainstProtectionSpace(bool result)
     ASSERT(m_challengeCompletionHandler);
     auto completionHandler = std::exchange(m_challengeCompletionHandler, nullptr);
     if (!result) {
-        if (m_task && m_task->allowsSpecificHTTPSCertificateForHost(m_challenge))
-            completionHandler(AuthenticationChallengeDisposition::UseCredential, serverTrustCredential(m_challenge));
+        if (m_task && m_task->allowsSpecificHTTPSCertificateForHost(*m_challenge))
+            completionHandler(AuthenticationChallengeDisposition::UseCredential, serverTrustCredential(*m_challenge));
         else
             completionHandler(AuthenticationChallengeDisposition::RejectProtectionSpace, { });
         return;
     }
-    
-    if (m_challenge.protectionSpace().authenticationScheme() == ProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested) {
-        completionHandler(AuthenticationChallengeDisposition::UseCredential, serverTrustCredential(m_challenge));
-        return;
-    }
-    
-    if (m_parameters.clientCredentialPolicy == DoNotAskClientForAnyCredentials) {
+
+    if (m_parameters.clientCredentialPolicy == ClientCredentialPolicy::CannotAskClientForCredentials) {
         completionHandler(AuthenticationChallengeDisposition::UseCredential, { });
         return;
     }
     
     if (m_task) {
         if (auto* pendingDownload = m_task->pendingDownload())
-            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(*pendingDownload, m_challenge, completionHandler);
+            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(*pendingDownload, *m_challenge, WTFMove(completionHandler));
         else
-            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(m_parameters.webPageID, m_parameters.webFrameID, m_challenge, completionHandler);
+            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(m_parameters.webPageID, m_parameters.webFrameID, *m_challenge, WTFMove(completionHandler));
     }
+#else
+    m_waitingForContinueCanAuthenticateAgainstProtectionSpace = false;
 #endif
     if (m_handle)
         m_handle->continueCanAuthenticateAgainstProtectionSpace(result);
@@ -432,23 +426,13 @@ bool NetworkLoad::shouldUseCredentialStorage(ResourceHandle* handle)
 void NetworkLoad::didReceiveAuthenticationChallenge(ResourceHandle* handle, const AuthenticationChallenge& challenge)
 {
     ASSERT_UNUSED(handle, handle == m_handle);
-    // NetworkResourceLoader does not know whether the request is cross origin, so Web process computes an applicable credential policy for it.
-    ASSERT(m_parameters.clientCredentialPolicy != DoNotAskClientForCrossOriginCredentials);
 
-    if (m_parameters.clientCredentialPolicy == DoNotAskClientForAnyCredentials) {
+    if (m_parameters.clientCredentialPolicy == ClientCredentialPolicy::CannotAskClientForCredentials) {
         challenge.authenticationClient()->receivedRequestToContinueWithoutCredential(challenge);
         return;
     }
 
     NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(m_parameters.webPageID, m_parameters.webFrameID, challenge);
-}
-
-void NetworkLoad::didCancelAuthenticationChallenge(ResourceHandle* handle, const AuthenticationChallenge&)
-{
-    ASSERT_UNUSED(handle, handle == m_handle);
-
-    // This function is probably not needed (see <rdar://problem/8960124>).
-    notImplemented();
 }
 
 void NetworkLoad::receivedCancellation(ResourceHandle* handle, const AuthenticationChallenge&)

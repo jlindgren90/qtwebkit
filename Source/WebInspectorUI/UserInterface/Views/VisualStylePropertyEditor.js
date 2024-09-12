@@ -538,10 +538,9 @@ WebInspector.VisualStylePropertyEditor = class VisualStylePropertyEditor extends
 
         let title = "";
 
-        // FIXME: <https://webkit.org/b/152497> Arrow functions: "this" isn't lexically bound
-        let dependencies = this._style.nodeStyles.computedStyle.properties.filter(function(property) {
+        let dependencies = this._style.nodeStyles.computedStyle.properties.filter((property) => {
             return this._dependencies.has(property.name) || this._dependencies.has(property.canonicalName);
-        }.bind(this));
+        });
 
         for (let property of dependencies) {
             let dependencyValues = this._dependencies.get(property.name);
@@ -602,6 +601,10 @@ WebInspector.VisualStylePropertyEditor = class VisualStylePropertyEditor extends
         let popover = new WebInspector.Popover(this);
         popover.content = propertyInfoElement;
         popover.present(bounds.pad(2), [WebInspector.RectEdge.MIN_Y]);
+        popover.windowResizeHandler = () => {
+            let bounds = WebInspector.Rect.rectFromClientRect(this._titleElement.getBoundingClientRect());
+            popover.present(bounds.pad(2), [WebInspector.RectEdge.MIN_Y]);
+        };
     }
 
     _toggleTabbingOfSelectableElements(disabled)

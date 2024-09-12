@@ -1,3 +1,637 @@
+2016-08-09  Alex Christensen  <achristensen@webkit.org>
+
+        Move NetworkStorageSession management to WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=160173
+
+        Reviewed by Brady Eidson.
+
+        * WebCoreSupport/WebFrameNetworkingContext.cpp:
+        (identifierBase):
+        (WebFrameNetworkingContext::setCookieAcceptPolicyForAllContexts):
+        (WebFrameNetworkingContext::ensurePrivateBrowsingSession):
+        (WebFrameNetworkingContext::destroyPrivateBrowsingSession):
+        (WebFrameNetworkingContext::blockedError):
+        (WebFrameNetworkingContext::storageSession):
+        (privateSession): Deleted.
+        * WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebPlatformStrategies::createPasteboardStrategy):
+        (WebPlatformStrategies::createBlobRegistry):
+
+2016-08-09  Anders Carlsson  <andersca@apple.com>
+
+        Instantiate WebKit plug-ins at layout time, instead of at style resolution time
+        https://bugs.webkit.org/show_bug.cgi?id=160715
+
+        Reviewed by Tim Horton.
+
+        * WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebFrameLoaderClient::objectContentType):
+
+2016-08-09  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Crash in MiniBrowser.
+        https://bugs.webkit.org/show_bug.cgi?id=160686
+
+        Reviewed by Sam Weinig.
+
+        We need to specify a plugin info provider object in the page configuration.
+
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-08-09  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        * WebCoreSupport/WebPlatformStrategies.h:
+
+2016-08-09  Anders Carlsson  <andersca@apple.com>
+
+        Get rid of PluginStrategy
+        https://bugs.webkit.org/show_bug.cgi?id=160696
+
+        Reviewed by Dan Bernstein.
+
+        * WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebPlatformStrategies::createPluginStrategy): Deleted.
+
+2016-08-09  Anders Carlsson  <andersca@apple.com>
+
+        Move plug-in enumeration from WebPlatformStrategies to WebPluginInfoProvider
+        https://bugs.webkit.org/show_bug.cgi?id=160694
+
+        Reviewed by Dan Bernstein.
+
+        * WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebPlatformStrategies::createPluginStrategy):
+        (WebPlatformStrategies::refreshPlugins): Deleted.
+        (WebPlatformStrategies::getPluginInfo): Deleted.
+        (WebPlatformStrategies::getWebVisiblePluginInfo): Deleted.
+        * WebCoreSupport/WebPlatformStrategies.h:
+        * WebCoreSupport/WebPluginInfoProvider.cpp:
+        (WebPluginInfoProvider::refreshPlugins):
+        (WebPluginInfoProvider::getPluginInfo):
+        (WebPluginInfoProvider::getWebVisiblePluginInfo):
+
+2016-08-08  Anders Carlsson  <andersca@apple.com>
+
+        Add a new PluginInfoProvider class, to replace PluginStrategy
+        https://bugs.webkit.org/show_bug.cgi?id=160670
+
+        Reviewed by Sam Weinig.
+
+        Add a new WebPluginInfoProvider - it just calls through to the plug-in strategy for now.
+
+        * WebCoreSupport/WebPluginInfoProvider.cpp: Added.
+        (WebPluginInfoProvider::singleton):
+        (WebPluginInfoProvider::WebPluginInfoProvider):
+        (WebPluginInfoProvider::~WebPluginInfoProvider):
+        (WebPluginInfoProvider::refreshPlugins):
+        (WebPluginInfoProvider::getPluginInfo):
+        (WebPluginInfoProvider::getWebVisiblePluginInfo):
+        * WebCoreSupport/WebPluginInfoProvider.h: Added.
+
+2016-07-29  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Remove PassRef.h after r177259
+        https://bugs.webkit.org/show_bug.cgi?id=160348
+
+        Reviewed by Andreas Kling.
+
+        * WebCoreSupport/WebVisitedLinkStore.h:
+
+2016-07-27  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Win debug build after r203749.
+
+        * WebView.cpp:
+
+2016-07-26  Simon Fraser  <simon.fraser@apple.com>
+
+        Allow LOG macros to be used outside the namespace, and other logging cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=160216
+
+        Reviewed by Anders Carlsson.
+
+        Fix some issues with the LOG macros.
+        
+        First, they were not usable outside the WebKit namespace in WebKit2 code. Fix by moving
+        its log channels outside of the namespace (they are protected by a unique prefix anyway).
+        
+        Second, allow LOG_WITH_STREAM to be used in WebKit2 by moving that and a helper macro
+        into LogMacros.h, which is exported from WebCore as a private header.
+        
+        Third, split the Logging.h header into two. Logging.h remains for framework-internal
+        log channels and log macros. Add LogInitialization.h which is external, and used to
+        initialize the channels.
+        
+        Finally unify "initializeLogChannels" and "initializeLoggingChannels" terminology everywhere.
+
+        * WebKitLogging.cpp:
+        * WebKitLogging.h:
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-07-23  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, fix Windows build after r203623.
+
+        * DOMCoreClasses.cpp:
+        (DOMDocument::getComputedStyle):
+
+2016-07-22  Per Arne Vollan  <pvollan@apple.com>
+
+        IWebView::mainFrame crashes if called after IWebView::close
+        https://bugs.webkit.org/show_bug.cgi?id=32868
+
+        Reviewed by Brent Fulgham.
+
+        After deleting the page in WebView::close the mainframe object may be deleted. 
+         
+        Test: Tools/TestWebKitAPI/Tests/WebKit/win/WebViewDestruction.cpp (CloseThenGetMainFrame).
+
+        * WebView.cpp:
+        (WebView::close): set mainframe pointer member to null. 
+
+2016-07-19  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test fast/scrolling/overflow-scroll-past-max.html is timing out.
+        https://bugs.webkit.org/show_bug.cgi?id=159342
+
+        Reviewed by Darin Adler.
+
+        * WebFrame.h: Link fix. 
+
+2016-07-17  Sam Weinig  <sam@webkit.org>
+
+        [WebKit API] Add SPI to track multiple navigations caused by a single user gesture
+        <rdar://problem/26554137>
+        https://bugs.webkit.org/show_bug.cgi?id=159856
+
+        Reviewed by Dan Bernstein.
+
+        * Plugins/PluginView.cpp:
+        (WebCore::PluginView::performRequest):
+        * WebCoreSupport/WebContextMenuClient.cpp:
+        (WebContextMenuClient::searchWithGoogle):
+        Update for new UserGestureIndicator interface.
+
+2016-07-16  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename fastGetAttribute to attributeWithoutSynchronization
+        https://bugs.webkit.org/show_bug.cgi?id=159852
+
+        Reviewed by Darin Adler.
+
+        * DOMHTMLClasses.cpp:
+        (DOMHTMLElement::idName):
+
+2016-07-15  Chris Dumez  <cdumez@apple.com>
+
+        Use fastGetAttribute() / setAttributeWithoutSynchronization() when possible
+        https://bugs.webkit.org/show_bug.cgi?id=159793
+
+        Reviewed by Ryosuke Niwa.
+
+        Use fastGetAttribute() / setAttributeWithoutSynchronization() when possible, for performance.
+
+        * DOMHTMLClasses.cpp:
+        (DOMHTMLElement::idName):
+
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        Use emptyString() instead of "" when possible
+        https://bugs.webkit.org/show_bug.cgi?id=159789
+
+        Reviewed by Alex Christensen.
+
+        Use emptyString() instead of "" when possible to reduce String allocations.
+
+        * Plugins/PluginView.cpp:
+        (WebCore::parseRFC822HeaderFields):
+
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Use SocketProvider to create SocketStreamHandles
+        https://bugs.webkit.org/show_bug.cgi?id=159774
+
+        Reviewed by Brady Eidson.
+
+        * WebSocketProvider.cpp: Removed.
+        * WebSocketProvider.h: Removed.
+        * WebView.cpp: Replaced WebSocketProvider with SocketProvider as we did in WebCore.
+
+2016-07-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(WEB_SOCKETS) build after r202930
+        https://bugs.webkit.org/show_bug.cgi?id=159768
+
+        Reviewed by Alex Christensen.
+
+        * WebSocketProvider.h:
+
+2016-07-11  Enrica Casucci  <enrica@apple.com>
+
+        Build fix.
+
+        Unreviewed.
+
+        * WebDropSource.cpp:
+        (generateMouseEvent):
+
+2016-07-11  Enrica Casucci  <enrica@apple.com>
+
+        Add synthetic click origin to WKNavigationAction.
+        https://bugs.webkit.org/show_bug.cgi?id=159584
+        rdar://problem/25610422
+
+        Reviewed by Tim Horton.
+
+        * WebDropSource.cpp:
+        (generateMouseEvent):
+
+2016-07-07  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build after r202930.
+        https://bugs.webkit.org/show_bug.cgi?id=158776
+
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-07-07  Alex Christensen  <achristensen@webkit.org>
+
+        Use SocketProvider to create WebSocketChannels
+        https://bugs.webkit.org/show_bug.cgi?id=158776
+
+        Reviewed by Brent Fulgham.
+
+        * WebSocketProvider.cpp: Copied from Source/WebCore/Modules/websockets/ThreadableWebSocketChannel.cpp.
+        (WebSocketProvider::createWebSocketChannel):
+        (WebCore::ThreadableWebSocketChannel::create): Deleted.
+        * WebSocketProvider.h:
+
+2016-07-06  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Add null pointer check in gesture handling.
+        https://bugs.webkit.org/show_bug.cgi?id=159454
+
+        Reviewed by Brent Fulgham.
+
+        * WebView.cpp:
+        (WebView::gesture):
+
+2016-07-01  Per Arne Vollan  <pvollan@apple.com>
+
+        ASSERTION FAILED: info.bmBitsPixel == 32
+        https://bugs.webkit.org/show_bug.cgi?id=17737
+
+        Reviewed by Brent Fulgham.
+
+        The ::SelectObject call will fail if m_backingStoreBitmap is already selected into a device context.
+        This happens when this method is called indirectly from WebView::updateBackingStore during normal
+        painting. There is no point continuing, since we would just be scrolling a 1x1 bitmap which is
+        selected into the device context by default. We can just scroll by repainting the scroll rectangle.
+
+        * WebView.cpp:
+        (WebView::scrollBackingStore): Invalidate the scroll rectangle if the ::SelectObject call fails.
+
+2016-07-01  Youenn Fablet  <youennf@gmail.com>
+
+        Add a runtime flag for DOM iterators
+        https://bugs.webkit.org/show_bug.cgi?id=159300
+
+        Reviewed by Alex Christensen.
+
+        * WebPreferenceKeysPrivate.h:
+        * WebPreferences.cpp:
+        (WebPreferences::domIteratorEnabled):
+        (WebPreferences::setDOMIteratorEnabled):
+        (WebView::notifyPreferencesChanged):
+        * WebPreferencesreferences.h:
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
+2016-06-28  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Custom elements tests are failing.
+        https://bugs.webkit.org/show_bug.cgi?id=159139
+
+        Reviewed by Alex Christensen.
+
+        Add preference for enabling custom element API.
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+        * WebPreferenceKeysPrivate.h:
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings):
+        (WebPreferences::customElementsEnabled):
+        (WebPreferences::setCustomElementsEnabled):
+        * WebPreferences.h:
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
+2016-06-23  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test accessibility/aria-labelledby-overrides-label.html is failing.
+        https://bugs.webkit.org/show_bug.cgi?id=159057
+
+        Reviewed by Brent Fulgham.
+
+        The test expects the label to have a static text role, but currently it has a
+        group role.
+ 
+        * AccessibleBase.cpp:
+        (MSAARole): Change the role of labels to static text.
+
+2016-06-23  Alex Christensen  <achristensen@webkit.org>
+
+        Remove unused didCancelAuthenticationChallenge
+        https://bugs.webkit.org/show_bug.cgi?id=158819
+
+        Reviewed by David Kilzer.
+
+        * WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebFrameLoaderClient::dispatchDidCancelAuthenticationChallenge): Deleted.
+        * WebCoreSupport/WebFrameLoaderClient.h:
+
+2016-06-22  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test storage/indexeddb/modern/handle-user-delete.html is timing out.
+        https://bugs.webkit.org/show_bug.cgi?id=158934
+
+        Reviewed by Brent Fulgham.
+
+        Add a method to delete all indexed databases.
+
+        * Interfaces/IWebDatabaseManager.idl:
+        * WebDatabaseManager.cpp:
+        (WebDatabaseManager::QueryInterface):
+        (WebDatabaseManager::deleteAllIndexedDatabases):
+        * WebDatabaseManager.h:
+
+2016-06-17  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Rendering is not scaled correctly if process is DPI aware.
+        https://bugs.webkit.org/show_bug.cgi?id=158781
+
+        Reviewed by Brent Fulgham.
+
+        Scale the root graphics layer with the device scale factor.
+
+        * WebView.cpp:
+        (WebView::setAcceleratedCompositing):
+
+2016-06-15  Chris Dumez  <cdumez@apple.com>
+
+        Drop some unnecessary header includes
+        https://bugs.webkit.org/show_bug.cgi?id=158788
+
+        Reviewed by Alexey Proskuryakov.
+
+        Drop some unnecessary header includes in headers to speed up build time.
+
+        * Plugins/PluginView.cpp:
+
+2016-06-15  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        Enabling Shadow DOM for all platforms
+        https://bugs.webkit.org/show_bug.cgi?id=158738
+
+        Reviewed by Ryosuke Niwa.
+
+        Removed Shadow DOM from options (enabled by default)
+        (comprises removal of corresponding preprocessor directives)
+
+        * WebView.cpp:
+
+2016-06-13  Alex Christensen  <achristensen@webkit.org>
+
+        Add WebSocketProvider stub
+        https://bugs.webkit.org/show_bug.cgi?id=158702
+
+        Reviewed by Brady Eidson.
+
+        * WebSocketProvider.h: Added.
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-06-10  Alex Christensen  <achristensen@webkit.org>
+
+        Introduce WTF::UniqueRef
+        https://bugs.webkit.org/show_bug.cgi?id=158596
+
+        Reviewed by Brady Eidson.
+
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-06-09  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build.
+
+        * WebKit.resources/resource.h: Removed.
+        * resource.h: Copied from WebKit.resources/resource.h.
+
+2016-06-09  Alex Christensen  <achristensen@webkit.org>
+
+        Actually fix Windows build after r201894
+        https://bugs.webkit.org/show_bug.cgi?id=158588
+
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-06-09  Alex Christensen  <achristensen@webkit.org>
+
+        Clean up WebKit.vcxproj directory after switching to CMake.
+
+        * WebKit.resources/resource.h: Copied from WebKit.vcxproj/WebKit/resource.h.
+
+2016-06-09  Alex Christensen  <achristensen@webkit.org>
+
+        Unreviewed build fix after r201894
+        https://bugs.webkit.org/show_bug.cgi?id=158588
+
+        * WebCoreSupport/WebEditorClient.cpp:
+        (WebEditorClient::~WebEditorClient):
+        (WebEditorClient::isContinuousSpellCheckingEnabled):
+        (WebEditorClient::pageDestroyed): Deleted.
+        * WebCoreSupport/WebEditorClient.h:
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-06-08  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Shadow DOM tests are failing.
+        https://bugs.webkit.org/show_bug.cgi?id=158524
+
+        Reviewed by Brent Fulgham.
+
+        Add preference for enabling Shadow DOM.
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+        * WebPreferenceKeysPrivate.h:
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings):
+        (WebPreferences::shadowDOMEnabled):
+        (WebPreferences::setShadowDOMEnabled):
+        * WebPreferences.h:
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
+2016-06-07  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win][IndexedDB] Crash when running worker test.
+        https://bugs.webkit.org/show_bug.cgi?id=158434
+
+        Reviewed by Alex Christensen.
+
+        Initialize main runloop, otherwise RunLoop::main() will return nullptr.
+
+        * WebView.cpp:
+        (WebView::WebView):
+
+2016-06-03  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, roll out r196633 as it broke PageCache on iOS for WebKit.org
+        <rdar://problem/26521101>
+
+        * WebCoreSupport/WebVisitedLinkStore.cpp:
+        (WebVisitedLinkStore::removeAllVisitedLinks):
+        (WebVisitedLinkStore::addVisitedLinkHash):
+
+2016-06-03  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Implement WebView::removeAllUserContentFromGroup
+        https://bugs.webkit.org/show_bug.cgi?id=158343
+
+        Reviewed by Brent Fulgham.
+
+        * WebView.cpp:
+        (WebView::removeAllUserContentFromGroup):
+
+2016-06-02  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Fetch API tests are failing.
+        https://bugs.webkit.org/show_bug.cgi?id=158296
+
+        Reviewed by Alex Christensen.
+
+        Add preference for enabling Fetch API.
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+        * WebPreferenceKeysPrivate.h:
+        * WebPreferences.cpp:
+        (WebPreferences::initializeDefaultSettings):
+        (WebPreferences::fetchAPIEnabled):
+        (WebPreferences::setFetchAPIEnabled):
+        * WebPreferences.h:
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
+2016-06-02  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Use more references in ResourceLoader related code
+        https://bugs.webkit.org/show_bug.cgi?id=158222
+
+        Reviewed by Darin Adler.
+
+        * Plugins/PluginStream.cpp:
+        (WebCore::PluginStream::start):
+
+2016-06-01  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Potential null pointer crash when setting cursor.
+        https://bugs.webkit.org/show_bug.cgi?id=158225
+
+        Reviewed by Alex Christensen.
+
+        Check return value of Cursor::platformCursor().
+
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::setCursor):
+
+2016-05-31  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, roll out r201481, r201523: 0.3% regression in Octane code-load
+        https://bugs.webkit.org/show_bug.cgi?id=158249
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+
+2016-05-27  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] implement async functions proposal
+        https://bugs.webkit.org/show_bug.cgi?id=156147
+
+        Reviewed by Yusuke Suzuki.
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+
+2016-05-23  Chris Dumez  <cdumez@apple.com>
+
+        Generate bindings code for EventTarget.addEventListener() / removeEventListener()
+        https://bugs.webkit.org/show_bug.cgi?id=157882
+
+        Reviewed by Darin Adler.
+
+        Generate bindings code for EventTarget.addEventListener() / removeEventListener()
+        instead of hardcoding them in the bindings generator.
+
+        * DOMEventsClasses.cpp:
+        (WebEventListener::operator==):
+        * DOMEventsClasses.h:
+
+2016-05-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove LegacyProfiler
+        https://bugs.webkit.org/show_bug.cgi?id=153565
+
+        Reviewed by Saam Barati.
+
+        * Interfaces/IWebInspector.idl:
+        * WebCoreStatistics.cpp:
+        * WebInspector.cpp:
+        (WebInspector::isJavaScriptProfilingEnabled): Deleted.
+        (WebInspector::setJavaScriptProfilingEnabled): Deleted.
+        * WebInspector.h:
+        * WebView.cpp:
+
+2016-05-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Unreviewed rollout r200924. Caused js/regress/string-replace-generic.html to fail.
+
+        * Interfaces/IWebInspector.idl:
+        * WebCoreStatistics.cpp:
+        * WebInspector.cpp:
+        (WebInspector::isJavaScriptProfilingEnabled):
+        (WebInspector::setJavaScriptProfilingEnabled):
+        * WebInspector.h:
+        * WebView.cpp:
+
+2016-05-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove LegacyProfiler
+        https://bugs.webkit.org/show_bug.cgi?id=153565
+
+        Reviewed by Mark Lam.
+
+        * Interfaces/IWebInspector.idl:
+        * WebView.cpp:
+        * WebInspector.cpp:
+        (WebInspector::isJavaScriptProfilingEnabled): Deleted.
+        (WebInspector::setJavaScriptProfilingEnabled): Deleted.
+        * WebInspector.h:
+
+2016-05-12  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Use reference instead of pointer in FrameLoaderClient::saveViewStateToItem.
+        https://bugs.webkit.org/show_bug.cgi?id=157624
+
+        Reviewed by Darin Adler.
+
+        * WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebFrameLoaderClient::saveViewStateToItem):
+        * WebCoreSupport/WebFrameLoaderClient.h:
+
 2016-05-11  Chris Dumez  <cdumez@apple.com>
 
         Update Node::appendChild() / replaceChild() / removeChild() / insertBefore() to take references instead of pointers

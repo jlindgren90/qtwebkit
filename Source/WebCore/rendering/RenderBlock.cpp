@@ -48,6 +48,7 @@
 #include "RenderBlockFlow.h"
 #include "RenderBoxRegionInfo.h"
 #include "RenderButton.h"
+#include "RenderChildIterator.h"
 #include "RenderCombineText.h"
 #include "RenderDeprecatedFlexibleBox.h"
 #include "RenderFlexibleBox.h"
@@ -67,7 +68,7 @@
 #include "RenderView.h"
 #include "Settings.h"
 #include "ShadowRoot.h"
-#include "TextBreakIterator.h"
+#include <wtf/text/TextBreakIterator.h>
 #include "TransformState.h"
 
 #include <wtf/NeverDestroyed.h>
@@ -369,14 +370,20 @@ void RenderBlock::removePositionedObjectsIfNeeded(const RenderStyle& oldStyle, c
     if (oldStyle.position() == newStyle.position() && hadTransform == willHaveTransform)
         return;
 
-    // We are no longer a containing block.
-    if (newStyle.position() == StaticPosition && !willHaveTransform) {
-        // Clear our positioned objects list. Our absolutely positioned descendants will be
-        // inserted into our containing block's positioned objects list during layout.
+    // We are no longer the containing block for fixed descendants.
+    if (hadTransform && !willHaveTransform) {
+        // Our positioned descendants will be inserted into a new containing block's positioned objects list during the next layout.
         removePositionedObjects(nullptr, NewContainingBlock);
         return;
     }
-    
+
+    // We are no longer the containing block for absolute positioned descendants.
+    if (newStyle.position() == StaticPosition && !willHaveTransform) {
+        // Our positioned descendants will be inserted into a new containing block's positioned objects list during the next layout.
+        removePositionedObjects(nullptr, NewContainingBlock);
+        return;
+    }
+
     // We are a new containing block.
     if (oldStyle.position() == StaticPosition && !hadTransform) {
         // Remove our absolutely positioned descendants from their current containing block.
@@ -1664,7 +1671,7 @@ void RenderBlock::paintObject(PaintInfo& paintInfo, const LayoutPoint& paintOffs
 
     // 1. paint background, borders etc
     if ((paintPhase == PaintPhaseBlockBackground || paintPhase == PaintPhaseChildBlockBackground) && style().visibility() == VISIBLE) {
-        if (hasBoxDecorations()) {
+        if (hasVisibleBoxDecorations()) {
             bool didClipToRegion = false;
             
             RenderNamedFlowFragment* namedFlowFragment = currentRenderNamedFlowFragment();
@@ -3486,7 +3493,7 @@ void RenderBlock::updateHitTestResult(HitTestResult& result, const LayoutPoint& 
     }
 }
 
-LayoutRect RenderBlock::localCaretRect(InlineBox* inlineBox, int caretOffset, LayoutUnit* extraWidthToEndOfLine)
+LayoutRect RenderBlock::localCaretRect(InlineBox* inlineBox, unsigned caretOffset, LayoutUnit* extraWidthToEndOfLine)
 {
     // Do the normal calculation in most cases.
     if (firstChild())
@@ -3529,17 +3536,17 @@ void RenderBlock::addFocusRingRects(Vector<LayoutRect>& rects, const LayoutPoint
         if (childrenInline())
             addFocusRingRectsForInlineChildren(rects, additionalOffset, paintContainer);
     
-        for (RenderObject* child = firstChild(); child; child = child->nextSibling()) {
-            if (!is<RenderText>(*child) && !is<RenderListMarker>(*child) && is<RenderBox>(*child)) {
-                auto& box = downcast<RenderBox>(*child);
-                FloatPoint pos;
-                // FIXME: This doesn't work correctly with transforms.
-                if (box.layer())
-                    pos = child->localToContainerPoint(FloatPoint(), paintContainer);
-                else
-                    pos = FloatPoint(additionalOffset.x() + box.x(), additionalOffset.y() + box.y());
-                box.addFocusRingRects(rects, flooredLayoutPoint(pos), paintContainer);
-            }
+        for (auto& box : childrenOfType<RenderBox>(*this)) {
+            if (is<RenderListMarker>(box))
+                continue;
+
+            FloatPoint pos;
+            // FIXME: This doesn't work correctly with transforms.
+            if (box.layer())
+                pos = box.localToContainerPoint(FloatPoint(), paintContainer);
+            else
+                pos = FloatPoint(additionalOffset.x() + box.x(), additionalOffset.y() + box.y());
+            box.addFocusRingRects(rects, flooredLayoutPoint(pos), paintContainer);
         }
     }
 
@@ -3547,9 +3554,17 @@ void RenderBlock::addFocusRingRects(Vector<LayoutRect>& rects, const LayoutPoint
         inlineElementContinuation()->addFocusRingRects(rects, flooredLayoutPoint(LayoutPoint(additionalOffset + inlineElementContinuation()->containingBlock()->location() - location())), paintContainer);
 }
 
-RenderBox* RenderBlock::createAnonymousBoxWithSameTypeAs(const RenderObject* parent) const
+std::unique_ptr<RenderBlock> RenderBlock::createAnonymousBlockWithStyleAndDisplay(Document& document, const RenderStyle& style, EDisplay display)
 {
-    return createAnonymousWithParentRendererAndDisplay(parent, style().display());
+    // FIXME: Do we need to convert all our inline displays to block-type in the anonymous logic ?
+    std::unique_ptr<RenderBlock> newBox;
+    if (display == FLEX || display == INLINE_FLEX)
+        newBox = std::make_unique<RenderFlexibleBox>(document, RenderStyle::createAnonymousStyleWithDisplay(style, FLEX));
+    else
+        newBox = std::make_unique<RenderBlockFlow>(document, RenderStyle::createAnonymousStyleWithDisplay(style, BLOCK));
+    
+    newBox->initializeStyle();
+    return newBox;
 }
 
 LayoutUnit RenderBlock::offsetFromLogicalTopOfFirstPage() const
@@ -3810,19 +3825,6 @@ TextRun RenderBlock::constructTextRun(const LChar* characters, int length, const
 TextRun RenderBlock::constructTextRun(const UChar* characters, int length, const RenderStyle& style, ExpansionBehavior expansion)
 {
     return constructTextRun(StringView(characters, length), style, expansion);
-}
-
-RenderBlock* RenderBlock::createAnonymousWithParentRendererAndDisplay(const RenderObject* parent, EDisplay display)
-{
-    // FIXME: Do we need to convert all our inline displays to block-type in the anonymous logic ?
-    RenderBlock* newBox;
-    if (display == FLEX || display == INLINE_FLEX)
-        newBox = new RenderFlexibleBox(parent->document(), RenderStyle::createAnonymousStyleWithDisplay(parent->style(), FLEX));
-    else
-        newBox = new RenderBlockFlow(parent->document(), RenderStyle::createAnonymousStyleWithDisplay(parent->style(), BLOCK));
-
-    newBox->initializeStyle();
-    return newBox;
 }
 
 #ifndef NDEBUG

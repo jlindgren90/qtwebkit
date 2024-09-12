@@ -40,11 +40,6 @@
 #include "ResourceHandleManager.h"
 #include "SSLHandle.h"
 
-#if PLATFORM(WIN) && USE(CF)
-#include <wtf/PassRefPtr.h>
-#include <wtf/RetainPtr.h>
-#endif
-
 namespace WebCore {
 
 class WebCoreSynchronousLoader : public ResourceHandleClient {
@@ -254,7 +249,7 @@ void ResourceHandle::receivedRequestToContinueWithoutCredential(const Authentica
     if (challenge != d->m_currentWebChallenge)
         return;
 
-    String userpass = "";
+    String userpass = emptyString();
     curl_easy_setopt(d->m_handle, CURLOPT_USERPWD, userpass.utf8().data());
 
     clearAuthentication();

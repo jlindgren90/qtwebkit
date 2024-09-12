@@ -58,10 +58,8 @@ void WebPlaybackSessionInterfaceMac::setClient(WebPlaybackSessionInterfaceMacCli
 {
     m_client = client;
 
-    if (m_client) {
-        float rate = [playBackControlsManager() rate];
-        m_client->rateChanged(!!rate, rate);
-    }
+    if (m_client && m_playbackSessionModel)
+        m_client->rateChanged(m_playbackSessionModel->isPlaying(), m_playbackSessionModel->playbackRate());
 }
 
 void WebPlaybackSessionInterfaceMac::setDuration(double duration)
@@ -90,6 +88,7 @@ void WebPlaybackSessionInterfaceMac::setRate(bool isPlaying, float playbackRate)
 {
     WebPlaybackControlsManager* controlsManager = playBackControlsManager();
     [controlsManager setRate:isPlaying ? playbackRate : 0.];
+    [controlsManager setPlaying:isPlaying];
 
     if (m_client)
         m_client->rateChanged(isPlaying, playbackRate);
@@ -138,7 +137,7 @@ void WebPlaybackSessionInterfaceMac::ensureControlsManager()
 WebPlaybackControlsManager *WebPlaybackSessionInterfaceMac::playBackControlsManager()
 {
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
-    return m_playbackControlsManager.get();
+    return m_playbackControlsManager;
 #else
     return nil;
 #endif
@@ -159,6 +158,8 @@ void WebPlaybackSessionInterfaceMac::setPlayBackControlsManager(WebPlaybackContr
     manager.hasEnabledVideo = duration > 0;
     manager.rate = m_playbackSessionModel->isPlaying() ? m_playbackSessionModel->playbackRate() : 0.;
     manager.seekableTimeRanges = timeRangesToArray(m_playbackSessionModel->seekableRanges()).get();
+    manager.canTogglePlayback = YES;
+    manager.playing = m_playbackSessionModel->isPlaying();
     [manager setAudioMediaSelectionOptions:m_playbackSessionModel->audioMediaSelectionOptions() withSelectedIndex:static_cast<NSUInteger>(m_playbackSessionModel->audioMediaSelectedIndex())];
     [manager setLegibleMediaSelectionOptions:m_playbackSessionModel->legibleMediaSelectionOptions() withSelectedIndex:static_cast<NSUInteger>(m_playbackSessionModel->legibleMediaSelectedIndex())];
 }

@@ -48,6 +48,7 @@
 #include "JIT.h"
 #include "JITExceptions.h"
 #include "JSCInlines.h"
+#include "JSGenericTypedArrayViewConstructorInlines.h"
 #include "JSLexicalEnvironment.h"
 #include "ObjectConstructor.h"
 #include "Repatch.h"
@@ -209,6 +210,8 @@ EncodedJSValue JIT_OPERATION operationValueBitAnd(ExecState* exec, EncodedJSValu
     JSValue op2 = JSValue::decode(encodedOp2);
 
     int32_t a = op1.toInt32(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
     int32_t b = op2.toInt32(exec);
     return JSValue::encode(jsNumber(a & b));
 }
@@ -222,6 +225,8 @@ EncodedJSValue JIT_OPERATION operationValueBitOr(ExecState* exec, EncodedJSValue
     JSValue op2 = JSValue::decode(encodedOp2);
 
     int32_t a = op1.toInt32(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
     int32_t b = op2.toInt32(exec);
     return JSValue::encode(jsNumber(a | b));
 }
@@ -235,6 +240,8 @@ EncodedJSValue JIT_OPERATION operationValueBitXor(ExecState* exec, EncodedJSValu
     JSValue op2 = JSValue::decode(encodedOp2);
 
     int32_t a = op1.toInt32(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
     int32_t b = op2.toInt32(exec);
     return JSValue::encode(jsNumber(a ^ b));
 }
@@ -248,6 +255,8 @@ EncodedJSValue JIT_OPERATION operationValueBitLShift(ExecState* exec, EncodedJSV
     JSValue op2 = JSValue::decode(encodedOp2);
 
     int32_t a = op1.toInt32(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
     uint32_t b = op2.toUInt32(exec);
     return JSValue::encode(jsNumber(a << (b & 0x1f)));
 }
@@ -261,6 +270,8 @@ EncodedJSValue JIT_OPERATION operationValueBitRShift(ExecState* exec, EncodedJSV
     JSValue op2 = JSValue::decode(encodedOp2);
 
     int32_t a = op1.toInt32(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
     uint32_t b = op2.toUInt32(exec);
     return JSValue::encode(jsNumber(a >> (b & 0x1f)));
 }
@@ -274,6 +285,8 @@ EncodedJSValue JIT_OPERATION operationValueBitURShift(ExecState* exec, EncodedJS
     JSValue op2 = JSValue::decode(encodedOp2);
 
     uint32_t a = op1.toUInt32(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
     uint32_t b = op2.toUInt32(exec);
     return JSValue::encode(jsNumber(static_cast<int32_t>(a >> (b & 0x1f))));
 }
@@ -303,6 +316,8 @@ EncodedJSValue JIT_OPERATION operationValueDiv(ExecState* exec, EncodedJSValue e
     JSValue op2 = JSValue::decode(encodedOp2);
 
     double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
     double b = op2.toNumber(exec);
     return JSValue::encode(jsNumber(a / b));
 }
@@ -697,22 +712,6 @@ size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, JSGlobalObject*
     return asRegExpObject(base)->test(exec, globalObject, input);
 }
 
-size_t JIT_OPERATION operationIsArrayConstructor(ExecState* exec, EncodedJSValue encodedTarget)
-{
-    VM& vm = exec->vm();
-    NativeCallFrameTracer tracer(&vm, exec);
-
-    return isArrayConstructor(JSValue::decode(encodedTarget));
-}
-
-size_t JIT_OPERATION operationIsArrayObject(ExecState* exec, EncodedJSValue encodedTarget)
-{
-    VM& vm = exec->vm();
-    NativeCallFrameTracer tracer(&vm, exec);
-
-    return isArray(exec, JSValue::decode(encodedTarget));
-}
-
 size_t JIT_OPERATION operationCompareStrictEqCell(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)
 {
     VM* vm = &exec->vm();
@@ -744,6 +743,14 @@ EncodedJSValue JIT_OPERATION operationToPrimitive(ExecState* exec, EncodedJSValu
     NativeCallFrameTracer tracer(vm, exec);
     
     return JSValue::encode(JSValue::decode(value).toPrimitive(exec));
+}
+
+EncodedJSValue JIT_OPERATION operationToNumber(ExecState* exec, EncodedJSValue value)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    return JSValue::encode(jsNumber(JSValue::decode(value).toNumber(exec)));
 }
 
 EncodedJSValue JIT_OPERATION operationGetByIdWithThis(ExecState* exec, EncodedJSValue encodedBase, EncodedJSValue encodedThis, UniquedStringImpl* impl)
@@ -1460,7 +1467,7 @@ void JIT_OPERATION operationNotifyWrite(ExecState* exec, WatchpointSet* set)
     VM& vm = exec->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
-    set->touch("Executed NotifyWrite");
+    set->touch(vm, "Executed NotifyWrite");
 }
 
 void JIT_OPERATION operationThrowStackOverflowForVarargs(ExecState* exec)
@@ -1597,7 +1604,10 @@ JSCell* JIT_OPERATION operationNewObjectWithButterflyWithIndexingHeaderAndVector
 
 void JIT_OPERATION operationProcessTypeProfilerLogDFG(ExecState* exec) 
 {
-    exec->vm().typeProfilerLog()->processLogEntries(ASCIILiteral("Log Full, called from inside DFG."));
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    vm.typeProfilerLog()->processLogEntries(ASCIILiteral("Log Full, called from inside DFG."));
 }
 
 void JIT_OPERATION debugOperationPrintSpeculationFailure(ExecState* exec, void* debugInfoRaw, void* scratch)
@@ -1652,27 +1662,27 @@ EncodedJSValue JIT_OPERATION operationGetDynamicVar(ExecState* exec, JSObject* s
     VM& vm = exec->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
-    const Identifier& ident = Identifier::fromUid(exec, impl);
-    GetPutInfo getPutInfo(getPutInfoBits);
-
-    PropertySlot slot(scope, PropertySlot::InternalMethodType::Get);
-    if (!scope->getPropertySlot(exec, ident, slot)) {
-        if (getPutInfo.resolveMode() == ThrowIfNotFound)
-            vm.throwException(exec, createUndefinedVariableError(exec, ident));
-        return JSValue::encode(jsUndefined());
-    }
-
-    if (scope->isGlobalLexicalEnvironment()) {
-        // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
-        JSValue result = slot.getValue(exec, ident);
-        if (result == jsTDZValue()) {
-            exec->vm().throwException(exec, createTDZError(exec));
-            return JSValue::encode(jsUndefined());
+    Identifier ident = Identifier::fromUid(exec, impl);
+    return JSValue::encode(scope->getPropertySlot(exec, ident, [&] (bool found, PropertySlot& slot) -> JSValue {
+        if (!found) {
+            GetPutInfo getPutInfo(getPutInfoBits);
+            if (getPutInfo.resolveMode() == ThrowIfNotFound)
+                vm.throwException(exec, createUndefinedVariableError(exec, ident));
+            return jsUndefined();
         }
-        return JSValue::encode(result);
-    }
 
-    return JSValue::encode(slot.getValue(exec, ident));
+        if (scope->isGlobalLexicalEnvironment()) {
+            // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
+            JSValue result = slot.getValue(exec, ident);
+            if (result == jsTDZValue()) {
+                exec->vm().throwException(exec, createTDZError(exec));
+                return jsUndefined();
+            }
+            return result;
+        }
+
+        return slot.getValue(exec, ident);
+    }));
 }
 
 void JIT_OPERATION operationPutDynamicVar(ExecState* exec, JSObject* scope, EncodedJSValue value, UniquedStringImpl* impl, unsigned getPutInfoBits)
@@ -1830,7 +1840,7 @@ void JIT_OPERATION triggerTierUpNow(ExecState* exec)
 {
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
-    DeferGC deferGC(vm->heap);
+    DeferGCForAWhile deferGC(vm->heap);
     CodeBlock* codeBlock = exec->codeBlock();
     
     if (codeBlock->jitType() != JITCode::DFGJIT) {
@@ -2012,7 +2022,7 @@ void JIT_OPERATION triggerTierUpNowInLoop(ExecState* exec, unsigned bytecodeInde
 {
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
-    DeferGC deferGC(vm->heap);
+    DeferGCForAWhile deferGC(vm->heap);
     CodeBlock* codeBlock = exec->codeBlock();
 
     if (codeBlock->jitType() != JITCode::DFGJIT) {
@@ -2046,7 +2056,7 @@ char* JIT_OPERATION triggerOSREntryNow(ExecState* exec, unsigned bytecodeIndex)
 {
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
-    DeferGC deferGC(vm->heap);
+    DeferGCForAWhile deferGC(vm->heap);
     CodeBlock* codeBlock = exec->codeBlock();
 
     if (codeBlock->jitType() != JITCode::DFGJIT) {

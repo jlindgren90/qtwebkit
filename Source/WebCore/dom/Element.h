@@ -60,6 +60,12 @@ enum SpellcheckAttributeState {
     SpellcheckAttributeDefault
 };
 
+enum class SelectionRevealMode {
+    Reveal,
+    RevealUpToMainFrame, // Scroll overflow and iframes, but not the main frame.
+    DoNotReveal
+};
+
 class Element : public ContainerNode {
 public:
     static Ref<Element> create(const QualifiedName&, Document&);
@@ -68,7 +74,7 @@ public:
     WEBCORE_EXPORT bool hasAttribute(const QualifiedName&) const;
     WEBCORE_EXPORT const AtomicString& getAttribute(const QualifiedName&) const;
     WEBCORE_EXPORT void setAttribute(const QualifiedName&, const AtomicString& value);
-    void setAttributeWithoutSynchronization(const QualifiedName&, const AtomicString& value);
+    WEBCORE_EXPORT void setAttributeWithoutSynchronization(const QualifiedName&, const AtomicString& value);
     void setSynchronizedLazyAttribute(const QualifiedName&, const AtomicString& value);
     bool removeAttribute(const QualifiedName&);
     Vector<String> getAttributeNames() const;
@@ -81,8 +87,8 @@ public:
 
     // Call this to get the value of an attribute that is known not to be the style
     // attribute or one of the SVG animatable attributes.
-    bool fastHasAttribute(const QualifiedName&) const;
-    const AtomicString& fastGetAttribute(const QualifiedName&) const;
+    bool hasAttributeWithoutSynchronization(const QualifiedName&) const;
+    const AtomicString& attributeWithoutSynchronization(const QualifiedName&) const;
 #ifndef NDEBUG
     WEBCORE_EXPORT bool fastAttributeLookupAllowed(const QualifiedName&) const;
 #endif
@@ -270,10 +276,12 @@ public:
     bool active() const { return isUserActionElement() && isUserActionElementActive(); }
     bool hovered() const { return isUserActionElement() && isUserActionElementHovered(); }
     bool focused() const { return isUserActionElement() && isUserActionElementFocused(); }
+    bool hasFocusWithin() const { return getFlag(HasFocusWithin); };
 
     virtual void setActive(bool flag = true, bool pause = false);
     virtual void setHovered(bool flag = true);
     virtual void setFocus(bool flag);
+    void setHasFocusWithin(bool flag);
 
     bool tabIndexSetExplicitly() const;
     virtual bool supportsFocus() const;
@@ -287,14 +295,21 @@ public:
     void setTabIndex(int);
     virtual Element* focusDelegate();
 
+    Element* insertAdjacentElement(const String& where, Element& newChild, ExceptionCode&);
+    void insertAdjacentHTML(const String& where, const String& html, ExceptionCode&);
+    void insertAdjacentText(const String& where, const String& text, ExceptionCode&);
+
+    bool ieForbidsInsertHTML() const;
+
     const RenderStyle* computedStyle(PseudoId = NOPSEUDO) override;
 
     bool needsStyleInvalidation() const;
 
     // Methods for indicating the style is affected by dynamic updates (e.g., children changing, our position changing in our sibling list, etc.)
+    bool styleAffectedByActive() const { return hasRareData() && rareDataStyleAffectedByActive(); }
     bool styleAffectedByEmpty() const { return hasRareData() && rareDataStyleAffectedByEmpty(); }
+    bool styleAffectedByFocusWithin() const { return hasRareData() && rareDataStyleAffectedByFocusWithin(); }
     bool childrenAffectedByHover() const { return getFlag(ChildrenAffectedByHoverRulesFlag); }
-    bool childrenAffectedByActive() const { return hasRareData() && rareDataChildrenAffectedByActive(); }
     bool childrenAffectedByDrag() const { return hasRareData() && rareDataChildrenAffectedByDrag(); }
     bool childrenAffectedByFirstChildRules() const { return getFlag(ChildrenAffectedByFirstChildRulesFlag); }
     bool childrenAffectedByLastChildRules() const { return getFlag(ChildrenAffectedByLastChildRulesFlag); }
@@ -306,8 +321,9 @@ public:
     bool hasFlagsSetDuringStylingOfChildren() const;
 
     void setStyleAffectedByEmpty();
+    void setStyleAffectedByFocusWithin();
     void setChildrenAffectedByHover() { setFlag(ChildrenAffectedByHoverRulesFlag); }
-    void setChildrenAffectedByActive();
+    void setStyleAffectedByActive();
     void setChildrenAffectedByDrag();
     void setChildrenAffectedByFirstChildRules() { setFlag(ChildrenAffectedByFirstChildRulesFlag); }
     void setChildrenAffectedByLastChildRules() { setFlag(ChildrenAffectedByLastChildRulesFlag); }
@@ -388,7 +404,11 @@ public:
     bool childNeedsShadowWalker() const;
     void didShadowTreeAwareChildrenChange();
 
+    virtual bool matchesValidPseudoClass() const;
+    virtual bool matchesInvalidPseudoClass() const;
     virtual bool matchesReadWritePseudoClass() const;
+    virtual bool matchesIndeterminatePseudoClass() const;
+    virtual bool matchesDefaultPseudoClass() const;
     bool matches(const String& selectors, ExceptionCode&);
     Element* closest(const String& selectors, ExceptionCode&);
     virtual bool shouldAppearIndeterminate() const;
@@ -401,14 +421,11 @@ public:
     virtual bool isMediaElement() const { return false; }
 #endif
 
-    virtual bool matchesValidPseudoClass() const { return false; }
-    virtual bool matchesInvalidPseudoClass() const { return false; }
     virtual bool isFormControlElement() const { return false; }
     virtual bool isSpinButtonElement() const { return false; }
     virtual bool isTextFormControl() const { return false; }
     virtual bool isOptionalFormControl() const { return false; }
     virtual bool isRequiredFormControl() const { return false; }
-    virtual bool isDefaultButtonForForm() const { return false; }
     virtual bool isInRange() const { return false; }
     virtual bool isOutOfRange() const { return false; }
     virtual bool isFrameElementBase() const { return false; }
@@ -517,6 +534,10 @@ public:
     using ContainerNode::setAttributeEventListener;
     void setAttributeEventListener(const AtomicString& eventType, const QualifiedName& attributeName, const AtomicString& value);
 
+    bool isNamedFlowContentElement() const { return hasRareData() && rareDataIsNamedFlowContentElement(); }
+    void setIsNamedFlowContentElement();
+    void clearIsNamedFlowContentElement();
+
 protected:
     Element(const QualifiedName&, Document&, ConstructionType);
 
@@ -525,6 +546,7 @@ protected:
     void childrenChanged(const ChildChange&) override;
     void removeAllEventListeners() final;
     virtual void parserDidSetAttributes();
+    void didMoveToNewDocument(Document*) override;
 
     void clearTabIndexExplicitlyIfNeeded();
     void setTabIndexExplicitly(int);
@@ -574,6 +596,8 @@ private:
     void updateIdForDocument(HTMLDocument&, const AtomicString& oldId, const AtomicString& newId, HTMLDocumentNamedItemMapsUpdatingCondition);
     void updateLabel(TreeScope&, const AtomicString& oldForAttributeValue, const AtomicString& newForAttributeValue);
 
+    Node* insertAdjacent(const String& where, Ref<Node>&& newChild, ExceptionCode&);
+
     void scrollByUnits(int units, ScrollGranularity);
 
     void setPrefix(const AtomicString&, ExceptionCode&) final;
@@ -597,15 +621,16 @@ private:
     Ref<Node> cloneNodeInternal(Document&, CloningOperation) override;
     virtual Ref<Element> cloneElementWithoutAttributesAndChildren(Document&);
 
-    virtual bool canHaveUserAgentShadowRoot() const;
     void removeShadowRoot();
 
     const RenderStyle* existingComputedStyle();
     const RenderStyle& resolveComputedStyle();
 
     bool rareDataStyleAffectedByEmpty() const;
+    bool rareDataStyleAffectedByFocusWithin() const;
+    bool rareDataIsNamedFlowContentElement() const;
     bool rareDataChildrenAffectedByHover() const;
-    bool rareDataChildrenAffectedByActive() const;
+    bool rareDataStyleAffectedByActive() const;
     bool rareDataChildrenAffectedByDrag() const;
     bool rareDataChildrenAffectedByLastChildRules() const;
     bool rareDataChildrenAffectedByBackwardPositionalRules() const;
@@ -660,13 +685,13 @@ inline const Element* Element::rootElement() const
     return highest;
 }
 
-inline bool Element::fastHasAttribute(const QualifiedName& name) const
+inline bool Element::hasAttributeWithoutSynchronization(const QualifiedName& name) const
 {
     ASSERT(fastAttributeLookupAllowed(name));
     return elementData() && findAttributeByName(name);
 }
 
-inline const AtomicString& Element::fastGetAttribute(const QualifiedName& name) const
+inline const AtomicString& Element::attributeWithoutSynchronization(const QualifiedName& name) const
 {
     ASSERT(fastAttributeLookupAllowed(name));
     if (elementData()) {
@@ -702,7 +727,7 @@ inline const AtomicString& Element::getNameAttribute() const
 
 inline void Element::setIdAttribute(const AtomicString& value)
 {
-    setAttribute(HTMLNames::idAttr, value);
+    setAttributeWithoutSynchronization(HTMLNames::idAttr, value);
 }
 
 inline const SpaceSplitString& Element::classNames() const
@@ -755,6 +780,15 @@ inline UniqueElementData& Element::ensureUniqueElementData()
 inline bool shouldIgnoreAttributeCase(const Element& element)
 {
     return element.isHTMLElement() && element.document().isHTMLDocument();
+}
+
+inline void Element::setHasFocusWithin(bool flag)
+{
+    if (hasFocusWithin() == flag)
+        return;
+    setFlag(flag, HasFocusWithin);
+    if (styleAffectedByFocusWithin())
+        setNeedsStyleRecalc();
 }
 
 } // namespace WebCore

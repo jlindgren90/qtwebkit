@@ -54,7 +54,24 @@ WebInspector.VisualStyleDetailsPanel = class VisualStyleDetailsPanel extends Web
             basic: ["%"].concat(this._units.defaultsSansPercent.basic),
             advanced: this._units.defaultsSansPercent.advanced
         };
+    }
 
+    // Public
+
+    refresh(significantChange)
+    {
+        if (significantChange)
+            this._selectorSection.update(this._nodeStyles);
+        else
+            this._updateSections();
+
+        super.refresh();
+    }
+
+    // Protected
+
+    initialLayout()
+    {
         // Selector Section
         this._selectorSection = new WebInspector.VisualStyleSelectorSection(this);
         this._selectorSection.addEventListener(WebInspector.VisualStyleSelectorSection.Event.SelectorChanged, this._updateSections, this);
@@ -74,14 +91,13 @@ WebInspector.VisualStyleDetailsPanel = class VisualStyleDetailsPanel extends Web
         this.element.appendChild(this._sections.layout.element);
 
         // Text Section
-        this._generateSection("content", WebInspector.UIString("Content"));
         this._generateSection("text-style", WebInspector.UIString("Style"));
         this._generateSection("font", WebInspector.UIString("Font"));
         this._generateSection("font-variants", WebInspector.UIString("Variants"));
         this._generateSection("text-spacing", WebInspector.UIString("Spacing"));
         this._generateSection("text-shadow", WebInspector.UIString("Shadow"));
 
-        this._sections.text = new WebInspector.DetailsSection("text", WebInspector.UIString("Text"), [this._groups.content.section, this._groups.textStyle.section, this._groups.font.section, this._groups.fontVariants.section, this._groups.textSpacing.section, this._groups.textShadow.section]);
+        this._sections.text = new WebInspector.DetailsSection("text", WebInspector.UIString("Text"), [this._groups.textStyle.section, this._groups.font.section, this._groups.fontVariants.section, this._groups.textSpacing.section, this._groups.textShadow.section]);
         this.element.appendChild(this._sections.text.element);
 
         // Background Section
@@ -102,21 +118,9 @@ WebInspector.VisualStyleDetailsPanel = class VisualStyleDetailsPanel extends Web
         this.element.appendChild(this._sections.effects.element);
     }
 
-    // Public
-
-    refresh(significantChange)
+    sizeDidChange()
     {
-        if (significantChange)
-            this._selectorSection.update(this._nodeStyles);
-        else
-            this._updateSections();
-
-        super.refresh();
-    }
-
-    widthDidChange()
-    {
-        super.widthDidChange();
+        super.sizeDidChange();
 
         let sidebarWidth = this.element.realOffsetWidth;
         for (let key in this._groups) {
@@ -425,6 +429,10 @@ WebInspector.VisualStyleDetailsPanel = class VisualStyleDetailsPanel extends Web
             this._addMetricsMouseListeners(properties[right], prefix);
         }
 
+        vertical.element.classList.add("metric-section-row");
+        horizontal.element.classList.add("metric-section-row");
+        allLinkRow.element.classList.add("metric-section-row");
+
         return [vertical, allLinkRow, horizontal];
     }
 
@@ -643,21 +651,6 @@ WebInspector.VisualStyleDetailsPanel = class VisualStyleDetailsPanel extends Web
         properties.alignContent.addDependency("display", allowedDisplayValues);
         properties.alignItems.addDependency("display", allowedDisplayValues);
         properties.alignSelf.addDependency("display", allowedDisplayValues);
-    }
-
-    _populateContentSection()
-    {
-        let group = this._groups.content;
-        let properties = group.properties;
-
-        let contentRow = new WebInspector.DetailsSectionRow;
-
-        properties.content = new WebInspector.VisualStyleBasicInput("content", null, WebInspector.UIString("Enter a value"));
-
-        contentRow.element.appendChild(properties.content.element);
-
-        let contentGroup = new WebInspector.DetailsSectionGroup([contentRow]);
-        this._populateSection(group, [contentGroup]);
     }
 
     _populateTextStyleSection()

@@ -98,9 +98,14 @@ public:
     template<class Encoder> void encode(Encoder&) const;
     template<class Decoder> static bool decode(Decoder&, IDBDatabaseIdentifier&);
 
-#ifndef NDEBUG
+#if !LOG_DISABLED
     String debugString() const;
 #endif
+
+    bool isRelatedToOrigin(const SecurityOriginData& other) const
+    {
+        return m_openingOrigin == other || m_mainFrameOrigin == other;
+    }
 
 private:
     String m_databaseName;

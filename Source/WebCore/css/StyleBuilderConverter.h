@@ -91,7 +91,9 @@ public:
     static float convertTextStrokeWidth(StyleResolver&, CSSValue&);
     static LineBoxContain convertLineBoxContain(StyleResolver&, CSSValue&);
     static TextDecorationSkip convertTextDecorationSkip(StyleResolver&, CSSValue&);
+#if ENABLE(CSS_SHAPES)
     static PassRefPtr<ShapeValue> convertShapeValue(StyleResolver&, CSSValue&);
+#endif
 #if ENABLE(CSS_SCROLL_SNAP)
     static std::unique_ptr<ScrollSnapPoints> convertScrollSnapPoints(StyleResolver&, CSSValue&);
     static LengthSize convertSnapCoordinatePair(StyleResolver&, CSSValue&, size_t offset = 0);
@@ -99,6 +101,7 @@ public:
 #endif
 #if ENABLE(CSS_GRID_LAYOUT)
     static GridTrackSize convertGridTrackSize(StyleResolver&, CSSValue&);
+    static Vector<GridTrackSize> convertGridTrackSizeList(StyleResolver&, CSSValue&);
     static Optional<GridPosition> convertGridPosition(StyleResolver&, CSSValue&);
     static GridAutoFlow convertGridAutoFlow(StyleResolver&, CSSValue&);
 #endif // ENABLE(CSS_GRID_LAYOUT)
@@ -503,7 +506,7 @@ inline RefPtr<ClipPathOperation> StyleBuilderConverter::convertClipPath(StyleRes
         auto& primitiveValue = downcast<CSSPrimitiveValue>(currentValue.get());
         if (primitiveValue.isShape()) {
             ASSERT(!operation);
-            operation = ShapeClipPathOperation::create(basicShapeForValue(styleResolver.state().cssToLengthConversionData(), primitiveValue.getShapeValue()));
+            operation = ShapeClipPathOperation::create(basicShapeForValue(styleResolver.state().cssToLengthConversionData(), *primitiveValue.getShapeValue()));
         } else {
             ASSERT(primitiveValue.getValueID() == CSSValueContentBox
                    || primitiveValue.getValueID() == CSSValueBorderBox
@@ -626,10 +629,8 @@ inline RefPtr<StyleReflection> StyleBuilderConverter::convertReflection(StyleRes
     auto& reflectValue = downcast<CSSReflectValue>(value);
 
     auto reflection = StyleReflection::create();
-    reflection->setDirection(*reflectValue.direction());
-
-    if (reflectValue.offset())
-        reflection->setOffset(reflectValue.offset()->convertToLength<FixedIntegerConversion | PercentConversion | CalculatedConversion>(styleResolver.state().cssToLengthConversionData()));
+    reflection->setDirection(reflectValue.direction());
+    reflection->setOffset(reflectValue.offset().convertToLength<FixedIntegerConversion | PercentConversion | CalculatedConversion>(styleResolver.state().cssToLengthConversionData()));
 
     NinePieceImage mask;
     mask.setMaskDefaults();
@@ -751,7 +752,7 @@ inline PassRefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleReso
     for (auto& currentValue : downcast<CSSValueList>(value)) {
         CSSPrimitiveValue& primitiveValue = downcast<CSSPrimitiveValue>(currentValue.get());
         if (primitiveValue.isShape())
-            shape = basicShapeForValue(styleResolver.state().cssToLengthConversionData(), primitiveValue.getShapeValue());
+            shape = basicShapeForValue(styleResolver.state().cssToLengthConversionData(), *primitiveValue.getShapeValue());
         else if (primitiveValue.getValueID() == CSSValueContentBox
             || primitiveValue.getValueID() == CSSValueBorderBox
             || primitiveValue.getValueID() == CSSValuePaddingBox
@@ -764,7 +765,7 @@ inline PassRefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleReso
     }
 
     if (shape)
-        return ShapeValue::createShapeValue(shape.release(), referenceBox);
+        return ShapeValue::createShapeValue(WTFMove(shape), referenceBox);
 
     if (referenceBox != BoxMissing)
         return ShapeValue::createBoxShapeValue(referenceBox);
@@ -990,6 +991,20 @@ inline void StyleBuilderConverter::createImplicitNamedGridLinesFromGridArea(cons
             std::sort(endVector.begin(), endVector.end());
         }
     }
+}
+
+inline Vector<GridTrackSize> StyleBuilderConverter::convertGridTrackSizeList(StyleResolver& styleResolver, CSSValue& value)
+{
+    ASSERT(value.isValueList());
+    auto& valueList = downcast<CSSValueList>(value);
+    Vector<GridTrackSize> trackSizes;
+    trackSizes.reserveInitialCapacity(valueList.length());
+    for (auto& currValue : valueList) {
+        ASSERT(!currValue->isGridLineNamesValue());
+        ASSERT(!currValue->isGridAutoRepeatValue());
+        trackSizes.uncheckedAppend(convertGridTrackSize(styleResolver, currValue));
+    }
+    return trackSizes;
 }
 
 inline GridTrackSize StyleBuilderConverter::convertGridTrackSize(StyleResolver& styleResolver, CSSValue& value)

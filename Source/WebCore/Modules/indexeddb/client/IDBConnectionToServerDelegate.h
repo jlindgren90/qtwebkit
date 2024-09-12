@@ -40,6 +40,7 @@ class IDBResourceIdentifier;
 class IDBTransactionInfo;
 class IDBValue;
 
+struct IDBGetRecordData;
 struct SecurityOriginData;
 
 namespace IndexedDB {
@@ -66,7 +67,7 @@ public:
     virtual void createIndex(const IDBRequestData&, const IDBIndexInfo&) = 0;
     virtual void deleteIndex(const IDBRequestData&, uint64_t objectStoreIdentifier, const String& indexName) = 0;
     virtual void putOrAdd(const IDBRequestData&, const IDBKeyData&, const IDBValue&, const IndexedDB::ObjectStoreOverwriteMode) = 0;
-    virtual void getRecord(const IDBRequestData&, const IDBKeyRangeData&) = 0;
+    virtual void getRecord(const IDBRequestData&, const IDBGetRecordData&) = 0;
     virtual void getCount(const IDBRequestData&, const IDBKeyRangeData&) = 0;
     virtual void deleteRecord(const IDBRequestData&, const IDBKeyRangeData&) = 0;
     virtual void openCursor(const IDBRequestData&, const IDBCursorInfo&) = 0;
@@ -77,6 +78,7 @@ public:
     virtual void abortOpenAndUpgradeNeeded(uint64_t databaseConnectionIdentifier, const IDBResourceIdentifier& transactionIdentifier) = 0;
     virtual void didFireVersionChangeEvent(uint64_t databaseConnectionIdentifier, const IDBResourceIdentifier& requestIdentifier) = 0;
     virtual void openDBRequestCancelled(const IDBRequestData&) = 0;
+    virtual void confirmDidCloseFromServer(uint64_t databaseConnectionIdentifier) = 0;
 
     virtual void getAllDatabaseNames(const SecurityOriginData& mainFrameOrigin, const SecurityOriginData& openingOrigin, uint64_t callbackID) = 0;
 

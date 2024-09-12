@@ -24,10 +24,10 @@
 #ifndef HTMLFormElement_h
 #define HTMLFormElement_h
 
-#include "CheckedRadioButtons.h"
 #include "FormState.h"
 #include "FormSubmission.h"
 #include "HTMLElement.h"
+#include "RadioButtonGroups.h"
 #include <memory>
 
 #if ENABLE(IOS_AUTOCORRECT_AND_AUTOCAPITALIZE)
@@ -60,9 +60,6 @@ public:
 
     String enctype() const { return m_attributes.encodingType(); }
     void setEnctype(const String&);
-
-    String encoding() const { return m_attributes.encodingType(); }
-    void setEncoding(const String& value) { setEnctype(value); }
 
     bool shouldAutocomplete() const;
 
@@ -111,11 +108,12 @@ public:
     String method() const;
     void setMethod(const String&);
 
-    String target() const override;
+    String target() const final;
 
     bool wasUserSubmitted() const;
 
     HTMLFormControlElement* defaultButton() const;
+    void resetDefaultButton();
 
     bool checkValidity();
 
@@ -131,7 +129,7 @@ public:
     void finishRequestAutocomplete(AutocompleteResult);
 #endif
 
-    CheckedRadioButtons& checkedRadioButtons() { return m_checkedRadioButtons; }
+    RadioButtonGroups& radioButtonGroups() { return m_radioButtonGroups; }
 
     const Vector<FormAssociatedElement*>& associatedElements() const { return m_associatedElements; }
     const Vector<HTMLImageElement*>& imageElements() const { return m_imageElements; }
@@ -143,21 +141,21 @@ public:
 private:
     HTMLFormElement(const QualifiedName&, Document&);
 
-    bool rendererIsNeeded(const RenderStyle&) override;
-    InsertionNotificationRequest insertedInto(ContainerNode&) override;
-    void removedFrom(ContainerNode&) override;
-    void finishParsingChildren() override;
+    bool rendererIsNeeded(const RenderStyle&) final;
+    InsertionNotificationRequest insertedInto(ContainerNode&) final;
+    void removedFrom(ContainerNode&) final;
+    void finishParsingChildren() final;
 
-    void handleLocalEvents(Event&) override;
+    void handleLocalEvents(Event&) final;
 
-    void parseAttribute(const QualifiedName&, const AtomicString&) override;
-    bool isURLAttribute(const Attribute&) const override;
+    void parseAttribute(const QualifiedName&, const AtomicString&) final;
+    bool isURLAttribute(const Attribute&) const final;
 
-    void resumeFromDocumentSuspension() override;
+    void resumeFromDocumentSuspension() final;
 
-    void didMoveToNewDocument(Document* oldDocument) override;
+    void didMoveToNewDocument(Document* oldDocument) final;
 
-    void copyNonAttributePropertiesFromElement(const Element&) override;
+    void copyNonAttributePropertiesFromElement(const Element&) final;
 
     void submit(Event*, bool activateSubmitButton, bool processingUserGesture, FormSubmissionTrigger);
 
@@ -177,8 +175,8 @@ private:
     void assertItemCanBeInPastNamesMap(FormNamedItem*) const;
     void removeFromPastNamesMap(FormNamedItem*);
 
-    bool matchesValidPseudoClass() const override;
-    bool matchesInvalidPseudoClass() const override;
+    bool matchesValidPseudoClass() const final;
+    bool matchesInvalidPseudoClass() const final;
 
     void resetAssociatedFormControlElements();
 
@@ -187,7 +185,8 @@ private:
     FormSubmission::Attributes m_attributes;
     std::unique_ptr<PastNamesMap> m_pastNamesMap;
 
-    CheckedRadioButtons m_checkedRadioButtons;
+    RadioButtonGroups m_radioButtonGroups;
+    mutable HTMLFormControlElement* m_defaultButton { nullptr };
 
     unsigned m_associatedElementsBeforeIndex { 0 };
     unsigned m_associatedElementsAfterIndex { 0 };

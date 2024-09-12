@@ -175,6 +175,7 @@ WebInspector.NativeConstructorFunctionParameters = {
         profile: "name",
         profileEnd: "name",
         table: "data, [columns]",
+        takeHeapSnapshot: "[label]",
         time: "name = \"default\"",
         timeEnd: "name = \"default\"",
         timeStamp: "[label]",
@@ -812,7 +813,7 @@ WebInspector.NativePrototypeFunctionParameters = {
     },
 
     Event: {
-        initEvent: "[type], [canBubble], [cancelable]",
+        initEvent: "type, canBubble, cancelable",
         __proto__: null,
     },
 
@@ -837,10 +838,11 @@ WebInspector.NativePrototypeFunctionParameters = {
         __proto__: null,
     },
 
-    FontLoader: {
-        checkFont: "font, [text]",
-        loadFont: "params",
-        notifyWhenFontsReady: "callback",
+    FontFaceSet: {
+        add: "font",
+        check: "font, [text=\" \"]",
+        delete: "font",
+        load: "font, [text=\" \"]",
         __proto__: null,
     },
 
@@ -869,8 +871,8 @@ WebInspector.NativePrototypeFunctionParameters = {
     },
 
     HTMLCanvasElement: {
-        getContext: "[contextId]",
-        probablySupportsContext: "[contextId]",
+        getContext: "contextId",
+        probablySupportsContext: "contextId",
         toDataURL: "[type]",
         __proto__: null,
     },
@@ -907,7 +909,7 @@ WebInspector.NativePrototypeFunctionParameters = {
     HTMLInputElement: {
         setCustomValidity: "error",
         setRangeText: "replacement",
-        setSelectionRange: "[start], [end], [direction]",
+        setSelectionRange: "start, end, [direction]",
         stepDown: "[n]",
         stepUp: "[n]",
         __proto__: null,
@@ -954,20 +956,25 @@ WebInspector.NativePrototypeFunctionParameters = {
         __proto__: null,
     },
 
+    HTMLSlotElement: {
+        assignedNodes: "[options]",
+        __proto__: null,
+    },
+
     HTMLTableElement: {
-        deleteRow: "[index]",
+        deleteRow: "index",
         insertRow: "[index]",
         __proto__: null,
     },
 
     HTMLTableRowElement: {
-        deleteCell: "[index]",
+        deleteCell: "index",
         insertCell: "[index]",
         __proto__: null,
     },
 
     HTMLTableSectionElement: {
-        deleteRow: "[index]",
+        deleteRow: "index",
         insertRow: "[index]",
         __proto__: null,
     },
@@ -2141,24 +2148,27 @@ WebInspector.NativePrototypeFunctionParameters = {
         updateIce: "configuration",
         __proto__: null,
     },
-};
 
-(function() {
-    var EventTarget = {
+    EventTarget: {
         addEventListener: "type, listener, [useCapture=false]",
         removeEventListener: "type, listener, [useCapture=false]",
         dispatchEvent: "event",
-    };
+        __proto__: null,
+    },
+};
 
+(function() {
+    // COMPATIBILITY (iOS 9): EventTarget properties were on instances, now there
+    // is an actual EventTarget prototype in the chain.
+    var EventTarget = WebInspector.NativePrototypeFunctionParameters.EventTarget;
     var eventTargetTypes = [
         "Node", "Window",
-        "AudioNode", "AudioTrackList", "DOMApplicationCache", "FileReader", "FontLoader",
+        "AudioNode", "AudioTrackList", "DOMApplicationCache", "FileReader",
         "MediaController", "MediaStreamTrack", "MessagePort", "Notification", "RTCDTMFSender",
         "SpeechSynthesisUtterance", "TextTrack", "TextTrackCue", "TextTrackList",
         "VideoTrackList", "WebKitMediaKeySession", "WebKitNamedFlow", "WebSocket",
         "WorkerGlobalScope", "XMLHttpRequest", "webkitMediaStream", "webkitRTCPeerConnection"
     ];
-
     for (var type of eventTargetTypes)
         Object.assign(WebInspector.NativePrototypeFunctionParameters[type], EventTarget);
 

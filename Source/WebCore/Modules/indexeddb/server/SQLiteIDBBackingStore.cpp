@@ -1480,7 +1480,7 @@ IDBError SQLiteIDBBackingStore::updateOneIndexForAddRecord(const IDBIndexInfo& i
 {
     JSLockHolder locker(vm());
 
-    auto jsValue = deserializeIDBValueDataToJSValue(*globalObject().globalExec(), value);
+    auto jsValue = deserializeIDBValueToJSValue(*globalObject().globalExec(), value);
     if (jsValue.isUndefinedOrNull())
         return { };
 
@@ -1497,7 +1497,7 @@ IDBError SQLiteIDBBackingStore::updateAllIndexesForAddRecord(const IDBObjectStor
 {
     JSLockHolder locker(vm());
 
-    auto jsValue = deserializeIDBValueDataToJSValue(*globalObject().globalExec(), value);
+    auto jsValue = deserializeIDBValueToJSValue(*globalObject().globalExec(), value);
     if (jsValue.isUndefinedOrNull())
         return { };
 
@@ -2056,16 +2056,18 @@ void SQLiteIDBBackingStore::deleteBackingStore()
     {
         bool errored = true;
 
-        SQLiteStatement sql(*m_sqliteDB, ASCIILiteral("SELECT fileName FROM BlobFiles;"));
-        if (sql.prepare() == SQLITE_OK) {
-            int result = sql.step();
-            while (result == SQLITE_ROW) {
-                blobFiles.append(sql.getColumnText(0));
-                result = sql.step();
-            }
+        if (m_sqliteDB) {
+            SQLiteStatement sql(*m_sqliteDB, ASCIILiteral("SELECT fileName FROM BlobFiles;"));
+            if (sql.prepare() == SQLITE_OK) {
+                int result = sql.step();
+                while (result == SQLITE_ROW) {
+                    blobFiles.append(sql.getColumnText(0));
+                    result = sql.step();
+                }
 
-            if (result == SQLITE_DONE)
-                errored = false;
+                if (result == SQLITE_DONE)
+                    errored = false;
+            }
         }
 
         if (errored)

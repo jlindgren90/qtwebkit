@@ -34,7 +34,7 @@ messages -> WebIDBConnectionToClient {
     CreateIndex(WebCore::IDBRequestData requestData, WebCore::IDBIndexInfo info);
     DeleteIndex(WebCore::IDBRequestData requestData, uint64_t objectStoreIdentifier, String indexName);
     PutOrAdd(WebCore::IDBRequestData requestData, WebCore::IDBKeyData key, WebCore::IDBValue value, unsigned overwriteMode);
-    GetRecord(WebCore::IDBRequestData requestData, struct WebCore::IDBKeyRangeData range);
+    GetRecord(WebCore::IDBRequestData requestData, struct WebCore::IDBGetRecordData getRecordData);
     GetCount(WebCore::IDBRequestData requestData, struct WebCore::IDBKeyRangeData range);
     DeleteRecord(WebCore::IDBRequestData requestData, struct WebCore::IDBKeyRangeData range);
     OpenCursor(WebCore::IDBRequestData requestData, WebCore::IDBCursorInfo info);
@@ -45,6 +45,7 @@ messages -> WebIDBConnectionToClient {
     AbortOpenAndUpgradeNeeded(uint64_t databaseConnectionIdentifier, WebCore::IDBResourceIdentifier transactionIdentifier);
     DidFireVersionChangeEvent(uint64_t databaseConnectionIdentifier, WebCore::IDBResourceIdentifier requestIdentifier);
     OpenDBRequestCancelled(WebCore::IDBRequestData requestData);
+    ConfirmDidCloseFromServer(uint64_t databaseConnectionIdentifier);
 
     GetAllDatabaseNames(uint64_t serverConnectionIdentifier, struct WebCore::SecurityOriginData topOrigin, struct WebCore::SecurityOriginData openingOrigin, uint64_t callbackID);
 }

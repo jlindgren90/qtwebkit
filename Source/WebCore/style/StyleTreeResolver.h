@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef StyleTreeResolver_h
-#define StyleTreeResolver_h
+#pragma once
 
 #include "RenderStyleConstants.h"
 #include "RenderTreePosition.h"
@@ -33,7 +32,7 @@
 #include "StyleChange.h"
 #include "StyleSharingResolver.h"
 #include "StyleUpdate.h"
-#include <functional>
+#include <wtf/Function.h>
 #include <wtf/HashMap.h>
 #include <wtf/RefPtr.h>
 
@@ -110,7 +109,7 @@ private:
     std::unique_ptr<Update> m_update;
 };
 
-void queuePostResolutionCallback(std::function<void ()>);
+void queuePostResolutionCallback(Function<void ()>&&);
 bool postResolutionCallbacksAreSuspended();
 
 bool isPlaceholderStyle(const RenderStyle&);
@@ -124,5 +123,3 @@ public:
 }
 
 }
-
-#endif

@@ -3,9 +3,9 @@ description('Test that setting and getting grid-template-columns and grid-templa
 debug("Test getting grid-template-columns and grid-template-rows set through CSS");
 testGridTemplatesValues(document.getElementById("gridWithNoneElement"), "none", "none");
 testGridTemplatesValues(document.getElementById("gridWithFixedElement"), "10px", "15px");
-testGridTemplatesValues(document.getElementById("gridWithPercentElement"), "424px", "162px");
+testGridTemplatesValues(document.getElementById("gridWithPercentElement"), "400px", "162px");
 testGridTemplatesValues(document.getElementById("gridWithPercentWithoutSize"), "0px", "0px");
-testGridTemplatesValues(document.getElementById("gridWithPercentWithoutSizeWithChildren"), "7px", "11px");
+testGridTemplatesValues(document.getElementById("gridWithPercentWithoutSizeWithChildren"), "3.5px", "11px");
 testGridTemplatesValues(document.getElementById("gridWithAutoElement"), "0px", "0px");
 testGridTemplatesValues(document.getElementById("gridWithAutoWithChildrenElement"), "7px", "11px");
 testGridTemplatesValues(document.getElementById("gridWithEMElement"), "100px", "150px");
@@ -77,6 +77,9 @@ testGridTemplatesSetBadJSValues("minmax(10px 20px)", "minmax(10px)")
 testGridTemplatesSetBadJSValues("minmax(minmax(10px, 20px), 20px)", "minmax(10px, 20px, 30px)");
 // No breadth value and no comma.
 testGridTemplatesSetBadJSValues("minmax()", "minmax(30px 30% 30em)");
+// Flexible lengths are invalid on the min slot of minmax().
+testGridTemplatesSetBadJSValues("minmax(0fr, 100px)", "minmax(.0fr, 200px)");
+testGridTemplatesSetBadJSValues("minmax(1fr, 100px)", "minmax(2.5fr, 200px)");
 
 testGridTemplatesSetBadJSValues("-2fr", "3ffr");
 testGridTemplatesSetBadJSValues("-2.05fr", "+-3fr");

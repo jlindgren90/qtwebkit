@@ -35,8 +35,6 @@ using namespace HTMLNames;
 
 inline HTMLFrameElement::HTMLFrameElement(const QualifiedName& tagName, Document& document)
     : HTMLFrameElementBase(tagName, document)
-    , m_frameBorder(true)
-    , m_frameBorderSet(false)
 {
     ASSERT(hasTagName(frameTag));
     setHasCustomStyleResolveCallbacks();
@@ -60,7 +58,7 @@ RenderPtr<RenderElement> HTMLFrameElement::createElementRenderer(RenderStyle&& s
 
 bool HTMLFrameElement::noResize() const
 {
-    return fastHasAttribute(noresizeAttr);
+    return hasAttributeWithoutSynchronization(noresizeAttr);
 }
 
 void HTMLFrameElement::didAttachRenderers()
@@ -80,8 +78,8 @@ void HTMLFrameElement::parseAttribute(const QualifiedName& name, const AtomicStr
         m_frameBorderSet = !value.isNull();
         // FIXME: If we are already attached, this has no effect.
     } else if (name == noresizeAttr) {
-        if (renderer())
-            renderer()->updateFromElement();
+        if (auto* renderer = this->renderer())
+            renderer->updateFromElement();
     } else
         HTMLFrameElementBase::parseAttribute(name, value);
 }

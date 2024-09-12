@@ -35,6 +35,8 @@ JSValue PropertySlot::functionGetter(ExecState* exec) const
 
 JSValue PropertySlot::customGetter(ExecState* exec, PropertyName propertyName) const
 {
+    // FIXME: Remove this differences in custom values and custom accessors.
+    // https://bugs.webkit.org/show_bug.cgi?id=158014
     JSValue thisValue = m_attributes & CustomAccessor ? m_thisValue : JSValue(slotBase());
     return JSValue::decode(m_data.custom.getValue(exec, JSValue::encode(thisValue), propertyName));
 }
@@ -42,7 +44,7 @@ JSValue PropertySlot::customGetter(ExecState* exec, PropertyName propertyName) c
 JSValue PropertySlot::getPureResult() const
 {
     JSValue result;
-    if (isTaintedByProxy())
+    if (isTaintedByOpaqueObject())
         result = jsNull();
     else if (isCacheableValue())
         result = JSValue::decode(m_data.value);

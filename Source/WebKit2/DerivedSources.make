@@ -35,6 +35,7 @@ VPATH = \
     $(WebKit2)/Shared/API/Cocoa \
     $(WebKit2)/Shared/Authentication \
     $(WebKit2)/Shared/mac \
+    $(WebKit2)/WebProcess/ApplePay \
     $(WebKit2)/WebProcess/ApplicationCache \
     $(WebKit2)/WebProcess/Automation \
     $(WebKit2)/WebProcess/Cookies \
@@ -57,6 +58,7 @@ VPATH = \
     $(WebKit2)/WebProcess/ios \
     $(WebKit2)/WebProcess \
     $(WebKit2)/UIProcess \
+    $(WebKit2)/UIProcess/ApplePay \
     $(WebKit2)/UIProcess/Automation \
     $(WebKit2)/UIProcess/Cocoa \
     $(WebKit2)/UIProcess/Databases \
@@ -138,6 +140,8 @@ MESSAGE_RECEIVERS = \
     WebPage \
     WebPageProxy \
     WebPasteboardProxy \
+    WebPaymentCoordinator \
+    WebPaymentCoordinatorProxy \
     WebPlaybackSessionManager \
     WebPlaybackSessionManagerProxy \
     WebProcess \
@@ -235,7 +239,7 @@ $(firstword $(AUTOMATION_PROTOCOL_OUTPUT_FILES)) : $(AUTOMATION_PROTOCOL_INPUT_F
 all : $(firstword $(AUTOMATION_PROTOCOL_OUTPUT_FILES))
 
 %ScriptSource.h : %.js $(JavaScriptCore_SCRIPTS_DIR)/jsmin.py $(JavaScriptCore_SCRIPTS_DIR)/xxd.pl
-	echo "//# sourceURL=__WebAutomationInjectedScript__" > $(basename $(notdir $<)).min.js
+	echo "//# sourceURL=__InjectedScript_$(notdir $<)" > $(basename $(notdir $<)).min.js
 	$(PYTHON) $(JavaScriptCore_SCRIPTS_DIR)/jsmin.py < $< >> $(basename $(notdir $<)).min.js
 	$(PERL) $(JavaScriptCore_SCRIPTS_DIR)/xxd.pl $(basename $(notdir $<))ScriptSource $(basename $(notdir $<)).min.js $@
 	$(DELETE) $(basename $(notdir $<)).min.js

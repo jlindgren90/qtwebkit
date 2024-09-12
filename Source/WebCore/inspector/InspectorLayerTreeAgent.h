@@ -30,13 +30,18 @@
 #define InspectorLayerTreeAgent_h
 
 #include "InspectorWebAgentBase.h"
-#include "RenderLayer.h"
 #include <inspector/InspectorBackendDispatchers.h>
 #include <inspector/InspectorFrontendDispatchers.h>
 #include <inspector/InspectorProtocolObjects.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
+
+class IntRect;
+class Node;
+class PseudoElement;
+class RenderElement;
+class RenderLayer;
 
 typedef String ErrorString;
 
@@ -66,7 +71,7 @@ private:
     String bind(const RenderLayer*);
     void unbind(const RenderLayer*);
 
-    void gatherLayersUsingRenderObjectHierarchy(ErrorString&, RenderObject*, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::LayerTree::Layer>>&);
+    void gatherLayersUsingRenderObjectHierarchy(ErrorString&, RenderElement&, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::LayerTree::Layer>>&);
     void gatherLayersUsingRenderLayerHierarchy(ErrorString&, RenderLayer*, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::LayerTree::Layer>>&);
 
     Ref<Inspector::Protocol::LayerTree::Layer> buildObjectForLayer(ErrorString&, RenderLayer*);

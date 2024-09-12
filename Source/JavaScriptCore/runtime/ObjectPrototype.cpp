@@ -134,7 +134,7 @@ EncodedJSValue JSC_HOST_CALL objectProtoFuncDefineGetter(ExecState* exec)
     JSValue get = exec->argument(1);
     CallData callData;
     if (getCallData(get, callData) == CallType::None)
-        return throwVMError(exec, createTypeError(exec, ASCIILiteral("invalid getter usage")));
+        return throwVMTypeError(exec, ASCIILiteral("invalid getter usage"));
 
     auto propertyName = exec->argument(0).toPropertyKey(exec);
     if (exec->hadException())
@@ -145,7 +145,7 @@ EncodedJSValue JSC_HOST_CALL objectProtoFuncDefineGetter(ExecState* exec)
     descriptor.setEnumerable(true);
     descriptor.setConfigurable(true);
 
-    bool shouldThrow = false;
+    bool shouldThrow = true;
     thisObject->methodTable(exec->vm())->defineOwnProperty(thisObject, exec, propertyName, descriptor, shouldThrow);
 
     return JSValue::encode(jsUndefined());
@@ -160,7 +160,7 @@ EncodedJSValue JSC_HOST_CALL objectProtoFuncDefineSetter(ExecState* exec)
     JSValue set = exec->argument(1);
     CallData callData;
     if (getCallData(set, callData) == CallType::None)
-        return throwVMError(exec, createTypeError(exec, ASCIILiteral("invalid setter usage")));
+        return throwVMTypeError(exec, ASCIILiteral("invalid setter usage"));
 
     auto propertyName = exec->argument(0).toPropertyKey(exec);
     if (exec->hadException())
@@ -171,7 +171,7 @@ EncodedJSValue JSC_HOST_CALL objectProtoFuncDefineSetter(ExecState* exec)
     descriptor.setEnumerable(true);
     descriptor.setConfigurable(true);
 
-    bool shouldThrow = false;
+    bool shouldThrow = true;
     thisObject->methodTable(exec->vm())->defineOwnProperty(thisObject, exec, propertyName, descriptor, shouldThrow);
 
     return JSValue::encode(jsUndefined());
@@ -187,7 +187,7 @@ EncodedJSValue JSC_HOST_CALL objectProtoFuncLookupGetter(ExecState* exec)
     if (exec->hadException())
         return JSValue::encode(jsUndefined());
 
-    PropertySlot slot(thisObject, PropertySlot::InternalMethodType::VMInquiry);
+    PropertySlot slot(thisObject, PropertySlot::InternalMethodType::GetOwnProperty);
     if (thisObject->getPropertySlot(exec, propertyName, slot)) {
         if (slot.isAccessor()) {
             GetterSetter* getterSetter = slot.getterSetter();
@@ -214,7 +214,7 @@ EncodedJSValue JSC_HOST_CALL objectProtoFuncLookupSetter(ExecState* exec)
     if (exec->hadException())
         return JSValue::encode(jsUndefined());
 
-    PropertySlot slot(thisObject, PropertySlot::InternalMethodType::VMInquiry);
+    PropertySlot slot(thisObject, PropertySlot::InternalMethodType::GetOwnProperty);
     if (thisObject->getPropertySlot(exec, propertyName, slot)) {
         if (slot.isAccessor()) {
             GetterSetter* getterSetter = slot.getterSetter();
@@ -274,35 +274,38 @@ EncodedJSValue JSC_HOST_CALL objectProtoFuncToString(ExecState* exec)
         return JSValue::encode(thisValue.isUndefined() ? vm.smallStrings.undefinedObjectString() : vm.smallStrings.nullObjectString());
     JSObject* thisObject = thisValue.toObject(exec);
     if (!thisObject)
-        return JSValue::encode(JSValue());
+        return JSValue::encode(jsUndefined());
 
-    JSString* result = thisObject->structure(vm)->objectToStringValue();
-    if (!result) {
-        PropertyName toStringTagSymbol = exec->propertyNames().toStringTagSymbol;
-        PropertySlot toStringTagSlot(thisObject, PropertySlot::InternalMethodType::Get);
-        if (thisObject->getPropertySlot(exec, toStringTagSymbol, toStringTagSlot)) {
+    auto result = thisObject->structure(vm)->objectToStringValue();
+    if (result)
+        return JSValue::encode(result);
+
+    PropertyName toStringTagSymbol = exec->propertyNames().toStringTagSymbol;
+    return JSValue::encode(thisObject->getPropertySlot(exec, toStringTagSymbol, [&] (bool found, PropertySlot& toStringTagSlot) -> JSValue {
+        if (found) {
             JSValue stringTag = toStringTagSlot.getValue(exec, toStringTagSymbol);
+            if (UNLIKELY(vm.exception()))
+                return jsUndefined();
             if (stringTag.isString()) {
                 JSRopeString::RopeBuilder ropeBuilder(vm);
                 ropeBuilder.append(vm.smallStrings.objectStringStart());
                 ropeBuilder.append(jsCast<JSString*>(stringTag));
                 ropeBuilder.append(vm.smallStrings.singleCharacterString(']'));
-                result = ropeBuilder.release();
+                JSString* result = ropeBuilder.release();
 
                 thisObject->structure(vm)->setObjectToStringValue(exec, vm, result, toStringTagSlot);
-                return JSValue::encode(result);
+                return result;
             }
         }
 
         String newString = WTF::tryMakeString("[object ", thisObject->methodTable(exec->vm())->className(thisObject), "]");
         if (!newString)
-            return JSValue::encode(throwOutOfMemoryError(exec));
+            return throwOutOfMemoryError(exec);
 
-        result = jsNontrivialString(&vm, newString);
+        auto result = jsNontrivialString(&vm, newString);
         thisObject->structure(vm)->setObjectToStringValue(exec, vm, result, toStringTagSlot);
-    }
-
-    return JSValue::encode(result);
+        return result;
+    }));
 }
 
 } // namespace JSC

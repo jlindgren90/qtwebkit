@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2011, 2012 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,6 +79,7 @@ interface TestRunner {
     void setPrinting();
     void setShouldDecideNavigationPolicyAfterDelay(boolean value);
     void setNavigationGesturesEnabled(boolean value);
+    void setIgnoresViewportScaleLimits(boolean value);
 
     // Special DOM functions.
     void clearBackForwardList();
@@ -198,9 +199,13 @@ interface TestRunner {
     void queueNonLoadingScript(DOMString script);
 
     // Authentication
+    void setRejectsProtectionSpaceAndContinueForAuthenticationChallenges(boolean value);
     void setHandlesAuthenticationChallenges(boolean value);
+    void setShouldLogCanAuthenticateAgainstProtectionSpace(boolean value);
     void setAuthenticationUsername(DOMString username);
     void setAuthenticationPassword(DOMString password);
+
+    void setAllowsAnySSLCertificate(boolean value);
 
     // Secure text input mode (Mac only)
     readonly attribute boolean secureEventInputIsEnabled;
@@ -218,6 +223,8 @@ interface TestRunner {
     void installWillEndSwipeCallback(object callback);
     void installDidEndSwipeCallback(object callback);
     void installDidRemoveSwipeSnapshotCallback(object callback);
+
+    unsigned long imageCountInGeneralPasteboard();
 
     // UI Process Testing
     void runUIScript(DOMString script, object callback);

@@ -28,6 +28,7 @@
 #include "CSSFontFaceRule.h"
 #include "FontFeatureSettings.h"
 #include "TextFlags.h"
+#include "Timer.h"
 #include <memory>
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
@@ -132,8 +133,18 @@ public:
         UChar32 to;
     };
 
+    bool rangesMatchCodePoint(UChar32) const;
+
     // We don't guarantee that the FontFace wrapper will be the same every time you ask for it.
     Ref<FontFace> wrapper();
+    void setWrapper(FontFace&);
+    FontFace* existingWrapper() { return m_wrapper.get(); }
+
+    bool webFontsShouldAlwaysFallBack() const;
+
+    bool purgeable() const;
+
+    void updateStyleIfNeeded();
 
 #if ENABLE(SVG_FONTS)
     bool hasSVGFontFaceSource() const;
@@ -146,11 +157,17 @@ private:
     void setStatus(Status);
     void notifyClientsOfFontPropertyChange();
 
+    void initializeWrapper();
+
+    void fontLoadEventOccurred();
+    void timeoutFired();
+
     RefPtr<CSSValueList> m_families;
     FontTraitsMask m_traitsMask { static_cast<FontTraitsMask>(FontStyleNormalMask | FontWeight400Mask) };
     Vector<UnicodeRange> m_ranges;
     FontFeatureSettings m_featureSettings;
     FontVariantSettings m_variantSettings;
+    Timer m_timeoutTimer;
     Vector<std::unique_ptr<CSSFontFaceSource>> m_sources;
     RefPtr<CSSFontSelector> m_fontSelector;
     RefPtr<StyleRuleFontFace> m_cssConnection;
@@ -159,6 +176,7 @@ private:
     Status m_status { Status::Pending };
     bool m_isLocalFallback { false };
     bool m_sourcesPopulated { false };
+    bool m_mayBePurged { true };
 };
 
 }

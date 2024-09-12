@@ -58,6 +58,9 @@ public:
     void setDataTransferItemsEnabled(bool isEnabled) { m_isDataTransferItemsEnabled = isEnabled; }
     bool dataTransferItemsEnabled() const { return m_isDataTransferItemsEnabled; }
 
+    void setDOMIteratorEnabled(bool isEnabled) { m_isDOMIteratorEnabled = isEnabled; }
+    bool domIteratorEnabled() const { return m_isDOMIteratorEnabled; }
+
     void setGeolocationEnabled(bool isEnabled) { m_isGeolocationEnabled = isEnabled; }
     bool geolocationEnabled() const { return m_isGeolocationEnabled; }
 
@@ -195,10 +198,8 @@ public:
     bool webAnimationsEnabled() const { return m_areWebAnimationsEnabled; }
 #endif
 
-#if ENABLE(SHADOW_DOM)
     void setShadowDOMEnabled(bool isEnabled) { m_isShadowDOMEnabled = isEnabled; }
     bool shadowDOMEnabled() const { return m_isShadowDOMEnabled; }
-#endif
 
 #if ENABLE(CUSTOM_ELEMENTS)
     void setCustomElementsEnabled(bool areEnabled) { m_areCustomElementsEnabled = areEnabled; }
@@ -227,6 +228,8 @@ public:
 
     WEBCORE_EXPORT static RuntimeEnabledFeatures& sharedFeatures();
 
+    WEBCORE_EXPORT void reset();
+
 private:
     // Never instantiate.
     RuntimeEnabledFeatures();
@@ -236,6 +239,7 @@ private:
     bool m_isWebkitNotificationsEnabled;
     bool m_isApplicationCacheEnabled;
     bool m_isDataTransferItemsEnabled;
+    bool m_isDOMIteratorEnabled { true };
     bool m_isGeolocationEnabled;
     bool m_isTouchEnabled;
     bool m_isDeviceMotionEnabled;
@@ -258,7 +262,7 @@ private:
 #endif
 
 #if ENABLE(MEDIA_STREAM)
-    bool m_isMediaStreamEnabled;
+    bool m_isMediaStreamEnabled { true };
 #endif
 #if ENABLE(WEB_RTC)
     bool m_isPeerConnectionEnabled;
@@ -312,9 +316,7 @@ private:
     bool m_areWebAnimationsEnabled;
 #endif
     
-#if ENABLE(SHADOW_DOM)
     bool m_isShadowDOMEnabled;
-#endif
 
 #if ENABLE(CUSTOM_ELEMENTS)
     bool m_areCustomElementsEnabled;

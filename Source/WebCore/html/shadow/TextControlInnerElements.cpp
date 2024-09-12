@@ -145,7 +145,7 @@ Optional<ElementStyle> TextControlInnerTextElement::resolveCustomStyle(const Ren
 TextControlPlaceholderElement::TextControlPlaceholderElement(Document& document)
     : HTMLDivElement(divTag, document)
 {
-    setPseudo(AtomicString("-webkit-input-placeholder", AtomicString::ConstructFromLiteral));
+    setPseudo(AtomicString("placeholder", AtomicString::ConstructFromLiteral));
     setHasCustomStyleResolveCallbacks();
 }
 
@@ -178,13 +178,13 @@ Ref<SearchFieldResultsButtonElement> SearchFieldResultsButtonElement::create(Doc
 void SearchFieldResultsButtonElement::defaultEventHandler(Event* event)
 {
     // On mousedown, bring up a menu, if needed
-    HTMLInputElement* input = downcast<HTMLInputElement>(shadowHost());
+    auto* input = downcast<HTMLInputElement>(shadowHost());
     if (input && event->type() == eventNames().mousedownEvent && is<MouseEvent>(*event) && downcast<MouseEvent>(*event).button() == LeftButton) {
         input->focus();
         input->select();
 #if !PLATFORM(IOS)
-        if (RenderObject* renderer = input->renderer()) {
-            RenderSearchField& searchFieldRenderer = downcast<RenderSearchField>(*renderer);
+        if (auto* renderer = input->renderer()) {
+            auto& searchFieldRenderer = downcast<RenderSearchField>(*renderer);
             if (searchFieldRenderer.popupIsVisible())
                 searchFieldRenderer.hidePopup();
             else if (input->maxResults() > 0)
@@ -212,9 +212,9 @@ inline SearchFieldCancelButtonElement::SearchFieldCancelButtonElement(Document& 
 {
     setPseudo(AtomicString("-webkit-search-cancel-button", AtomicString::ConstructFromLiteral));
 #if !PLATFORM(IOS)
-    setAttribute(aria_labelAttr, AXSearchFieldCancelButtonText());
+    setAttributeWithoutSynchronization(aria_labelAttr, AXSearchFieldCancelButtonText());
 #endif
-    setAttribute(roleAttr, AtomicString("button", AtomicString::ConstructFromLiteral));
+    setAttributeWithoutSynchronization(roleAttr, AtomicString("button", AtomicString::ConstructFromLiteral));
 }
 
 Ref<SearchFieldCancelButtonElement> SearchFieldCancelButtonElement::create(Document& document)

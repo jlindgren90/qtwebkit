@@ -51,7 +51,12 @@ void genericUnwind(VM* vm, ExecState* callFrame, UnwindStart unwindStart)
         CRASH();
     }
     
-    vm->shadowChicken().log(*vm, callFrame, ShadowChicken::Packet::throwPacket());
+    ExecState* shadowChickenTopFrame = callFrame;
+    if (unwindStart == UnwindFromCallerFrame) {
+        VMEntryFrame* topVMEntryFrame = vm->topVMEntryFrame;
+        shadowChickenTopFrame = callFrame->callerFrame(topVMEntryFrame);
+    }
+    vm->shadowChicken().log(*vm, shadowChickenTopFrame, ShadowChicken::Packet::throwPacket());
     
     Exception* exception = vm->exception();
     RELEASE_ASSERT(exception);
@@ -76,6 +81,8 @@ void genericUnwind(VM* vm, ExecState* callFrame, UnwindStart unwindStart)
     } else
         catchRoutine = LLInt::getCodePtr(handleUncaughtException);
     
+    ASSERT(bitwise_cast<uintptr_t>(callFrame) < bitwise_cast<uintptr_t>(vm->topVMEntryFrame));
+
     vm->callFrameForCatch = callFrame;
     vm->targetMachinePCForThrow = catchRoutine;
     vm->targetInterpreterPCForThrow = catchPCForInterpreter;

@@ -30,6 +30,7 @@
 
 #include "IDBConnectionProxy.h"
 #include "IDBDatabase.h"
+#include "IDBGetRecordData.h"
 #include "IDBKeyRangeData.h"
 #include "IDBOpenDBRequest.h"
 #include "IDBRequestData.h"
@@ -77,7 +78,7 @@ void IDBConnectionToServer::didDeleteDatabase(const IDBResultData& resultData)
 
 void IDBConnectionToServer::openDatabase(const IDBRequestData& request)
 {
-    LOG(IndexedDB, "IDBConnectionToServer::openDatabase - %s (%" PRIu64 ")", request.databaseIdentifier().debugString().utf8().data(), request.requestedVersion());
+    LOG(IndexedDB, "IDBConnectionToServer::openDatabase - %s (%s) (%" PRIu64 ")", request.databaseIdentifier().debugString().utf8().data(), request.requestIdentifier().loggingString().utf8().data(), request.requestedVersion());
     m_delegate->openDatabase(request);
 }
 
@@ -171,13 +172,13 @@ void IDBConnectionToServer::didPutOrAdd(const IDBResultData& resultData)
     m_proxy->completeOperation(resultData);
 }
 
-void IDBConnectionToServer::getRecord(const IDBRequestData& requestData, const IDBKeyRangeData& keyRangeData)
+void IDBConnectionToServer::getRecord(const IDBRequestData& requestData, const IDBGetRecordData& getRecordData)
 {
     LOG(IndexedDB, "IDBConnectionToServer::getRecord");
     ASSERT(isMainThread());
-    ASSERT(!keyRangeData.isNull);
+    ASSERT(!getRecordData.keyRangeData.isNull);
 
-    m_delegate->getRecord(requestData, keyRangeData);
+    m_delegate->getRecord(requestData, getRecordData);
 }
 
 void IDBConnectionToServer::didGetRecord(const IDBResultData& resultData)
@@ -314,6 +315,30 @@ void IDBConnectionToServer::didStartTransaction(const IDBResourceIdentifier& tra
     ASSERT(isMainThread());
 
     m_proxy->didStartTransaction(transactionIdentifier, error);
+}
+
+void IDBConnectionToServer::didCloseFromServer(uint64_t databaseConnectionIdentifier, const IDBError& error)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::didCloseFromServer");
+    ASSERT(isMainThread());
+
+    m_proxy->didCloseFromServer(databaseConnectionIdentifier, error);
+}
+
+void IDBConnectionToServer::confirmDidCloseFromServer(uint64_t databaseConnectionIdentifier)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::confirmDidCloseFromServer");
+    ASSERT(isMainThread());
+
+    m_delegate->confirmDidCloseFromServer(databaseConnectionIdentifier);
+}
+
+void IDBConnectionToServer::connectionToServerLost(const IDBError& error)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::connectionToServerLost");
+    ASSERT(isMainThread());
+
+    m_proxy->connectionToServerLost(error);
 }
 
 void IDBConnectionToServer::notifyOpenDBRequestBlocked(const IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion)

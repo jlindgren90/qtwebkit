@@ -23,6 +23,7 @@
 #include "config.h"
 #include "StringPrototype.h"
 
+#include "BuiltinNames.h"
 #include "ButterflyInlines.h"
 #include "CachedCall.h"
 #include "CopiedSpaceInlines.h"
@@ -137,8 +138,8 @@ void StringPrototype::finishCreation(VM& vm, JSGlobalObject* globalObject, JSStr
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("concat", stringProtoFuncConcat, DontEnum, 1);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("indexOf", stringProtoFuncIndexOf, DontEnum, 1);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("lastIndexOf", stringProtoFuncLastIndexOf, DontEnum, 1);
-    JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->replaceUsingRegExpPrivateName, stringProtoFuncReplaceUsingRegExp, DontEnum, 2, StringPrototypeReplaceRegExpIntrinsic);
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->replaceUsingStringSearchPrivateName, stringProtoFuncReplaceUsingStringSearch, DontEnum, 2);
+    JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().replaceUsingRegExpPrivateName(), stringProtoFuncReplaceUsingRegExp, DontEnum, 2, StringPrototypeReplaceRegExpIntrinsic);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().replaceUsingStringSearchPrivateName(), stringProtoFuncReplaceUsingStringSearch, DontEnum, 2);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("slice", stringProtoFuncSlice, DontEnum, 2);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("substr", stringProtoFuncSubstr, DontEnum, 2);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("substring", stringProtoFuncSubstring, DontEnum, 2);
@@ -172,10 +173,11 @@ void StringPrototype::finishCreation(VM& vm, JSGlobalObject* globalObject, JSStr
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("startsWith", stringProtoFuncStartsWith, DontEnum, 1);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("endsWith", stringProtoFuncEndsWith, DontEnum, 1);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("includes", stringProtoFuncIncludes, DontEnum, 1);
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("normalize", stringProtoFuncNormalize, DontEnum, 1);
-    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->iteratorSymbol, stringProtoFuncIterator, DontEnum, 0);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("normalize", stringProtoFuncNormalize, DontEnum, 0);
+    JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->builtinNames().charCodeAtPrivateName(), stringProtoFuncCharCodeAt, DontEnum, 1, CharCodeAtIntrinsic);
 
-    JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->charCodeAtPrivateName, stringProtoFuncCharCodeAt, DontEnum, 1, CharCodeAtIntrinsic);
+    JSFunction* iteratorFunction = JSFunction::create(vm, globalObject, 0, ASCIILiteral("[Symbol.iterator]"), stringProtoFuncIterator, NoIntrinsic);
+    putDirectWithoutTransition(vm, vm.propertyNames->iteratorSymbol, iteratorFunction, DontEnum);
 
     // The constructor will be added later, after StringConstructor has been built
     putDirectWithoutTransition(vm, vm.propertyNames->length, jsNumber(0), DontDelete | ReadOnly | DontEnum);
@@ -187,11 +189,6 @@ StringPrototype* StringPrototype::create(VM& vm, JSGlobalObject* globalObject, S
     StringPrototype* prototype = new (NotNull, allocateCell<StringPrototype>(vm.heap)) StringPrototype(vm, structure);
     prototype->finishCreation(vm, globalObject, empty);
     return prototype;
-}
-
-bool StringPrototype::getOwnPropertySlot(JSObject* object, ExecState* exec, PropertyName propertyName, PropertySlot &slot)
-{
-    return getStaticFunctionSlot<Base>(exec, stringPrototypeTable, jsCast<StringPrototype*>(object), propertyName, slot);
 }
 
 // ------------------------------ Functions --------------------------
@@ -299,7 +296,7 @@ static ALWAYS_INLINE JSValue jsSpliceSubstrings(ExecState* exec, JSString* sourc
         if (position <= 0 && length >= sourceSize)
             return sourceVal;
         // We could call String::substringSharingImpl(), but this would result in redundant checks.
-        return jsString(exec, StringImpl::createSubstringSharingImpl(source.impl(), std::max(0, position), std::min(sourceSize, length)));
+        return jsString(exec, StringImpl::createSubstringSharingImpl(*source.impl(), std::max(0, position), std::min(sourceSize, length)));
     }
 
     int totalLength = 0;
@@ -312,7 +309,7 @@ static ALWAYS_INLINE JSValue jsSpliceSubstrings(ExecState* exec, JSString* sourc
     if (source.is8Bit()) {
         LChar* buffer;
         const LChar* sourceData = source.characters8();
-        RefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(totalLength, buffer);
+        auto impl = StringImpl::tryCreateUninitialized(totalLength, buffer);
         if (!impl)
             return throwOutOfMemoryError(exec);
 
@@ -324,13 +321,13 @@ static ALWAYS_INLINE JSValue jsSpliceSubstrings(ExecState* exec, JSString* sourc
             }
         }
 
-        return jsString(exec, impl.release());
+        return jsString(exec, WTFMove(impl));
     }
 
     UChar* buffer;
     const UChar* sourceData = source.characters16();
 
-    RefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(totalLength, buffer);
+    auto impl = StringImpl::tryCreateUninitialized(totalLength, buffer);
     if (!impl)
         return throwOutOfMemoryError(exec);
 
@@ -342,7 +339,7 @@ static ALWAYS_INLINE JSValue jsSpliceSubstrings(ExecState* exec, JSString* sourc
         }
     }
 
-    return jsString(exec, impl.release());
+    return jsString(exec, WTFMove(impl));
 }
 
 static ALWAYS_INLINE JSValue jsSpliceSubstringsWithSeparators(ExecState* exec, JSString* sourceVal, const String& source, const StringRange* substringRanges, int rangeCount, const String* separators, int separatorCount)
@@ -354,7 +351,7 @@ static ALWAYS_INLINE JSValue jsSpliceSubstringsWithSeparators(ExecState* exec, J
         if (position <= 0 && length >= sourceSize)
             return sourceVal;
         // We could call String::substringSharingImpl(), but this would result in redundant checks.
-        return jsString(exec, StringImpl::createSubstringSharingImpl(source.impl(), std::max(0, position), std::min(sourceSize, length)));
+        return jsString(exec, StringImpl::createSubstringSharingImpl(*source.impl(), std::max(0, position), std::min(sourceSize, length)));
     }
 
     Checked<int, RecordOverflow> totalLength = 0;
@@ -376,7 +373,7 @@ static ALWAYS_INLINE JSValue jsSpliceSubstringsWithSeparators(ExecState* exec, J
         LChar* buffer;
         const LChar* sourceData = source.characters8();
 
-        RefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(totalLength.unsafeGet(), buffer);
+        auto impl = StringImpl::tryCreateUninitialized(totalLength.unsafeGet(), buffer);
         if (!impl)
             return throwOutOfMemoryError(exec);
 
@@ -397,11 +394,11 @@ static ALWAYS_INLINE JSValue jsSpliceSubstringsWithSeparators(ExecState* exec, J
             }
         }        
 
-        return jsString(exec, impl.release());
+        return jsString(exec, WTFMove(impl));
     }
 
     UChar* buffer;
-    RefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(totalLength.unsafeGet(), buffer);
+    auto impl = StringImpl::tryCreateUninitialized(totalLength.unsafeGet(), buffer);
     if (!impl)
         return throwOutOfMemoryError(exec);
 
@@ -428,7 +425,7 @@ static ALWAYS_INLINE JSValue jsSpliceSubstringsWithSeparators(ExecState* exec, J
         }
     }
 
-    return jsString(exec, impl.release());
+    return jsString(exec, WTFMove(impl));
 }
 
 static ALWAYS_INLINE EncodedJSValue removeUsingRegExpSearch(VM& vm, ExecState* exec, JSString* string, const String& source, RegExp* regExp)
@@ -448,7 +445,7 @@ static ALWAYS_INLINE EncodedJSValue removeUsingRegExpSearch(VM& vm, ExecState* e
             break;
 
         if (lastIndex < result.start)
-            sourceRanges.append(StringRange(lastIndex, result.start - lastIndex));
+            sourceRanges.constructAndAppend(lastIndex, result.start - lastIndex);
 
         lastIndex = result.end;
         startPosition = lastIndex;
@@ -465,7 +462,7 @@ static ALWAYS_INLINE EncodedJSValue removeUsingRegExpSearch(VM& vm, ExecState* e
         return JSValue::encode(string);
 
     if (static_cast<unsigned>(lastIndex) < sourceLen)
-        sourceRanges.append(StringRange(lastIndex, sourceLen - lastIndex));
+        sourceRanges.constructAndAppend(lastIndex, sourceLen - lastIndex);
 
     return JSValue::encode(jsSpliceSubstrings(exec, string, source, sourceRanges.data(), sourceRanges.size()));
 }
@@ -517,7 +514,7 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingRegExpSearch(
                 if (!result)
                     break;
 
-                sourceRanges.append(StringRange(lastIndex, result.start - lastIndex));
+                sourceRanges.constructAndAppend(lastIndex, result.start - lastIndex);
 
                 unsigned i = 0;
                 for (; i < regExp->numSubpatterns() + 1; ++i) {
@@ -556,7 +553,7 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingRegExpSearch(
                 if (!result)
                     break;
 
-                sourceRanges.append(StringRange(lastIndex, result.start - lastIndex));
+                sourceRanges.constructAndAppend(lastIndex, result.start - lastIndex);
 
                 unsigned i = 0;
                 for (; i < regExp->numSubpatterns() + 1; ++i) {
@@ -597,7 +594,7 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingRegExpSearch(
                 break;
 
             if (callType != CallType::None) {
-                sourceRanges.append(StringRange(lastIndex, result.start - lastIndex));
+                sourceRanges.constructAndAppend(lastIndex, result.start - lastIndex);
 
                 MarkedArgumentBuffer args;
 
@@ -620,7 +617,7 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingRegExpSearch(
             } else {
                 int replLen = replacementString.length();
                 if (lastIndex < result.start || replLen) {
-                    sourceRanges.append(StringRange(lastIndex, result.start - lastIndex));
+                    sourceRanges.constructAndAppend(lastIndex, result.start - lastIndex);
 
                     if (replLen)
                         replacements.append(substituteBackreferences(replacementString, source, ovector, regExp));
@@ -645,7 +642,7 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingRegExpSearch(
         return JSValue::encode(string);
 
     if (static_cast<unsigned>(lastIndex) < sourceLen)
-        sourceRanges.append(StringRange(lastIndex, sourceLen - lastIndex));
+        sourceRanges.constructAndAppend(lastIndex, sourceLen - lastIndex);
 
     return JSValue::encode(jsSpliceSubstringsWithSeparators(exec, string, source, sourceRanges.data(), sourceRanges.size(), replacements.data(), replacements.size()));
 }
@@ -727,14 +724,14 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingStringSearch(VM&, ExecState* exe
         return JSValue::encode(jsUndefined());
 
     StringImpl* stringImpl = string.impl();
-    String leftPart(StringImpl::createSubstringSharingImpl(stringImpl, 0, matchStart));
+    String leftPart(StringImpl::createSubstringSharingImpl(*stringImpl, 0, matchStart));
 
     size_t matchEnd = matchStart + searchString.impl()->length();
     int ovector[2] = { static_cast<int>(matchStart),  static_cast<int>(matchEnd)};
     String middlePart = substituteBackreferences(replaceString, string, ovector, 0);
 
     size_t leftLength = stringImpl->length() - matchEnd;
-    String rightPart(StringImpl::createSubstringSharingImpl(stringImpl, matchEnd, leftLength));
+    String rightPart(StringImpl::createSubstringSharingImpl(*stringImpl, matchEnd, leftLength));
     return JSValue::encode(JSC::jsString(exec, leftPart, middlePart, rightPart));
 }
 
@@ -753,29 +750,18 @@ static inline bool checkObjectCoercible(JSValue thisValue)
 }
 
 template <typename CharacterType>
-static inline JSValue repeatCharacter(ExecState* exec, CharacterType character, unsigned repeatCount)
-{
-    CharacterType* buffer = nullptr;
-    RefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(repeatCount, buffer);
-    if (!impl)
-        return throwOutOfMemoryError(exec);
-
-    std::fill_n(buffer, repeatCount, character);
-
-    return jsString(exec, impl.release());
-}
-
-template <typename CharacterType>
 static inline JSString* repeatCharacter(ExecState& exec, CharacterType character, unsigned repeatCount)
 {
     CharacterType* buffer = nullptr;
-    RefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(repeatCount, buffer);
-    if (!impl)
-        return throwOutOfMemoryError(&exec), nullptr;
+    auto impl = StringImpl::tryCreateUninitialized(repeatCount, buffer);
+    if (!impl) {
+        throwOutOfMemoryError(&exec);
+        return nullptr;
+    }
 
     std::fill_n(buffer, repeatCount, character);
 
-    return jsString(&exec, impl.release());
+    return jsString(&exec, WTFMove(impl));
 }
 
 EncodedJSValue JSC_HOST_CALL stringProtoFuncRepeatCharacter(ExecState* exec)
@@ -792,6 +778,8 @@ EncodedJSValue JSC_HOST_CALL stringProtoFuncRepeatCharacter(ExecState* exec)
         return JSValue::encode(jsNull());
 
     int32_t repeatCount = exec->uncheckedArgument(1).asInt32();
+    ASSERT(repeatCount >= 0);
+
     UChar character = string->view(exec)[0];
     if (!(character & ~0xff))
         return JSValue::encode(repeatCharacter(*exec, static_cast<LChar>(character), repeatCount));
@@ -1087,19 +1075,22 @@ static ALWAYS_INLINE bool splitStringByOneCharacterImpl(ExecState* exec, JSArray
 // ES 21.1.3.17 String.prototype.split(separator, limit)
 EncodedJSValue JSC_HOST_CALL stringProtoFuncSplitFast(ExecState* exec)
 {
+    VM& vm = exec->vm();
     JSValue thisValue = exec->thisValue();
     ASSERT(checkObjectCoercible(thisValue));
 
     // 3. Let S be the result of calling ToString, giving it the this value as its argument.
     // 7. Let s be the number of characters in S.
     String input = thisValue.toString(exec)->value(exec);
-    if (exec->hadException())
+    if (UNLIKELY(vm.exception()))
         return JSValue::encode(jsUndefined());
     ASSERT(!input.isNull());
 
     // 4. Let A be a new array created as if by the expression new Array()
     //    where Array is the standard built-in constructor with that name.
     JSArray* result = constructEmptyArray(exec, 0);
+    if (UNLIKELY(vm.exception()))
+        return JSValue::encode(jsUndefined());
 
     // 5. Let lengthA be 0.
     unsigned resultLength = 0;
@@ -1115,7 +1106,7 @@ EncodedJSValue JSC_HOST_CALL stringProtoFuncSplitFast(ExecState* exec)
     //    otherwise let R = ToString(separator).
     JSValue separatorValue = exec->uncheckedArgument(0);
     String separator = separatorValue.toString(exec)->value(exec);
-    if (exec->hadException())
+    if (UNLIKELY(vm.exception()))
         return JSValue::encode(jsUndefined());
 
     // 10. If lim == 0, return A.
@@ -1577,7 +1568,7 @@ EncodedJSValue JSC_HOST_CALL stringProtoFuncFontsize(ExecState* exec)
         unsigned bufferSize = 22 + stringSize;
         // FIXME: Should we have an 8-bit version of this code path too? Or maybe only an 8-bit version?
         UChar* buffer;
-        PassRefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(bufferSize, buffer);
+        auto impl = StringImpl::tryCreateUninitialized(bufferSize, buffer);
         if (!impl)
             return JSValue::encode(jsUndefined());
         buffer[0] = '<';
@@ -1603,7 +1594,7 @@ EncodedJSValue JSC_HOST_CALL stringProtoFuncFontsize(ExecState* exec)
         buffer[19 + stringSize] = 'n';
         buffer[20 + stringSize] = 't';
         buffer[21 + stringSize] = '>';
-        return JSValue::encode(jsNontrivialString(exec, impl));
+        return JSValue::encode(jsNontrivialString(exec, WTFMove(impl)));
     }
 
     String fontSize = a0.toWTFString(exec);
@@ -1646,7 +1637,7 @@ EncodedJSValue JSC_HOST_CALL stringProtoFuncLink(ExecState* exec)
     unsigned bufferSize = 15 + linkTextSize + stringSize;
     // FIXME: Should we have an 8-bit version of this code path too? Or maybe only an 8-bit version?
     UChar* buffer;
-    PassRefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(bufferSize, buffer);
+    auto impl = StringImpl::tryCreateUninitialized(bufferSize, buffer);
     if (!impl)
         return JSValue::encode(jsUndefined());
     buffer[0] = '<';
@@ -1666,7 +1657,7 @@ EncodedJSValue JSC_HOST_CALL stringProtoFuncLink(ExecState* exec)
     buffer[12 + linkTextSize + stringSize] = '/';
     buffer[13 + linkTextSize + stringSize] = 'a';
     buffer[14 + linkTextSize + stringSize] = '>';
-    return JSValue::encode(jsNontrivialString(exec, impl));
+    return JSValue::encode(jsNontrivialString(exec, WTFMove(impl)));
 }
 
 enum {
@@ -1883,7 +1874,7 @@ static JSValue normalize(ExecState* exec, const UChar* source, size_t sourceLeng
     }
 
     UChar* buffer = nullptr;
-    RefPtr<StringImpl> impl = StringImpl::tryCreateUninitialized(normalizedStringLength, buffer);
+    auto impl = StringImpl::tryCreateUninitialized(normalizedStringLength, buffer);
     if (!impl)
         return throwOutOfMemoryError(exec);
 
@@ -1892,7 +1883,7 @@ static JSValue normalize(ExecState* exec, const UChar* source, size_t sourceLeng
     if (U_FAILURE(status))
         return throwTypeError(exec);
 
-    return jsString(exec, impl.release());
+    return jsString(exec, WTFMove(impl));
 }
 
 EncodedJSValue JSC_HOST_CALL stringProtoFuncNormalize(ExecState* exec)

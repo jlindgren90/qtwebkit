@@ -382,6 +382,8 @@ const gchar* roleToString(AtkObject* object)
         return "AXInvalid";
     case ATK_ROLE_LABEL:
         return "AXLabel";
+    case ATK_ROLE_LEVEL_BAR:
+        return "AXProgressIndicator";
     case ATK_ROLE_LINK:
         return "AXLink";
     case ATK_ROLE_LIST:
@@ -1028,7 +1030,19 @@ JSValueRef AccessibilityUIElement::columnHeaders() const
 
 PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::uiElementAttributeValue(JSStringRef attribute) const
 {
-    // FIXME: implement
+    if (!ATK_IS_OBJECT(m_element.get()))
+        return nullptr;
+
+    // ATK does not have this API. So we're "faking it" here on a case-by-case basis.
+    String attributeString = jsStringToWTFString(attribute);
+    AtkRole role = atk_object_get_role(ATK_OBJECT(m_element.get()));
+    if (role == ATK_ROLE_SPIN_BUTTON && const_cast<AccessibilityUIElement*>(this)->childrenCount() == 2) {
+        if (attributeString == "AXDecrementButton")
+            return const_cast<AccessibilityUIElement*>(this)->childAtIndex(0);
+        if (attributeString == "AXIncrementButton")
+            return const_cast<AccessibilityUIElement*>(this)->childAtIndex(1);
+    }
+
     return nullptr;
 }
 
@@ -1222,15 +1236,15 @@ JSRetainPtr<JSStringRef> AccessibilityUIElement::helpText() const
 
     AtkRelationSet* relationSet = atk_object_ref_relation_set(ATK_OBJECT(m_element.get()));
     if (!relationSet)
-        return nullptr;
+        return JSStringCreateWithCharacters(0, 0);
 
     AtkRelation* relation = atk_relation_set_get_relation_by_type(relationSet, ATK_RELATION_DESCRIBED_BY);
     if (!relation)
-        return nullptr;
+        return JSStringCreateWithCharacters(0, 0);
 
     GPtrArray* targetList = atk_relation_get_target(relation);
     if (!targetList || !targetList->len)
-        return nullptr;
+        return JSStringCreateWithCharacters(0, 0);
 
     StringBuilder builder;
     builder.append("AXHelp: ");
@@ -1405,8 +1419,9 @@ double AccessibilityUIElement::maxValue()
 
 JSRetainPtr<JSStringRef> AccessibilityUIElement::valueDescription()
 {
-    // FIXME: implement
-    return JSStringCreateWithCharacters(0, 0);
+    String valueText = getAttributeSetValueForId(ATK_OBJECT(m_element.get()), ObjectAttributeType, "valuetext");
+    GUniquePtr<gchar> valueDescription(g_strdup_printf("AXValueDescription: %s", valueText.utf8().data()));
+    return JSStringCreateWithUTF8CString(valueDescription.get());
 }
 
 int AccessibilityUIElement::insertionPointLineNumber()

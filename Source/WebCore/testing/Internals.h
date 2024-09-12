@@ -46,6 +46,7 @@ class Document;
 class Element;
 class File;
 class Frame;
+class GCObservation;
 class HTMLImageElement;
 class HTMLInputElement;
 class HTMLLinkElement;
@@ -106,7 +107,7 @@ public:
     void clearPageCache();
     unsigned pageCacheSize() const;
 
-    RefPtr<CSSComputedStyleDeclaration> computedStyleIncludingVisitedInfo(Node&) const;
+    RefPtr<CSSComputedStyleDeclaration> computedStyleIncludingVisitedInfo(Element&) const;
 
     Node* ensureShadowRoot(Element& host, ExceptionCode&);
     Node* ensureUserAgentShadowRoot(Element& host);
@@ -223,6 +224,7 @@ public:
     void toggleOverwriteModeEnabled(ExceptionCode&);
 
     unsigned countMatchesForText(const String&, unsigned findOptions, const String& markMatches, ExceptionCode&);
+    unsigned countFindMatches(const String&, unsigned findOptions, ExceptionCode&);
 
     unsigned numberOfScrollableAreas(ExceptionCode&);
 
@@ -264,17 +266,18 @@ public:
 
     void garbageCollectDocumentResources(ExceptionCode&) const;
 
+    void beginSimulatedMemoryPressure();
+    void endSimulatedMemoryPressure();
+    bool isUnderMemoryPressure();
+
     void insertAuthorCSS(const String&, ExceptionCode&) const;
     void insertUserCSS(const String&, ExceptionCode&) const;
-
-    const ProfilesArray& consoleProfiles() const;
 
     unsigned numberOfLiveNodes() const;
     unsigned numberOfLiveDocuments() const;
 
     RefPtr<DOMWindow> openDummyInspectorFrontend(const String& url);
     void closeDummyInspectorFrontend();
-    void setLegacyJavaScriptProfilingEnabled(bool enabled, ExceptionCode&);
     void setInspectorIsUnderTest(bool isUnderTest, ExceptionCode&);
 
     String counterValue(Element&);
@@ -408,7 +411,7 @@ public:
     void applicationWillEnterBackground() const;
     void setMediaSessionRestrictions(const String& mediaType, const String& restrictions, ExceptionCode&);
     void setMediaElementRestrictions(HTMLMediaElement&, const String& restrictions);
-    void postRemoteControlCommand(const String&, ExceptionCode&);
+    void postRemoteControlCommand(const String&, float argument, ExceptionCode&);
     bool elementIsBlockingDisplaySleep(HTMLMediaElement&) const;
 #endif
 
@@ -470,7 +473,6 @@ public:
 
     String composedTreeAsText(Node&);
     
-    void setViewportForceAlwaysUserScalable(bool);
     void setLinkPreloadSupport(bool);
     void setResourceTimingSupport(bool);
 
@@ -482,6 +484,13 @@ public:
     bool webGL2Enabled() const;
     void setWebGL2Enabled(bool);
 #endif
+
+    bool isProcessingUserGesture();
+
+    RefPtr<GCObservation> observeGC(JSC::JSValue);
+
+    enum class UserInterfaceLayoutDirection { LTR, RTL };
+    void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection);
 
 private:
     explicit Internals(Document&);

@@ -53,9 +53,6 @@ class SVGElement : public StyledElement, public SVGLangSpace {
 public:
     bool isOutermostSVGSVGElement() const;
 
-    String xmlbase() const;
-    void setXmlbase(const String&, ExceptionCode&);
-
     SVGSVGElement* ownerSVGElement() const;
     SVGElement* viewportElement() const;
 
@@ -133,8 +130,8 @@ public:
 
     virtual bool haveLoadedRequiredResources();
 
-    bool addEventListener(const AtomicString& eventType, RefPtr<EventListener>&&, bool useCapture) override;
-    bool removeEventListener(const AtomicString& eventType, EventListener*, bool useCapture) override;
+    bool addEventListener(const AtomicString& eventType, Ref<EventListener>&&, const AddEventListenerOptions&) override;
+    bool removeEventListener(const AtomicString& eventType, EventListener&, const ListenerOptions&) override;
     bool hasFocusEventListeners() const;
 
 #if ENABLE(CSS_REGIONS)

@@ -30,7 +30,7 @@
 #include "FontCascade.h"
 #include "RenderBlock.h"
 #include "RenderText.h"
-#include "TextBreakIterator.h"
+#include <wtf/text/TextBreakIterator.h>
 #include "TextRun.h"
 #include <wtf/Optional.h>
 #include <wtf/StdLibExtras.h>
@@ -269,7 +269,7 @@ static bool advanceByCombiningCharacterSequence(const UChar*& iterator, const UC
         bool shouldContinue = false;
         U16_NEXT(iterator, markLength, end - iterator, nextCharacter);
 
-        if (isVariationSelector(nextCharacter) || isEmojiModifier(nextCharacter))
+        if (isVariationSelector(nextCharacter) || isEmojiFitzpatrickModifier(nextCharacter))
             shouldContinue = true;
 
         if (sawJoiner && isEmojiGroupCandidate(nextCharacter))
@@ -456,7 +456,7 @@ void ComplexTextController::ComplexTextRun::setIsNonMonotonic()
     ASSERT(m_isMonotonic);
     m_isMonotonic = false;
 
-    Vector<bool, 64> mappedIndices(m_stringLength);
+    Vector<bool, 64> mappedIndices(m_stringLength, false);
     for (size_t i = 0; i < m_glyphCount; ++i) {
         ASSERT(indexAt(i) < static_cast<CFIndex>(m_stringLength));
         mappedIndices[indexAt(i)] = true;

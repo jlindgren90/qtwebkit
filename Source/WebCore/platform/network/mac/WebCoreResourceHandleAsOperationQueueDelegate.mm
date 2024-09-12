@@ -122,9 +122,7 @@ using namespace WebCore;
             return;
         }
 
-        ResourceRequest request = newRequest;
-
-        m_handle->willSendRequest(request, redirectResponse);
+        m_handle->willSendRequest(newRequest, redirectResponse);
     });
 
     dispatch_semaphore_wait(m_semaphore, DISPATCH_TIME_FOREVER);
@@ -144,22 +142,6 @@ using namespace WebCore;
             return;
         }
         m_handle->didReceiveAuthenticationChallenge(core(challenge));
-    });
-}
-
-- (void)connection:(NSURLConnection *)connection didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
-{
-    // FIXME: We probably don't need to implement this (see <rdar://problem/8960124>).
-
-    ASSERT(!isMainThread());
-    UNUSED_PARAM(connection);
-
-    LOG(Network, "Handle %p delegate connection:%p didCancelAuthenticationChallenge:%p", m_handle, connection, challenge);
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (!m_handle)
-            return;
-        m_handle->didCancelAuthenticationChallenge(core(challenge));
     });
 }
 
@@ -217,7 +199,7 @@ using namespace WebCore;
 #else
         UNUSED_PARAM(connection);
 #endif
-        m_handle->client()->didReceiveResponseAsync(m_handle, resourceResponse);
+        m_handle->client()->didReceiveResponseAsync(m_handle, WTFMove(resourceResponse));
     });
 
     dispatch_semaphore_wait(m_semaphore, DISPATCH_TIME_FOREVER);

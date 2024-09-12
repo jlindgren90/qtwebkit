@@ -42,17 +42,19 @@ public:
     }
     virtual ~TextTrackList();
 
+    void clearElement() override;
+
     unsigned length() const override;
-    int getTrackIndex(TextTrack*);
-    int getTrackIndexRelativeToRenderedTracks(TextTrack*);
-    bool contains(TrackBase*) const override;
+    int getTrackIndex(TextTrack&);
+    int getTrackIndexRelativeToRenderedTracks(TextTrack&);
+    bool contains(TrackBase&) const override;
 
     TextTrack* item(unsigned index) const;
     TextTrack* getTrackById(const AtomicString&);
     TextTrack* lastItem() const { return item(length() - 1); }
 
-    void append(PassRefPtr<TextTrack>);
-    void remove(TrackBase*, bool scheduleEvent = true) override;
+    void append(Ref<TextTrack>&&);
+    void remove(TrackBase&, bool scheduleEvent = true) override;
 
     // EventTarget
     EventTargetInterface eventTargetInterface() const override;
@@ -60,7 +62,7 @@ public:
 private:
     TextTrackList(HTMLMediaElement*, ScriptExecutionContext*);
 
-    void invalidateTrackIndexesAfterTrack(TextTrack*);
+    void invalidateTrackIndexesAfterTrack(TextTrack&);
 
     Vector<RefPtr<TrackBase>> m_addTrackTracks;
     Vector<RefPtr<TrackBase>> m_elementTracks;

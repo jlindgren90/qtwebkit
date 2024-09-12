@@ -97,10 +97,10 @@ class ResourceHandleStreamingClient : public ResourceHandleClient, public Stream
 #if USE(SOUP)
         char* getOrCreateReadBuffer(size_t requestedSize, size_t& actualSize) override;
 #endif
-        void willSendRequest(ResourceHandle*, ResourceRequest&, const ResourceResponse&) override;
-        void didReceiveResponse(ResourceHandle*, const ResourceResponse&) override;
+        ResourceRequest willSendRequest(ResourceHandle*, ResourceRequest&&, ResourceResponse&&) override;
+        void didReceiveResponse(ResourceHandle*, ResourceResponse&&) override;
         void didReceiveData(ResourceHandle*, const char*, unsigned, int) override;
-        void didReceiveBuffer(ResourceHandle*, PassRefPtr<SharedBuffer>, int encodedLength) override;
+        void didReceiveBuffer(ResourceHandle*, Ref<SharedBuffer>&&, int encodedLength) override;
         void didFinishLoading(ResourceHandle*, double /*finishTime*/) override;
         void didFail(ResourceHandle*, const ResourceError&) override;
         void wasBlocked(ResourceHandle*) override;
@@ -391,8 +391,7 @@ static void webKitWebSrcStop(WebKitWebSrc* src)
     if (priv->resource || (priv->loader && !priv->keepAlive)) {
         GRefPtr<WebKitWebSrc> protector = WTF::ensureGRef(src);
         priv->notifier.cancelPendingNotifications(MainThreadSourceNotification::NeedData | MainThreadSourceNotification::EnoughData | MainThreadSourceNotification::Seek);
-        bool keepAlive = priv->keepAlive;
-        priv->notifier.notify(MainThreadSourceNotification::Stop, [protector, keepAlive] {
+        priv->notifier.notify(MainThreadSourceNotification::Stop, [protector, keepAlive = priv->keepAlive] {
             WebKitWebSrcPrivate* priv = protector->priv;
 
             WTF::GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(protector.get()));
@@ -573,7 +572,7 @@ static void webKitWebSrcStart(WebKitWebSrc* src)
 
     locker.unlock();
     GRefPtr<WebKitWebSrc> protector = WTF::ensureGRef(src);
-    priv->notifier.notify(MainThreadSourceNotification::Start, [protector, request] {
+    priv->notifier.notify(MainThreadSourceNotification::Start, [protector, request = WTFMove(request)] {
         WebKitWebSrcPrivate* priv = protector->priv;
 
         WTF::GMutexLocker<GMutex> locker(*GST_OBJECT_GET_LOCK(protector.get()));
@@ -1071,7 +1070,7 @@ ResourceHandleStreamingClient::ResourceHandleStreamingClient(WebKitWebSrc* src, 
     : StreamingClient(src)
 {
     LockHolder locker(m_initializeRunLoopConditionMutex);
-    m_thread = createThread("ResourceHandleStreamingClient", [this, request] {
+    m_thread = createThread("ResourceHandleStreamingClient", [this, request = WTFMove(request)] {
         {
             LockHolder locker(m_initializeRunLoopConditionMutex);
             m_runLoop = &RunLoop::current();
@@ -1131,11 +1130,12 @@ char* ResourceHandleStreamingClient::getOrCreateReadBuffer(size_t requestedSize,
 }
 #endif
 
-void ResourceHandleStreamingClient::willSendRequest(ResourceHandle*, ResourceRequest&, const ResourceResponse&)
+ResourceRequest ResourceHandleStreamingClient::willSendRequest(ResourceHandle*, ResourceRequest&& request, ResourceResponse&&)
 {
+    return WTFMove(request);
 }
 
-void ResourceHandleStreamingClient::didReceiveResponse(ResourceHandle*, const ResourceResponse& response)
+void ResourceHandleStreamingClient::didReceiveResponse(ResourceHandle*, ResourceResponse&& response)
 {
     handleResponseReceived(response);
 }
@@ -1145,7 +1145,7 @@ void ResourceHandleStreamingClient::didReceiveData(ResourceHandle*, const char* 
     ASSERT_NOT_REACHED();
 }
 
-void ResourceHandleStreamingClient::didReceiveBuffer(ResourceHandle*, PassRefPtr<SharedBuffer> buffer, int /* encodedLength */)
+void ResourceHandleStreamingClient::didReceiveBuffer(ResourceHandle*, Ref<SharedBuffer>&& buffer, int /* encodedLength */)
 {
     // This pattern is suggested by SharedBuffer.h.
     const char* segment;

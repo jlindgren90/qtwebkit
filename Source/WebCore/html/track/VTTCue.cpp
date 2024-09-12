@@ -119,10 +119,10 @@ static const String& verticalGrowingRightKeyword()
 
 // ----------------------------
 
-PassRefPtr<VTTCueBox> VTTCueBox::create(Document& document, VTTCue& cue)
+Ref<VTTCueBox> VTTCueBox::create(Document& document, VTTCue& cue)
 {
-    VTTCueBox* cueBox = new VTTCueBox(document, cue);
-    cueBox->setPseudo(VTTCueBox::vttCueBoxShadowPseudoId());
+    VTTCueBox& cueBox = *new VTTCueBox(document, cue);
+    cueBox.setPseudo(VTTCueBox::vttCueBoxShadowPseudoId());
     return adoptRef(cueBox);
 }
 
@@ -268,10 +268,9 @@ VTTCue::VTTCue(ScriptExecutionContext& context, const WebVTTCueData& cueData)
 
 VTTCue::~VTTCue()
 {
-    if (!hasDisplayTree())
-        return;
-
-    displayTreeInternal()->remove(ASSERT_NO_EXCEPTION);
+    // FIXME: We should set m_cue in VTTCueBox to nullptr instead.
+    if (m_displayTree && m_displayTree->document().refCount())
+        m_displayTree->remove(ASSERT_NO_EXCEPTION);
 }
 
 void VTTCue::initialize(ScriptExecutionContext& context)

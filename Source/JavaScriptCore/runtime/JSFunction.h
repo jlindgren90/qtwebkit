@@ -49,7 +49,7 @@ class JITCompiler;
 
 JS_EXPORT_PRIVATE EncodedJSValue JSC_HOST_CALL callHostFunctionAsConstructor(ExecState*);
 
-JS_EXPORT_PRIVATE String getCalculatedDisplayName(CallFrame*, JSObject*);
+JS_EXPORT_PRIVATE String getCalculatedDisplayName(VM&, JSObject*);
 
 class JSFunction : public JSCallee {
     friend class JIT;
@@ -82,8 +82,8 @@ public:
     static JSFunction* createBuiltinFunction(VM&, FunctionExecutable*, JSGlobalObject*, const String& name);
 
     JS_EXPORT_PRIVATE String name();
-    JS_EXPORT_PRIVATE String displayName(ExecState*);
-    const String calculatedDisplayName(ExecState*);
+    JS_EXPORT_PRIVATE String displayName(VM&);
+    const String calculatedDisplayName(VM&);
 
     ExecutableBase* executable() const { return m_executable.get(); }
 
@@ -178,8 +178,6 @@ protected:
     static void visitChildren(JSCell*, SlotVisitor&);
 
 
-    static NativeExecutable* lookUpOrCreateNativeExecutable(VM&, NativeFunction, Intrinsic, NativeFunction nativeConstructor, const String& name);
-
 private:
     static JSFunction* createImpl(VM& vm, FunctionExecutable* executable, JSScope* scope, Structure* structure)
     {
@@ -193,6 +191,7 @@ private:
     bool hasReifiedName() const;
     void reifyLength(ExecState*);
     void reifyName(ExecState*);
+    void reifyBoundNameIfNeeded(ExecState*, PropertyName);
     void reifyName(ExecState*, String name);
     void reifyLazyPropertyIfNeeded(ExecState*, PropertyName propertyName);
 

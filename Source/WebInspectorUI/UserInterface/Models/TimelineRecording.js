@@ -37,6 +37,8 @@ WebInspector.TimelineRecording = class TimelineRecording extends WebInspector.Ob
         this._instruments = instruments || [];
         this._topDownCallingContextTree = new WebInspector.CallingContextTree(WebInspector.CallingContextTree.Type.TopDown);
         this._bottomUpCallingContextTree = new WebInspector.CallingContextTree(WebInspector.CallingContextTree.Type.BottomUp);
+        this._topFunctionsTopDownCallingContextTree = new WebInspector.CallingContextTree(WebInspector.CallingContextTree.Type.TopFunctionsTopDown);
+        this._topFunctionsBottomUpCallingContextTree = new WebInspector.CallingContextTree(WebInspector.CallingContextTree.Type.TopFunctionsBottomUp);
 
         for (let type of WebInspector.TimelineManager.availableTimelineTypes()) {
             let timeline = WebInspector.Timeline.create(type);
@@ -104,7 +106,17 @@ WebInspector.TimelineRecording = class TimelineRecording extends WebInspector.Ob
         return this._bottomUpCallingContextTree;
     }
 
-    start()
+    get topFunctionsTopDownCallingContextTree()
+    {
+        return this._topFunctionsTopDownCallingContextTree;
+    }
+
+    get topFunctionsBottomUpCallingContextTree()
+    {
+        return this._topFunctionsBottomUpCallingContextTree;
+    }
+
+    start(initiatedByBackend)
     {
         console.assert(!this._capturing, "Attempted to start an already started session.");
         console.assert(!this._readonly, "Attempted to start a readonly session.");
@@ -112,10 +124,10 @@ WebInspector.TimelineRecording = class TimelineRecording extends WebInspector.Ob
         this._capturing = true;
 
         for (let instrument of this._instruments)
-            instrument.startInstrumentation();
+            instrument.startInstrumentation(initiatedByBackend);
     }
 
-    stop()
+    stop(initiatedByBackend)
     {
         console.assert(this._capturing, "Attempted to stop an already stopped session.");
         console.assert(!this._readonly, "Attempted to stop a readonly session.");
@@ -123,7 +135,7 @@ WebInspector.TimelineRecording = class TimelineRecording extends WebInspector.Ob
         this._capturing = false;
 
         for (let instrument of this._instruments)
-            instrument.stopInstrumentation();
+            instrument.stopInstrumentation(initiatedByBackend);
     }
 
     saveIdentityToCookie()
@@ -159,9 +171,12 @@ WebInspector.TimelineRecording = class TimelineRecording extends WebInspector.Ob
         this._eventMarkers = [];
         this._startTime = NaN;
         this._endTime = NaN;
+        this._discontinuities = [];
 
         this._topDownCallingContextTree.reset();
         this._bottomUpCallingContextTree.reset();
+        this._topFunctionsTopDownCallingContextTree.reset();
+        this._topFunctionsBottomUpCallingContextTree.reset();
 
         for (var timeline of this._timelines.values())
             timeline.reset(suppressEvents);
@@ -280,6 +295,29 @@ WebInspector.TimelineRecording = class TimelineRecording extends WebInspector.Ob
             return;
 
         memoryTimeline.addMemoryPressureEvent(memoryPressureEvent);
+    }
+
+    addDiscontinuity(startTime, endTime)
+    {
+        this._discontinuities.push({startTime, endTime});
+    }
+
+    discontinuitiesInTimeRange(startTime, endTime)
+    {
+        return this._discontinuities.filter((item) => item.startTime < endTime && item.endTime > startTime);
+    }
+
+    addScriptInstrumentForProgrammaticCapture()
+    {
+        for (let instrument of this._instruments) {
+            if (instrument instanceof WebInspector.ScriptInstrument)
+                return;
+        }
+
+        this.addInstrument(new WebInspector.ScriptInstrument);
+
+        let instrumentTypes = this._instruments.map((instrument) => instrument.timelineRecordType);
+        WebInspector.timelineManager.enabledTimelineTypes = instrumentTypes;
     }
 
     computeElapsedTime(timestamp)

@@ -90,6 +90,28 @@ WebInspector.Script = class Script extends WebInspector.SourceCode
         return this._url;
     }
 
+    get contentIdentifier()
+    {
+        if (this._url)
+            return this._url;
+
+        if (!this._sourceURL)
+            return null;
+
+        // Since reused content identifiers can cause breakpoints
+        // to show up in completely unrelated files, sourceURLs should
+        // be unique where possible. The checks below exclude cases
+        // where sourceURLs are intentionally reused and we would never
+        // expect a breakpoint to be persisted across sessions.
+        if (isWebInspectorConsoleEvaluationScript(this._sourceURL))
+            return null;
+
+        if (isWebInspectorInternalScript(this._sourceURL))
+            return null;
+
+        return this._sourceURL;
+    }
+
     get sourceURL()
     {
         return this._sourceURL;
@@ -195,15 +217,14 @@ WebInspector.Script = class Script extends WebInspector.SourceCode
     requestScriptSyntaxTree(callback)
     {
         if (this._scriptSyntaxTree) {
-            setTimeout(function() { callback(this._scriptSyntaxTree); }.bind(this), 0);
+            setTimeout(() => { callback(this._scriptSyntaxTree); }, 0);
             return;
         }
 
-        var makeSyntaxTreeAndCallCallback = function(content)
-        {
+        var makeSyntaxTreeAndCallCallback = () => {
             this._makeSyntaxTree(content);
             callback(this._scriptSyntaxTree);
-        }.bind(this);
+        };
 
         var content = this.content;
         if (!content && this._resource && this._resource.type === WebInspector.Resource.Type.Script && this._resource.finished)

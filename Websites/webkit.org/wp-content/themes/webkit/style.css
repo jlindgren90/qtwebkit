@@ -666,6 +666,7 @@ footer .menu {
     font-weight: 400;
     line-height: 3rem;
     align-self: center;
+    padding-bottom: 6rem;
 }
 
 .twitter-tile img {
@@ -1011,6 +1012,19 @@ article div.note {
     box-sizing: normal;
 }
 
+article .foreword {
+    padding: 1.6rem 2.2rem 1.6rem;
+    line-height: 2.6rem;
+    background-color: #f0f0f0;
+    border: 1px solid #e6e6e6;
+    color: #8E8E93;
+    border-radius: 3px;
+    margin-bottom: 3rem;
+    box-sizing: normal;
+    font-size: 1.6rem;
+    font-style: italic;
+}
+
 article .two-columns {
     columns: 2;
     column-gap: 6rem;
@@ -1174,6 +1188,17 @@ figure.widescreen video {
     max-width: 66%;
 }
 
+article video.alignleft,
+article video.alignright {
+    max-width: 50%;
+}
+
+article .alignleft:first-child,
+article .alignright:first-child {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
 article figcaption {
     text-align: left;
     margin-top: 1.5rem;
@@ -1197,6 +1222,18 @@ article figcaption::before {
     display: inline-block;
     box-sizing: border-box;
     position: absolute;
+}
+
+figure.aligncenter figcaption {
+    text-align: center;
+    padding-left: 0;
+}
+
+figure.aligncenter figcaption::before {
+    margin: 0 auto;
+    width: 20%;
+    left: 50%;
+    transform: translate(-50%);
 }
 
 article .clipbottom + p + figcaption {
@@ -1907,7 +1944,7 @@ header .menu-item { /* add bottom dimension to main menu items */
     }
 
     .tile {
-        min-height: auto;
+        min-height: 320px;
     }
 
     .third-tile,
@@ -1960,6 +1997,11 @@ header .menu-item { /* add bottom dimension to main menu items */
         border: 1px solid #cccccc;
         border-left: none;
         border-right: none;
+    }
+
+    article video.alignleft,
+    article video.alignright {
+        min-width: 30rem;
     }
 
     .scrollable .scrollable-padding {
@@ -2067,6 +2109,19 @@ header .menu-item { /* add bottom dimension to main menu items */
     #post-4132 pre:nth-child(-n+8) {
         width: 100vw;
     }
+
+    article video.alignleft,
+    article video.alignright {
+        max-width: 100%;
+        min-width: none;
+        width: 100%;
+    }
+
+    article .alignleft:first-child,
+    article .alignright:first-child {
+        margin-bottom: 3rem;
+    }
+
 }
 
 @media only screen and (max-width: 415px) {

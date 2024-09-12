@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Apple Inc.  All rights reserved.
+ * Copyright (C) 2009-2016 Apple Inc.  All rights reserved.
  * Copyright (C) 2009 Google Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,9 @@
 #include "Credential.h"
 #include "CredentialStorage.h"
 #include "Logging.h"
-#include "NetworkingContext.h"
+#include "NetworkStorageSession.h"
 #include "ProtectionSpace.h"
+#include "Settings.h"
 #include "SocketStreamError.h"
 #include "SocketStreamHandleClient.h"
 #include <wtf/Condition.h>
@@ -66,14 +67,14 @@ extern "C" const CFStringRef _kCFStreamSocketSetNoDelay;
 
 namespace WebCore {
 
-SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient* client, NetworkingContext& networkingContext, bool usesEphemeralSession)
+SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient& client, SessionID sessionID)
     : SocketStreamHandleBase(url, client)
     , m_connectingSubstate(New)
     , m_connectionType(Unknown)
     , m_sentStoredCredentials(false)
-    , m_networkingContext(networkingContext)
+    , m_sessionID(sessionID)
 {
-    LOG(Network, "SocketStreamHandle %p new client %p", this, m_client);
+    LOG(Network, "SocketStreamHandle %p new client %p", this, &m_client);
 
     ASSERT(url.protocolIs("ws") || url.protocolIs("wss"));
 
@@ -84,9 +85,9 @@ SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient*
     // Don't check for HSTS violation for ephemeral sessions since
     // HSTS state should not transfer between regular and private browsing.
     if (url.protocolIs("ws")
-        && !usesEphemeralSession
+        && !sessionID.isEphemeral()
         && _CFNetworkIsKnownHSTSHostWithSession(m_httpsURL.get(), nullptr)) {
-        m_client->didFailSocketStream(this, SocketStreamError(0, m_url.string(), "WebSocket connection failed because it violates HTTP Strict Transport Security."));
+        m_client.didFailSocketStream(*this, SocketStreamError(0, m_url.string(), "WebSocket connection failed because it violates HTTP Strict Transport Security."));
         return;
     }
 #endif
@@ -340,8 +341,9 @@ void SocketStreamHandle::createStreams()
     }
 
     if (shouldUseSSL()) {
-        const void* keys[] = { kCFStreamSSLPeerName, kCFStreamSSLLevel };
-        const void* values[] = { host.get(), kCFStreamSocketSecurityLevelNegotiatedSSL };
+        CFBooleanRef validateCertificateChain = Settings::allowsAnySSLCertificate() ? kCFBooleanFalse : kCFBooleanTrue;
+        const void* keys[] = { kCFStreamSSLPeerName, kCFStreamSSLLevel, kCFStreamSSLValidatesCertificateChain };
+        const void* values[] = { host.get(), kCFStreamSocketSecurityLevelNegotiatedSSL, validateCertificateChain };
         RetainPtr<CFDictionaryRef> settings = adoptCF(CFDictionaryCreate(0, keys, values, WTF_ARRAY_LENGTH(keys), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
         CFReadStreamSetProperty(m_readStream.get(), kCFStreamPropertySSLSettings, settings.get());
         CFWriteStreamSetProperty(m_writeStream.get(), kCFStreamPropertySSLSettings, settings.get());
@@ -353,9 +355,12 @@ bool SocketStreamHandle::getStoredCONNECTProxyCredentials(const ProtectionSpace&
     // FIXME (<rdar://problem/10416495>): Proxy credentials should be retrieved from AuthBrokerAgent.
 
     // Try system credential storage first, matching HTTP behavior (CFNetwork only asks the client for password if it couldn't find it in Keychain).
-    Credential storedCredential = m_networkingContext->storageSession().credentialStorage().getFromPersistentStorage(protectionSpace);
-    if (storedCredential.isEmpty())
-        storedCredential = m_networkingContext->storageSession().credentialStorage().get(protectionSpace);
+    Credential storedCredential;
+    if (auto* storageSession = NetworkStorageSession::storageSession(m_sessionID)) {
+        storedCredential = storageSession->credentialStorage().getFromPersistentStorage(protectionSpace);
+        if (storedCredential.isEmpty())
+            storedCredential = storageSession->credentialStorage().get(protectionSpace);
+    }
 
     if (storedCredential.isEmpty())
         return false;
@@ -386,7 +391,7 @@ void SocketStreamHandle::addCONNECTCredentials(CFHTTPMessageRef proxyResponse)
 
     if (!CFHTTPAuthenticationRequiresUserNameAndPassword(authentication.get())) {
         // That's all we can offer...
-        m_client->didFailSocketStream(this, SocketStreamError(0, m_url.string(), "Proxy authentication scheme is not supported for WebSockets"));
+        m_client.didFailSocketStream(*this, SocketStreamError(0, m_url.string(), "Proxy authentication scheme is not supported for WebSockets"));
         return;
     }
 
@@ -397,7 +402,7 @@ void SocketStreamHandle::addCONNECTCredentials(CFHTTPMessageRef proxyResponse)
 
     if (!methodCF || !realmCF) {
         // This shouldn't happen, but on some OS versions we get incomplete authentication data, see <rdar://problem/10416316>.
-        m_client->didFailSocketStream(this, SocketStreamError(0, m_url.string(), "WebSocket proxy authentication couldn't be handled"));
+        m_client.didFailSocketStream(*this, SocketStreamError(0, m_url.string(), "WebSocket proxy authentication couldn't be handled"));
         return;
     }
 
@@ -416,7 +421,7 @@ void SocketStreamHandle::addCONNECTCredentials(CFHTTPMessageRef proxyResponse)
 
         if (!proxyAuthorizationString) {
             // Fails e.g. for NTLM auth.
-            m_client->didFailSocketStream(this, SocketStreamError(0, m_url.string(), "Proxy authentication scheme is not supported for WebSockets"));
+            m_client.didFailSocketStream(*this, SocketStreamError(0, m_url.string(), "Proxy authentication scheme is not supported for WebSockets"));
             return;
         }
 
@@ -428,7 +433,7 @@ void SocketStreamHandle::addCONNECTCredentials(CFHTTPMessageRef proxyResponse)
 
     // FIXME: On platforms where AuthBrokerAgent is not available, ask the client if credentials could not be found.
 
-    m_client->didFailSocketStream(this, SocketStreamError(0, m_url.string(), "Proxy credentials are not available"));
+    m_client.didFailSocketStream(*this, SocketStreamError(0, m_url.string(), "Proxy credentials are not available"));
 }
 
 CFStringRef SocketStreamHandle::copyCFStreamDescription(void* info)
@@ -446,8 +451,10 @@ void SocketStreamHandle::readStreamCallback(CFReadStreamRef stream, CFStreamEven
         return;
 
 #if PLATFORM(WIN)
+    RefPtr<SocketStreamHandle> protector(handle);
     callOnMainThreadAndWait([&] {
-        handle->readStreamCallback(type);
+        if (handle->m_readStream)
+            handle->readStreamCallback(type);
     });
 #else
     ASSERT(isMainThread());
@@ -464,8 +471,10 @@ void SocketStreamHandle::writeStreamCallback(CFWriteStreamRef stream, CFStreamEv
         return;
 
 #if PLATFORM(WIN)
+    RefPtr<SocketStreamHandle> protector(handle);
     callOnMainThreadAndWait([&] {
-        handle->writeStreamCallback(type);
+        if (handle->m_writeStream)
+            handle->writeStreamCallback(type);
     });
 #else
     ASSERT(isMainThread());
@@ -499,14 +508,14 @@ void SocketStreamHandle::readStreamCallback(CFStreamEventType type)
                     addCONNECTCredentials(proxyResponse.get());
                     return;
                 default:
-                    m_client->didFailSocketStream(this, SocketStreamError(static_cast<int>(proxyResponseCode), m_url.string(), "Proxy connection could not be established, unexpected response code"));
+                    m_client.didFailSocketStream(*this, SocketStreamError(static_cast<int>(proxyResponseCode), m_url.string(), "Proxy connection could not be established, unexpected response code"));
                     platformClose();
                     return;
                 }
             }
             m_connectingSubstate = Connected;
             m_state = Open;
-            m_client->didOpenSocketStream(this);
+            m_client.didOpenSocketStream(*this);
         }
 
         // Not an "else if", we could have made a client call above, and it could close the connection.
@@ -527,7 +536,7 @@ void SocketStreamHandle::readStreamCallback(CFStreamEventType type)
         if (!length)
             return;
 
-        m_client->didReceiveSocketStreamData(this, reinterpret_cast<const char*>(ptr), length);
+        m_client.didReceiveSocketStreamData(*this, reinterpret_cast<const char*>(ptr), length);
 
         return;
     }
@@ -577,7 +586,7 @@ void SocketStreamHandle::writeStreamCallback(CFStreamEventType type)
             }
             m_connectingSubstate = Connected;
             m_state = Open;
-            m_client->didOpenSocketStream(this);
+            m_client.didOpenSocketStream(*this);
         }
 
         // Not an "else if", we could have made a client call above, and it could close the connection.
@@ -630,7 +639,7 @@ void SocketStreamHandle::reportErrorToClient(CFErrorRef error)
         description = String(descriptionCF.get());
     }
 
-    m_client->didFailSocketStream(this, SocketStreamError(static_cast<int>(errorCode), m_url.string(), description));
+    m_client.didFailSocketStream(*this, SocketStreamError(static_cast<int>(errorCode), m_url.string(), description));
 }
 
 SocketStreamHandle::~SocketStreamHandle()
@@ -658,7 +667,7 @@ void SocketStreamHandle::platformClose()
     ASSERT(!m_readStream == !m_writeStream);
     if (!m_readStream) {
         if (m_connectingSubstate == New || m_connectingSubstate == ExecutingPACFile)
-            m_client->didCloseSocketStream(this);
+            m_client.didCloseSocketStream(*this);
         return;
     }
 
@@ -676,27 +685,7 @@ void SocketStreamHandle::platformClose()
     m_readStream = 0;
     m_writeStream = 0;
 
-    m_client->didCloseSocketStream(this);
-}
-
-void SocketStreamHandle::receivedCredential(const AuthenticationChallenge&, const Credential&)
-{
-}
-
-void SocketStreamHandle::receivedRequestToContinueWithoutCredential(const AuthenticationChallenge&)
-{
-}
-
-void SocketStreamHandle::receivedCancellation(const AuthenticationChallenge&)
-{
-}
-
-void SocketStreamHandle::receivedRequestToPerformDefaultHandling(const AuthenticationChallenge&)
-{
-}
-
-void SocketStreamHandle::receivedChallengeRejection(const AuthenticationChallenge&)
-{
+    m_client.didCloseSocketStream(*this);
 }
 
 unsigned short SocketStreamHandle::port() const

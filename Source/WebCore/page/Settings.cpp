@@ -101,6 +101,7 @@ bool Settings::gShouldUseHighResolutionTimers = true;
 bool Settings::gShouldRespectPriorityInCSSAttributeSetters = false;
 bool Settings::gLowPowerVideoAudioBufferSizeEnabled = false;
 bool Settings::gResourceLoadStatisticsEnabledEnabled = false;
+bool Settings::gAllowsAnySSLCertificate = false;
 
 #if PLATFORM(IOS)
 bool Settings::gNetworkDataUsageTrackingEnabled = false;
@@ -174,7 +175,7 @@ static const bool defaultSelectTrailingWhitespaceEnabled = false;
 // This amount of time must have elapsed before we will even consider scheduling a layout without a delay.
 // FIXME: For faster machines this value can really be lowered to 200. 250 is adequate, but a little high
 // for dual G5s. :)
-static const auto layoutScheduleThreshold = std::chrono::milliseconds(250);
+static const auto layoutScheduleThreshold = 250ms;
 
 Settings::Settings(Page* page)
     : m_page(nullptr)
@@ -191,6 +192,8 @@ Settings::Settings(Page* page)
     , m_isJavaEnabledForLocalFiles(true)
     , m_loadsImagesAutomatically(false)
     , m_areImagesEnabled(true)
+    , m_preferMIMETypeForImages(false)
+    , m_isCachedPDFImageEnabled(true)
     , m_arePluginsEnabled(false)
     , m_isScriptEnabled(false)
     , m_needsAdobeFrameReloadingQuirk(false)
@@ -208,6 +211,7 @@ Settings::Settings(Page* page)
     , m_hiddenPageDOMTimerThrottlingEnabled(false)
     , m_hiddenPageCSSAnimationSuspensionEnabled(false)
     , m_fontFallbackPrefersPictographs(false)
+    , m_webFontsAlwaysFallBack(false)
     , m_forcePendingWebGLPolicy(false)
 {
     // A Frame may not have been created yet, so we initialize the AtomicString
@@ -415,6 +419,16 @@ void Settings::setImagesEnabled(bool areImagesEnabled)
 
     // See comment in setLoadsImagesAutomatically.
     m_setImageLoadingSettingsTimer.startOneShot(0);
+}
+
+void Settings::setPreferMIMETypeForImages(bool preferMIMETypeForImages)
+{
+    m_preferMIMETypeForImages = preferMIMETypeForImages;
+}
+
+void Settings::setCachedPDFImageEnabled(bool isCachedPDFImageEnabled)
+{
+    m_isCachedPDFImageEnabled = isCachedPDFImageEnabled;
 }
 
 void Settings::setForcePendingWebGLPolicy(bool forced)
@@ -695,6 +709,14 @@ void Settings::setFontFallbackPrefersPictographs(bool preferPictographs)
         m_page->setNeedsRecalcStyleInAllFrames();
 }
 
+void Settings::setWebFontsAlwaysFallBack(bool enable)
+{
+    if (m_webFontsAlwaysFallBack == enable)
+        return;
+
+    m_webFontsAlwaysFallBack = enable;
+}
+
 void Settings::setLowPowerVideoAudioBufferSizeEnabled(bool flag)
 {
     gLowPowerVideoAudioBufferSizeEnabled = flag;
@@ -752,6 +774,16 @@ bool Settings::globalConstRedeclarationShouldThrow()
 #else
     return true;
 #endif
+}
+
+void Settings::setAllowsAnySSLCertificate(bool allowAnySSLCertificate)
+{
+    gAllowsAnySSLCertificate = allowAnySSLCertificate;
+}
+
+bool Settings::allowsAnySSLCertificate()
+{
+    return gAllowsAnySSLCertificate;
 }
 
 } // namespace WebCore

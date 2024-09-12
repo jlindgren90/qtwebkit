@@ -33,4 +33,19 @@
     top: 9px;
     width: 16px;
     height: 16px;
+
+    /* FIXME: Remove once https://webkit.org/b/147236 is fixed. */
+    z-index: calc(var(--z-index-resizer) + 2);
+}
+
+.timeline-overview-graph.heap-allocations > img.snapshot.invalid {
+    opacity: 0.7;
+}
+
+.timeline-overview-graph.heap-allocations > img.snapshot.selected {
+    content: url(../Images/HeapSnapshotSelected.svg);
+}
+
+.timeline-overview-graph.heap-allocations:not(.selected) > img.snapshot.selected {
+    filter: grayscale(100%) brightness(1.3);
 }

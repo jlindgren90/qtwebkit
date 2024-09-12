@@ -25,6 +25,7 @@
  */
 
 @constructor
+@globalPrivate
 function createArrayIterator(iteratedObject, kind, iterationFunction)
 {
     this.@iteratedObject = iteratedObject;
@@ -37,22 +38,19 @@ function createArrayIterator(iteratedObject, kind, iterationFunction)
 function values()
 {
     "use strict";
-    if (this == null) {
-        if (this === null)
-            throw new @TypeError("Array.prototype.values requires that |this| not be null");
-        throw new @TypeError("Array.prototype.values requires that |this| not be undefined");
-    }
+
+    if (this == null)
+        throw new @TypeError("Array.prototype.values requires that |this| not be null or undefined");
+
     return new @createArrayIterator(@Object(this), "value", @arrayIteratorValueNext);
 }
 
 function keys()
 {
     "use strict";
-    if (this == null) {
-        if (this === null)
-            throw new @TypeError("Array.prototype.keys requires that |this| not be null");
-        throw new @TypeError("Array.prototype.keys requires that |this| not be undefined");
-    }
+
+    if (this == null)
+        throw new @TypeError("Array.prototype.keys requires that |this| not be null or undefined");
 
     return new @createArrayIterator(@Object(this), "key", @arrayIteratorKeyNext);
 }
@@ -60,11 +58,9 @@ function keys()
 function entries()
 {
     "use strict";
-    if (this == null) {
-        if (this === null)
-            throw new @TypeError("Array.prototype.entries requires that |this| not be null");
-        throw new @TypeError("Array.prototype.entries requires that |this| not be undefined");
-    }
+
+    if (this == null)
+        throw new @TypeError("Array.prototype.entries requires that |this| not be null or undefined");
 
     return new @createArrayIterator(@Object(this), "key+value", @arrayIteratorKeyValueNext);
 }
@@ -73,11 +69,8 @@ function reduce(callback /*, initialValue */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.reduce requires that |this| not be null");
-
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.reduce requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.reduce requires that |this| not be null or undefined");
 
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -111,11 +104,8 @@ function reduceRight(callback /*, initialValue */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.reduceRight requires that |this| not be null");
-
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.reduceRight requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.reduceRight requires that |this| not be null or undefined");
 
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -149,11 +139,8 @@ function every(callback /*, thisArg */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.every requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.every requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.every requires that |this| not be null or undefined");
     
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -177,11 +164,8 @@ function forEach(callback /*, thisArg */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.forEach requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.forEach requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.forEach requires that |this| not be null or undefined");
     
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -201,11 +185,8 @@ function filter(callback /*, thisArg */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.filter requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.filter requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.filter requires that |this| not be null or undefined");
     
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -226,7 +207,7 @@ function filter(callback /*, thisArg */)
         if (@isArrayConstructor(constructor) && @Array !== constructor)
             constructor = @undefined;
         if (@isObject(constructor)) {
-            constructor = constructor[@symbolSpecies];
+            constructor = constructor.@speciesSymbol;
             if (constructor === null)
                 constructor = @undefined;
         }
@@ -253,11 +234,8 @@ function map(callback /*, thisArg */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.map requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.map requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.map requires that |this| not be null or undefined");
     
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -278,7 +256,7 @@ function map(callback /*, thisArg */)
         if (@isArrayConstructor(constructor) && @Array !== constructor)
             constructor = @undefined;
         if (@isObject(constructor)) {
-            constructor = constructor[@symbolSpecies];
+            constructor = constructor.@speciesSymbol;
             if (constructor === null)
                 constructor = @undefined;
         }
@@ -302,11 +280,8 @@ function some(callback /*, thisArg */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.some requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.some requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.some requires that |this| not be null or undefined");
     
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -328,53 +303,49 @@ function fill(value /* [, start [, end]] */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.fill requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.fill requires that |this| not be undefined");
-    var O = @Object(this);
-    var len = @toLength(O.length);
+    if (this == null)
+        throw new @TypeError("Array.prototype.fill requires that |this| not be null or undefined");
+
+    var array = @Object(this);
+    var length = @toLength(array.length);
+
     var relativeStart = 0;
     if (arguments.length > 1 && arguments[1] !== @undefined)
         relativeStart = arguments[1] | 0;
     var k = 0;
     if (relativeStart < 0) {
-        k = len + relativeStart;
+        k = length + relativeStart;
         if (k < 0)
             k = 0;
     } else {
         k = relativeStart;
-        if (k > len)
-            k = len;
+        if (k > length)
+            k = length;
     }
-    var relativeEnd = len;
+    var relativeEnd = length;
     if (arguments.length > 2 && arguments[2] !== @undefined)
         relativeEnd = arguments[2] | 0;
     var final = 0;
     if (relativeEnd < 0) {
-        final = len + relativeEnd;
+        final = length + relativeEnd;
         if (final < 0)
             final = 0;
     } else {
         final = relativeEnd;
-        if (final > len)
-            final = len;
+        if (final > length)
+            final = length;
     }
     for (; k < final; k++)
-        O[k] = value;
-    return O;
+        array[k] = value;
+    return array;
 }
 
 function find(callback /*, thisArg */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.find requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.find requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.find requires that |this| not be null or undefined");
     
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -395,11 +366,8 @@ function findIndex(callback /*, thisArg */)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.findIndex requires that |this| not be null");
-    
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.findIndex requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.findIndex requires that |this| not be null or undefined");
     
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -419,11 +387,8 @@ function includes(searchElement /*, fromIndex*/)
 {
     "use strict";
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.includes requires that |this| not be null");
-
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.includes requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.includes requires that |this| not be null or undefined");
 
     var array = @Object(this);
     var length = @toLength(array.length);
@@ -433,7 +398,7 @@ function includes(searchElement /*, fromIndex*/)
 
     var fromIndex = 0;
     if (arguments.length > 1 && arguments[1] !== @undefined)
-        fromIndex = arguments[1] | 0;
+        fromIndex = @toInteger(arguments[1]);
 
     var index;
     if (fromIndex >= 0)
@@ -672,11 +637,8 @@ function sort(comparator)
         bucketSort(array, 0, strings, 0);
     }
 
-    if (this === null)
-        throw new @TypeError("Array.prototype.sort requires that |this| not be null");
-
-    if (this === @undefined)
-        throw new @TypeError("Array.prototype.sort requires that |this| not be undefined");
+    if (this == null)
+        throw new @TypeError("Array.prototype.sort requires that |this| not be null or undefined");
 
     if (typeof this == "string")
         throw new @TypeError("Attempted to assign to readonly property.");
@@ -695,21 +657,41 @@ function concatSlowPath()
 {
     "use strict";
 
+    if (this == null)
+        throw new @TypeError("Array.prototype.concat requires that |this| not be null or undefined");
+
+    var currentElement = @Object(this);
+
+    var constructor;
+    if (@isArray(currentElement)) {
+        constructor = currentElement.constructor;
+        // We have this check so that if some array from a different global object
+        // calls this map they don't get an array with the Array.prototype of the
+        // other global object.
+        if (@isArrayConstructor(constructor) && @Array !== constructor)
+            constructor = @undefined;
+        else if (@isObject(constructor)) {
+            constructor = constructor.@speciesSymbol;
+            if (constructor === null)
+                constructor = @Array;
+        }
+    }
+    if (constructor === @undefined)
+        constructor = @Array;
+
     var argCount = arguments.length;
-    var result = new this.species(0);
+    var result = new constructor(0);
     var resultIsArray = @isJSArray(result);
 
-    var currentElement = this.array;
     var resultIndex = 0;
     var argIndex = 0;
 
     do {
-        var spreadable = @isObject(currentElement) && currentElement[@symbolIsConcatSpreadable];
-        if ((spreadable == @undefined && @isArray(currentElement)) || spreadable) {
-            var length = @toLength(currentElement.length);
-            if (resultIsArray && @isJSArray(currentElement)
-                && @appendMemcpy(result, currentElement)) {
-
+        let spreadable = @isObject(currentElement) && currentElement.@isConcatSpreadableSymbol;
+        if ((spreadable === @undefined && @isArray(currentElement)) || spreadable) {
+            let length = @toLength(currentElement.length);
+            if (resultIsArray && @isJSArray(currentElement)) {
+                @appendMemcpy(result, currentElement, resultIndex);
                 resultIndex += length;
             } else {
                 if (length + resultIndex > @MAX_SAFE_INTEGER)
@@ -736,47 +718,17 @@ function concat(first)
 {
     "use strict";
 
-    if (this == null) {
-        if (this === null)
-            throw new @TypeError("Array.prototype.concat requires that |this| not be null");
-        throw new @TypeError("Array.prototype.concat requires that |this| not be undefined");
-    }
+    if (@argumentCount() === 1
+        && @isJSArray(this)
+        && this.@isConcatSpreadableSymbol === @undefined
+        && (!@isObject(first) || first.@isConcatSpreadableSymbol === @undefined)) {
 
-    var array = @Object(this);
-
-    var constructor;
-    if (@isArray(array)) {
-        constructor = array.constructor;
-        // We have this check so that if some array from a different global object
-        // calls this map they don't get an array with the Array.prototype of the
-        // other global object.
-        if (@isArrayConstructor(constructor) && @Array !== constructor)
-            constructor = @undefined;
-        if (@isObject(constructor)) {
-            constructor = constructor[@symbolSpecies];
-            if (constructor === null)
-                constructor = @Array;
-        }
-    }
-    if (constructor === @undefined)
-        constructor = @Array;
-
-    var result;
-    if (arguments.length === 1
-        && constructor === @Array
-        && @isJSArray(array)
-        && @isJSArray(first)
-        // FIXME: these get_by_ids should be "in"s but using "in" here is a 10% regression.
-        // https://bugs.webkit.org/show_bug.cgi?id=155590
-        && array[@symbolIsConcatSpreadable] == @undefined
-        && first[@symbolIsConcatSpreadable] == @undefined) {
-
-        result = @concatMemcpy(array, first);
+        let result = @concatMemcpy(this, first);
         if (result !== null)
             return result;
     }
 
-    return @concatSlowPath.@apply({ array: array, species: constructor }, arguments);
+    return @tailCallForwardArguments(@concatSlowPath, this);
 }
 
 function copyWithin(target, start /*, end */)
@@ -793,11 +745,11 @@ function copyWithin(target, start /*, end */)
         return (maybeNegativeZero < positive) ? maybeNegativeZero : positive;
     }
 
-    if (this === null || this === @undefined)
+    if (this == null)
         throw new @TypeError("Array.copyWithin requires that |this| not be null or undefined");
-    var thisObject = @Object(this);
 
-    var length = @toLength(thisObject.length);
+    var array = @Object(this);
+    var length = @toLength(array.length);
 
     var relativeTarget = @toInteger(target);
     var to = (relativeTarget < 0) ? maxWithPositives(length + relativeTarget, 0) : minWithMaybeNegativeZeroAndPositive(relativeTarget, length);
@@ -827,11 +779,11 @@ function copyWithin(target, start /*, end */)
     }
 
     for (var i = 0; i < count; ++i, from += direction, to += direction) {
-        if (from in thisObject)
-            thisObject[to] = thisObject[from];
+        if (from in array)
+            array[to] = array[from];
         else
-            delete thisObject[to];
+            delete array[to];
     }
 
-    return thisObject;
+    return array;
 }

@@ -109,7 +109,7 @@ public:
     using ActiveDOMObject::suspend;
     using ActiveDOMObject::resume;
 
-    typedef DOMPromise<std::nullptr_t, ExceptionCode> Promise;
+    typedef DOMPromise<std::nullptr_t> Promise;
 
     void suspend(Promise&&);
     void resume(Promise&&);
@@ -314,7 +314,8 @@ private:
     void mayResumePlayback(bool shouldResume) override;
     void suspendPlayback() override;
     bool canReceiveRemoteControlCommands() const override { return false; }
-    void didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType) override { }
+    void didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType, const PlatformMediaSession::RemoteCommandArgument*) override { }
+    bool supportsSeeking() const override { return false; }
     bool shouldOverrideBackgroundPlaybackRestriction(PlatformMediaSession::InterruptionType) const override { return false; }
 
     // EventTarget

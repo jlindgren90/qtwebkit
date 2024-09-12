@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DatabaseProcess_h
-#define DatabaseProcess_h
+#pragma once
 
 #if ENABLE(DATABASE_PROCESS)
 
@@ -33,10 +32,10 @@
 #include <WebCore/IDBBackingStore.h>
 #include <WebCore/IDBServer.h>
 #include <WebCore/UniqueIDBDatabase.h>
+#include <wtf/CrossThreadTask.h>
 #include <wtf/NeverDestroyed.h>
 
 namespace WebCore {
-class CrossThreadTask;
 class SessionID;
 struct SecurityOriginData;
 }
@@ -69,7 +68,7 @@ public:
 
     WorkQueue& queue() { return m_queue.get(); }
 
-    void postDatabaseTask(std::unique_ptr<WebCore::CrossThreadTask>);
+    void postDatabaseTask(CrossThreadTask&&);
 
 #if ENABLE(INDEXED_DATABASE)
     // WebCore::IDBServer::IDBBackingStoreFileHandler
@@ -77,7 +76,9 @@ public:
     void accessToTemporaryFileComplete(const String& path) final;
 #endif
 
-    void getSandboxExtensionsForBlobFiles(const Vector<String>& filenames, std::function<void (const SandboxExtension::HandleArray&)> completionHandler);
+#if ENABLE(SANDBOX_EXTENSIONS)
+    void getSandboxExtensionsForBlobFiles(const Vector<String>& filenames, std::function<void (SandboxExtension::HandleArray&&)> completionHandler);
+#endif
 
 private:
     DatabaseProcess();
@@ -104,14 +105,13 @@ private:
     void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType> websiteDataTypes, uint64_t callbackID);
     void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType> websiteDataTypes, std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID);
     void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType> websiteDataTypes, const Vector<WebCore::SecurityOriginData>& origins, uint64_t callbackID);
+#if ENABLE(SANDBOX_EXTENSIONS)
     void grantSandboxExtensionsForBlobs(const Vector<String>& paths, const SandboxExtension::HandleArray&);
-
-    void didGetSandboxExtensionsForBlobFiles(uint64_t requestID, const SandboxExtension::HandleArray&);
+    void didGetSandboxExtensionsForBlobFiles(uint64_t requestID, SandboxExtension::HandleArray&&);
+#endif
 
 #if ENABLE(INDEXED_DATABASE)
     Vector<RefPtr<WebCore::SecurityOrigin>> indexedDatabaseOrigins();
-    void deleteIndexedDatabaseEntriesForOrigins(const Vector<RefPtr<WebCore::SecurityOrigin>>&);
-    void deleteIndexedDatabaseEntriesModifiedSince(std::chrono::system_clock::time_point modifiedSince);
 #endif
 
     // For execution on work queue thread only
@@ -127,14 +127,12 @@ private:
     RefPtr<WebCore::IDBServer::IDBServer> m_idbServer;
 #endif
     HashMap<String, RefPtr<SandboxExtension>> m_blobTemporaryFileSandboxExtensions;
-    HashMap<uint64_t, std::function<void (const SandboxExtension::HandleArray&)>> m_sandboxExtensionForBlobsCompletionHandlers;
+    HashMap<uint64_t, std::function<void (SandboxExtension::HandleArray&&)>> m_sandboxExtensionForBlobsCompletionHandlers;
 
-    Deque<std::unique_ptr<WebCore::CrossThreadTask>> m_databaseTasks;
+    Deque<CrossThreadTask> m_databaseTasks;
     Lock m_databaseTaskMutex;
 };
 
 } // namespace WebKit
 
 #endif // ENABLE(DATABASE_PROCESS)
-
-#endif // DatabaseProcess_h

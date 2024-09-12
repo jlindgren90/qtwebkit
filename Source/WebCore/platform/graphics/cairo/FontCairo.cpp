@@ -47,7 +47,7 @@
 
 namespace WebCore {
 
-static void drawGlyphsToContext(cairo_t* context, const Font& font, GlyphBufferGlyph* glyphs, int numGlyphs)
+static void drawGlyphsToContext(cairo_t* context, const Font& font, GlyphBufferGlyph* glyphs, unsigned numGlyphs)
 {
     cairo_matrix_t originalTransform;
     float syntheticBoldOffset = font.syntheticBoldOffset();
@@ -66,7 +66,7 @@ static void drawGlyphsToContext(cairo_t* context, const Font& font, GlyphBufferG
         cairo_set_matrix(context, &originalTransform);
 }
 
-static void drawGlyphsShadow(GraphicsContext& graphicsContext, const FloatPoint& point, const Font& font, GlyphBufferGlyph* glyphs, int numGlyphs)
+static void drawGlyphsShadow(GraphicsContext& graphicsContext, const FloatPoint& point, const Font& font, GlyphBufferGlyph* glyphs, unsigned numGlyphs)
 {
     ShadowBlur& shadow = graphicsContext.platformContext()->shadowBlur();
 
@@ -98,7 +98,7 @@ static void drawGlyphsShadow(GraphicsContext& graphicsContext, const FloatPoint&
 }
 
 void FontCascade::drawGlyphs(GraphicsContext& context, const Font& font, const GlyphBuffer& glyphBuffer,
-    int from, int numGlyphs, const FloatPoint& point, FontSmoothingMode)
+    unsigned from, unsigned numGlyphs, const FloatPoint& point, FontSmoothingMode)
 {
     if (!font.platformData().size())
         return;
@@ -106,7 +106,7 @@ void FontCascade::drawGlyphs(GraphicsContext& context, const Font& font, const G
     GlyphBufferGlyph* glyphs = const_cast<GlyphBufferGlyph*>(glyphBuffer.glyphs(from));
 
     float offset = point.x();
-    for (int i = 0; i < numGlyphs; i++) {
+    for (unsigned i = 0; i < numGlyphs; i++) {
         glyphs[i].x = offset;
         glyphs[i].y = point.y();
         offset += glyphBuffer.advanceAt(from + i).width();
@@ -221,17 +221,15 @@ public:
         , m_translation(AffineTransform().translate(textOrigin.x(), textOrigin.y()))
     {
     }
-private:
-    bool containsMorePaths() override
-    {
-        return m_index != m_glyphBuffer.size();
-    }
-    Path path() override;
-    std::pair<float, float> extents() override;
-    GlyphUnderlineType underlineType() override;
-    void advance() override;
 
-    int m_index;
+    bool containsMorePaths() final { return m_index != m_glyphBuffer.size(); }
+    Path path() final;
+    std::pair<float, float> extents() final;
+    GlyphUnderlineType underlineType() final;
+    void advance() final;
+
+private:
+    unsigned m_index;
     const TextRun& m_textRun;
     const GlyphBuffer& m_glyphBuffer;
     const Font* m_fontData;
@@ -297,9 +295,9 @@ DashArray FontCascade::dashesForIntersectionsWithRect(const TextRun& run, const 
 
     // FIXME: Handle SVG + non-SVG interleaved runs. https://bugs.webkit.org/show_bug.cgi?id=133778
     FloatPoint origin = FloatPoint(textOrigin.x() + deltaX, textOrigin.y());
-    std::unique_ptr<GlyphToPathTranslator> translator = std::make_unique<CairoGlyphToPathTranslator>(run, glyphBuffer, origin);
+    CairoGlyphToPathTranslator translator(run, glyphBuffer, origin);
     DashArray result;
-    for (int index = 0; translator->containsMorePaths(); ++index, translator->advance()) {
+    for (int index = 0; translator.containsMorePaths(); ++index, translator.advance()) {
         float centerOfLine = lineExtents.y() + (lineExtents.height() / 2);
         GlyphIterationState info = GlyphIterationState(FloatPoint(), FloatPoint(), centerOfLine, lineExtents.x() + lineExtents.width(), lineExtents.x());
         const Font* localFontData = glyphBuffer.fontAt(index);
@@ -308,9 +306,9 @@ DashArray FontCascade::dashesForIntersectionsWithRect(const TextRun& run, const 
             result.clear();
             break;
         }
-        switch (translator->underlineType()) {
+        switch (translator.underlineType()) {
         case GlyphToPathTranslator::GlyphUnderlineType::SkipDescenders: {
-            Path path = translator->path();
+            Path path = translator.path();
             path.apply([&info](const PathElement& pathElement) {
                 findPathIntersections(info, pathElement);
             });
@@ -321,7 +319,7 @@ DashArray FontCascade::dashesForIntersectionsWithRect(const TextRun& run, const 
             break;
         }
         case GlyphToPathTranslator::GlyphUnderlineType::SkipGlyph: {
-            std::pair<float, float> extents = translator->extents();
+            std::pair<float, float> extents = translator.extents();
             result.append(extents.first - lineExtents.x());
             result.append(extents.second - lineExtents.x());
             break;

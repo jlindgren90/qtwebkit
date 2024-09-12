@@ -797,9 +797,8 @@ void AudioContext::scheduleNodeDeletion()
 
         m_isDeletionScheduled = true;
 
-        RefPtr<AudioContext> strongThis(this);
-        callOnMainThread([strongThis] {
-            strongThis->deleteMarkedNodes();
+        callOnMainThread([protectedThis = makeRef(*this)]() mutable {
+            protectedThis->deleteMarkedNodes();
         });
     }
 }
@@ -809,7 +808,7 @@ void AudioContext::deleteMarkedNodes()
     ASSERT(isMainThread());
 
     // Protect this object from being deleted before we release the mutex locked by AutoLocker.
-    Ref<AudioContext> protect(*this);
+    Ref<AudioContext> protectedThis(*this);
     {
         AutoLocker locker(*this);
 
@@ -1002,10 +1001,9 @@ void AudioContext::isPlayingAudioDidChange()
 {
     // Make sure to call Document::updateIsPlayingMedia() on the main thread, since
     // we could be on the audio I/O thread here and the call into WebCore could block.
-    RefPtr<AudioContext> strongThis(this);
-    callOnMainThread([strongThis] {
-        if (strongThis->document())
-            strongThis->document()->updateIsPlayingMedia();
+    callOnMainThread([protectedThis = makeRef(*this)] {
+        if (protectedThis->document())
+            protectedThis->document()->updateIsPlayingMedia();
     });
 }
 
@@ -1063,9 +1061,8 @@ void AudioContext::suspend(Promise&& promise)
 
     lazyInitialize();
 
-    RefPtr<AudioContext> strongThis(this);
-    m_destinationNode->suspend([strongThis] {
-        strongThis->setState(State::Suspended);
+    m_destinationNode->suspend([this, protectedThis = makeRef(*this)] {
+        setState(State::Suspended);
     });
 }
 
@@ -1093,9 +1090,8 @@ void AudioContext::resume(Promise&& promise)
 
     lazyInitialize();
 
-    RefPtr<AudioContext> strongThis(this);
-    m_destinationNode->resume([strongThis] {
-        strongThis->setState(State::Running);
+    m_destinationNode->resume([this, protectedThis = makeRef(*this)] {
+        setState(State::Running);
     });
 }
 
@@ -1115,10 +1111,9 @@ void AudioContext::close(Promise&& promise)
 
     lazyInitialize();
 
-    RefPtr<AudioContext> strongThis(this);
-    m_destinationNode->close([strongThis] {
-        strongThis->setState(State::Closed);
-        strongThis->uninitialize();
+    m_destinationNode->close([this, protectedThis = makeRef(*this)] {
+        setState(State::Closed);
+        uninitialize();
     });
 }
 
@@ -1136,10 +1131,9 @@ void AudioContext::suspendPlayback()
 
     lazyInitialize();
 
-    RefPtr<AudioContext> strongThis(this);
-    m_destinationNode->suspend([strongThis] {
-        bool interrupted = strongThis->m_mediaSession->state() == PlatformMediaSession::Interrupted;
-        strongThis->setState(interrupted ? State::Interrupted : State::Suspended);
+    m_destinationNode->suspend([this, protectedThis = makeRef(*this)] {
+        bool interrupted = m_mediaSession->state() == PlatformMediaSession::Interrupted;
+        setState(interrupted ? State::Interrupted : State::Suspended);
     });
 }
 
@@ -1158,9 +1152,8 @@ void AudioContext::mayResumePlayback(bool shouldResume)
 
     lazyInitialize();
 
-    RefPtr<AudioContext> strongThis(this);
-    m_destinationNode->resume([strongThis] {
-        strongThis->setState(State::Running);
+    m_destinationNode->resume([this, protectedThis = makeRef(*this)] {
+        setState(State::Running);
     });
 }
 

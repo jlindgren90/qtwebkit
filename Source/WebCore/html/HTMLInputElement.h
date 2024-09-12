@@ -2,7 +2,7 @@
  * Copyright (C) 1999 Lars Knoll (knoll@kde.org)
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2000 Dirk Mueller (mueller@kde.org)
- * Copyright (C) 2004, 2005, 2006, 2007, 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2004-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2012 Samsung Electronics. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
@@ -36,7 +36,6 @@
 
 namespace WebCore {
 
-class CheckedRadioButtons;
 class DragData;
 class FileList;
 class HTMLDataListElement;
@@ -45,6 +44,7 @@ class HTMLOptionElement;
 class Icon;
 class InputType;
 class ListAttributeTargetObserver;
+class RadioButtonGroups;
 class TextControlInnerTextElement;
 class URL;
 struct DateTimeChooserParameters;
@@ -162,6 +162,7 @@ public:
     void setIndeterminate(bool);
     // shouldAppearChecked is used by the rendering tree/CSS while checked() is used by JS to determine checked state
     bool shouldAppearChecked() const;
+    bool matchesIndeterminatePseudoClass() const final;
     bool shouldAppearIndeterminate() const final;
 
     unsigned size() const;
@@ -196,6 +197,9 @@ public:
 
     String valueWithDefault() const;
 
+    // This function dispatches 'input' event for non-textfield types. Callers
+    // need to handle any DOM structure changes by event handlers, or need to
+    // delay the 'input' event with EventQueueScope.
     void setValueFromRenderer(const String&);
 
     bool canHaveSelection() const;
@@ -274,6 +278,8 @@ public:
     Vector<HTMLInputElement*> radioButtonGroup() const;
     HTMLInputElement* checkedRadioButtonForGroup() const;
     bool isInRequiredRadioButtonGroup();
+    // Returns null if this isn't associated with any radio button group.
+    RadioButtonGroups* radioButtonGroups() const;
 
     // Functions for InputType classes.
     void setValueInternal(const String&, TextFieldEventBehavior);
@@ -290,7 +296,7 @@ public:
     String defaultToolTip() const;
 
 #if ENABLE(MEDIA_CAPTURE)
-    bool shouldUseMediaCapture() const;
+    MediaCaptureType mediaCaptureType() const;
 #endif
 
     static const unsigned maxEffectiveLength;
@@ -306,6 +312,8 @@ public:
     const AtomicString& name() const final;
 
     void endEditing();
+
+    void setSpellcheckEnabled(bool enabled) { m_isSpellCheckingEnabled = enabled; }
 
     static Vector<FileChooserFileInfo> filesFromFileInputFormControlState(const FormControlState&);
 
@@ -333,7 +341,6 @@ private:
     enum AutoCompleteSetting { Uninitialized, On, Off };
 
     void didAddUserAgentShadowRoot(ShadowRoot*) final;
-    bool canHaveUserAgentShadowRoot() const final { return true; }
 
     void willChangeForm() final;
     void didChangeForm() final;
@@ -349,6 +356,7 @@ private:
     bool supportLabels() const final;
     void updateFocusAppearance(SelectionRestorationMode, SelectionRevealMode) final;
     bool shouldUseInputMethod() final;
+    bool isSpellCheckingEnabled() const final;
 
     bool isTextFormControl() const final { return isTextField(); }
 
@@ -375,6 +383,7 @@ private:
     bool appendFormData(FormDataList&, bool) final;
 
     bool isSuccessfulSubmitButton() const final;
+    bool matchesDefaultPseudoClass() const final;
 
     void reset() final;
 
@@ -420,8 +429,6 @@ private:
     void maxLengthAttributeChanged(const AtomicString& newValue);
     void updateValueIfNeeded();
 
-    // Returns null if this isn't associated with any radio button group.
-    CheckedRadioButtons* checkedRadioButtons() const;
     void addToRadioButtonGroup();
     void removeFromRadioButtonGroup();
 
@@ -449,6 +456,7 @@ private:
 #if ENABLE(TOUCH_EVENTS)
     bool m_hasTouchEventHandler : 1;
 #endif
+    bool m_isSpellCheckingEnabled : 1;
     std::unique_ptr<InputType> m_inputType;
     // The ImageLoader must be owned by this element because the loader code assumes
     // that it lives as long as its owning element lives. If we move the loader into

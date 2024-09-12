@@ -43,13 +43,13 @@ public:
     static Ref<HTMLTemplateElement> create(const QualifiedName&, Document&);
     virtual ~HTMLTemplateElement();
 
-    DocumentFragment* content() const;
+    DocumentFragment& content() const;
 
 private:
     HTMLTemplateElement(const QualifiedName&, Document&);
 
-    Ref<Node> cloneNodeInternal(Document&, CloningOperation) override;
-    void didMoveToNewDocument(Document* oldDocument) override;
+    Ref<Node> cloneNodeInternal(Document&, CloningOperation) final;
+    void didMoveToNewDocument(Document* oldDocument) final;
 
     mutable RefPtr<TemplateContentDocumentFragment> m_content;
 };

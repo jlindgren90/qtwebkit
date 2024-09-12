@@ -25,6 +25,7 @@
 
 #include "BidiRun.h"
 #include "RenderBlockFlow.h"
+#include "RenderChildIterator.h"
 #include "RenderInline.h"
 #include "RenderText.h"
 #include <wtf/StdLibExtras.h>
@@ -209,15 +210,15 @@ enum EmptyInlineBehavior {
 
 static bool isEmptyInline(const RenderInline& renderer)
 {
-    for (RenderObject* current = renderer.firstChild(); current; current = current->nextSibling()) {
-        if (current->isFloatingOrOutOfFlowPositioned())
+    for (auto& current : childrenOfType<RenderObject>(renderer)) {
+        if (current.isFloatingOrOutOfFlowPositioned())
             continue;
-        if (is<RenderText>(*current)) {
-            if (!downcast<RenderText>(*current).isAllCollapsibleWhitespace())
+        if (is<RenderText>(current)) {
+            if (!downcast<RenderText>(current).isAllCollapsibleWhitespace())
                 return false;
             continue;
         }
-        if (!is<RenderInline>(*current) || !isEmptyInline(downcast<RenderInline>(*current)))
+        if (!is<RenderInline>(current) || !isEmptyInline(downcast<RenderInline>(current)))
             return false;
     }
     return true;
@@ -492,7 +493,7 @@ static inline unsigned numberOfIsolateAncestors(const InlineIterator& iter)
 // of BidiResolver which knows nothing about RenderObjects.
 static inline void addPlaceholderRunForIsolatedInline(InlineBidiResolver& resolver, RenderObject& obj, unsigned pos, RenderElement& root)
 {
-    std::unique_ptr<BidiRun> isolatedRun = std::make_unique<BidiRun>(pos, 0, obj, resolver.context(), resolver.dir());
+    std::unique_ptr<BidiRun> isolatedRun = std::make_unique<BidiRun>(pos, pos, obj, resolver.context(), resolver.dir());
     // FIXME: isolatedRuns() could be a hash of object->run and then we could cheaply
     // ASSERT here that we didn't create multiple objects for the same inline.
     resolver.setWhitespaceCollapsingTransitionForIsolatedRun(*isolatedRun, resolver.whitespaceCollapsingState().currentTransition());

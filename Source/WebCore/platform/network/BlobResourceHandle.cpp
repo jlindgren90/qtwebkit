@@ -83,9 +83,7 @@ class BlobResourceSynchronousLoader : public ResourceHandleClient {
 public:
     BlobResourceSynchronousLoader(ResourceError&, ResourceResponse&, Vector<char>&);
 
-    void didReceiveResponse(ResourceHandle*, const ResourceResponse&) override;
-    void didReceiveData(ResourceHandle*, const char*, unsigned, int /*encodedDataLength*/) override;
-    void didFinishLoading(ResourceHandle*, double /*finishTime*/) override;
+    void didReceiveResponse(ResourceHandle*, ResourceResponse&&) override;
     void didFail(ResourceHandle*, const ResourceError&) override;
 
 private:
@@ -101,7 +99,7 @@ BlobResourceSynchronousLoader::BlobResourceSynchronousLoader(ResourceError& erro
 {
 }
 
-void BlobResourceSynchronousLoader::didReceiveResponse(ResourceHandle* handle, const ResourceResponse& response)
+void BlobResourceSynchronousLoader::didReceiveResponse(ResourceHandle* handle, ResourceResponse&& response)
 {
     // We cannot handle the size that is more than maximum integer.
     if (response.expectedContentLength() > INT_MAX) {
@@ -116,14 +114,6 @@ void BlobResourceSynchronousLoader::didReceiveResponse(ResourceHandle* handle, c
     static_cast<BlobResourceHandle*>(handle)->readSync(m_data.data(), static_cast<int>(m_data.size()));
 }
 
-void BlobResourceSynchronousLoader::didReceiveData(ResourceHandle*, const char*, unsigned, int)
-{
-}
-
-void BlobResourceSynchronousLoader::didFinishLoading(ResourceHandle*, double)
-{
-}
-
 void BlobResourceSynchronousLoader::didFail(ResourceHandle*, const ResourceError& error)
 {
     m_error = error;
@@ -134,9 +124,9 @@ void BlobResourceSynchronousLoader::didFail(ResourceHandle*, const ResourceError
 ///////////////////////////////////////////////////////////////////////////////
 // BlobResourceHandle
 
-PassRefPtr<BlobResourceHandle> BlobResourceHandle::createAsync(BlobData* blobData, const ResourceRequest& request, ResourceHandleClient* client)
+Ref<BlobResourceHandle> BlobResourceHandle::createAsync(BlobData* blobData, const ResourceRequest& request, ResourceHandleClient* client)
 {
-    return adoptRef(new BlobResourceHandle(blobData, request, client, true));
+    return adoptRef(*new BlobResourceHandle(blobData, request, client, true));
 }
 
 void BlobResourceHandle::loadResourceSynchronously(BlobData* blobData, const ResourceRequest& request, ResourceError& error, ResourceResponse& response, Vector<char>& data)
@@ -187,11 +177,9 @@ void BlobResourceHandle::start()
         return;
     }
 
-    RefPtr<BlobResourceHandle> handle(this);
-
     // Finish this async call quickly and return.
-    callOnMainThread([handle] {
-        handle->doStart();
+    callOnMainThread([protectedThis = makeRef(*this)]() mutable {
+        protectedThis->doStart();
     });
 }
 
@@ -204,8 +192,7 @@ void BlobResourceHandle::doStart()
         return;
 
     if (!equalLettersIgnoringASCIICase(firstRequest().httpMethod(), "get")) {
-        m_errorCode = methodNotAllowed;
-        notifyResponse();
+        notifyFail(methodNotAllowed);
         return;
     }
 
@@ -227,7 +214,7 @@ void BlobResourceHandle::doStart()
     if (m_async)
         getSizeForNext();
     else {
-        Ref<BlobResourceHandle> protect(*this); // getSizeForNext calls the client
+        Ref<BlobResourceHandle> protectedThis(*this); // getSizeForNext calls the client
         for (size_t i = 0; i < m_blobData->items().size() && !m_aborted && !m_errorCode; ++i)
             getSizeForNext();
         notifyResponse();
@@ -244,7 +231,7 @@ void BlobResourceHandle::getSizeForNext()
 
         // Start reading if in asynchronous mode.
         if (m_async) {
-            Ref<BlobResourceHandle> protect(*this);
+            Ref<BlobResourceHandle> protectedThis(*this);
             notifyResponse();
             m_buffer.resize(bufferSize);
             readAsync();
@@ -336,7 +323,7 @@ int BlobResourceHandle::readSync(char* buf, int length)
     ASSERT(isMainThread());
 
     ASSERT(!m_async);
-    Ref<BlobResourceHandle> protect(*this);
+    Ref<BlobResourceHandle> protectedThis(*this);
 
     int offset = 0;
     int remaining = length;
@@ -466,7 +453,7 @@ void BlobResourceHandle::readDataAsync(const BlobDataItem& item)
     ASSERT(m_async);
     ASSERT(item.data().data());
 
-    Ref<BlobResourceHandle> protect(*this);
+    Ref<BlobResourceHandle> protectedThis(*this);
 
     long long bytesToRead = item.length() - m_currentItemReadSize;
     if (bytesToRead > m_totalRemainingSize)
@@ -519,7 +506,7 @@ void BlobResourceHandle::didRead(int bytesRead)
 void BlobResourceHandle::consumeData(const char* data, int bytesRead)
 {
     ASSERT(m_async);
-    Ref<BlobResourceHandle> protect(*this);
+    Ref<BlobResourceHandle> protectedThis(*this);
 
     m_totalRemainingSize -= bytesRead;
 
@@ -549,7 +536,7 @@ void BlobResourceHandle::consumeData(const char* data, int bytesRead)
 void BlobResourceHandle::failed(int errorCode)
 {
     ASSERT(m_async);
-    Ref<BlobResourceHandle> protect(*this);
+    Ref<BlobResourceHandle> protectedThis(*this);
 
     // Notify the client.
     notifyFail(errorCode);
@@ -567,7 +554,7 @@ void BlobResourceHandle::notifyResponse()
         return;
 
     if (m_errorCode) {
-        Ref<BlobResourceHandle> protect(*this);
+        Ref<BlobResourceHandle> protectedThis(*this);
         notifyResponseOnError();
         notifyFinish();
     } else
@@ -596,9 +583,9 @@ void BlobResourceHandle::notifyResponseOnSuccess()
     // It's currently client's responsibility to know that didReceiveResponseAsync cannot be used to convert a
     // load into a download or blobs.
     if (usesAsyncCallbacks())
-        client()->didReceiveResponseAsync(this, response);
+        client()->didReceiveResponseAsync(this, WTFMove(response));
     else
-        client()->didReceiveResponse(this, response);
+        client()->didReceiveResponse(this, WTFMove(response));
 }
 
 void BlobResourceHandle::notifyResponseOnError()
@@ -628,9 +615,9 @@ void BlobResourceHandle::notifyResponseOnError()
     // Note that we don't wait for continueDidReceiveResponse when using didReceiveResponseAsync.
     // This is not formally correct, but the client has to be a no-op anyway, because blobs can't be downloaded.
     if (usesAsyncCallbacks())
-        client()->didReceiveResponseAsync(this, response);
+        client()->didReceiveResponseAsync(this, WTFMove(response));
     else
-        client()->didReceiveResponse(this, response);
+        client()->didReceiveResponse(this, WTFMove(response));
 }
 
 void BlobResourceHandle::notifyReceiveData(const char* data, int bytesRead)
@@ -665,9 +652,8 @@ void BlobResourceHandle::notifyFinish()
 
     // Schedule to notify the client from a standalone function because the client might dispose the handle immediately from the callback function
     // while we still have BlobResourceHandle calls in the stack.
-    RefPtr<BlobResourceHandle> handle(this);
-    callOnMainThread([handle] {
-        doNotifyFinish(*handle);
+    callOnMainThread([protectedThis = makeRef(*this)]() mutable {
+        doNotifyFinish(protectedThis);
     });
 
 }

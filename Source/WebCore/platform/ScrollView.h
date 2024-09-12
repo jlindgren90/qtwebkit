@@ -429,6 +429,8 @@ private:
 
     void completeUpdatesAfterScrollTo(const IntSize& scrollDelta);
 
+    bool setHasScrollbarInternal(RefPtr<Scrollbar>&, ScrollbarOrientation, bool hasBar, bool* contentSizeAffected);
+
     RefPtr<Scrollbar> m_horizontalScrollbar;
     RefPtr<Scrollbar> m_verticalScrollbar;
     ScrollbarMode m_horizontalScrollbarMode;
@@ -459,8 +461,8 @@ private:
     IntSize m_fixedLayoutSize;
     IntSize m_contentsSize;
 
-    std::unique_ptr<IntSize> m_deferredScrollDelta; // Needed for WebKit scrolling
-    std::unique_ptr<std::pair<ScrollOffset, ScrollOffset>> m_deferredScrollOffsets; // Needed for platform widget scrolling
+    Optional<IntSize> m_deferredScrollDelta; // Needed for WebKit scrolling
+    Optional<std::pair<ScrollOffset, ScrollOffset>> m_deferredScrollOffsets; // Needed for platform widget scrolling
 
     bool m_scrollbarsSuppressed;
 

@@ -59,10 +59,8 @@ enum JS_EXPORT_PRIVATE Intrinsic {
     RandomIntrinsic,
     FRoundIntrinsic,
     TruncIntrinsic,
-    IsArrayIntrinsic,
-    IsArrayConstructorIntrinsic,
-    IsJSArrayIntrinsic,
     IsRegExpObjectIntrinsic,
+    IsTypedArrayViewIntrinsic,
     BoundThisNoArgsFunctionCallIntrinsic,
 
     // Getter intrinsics.

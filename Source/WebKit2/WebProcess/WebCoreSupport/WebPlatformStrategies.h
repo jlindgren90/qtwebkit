@@ -30,13 +30,12 @@
 #include <WebCore/LoaderStrategy.h>
 #include <WebCore/PasteboardStrategy.h>
 #include <WebCore/PlatformStrategies.h>
-#include <WebCore/PluginStrategy.h>
 #include <wtf/HashMap.h>
 #include <wtf/NeverDestroyed.h>
 
 namespace WebKit {
 
-class WebPlatformStrategies : public WebCore::PlatformStrategies, private WebCore::CookiesStrategy, private WebCore::PasteboardStrategy, private WebCore::PluginStrategy {
+class WebPlatformStrategies : public WebCore::PlatformStrategies, private WebCore::CookiesStrategy, private WebCore::PasteboardStrategy {
     friend class NeverDestroyed<WebPlatformStrategies>;
 public:
     static void initialize();
@@ -48,7 +47,6 @@ private:
     WebCore::CookiesStrategy* createCookiesStrategy() override;
     WebCore::LoaderStrategy* createLoaderStrategy() override;
     WebCore::PasteboardStrategy* createPasteboardStrategy() override;
-    WebCore::PluginStrategy* createPluginStrategy() override;
     WebCore::BlobRegistry* createBlobRegistry() override;
 
     // WebCore::CookiesStrategy
@@ -56,23 +54,10 @@ private:
     void setCookiesFromDOM(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&, const String&) override;
     bool cookiesEnabled(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&) override;
     String cookieRequestHeaderFieldValue(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&) override;
+    String cookieRequestHeaderFieldValue(WebCore::SessionID, const WebCore::URL& firstParty, const WebCore::URL&) override;
     bool getRawCookies(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&, Vector<WebCore::Cookie>&) override;
     void deleteCookie(const WebCore::NetworkStorageSession&, const WebCore::URL&, const String&) override;
     void addCookie(const WebCore::NetworkStorageSession&, const WebCore::URL&, const WebCore::Cookie&) override;
-
-    // WebCore::PluginStrategy
-    void refreshPlugins() override;
-    void getPluginInfo(const WebCore::Page*, Vector<WebCore::PluginInfo>&) override;
-    void getWebVisiblePluginInfo(const WebCore::Page*, Vector<WebCore::PluginInfo>&) override;
-
-#if PLATFORM(MAC)
-    typedef HashMap<String, WebCore::PluginLoadClientPolicy> PluginLoadClientPoliciesByBundleVersion;
-    typedef HashMap<String, PluginLoadClientPoliciesByBundleVersion> PluginPolicyMapsByIdentifier;
-
-    void setPluginLoadClientPolicy(WebCore::PluginLoadClientPolicy, const String& host, const String& bundleIdentifier, const String& versionString) override;
-    void setPrivateBrowsingPluginLoadClientPolicy(WebCore::PluginLoadClientPolicy, const String& host, const String& bundleIdentifier, const String& versionString) override;
-    void clearPluginClientPolicies() override;
-#endif
 
     // WebCore::PasteboardStrategy
 #if PLATFORM(IOS)
@@ -98,34 +83,12 @@ private:
     long addTypes(const Vector<String>& pasteboardTypes, const String& pasteboardName) override;
     long setTypes(const Vector<String>& pasteboardTypes, const String& pasteboardName) override;
     long copy(const String& fromPasteboard, const String& toPasteboard) override;
-    long setBufferForType(PassRefPtr<WebCore::SharedBuffer>, const String& pasteboardType, const String& pasteboardName) override;
+    long setBufferForType(WebCore::SharedBuffer*, const String& pasteboardType, const String& pasteboardName) override;
     long setPathnamesForType(const Vector<String>&, const String& pasteboardType, const String& pasteboardName) override;
     long setStringForType(const String&, const String& pasteboardType, const String& pasteboardName) override;
 #endif
 
-#if ENABLE(NETSCAPE_PLUGIN_API)
-    // WebCore::PluginStrategy implementation.
-    void populatePluginCache(const WebCore::Page&);
-    bool m_pluginCacheIsPopulated;
-    bool m_shouldRefreshPlugins;
-    Vector<WebCore::PluginInfo> m_cachedPlugins;
-    Vector<WebCore::PluginInfo> m_cachedApplicationPlugins;
-
-#if PLATFORM(MAC)
-    HashMap<String, PluginPolicyMapsByIdentifier> m_hostsToPluginIdentifierData;
-    HashMap<String, PluginPolicyMapsByIdentifier> m_hostsToPluginIdentifierDataInPrivateBrowsing;
-    enum class PrivateBrowsing { Yes, No };
-    String longestMatchedWildcardHostForHost(const String& host, PrivateBrowsing) const;
-    bool pluginLoadClientPolicyForHostForPrivateBrowsing(PrivateBrowsing, const String&, const WebCore::PluginInfo&, WebCore::PluginLoadClientPolicy&) const;
-    bool replaceHostWithMatchedWildcardHost(String& host, const String& identifier, PrivateBrowsing) const;
-    void setPluginLoadClientPolicyForPrivateBrowsing(PrivateBrowsing, WebCore::PluginLoadClientPolicy, const String& host, const String& bundleIdentifier, const String& versionString);
-#endif // PLATFORM(MAC)
-#endif // ENABLE(NETSCAPE_PLUGIN_API)
 };
-
-#if ENABLE(NETSCAPE_PLUGIN_API)
-void handleDidGetPlugins(uint64_t requestID, const Vector<WebCore::PluginInfo>&, const Vector<WebCore::PluginInfo>& applicationPlugins);
-#endif // ENABLE(NETSCAPE_PLUGIN_API)
 
 } // namespace WebKit
 

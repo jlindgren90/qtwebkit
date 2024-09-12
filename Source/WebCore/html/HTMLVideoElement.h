@@ -33,10 +33,11 @@
 namespace WebCore {
 
 class HTMLImageLoader;
+class RenderVideo;
 
 class HTMLVideoElement final : public HTMLMediaElement {
 public:
-    static Ref<HTMLVideoElement> create(const QualifiedName&, Document&, bool);
+    static Ref<HTMLVideoElement> create(const QualifiedName&, Document&, bool createdByParser);
 
     WEBCORE_EXPORT unsigned videoWidth() const;
     WEBCORE_EXPORT unsigned videoHeight() const;
@@ -46,7 +47,7 @@ public:
     bool webkitSupportsFullscreen();
     bool webkitDisplayingFullscreen();
 
-    void ancestorWillEnterFullscreen() override;
+    void ancestorWillEnterFullscreen() final;
     
     // FIXME: Maintain "FullScreen" capitalization scheme for backwards compatibility.
     // https://bugs.webkit.org/show_bug.cgi?id=36081
@@ -75,7 +76,7 @@ public:
     bool shouldDisplayPosterImage() const { return displayMode() == Poster || displayMode() == PosterWaitingForVideo; }
 
     URL posterImageURL() const;
-    RenderPtr<RenderElement> createElementRenderer(RenderStyle&&, const RenderTreePosition&) override;
+    RenderPtr<RenderElement> createElementRenderer(RenderStyle&&, const RenderTreePosition&) final;
 
 #if ENABLE(VIDEO_PRESENTATION_MODE)
     enum class VideoPresentationMode { Fullscreen, PictureInPicture, Inline };
@@ -83,35 +84,37 @@ public:
     void webkitSetPresentationMode(VideoPresentationMode);
     VideoPresentationMode webkitPresentationMode() const;
     void setFullscreenMode(VideoFullscreenMode);
-    void fullscreenModeChanged(VideoFullscreenMode) override;
+    void fullscreenModeChanged(VideoFullscreenMode) final;
 #endif
 
 #if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
     void exitToFullscreenModeWithoutAnimationIfPossible(HTMLMediaElementEnums::VideoFullscreenMode fromMode, HTMLMediaElementEnums::VideoFullscreenMode toMode);
 #endif
 
-private:
-    HTMLVideoElement(const QualifiedName&, Document&, bool);
+    RenderVideo* renderer() const;
 
-    void scheduleResizeEvent() override;
-    void scheduleResizeEventIfSizeChanged() override;
-    bool rendererIsNeeded(const RenderStyle&) override;
-    void didAttachRenderers() override;
-    void parseAttribute(const QualifiedName&, const AtomicString&) override;
-    bool isPresentationAttribute(const QualifiedName&) const override;
-    void collectStyleForPresentationAttribute(const QualifiedName&, const AtomicString&, MutableStyleProperties&) override;
-    bool isVideo() const override { return true; }
-    bool hasVideo() const override { return player() && player()->hasVideo(); }
-    bool supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenMode) const override;
-    bool isURLAttribute(const Attribute&) const override;
-    const AtomicString& imageSourceURL() const override;
+private:
+    HTMLVideoElement(const QualifiedName&, Document&, bool createdByParser);
+
+    void scheduleResizeEvent() final;
+    void scheduleResizeEventIfSizeChanged() final;
+    bool rendererIsNeeded(const RenderStyle&) final;
+    void didAttachRenderers() final;
+    void parseAttribute(const QualifiedName&, const AtomicString&) final;
+    bool isPresentationAttribute(const QualifiedName&) const final;
+    void collectStyleForPresentationAttribute(const QualifiedName&, const AtomicString&, MutableStyleProperties&) final;
+    bool isVideo() const final { return true; }
+    bool hasVideo() const final { return player() && player()->hasVideo(); }
+    bool supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenMode) const final;
+    bool isURLAttribute(const Attribute&) const final;
+    const AtomicString& imageSourceURL() const final;
 
     bool hasAvailableVideoFrame() const;
-    void updateDisplayState() override;
-    void didMoveToNewDocument(Document* oldDocument) override;
-    void setDisplayMode(DisplayMode) override;
+    void updateDisplayState() final;
+    void didMoveToNewDocument(Document* oldDocument) final;
+    void setDisplayMode(DisplayMode) final;
 
-    PlatformMediaSession::MediaType presentationType() const override { return PlatformMediaSession::Video; }
+    PlatformMediaSession::MediaType presentationType() const final { return PlatformMediaSession::Video; }
 
     std::unique_ptr<HTMLImageLoader> m_imageLoader;
 

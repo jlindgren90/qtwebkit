@@ -77,12 +77,12 @@ private:
     Frame* loadSubframe(HTMLFrameOwnerElement&, const URL&, const String& name, const String& referrer);
     bool loadPlugin(HTMLPlugInImageElement&, const URL&, const String& mimeType, const Vector<String>& paramNames, const Vector<String>& paramValues, bool useFallback);
 
-    bool isPluginContentAllowedByContentSecurityPolicy(HTMLPlugInImageElement&, const URL&, const String& mimeType) const;
-
     bool shouldUsePlugin(const URL&, const String& mimeType, bool hasFallback, bool& useFallback);
-    bool pluginIsLoadable(HTMLPlugInImageElement&, const URL&, const String& mimeType);
+    bool pluginIsLoadable(const URL&, const String& mimeType);
 
     Document* document() const;
+
+    bool shouldConvertInvalidURLsToBlank() const;
 
     bool m_containsPlugins;
     Frame& m_frame;

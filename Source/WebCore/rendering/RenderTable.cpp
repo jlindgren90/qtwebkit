@@ -35,6 +35,7 @@
 #include "HTMLNames.h"
 #include "HTMLTableElement.h"
 #include "LayoutRepainter.h"
+#include "RenderChildIterator.h"
 #include "RenderIterator.h"
 #include "RenderLayer.h"
 #include "RenderNamedFlowFragment.h"
@@ -215,7 +216,7 @@ void RenderTable::addChild(RenderObject* child, RenderObject* beforeChild)
     if (beforeChild && !is<RenderTableSection>(*beforeChild) && beforeChild->style().display() != TABLE_CAPTION && beforeChild->style().display() != TABLE_COLUMN_GROUP)
         beforeChild = nullptr;
 
-    RenderTableSection* section = RenderTableSection::createAnonymousWithParentRenderer(this);
+    auto section = RenderTableSection::createAnonymousWithParentRenderer(*this).release();
     addChild(section, beforeChild);
     section->addChild(child);
 }
@@ -696,7 +697,7 @@ void RenderTable::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 void RenderTable::paintObject(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 {
     PaintPhase paintPhase = paintInfo.phase;
-    if ((paintPhase == PaintPhaseBlockBackground || paintPhase == PaintPhaseChildBlockBackground) && hasBoxDecorations() && style().visibility() == VISIBLE)
+    if ((paintPhase == PaintPhaseBlockBackground || paintPhase == PaintPhaseChildBlockBackground) && hasVisibleBoxDecorations() && style().visibility() == VISIBLE)
         paintBoxDecorations(paintInfo, paintOffset);
 
     if (paintPhase == PaintPhaseMask) {
@@ -775,7 +776,7 @@ void RenderTable::paintBoxDecorations(PaintInfo& paintInfo, const LayoutPoint& p
     paintBackground(paintInfo, rect, bleedAvoidance);
     paintBoxShadow(paintInfo, rect, style(), Inset);
 
-    if (style().hasBorderDecoration() && !collapseBorders())
+    if (style().hasVisibleBorderDecoration() && !collapseBorders())
         paintBorder(paintInfo, rect, style());
 }
 
@@ -886,12 +887,12 @@ void RenderTable::appendColumn(unsigned span)
 
 RenderTableCol* RenderTable::firstColumn() const
 {
-    for (RenderObject* child = firstChild(); child; child = child->nextSibling()) {
-        if (is<RenderTableCol>(*child))
-            return downcast<RenderTableCol>(child);
+    for (auto& child : childrenOfType<RenderObject>(*this)) {
+        if (is<RenderTableCol>(child))
+            return &const_cast<RenderTableCol&>(downcast<RenderTableCol>(child));
 
         // We allow only table-captions before columns or column-groups.
-        if (!is<RenderTableCaption>(*child))
+        if (!is<RenderTableCaption>(child))
             return nullptr;
     }
 
@@ -1554,26 +1555,31 @@ bool RenderTable::nodeAtPoint(const HitTestRequest& request, HitTestResult& resu
     return false;
 }
 
-RenderTable* RenderTable::createAnonymousWithParentRenderer(const RenderObject* parent)
+std::unique_ptr<RenderTable> RenderTable::createTableWithStyle(Document& document, const RenderStyle& style)
 {
-    auto table = new RenderTable(parent->document(), RenderStyle::createAnonymousStyleWithDisplay(parent->style(), parent->style().display() == INLINE ? INLINE_TABLE : TABLE));
+    auto table = std::make_unique<RenderTable>(document, RenderStyle::createAnonymousStyleWithDisplay(style, style.display() == INLINE ? INLINE_TABLE : TABLE));
     table->initializeStyle();
     return table;
 }
 
-const BorderValue& RenderTable::tableStartBorderAdjoiningCell(const RenderTableCell* cell) const
+std::unique_ptr<RenderTable> RenderTable::createAnonymousWithParentRenderer(const RenderElement& parent)
 {
-    ASSERT(cell->isFirstOrLastCellInRow());
-    if (hasSameDirectionAs(cell->row()))
+    return RenderTable::createTableWithStyle(parent.document(), parent.style());
+}
+
+const BorderValue& RenderTable::tableStartBorderAdjoiningCell(const RenderTableCell& cell) const
+{
+    ASSERT(cell.isFirstOrLastCellInRow());
+    if (isDirectionSame(this, cell.row()))
         return style().borderStart();
 
     return style().borderEnd();
 }
 
-const BorderValue& RenderTable::tableEndBorderAdjoiningCell(const RenderTableCell* cell) const
+const BorderValue& RenderTable::tableEndBorderAdjoiningCell(const RenderTableCell& cell) const
 {
-    ASSERT(cell->isFirstOrLastCellInRow());
-    if (hasSameDirectionAs(cell->row()))
+    ASSERT(cell.isFirstOrLastCellInRow());
+    if (isDirectionSame(this, cell.row()))
         return style().borderEnd();
 
     return style().borderStart();

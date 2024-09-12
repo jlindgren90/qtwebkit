@@ -33,6 +33,7 @@
 
 #import "AXObjectCache.h"
 #import "AccessibilityARIAGridRow.h"
+#import "AccessibilityLabel.h"
 #import "AccessibilityList.h"
 #import "AccessibilityListBox.h"
 #import "AccessibilityRenderObject.h"
@@ -158,6 +159,10 @@ using namespace HTMLNames;
 
 #ifndef NSAccessibilityValueAutofillAvailableAttribute
 #define NSAccessibilityValueAutofillAvailableAttribute @"AXValueAutofillAvailable"
+#endif
+
+#ifndef NSAccessibilityValueAutofillTypeAttribute
+#define NSAccessibilityValueAutofillTypeAttribute @"AXValueAutofillType"
 #endif
 
 #ifndef NSAccessibilityLanguageAttribute
@@ -2232,6 +2237,16 @@ static NSString* roleValueToNSString(AccessibilityRole value)
         return [[self attachmentView] accessibilityAttributeValue:NSAccessibilityRoleAttribute];
 #pragma clang diagnostic pop
     AccessibilityRole role = m_object->roleValue();
+
+    if (role == LabelRole && is<AccessibilityLabel>(*m_object) && downcast<AccessibilityLabel>(*m_object).containsOnlyStaticText())
+        role = StaticTextRole;
+
+    // The mfenced element creates anonymous RenderMathMLOperators with no RenderText
+    // descendants. Because these anonymous renderers are the only accessible objects
+    // containing the operator, assign StaticTextRole.
+    if (m_object->isAnonymousMathOperator())
+        role = StaticTextRole;
+
     if (role == CanvasRole && m_object->canvasHasFallbackContent())
         role = GroupRole;
     NSString* string = roleValueToNSString(role);
@@ -3150,12 +3165,8 @@ static NSString* roleValueToNSString(AccessibilityRole value)
         return nil;
     }
     
-    if ([attributeName isEqualToString:NSAccessibilityValueDescriptionAttribute]) {
-        if (m_object->isMeter())
-            return [self baseAccessibilityTitle];
-        
+    if ([attributeName isEqualToString:NSAccessibilityValueDescriptionAttribute])
         return m_object->valueDescription();
-    }
     
     if ([attributeName isEqualToString:NSAccessibilityOrientationAttribute]) {
         AccessibilityOrientation elementOrientation = m_object->orientation();
@@ -3229,6 +3240,17 @@ static NSString* roleValueToNSString(AccessibilityRole value)
 
     if ([attributeName isEqualToString:NSAccessibilityValueAutofillAvailableAttribute])
         return @(m_object->isValueAutofillAvailable());
+    
+    if ([attributeName isEqualToString:NSAccessibilityValueAutofillTypeAttribute]) {
+        switch (m_object->valueAutofillButtonType()) {
+        case AutoFillButtonType::None:
+            return @"none";
+        case AutoFillButtonType::Credentials:
+            return @"credentials";
+        case AutoFillButtonType::Contacts:
+            return @"contacts";
+        }
+    }
     
     if ([attributeName isEqualToString:NSAccessibilityValueAutofilledAttribute])
         return @(m_object->isValueAutofilled());

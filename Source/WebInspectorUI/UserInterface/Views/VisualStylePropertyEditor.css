@@ -25,8 +25,11 @@
 
 .visual-style-property-container {
     display: flex;
-    width: 100%;
     min-height: 22px;
+    margin: 0 6px;
+
+    flex-basis: 160px;
+    flex-grow: 1;
 }
 
 .visual-style-property-container > .visual-style-property-title {
@@ -87,10 +90,6 @@
 .visual-style-property-container.disabled > .visual-style-property-value-container {
     pointer-events: none;
     opacity: 0.4;
-}
-
-.visual-style-property-container > *:first-child:matches(.visual-style-property-value-container) {
-    margin-left: 11px;
 }
 
 .visual-style-property-container > .visual-style-property-value-container select {

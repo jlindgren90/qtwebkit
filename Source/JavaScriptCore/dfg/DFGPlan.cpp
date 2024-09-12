@@ -138,13 +138,13 @@ Profiler::CompilationKind profilerCompilationKindForMode(CompilationMode mode)
 Plan::Plan(CodeBlock* passedCodeBlock, CodeBlock* profiledDFGCodeBlock,
     CompilationMode mode, unsigned osrEntryBytecodeIndex,
     const Operands<JSValue>& mustHandleValues)
-    : vm(*passedCodeBlock->vm())
+    : vm(passedCodeBlock->vm())
     , codeBlock(passedCodeBlock)
     , profiledDFGCodeBlock(profiledDFGCodeBlock)
     , mode(mode)
     , osrEntryBytecodeIndex(osrEntryBytecodeIndex)
     , mustHandleValues(mustHandleValues)
-    , compilation(codeBlock->vm()->m_perBytecodeProfiler ? adoptRef(new Profiler::Compilation(codeBlock->vm()->m_perBytecodeProfiler->ensureBytecodesFor(codeBlock), profilerCompilationKindForMode(mode))) : 0)
+    , compilation(vm->m_perBytecodeProfiler ? adoptRef(new Profiler::Compilation(vm->m_perBytecodeProfiler->ensureBytecodesFor(codeBlock), profilerCompilationKindForMode(mode))) : 0)
     , inlineCallFrames(adoptRef(new InlineCallFrameSet()))
     , identifiers(codeBlock)
     , weakReferences(codeBlock)
@@ -160,7 +160,7 @@ bool Plan::computeCompileTimes() const
 {
     return reportCompileTimes()
         || Options::reportTotalCompileTimes()
-        || vm.m_perBytecodeProfiler;
+        || (vm && vm->m_perBytecodeProfiler);
 }
 
 bool Plan::reportCompileTimes() const
@@ -238,13 +238,15 @@ void Plan::compileInThread(LongLivedState& longLivedState, ThreadData* threadDat
 
 Plan::CompilationPath Plan::compileInThreadImpl(LongLivedState& longLivedState)
 {
+    cleanMustHandleValuesIfNecessary();
+    
     if (verboseCompilationEnabled(mode) && osrEntryBytecodeIndex != UINT_MAX) {
         dataLog("\n");
         dataLog("Compiler must handle OSR entry from bc#", osrEntryBytecodeIndex, " with values: ", mustHandleValues, "\n");
         dataLog("\n");
     }
     
-    Graph dfg(vm, *this, longLivedState);
+    Graph dfg(*vm, *this, longLivedState);
     
     if (!parse(dfg)) {
         finalizer = std::make_unique<FailedFinalizer>(*this);
@@ -308,7 +310,6 @@ Plan::CompilationPath Plan::compileInThreadImpl(LongLivedState& longLivedState)
         validate(dfg);
         
     performStrengthReduction(dfg);
-    performLocalCSE(dfg);
     performCPSRethreading(dfg);
     performCFA(dfg);
     performConstantFolding(dfg);
@@ -426,6 +427,8 @@ Plan::CompilationPath Plan::compileInThreadImpl(LongLivedState& longLivedState)
         // wrong with running LICM earlier, if we wanted to put other CFG transforms above this point.
         // Alternatively, we could run loop pre-header creation after SSA conversion - but if we did that
         // then we'd need to do some simple SSA fix-up.
+        performLivenessAnalysis(dfg);
+        performCFA(dfg);
         performLICM(dfg);
 
         // FIXME: Currently: IntegerRangeOptimization *must* be run after LICM.
@@ -537,19 +540,14 @@ bool Plan::isStillValid()
 void Plan::reallyAdd(CommonData* commonData)
 {
     watchpoints.reallyAdd(codeBlock, *commonData);
-    identifiers.reallyAdd(vm, commonData);
-    weakReferences.reallyAdd(vm, commonData);
-    transitions.reallyAdd(vm, commonData);
+    identifiers.reallyAdd(*vm, commonData);
+    weakReferences.reallyAdd(*vm, commonData);
+    transitions.reallyAdd(*vm, commonData);
 }
 
 void Plan::notifyCompiling()
 {
     stage = Compiling;
-}
-
-void Plan::notifyCompiled()
-{
-    stage = Compiled;
 }
 
 void Plan::notifyReady()
@@ -561,7 +559,7 @@ void Plan::notifyReady()
 CompilationResult Plan::finalizeWithoutNotifyingCallback()
 {
     // We will establish new references from the code block to things. So, we need a barrier.
-    vm.heap.writeBarrier(codeBlock);
+    vm->heap.writeBarrier(codeBlock);
     
     if (!isStillValid()) {
         CODEBLOCK_LOG_EVENT(codeBlock, "dfgFinalize", ("invalidated"));
@@ -626,7 +624,8 @@ void Plan::checkLivenessAndVisitChildren(SlotVisitor& visitor)
 {
     if (!isKnownToBeLiveDuringGC())
         return;
-    
+
+    cleanMustHandleValuesIfNecessary();
     for (unsigned i = mustHandleValues.size(); i--;)
         visitor.appendUnbarrieredValue(&mustHandleValues[i]);
 
@@ -660,6 +659,7 @@ bool Plan::isKnownToBeLiveDuringGC()
 
 void Plan::cancel()
 {
+    vm = nullptr;
     codeBlock = nullptr;
     profiledDFGCodeBlock = nullptr;
     mustHandleValues.clear();
@@ -672,6 +672,29 @@ void Plan::cancel()
     transitions = DesiredTransitions();
     callback = nullptr;
     stage = Cancelled;
+}
+
+void Plan::cleanMustHandleValuesIfNecessary()
+{
+    LockHolder locker(mustHandleValueCleaningLock);
+    
+    if (!mustHandleValuesMayIncludeGarbage)
+        return;
+    
+    mustHandleValuesMayIncludeGarbage = false;
+    
+    if (!codeBlock)
+        return;
+    
+    if (!mustHandleValues.numberOfLocals())
+        return;
+    
+    FastBitVector liveness = codeBlock->alternative()->livenessAnalysis().getLivenessInfoAtBytecodeOffset(osrEntryBytecodeIndex);
+    
+    for (unsigned local = mustHandleValues.numberOfLocals(); local--;) {
+        if (!liveness.get(local))
+            mustHandleValues.local(local) = jsUndefined();
+    }
 }
 
 } } // namespace JSC::DFG

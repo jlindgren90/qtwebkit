@@ -35,6 +35,7 @@
 #include "DOMTokenList.h"
 #include "Document.h"
 #include "Event.h"
+#include "EventNames.h"
 #include "EventSender.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -201,7 +202,7 @@ void HTMLLinkElement::setCrossOrigin(const AtomicString& value)
 
 String HTMLLinkElement::crossOrigin() const
 {
-    return parseCORSSettingsAttribute(fastGetAttribute(crossoriginAttr));
+    return parseCORSSettingsAttribute(attributeWithoutSynchronization(crossoriginAttr));
 }
 
 void HTMLLinkElement::process()
@@ -213,21 +214,21 @@ void HTMLLinkElement::process()
 
     URL url = getNonEmptyURLAttribute(hrefAttr);
 
-    if (!m_linkLoader.loadLink(m_relAttribute, url, fastGetAttribute(asAttr), fastGetAttribute(crossoriginAttr), document()))
+    if (!m_linkLoader.loadLink(m_relAttribute, url, attributeWithoutSynchronization(asAttr), attributeWithoutSynchronization(crossoriginAttr), document()))
         return;
 
     bool treatAsStyleSheet = m_relAttribute.isStyleSheet
         || (document().settings() && document().settings()->treatsAnyTextCSSLinkAsStylesheet() && m_type.containsIgnoringASCIICase("text/css"));
 
     if (m_disabledState != Disabled && treatAsStyleSheet && document().frame() && url.isValid()) {
-        AtomicString charset = fastGetAttribute(charsetAttr);
+        AtomicString charset = attributeWithoutSynchronization(charsetAttr);
         if (charset.isEmpty() && document().frame())
             charset = document().charset();
         
         if (m_cachedSheet) {
             removePendingSheet();
             m_cachedSheet->removeClient(this);
-            m_cachedSheet = 0;
+            m_cachedSheet = nullptr;
         }
 
         if (!shouldLoadLink())
@@ -240,9 +241,8 @@ void HTMLLinkElement::process()
             Optional<RenderStyle> documentStyle;
             if (document().hasLivingRenderTree())
                 documentStyle = Style::resolveForDocument(document());
-            RefPtr<MediaQuerySet> media = MediaQuerySet::createAllowingDescriptionSyntax(m_media);
-            MediaQueryEvaluator evaluator(document().frame()->view()->mediaType(), document().frame(), documentStyle ? &*documentStyle : nullptr);
-            mediaQueryMatches = evaluator.eval(media.get());
+            auto media = MediaQuerySet::createAllowingDescriptionSyntax(m_media);
+            mediaQueryMatches = MediaQueryEvaluator { document().frame()->view()->mediaType(), document(), documentStyle ? &*documentStyle : nullptr }.evaluate(media.get());
         }
 
         // Don't hold up render tree construction and script execution on stylesheets
@@ -254,17 +254,18 @@ void HTMLLinkElement::process()
         Optional<ResourceLoadPriority> priority;
         if (!isActive)
             priority = ResourceLoadPriority::VeryLow;
-        CachedResourceRequest request(ResourceRequest(document().completeURL(url)), charset, priority);
+        CachedResourceRequest request(url, charset, priority);
         request.setInitiator(this);
 
-        if (document().contentSecurityPolicy()->allowStyleWithNonce(fastGetAttribute(HTMLNames::nonceAttr))) {
+        if (document().contentSecurityPolicy()->allowStyleWithNonce(attributeWithoutSynchronization(HTMLNames::nonceAttr))) {
             ResourceLoaderOptions options = CachedResourceLoader::defaultCachedResourceOptions();
-            options.setContentSecurityPolicyImposition(ContentSecurityPolicyImposition::SkipPolicyCheck);
+            options.contentSecurityPolicyImposition = ContentSecurityPolicyImposition::SkipPolicyCheck;
             request.setOptions(options);
         }
+        request.setAsPotentiallyCrossOrigin(crossOrigin(), document());
 
         m_cachedSheet = document().cachedResourceLoader().requestCSSStyleSheet(request);
-        
+
         if (m_cachedSheet)
             m_cachedSheet->addClient(this);
         else {
@@ -342,7 +343,7 @@ void HTMLLinkElement::setCSSStyleSheet(const String& href, const URL& baseURL, c
         return;
 
     // Completing the sheet load may cause scripts to execute.
-    Ref<HTMLLinkElement> protect(*this);
+    Ref<HTMLLinkElement> protectedThis(*this);
 
     CSSParserContext parserContext(document(), baseURL, charset);
     auto cachePolicy = frame->loader().subresourceCachePolicy();
@@ -361,7 +362,7 @@ void HTMLLinkElement::setCSSStyleSheet(const String& href, const URL& baseURL, c
         return;
     }
 
-    Ref<StyleSheetContents> styleSheet(StyleSheetContents::create(href, parserContext));
+    auto styleSheet = StyleSheetContents::create(href, parserContext);
     m_sheet = CSSStyleSheet::create(styleSheet.copyRef(), this);
     m_sheet->setMediaQueries(MediaQuerySet::createAllowingDescriptionSyntax(m_media));
     m_sheet->setTitle(title());
@@ -477,22 +478,22 @@ void HTMLLinkElement::handleClick(Event& event)
 
 URL HTMLLinkElement::href() const
 {
-    return document().completeURL(getAttribute(hrefAttr));
+    return document().completeURL(attributeWithoutSynchronization(hrefAttr));
 }
 
 const AtomicString& HTMLLinkElement::rel() const
 {
-    return fastGetAttribute(relAttr);
+    return attributeWithoutSynchronization(relAttr);
 }
 
 String HTMLLinkElement::target() const
 {
-    return getAttribute(targetAttr);
+    return attributeWithoutSynchronization(targetAttr);
 }
 
 const AtomicString& HTMLLinkElement::type() const
 {
-    return getAttribute(typeAttr);
+    return attributeWithoutSynchronization(typeAttr);
 }
 
 Optional<LinkIconType> HTMLLinkElement::iconType() const

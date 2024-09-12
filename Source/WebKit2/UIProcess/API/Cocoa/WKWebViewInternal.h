@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,7 @@ struct PrintInfo;
 
 @class WKWebViewContentProviderRegistry;
 @class _WKFrameHandle;
+@protocol _WKWebViewPrintProvider;
 
 @interface WKWebView () WK_WEB_VIEW_PROTOCOLS {
 
@@ -102,6 +103,7 @@ struct PrintInfo;
 - (void)_updateVisibleContentRectAfterScrollInView:(UIScrollView *)scrollView;
 - (void)_updateContentRectsWithState:(BOOL)inStableState;
 
+- (void)_didFirstVisuallyNonEmptyLayoutForMainFrame;
 - (void)_didFinishLoadForMainFrame;
 - (void)_didFailLoadForMainFrame;
 - (void)_didSameDocumentNavigationForMainFrame:(WebKit::SameDocumentNavigationType)navigationType;
@@ -113,8 +115,6 @@ struct PrintInfo;
 
 - (void)_navigationGestureDidBegin;
 - (void)_navigationGestureDidEnd;
-
-- (void)_updateForceAlwaysUserScalable;
 
 @property (nonatomic, readonly) BOOL _isBackground;
 
@@ -134,9 +134,7 @@ WKWebView* fromWebPageProxy(WebKit::WebPageProxy&);
 
 #if PLATFORM(IOS)
 @interface WKWebView (_WKWebViewPrintFormatter)
-- (NSInteger)_computePageCountAndStartDrawingToPDFForFrame:(_WKFrameHandle *)frame printInfo:(const WebKit::PrintInfo&)printInfo firstPage:(uint32_t)firstPage computedTotalScaleFactor:(double&)totalScaleFactor;
-- (void)_endPrinting;
-@property (nonatomic, setter=_setPrintedDocument:) CGPDFDocumentRef _printedDocument;
+@property (nonatomic, readonly) id <_WKWebViewPrintProvider> _printProvider;
 @end
 #endif
 

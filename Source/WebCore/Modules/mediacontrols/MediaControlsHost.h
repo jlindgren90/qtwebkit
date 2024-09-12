@@ -64,7 +64,9 @@ public:
     void updateTextTrackContainer();
     bool allowsInlineMediaPlayback() const;
     bool supportsFullscreen();
+    bool isVideoLayerInline();
     bool userGestureRequired() const;
+    void setPreparedToReturnVideoLayerToInline(bool);
 
     void updateCaptionDisplaySizes();
     void enteredFullscreen();

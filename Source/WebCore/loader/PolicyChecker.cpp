@@ -31,9 +31,11 @@
 #include "config.h"
 #include "PolicyChecker.h"
 
+#include "ContentFilter.h"
 #include "ContentSecurityPolicy.h"
 #include "DOMWindow.h"
 #include "DocumentLoader.h"
+#include "EventNames.h"
 #include "FormState.h"
 #include "Frame.h"
 #include "FrameLoader.h"
@@ -90,14 +92,24 @@ void PolicyChecker::checkNavigationPolicy(const ResourceRequest& request, bool d
 
     // We are always willing to show alternate content for unreachable URLs;
     // treat it like a reload so it maintains the right state for b/f list.
-    if (loader->substituteData().isValid() && !loader->substituteData().failingURL().isEmpty()) {
+    auto& substituteData = loader->substituteData();
+    if (substituteData.isValid() && !substituteData.failingURL().isEmpty()) {
+        bool shouldContinue = true;
+#if ENABLE(CONTENT_FILTERING)
+        shouldContinue = ContentFilter::continueAfterSubstituteDataRequest(*m_frame.loader().activeDocumentLoader(), substituteData);
+#endif
         if (isBackForwardLoadType(m_loadType))
             m_loadType = FrameLoadType::Reload;
-        function(request, 0, true);
+        function(request, 0, shouldContinue);
         return;
     }
 
     if (!isAllowedByContentSecurityPolicy(request.url(), m_frame.ownerElement(), didReceiveRedirectResponse)) {
+        if (m_frame.ownerElement()) {
+            // Fire a load event (even though we were blocked by CSP) as timing attacks would otherwise
+            // reveal that the frame was blocked. This way, it looks like any other cross-origin page load.
+            m_frame.ownerElement()->dispatchEvent(Event::create(eventNames().loadEvent, false, false));
+        }
         function(request, 0, false);
         return;
     }

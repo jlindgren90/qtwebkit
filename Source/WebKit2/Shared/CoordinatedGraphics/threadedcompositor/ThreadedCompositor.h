@@ -28,16 +28,14 @@
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
 
+#include "CompositingRunLoop.h"
 #include "CoordinatedGraphicsScene.h"
 #include "SimpleViewportController.h"
 #include <WebCore/GLContext.h>
 #include <WebCore/IntSize.h>
-#include <WebCore/TransformationMatrix.h>
-#include <wtf/Condition.h>
 #include <wtf/FastMalloc.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/ThreadSafeRefCounted.h>
-#include <wtf/Threading.h>
 
 namespace WebCore {
 struct CoordinatedGraphicsState;
@@ -45,7 +43,6 @@ struct CoordinatedGraphicsState;
 
 namespace WebKit {
 
-class CompositingRunLoop;
 class CoordinatedGraphicsScene;
 class CoordinatedGraphicsSceneClient;
 
@@ -56,18 +53,16 @@ public:
     class Client {
     public:
         virtual void setVisibleContentsRect(const WebCore::FloatRect&, const WebCore::FloatPoint&, float) = 0;
-        virtual void purgeBackingStores() = 0;
         virtual void renderNextFrame() = 0;
         virtual void commitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset) = 0;
     };
 
-    static Ref<ThreadedCompositor> create(Client*);
+    static Ref<ThreadedCompositor> create(Client*, uint64_t nativeSurfaceHandle = 0);
     virtual ~ThreadedCompositor();
-
-    void setNeedsDisplay();
 
     void setNativeSurfaceHandleForCompositing(uint64_t);
     void setDeviceScaleFactor(float);
+    void setDrawsBackground(bool);
 
     void updateSceneState(const WebCore::CoordinatedGraphicsState&);
 
@@ -77,46 +72,38 @@ public:
     void scrollTo(const WebCore::IntPoint&);
     void scrollBy(const WebCore::IntSize&);
 
+    void invalidate();
+
+    void forceRepaint();
+
 private:
-    ThreadedCompositor(Client*);
+    ThreadedCompositor(Client*, uint64_t nativeSurfaceHandle);
 
     // CoordinatedGraphicsSceneClient
-    void purgeBackingStores() override;
     void renderNextFrame() override;
     void updateViewport() override;
     void commitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset) override;
 
-    void renderLayerTree();
-    void scheduleDisplayImmediately();
+    // SimpleViewportController::Client.
     void didChangeVisibleRect() override;
 
-    bool ensureGLContext();
+    void renderLayerTree();
+    void scheduleDisplayImmediately();
+
+    bool tryEnsureGLContext();
     WebCore::GLContext* glContext();
-    SimpleViewportController* viewportController() { return m_viewportController.get(); }
 
-    void callOnCompositingThread(std::function<void()>&&);
-    void createCompositingThread();
-    void runCompositingThread();
-    void terminateCompositingThread();
-    static void compositingThreadEntry(void*);
-
-    Client* m_client;
+    Client* m_client { nullptr };
     RefPtr<CoordinatedGraphicsScene> m_scene;
     std::unique_ptr<SimpleViewportController> m_viewportController;
-
     std::unique_ptr<WebCore::GLContext> m_context;
 
     WebCore::IntSize m_viewportSize;
-    float m_deviceScaleFactor;
+    float m_deviceScaleFactor { 1 };
+    bool m_drawsBackground { true };
     uint64_t m_nativeSurfaceHandle;
 
     std::unique_ptr<CompositingRunLoop> m_compositingRunLoop;
-
-    ThreadIdentifier m_threadIdentifier;
-    Condition m_initializeRunLoopCondition;
-    Lock m_initializeRunLoopConditionMutex;
-    Condition m_terminateRunLoopCondition;
-    Lock m_terminateRunLoopConditionMutex;
 };
 
 } // namespace WebKit

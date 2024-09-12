@@ -54,18 +54,11 @@ webkit.org/b/152272 [ Debug ] js/regress/generator-with-several-types.html [ Pas
 
 webkit.org/b/152485 webaudio/audiocontext-state-interrupted.html [ Pass Crash ]
 
-webkit.org/b/152487 inspector/debugger/command-line-api-exception-nested-catch.html [ Pass Timeout ]
-
 webkit.org/b/152789 webarchive/adopt-attribute-styled-body-webarchive.html [ Pass Crash ]
-
-webkit.org/b/153039 [ Debug ] inspector/heap/garbageCollected.html [ Pass Timeout ]
-
-webkit.org/b/153460 [ Debug ] inspector/codemirror/prettyprinting-css-rules.html [ Pass Timeout ]
 
 webkit.org/b/154297 [ Debug ] fast/events/keydown-1.html [ Pass Failure ]
 
-webkit.org/b/155196 media/video-with-blob-url-allowed-by-csp-media-src-star.html [ Skip ]
-webkit.org/b/155196 media/video-with-data-url-allowed-by-csp-media-src-star.html [ Skip ]
+webkit.org/b/155196 security/contentSecurityPolicy/video-with-blob-url-allowed-by-media-src-star.html [ Skip ]
 
 webkit.org/b/153143 [ Yosemite ] media/track/track-in-band-style.html [ Pass Crash ]
 
@@ -86,6 +79,9 @@ plugins/unavailable-plugin-indicator-obscurity.html
 # Color input is not yet implemented on Mac WK1. Currently, using it erroneously triggers an ASSERT_NOT_REACHED.
 webkit.org/b/119094 fast/forms/color/input-color-onchange-event.html [ Skip ]
 webkit.org/b/119094 fast/forms/color/color-suggestion-picker-crash-on-set-value.html [ Skip ]
+
+# DumpRenderTree doesn't support logging calls to runOpenPanel.
+fast/forms/file/open-file-panel.html [ Skip ]
 
 # WK1 and WK2 mousemove events are subtly different in ways that break this test on WK1.
 fast/events/ghostly-mousemoves-in-subframe.html [ Skip ]
@@ -108,12 +104,6 @@ fast/images/animated-gif-body-outside-viewport.html [ Skip ]
 fast/images/animated-gif-window-resizing.html [ Skip ]
 fast/images/animated-gif-zooming.html [ Skip ]
 
-# Mavericks and prior do not support contentInset
-[ Mavericks ] platform/mac/fast/events/content-inset-hit-testing.html [ Skip ]
-[ Mavericks ] platform/mac/fast/events/content-inset-hit-testing-in-frame.html [ Skip ]
-[ Mavericks ] fast/scrolling/latching/scroll-select-bottom-test.html [ Skip ]
-[ Mavericks ] platform/mac-wk1/fast/backgrounds/top-content-inset-fixed-attachment.html [ Skip ]
-
 # WK1 uses the native scrollview for scrolling by page.
 scrollbars/scrolling-backward-by-page-accounting-bottom-fixed-elements-on-keyboard-spacebar.html
 scrollbars/scrolling-backward-by-page-on-keyboard-spacebar.html
@@ -129,6 +119,7 @@ webkit.org/b/147683 fast/scrolling/latching/scroll-div-with-nested-nonscrollable
 
 fast/scrolling/iframe-scrollable-after-back.html [ Skip ]
 fast/scrolling/overflow-scrollable-after-back.html [ Skip ]
+fast/scrolling/scroll-container-horizontally.html [ Failure ]
 
 compositing/rtl/rtl-fixed-overflow-scrolled.html [ Failure ]
 
@@ -141,12 +132,6 @@ http/tests/cache/disk-cache
 
 # ShouldOpenExternalURLs not yet supported in WK1
 loader/navigation-policy [ Skip ]
-
-webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video-rgba4444.html [ Pass Timeout ]
-webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video-rgba5551.html [ Pass Timeout ]
-webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video.html [ Pass Timeout ]
-webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-uniform-binding-bugs.html [ Pass Timeout ]
-webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/oes-texture-half-float.html [ Pass Timeout ]
 
 [ ElCapitan+ ] css3/masking/mask-repeat-space-padding.html [ ImageOnlyFailure ]
 
@@ -162,6 +147,7 @@ storage/indexeddb/modern/exceed-open-file-limit.html
 
 # This test is WebKit2-only
 http/tests/contentfiltering/load-substitute-data-from-appcache.html
+fast/dom/Window/child-window-focus.html
 
 # Testing the system language declaratively only makes sense in WK2, because it's implemented in WebKitTestRunner by launching a new WebContent process.
 fast/text/international/system-language [ Pass Failure ImageOnlyFailure ]
@@ -195,6 +181,7 @@ inspector/script-profiler/event-type-API.html [ Skip ]
 inspector/heap/getPreview.html [ Skip ]
 inspector/heap/getRemoteObject.html [ Skip ]
 inspector/unit-tests/heap-snapshot.html [ Skip ]
+inspector/unit-tests/heap-snapshot-collection-event.html [ Skip ]
 
 # This test checks ScrollAnimator events only for main frame scrollbars that use native widgets in WK1.
 fast/scrolling/scroll-animator-overlay-scrollbars-hovered.html [ Skip ]
@@ -216,3 +203,44 @@ webkit.org/b/157007 fast/layers/no-clipping-overflow-hidden-added-after-transfor
 
 # This test relies on a settings option that we can only set with WKRT.
 js/dom/regress-157246.html
+
+# dumpPolicyDelegateCallbacks is not supported in DumpRenderTree
+fast/loader/iframe-src-invalid-url.html [ Skip ]
+
+webkit.org/b/157589 fast/text-autosizing/ios/text-autosizing-after-back.html [ Pass Timeout ]
+
+# repaint rects work differently on WK1
+fast/repaint/vertical-text-repaint.html [ Pass Failure ]
+
+webkit.org/b/158585 webgl/webgl-backing-store-size-update.html [ Pass Timeout ]
+
+# <rdar://problem/24818712>
+[ Sierra+ ] editing/spelling/spelling-insert-html.html [ Pass Timeout ]
+
+# <rdar://problem/26399598>
+[ Sierra+ ] editing/spelling/spellcheck-async.html [ Failure ]
+[ Sierra+ ] editing/spelling/markers.html [ Failure ]
+[ Sierra+ ] editing/spelling/spelling-unified-emulation.html [ Failure ]
+
+# <rdar://problem/26050923> The result is probably still a pass, but we don't have a way
+# to have platform specific results that are different between WK1 and WK2.
+[ Sierra+ ] accessibility/mac/document-attributes.html [ Failure ]
+[ Sierra+ ] accessibility/parent-delete.html [ Failure ]
+
+# rdar://problem/26422051
+[ Sierra+ ] fast/inline-block/003.html [ Failure ]
+
+# rdar://problem/26478296
+[ Sierra+ ] svg/hixie/text/003.html [ Failure ]
+
+[ Yosemite ] http/tests/media/hls/video-controller-getStartDate.html [ Pass Timeout ]
+
+webkit.org/b/159893 [ Debug ] imported/w3c/web-platform-tests/XMLHttpRequest/event-readystatechange-loaded.htm [ Pass Failure ]
+
+webkit.org/b/156070 storage/indexeddb/modern/abort-requests-cancelled.html [ Pass Timeout ]
+
+webkit.org/b/160101 userscripts/window-onerror-for-isolated-world-3.html [ Pass Failure ]
+
+webkit.org/b/105870 [ Debug ] webaudio/audionode-connect-order.html [ Pass Crash ]
+
+webkit.org/b/160227 [ ElCapitan Debug ] inspector/memory/tracking.html [ Pass Crash ]

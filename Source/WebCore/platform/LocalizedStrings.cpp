@@ -29,9 +29,9 @@
 
 #include "IntSize.h"
 #include "NotImplemented.h"
-#include "TextBreakIterator.h"
 #include <wtf/MathExtras.h>
 #include <wtf/NeverDestroyed.h>
+#include <wtf/text/TextBreakIterator.h>
 #include <wtf/unicode/CharacterNames.h>
 
 #if USE(CF)
@@ -509,19 +509,15 @@ String contextMenuItemTagExitVideoFullscreen()
 
 #if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
 
-#if USE(APPLE_INTERNAL_SDK)
-#include <WebKitAdditions/ContextMenuLocalizedStringsAdditions.cpp>
-#else
 String contextMenuItemTagEnterVideoEnhancedFullscreen()
 {
-    return { };
+    return WEB_UI_STRING("Enter Picture-in-Picture", "menu item");
 }
 
 String contextMenuItemTagExitVideoEnhancedFullscreen()
 {
-    return { };
+    return WEB_UI_STRING("Exit Picture-in-Picture", "menu item");
 }
-#endif
 
 #endif
 
@@ -698,9 +694,9 @@ String AXARIAContentGroupText(const String& ariaType)
     if (ariaType == "ARIAApplicationAlert")
         return WEB_UI_STRING("alert", "An ARIA accessibility group that acts as an alert.");
     if (ariaType == "ARIAApplicationAlertDialog")
-        return WEB_UI_STRING("alert dialog", "An ARIA accessibility group that acts as an alert dialog.");
+        return WEB_UI_STRING("web alert dialog", "An ARIA accessibility group that acts as an alert dialog.");
     if (ariaType == "ARIAApplicationDialog")
-        return WEB_UI_STRING("dialog", "An ARIA accessibility group that acts as an dialog.");
+        return WEB_UI_STRING("web dialog", "An ARIA accessibility group that acts as an dialog.");
     if (ariaType == "ARIAApplicationLog")
         return WEB_UI_STRING("log", "An ARIA accessibility group that acts as a console log.");
     if (ariaType == "ARIAApplicationMarquee")
@@ -1184,5 +1180,37 @@ String webCryptoMasterKeyKeychainComment()
     return WEB_UI_STRING("Used to encrypt WebCrypto keys in persistent storage, such as IndexedDB", "Description of WebCrypto master keys in Keychain");
 }
 #endif
+
+#if PLATFORM(MAC)
+String insertListTypeNone()
+{
+    return WEB_UI_STRING("None", "Option in segmented control for choosing list type in text editing");
+}
+
+String insertListTypeNoneAccessibilityTitle()
+{
+    return WEB_UI_STRING("No list", "Accessibility label for not inserting a list in text editing");
+}
+
+String insertListTypeBulleted()
+{
+    return WEB_UI_STRING("•", "Option in segmented control for choosing list type in text editing");
+}
+
+String insertListTypeBulletedAccessibilityTitle()
+{
+    return WEB_UI_STRING("Insert a bulleted list", "Option in segmented control for inserting a bulleted list in text editing");
+}
+
+String insertListTypeNumbered()
+{
+    return WEB_UI_STRING("1. 2. 3.…", "Option in segmented control for choosing list type in text editing");
+}
+
+String insertListTypeNumberedAccessibilityTitle()
+{
+    return WEB_UI_STRING("Insert a numbered list", "Option in segmented control for inserting a numbered list in text editing");
+}
+#endif // PLATFORM(MAC)
 
 } // namespace WebCore

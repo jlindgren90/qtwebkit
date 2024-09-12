@@ -157,7 +157,7 @@ public:
     ExpressionType createLogicalNot(const JSTokenLocation&, ExpressionType) { return UnaryExpr; }
     ExpressionType createUnaryPlus(const JSTokenLocation&, ExpressionType) { return UnaryExpr; }
     ExpressionType createVoid(const JSTokenLocation&, ExpressionType) { return UnaryExpr; }
-    ExpressionType createThisExpr(const JSTokenLocation&, ThisTDZMode) { return ThisExpr; }
+    ExpressionType createThisExpr(const JSTokenLocation&) { return ThisExpr; }
     ExpressionType createSuperExpr(const JSTokenLocation&) { return SuperExpr; }
     ExpressionType createNewTargetExpr(const JSTokenLocation&) { return NewTargetExpr; }
     ALWAYS_INLINE bool isNewTarget(ExpressionType type) { return type == NewTargetExpr; }
@@ -301,7 +301,7 @@ public:
     
     // Logic to handle datastructures used during parsing of binary expressions
     void operatorStackPop(int& operatorStackDepth) { operatorStackDepth--; }
-    bool operatorStackHasHigherPrecedence(int&, int) { return true; }
+    bool operatorStackShouldReduce(int) { return true; }
     BinaryOperand getFromOperandStack(int) { return m_topBinaryExpr; }
     void shrinkOperandStackBy(int& operandStackDepth, int amount) { operandStackDepth -= amount; }
     void appendBinaryOperation(const JSTokenLocation&, int& operandStackDepth, int&, BinaryOperand, BinaryOperand) { operandStackDepth++; }
@@ -354,7 +354,7 @@ public:
     {
         return BindingDestructuring;
     }
-    RestPattern createRestParameter(const Identifier&, size_t, const JSTextPosition&, const JSTextPosition&)
+    RestPattern createRestParameter(DestructuringPattern, size_t)
     { 
         return RestParameter;
     }

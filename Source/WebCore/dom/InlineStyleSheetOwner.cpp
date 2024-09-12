@@ -111,7 +111,8 @@ void InlineStyleSheetOwner::createSheetFromTextContents(Element& element)
 void InlineStyleSheetOwner::clearSheet()
 {
     ASSERT(m_sheet);
-    m_sheet.release()->clearOwnerNode();
+    auto sheet = WTFMove(m_sheet);
+    sheet->clearOwnerNode();
 }
 
 inline bool isValidCSSContentType(Element& element, const AtomicString& type)
@@ -140,7 +141,7 @@ void InlineStyleSheetOwner::createSheet(Element& element, const String& text)
 
     ASSERT(document.contentSecurityPolicy());
     const ContentSecurityPolicy& contentSecurityPolicy = *document.contentSecurityPolicy();
-    bool hasKnownNonce = contentSecurityPolicy.allowStyleWithNonce(element.fastGetAttribute(HTMLNames::nonceAttr), element.isInUserAgentShadowTree());
+    bool hasKnownNonce = contentSecurityPolicy.allowStyleWithNonce(element.attributeWithoutSynchronization(HTMLNames::nonceAttr), element.isInUserAgentShadowTree());
     if (!contentSecurityPolicy.allowInlineStyle(document.url(), m_startTextPosition.m_line, text, hasKnownNonce))
         return;
 
@@ -152,7 +153,7 @@ void InlineStyleSheetOwner::createSheet(Element& element, const String& text)
 
     MediaQueryEvaluator screenEval(ASCIILiteral("screen"), true);
     MediaQueryEvaluator printEval(ASCIILiteral("print"), true);
-    if (!screenEval.eval(mediaQueries.get()) && !printEval.eval(mediaQueries.get()))
+    if (!screenEval.evaluate(*mediaQueries) && !printEval.evaluate(*mediaQueries))
         return;
 
     authorStyleSheetsForElement(element).addPendingSheet();
@@ -160,7 +161,7 @@ void InlineStyleSheetOwner::createSheet(Element& element, const String& text)
     m_loading = true;
 
     m_sheet = CSSStyleSheet::createInline(element, URL(), m_startTextPosition, document.encoding());
-    m_sheet->setMediaQueries(mediaQueries.release());
+    m_sheet->setMediaQueries(mediaQueries.releaseNonNull());
     m_sheet->setTitle(element.title());
     m_sheet->contents().parseStringAtPosition(text, m_startTextPosition, m_isParsingChildren);
 

@@ -27,6 +27,9 @@
 #pragma once
 
 #include "ContentSecurityPolicyResponseHeaders.h"
+#include "SecurityOrigin.h"
+#include "SecurityOriginHash.h"
+#include <wtf/HashSet.h>
 #include <wtf/OptionSet.h>
 #include <wtf/Vector.h>
 #include <wtf/text/TextPosition.h>
@@ -47,6 +50,7 @@ class ContentSecurityPolicySource;
 class DOMStringList;
 class Frame;
 class JSDOMWindowShell;
+class ResourceRequest;
 class ScriptExecutionContext;
 class SecurityOrigin;
 class TextEncoding;
@@ -148,6 +152,16 @@ public:
     // Used by ContentSecurityPolicySource
     bool protocolMatchesSelf(const URL&) const;
 
+    void setUpgradeInsecureRequests(bool);
+    bool upgradeInsecureRequests() const { return m_upgradeInsecureRequests; }
+    enum class InsecureRequestType { Load, FormSubmission, Navigation };
+    void upgradeInsecureRequestIfNeeded(ResourceRequest&, InsecureRequestType) const;
+    void upgradeInsecureRequestIfNeeded(URL&, InsecureRequestType) const;
+
+    HashSet<RefPtr<SecurityOrigin>>&& takeNavigationRequestsToUpgrade();
+    void inheritInsecureNavigationRequestsToUpgradeFromOpener(const ContentSecurityPolicy&);
+    void setInsecureNavigationRequestsToUpgrade(HashSet<RefPtr<SecurityOrigin>>&&);
+
 private:
     void logToConsole(const String& message, const String& contextURL = String(), const WTF::OrdinalNumber& contextLine = WTF::OrdinalNumber::beforeFirst(), JSC::ExecState* = nullptr) const;
     void updateSourceSelf(const SecurityOrigin&);
@@ -157,8 +171,24 @@ private:
 
     const TextEncoding& documentEncoding() const;
 
-    template<typename Predicate, typename... Args> const ContentSecurityPolicyDirective* violatedDirectiveInAnyPolicy(Predicate&&, Args&&...) const WARN_UNUSED_RETURN;
-    template<typename Predicate> bool foundHashOfContentInAllPolicies(Predicate&&, const String& content, OptionSet<ContentSecurityPolicyHashAlgorithm>) const WARN_UNUSED_RETURN;
+    enum class Disposition {
+        Enforce,
+        ReportOnly,
+    };
+
+    using ViolatedDirectiveCallback = std::function<void (const ContentSecurityPolicyDirective&)>;
+
+    template<typename Predicate, typename... Args>
+    typename std::enable_if<!std::is_convertible<Predicate, ViolatedDirectiveCallback>::value, bool>::type allPoliciesWithDispositionAllow(Disposition, Predicate&&, Args&&...) const;
+
+    template<typename Predicate, typename... Args>
+    bool allPoliciesWithDispositionAllow(Disposition, ViolatedDirectiveCallback&&, Predicate&&, Args&&...) const;
+
+    template<typename Predicate, typename... Args>
+    bool allPoliciesAllow(ViolatedDirectiveCallback&&, Predicate&&, Args&&...) const WARN_UNUSED_RETURN;
+
+    using HashInEnforcedAndReportOnlyPoliciesPair = std::pair<bool, bool>;
+    template<typename Predicate> HashInEnforcedAndReportOnlyPoliciesPair findHashOfContentInPolicies(Predicate&&, const String& content, OptionSet<ContentSecurityPolicyHashAlgorithm>) const WARN_UNUSED_RETURN;
 
     void reportViolation(const String& violatedDirective, const ContentSecurityPolicyDirective& effectiveViolatedDirective, const URL& blockedURL, const String& consoleMessage, JSC::ExecState*) const;
     void reportViolation(const String& violatedDirective, const ContentSecurityPolicyDirective& effectiveViolatedDirective, const URL& blockedURL, const String& consoleMessage, const String& sourceURL, const TextPosition& sourcePosition, JSC::ExecState* = nullptr) const;
@@ -174,18 +204,10 @@ private:
     SandboxFlags m_sandboxFlags;
     bool m_overrideInlineStyleAllowed { false };
     bool m_isReportingEnabled { true };
+    bool m_upgradeInsecureRequests { false };
     OptionSet<ContentSecurityPolicyHashAlgorithm> m_hashAlgorithmsForInlineScripts;
     OptionSet<ContentSecurityPolicyHashAlgorithm> m_hashAlgorithmsForInlineStylesheets;
+    HashSet<RefPtr<SecurityOrigin>> m_insecureNavigationRequestsToUpgrade;
 };
-
-template<typename Predicate, typename... Args>
-inline const ContentSecurityPolicyDirective* ContentSecurityPolicy::violatedDirectiveInAnyPolicy(Predicate&& predicate, Args&&... args) const
-{
-    for (auto& policy : m_policies) {
-        if (const ContentSecurityPolicyDirective* violatedDirective = (policy.get()->*predicate)(std::forward<Args>(args)...))
-            return violatedDirective;
-    }
-    return nullptr;
-}
 
 }

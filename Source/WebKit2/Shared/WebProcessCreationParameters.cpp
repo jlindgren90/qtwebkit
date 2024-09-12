@@ -136,11 +136,14 @@ void WebProcessCreationParameters::encode(IPC::ArgumentEncoder& encoder) const
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
     encoder << pluginLoadClientPolicies;
-    encoder << pluginLoadClientPoliciesForPrivateBrowsing;
 #endif
 
 #if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
     IPC::encode(encoder, networkATSContext.get());
+#endif
+
+#if OS(LINUX)
+    encoder << memoryPressureMonitorHandle;
 #endif
 }
 
@@ -290,12 +293,15 @@ bool WebProcessCreationParameters::decode(IPC::ArgumentDecoder& decoder, WebProc
 #if ENABLE(NETSCAPE_PLUGIN_API)
     if (!decoder.decode(parameters.pluginLoadClientPolicies))
         return false;
-    if (!decoder.decode(parameters.pluginLoadClientPoliciesForPrivateBrowsing))
-        return false;
 #endif
 
 #if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
     if (!IPC::decode(decoder, parameters.networkATSContext))
+        return false;
+#endif
+
+#if OS(LINUX)
+    if (!decoder.decode(parameters.memoryPressureMonitorHandle))
         return false;
 #endif
 

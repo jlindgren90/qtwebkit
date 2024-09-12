@@ -50,7 +50,7 @@ public:
 
     VM& vm() { return m_vm; }
 
-    JSC::DebuggerCallFrame* currentDebuggerCallFrame() const;
+    JSC::DebuggerCallFrame* currentDebuggerCallFrame();
     bool hasHandlerForExceptionCallback() const
     {
         ASSERT(m_reasonForPause == PausedForException);
@@ -78,6 +78,7 @@ public:
     void clearBreakpoints();
     void activateBreakpoints() { setBreakpointsActivated(true); }
     void deactivateBreakpoints() { setBreakpointsActivated(false); }
+    bool breakpointsActive() const { return m_breakpointsActivated; }
 
     enum PauseOnExceptionsState {
         DontPauseOnExceptions,

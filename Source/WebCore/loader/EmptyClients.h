@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006 Eric Seidel (eric@webkit.org)
- * Copyright (C) 2008-2012, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies).
  * Copyright (C) 2012 Samsung Electronics. All rights reserved.
  *
@@ -26,8 +26,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef EmptyClients_h
-#define EmptyClients_h
+#pragma once
 
 #include "ChromeClient.h"
 #include "ContextMenuClient.h"
@@ -40,9 +39,10 @@
 #include "FocusDirection.h"
 #include "FrameLoaderClient.h"
 #include "InspectorClient.h"
-#include "Page.h"
 #include "ProgressTrackerClient.h"
 #include "ResourceError.h"
+#include "SessionID.h"
+#include "SocketProvider.h"
 #include "TextCheckerClient.h"
 #include "VisitedLinkStore.h"
 #include <wtf/text/StringView.h>
@@ -71,6 +71,8 @@
 namespace WebCore {
 
 class GraphicsContext3D;
+class Page;
+class PageConfiguration;
 
 class EmptyChromeClient : public ChromeClient {
     WTF_MAKE_FAST_ALLOCATED;
@@ -264,7 +266,6 @@ public:
     bool shouldUseCredentialStorage(DocumentLoader*, unsigned long) override { return false; }
     void dispatchWillSendRequest(DocumentLoader*, unsigned long, ResourceRequest&, const ResourceResponse&) override { }
     void dispatchDidReceiveAuthenticationChallenge(DocumentLoader*, unsigned long, const AuthenticationChallenge&) override { }
-    void dispatchDidCancelAuthenticationChallenge(DocumentLoader*, unsigned long, const AuthenticationChallenge&) override { }
 #if USE(PROTECTION_SPACE_AUTH_CALLBACK)
     bool canAuthenticateAgainstProtectionSpace(DocumentLoader*, unsigned long, const ProtectionSpace&) override { return false; }
 #endif
@@ -330,15 +331,18 @@ public:
     void committedLoad(DocumentLoader*, const char*, int) override { }
     void finishedLoading(DocumentLoader*) override { }
 
-    ResourceError cancelledError(const ResourceRequest&) override { ResourceError error("", 0, URL(), ""); error.setIsCancellation(true); return error; }
-    ResourceError blockedError(const ResourceRequest&) override { return ResourceError("", 0, URL(), ""); }
-    ResourceError blockedByContentBlockerError(const ResourceRequest&) override { return ResourceError("", 0, URL(), ""); }
-    ResourceError cannotShowURLError(const ResourceRequest&) override { return ResourceError("", 0, URL(), ""); }
-    ResourceError interruptedForPolicyChangeError(const ResourceRequest&) override { return ResourceError("", 0, URL(), ""); }
+    ResourceError cancelledError(const ResourceRequest&) override { return ResourceError(ResourceError::Type::Cancellation); }
+    ResourceError blockedError(const ResourceRequest&) override { return { }; }
+    ResourceError blockedByContentBlockerError(const ResourceRequest&) override { return { }; }
+    ResourceError cannotShowURLError(const ResourceRequest&) override { return { }; }
+    ResourceError interruptedForPolicyChangeError(const ResourceRequest&) override { return { }; }
+#if ENABLE(CONTENT_FILTERING)
+    ResourceError blockedByContentFilterError(const ResourceRequest&) override { return { }; }
+#endif
 
-    ResourceError cannotShowMIMETypeError(const ResourceResponse&) override { return ResourceError("", 0, URL(), ""); }
-    ResourceError fileDoesNotExistError(const ResourceResponse&) override { return ResourceError("", 0, URL(), ""); }
-    ResourceError pluginWillHandleLoadError(const ResourceResponse&) override { return ResourceError("", 0, URL(), ""); }
+    ResourceError cannotShowMIMETypeError(const ResourceResponse&) override { return { }; }
+    ResourceError fileDoesNotExistError(const ResourceResponse&) override { return { }; }
+    ResourceError pluginWillHandleLoadError(const ResourceResponse&) override { return { }; }
 
     bool shouldFallBack(const ResourceError&) override { return false; }
 
@@ -346,7 +350,7 @@ public:
     bool canShowMIMEType(const String&) const override { return false; }
     bool canShowMIMETypeAsHTML(const String&) const override { return false; }
     bool representationExistsForURLScheme(const String&) const override { return false; }
-    String generatedMIMETypeForURLScheme(const String&) const override { return ""; }
+    String generatedMIMETypeForURLScheme(const String&) const override { return emptyString(); }
 
     void frameLoadCompleted() override { }
     void restoreViewState() override { }
@@ -358,7 +362,7 @@ public:
     void updateCachedDocumentLoader(DocumentLoader&) override { }
     void setTitle(const StringWithDirection&, const URL&) override { }
 
-    String userAgent(const URL&) override { return ""; }
+    String userAgent(const URL&) override { return emptyString(); }
 
     void savePlatformDataToCachedFrame(CachedFrame*) override { }
     void transitionToCommittedFromCachedFrame(CachedFrame*) override { }
@@ -376,7 +380,7 @@ public:
     void updateGlobalHistoryRedirectLinks() override { }
     bool shouldGoToHistoryItem(HistoryItem*) const override { return false; }
     void updateGlobalHistoryItemForPage() override { }
-    void saveViewStateToItem(HistoryItem*) override { }
+    void saveViewStateToItem(HistoryItem&) override { }
     bool canCachePage() const override { return false; }
     void didDisplayInsecureContent() override { }
     void didRunInsecureContent(SecurityOrigin*, const URL&) override { }
@@ -386,7 +390,7 @@ public:
     void recreatePlugin(Widget*) override;
     PassRefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const URL&, const Vector<String>&, const Vector<String>&) override;
 
-    ObjectContentType objectContentType(const URL&, const String&) override { return ObjectContentType(); }
+    ObjectContentType objectContentType(const URL&, const String&) override { return ObjectContentType::None; }
     String overrideMediaType() const override { return String(); }
 
     void redirectDataToPlugin(Widget*) override { }
@@ -436,7 +440,6 @@ class EmptyEditorClient : public EditorClient {
 public:
     EmptyEditorClient() { }
     virtual ~EmptyEditorClient() { }
-    void pageDestroyed() override { }
 
     bool shouldDeleteRange(Range*) override { return false; }
     bool smartInsertDeleteEnabled() override { return false; }
@@ -468,6 +471,7 @@ public:
     void didWriteSelectionToPasteboard() override { }
     void getClientPasteboardDataForRange(Range*, Vector<String>&, Vector<RefPtr<SharedBuffer>>&) override { }
     void requestCandidatesForSelection(const VisibleSelection&) override { }
+    void handleAcceptedCandidateWithSoftSpaces(TextCheckingResult) override { }
 
     void registerUndoStep(PassRefPtr<UndoStep>) override;
     void registerRedoStep(PassRefPtr<UndoStep>) override;
@@ -645,5 +649,3 @@ class EmptyDiagnosticLoggingClient final : public DiagnosticLoggingClient {
 void fillWithEmptyClients(PageConfiguration&);
 
 }
-
-#endif // EmptyClients_h

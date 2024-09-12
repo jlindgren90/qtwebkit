@@ -7,6 +7,10 @@ list(APPEND WTF_SOURCES
     glib/GRefPtr.cpp
     glib/MainThreadGLib.cpp
     glib/RunLoopGLib.cpp
+    PlatformUserPreferredLanguagesUnix.cpp
+    UniStdExtras.cpp
+
+    text/gtk/TextBreakIteratorInternalICUGtk.cpp
 )
 
 list(APPEND WTF_LIBRARIES

@@ -30,6 +30,8 @@
 
 namespace JSC {
 
+class LLIntOffsetsExtractor;
+
 // This class serves two purposes:
 //
 // 1) It provides those parts of JSGenericTypedArrayView that don't depend
@@ -51,7 +53,7 @@ namespace JSC {
 // Typed array views have different modes depending on how big they are and
 // whether the user has done anything that requires a separate backing
 // buffer or the DOM-specified neutering capabilities.
-enum TypedArrayMode {
+enum TypedArrayMode : uint32_t {
     // Small and fast typed array. B is unused, V points to a vector
     // allocated in copied space, and M = FastTypedArray. V's liveness is
     // determined entirely by the view's liveness.
@@ -173,6 +175,8 @@ private:
     static void finalize(JSCell*);
 
 protected:
+    friend class LLIntOffsetsExtractor;
+
     ArrayBuffer* existingBufferInButterfly();
 
     CopyBarrier<char> m_vector; // this is really a void*, but void would not work here.

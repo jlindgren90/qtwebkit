@@ -30,8 +30,6 @@
 
 #include "CompositingRunLoop.h"
 #include <WebCore/TransformationMatrix.h>
-#include <wtf/RunLoop.h>
-#include <wtf/StdLibExtras.h>
 
 #if USE(OPENGL_ES_2)
 #include <GLES2/gl2.h>
@@ -43,111 +41,130 @@ using namespace WebCore;
 
 namespace WebKit {
 
-Ref<ThreadedCompositor> ThreadedCompositor::create(Client* client)
+Ref<ThreadedCompositor> ThreadedCompositor::create(Client* client, uint64_t nativeSurfaceHandle)
 {
-    return adoptRef(*new ThreadedCompositor(client));
+    return adoptRef(*new ThreadedCompositor(client, nativeSurfaceHandle));
 }
 
-ThreadedCompositor::ThreadedCompositor(Client* client)
+ThreadedCompositor::ThreadedCompositor(Client* client, uint64_t nativeSurfaceHandle)
     : m_client(client)
-    , m_deviceScaleFactor(1)
-    , m_threadIdentifier(0)
+    , m_nativeSurfaceHandle(nativeSurfaceHandle)
+    , m_compositingRunLoop(std::make_unique<CompositingRunLoop>([this] { renderLayerTree(); }))
 {
-    createCompositingThread();
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this)] {
+        m_scene = adoptRef(new CoordinatedGraphicsScene(this));
+        m_viewportController = std::make_unique<SimpleViewportController>(this);
+        m_scene->setActive(!!m_nativeSurfaceHandle);
+    });
 }
 
 ThreadedCompositor::~ThreadedCompositor()
 {
-    terminateCompositingThread();
+    ASSERT(!m_client);
 }
 
-void ThreadedCompositor::setNeedsDisplay()
+void ThreadedCompositor::invalidate()
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector] {
-        protector->scheduleDisplayImmediately();
+    m_scene->detach();
+    m_compositingRunLoop->stopUpdateTimer();
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this)] {
+        m_scene->purgeGLResources();
+        m_context = nullptr;
+        m_scene = nullptr;
+        m_viewportController = nullptr;
     });
+    m_compositingRunLoop = nullptr;
+    m_client = nullptr;
 }
 
 void ThreadedCompositor::setNativeSurfaceHandleForCompositing(uint64_t handle)
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector, handle] {
-        protector->m_nativeSurfaceHandle = handle;
-        protector->m_scene->setActive(true);
+    m_compositingRunLoop->stopUpdateTimer();
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this), handle] {
+        m_scene->setActive(!!handle);
+
+        // A new native handle can't be set without destroying the previous one first if any.
+        ASSERT(!!handle ^ !!m_nativeSurfaceHandle);
+        m_nativeSurfaceHandle = handle;
+        if (!m_nativeSurfaceHandle)
+            m_context = nullptr;
     });
 }
 
 void ThreadedCompositor::setDeviceScaleFactor(float scale)
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector, scale] {
-        protector->m_deviceScaleFactor = scale;
-        protector->scheduleDisplayImmediately();
+    m_compositingRunLoop->performTask([this, protectedThis = makeRef(*this), scale] {
+        m_deviceScaleFactor = scale;
+        scheduleDisplayImmediately();
+    });
+}
+
+void ThreadedCompositor::setDrawsBackground(bool drawsBackground)
+{
+    m_compositingRunLoop->performTask([this, protectedThis = Ref<ThreadedCompositor>(*this), drawsBackground] {
+        m_drawsBackground = drawsBackground;
+        scheduleDisplayImmediately();
     });
 }
 
 void ThreadedCompositor::didChangeViewportSize(const IntSize& size)
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector, size] {
-        protector->viewportController()->didChangeViewportSize(size);
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this), size] {
+        m_viewportController->didChangeViewportSize(size);
     });
 }
 
 void ThreadedCompositor::didChangeViewportAttribute(const ViewportAttributes& attr)
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector, attr] {
-        protector->viewportController()->didChangeViewportAttribute(attr);
+    m_compositingRunLoop->performTask([this, protectedThis = makeRef(*this), attr] {
+        m_viewportController->didChangeViewportAttribute(attr);
     });
 }
 
 void ThreadedCompositor::didChangeContentsSize(const IntSize& size)
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector, size] {
-        protector->viewportController()->didChangeContentsSize(size);
+    m_compositingRunLoop->performTask([this, protectedThis = makeRef(*this), size] {
+        m_viewportController->didChangeContentsSize(size);
     });
 }
 
 void ThreadedCompositor::scrollTo(const IntPoint& position)
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector, position] {
-        protector->viewportController()->scrollTo(position);
+    m_compositingRunLoop->performTask([this, protectedThis = makeRef(*this), position] {
+        m_viewportController->scrollTo(position);
     });
 }
 
 void ThreadedCompositor::scrollBy(const IntSize& delta)
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    callOnCompositingThread([protector, delta] {
-        protector->viewportController()->scrollBy(delta);
+    m_compositingRunLoop->performTask([this, protectedThis = makeRef(*this), delta] {
+        m_viewportController->scrollBy(delta);
     });
-}
-
-void ThreadedCompositor::purgeBackingStores()
-{
-    m_client->purgeBackingStores();
 }
 
 void ThreadedCompositor::renderNextFrame()
 {
+    ASSERT(isMainThread());
     m_client->renderNextFrame();
-}
-
-void ThreadedCompositor::updateViewport()
-{
-    m_compositingRunLoop->setUpdateTimer(CompositingRunLoop::WaitUntilNextFrame);
 }
 
 void ThreadedCompositor::commitScrollOffset(uint32_t layerID, const IntSize& offset)
 {
+    ASSERT(isMainThread());
     m_client->commitScrollOffset(layerID, offset);
 }
 
-bool ThreadedCompositor::ensureGLContext()
+void ThreadedCompositor::updateViewport()
+{
+    m_compositingRunLoop->startUpdateTimer(CompositingRunLoop::WaitUntilNextFrame);
+}
+
+void ThreadedCompositor::scheduleDisplayImmediately()
+{
+    m_compositingRunLoop->startUpdateTimer(CompositingRunLoop::Immediate);
+}
+
+bool ThreadedCompositor::tryEnsureGLContext()
 {
     if (!glContext())
         return false;
@@ -171,24 +188,24 @@ GLContext* ThreadedCompositor::glContext()
         return m_context.get();
 
     if (!m_nativeSurfaceHandle)
-        return 0;
+        return nullptr;
 
     m_context = GLContext::createContextForWindow(reinterpret_cast<GLNativeWindowType>(m_nativeSurfaceHandle), GLContext::sharingContext());
     return m_context.get();
 }
 
-void ThreadedCompositor::scheduleDisplayImmediately()
+void ThreadedCompositor::forceRepaint()
 {
-    m_compositingRunLoop->setUpdateTimer(CompositingRunLoop::Immediate);
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this)] {
+        renderLayerTree();
+    });
 }
 
 void ThreadedCompositor::didChangeVisibleRect()
 {
-    RefPtr<ThreadedCompositor> protector(this);
-    FloatRect visibleRect = viewportController()->visibleContentsRect();
-    float scale = viewportController()->pageScaleFactor();
-    RunLoop::main().dispatch([protector, visibleRect, scale] {
-        protector->m_client->setVisibleContentsRect(visibleRect, FloatPoint::zero(), scale);
+    RunLoop::main().dispatch([this, protectedThis = makeRef(*this), visibleRect = m_viewportController->visibleContentsRect(), scale = m_viewportController->pageScaleFactor()] {
+        if (m_client)
+            m_client->setVisibleContentsRect(visibleRect, FloatPoint::zero(), scale);
     });
 
     scheduleDisplayImmediately();
@@ -196,94 +213,37 @@ void ThreadedCompositor::didChangeVisibleRect()
 
 void ThreadedCompositor::renderLayerTree()
 {
-    if (!m_scene)
+    if (!m_scene || !m_scene->isActive())
         return;
 
-    if (!ensureGLContext())
+    if (!tryEnsureGLContext())
         return;
 
     FloatRect clipRect(0, 0, m_viewportSize.width(), m_viewportSize.height());
 
     TransformationMatrix viewportTransform;
-    FloatPoint scrollPostion = viewportController()->visibleContentsRect().location();
-    viewportTransform.scale(viewportController()->pageScaleFactor() * m_deviceScaleFactor);
+    FloatPoint scrollPostion = m_viewportController->visibleContentsRect().location();
+    viewportTransform.scale(m_viewportController->pageScaleFactor() * m_deviceScaleFactor);
     viewportTransform.translate(-scrollPostion.x(), -scrollPostion.y());
 
-    m_scene->paintToCurrentGLContext(viewportTransform, 1, clipRect, Color::white, false, scrollPostion);
+    if (!m_drawsBackground) {
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+    m_scene->paintToCurrentGLContext(viewportTransform, 1, clipRect, Color::transparent, !m_drawsBackground, scrollPostion);
 
     glContext()->swapBuffers();
 }
 
 void ThreadedCompositor::updateSceneState(const CoordinatedGraphicsState& state)
 {
+    ASSERT(isMainThread());
     RefPtr<CoordinatedGraphicsScene> scene = m_scene;
     m_scene->appendUpdate([scene, state] {
         scene->commitSceneState(state);
     });
 
-    setNeedsDisplay();
-}
-
-void ThreadedCompositor::callOnCompositingThread(std::function<void()>&& function)
-{
-    m_compositingRunLoop->callOnCompositingRunLoop(WTFMove(function));
-}
-
-void ThreadedCompositor::compositingThreadEntry(void* coordinatedCompositor)
-{
-    static_cast<ThreadedCompositor*>(coordinatedCompositor)->runCompositingThread();
-}
-
-void ThreadedCompositor::createCompositingThread()
-{
-    if (m_threadIdentifier)
-        return;
-
-    LockHolder locker(m_initializeRunLoopConditionMutex);
-    m_threadIdentifier = createThread(compositingThreadEntry, this, "WebCore: ThreadedCompositor");
-
-    m_initializeRunLoopCondition.wait(m_initializeRunLoopConditionMutex);
-}
-
-void ThreadedCompositor::runCompositingThread()
-{
-    {
-        LockHolder locker(m_initializeRunLoopConditionMutex);
-
-        m_compositingRunLoop = std::make_unique<CompositingRunLoop>([&] {
-            renderLayerTree();
-        });
-        m_scene = adoptRef(new CoordinatedGraphicsScene(this));
-        m_viewportController = std::make_unique<SimpleViewportController>(this);
-
-        m_initializeRunLoopCondition.notifyOne();
-    }
-
-    m_compositingRunLoop->runLoop().run();
-
-    m_compositingRunLoop->stopUpdateTimer();
-    m_scene->purgeGLResources();
-
-    {
-        LockHolder locker(m_terminateRunLoopConditionMutex);
-        m_context = nullptr;
-        m_scene = nullptr;
-        m_viewportController = nullptr;
-        m_compositingRunLoop = nullptr;
-        m_terminateRunLoopCondition.notifyOne();
-    }
-
-    detachThread(m_threadIdentifier);
-}
-
-void ThreadedCompositor::terminateCompositingThread()
-{
-    LockHolder locker(m_terminateRunLoopConditionMutex);
-
-    m_scene->detach();
-    m_compositingRunLoop->runLoop().stop();
-
-    m_terminateRunLoopCondition.wait(m_terminateRunLoopConditionMutex);
+    scheduleDisplayImmediately();
 }
 
 }

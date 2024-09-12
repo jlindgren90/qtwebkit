@@ -71,6 +71,7 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
 
         this._updating = false;
         this._currentTime = NaN;
+        this._discontinuityStartTime = NaN;
         this._lastUpdateTimestamp = NaN;
         this._startTimeNeedsReset = true;
         this._renderingFrameTimeline = null;
@@ -90,6 +91,8 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         WebInspector.ContentView.addEventListener(WebInspector.ContentView.Event.SupplementalRepresentedObjectsDidChange, this._contentViewSupplementalRepresentedObjectsDidChange, this);
 
         WebInspector.TimelineView.addEventListener(WebInspector.TimelineView.Event.RecordWasFiltered, this._recordWasFiltered, this);
+
+        WebInspector.notifications.addEventListener(WebInspector.Notification.VisibilityStateDidChange, this._inspectorVisibilityStateChanged, this);
 
         for (let instrument of this._recording.instruments)
             this._instrumentAdded(instrument);
@@ -279,6 +282,7 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
 
         if (timelineView) {
             this._updateTimelineViewTimes(timelineView);
+            this._filterDidChange();
 
             let timeline = null;
             if (timelineView.representedObject instanceof WebInspector.Timeline)
@@ -315,6 +319,9 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
 
     _contentViewSelectionPathComponentDidChange(event)
     {
+        if (!this.visible)
+            return;
+
         if (event.target !== this._timelineContentBrowser.currentContentView)
             return;
 
@@ -339,6 +346,33 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         if (event.target !== this._timelineContentBrowser.currentContentView)
             return;
         this.dispatchEventToListeners(WebInspector.ContentView.Event.SupplementalRepresentedObjectsDidChange);
+    }
+
+    _inspectorVisibilityStateChanged()
+    {
+        if (WebInspector.timelineManager.activeRecording !== this._recording)
+            return;
+
+        // Stop updating since the results won't be rendered anyway.
+        if (!WebInspector.visible && this._updating) {
+            this._stopUpdatingCurrentTime();
+            return;
+        }
+
+        // Nothing else to do if the current time was not being updated.
+        if (!WebInspector.visible)
+            return;
+
+        let {startTime, endTime} = this.representedObject;
+        if (!WebInspector.timelineManager.isCapturing()) {
+            // Force the overview to render data from the entire recording.
+            // This is necessary if the recording was started when the inspector was not
+            // visible because the views were never updated with currentTime/endTime.
+            this._updateTimes(startTime, endTime, endTime);
+            return;
+        }
+
+        this._startUpdatingCurrentTime(endTime);
     }
 
     _update(timestamp)
@@ -375,12 +409,8 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         if (this._startTimeNeedsReset && !isNaN(startTime)) {
             this._timelineOverview.startTime = startTime;
             this._overviewTimelineView.zeroTime = startTime;
-            for (var timelineView of this._timelineViewMap.values()) {
-                if (timelineView.representedObject.type === WebInspector.TimelineRecord.Type.RenderingFrame)
-                    continue;
-
+            for (let timelineView of this._timelineViewMap.values())
                 timelineView.zeroTime = startTime;
-            }
 
             this._startTimeNeedsReset = false;
         }
@@ -405,9 +435,13 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         if (this._updating)
             return;
 
-        if (typeof startTime === "number")
+        // Don't update the current time if the Inspector is not visible, as the requestAnimationFrames won't work.
+        if (!WebInspector.visible)
+            return;
+
+        if (typeof startTime === "number" && !isNaN(this._currentTime))
             this._currentTime = startTime;
-        else if (!isNaN(this._currentTime)) {
+        else {
             // This happens when you stop and later restart recording.
             // COMPATIBILITY (iOS 9): Timeline.recordingStarted events did not include a timestamp.
             // We likely need to jump into the future to a better current time which we can
@@ -441,9 +475,18 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
     {
         this._updateProgressView();
 
+        let startTime = event.data.startTime;
         if (!this._updating)
-            this._startUpdatingCurrentTime(event.data.startTime);
+            this._startUpdatingCurrentTime(startTime);
         this._clearTimelineNavigationItem.enabled = !this._recording.readonly;
+
+        // A discontinuity occurs when the recording is stopped and resumed at
+        // a future time. Capturing started signals the end of the current
+        // discontinuity, if one exists.
+        if (!isNaN(this._discontinuityStartTime)) {
+            this._recording.addDiscontinuity(this._discontinuityStartTime, startTime);
+            this._discontinuityStartTime = NaN;
+        }
     }
 
     _capturingStopped(event)
@@ -455,6 +498,8 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
 
         if (this.currentTimelineView)
             this._updateTimelineViewTimes(this.currentTimelineView);
+
+        this._discontinuityStartTime = event.data.endTime || this._currentTime;
     }
 
     _debuggerPaused(event)
@@ -574,6 +619,7 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
     _recordingReset(event)
     {
         this._currentTime = NaN;
+        this._discontinuityStartTime = NaN;
 
         if (!this._updating) {
             // Force the time ruler and views to reset to 0.
@@ -615,8 +661,13 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
             selectedPathComponent = this._entireRecordingPathComponent;
         else {
             let timelineRange = this._timelineSelectionPathComponent.representedObject;
-            timelineRange.startValue = this.currentTimelineView.startTime - this.currentTimelineView.zeroTime;
-            timelineRange.endValue = this.currentTimelineView.endTime - this.currentTimelineView.zeroTime;
+            timelineRange.startValue = this.currentTimelineView.startTime;
+            timelineRange.endValue = this.currentTimelineView.endTime;
+
+            if (!(this.currentTimelineView instanceof WebInspector.RenderingFrameTimelineView)) {
+                timelineRange.startValue -= this.currentTimelineView.zeroTime;
+                timelineRange.endValue -= this.currentTimelineView.zeroTime;
+            }
 
             this._updateTimeRangePathComponents();
             selectedPathComponent = this._timelineSelectionPathComponent;
@@ -630,12 +681,13 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
 
     _recordSelected(event)
     {
-        let timelineView = this._timelineViewMap.get(event.data.timeline);
-        console.assert(timelineView === this.currentTimelineView, timelineView);
-        if (timelineView !== this.currentTimelineView)
-            return;
+        let {record, timeline} = event.data;
+        let timelineView = this._timelineViewMap.get(timeline);
 
-        timelineView.selectRecord(event.data.record);
+        if (record && timelineView !== this.currentTimelineView)
+            this.showTimelineViewForTimeline(timeline);
+
+        timelineView.selectRecord(record);
     }
 
     _timelineSelected()
@@ -692,12 +744,15 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         let endTime = this._timelineOverview.selectionStartTime + this._timelineOverview.selectionDuration;
 
         if (entireRangeSelected) {
-            // Clamp selection to the end of the recording (with padding), so that OverviewTimelineView
-            // displays an autosized graph without a lot of horizontal white space or tiny graph bars.
-            if (isNaN(this._recording.endTime))
-                endTime = this._currentTime;
-            else
-                endTime = Math.min(endTime, this._recording.endTime + timelineRuler.minimumSelectionDuration);
+            if (timelineView instanceof WebInspector.RenderingFrameTimelineView) {
+                endTime = this._renderingFrameTimeline.records.length;
+            } else {
+                // Clamp selection to the end of the recording (with padding),
+                // so graph views will show an auto-sized graph without a lot of
+                // empty space at the end.
+                endTime = isNaN(this._recording.endTime) ? this._recording.currentTime : this._recording.endTime;
+                endTime += timelineRuler.minimumSelectionDuration;
+            }
         }
 
         timelineView.startTime = this._timelineOverview.selectionStartTime;

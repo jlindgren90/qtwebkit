@@ -45,6 +45,7 @@
 #include "Document.h"
 #include "Font.h"
 #include "FontCache.h"
+#include "FontFace.h"
 #include "FontFaceSet.h"
 #include "FontSelectorClient.h"
 #include "FontVariantBuilder.h"
@@ -71,10 +72,6 @@ CSSFontSelector::CSSFontSelector(Document& document)
     , m_uniqueId(++fontSelectorId)
     , m_version(0)
 {
-    // FIXME: An old comment used to say there was no need to hold a reference to m_document
-    // because "we are guaranteed to be destroyed before the document". But there does not
-    // seem to be any such guarantee.
-
     ASSERT(m_document);
     FontCache::singleton().addClient(*this);
     m_cssFontFaceSet->addClient(*this);
@@ -102,8 +99,50 @@ bool CSSFontSelector::isEmpty() const
     return !m_cssFontFaceSet->faceCount();
 }
 
+void CSSFontSelector::buildStarted()
+{
+    m_buildIsUnderway = true;
+    m_stagingArea.clear();
+    m_cssFontFaceSet->purge();
+    ++m_version;
+
+    m_cssConnectionsPossiblyToRemove.clear();
+    m_cssConnectionsEncounteredDuringBuild.clear();
+    for (size_t i = 0; i < m_cssFontFaceSet->faceCount(); ++i) {
+        CSSFontFace& face = m_cssFontFaceSet.get()[i];
+        if (face.cssConnection())
+            m_cssConnectionsPossiblyToRemove.add(&face);
+    }
+}
+
+void CSSFontSelector::buildCompleted()
+{
+    if (!m_buildIsUnderway)
+        return;
+
+    m_buildIsUnderway = false;
+
+    // Some font faces weren't re-added during the build process.
+    for (auto& face : m_cssConnectionsPossiblyToRemove) {
+        auto* connection = face->cssConnection();
+        ASSERT(connection);
+        if (!m_cssConnectionsEncounteredDuringBuild.contains(connection))
+            m_cssFontFaceSet->remove(*face);
+    }
+
+    for (auto& item : m_stagingArea)
+        addFontFaceRule(item.styleRuleFontFace, item.isInitiatingElementInUserAgentShadowTree);
+    m_stagingArea.clear();
+}
+
 void CSSFontSelector::addFontFaceRule(StyleRuleFontFace& fontFaceRule, bool isInitiatingElementInUserAgentShadowTree)
 {
+    if (m_buildIsUnderway) {
+        m_cssConnectionsEncounteredDuringBuild.add(&fontFaceRule);
+        m_stagingArea.append({fontFaceRule, isInitiatingElementInUserAgentShadowTree});
+        return;
+    }
+
     const StyleProperties& style = fontFaceRule.properties();
     RefPtr<CSSValue> fontFamily = style.getPropertyCSSValue(CSSPropertyFontFamily);
     RefPtr<CSSValue> fontStyle = style.getPropertyCSSValue(CSSPropertyFontStyle);
@@ -165,6 +204,12 @@ void CSSFontSelector::addFontFaceRule(StyleRuleFontFace& fontFaceRule, bool isIn
     CSSFontFace::appendSources(fontFace, srcList, m_document, isInitiatingElementInUserAgentShadowTree);
     if (fontFace->allSourcesFailed())
         return;
+
+    if (RefPtr<CSSFontFace> existingFace = m_cssFontFaceSet->lookupByCSSConnection(fontFaceRule)) {
+        m_cssFontFaceSet->remove(*existingFace);
+        if (auto* existingWrapper = existingFace->existingWrapper())
+            existingWrapper->adopt(fontFace.get());
+    }
 
     m_cssFontFaceSet->add(fontFace.get());
     m_creatingFont = false;
@@ -235,6 +280,8 @@ static const AtomicString& resolveGenericFamily(Document* document, const FontDe
 
 FontRanges CSSFontSelector::fontRangesForFamily(const FontDescription& fontDescription, const AtomicString& familyName)
 {
+    ASSERT(!m_buildIsUnderway); // If this ASSERT() fires, it usually means you forgot a document.updateStyleIfNeeded() somewhere.
+
     // FIXME: The spec (and Firefox) says user specified generic families (sans-serif etc.) should be resolved before the @font-face lookup too.
     bool resolveGenericFamilyFirst = familyName == standardFamily;
 
@@ -262,23 +309,22 @@ void CSSFontSelector::clearDocument()
     CachedResourceLoader& cachedResourceLoader = m_document->cachedResourceLoader();
     for (auto& fontHandle : m_fontsToBeginLoading) {
         // Balances incrementRequestCount() in beginLoadingFontSoon().
-        cachedResourceLoader.decrementRequestCount(fontHandle.get());
+        cachedResourceLoader.decrementRequestCount(*fontHandle);
     }
     m_fontsToBeginLoading.clear();
 
     m_document = nullptr;
 
-    // FIXME: This object should outlive the Document.
     m_cssFontFaceSet->clear();
     m_clients.clear();
 }
 
-void CSSFontSelector::beginLoadingFontSoon(CachedFont* font)
+void CSSFontSelector::beginLoadingFontSoon(CachedFont& font)
 {
     if (!m_document)
         return;
 
-    m_fontsToBeginLoading.append(font);
+    m_fontsToBeginLoading.append(&font);
     // Increment the request count now, in order to prevent didFinishLoad from being dispatched
     // after this font has been requested but before it began loading. Balanced by
     // decrementRequestCount() in beginLoadTimerFired() and in clearDocument().
@@ -292,13 +338,13 @@ void CSSFontSelector::beginLoadTimerFired()
     fontsToBeginLoading.swap(m_fontsToBeginLoading);
 
     // CSSFontSelector could get deleted via beginLoadIfNeeded() or loadDone() unless protected.
-    Ref<CSSFontSelector> protect(*this);
+    Ref<CSSFontSelector> protectedThis(*this);
 
     CachedResourceLoader& cachedResourceLoader = m_document->cachedResourceLoader();
     for (auto& fontHandle : fontsToBeginLoading) {
         fontHandle->beginLoadIfNeeded(cachedResourceLoader);
         // Balances incrementRequestCount() in beginLoadingFontSoon().
-        cachedResourceLoader.decrementRequestCount(fontHandle.get());
+        cachedResourceLoader.decrementRequestCount(*fontHandle);
     }
     // Ensure that if the request count reaches zero, the frame loader will know about it.
     cachedResourceLoader.loadDone(nullptr);

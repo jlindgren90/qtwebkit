@@ -26,15 +26,16 @@
 
 #pragma once
 
+#include "Base64Utilities.h"
 #include "EventListener.h"
 #include "EventTarget.h"
 #include "ScriptExecutionContext.h"
+#include "URL.h"
 #include "WorkerEventQueue.h"
 #include "WorkerScriptController.h"
 #include <memory>
 #include <wtf/Assertions.h>
 #include <wtf/HashMap.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
 #include <wtf/TypeCasts.h>
@@ -57,7 +58,7 @@ namespace IDBClient {
 class IDBConnectionProxy;
 }
 
-class WorkerGlobalScope : public RefCounted<WorkerGlobalScope>, public Supplementable<WorkerGlobalScope>, public ScriptExecutionContext, public EventTargetWithInlineData {
+class WorkerGlobalScope : public RefCounted<WorkerGlobalScope>, public Supplementable<WorkerGlobalScope>, public ScriptExecutionContext, public EventTargetWithInlineData, public Base64Utilities {
 public:
     virtual ~WorkerGlobalScope();
 
@@ -76,6 +77,11 @@ public:
 
 #if ENABLE(INDEXED_DATABASE)
     IDBClient::IDBConnectionProxy* idbConnectionProxy() final;
+    void stopIndexedDatabase();
+#endif
+
+#if ENABLE(WEB_SOCKETS)
+    SocketProvider* socketProvider() final;
 #endif
 
     bool shouldBypassMainWorldContentSecurityPolicy() const final { return m_shouldBypassMainWorldContentSecurityPolicy; }
@@ -87,16 +93,16 @@ public:
 
     using ScriptExecutionContext::hasPendingActivity;
 
-    void postTask(Task) override; // Executes the task on context's thread asynchronously.
+    void postTask(Task&&) final; // Executes the task on context's thread asynchronously.
 
     // WorkerGlobalScope
-    WorkerGlobalScope* self() { return this; }
-    WorkerLocation* location() const;
+    WorkerGlobalScope& self() { return *this; }
+    WorkerLocation& location() const;
     void close();
 
     // WorkerUtils
     virtual void importScripts(const Vector<String>& urls, ExceptionCode&);
-    WorkerNavigator* navigator() const;
+    WorkerNavigator& navigator() const;
 
     // Timers
     int setTimeout(std::unique_ptr<ScheduledAction>, int timeout);
@@ -144,7 +150,7 @@ public:
 #endif
 
 protected:
-    WorkerGlobalScope(const URL&, const String& userAgent, WorkerThread&, bool shouldBypassMainWorldContentSecurityPolicy, PassRefPtr<SecurityOrigin> topOrigin, IDBClient::IDBConnectionProxy*);
+    WorkerGlobalScope(const URL&, const String& userAgent, WorkerThread&, bool shouldBypassMainWorldContentSecurityPolicy, RefPtr<SecurityOrigin>&& topOrigin, IDBClient::IDBConnectionProxy*, SocketProvider*);
     void applyContentSecurityPolicyResponseHeaders(const ContentSecurityPolicyResponseHeaders&);
 
     void logExceptionToConsole(const String& errorMessage, const String& sourceURL, int lineNumber, int columnNumber, RefPtr<Inspector::ScriptCallStack>&&) override;
@@ -184,6 +190,9 @@ private:
 
 #if ENABLE(INDEXED_DATABASE)
     RefPtr<IDBClient::IDBConnectionProxy> m_connectionProxy;
+#endif
+#if ENABLE(WEB_SOCKETS)
+    RefPtr<SocketProvider> m_socketProvider;
 #endif
 };
 

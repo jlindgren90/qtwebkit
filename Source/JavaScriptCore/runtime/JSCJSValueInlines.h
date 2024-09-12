@@ -33,6 +33,7 @@
 #include "JSCellInlines.h"
 #include "JSObject.h"
 #include "JSFunction.h"
+#include "MathCommon.h"
 #include <wtf/text/StringImpl.h>
 
 namespace JSC {
@@ -69,7 +70,7 @@ inline double JSValue::asNumber() const
 
 inline JSValue jsNaN()
 {
-    return JSValue(PNaN);
+    return JSValue(JSValue::EncodeAsDouble, PNaN);
 }
 
 inline JSValue::JSValue(char i)
@@ -139,6 +140,7 @@ inline JSValue::JSValue(unsigned long long i)
 
 inline JSValue::JSValue(double d)
 {
+    // Note: while this behavior is undefined for NaN and inf, the subsequent statement will catch these cases.
     const int32_t asInt32 = static_cast<int32_t>(d);
     if (asInt32 != d || (!asInt32 && std::signbit(d))) { // true for -0.0
         *this = JSValue(EncodeAsDouble, d);
@@ -631,7 +633,7 @@ inline JSValue JSValue::toPrimitive(ExecState* exec, PreferredPrimitiveType pref
 inline PreferredPrimitiveType toPreferredPrimitiveType(ExecState* exec, JSValue value)
 {
     if (!value.isString()) {
-        throwTypeError(exec, "Primitive hint is not a string.");
+        throwTypeError(exec, ASCIILiteral("Primitive hint is not a string."));
         return NoPreference;
     }
 
@@ -646,7 +648,7 @@ inline PreferredPrimitiveType toPreferredPrimitiveType(ExecState* exec, JSValue 
     if (WTF::equal(hintString, "string"))
         return PreferString;
 
-    throwTypeError(exec, "Expected primitive hint to match one of 'default', 'number', 'string'.");
+    throwTypeError(exec, ASCIILiteral("Expected primitive hint to match one of 'default', 'number', 'string'."));
     return NoPreference;
 }
 
@@ -766,6 +768,22 @@ ALWAYS_INLINE JSValue JSValue::get(ExecState* exec, PropertyName propertyName, P
 {
     return getPropertySlot(exec, propertyName, slot) ? 
         slot.getValue(exec, propertyName) : jsUndefined();
+}
+
+template<typename CallbackWhenNoException>
+ALWAYS_INLINE typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type JSValue::getPropertySlot(ExecState* exec, PropertyName propertyName, CallbackWhenNoException callback) const
+{
+    PropertySlot slot(asValue(), PropertySlot::InternalMethodType::Get);
+    return getPropertySlot(exec, propertyName, slot, callback);
+}
+
+template<typename CallbackWhenNoException>
+ALWAYS_INLINE typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type JSValue::getPropertySlot(ExecState* exec, PropertyName propertyName, PropertySlot& slot, CallbackWhenNoException callback) const
+{
+    bool found = getPropertySlot(exec, propertyName, slot);
+    if (UNLIKELY(exec->hadException()))
+        return { };
+    return callback(found, slot);
 }
 
 ALWAYS_INLINE bool JSValue::getPropertySlot(ExecState* exec, PropertyName propertyName, PropertySlot& slot) const
@@ -924,7 +942,7 @@ ALWAYS_INLINE bool JSValue::equalSlowCaseInline(ExecState* exec, JSValue v1, JSV
         bool sym2 = v2.isSymbol();
         if (sym1 || sym2) {
             if (sym1 && sym2)
-                return asSymbol(v1)->privateName() == asSymbol(v2)->privateName();
+                return asSymbol(v1) == asSymbol(v2);
             return false;
         }
 
@@ -953,9 +971,6 @@ ALWAYS_INLINE bool JSValue::strictEqualSlowCaseInline(ExecState* exec, JSValue v
 
     if (v1.asCell()->isString() && v2.asCell()->isString())
         return WTF::equal(*asString(v1)->value(exec).impl(), *asString(v2)->value(exec).impl());
-    if (v1.asCell()->isSymbol() && v2.asCell()->isSymbol())
-        return asSymbol(v1)->privateName() == asSymbol(v2)->privateName();
-
     return v1 == v2;
 }
 

@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GraphicsLayerUpdater_h
-#define GraphicsLayerUpdater_h
+#pragma once
 
 #include "DisplayRefreshMonitorClient.h"
 #include "PlatformScreen.h"
@@ -61,12 +60,10 @@ public:
 
 private:
 #if USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
-    void displayRefreshFired(double timestamp) override;
+    void displayRefreshFired() override;
     GraphicsLayerUpdaterClient& m_client;
 #endif
     bool m_scheduled { false };
 };
 
 } // namespace WebCore
-
-#endif // GraphicsLayerUpdater_h

@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebIDBConnectionToClient_h
-#define WebIDBConnectionToClient_h
+#pragma once
 
 #if ENABLE(INDEXED_DATABASE)
 
@@ -41,6 +40,7 @@ class IDBRequestData;
 class IDBTransactionInfo;
 class IDBValue;
 class SerializedScriptValue;
+struct IDBGetRecordData;
 struct IDBKeyRangeData;
 struct SecurityOriginData;
 }
@@ -76,6 +76,7 @@ public:
 
     void fireVersionChangeEvent(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion) final;
     void didStartTransaction(const WebCore::IDBResourceIdentifier& transactionIdentifier, const WebCore::IDBError&) final;
+    void didCloseFromServer(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBError&) final;
     void notifyOpenDBRequestBlocked(const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion) final;
 
     void didGetAllDatabaseNames(uint64_t callbackID, const Vector<String>& databaseNames) final;
@@ -95,7 +96,7 @@ public:
     void createIndex(const WebCore::IDBRequestData&, const WebCore::IDBIndexInfo&);
     void deleteIndex(const WebCore::IDBRequestData&, uint64_t objectStoreIdentifier, const String& indexName);
     void putOrAdd(const WebCore::IDBRequestData&, const WebCore::IDBKeyData&, const WebCore::IDBValue&, unsigned overwriteMode);
-    void getRecord(const WebCore::IDBRequestData&, const WebCore::IDBKeyRangeData&);
+    void getRecord(const WebCore::IDBRequestData&, const WebCore::IDBGetRecordData&);
     void getCount(const WebCore::IDBRequestData&, const WebCore::IDBKeyRangeData&);
     void deleteRecord(const WebCore::IDBRequestData&, const WebCore::IDBKeyRangeData&);
     void openCursor(const WebCore::IDBRequestData&, const WebCore::IDBCursorInfo&);
@@ -106,6 +107,7 @@ public:
     void abortOpenAndUpgradeNeeded(uint64_t databaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& transactionIdentifier);
     void didFireVersionChangeEvent(uint64_t databaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier);
     void openDBRequestCancelled(const WebCore::IDBRequestData&);
+    void confirmDidCloseFromServer(uint64_t databaseConnectionIdentifier);
 
     void getAllDatabaseNames(uint64_t serverConnectionIdentifier, const WebCore::SecurityOriginData& topOrigin, const WebCore::SecurityOriginData& openingOrigin, uint64_t callbackID);
 
@@ -118,6 +120,8 @@ private:
 
     IPC::Connection* messageSenderConnection() final;
 
+    template<class MessageType> void handleGetResult(const WebCore::IDBResultData&);
+
     Ref<DatabaseToWebProcessConnection> m_connection;
 
     uint64_t m_identifier;
@@ -127,4 +131,3 @@ private:
 } // namespace WebKit
 
 #endif // ENABLE(INDEXED_DATABASE)
-#endif // WebIDBConnectionToClient_h

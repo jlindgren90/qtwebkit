@@ -97,7 +97,7 @@ public:
 
         // Dispatching a message can possibly close the frontend and destroy
         // the owning frontend client, so keep a protector reference here.
-        Ref<InspectorBackendDispatchTask> protect(*this);
+        Ref<InspectorBackendDispatchTask> protectedThis(*this);
 
         if (!m_messages.isEmpty())
             m_inspectedPageController->dispatchMessageFromFrontend(m_messages.takeFirst());
@@ -221,7 +221,7 @@ void InspectorFrontendClientLocal::changeAttachedWindowWidth(unsigned width)
 
 void InspectorFrontendClientLocal::openInNewTab(const String& url)
 {
-    UserGestureIndicator indicator(DefinitelyProcessingUserGesture);
+    UserGestureIndicator indicator(ProcessingUserGesture);
     Frame& mainFrame = m_inspectedPageController->inspectedPage().mainFrame();
     FrameLoadRequest request(mainFrame.document()->securityOrigin(), ResourceRequest(), "_blank", LockHistory::No, LockBackForwardList::No, MaybeSendReferrer, AllowNavigationToInvalidURL::Yes, NewFrameOpenerPolicy::Allow, ReplaceDocumentIfJavaScriptURL, ShouldOpenExternalURLsPolicy::ShouldNotAllow);
 

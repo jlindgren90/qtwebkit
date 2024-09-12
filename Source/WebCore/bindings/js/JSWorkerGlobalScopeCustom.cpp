@@ -59,14 +59,6 @@ void JSWorkerGlobalScope::visitAdditionalChildren(SlotVisitor& visitor)
         visitor.addOpaqueRoot(navigator);
 }
 
-bool JSWorkerGlobalScope::getOwnPropertySlotDelegate(ExecState* exec, PropertyName propertyName, PropertySlot& slot)
-{
-    // Look for overrides before looking at any of our own properties.
-    if (JSGlobalObject::getOwnPropertySlot(this, exec, propertyName, slot))
-        return true;
-    return false;
-}
-
 JSValue JSWorkerGlobalScope::importScripts(ExecState& state)
 {
     if (!state.argumentCount())
@@ -74,7 +66,7 @@ JSValue JSWorkerGlobalScope::importScripts(ExecState& state)
 
     Vector<String> urls;
     for (unsigned i = 0; i < state.argumentCount(); ++i) {
-        urls.append(state.uncheckedArgument(i).toString(&state)->value(&state));
+        urls.append(valueToUSVString(&state, state.uncheckedArgument(i)));
         if (state.hadException())
             return jsUndefined();
     }
@@ -87,6 +79,9 @@ JSValue JSWorkerGlobalScope::importScripts(ExecState& state)
 
 JSValue JSWorkerGlobalScope::setTimeout(ExecState& state)
 {
+    if (UNLIKELY(state.argumentCount() < 1))
+        return state.vm().throwException(&state, createNotEnoughArgumentsError(&state));
+
     std::unique_ptr<ScheduledAction> action = ScheduledAction::create(&state, globalObject()->world(), wrapped().contentSecurityPolicy());
     if (state.hadException())
         return jsUndefined();
@@ -98,6 +93,9 @@ JSValue JSWorkerGlobalScope::setTimeout(ExecState& state)
 
 JSValue JSWorkerGlobalScope::setInterval(ExecState& state)
 {
+    if (UNLIKELY(state.argumentCount() < 1))
+        return state.vm().throwException(&state, createNotEnoughArgumentsError(&state));
+
     std::unique_ptr<ScheduledAction> action = ScheduledAction::create(&state, globalObject()->world(), wrapped().contentSecurityPolicy());
     if (state.hadException())
         return jsUndefined();

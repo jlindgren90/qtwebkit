@@ -52,7 +52,6 @@
 #include <debugger/Debugger.h>
 #include <heap/StrongInlines.h>
 #include <inspector/ScriptCallStack.h>
-#include <profiler/Profile.h>
 #include <runtime/InitializeThreading.h>
 #include <runtime/JSLock.h>
 #include <wtf/Threading.h>
@@ -212,12 +211,6 @@ void ScriptController::clearWindowShellsNotMatchingDOMWindow(DOMWindow* newDOMWi
         // Clear the debugger and console from the current window before setting the new window.
         attachDebugger(windowShell.get(), nullptr);
         windowShell->window()->setConsoleClient(nullptr);
-        // FIXME: We should clear console profiles for each frame as soon as the frame is destroyed.
-        // Instead of clearing all of them when the main frame is destroyed.
-        if (m_frame.isMainFrame()) {
-            if (Page* page = m_frame.page())
-                page->console().clearProfiles();
-        }
 
         windowShell->window()->willRemoveFromWindowShell();
     }
@@ -517,7 +510,7 @@ void ScriptController::clearScriptObjects()
 
 JSValue ScriptController::executeScriptInWorld(DOMWrapperWorld& world, const String& script, bool forceUserGesture)
 {
-    UserGestureIndicator gestureIndicator(forceUserGesture ? DefinitelyProcessingUserGesture : PossiblyProcessingUserGesture);
+    UserGestureIndicator gestureIndicator(forceUserGesture ? Optional<ProcessingUserGestureState>(ProcessingUserGesture) : Nullopt);
     ScriptSourceCode sourceCode(script, m_frame.document()->url());
 
     if (!canExecuteScripts(AboutToExecuteScript) || isPaused())
@@ -543,7 +536,7 @@ bool ScriptController::canExecuteScripts(ReasonForCallingCanExecuteScripts reaso
 
 JSValue ScriptController::executeScript(const String& script, bool forceUserGesture, ExceptionDetails* exceptionDetails)
 {
-    UserGestureIndicator gestureIndicator(forceUserGesture ? DefinitelyProcessingUserGesture : PossiblyProcessingUserGesture);
+    UserGestureIndicator gestureIndicator(forceUserGesture ? Optional<ProcessingUserGestureState>(ProcessingUserGesture) : Nullopt);
     return executeScript(ScriptSourceCode(script, m_frame.document()->url()), exceptionDetails);
 }
 

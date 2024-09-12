@@ -148,6 +148,8 @@ WebInspector.TimelineOverviewGraph = class TimelineOverviewGraph extends WebInsp
         return this._timelineOverview;
     }
 
+    get secondsPerPixel() { return this._timelineOverview.secondsPerPixel; }
+
     get visible()
     {
         return this._visible;
@@ -226,16 +228,6 @@ WebInspector.TimelineOverviewGraph = class TimelineOverviewGraph extends WebInsp
 
     // Protected
 
-    dispatchSelectedRecordChangedEvent()
-    {
-        if (!this._selectedRecordChanged)
-            return;
-
-        this._selectedRecordChanged = false;
-
-        this.dispatchEventToListeners(WebInspector.TimelineOverviewGraph.Event.RecordSelected, {record: this.selectedRecord});
-    }
-
     updateSelectedRecord()
     {
         // Implemented by sub-classes if needed.
@@ -252,10 +244,12 @@ WebInspector.TimelineOverviewGraph = class TimelineOverviewGraph extends WebInsp
         if (this._scheduledSelectedRecordLayoutUpdateIdentifier)
             return;
 
-        this._scheduledSelectedRecordLayoutUpdateIdentifier = requestAnimationFrame(function() {
+        this._scheduledSelectedRecordLayoutUpdateIdentifier = requestAnimationFrame(() => {
             this._scheduledSelectedRecordLayoutUpdateIdentifier = undefined;
+
             this.updateSelectedRecord();
-        }.bind(this));
+            this.dispatchEventToListeners(WebInspector.TimelineOverviewGraph.Event.RecordSelected, {record: this.selectedRecord});
+        });
     }
 };
 
