@@ -347,6 +347,8 @@ static Optional<ContextMenuAction> toAction(NSInteger tag)
         return ContextMenuItemTagToggleMediaLoop;
     case WebMenuItemTagEnterVideoFullscreen:
         return ContextMenuItemTagEnterVideoFullscreen;
+    case WebMenuItemTagToggleVideoEnhancedFullscreen:
+        return ContextMenuItemTagToggleVideoEnhancedFullscreen;
     case WebMenuItemTagMediaPlayPause:
         return ContextMenuItemTagMediaPlayPause;
     case WebMenuItemTagMediaMute:
@@ -533,6 +535,8 @@ static Optional<NSInteger> toTag(ContextMenuAction action)
         return WebMenuItemTagToggleVideoFullscreen;
     case ContextMenuItemTagShareMenu:
         return WebMenuItemTagShareMenu;
+    case ContextMenuItemTagToggleVideoEnhancedFullscreen:
+        return WebMenuItemTagToggleVideoEnhancedFullscreen;
 
     case ContextMenuItemBaseCustomTag ... ContextMenuItemLastCustomTag:
         // We just pass these through.
@@ -623,6 +627,12 @@ static BOOL forceNSViewHitTest;
 
 // if YES, do the "top WebHTMLView" hit test (which we'd like to do all the time but can't because of Java requirements [see bug 4349721])
 static BOOL forceWebHTMLViewHitTest;
+
+@interface NSApplication ()
+- (BOOL)isSpeaking;
+- (void)stopSpeaking:(id)sender;
+@end
+
 #endif // !PLATFORM(IOS)
 
 static WebHTMLView *lastHitView;

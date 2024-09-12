@@ -27,6 +27,7 @@
 #define PageClient_h
 
 #include "ShareableBitmap.h"
+#include "UserInterfaceLayoutDirection.h"
 #include "WebColorPicker.h"
 #include "WebPageProxy.h"
 #include "WebPopupMenuProxy.h"
@@ -151,7 +152,7 @@ public:
 
     virtual void handleDownloadRequest(DownloadProxy*) = 0;
 
-    virtual bool handleRunOpenPanel(WebPageProxy*, WebFrameProxy*, WebOpenPanelParameters*, WebOpenPanelResultListenerProxy*) { return false; }
+    virtual bool handleRunOpenPanel(WebPageProxy*, WebFrameProxy*, API::OpenPanelParameters*, WebOpenPanelResultListenerProxy*) { return false; }
 
     virtual void didChangeContentSize(const WebCore::IntSize&) = 0;
 
@@ -285,8 +286,8 @@ public:
 
     virtual void dynamicViewportUpdateChangedTarget(double newScale, const WebCore::FloatPoint& newScrollPosition, uint64_t transactionID) = 0;
     virtual void couldNotRestorePageState() = 0;
-    virtual void restorePageState(const WebCore::FloatRect& exposedContentRect, const WebCore::IntPoint& scrollOrigin, double scale) = 0;
-    virtual void restorePageCenterAndScale(const WebCore::FloatPoint&, double) = 0;
+    virtual void restorePageState(const WebCore::FloatPoint& scrollPosition, const WebCore::FloatPoint& scrollOrigin, const WebCore::FloatSize& obscuredInsetOnSave, double scale) = 0;
+    virtual void restorePageCenterAndScale(const WebCore::FloatPoint& center, double scale) = 0;
 
     virtual void startAssistingNode(const AssistedNodeInformation&, bool userIsInteracting, bool blurPreviousNode, API::Object* userData) = 0;
     virtual void stopAssistingNode() = 0;
@@ -346,7 +347,7 @@ public:
 
     virtual void didHandleAcceptedCandidate() = 0;
 
-    virtual void isPlayingMediaDidChange() = 0;
+    virtual void videoControlsManagerDidChange() = 0;
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET) && !PLATFORM(IOS)
@@ -363,6 +364,8 @@ public:
     virtual void didRestoreScrollPosition() = 0;
 
     virtual bool windowIsFrontWindowUnderMouse(const NativeWebMouseEvent&) { return false; }
+
+    virtual UserInterfaceLayoutDirection userInterfaceLayoutDirection() = 0;
 };
 
 } // namespace WebKit

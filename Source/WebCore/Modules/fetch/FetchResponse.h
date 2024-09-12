@@ -43,6 +43,7 @@ namespace WebCore {
 
 class Dictionary;
 class FetchRequest;
+class ReadableStreamSource;
 
 typedef int ExceptionCode;
 
@@ -55,7 +56,8 @@ public:
     static RefPtr<FetchResponse> redirect(ScriptExecutionContext& context, const String& url, ExceptionCode& ec) { return redirect(context, url, 302, ec); }
 
     using FetchPromise = DOMPromise<RefPtr<FetchResponse>, ExceptionCode>;
-    static void fetch(ScriptExecutionContext&, const FetchRequest&, FetchPromise&&);
+    static void fetch(ScriptExecutionContext&, FetchRequest&, const Dictionary&, FetchPromise&&);
+    static void fetch(ScriptExecutionContext&, const String&, const Dictionary&, FetchPromise&&);
 
     void initializeWith(const Dictionary&, ExceptionCode&);
 
@@ -69,10 +71,17 @@ public:
     FetchHeaders& headers() { return m_headers; }
     RefPtr<FetchResponse> clone(ScriptExecutionContext&, ExceptionCode&);
 
+#if ENABLE(STREAMS_API)
+    ReadableStreamSource* createReadableStreamSource();
+    void consumeBodyAsStream();
+#endif
+
 private:
     enum class Type { Basic, Cors, Default, Error, Opaque, OpaqueRedirect };
 
     FetchResponse(ScriptExecutionContext&, Type, FetchBody&&, Ref<FetchHeaders>&&, ResourceResponse&&);
+
+    static void startFetching(ScriptExecutionContext&, const FetchRequest&, FetchPromise&&);
 
     // ActiveDOMObject API
     void stop() final;
@@ -86,11 +95,16 @@ private:
         bool start(ScriptExecutionContext&, const FetchRequest&);
         void stop();
 
+#if ENABLE(STREAMS_API)
+        RefPtr<SharedBuffer> startStreaming();
+#endif
+
     private:
         // FetchLoaderClient API
         void didSucceed() final;
         void didFail() final;
         void didReceiveResponse(const ResourceResponse&);
+        void didReceiveData(const char*, size_t) final;
         void didFinishLoadingAsArrayBuffer(RefPtr<ArrayBuffer>&&) final;
 
         FetchResponse& m_response;
@@ -101,7 +115,6 @@ private:
     Type m_type;
     ResourceResponse m_response;
     Ref<FetchHeaders> m_headers;
-    bool m_isLocked = false;
     bool m_isRedirected = false;
     Optional<BodyLoader> m_bodyLoader;
 };

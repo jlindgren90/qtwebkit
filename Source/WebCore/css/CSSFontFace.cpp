@@ -461,6 +461,8 @@ size_t CSSFontFace::pump()
             break;
         }
     }
+    if (m_sources.isEmpty() && m_status == Status::Pending)
+        setStatus(Status::Loading);
     if (m_status == Status::Loading || m_status == Status::TimedOut)
         setStatus(Status::Failure);
     return m_sources.size();

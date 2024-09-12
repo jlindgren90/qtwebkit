@@ -93,6 +93,12 @@
 
 SOFT_LINK_CONSTANT_MAY_FAIL(Lookup, LUNotificationPopoverWillClose, NSString *)
 
+@interface NSApplication ()
+- (BOOL)isSpeaking;
+- (void)speakString:(NSString *)string;
+- (void)stopSpeaking:(id)sender;
+@end
+
 // FIXME: Move to an SPI header.
 @interface NSTextInputContext (WKNSTextInputContextDetails)
 - (void)handleEvent:(NSEvent *)event completionHandler:(void(^)(BOOL handled))completionHandler;
@@ -111,6 +117,7 @@ SOFT_LINK_CONSTANT_MAY_FAIL(Lookup, LUNotificationPopoverWillClose, NSString *)
 - (void)startObservingFontPanel;
 - (void)startObservingLookupDismissal;
 @end
+
 
 @implementation WKWindowVisibilityObserver
 
@@ -871,7 +878,7 @@ void WebViewImpl::updateViewExposedRect()
         exposedRect = CGRectUnion(m_contentPreparationRect, exposedRect);
 
     if (auto drawingArea = m_page->drawingArea())
-        drawingArea->setExposedRect(m_clipsToVisibleRect ? WebCore::FloatRect(exposedRect) : WebCore::FloatRect::infiniteRect());
+        drawingArea->setViewExposedRect(m_clipsToVisibleRect ? Optional<WebCore::FloatRect>(exposedRect) : Nullopt);
 }
 
 void WebViewImpl::setClipsToVisibleRect(bool clipsToVisibleRect)
@@ -2389,7 +2396,7 @@ void WebViewImpl::didHandleAcceptedCandidate()
     m_isHandlingAcceptedCandidate = false;
 }
 
-void WebViewImpl::isPlayingMediaDidChange()
+void WebViewImpl::videoControlsManagerDidChange()
 {
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
     updateWebViewImplAdditions();

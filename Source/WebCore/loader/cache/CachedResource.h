@@ -76,6 +76,7 @@ public:
 #if ENABLE(XSLT)
         , XSLStyleSheet
 #endif
+        , LinkPreload
 #if ENABLE(LINK_PREFETCH)
         , LinkPrefetch
         , LinkSubresource
@@ -265,6 +266,7 @@ public:
 #endif
 
     unsigned long identifierForLoadWithoutResourceLoader() const { return m_identifierForLoadWithoutResourceLoader; }
+    static ResourceLoadPriority defaultPriorityForResourceType(Type);
 
 protected:
     void setEncodedSize(unsigned);

@@ -34,6 +34,7 @@ namespace WebCore {
 class Element;
 
 class CollectionNamedElementCache {
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     const Vector<Element*>* findElementsWithId(const AtomicString& id) const;
     const Vector<Element*>* findElementsWithName(const AtomicString& name) const;
@@ -85,8 +86,6 @@ public:
 
     bool hasNamedElementCache() const;
 
-    bool wasDeletionStarted() { return m_wasDeletionStarted; }
-
 protected:
     HTMLCollection(ContainerNode& base, CollectionType);
 
@@ -110,8 +109,6 @@ protected:
     const unsigned m_collectionType : 5;
     const unsigned m_invalidationType : 4;
     const unsigned m_rootType : 1;
-    // FIXME: This flag is here temporarily to help track down a possible lifetime issue (rdar://problem/24457478).
-    unsigned m_wasDeletionStarted : 1;
 };
 
 inline ContainerNode& HTMLCollection::rootNode() const

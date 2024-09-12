@@ -40,28 +40,21 @@ JSValue JSCustomEvent::detail(ExecState& state) const
 {
     auto& event = wrapped();
 
-    JSValue detail = event.detail();
-    
+    auto detail = event.detail();
+
     if (!detail)
         return jsNull();
 
     if (detail.isObject() && &worldForDOMObject(detail.getObject()) != &currentWorld(&state)) {
         // We need to make sure CustomEvents do not leak their detail property across isolated DOM worlds.
         // Ideally, we would check that the worlds have different privileges but that's not possible yet.
-        RefPtr<SerializedScriptValue> serializedDetail = event.trySerializeDetail(&state);
-        
+        auto serializedDetail = event.trySerializeDetail(state);
         if (!serializedDetail)
             return jsNull();
-        
         return serializedDetail->deserialize(&state, globalObject(), nullptr);
     }
-    
-    return detail;
-}
 
-void JSCustomEvent::visitAdditionalChildren(JSC::SlotVisitor& visitor)
-{
-    wrapped().detail().visit(visitor);
+    return detail;
 }
 
 } // namespace WebCore

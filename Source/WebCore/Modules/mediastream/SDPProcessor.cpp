@@ -30,14 +30,13 @@
 
 #include "config.h"
 
-#if ENABLE(WEBRTC)
+#if ENABLE(WEB_RTC)
 #include "SDPProcessor.h"
 
 #include "Document.h"
 #include "Frame.h"
 #include "SDPProcessorScriptResource.h"
 #include "ScriptController.h"
-#include "ScriptGlobalObject.h"
 #include "ScriptSourceCode.h"
 #include "inspector/InspectorValues.h"
 #include <bindings/ScriptObject.h>
@@ -538,4 +537,4 @@ bool SDPProcessor::callScript(const String& functionName, const String& argument
 
 } // namespace WebCore
 
-#endif // ENABLE(WEBRTC)
+#endif // ENABLE(WEB_RTC)

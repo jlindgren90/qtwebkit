@@ -44,6 +44,7 @@ class NetworkLoad : public WebCore::ResourceHandleClient
     , public NetworkDataTaskClient
 #endif
 {
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     NetworkLoad(NetworkLoadClient&, const NetworkLoadParameters&);
     ~NetworkLoad();
@@ -58,7 +59,7 @@ public:
     void continueDidReceiveResponse();
 
 #if USE(NETWORK_SESSION)
-    void convertTaskToDownload(DownloadID);
+    void convertTaskToDownload(DownloadID, const WebCore::ResourceRequest&);
     void setPendingDownloadID(DownloadID);
     void setPendingDownload(PendingDownload&);
     DownloadID pendingDownloadID() { return m_task->pendingDownloadID(); }

@@ -156,7 +156,8 @@ GraphicsContext3D::GraphicsContext3D(GraphicsContext3D::Attributes attrs, HostWi
     UNUSED_PARAM(renderStyle);
 
 #if PLATFORM(IOS)
-    m_contextObj = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    EAGLRenderingAPI api = m_attrs.useGLES3 ? kEAGLRenderingAPIOpenGLES3 : kEAGLRenderingAPIOpenGLES2;
+    m_contextObj = [[EAGLContext alloc] initWithAPI:api];
     makeContextCurrent();
 #else
     Vector<CGLPixelFormatAttribute> attribs;
@@ -339,12 +340,18 @@ GraphicsContext3D::~GraphicsContext3D()
 }
 
 #if PLATFORM(IOS)
-bool GraphicsContext3D::setRenderbufferStorageFromDrawable(GC3Dsizei width, GC3Dsizei height)
+void GraphicsContext3D::setRenderbufferStorageFromDrawable(GC3Dsizei width, GC3Dsizei height)
 {
+    // We need to make a call to setBounds below to update the backing store size but we also
+    // do not want to clobber the bounds set during layout.
+    CGRect previousBounds = [m_webGLLayer.get() bounds];
+
     [m_webGLLayer setBounds:CGRectMake(0, 0, width, height)];
     [m_webGLLayer setOpaque:(m_internalColorFormat != GL_RGBA8)];
 
-    return [m_contextObj renderbufferStorage:GL_RENDERBUFFER fromDrawable:static_cast<id<EAGLDrawable>>(m_webGLLayer.get())];
+    [m_contextObj renderbufferStorage:GL_RENDERBUFFER fromDrawable:static_cast<id<EAGLDrawable>>(m_webGLLayer.get())];
+
+    [m_webGLLayer setBounds:previousBounds];
 }
 #endif
 

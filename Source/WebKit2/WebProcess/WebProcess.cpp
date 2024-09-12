@@ -77,6 +77,7 @@
 #include <WebCore/FrameLoader.h>
 #include <WebCore/GCController.h>
 #include <WebCore/GlyphPage.h>
+#include <WebCore/HTMLMediaElement.h>
 #include <WebCore/IconDatabase.h>
 #include <WebCore/JSDOMWindow.h>
 #include <WebCore/Language.h>
@@ -140,6 +141,8 @@ static const double plugInAutoStartExpirationTimeUpdateThreshold = 29 * 24 * 60 
 // This should be greater than tileRevalidationTimeout in TileController.
 static const double nonVisibleProcessCleanupDelay = 10;
 
+#define WEBPROCESS_LOG_ALWAYS(...) LOG_ALWAYS(true, __VA_ARGS__)
+
 namespace WebKit {
 
 WebProcess& WebProcess::singleton()
@@ -153,7 +156,6 @@ WebProcess::WebProcess()
 #if PLATFORM(IOS)
     , m_viewUpdateDispatcher(ViewUpdateDispatcher::create())
 #endif
-    , m_processSuspensionCleanupTimer(*this, &WebProcess::processSuspensionCleanupTimerFired)
     , m_inDidClose(false)
     , m_hasSetCacheModel(false)
     , m_cacheModel(CacheModelDocumentViewer)
@@ -292,6 +294,9 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
     if (!parameters.applicationCacheDirectory.isEmpty())
         ApplicationCacheStorage::singleton().setCacheDirectory(parameters.applicationCacheDirectory);
 
+    if (!parameters.mediaCacheDirectory.isEmpty())
+        WebCore::HTMLMediaElement::setMediaCacheDirectory(parameters.mediaCacheDirectory);
+
     setCacheModel(static_cast<uint32_t>(parameters.cacheModel));
 
     if (!parameters.languages.isEmpty())
@@ -327,8 +332,6 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
 
     for (auto& scheme : parameters.urlSchemesRegisteredAsAlwaysRevalidated)
         registerURLSchemeAsAlwaysRevalidated(scheme);
-
-    WebCore::Settings::setShouldRewriteConstAsVar(parameters.shouldRewriteConstAsVar);
 
 #if ENABLE(CACHE_PARTITIONING)
     for (auto& scheme : parameters.urlSchemesRegisteredAsCachePartitioned)
@@ -382,14 +385,26 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
 #endif
 
 #if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
-    for (auto hostIter = parameters.pluginLoadClientPolicies.begin(); hostIter != parameters.pluginLoadClientPolicies.end(); ++hostIter) {
-        for (auto bundleIdentifierIter = hostIter->value.begin(); bundleIdentifierIter != hostIter->value.end(); ++bundleIdentifierIter) {
-            for (auto versionIter = bundleIdentifierIter->value.begin(); versionIter != bundleIdentifierIter->value.end(); ++versionIter)
-                platformStrategies()->pluginStrategy()->setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(versionIter->value), hostIter->key, bundleIdentifierIter->key, versionIter->key);
-        }
-    }
+    setPluginLoadClientPolicies(parameters.pluginLoadClientPoliciesForPrivateBrowsing, PrivateBrowsing::Yes);
+    setPluginLoadClientPolicies(parameters.pluginLoadClientPolicies, PrivateBrowsing::No);
 #endif
 }
+
+#if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
+void WebProcess::setPluginLoadClientPolicies(const HashMap<String, HashMap<String, HashMap<String, uint8_t>>> &pluginPolicies, PrivateBrowsing privateBrowsing)
+{
+    for (auto hostIter = pluginPolicies.begin(); hostIter != pluginPolicies.end(); ++hostIter) {
+        for (auto bundleIdentifierIter = hostIter->value.begin(); bundleIdentifierIter != hostIter->value.end(); ++bundleIdentifierIter) {
+            for (auto versionIter = bundleIdentifierIter->value.begin(); versionIter != bundleIdentifierIter->value.end(); ++versionIter) {
+                if (privateBrowsing == PrivateBrowsing::No)
+                    platformStrategies()->pluginStrategy()->setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(versionIter->value), hostIter->key, bundleIdentifierIter->key, versionIter->key);
+                else
+                    platformStrategies()->pluginStrategy()->setPrivateBrowsingPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(versionIter->value), hostIter->key, bundleIdentifierIter->key, versionIter->key);
+            }
+        }
+    }
+}
+#endif
 
 void WebProcess::ensureNetworkProcessConnection()
 {
@@ -870,6 +885,13 @@ void WebProcess::setPluginLoadClientPolicy(uint8_t policy, const String& host, c
 #endif
 }
 
+void WebProcess::setPrivateBrowsingPluginLoadClientPolicy(uint8_t policy, const String& host, const String& bundleIdentifier, const String& versionString)
+{
+#if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
+    platformStrategies()->pluginStrategy()->setPrivateBrowsingPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(policy), host, bundleIdentifier, versionString);
+#endif
+}
+
 void WebProcess::clearPluginClientPolicies()
 {
 #if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
@@ -1209,13 +1231,14 @@ void WebProcess::actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend shou
 
     setAllLayerTreeStatesFrozen(true);
 
-    if (markAllLayersVolatileIfPossible()) {
-        if (shouldAcknowledgeWhenReadyToSuspend == ShouldAcknowledgeWhenReadyToSuspend::Yes)
+    markAllLayersVolatile([this, shouldAcknowledgeWhenReadyToSuspend] {
+        WEBPROCESS_LOG_ALWAYS("%p - WebProcess::markAllLayersVolatile() Successfuly marked all layers as volatile", this);
+
+        if (shouldAcknowledgeWhenReadyToSuspend == ShouldAcknowledgeWhenReadyToSuspend::Yes) {
+            WEBPROCESS_LOG_ALWAYS("%p - WebProcess::actualPrepareToSuspend() Sending ProcessReadyToSuspend IPC message", this);
             parentProcessConnection()->send(Messages::WebProcessProxy::ProcessReadyToSuspend(), 0);
-        return;
-    }
-    m_shouldAcknowledgeWhenReadyToSuspend = shouldAcknowledgeWhenReadyToSuspend;
-    m_processSuspensionCleanupTimer.startRepeating(std::chrono::milliseconds(20));
+        }
+    });
 }
 
 void WebProcess::processWillSuspendImminently(bool& handled)
@@ -1228,6 +1251,7 @@ void WebProcess::processWillSuspendImminently(bool& handled)
         return;
     }
 
+    WEBPROCESS_LOG_ALWAYS("%p - WebProcess::processWillSuspendImminently()", this);
     DatabaseTracker::tracker().closeAllDatabases();
     actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend::No);
     handled = true;
@@ -1235,29 +1259,51 @@ void WebProcess::processWillSuspendImminently(bool& handled)
 
 void WebProcess::prepareToSuspend()
 {
+    WEBPROCESS_LOG_ALWAYS("%p - WebProcess::prepareToSuspend()", this);
     actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend::Yes);
 }
 
 void WebProcess::cancelPrepareToSuspend()
 {
+    WEBPROCESS_LOG_ALWAYS("%p - WebProcess::cancelPrepareToSuspend()", this);
     setAllLayerTreeStatesFrozen(false);
 
     // If we've already finished cleaning up and sent ProcessReadyToSuspend, we
     // shouldn't send DidCancelProcessSuspension; the UI process strictly expects one or the other.
-    if (!m_processSuspensionCleanupTimer.isActive())
+    if (!m_pagesMarkingLayersAsVolatile)
         return;
 
-    m_processSuspensionCleanupTimer.stop();
+    cancelMarkAllLayersVolatile();
+
+    WEBPROCESS_LOG_ALWAYS("%p - WebProcess::cancelPrepareToSuspend() Sending DidCancelProcessSuspension IPC message", this);
     parentProcessConnection()->send(Messages::WebProcessProxy::DidCancelProcessSuspension(), 0);
 }
 
-bool WebProcess::markAllLayersVolatileIfPossible()
+void WebProcess::markAllLayersVolatile(std::function<void()> completionHandler)
 {
-    bool successfullyMarkedAllLayersVolatile = true;
-    for (auto& page : m_pageMap.values())
-        successfullyMarkedAllLayersVolatile &= page->markLayersVolatileImmediatelyIfPossible();
+    WEBPROCESS_LOG_ALWAYS("%p - WebProcess::markAllLayersVolatile()", this);
+    m_pagesMarkingLayersAsVolatile = m_pageMap.size();
+    if (!m_pagesMarkingLayersAsVolatile) {
+        completionHandler();
+        return;
+    }
+    for (auto& page : m_pageMap.values()) {
+        page->markLayersVolatile([this, completionHandler] {
+            ASSERT(m_pagesMarkingLayersAsVolatile);
+            if (!--m_pagesMarkingLayersAsVolatile)
+                completionHandler();
+        });
+    }
+}
 
-    return successfullyMarkedAllLayersVolatile;
+void WebProcess::cancelMarkAllLayersVolatile()
+{
+    if (!m_pagesMarkingLayersAsVolatile)
+        return;
+
+    for (auto& page : m_pageMap.values())
+        page->cancelMarkLayersVolatile();
+    m_pagesMarkingLayersAsVolatile = 0;
 }
 
 void WebProcess::setAllLayerTreeStatesFrozen(bool frozen)
@@ -1265,19 +1311,12 @@ void WebProcess::setAllLayerTreeStatesFrozen(bool frozen)
     for (auto& page : m_pageMap.values())
         page->setLayerTreeStateIsFrozen(frozen);
 }
-
-void WebProcess::processSuspensionCleanupTimerFired()
-{
-    if (!markAllLayersVolatileIfPossible())
-        return;
-    m_processSuspensionCleanupTimer.stop();
-    if (m_shouldAcknowledgeWhenReadyToSuspend == ShouldAcknowledgeWhenReadyToSuspend::Yes)
-        parentProcessConnection()->send(Messages::WebProcessProxy::ProcessReadyToSuspend(), 0);
-}
     
 void WebProcess::processDidResume()
 {
-    m_processSuspensionCleanupTimer.stop();
+    WEBPROCESS_LOG_ALWAYS("%p - WebProcess::processDidResume()", this);
+
+    cancelMarkAllLayersVolatile();
     setAllLayerTreeStatesFrozen(false);
 }
 

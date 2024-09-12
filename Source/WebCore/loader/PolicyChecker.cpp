@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008, 2009 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies)
  * Copyright (C) 2008, 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  *
@@ -40,6 +40,7 @@
 #include "FrameLoaderClient.h"
 #include "HTMLFormElement.h"
 #include "HTMLFrameOwnerElement.h"
+#include "HTMLPlugInElement.h"
 #include "SecurityOrigin.h"
 
 #if USE(QUICK_LOOK)
@@ -47,6 +48,16 @@
 #endif
 
 namespace WebCore {
+
+static bool isAllowedByContentSecurityPolicy(const URL& url, const Element* ownerElement, bool didReceiveRedirectResponse)
+{
+    if (!ownerElement)
+        return true;
+    auto redirectResponseReceived = didReceiveRedirectResponse ? ContentSecurityPolicy::RedirectResponseReceived::Yes : ContentSecurityPolicy::RedirectResponseReceived::No;
+    if (is<HTMLPlugInElement>(ownerElement))
+        return ownerElement->document().contentSecurityPolicy()->allowObjectFromSource(url, ownerElement->isInUserAgentShadowTree(), redirectResponseReceived);
+    return ownerElement->document().contentSecurityPolicy()->allowChildFrameFromSource(url, ownerElement->isInUserAgentShadowTree(), redirectResponseReceived);
+}
 
 PolicyChecker::PolicyChecker(Frame& frame)
     : m_frame(frame)
@@ -56,12 +67,12 @@ PolicyChecker::PolicyChecker(Frame& frame)
 {
 }
 
-void PolicyChecker::checkNavigationPolicy(const ResourceRequest& newRequest, NavigationPolicyDecisionFunction function)
+void PolicyChecker::checkNavigationPolicy(const ResourceRequest& newRequest, bool didReceiveRedirectResponse, NavigationPolicyDecisionFunction function)
 {
-    checkNavigationPolicy(newRequest, m_frame.loader().activeDocumentLoader(), nullptr, WTFMove(function));
+    checkNavigationPolicy(newRequest, didReceiveRedirectResponse, m_frame.loader().activeDocumentLoader(), nullptr, WTFMove(function));
 }
 
-void PolicyChecker::checkNavigationPolicy(const ResourceRequest& request, DocumentLoader* loader, PassRefPtr<FormState> formState, NavigationPolicyDecisionFunction function)
+void PolicyChecker::checkNavigationPolicy(const ResourceRequest& request, bool didReceiveRedirectResponse, DocumentLoader* loader, PassRefPtr<FormState> formState, NavigationPolicyDecisionFunction function)
 {
     NavigationAction action = loader->triggeringAction();
     if (action.isEmpty()) {
@@ -86,7 +97,7 @@ void PolicyChecker::checkNavigationPolicy(const ResourceRequest& request, Docume
         return;
     }
 
-    if (m_frame.ownerElement() && !m_frame.ownerElement()->document().contentSecurityPolicy()->allowChildFrameFromSource(request.url(), m_frame.ownerElement()->isInUserAgentShadowTree())) {
+    if (!isAllowedByContentSecurityPolicy(request.url(), m_frame.ownerElement(), didReceiveRedirectResponse)) {
         function(request, 0, false);
         return;
     }
@@ -117,6 +128,7 @@ void PolicyChecker::checkNavigationPolicy(const ResourceRequest& request, Docume
 #endif
 
     m_delegateIsDecidingNavigationPolicy = true;
+    m_suggestedFilename = action.downloadAttribute();
     m_frame.loader().client().dispatchDecidePolicyForNavigationAction(action, request, formState, [this](PolicyAction action) {
         continueAfterNavigationPolicy(action);
     });
@@ -185,7 +197,7 @@ void PolicyChecker::continueAfterNavigationPolicy(PolicyAction policy)
         case PolicyDownload: {
             ResourceRequest request = callback.request();
             m_frame.loader().setOriginalURLForDownloadRequest(request);
-            m_frame.loader().client().startDownload(request);
+            m_frame.loader().client().startDownload(request, m_suggestedFilename);
             callback.clearRequest();
             break;
         }

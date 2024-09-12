@@ -45,7 +45,7 @@ public:
 
     void parse(const String&);
 
-    bool matches(const URL&);
+    bool matches(const URL&, bool didReceiveRedirectResponse);
     bool matches(const ContentSecurityPolicyHash&) const;
     bool matches(const String& nonce) const;
 
@@ -54,6 +54,7 @@ public:
     bool allowInline() const { return m_allowInline && m_hashes.isEmpty() && m_nonces.isEmpty(); }
     bool allowEval() const { return m_allowEval; }
     bool allowSelf() const { return m_allowSelf; }
+    bool isNone() const { return m_isNone; }
 
 private:
     void parse(const UChar* begin, const UChar* end);
@@ -80,6 +81,7 @@ private:
     bool m_allowStar { false };
     bool m_allowInline { false };
     bool m_allowEval { false };
+    bool m_isNone { false };
 };
 
 } // namespace WebCore

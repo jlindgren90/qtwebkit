@@ -31,7 +31,10 @@
 
 #if ENABLE(FETCH_API)
 
+#include "ExceptionCode.h"
 #include "FetchLoader.h"
+#include "FetchResponseSource.h"
+#include "JSBlob.h"
 #include "ResourceResponse.h"
 
 namespace WebCore {
@@ -48,15 +51,97 @@ void FetchBodyOwner::stop()
     if (m_blobLoader) {
         if (m_blobLoader->loader)
             m_blobLoader->loader->stop();
-        finishBlobLoading();
     }
     ASSERT(!m_blobLoader);
+}
+
+bool FetchBodyOwner::isDisturbed() const
+{
+    if (m_isDisturbed)
+        return true;
+
+#if ENABLE(STREAMS_API)
+    if (m_readableStreamSource && m_readableStreamSource->isReadableStreamLocked())
+        return true;
+#endif
+
+    return false;
+}
+
+void FetchBodyOwner::arrayBuffer(DeferredWrapper&& promise)
+{
+    if (m_body.isEmpty()) {
+        fulfillPromiseWithArrayBuffer(promise, nullptr, 0);
+        return;
+    }
+    if (isDisturbed()) {
+        promise.reject<ExceptionCode>(TypeError);
+        return;
+    }
+    m_isDisturbed = true;
+    m_body.arrayBuffer(*this, WTFMove(promise));
+}
+
+void FetchBodyOwner::blob(DeferredWrapper&& promise)
+{
+    if (m_body.isEmpty()) {
+        promise.resolve<RefPtr<Blob>>(Blob::create());
+        return;
+    }
+    if (isDisturbed()) {
+        promise.reject<ExceptionCode>(TypeError);
+        return;
+    }
+    m_isDisturbed = true;
+    m_body.blob(*this, WTFMove(promise));
+}
+
+void FetchBodyOwner::formData(DeferredWrapper&& promise)
+{
+    if (m_body.isEmpty()) {
+        promise.reject<ExceptionCode>(0);
+        return;
+    }
+    if (isDisturbed()) {
+        promise.reject<ExceptionCode>(TypeError);
+        return;
+    }
+    m_isDisturbed = true;
+    m_body.formData(*this, WTFMove(promise));
+}
+
+void FetchBodyOwner::json(DeferredWrapper&& promise)
+{
+    if (m_body.isEmpty()) {
+        promise.reject<ExceptionCode>(SYNTAX_ERR);
+        return;
+    }
+    if (isDisturbed()) {
+        promise.reject<ExceptionCode>(TypeError);
+        return;
+    }
+    m_isDisturbed = true;
+    m_body.json(*this, WTFMove(promise));
+}
+
+void FetchBodyOwner::text(DeferredWrapper&& promise)
+{
+    if (m_body.isEmpty()) {
+        promise.resolve(String());
+        return;
+    }
+    if (isDisturbed()) {
+        promise.reject<ExceptionCode>(TypeError);
+        return;
+    }
+    m_isDisturbed = true;
+    m_body.text(*this, WTFMove(promise));
 }
 
 void FetchBodyOwner::loadBlob(Blob& blob, FetchLoader::Type type)
 {
     // Can only be called once for a body instance.
-    ASSERT(m_body.isDisturbed());
+    ASSERT(isDisturbed());
     ASSERT(!m_blobLoader);
 
     if (!scriptExecutionContext()) {
@@ -89,10 +174,44 @@ void FetchBodyOwner::loadedBlobAsText(String&& text)
     m_body.loadedAsText(WTFMove(text));
 }
 
+void FetchBodyOwner::blobLoadingSucceeded()
+{
+    ASSERT(m_body.type() == FetchBody::Type::Blob);
+
+#if ENABLE(STREAMS_API)
+    if (m_readableStreamSource) {
+        m_readableStreamSource->close();
+        m_readableStreamSource = nullptr;
+    }
+#endif
+
+    finishBlobLoading();
+}
+
 void FetchBodyOwner::blobLoadingFailed()
 {
-    m_body.loadingFailed();
+#if ENABLE(STREAMS_API)
+    if (m_readableStreamSource) {
+        if (!m_readableStreamSource->isCancelling())
+            m_readableStreamSource->error(ASCIILiteral("Blob loading failed"));
+        m_readableStreamSource = nullptr;
+    } else
+#endif
+        m_body.loadingFailed();
+
     finishBlobLoading();
+}
+
+void FetchBodyOwner::blobChunk(const char* data, size_t size)
+{
+#if ENABLE(STREAMS_API)
+    ASSERT(m_readableStreamSource);
+    // FIXME: If ArrayBuffer::tryCreate returns null, we should probably cancel the load.
+    m_readableStreamSource->enqueue(ArrayBuffer::tryCreate(data, size));
+#else
+    UNUSED_PARAM(data);
+    UNUSED_PARAM(size);
+#endif
 }
 
 FetchBodyOwner::BlobLoader::BlobLoader(FetchBodyOwner& owner)

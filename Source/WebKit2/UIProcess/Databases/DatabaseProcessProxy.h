@@ -76,11 +76,10 @@ private:
     void didFetchWebsiteData(uint64_t callbackID, const WebsiteData&);
     void didDeleteWebsiteData(uint64_t callbackID);
     void didDeleteWebsiteDataForOrigins(uint64_t callbackID);
+    void getSandboxExtensionsForBlobFiles(uint64_t requestID, const Vector<String>& paths);
 
     // ProcessLauncher::Client
     void didFinishLaunching(ProcessLauncher*, IPC::Connection::Identifier) override;
-
-    void platformGetLaunchOptions(ProcessLauncher::LaunchOptions&);
 
     WebProcessPool* m_processPool;
 

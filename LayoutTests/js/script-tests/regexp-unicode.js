@@ -43,6 +43,39 @@ shouldBeFalse('/(?:A|\u{10123}|b)x/iu.test("b")');
 shouldBeTrue('/(?:A|\u{10123}|b)x/iu.test("bx")');
 shouldBe('"a\u{10123}X".match(/a\u{10123}b|a\u{10123}x/iu)[0].length', '4');
 shouldBe('"\u0164x".match(/\u0165x/iu)[0].length', '2');
+shouldBeTrue('/\\w/iu.test("\u017f")');
+shouldBeTrue('/\\w/iu.test("\u212a")');
+shouldBeFalse('/!\\w/iu.test("\u017f")');
+shouldBeFalse('/!\\w/iu.test("\u212a")');
+shouldBeTrue('/\\W/iu.test("\u017f")');
+shouldBeTrue('/\\W/iu.test("\u212a")');
+shouldBeFalse('/!\\W/iu.test("\u017f")');
+shouldBeFalse('/!\\W/iu.test("\u212a")');
+shouldBeTrue('/[\\w\\d]/iu.test("\u017f")');
+shouldBeTrue('/[\\w\\d]/iu.test("\u212a")');
+shouldBeFalse('/[^\\w\\d]/iu.test("\u017f")');
+shouldBeFalse('/[^\\w\\d]/iu.test("\u212a")');
+shouldBeTrue('/[\\W\\d]/iu.test("\u017f")');
+shouldBeTrue('/[\\W\\d]/iu.test("\u212a")');
+shouldBeFalse('/[^\\W\\d]/iu.test("\u017f")');
+shouldBeFalse('/[^\\W\\d]/iu.test("\u212a")');
+shouldBeTrue('/\\w/iu.test("S")');
+shouldBeTrue('/\\w/iu.test("K")');
+shouldBeFalse('/!\\w/iu.test("S")');
+shouldBeFalse('/!\\w/iu.test("K")');
+shouldBeTrue('/\\W/iu.test("S")');
+shouldBeTrue('/\\W/iu.test("K")');
+shouldBeFalse('/!\\W/iu.test("S")');
+shouldBeFalse('/!\\W/iu.test("K")');
+shouldBeTrue('/[\\w\\d]/iu.test("S")');
+shouldBeTrue('/[\\w\\d]/iu.test("K")');
+shouldBeFalse('/[^\\w\\d]/iu.test("S")');
+shouldBeFalse('/[^\\w\\d]/iu.test("K")');
+shouldBeTrue('/[\\W\\d]/iu.test("S")');
+shouldBeTrue('/[\\W\\d]/iu.test("K")');
+shouldBeFalse('/[^\\W\\d]/iu.test("S")');
+shouldBeFalse('/[^\\W\\d]/iu.test("K")');
+
 
 // Test . matches with Unicode flag
 shouldBe('"\u{1D306}".match(/^.$/u)[0].length', '2');
@@ -91,6 +124,13 @@ shouldBeTrue('re2.test("\u{12345}")');
 // shouldBeNull('/\uD803\u{10c01}/u.exec("\u{10c01}")');
 // shouldBeNull('/\uD803\u{10c01}/u.exec("\uD803")');
 // shouldBe('"\uD803\u{10c01}".match(/\uD803\u{10c01}/u)[0].length', '3');
+
+// Check quantified matches
+shouldBeTrue('/\u{1d306}{2}/u.test("\u{1d306}\u{1d306}")');
+shouldBeTrue('/\uD834\uDF06{2}/u.test("\uD834\uDF06\uD834\uDF06")');
+shouldBe('"\u{10401}\u{10401}\u{10400}".match(/\u{10401}{1,3}/u)[0]', '"\u{10401}\u{10401}"');
+shouldBe('"\u{10401}\u{10429}".match(/\u{10401}{1,3}/iu)[0]', '"\u{10401}\u{10429}"');
+shouldBe('"\u{10401}\u{10429}\u{1042a}\u{10429}".match(/\u{10401}{1,}/iu)[0]', '"\u{10401}\u{10429}"');
 
 // Check back tracking on partial matches
 shouldBe('"\u{10311}\u{10311}\u{10311}".match(/\u{10311}*a|\u{10311}*./u)[0]', '"\u{10311}\u{10311}\u{10311}"');

@@ -127,6 +127,7 @@ public:
     void plugInDidStartFromOrigin(const String& pageOrigin, const String& pluginOrigin, const String& mimeType, WebCore::SessionID);
     void plugInDidReceiveUserInteraction(const String& pageOrigin, const String& pluginOrigin, const String& mimeType, WebCore::SessionID);
     void setPluginLoadClientPolicy(uint8_t policy, const String& host, const String& bundleIdentifier, const String& versionString);
+    void setPrivateBrowsingPluginLoadClientPolicy(uint8_t policy, const String& host, const String& bundleIdentifier, const String& versionString);
     void clearPluginClientPolicies();
 
     bool fullKeyboardAccessEnabled() const { return m_fullKeyboardAccessEnabled; }
@@ -186,9 +187,6 @@ public:
     void processWillSuspendImminently(bool& handled);
     void prepareToSuspend();
     void cancelPrepareToSuspend();
-    bool markAllLayersVolatileIfPossible();
-    void setAllLayerTreeStatesFrozen(bool);
-    void processSuspensionCleanupTimerFired();
     void processDidResume();
 
 #if PLATFORM(IOS)
@@ -223,6 +221,11 @@ private:
 #if USE(OS_STATE)
     void registerWithStateDumper();
 #endif
+
+    void markAllLayersVolatile(std::function<void()> completionHandler);
+    void cancelMarkAllLayersVolatile();
+    void setAllLayerTreeStatesFrozen(bool);
+    void processSuspensionCleanupTimerFired();
 
     void clearCachedCredentials();
 
@@ -327,7 +330,6 @@ private:
 #if PLATFORM(IOS)
     RefPtr<ViewUpdateDispatcher> m_viewUpdateDispatcher;
 #endif
-    WebCore::Timer m_processSuspensionCleanupTimer;
 
     bool m_inDidClose;
 
@@ -367,6 +369,10 @@ private:
 #endif
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
+#if PLATFORM(MAC)
+    enum class PrivateBrowsing { Yes, No };
+    void setPluginLoadClientPolicies(const HashMap<String, HashMap<String, HashMap<String, uint8_t>>>&, PrivateBrowsing);
+#endif
     RefPtr<PluginProcessConnectionManager> m_pluginProcessConnectionManager;
 #endif
 
@@ -386,7 +392,7 @@ private:
 
     Ref<WebCore::ResourceLoadStatisticsStore> m_resourceLoadStatisticsStorage;
 
-    ShouldAcknowledgeWhenReadyToSuspend m_shouldAcknowledgeWhenReadyToSuspend;
+    unsigned m_pagesMarkingLayersAsVolatile { 0 };
     bool m_suppressMemoryPressureHandler { false };
 };
 

@@ -26,13 +26,8 @@
 // Introduced in DOM Level 3:
 [
     ConstructorTemplate=Event,
-    JSCustomMarkFunction,
 ] interface CustomEvent : Event {
     [InitializedByEventConstructor, CustomGetter] readonly attribute any detail;
 
-    void initCustomEvent([Default=Undefined] optional DOMString typeArg,
-                         [Default=Undefined] optional boolean canBubbleArg,
-                         [Default=Undefined] optional boolean cancelableArg,
-                         [Default=Undefined] optional any detailArg);
+    [CallWith=ScriptState] void initCustomEvent([Default=Undefined] optional DOMString typeArg, [Default=Undefined] optional boolean canBubbleArg, [Default=Undefined] optional boolean cancelableArg, [Default=Undefined] optional any detailArg);
 };
-

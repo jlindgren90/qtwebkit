@@ -59,6 +59,7 @@ aria-valuemax
 aria-valuemin
 aria-valuenow
 aria-valuetext
+as
 async
 autocomplete
 autofocus
@@ -381,3 +382,7 @@ webkit-playsinline
 x-webkit-airplay
 x-webkit-wirelessvideoplaybackdisabled
 x-itunes-inherit-uri-query-component
+
+x-apple-data-detectors
+x-apple-data-detectors-type
+x-apple-data-detectors-result

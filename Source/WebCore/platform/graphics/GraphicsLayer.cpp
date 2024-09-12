@@ -932,7 +932,7 @@ std::unique_ptr<GraphicsLayer> GraphicsLayer::create(GraphicsLayerFactory* facto
 
 } // namespace WebCore
 
-#ifndef NDEBUG
+#if ENABLE(TREE_DEBUGGING)
 void showGraphicsLayerTree(const WebCore::GraphicsLayer* layer)
 {
     if (!layer)

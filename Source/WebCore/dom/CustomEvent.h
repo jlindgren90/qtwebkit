@@ -27,7 +27,6 @@
 #define CustomEvent_h
 
 #include "Event.h"
-#include "JSValueInWrappedObject.h"
 #include "SerializedScriptValue.h"
 #include <bindings/ScriptValue.h>
 
@@ -51,19 +50,20 @@ public:
         return adoptRef(*new CustomEvent(type, initializer));
     }
 
-    void initCustomEvent(const AtomicString& type, bool canBubble, bool cancelable, JSC::JSValue detail);
+    void initCustomEvent(JSC::ExecState&, const AtomicString& type, bool canBubble, bool cancelable, JSC::JSValue detail);
 
     EventInterface eventInterface() const override;
 
-    JSValueInWrappedObject& detail() { return m_detail; }
+    JSC::JSValue detail() const { return m_detail.jsValue(); }
     
-    RefPtr<SerializedScriptValue> trySerializeDetail(JSC::ExecState*);
+    RefPtr<SerializedScriptValue> trySerializeDetail(JSC::ExecState&);
+    void visitAdditionalChildren(JSC::SlotVisitor&);
 
 private:
     CustomEvent();
     CustomEvent(const AtomicString& type, const CustomEventInit& initializer);
 
-    JSValueInWrappedObject m_detail;
+    Deprecated::ScriptValue m_detail; // FIXME: Why is it OK to use a strong reference here? What prevents a reference cycle?
     RefPtr<SerializedScriptValue> m_serializedDetail;
     bool m_triedToSerialize { false };
 };

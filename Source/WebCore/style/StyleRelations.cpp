@@ -29,6 +29,7 @@
 #include "Element.h"
 #include "NodeRenderStyle.h"
 #include "RenderStyle.h"
+#include "StyleUpdate.h"
 
 namespace WebCore {
 namespace Style {
@@ -44,7 +45,7 @@ std::unique_ptr<Relations> commitRelationsToRenderStyle(RenderStyle& style, cons
     };
 
     for (auto& relation : relations) {
-        if (&relation.element != &element) {
+        if (relation.element != &element) {
             appendStyleRelation(relation);
             continue;
         }
@@ -85,12 +86,12 @@ std::unique_ptr<Relations> commitRelationsToRenderStyle(RenderStyle& style, cons
     return remainingRelations;
 }
 
-void commitRelationsToDocument(std::unique_ptr<Relations> relations)
+void commitRelations(std::unique_ptr<Relations> relations, Update& update)
 {
     if (!relations)
         return;
     for (auto& relation : *relations) {
-        auto& element = const_cast<Element&>(relation.element);
+        auto& element = const_cast<Element&>(*relation.element);
         switch (relation.type) {
         case Relation::AffectedByActive:
             element.setChildrenAffectedByActive();
@@ -107,9 +108,12 @@ void commitRelationsToDocument(std::unique_ptr<Relations> relations)
         case Relation::AffectedByPreviousSibling:
             element.setStyleIsAffectedByPreviousSibling();
             break;
-        case Relation::AffectsNextSibling:
-            element.setAffectsNextSiblingElementStyle();
+        case Relation::AffectsNextSibling: {
+            auto* sibling = &element;
+            for (unsigned i = 0; i < relation.value && sibling; ++i, sibling = sibling->nextElementSibling())
+                sibling->setAffectsNextSiblingElementStyle();
             break;
+        }
         case Relation::ChildrenAffectedByBackwardPositionalRules:
             element.setChildrenAffectedByBackwardPositionalRules();
             break;
@@ -124,18 +128,20 @@ void commitRelationsToDocument(std::unique_ptr<Relations> relations)
             element.setChildrenAffectedByLastChildRules();
             break;
         case Relation::FirstChild:
-            if (auto* style = element.renderStyle())
+            if (auto* style = update.elementStyle(element))
                 style->setFirstChildState();
             break;
         case Relation::LastChild:
-            if (auto* style = element.renderStyle())
+            if (auto* style = update.elementStyle(element))
                 style->setLastChildState();
             break;
         case Relation::NthChildIndex:
+            if (auto* style = update.elementStyle(element))
+                style->setUnique();
             element.setChildIndex(relation.value);
             break;
         case Relation::Unique:
-            if (auto* style = element.renderStyle())
+            if (auto* style = update.elementStyle(element))
                 style->setUnique();
             break;
         }

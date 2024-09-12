@@ -1,3 +1,4 @@
+//@ skip if $hostOS == "windows"
 description("This test checks the behavior of Number.prototype.toLocaleString as described in the ECMAScript Internationalization API Specification (ECMA-402 2.0).");
 
 shouldBe("Number.prototype.toLocaleString.length", "0");
@@ -10,12 +11,12 @@ shouldNotThrow("Number.prototype.toLocaleString.call(0)");
 shouldNotThrow("Number.prototype.toLocaleString.call(NaN)");
 shouldNotThrow("Number.prototype.toLocaleString.call(Infinity)");
 shouldNotThrow("Number.prototype.toLocaleString.call(new Number)");
-shouldThrow("Number.prototype.toLocaleString.call()", "'TypeError: Number.prototype.toLocaleString called on incompatible undefined'");
-shouldThrow("Number.prototype.toLocaleString.call(undefined)", "'TypeError: Number.prototype.toLocaleString called on incompatible undefined'");
-shouldThrow("Number.prototype.toLocaleString.call(null)", "'TypeError: Number.prototype.toLocaleString called on incompatible object'");
-shouldThrow("Number.prototype.toLocaleString.call('1')", "'TypeError: Number.prototype.toLocaleString called on incompatible string'");
-shouldThrow("Number.prototype.toLocaleString.call([])", "'TypeError: Number.prototype.toLocaleString called on incompatible object'");
-shouldThrow("Number.prototype.toLocaleString.call(Symbol())", "'TypeError: Number.prototype.toLocaleString called on incompatible symbol'");
+shouldThrow("Number.prototype.toLocaleString.call()", "'TypeError: thisNumberValue called on incompatible undefined'");
+shouldThrow("Number.prototype.toLocaleString.call(undefined)", "'TypeError: thisNumberValue called on incompatible undefined'");
+shouldThrow("Number.prototype.toLocaleString.call(null)", "'TypeError: thisNumberValue called on incompatible object'");
+shouldThrow("Number.prototype.toLocaleString.call('1')", "'TypeError: thisNumberValue called on incompatible string'");
+shouldThrow("Number.prototype.toLocaleString.call([])", "'TypeError: thisNumberValue called on incompatible object'");
+shouldThrow("Number.prototype.toLocaleString.call(Symbol())", "'TypeError: thisNumberValue called on incompatible symbol'");
 
 shouldBeEqualToString("(0).toLocaleString()", "0");
 shouldBeEqualToString("new Number(1).toLocaleString()", "1");

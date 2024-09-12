@@ -35,6 +35,8 @@ class RenderStyle;
 
 namespace Style {
 
+class Update;
+
 struct Relation {
     enum Type {
         AffectedByActive,
@@ -42,6 +44,7 @@ struct Relation {
         AffectedByEmpty,
         AffectedByHover,
         AffectedByPreviousSibling,
+        // For AffectsNextSibling 'value' tells how many element siblings to mark starting with 'element'.
         AffectsNextSibling,
         ChildrenAffectedByBackwardPositionalRules,
         ChildrenAffectedByFirstChildRules,
@@ -52,12 +55,12 @@ struct Relation {
         NthChildIndex,
         Unique,
     };
-    const Element& element;
+    const Element* element;
     Type type;
     unsigned value;
 
     Relation(const Element& element, Type type, unsigned value = 1)
-        : element(element)
+        : element(&element)
         , type(type)
         , value(value)
     { }
@@ -66,7 +69,7 @@ struct Relation {
 using Relations = Vector<Relation, 8>;
 
 std::unique_ptr<Relations> commitRelationsToRenderStyle(RenderStyle&, const Element&, const Relations&);
-void commitRelationsToDocument(std::unique_ptr<Relations>);
+void commitRelations(std::unique_ptr<Relations>, Update&);
 
 }
 }

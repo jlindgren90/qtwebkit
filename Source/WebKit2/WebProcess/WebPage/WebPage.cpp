@@ -1,5 +1,6 @@
+
 /*
- * Copyright (C) 2010, 2011, 2012, 2013-2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2012 Intel Corporation. All rights reserved.
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
  *
@@ -196,6 +197,7 @@
 #include "PDFPlugin.h"
 #include "RemoteLayerTreeTransaction.h"
 #include "WKStringCF.h"
+#include "WebPlaybackSessionManager.h"
 #include "WebVideoFullscreenManager.h"
 #include <WebCore/LegacyWebArchive.h>
 #endif
@@ -243,6 +245,11 @@ using namespace WebCore;
 namespace WebKit {
 
 static const double pageScrollHysteresisSeconds = 0.3;
+static const std::chrono::milliseconds initialLayerVolatilityTimerInterval { 20 };
+static const std::chrono::seconds maximumLayerVolatilityTimerInterval { 10 };
+
+#define WEBPAGE_LOG_ALWAYS(...) LOG_ALWAYS(isAlwaysOnLoggingAllowed(), __VA_ARGS__)
+#define WEBPAGE_LOG_ALWAYS_ERROR(...) LOG_ALWAYS_ERROR(isAlwaysOnLoggingAllowed(), __VA_ARGS__)
 
 class SendStopResponsivenessTimer {
 public:
@@ -351,8 +358,8 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     , m_availableScreenSize(parameters.availableScreenSize)
     , m_deviceOrientation(0)
     , m_inDynamicSizeUpdate(false)
-    , m_volatilityTimer(*this, &WebPage::volatilityTimerFired)
 #endif
+    , m_layerVolatilityTimer(*this, &WebPage::layerVolatilityTimerFired)
     , m_backgroundColor(Color::white)
     , m_maximumRenderingSuppressionToken(0)
     , m_scrollPinningBehavior(DoNotPin)
@@ -366,7 +373,6 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 #endif
     , m_mainFrameProgressCompleted(false)
     , m_shouldDispatchFakeMouseMoveEvents(true)
-    , m_mediaShouldUsePersistentCache(parameters.mediaShouldUsePersistentCache)
 {
     ASSERT(m_pageID);
 
@@ -2027,13 +2033,53 @@ void WebPage::setLayerTreeStateIsFrozen(bool frozen)
     drawingArea->setLayerTreeStateIsFrozen(frozen);
 }
 
+void WebPage::layerVolatilityTimerFired()
+{
+    if (markLayersVolatileImmediatelyIfPossible()) {
+        m_layerVolatilityTimer.stop();
+        return;
+    }
+
+    auto newInterval = std::min(2 * m_layerVolatilityTimer.repeatIntervalMS(), std::chrono::duration_cast<std::chrono::milliseconds>(maximumLayerVolatilityTimerInterval));
+    WEBPAGE_LOG_ALWAYS_ERROR("%p - WebPage - Failed to mark all layers as volatile, will retry in %lld ms", this, static_cast<long long>(newInterval.count()));
+    m_layerVolatilityTimer.startRepeating(newInterval);
+}
+
 bool WebPage::markLayersVolatileImmediatelyIfPossible()
 {
-    auto* drawingArea = this->drawingArea();
-    if (!drawingArea)
-        return true;
+    bool success = !drawingArea() || drawingArea()->markLayersVolatileImmediatelyIfPossible();
+    if (success) {
+        WEBPAGE_LOG_ALWAYS("%p - WebPage - Successfully marked layers as volatile", this);
+        auto completionHandlers = WTFMove(m_markLayersAsVolatileCompletionHandlers);
+        for (auto& completionHandler : completionHandlers)
+            completionHandler();
+    }
 
-    return drawingArea->markLayersVolatileImmediatelyIfPossible();
+    return success;
+}
+
+void WebPage::markLayersVolatile(std::function<void()> completionHandler)
+{
+    WEBPAGE_LOG_ALWAYS("%p - WebPage::markLayersVolatile()", this);
+
+    if (m_layerVolatilityTimer.isActive())
+        m_layerVolatilityTimer.stop();
+
+    if (completionHandler)
+        m_markLayersAsVolatileCompletionHandlers.append(WTFMove(completionHandler));
+
+    if (markLayersVolatileImmediatelyIfPossible())
+        return;
+
+    WEBPAGE_LOG_ALWAYS("%p - Failed to mark all layers as volatile, will retry in %lld ms", this, initialLayerVolatilityTimerInterval.count());
+    m_layerVolatilityTimer.startRepeating(initialLayerVolatilityTimerInterval);
+}
+
+void WebPage::cancelMarkLayersVolatile()
+{
+    WEBPAGE_LOG_ALWAYS("%p - WebPage::cancelMarkLayersVolatile()", this);
+    m_layerVolatilityTimer.stop();
+    m_markLayersAsVolatileCompletionHandlers.clear();
 }
 
 class CurrentEvent {
@@ -2610,7 +2656,7 @@ void WebPage::runJavaScriptInMainFrame(const String& script, uint64_t callbackID
     JSLockHolder lock(JSDOMWindow::commonVM());
     bool hadException = true;
     ExceptionDetails details;
-    if (JSValue resultValue = m_mainFrame->coreFrame()->script().executeScript(script, true, &details).jsValue()) {
+    if (JSValue resultValue = m_mainFrame->coreFrame()->script().executeScript(script, true, &details)) {
         hadException = false;
         serializedResultValue = SerializedScriptValue::create(m_mainFrame->jsContext(),
             toRef(m_mainFrame->coreFrame()->script().globalObject(mainThreadNormalWorld())->globalExec(), resultValue), nullptr);
@@ -2798,7 +2844,7 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
     // but we currently don't match the naming of WebCore exactly so we are
     // handrolling the boolean and integer preferences until that is fixed.
 
-#define INITIALIZE_SETTINGS(KeyUpper, KeyLower, TypeName, Type, DefaultValue) settings.set##KeyUpper(store.get##TypeName##ValueForKey(WebPreferencesKey::KeyLower##Key()));
+#define INITIALIZE_SETTINGS(KeyUpper, KeyLower, TypeName, Type, DefaultValue, HumanReadableName, HumanReadableDescription) settings.set##KeyUpper(store.get##TypeName##ValueForKey(WebPreferencesKey::KeyLower##Key()));
 
     FOR_EACH_WEBKIT_STRING_PREFERENCE(INITIALIZE_SETTINGS)
 
@@ -3051,6 +3097,18 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
     RuntimeEnabledFeatures::sharedFeatures().setCustomElementsEnabled(store.getBoolValueForKey(WebPreferencesKey::customElementsEnabledKey()));
 #endif
 
+#if ENABLE(WEBGL2)
+    RuntimeEnabledFeatures::sharedFeatures().setWebGL2Enabled(store.getBoolValueForKey(WebPreferencesKey::webGL2EnabledKey()));
+#endif
+
+#if ENABLE(FETCH_API)
+    RuntimeEnabledFeatures::sharedFeatures().setFetchAPIEnabled(store.getBoolValueForKey(WebPreferencesKey::fetchAPIEnabledKey()));
+#endif
+
+#if ENABLE(DOWNLOAD_ATTRIBUTE)
+    RuntimeEnabledFeatures::sharedFeatures().setDownloadAttributeEnabled(store.getBoolValueForKey(WebPreferencesKey::downloadAttributeEnabledKey()));
+#endif
+
     bool processSuppressionEnabled = store.getBoolValueForKey(WebPreferencesKey::pageVisibilityBasedProcessSuppressionEnabledKey());
     if (m_processSuppressionEnabled != processSuppressionEnabled) {
         m_processSuppressionEnabled = processSuppressionEnabled;
@@ -3136,11 +3194,18 @@ WebInspectorUI* WebPage::inspectorUI()
 }
 
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-WebVideoFullscreenManager* WebPage::videoFullscreenManager()
+WebPlaybackSessionManager& WebPage::playbackSessionManager()
+{
+    if (!m_playbackSessionManager)
+        m_playbackSessionManager = WebPlaybackSessionManager::create(*this);
+    return *m_playbackSessionManager;
+}
+
+WebVideoFullscreenManager& WebPage::videoFullscreenManager()
 {
     if (!m_videoFullscreenManager)
-        m_videoFullscreenManager = WebVideoFullscreenManager::create(this);
-    return m_videoFullscreenManager.get();
+        m_videoFullscreenManager = WebVideoFullscreenManager::create(*this, playbackSessionManager());
+    return *m_videoFullscreenManager;
 }
 #endif
 
@@ -3336,6 +3401,11 @@ void WebPage::addWebUndoStep(uint64_t stepID, WebUndoStep* entry)
 void WebPage::removeWebEditCommand(uint64_t stepID)
 {
     m_undoStepMap.remove(stepID);
+}
+
+bool WebPage::isAlwaysOnLoggingAllowed() const
+{
+    return corePage() && corePage()->isAlwaysOnLoggingAllowed();
 }
 
 void WebPage::unapplyEditCommand(uint64_t stepID)

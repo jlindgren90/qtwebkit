@@ -28,8 +28,8 @@
 #include "MainThreadNotifier.h"
 #include "MediaPlayerPrivate.h"
 #include "PlatformLayer.h"
-// #include "TextureMapperPlatformLayer.h"
-// #include "TextureMapperPlatformLayerProxy.h"
+#include "TextureMapperPlatformLayer.h"
+#include "TextureMapperPlatformLayerProxy.h"
 #include <glib.h>
 #include <wtf/Condition.h>
 #include <wtf/Forward.h>
@@ -113,7 +113,7 @@ public:
 #endif
 
 #if USE(GSTREAMER_GL)
-    PassNativeImagePtr nativeImageForCurrentTime() override;
+    NativeImagePtr nativeImageForCurrentTime() override;
 #endif
 
 protected:

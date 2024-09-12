@@ -219,10 +219,10 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
         if (m_context && !m_context->is2d())
             return nullptr;
         if (!m_context) {
-            bool usesDashbardCompatibilityMode = false;
+            bool usesDashboardCompatibilityMode = false;
 #if ENABLE(DASHBOARD_SUPPORT)
             if (Settings* settings = document().settings())
-                usesDashbardCompatibilityMode = settings->usesDashboardBackwardCompatibilityMode();
+                usesDashboardCompatibilityMode = settings->usesDashboardBackwardCompatibilityMode();
 #endif
 
             // Make sure we don't use more pixel memory than the system can support.
@@ -236,7 +236,7 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
                 return nullptr;
             }
 
-            m_context = std::make_unique<CanvasRenderingContext2D>(this, document().inQuirksMode(), usesDashbardCompatibilityMode);
+            m_context = std::make_unique<CanvasRenderingContext2D>(this, document().inQuirksMode(), usesDashboardCompatibilityMode);
 
             downcast<CanvasRenderingContext2D>(*m_context).setUsesDisplayListDrawing(m_usesDisplayListDrawing);
             downcast<CanvasRenderingContext2D>(*m_context).setTracksDisplayListReplay(m_tracksDisplayListReplay);
@@ -300,7 +300,7 @@ bool HTMLCanvasElement::is3dType(const String& type)
     // Retain support for the legacy "webkit-3d" name.
     return type == "webgl" || type == "experimental-webgl"
 #if ENABLE(WEBGL2)
-        || type == "experimental-webgl2"
+        || type == "webgl2"
 #endif
         || type == "webkit-3d";
 }

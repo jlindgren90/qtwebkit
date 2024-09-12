@@ -116,6 +116,7 @@
 #include "MutationEvent.h"
 #include "NameNodeList.h"
 #include "NestingLevelIncrementer.h"
+#include "NoEventDispatchAssertion.h"
 #include "NodeIterator.h"
 #include "NodeRareData.h"
 #include "NodeWithIndex.h"
@@ -133,6 +134,7 @@
 #include "ProcessingInstruction.h"
 #include "RenderChildIterator.h"
 #include "RenderLayerCompositor.h"
+#include "RenderTreeUpdater.h"
 #include "RenderView.h"
 #include "RenderWidget.h"
 #include "ResourceLoadObserver.h"
@@ -197,6 +199,11 @@
 
 #if ENABLE(FULLSCREEN_API)
 #include "RenderFullScreen.h"
+#endif
+
+#if ENABLE(INDEXED_DATABASE)
+#include "IDBConnectionProxy.h"
+#include "IDBOpenDBRequest.h"
 #endif
 
 #if PLATFORM(IOS)
@@ -1910,15 +1917,22 @@ void Document::recalcStyle(Style::Change change)
         }
 
         Style::TreeResolver resolver(*this);
-        resolver.resolve(change);
-
-        updatedCompositingLayers = frameView.updateCompositingLayersAfterStyleChange();
+        auto styleUpdate = resolver.resolve(change);
 
         clearNeedsStyleRecalc();
         clearChildNeedsStyleRecalc();
         unscheduleStyleRecalc();
 
         m_inStyleRecalc = false;
+
+        if (styleUpdate) {
+            TemporaryChange<bool> inRenderTreeUpdate(m_inRenderTreeUpdate, true);
+
+            RenderTreeUpdater updater(*this);
+            updater.commit(WTFMove(styleUpdate));
+        }
+
+        updatedCompositingLayers = frameView.updateCompositingLayersAfterStyleChange();
     }
 
     // If we wanted to call implicitClose() during recalcStyle, do so now that we're finished.
@@ -2036,7 +2050,10 @@ Ref<RenderStyle> Document::styleForElementIgnoringPendingStylesheets(Element& el
     TemporaryChange<bool> change(m_ignorePendingStylesheets, true);
     auto elementStyle = element.resolveStyle(parentStyle);
 
-    Style::commitRelationsToDocument(WTFMove(elementStyle.relations));
+    if (elementStyle.relations) {
+        Style::Update emptyUpdate(*this);
+        Style::commitRelations(WTFMove(elementStyle.relations), emptyUpdate);
+    }
 
     return WTFMove(elementStyle.renderStyle);
 }
@@ -2325,7 +2342,7 @@ void Document::destroyRenderTree()
     m_activeElement = nullptr;
 
     if (m_documentElement)
-        Style::detachRenderTree(*m_documentElement);
+        RenderTreeUpdater::tearDownRenderers(*m_documentElement);
 
     clearChildNeedsStyleRecalc();
 
@@ -3079,6 +3096,21 @@ void Document::disableEval(const String& errorMessage)
     frame()->script().disableEval(errorMessage);
 }
 
+#if ENABLE(INDEXED_DATABASE)
+IDBClient::IDBConnectionProxy* Document::idbConnectionProxy()
+{
+    if (!m_idbConnectionProxy) {
+        Page* currentPage = page();
+        if (!currentPage)
+            return nullptr;
+
+        m_idbConnectionProxy = std::make_unique<IDBClient::IDBConnectionProxy>(currentPage->idbConnection());
+    }
+
+    return m_idbConnectionProxy.get();
+}
+#endif // ENABLE(INDEXED_DATABASE)
+
 bool Document::canNavigate(Frame* targetFrame)
 {
     if (!m_frame)
@@ -3195,9 +3227,10 @@ bool Document::usesStyleBasedEditability() const
     return authorSheets.usesStyleBasedEditability();
 }
 
-void Document::processHttpEquiv(const String& equiv, const String& content)
+void Document::processHttpEquiv(const String& equiv, const String& content, bool isInDocumentHead)
 {
-    ASSERT(!equiv.isNull() && !content.isNull());
+    ASSERT(!equiv.isNull());
+    ASSERT(!content.isNull());
 
     HttpEquivPolicy policy = httpEquivPolicy();
     if (policy != HttpEquivPolicy::Enabled) {
@@ -3286,19 +3319,13 @@ void Document::processHttpEquiv(const String& equiv, const String& content)
         break;
 
     case HTTPHeaderName::ContentSecurityPolicy:
-        contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::Enforce);
-        break;
-
-    case HTTPHeaderName::ContentSecurityPolicyReportOnly:
-        contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::Report);
+        if (isInDocumentHead)
+            contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::Enforce);
         break;
 
     case HTTPHeaderName::XWebKitCSP:
-        contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::PrefixedEnforce);
-        break;
-
-    case HTTPHeaderName::XWebKitCSPReportOnly:
-        contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::PrefixedReport);
+        if (isInDocumentHead)
+            contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::PrefixedEnforce);
         break;
 
     default:
@@ -6882,7 +6909,7 @@ void Document::removePlaybackTargetPickerClient(MediaPlaybackTargetClient& clien
     page->removePlaybackTargetPickerClient(clientId);
 }
 
-void Document::showPlaybackTargetPicker(MediaPlaybackTargetClient& client, bool isVideo, const String& customMenuItemTitle)
+void Document::showPlaybackTargetPicker(MediaPlaybackTargetClient& client, bool isVideo)
 {
     Page* page = this->page();
     if (!page)
@@ -6892,7 +6919,7 @@ void Document::showPlaybackTargetPicker(MediaPlaybackTargetClient& client, bool 
     if (it == m_clientToIDMap.end())
         return;
 
-    page->showPlaybackTargetPicker(it->value, view()->lastKnownMousePosition(), isVideo, customMenuItemTitle);
+    page->showPlaybackTargetPicker(it->value, view()->lastKnownMousePosition(), isVideo);
 }
 
 void Document::playbackTargetPickerClientStateDidChange(MediaPlaybackTargetClient& client, MediaProducer::MediaStateFlags state)
@@ -6933,12 +6960,6 @@ void Document::setShouldPlayToPlaybackTarget(uint64_t clientId, bool shouldPlay)
         return;
 
     it->value->setShouldPlayToPlaybackTarget(shouldPlay);
-}
-
-void Document::customPlaybackActionSelected(uint64_t clientId)
-{
-    if (auto* client = m_idToClientMap.get(clientId))
-        client->customPlaybackActionSelected();
 }
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET)
 

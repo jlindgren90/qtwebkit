@@ -3,7 +3,7 @@
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
  *           (C) 2006 Alexey Proskuryakov (ap@webkit.org)
- * Copyright (C) 2004-2010, 2012-2013, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2004-2010, 2012-2013, 2015, 2016 Apple Inc. All rights reserved.
  * Copyright (C) 2008, 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
  * Copyright (C) 2011 Google Inc. All rights reserved.
@@ -25,8 +25,7 @@
  *
  */
 
-#ifndef Document_h
-#define Document_h
+#pragma once
 
 #include "CollectionType.h"
 #include "Color.h"
@@ -34,7 +33,7 @@
 #include "DocumentEventQueue.h"
 #include "DocumentTiming.h"
 #include "FocusDirection.h"
-#include "FontSelector.h"
+#include "FontSelectorClient.h"
 #include "MediaProducer.h"
 #include "MutationObserver.h"
 #include "PageVisibilityState.h"
@@ -661,6 +660,10 @@ public:
 
     void disableEval(const String& errorMessage) final;
 
+#if ENABLE(INDEXED_DATABASE)
+    IDBClient::IDBConnectionProxy* idbConnectionProxy() final;
+#endif
+
     bool canNavigate(Frame* targetFrame);
     Frame* findUnsafeParentScrollPropagationBoundary();
 
@@ -826,16 +829,11 @@ public:
 
     CSSStyleDeclaration* getOverrideStyle(Element*, const String& pseudoElt);
 
-    /**
-     * Handles a HTTP header equivalent set by a meta tag using <meta http-equiv="..." content="...">. This is called
-     * when a meta tag is encountered during document parsing, and also when a script dynamically changes or adds a meta
-     * tag. This enables scripts to use meta tags to perform refreshes and set expiry dates in addition to them being
-     * specified in a HTML file.
-     *
-     * @param equiv The http header name (value of the meta tag's "equiv" attribute)
-     * @param content The header value (value of the meta tag's "content" attribute)
-     */
-    void processHttpEquiv(const String& equiv, const String& content);
+    // Handles an HTTP header equivalent set by a meta tag using <meta http-equiv="..." content="...">. This is called
+    // when a meta tag is encountered during document parsing, and also when a script dynamically changes or adds a meta
+    // tag. This enables scripts to use meta tags to perform refreshes and set expiry dates in addition to them being
+    // specified in an HTML file.
+    void processHttpEquiv(const String& equiv, const String& content, bool isInDocumentHead);
 
 #if PLATFORM(IOS)
     void processFormatDetection(const String&);
@@ -1249,7 +1247,8 @@ public:
     void setNeedsNotifyRemoveAllPendingStylesheet() { m_needsNotifyRemoveAllPendingStylesheet = true; }
     void clearStyleResolver();
 
-    bool inStyleRecalc() { return m_inStyleRecalc; }
+    bool inStyleRecalc() const { return m_inStyleRecalc; }
+    bool inRenderTreeUpdate() const { return m_inRenderTreeUpdate; }
 
     // Return a Locale for the default locale if the argument is null or empty.
     Locale& getCachedLocale(const AtomicString& locale = nullAtom);
@@ -1295,15 +1294,12 @@ public:
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     void addPlaybackTargetPickerClient(MediaPlaybackTargetClient&);
     void removePlaybackTargetPickerClient(MediaPlaybackTargetClient&);
-
-    void showPlaybackTargetPicker(MediaPlaybackTargetClient&, bool, const String&);
-
+    void showPlaybackTargetPicker(MediaPlaybackTargetClient&, bool);
     void playbackTargetPickerClientStateDidChange(MediaPlaybackTargetClient&, MediaProducer::MediaStateFlags);
 
     void setPlaybackTarget(uint64_t, Ref<MediaPlaybackTarget>&&);
     void playbackTargetAvailabilityDidChange(uint64_t, bool);
     void setShouldPlayToPlaybackTarget(uint64_t, bool);
-    void customPlaybackActionSelected(uint64_t);
 #endif
 
     ShouldOpenExternalURLsPolicy shouldOpenExternalURLsPolicyToPropagate() const;
@@ -1513,6 +1509,7 @@ private:
     bool m_pendingStyleRecalcShouldForce;
     bool m_inStyleRecalc;
     bool m_closeAfterStyleRecalc;
+    bool m_inRenderTreeUpdate { false };
 
     bool m_gotoAnchorNeededAfterStylesheetsLoad;
     bool m_isDNSPrefetchEnabled;
@@ -1783,6 +1780,10 @@ private:
 #if ENABLE(MEDIA_STREAM)
     bool m_hasHadActiveMediaStreamTrack { false };
 #endif
+
+#if ENABLE(INDEXED_DATABASE)
+    std::unique_ptr<IDBClient::IDBConnectionProxy> m_idbConnectionProxy;
+#endif
 };
 
 inline void Document::notifyRemovePendingSheetIfNeeded()
@@ -1825,5 +1826,3 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::Document)
     static bool isType(const WebCore::ScriptExecutionContext& context) { return context.isDocument(); }
     static bool isType(const WebCore::Node& node) { return node.isDocumentNode(); }
 SPECIALIZE_TYPE_TRAITS_END()
-
-#endif // Document_h

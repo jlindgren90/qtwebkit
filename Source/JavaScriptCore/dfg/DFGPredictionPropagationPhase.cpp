@@ -172,7 +172,12 @@ private:
             changed |= setPrediction(SpecInt32);
             break;
         }
-            
+
+        case TryGetById: {
+            changed |= setPrediction(SpecBytecodeTop);
+            break;
+        }
+
         case ArrayPop:
         case ArrayPush:
         case RegExpExec:
@@ -199,6 +204,11 @@ private:
             changed |= setPrediction(node->getHeapPrediction());
             break;
         }
+
+        case GetDynamicVar: {
+            changed |= setPrediction(SpecBytecodeTop);
+            break;
+        }
             
         case GetGetterSetterByOffset:
         case GetExecutable: {
@@ -209,7 +219,6 @@ private:
         case GetGetter:
         case GetSetter:
         case GetCallee:
-        case NewArrowFunction:
         case NewFunction:
         case NewGeneratorFunction: {
             changed |= setPrediction(SpecFunction);
@@ -238,10 +247,10 @@ private:
         }
 
         case UInt32ToNumber: {
-            // FIXME: Support Int52.
-            // https://bugs.webkit.org/show_bug.cgi?id=125704
             if (node->canSpeculateInt32(m_pass))
                 changed |= mergePrediction(SpecInt32);
+            else if (enableInt52())
+                changed |= mergePrediction(SpecMachineInt);
             else
                 changed |= mergePrediction(SpecBytecodeNumber);
             break;
@@ -389,7 +398,8 @@ private:
 
         case ArithRound:
         case ArithFloor:
-        case ArithCeil: {
+        case ArithCeil:
+        case ArithTrunc: {
             if (isInt32OrBooleanSpeculation(node->getHeapPrediction()) && m_graph.roundShouldSpeculateInt32(node, m_pass))
                 changed |= setPrediction(SpecInt32);
             else
@@ -406,7 +416,8 @@ private:
                 changed |= mergePrediction(speculatedDoubleTypeForPrediction(child));
             break;
         }
-            
+
+        case DeleteById:
         case LogicalNot:
         case CompareLess:
         case CompareLessEq:
@@ -417,13 +428,17 @@ private:
         case OverridesHasInstance:
         case InstanceOf:
         case InstanceOfCustom:
+        case IsArrayObject:
+        case IsJSArray:
+        case IsArrayConstructor:
         case IsUndefined:
         case IsBoolean:
         case IsNumber:
         case IsString:
         case IsObject:
         case IsObjectOrNull:
-        case IsFunction: {
+        case IsFunction:
+        case IsRegExpObject: {
             changed |= setPrediction(SpecBoolean);
             break;
         }
@@ -490,6 +505,11 @@ private:
             break;
         }
 
+        case CallObjectConstructor: {
+            changed |= setPrediction(SpecObject);
+            break;
+        }
+
         case ToThis: {
             // ToThis in methods for primitive types should speculate primitive types in strict mode.
             ECMAMode ecmaMode = m_graph.executableFor(node->origin.semantic)->isStrictMode() ? StrictMode : NotStrictMode;
@@ -551,6 +571,11 @@ private:
             
         case SkipScope:
         case GetGlobalObject: {
+            changed |= setPrediction(SpecObjectOther);
+            break;
+        }
+
+        case ResolveScope: {
             changed |= setPrediction(SpecObjectOther);
             break;
         }
@@ -667,6 +692,7 @@ private:
         case GetStack:
         case GetRegExpObjectLastIndex:
         case SetRegExpObjectLastIndex:
+        case RecordRegExpCachedResult:
         case LazyJSConstant: {
             // This node should never be visible at this stage of compilation. It is
             // inserted by fixup(), which follows this phase.
@@ -763,6 +789,8 @@ private:
         case Check:
         case PutGlobalVariable:
         case CheckWatchdogTimer:
+        case LogShadowChickenPrologue:
+        case LogShadowChickenTail:
         case Unreachable:
         case LoopHint:
         case NotifyWrite:
@@ -772,6 +800,7 @@ private:
         case ExitOK:
         case LoadVarargs:
         case CopyRest:
+        case PutDynamicVar:
             break;
             
         // This gets ignored because it only pretends to produce a value.

@@ -33,12 +33,13 @@
 
 #include "DOMRequestState.h"
 #include "Dictionary.h"
-#include "ExceptionCode.h"
 #include "FetchBodyOwner.h"
+#include "FetchResponseSource.h"
 #include "FormData.h"
 #include "HTTPParsers.h"
 #include "JSBlob.h"
 #include "JSDOMFormData.h"
+#include "ReadableStreamSource.h"
 
 namespace WebCore {
 
@@ -82,60 +83,24 @@ FetchBody FetchBody::extractFromBody(FetchBody* body)
     if (!body)
         return { };
 
-    body->m_isDisturbed = true;
     return FetchBody(WTFMove(*body));
-}
-
-bool FetchBody::processIfEmptyOrDisturbed(Consumer::Type type, DeferredWrapper& promise)
-{
-    if (m_type == Type::None) {
-        switch (type) {
-        case Consumer::Type::Text:
-            promise.resolve(String());
-            return true;
-        case Consumer::Type::Blob:
-            promise.resolve<RefPtr<Blob>>(Blob::create());
-            return true;
-        case Consumer::Type::JSON:
-            promise.reject<ExceptionCode>(SYNTAX_ERR);
-            return true;
-        case Consumer::Type::ArrayBuffer:
-            fulfillPromiseWithArrayBuffer(promise, nullptr, 0);
-            return true;
-        default:
-            ASSERT_NOT_REACHED();
-            promise.reject<ExceptionCode>(0);
-            return true;
-        };
-    }
-
-    if (m_isDisturbed) {
-        promise.reject<ExceptionCode>(TypeError);
-        return true;
-    }
-    m_isDisturbed = true;
-    return false;
 }
 
 void FetchBody::arrayBuffer(FetchBodyOwner& owner, DeferredWrapper&& promise)
 {
-    if (processIfEmptyOrDisturbed(Consumer::Type::ArrayBuffer, promise))
-        return;
+    ASSERT(m_type != Type::None);
     consume(owner, Consumer::Type::ArrayBuffer, WTFMove(promise));
 }
 
 void FetchBody::blob(FetchBodyOwner& owner, DeferredWrapper&& promise)
 {
-    if (processIfEmptyOrDisturbed(Consumer::Type::Blob, promise))
-        return;
-
+    ASSERT(m_type != Type::None);
     consume(owner, Consumer::Type::Blob, WTFMove(promise));
 }
 
 void FetchBody::json(FetchBodyOwner& owner, DeferredWrapper&& promise)
 {
-    if (processIfEmptyOrDisturbed(Consumer::Type::JSON, promise))
-        return;
+    ASSERT(m_type != Type::None);
 
     if (m_type == Type::Text) {
         fulfillPromiseWithJSON(promise, m_text);
@@ -146,8 +111,7 @@ void FetchBody::json(FetchBodyOwner& owner, DeferredWrapper&& promise)
 
 void FetchBody::text(FetchBodyOwner& owner, DeferredWrapper&& promise)
 {
-    if (processIfEmptyOrDisturbed(Consumer::Type::Text, promise))
-        return;
+    ASSERT(m_type != Type::None);
 
     if (m_type == Type::Text) {
         promise.resolve(m_text);
@@ -179,6 +143,36 @@ void FetchBody::consume(FetchBodyOwner& owner, Consumer::Type type, DeferredWrap
     // FIXME: Support other types.
     promise.reject<ExceptionCode>(0);
 }
+
+#if ENABLE(STREAMS_API)
+void FetchBody::consumeAsStream(FetchBodyOwner& owner, FetchResponseSource& source)
+{
+    ASSERT(m_type != Type::Loading);
+
+    switch (m_type) {
+    case Type::ArrayBuffer:
+        source.enqueue(m_data);
+        source.close();
+        return;
+    case Type::Text: {
+        Vector<uint8_t> data = extractFromText();
+        // FIXME: We should not close the source if ArrayBuffer;;tryCreate returns null.
+        source.enqueue(ArrayBuffer::tryCreate(data.data(), data.size()));
+        source.close();
+        return;
+    }
+    case Type::Blob:
+        ASSERT(m_blob);
+        owner.loadBlob(*m_blob, FetchLoader::Type::Stream);
+        return;
+    case Type::None:
+        source.close();
+        return;
+    default:
+        source.error(ASCIILiteral("not implemented"));
+    }
+}
+#endif
 
 void FetchBody::consumeArrayBuffer(Consumer::Type type, DeferredWrapper& promise)
 {
