@@ -1025,10 +1025,11 @@ bool ResourceHandle::start()
         QFile file(':' + QUrl(url).path());
         if (file.open(QFile::ReadOnly)) {
             QByteArray data = file.readAll();
-            ResourceResponse response(url, MIMETypeRegistry::getMIMETypeForPath(url), data.size(), String());
+            String mimeType = MIMETypeRegistry::getMIMETypeForPath(url);
             RefPtr<ResourceHandle> me(this);
-            callOnMainThread([me, data, response] {
-                me->client()->didReceiveResponse(me.get(), response);
+            callOnMainThread([me, url, data, mimeType] {
+                ResourceResponse response(url, mimeType, data.size(), String());
+                me->client()->didReceiveResponse(me.get(), std::move(response));
                 me->client()->didReceiveData(me.get(), data.data(), data.size(), data.size());
                 me->client()->didFinishLoading(me.get(), 0);
             });

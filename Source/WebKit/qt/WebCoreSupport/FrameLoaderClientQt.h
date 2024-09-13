@@ -89,7 +89,6 @@ public:
     void dispatchWillSendRequest(WebCore::DocumentLoader*, unsigned long, WebCore::ResourceRequest&, const WebCore::ResourceResponse&) override;
     bool shouldUseCredentialStorage(DocumentLoader*, unsigned long identifier) override;
     void dispatchDidReceiveAuthenticationChallenge(DocumentLoader*, unsigned long identifier, const AuthenticationChallenge&) override;
-    void dispatchDidCancelAuthenticationChallenge(DocumentLoader*, unsigned long identifier, const AuthenticationChallenge&) override;
     void dispatchDidReceiveResponse(WebCore::DocumentLoader*, unsigned long, const WebCore::ResourceResponse&) override;
     void dispatchDidReceiveContentLength(WebCore::DocumentLoader*, unsigned long, int) override;
     void dispatchDidFinishLoading(WebCore::DocumentLoader*, unsigned long) override;
@@ -167,7 +166,7 @@ public:
     String generatedMIMETypeForURLScheme(const String& URLScheme) const override;
 
     void frameLoadCompleted() override;
-    void saveViewStateToItem(WebCore::HistoryItem*) override;
+    void saveViewStateToItem(WebCore::HistoryItem&) override;
     void restoreViewState() override;
     void provisionalLoadStarted() override;
     void didFinishLoad() override;

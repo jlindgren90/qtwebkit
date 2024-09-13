@@ -38,6 +38,7 @@
 
 #include <BlobRegistryImpl.h>
 #include <IntSize.h>
+#include <NetworkStorageSession.h>
 #include <NotImplemented.h>
 #include <Page.h>
 #include <PageGroup.h>
@@ -76,11 +77,6 @@ PasteboardStrategy* PlatformStrategiesQt::createPasteboardStrategy()
     return 0;
 }
 
-PluginStrategy* PlatformStrategiesQt::createPluginStrategy()
-{
-    return this;
-}
-
 String PlatformStrategiesQt::cookiesForDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
 {
     return WebCore::cookiesForDOM(session, firstParty, url);
@@ -101,6 +97,12 @@ String PlatformStrategiesQt::cookieRequestHeaderFieldValue(const NetworkStorageS
     return WebCore::cookieRequestHeaderFieldValue(session, firstParty, url);
 }
 
+String PlatformStrategiesQt::cookieRequestHeaderFieldValue(SessionID sessionID, const URL& firstParty, const URL& url)
+{
+    // FIXME: okay to always use default?
+    return WebCore::cookieRequestHeaderFieldValue(NetworkStorageSession::defaultStorageSession(), firstParty, url);
+}
+
 bool PlatformStrategiesQt::getRawCookies(const NetworkStorageSession& session, const URL& firstParty, const URL& url, Vector<Cookie>& rawCookies)
 {
     return WebCore::getRawCookies(session, firstParty, url, rawCookies);
@@ -114,21 +116,6 @@ void PlatformStrategiesQt::deleteCookie(const NetworkStorageSession& session, co
 void PlatformStrategiesQt::addCookie(const NetworkStorageSession& session, const URL& url, const Cookie& cookie)
 {
     WebCore::addCookie(session, url, cookie);
-}
-
-void PlatformStrategiesQt::refreshPlugins()
-{
-    // stub
-}
-
-void PlatformStrategiesQt::getPluginInfo(const WebCore::Page* page, Vector<WebCore::PluginInfo>& outPlugins)
-{
-    // stub
-}
-
-void PlatformStrategiesQt::getWebVisiblePluginInfo(const Page* page, Vector<PluginInfo>& outPlugins)
-{
-    getPluginInfo(page, outPlugins);
 }
 
 BlobRegistry* PlatformStrategiesQt::createBlobRegistry()

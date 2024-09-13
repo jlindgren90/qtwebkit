@@ -1,4 +1,5 @@
 list(APPEND WTF_SOURCES
+    PlatformUserPreferredLanguagesUnix.cpp
     UniStdExtras.cpp
 
     generic/WorkQueueGeneric.cpp
@@ -8,6 +9,7 @@ list(APPEND WTF_SOURCES
     glib/RunLoopGLib.cpp
 
     text/qt/StringQt.cpp
+    text/qt/TextBreakIteratorInternalICUQt.cpp
 )
 
 list(APPEND WTF_SYSTEM_INCLUDE_DIRECTORIES

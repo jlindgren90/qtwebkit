@@ -66,6 +66,7 @@
 #include "PlatformMouseEvent.h"
 #include "PlatformTouchEvent.h"
 #include "PlatformWheelEvent.h"
+#include "PluginInfoProvider.h"
 #include "ProgressTracker.h"
 #include "ProgressTrackerClientQt.h"
 #include "QGraphicsUtils.h"
@@ -75,6 +76,7 @@
 #include "Scrollbar.h"
 #include "ScrollbarTheme.h"
 #include "Settings.h"
+#include "SocketProvider.h"
 #include "TextIterator.h"
 #include "UndoStepQt.h"
 #include "UserAgentQt.h"
@@ -106,6 +108,13 @@ extern Q_GUI_EXPORT int qt_defaultDpi();
 QT_END_NAMESPACE
 
 using namespace WebCore;
+
+class EmptyPluginInfoProvider : public PluginInfoProvider {
+public:
+    void refreshPlugins() override { }
+    void getPluginInfo(Page&, Vector<PluginInfo>&) override { }
+    void getWebVisiblePluginInfo(Page&, Vector<PluginInfo>&) override { }
+};
 
 bool QWebPageAdapter::drtRun = false;
 
@@ -199,21 +208,22 @@ QWebPageAdapter::QWebPageAdapter()
 
 void QWebPageAdapter::initializeWebCorePage()
 {
-    PageConfiguration pageConfiguration;
+    PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
+                                        SocketProvider::create());
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
-    pageConfiguration.editorClient = new EditorClientQt(this);
     pageConfiguration.dragClient = new DragClientQt(pageConfiguration.chromeClient);
     pageConfiguration.inspectorClient = new InspectorClientQt(this);
     pageConfiguration.loaderClientForMainFrame = new FrameLoaderClientQt();
     pageConfiguration.progressTrackerClient = new ProgressTrackerClientQt(this);
     pageConfiguration.applicationCacheStorage = ApplicationCacheStorage::create(String(), "ApplicationCache");
     pageConfiguration.databaseProvider = &WebDatabaseProvider::singleton();
+    pageConfiguration.pluginInfoProvider = adoptRef(new EmptyPluginInfoProvider);
     pageConfiguration.storageNamespaceProvider = WebStorageNamespaceProvider::create(
         QWebSettings::globalSettings()->localStoragePath());
     pageConfiguration.userContentProvider = &userContentProvider();
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();
-    page = new Page(pageConfiguration);
+    page = new Page(std::move(pageConfiguration));
 
     // By default each page is put into their own unique page group, which affects popup windows
     // and visited links. Page groups (per process only) is a feature making it possible to use
@@ -1079,7 +1089,7 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
     case ToggleVideoFullscreen:
         if (HTMLMediaElement* mediaElt = mediaElement(hitTestResult->innerNonSharedNode)) {
             if (mediaElt->isVideo() && mediaElt->supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenModeStandard)) {
-                UserGestureIndicator indicator(DefinitelyProcessingUserGesture);
+                UserGestureIndicator indicator(ProcessingUserGesture);
                 mediaElt->toggleStandardFullscreenState();
             }
         }

@@ -773,9 +773,9 @@ void FrameLoaderClientQt::didDetectXSS(const URL&, bool)
     notImplemented();
 }
 
-void FrameLoaderClientQt::saveViewStateToItem(WebCore::HistoryItem* item)
+void FrameLoaderClientQt::saveViewStateToItem(WebCore::HistoryItem& item)
 {
-    QWebHistoryItem historyItem(new QWebHistoryItemPrivate(item));
+    QWebHistoryItem historyItem(new QWebHistoryItemPrivate(&item));
     m_webFrame->pageAdapter->emitSaveFrameStateRequested(m_webFrame, &historyItem);
 }
 
@@ -802,10 +802,9 @@ void FrameLoaderClientQt::committedLoad(WebCore::DocumentLoader* loader, const c
 
 WebCore::ResourceError FrameLoaderClientQt::cancelledError(const WebCore::ResourceRequest& request)
 {
-    ResourceError error = ResourceError("QtNetwork", QNetworkReply::OperationCanceledError, request.url(),
-        QCoreApplication::translate("QWebFrame", "Request cancelled", 0));
-    error.setIsCancellation(true);
-    return error;
+    return ResourceError("QtNetwork", QNetworkReply::OperationCanceledError, request.url(),
+        QCoreApplication::translate("QWebFrame", "Request cancelled", 0),
+        ResourceError::Type::Cancellation);
 }
 
 // This was copied from file "WebKit/Source/WebKit/mac/Misc/WebKitErrors.h".
@@ -988,11 +987,6 @@ bool FrameLoaderClientQt::shouldUseCredentialStorage(DocumentLoader*, unsigned l
 }
 
 void FrameLoaderClientQt::dispatchDidReceiveAuthenticationChallenge(DocumentLoader*, unsigned long, const AuthenticationChallenge&)
-{
-    notImplemented();
-}
-
-void FrameLoaderClientQt::dispatchDidCancelAuthenticationChallenge(DocumentLoader*, unsigned long, const AuthenticationChallenge&)
 {
     notImplemented();
 }
@@ -1258,28 +1252,28 @@ ObjectContentType FrameLoaderClientQt::objectContentType(const URL& url, const S
     QFileInfo fi(url.path());
     String extension = fi.suffix();
     if (mimeTypeIn == "application/x-qt-plugin" || mimeTypeIn == "application/x-qt-styled-widget")
-        return ObjectContentOtherPlugin;
+        return ObjectContentType::PlugIn;
 
     if (url.isEmpty() && !mimeTypeIn.length())
-        return ObjectContentNone;
+        return ObjectContentType::None;
 
     String mimeType = mimeTypeIn;
     if (!mimeType.length())
         mimeType = MIMETypeRegistry::getMIMETypeForExtension(extension);
 
     if (!mimeType.length())
-        return ObjectContentFrame;
+        return ObjectContentType::Frame;
 
     if (MIMETypeRegistry::isSupportedImageMIMEType(mimeType))
-        return ObjectContentImage;
+        return ObjectContentType::Image;
     
     if (MIMETypeRegistry::isSupportedNonImageMIMEType(mimeType))
-        return ObjectContentFrame;
+        return ObjectContentType::Frame;
 
     if (url.protocol() == "about")
-        return ObjectContentFrame;
+        return ObjectContentType::Frame;
 
-    return ObjectContentNone;
+    return ObjectContentType::None;
 }
 
 static const CSSPropertyID qstyleSheetProperties[] = {
