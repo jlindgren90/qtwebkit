@@ -125,11 +125,16 @@ SOFT_LINK_STAGED_FRAMEWORK(WebInspectorUI, PrivateFrameworks, A)
 #endif
 
 @interface WebGeolocationPosition (Internal)
-- (id)initWithGeolocationPosition:(PassRefPtr<WebCore::GeolocationPosition>)coreGeolocationPosition;
+- (id)initWithGeolocationPosition:(RefPtr<WebCore::GeolocationPosition>)coreGeolocationPosition;
 @end
 
 TestRunner::~TestRunner()
 {
+}
+
+JSContextRef TestRunner::mainFrameJSContext()
+{
+    return [mainFrame globalContext];
 }
 
 void TestRunner::addDisallowedURL(JSStringRef url)

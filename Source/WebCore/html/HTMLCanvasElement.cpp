@@ -51,6 +51,7 @@
 #include <runtime/JSCInlines.h>
 #include <runtime/JSLock.h>
 #include <wtf/RAMSize.h>
+#include <wtf/text/StringBuilder.h>
 
 #if PLATFORM(QT)
 #include "QWebPageClient.h"
@@ -231,14 +232,14 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
                 return nullptr;
             }
 
-            m_context = std::make_unique<CanvasRenderingContext2D>(this, document().inQuirksMode(), usesDashboardCompatibilityMode);
+            m_context = std::make_unique<CanvasRenderingContext2D>(*this, document().inQuirksMode(), usesDashboardCompatibilityMode);
 
             downcast<CanvasRenderingContext2D>(*m_context).setUsesDisplayListDrawing(m_usesDisplayListDrawing);
             downcast<CanvasRenderingContext2D>(*m_context).setTracksDisplayListReplay(m_tracksDisplayListReplay);
 
 #if USE(IOSURFACE_CANVAS_BACKING_STORE) || ENABLE(ACCELERATED_2D_CANVAS)
             // Need to make sure a RenderLayer and compositing layer get created for the Canvas
-            setNeedsStyleRecalc(SyntheticStyleChange);
+            invalidateStyleAndLayerComposition();
 #endif
         }
         return m_context.get();
@@ -250,10 +251,10 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
             if (m_context && !m_context->is3d())
                 return nullptr;
             if (!m_context) {
-                m_context = WebGLRenderingContextBase::create(this, static_cast<WebGLContextAttributes*>(attrs), type);
+                m_context = WebGLRenderingContextBase::create(*this, static_cast<WebGLContextAttributes*>(attrs), type);
                 if (m_context) {
                     // Need to make sure a RenderLayer and compositing layer get created for the Canvas
-                    setNeedsStyleRecalc(SyntheticStyleChange);
+                    invalidateStyleAndLayerComposition();
                 }
             }
             return m_context.get();
@@ -263,22 +264,6 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
     UNUSED_PARAM(attrs);
 #endif
     return nullptr;
-}
-    
-bool HTMLCanvasElement::probablySupportsContext(const String& type, CanvasContextAttributes*)
-{
-    // FIXME: Provide implementation that accounts for attributes.
-    // https://bugs.webkit.org/show_bug.cgi?id=117093
-    if (is2dType(type))
-        return !m_context || m_context->is2d();
-
-#if ENABLE(WEBGL)
-    if (shouldEnableWebGL(document().settings())) {
-        if (is3dType(type))
-            return !m_context || m_context->is3d();
-    }
-#endif
-    return false;
 }
 
 bool HTMLCanvasElement::is2dType(const String& type)
@@ -341,10 +326,8 @@ void HTMLCanvasElement::reset()
         m_contextStateSaver->save();
     }
 
-    if (m_context && m_context->is2d()) {
-        CanvasRenderingContext2D* context2D = static_cast<CanvasRenderingContext2D*>(m_context.get());
-        context2D->reset();
-    }
+    if (is<CanvasRenderingContext2D>(m_context.get()))
+        downcast<CanvasRenderingContext2D>(*m_context).reset();
 
     IntSize oldSize = size();
     IntSize newSize(w, h);
@@ -479,22 +462,20 @@ String HTMLCanvasElement::toEncodingMimeType(const String& mimeType)
     return mimeType.convertToASCIILowercase();
 }
 
-String HTMLCanvasElement::toDataURL(const String& mimeType, const double* quality, ExceptionCode& ec)
+ExceptionOr<String> HTMLCanvasElement::toDataURL(const String& mimeType, Optional<double> quality)
 {
-    if (!m_originClean) {
-        ec = SECURITY_ERR;
-        return String();
-    }
+    if (!m_originClean)
+        return Exception { SECURITY_ERR };
 
     if (m_size.isEmpty() || !buffer())
-        return ASCIILiteral("data:,");
+        return String { ASCIILiteral { "data:," } };
 
     String encodingMIMEType = toEncodingMimeType(mimeType);
 
 #if USE(CG)
     // Try to get ImageData first, as that may avoid lossy conversions.
     if (auto imageData = getImageData())
-        return ImageDataToDataURL(*imageData, encodingMIMEType, quality);
+        return dataURL(*imageData, encodingMIMEType, quality);
 #endif
 
     makeRenderingResultsAvailable();
@@ -579,14 +560,14 @@ size_t HTMLCanvasElement::memoryCost() const
 {
     if (!m_imageBuffer)
         return 0;
-    return 4 * m_imageBuffer->internalSize().width() * m_imageBuffer->internalSize().height();
+    return m_imageBuffer->memoryCost();
 }
 
 size_t HTMLCanvasElement::externalMemoryCost() const
 {
     if (!m_imageBuffer)
         return 0;
-    return 4 * m_imageBuffer->internalSize().width() * m_imageBuffer->internalSize().height();
+    return m_imageBuffer->externalMemoryCost();
 }
 
 void HTMLCanvasElement::setUsesDisplayListDrawing(bool usesDisplayListDrawing)
@@ -596,7 +577,7 @@ void HTMLCanvasElement::setUsesDisplayListDrawing(bool usesDisplayListDrawing)
     
     m_usesDisplayListDrawing = usesDisplayListDrawing;
 
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         downcast<CanvasRenderingContext2D>(*m_context).setUsesDisplayListDrawing(m_usesDisplayListDrawing);
 }
 
@@ -607,13 +588,13 @@ void HTMLCanvasElement::setTracksDisplayListReplay(bool tracksDisplayListReplay)
 
     m_tracksDisplayListReplay = tracksDisplayListReplay;
 
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         downcast<CanvasRenderingContext2D>(*m_context).setTracksDisplayListReplay(m_tracksDisplayListReplay);
 }
 
 String HTMLCanvasElement::displayListAsText(DisplayList::AsTextFlags flags) const
 {
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         return downcast<CanvasRenderingContext2D>(*m_context).displayListAsText(flags);
 
     return String();
@@ -621,7 +602,7 @@ String HTMLCanvasElement::displayListAsText(DisplayList::AsTextFlags flags) cons
 
 String HTMLCanvasElement::replayDisplayListAsText(DisplayList::AsTextFlags flags) const
 {
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         return downcast<CanvasRenderingContext2D>(*m_context).replayDisplayListAsText(flags);
 
     return String();
@@ -691,7 +672,7 @@ void HTMLCanvasElement::createImageBuffer() const
 #if USE(IOSURFACE_CANVAS_BACKING_STORE) || ENABLE(ACCELERATED_2D_CANVAS)
     if (m_context && m_context->is2d())
         // Recalculate compositing requirements if acceleration state changed.
-        const_cast<HTMLCanvasElement*>(this)->setNeedsStyleRecalc(SyntheticStyleChange);
+        const_cast<HTMLCanvasElement*>(this)->invalidateStyleAndLayerComposition();
 #endif
 }
 
@@ -742,10 +723,9 @@ void HTMLCanvasElement::clearImageBuffer() const
 
     m_didClearImageBuffer = true;
 
-    if (m_context->is2d()) {
-        CanvasRenderingContext2D* context2D = static_cast<CanvasRenderingContext2D*>(m_context.get());
+    if (is<CanvasRenderingContext2D>(*m_context)) {
         // No need to undo transforms/clip/etc. because we are called right after the context is reset.
-        context2D->clearRect(0, 0, width(), height());
+        downcast<CanvasRenderingContext2D>(*m_context).clearRect(0, 0, width(), height());
     }
 }
 

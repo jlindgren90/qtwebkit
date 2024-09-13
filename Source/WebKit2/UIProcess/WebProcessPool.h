@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebProcessPool_h
-#define WebProcessPool_h
+#pragma once
 
 #include "APIDictionary.h"
 #include "APIObject.h"
@@ -127,8 +126,8 @@ public:
     void removeMessageReceiver(IPC::StringReference messageReceiverName);
     void removeMessageReceiver(IPC::StringReference messageReceiverName, uint64_t destinationID);
 
-    bool dispatchMessage(IPC::Connection&, IPC::MessageDecoder&);
-    bool dispatchSyncMessage(IPC::Connection&, IPC::MessageDecoder&, std::unique_ptr<IPC::MessageEncoder>&);
+    bool dispatchMessage(IPC::Connection&, IPC::Decoder&);
+    bool dispatchSyncMessage(IPC::Connection&, IPC::Decoder&, std::unique_ptr<IPC::Encoder>&);
 
     void initializeClient(const WKContextClientBase*);
     void initializeInjectedBundleClient(const WKContextInjectedBundleClientBase*);
@@ -167,7 +166,7 @@ public:
 
     const String& injectedBundlePath() const { return m_configuration->injectedBundlePath(); }
 
-    DownloadProxy* download(WebPageProxy* initiatingPage, const WebCore::ResourceRequest&);
+    DownloadProxy* download(WebPageProxy* initiatingPage, const WebCore::ResourceRequest&, const String& suggestedFilename = { });
     DownloadProxy* resumeDownload(const API::Data* resumeData, const String& path);
 
     void setInjectedBundleInitializationUserData(PassRefPtr<API::Object> userData) { m_injectedBundleInitializationUserData = userData; }
@@ -367,9 +366,18 @@ public:
     bool resourceLoadStatisticsEnabled() { return m_resourceLoadStatisticsEnabled; }
     void setResourceLoadStatisticsEnabled(bool enabled) { m_resourceLoadStatisticsEnabled = enabled; }
 
+    bool alwaysRunsAtBackgroundPriority() { return m_alwaysRunsAtBackgroundPriority; }
+
 #if ENABLE(GAMEPAD)
     void gamepadConnected(const UIGamepad&);
     void gamepadDisconnected(const UIGamepad&);
+
+    void setInitialConnectedGamepads(const Vector<std::unique_ptr<UIGamepad>>&);
+#endif
+
+#if PLATFORM(COCOA)
+    bool cookieStoragePartitioningEnabled() const { return m_cookieStoragePartitioningEnabled; }
+    void setCookieStoragePartitioningEnabled(bool);
 #endif
 
 private:
@@ -399,8 +407,8 @@ private:
 
     // IPC::MessageReceiver.
     // Implemented in generated WebProcessPoolMessageReceiver.cpp
-    void didReceiveMessage(IPC::Connection&, IPC::MessageDecoder&) override;
-    void didReceiveSyncMessage(IPC::Connection&, IPC::MessageDecoder&, std::unique_ptr<IPC::MessageEncoder>&) override;
+    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
+    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, std::unique_ptr<IPC::Encoder>&) override;
 
     static void languageChanged(void* context);
     void languageChanged();
@@ -527,6 +535,8 @@ private:
     bool m_memoryCacheDisabled;
     bool m_resourceLoadStatisticsEnabled { false };
 
+    bool m_alwaysRunsAtBackgroundPriority;
+
     UserObservablePageCounter m_userObservablePageCounter;
     ProcessSuppressionDisabledCounter m_processSuppressionDisabledForPageCounter;
     HiddenPageThrottlingAutoIncreasesCounter m_hiddenPageThrottlingAutoIncreasesCounter;
@@ -547,6 +557,10 @@ private:
 
 #if ENABLE(GAMEPAD)
     HashSet<WebProcessProxy*> m_processesUsingGamepads;
+#endif
+
+#if PLATFORM(COCOA)
+    bool m_cookieStoragePartitioningEnabled { false };
 #endif
 };
 
@@ -616,5 +630,3 @@ void WebProcessPool::sendToOneProcess(T&& message)
 }
 
 } // namespace WebKit
-
-#endif // UIProcessPool_h

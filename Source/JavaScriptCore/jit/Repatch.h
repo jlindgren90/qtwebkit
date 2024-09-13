@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef Repatch_h
-#define Repatch_h
+#pragma once
 
 #if ENABLE(JIT)
 
@@ -37,6 +36,7 @@ namespace JSC {
 
 enum class GetByIDKind {
     Normal,
+    Try,
     Pure
 };
 
@@ -47,6 +47,7 @@ void repatchPutByID(ExecState*, JSValue, Structure*, const Identifier&, const Pu
 void buildPutByIdList(ExecState*, JSValue, Structure*, const Identifier&, const PutPropertySlot&, StructureStubInfo&, PutKind);
 void repatchIn(ExecState*, JSCell*, const Identifier&, bool wasFound, const PropertySlot&, StructureStubInfo&);
 void linkFor(ExecState*, CallLinkInfo&, CodeBlock*, JSFunction* callee, MacroAssemblerCodePtr);
+void linkDirectFor(ExecState*, CallLinkInfo&, CodeBlock*, MacroAssemblerCodePtr);
 void linkSlowFor(ExecState*, CallLinkInfo&);
 void unlinkFor(VM&, CallLinkInfo&);
 void linkVirtualFor(ExecState*, CallLinkInfo&);
@@ -59,4 +60,3 @@ void ftlThunkAwareRepatchCall(CodeBlock*, CodeLocationCall, FunctionPtr newCalle
 } // namespace JSC
 
 #endif // ENABLE(JIT)
-#endif // Repatch_h

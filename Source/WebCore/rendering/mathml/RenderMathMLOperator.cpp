@@ -26,10 +26,9 @@
  */
 
 #include "config.h"
+#include "RenderMathMLOperator.h"
 
 #if ENABLE(MATHML)
-
-#include "RenderMathMLOperator.h"
 
 #include "FontSelector.h"
 #include "MathMLNames.h"
@@ -63,7 +62,7 @@ MathMLOperatorElement& RenderMathMLOperator::element() const
     return static_cast<MathMLOperatorElement&>(nodeForNonAnonymous());
 }
 
-UChar RenderMathMLOperator::textContent() const
+UChar32 RenderMathMLOperator::textContent() const
 {
     return element().operatorChar().character;
 }
@@ -71,7 +70,7 @@ UChar RenderMathMLOperator::textContent() const
 bool RenderMathMLOperator::isInvisibleOperator() const
 {
     // The following operators are invisible: U+2061 FUNCTION APPLICATION, U+2062 INVISIBLE TIMES, U+2063 INVISIBLE SEPARATOR, U+2064 INVISIBLE PLUS.
-    UChar character = textContent();
+    UChar32 character = textContent();
     return 0x2061 <= character && character <= 0x2064;
 }
 
@@ -118,7 +117,7 @@ bool RenderMathMLOperator::isVertical() const
 
 void RenderMathMLOperator::stretchTo(LayoutUnit heightAboveBaseline, LayoutUnit depthBelowBaseline)
 {
-    ASSERT(hasOperatorFlag(MathMLOperatorDictionary::Stretchy));
+    ASSERT(isStretchy());
     ASSERT(isVertical());
 
     if (!isVertical() || (heightAboveBaseline == m_stretchHeightAboveBaseline && depthBelowBaseline == m_stretchDepthBelowBaseline))
@@ -158,7 +157,7 @@ void RenderMathMLOperator::stretchTo(LayoutUnit heightAboveBaseline, LayoutUnit 
 
 void RenderMathMLOperator::stretchTo(LayoutUnit width)
 {
-    ASSERT(hasOperatorFlag(MathMLOperatorDictionary::Stretchy));
+    ASSERT(isStretchy());
     ASSERT(!isVertical());
 
     if (isVertical() || m_stretchWidth == width)

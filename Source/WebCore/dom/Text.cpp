@@ -56,33 +56,29 @@ Text::~Text()
     ASSERT(!renderer());
 }
 
-RefPtr<Text> Text::splitText(unsigned offset, ExceptionCode& ec)
+ExceptionOr<Ref<Text>> Text::splitText(unsigned offset)
 {
-    ec = 0;
-
-    // INDEX_SIZE_ERR: Raised if the specified offset is negative or greater than
-    // the number of 16-bit units in data.
-    if (offset > length()) {
-        ec = INDEX_SIZE_ERR;
-        return 0;
-    }
+    if (offset > length())
+        return Exception { INDEX_SIZE_ERR };
 
     EventQueueScope scope;
-    String oldStr = data();
-    Ref<Text> newText = virtualCreate(oldStr.substring(offset));
-    setDataWithoutUpdate(oldStr.substring(0, offset));
+    auto oldData = data();
+    auto newText = virtualCreate(oldData.substring(offset));
+    setDataWithoutUpdate(oldData.substring(0, offset));
 
-    dispatchModifiedEvent(oldStr);
+    dispatchModifiedEvent(oldData);
 
-    if (parentNode())
+    if (parentNode()) {
+        ExceptionCode ec = 0;
         parentNode()->insertBefore(newText, nextSibling(), ec);
-    if (ec)
-        return 0;
+        if (ec)
+            return Exception { ec };
+    }
 
     document().textNodeSplit(this);
 
     if (renderer())
-        renderer()->setTextWithOffset(data(), 0, oldStr.length());
+        renderer()->setTextWithOffset(data(), 0, oldData.length());
 
     return WTFMove(newText);
 }
@@ -122,7 +118,7 @@ String Text::wholeText() const
     return result.toString();
 }
 
-RefPtr<Text> Text::replaceWholeText(const String& newText, ExceptionCode&)
+RefPtr<Text> Text::replaceWholeText(const String& newText)
 {
     // Remove all adjacent text nodes, and replace the contents of this one.
 
@@ -221,7 +217,7 @@ Ref<Text> Text::createWithLengthLimit(Document& document, const String& data, un
 void Text::updateRendererAfterContentChange(unsigned offsetOfReplacedData, unsigned lengthOfReplacedData)
 {
     ASSERT(parentNode());
-    if (styleChangeType() == ReconstructRenderTree)
+    if (styleValidity() >= Style::Validity::SubtreeAndRenderersInvalid)
         return;
 
     auto textUpdate = std::make_unique<Style::Update>(document());
@@ -233,7 +229,6 @@ void Text::updateRendererAfterContentChange(unsigned offsetOfReplacedData, unsig
     if (auto* renderer = this->renderer())
         renderer->setTextWithOffset(data(), offsetOfReplacedData, lengthOfReplacedData);
 }
-
 
 #if ENABLE(TREE_DEBUGGING)
 void Text::formatForDebugger(char* buffer, unsigned length) const

@@ -55,6 +55,7 @@
 #import "WKTextInputWindowController.h"
 #import "WKViewLayoutStrategy.h"
 #import "WKWebView.h"
+#import "WebBackForwardList.h"
 #import "WebEditCommandProxy.h"
 #import "WebEventFactory.h"
 #import "WebInspectorProxy.h"
@@ -65,6 +66,7 @@
 #import "_WKThumbnailViewInternal.h"
 #import <HIToolbox/CarbonEventsCore.h>
 #import <WebCore/AXObjectCache.h>
+#import <WebCore/ActivityState.h>
 #import <WebCore/ColorMac.h>
 #import <WebCore/CoreGraphicsSPI.h>
 #import <WebCore/DataDetectorsSPI.h>
@@ -83,7 +85,6 @@
 #import <WebCore/SoftLinking.h>
 #import <WebCore/TextAlternativeWithRange.h>
 #import <WebCore/TextUndoInsertionMarkupMac.h>
-#import <WebCore/ViewState.h>
 #import <WebCore/WebActionDisablingCALayerDelegate.h>
 #import <WebCore/WebCoreCALayerExtras.h>
 #import <WebCore/WebCoreFullScreenPlaceholderView.h>
@@ -441,6 +442,10 @@ void WebViewImpl::updateWebViewImplAdditions()
 {
 }
 
+void WebViewImpl::forceRequestCandidatesForTesting()
+{
+}
+
 bool WebViewImpl::shouldRequestCandidates() const
 {
     return false;
@@ -604,7 +609,7 @@ bool WebViewImpl::becomeFirstResponder()
     m_inBecomeFirstResponder = true;
 
     updateSecureInputState();
-    m_page->viewStateDidChange(WebCore::ViewState::IsFocused);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsFocused);
     // Restore the selection in the editable region if resigning first responder cleared selection.
     m_page->restoreSelectionInFocusedEditableElement();
 
@@ -620,7 +625,7 @@ bool WebViewImpl::becomeFirstResponder()
         if ([event type] == NSKeyDown || [event type] == NSKeyUp)
             keyboardEvent = event;
 #pragma clang diagnostic pop
-        m_page->setInitialFocus(direction == NSSelectingNext, keyboardEvent != nil, NativeWebKeyboardEvent(keyboardEvent, false, { }), [](WebKit::CallbackBase::Error) { });
+        m_page->setInitialFocus(direction == NSSelectingNext, keyboardEvent != nil, NativeWebKeyboardEvent(keyboardEvent, false, false, { }), [](WebKit::CallbackBase::Error) { });
     }
     return true;
 }
@@ -651,7 +656,7 @@ bool WebViewImpl::resignFirstResponder()
     if (!m_page->maintainsInactiveSelection())
         m_page->clearSelection();
 
-    m_page->viewStateDidChange(WebCore::ViewState::IsFocused);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsFocused);
     
     m_inResignFirstResponder = false;
     
@@ -1046,12 +1051,12 @@ float WebViewImpl::intrinsicDeviceScaleFactor() const
 
 void WebViewImpl::windowDidOrderOffScreen()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible | WebCore::ViewState::WindowIsActive);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible | WebCore::ActivityState::WindowIsActive);
 }
 
 void WebViewImpl::windowDidOrderOnScreen()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible | WebCore::ViewState::WindowIsActive);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible | WebCore::ActivityState::WindowIsActive);
 }
 
 void WebViewImpl::windowDidBecomeKey(NSWindow *keyWindow)
@@ -1061,7 +1066,7 @@ void WebViewImpl::windowDidBecomeKey(NSWindow *keyWindow)
         UIGamepadProvider::singleton().viewBecameActive(m_page.get());
 #endif
         updateSecureInputState();
-        m_page->viewStateDidChange(WebCore::ViewState::WindowIsActive);
+        m_page->activityStateDidChange(WebCore::ActivityState::WindowIsActive);
     }
 }
 
@@ -1072,18 +1077,18 @@ void WebViewImpl::windowDidResignKey(NSWindow *formerKeyWindow)
         UIGamepadProvider::singleton().viewBecameInactive(m_page.get());
 #endif
         updateSecureInputState();
-        m_page->viewStateDidChange(WebCore::ViewState::WindowIsActive);
+        m_page->activityStateDidChange(WebCore::ActivityState::WindowIsActive);
     }
 }
 
 void WebViewImpl::windowDidMiniaturize()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible);
 }
 
 void WebViewImpl::windowDidDeminiaturize()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible);
 }
 
 void WebViewImpl::windowDidMove()
@@ -1118,7 +1123,7 @@ void WebViewImpl::windowDidChangeLayerHosting()
 
 void WebViewImpl::windowDidChangeOcclusionState()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible);
 }
 
 bool WebViewImpl::mightBeginDragWhileInactive()
@@ -1209,12 +1214,12 @@ void WebViewImpl::viewDidMoveToWindow()
     if (window) {
         windowDidChangeScreen();
 
-        WebCore::ViewState::Flags viewStateChanges = WebCore::ViewState::WindowIsActive | WebCore::ViewState::IsVisible;
+        WebCore::ActivityState::Flags activityStateChanges = WebCore::ActivityState::WindowIsActive | WebCore::ActivityState::IsVisible;
         if (m_shouldDeferViewInWindowChanges)
             m_viewInWindowChangeWasDeferred = true;
         else
-            viewStateChanges |= WebCore::ViewState::IsInWindow;
-        m_page->viewStateDidChange(viewStateChanges);
+            activityStateChanges |= WebCore::ActivityState::IsInWindow;
+        m_page->activityStateDidChange(activityStateChanges);
 
         updateWindowAndViewFrames();
 
@@ -1238,12 +1243,12 @@ void WebViewImpl::viewDidMoveToWindow()
         if (m_immediateActionGestureRecognizer && ![[m_view gestureRecognizers] containsObject:m_immediateActionGestureRecognizer.get()] && !m_ignoresNonWheelEvents && m_allowsLinkPreview)
             [m_view addGestureRecognizer:m_immediateActionGestureRecognizer.get()];
     } else {
-        WebCore::ViewState::Flags viewStateChanges = WebCore::ViewState::WindowIsActive | WebCore::ViewState::IsVisible;
+        WebCore::ActivityState::Flags activityStateChanges = WebCore::ActivityState::WindowIsActive | WebCore::ActivityState::IsVisible;
         if (m_shouldDeferViewInWindowChanges)
             m_viewInWindowChangeWasDeferred = true;
         else
-            viewStateChanges |= WebCore::ViewState::IsInWindow;
-        m_page->viewStateDidChange(viewStateChanges);
+            activityStateChanges |= WebCore::ActivityState::IsInWindow;
+        m_page->activityStateDidChange(activityStateChanges);
 
         [NSEvent removeMonitor:m_flagsChangedEventMonitor];
         m_flagsChangedEventMonitor = nil;
@@ -1273,17 +1278,17 @@ void WebViewImpl::viewDidChangeBackingProperties()
 
 void WebViewImpl::viewDidHide()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible);
 }
 
 void WebViewImpl::viewDidUnhide()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible);
 }
 
 void WebViewImpl::activeSpaceDidChange()
 {
-    m_page->viewStateDidChange(WebCore::ViewState::IsVisible);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsVisible);
 }
 
 NSView *WebViewImpl::hitTest(CGPoint point)
@@ -1378,7 +1383,7 @@ void WebViewImpl::endDeferringViewInWindowChanges()
 
     if (m_viewInWindowChangeWasDeferred) {
         dispatchSetTopContentInset();
-        m_page->viewStateDidChange(WebCore::ViewState::IsInWindow);
+        m_page->activityStateDidChange(WebCore::ActivityState::IsInWindow);
         m_viewInWindowChangeWasDeferred = false;
     }
 }
@@ -1394,7 +1399,7 @@ void WebViewImpl::endDeferringViewInWindowChangesSync()
 
     if (m_viewInWindowChangeWasDeferred) {
         dispatchSetTopContentInset();
-        m_page->viewStateDidChange(WebCore::ViewState::IsInWindow);
+        m_page->activityStateDidChange(WebCore::ActivityState::IsInWindow);
         m_viewInWindowChangeWasDeferred = false;
     }
 }
@@ -1409,7 +1414,7 @@ void WebViewImpl::prepareForMoveToWindow(NSWindow *targetWindow, std::function<v
     m_shouldDeferViewInWindowChanges = false;
 
     auto weakThis = createWeakPtr();
-    m_page->installViewStateChangeCompletionHandler([weakThis, completionHandler]() {
+    m_page->installActivityStateChangeCompletionHandler([weakThis, completionHandler]() {
         completionHandler();
 
         if (!weakThis)
@@ -1420,7 +1425,7 @@ void WebViewImpl::prepareForMoveToWindow(NSWindow *targetWindow, std::function<v
     });
 
     dispatchSetTopContentInset();
-    m_page->viewStateDidChange(WebCore::ViewState::IsInWindow, false, WebPageProxy::ViewStateChangeDispatchMode::Immediate);
+    m_page->activityStateDidChange(WebCore::ActivityState::IsInWindow, false, WebPageProxy::ActivityStateChangeDispatchMode::Immediate);
     m_viewInWindowChangeWasDeferred = false;
 }
 
@@ -2436,6 +2441,8 @@ void WebViewImpl::didChangeContentSize(CGSize newSize)
 void WebViewImpl::didHandleAcceptedCandidate()
 {
     m_isHandlingAcceptedCandidate = false;
+
+    [m_view _didHandleAcceptedCandidate];
 }
 
 void WebViewImpl::videoControlsManagerDidChange()
@@ -3032,7 +3039,7 @@ void WebViewImpl::provideDataForPasteboard(NSPasteboard *pasteboard, NSString *t
     // FIXME: need to support NSRTFDPboardType
 
     if ([type isEqual:NSTIFFPboardType] && m_promisedImage) {
-        [pasteboard setData:(NSData *)m_promisedImage->getTIFFRepresentation() forType:NSTIFFPboardType];
+        [pasteboard setData:(NSData *)m_promisedImage->tiffRepresentation() forType:NSTIFFPboardType];
         m_promisedImage = nullptr;
     }
 }
@@ -3169,14 +3176,17 @@ RefPtr<ViewSnapshot> WebViewImpl::takeViewSnapshot()
     auto surface = WebCore::IOSurface::createFromImage(croppedSnapshotImage.get());
     if (!surface)
         return nullptr;
-    surface->setIsVolatile(true);
 
-    return ViewSnapshot::create(WTFMove(surface));
+    RefPtr<ViewSnapshot> snapshot = ViewSnapshot::create(WTFMove(surface));
+    snapshot->setVolatile(true);
+
+    return snapshot;
 }
 
 void WebViewImpl::saveBackForwardSnapshotForCurrentItem()
 {
-    m_page->recordNavigationSnapshot();
+    if (WebBackForwardListItem* item = m_page->backForwardList().currentItem())
+        m_page->recordNavigationSnapshot(*item);
 }
 
 void WebViewImpl::saveBackForwardSnapshotForItem(WebBackForwardListItem& item)
@@ -3266,12 +3276,12 @@ bool WebViewImpl::tryToSwipeWithEvent(NSEvent *event, bool ignoringPinnedState)
     return handledEvent;
 }
 
-void WebViewImpl::setDidMoveSwipeSnapshotCallback(void(^callback)(CGRect))
+void WebViewImpl::setDidMoveSwipeSnapshotCallback(BlockPtr<void (CGRect)>&& callback)
 {
     if (!m_allowsBackForwardNavigationGestures)
         return;
 
-    ensureGestureController().setDidMoveSwipeSnapshotCallback(callback);
+    ensureGestureController().setDidMoveSwipeSnapshotCallback(WTFMove(callback));
 }
 
 void WebViewImpl::scrollWheel(NSEvent *event)
@@ -3567,11 +3577,11 @@ void WebViewImpl::insertText(id string, NSRange replacementRange)
     } else
         text = string;
 
-    BOOL needToRemoveSoftSpace = NO;
+    m_isTextInsertionReplacingSoftSpace = false;
 #if HAVE(ADVANCED_SPELL_CHECKING)
     if (m_softSpaceRange.location != NSNotFound && (replacementRange.location == NSMaxRange(m_softSpaceRange) || replacementRange.location == NSNotFound) && replacementRange.length == 0 && [[NSSpellChecker sharedSpellChecker] deletesAutospaceBeforeString:text language:nil]) {
         replacementRange = m_softSpaceRange;
-        needToRemoveSoftSpace = YES;
+        m_isTextInsertionReplacingSoftSpace = true;
     }
 #endif
     m_softSpaceRange = NSMakeRange(NSNotFound, 0);
@@ -3582,7 +3592,7 @@ void WebViewImpl::insertText(id string, NSRange replacementRange)
     // - If it's sent outside of keyboard event processing (e.g. from Character Viewer, or when confirming an inline input area with a mouse),
     // then we also execute it immediately, as there will be no other chance.
     Vector<WebCore::KeypressCommand>* keypressCommands = m_collectedKeypressCommands;
-    if (keypressCommands && !needToRemoveSoftSpace) {
+    if (keypressCommands && !m_isTextInsertionReplacingSoftSpace) {
         ASSERT(replacementRange.location == NSNotFound);
         WebCore::KeypressCommand command("insertText:", text);
         keypressCommands->append(command);
@@ -3596,7 +3606,7 @@ void WebViewImpl::insertText(id string, NSRange replacementRange)
     if (!dictationAlternatives.isEmpty())
         m_page->insertDictatedTextAsync(eventText, replacementRange, dictationAlternatives, registerUndoGroup);
     else
-        m_page->insertTextAsync(eventText, replacementRange, registerUndoGroup, needToRemoveSoftSpace ? EditingRangeIsRelativeTo::Paragraph : EditingRangeIsRelativeTo::EditableRoot);
+        m_page->insertTextAsync(eventText, replacementRange, registerUndoGroup, m_isTextInsertionReplacingSoftSpace ? EditingRangeIsRelativeTo::Paragraph : EditingRangeIsRelativeTo::EditableRoot, m_isTextInsertionReplacingSoftSpace);
 }
 
 void WebViewImpl::selectedRangeWithCompletionHandler(void(^completionHandlerPtr)(NSRange selectedRange))
@@ -3870,7 +3880,7 @@ bool WebViewImpl::performKeyEquivalent(NSEvent *event)
     // FIXME: Why is the firstResponder check needed?
     if (m_view == m_view.window.firstResponder) {
         interpretKeyEvent(event, ^(BOOL handledByInputMethod, const Vector<WebCore::KeypressCommand>& commands) {
-            m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, commands));
+            m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, false, commands));
         });
         return YES;
     }
@@ -3885,9 +3895,10 @@ void WebViewImpl::keyUp(NSEvent *event)
 
     LOG(TextInput, "keyUp:%p %@", event, event);
 
+    m_isTextInsertionReplacingSoftSpace = false;
     interpretKeyEvent(event, ^(BOOL handledByInputMethod, const Vector<WebCore::KeypressCommand>& commands) {
         ASSERT(!handledByInputMethod || commands.isEmpty());
-        m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, commands));
+        m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, m_isTextInsertionReplacingSoftSpace, commands));
     });
 }
 
@@ -3912,9 +3923,10 @@ void WebViewImpl::keyDown(NSEvent *event)
         return;
     }
 
+    m_isTextInsertionReplacingSoftSpace = false;
     interpretKeyEvent(event, ^(BOOL handledByInputMethod, const Vector<WebCore::KeypressCommand>& commands) {
         ASSERT(!handledByInputMethod || commands.isEmpty());
-        m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, commands));
+        m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, m_isTextInsertionReplacingSoftSpace, commands));
     });
 }
 
@@ -3930,7 +3942,7 @@ void WebViewImpl::flagsChanged(NSEvent *event)
         return;
 
     interpretKeyEvent(event, ^(BOOL handledByInputMethod, const Vector<WebCore::KeypressCommand>& commands) {
-        m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, commands));
+        m_page->handleKeyboardEvent(NativeWebKeyboardEvent(event, handledByInputMethod, false, commands));
     });
 }
 

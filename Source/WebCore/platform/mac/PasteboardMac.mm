@@ -38,7 +38,6 @@
 #import "FrameView.h"
 #import "FrameLoaderClient.h"
 #import "HitTestResult.h"
-#import "HTMLAnchorElement.h"
 #import "htmlediting.h"
 #import "HTMLNames.h"
 #import "Image.h"
@@ -98,21 +97,19 @@ static const Vector<String> writableTypesForURL()
     return types;
 }
 
-static inline Vector<String> createWritableTypesForImage()
+static Vector<String> writableTypesForImage()
 {
     Vector<String> types;
-    
     types.append(String(NSTIFFPboardType));
     types.appendVector(writableTypesForURL());
     types.append(String(NSRTFDPboardType));
     return types;
 }
 
-static Vector<String> writableTypesForImage()
+Pasteboard::Pasteboard()
+    : m_pasteboardName(emptyString())
+    , m_changeCount(0)
 {
-    Vector<String> types;
-    types.appendVector(createWritableTypesForImage());
-    return types;
 }
 
 Pasteboard::Pasteboard(const String& pasteboardName)
@@ -161,6 +158,8 @@ void Pasteboard::write(const PasteboardWebContent& content)
         types.append(String(NSRTFDPboardType));
     if (content.dataInRTFFormat)
         types.append(String(NSRTFPboardType));
+    if (!content.dataInHTMLFormat.isNull())
+        types.append(String(NSHTMLPboardType));
     if (!content.dataInStringFormat.isNull())
         types.append(String(NSStringPboardType));
     types.appendVector(content.clientTypes);
@@ -178,6 +177,8 @@ void Pasteboard::write(const PasteboardWebContent& content)
         m_changeCount = platformStrategies()->pasteboardStrategy()->setBufferForType(content.dataInRTFDFormat.get(), NSRTFDPboardType, m_pasteboardName);
     if (content.dataInRTFFormat)
         m_changeCount = platformStrategies()->pasteboardStrategy()->setBufferForType(content.dataInRTFFormat.get(), NSRTFPboardType, m_pasteboardName);
+    if (!content.dataInHTMLFormat.isNull())
+        m_changeCount = platformStrategies()->pasteboardStrategy()->setStringForType(content.dataInHTMLFormat, NSHTMLPboardType, m_pasteboardName);
     if (!content.dataInStringFormat.isNull())
         m_changeCount = platformStrategies()->pasteboardStrategy()->setStringForType(content.dataInStringFormat, NSStringPboardType, m_pasteboardName);
 }
@@ -255,15 +256,21 @@ static void writeFileWrapperAsRTFDAttachment(NSFileWrapper *wrapper, const Strin
 
 void Pasteboard::write(const PasteboardImage& pasteboardImage)
 {
-    CFDataRef imageData = pasteboardImage.image->getTIFFRepresentation();
+    CFDataRef imageData = pasteboardImage.image->tiffRepresentation();
     if (!imageData)
         return;
 
     // FIXME: Why can we assert this? It doesn't seem like it's guaranteed.
     ASSERT(MIMETypeRegistry::isSupportedImageResourceMIMEType(pasteboardImage.resourceMIMEType));
 
-    m_changeCount = writeURLForTypes(writableTypesForImage(), m_pasteboardName, pasteboardImage.url);
+    auto types = writableTypesForImage();
+    if (pasteboardImage.dataInWebArchiveFormat)
+        types.append(WebArchivePboardType);
+
+    m_changeCount = writeURLForTypes(types, m_pasteboardName, pasteboardImage.url);
     m_changeCount = platformStrategies()->pasteboardStrategy()->setBufferForType(SharedBuffer::wrapCFData(imageData).ptr(), NSTIFFPboardType, m_pasteboardName);
+    if (pasteboardImage.dataInWebArchiveFormat)
+        m_changeCount = platformStrategies()->pasteboardStrategy()->setBufferForType(pasteboardImage.dataInWebArchiveFormat.get(), WebArchivePboardType, m_pasteboardName);
     writeFileWrapperAsRTFDAttachment(fileWrapper(pasteboardImage), m_pasteboardName, m_changeCount);
 }
 
@@ -277,6 +284,10 @@ bool Pasteboard::canSmartReplace()
     Vector<String> types;
     platformStrategies()->pasteboardStrategy()->getTypes(types, m_pasteboardName);
     return types.contains(WebSmartPastePboardType);
+}
+
+void Pasteboard::writeMarkup(const String&)
+{
 }
 
 void Pasteboard::read(PasteboardPlainText& text)

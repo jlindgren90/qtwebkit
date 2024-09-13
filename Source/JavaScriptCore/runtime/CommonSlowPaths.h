@@ -23,12 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef CommonSlowPaths_h
-#define CommonSlowPaths_h
+#pragma once
 
 #include "CodeBlock.h"
 #include "CodeSpecializationKind.h"
 #include "ExceptionHelpers.h"
+#include "FunctionCodeBlock.h"
 #include "SlowPathReturnType.h"
 #include "StackAlignment.h"
 #include "Symbol.h"
@@ -73,8 +73,10 @@ ALWAYS_INLINE int arityCheckFor(ExecState* exec, VM& vm, CodeSpecializationKind 
 
 inline bool opIn(ExecState* exec, JSValue propName, JSValue baseVal)
 {
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
     if (!baseVal.isObject()) {
-        exec->vm().throwException(exec, createInvalidInParameterError(exec, baseVal));
+        throwException(exec, scope, createInvalidInParameterError(exec, baseVal));
         return false;
     }
 
@@ -85,8 +87,7 @@ inline bool opIn(ExecState* exec, JSValue propName, JSValue baseVal)
         return baseObj->hasProperty(exec, i);
 
     auto property = propName.toPropertyKey(exec);
-    if (exec->vm().exception())
-        return false;
+    RETURN_IF_EXCEPTION(scope, false);
     return baseObj->hasProperty(exec, property);
 }
 
@@ -248,17 +249,16 @@ SLOW_PATH_HIDDEN_DECL(slow_path_next_generic_enumerator_pname);
 SLOW_PATH_HIDDEN_DECL(slow_path_to_index_string);
 SLOW_PATH_HIDDEN_DECL(slow_path_profile_type_clear_log);
 SLOW_PATH_HIDDEN_DECL(slow_path_assert);
-SLOW_PATH_HIDDEN_DECL(slow_path_save);
-SLOW_PATH_HIDDEN_DECL(slow_path_resume);
 SLOW_PATH_HIDDEN_DECL(slow_path_create_lexical_environment);
 SLOW_PATH_HIDDEN_DECL(slow_path_push_with_scope);
 SLOW_PATH_HIDDEN_DECL(slow_path_resolve_scope);
-SLOW_PATH_HIDDEN_DECL(slow_path_copy_rest);
+SLOW_PATH_HIDDEN_DECL(slow_path_create_rest);
 SLOW_PATH_HIDDEN_DECL(slow_path_get_by_id_with_this);
 SLOW_PATH_HIDDEN_DECL(slow_path_get_by_val_with_this);
 SLOW_PATH_HIDDEN_DECL(slow_path_put_by_id_with_this);
 SLOW_PATH_HIDDEN_DECL(slow_path_put_by_val_with_this);
+SLOW_PATH_HIDDEN_DECL(slow_path_define_data_property);
+SLOW_PATH_HIDDEN_DECL(slow_path_define_accessor_property);
+SLOW_PATH_HIDDEN_DECL(slow_path_throw_static_error);
 
 } // namespace JSC
-
-#endif // CommonSlowPaths_h

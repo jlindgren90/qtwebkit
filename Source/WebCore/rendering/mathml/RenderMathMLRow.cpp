@@ -25,12 +25,12 @@
  */
 
 #include "config.h"
+#include "RenderMathMLRow.h"
 
 #if ENABLE(MATHML)
 
-#include "RenderMathMLRow.h"
-
 #include "MathMLNames.h"
+#include "MathMLRowElement.h"
 #include "RenderIterator.h"
 #include "RenderMathMLOperator.h"
 #include "RenderMathMLRoot.h"
@@ -39,9 +39,14 @@ namespace WebCore {
 
 using namespace MathMLNames;
 
-RenderMathMLRow::RenderMathMLRow(Element& element, RenderStyle&& style)
+RenderMathMLRow::RenderMathMLRow(MathMLRowElement& element, RenderStyle&& style)
     : RenderMathMLBlock(element, WTFMove(style))
 {
+}
+
+MathMLRowElement& RenderMathMLRow::element() const
+{
+    return static_cast<MathMLRowElement&>(nodeForNonAnonymous());
 }
 
 Optional<int> RenderMathMLRow::firstLineBaseline() const
@@ -58,7 +63,7 @@ void RenderMathMLRow::computeLineVerticalStretch(LayoutUnit& ascent, LayoutUnit&
     for (auto* child = firstChildBox(); child; child = child->nextSiblingBox()) {
         if (is<RenderMathMLBlock>(child)) {
             auto* renderOperator = downcast<RenderMathMLBlock>(child)->unembellishedOperator();
-            if (renderOperator && renderOperator->hasOperatorFlag(MathMLOperatorDictionary::Stretchy))
+            if (renderOperator && renderOperator->isStretchy())
                 continue;
         }
 
@@ -104,7 +109,7 @@ void RenderMathMLRow::layoutRowItems(LayoutUnit& ascent, LayoutUnit& descent)
 
         if (is<RenderMathMLBlock>(child)) {
             auto renderOperator = downcast<RenderMathMLBlock>(child)->unembellishedOperator();
-            if (renderOperator && renderOperator->hasOperatorFlag(MathMLOperatorDictionary::Stretchy) && renderOperator->isVertical())
+            if (renderOperator && renderOperator->isStretchy() && renderOperator->isVertical())
                 renderOperator->stretchTo(ascent, descent);
         }
 

@@ -24,6 +24,7 @@
 #include "ContainerNode.h"
 
 #include "AXObjectCache.h"
+#include "AllDescendantsCollection.h"
 #include "ChildListMutationScope.h"
 #include "Chrome.h"
 #include "ChromeClient.h"
@@ -39,6 +40,7 @@
 #include "HTMLSlotElement.h"
 #include "HTMLTableRowsCollection.h"
 #include "InlineTextBox.h"
+#include "InspectorInstrumentation.h"
 #include "JSNode.h"
 #include "LabelsNodeList.h"
 #include "MutationEvent.h"
@@ -59,6 +61,7 @@
 #include "TemplateContentDocumentFragment.h"
 #include <algorithm>
 #include <wtf/CurrentTime.h>
+#include <wtf/Variant.h>
 
 namespace WebCore {
 
@@ -134,7 +137,7 @@ void ContainerNode::takeAllChildrenFrom(ContainerNode* oldParent)
         destroyRenderTreeIfNeeded(child);
 
         // FIXME: We need a no mutation event version of adoptNode.
-        RefPtr<Node> adoptedChild = document().adoptNode(child, ASSERT_NO_EXCEPTION);
+        RefPtr<Node> adoptedChild = document().adoptNode(child).releaseReturnValue();
         parserAppendChild(*adoptedChild);
         // FIXME: Together with adoptNode above, the tree scope might get updated recursively twice
         // (if the document changed or oldParent was in a shadow tree, AND *this is in a shadow tree).
@@ -371,7 +374,7 @@ void ContainerNode::parserInsertBefore(Node& newChild, Node& nextChild)
         return;
 
     if (&document() != &newChild.document())
-        document().adoptNode(newChild, ASSERT_NO_EXCEPTION);
+        document().adoptNode(newChild);
 
     insertBeforeCommon(nextChild, newChild);
 
@@ -700,7 +703,7 @@ void ContainerNode::parserAppendChild(Node& newChild)
     ASSERT(!hasTagName(HTMLNames::templateTag));
 
     if (&document() != &newChild.document())
-        document().adoptNode(newChild, ASSERT_NO_EXCEPTION);
+        document().adoptNode(newChild);
 
     {
         NoEventDispatchAssertion assertNoEventDispatch;
@@ -806,37 +809,38 @@ void ContainerNode::updateTreeAfterInsertion(Node& child)
     dispatchChildInsertionEvents(child);
 }
 
-Element* ContainerNode::querySelector(const String& selectors, ExceptionCode& ec)
+ExceptionOr<Element*> ContainerNode::querySelector(const String& selectors)
 {
-    if (SelectorQuery* selectorQuery = document().selectorQueryForString(selectors, ec))
-        return selectorQuery->queryFirst(*this);
-    return nullptr;
+    auto query = document().selectorQueryForString(selectors);
+    if (query.hasException())
+        return query.releaseException();
+    return query.releaseReturnValue().queryFirst(*this);
 }
 
-RefPtr<NodeList> ContainerNode::querySelectorAll(const String& selectors, ExceptionCode& ec)
+ExceptionOr<Ref<NodeList>> ContainerNode::querySelectorAll(const String& selectors)
 {
-    if (SelectorQuery* selectorQuery = document().selectorQueryForString(selectors, ec))
-        return selectorQuery->queryAll(*this);
-    return nullptr;
+    auto query = document().selectorQueryForString(selectors);
+    if (query.hasException())
+        return query.releaseException();
+    return query.releaseReturnValue().queryAll(*this);
 }
 
-Ref<HTMLCollection> ContainerNode::getElementsByTagName(const AtomicString& localName)
+Ref<HTMLCollection> ContainerNode::getElementsByTagName(const AtomicString& qualifiedName)
 {
-    ASSERT(!localName.isNull());
+    ASSERT(!qualifiedName.isNull());
+
+    if (qualifiedName == starAtom)
+        return ensureRareData().ensureNodeLists().addCachedCollection<AllDescendantsCollection>(*this, AllDescendants);
 
     if (document().isHTMLDocument())
-        return ensureRareData().ensureNodeLists().addCachedCollection<HTMLTagCollection>(*this, ByHTMLTag, localName);
-    return ensureRareData().ensureNodeLists().addCachedCollection<TagCollection>(*this, ByTag, localName);
+        return ensureRareData().ensureNodeLists().addCachedCollection<HTMLTagCollection>(*this, ByHTMLTag, qualifiedName);
+    return ensureRareData().ensureNodeLists().addCachedCollection<TagCollection>(*this, ByTag, qualifiedName);
 }
 
 Ref<HTMLCollection> ContainerNode::getElementsByTagNameNS(const AtomicString& namespaceURI, const AtomicString& localName)
 {
     ASSERT(!localName.isNull());
-
-    if (namespaceURI == starAtom)
-        return getElementsByTagName(localName);
-
-    return ensureRareData().ensureNodeLists().addCachedCollectionWithQualifiedName(*this, namespaceURI.isEmpty() ? nullAtom : namespaceURI, localName);
+    return ensureRareData().ensureNodeLists().addCachedTagCollectionNS(*this, namespaceURI.isEmpty() ? nullAtom : namespaceURI, localName);
 }
 
 Ref<NodeList> ContainerNode::getElementsByName(const String& elementName)
@@ -876,22 +880,38 @@ unsigned ContainerNode::childElementCount() const
     return std::distance(children.begin(), children.end());
 }
 
-void ContainerNode::append(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+ExceptionOr<void> ContainerNode::append(Vector<NodeOrString>&& vector)
 {
-    RefPtr<Node> node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
-    if (ec || !node)
-        return;
+    auto result = convertNodesOrStringsIntoNode(WTFMove(vector));
+    if (result.hasException())
+        return result.releaseException();
 
+    auto node = result.releaseReturnValue();
+    if (!node)
+        return { };
+
+    ExceptionCode ec = 0;
     appendChild(*node, ec);
+    if (ec)
+        return Exception { ec };
+    return { };
 }
 
-void ContainerNode::prepend(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+ExceptionOr<void> ContainerNode::prepend(Vector<NodeOrString>&& vector)
 {
-    RefPtr<Node> node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
-    if (ec || !node)
-        return;
+    auto result = convertNodesOrStringsIntoNode(WTFMove(vector));
+    if (result.hasException())
+        return result.releaseException();
 
+    auto node = result.releaseReturnValue();
+    if (!node)
+        return { };
+
+    ExceptionCode ec = 0;
     insertBefore(*node, firstChild(), ec);
+    if (ec)
+        return Exception { ec };
+    return { };
 }
 
 HTMLCollection* ContainerNode::cachedHTMLCollection(CollectionType type)

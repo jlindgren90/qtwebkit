@@ -146,6 +146,13 @@ void InProcessIDBServer::didDeleteObjectStore(const IDBResultData& resultData)
     });
 }
 
+void InProcessIDBServer::didRenameObjectStore(const IDBResultData& resultData)
+{
+    RunLoop::current().dispatch([this, protectedThis = makeRef(*this), resultData] {
+        m_connectionToServer->didRenameObjectStore(resultData);
+    });
+}
+
 void InProcessIDBServer::didClearObjectStore(const IDBResultData& resultData)
 {
     RunLoop::current().dispatch([this, protectedThis = makeRef(*this), resultData] {
@@ -167,6 +174,13 @@ void InProcessIDBServer::didDeleteIndex(const IDBResultData& resultData)
     });
 }
 
+void InProcessIDBServer::didRenameIndex(const IDBResultData& resultData)
+{
+    RunLoop::current().dispatch([this, protectedThis = makeRef(*this), resultData] {
+        m_connectionToServer->didRenameIndex(resultData);
+    });
+}
+
 void InProcessIDBServer::didPutOrAdd(const IDBResultData& resultData)
 {
     RunLoop::current().dispatch([this, protectedThis = makeRef(*this), resultData] {
@@ -178,6 +192,13 @@ void InProcessIDBServer::didGetRecord(const IDBResultData& resultData)
 {
     RunLoop::current().dispatch([this, protectedThis = makeRef(*this), resultData] {
         m_connectionToServer->didGetRecord(resultData);
+    });
+}
+
+void InProcessIDBServer::didGetAllRecords(const IDBResultData& resultData)
+{
+    RunLoop::current().dispatch([this, protectedThis = makeRef(*this), resultData] {
+        m_connectionToServer->didGetAllRecords(resultData);
     });
 }
 
@@ -244,6 +265,13 @@ void InProcessIDBServer::deleteObjectStore(const IDBRequestData& requestData, co
     });
 }
 
+void InProcessIDBServer::renameObjectStore(const IDBRequestData& requestData, uint64_t objectStoreIdentifier, const String& newName)
+{
+    RunLoop::current().dispatch([this, protectedThis = makeRef(*this), requestData, objectStoreIdentifier, newName] {
+        m_server->renameObjectStore(requestData, objectStoreIdentifier, newName);
+    });
+}
+
 void InProcessIDBServer::clearObjectStore(const IDBRequestData& requestData, uint64_t objectStoreIdentifier)
 {
     RunLoop::current().dispatch([this, protectedThis = makeRef(*this), requestData, objectStoreIdentifier] {
@@ -265,6 +293,13 @@ void InProcessIDBServer::deleteIndex(const IDBRequestData& requestData, uint64_t
     });
 }
 
+void InProcessIDBServer::renameIndex(const IDBRequestData& requestData, uint64_t objectStoreIdentifier, uint64_t indexIdentifier, const String& newName)
+{
+    RunLoop::current().dispatch([this, protectedThis = makeRef(*this), requestData, objectStoreIdentifier, indexIdentifier, newName] {
+        m_server->renameIndex(requestData, objectStoreIdentifier, indexIdentifier, newName);
+    });
+}
+
 void InProcessIDBServer::putOrAdd(const IDBRequestData& requestData, const IDBKeyData& keyData, const IDBValue& value, const IndexedDB::ObjectStoreOverwriteMode overwriteMode)
 {
     RunLoop::current().dispatch([this, protectedThis = makeRef(*this), requestData, keyData, value, overwriteMode] {
@@ -276,6 +311,13 @@ void InProcessIDBServer::getRecord(const IDBRequestData& requestData, const IDBG
 {
     RunLoop::current().dispatch([this, protectedThis = makeRef(*this), requestData, getRecordData] {
         m_server->getRecord(requestData, getRecordData);
+    });
+}
+
+void InProcessIDBServer::getAllRecords(const IDBRequestData& requestData, const IDBGetAllRecordsData& getAllRecordsData)
+{
+    RunLoop::current().dispatch([this, protectedThis = makeRef(*this), requestData, getAllRecordsData] {
+        m_server->getAllRecords(requestData, getAllRecordsData);
     });
 }
 

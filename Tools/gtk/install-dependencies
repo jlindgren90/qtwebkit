@@ -75,6 +75,16 @@ function installDependenciesWithBrew {
          xz
 }
 
+# If the package $1 is available, prints it. Otherwise prints $2.
+# Useful for handling when a package is renamed on new versions of Debian/Ubuntu.
+function aptIfElse {
+    if apt-cache show $1 &>/dev/null; then
+        echo $1
+    else
+        echo $2
+    fi
+}
+
 function installDependenciesWithApt {
     # These are dependencies necessary for building WebKitGTK+.
     packages=" \
@@ -86,6 +96,7 @@ function installDependenciesWithApt {
         cmake \
         flex \
         gawk \
+        geoclue-2.0 \
         gnome-common \
         gperf \
         gtk-doc-tools \
@@ -95,13 +106,15 @@ function installDependenciesWithApt {
         libedit-dev \
         libenchant-dev \
         libfaad-dev \
-        libgeoclue-dev \
+        $(aptIfElse libgcrypt20-dev libgcrypt11-dev) \
+        $(aptIfElse libgeoclue-2-dev libgeoclue-dev) \
         libgirepository1.0-dev \
         libgl1-mesa-dev \
         libgl1-mesa-glx \
-        libgnutls28-dev \
         libgtk2.0-dev \
         libgtk-3-dev \
+        libgstreamer1.0-dev \
+        libgstreamer-plugins-base1.0-dev \
         libgudev-1.0-dev \
         libhyphen-dev \
         libjpeg-dev \
@@ -109,7 +122,7 @@ function installDependenciesWithApt {
         libnotify-dev \
         libopus-dev \
         libpango1.0-dev \
-        libpng12-dev \
+        $(aptIfElse libpng-dev libpng12-dev) \
         libpulse-dev \
         librsvg2-dev \
         libsecret-1-dev \
@@ -135,6 +148,7 @@ function installDependenciesWithApt {
         curl \
         dbus-x11 \
         libapache2-mod-bw \
+        $(aptIfElse libapache2-mod-php7.0 libapache2-mod-php5) \
         libgpg-error-dev \
         psmisc \
         pulseaudio-utils \
@@ -159,8 +173,8 @@ function installDependenciesWithApt {
         libevdev-dev \
         libexpat1-dev \
         libgbm-dev \
-        libgcrypt11-dev \
         libgles2-mesa-dev \
+        libgnutls28-dev \
         libgpg-error-dev \
         libjson-glib-dev \
         libinput-dev \
@@ -198,14 +212,7 @@ function installDependenciesWithApt {
         git-svn \
         subversion"
 
-    if apt-cache show libapache2-mod-php7.0 &>/dev/null; then
-        packages="$packages libapache2-mod-php7.0"
-    else
-        packages="$packages libapache2-mod-php5"
-    fi
-
     apt-get install $packages
-
 }
 
 function installDependenciesWithPacman {
@@ -226,6 +233,8 @@ function installDependenciesWithPacman {
         gperf \
         grep \
         groff \
+        gstreamer \
+        gst-plugins-base-libs \
         gzip \
         hyphen \
         libtool \
@@ -247,7 +256,6 @@ function installDependenciesWithPacman {
         gobject-introspection \
         mesa \
         mesa-libgl \
-        gnutls \
         gtk2 \
         gtk3 \
         libsystemd \
@@ -255,6 +263,7 @@ function installDependenciesWithPacman {
         mpg123 \
         opus \
         pango \
+        libgcrypt \
         libnotify \
         libpng \
         libpulse \
@@ -299,6 +308,7 @@ function installDependenciesWithPacman {
     packages="$packages \
         expat \
         git \
+        gnutls \
         gobject-introspection \
         gsettings-desktop-schemas \
         icon-naming-utils \
@@ -306,7 +316,6 @@ function installDependenciesWithPacman {
         libdrm \
         libepoxy \
         libevdev \
-        libgcrypt \
         libgpg-error \
         libinput \
         p11-kit \
@@ -360,7 +369,6 @@ function installDependenciesWithDnf {
         gcc-c++ \
         geoclue2-devel \
         gettext-devel \
-        gnutls-devel \
         gobject-introspection-devel \
         gperf \
         gstreamer1-devel \
@@ -375,6 +383,7 @@ function installDependenciesWithDnf {
         libXtst-devel \
         libxslt-devel \
         libedit-devel \
+        libgcrypt-devel \
         libgudev1-devel \
         libjpeg-turbo-devel \
         libnotify-devel \
@@ -426,6 +435,7 @@ function installDependenciesWithDnf {
         docbook-utils-pdf \
         git \
         gobject-introspection \
+        gnutls-devel \
         gsettings-desktop-schemas-devel \
         icon-naming-utils \
         itstool \
@@ -434,7 +444,6 @@ function installDependenciesWithDnf {
         libdrm-devel \
         libepoxy-devel \
         libevdev-devel
-        libgcrypt-devel \
         libgpg-error-devel \
         libinput-devel \
         libp11-devel \

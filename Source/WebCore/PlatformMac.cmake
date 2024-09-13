@@ -51,9 +51,10 @@ list(APPEND WebCore_LIBRARIES
     ${ZLIB_LIBRARIES}
 )
 
-add_definitions(-iframework ${QUARTZ_LIBRARY}/Frameworks)
-add_definitions(-iframework ${AVFOUNDATION_LIBRARY}/Versions/Current/Frameworks)
 add_definitions(-iframework ${APPLICATIONSERVICES_LIBRARY}/Versions/Current/Frameworks)
+add_definitions(-iframework ${AVFOUNDATION_LIBRARY}/Versions/Current/Frameworks)
+add_definitions(-iframework ${CARBON_LIBRARY}/Versions/Current/Frameworks)
+add_definitions(-iframework ${QUARTZ_LIBRARY}/Frameworks)
 
 find_library(DATADETECTORSCORE_FRAMEWORK DataDetectorsCore HINTS /System/Library/PrivateFrameworks)
 if (NOT DATADETECTORSCORE_FRAMEWORK-NOTFOUND)
@@ -73,13 +74,13 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${THIRDPARTY_DIR}/ANGLE"
     "${THIRDPARTY_DIR}/ANGLE/include/KHR"
     "${WEBCORE_DIR}/accessibility/mac"
-    "${WEBCORE_DIR}/bindings/objc"
     "${WEBCORE_DIR}/bridge/objc"
     "${WEBCORE_DIR}/editing/cocoa"
     "${WEBCORE_DIR}/editing/mac"
     "${WEBCORE_DIR}/ForwardingHeaders"
     "${WEBCORE_DIR}/ForwardingHeaders/bindings"
     "${WEBCORE_DIR}/ForwardingHeaders/bytecode"
+    "${WEBCORE_DIR}/ForwardingHeaders/domjit"
     "${WEBCORE_DIR}/ForwardingHeaders/debugger"
     "${WEBCORE_DIR}/ForwardingHeaders/heap"
     "${WEBCORE_DIR}/ForwardingHeaders/inspector"
@@ -168,138 +169,8 @@ list(APPEND WebCore_SOURCES
 
     bindings/js/ScriptControllerMac.mm
 
-    bindings/objc/DOM.mm
-    bindings/objc/DOMAbstractView.mm
-    bindings/objc/DOMAttr.mm
-    bindings/objc/DOMBlob.mm
-    bindings/objc/DOMCDATASection.mm
-    bindings/objc/DOMCharacterData.mm
-    bindings/objc/DOMComment.mm
-    bindings/objc/DOMCounter.mm
-    bindings/objc/DOMCSS.mm
-    bindings/objc/DOMCSSCharsetRule.mm
-    bindings/objc/DOMCSSFontFaceRule.mm
-    bindings/objc/DOMCSSImportRule.mm
-    bindings/objc/DOMCSSMediaRule.mm
-    bindings/objc/DOMCSSPageRule.mm
-    bindings/objc/DOMCSSPrimitiveValue.mm
-    bindings/objc/DOMCSSRule.mm
-    bindings/objc/DOMCSSRuleList.mm
-    bindings/objc/DOMCSSStyleDeclaration.mm
-    bindings/objc/DOMCSSStyleRule.mm
-    bindings/objc/DOMCSSStyleSheet.mm
-    bindings/objc/DOMCSSUnknownRule.mm
-    bindings/objc/DOMCSSValue.mm
-    bindings/objc/DOMCSSValueList.mm
-    bindings/objc/DOMCustomXPathNSResolver.mm
-    bindings/objc/DOMDOMImplementation.mm
-    bindings/objc/DOMDOMTokenList.mm
-    bindings/objc/DOMDocument.mm
-    bindings/objc/DOMDocumentFragment.mm
-    bindings/objc/DOMDocumentType.mm
-    bindings/objc/DOMElement.mm
-    bindings/objc/DOMEntityReference.mm
-    bindings/objc/DOMEvent.mm
-    bindings/objc/DOMEvents.mm
-    bindings/objc/DOMFile.mm
-    bindings/objc/DOMFileList.mm
-    bindings/objc/DOMHTML.mm
-    bindings/objc/DOMHTMLAnchorElement.mm
-    bindings/objc/DOMHTMLAppletElement.mm
-    bindings/objc/DOMHTMLAreaElement.mm
-    bindings/objc/DOMHTMLBRElement.mm
-    bindings/objc/DOMHTMLBaseElement.mm
-    bindings/objc/DOMHTMLBaseFontElement.mm
-    bindings/objc/DOMHTMLBodyElement.mm
-    bindings/objc/DOMHTMLButtonElement.mm
-    bindings/objc/DOMHTMLCanvasElement.mm
-    bindings/objc/DOMHTMLCollection.mm
-    bindings/objc/DOMHTMLDListElement.mm
-    bindings/objc/DOMHTMLDirectoryElement.mm
-    bindings/objc/DOMHTMLDivElement.mm
-    bindings/objc/DOMHTMLDocument.mm
-    bindings/objc/DOMHTMLElement.mm
-    bindings/objc/DOMHTMLEmbedElement.mm
-    bindings/objc/DOMHTMLFieldSetElement.mm
-    bindings/objc/DOMHTMLFontElement.mm
-    bindings/objc/DOMHTMLFormElement.mm
-    bindings/objc/DOMHTMLFrameElement.mm
-    bindings/objc/DOMHTMLFrameSetElement.mm
-    bindings/objc/DOMHTMLHRElement.mm
-    bindings/objc/DOMHTMLHeadElement.mm
-    bindings/objc/DOMHTMLHeadingElement.mm
-    bindings/objc/DOMHTMLHtmlElement.mm
-    bindings/objc/DOMHTMLIFrameElement.mm
-    bindings/objc/DOMHTMLImageElement.mm
-    bindings/objc/DOMHTMLInputElement.mm
-    bindings/objc/DOMHTMLLIElement.mm
-    bindings/objc/DOMHTMLLabelElement.mm
-    bindings/objc/DOMHTMLLegendElement.mm
-    bindings/objc/DOMHTMLLinkElement.mm
-    bindings/objc/DOMHTMLMapElement.mm
-    bindings/objc/DOMHTMLMarqueeElement.mm
-    bindings/objc/DOMHTMLMediaElement.mm
-    bindings/objc/DOMHTMLMenuElement.mm
-    bindings/objc/DOMHTMLMetaElement.mm
-    bindings/objc/DOMHTMLModElement.mm
-    bindings/objc/DOMHTMLOListElement.mm
-    bindings/objc/DOMHTMLObjectElement.mm
-    bindings/objc/DOMHTMLOptGroupElement.mm
-    bindings/objc/DOMHTMLOptionElement.mm
-    bindings/objc/DOMHTMLOptionsCollection.mm
-    bindings/objc/DOMHTMLParagraphElement.mm
-    bindings/objc/DOMHTMLParamElement.mm
-    bindings/objc/DOMHTMLPreElement.mm
-    bindings/objc/DOMHTMLQuoteElement.mm
-    bindings/objc/DOMHTMLScriptElement.mm
-    bindings/objc/DOMHTMLSelectElement.mm
-    bindings/objc/DOMHTMLStyleElement.mm
-    bindings/objc/DOMHTMLTableCaptionElement.mm
-    bindings/objc/DOMHTMLTableCellElement.mm
-    bindings/objc/DOMHTMLTableColElement.mm
-    bindings/objc/DOMHTMLTableElement.mm
-    bindings/objc/DOMHTMLTableRowElement.mm
-    bindings/objc/DOMHTMLTableSectionElement.mm
-    bindings/objc/DOMHTMLTextAreaElement.mm
-    bindings/objc/DOMHTMLTitleElement.mm
-    bindings/objc/DOMHTMLUListElement.mm
-    bindings/objc/DOMHTMLVideoElement.mm
-    bindings/objc/DOMInternal.mm
-    bindings/objc/DOMKeyboardEvent.mm
-    bindings/objc/DOMMediaError.mm
-    bindings/objc/DOMMediaList.mm
-    bindings/objc/DOMMouseEvent.mm
-    bindings/objc/DOMMutationEvent.mm
-    bindings/objc/DOMNamedNodeMap.mm
-    bindings/objc/DOMNode.mm
-    bindings/objc/DOMNodeIterator.mm
-    bindings/objc/DOMNodeList.mm
-    bindings/objc/DOMObject.mm
-    bindings/objc/DOMOverflowEvent.mm
-    bindings/objc/DOMProcessingInstruction.mm
-    bindings/objc/DOMProgressEvent.mm
-    bindings/objc/DOMRGBColor.mm
-    bindings/objc/DOMRange.mm
-    bindings/objc/DOMRect.mm
-    bindings/objc/DOMStyleSheet.mm
-    bindings/objc/DOMStyleSheetList.mm
-    bindings/objc/DOMText.mm
-    bindings/objc/DOMTextEvent.mm
-    bindings/objc/DOMTimeRanges.mm
-    bindings/objc/DOMTreeWalker.mm
-    bindings/objc/DOMUIEvent.mm
-    bindings/objc/DOMUIKitExtensions.mm
-    bindings/objc/DOMUtility.mm
-    bindings/objc/DOMWheelEvent.mm
-    bindings/objc/DOMXPath.mm
-    bindings/objc/DOMXPathExpression.mm
-    bindings/objc/DOMXPathResult.mm
-    bindings/objc/ExceptionHandlers.mm
-    bindings/objc/ObjCEventListener.mm
-    bindings/objc/ObjCNodeFilterCondition.mm
-    bindings/objc/WebScriptObject.mm
-
     bridge/objc/ObjCRuntimeObject.mm
+    bridge/objc/WebScriptObject.mm
     bridge/objc/objc_class.mm
     bridge/objc/objc_instance.mm
     bridge/objc/objc_runtime.mm
@@ -307,10 +178,10 @@ list(APPEND WebCore_SOURCES
 
     crypto/CommonCryptoUtilities.cpp
     crypto/CryptoAlgorithm.cpp
-    crypto/CryptoAlgorithmDescriptionBuilder.cpp
     crypto/CryptoAlgorithmRegistry.cpp
     crypto/CryptoKey.cpp
     crypto/CryptoKeyPair.cpp
+    crypto/SubtleCrypto.cpp
     crypto/WebKitSubtleCrypto.cpp
 
     crypto/algorithms/CryptoAlgorithmAES_CBC.cpp
@@ -465,6 +336,9 @@ list(APPEND WebCore_SOURCES
 
     platform/crypto/commoncrypto/CryptoDigestCommonCrypto.cpp
 
+    platform/gamepad/mac/HIDGamepad.cpp
+    platform/gamepad/mac/HIDGamepadProvider.cpp
+
     platform/graphics/DisplayRefreshMonitor.cpp
     platform/graphics/DisplayRefreshMonitorManager.cpp
 
@@ -513,7 +387,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/ca/cocoa/WebSystemBackdropLayer.mm
     platform/graphics/ca/cocoa/WebTiledBackingLayer.mm
 
-    platform/graphics/cg/BitmapImageCG.cpp
     platform/graphics/cg/ColorCG.cpp
     platform/graphics/cg/FloatPointCG.cpp
     platform/graphics/cg/FloatRectCG.cpp
@@ -530,6 +403,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/cg/IntPointCG.cpp
     platform/graphics/cg/IntRectCG.cpp
     platform/graphics/cg/IntSizeCG.cpp
+    platform/graphics/cg/NativeImageCG.cpp
     platform/graphics/cg/PDFDocumentImage.cpp
     platform/graphics/cg/PathCG.cpp
     platform/graphics/cg/PatternCG.cpp
@@ -582,13 +456,12 @@ list(APPEND WebCore_SOURCES
     platform/graphics/opentype/OpenTypeCG.cpp
     platform/graphics/opentype/OpenTypeMathData.cpp
 
+    platform/mac/BlacklistUpdater.mm
     platform/mac/CursorMac.mm
     platform/mac/DragDataMac.mm
     platform/mac/DragImageMac.mm
     platform/mac/EventLoopMac.mm
     platform/mac/FileSystemMac.mm
-    platform/mac/HIDGamepad.cpp
-    platform/mac/HIDGamepadProvider.cpp
     platform/mac/KeyEventMac.mm
     platform/mac/KillRingMac.mm
     platform/mac/LocalCurrentGraphicsContext.mm
@@ -602,10 +475,11 @@ list(APPEND WebCore_SOURCES
     platform/mac/PlatformPasteboardMac.mm
     platform/mac/PlatformScreenMac.mm
     platform/mac/PlatformSpeechSynthesizerMac.mm
+    platform/mac/PluginBlacklist.mm
     platform/mac/PowerObserverMac.cpp
     platform/mac/PublicSuffixMac.mm
     platform/mac/RemoteCommandListenerMac.mm
-    platform/mac/SSLKeyGeneratorMac.cpp
+    platform/mac/SSLKeyGeneratorMac.mm
     platform/mac/ScrollAnimatorMac.mm
     platform/mac/ScrollViewMac.mm
     platform/mac/ScrollbarThemeMac.mm
@@ -625,6 +499,7 @@ list(APPEND WebCore_SOURCES
     platform/mac/WebCoreNSURLExtras.mm
     platform/mac/WebCoreObjCExtras.mm
     platform/mac/WebCoreSystemInterface.mm
+    platform/mac/WebGLBlacklist.mm
     platform/mac/WebNSAttributedStringExtras.mm
     platform/mac/WebVideoFullscreenController.mm
     platform/mac/WebVideoFullscreenHUDWindowController.mm
@@ -643,18 +518,15 @@ list(APPEND WebCore_SOURCES
     platform/network/cf/NetworkStorageSessionCFNet.cpp
     platform/network/cf/ProxyServerCFNet.cpp
     platform/network/cf/ResourceErrorCF.cpp
-    platform/network/cf/ResourceHandleCFNet.cpp
-    platform/network/cf/ResourceHandleCFURLConnectionDelegate.cpp
-    platform/network/cf/ResourceHandleCFURLConnectionDelegateWithOperationQueue.cpp
     platform/network/cf/ResourceRequestCFNet.cpp
     platform/network/cf/ResourceResponseCFNet.cpp
-    platform/network/cf/SocketStreamHandleCFNet.cpp
+    platform/network/cf/SocketStreamHandleImplCFNet.cpp
     platform/network/cf/SynchronousLoaderClientCFNet.cpp
     platform/network/cf/SynchronousResourceHandleCFURLConnectionDelegate.cpp
 
     platform/network/cocoa/CredentialCocoa.mm
+    platform/network/cocoa/NetworkLoadTiming.mm
     platform/network/cocoa/ProtectionSpaceCocoa.mm
-    platform/network/cocoa/ResourceLoadTiming.mm
     platform/network/cocoa/ResourceRequestCocoa.mm
     platform/network/cocoa/ResourceResponseCocoa.mm
     platform/network/cocoa/WebCoreNSURLSession.mm
@@ -669,7 +541,6 @@ list(APPEND WebCore_SOURCES
     platform/network/mac/NetworkStateNotifierMac.cpp
     platform/network/mac/ResourceErrorMac.mm
     platform/network/mac/ResourceHandleMac.mm
-    platform/network/mac/ResourceRequestMac.mm
     platform/network/mac/SynchronousLoaderClient.mm
     platform/network/mac/UTIUtilities.mm
     platform/network/mac/WebCoreResourceHandleAsDelegate.mm
@@ -716,6 +587,7 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     Modules/applepay
     Modules/geolocation
     Modules/indexeddb
+    Modules/mediastream
     Modules/notifications
     Modules/webdatabase
     Modules/websockets
@@ -726,9 +598,11 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 
     bindings/generic
     bindings/js
-    bindings/objc
 
+    bridge/objc
     bridge/jsc
+
+    css/parser
 
     editing/cocoa
     editing/mac
@@ -746,6 +620,7 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 
     page/animation
     page/cocoa
+    page/csp
     page/mac
     page/scrolling
 
@@ -764,6 +639,9 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     platform/text
 
     platform/audio/cocoa
+
+    platform/gamepad/cocoa
+    platform/gamepad/mac
 
     platform/graphics/ca
     platform/graphics/cocoa
@@ -789,6 +667,8 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 
     svg/graphics
     svg/properties
+
+    xml
 )
 
 set(WebCore_FORWARDING_HEADERS_FILES
@@ -809,7 +689,6 @@ set(WebCore_FORWARDING_HEADERS_FILES
 
     editing/mac/TextAlternativeWithRange.h
 
-    history/BackForwardList.h
     history/HistoryItem.h
     history/PageCache.h
 

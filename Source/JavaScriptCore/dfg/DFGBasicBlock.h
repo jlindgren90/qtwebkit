@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef DFGBasicBlock_h
-#define DFGBasicBlock_h
+#pragma once
 
 #if ENABLE(DFG_JIT)
 
@@ -37,8 +36,6 @@
 #include "DFGNodeOrigin.h"
 #include "DFGStructureClobberState.h"
 #include "Operands.h"
-#include <wtf/HashMap.h>
-#include <wtf/HashSet.h>
 #include <wtf/Vector.h>
 
 namespace JSC { namespace DFG {
@@ -93,6 +90,7 @@ struct BasicBlock : RefCounted<BasicBlock> {
             case Switch:
             case Return:
             case TailCall:
+            case DirectTailCall:
             case TailCallVarargs:
             case TailCallForwardVarargs:
             case Unreachable:
@@ -299,6 +297,3 @@ static inline BasicBlock* blockForBytecodeOffset(Vector<BasicBlock*>& linkingTar
 } } // namespace JSC::DFG
 
 #endif // ENABLE(DFG_JIT)
-
-#endif // DFGBasicBlock_h
-

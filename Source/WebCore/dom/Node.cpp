@@ -34,7 +34,7 @@
 #include "ComposedTreeAncestorIterator.h"
 #include "ContainerNodeAlgorithms.h"
 #include "ContextMenuController.h"
-#include "DOMImplementation.h"
+#include "DataTransfer.h"
 #include "DocumentType.h"
 #include "ElementIterator.h"
 #include "ElementRareData.h"
@@ -48,6 +48,7 @@
 #include "HTMLImageElement.h"
 #include "HTMLSlotElement.h"
 #include "HTMLStyleElement.h"
+#include "InputEvent.h"
 #include "InspectorController.h"
 #include "KeyboardEvent.h"
 #include "Logging.h"
@@ -70,9 +71,11 @@
 #include "TouchEvent.h"
 #include "TreeScopeAdopter.h"
 #include "WheelEvent.h"
+#include "XMLNSNames.h"
 #include "XMLNames.h"
 #include <wtf/RefCountedLeakCounter.h>
 #include <wtf/SHA1.h>
+#include <wtf/Variant.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuilder.h>
 
@@ -83,11 +86,6 @@
 namespace WebCore {
 
 using namespace HTMLNames;
-
-bool Node::isSupportedForBindings(const String& feature, const String& version)
-{
-    return DOMImplementation::hasFeature(feature, version);
-}
 
 #if DUMP_NODE_STATISTICS
 static HashSet<Node*> liveNodeSet;
@@ -437,17 +435,15 @@ bool Node::appendChild(Node& newChild, ExceptionCode& ec)
     return downcast<ContainerNode>(*this).appendChild(newChild, ec);
 }
 
-static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const Vector<std::variant<Ref<Node>, String>>& vector)
+static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const Vector<NodeOrString>& vector)
 {
     HashSet<RefPtr<Node>> nodeSet;
-
-    auto visitor = WTF::makeVisitor(
-        [&](const Ref<Node>& node) { nodeSet.add(const_cast<Node*>(node.ptr())); },
-        [](const String&) { }
-    );
-
-    for (const auto& variant : vector)
-        std::visit(visitor, variant);
+    for (const auto& variant : vector) {
+        WTF::switchOn(variant,
+            [&](const RefPtr<Node>& node) { nodeSet.add(const_cast<Node*>(node.get())); },
+            [](const String&) { }
+        );
+    }
 
     return nodeSet;
 }
@@ -470,96 +466,125 @@ static RefPtr<Node> firstFollowingSiblingNotInNodeSet(Node& context, const HashS
     return nullptr;
 }
 
-RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+ExceptionOr<RefPtr<Node>> Node::convertNodesOrStringsIntoNode(Vector<NodeOrString>&& nodeOrStringVector)
 {
     if (nodeOrStringVector.isEmpty())
         return nullptr;
 
     Vector<Ref<Node>> nodes;
     nodes.reserveInitialCapacity(nodeOrStringVector.size());
-
-    auto visitor = WTF::makeVisitor(
-        [&](Ref<Node>& node) { nodes.uncheckedAppend(node.copyRef()); },
-        [&](String& string) { nodes.uncheckedAppend(Text::create(document(), string)); }
-    );
-
-    for (auto& variant : nodeOrStringVector)
-        std::visit(visitor, variant);
+    for (auto& variant : nodeOrStringVector) {
+        WTF::switchOn(variant,
+            [&](RefPtr<Node>& node) { nodes.uncheckedAppend(*node.get()); },
+            [&](String& string) { nodes.uncheckedAppend(Text::create(document(), string)); }
+        );
+    }
 
     if (nodes.size() == 1)
-        return WTFMove(nodes.first());
+        return RefPtr<Node> { WTFMove(nodes.first()) };
 
     auto nodeToReturn = DocumentFragment::create(document());
     for (auto& node : nodes) {
-        if (!nodeToReturn->appendChild(node, ec))
-            return nullptr;
+        ExceptionCode ec = 0;
+        nodeToReturn->appendChild(node, ec);
+        if (ec)
+            return Exception { ec };
     }
-    return WTFMove(nodeToReturn);
+    return RefPtr<Node> { WTFMove(nodeToReturn) };
 }
 
-void Node::before(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+ExceptionOr<void> Node::before(Vector<NodeOrString>&& nodeOrStringVector)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
-        return;
+        return { };
 
     auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
     auto viablePreviousSibling = firstPrecedingSiblingNotInNodeSet(*this, nodeSet);
 
-    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
-    if (ec || !node)
-        return;
+    auto result = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector));
+    if (result.hasException())
+        return result.releaseException();
+    auto node = result.releaseReturnValue();
+    if (!node)
+        return { };
 
     if (viablePreviousSibling)
         viablePreviousSibling = viablePreviousSibling->nextSibling();
     else
         viablePreviousSibling = parent->firstChild();
 
+    ExceptionCode ec = 0;
     parent->insertBefore(*node, viablePreviousSibling.get(), ec);
-}
-
-void Node::after(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
-{
-    RefPtr<ContainerNode> parent = parentNode();
-    if (!parent)
-        return;
-
-    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
-    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
-
-    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
-    if (ec || !node)
-        return;
-
-    parent->insertBefore(*node, viableNextSibling.get(), ec);
-}
-
-void Node::replaceWith(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
-{
-    RefPtr<ContainerNode> parent = parentNode();
-    if (!parent)
-        return;
-
-    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
-    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
-
-    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
     if (ec)
-        return;
+        return Exception { ec };
+    return { };
+}
+
+ExceptionOr<void> Node::after(Vector<NodeOrString>&& nodeOrStringVector)
+{
+    RefPtr<ContainerNode> parent = parentNode();
+    if (!parent)
+        return { };
+
+    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
+    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
+
+    auto result = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector));
+    if (result.hasException())
+        return result.releaseException();
+    auto node = result.releaseReturnValue();
+    if (!node)
+        return { };
+
+    ExceptionCode ec = 0;
+    parent->insertBefore(*node, viableNextSibling.get(), ec);
+    if (ec)
+        return Exception { ec };
+    return { };
+}
+
+ExceptionOr<void> Node::replaceWith(Vector<NodeOrString>&& nodeOrStringVector)
+{
+    RefPtr<ContainerNode> parent = parentNode();
+    if (!parent)
+        return { };
+
+    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
+    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
+
+    auto result = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector));
+    if (result.hasException())
+        return result.releaseException();
+    auto node = result.releaseReturnValue();
 
     if (parentNode() == parent) {
-        if (node)
+        if (node) {
+            ExceptionCode ec = 0;
             parent->replaceChild(*node, *this, ec);
-        else
+            if (ec)
+                return Exception { ec };
+        } else
             parent->removeChild(*this);
-    } else if (node)
+    } else if (node) {
+        ExceptionCode ec = 0;
         parent->insertBefore(*node, viableNextSibling.get(), ec);
+        if (ec)
+            return Exception { ec };
+    }
+    return { };
 }
 
-void Node::remove(ExceptionCode& ec)
+ExceptionOr<void> Node::remove()
 {
-    if (ContainerNode* parent = parentNode())
-        parent->removeChild(*this, ec);
+    auto* parent = parentNode();
+    if (!parent)
+        return { };
+    ExceptionCode ec = 0;
+    parent->removeChild(*this, ec);
+    if (ec)
+        return Exception { ec };
+    return { };
 }
 
 void Node::normalize()
@@ -589,7 +614,7 @@ void Node::normalize()
         if (!text->length()) {
             // Care must be taken to get the next node before removing the current node.
             node = NodeTraversal::nextPostOrder(*node);
-            text->remove(IGNORE_EXCEPTION);
+            text->remove();
             continue;
         }
 
@@ -601,7 +626,7 @@ void Node::normalize()
 
             // Remove empty text nodes.
             if (!nextText->length()) {
-                nextText->remove(IGNORE_EXCEPTION);
+                nextText->remove();
                 continue;
             }
 
@@ -609,7 +634,7 @@ void Node::normalize()
             unsigned offset = text->length();
             text->appendData(nextText->data());
             document().textNodesMerged(nextText.get(), offset);
-            nextText->remove(IGNORE_EXCEPTION);
+            nextText->remove();
         }
 
         node = NodeTraversal::nextPostOrder(*node);
@@ -668,7 +693,7 @@ void Node::inspect()
 static Node::Editability computeEditabilityFromComputedStyle(const Node& startNode, Node::UserSelectAllTreatment treatment)
 {
     // Ideally we'd call ASSERT(!needsStyleRecalc()) here, but
-    // ContainerNode::setFocus() calls setNeedsStyleRecalc(), so the assertion
+    // ContainerNode::setFocus() calls invalidateStyleForSubtree(), so the assertion
     // would fire in the middle of Document::setFocusedElement().
 
     for (const Node* node = &startNode; node; node = node->parentNode()) {
@@ -752,6 +777,16 @@ void Node::derefEventTarget()
     deref();
 }
 
+void Node::adjustStyleValidity(Style::Validity validity, Style::InvalidationMode mode)
+{
+    if (validity > styleValidity()) {
+        m_nodeFlags &= ~StyleValidityMask;
+        m_nodeFlags |= static_cast<unsigned>(validity) << StyleValidityShift;
+    }
+    if (mode == Style::InvalidationMode::RecompositeLayer)
+        setFlag(StyleResolutionShouldRecompositeLayerFlag);
+}
+
 inline void Node::updateAncestorsForStyleRecalc()
 {
     auto composedAncestors = composedTreeAncestors(*this);
@@ -760,10 +795,8 @@ inline void Node::updateAncestorsForStyleRecalc()
     if (it != end) {
         it->setDirectChildNeedsStyleRecalc();
 
-        if (it->childrenAffectedByPropertyBasedBackwardPositionalRules()) {
-            if (it->styleChangeType() < FullStyleChange)
-                it->setStyleChange(FullStyleChange);
-        }
+        if (it->childrenAffectedByPropertyBasedBackwardPositionalRules())
+            it->adjustStyleValidity(Style::Validity::SubtreeInvalid, Style::InvalidationMode::Normal);
 
         for (; it != end; ++it) {
             // Iterator skips over shadow roots.
@@ -784,9 +817,9 @@ inline void Node::updateAncestorsForStyleRecalc()
     document().scheduleStyleRecalc();
 }
 
-void Node::setNeedsStyleRecalc(StyleChangeType changeType)
+void Node::invalidateStyle(Style::Validity validity, Style::InvalidationMode mode)
 {
-    ASSERT(changeType != NoStyleChange);
+    ASSERT(validity != Style::Validity::Valid);
     if (!inRenderedDocument())
         return;
 
@@ -794,11 +827,12 @@ void Node::setNeedsStyleRecalc(StyleChangeType changeType)
     if (document().inRenderTreeUpdate())
         return;
 
-    StyleChangeType existingChangeType = styleChangeType();
-    if (changeType > existingChangeType)
-        setStyleChange(changeType);
+    // FIXME: Why the second condition?
+    bool markAncestors = styleValidity() == Style::Validity::Valid || validity == Style::Validity::SubtreeAndRenderersInvalid;
 
-    if (existingChangeType == NoStyleChange || changeType == ReconstructRenderTree)
+    adjustStyleValidity(validity, mode);
+
+    if (markAncestors)
         updateAncestorsForStyleRecalc();
 }
 
@@ -1082,7 +1116,7 @@ bool Node::isUnclosedNode(const Node& otherNode) const
                 return true; // treeScopeThatCanAccessOtherNode is a shadow-including inclusive ancestor of this node.
         }
         auto& root = treeScopeThatCanAccessOtherNode->rootNode();
-        if (is<ShadowRoot>(root) && downcast<ShadowRoot>(root).type() != ShadowRoot::Type::Open)
+        if (is<ShadowRoot>(root) && downcast<ShadowRoot>(root).mode() != ShadowRootMode::Open)
             break;
     }
 
@@ -1106,7 +1140,7 @@ HTMLSlotElement* Node::assignedSlot() const
 HTMLSlotElement* Node::assignedSlotForBindings() const
 {
     auto* shadowRoot = parentShadowRoot(*this);
-    if (shadowRoot && shadowRoot->type() == ShadowRoot::Type::Open)
+    if (shadowRoot && shadowRoot->mode() == ShadowRootMode::Open)
         return shadowRoot->findAssignedSlot(*this);
     return nullptr;
 }
@@ -1124,7 +1158,7 @@ ContainerNode* Node::parentInComposedTree() const
 bool Node::isInUserAgentShadowTree() const
 {
     auto* shadowRoot = containingShadowRoot();
-    return shadowRoot && shadowRoot->type() == ShadowRoot::Type::UserAgent;
+    return shadowRoot && shadowRoot->mode() == ShadowRootMode::UserAgent;
 }
 
 Node* Node::nonBoundaryShadowTreeRootNode()
@@ -1163,16 +1197,31 @@ Element* Node::parentOrShadowHostElement() const
     return downcast<Element>(parent);
 }
 
-Node* Node::rootNode() const
+Node& Node::rootNode() const
 {
     if (isInTreeScope())
-        return &treeScope().rootNode();
+        return treeScope().rootNode();
 
     Node* node = const_cast<Node*>(this);
     Node* highest = node;
     for (; node; node = node->parentNode())
         highest = node;
-    return highest;
+    return *highest;
+}
+
+// https://dom.spec.whatwg.org/#concept-shadow-including-root
+Node& Node::shadowIncludingRoot() const
+{
+    auto& root = rootNode();
+    if (!is<ShadowRoot>(root))
+        return root;
+    auto* host = downcast<ShadowRoot>(root).host();
+    return host ? host->shadowIncludingRoot() : root;
+}
+
+Node& Node::getRootNode(const GetRootNodeOptions& options) const
+{
+    return options.composed ? shadowIncludingRoot() : rootNode();
 }
 
 Node::InsertionNotificationRequest Node::insertedInto(ContainerNode& insertionPoint)
@@ -1183,7 +1232,7 @@ Node::InsertionNotificationRequest Node::insertedInto(ContainerNode& insertionPo
     if (parentOrShadowHostNode()->isInShadowTree())
         setFlag(IsInShadowTreeFlag);
 
-    setNeedsStyleRecalc(ReconstructRenderTree);
+    invalidateStyle(Style::Validity::SubtreeAndRenderersInvalid);
 
     return InsertionDone;
 }
@@ -1308,159 +1357,103 @@ bool Node::isEqualNode(Node* other) const
     return true;
 }
 
-bool Node::isDefaultNamespace(const AtomicString& namespaceURIMaybeEmpty) const
+// https://dom.spec.whatwg.org/#locate-a-namespace
+static const AtomicString& locateDefaultNamespace(const Node& node, const AtomicString& prefix)
 {
-    const AtomicString& namespaceURI = namespaceURIMaybeEmpty.isEmpty() ? nullAtom : namespaceURIMaybeEmpty;
+    switch (node.nodeType()) {
+    case Node::ELEMENT_NODE: {
+        auto& element = downcast<Element>(node);
+        auto& namespaceURI = element.namespaceURI();
+        if (!namespaceURI.isNull() && element.prefix() == prefix)
+            return namespaceURI;
 
-    switch (nodeType()) {
-        case ELEMENT_NODE: {
-            const Element& element = downcast<Element>(*this);
-            
-            if (element.prefix().isNull())
-                return element.namespaceURI() == namespaceURI;
+        if (element.hasAttributes()) {
+            for (auto& attribute : element.attributesIterator()) {
+                if (attribute.namespaceURI() != XMLNSNames::xmlnsNamespaceURI)
+                    continue;
 
-            if (element.hasAttributes()) {
-                for (const Attribute& attribute : element.attributesIterator()) {
-                    if (attribute.localName() == xmlnsAtom)
-                        return attribute.value() == namespaceURI;
+                if ((prefix.isNull() && attribute.prefix().isNull() && attribute.localName() == xmlnsAtom) || (attribute.prefix() == xmlnsAtom && attribute.localName() == prefix)) {
+                    auto& result = attribute.value();
+                    return result.isEmpty() ? nullAtom : result;
                 }
             }
-
-            if (auto* parent = parentElement())
-                return parent->isDefaultNamespace(namespaceURI);
-
-            return false;
         }
-        case DOCUMENT_NODE:
-            if (Element* documentElement = downcast<Document>(*this).documentElement())
-                return documentElement->isDefaultNamespace(namespaceURI);
-            return false;
-        case DOCUMENT_TYPE_NODE:
-        case DOCUMENT_FRAGMENT_NODE:
-            return false;
-        case ATTRIBUTE_NODE: {
-            const Attr* attr = static_cast<const Attr*>(this);
-            if (attr->ownerElement())
-                return attr->ownerElement()->isDefaultNamespace(namespaceURI);
-            return false;
-        }
-        default:
-            if (auto* parent = parentElement())
-                return parent->isDefaultNamespace(namespaceURI);
-            return false;
+        auto* parent = node.parentElement();
+        return parent ? locateDefaultNamespace(*parent, prefix) : nullAtom;
+    }
+    case Node::DOCUMENT_NODE:
+        if (auto* documentElement = downcast<Document>(node).documentElement())
+            return locateDefaultNamespace(*documentElement, prefix);
+        return nullAtom;
+    case Node::DOCUMENT_TYPE_NODE:
+    case Node::DOCUMENT_FRAGMENT_NODE:
+        return nullAtom;
+    case Node::ATTRIBUTE_NODE:
+        if (auto* ownerElement = downcast<Attr>(node).ownerElement())
+            return locateDefaultNamespace(*ownerElement, prefix);
+        return nullAtom;
+    default:
+        if (auto* parent = node.parentElement())
+            return locateDefaultNamespace(*parent, prefix);
+        return nullAtom;
     }
 }
 
-String Node::lookupPrefix(const AtomicString &namespaceURI) const
+// https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
+bool Node::isDefaultNamespace(const AtomicString& potentiallyEmptyNamespace) const
 {
-    // Implemented according to
-    // http://www.w3.org/TR/2004/REC-DOM-Level-3-Core-20040407/namespaces-algorithms.html#lookupNamespacePrefixAlgo
-    
-    if (namespaceURI.isEmpty())
-        return String();
-    
-    switch (nodeType()) {
-        case ELEMENT_NODE:
-            return lookupNamespacePrefix(namespaceURI, static_cast<const Element *>(this));
-        case DOCUMENT_NODE:
-            if (Element* documentElement = downcast<Document>(*this).documentElement())
-                return documentElement->lookupPrefix(namespaceURI);
-            return String();
-        case DOCUMENT_FRAGMENT_NODE:
-        case DOCUMENT_TYPE_NODE:
-            return String();
-        case ATTRIBUTE_NODE: {
-            const Attr *attr = static_cast<const Attr *>(this);
-            if (attr->ownerElement())
-                return attr->ownerElement()->lookupPrefix(namespaceURI);
-            return String();
-        }
-        default:
-            if (auto* parent = parentElement())
-                return parent->lookupPrefix(namespaceURI);
-            return String();
-    }
+    const AtomicString& namespaceURI = potentiallyEmptyNamespace.isEmpty() ? nullAtom : potentiallyEmptyNamespace;
+    return locateDefaultNamespace(*this, nullAtom) == namespaceURI;
 }
 
-String Node::lookupNamespaceURI(const String &prefix) const
+// https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
+const AtomicString& Node::lookupNamespaceURI(const AtomicString& potentiallyEmptyPrefix) const
 {
-    // Implemented according to
-    // http://www.w3.org/TR/2004/REC-DOM-Level-3-Core-20040407/namespaces-algorithms.html#lookupNamespaceURIAlgo
-    
-    if (!prefix.isNull() && prefix.isEmpty())
-        return String();
-    
-    switch (nodeType()) {
-        case ELEMENT_NODE: {
-            const Element *elem = static_cast<const Element *>(this);
-            
-            if (!elem->namespaceURI().isNull() && elem->prefix() == prefix)
-                return elem->namespaceURI();
-            
-            if (elem->hasAttributes()) {
-                for (const Attribute& attribute : elem->attributesIterator()) {
-                    
-                    if (attribute.prefix() == xmlnsAtom && attribute.localName() == prefix) {
-                        if (!attribute.value().isEmpty())
-                            return attribute.value();
-                        
-                        return String();
-                    }
-                    if (attribute.localName() == xmlnsAtom && prefix.isNull()) {
-                        if (!attribute.value().isEmpty())
-                            return attribute.value();
-                        
-                        return String();
-                    }
-                }
-            }
-            if (auto* parent = parentElement())
-                return parent->lookupNamespaceURI(prefix);
-            return String();
-        }
-        case DOCUMENT_NODE:
-            if (Element* documentElement = downcast<Document>(*this).documentElement())
-                return documentElement->lookupNamespaceURI(prefix);
-            return String();
-        case DOCUMENT_TYPE_NODE:
-        case DOCUMENT_FRAGMENT_NODE:
-            return String();
-        case ATTRIBUTE_NODE: {
-            const Attr *attr = static_cast<const Attr *>(this);
-            
-            if (attr->ownerElement())
-                return attr->ownerElement()->lookupNamespaceURI(prefix);
-            else
-                return String();
-        }
-        default:
-            if (auto* parent = parentElement())
-                return parent->lookupNamespaceURI(prefix);
-            return String();
-    }
+    const AtomicString& prefix = potentiallyEmptyPrefix.isEmpty() ? nullAtom : potentiallyEmptyPrefix;
+    return locateDefaultNamespace(*this, prefix);
 }
 
-String Node::lookupNamespacePrefix(const AtomicString &_namespaceURI, const Element *originalElement) const
+// https://dom.spec.whatwg.org/#locate-a-namespace-prefix
+static const AtomicString& locateNamespacePrefix(const Element& element, const AtomicString& namespaceURI)
 {
-    if (_namespaceURI.isNull())
-        return String();
-            
-    if (originalElement->lookupNamespaceURI(prefix()) == _namespaceURI)
-        return prefix();
-    
-    ASSERT(is<Element>(*this));
-    const Element& thisElement = downcast<Element>(*this);
-    if (thisElement.hasAttributes()) {
-        for (const Attribute& attribute : thisElement.attributesIterator()) {
-            if (attribute.prefix() == xmlnsAtom && attribute.value() == _namespaceURI
-                && originalElement->lookupNamespaceURI(attribute.localName()) == _namespaceURI)
+    if (element.namespaceURI() == namespaceURI)
+        return element.prefix();
+
+    if (element.hasAttributes()) {
+        for (auto& attribute : element.attributesIterator()) {
+            if (attribute.prefix() == xmlnsAtom && attribute.value() == namespaceURI)
                 return attribute.localName();
         }
     }
+    auto* parent = element.parentElement();
+    return parent ? locateNamespacePrefix(*parent, namespaceURI) : nullAtom;
+}
+
+// https://dom.spec.whatwg.org/#dom-node-lookupprefix
+const AtomicString& Node::lookupPrefix(const AtomicString& namespaceURI) const
+{
+    if (namespaceURI.isEmpty())
+        return nullAtom;
     
-    if (auto* parent = parentElement())
-        return parent->lookupNamespacePrefix(_namespaceURI, originalElement);
-    return String();
+    switch (nodeType()) {
+    case ELEMENT_NODE:
+        return locateNamespacePrefix(downcast<Element>(*this), namespaceURI);
+    case DOCUMENT_NODE:
+        if (auto* documentElement = downcast<Document>(*this).documentElement())
+            return locateNamespacePrefix(*documentElement, namespaceURI);
+        return nullAtom;
+    case DOCUMENT_FRAGMENT_NODE:
+    case DOCUMENT_TYPE_NODE:
+        return nullAtom;
+    case ATTRIBUTE_NODE:
+        if (auto* ownerElement = downcast<Attr>(*this).ownerElement())
+            return locateNamespacePrefix(*ownerElement, namespaceURI);
+        return nullAtom;
+    default:
+        if (auto* parent = parentElement())
+            return locateNamespacePrefix(*parent, namespaceURI);
+        return nullAtom;
+    }
 }
 
 static void appendTextContent(const Node* node, bool convertBRsToNewlines, bool& isNullString, StringBuilder& content)
@@ -1512,26 +1505,26 @@ String Node::textContent(bool convertBRsToNewlines) const
 void Node::setTextContent(const String& text, ExceptionCode& ec)
 {           
     switch (nodeType()) {
-        case TEXT_NODE:
-        case CDATA_SECTION_NODE:
-        case COMMENT_NODE:
-        case PROCESSING_INSTRUCTION_NODE:
-            setNodeValue(text, ec);
-            return;
-        case ELEMENT_NODE:
-        case ATTRIBUTE_NODE:
-        case DOCUMENT_FRAGMENT_NODE: {
-            auto container = makeRef(downcast<ContainerNode>(*this));
-            ChildListMutationScope mutation(container);
-            container->removeChildren();
-            if (!text.isEmpty())
-                container->appendChild(document().createTextNode(text), ec);
-            return;
-        }
-        case DOCUMENT_NODE:
-        case DOCUMENT_TYPE_NODE:
-            // Do nothing.
-            return;
+    case ATTRIBUTE_NODE:
+    case TEXT_NODE:
+    case CDATA_SECTION_NODE:
+    case COMMENT_NODE:
+    case PROCESSING_INSTRUCTION_NODE:
+        setNodeValue(text, ec);
+        return;
+    case ELEMENT_NODE:
+    case DOCUMENT_FRAGMENT_NODE: {
+        auto container = makeRef(downcast<ContainerNode>(*this));
+        ChildListMutationScope mutation(container);
+        container->removeChildren();
+        if (!text.isEmpty())
+            container->appendChild(document().createTextNode(text), ec);
+        return;
+    }
+    case DOCUMENT_NODE:
+    case DOCUMENT_TYPE_NODE:
+        // Do nothing.
+        return;
     }
     ASSERT_NOT_REACHED();
 }
@@ -1872,7 +1865,7 @@ void NodeListsNodeData::invalidateCaches(const QualifiedName* attrName)
     if (attrName)
         return;
 
-    for (auto& tagCollection : m_tagCollectionCacheNS)
+    for (auto& tagCollection : m_tagCollectionNSCache)
         tagCollection.value->invalidateCacheForAttribute(nullptr);
 }
 
@@ -1883,7 +1876,7 @@ void Node::getSubresourceURLs(ListHashSet<URL>& urls) const
 
 Element* Node::enclosingLinkEventParentOrSelf()
 {
-    for (Node* node = this; node; node = node->parentOrShadowHostNode()) {
+    for (Node* node = this; node; node = node->parentInComposedTree()) {
         // For imagemaps, the enclosing link element is the associated area element not the image itself.
         // So we don't let images be the enclosing link element, even though isLink sometimes returns
         // true for them.
@@ -2206,11 +2199,11 @@ void Node::dispatchSubtreeModifiedEvent()
     dispatchScopedEvent(MutationEvent::create(subtreeModifiedEventName, true));
 }
 
-bool Node::dispatchDOMActivateEvent(int detail, PassRefPtr<Event> underlyingEvent)
+bool Node::dispatchDOMActivateEvent(int detail, Event& underlyingEvent)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(!NoEventDispatchAssertion::isEventDispatchForbidden());
     Ref<UIEvent> event = UIEvent::create(eventNames().DOMActivateEvent, true, true, document().defaultView(), detail);
-    event->setUnderlyingEvent(underlyingEvent.get());
+    event->setUnderlyingEvent(&underlyingEvent);
     dispatchScopedEvent(event);
     return event->defaultHandled();
 }
@@ -2246,34 +2239,34 @@ void Node::dispatchInputEvent()
     dispatchScopedEvent(Event::create(eventNames().inputEvent, true, false));
 }
 
-void Node::defaultEventHandler(Event* event)
+void Node::defaultEventHandler(Event& event)
 {
-    if (event->target() != this)
+    if (event.target() != this)
         return;
-    const AtomicString& eventType = event->type();
+    const AtomicString& eventType = event.type();
     if (eventType == eventNames().keydownEvent || eventType == eventNames().keypressEvent) {
-        if (is<KeyboardEvent>(*event)) {
+        if (is<KeyboardEvent>(event)) {
             if (Frame* frame = document().frame())
                 frame->eventHandler().defaultKeyboardEventHandler(downcast<KeyboardEvent>(event));
         }
     } else if (eventType == eventNames().clickEvent) {
-        int detail = is<UIEvent>(*event) ? downcast<UIEvent>(*event).detail() : 0;
+        int detail = is<UIEvent>(event) ? downcast<UIEvent>(event).detail() : 0;
         if (dispatchDOMActivateEvent(detail, event))
-            event->setDefaultHandled();
+            event.setDefaultHandled();
 #if ENABLE(CONTEXT_MENUS)
     } else if (eventType == eventNames().contextmenuEvent) {
         if (Frame* frame = document().frame())
             if (Page* page = frame->page())
-                page->contextMenuController().handleContextMenuEvent(event);
+                page->contextMenuController().handleContextMenuEvent(&event);
 #endif
     } else if (eventType == eventNames().textInputEvent) {
-        if (is<TextEvent>(*event)) {
+        if (is<TextEvent>(event)) {
             if (Frame* frame = document().frame())
                 frame->eventHandler().defaultTextInputEventHandler(downcast<TextEvent>(event));
         }
 #if ENABLE(PAN_SCROLLING)
-    } else if (eventType == eventNames().mousedownEvent && is<MouseEvent>(*event)) {
-        if (downcast<MouseEvent>(*event).button() == MiddleButton) {
+    } else if (eventType == eventNames().mousedownEvent && is<MouseEvent>(event)) {
+        if (downcast<MouseEvent>(event).button() == MiddleButton) {
             if (enclosingLinkEventParentOrSelf())
                 return;
 
@@ -2287,7 +2280,7 @@ void Node::defaultEventHandler(Event* event)
             }
         }
 #endif
-    } else if (eventNames().isWheelEventType(eventType) && is<WheelEvent>(*event)) {
+    } else if (eventNames().isWheelEventType(eventType) && is<WheelEvent>(event)) {
         // If we don't have a renderer, send the wheel event to the first node we find with a renderer.
         // This is needed for <option> and <optgroup> elements so that <select>s get a wheel scroll.
         Node* startNode = this;
@@ -2298,18 +2291,16 @@ void Node::defaultEventHandler(Event* event)
             if (Frame* frame = document().frame())
                 frame->eventHandler().defaultWheelEventHandler(startNode, downcast<WheelEvent>(event));
 #if ENABLE(TOUCH_EVENTS) && PLATFORM(IOS)
-    } else if (is<TouchEvent>(*event) && eventNames().isTouchEventType(eventType)) {
+    } else if (is<TouchEvent>(event) && eventNames().isTouchEventType(eventType)) {
         RenderObject* renderer = this->renderer();
         while (renderer && (!is<RenderBox>(*renderer) || !downcast<RenderBox>(*renderer).canBeScrolledAndHasScrollableArea()))
             renderer = renderer->parent();
 
         if (renderer && renderer->node()) {
             if (Frame* frame = document().frame())
-                frame->eventHandler().defaultTouchEventHandler(renderer->node(), downcast<TouchEvent>(event));
+                frame->eventHandler().defaultTouchEventHandler(renderer->node(), &downcast<TouchEvent>(event));
         }
 #endif
-    } else if (event->type() == eventNames().webkitEditableContentChangedEvent) {
-        dispatchInputEvent();
     }
 }
 

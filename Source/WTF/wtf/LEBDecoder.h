@@ -26,23 +26,21 @@
 #pragma once
 
 #include "Compiler.h"
-#include "Vector.h"
 #include <algorithm>
-
-#include "DataLog.h"
 
 // This file contains a bunch of helper functions for decoding LEB numbers.
 // See https://en.wikipedia.org/wiki/LEB128 for more information about the
 // LEB format.
 
-const size_t maxLEBByteLength = 5;
+namespace WTF { namespace LEBDecoder {
 
-inline bool WARN_UNUSED_RETURN decodeUInt32(const Vector<uint8_t>& bytes, size_t& offset, uint32_t& result)
+template<size_t maxByteLength, typename T>
+inline bool WARN_UNUSED_RETURN decodeUInt(const uint8_t* bytes, size_t length, size_t& offset, T& result)
 {
-    ASSERT(bytes.size() > offset);
+    ASSERT(length > offset);
     result = 0;
     unsigned shift = 0;
-    size_t last = std::min(maxLEBByteLength, bytes.size() - offset - 1);
+    size_t last = std::min(maxByteLength, length - offset - 1);
     for (unsigned i = 0; true; ++i) {
         uint8_t byte = bytes[offset++];
         result |= (byte & 0x7f) << shift;
@@ -56,12 +54,25 @@ inline bool WARN_UNUSED_RETURN decodeUInt32(const Vector<uint8_t>& bytes, size_t
     return true;
 }
 
-inline bool WARN_UNUSED_RETURN decodeInt32(const Vector<uint8_t>& bytes, size_t& offset, int32_t& result)
+const size_t max32BitLEBByteLength = 5;
+const size_t max64BitLEBByteLength = 10;
+
+inline bool WARN_UNUSED_RETURN decodeUInt32(const uint8_t* bytes, size_t length, size_t& offset, uint32_t& result)
 {
-    ASSERT(bytes.size() > offset);
+    return decodeUInt<max32BitLEBByteLength, uint32_t>(bytes, length, offset, result);
+}
+
+inline bool WARN_UNUSED_RETURN decodeUInt64(const uint8_t* bytes, size_t length, size_t& offset, uint64_t& result)
+{
+    return decodeUInt<max64BitLEBByteLength, uint64_t>(bytes, length, offset, result);
+}
+
+inline bool WARN_UNUSED_RETURN decodeInt32(const uint8_t* bytes, size_t length, size_t& offset, int32_t& result)
+{
+    ASSERT(length > offset);
     result = 0;
     unsigned shift = 0;
-    size_t last = std::min(maxLEBByteLength, bytes.size() - offset - 1);
+    size_t last = std::min(max32BitLEBByteLength, length - offset - 1);
     uint8_t byte;
     for (unsigned i = 0; true; ++i) {
         byte = bytes[offset++];
@@ -77,3 +88,5 @@ inline bool WARN_UNUSED_RETURN decodeInt32(const Vector<uint8_t>& bytes, size_t&
         result |= ((-1u) << shift);
     return true;
 }
+
+} } // WTF::LEBDecoder

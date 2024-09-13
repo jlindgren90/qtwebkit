@@ -54,8 +54,8 @@
 #import <WebCore/SharedBuffer.h>
 #import <WebCore/TextAlternativeWithRange.h>
 #import <WebCore/UserAgent.h>
+#import <WebCore/ValidationBubble.h>
 #import <mach-o/dyld.h>
-#import <wtf/NeverDestroyed.h>
 #import <wtf/text/StringConcatenate.h>
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, process().connection())
@@ -593,6 +593,12 @@ NSWindow *WebPageProxy::platformWindow()
 void WebPageProxy::rootViewToWindow(const WebCore::IntRect& viewRect, WebCore::IntRect& windowRect)
 {
     windowRect = m_pageClient.rootViewToWindow(viewRect);
+}
+
+void WebPageProxy::showValidationMessage(const IntRect& anchorClientRect, const String& message)
+{
+    m_validationBubble = m_pageClient.createValidationBubble(message);
+    m_validationBubble->showRelativeTo(anchorClientRect);
 }
 
 #if WK_API_ENABLED

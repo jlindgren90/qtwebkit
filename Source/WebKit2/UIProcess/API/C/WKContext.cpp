@@ -40,7 +40,6 @@
 #include "WebCertificateInfo.h"
 #include "WebIconDatabase.h"
 #include "WebProcessPool.h"
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -48,9 +47,6 @@
 #include "WebCookieManagerProxy.h"
 #include "WebGeolocationManagerProxy.h"
 #include "WebNotificationManagerProxy.h"
-#if ENABLE(BATTERY_STATUS)
-#include "WebBatteryManagerProxy.h"
-#endif
 
 namespace API {
 template<> struct ClientTraits<WKContextDownloadClientBase> {
@@ -410,16 +406,6 @@ WKWebsiteDataStoreRef WKContextGetWebsiteDataStore(WKContextRef context)
 WKApplicationCacheManagerRef WKContextGetApplicationCacheManager(WKContextRef context)
 {
     return reinterpret_cast<WKApplicationCacheManagerRef>(WKContextGetWebsiteDataStore(context));
-}
-
-WKBatteryManagerRef WKContextGetBatteryManager(WKContextRef contextRef)
-{
-#if ENABLE(BATTERY_STATUS)
-    return toAPI(toImpl(contextRef)->supplement<WebBatteryManagerProxy>());
-#else
-    UNUSED_PARAM(contextRef);
-    return 0;
-#endif
 }
 
 WKGeolocationManagerRef WKContextGetGeolocationManager(WKContextRef contextRef)

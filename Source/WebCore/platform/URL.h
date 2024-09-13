@@ -23,12 +23,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef URL_h
-#define URL_h
+#pragma once
 
 #include "PlatformExportMacros.h"
 #include <wtf/Forward.h>
-#include <wtf/HashMap.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/text/WTFString.h>
 
@@ -108,10 +106,9 @@ public:
 
     String stringCenterEllipsizedToLength(unsigned length = 1024) const;
 
-    WEBCORE_EXPORT String protocol() const;
+    WEBCORE_EXPORT StringView protocol() const;
     WEBCORE_EXPORT String host() const;
-    WEBCORE_EXPORT unsigned short port() const;
-    bool hasPort() const;
+    WEBCORE_EXPORT Optional<uint16_t> port() const;
     WEBCORE_EXPORT String user() const;
     WEBCORE_EXPORT String pass() const;
     WEBCORE_EXPORT String path() const;
@@ -137,6 +134,7 @@ public:
     // Returns true if the current URL's protocol is the same as the null-
     // terminated ASCII argument. The argument must be lower-case.
     WEBCORE_EXPORT bool protocolIs(const char*) const;
+    bool protocolIs(StringView) const;
     bool protocolIsBlob() const { return protocolIs("blob"); }
     bool protocolIsData() const { return protocolIs("data"); }
     bool protocolIsInHTTPFamily() const;
@@ -230,6 +228,7 @@ private:
     String m_string;
     bool m_isValid : 1;
     bool m_protocolIsInHTTPFamily : 1;
+    bool m_cannotBeABaseURL : 1;
 
     unsigned m_schemeEnd;
     unsigned m_userStart;
@@ -323,8 +322,8 @@ WEBCORE_EXPORT bool protocolIs(const String& url, const char* protocol);
 WEBCORE_EXPORT bool protocolIsJavaScript(const String& url);
 WEBCORE_EXPORT bool protocolIsInHTTPFamily(const String& url);
 
-unsigned short defaultPortForProtocol(const String& protocol);
-bool isDefaultPortForProtocol(unsigned short port, const String& protocol);
+Optional<uint16_t> defaultPortForProtocol(StringView protocol);
+WEBCORE_EXPORT bool isDefaultPortForProtocol(uint16_t port, StringView protocol);
 WEBCORE_EXPORT bool portAllowed(const URL&); // Blacklist ports that should never be used for Web resources.
 
 bool isValidProtocol(const String&);
@@ -400,11 +399,6 @@ inline bool URL::hasPath() const
     return m_pathEnd != m_portEnd;
 }
 
-inline bool URL::hasPort() const
-{
-    return m_hostEnd < m_portEnd;
-}
-
 inline bool URL::hasUsername() const
 {
     return m_userEnd > m_userStart;
@@ -466,5 +460,3 @@ namespace WTF {
     };
 
 } // namespace WTF
-
-#endif // URL_h

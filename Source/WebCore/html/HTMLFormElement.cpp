@@ -174,7 +174,7 @@ HTMLElement* HTMLFormElement::item(unsigned index)
     return elements()->item(index);
 }
 
-void HTMLFormElement::submitImplicitly(Event* event, bool fromImplicitSubmissionTrigger)
+void HTMLFormElement::submitImplicitly(Event& event, bool fromImplicitSubmissionTrigger)
 {
     unsigned submissionTriggerCount = 0;
     for (auto& formAssociatedElement : m_associatedElements) {
@@ -183,7 +183,7 @@ void HTMLFormElement::submitImplicitly(Event* event, bool fromImplicitSubmission
         HTMLFormControlElement& formElement = downcast<HTMLFormControlElement>(*formAssociatedElement);
         if (formElement.isSuccessfulSubmitButton()) {
             if (formElement.renderer()) {
-                formElement.dispatchSimulatedClick(event);
+                formElement.dispatchSimulatedClick(&event);
                 return;
             }
         } else if (formElement.canTriggerImplicitSubmission())
@@ -199,31 +199,23 @@ void HTMLFormElement::submitImplicitly(Event* event, bool fromImplicitSubmission
         prepareForSubmission(event);
 }
 
-static inline HTMLFormControlElement* submitElementFromEvent(const Event* event)
+static inline HTMLFormControlElement* submitElementFromEvent(const Event& event)
 {
-    for (Node* node = event->target()->toNode(); node; node = node->parentNode()) {
+    for (Node* node = event.target()->toNode(); node; node = node->parentNode()) {
         if (is<HTMLFormControlElement>(*node))
             return downcast<HTMLFormControlElement>(node);
     }
     return nullptr;
 }
 
-bool HTMLFormElement::validateInteractively(Event* event)
+bool HTMLFormElement::validateInteractively()
 {
-    ASSERT(event);
-    if (!document().page() || !document().page()->settings().interactiveFormValidationEnabled() || noValidate())
-        return true;
-
-    HTMLFormControlElement* submitElement = submitElementFromEvent(event);
-    if (submitElement && submitElement->formNoValidate())
-        return true;
-
     for (auto& associatedElement : m_associatedElements) {
         if (is<HTMLFormControlElement>(*associatedElement))
             downcast<HTMLFormControlElement>(*associatedElement).hideVisibleValidationMessage();
     }
 
-    Vector<RefPtr<FormAssociatedElement>> unhandledInvalidControls;
+    Vector<RefPtr<HTMLFormControlElement>> unhandledInvalidControls;
     if (!checkInvalidControlsAndCollectUnhandled(unhandledInvalidControls))
         return true;
     // Because the form has invalid controls, we abort the form submission and
@@ -237,12 +229,8 @@ bool HTMLFormElement::validateInteractively(Event* event)
 
     // Focus on the first focusable control and show a validation message.
     for (auto& control : unhandledInvalidControls) {
-        HTMLElement& element = control->asHTMLElement();
-        if (element.inDocument() && element.isFocusable()) {
-            element.scrollIntoViewIfNeeded(false);
-            element.focus();
-            if (is<HTMLFormControlElement>(element))
-                downcast<HTMLFormControlElement>(element).updateVisibleValidationMessage();
+        if (control->inDocument() && control->isFocusable()) {
+            control->focusAndShowValidationMessage();
             break;
         }
     }
@@ -250,11 +238,9 @@ bool HTMLFormElement::validateInteractively(Event* event)
     // Warn about all of unfocusable controls.
     if (document().frame()) {
         for (auto& control : unhandledInvalidControls) {
-            HTMLElement& element = control->asHTMLElement();
-            if (element.inDocument() && element.isFocusable())
+            if (control->inDocument() && control->isFocusable())
                 continue;
-            String message("An invalid form control with name='%name' is not focusable.");
-            message.replace("%name", control->name());
+            String message = makeString("An invalid form control with name='", control->name(), "' is not focusable.");
             document().addConsoleMessage(MessageSource::Rendering, MessageLevel::Error, message);
         }
     }
@@ -262,7 +248,7 @@ bool HTMLFormElement::validateInteractively(Event* event)
     return false;
 }
 
-void HTMLFormElement::prepareForSubmission(Event* event)
+void HTMLFormElement::prepareForSubmission(Event& event)
 {
     Frame* frame = document().frame();
     if (m_isSubmittingOrPreparingForSubmission || !frame)
@@ -271,8 +257,14 @@ void HTMLFormElement::prepareForSubmission(Event* event)
     m_isSubmittingOrPreparingForSubmission = true;
     m_shouldSubmit = false;
 
+    bool shouldValidate = document().page() && document().page()->settings().interactiveFormValidationEnabled() && !noValidate();
+
+    HTMLFormControlElement* submitElement = submitElementFromEvent(event);
+    if (submitElement && submitElement->formNoValidate())
+        shouldValidate = false;
+
     // Interactive validation must be done before dispatching the submit event.
-    if (!validateInteractively(event)) {
+    if (shouldValidate && !validateInteractively()) {
         m_isSubmittingOrPreparingForSubmission = false;
         return;
     }
@@ -290,7 +282,7 @@ void HTMLFormElement::prepareForSubmission(Event* event)
     m_isSubmittingOrPreparingForSubmission = false;
 
     if (m_shouldSubmit)
-        submit(event, true, true, NotSubmittedByJavaScript);
+        submit(&event, true, true, NotSubmittedByJavaScript);
 }
 
 void HTMLFormElement::submit()
@@ -604,7 +596,7 @@ void HTMLFormElement::registerFormElement(FormAssociatedElement* e)
         HTMLFormControlElement& control = downcast<HTMLFormControlElement>(*e);
         if (control.isSuccessfulSubmitButton()) {
             if (!m_defaultButton)
-                control.setNeedsStyleRecalc();
+                control.invalidateStyleForSubtree();
             else
                 resetDefaultButton();
         }
@@ -632,7 +624,7 @@ void HTMLFormElement::registerInvalidAssociatedFormControl(const HTMLFormControl
     ASSERT(static_cast<const Element&>(formControlElement).matchesInvalidPseudoClass());
 
     if (m_invalidAssociatedFormControls.isEmpty())
-        setNeedsStyleRecalc();
+        invalidateStyleForSubtree();
     m_invalidAssociatedFormControls.add(&formControlElement);
 }
 
@@ -640,7 +632,7 @@ void HTMLFormElement::removeInvalidAssociatedFormControlIfNeeded(const HTMLFormC
 {
     if (m_invalidAssociatedFormControls.remove(&formControlElement)) {
         if (m_invalidAssociatedFormControls.isEmpty())
-            setNeedsStyleRecalc();
+            invalidateStyleForSubtree();
     }
 }
 
@@ -750,19 +742,19 @@ void HTMLFormElement::resetDefaultButton()
     defaultButton();
     if (m_defaultButton != oldDefault) {
         if (oldDefault)
-            oldDefault->setNeedsStyleRecalc();
+            oldDefault->invalidateStyleForSubtree();
         if (m_defaultButton)
-            m_defaultButton->setNeedsStyleRecalc();
+            m_defaultButton->invalidateStyleForSubtree();
     }
 }
 
 bool HTMLFormElement::checkValidity()
 {
-    Vector<RefPtr<FormAssociatedElement>> controls;
+    Vector<RefPtr<HTMLFormControlElement>> controls;
     return !checkInvalidControlsAndCollectUnhandled(controls);
 }
 
-bool HTMLFormElement::checkInvalidControlsAndCollectUnhandled(Vector<RefPtr<FormAssociatedElement>>& unhandledInvalidControls)
+bool HTMLFormElement::checkInvalidControlsAndCollectUnhandled(Vector<RefPtr<HTMLFormControlElement>>& unhandledInvalidControls)
 {
     Ref<HTMLFormElement> protectedThis(*this);
     // Copy m_associatedElements because event handlers called from
@@ -780,6 +772,11 @@ bool HTMLFormElement::checkInvalidControlsAndCollectUnhandled(Vector<RefPtr<Form
         }
     }
     return hasInvalidControls;
+}
+
+bool HTMLFormElement::reportValidity()
+{
+    return validateInteractively();
 }
 
 #ifndef NDEBUG

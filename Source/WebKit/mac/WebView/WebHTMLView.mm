@@ -90,7 +90,6 @@
 #import <WebCore/EditorDeleteAction.h>
 #import <WebCore/Element.h>
 #import <WebCore/EventHandler.h>
-#import <WebCore/ExceptionHandlers.h>
 #import <WebCore/FloatRect.h>
 #import <WebCore/FocusController.h>
 #import <WebCore/Font.h>
@@ -119,6 +118,7 @@
 #import <WebCore/RuntimeApplicationChecks.h>
 #import <WebCore/SharedBuffer.h>
 #import <WebCore/StyleProperties.h>
+#import <WebCore/StyleScope.h>
 #import <WebCore/Text.h>
 #import <WebCore/TextAlternativeWithRange.h>
 #import <WebCore/TextIndicator.h>
@@ -789,10 +789,10 @@ const float _WebHTMLViewPrintingMaximumShrinkFactor = PrintContext::maximumShrin
 
 #if !PLATFORM(IOS)
 // We need this to be able to safely reference the CachedImage for the promised drag data
-static CachedImageClient* promisedDataClient()
+static CachedImageClient& promisedDataClient()
 {
     static CachedImageClient* staticCachedResourceClient = new CachedImageClient;
-    return staticCachedResourceClient;
+    return *staticCachedResourceClient;
 }
 #endif
 
@@ -1183,7 +1183,7 @@ static NSCellStateValue kit(TriState state)
             // Omit tags that will get stripped when converted to a fragment anyway.
             @"doctype", @"html", @"head", @"body",
             // Omit deprecated tags.
-            @"applet", @"basefont", @"center", @"dir", @"font", @"isindex", @"menu", @"s", @"strike", @"u",
+            @"applet", @"basefont", @"center", @"dir", @"font", @"menu", @"s", @"strike", @"u",
             // Omit object so no file attachments are part of the fragment.
             @"object", nil];
         CFRetain(elements);
@@ -2210,7 +2210,7 @@ static bool mouseEventIsPartOfClickOrDrag(NSEvent *event)
         [archive release];
     } else if ([type isEqual:NSTIFFPboardType] && [self promisedDragTIFFDataSource]) {
         if (Image* image = [self promisedDragTIFFDataSource]->image())
-            [pasteboard setData:(NSData *)image->getTIFFRepresentation() forType:NSTIFFPboardType];
+            [pasteboard setData:(NSData *)image->tiffRepresentation() forType:NSTIFFPboardType];
         [self setPromisedDragTIFFDataSource:0];
     }
 }
@@ -2557,10 +2557,7 @@ static bool mouseEventIsPartOfClickOrDrag(NSEvent *event)
         return [[self _frame] _documentFragmentWithMarkupString:HTMLString baseURLString:nil];
     }
 
-    // The _hasHTMLDocument clause here is a workaround for a bug in NSAttributedString: Radar 5052369.
-    // If we call _documentFromRange on an XML document we'll get "setInnerHTML: method not found".
-    // FIXME: Remove this once bug 5052369 is fixed.
-    if ([self _hasHTMLDocument] && (pboardType == NSRTFPboardType || pboardType == NSRTFDPboardType)) {
+    if (pboardType == NSRTFPboardType || pboardType == NSRTFDPboardType) {
         NSAttributedString *string = nil;
         if (pboardType == NSRTFDPboardType)
             string = [[NSAttributedString alloc] initWithRTFD:[pasteboard dataForType:NSRTFDPboardType] documentAttributes:NULL];
@@ -3614,10 +3611,12 @@ WEBCORE_COMMAND(toggleUnderline)
     double start = CFAbsoluteTimeGetCurrent();
 #endif
 
-    if (Frame* coreFrame = core([self _frame]))
-        coreFrame->document()->styleResolverChanged(RecalcStyleImmediately);
-    
-#ifdef LOG_TIMES        
+    if (Frame* coreFrame = core([self _frame])) {
+        coreFrame->document()->styleScope().didChangeStyleSheetEnvironment();
+        coreFrame->document()->updateStyleIfNeeded();
+    }
+
+#ifdef LOG_TIMES
     double thisTime = CFAbsoluteTimeGetCurrent() - start;
     LOG(Timing, "%s apply style seconds = %f", [self URL], thisTime);
 #endif
@@ -3631,7 +3630,7 @@ WEBCORE_COMMAND(toggleUnderline)
     if (!coreFrame)
         return;
     if (coreFrame->document()) {
-        if (coreFrame->document()->inPageCache())
+        if (coreFrame->document()->pageCacheState() != Document::NotInPageCache)
             return;
         coreFrame->document()->updateStyleIfNeeded();
     }
@@ -3957,6 +3956,9 @@ static RetainPtr<NSMenuItem> createMenuItem(const HitTestResult& hitTestResult, 
             [menu addItem:menuItem];
 
         auto menuItem = adoptNS([[NSMenuItem alloc] initWithTitle:item.title() action:nullptr keyEquivalent:@""]);
+
+        if (auto tag = toTag(item.action()))
+            [menuItem setTag:*tag];
         [menuItem setEnabled:item.enabled()];
         [menuItem setSubmenu:menu.get()];
 
@@ -4111,9 +4113,19 @@ static RetainPtr<NSArray> customMenuFromDefaultItems(WebView *webView, const Con
 }
 #endif
 
+static BOOL currentScrollIsBlit(NSView *clipView)
+{
+#if PLATFORM(MAC)
+    return [clipView isKindOfClass:[WebClipView class]] && [(WebClipView *)clipView currentScrollIsBlit];
+#else
+    return NO;
+#endif
+}
+
+// FIXME: this entire function could be #ifdeffed out on iOS. The below workaround is AppKit-specific.
 - (void)setNeedsDisplayInRect:(NSRect)invalidRect
 {
-    if (_private->inScrollPositionChanged) {
+    if (_private->inScrollPositionChanged && currentScrollIsBlit([self superview])) {
         // When scrolling, the dirty regions are adjusted for the scroll only
         // after NSViewBoundsDidChangeNotification is sent. Translate the invalid
         // rect to pre-scrolled coordinates in order to get the right dirty region
@@ -4131,7 +4143,7 @@ static RetainPtr<NSArray> customMenuFromDefaultItems(WebView *webView, const Con
     if (!flag)
         return; // There's no way to say you don't need a layout.
     if (Frame* frame = core([self _frame])) {
-        if (frame->document() && frame->document()->inPageCache())
+        if (frame->document() && frame->document()->pageCacheState() != Document::NotInPageCache)
             return;
         if (FrameView* view = frame->view())
             view->setNeedsLayout();
@@ -4144,7 +4156,7 @@ static RetainPtr<NSArray> customMenuFromDefaultItems(WebView *webView, const Con
     if (!flag)
         return; // There's no way to say you don't need a style recalc.
     if (Frame* frame = core([self _frame])) {
-        if (frame->document() && frame->document()->inPageCache())
+        if (frame->document() && frame->document()->pageCacheState() != Document::NotInPageCache)
             return;
         frame->document()->scheduleForcedStyleRecalc();
     }
@@ -4228,7 +4240,7 @@ static RetainPtr<NSArray> customMenuFromDefaultItems(WebView *webView, const Con
     const int cRectThreshold = 10; 
     const float cWastedSpaceThreshold = 0.75f; 
     BOOL useUnionedRect = (count <= 1) || (count > cRectThreshold); 
-    if (!useUnionedRect) { 
+    if (!useUnionedRect) {
         // Attempt to guess whether or not we should use the unioned rect or the individual rects. 
         // We do this by computing the percentage of "wasted space" in the union.  If that wasted space 
         // is too large, then we will do individual rect painting instead. 
@@ -4490,6 +4502,8 @@ static RetainPtr<NSArray> customMenuFromDefaultItems(WebView *webView, const Con
 - (void)mouseDown:(WebEvent *)event
 #endif
 {
+    [[self _webView] prepareForMouseDown];
+
 #if !PLATFORM(IOS)
     // There's a chance that responding to this event will run a nested event loop, and
     // fetching a new event might release the old one. Retaining and then autoreleasing
@@ -4709,6 +4723,8 @@ static bool matchesExtensionOrEquivalent(NSString *filename, NSString *extension
 - (void)mouseUp:(WebEvent *)event
 #endif
 {
+    [[self _webView] prepareForMouseUp];
+
 #if !PLATFORM(IOS)
     // There's a chance that responding to this event will run a nested event loop, and
     // fetching a new event might release the old one. Retaining and then autoreleasing
@@ -5008,7 +5024,7 @@ static PassRefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
 
             document->setPaginatedForScreen(_private->paginateScreenContent);
             document->setPrinting(_private->printing);
-            document->styleResolverChanged(RecalcStyleImmediately);
+            document->styleScope().didChangeStyleSheetEnvironment();
         }
     }
 

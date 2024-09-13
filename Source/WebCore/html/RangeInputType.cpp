@@ -77,9 +77,6 @@ static Decimal ensureMaximum(const Decimal& proposedValue, const Decimal& minimu
 
 RangeInputType::RangeInputType(HTMLInputElement& element)
     : InputType(element)
-#if ENABLE(DATALIST_ELEMENT)
-    , m_tickMarkValuesDirty(true)
-#endif
 {
 }
 
@@ -98,9 +95,10 @@ double RangeInputType::valueAsDouble() const
     return parseToDoubleForNumberType(element().value());
 }
 
-void RangeInputType::setValueAsDecimal(const Decimal& newValue, TextFieldEventBehavior eventBehavior, ExceptionCode&) const
+ExceptionOr<void> RangeInputType::setValueAsDecimal(const Decimal& newValue, TextFieldEventBehavior eventBehavior) const
 {
     element().setValue(serialize(newValue), eventBehavior);
+    return { };
 }
 
 bool RangeInputType::typeMismatchFor(const String& value) const
@@ -136,13 +134,13 @@ bool RangeInputType::isSteppable() const
 }
 
 #if !PLATFORM(IOS)
-void RangeInputType::handleMouseDownEvent(MouseEvent* event)
+void RangeInputType::handleMouseDownEvent(MouseEvent& event)
 {
     if (element().isDisabledOrReadOnly())
         return;
 
-    Node* targetNode = event->target()->toNode();
-    if (event->button() != LeftButton || !targetNode)
+    Node* targetNode = event.target()->toNode();
+    if (event.button() != LeftButton || !targetNode)
         return;
     ASSERT(element().shadowRoot());
     if (targetNode != &element() && !targetNode->isDescendantOf(element().userAgentShadowRoot()))
@@ -150,12 +148,12 @@ void RangeInputType::handleMouseDownEvent(MouseEvent* event)
     SliderThumbElement& thumb = typedSliderThumbElement();
     if (targetNode == &thumb)
         return;
-    thumb.dragFrom(event->absoluteLocation());
+    thumb.dragFrom(event.absoluteLocation());
 }
 #endif
 
 #if ENABLE(TOUCH_EVENTS)
-void RangeInputType::handleTouchEvent(TouchEvent* event)
+void RangeInputType::handleTouchEvent(TouchEvent& event)
 {
 #if PLATFORM(IOS)
     typedSliderThumbElement().handleTouchEvent(event);
@@ -163,15 +161,15 @@ void RangeInputType::handleTouchEvent(TouchEvent* event)
     if (element().isDisabledOrReadOnly())
         return;
 
-    if (event->type() == eventNames().touchendEvent) {
-        event->setDefaultHandled();
+    if (event.type() == eventNames().touchendEvent) {
+        event.setDefaultHandled();
         return;
     }
 
-    TouchList* touches = event->targetTouches();
+    TouchList* touches = event.targetTouches();
     if (touches->length() == 1) {
         typedSliderThumbElement().setPositionFromPoint(touches->item(0)->absoluteLocation());
-        event->setDefaultHandled();
+        event.setDefaultHandled();
     }
 #else
     UNUSED_PARAM(event);
@@ -193,12 +191,12 @@ void RangeInputType::disabledAttributeChanged()
 #endif
 #endif // ENABLE(TOUCH_EVENTS)
 
-void RangeInputType::handleKeydownEvent(KeyboardEvent* event)
+void RangeInputType::handleKeydownEvent(KeyboardEvent& event)
 {
     if (element().isDisabledOrReadOnly())
         return;
 
-    const String& key = event->keyIdentifier();
+    const String& key = event.keyIdentifier();
 
     const Decimal current = parseToNumberOrNaN(element().value());
     ASSERT(current.isFinite());
@@ -241,13 +239,13 @@ void RangeInputType::handleKeydownEvent(KeyboardEvent* event)
 
     if (newValue != current) {
         EventQueueScope scope;
-        setValueAsDecimal(newValue, DispatchInputAndChangeEvent, IGNORE_EXCEPTION);
+        setValueAsDecimal(newValue, DispatchInputAndChangeEvent);
 
         if (AXObjectCache* cache = element().document().existingAXObjectCache())
             cache->postNotification(&element(), AXObjectCache::AXValueChanged);
     }
 
-    event->setDefaultHandled();
+    event.setDefaultHandled();
 }
 
 void RangeInputType::createShadowSubtree()

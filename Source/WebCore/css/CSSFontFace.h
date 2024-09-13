@@ -26,13 +26,12 @@
 #pragma once
 
 #include "CSSFontFaceRule.h"
-#include "FontFeatureSettings.h"
+#include "FontTaggedSettings.h"
 #include "TextFlags.h"
 #include "Timer.h"
 #include <memory>
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>

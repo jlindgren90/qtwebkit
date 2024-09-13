@@ -27,25 +27,12 @@
 #include "Nodes.h"
 #include "NodeConstructors.h"
 
-#include "CallFrame.h"
-#include "Debugger.h"
-#include "JIT.h"
-#include "JSFunction.h"
-#include "JSGlobalObject.h"
-#include "LabelScope.h"
-#include "Lexer.h"
 #include "JSCInlines.h"
-#include "Parser.h"
-#include "PropertyNameArray.h"
-#include "RegExpObject.h"
 #include <wtf/Assertions.h>
-#include <wtf/RefCountedLeakCounter.h>
-#include <wtf/Threading.h>
 
 using namespace WTF;
 
 namespace JSC {
-
 
 // ------------------------------ StatementNode --------------------------------
 
@@ -148,7 +135,7 @@ FunctionMetadataNode::FunctionMetadataNode(
     ParserArena&, const JSTokenLocation& startLocation, 
     const JSTokenLocation& endLocation, unsigned startColumn, unsigned endColumn, 
     int functionKeywordStart, int functionNameStart, int parametersStart, bool isInStrictContext, 
-    ConstructorKind constructorKind, SuperBinding superBinding, unsigned parameterCount, SourceParseMode mode, bool isArrowFunctionBodyExpression)
+    ConstructorKind constructorKind, SuperBinding superBinding, unsigned parameterCount, unsigned functionLength, SourceParseMode mode, bool isArrowFunctionBodyExpression)
         : Node(endLocation)
         , m_startColumn(startColumn)
         , m_endColumn(endColumn)
@@ -157,6 +144,7 @@ FunctionMetadataNode::FunctionMetadataNode(
         , m_parametersStart(parametersStart)
         , m_startStartOffset(startLocation.startOffset)
         , m_parameterCount(parameterCount)
+        , m_functionLength(functionLength)
         , m_parseMode(mode)
         , m_isInStrictContext(isInStrictContext)
         , m_superBinding(static_cast<unsigned>(superBinding))

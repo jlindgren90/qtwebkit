@@ -42,7 +42,6 @@
 #include "RenderTheme.h"
 #include "StyleTreeResolver.h"
 #include "ValidationMessage.h"
-#include <wtf/NeverDestroyed.h>
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
 
@@ -147,10 +146,12 @@ void HTMLFormControlElement::parseAttribute(const QualifiedName& name, const Ato
     if (name == formAttr)
         formAttributeChanged();
     else if (name == disabledAttr) {
-        bool oldDisabled = m_disabled;
-        m_disabled = !value.isNull();
-        if (oldDisabled != m_disabled)
-            disabledAttributeChanged();
+        if (canBeActuallyDisabled()) {
+            bool oldDisabled = m_disabled;
+            m_disabled = !value.isNull();
+            if (oldDisabled != m_disabled)
+                disabledAttributeChanged();
+        }
     } else if (name == readonlyAttr) {
         bool wasReadOnly = m_isReadOnly;
         m_isReadOnly = !value.isNull();
@@ -173,7 +174,7 @@ void HTMLFormControlElement::disabledAttributeChanged()
 void HTMLFormControlElement::disabledStateChanged()
 {
     setNeedsWillValidateCheck();
-    setNeedsStyleRecalc();
+    invalidateStyleForSubtree();
     if (renderer() && renderer()->style().hasAppearance())
         renderer()->theme().stateChanged(*renderer(), ControlStates::EnabledState);
 }
@@ -181,7 +182,7 @@ void HTMLFormControlElement::disabledStateChanged()
 void HTMLFormControlElement::readOnlyAttributeChanged()
 {
     setNeedsWillValidateCheck();
-    setNeedsStyleRecalc();
+    invalidateStyleForSubtree();
 }
 
 void HTMLFormControlElement::requiredAttributeChanged()
@@ -189,7 +190,7 @@ void HTMLFormControlElement::requiredAttributeChanged()
     updateValidity();
     // Style recalculation is needed because style selectors may include
     // :required and :optional pseudo-classes.
-    setNeedsStyleRecalc();
+    invalidateStyleForSubtree();
 }
 
 static bool shouldAutofocus(HTMLFormControlElement* element)
@@ -325,7 +326,7 @@ void HTMLFormControlElement::dispatchFormControlChangeEvent()
 void HTMLFormControlElement::dispatchFormControlInputEvent()
 {
     setChangedSinceLastFormControlChangeEvent(true);
-    HTMLElement::dispatchInputEvent();
+    dispatchInputEvent();
 }
 
 bool HTMLFormControlElement::isDisabledFormControl() const
@@ -367,11 +368,11 @@ bool HTMLFormControlElement::isFocusable() const
     return HTMLElement::isFocusable();
 }
 
-bool HTMLFormControlElement::isKeyboardFocusable(KeyboardEvent* event) const
+bool HTMLFormControlElement::isKeyboardFocusable(KeyboardEvent& event) const
 {
     if (isFocusable())
         if (document().frame())
-            return document().frame()->eventHandler().tabsToAllFormControls(event);
+            return document().frame()->eventHandler().tabsToAllFormControls(&event);
     return false;
 }
 
@@ -444,7 +445,7 @@ void HTMLFormControlElement::setNeedsWillValidateCheck()
     m_willValidate = newWillValidate;
 
     updateValidity();
-    setNeedsStyleRecalc();
+    invalidateStyleForSubtree();
 
     if (!m_willValidate && !wasValid) {
         removeInvalidElementToAncestorFromInsertionPoint(*this, parentNode());
@@ -475,7 +476,7 @@ void HTMLFormControlElement::hideVisibleValidationMessage()
         m_validationMessage->requestToHideMessage();
 }
 
-bool HTMLFormControlElement::checkValidity(Vector<RefPtr<FormAssociatedElement>>* unhandledInvalidControls)
+bool HTMLFormControlElement::checkValidity(Vector<RefPtr<HTMLFormControlElement>>* unhandledInvalidControls)
 {
     if (!willValidate() || isValidFormControlElement())
         return true;
@@ -486,6 +487,39 @@ bool HTMLFormControlElement::checkValidity(Vector<RefPtr<FormAssociatedElement>>
     if (needsDefaultAction && unhandledInvalidControls && inDocument() && originalDocument.ptr() == &document())
         unhandledInvalidControls->append(this);
     return false;
+}
+
+bool HTMLFormControlElement::reportValidity()
+{
+    Vector<RefPtr<HTMLFormControlElement>> elements;
+    if (checkValidity(&elements))
+        return true;
+
+    if (elements.isEmpty())
+        return false;
+
+    // Needs to update layout now because we'd like to call isFocusable(), which
+    // has !renderer()->needsLayout() assertion.
+    document().updateLayoutIgnorePendingStylesheets();
+
+    if (inDocument() && isFocusable()) {
+        focusAndShowValidationMessage();
+        return false;
+    }
+
+    if (document().frame()) {
+        String message = makeString("An invalid form control with name='", name(), "' is not focusable.");
+        document().addConsoleMessage(MessageSource::Rendering, MessageLevel::Error, message);
+    }
+
+    return false;
+}
+
+void HTMLFormControlElement::focusAndShowValidationMessage()
+{
+    // Calling focus() will scroll the element into view.
+    focus();
+    updateVisibleValidationMessage();
 }
 
 inline bool HTMLFormControlElement::isValidFormControlElement() const
@@ -521,7 +555,7 @@ void HTMLFormControlElement::updateValidity()
 
     if (willValidate && m_isValid != wasValid) {
         // Update style for pseudo classes such as :valid :invalid.
-        setNeedsStyleRecalc();
+        invalidateStyleForSubtree();
 
         if (!m_isValid) {
             addInvalidElementToAncestorFromInsertionPoint(*this, parentNode());

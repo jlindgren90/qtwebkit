@@ -95,7 +95,7 @@ set(DumpRenderTreeLib_LIBRARIES
 if (${WTF_PLATFORM_WIN_CAIRO})
     list(APPEND DumpRenderTree_INCLUDE_DIRECTORIES
         cairo
-        "${WEBKIT_LIBRARIES_DIR}/include/cairo"
+        ${CAIRO_INCLUDE_DIRS}
     )
     list(APPEND DumpRenderTreeLib_SOURCES
         cairo/PixelDumpSupportCairo.cpp
@@ -104,7 +104,7 @@ if (${WTF_PLATFORM_WIN_CAIRO})
         win/ImageDiffCairo.cpp
     )
     list(APPEND ImageDiff_LIBRARIES
-        cairo
+        ${CAIRO_LIBRARIES}
     )
 else ()
     list(APPEND DumpRenderTree_INCLUDE_DIRECTORIES
@@ -116,6 +116,7 @@ else ()
     list(APPEND DumpRenderTreeLib_LIBRARIES
         CFNetwork
         CoreGraphics
+        CoreText
     )
     list(APPEND ImageDiff_SOURCES
         cg/ImageDiffCG.cpp
@@ -123,6 +124,7 @@ else ()
     list(APPEND ImageDiff_LIBRARIES
        CoreFoundation
        CoreGraphics
+       CoreText
     )
 endif ()
 

@@ -31,7 +31,6 @@
 // #include "PlugInsResourcesData.cpp"
 // #include "UserAgentStyleSheetsData.cpp"
 
-#include "ExceptionCodeDescription.h"
 #include "HTMLElementFactory.cpp"
 #if ENABLE(WEBGL)
 #include "JSANGLEInstancedArrays.cpp"
@@ -49,9 +48,8 @@
 #include "JSCanvasGradient.cpp"
 #include "JSCanvasPattern.cpp"
 #include "JSCanvasProxy.cpp"
-#include "JSCanvasRenderingContext.cpp"
 #include "JSCanvasRenderingContext2D.cpp"
-#if ENABLE(STREAMS_API)
+#if ENABLE(READABLE_STREAM_API)
 #include "JSByteLengthQueuingStrategy.cpp"
 #include "JSCountQueuingStrategy.cpp"
 #endif
@@ -118,7 +116,6 @@
 #include "JSCoordinates.cpp"
 #include "JSCounter.cpp"
 #include "JSCrypto.cpp"
-#include "JSCSSCharsetRule.cpp"
 #if ENABLE(FONT_LOAD_EVENTS)
 #include "JSCSSFontFaceLoadEvent.cpp"
 #endif
@@ -138,9 +135,8 @@
 #include "JSCSSUnknownRule.cpp"
 #include "JSCSSValue.cpp"
 #include "JSCSSValueList.cpp"
-#if ENABLE(CUSTOM_ELEMENTS)
-#include "JSCustomElementsRegistry.cpp"
-#endif
+#include "JSClipboardEvent.cpp"
+#include "JSCustomElementRegistry.cpp"
 #include "JSCustomEvent.cpp"
 #include "JSDatabase.cpp"
 #include "JSDatabaseCallback.cpp"
@@ -190,6 +186,8 @@
 #include "JSElement.cpp"
 #include "JSErrorEvent.cpp"
 #include "JSEvent.cpp"
+#include "JSEventInit.cpp"
+#include "JSEventModifierInit.cpp"
 #include "JSEventSource.cpp"
 #include "JSEventTarget.cpp"
 #include "JSFetchBody.cpp"
@@ -210,6 +208,7 @@
 #endif
 #include "JSGeolocation.cpp"
 #include "JSGeoposition.cpp"
+#include "JSGlobalCrypto.cpp"
 #include "JSGlobalEventHandlers.cpp"
 #include "JSHashChangeEvent.cpp"
 #include "JSHistory.cpp"
@@ -307,9 +306,11 @@
 #include "JSIDBOpenDBRequest.cpp"
 #include "JSIDBRequest.cpp"
 #include "JSIDBTransaction.cpp"
+#include "JSIDBTransactionMode.cpp"
 #include "JSIDBVersionChangeEvent.cpp"
 #endif
 #include "JSImageData.cpp"
+#include "JSInputEvent.cpp"
 #include "JSInspectorFrontendHost.cpp"
 #include "JSKeyboardEvent.cpp"
 #include "JSLocation.cpp"
@@ -326,13 +327,6 @@
 #endif
 #include "JSMediaError.cpp"
 #include "JSMediaList.cpp"
-#if ENABLE(ENCRYPTED_MEDIA_V2)
-#include "JSMediaKeyError.cpp"
-#include "JSMediaKeyMessageEvent.cpp"
-#include "JSMediaKeyNeededEvent.cpp"
-#include "JSMediaKeySession.cpp"
-#include "JSMediaKeys.cpp"
-#endif
 #include "JSMediaQueryList.cpp"
 #include "JSMediaQueryListListener.cpp"
 #include "JSMediaRemoteControls.cpp"
@@ -343,7 +337,6 @@
 #include "JSMediaStreamAudioSourceNode.cpp"
 #include "JSMediaStreamEvent.cpp"
 #include "JSMediaStreamTrack.cpp"
-#include "JSMediaStreamTrackSourcesCallback.cpp"
 #include "JSMediaTrackConstraint.cpp"
 #include "JSMediaTrackConstraintSet.cpp"
 #include "JSMediaTrackConstraints.cpp"
@@ -352,12 +345,12 @@
 #include "JSMessageEvent.cpp"
 #include "JSMessagePort.cpp"
 #include "JSMouseEvent.cpp"
+#include "JSMouseEventInit.cpp"
 #include "JSMutationEvent.cpp"
 #include "JSMutationObserver.cpp"
 #include "JSMutationRecord.cpp"
 #include "JSNamedNodeMap.cpp"
 #include "JSNavigator.cpp"
-#include "JSNavigatorBattery.cpp"
 #include "JSNavigatorContentUtils.cpp"
 #include "JSNavigatorGeolocation.cpp"
 #include "JSNavigatorMediaDevices.cpp"
@@ -381,7 +374,6 @@
 #include "JSParentNode.cpp"
 #include "JSPerformance.cpp"
 #include "JSPerformanceEntry.cpp"
-#include "JSPerformanceEntryList.cpp"
 #include "JSPerformanceMark.cpp"
 #include "JSPerformanceMeasure.cpp"
 #include "JSPerformanceNavigation.cpp"
@@ -396,12 +388,10 @@
 #include "JSProgressEvent.cpp"
 #include "JSRadioNodeList.cpp"
 #include "JSRange.cpp"
-#if ENABLE(STREAMS_API)
+#include "JSReadableByteStreamController.cpp"
 #include "JSReadableStream.cpp"
 #include "JSReadableStreamDefaultController.cpp"
 #include "JSReadableStreamDefaultReader.cpp"
-#include "JSWritableStream.cpp"
-#endif
 #include "JSRect.cpp"
 #include "JSRequestAnimationFrameCallback.cpp"
 #include "JSRGBColor.cpp"
@@ -422,10 +412,10 @@
 #include "JSRTCTrackEvent.cpp"
 #include "JSScreen.cpp"
 #include "JSScriptProcessorNode.cpp"
+#include "JSScrollToOptions.cpp"
 #include "JSSecurityPolicyViolationEvent.cpp"
 #include "JSSourceBuffer.cpp"
 #include "JSSourceBufferList.cpp"
-#include "JSSourceInfo.cpp"
 #include "JSSpeechSynthesis.cpp"
 #include "JSSpeechSynthesisEvent.cpp"
 #include "JSSpeechSynthesisUtterance.cpp"
@@ -587,6 +577,7 @@
 #include "JSSVGZoomAndPan.cpp"
 #include "JSSVGZoomEvent.cpp"
 #include "JSShadowRoot.cpp"
+#include "JSShadowRootMode.cpp"
 #include "JSStorage.cpp"
 #if ENABLE(QUOTA)
 #include "JSStorageErrorCallback.cpp"
@@ -602,6 +593,7 @@
 #include "JSStyleMedia.cpp"
 #include "JSStyleSheet.cpp"
 #include "JSStyleSheetList.cpp"
+#include "JSSubtleCrypto.cpp"
 #include "JSText.cpp"
 #include "JSTextEvent.cpp"
 #include "JSTextMetrics.cpp"
@@ -630,22 +622,31 @@
 #include "JSTransitionEvent.cpp"
 #include "JSTreeWalker.cpp"
 #include "JSUIEvent.cpp"
+#include "JSUIEventInit.cpp"
 #include "JSUIRequestEvent.cpp"
 #include "JSURLUtils.cpp"
+#if ENABLE(USER_MESSAGE_HANDLERS)
 #include "JSUserMessageHandler.cpp"
 #include "JSUserMessageHandlersNamespace.cpp"
+#include "JSWebKitNamespace.cpp"
+#endif
 #include "JSValidityState.cpp"
 #include "JSVideoPlaybackQuality.cpp"
 #include "JSVoidCallback.cpp"
 #include "JSWaveShaperNode.cpp"
 #include "JSWebKitAnimationEvent.cpp"
-#include "JSWebKitCSSFilterValue.cpp"
 #include "JSWebKitCSSTransformValue.cpp"
 #include "JSWebKitCSSMatrix.cpp"
 #include "JSWebKitCSSRegionRule.cpp"
 #include "JSWebKitCSSViewportRule.cpp"
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#include "JSWebKitMediaKeyError.cpp"
+#include "JSWebKitMediaKeyMessageEvent.cpp"
+#include "JSWebKitMediaKeyNeededEvent.cpp"
+#include "JSWebKitMediaKeySession.cpp"
+#include "JSWebKitMediaKeys.cpp"
+#endif
 #include "JSWebKitNamedFlow.cpp"
-#include "JSWebKitNamespace.cpp"
 #include "JSWebKitPlaybackTargetAvailabilityEvent.cpp"
 #include "JSWebKitPoint.cpp"
 #include "JSWebKitSubtleCrypto.cpp"
@@ -661,6 +662,9 @@
 #include "JSWorkerGlobalScopeNotifications.cpp"
 #include "JSWorkerLocation.cpp"
 #include "JSWorkerNavigator.cpp"
+#if ENABLE(WRITABLE_STREAM_API)
+#include "JSWritableStream.cpp"
+#endif
 #include "JSXMLDocument.cpp"
 #include "JSXMLHttpRequest.cpp"
 #include "JSXMLHttpRequestEventTarget.cpp"

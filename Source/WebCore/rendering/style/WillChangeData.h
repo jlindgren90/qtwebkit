@@ -71,6 +71,8 @@ public:
     typedef std::pair<Feature, CSSPropertyID> FeaturePropertyPair;
     FeaturePropertyPair featureAt(size_t) const;
 
+    static bool propertyCreatesStackingContext(CSSPropertyID);
+
 private:
     WillChangeData()
     {

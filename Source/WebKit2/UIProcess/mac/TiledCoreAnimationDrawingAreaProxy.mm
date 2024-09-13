@@ -79,7 +79,7 @@ void TiledCoreAnimationDrawingAreaProxy::waitForPossibleGeometryUpdate(std::chro
     if (m_webPageProxy.process().state() != WebProcessProxy::State::Running)
         return;
 
-    m_webPageProxy.process().connection()->waitForAndDispatchImmediately<Messages::DrawingAreaProxy::DidUpdateGeometry>(m_webPageProxy.pageID(), timeout, InterruptWaitingIfSyncMessageArrives);
+    m_webPageProxy.process().connection()->waitForAndDispatchImmediately<Messages::DrawingAreaProxy::DidUpdateGeometry>(m_webPageProxy.pageID(), timeout, IPC::WaitForOption::InterruptWaitingIfSyncMessageArrives);
 #endif
 }
 
@@ -131,10 +131,10 @@ void TiledCoreAnimationDrawingAreaProxy::didUpdateGeometry()
         sendUpdateGeometry();
 }
 
-void TiledCoreAnimationDrawingAreaProxy::waitForDidUpdateViewState()
+void TiledCoreAnimationDrawingAreaProxy::waitForDidUpdateActivityState()
 {
-    auto viewStateUpdateTimeout = std::chrono::milliseconds(250);
-    m_webPageProxy.process().connection()->waitForAndDispatchImmediately<Messages::WebPageProxy::DidUpdateViewState>(m_webPageProxy.pageID(), viewStateUpdateTimeout, InterruptWaitingIfSyncMessageArrives);
+    auto activityStateUpdateTimeout = std::chrono::milliseconds(250);
+    m_webPageProxy.process().connection()->waitForAndDispatchImmediately<Messages::WebPageProxy::DidUpdateActivityState>(m_webPageProxy.pageID(), activityStateUpdateTimeout, IPC::WaitForOption::InterruptWaitingIfSyncMessageArrives);
 }
 
 void TiledCoreAnimationDrawingAreaProxy::intrinsicContentSizeDidChange(const IntSize& newIntrinsicContentSize)

@@ -33,6 +33,7 @@
 #include "DeviceMotionClient.h"
 #include "DeviceOrientationClient.h"
 #include "DiagnosticLoggingClient.h"
+#include "DocumentFragment.h"
 #include "DragClient.h"
 #include "EditorClient.h"
 #include "FloatRect.h"
@@ -295,12 +296,12 @@ public:
     void dispatchDidReceiveIcon() override { }
     void dispatchDidStartProvisionalLoad() override { }
     void dispatchDidReceiveTitle(const StringWithDirection&) override { }
-    void dispatchDidCommitLoad() override { }
+    void dispatchDidCommitLoad(Optional<HasInsecureContent>) override { }
     void dispatchDidFailProvisionalLoad(const ResourceError&) override { }
     void dispatchDidFailLoad(const ResourceError&) override { }
     void dispatchDidFinishDocumentLoad() override { }
     void dispatchDidFinishLoad() override { }
-    void dispatchDidLayout(LayoutMilestones) override { }
+    void dispatchDidReachLayoutMilestone(LayoutMilestones) override { }
 
     Frame* dispatchCreatePage(const NavigationAction&) override { return nullptr; }
     void dispatchShow() override { }
@@ -402,7 +403,7 @@ public:
     RemoteAXObjectRef accessibilityRemoteObject() override { return nullptr; }
     NSCachedURLResponse* willCacheResponse(DocumentLoader*, unsigned long, NSCachedURLResponse* response) const override { return response; }
 #endif
-#if PLATFORM(WIN) && USE(CFNETWORK)
+#if PLATFORM(WIN) && USE(CFURLCONNECTION)
     // FIXME: Windows should use willCacheResponse - <https://bugs.webkit.org/show_bug.cgi?id=57257>.
     bool shouldCacheResponse(DocumentLoader*, unsigned long, const ResourceResponse&, const unsigned char*, unsigned long long) override { return true; }
 #endif
@@ -465,6 +466,7 @@ public:
     void respondToChangedContents() override { }
     void respondToChangedSelection(Frame*) override { }
     void didChangeSelectionAndUpdateLayout() override { }
+    void updateEditorStateAfterLayoutIfEditabilityChanged() override { }
     void discardedComposition(Frame*) override { }
     void didEndEditing() override { }
     void willWriteSelectionToPasteboard(Range*) override { }
@@ -504,17 +506,16 @@ public:
     NSArray* readDataFromPasteboard(NSString*, int) override { return nullptr; }
     bool hasRichlyEditableSelection() override { return false; }
     int getPasteboardItemsCount() override { return 0; }
-    DocumentFragment* documentFragmentFromDelegate(int) override { return nullptr; }
+    RefPtr<DocumentFragment> documentFragmentFromDelegate(int) override { return nullptr; }
     bool performsTwoStepPaste(DocumentFragment*) override { return false; }
     int pasteboardChangeCount() override { return 0; }
 #endif
 
 #if PLATFORM(COCOA)
-    NSString* userVisibleString(NSURL*) override { return nullptr; }
-    DocumentFragment* documentFragmentFromAttributedString(NSAttributedString*, Vector<RefPtr<ArchiveResource>>&) override { return nullptr; };
+    NSString *userVisibleString(NSURL *) override { return nullptr; }
     void setInsertionPasteboard(const String&) override { };
-    NSURL *canonicalizeURL(NSURL*) override { return nullptr; }
-    NSURL *canonicalizeURLString(NSString*) override { return nullptr; }
+    NSURL *canonicalizeURL(NSURL *) override { return nullptr; }
+    NSURL *canonicalizeURLString(NSString *) override { return nullptr; }
 #endif
 
 #if USE(APPKIT)

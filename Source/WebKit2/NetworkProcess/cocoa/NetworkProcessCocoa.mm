@@ -29,7 +29,9 @@
 #import "NetworkCache.h"
 #import "NetworkProcessCreationParameters.h"
 #import "NetworkResourceLoader.h"
+#import "NetworkSessionCocoa.h"
 #import "SandboxExtension.h"
+#import "SessionTracker.h"
 #import <WebCore/CFNetworkSPI.h>
 #import <WebCore/NetworkStorageSession.h>
 #import <WebCore/PublicSuffix.h>
@@ -58,10 +60,11 @@ static void initializeNetworkSettings()
         WebCore::ResourceRequest::setHTTPPipeliningEnabled(prefValue);
 
     if (WebCore::ResourceRequest::resourcePrioritiesEnabled()) {
+        const unsigned fastLaneConnectionCount = 1;
+
         _CFNetworkHTTPConnectionCacheSetLimit(kHTTPPriorityNumLevels, toPlatformRequestPriority(WebCore::ResourceLoadPriority::Highest));
-#if PLATFORM(IOS)
         _CFNetworkHTTPConnectionCacheSetLimit(kHTTPMinimumFastLanePriority, toPlatformRequestPriority(WebCore::ResourceLoadPriority::Medium));
-#endif
+        _CFNetworkHTTPConnectionCacheSetLimit(kHTTPNumFastLanes, fastLaneConnectionCount);
     }
 }
 
@@ -80,11 +83,24 @@ void NetworkProcess::platformInitializeNetworkProcessCocoa(const NetworkProcessC
     _CFNetworkSetATSContext(parameters.networkATSContext.get());
 #endif
 
+    SessionTracker::setIdentifierBase(parameters.uiProcessBundleIdentifier);
+
+#if USE(NETWORK_SESSION)
+    NetworkSessionCocoa::setSourceApplicationAuditTokenData(sourceApplicationAuditData());
+    NetworkSessionCocoa::setSourceApplicationBundleIdentifier(parameters.sourceApplicationBundleIdentifier);
+    NetworkSessionCocoa::setSourceApplicationSecondaryIdentifier(parameters.sourceApplicationSecondaryIdentifier);
+#if PLATFORM(IOS)
+    NetworkSessionCocoa::setCTDataConnectionServiceType(parameters.ctDataConnectionServiceType);
+#endif
+#endif
+
     initializeNetworkSettings();
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     setSharedHTTPCookieStorage(parameters.uiProcessCookieStorageIdentifier);
 #endif
+
+    WebCore::NetworkStorageSession::setCookieStoragePartitioningEnabled(parameters.cookieStoragePartitioningEnabled);
 
     // FIXME: Most of what this function does for cache size gets immediately overridden by setCacheModel().
     // - memory cache size passed from UI process is always ignored;
@@ -233,6 +249,11 @@ void NetworkProcess::clearDiskCache(std::chrono::system_clock::time_point modifi
 #else
     clearNSURLCache(m_clearCacheDispatchGroup, modifiedSince, completionHandler);
 #endif
+}
+
+void NetworkProcess::setCookieStoragePartitioningEnabled(bool enabled)
+{
+    WebCore::NetworkStorageSession::setCookieStoragePartitioningEnabled(enabled);
 }
 
 }

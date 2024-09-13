@@ -50,7 +50,6 @@
 #include <wtf/ASCIICType.h>
 #include <wtf/CryptographicallyRandomNumber.h>
 #include <wtf/MD5.h>
-#include <wtf/NeverDestroyed.h>
 #include <wtf/SHA1.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/StringExtras.h>
@@ -85,9 +84,9 @@ static String hostName(const URL& url, bool secure)
     ASSERT(url.protocolIs("wss") == secure);
     StringBuilder builder;
     builder.append(url.host().convertToASCIILowercase());
-    if (url.port() && ((!secure && url.port() != 80) || (secure && url.port() != 443))) {
+    if (url.port() && ((!secure && url.port().value() != 80) || (secure && url.port().value() != 443))) {
         builder.append(':');
-        builder.appendNumber(url.port());
+        builder.appendNumber(url.port().value());
     }
     return builder.toString();
 }
@@ -201,8 +200,8 @@ CString WebSocketHandshake::clientHandshakeMessage() const
         fields.append("Sec-WebSocket-Protocol: " + m_clientProtocol);
 
     URL url = httpURLForAuthenticationAndCookies();
-    if (m_allowCookies) {
-        String cookie = cookieRequestHeaderFieldValue(m_document, url);
+    if (m_allowCookies && m_document) {
+        String cookie = cookieRequestHeaderFieldValue(*m_document, url);
         if (!cookie.isEmpty())
             fields.append("Cookie: " + cookie);
     }
@@ -250,8 +249,8 @@ ResourceRequest WebSocketHandshake::clientHandshakeRequest() const
         request.setHTTPHeaderField(HTTPHeaderName::SecWebSocketProtocol, m_clientProtocol);
 
     URL url = httpURLForAuthenticationAndCookies();
-    if (m_allowCookies) {
-        String cookie = cookieRequestHeaderFieldValue(m_document, url);
+    if (m_allowCookies && m_document) {
+        String cookie = cookieRequestHeaderFieldValue(*m_document, url);
         if (!cookie.isEmpty())
             request.setHTTPHeaderField(HTTPHeaderName::Cookie, cookie);
     }
@@ -606,7 +605,7 @@ bool WebSocketHandshake::checkResponseHeaders()
             return false;
         }
         Vector<String> result;
-        m_clientProtocol.split(String(WebSocket::subProtocolSeperator()), result);
+        m_clientProtocol.split(WebSocket::subprotocolSeparator(), result);
         if (!result.contains(serverWebSocketProtocol)) {
             m_failureReason = ASCIILiteral("Error during WebSocket handshake: Sec-WebSocket-Protocol mismatch");
             return false;

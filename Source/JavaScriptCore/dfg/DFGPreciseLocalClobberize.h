@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef DFGPreciseLocalClobberize_h
-#define DFGPreciseLocalClobberize_h
+#pragma once
 
 #if ENABLE(DFG_JIT)
 
@@ -121,15 +120,24 @@ private:
                 inlineCallFrame = m_node->argumentsChild()->origin.semantic.inlineCallFrame;
             else
                 inlineCallFrame = m_node->origin.semantic.inlineCallFrame;
+
+            unsigned numberOfArgumentsToSkip = 0;
+            if (m_node->op() == GetMyArgumentByVal || m_node->op() == GetMyArgumentByValOutOfBounds) {
+                // The value of numberOfArgumentsToSkip guarantees that GetMyArgumentByVal* will never
+                // read any arguments below the number of arguments to skip. For example, if numberOfArgumentsToSkip is 2,
+                // we will never read argument 0 or argument 1.
+                numberOfArgumentsToSkip = m_node->numberOfArgumentsToSkip();
+            }
+
             if (!inlineCallFrame) {
                 // Read the outermost arguments and argument count.
-                for (unsigned i = m_graph.m_codeBlock->numParameters(); i-- > 1;)
+                for (unsigned i = 1 + numberOfArgumentsToSkip; i < static_cast<unsigned>(m_graph.m_codeBlock->numParameters()); i++)
                     m_read(virtualRegisterForArgument(i));
                 m_read(VirtualRegister(CallFrameSlot::argumentCount));
                 break;
             }
             
-            for (unsigned i = inlineCallFrame->arguments.size(); i-- > 1;)
+            for (unsigned i = 1 + numberOfArgumentsToSkip; i < inlineCallFrame->arguments.size(); i++)
                 m_read(VirtualRegister(inlineCallFrame->stackOffset + virtualRegisterForArgument(i).offset()));
             if (inlineCallFrame->isVarargs())
                 m_read(VirtualRegister(inlineCallFrame->stackOffset + CallFrameSlot::argumentCount));
@@ -178,6 +186,3 @@ void preciseLocalClobberize(
 } } // namespace JSC::DFG
 
 #endif // ENABLE(DFG_JIT)
-
-#endif // DFGPreciseLocalClobberize_h
-

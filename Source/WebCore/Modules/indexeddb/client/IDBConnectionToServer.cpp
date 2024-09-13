@@ -116,6 +116,20 @@ void IDBConnectionToServer::didDeleteObjectStore(const IDBResultData& resultData
     m_proxy->completeOperation(resultData);
 }
 
+void IDBConnectionToServer::renameObjectStore(const IDBRequestData& requestData, uint64_t objectStoreIdentifier, const String& newName)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::renameObjectStore");
+    ASSERT(isMainThread());
+
+    m_delegate->renameObjectStore(requestData, objectStoreIdentifier, newName);
+}
+
+void IDBConnectionToServer::didRenameObjectStore(const IDBResultData& resultData)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::didRenameObjectStore");
+    m_proxy->completeOperation(resultData);
+}
+
 void IDBConnectionToServer::clearObjectStore(const IDBRequestData& requestData, uint64_t objectStoreIdentifier)
 {
     LOG(IndexedDB, "IDBConnectionToServer::clearObjectStore");
@@ -158,6 +172,20 @@ void IDBConnectionToServer::didDeleteIndex(const IDBResultData& resultData)
     m_proxy->completeOperation(resultData);
 }
 
+void IDBConnectionToServer::renameIndex(const IDBRequestData& requestData, uint64_t objectStoreIdentifier, uint64_t indexIdentifier, const String& newName)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::renameIndex");
+    ASSERT(isMainThread());
+
+    m_delegate->renameIndex(requestData, objectStoreIdentifier, indexIdentifier, newName);
+}
+
+void IDBConnectionToServer::didRenameIndex(const IDBResultData& resultData)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::didRenameIndex");
+    m_proxy->completeOperation(resultData);
+}
+
 void IDBConnectionToServer::putOrAdd(const IDBRequestData& requestData, const IDBKeyData& key, const IDBValue& value, const IndexedDB::ObjectStoreOverwriteMode overwriteMode)
 {
     LOG(IndexedDB, "IDBConnectionToServer::putOrAdd");
@@ -184,6 +212,20 @@ void IDBConnectionToServer::getRecord(const IDBRequestData& requestData, const I
 void IDBConnectionToServer::didGetRecord(const IDBResultData& resultData)
 {
     LOG(IndexedDB, "IDBConnectionToServer::didGetRecord");
+    m_proxy->completeOperation(resultData);
+}
+
+void IDBConnectionToServer::getAllRecords(const IDBRequestData& requestData, const IDBGetAllRecordsData& getAllRecordsData)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::getAllRecords");
+    ASSERT(isMainThread());
+
+    m_delegate->getAllRecords(requestData, getAllRecordsData);
+}
+
+void IDBConnectionToServer::didGetAllRecords(const IDBResultData& resultData)
+{
+    LOG(IndexedDB, "IDBConnectionToServer::didGetAllRecords");
     m_proxy->completeOperation(resultData);
 }
 

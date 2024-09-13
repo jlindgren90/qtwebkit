@@ -33,13 +33,16 @@
 #if PLATFORM(COCOA)
 #include "PublicSuffix.h"
 #include "ResourceRequest.h"
-#include "Settings.h"
 #include "WebCoreSystemInterface.h"
 #else
 #include <WebKitSystemInterface/WebKitSystemInterface.h>
 #endif
 
+// FIXME: This file is mostly Cocoa code, not CFNetwork code. This code should be moved.
+
 namespace WebCore {
+
+static bool cookieStoragePartitioningEnabled;
 
 NetworkStorageSession::NetworkStorageSession(SessionID sessionID, RetainPtr<CFURLStorageSessionRef> platformSession)
     : m_sessionID(sessionID)
@@ -92,12 +95,17 @@ RetainPtr<CFHTTPCookieStorageRef> NetworkStorageSession::cookieStorage() const
     if (m_platformSession)
         return adoptCF(_CFURLStorageSessionCopyCookieStorage(kCFAllocatorDefault, m_platformSession.get()));
 
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
     return _CFHTTPCookieStorageGetDefault(kCFAllocatorDefault);
 #else
     // When using NSURLConnection, we also use its shared cookie storage.
-    return 0;
+    return nullptr;
 #endif
+}
+
+void NetworkStorageSession::setCookieStoragePartitioningEnabled(bool enabled)
+{
+    cookieStoragePartitioningEnabled = enabled;
 }
 
 #if PLATFORM(COCOA)
@@ -119,7 +127,7 @@ static inline bool hostIsInDomain(StringView host, StringView domain)
 
 String cookieStoragePartition(const URL& firstPartyForCookies, const URL& resource)
 {
-    if (!Settings::cookieStoragePartitioningEnabled())
+    if (!cookieStoragePartitioningEnabled)
         return emptyString();
 
     String firstPartyDomain = firstPartyForCookies.host();

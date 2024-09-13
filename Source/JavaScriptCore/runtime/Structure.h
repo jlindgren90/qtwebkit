@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef Structure_h
-#define Structure_h
+#pragma once
 
 #include "ClassInfo.h"
 #include "ConcurrentJITLock.h"
@@ -49,7 +48,6 @@
 #include <wtf/CompilationThread.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/PrintStream.h>
-#include <wtf/RefCounted.h>
 
 namespace WTF {
 
@@ -763,5 +761,3 @@ private:
 };
 
 } // namespace JSC
-
-#endif // Structure_h

@@ -33,7 +33,7 @@
 #include "AuthenticationChallenge.h"
 #include "Timer.h"
 
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
 #include "ResourceHandleCFURLConnectionDelegate.h"
 #include <CFNetwork/CFURLConnectionPriv.h>
 #endif
@@ -56,21 +56,12 @@
 #include <wtf/glib/GRefPtr.h>
 #endif
 
-#if PLATFORM(QT)
-QT_BEGIN_NAMESPACE
-class QWebNetworkJob;
-QT_END_NAMESPACE
-namespace WebCore {
-class QNetworkReplyHandler;
-}
-#endif
-
 #if PLATFORM(COCOA)
 OBJC_CLASS NSURLAuthenticationChallenge;
 OBJC_CLASS NSURLConnection;
 #endif
 
-#if PLATFORM(COCOA) || USE(CFNETWORK)
+#if PLATFORM(COCOA) || USE(CFURLCONNECTION)
 typedef const struct __CFURLStorageSession* CFURLStorageSessionRef;
 #endif
 
@@ -92,7 +83,7 @@ namespace WebCore {
             , m_defersLoading(defersLoading)
             , m_shouldContentSniff(shouldContentSniff)
             , m_usesAsyncCallbacks(client && client->usesAsyncCallbacks())
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
             , m_currentRequest(request)
 #endif
 #if USE(CURL)
@@ -106,9 +97,6 @@ namespace WebCore {
             , m_redirectCount(0)
             , m_previousPosition(0)
             , m_useAuthenticationManager(true)
-#endif
-#if PLATFORM(QT)
-            , m_job(0)
 #endif
 #if PLATFORM(COCOA)
             , m_startWhenScheduled(false)
@@ -143,19 +131,19 @@ namespace WebCore {
         bool m_defersLoading;
         bool m_shouldContentSniff;
         bool m_usesAsyncCallbacks;
-#if USE(CFNETWORK)
+#if USE(CFURLCONNECTION)
         RetainPtr<CFURLConnectionRef> m_connection;
         ResourceRequest m_currentRequest;
         RefPtr<ResourceHandleCFURLConnectionDelegate> m_connectionDelegate;
 #endif
-#if PLATFORM(COCOA) && !USE(CFNETWORK)
+#if PLATFORM(COCOA) && !USE(CFURLCONNECTION)
         RetainPtr<NSURLConnection> m_connection;
         RetainPtr<id> m_delegate;
 #endif
 #if PLATFORM(COCOA)
         bool m_startWhenScheduled;
 #endif
-#if PLATFORM(COCOA) || USE(CFNETWORK)
+#if PLATFORM(COCOA) || USE(CFURLCONNECTION)
         RetainPtr<CFURLStorageSessionRef> m_storageSession;
 #endif
 #if USE(CURL)
@@ -190,15 +178,10 @@ namespace WebCore {
         int m_redirectCount;
         size_t m_previousPosition;
         bool m_useAuthenticationManager;
-#endif
-#if PLATFORM(GTK)
         struct {
             Credential credential;
-            AuthenticationChallenge challenge;
+            ProtectionSpace protectionSpace;
         } m_credentialDataToSaveInPersistentStore;
-#endif
-#if PLATFORM(QT)
-        QNetworkReplyHandler* m_job;
 #endif
 
 #if PLATFORM(COCOA)

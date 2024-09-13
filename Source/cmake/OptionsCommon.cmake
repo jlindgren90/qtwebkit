@@ -8,11 +8,19 @@ add_definitions(-DHAVE_CONFIG_H=1)
 if (MSVC)
     # FIXME: Some codegenerators don't support paths with spaces. So use the executable name only.
     get_filename_component(CODE_GENERATOR_PREPROCESSOR_EXECUTABLE ${CMAKE_CXX_COMPILER} ABSOLUTE)
-    set(CODE_GENERATOR_PREPROCESSOR "\"${CODE_GENERATOR_PREPROCESSOR_EXECUTABLE}\" /nologo /EP")
-    set(CODE_GENERATOR_PREPROCESSOR_WITH_LINEMARKERS "${CODE_GENERATOR_PREPROCESSOR}")
+
+    set(CODE_GENERATOR_PREPROCESSOR_ARGUMENTS "/nologo /EP")
+    set(CODE_GENERATOR_PREPROCESSOR "\"${CODE_GENERATOR_PREPROCESSOR_EXECUTABLE}\" ${CODE_GENERATOR_PREPROCESSOR_ARGUMENTS}")
+
+    set(CODE_GENERATOR_PREPROCESSOR_WITH_LINEMARKERS ${CODE_GENERATOR_PREPROCESSOR})
 else ()
-    set(CODE_GENERATOR_PREPROCESSOR "${CMAKE_CXX_COMPILER} -E -P -x c++")
-    set(CODE_GENERATOR_PREPROCESSOR_WITH_LINEMARKERS "${CMAKE_CXX_COMPILER} -E -x c++")
+    set(CODE_GENERATOR_PREPROCESSOR_EXECUTABLE ${CMAKE_CXX_COMPILER})
+
+    set(CODE_GENERATOR_PREPROCESSOR_ARGUMENTS "-E -P -x c++")
+    set(CODE_GENERATOR_PREPROCESSOR "${CODE_GENERATOR_PREPROCESSOR_EXECUTABLE} ${CODE_GENERATOR_PREPROCESSOR_ARGUMENTS}")
+
+    set(CODE_GENERATOR_PREPROCESSOR_WITH_LINEMARKERS_ARGUMENTS "-E -x c++")
+    set(CODE_GENERATOR_PREPROCESSOR_WITH_LINEMARKERS "${CODE_GENERATOR_PREPROCESSOR_EXECUTABLE} ${CODE_GENERATOR_PREPROCESSOR_WITH_LINEMARKERS_ARGUMENTS}")
 endif ()
 
 option(USE_THIN_ARCHIVES "Produce all static libraries as thin archives" ON)
@@ -126,7 +134,7 @@ endif ()
 # Use ld.gold if it is available and isn't disabled explicitly
 include(CMakeDependentOption)
 CMAKE_DEPENDENT_OPTION(USE_LD_GOLD "Use GNU gold linker" ON
-                       "NOT CXX_ACCEPTS_MFIX_CORTEX_A53_835769;NOT ARM_TRADITIONAL_DETECTED" OFF)
+                       "NOT CXX_ACCEPTS_MFIX_CORTEX_A53_835769;NOT ARM_TRADITIONAL_DETECTED;NOT WIN32;NOT APPLE" OFF)
 if (USE_LD_GOLD)
     execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
     if ("${LD_VERSION}" MATCHES "GNU gold")
@@ -208,8 +216,59 @@ if ((CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux") AND (CMAKE_VERSION VERSION_LESS 3.
     set(CMAKE_NINJA_FORCE_RESPONSE_FILE 1)
 endif ()
 
+# Macros for determining HAVE values.
+include(CheckIncludeFile)
+include(CheckFunctionExists)
+include(CheckSymbolExists)
+include(CheckStructHasMember)
+
+macro(_HAVE_CHECK_INCLUDE _variable _header)
+    check_include_file(${_header} ${_variable}_value)
+    SET_AND_EXPOSE_TO_BUILD(${_variable} ${_variable}_value)
+endmacro()
+
+macro(_HAVE_CHECK_FUNCTION _variable _function)
+    check_function_exists(${_function} ${_variable}_value)
+    SET_AND_EXPOSE_TO_BUILD(${_variable} ${_variable}_value)
+endmacro()
+
+macro(_HAVE_CHECK_SYMBOL _variable _symbol _header)
+    check_symbol_exists(${_symbol} ${_header} ${_variable}_value)
+    SET_AND_EXPOSE_TO_BUILD(${_variable} ${_variable}_value)
+endmacro()
+
+macro(_HAVE_CHECK_STRUCT _variable _struct _member _header)
+    check_struct_has_member(${_struct} ${_member} ${_header} ${_variable}_value)
+    SET_AND_EXPOSE_TO_BUILD(${_variable} ${_variable}_value)
+endmacro()
+
 # Check whether features.h header exists.
 # Including glibc's one defines __GLIBC__, that is used in Platform.h
-include(CheckIncludeFiles)
-check_include_files(features.h HAVE_FEATURES_H)
-SET_AND_EXPOSE_TO_BUILD(HAVE_FEATURES_H ${HAVE_FEATURES_H})
+_HAVE_CHECK_INCLUDE(HAVE_FEATURES_H features.h)
+
+# Check for headers
+_HAVE_CHECK_INCLUDE(HAVE_ERRNO_H errno.h)
+_HAVE_CHECK_INCLUDE(HAVE_LANGINFO_H langinfo.h)
+_HAVE_CHECK_INCLUDE(HAVE_MMAP sys/mman.h)
+_HAVE_CHECK_INCLUDE(HAVE_PTHREAD_NP_H pthread_np.h)
+_HAVE_CHECK_INCLUDE(HAVE_STRINGS_H strings.h)
+_HAVE_CHECK_INCLUDE(HAVE_SYS_PARAM_H sys/param.h)
+_HAVE_CHECK_INCLUDE(HAVE_SYS_TIME_H sys/time.h)
+_HAVE_CHECK_INCLUDE(HAVE_SYS_TIMEB_H sys/timeb.h)
+
+# Check for functions
+_HAVE_CHECK_FUNCTION(HAVE_ALIGNED_MALLOC _aligned_malloc)
+_HAVE_CHECK_FUNCTION(HAVE_ISDEBUGGERPRESENT IsDebuggerPresent)
+_HAVE_CHECK_FUNCTION(HAVE_LOCALTIME_R localtime_r)
+_HAVE_CHECK_FUNCTION(HAVE_STRNSTR strnstr)
+_HAVE_CHECK_FUNCTION(HAVE_TIMEGM timegm)
+_HAVE_CHECK_FUNCTION(HAVE_VASPRINTF vasprintf)
+
+# Check for symbols
+# Windows has signal.h but is missing symbols that are used in calls to signal.
+_HAVE_CHECK_SYMBOL(HAVE_SIGNAL_H SIGTRAP signal.h)
+
+# Check for struct members
+_HAVE_CHECK_STRUCT(HAVE_STAT_BIRTHTIME "struct stat" st_birthtime sys/stat.h)
+_HAVE_CHECK_STRUCT(HAVE_TM_GMTOFF "struct tm" tm_gmtoff time.h)
+_HAVE_CHECK_STRUCT(HAVE_TM_ZONE "struct tm" tm_zone time.h)

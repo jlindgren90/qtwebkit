@@ -23,8 +23,7 @@
  *
  */
 
-#ifndef HTMLTableElement_h
-#define HTMLTableElement_h
+#pragma once
 
 #include "HTMLElement.h"
 
@@ -40,28 +39,27 @@ public:
     static Ref<HTMLTableElement> create(Document&);
     static Ref<HTMLTableElement> create(const QualifiedName&, Document&);
 
-    HTMLTableCaptionElement* caption() const;
-    void setCaption(RefPtr<HTMLTableCaptionElement>&&, ExceptionCode&);
+    WEBCORE_EXPORT HTMLTableCaptionElement* caption() const;
+    WEBCORE_EXPORT ExceptionOr<void> setCaption(RefPtr<HTMLTableCaptionElement>&&);
 
-    HTMLTableSectionElement* tHead() const;
-    void setTHead(RefPtr<HTMLTableSectionElement>&&, ExceptionCode&);
+    WEBCORE_EXPORT HTMLTableSectionElement* tHead() const;
+    WEBCORE_EXPORT ExceptionOr<void> setTHead(RefPtr<HTMLTableSectionElement>&&);
 
-    HTMLTableSectionElement* tFoot() const;
-    void setTFoot(RefPtr<HTMLTableSectionElement>&&, ExceptionCode&);
+    WEBCORE_EXPORT HTMLTableSectionElement* tFoot() const;
+    WEBCORE_EXPORT ExceptionOr<void> setTFoot(RefPtr<HTMLTableSectionElement>&&);
 
-    Ref<HTMLTableSectionElement> createTHead();
-    void deleteTHead();
-    Ref<HTMLTableSectionElement> createTFoot();
-    void deleteTFoot();
-    Ref<HTMLTableSectionElement> createTBody();
-    Ref<HTMLTableCaptionElement> createCaption();
-    void deleteCaption();
-    RefPtr<HTMLElement> insertRow(ExceptionCode& ec) { return insertRow(-1, ec); }
-    RefPtr<HTMLElement> insertRow(int index, ExceptionCode&);
-    void deleteRow(int index, ExceptionCode&);
+    WEBCORE_EXPORT Ref<HTMLTableSectionElement> createTHead();
+    WEBCORE_EXPORT void deleteTHead();
+    WEBCORE_EXPORT Ref<HTMLTableSectionElement> createTFoot();
+    WEBCORE_EXPORT void deleteTFoot();
+    WEBCORE_EXPORT Ref<HTMLTableSectionElement> createTBody();
+    WEBCORE_EXPORT Ref<HTMLTableCaptionElement> createCaption();
+    WEBCORE_EXPORT void deleteCaption();
+    WEBCORE_EXPORT ExceptionOr<Ref<HTMLElement>> insertRow(int index = -1);
+    WEBCORE_EXPORT ExceptionOr<void> deleteRow(int index);
 
-    Ref<HTMLCollection> rows();
-    Ref<HTMLCollection> tBodies();
+    WEBCORE_EXPORT Ref<HTMLCollection> rows();
+    WEBCORE_EXPORT Ref<HTMLCollection> tBodies();
 
     const AtomicString& rules() const;
     const AtomicString& summary() const;
@@ -102,5 +100,3 @@ private:
 };
 
 } //namespace
-
-#endif

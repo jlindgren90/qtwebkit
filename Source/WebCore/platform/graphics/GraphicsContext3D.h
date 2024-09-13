@@ -43,7 +43,7 @@
 #endif
 
 // FIXME: Find a better way to avoid the name confliction for NO_ERROR.
-#if PLATFORM(WIN) || (PLATFORM(QT) && OS(WINDOWS))
+#if PLATFORM(WIN)
 #undef NO_ERROR
 #elif PLATFORM(GTK)
 // This define is from the X11 headers, but it's used below, so we must undefine it.
@@ -60,14 +60,6 @@
 #include <wtf/RetainPtr.h>
 OBJC_CLASS CALayer;
 OBJC_CLASS WebGLLayer;
-#elif PLATFORM(QT)
-QT_BEGIN_NAMESPACE
-class QPainter;
-class QRect;
-class QOpenGLContext;
-class QOpenGLExtensions;
-class QSurface;
-QT_END_NAMESPACE
 #elif PLATFORM(GTK) || PLATFORM(EFL) || PLATFORM(WIN_CAIRO)
 typedef unsigned int GLuint;
 #endif
@@ -82,9 +74,6 @@ typedef void* PlatformGraphicsContext3D;
 typedef struct _CGLContextObject *CGLContextObj;
 
 typedef CGLContextObj PlatformGraphicsContext3D;
-#elif PLATFORM(QT)
-typedef QOpenGLContext* PlatformGraphicsContext3D;
-typedef QSurface* PlatformGraphicsSurface3D;
 #else
 typedef void* PlatformGraphicsContext3D;
 typedef void* PlatformGraphicsSurface3D;
@@ -96,9 +85,11 @@ const Platform3DObject NullPlatform3DObject = 0;
 
 namespace WebCore {
 class Extensions3D;
-class Extensions3DOpenGLCommon;
+#if USE(OPENGL_ES_2)
 class Extensions3DOpenGLES;
+#else
 class Extensions3DOpenGL;
+#endif
 class HostWindow;
 class Image;
 class ImageBuffer;
@@ -686,7 +677,7 @@ public:
         ALREADY_SIGNALED = 0x911A,
         TIMEOUT_EXPIRED = 0x911B,
         CONDITION_SATISFIED = 0x911C,
-#if OS(WINDOWS)
+#if PLATFORM(WIN)
         WAIT_FAILED_WIN = 0x911D,
 #else
         WAIT_FAILED = 0x911D,
@@ -726,34 +717,19 @@ public:
 
     // Context creation attributes.
     struct Attributes {
-        Attributes()
-            : alpha(true)
-            , depth(true)
-            , stencil(false)
-            , antialias(true)
-            , premultipliedAlpha(true)
-            , preserveDrawingBuffer(false)
-            , noExtensions(false)
-            , shareResources(true)
-            , preferDiscreteGPU(false)
-            , forceSoftwareRenderer(false)
-            , useGLES3(false)
-            , devicePixelRatio(1)
-        {
-        }
-
-        bool alpha;
-        bool depth;
-        bool stencil;
-        bool antialias;
-        bool premultipliedAlpha;
-        bool preserveDrawingBuffer;
-        bool noExtensions;
-        bool shareResources;
-        bool preferDiscreteGPU;
-        bool forceSoftwareRenderer;
-        bool useGLES3;
-        float devicePixelRatio;
+        bool alpha { true };
+        bool depth { true };
+        bool stencil { false };
+        bool antialias { true };
+        bool premultipliedAlpha { true };
+        bool preserveDrawingBuffer { false };
+        bool noExtensions { false };
+        bool shareResources { true };
+        bool preferLowPowerToHighPerformance { false };
+        bool forceSoftwareRenderer { false };
+        bool failIfMajorPerformanceCaveat { false };
+        bool useGLES3 { false };
+        float devicePixelRatio { 1 };
     };
 
     enum RenderStyle {
@@ -1141,9 +1117,6 @@ public:
                        int canvasWidth, int canvasHeight, PlatformContextCairo* context);
 #elif USE(CG)
     void paintToCanvas(const unsigned char* imagePixels, int imageWidth, int imageHeight, int canvasWidth, int canvasHeight, GraphicsContext&);
-#elif PLATFORM(QT)
-    void paintToCanvas(const unsigned char* imagePixels, int imageWidth, int imageHeight,
-                       int canvasWidth, int canvasHeight, QPainter* context);
 #endif
 
     void markContextChanged();
@@ -1264,8 +1237,6 @@ public:
         RetainPtr<CGImageRef> m_decodedImage;
         RetainPtr<CFDataRef> m_pixelData;
         std::unique_ptr<uint8_t[]> m_formalizedRGBA8Data;
-#elif PLATFORM(QT)
-        QImage m_qtImage;
 #endif
         Image* m_image;
         ImageHtmlDomSource m_imageHtmlDomSource;
@@ -1311,7 +1282,7 @@ private:
     bool reshapeFBOs(const IntSize&);
     void resolveMultisamplingIfNecessary(const IntRect& = IntRect());
     void attachDepthAndStencilBufferIfNeeded(GLuint internalDepthStencilFormat, int width, int height);
-#if (PLATFORM(QT) || PLATFORM(EFL)) && USE(GRAPHICS_SURFACE)
+#if PLATFORM(EFL) && USE(GRAPHICS_SURFACE)
     void createGraphicsSurfaces(const IntSize&);
 #endif
 
@@ -1327,37 +1298,7 @@ private:
     RefPtr<PlatformCALayer> m_webGLLayer;
 #endif
 
-    struct SymbolInfo {
-        SymbolInfo()
-            : type(0)
-            , size(0)
-            , precision(GL_NONE) // Invalid precision.
-            , staticUse(0)
-        {
-        }
-
-        SymbolInfo(GC3Denum type, int size, const String& mappedName, sh::GLenum precision, int staticUse)
-            : type(type)
-            , size(size)
-            , mappedName(mappedName)
-            , precision(precision)
-            , staticUse(staticUse)
-        {
-        }
-
-        bool operator==(SymbolInfo& other) const
-        {
-            return type == other.type && size == other.size && mappedName == other.mappedName;
-        }
-
-        GC3Denum type;
-        int size;
-        String mappedName;
-        sh::GLenum precision;
-        int staticUse;
-    };
-
-    typedef HashMap<String, SymbolInfo> ShaderSymbolMap;
+    typedef HashMap<String, sh::ShaderVariable> ShaderSymbolMap;
 
     struct ShaderSourceEntry {
         GC3Denum type;
@@ -1415,15 +1356,17 @@ private:
     String mappedSymbolName(Platform3DObject shaders[2], size_t count, const String& name);
     String originalSymbolName(Platform3DObject program, ANGLEShaderSymbolType, const String& name);
 
-#if !PLATFORM(QT)
     ANGLEWebKitBridge m_compiler;
-#endif
 
     std::unique_ptr<ShaderNameHash> nameHashMapForShaders;
 
-    std::unique_ptr<Extensions3DOpenGLCommon> m_extensions;
-    friend class Extensions3DOpenGL;
+#if ((PLATFORM(GTK) || PLATFORM(EFL) || PLATFORM(WIN)) && USE(OPENGL_ES_2))
     friend class Extensions3DOpenGLES;
+    std::unique_ptr<Extensions3DOpenGLES> m_extensions;
+#else
+    friend class Extensions3DOpenGL;
+    std::unique_ptr<Extensions3DOpenGL> m_extensions;
+#endif
     friend class Extensions3DOpenGLCommon;
 
     Attributes m_attrs;
@@ -1466,19 +1409,12 @@ private:
     // Errors raised by synthesizeGLError().
     ListHashSet<GC3Denum> m_syntheticErrors;
 
-#if PLATFORM(QT)
-    QOpenGLExtensions* m_functions;
-#endif
-
     friend class GraphicsContext3DPrivate;
     std::unique_ptr<GraphicsContext3DPrivate> m_private;
-
-#if PLATFORM(QT)
-    // Must be initialized after m_private so that isGLES2Compliant works
-    ANGLEWebKitBridge m_compiler;
-#endif
-
+    
     WebGLRenderingContextBase* m_webglContext;
+
+    bool m_isForWebGL2 { false };
 };
 
 } // namespace WebCore

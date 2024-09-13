@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2007, 2014, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@ void GCController::garbageCollectSoon()
     // We only use reportAbandonedObjectGraph for systems for which there's an implementation
     // of the garbage collector timers in JavaScriptCore. We wouldn't need this if JavaScriptCore
     // used a timer implementation from WTF like RunLoop::Timer.
-#if USE(CF) || USE(GLIB) || PLATFORM(QT)
+#if USE(CF) || USE(GLIB)
     JSLockHolder lock(JSDOMWindow::commonVM());
     JSDOMWindow::commonVM().heap.reportAbandonedObjectGraph();
 #else
@@ -82,7 +82,7 @@ void GCController::gcTimerFired()
 void GCController::garbageCollectNow()
 {
     JSLockHolder lock(JSDOMWindow::commonVM());
-    if (!JSDOMWindow::commonVM().heap.isBusy()) {
+    if (!JSDOMWindow::commonVM().heap.isCurrentThreadBusy()) {
         JSDOMWindow::commonVM().heap.collectAllGarbage();
         WTF::releaseFastMallocFreeMemory();
     }
@@ -90,9 +90,9 @@ void GCController::garbageCollectNow()
 
 void GCController::garbageCollectNowIfNotDoneRecently()
 {
-#if USE(CF) || USE(GLIB) || PLATFORM(QT)
+#if USE(CF) || USE(GLIB)
     JSLockHolder lock(JSDOMWindow::commonVM());
-    if (!JSDOMWindow::commonVM().heap.isBusy())
+    if (!JSDOMWindow::commonVM().heap.isCurrentThreadBusy())
         JSDOMWindow::commonVM().heap.collectAllGarbageIfNotDoneRecently();
 #else
     garbageCollectSoon();

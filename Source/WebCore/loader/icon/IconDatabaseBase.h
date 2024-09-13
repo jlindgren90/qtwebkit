@@ -26,8 +26,7 @@
 #ifndef IconDatabaseBase_h
 #define IconDatabaseBase_h
 
-#include "NativeImagePtr.h"
-#include "SharedBuffer.h"
+#include "NativeImage.h"
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/PassRefPtr.h>

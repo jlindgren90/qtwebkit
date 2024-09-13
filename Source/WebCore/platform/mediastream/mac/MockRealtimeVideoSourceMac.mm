@@ -58,6 +58,13 @@ MockRealtimeVideoSourceMac::MockRealtimeVideoSourceMac()
 {
 }
 
+Ref<MockRealtimeVideoSource> MockRealtimeVideoSource::createMuted(const String& name)
+{
+    auto source = adoptRef(*new MockRealtimeVideoSource(name));
+    source->m_muted = true;
+    return source;
+}
+
 RetainPtr<CMSampleBufferRef> MockRealtimeVideoSourceMac::CMSampleBufferFromPixelBuffer(CVPixelBufferRef pixelBuffer)
 {
     if (!pixelBuffer)
@@ -142,7 +149,7 @@ void MockRealtimeVideoSourceMac::updatePlatformLayer() const
         if (!image)
             break;
 
-        m_previewImage = image->getCGImageRef();
+        m_previewImage = image->nativeImage();
         if (!m_previewImage)
             break;
 
@@ -154,7 +161,7 @@ void MockRealtimeVideoSourceMac::updatePlatformLayer() const
 
 void MockRealtimeVideoSourceMac::updateSampleBuffer()
 {
-    auto pixelBuffer = pixelBufferFromCGImage(imageBuffer()->copyImage()->getCGImageRef());
+    auto pixelBuffer = pixelBufferFromCGImage(imageBuffer()->copyImage()->nativeImage().get());
     auto sampleBuffer = CMSampleBufferFromPixelBuffer(pixelBuffer.get());
     
     mediaDataUpdated(MediaSampleAVFObjC::create(sampleBuffer.get()));
