@@ -1143,7 +1143,7 @@ WebInspector.CSSStyleDeclarationTextEditor = class CSSStyleDeclarationTextEditor
                 // The property name is so vague or nonsensical that there are more than 3 other properties that have the same Levenshtein value.
                 invalidMarkerInfo = {
                     position: from,
-                    title: WebInspector.UIString("The property “%s” is not supported.").format(property.name),
+                    title: WebInspector.UIString("Unsupported property “%s”").format(property.name),
                     correction: false,
                     autocomplete: false
                 };
@@ -1377,7 +1377,7 @@ WebInspector.CSSStyleDeclarationTextEditor = class CSSStyleDeclarationTextEditor
     _inlineSwatchDeactivated()
     {
         this._hasActiveInlineSwatchEditor = false;
-    }    
+    }
 
     _propertyOverriddenStatusChanged(event)
     {
@@ -1403,7 +1403,6 @@ WebInspector.CSSStyleDeclarationTextEditor = class CSSStyleDeclarationTextEditor
         // Reset the content if the text is different and we are not focused.
         if (!this.focused && (!this._style.text || this._style.text !== this._formattedContent())) {
             this._resetContent();
-            this._updateTextMarkers();
             return;
         }
 

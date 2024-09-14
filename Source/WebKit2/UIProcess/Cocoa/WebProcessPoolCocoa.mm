@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,8 +85,6 @@ static NSString * const WebKitNetworkCacheEfficacyLoggingEnabledDefaultsKey = @"
 static NSString * const WebKitSuppressMemoryPressureHandlerDefaultsKey = @"WebKitSuppressMemoryPressureHandler";
 static NSString * const WebKitNetworkLoadThrottleLatencyMillisecondsDefaultsKey = @"WebKitNetworkLoadThrottleLatencyMilliseconds";
 
-static NSString * const WebKitVariationFontsEnabledDefaultsKey = @"ExperimentalVariationFontsEnabled";
-
 #if ENABLE(NETWORK_CAPTURE)
 static NSString * const WebKitRecordReplayModeDefaultsKey = @"WebKitRecordReplayMode";
 static NSString * const WebKitRecordReplayCacheLocationDefaultsKey = @"WebKitRecordReplayCacheLocation";
@@ -113,8 +111,6 @@ static void registerUserDefaultsIfNeeded()
     [registrationDictionary setObject:[NSNumber numberWithBool:YES] forKey:WebKitNetworkCacheEnabledDefaultsKey];
     [registrationDictionary setObject:[NSNumber numberWithBool:NO] forKey:WebKitNetworkCacheEfficacyLoggingEnabledDefaultsKey];
 #endif
-
-    [registrationDictionary setObject:[NSNumber numberWithBool:YES] forKey:WebKitVariationFontsEnabledDefaultsKey];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:registrationDictionary];
 }
@@ -149,6 +145,9 @@ void WebProcessPool::platformInitialize()
     IPC::setAllowsDecodingSecKeyRef(true);
     WebKit::WebMemoryPressureHandler::singleton();
 #endif
+
+    if (m_websiteDataStore)
+        m_websiteDataStore->registerSharedResourceLoadObserver();
 }
 
 #if PLATFORM(IOS)
@@ -463,7 +462,7 @@ bool WebProcessPool::isNetworkCacheEnabled()
 
     bool networkCacheEnabledByDefaults = [defaults boolForKey:WebKitNetworkCacheEnabledDefaultsKey];
 
-    return networkCacheEnabledByDefaults && linkedOnOrAfter(LibraryVersion::FirstWithNetworkCache);
+    return networkCacheEnabledByDefaults && linkedOnOrAfter(SDKVersion::FirstWithNetworkCache);
 #else
     return false;
 #endif

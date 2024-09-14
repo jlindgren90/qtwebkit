@@ -162,12 +162,18 @@
     || defined(_X86_)    \
     || defined(__THW_INTEL)
 #define WTF_CPU_X86 1
+
+#if defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#define WTF_CPU_X86_SSE2 1
+#endif
+
 #endif
 
 /* CPU(X86_64) - AMD64 / Intel64 / x86_64 64-bit */
 #if   defined(__x86_64__) \
     || defined(_M_X64)
 #define WTF_CPU_X86_64 1
+#define WTF_CPU_X86_SSE2 1
 #endif
 
 /* CPU(ARM64) - Apple */
@@ -669,6 +675,10 @@
 /* Include feature macros */
 #include <wtf/FeatureDefines.h>
 
+#if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/AdditionalFeatureDefines.h>)
+#include <WebKitAdditions/AdditionalFeatureDefines.h>
+#endif
+
 #if OS(WINDOWS)
 #define USE_SYSTEM_MALLOC 1
 #endif
@@ -744,8 +754,8 @@
 #if (CPU(ARM_THUMB2) || CPU(ARM64)) && (PLATFORM(IOS) || PLATFORM(GTK) || PLATFORM(EFL) || PLATFORM(QT))
 #define ENABLE_DFG_JIT 1
 #endif
-/* Enable the DFG JIT on ARM, MIPS and SH4. */
-#if CPU(ARM_TRADITIONAL) || CPU(MIPS) || CPU(SH4)
+/* Enable the DFG JIT on ARM and MIPS. */
+#if CPU(ARM_TRADITIONAL) || CPU(MIPS)
 #define ENABLE_DFG_JIT 1
 #endif
 #endif
@@ -1143,10 +1153,6 @@
 #define __STDC_FORMAT_MACROS
 #undef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
-#if _MSC_VER < 1900
-#undef _HAS_EXCEPTIONS
-#define _HAS_EXCEPTIONS 1
-#endif
 #endif
 
 #if PLATFORM(MAC)

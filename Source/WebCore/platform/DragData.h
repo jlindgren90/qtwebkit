@@ -110,8 +110,11 @@ public:
     bool containsColor() const;
     bool containsFiles() const;
     unsigned numberOfFiles() const;
-#if PLATFORM(MAC)
+    void setFileNames(Vector<String>& fileNames) { m_fileNames = WTFMove(fileNames); }
+    const Vector<String>& fileNames() const { return m_fileNames; }
+#if PLATFORM(COCOA)
     const String& pasteboardName() const { return m_pasteboardName; }
+    bool containsPromise() const;
 #endif
 
 #if PLATFORM(QT) || PLATFORM(GTK)
@@ -133,7 +136,8 @@ private:
     DragDataRef m_platformDragData;
     DragOperation m_draggingSourceOperationMask;
     DragApplicationFlags m_applicationFlags;
-#if PLATFORM(MAC)
+    Vector<String> m_fileNames;
+#if PLATFORM(COCOA)
     String m_pasteboardName;
 #endif
 #if PLATFORM(WIN)

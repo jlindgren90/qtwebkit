@@ -120,9 +120,7 @@ ALWAYS_INLINE Structure* JSObject::visitButterfly(SlotVisitor& visitor)
 {
     static const char* raceReason = "JSObject::visitButterfly";
     Structure* result = visitButterflyImpl(visitor);
-    if (result)
-        visitor.didNotRace(this, raceReason);
-    else
+    if (!result)
         visitor.didRace(this, raceReason);
     return result;
 }
@@ -188,7 +186,7 @@ ALWAYS_INLINE Structure* JSObject::visitButterflyImpl(SlotVisitor& visitor)
     //
     // BEFORE: Scan the object with the structure and butterfly *before* the mutator's transition.
     // AFTER: Scan the object with the structure and butterfly *after* the mutator's transition.
-    // IGNORE: Give up, so long as the write barrier on PutNewStructure executes after ReadStructureEarly.
+    // IGNORE: Ignore the butterfly and call didRace to schedule us to be revisted again in the future.
     //
     // In other words, the collector will never see any torn structure/butterfly mix. It will
     // always see the structure/butterfly before the transition or after but not in between.
@@ -383,6 +381,20 @@ ALWAYS_INLINE Structure* JSObject::visitButterflyImpl(SlotVisitor& visitor)
         return nullptr;
     structure = vm.getStructure(structureID);
     lastOffset = structure->lastOffset();
+    IndexingType indexingType = structure->indexingType();
+    Locker<JSCell> locker(NoLockingNecessary);
+    switch (indexingType) {
+    case ALL_CONTIGUOUS_INDEXING_TYPES:
+    case ALL_ARRAY_STORAGE_INDEXING_TYPES:
+        // We need to hold this lock to protect against changes to the innards of the butterfly
+        // that can happen when the butterfly is used for array storage. We conservatively
+        // assume that a contiguous butterfly may transform into an array storage one, though
+        // this is probably more conservative than necessary.
+        locker = Locker<JSCell>(*this);
+        break;
+    default:
+        break;
+    }
     WTF::loadLoadFence();
     butterfly = this->butterfly();
     if (!butterfly)
@@ -395,27 +407,17 @@ ALWAYS_INLINE Structure* JSObject::visitButterflyImpl(SlotVisitor& visitor)
     
     markAuxiliaryAndVisitOutOfLineProperties(visitor, butterfly, structure, lastOffset);
     
-    IndexingType oldType = structure->indexingType();
-    switch (oldType) {
+    ASSERT(indexingType == structure->indexingType());
+    
+    switch (indexingType) {
     case ALL_CONTIGUOUS_INDEXING_TYPES:
-    case ALL_ARRAY_STORAGE_INDEXING_TYPES: {
-        // This lock is here to protect Contiguous->ArrayStorage transitions, but we could make that
-        // race work if we needed to.
-        auto locker = holdLock(*this);
-        IndexingType newType = this->indexingType();
-        butterfly = this->butterfly();
-        switch (newType) {
-        case ALL_CONTIGUOUS_INDEXING_TYPES:
-            visitor.appendValuesHidden(butterfly->contiguous().data(), butterfly->publicLength());
-            break;
-        default: // ALL_ARRAY_STORAGE_INDEXING_TYPES
-            visitor.appendValuesHidden(butterfly->arrayStorage()->m_vector, butterfly->arrayStorage()->vectorLength());
-            if (butterfly->arrayStorage()->m_sparseMap)
-                visitor.append(butterfly->arrayStorage()->m_sparseMap);
-            break;
-        }
+        visitor.appendValuesHidden(butterfly->contiguous().data(), butterfly->publicLength());
         break;
-    }
+    case ALL_ARRAY_STORAGE_INDEXING_TYPES:
+        visitor.appendValuesHidden(butterfly->arrayStorage()->m_vector, butterfly->arrayStorage()->vectorLength());
+        if (butterfly->arrayStorage()->m_sparseMap)
+            visitor.append(butterfly->arrayStorage()->m_sparseMap);
+        break;
     default:
         break;
     }
@@ -509,14 +511,14 @@ void JSFinalObject::visitChildren(JSCell* cell, SlotVisitor& visitor)
 
 String JSObject::className(const JSObject* object)
 {
-    const ClassInfo* info = object->classInfo();
+    const ClassInfo* info = object->classInfo(*object->vm());
     ASSERT(info);
     return info->className;
 }
 
 String JSObject::toStringName(const JSObject* object, ExecState*)
 {
-    const ClassInfo* info = object->classInfo();
+    const ClassInfo* info = object->classInfo(*object->vm());
     ASSERT(info);
     return info->methodTable.className(object);
 }
@@ -537,9 +539,9 @@ String JSObject::calculatedClassName(JSObject* object)
             if (constructorValue.isCell()) {
                 if (JSCell* constructorCell = constructorValue.asCell()) {
                     if (JSObject* ctorObject = constructorCell->getObject()) {
-                        if (JSFunction* constructorFunction = jsDynamicCast<JSFunction*>(ctorObject))
+                        if (JSFunction* constructorFunction = jsDynamicCast<JSFunction*>(vm, ctorObject))
                             prototypeFunctionName = constructorFunction->calculatedDisplayName(vm);
-                        else if (InternalFunction* constructorFunction = jsDynamicCast<InternalFunction*>(ctorObject))
+                        else if (InternalFunction* constructorFunction = jsDynamicCast<InternalFunction*>(vm, ctorObject))
                             prototypeFunctionName = constructorFunction->calculatedDisplayName(vm);
                     }
                 }
@@ -555,7 +557,7 @@ String JSObject::calculatedClassName(JSObject* object)
         if (!tableClassName.isNull() && tableClassName != "Object")
             return tableClassName;
 
-        String classInfoName = object->classInfo()->className;
+        String classInfoName = object->classInfo(vm)->className;
         if (!classInfoName.isNull())
             return classInfoName;
 
@@ -788,8 +790,8 @@ bool JSObject::putInlineSlow(ExecState* exec, PropertyName propertyName, JSValue
             break;
         }
         if (!obj->staticPropertiesReified()) {
-            if (obj->classInfo()->hasStaticSetterOrReadonlyProperties()) {
-                if (auto* entry = obj->findPropertyHashEntry(propertyName))
+            if (obj->classInfo(vm)->hasStaticSetterOrReadonlyProperties()) {
+                if (auto* entry = obj->findPropertyHashEntry(vm, propertyName))
                     return putEntry(exec, entry, obj, this, propertyName, value, slot);
             }
         }
@@ -1424,7 +1426,7 @@ void JSObject::convertDoubleToContiguousWhilePerformingSetIndex(VM& vm, unsigned
 
 ContiguousJSValues JSObject::ensureInt32Slow(VM& vm)
 {
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
     
     if (structure(vm)->hijacksIndexingHeader())
         return ContiguousJSValues();
@@ -1451,7 +1453,7 @@ ContiguousJSValues JSObject::ensureInt32Slow(VM& vm)
 
 ContiguousDoubles JSObject::ensureDoubleSlow(VM& vm)
 {
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
     
     if (structure(vm)->hijacksIndexingHeader())
         return ContiguousDoubles();
@@ -1480,7 +1482,7 @@ ContiguousDoubles JSObject::ensureDoubleSlow(VM& vm)
 
 ContiguousJSValues JSObject::ensureContiguousSlow(VM& vm)
 {
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
     
     if (structure(vm)->hijacksIndexingHeader())
         return ContiguousJSValues();
@@ -1511,7 +1513,7 @@ ContiguousJSValues JSObject::ensureContiguousSlow(VM& vm)
 
 ArrayStorage* JSObject::ensureArrayStorageSlow(VM& vm)
 {
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
 
     if (structure(vm)->hijacksIndexingHeader())
         return nullptr;
@@ -1788,7 +1790,7 @@ bool JSObject::deleteProperty(JSCell* cell, ExecState* exec, PropertyName proper
     unsigned attributes;
 
     if (!thisObject->staticPropertiesReified()) {
-        if (auto* entry = thisObject->findPropertyHashEntry(propertyName)) {
+        if (auto* entry = thisObject->findPropertyHashEntry(vm, propertyName)) {
             // If the static table contains a non-configurable (DontDelete) property then we can return early;
             // if there is a property in the storage array it too must be non-configurable (the language does
             // not allow repacement of a non-configurable property with a configurable one).
@@ -1977,7 +1979,7 @@ bool JSObject::getPrimitiveNumber(ExecState* exec, double& number, JSValue& resu
 
 bool JSObject::getOwnStaticPropertySlot(VM& vm, PropertyName propertyName, PropertySlot& slot)
 {
-    for (auto* info = classInfo(); info; info = info->parentClass) {
+    for (auto* info = classInfo(vm); info; info = info->parentClass) {
         if (auto* table = info->staticPropHashTable) {
             if (getStaticPropertySlotFromTable(vm, *table, this, propertyName, slot))
                 return true;
@@ -1986,9 +1988,9 @@ bool JSObject::getOwnStaticPropertySlot(VM& vm, PropertyName propertyName, Prope
     return false;
 }
 
-const HashTableValue* JSObject::findPropertyHashEntry(PropertyName propertyName) const
+const HashTableValue* JSObject::findPropertyHashEntry(VM& vm, PropertyName propertyName) const
 {
-    for (const ClassInfo* info = classInfo(); info; info = info->parentClass) {
+    for (const ClassInfo* info = classInfo(vm); info; info = info->parentClass) {
         if (const HashTable* propHashTable = info->staticPropHashTable) {
             if (const HashTableValue* entry = propHashTable->entry(propertyName))
                 return entry;
@@ -2173,13 +2175,13 @@ void JSObject::getOwnPropertyNames(JSObject* object, ExecState* exec, PropertyNa
 
 void JSObject::getOwnNonIndexPropertyNames(JSObject* object, ExecState* exec, PropertyNameArray& propertyNames, EnumerationMode mode)
 {
+    VM& vm = exec->vm();
     if (!object->staticPropertiesReified())
-        getClassPropertyNames(exec, object->classInfo(), propertyNames, mode);
+        getClassPropertyNames(exec, object->classInfo(vm), propertyNames, mode);
 
     if (!mode.includeJSObjectProperties())
         return;
     
-    VM& vm = exec->vm();
     object->structure(vm)->getPropertyNamesFromStructure(vm, propertyNames, mode);
 }
 
@@ -2263,7 +2265,7 @@ void JSObject::reifyAllStaticProperties(ExecState* exec)
     if (!structure(vm)->isDictionary())
         setStructure(vm, Structure::toCacheableDictionaryTransition(vm, structure(vm)));
 
-    for (const ClassInfo* info = classInfo(); info; info = info->parentClass) {
+    for (const ClassInfo* info = classInfo(vm); info; info = info->parentClass) {
         const HashTable* hashTable = info->staticPropHashTable;
         if (!hashTable)
             continue;
@@ -3180,18 +3182,19 @@ static JSCustomGetterSetterFunction* getCustomGetterSetterFunctionForGetterSette
 
 bool JSObject::getOwnPropertyDescriptor(ExecState* exec, PropertyName propertyName, PropertyDescriptor& descriptor)
 {
+    VM& vm = exec->vm();
     JSC::PropertySlot slot(this, PropertySlot::InternalMethodType::GetOwnProperty);
-    if (!methodTable(exec->vm())->getOwnPropertySlot(this, exec, propertyName, slot))
+    if (!methodTable(vm)->getOwnPropertySlot(this, exec, propertyName, slot))
         return false;
 
     // DebuggerScope::getOwnPropertySlot() (and possibly others) may return attributes from the prototype chain
     // but getOwnPropertyDescriptor() should only work for 'own' properties so we exit early if we detect that
     // the property is not an own property.
     if (slot.slotBase() != this && slot.slotBase()) {
-        JSProxy* jsProxy = jsDynamicCast<JSProxy*>(this);
+        JSProxy* jsProxy = jsDynamicCast<JSProxy*>(vm, this);
         if (!jsProxy || jsProxy->target() != slot.slotBase()) {
             // Try ProxyObject.
-            ProxyObject* proxyObject = jsDynamicCast<ProxyObject*>(this);
+            ProxyObject* proxyObject = jsDynamicCast<ProxyObject*>(vm, this);
             if (!proxyObject || proxyObject->target() != slot.slotBase())
                 return false;
         }
@@ -3203,7 +3206,7 @@ bool JSObject::getOwnPropertyDescriptor(ExecState* exec, PropertyName propertyNa
         descriptor.setCustomDescriptor(slot.attributes());
 
         JSObject* thisObject = this;
-        if (auto* proxy = jsDynamicCast<JSProxy*>(this))
+        if (auto* proxy = jsDynamicCast<JSProxy*>(vm, this))
             thisObject = proxy->target();
 
         CustomGetterSetter* getterSetter;
@@ -3217,7 +3220,7 @@ bool JSObject::getOwnPropertyDescriptor(ExecState* exec, PropertyName propertyNa
             }
 
             ASSERT(maybeGetterSetter);
-            getterSetter = jsDynamicCast<CustomGetterSetter*>(maybeGetterSetter);
+            getterSetter = jsDynamicCast<CustomGetterSetter*>(vm, maybeGetterSetter);
         }
         ASSERT(getterSetter);
         if (!getterSetter)

@@ -31,7 +31,6 @@
 #include <WebCore/FrameLoaderClient.h>
 #include <WebCore/HistoryItem.h>
 #include <WebCore/Logging.h>
-#include <WebCore/Page.h>
 #include <WebCore/PageCache.h>
 #include <WebCore/SerializedScriptValue.h>
 
@@ -225,8 +224,6 @@ Vector<Ref<HistoryItem>>& BackForwardList::entries()
 
 void BackForwardList::close()
 {
-    for (auto& item : m_entries)
-        PageCache::singleton().remove(item);
     m_entries.clear();
     m_entryHash.clear();
     m_closed = true;

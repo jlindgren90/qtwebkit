@@ -51364,37 +51364,37 @@
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-1.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-2.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-3.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-4.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-delete-1.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-delete-2.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-delete-3.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-delete-4.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-nonwritable-1.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-nonwritable-2.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-nonwritable-3.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-nonwritable-4.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-nonwritable-5.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-strict-delete-1.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-strict-delete-2.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-strict-delete-3.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonconfigurable-strict-delete-4.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonwritable-nonconfigurable-1.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/arguments-object/mapped/mapped-arguments-nonwritable-nonconfigurable-2.js

@@ -107,6 +107,7 @@ protected:
 
 #if ENABLE(VIDEO)
     String mediaControlsStyleSheet() override;
+    String modernMediaControlsStyleSheet() override;
     String mediaControlsScript() override;
     String mediaControlsBase64StringForIconAndPlatform(const String&, const String&) override;
 #endif
@@ -120,6 +121,8 @@ protected:
 private:
     RenderThemeIOS();
     virtual ~RenderThemeIOS() { }
+
+    void purgeCaches() override;
 
     const Color& shadowColor() const;
     FloatRect addRoundedBorderClip(const RenderObject& box, GraphicsContext&, const IntRect&);

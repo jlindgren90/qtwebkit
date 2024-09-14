@@ -40,7 +40,6 @@
     macro(Date) \
     macro(DateTimeFormat) \
     macro(DocumentTimeline) \
-    macro(DOMIterator) \
     macro(Error) \
     macro(EvalError) \
     macro(Function) \
@@ -88,6 +87,10 @@
     macro(Object) \
     macro(PerformanceEntry) \
     macro(PerformanceEntryList) \
+    macro(PerformanceMark) \
+    macro(PerformanceMeasure) \
+    macro(PerformanceObserver) \
+    macro(PerformanceObserverEntryList) \
     macro(PerformanceResourceTiming) \
     macro(Promise) \
     macro(Proxy) \
@@ -279,6 +282,7 @@
     macro(valueOf) \
     macro(webkit) \
     macro(collectMatchingElementsInFlatTree) \
+    macro(matchingElementInFlatTree) \
     macro(webkitIDBCursor) \
     macro(webkitIDBDatabase) \
     macro(webkitIDBFactory) \

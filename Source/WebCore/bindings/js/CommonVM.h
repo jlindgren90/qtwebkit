@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include <wtf/Forward.h>
+
 namespace JSC {
 class VM;
 }
@@ -32,10 +34,8 @@ class VM;
 namespace WebCore {
 
 WEBCORE_EXPORT extern JSC::VM* g_commonVMOrNull;
-WEBCORE_EXPORT extern bool g_opaqueRootWriteBarrierEnabled;
 
 WEBCORE_EXPORT JSC::VM& commonVMSlow();
-WEBCORE_EXPORT void writeBarrierOpaqueRootSlow(void*);
 
 inline JSC::VM& commonVM()
 {
@@ -44,12 +44,7 @@ inline JSC::VM& commonVM()
     return commonVMSlow();
 }
 
-template<typename Func>
-void writeBarrierOpaqueRoot(const Func& rootThunk)
-{
-    if (g_opaqueRootWriteBarrierEnabled)
-        writeBarrierOpaqueRootSlow(rootThunk());
-}
+void addImpureProperty(const AtomicString&);
 
 } // namespace WebCore
 

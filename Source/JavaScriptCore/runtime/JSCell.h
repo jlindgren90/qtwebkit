@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 1999-2001 Harri Porten (porten@kde.org)
  *  Copyright (C) 2001 Peter Kelly (pmk@post.com)
- *  Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2015 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003-2017 Apple Inc. All rights reserved.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -81,6 +81,12 @@ public:
 
     static const bool needsDestruction = false;
 
+    // Don't call this directly. Call JSC::subspaceFor<Type>(vm) instead.
+    // FIXME: Refer to Subspace by reference.
+    // https://bugs.webkit.org/show_bug.cgi?id=166988
+    template<typename CellType>
+    static Subspace* subspaceFor(VM&);
+
     static JSCell* seenMultipleCalleeObjects() { return bitwise_cast<JSCell*>(static_cast<uintptr_t>(1)); }
 
     enum CreatingEarlyCellTag { CreatingEarlyCell };
@@ -95,11 +101,11 @@ public:
     bool isString() const;
     bool isSymbol() const;
     bool isObject() const;
-    bool isAnyWasmCallee() const;
+    bool isAnyWasmCallee(VM&) const;
     bool isGetterSetter() const;
     bool isCustomGetterSetter() const;
     bool isProxy() const;
-    bool inherits(const ClassInfo*) const;
+    bool inherits(VM&, const ClassInfo*) const;
     bool isAPIValueWrapper() const;
     
     // Each cell has a built-in lock. Currently it's simply available for use if you need it. It's
@@ -122,7 +128,7 @@ public:
 
     TypeInfo::InlineTypeFlags inlineTypeFlags() const { return m_flags; }
 
-    const char* className() const;
+    const char* className(VM&) const;
 
     // Extracting the value.
     JS_EXPORT_PRIVATE bool getString(ExecState*, String&) const;
@@ -154,11 +160,12 @@ public:
     JS_EXPORT_PRIVATE static size_t estimatedSize(JSCell*);
 
     static void visitChildren(JSCell*, SlotVisitor&);
+    static void visitOutputConstraints(JSCell*, SlotVisitor&);
 
     JS_EXPORT_PRIVATE static void heapSnapshot(JSCell*, HeapSnapshotBuilder&);
 
     // Object operations, with the toObject operation included.
-    const ClassInfo* classInfo() const;
+    const ClassInfo* classInfo(VM&) const;
     const MethodTable* methodTable() const;
     const MethodTable* methodTable(VM&) const;
     static bool put(JSCell*, ExecState*, PropertyName, JSValue, PutPropertySlot&);
@@ -263,31 +270,39 @@ private:
 template<typename To, typename From>
 inline To jsCast(From* from)
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(!from || from->JSCell::inherits(std::remove_pointer<To>::type::info()));
+    ASSERT_WITH_SECURITY_IMPLICATION(!from || from->JSCell::inherits(*from->JSCell::vm(), std::remove_pointer<To>::type::info()));
     return static_cast<To>(from);
 }
     
 template<typename To>
 inline To jsCast(JSValue from)
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(from.isCell() && from.asCell()->JSCell::inherits(std::remove_pointer<To>::type::info()));
+    ASSERT_WITH_SECURITY_IMPLICATION(from.isCell() && from.asCell()->JSCell::inherits(*from.asCell()->vm(), std::remove_pointer<To>::type::info()));
     return static_cast<To>(from.asCell());
 }
 
 template<typename To, typename From>
-inline To jsDynamicCast(From* from)
+inline To jsDynamicCast(VM& vm, From* from)
 {
-    if (LIKELY(from->inherits(std::remove_pointer<To>::type::info())))
+    if (LIKELY(from->JSCell::inherits(vm, std::remove_pointer<To>::type::info())))
         return static_cast<To>(from);
     return nullptr;
 }
 
 template<typename To>
-inline To jsDynamicCast(JSValue from)
+inline To jsDynamicCast(VM& vm, JSValue from)
 {
-    if (LIKELY(from.isCell() && from.asCell()->inherits(std::remove_pointer<To>::type::info())))
+    if (LIKELY(from.isCell() && from.asCell()->inherits(vm, std::remove_pointer<To>::type::info())))
         return static_cast<To>(from.asCell());
     return nullptr;
+}
+
+// FIXME: Refer to Subspace by reference.
+// https://bugs.webkit.org/show_bug.cgi?id=166988
+template<typename Type>
+inline Subspace* subspaceFor(VM& vm)
+{
+    return Type::template subspaceFor<Type>(vm);
 }
 
 } // namespace JSC

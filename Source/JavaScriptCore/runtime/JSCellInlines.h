@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@
 namespace JSC {
 
 inline JSCell::JSCell(CreatingEarlyCellTag)
-    : m_cellState(CellState::DefinitelyNewAndWhite)
+    : m_cellState(CellState::DefinitelyWhite)
 {
     ASSERT(!isCompilationThread());
 }
@@ -51,7 +51,7 @@ inline JSCell::JSCell(VM&, Structure* structure)
     , m_indexingTypeAndMisc(structure->indexingTypeIncludingHistory())
     , m_type(structure->typeInfo().type())
     , m_flags(structure->typeInfo().inlineTypeFlags())
-    , m_cellState(CellState::DefinitelyNewAndWhite)
+    , m_cellState(CellState::DefinitelyWhite)
 {
     ASSERT(!isCompilationThread());
 }
@@ -120,6 +120,10 @@ inline void JSCell::visitChildren(JSCell* cell, SlotVisitor& visitor)
     visitor.appendUnbarriered(cell->structure(visitor.vm()));
 }
 
+inline void JSCell::visitOutputConstraints(JSCell*, SlotVisitor&)
+{
+}
+
 ALWAYS_INLINE VM& ExecState::vm() const
 {
     ASSERT(callee());
@@ -129,12 +133,20 @@ ALWAYS_INLINE VM& ExecState::vm() const
     return *callee()->markedBlock().vm();
 }
 
+template<typename CellType>
+Subspace* JSCell::subspaceFor(VM& vm)
+{
+    if (CellType::needsDestruction)
+        return &vm.destructibleCellSpace;
+    return &vm.cellSpace;
+}
+
 template<typename T>
 void* allocateCell(Heap& heap, size_t size)
 {
     ASSERT(!DisallowGC::isGCDisallowedOnCurrentThread());
     ASSERT(size >= sizeof(T));
-    JSCell* result = static_cast<JSCell*>(heap.allocateObjectOfType<T>(size));
+    JSCell* result = static_cast<JSCell*>(subspaceFor<T>(*heap.vm())->allocate(size));
 #if ENABLE(GC_VALIDATION)
     ASSERT(!heap.vm()->isInitializingObject());
     heap.vm()->setInitializingObjectClass(T::info());
@@ -153,7 +165,7 @@ template<typename T>
 void* allocateCell(Heap& heap, GCDeferralContext* deferralContext, size_t size)
 {
     ASSERT(size >= sizeof(T));
-    JSCell* result = static_cast<JSCell*>(heap.allocateObjectOfType<T>(deferralContext, size));
+    JSCell* result = static_cast<JSCell*>(subspaceFor<T>(*heap.vm())->allocate(deferralContext, size));
 #if ENABLE(GC_VALIDATION)
     ASSERT(!heap.vm()->isInitializingObject());
     heap.vm()->setInitializingObjectClass(T::info());
@@ -228,25 +240,21 @@ ALWAYS_INLINE void JSCell::setStructure(VM& vm, Structure* structure)
 inline const MethodTable* JSCell::methodTable() const
 {
     VM& vm = *Heap::heap(this)->vm();
-    Structure* structure = this->structure(vm);
-    if (Structure* rootStructure = structure->structure(vm))
-        RELEASE_ASSERT(rootStructure == rootStructure->structure(vm));
-
-    return &structure->classInfo()->methodTable;
+    return methodTable(vm);
 }
 
 inline const MethodTable* JSCell::methodTable(VM& vm) const
 {
     Structure* structure = this->structure(vm);
     if (Structure* rootStructure = structure->structure(vm))
-        RELEASE_ASSERT(rootStructure == rootStructure->structure(vm));
+        ASSERT_UNUSED(rootStructure, rootStructure == rootStructure->structure(vm));
 
     return &structure->classInfo()->methodTable;
 }
 
-inline bool JSCell::inherits(const ClassInfo* info) const
+inline bool JSCell::inherits(VM& vm, const ClassInfo* info) const
 {
-    return classInfo()->isSubClassOf(info);
+    return classInfo(vm)->isSubClassOf(info);
 }
 
 ALWAYS_INLINE JSValue JSCell::fastGetOwnProperty(VM& vm, Structure& structure, PropertyName name)
@@ -265,19 +273,15 @@ inline bool JSCell::canUseFastGetOwnProperty(const Structure& structure)
         && !structure.typeInfo().overridesGetOwnPropertySlot();
 }
 
-ALWAYS_INLINE const ClassInfo* JSCell::classInfo() const
+ALWAYS_INLINE const ClassInfo* JSCell::classInfo(VM& vm) const
 {
-    if (isLargeAllocation()) {
-        LargeAllocation& allocation = largeAllocation();
-        if (allocation.attributes().destruction == NeedsDestruction
-            && !(inlineTypeFlags() & StructureIsImmortal))
-            return static_cast<const JSDestructibleObject*>(this)->classInfo();
-        return structure(*allocation.vm())->classInfo();
-    }
-    MarkedBlock& block = markedBlock();
-    if (block.needsDestruction() && !(inlineTypeFlags() & StructureIsImmortal))
-        return static_cast<const JSDestructibleObject*>(this)->classInfo();
-    return structure(*block.vm())->classInfo();
+    // What we really want to assert here is that we're not currently destructing this object (which makes its classInfo
+    // invalid). If mutatorState() == MutatorState::Running, then we're not currently sweeping, and therefore cannot be
+    // destructing the object. The GC thread or JIT threads, unlike the mutator thread, are able to access classInfo
+    // independent of whether the mutator thread is sweeping or not. Hence, we also check for ownerThread() !=
+    // std::this_thread::get_id() to allow the GC thread or JIT threads to pass this assertion.
+    ASSERT(vm.heap.mutatorState() == MutatorState::Running || vm.apiLock().ownerThread() != std::this_thread::get_id());
+    return structure(vm)->classInfo();
 }
 
 inline bool JSCell::toBoolean(ExecState* exec) const
@@ -307,7 +311,7 @@ inline void JSCell::callDestructor(VM& vm)
         MethodTable::DestroyFunctionPtr destroy = classInfo->methodTable.destroy;
         destroy(this);
     } else
-        jsCast<JSDestructibleObject*>(this)->classInfo()->methodTable.destroy(this);
+        static_cast<JSDestructibleObject*>(this)->classInfo()->methodTable.destroy(this);
     zap();
 }
 

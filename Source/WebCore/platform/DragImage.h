@@ -71,6 +71,10 @@ typedef cairo_surface_t* DragImageRef;
 typedef void* DragImageRef;
 #endif
 
+#if PLATFORM(COCOA)
+static const float SelectionDragImagePadding = 15;
+#endif
+
 IntSize dragImageSize(DragImageRef);
 
 // These functions should be memory neutral, eg. if they return a newly allocated image,
@@ -89,5 +93,21 @@ WEBCORE_EXPORT DragImageRef createDragImageForRange(Frame&, Range&, bool forceBl
 DragImageRef createDragImageForImage(Frame&, Node&, IntRect& imageRect, IntRect& elementRect);
 DragImageRef createDragImageForLink(URL&, const String& label, FontRenderingMode);
 void deleteDragImage(DragImageRef);
+
+class DragImage final {
+public:
+    DragImage();
+    explicit DragImage(DragImageRef);
+    DragImage(DragImage&&);
+    ~DragImage();
+
+    DragImage& operator=(DragImage&&);
+
+    explicit operator bool() const { return !!m_dragImageRef; }
+    DragImageRef get() const { return m_dragImageRef; }
+
+private:
+    DragImageRef m_dragImageRef;
+};
 
 }

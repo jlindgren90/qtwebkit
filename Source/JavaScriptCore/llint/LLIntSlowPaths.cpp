@@ -228,7 +228,8 @@ extern "C" SlowPathReturnType llint_trace_value(ExecState* exec, Instruction* pc
 
 LLINT_SLOW_PATH_DECL(trace_prologue)
 {
-    dataLogF("%p / %p: in prologue.\n", exec->codeBlock(), exec);
+    dataLogF("%p / %p: in prologue of ", exec->codeBlock(), exec);
+    dataLog(*exec->codeBlock(), "\n");
     LLINT_END_IMPL();
 }
 
@@ -237,10 +238,10 @@ static void traceFunctionPrologue(ExecState* exec, const char* comment, CodeSpec
     JSFunction* callee = jsCast<JSFunction*>(exec->jsCallee());
     FunctionExecutable* executable = callee->jsExecutable();
     CodeBlock* codeBlock = executable->codeBlockFor(kind);
-    dataLogF("%p / %p: in %s of function %p, executable %p; numVars = %u, numParameters = %u, numCalleeLocals = %u, caller = %p.\n",
-            codeBlock, exec, comment, callee, executable,
-            codeBlock->m_numVars, codeBlock->numParameters(), codeBlock->m_numCalleeLocals,
-            exec->callerFrame());
+    dataLogF("%p / %p: in %s of ", codeBlock, exec, comment);
+    dataLog(*codeBlock);
+    dataLogF(" function %p, executable %p; numVars = %u, numParameters = %u, numCalleeLocals = %u, caller = %p.\n",
+        callee, executable, codeBlock->m_numVars, codeBlock->numParameters(), codeBlock->m_numCalleeLocals, exec->callerFrame());
 }
 
 LLINT_SLOW_PATH_DECL(trace_prologue_function_for_call)
@@ -321,7 +322,7 @@ inline bool shouldJIT(ExecState* exec, CodeBlock* codeBlock)
 }
 
 // Returns true if we should try to OSR.
-inline bool jitCompileAndSetHeuristics(CodeBlock* codeBlock, ExecState* exec)
+inline bool jitCompileAndSetHeuristics(CodeBlock* codeBlock, ExecState* exec, unsigned loopOSREntryBytecodeOffset = 0)
 {
     VM& vm = exec->vm();
     DeferGCForAWhile deferGC(vm.heap); // My callers don't set top callframe, so we don't want to GC here at all.
@@ -345,7 +346,7 @@ inline bool jitCompileAndSetHeuristics(CodeBlock* codeBlock, ExecState* exec)
         return true;
     }
     case JITCode::InterpreterThunk: {
-        JITWorklist::instance()->compileLater(codeBlock);
+        JITWorklist::instance()->compileLater(codeBlock, loopOSREntryBytecodeOffset);
         return codeBlock->jitType() == JITCode::BaselineJIT;
     }
     default:
@@ -421,12 +422,14 @@ LLINT_SLOW_PATH_DECL(loop_osr)
             codeBlock->llintExecuteCounter(), "\n");
     }
     
+    unsigned loopOSREntryBytecodeOffset = pc - codeBlock->instructions().begin();
+
     if (!shouldJIT(exec, codeBlock)) {
         codeBlock->dontJITAnytimeSoon();
         LLINT_RETURN_TWO(0, 0);
     }
     
-    if (!jitCompileAndSetHeuristics(codeBlock, exec))
+    if (!jitCompileAndSetHeuristics(codeBlock, exec, loopOSREntryBytecodeOffset))
         LLINT_RETURN_TWO(0, 0);
     
     CODEBLOCK_LOG_EVENT(codeBlock, "osrEntry", ("at bc#", pc - codeBlock->instructions().begin()));
@@ -489,7 +492,7 @@ LLINT_SLOW_PATH_DECL(stack_check)
 
 #if LLINT_SLOW_PATH_TRACING
     dataLogF("Checking stack height with exec = %p.\n", exec);
-    dataLogF("CodeBlock = %p.\n", exec->codeBlock());
+    dataLog("CodeBlock = ", *exec->codeBlock(), "\n");
     dataLogF("Num callee registers = %u.\n", exec->codeBlock()->m_numCalleeLocals);
     dataLogF("Num vars = %u.\n", exec->codeBlock()->m_numVars);
 
@@ -1599,7 +1602,7 @@ LLINT_SLOW_PATH_DECL(slow_path_check_if_exception_is_uncatchable_and_notify_prof
     LLINT_BEGIN();
     RELEASE_ASSERT(!!throwScope.exception());
 
-    if (isTerminatedExecutionException(throwScope.exception()))
+    if (isTerminatedExecutionException(vm, throwScope.exception()))
         LLINT_RETURN_TWO(pc, bitwise_cast<void*>(static_cast<uintptr_t>(1)));
     LLINT_RETURN_TWO(pc, 0);
 }

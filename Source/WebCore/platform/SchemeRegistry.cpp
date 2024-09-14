@@ -170,13 +170,11 @@ static URLSchemesMap& ContentSecurityPolicyBypassingSchemes()
     return schemes;
 }
 
-#if ENABLE(CACHE_PARTITIONING)
 static URLSchemesMap& cachePartitioningSchemes()
 {
     static NeverDestroyed<URLSchemesMap> schemes;
     return schemes;
 }
-#endif
 
 static URLSchemesMap& alwaysRevalidatedSchemes()
 {
@@ -346,7 +344,6 @@ bool SchemeRegistry::shouldAlwaysRevalidateURLScheme(const String& scheme)
     return alwaysRevalidatedSchemes().contains(scheme);
 }
 
-#if ENABLE(CACHE_PARTITIONING)
 void SchemeRegistry::registerURLSchemeAsCachePartitioned(const String& scheme)
 {
     cachePartitioningSchemes().add(scheme);
@@ -358,6 +355,15 @@ bool SchemeRegistry::shouldPartitionCacheForURLScheme(const String& scheme)
         return false;
     return cachePartitioningSchemes().contains(scheme);
 }
+
+bool SchemeRegistry::isUserExtensionScheme(const String& scheme)
+{
+    UNUSED_PARAM(scheme);
+#if PLATFORM(MAC)
+    if (scheme == "safari-extension")
+        return true;
 #endif
+    return false;
+}
 
 } // namespace WebCore

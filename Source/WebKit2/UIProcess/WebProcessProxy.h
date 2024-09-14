@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -120,6 +120,7 @@ public:
     void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, Function<void(WebsiteData)> completionHandler);
     void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::chrono::system_clock::time_point modifiedSince, Function<void()> completionHandler);
     void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType>, const Vector<WebCore::SecurityOriginData>&, Function<void()> completionHandler);
+    static void deleteWebsiteDataForTopPrivatelyOwnedDomainsInAllPersistentDataStores(OptionSet<WebsiteDataType>, Vector<String>& topPrivatelyOwnedDomains, bool shouldNotifyPages, std::function<void()> completionHandler);
 
     void enableSuddenTermination();
     void disableSuddenTermination();
@@ -173,11 +174,11 @@ private:
     void getPlugins(bool refresh, Vector<WebCore::PluginInfo>& plugins, Vector<WebCore::PluginInfo>& applicationPlugins);
 #endif // ENABLE(NETSCAPE_PLUGIN_API)
 #if ENABLE(NETSCAPE_PLUGIN_API)
-    void getPluginProcessConnection(uint64_t pluginProcessToken, PassRefPtr<Messages::WebProcessProxy::GetPluginProcessConnection::DelayedReply>);
+    void getPluginProcessConnection(uint64_t pluginProcessToken, Ref<Messages::WebProcessProxy::GetPluginProcessConnection::DelayedReply>&&);
 #endif
-    void getNetworkProcessConnection(PassRefPtr<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply>);
+    void getNetworkProcessConnection(Ref<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply>&&);
 #if ENABLE(DATABASE_PROCESS)
-    void getDatabaseProcessConnection(PassRefPtr<Messages::WebProcessProxy::GetDatabaseProcessConnection::DelayedReply>);
+    void getDatabaseProcessConnection(Ref<Messages::WebProcessProxy::GetDatabaseProcessConnection::DelayedReply>&&);
 #endif
 
     void retainIconForPageURL(const String& pageURL);
@@ -207,7 +208,6 @@ private:
     void sendPrepareToSuspend() override;
     void sendCancelPrepareToSuspend() override;
     void sendProcessDidResume() override;
-    bool alwaysRunsAtBackgroundPriority() override;
     void didSetAssertionState(AssertionState) override;
 
     // ProcessLauncher::Client

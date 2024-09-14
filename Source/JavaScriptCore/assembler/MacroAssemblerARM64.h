@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2014-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2012, 2014-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -439,6 +439,12 @@ public:
         // Arm does not have a count trailing zeros only a count leading zeros.
         m_assembler.rbit<64>(dest, src);
         m_assembler.clz<64>(dest, dest);
+    }
+
+    // Only used for testing purposes.
+    void illegalInstruction()
+    {
+        m_assembler.illegalInstruction();
     }
 
     void lshift32(RegisterID src, RegisterID shiftAmount, RegisterID dest)
@@ -1939,6 +1945,16 @@ public:
     void andFloat(FPRegisterID op1, FPRegisterID op2, FPRegisterID dest)
     {
         andDouble(op1, op2, dest);
+    }
+
+    void orDouble(FPRegisterID op1, FPRegisterID op2, FPRegisterID dest)
+    {
+        m_assembler.vorr<64>(dest, op1, op2);
+    }
+
+    void orFloat(FPRegisterID op1, FPRegisterID op2, FPRegisterID dest)
+    {
+        orDouble(op1, op2, dest);
     }
 
     void negateDouble(FPRegisterID src, FPRegisterID dest)

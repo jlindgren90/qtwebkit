@@ -51,7 +51,6 @@
 #include "MediaList.h"
 #include "Node.h"
 #include "SVGElement.h"
-#include "SVGNames.h"
 #include "SVGStyleElement.h"
 #include "StyleProperties.h"
 #include "StyleResolver.h"
@@ -604,6 +603,9 @@ void InspectorStyle::populateAllProperties(Vector<InspectorStyleProperty>* resul
         ASSERT(!styleDeclarationOrException.hasException());
         String styleDeclaration = styleDeclarationOrException.hasException() ? emptyString() : styleDeclarationOrException.releaseReturnValue();
         for (auto& sourceData : *sourcePropertyData) {
+            // FIXME: <https://webkit.org/b/166787> Web Inspector: Frontend should be made to expect and handle disabled properties
+            if (sourceData.disabled)
+                continue;
             InspectorStyleProperty p(sourceData, true, sourceData.disabled);
             p.setRawTextFromStyleDeclaration(styleDeclaration);
             result->append(p);
@@ -652,8 +654,10 @@ Ref<Inspector::Protocol::CSS::CSSStyle> InspectorStyle::styleWithProperties() co
 
         propertiesObject->addItem(property.copyRef());
 
+        CSSPropertyID propertyId = cssPropertyID(name);
+
         // Default "parsedOk" == true.
-        if (!propertyEntry.parsedOk)
+        if (!propertyEntry.parsedOk || isInternalCSSProperty(propertyId))
             property->setParsedOk(false);
         if (it->hasRawText())
             property->setText(it->rawText);
@@ -676,7 +680,7 @@ Ref<Inspector::Protocol::CSS::CSSStyle> InspectorStyle::styleWithProperties() co
                 // Parsed property overrides any property with the same name. Non-parsed property overrides
                 // previous non-parsed property with the same name (if any).
                 bool shouldInactivate = false;
-                CSSPropertyID propertyId = cssPropertyID(name);
+
                 // Canonicalize property names to treat non-prefixed and vendor-prefixed property names the same (opacity vs. -webkit-opacity).
                 String canonicalPropertyName = propertyId ? getPropertyNameString(propertyId) : name;
                 HashMap<String, RefPtr<Inspector::Protocol::CSS::CSSProperty>>::iterator activeIt = propertyNameToPreviousActiveProperty.find(canonicalPropertyName);

@@ -51,6 +51,7 @@ CustomPutFunction
 CustomSetPrototype
 CustomSetter
 CustomToJSObject
+CustomToStringName
 DOMJIT=|ReadDOM|Getter
 DoNotCheckConstants
 DoNotCheckSecurity
@@ -71,7 +72,6 @@ Global=*
 Immutable
 ImplementedAs=*
 ImplementationLacksVTable
-ImplementationReturnType=*
 ImplicitThis
 InterfaceName=*
 IsImmutablePrototypeExoticObject
@@ -91,6 +91,7 @@ JSCustomToNativeObject
 JSGenerateToJSObject
 JSGenerateToNativeObject
 JSLegacyParent=*
+LegacyUnenumerableNamedProperties
 LenientThis
 MasqueradesAsUndefined
 MayThrowException
@@ -100,6 +101,7 @@ NewObject
 NoInterfaceObject
 NotEnumerable
 OverrideBuiltins
+OverrideIDLType=*
 PassContext
 PrimaryGlobal
 PrivateIdentifier

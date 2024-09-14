@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2000 Harri Porten (porten@kde.org)
- *  Copyright (C) 2003, 2007-2009, 2012-2013, 2015-2016 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003-2017 Apple Inc. All rights reserved.
  *  Copyright (C) 2003 Peter Kelly (pmk@post.com)
  *  Copyright (C) 2006 Alexey Proskuryakov (ap@nypop.com)
  *
@@ -40,6 +40,8 @@ using namespace WTF;
 
 namespace JSC {
 
+static const char* const LengthExceededTheMaximumArrayLengthError = "Length exceeded the maximum array length";
+
 STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(JSArray);
 
 const ClassInfo JSArray::s_info = {"Array", &JSNonFinalObject::s_info, 0, CREATE_METHOD_TABLE(JSArray)};
@@ -58,7 +60,7 @@ Butterfly* createArrayButterflyInDictionaryIndexingMode(
     return butterfly;
 }
 
-JSArray* JSArray::tryCreateUninitialized(VM& vm, GCDeferralContext* deferralContext, Structure* structure, unsigned initialLength)
+JSArray* JSArray::tryCreateForInitializationPrivate(VM& vm, GCDeferralContext* deferralContext, Structure* structure, unsigned initialLength)
 {
     if (initialLength > MAX_STORAGE_VECTOR_LENGTH)
         return 0;
@@ -75,7 +77,7 @@ JSArray* JSArray::tryCreateUninitialized(VM& vm, GCDeferralContext* deferralCont
             || hasContiguous(indexingType));
 
         unsigned vectorLength = Butterfly::optimalContiguousVectorLength(structure, initialLength);
-        void* temp = vm.heap.tryAllocateAuxiliary(deferralContext, nullptr, Butterfly::totalSize(0, outOfLineStorage, true, vectorLength * sizeof(EncodedJSValue)));
+        void* temp = vm.auxiliarySpace.tryAllocate(deferralContext, Butterfly::totalSize(0, outOfLineStorage, true, vectorLength * sizeof(EncodedJSValue)));
         if (!temp)
             return nullptr;
         butterfly = Butterfly::fromBase(temp, 0, outOfLineStorage);
@@ -90,7 +92,7 @@ JSArray* JSArray::tryCreateUninitialized(VM& vm, GCDeferralContext* deferralCont
         }
     } else {
         unsigned vectorLength = ArrayStorage::optimalVectorLength(0, structure, initialLength);
-        void* temp = vm.heap.tryAllocateAuxiliary(nullptr, Butterfly::totalSize(0, outOfLineStorage, true, ArrayStorage::sizeFor(vectorLength)));
+        void* temp = vm.auxiliarySpace.tryAllocate(deferralContext, Butterfly::totalSize(0, outOfLineStorage, true, ArrayStorage::sizeFor(vectorLength)));
         if (!temp)
             return nullptr;
         butterfly = Butterfly::fromBase(temp, 0, outOfLineStorage);
@@ -298,7 +300,7 @@ void JSArray::getOwnNonIndexPropertyNames(JSObject* object, ExecState* exec, Pro
 }
 
 // This method makes room in the vector, but leaves the new space for count slots uncleared.
-bool JSArray::unshiftCountSlowCase(VM& vm, DeferGC&, bool addToFront, unsigned count)
+bool JSArray::unshiftCountSlowCase(const AbstractLocker&, VM& vm, DeferGC&, bool addToFront, unsigned count)
 {
     ArrayStorage* storage = ensureArrayStorage(vm);
     Butterfly* butterfly = storage->butterfly();
@@ -347,7 +349,7 @@ bool JSArray::unshiftCountSlowCase(VM& vm, DeferGC&, bool addToFront, unsigned c
         allocatedNewStorage = false;
     } else {
         size_t newSize = Butterfly::totalSize(0, propertyCapacity, true, ArrayStorage::sizeFor(desiredCapacity));
-        newAllocBase = vm.heap.tryAllocateAuxiliary(this, newSize);
+        newAllocBase = vm.auxiliarySpace.tryAllocate(newSize);
         if (!newAllocBase)
             return false;
         newStorageCapacity = desiredCapacity;
@@ -495,7 +497,15 @@ bool JSArray::appendMemcpy(ExecState* exec, VM& vm, unsigned startIndex, JSC::JS
         return false;
 
     unsigned otherLength = otherArray->length();
-    unsigned newLength = startIndex + otherLength;
+    Checked<unsigned, RecordOverflow> checkedNewLength = startIndex;
+    checkedNewLength += otherLength;
+
+    unsigned newLength;
+    if (checkedNewLength.safeGet(newLength) == CheckedState::DidOverflow) {
+        throwException(exec, scope, createRangeError(exec, ASCIILiteral(LengthExceededTheMaximumArrayLengthError)));
+        return false;
+    }
+
     if (newLength >= MIN_SPARSE_ARRAY_INDEX)
         return false;
 
@@ -724,7 +734,7 @@ void JSArray::push(ExecState* exec, JSValue value)
         if (UNLIKELY(length > MAX_ARRAY_INDEX)) {
             methodTable(vm)->putByIndex(this, exec, length, value, true);
             if (!scope.exception())
-                throwException(exec, scope, createRangeError(exec, ASCIILiteral("Invalid array length")));
+                throwException(exec, scope, createRangeError(exec, ASCIILiteral(LengthExceededTheMaximumArrayLengthError)));
             return;
         }
 
@@ -745,7 +755,7 @@ void JSArray::push(ExecState* exec, JSValue value)
         if (UNLIKELY(length > MAX_ARRAY_INDEX)) {
             methodTable(vm)->putByIndex(this, exec, length, value, true);
             if (!scope.exception())
-                throwException(exec, scope, createRangeError(exec, ASCIILiteral("Invalid array length")));
+                throwException(exec, scope, createRangeError(exec, ASCIILiteral(LengthExceededTheMaximumArrayLengthError)));
             return;
         }
 
@@ -780,7 +790,7 @@ void JSArray::push(ExecState* exec, JSValue value)
         if (UNLIKELY(length > MAX_ARRAY_INDEX)) {
             methodTable(vm)->putByIndex(this, exec, length, value, true);
             if (!scope.exception())
-                throwException(exec, scope, createRangeError(exec, ASCIILiteral("Invalid array length")));
+                throwException(exec, scope, createRangeError(exec, ASCIILiteral(LengthExceededTheMaximumArrayLengthError)));
             return;
         }
 
@@ -819,7 +829,7 @@ void JSArray::push(ExecState* exec, JSValue value)
             methodTable(vm)->putByIndex(this, exec, storage->length(), value, true);
             // Per ES5.1 15.4.4.7 step 6 & 15.4.5.1 step 3.d.
             if (!scope.exception())
-                throwException(exec, scope, createRangeError(exec, ASCIILiteral("Invalid array length")));
+                throwException(exec, scope, createRangeError(exec, ASCIILiteral(LengthExceededTheMaximumArrayLengthError)));
             return;
         }
 
@@ -846,7 +856,7 @@ JSArray* JSArray::fastSlice(ExecState& exec, unsigned startIndex, unsigned count
             return nullptr;
 
         Structure* resultStructure = exec.lexicalGlobalObject()->arrayStructureForIndexingTypeDuringAllocation(arrayType);
-        JSArray* resultArray = JSArray::tryCreateUninitialized(vm, resultStructure, count);
+        JSArray* resultArray = JSArray::tryCreateForInitializationPrivate(vm, resultStructure, count);
         if (!resultArray)
             return nullptr;
 
@@ -892,6 +902,9 @@ bool JSArray::shiftCountWithArrayStorage(VM& vm, unsigned startIndex, unsigned c
     if (startIndex >= vectorLength)
         return true;
     
+    DisallowGC disallowGC;
+    auto locker = holdLock(*this);
+    
     if (startIndex + count > vectorLength)
         count = vectorLength - startIndex;
     
@@ -930,7 +943,7 @@ bool JSArray::shiftCountWithArrayStorage(VM& vm, unsigned startIndex, unsigned c
         // the start of the Butterfly, which needs to point at the first indexed property in the used
         // portion of the vector.
         Butterfly* butterfly = m_butterfly.get()->shift(structure(), count);
-        m_butterfly.setWithoutBarrier(butterfly);
+        setButterfly(vm, butterfly);
         storage = butterfly->arrayStorage();
         storage->m_indexBias += count;
 
@@ -1018,6 +1031,11 @@ bool JSArray::shiftCountWithAnyIndexingType(ExecState* exec, unsigned& startInde
             butterfly->contiguous()[i].clear();
         
         butterfly->setPublicLength(oldLength - count);
+
+        // Our memmoving of values around in the array could have concealed some of them from
+        // the collector. Let's make sure that the collector scans this object again.
+        vm.heap.writeBarrier(this);
+        
         return true;
     }
         
@@ -1098,7 +1116,7 @@ bool JSArray::unshiftCountWithArrayStorage(ExecState* exec, unsigned startIndex,
         setButterfly(vm, newButterfly);
     } else if (!moveFront && vectorLength - length >= count)
         storage = storage->butterfly()->arrayStorage();
-    else if (unshiftCountSlowCase(vm, deferGC, moveFront, count))
+    else if (unshiftCountSlowCase(locker, vm, deferGC, moveFront, count))
         storage = arrayStorage();
     else {
         throwOutOfMemoryError(exec, scope);
@@ -1165,6 +1183,10 @@ bool JSArray::unshiftCountWithAnyIndexingType(ExecState* exec, unsigned startInd
             ASSERT(v);
             butterfly->contiguous()[i + count].setWithoutWriteBarrier(v);
         }
+        
+        // Our memmoving of values around in the array could have concealed some of them from
+        // the collector. Let's make sure that the collector scans this object again.
+        vm.heap.writeBarrier(this);
         
         // NOTE: we're leaving being garbage in the part of the array that we shifted out
         // of. This is fine because the caller is required to store over that area, and

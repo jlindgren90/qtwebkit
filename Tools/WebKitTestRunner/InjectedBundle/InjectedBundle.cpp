@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -266,6 +266,11 @@ void InjectedBundle::didReceiveMessageToPage(WKBundlePageRef page, WKStringRef m
         return;
     }
 
+    if (WKStringIsEqualToUTF8CString(messageName, "WebsiteDataDeletionForTopPrivatelyOwnedDomainsFinished")) {
+        m_testRunner->statisticsDidModifyDataRecordsCallback();
+        return;
+    }
+
     WKRetainPtr<WKStringRef> errorMessageName(AdoptWK, WKStringCreateWithUTF8CString("Error"));
     WKRetainPtr<WKStringRef> errorMessageBody(AdoptWK, WKStringCreateWithUTF8CString("Unknown"));
     WKBundlePagePostMessage(page, errorMessageName.get(), errorMessageBody.get());
@@ -321,8 +326,6 @@ void InjectedBundle::beginTesting(WKDictionaryRef settings)
 
     m_testRunner->setShadowDOMEnabled(true);
     m_testRunner->setCustomElementsEnabled(true);
-
-    m_testRunner->setDOMIteratorEnabled(true);
 
     m_testRunner->setWebGL2Enabled(true);
 

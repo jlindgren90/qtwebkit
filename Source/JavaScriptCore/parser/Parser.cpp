@@ -91,8 +91,8 @@ void Parser<LexerType>::logError(bool)
     setErrorMessage(stream.toStringWithLatin1Fallback());
 }
 
-template <typename LexerType> template <typename A>
-void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1)
+template <typename LexerType> template <typename... Args>
+void Parser<LexerType>::logError(bool shouldPrintToken, Args&&... args)
 {
     if (hasError())
         return;
@@ -101,91 +101,7 @@ void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1)
         printUnexpectedTokenText(stream);
         stream.print(". ");
     }
-    stream.print(value1, ".");
-    setErrorMessage(stream.toStringWithLatin1Fallback());
-}
-
-template <typename LexerType> template <typename A, typename B>
-void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1, const B& value2)
-{
-    if (hasError())
-        return;
-    StringPrintStream stream;
-    if (shouldPrintToken) {
-        printUnexpectedTokenText(stream);
-        stream.print(". ");
-    }
-    stream.print(value1, value2, ".");
-    setErrorMessage(stream.toStringWithLatin1Fallback());
-}
-
-template <typename LexerType> template <typename A, typename B, typename C>
-void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1, const B& value2, const C& value3)
-{
-    if (hasError())
-        return;
-    StringPrintStream stream;
-    if (shouldPrintToken) {
-        printUnexpectedTokenText(stream);
-        stream.print(". ");
-    }
-    stream.print(value1, value2, value3, ".");
-    setErrorMessage(stream.toStringWithLatin1Fallback());
-}
-
-template <typename LexerType> template <typename A, typename B, typename C, typename D>
-void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1, const B& value2, const C& value3, const D& value4)
-{
-    if (hasError())
-        return;
-    StringPrintStream stream;
-    if (shouldPrintToken) {
-        printUnexpectedTokenText(stream);
-        stream.print(". ");
-    }
-    stream.print(value1, value2, value3, value4, ".");
-    setErrorMessage(stream.toStringWithLatin1Fallback());
-}
-
-template <typename LexerType> template <typename A, typename B, typename C, typename D, typename E>
-void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1, const B& value2, const C& value3, const D& value4, const E& value5)
-{
-    if (hasError())
-        return;
-    StringPrintStream stream;
-    if (shouldPrintToken) {
-        printUnexpectedTokenText(stream);
-        stream.print(". ");
-    }
-    stream.print(value1, value2, value3, value4, value5, ".");
-    setErrorMessage(stream.toStringWithLatin1Fallback());
-}
-
-template <typename LexerType> template <typename A, typename B, typename C, typename D, typename E, typename F>
-void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1, const B& value2, const C& value3, const D& value4, const E& value5, const F& value6)
-{
-    if (hasError())
-        return;
-    StringPrintStream stream;
-    if (shouldPrintToken) {
-        printUnexpectedTokenText(stream);
-        stream.print(". ");
-    }
-    stream.print(value1, value2, value3, value4, value5, value6, ".");
-    setErrorMessage(stream.toStringWithLatin1Fallback());
-}
-
-template <typename LexerType> template <typename A, typename B, typename C, typename D, typename E, typename F, typename G>
-void Parser<LexerType>::logError(bool shouldPrintToken, const A& value1, const B& value2, const C& value3, const D& value4, const E& value5, const F& value6, const G& value7)
-{
-    if (hasError())
-        return;
-    StringPrintStream stream;
-    if (shouldPrintToken) {
-        printUnexpectedTokenText(stream);
-        stream.print(". ");
-    }
-    stream.print(value1, value2, value3, value4, value5, value6, value7, ".");
+    stream.print(std::forward<Args>(args)..., ".");
     setErrorMessage(stream.toStringWithLatin1Fallback());
 }
 
@@ -459,30 +375,48 @@ template <class TreeBuilder> TreeSourceElements Parser<LexerType>::parseModuleSo
 
     while (true) {
         TreeStatement statement = 0;
-        if (match(IMPORT)) {
-            statement = parseImportDeclaration(context);
-            if (statement)
-                recordPauseLocation(context.breakpointLocation(statement));
-        } else if (match(EXPORT)) {
+        switch (m_token.m_type) {
+        case EXPORT:
             statement = parseExportDeclaration(context);
             if (statement)
                 recordPauseLocation(context.breakpointLocation(statement));
-        } else {
+            break;
+
+        case IMPORT: {
+            SavePoint savePoint = createSavePoint();
+            next();
+            bool isImportDeclaration = !match(OPENPAREN);
+            restoreSavePoint(savePoint);
+            if (isImportDeclaration) {
+                statement = parseImportDeclaration(context);
+                if (statement)
+                    recordPauseLocation(context.breakpointLocation(statement));
+                break;
+            }
+
+            // This is `import("...")` call case.
+            FALLTHROUGH;
+        }
+
+        default: {
             const Identifier* directive = 0;
             unsigned directiveLiteralLength = 0;
             if (parseMode == SourceParseMode::ModuleAnalyzeMode) {
                 if (!parseStatementListItem(syntaxChecker, directive, &directiveLiteralLength))
-                    break;
+                    goto end;
                 continue;
             }
             statement = parseStatementListItem(context, directive, &directiveLiteralLength);
+            break;
+        }
         }
 
         if (!statement)
-            break;
+            goto end;
         context.appendStatement(sourceElements, statement);
     }
 
+end:
     propagateError();
 
     for (const auto& pair : m_moduleScopeData->exportedBindings()) {
@@ -970,7 +904,7 @@ template <class TreeBuilder> TreeDestructuringPattern Parser<LexerType>::parseAs
     if (match(OPENBRACE) || match(OPENBRACKET)) {
         SavePoint savePoint = createSavePoint();
         assignmentTarget = parseDestructuringPattern(context, kind, exportType, duplicateIdentifier, hasDestructuringPattern, bindingContext, depth);
-        if (assignmentTarget && !match(DOT) && !match(OPENBRACKET) && !match(OPENPAREN) && !match(TEMPLATE))
+        if (assignmentTarget && !match(DOT) && !match(OPENBRACKET) && !match(OPENPAREN) && !match(BACKQUOTE))
             return assignmentTarget;
         restoreSavePoint(savePoint);
     }
@@ -1947,7 +1881,8 @@ template <class TreeBuilder> TreeFunctionBody Parser<LexerType>::parseFunctionBo
         next();
         if (match(CLOSEBRACE)) {
             unsigned endColumn = tokenColumn();
-            return context.createFunctionMetadata(startLocation, tokenLocation(), startColumn, endColumn, functionKeywordStart, functionNameStart, parametersStart, strictMode(), constructorKind, superBinding, parameterCount, functionLength, parseMode, isArrowFunctionBodyExpression);
+            SuperBinding functionSuperBinding = adjustSuperBindingForBaseConstructor(constructorKind, superBinding, currentScope());
+            return context.createFunctionMetadata(startLocation, tokenLocation(), startColumn, endColumn, functionKeywordStart, functionNameStart, parametersStart, strictMode(), constructorKind, functionSuperBinding, parameterCount, functionLength, parseMode, isArrowFunctionBodyExpression);
         }
     }
 
@@ -1965,7 +1900,8 @@ template <class TreeBuilder> TreeFunctionBody Parser<LexerType>::parseFunctionBo
             failIfFalse(parseSourceElements(syntaxChecker, CheckForStrictMode), bodyType == StandardFunctionBodyBlock ? "Cannot parse body of this function" : "Cannot parse body of this arrow function");
     }
     unsigned endColumn = tokenColumn();
-    return context.createFunctionMetadata(startLocation, tokenLocation(), startColumn, endColumn, functionKeywordStart, functionNameStart, parametersStart, strictMode(), constructorKind, superBinding, parameterCount, functionLength, parseMode, isArrowFunctionBodyExpression);
+    SuperBinding functionSuperBinding = adjustSuperBindingForBaseConstructor(constructorKind, superBinding, currentScope());
+    return context.createFunctionMetadata(startLocation, tokenLocation(), startColumn, endColumn, functionKeywordStart, functionNameStart, parametersStart, strictMode(), constructorKind, functionSuperBinding, parameterCount, functionLength, parseMode, isArrowFunctionBodyExpression);
 }
 
 static const char* stringForFunctionMode(SourceParseMode mode)
@@ -2165,11 +2101,13 @@ template <class TreeBuilder> bool Parser<LexerType>::parseFunctionInfo(TreeBuild
                 functionBodyType = cachedInfo->isBodyArrowExpression ?  ArrowFunctionBodyExpression : ArrowFunctionBodyBlock;
             else
                 functionBodyType = StandardFunctionBodyBlock;
-            
+
+            SuperBinding functionSuperBinding = adjustSuperBindingForBaseConstructor(constructorKind, expectedSuperBinding, cachedInfo->needsSuperBinding, cachedInfo->usesEval, cachedInfo->innerArrowFunctionFeatures);
+
             functionInfo.body = context.createFunctionMetadata(
                 startLocation, endLocation, startColumn, bodyEndColumn, 
                 functionKeywordStart, functionNameStart, parametersStart, 
-                cachedInfo->strictMode, constructorKind, expectedSuperBinding,
+                cachedInfo->strictMode, constructorKind, functionSuperBinding,
                 cachedInfo->parameterCount, cachedInfo->functionLength,
                 mode, functionBodyType == ArrowFunctionBodyExpression);
             functionInfo.endOffset = cachedInfo->endFunctionOffset;
@@ -4151,23 +4089,26 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseAsyncFunctio
 template <typename LexerType>
 template <class TreeBuilder> typename TreeBuilder::TemplateString Parser<LexerType>::parseTemplateString(TreeBuilder& context, bool isTemplateHead, typename LexerType::RawStringsBuildMode rawStringsBuildMode, bool& elementIsTail)
 {
-    if (!isTemplateHead) {
+    if (isTemplateHead)
+        ASSERT(match(BACKQUOTE));
+    else
         matchOrFail(CLOSEBRACE, "Expected a closing '}' following an expression in template literal");
-        // Re-scan the token to recognize it as Template Element.
-        m_token.m_type = m_lexer->scanTrailingTemplateString(&m_token, rawStringsBuildMode);
-    }
+
+    // Re-scan the token to recognize it as Template Element.
+    m_token.m_type = m_lexer->scanTemplateString(&m_token, rawStringsBuildMode);
     matchOrFail(TEMPLATE, "Expected an template element");
     const Identifier* cooked = m_token.m_data.cooked;
     const Identifier* raw = m_token.m_data.raw;
     elementIsTail = m_token.m_data.isTail;
     JSTokenLocation location(tokenLocation());
     next();
-    return context.createTemplateString(location, *cooked, *raw);
+    return context.createTemplateString(location, cooked, raw);
 }
 
 template <typename LexerType>
 template <class TreeBuilder> typename TreeBuilder::TemplateLiteral Parser<LexerType>::parseTemplateLiteral(TreeBuilder& context, typename LexerType::RawStringsBuildMode rawStringsBuildMode)
 {
+    ASSERT(match(BACKQUOTE));
     JSTokenLocation location(tokenLocation());
     bool elementIsTail = false;
 
@@ -4330,7 +4271,7 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parsePrimaryExpre
         }
         return re;
     }
-    case TEMPLATE:
+    case BACKQUOTE:
         return parseTemplateLiteral(context, LexerType::RawStringsBuildMode::DontBuildRawStrings);
     case YIELD:
         if (!strictMode() && !currentScope()->isGenerator())
@@ -4427,7 +4368,8 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseMemberExpres
     }
 
     bool baseIsSuper = match(SUPER);
-    semanticFailIfTrue(baseIsSuper && newCount, "Cannot use new with super");
+    bool baseIsImport = match(IMPORT);
+    semanticFailIfTrue((baseIsSuper || baseIsImport) && newCount, "Cannot use new with ", getToken());
 
     bool baseIsNewTarget = false;
     if (newCount && match(DOT)) {
@@ -4467,6 +4409,14 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseMemberExpres
                 semanticFailIfTrue(functionSuperBinding == SuperBinding::NotNeeded, "super is not valid in this context");
             }
         }
+    } else if (baseIsImport) {
+        next();
+        JSTextPosition expressionEnd = lastTokenEndPosition();
+        consumeOrFail(OPENPAREN, "import call expects exactly one argument");
+        TreeExpression expr = parseAssignmentExpression(context);
+        failIfFalse(expr, "Cannot parse expression");
+        consumeOrFail(CLOSEPAREN, "import call expects exactly one argument");
+        base = context.createImportExpr(location, expr, expressionStart, expressionEnd, lastTokenEndPosition());
     } else if (!baseIsNewTarget) {
         const bool isAsync = match(ASYNC);
 
@@ -4558,7 +4508,7 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseMemberExpres
             next();
             break;
         }
-        case TEMPLATE: {
+        case BACKQUOTE: {
             semanticFailIfTrue(baseIsSuper, "Cannot use super as tag for tagged templates");
             JSTextPosition expressionEnd = lastTokenEndPosition();
             int nonLHSCount = m_parserState.nonLHSCount;

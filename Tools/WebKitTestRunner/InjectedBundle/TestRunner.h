@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,7 +103,6 @@ public:
     void setXSSAuditorEnabled(bool);
     void setShadowDOMEnabled(bool);
     void setCustomElementsEnabled(bool);
-    void setDOMIteratorEnabled(bool);
     void setModernMediaControlsEnabled(bool);
     void setWebGL2Enabled(bool);
     void setFetchAPIEnabled(bool);
@@ -346,6 +345,20 @@ public:
     void setMockGamepadDetails(unsigned index, JSStringRef gamepadID, unsigned axisCount, unsigned buttonCount);
     void setMockGamepadAxisValue(unsigned index, unsigned axisIndex, double value);
     void setMockGamepadButtonValue(unsigned index, unsigned buttonIndex, double value);
+    
+    // Resource Load Statistics
+    void installStatisticsDidModifyDataRecordsCallback(JSValueRef callback);
+    void statisticsDidModifyDataRecordsCallback();
+    void statisticsFireDataModificationHandler();
+    void setStatisticsPrevalentResource(JSStringRef hostName, bool value);
+    bool isStatisticsPrevalentResource(JSStringRef hostName);
+    void setStatisticsHasHadUserInteraction(JSStringRef hostName, bool value);
+    bool isStatisticsHasHadUserInteraction(JSStringRef hostName);
+    void setStatisticsTimeToLiveUserInteraction(double seconds);
+    void setStatisticsNotifyPagesWhenDataRecordsWereScanned(bool);
+    void setStatisticsShouldClassifyResourcesBeforeDataRecordsRemoval(bool);
+    void setStatisticsMinimumTimeBetweeenDataRecordsRemoval(double);
+    void statisticsResetToConsistentState();
 
 private:
     TestRunner();

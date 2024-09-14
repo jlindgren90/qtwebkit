@@ -113,7 +113,7 @@ std::optional<InterpolationQuality> ImageQualityController::interpolationQuality
     return std::nullopt;
 }
 
-InterpolationQuality ImageQualityController::chooseInterpolationQuality(GraphicsContext& context, RenderBoxModelObject* object, Image& image, const void *layer, const LayoutSize& size)
+InterpolationQuality ImageQualityController::chooseInterpolationQuality(GraphicsContext& context, RenderBoxModelObject* object, Image& image, const void* layer, const LayoutSize& size)
 {
     // If the image is not a bitmap image, then none of this is relevant and we just paint at high quality.
     if (!(image.isBitmapImage() || image.isPDFDocumentImage()) || context.paintingDisabled())
@@ -161,7 +161,7 @@ InterpolationQuality ImageQualityController::chooseInterpolationQuality(Graphics
     }
 
     // There is no need to hash scaled images that always use low quality mode when the page demands it. This is the iChat case.
-    if (m_renderView.frame().page()->inLowQualityImageInterpolationMode()) {
+    if (m_renderView.page().inLowQualityImageInterpolationMode()) {
         double totalPixels = static_cast<double>(image.width()) * static_cast<double>(image.height());
         if (totalPixels > cInterpolationCutoff)
             return InterpolationLow;

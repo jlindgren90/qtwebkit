@@ -94,6 +94,30 @@ public:
     void reject(ExceptionCode, const String& = { });
     void reject(const JSC::PrivateName&);
 
+    template<typename Callback>
+    void resolveWithCallback(Callback callback)
+    {
+        if (isSuspended())
+            return;
+        ASSERT(m_deferred);
+        ASSERT(m_globalObject);
+        JSC::ExecState* exec = m_globalObject->globalExec();
+        JSC::JSLockHolder locker(exec);
+        resolve(*exec, callback(*exec, *m_globalObject.get()));
+    }
+
+    template<typename Callback>
+    void rejectWithCallback(Callback callback)
+    {
+        if (isSuspended())
+            return;
+        ASSERT(m_deferred);
+        ASSERT(m_globalObject);
+        JSC::ExecState* exec = m_globalObject->globalExec();
+        JSC::JSLockHolder locker(exec);
+        reject(*exec, callback(*exec, *m_globalObject.get()));
+    }
+
     JSC::JSValue promise() const;
 
     bool isSuspended() { return !m_deferred || !canInvokeCallback(); } // The wrapper world has gone away or active DOM objects have been suspended.

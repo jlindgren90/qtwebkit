@@ -305,7 +305,6 @@ http/tests/security/javascriptURL/xss-ALLOWED-to-javascript-url-sub-frame-2-leve
 
 # These tests use Flash, which is not a good idea, because it is not installed on all machines that run tests.
 # WebKitTestRunner detects attempts to use Flash, and raises an assertion.
-editing/pasteboard/paste-noplugin.html [ Skip ]
 fast/dom/beforeload/flash-before-load.html [ Skip ]
 fast/dom/beforeload/remove-flash-in-beforeload-listener.html [ Skip ]
 fast/loader/sandboxed-plugin-crash.html [ Skip ]
@@ -438,8 +437,6 @@ http/tests/security/frameNavigation/xss-DENIED-targeted-link-navigation.html
 http/tests/security/javascriptURL/xss-ALLOWED-to-javascript-url-window-open.html
 http/tests/security/javascriptURL/xss-DENIED-from-javascript-url-in-foreign-domain-window-open.html
 http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-window-open.html
-http/tests/security/popup-blocked-from-fake-event.html
-http/tests/security/popup-blocked-from-window-open.html
 
 # Unexplained failures that were formerly in the "unsafe access" list.
 http/tests/security/cross-frame-access-enumeration.html
@@ -601,6 +598,7 @@ platform/mac/fast/events/objc-event-api.html
 # https://bugs.webkit.org/show_bug.cgi?id=64285
 editing/pasteboard/file-drag-to-editable.html
 editing/pasteboard/file-input-files-access.html
+fast/dom/FileList-iterator.html
 fast/dom/Window/window-postmessage-clone-frames.html
 fast/dom/Window/window-postmessage-clone.html
 fast/events/data-transfer-files-attribute-identity.html
@@ -699,6 +697,9 @@ http/tests/misc/will-send-request-with-client-provided-http-body.html [ Pass ]
 
 # bug 162281
 imported/w3c/web-platform-tests/fetch/api/request/request-cache-only-if-cached.html [ Failure ]
+
+# Resource Load Statistics are only supported in WebKit2
+http/tests/loading/resourceLoadStatistics/ [ Pass ]
 
 ### END OF (5) Progressions, expected successes that are expected failures in WebKit1.
 ########################################

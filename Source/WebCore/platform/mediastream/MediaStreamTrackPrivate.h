@@ -91,7 +91,6 @@ public:
     AudioSourceProvider* audioSourceProvider();
 
     void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&);
-    RealtimeMediaSourcePreview* preview();
 
 private:
     MediaStreamTrackPrivate(Ref<RealtimeMediaSource>&&, String&& id);
@@ -101,11 +100,10 @@ private:
     void sourceMutedChanged() final;
     void sourceSettingsChanged() final;
     bool preventSourceFromStopping() final;
-    void sourceHasMoreMediaData(MediaSample&) final;
+    void videoSampleAvailable(MediaSample&) final;
 
     Vector<Observer*> m_observers;
     Ref<RealtimeMediaSource> m_source;
-    RefPtr<RealtimeMediaSourcePreview> m_preview;
 
     String m_id;
     bool m_isEnabled;

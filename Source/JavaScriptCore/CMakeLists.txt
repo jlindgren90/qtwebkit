@@ -3,6 +3,7 @@ include(WebKitCommon)
 set_property(DIRECTORY . PROPERTY FOLDER "JavaScriptCore")
 
 set(JavaScriptCore_INCLUDE_DIRECTORIES
+    "${CMAKE_BINARY_DIR}"
     "${JAVASCRIPTCORE_DIR}"
     "${JAVASCRIPTCORE_DIR}/.."
     "${JAVASCRIPTCORE_DIR}/API"
@@ -17,6 +18,7 @@ set(JavaScriptCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/dfg"
     "${JAVASCRIPTCORE_DIR}/disassembler"
     "${JAVASCRIPTCORE_DIR}/disassembler/udis86"
+    "${JAVASCRIPTCORE_DIR}/disassembler/ARM64"
     "${JAVASCRIPTCORE_DIR}/domjit"
     "${JAVASCRIPTCORE_DIR}/ftl"
     "${JAVASCRIPTCORE_DIR}/heap"
@@ -372,6 +374,7 @@ set(JavaScriptCore_SOURCES
     dfg/DFGPromotedHeapLocation.cpp
     dfg/DFGPureValue.cpp
     dfg/DFGPutStackSinkingPhase.cpp
+    dfg/DFGRegisteredStructureSet.cpp
     dfg/DFGSSACalculator.cpp
     dfg/DFGSSAConversionPhase.cpp
     dfg/DFGSSALoweringPhase.cpp
@@ -385,7 +388,6 @@ set(JavaScriptCore_SOURCES
     dfg/DFGStoreBarrierInsertionPhase.cpp
     dfg/DFGStrengthReductionPhase.cpp
     dfg/DFGStructureAbstractValue.cpp
-    dfg/DFGStructureRegistrationPhase.cpp
     dfg/DFGThreadData.cpp
     dfg/DFGThunks.cpp
     dfg/DFGTierUpCheckInjectionPhase.cpp
@@ -496,18 +498,24 @@ set(JavaScriptCore_SOURCES
     heap/MarkedAllocator.cpp
     heap/MarkedBlock.cpp
     heap/MarkedSpace.cpp
+    heap/MarkingConstraint.cpp
+    heap/MarkingConstraintSet.cpp
+    heap/MutatorScheduler.cpp
     heap/MutatorState.cpp
     heap/SlotVisitor.cpp
-    heap/SpaceTimeScheduler.cpp
+    heap/SpaceTimeMutatorScheduler.cpp
+    heap/StochasticSpaceTimeMutatorScheduler.cpp
     heap/StopIfNecessaryTimer.cpp
+    heap/Subspace.cpp
+    heap/SynchronousStopTheWorldMutatorScheduler.cpp
     heap/VisitRaceKey.cpp
     heap/Weak.cpp
     heap/WeakBlock.cpp
     heap/WeakHandleOwner.cpp
     heap/WeakSet.cpp
-    heap/WriteBarrierBuffer.cpp
     heap/WriteBarrierSupport.cpp
 
+    inspector/AsyncStackTrace.cpp
     inspector/ConsoleMessage.cpp
     inspector/ContentSearchUtilities.cpp
     inspector/EventLoop.cpp
@@ -748,6 +756,7 @@ set(JavaScriptCore_SOURCES
     runtime/JSDataView.cpp
     runtime/JSDataViewPrototype.cpp
     runtime/JSDateMath.cpp
+    runtime/JSDestructibleObjectSubspace.cpp
     runtime/JSEnvironmentRecord.cpp
     runtime/JSFixedArray.cpp
     runtime/JSFunction.cpp
@@ -780,12 +789,16 @@ set(JavaScriptCore_SOURCES
     runtime/JSPropertyNameIterator.cpp
     runtime/JSProxy.cpp
     runtime/JSScope.cpp
+    runtime/JSScriptFetcher.cpp
     runtime/JSSegmentedVariableObject.cpp
+    runtime/JSSegmentedVariableObjectSubspace.cpp
     runtime/JSSet.cpp
     runtime/JSSetIterator.cpp
+    runtime/JSSourceCode.cpp
     runtime/JSString.cpp
     runtime/JSStringIterator.cpp
     runtime/JSStringJoiner.cpp
+    runtime/JSStringSubspace.cpp
     runtime/JSSymbolTableObject.cpp
     runtime/JSTemplateRegistryKey.cpp
     runtime/JSTypedArrayConstructors.cpp
@@ -896,6 +909,8 @@ set(JavaScriptCore_SOURCES
     tools/FunctionWhitelist.cpp
     tools/JSDollarVM.cpp
     tools/JSDollarVMPrototype.cpp
+    tools/SigillCrashAnalyzer.cpp
+    tools/VMInspector.cpp
 
     wasm/JSWebAssembly.cpp
     wasm/WasmB3IRGenerator.cpp
@@ -905,6 +920,7 @@ set(JavaScriptCore_SOURCES
     wasm/WasmMemory.cpp
     wasm/WasmMemoryInformation.cpp
     wasm/WasmModuleParser.cpp
+    wasm/WasmPageCount.cpp
     wasm/WasmPlan.cpp
     wasm/WasmSignature.cpp
     wasm/WasmValidate.cpp
@@ -1079,7 +1095,6 @@ set(OFFLINE_ASM
     offlineasm/risc.rb
     offlineasm/self_hash.rb
     offlineasm/settings.rb
-    offlineasm/sh4.rb
     offlineasm/transform.rb
     offlineasm/x86.rb
 )

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2011, 2013-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,6 +71,8 @@
 #include "JSMap.h"
 #include "JSPromiseDeferred.h"
 #include "JSPropertyNameEnumerator.h"
+#include "JSScriptFetcher.h"
+#include "JSSourceCode.h"
 #include "JSTemplateRegistryKey.h"
 #include "JSWebAssembly.h"
 #include "JSWithScope.h"
@@ -100,6 +102,7 @@
 #include "TypeProfilerLog.h"
 #include "UnlinkedCodeBlock.h"
 #include "VMEntryScope.h"
+#include "VMInspector.h"
 #include "Watchdog.h"
 #include "WeakGCMapInlines.h"
 #include "WeakMapData.h"
@@ -164,6 +167,12 @@ VM::VM(VMType vmType, HeapType heapType)
     , executableAllocator(*this)
 #endif
     , heap(this, heapType)
+    , auxiliarySpace("Auxiliary", heap, AllocatorAttributes(DoesNotNeedDestruction, HeapCell::Auxiliary))
+    , cellSpace("JSCell", heap, AllocatorAttributes(DoesNotNeedDestruction, HeapCell::JSCell))
+    , destructibleCellSpace("Destructible JSCell", heap, AllocatorAttributes(NeedsDestruction, HeapCell::JSCell))
+    , stringSpace("JSString", heap)
+    , destructibleObjectSpace("JSDestructibleObject", heap)
+    , segmentedVariableObjectSpace("JSSegmentedVariableObjectSpace", heap)
     , vmType(vmType)
     , clientData(0)
     , topVMEntryFrame(nullptr)
@@ -238,6 +247,8 @@ VM::VM(VMType vmType, HeapType heapType)
     symbolStructure.set(*this, Symbol::createStructure(*this, 0, jsNull()));
     symbolTableStructure.set(*this, SymbolTable::createStructure(*this, 0, jsNull()));
     fixedArrayStructure.set(*this, JSFixedArray::createStructure(*this, 0, jsNull()));
+    sourceCodeStructure.set(*this, JSSourceCode::createStructure(*this, 0, jsNull()));
+    scriptFetcherStructure.set(*this, JSScriptFetcher::createStructure(*this, 0, jsNull()));
     structureChainStructure.set(*this, StructureChain::createStructure(*this, 0, jsNull()));
     sparseArrayValueMapStructure.set(*this, SparseArrayValueMap::createStructure(*this, 0, jsNull()));
     templateRegistryKeyStructure.set(*this, JSTemplateRegistryKey::createStructure(*this, 0, jsNull()));
@@ -339,10 +350,14 @@ VM::VM(VMType vmType, HeapType heapType)
         Watchdog& watchdog = ensureWatchdog();
         watchdog.setTimeLimit(timeoutMillis);
     }
+
+    VMInspector::instance().add(this);
 }
 
 VM::~VM()
 {
+    VMInspector::instance().remove(this);
+
     // Never GC, ever again.
     heap.incrementDeferralDepth();
 
@@ -595,7 +610,12 @@ void VM::clearSourceProviderCaches()
 void VM::throwException(ExecState* exec, Exception* exception)
 {
     if (Options::breakOnThrow()) {
-        dataLog("In call frame ", RawPointer(exec), " for code block ", *exec->codeBlock(), "\n");
+        CodeBlock* codeBlock = exec->codeBlock();
+        dataLog("Throwing exception in call frame ", RawPointer(exec), " for code block ");
+        if (codeBlock)
+            dataLog(*codeBlock, "\n");
+        else
+            dataLog("<nullptr>\n");
         CRASH();
     }
 
@@ -608,7 +628,8 @@ void VM::throwException(ExecState* exec, Exception* exception)
 
 JSValue VM::throwException(ExecState* exec, JSValue thrownValue)
 {
-    Exception* exception = jsDynamicCast<Exception*>(thrownValue);
+    VM& vm = exec->vm();
+    Exception* exception = jsDynamicCast<Exception*>(vm, thrownValue);
     if (!exception)
         exception = Exception::create(*this, thrownValue);
 

@@ -1,7 +1,6 @@
 list(APPEND WebKit2_SOURCES
     DatabaseProcess/efl/DatabaseProcessMainEfl.cpp
 
-    NetworkProcess/CustomProtocols/soup/CustomProtocolManagerImpl.cpp
     NetworkProcess/CustomProtocols/soup/CustomProtocolManagerSoup.cpp
 
     NetworkProcess/Downloads/efl/DownloadSoupErrorsEfl.cpp
@@ -63,9 +62,12 @@ list(APPEND WebKit2_SOURCES
     UIProcess/BackingStore.cpp
     UIProcess/DefaultUndoController.cpp
     UIProcess/LegacySessionStateCodingNone.cpp
+    UIProcess/WebResourceLoadStatisticsManager.cpp
     UIProcess/WebResourceLoadStatisticsStore.cpp
     UIProcess/WebTextChecker.cpp
     UIProcess/WebTextCheckerClient.cpp
+
+    UIProcess/API/C/WKResourceLoadStatisticsManager.cpp
 
     UIProcess/API/C/CoordinatedGraphics/WKView.cpp
 

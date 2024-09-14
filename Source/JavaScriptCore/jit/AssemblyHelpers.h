@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2013-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -534,43 +534,6 @@ public:
     }
 #endif
 
-#if CPU(SH4)
-    static size_t prologueStackPointerDelta()
-    {
-        // Prologue saves the framePointerRegister and link register
-        return 2 * sizeof(void*);
-    }
-
-    void emitFunctionPrologue()
-    {
-        push(linkRegister);
-        push(framePointerRegister);
-        move(stackPointerRegister, framePointerRegister);
-    }
-
-    void emitFunctionEpilogue()
-    {
-        move(framePointerRegister, stackPointerRegister);
-        pop(framePointerRegister);
-        pop(linkRegister);
-    }
-
-    ALWAYS_INLINE void preserveReturnAddressAfterCall(RegisterID reg)
-    {
-        m_assembler.stspr(reg);
-    }
-
-    ALWAYS_INLINE void restoreReturnAddressBeforeReturn(RegisterID reg)
-    {
-        m_assembler.ldspr(reg);
-    }
-
-    ALWAYS_INLINE void restoreReturnAddressBeforeReturn(Address address)
-    {
-        loadPtrLinkReg(address);
-    }
-#endif
-
     void emitGetFromCallFrameHeaderPtr(int entry, GPRReg to, GPRReg from = GPRInfo::callFrameRegister)
     {
         loadPtr(Address(from, entry * sizeof(Register)), to);
@@ -1023,7 +986,7 @@ public:
         move(TrustedImmPtr(scratchBuffer->activeLengthPtr()), GPRInfo::regT0);
         storePtr(TrustedImmPtr(scratchSize), GPRInfo::regT0);
 
-#if CPU(X86_64) || CPU(ARM) || CPU(ARM64) || CPU(MIPS) || CPU(SH4)
+#if CPU(X86_64) || CPU(ARM) || CPU(ARM64) || CPU(MIPS)
         move(TrustedImmPtr(buffer), GPRInfo::argumentGPR2);
         move(TrustedImmPtr(argument), GPRInfo::argumentGPR1);
         move(GPRInfo::callFrameRegister, GPRInfo::argumentGPR0);
@@ -1222,6 +1185,7 @@ public:
     JS_EXPORT_PRIVATE Jump emitExceptionCheck(
         ExceptionCheckKind = NormalExceptionCheck, ExceptionJumpWidth = NormalJumpWidth);
     JS_EXPORT_PRIVATE Jump emitNonPatchableExceptionCheck();
+    Jump emitJumpIfException();
 
 #if ENABLE(SAMPLING_COUNTERS)
     static void emitCount(MacroAssembler& jit, AbstractSamplingCounter& counter, int32_t increment = 1)
@@ -1579,7 +1543,7 @@ public:
         GPRReg resultGPR, StructureType structure, StorageType storage, GPRReg scratchGPR1,
         GPRReg scratchGPR2, JumpList& slowPath, size_t size)
     {
-        MarkedAllocator* allocator = vm()->heap.allocatorForObjectOfType<ClassType>(size);
+        MarkedAllocator* allocator = subspaceFor<ClassType>(*vm())->allocatorFor(size);
         if (!allocator) {
             slowPath.append(jump());
             return;
@@ -1596,7 +1560,7 @@ public:
     
     // allocationSize can be aliased with any of the other input GPRs. If it's not aliased then it
     // won't be clobbered.
-    void emitAllocateVariableSized(GPRReg resultGPR, MarkedSpace::Subspace& subspace, GPRReg allocationSize, GPRReg scratchGPR1, GPRReg scratchGPR2, JumpList& slowPath)
+    void emitAllocateVariableSized(GPRReg resultGPR, Subspace& subspace, GPRReg allocationSize, GPRReg scratchGPR1, GPRReg scratchGPR2, JumpList& slowPath)
     {
         static_assert(!(MarkedSpace::sizeStep & (MarkedSpace::sizeStep - 1)), "MarkedSpace::sizeStep must be a power of two.");
         
@@ -1605,7 +1569,7 @@ public:
         add32(TrustedImm32(MarkedSpace::sizeStep - 1), allocationSize, scratchGPR1);
         urshift32(TrustedImm32(stepShift), scratchGPR1);
         slowPath.append(branch32(Above, scratchGPR1, TrustedImm32(MarkedSpace::largeCutoff >> stepShift)));
-        move(TrustedImmPtr(&subspace.allocatorForSizeStep[0] - 1), scratchGPR2);
+        move(TrustedImmPtr(subspace.allocatorForSizeStep() - 1), scratchGPR2);
         loadPtr(BaseIndex(scratchGPR2, scratchGPR1, timesPtr()), scratchGPR1);
         
         emitAllocate(resultGPR, nullptr, scratchGPR1, scratchGPR2, slowPath);
@@ -1614,7 +1578,7 @@ public:
     template<typename ClassType, typename StructureType>
     void emitAllocateVariableSizedCell(GPRReg resultGPR, StructureType structure, GPRReg allocationSize, GPRReg scratchGPR1, GPRReg scratchGPR2, JumpList& slowPath)
     {
-        MarkedSpace::Subspace& subspace = vm()->heap.template subspaceForObjectOfType<ClassType>();
+        Subspace& subspace = *subspaceFor<ClassType>(*vm());
         emitAllocateVariableSized(resultGPR, subspace, allocationSize, scratchGPR1, scratchGPR2, slowPath);
         emitStoreStructureWithTypeInfo(structure, resultGPR, scratchGPR2);
     }

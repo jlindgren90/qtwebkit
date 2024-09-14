@@ -30,6 +30,7 @@
 #include "MutationEvent.h"
 #include "MutationObserverInterestGroup.h"
 #include "MutationRecord.h"
+#include "NoEventDispatchAssertion.h"
 #include "ProcessingInstruction.h"
 #include "RenderText.h"
 #include "StyleInheritedData.h"
@@ -207,6 +208,8 @@ void CharacterData::setDataAndUpdate(const String& newData, unsigned offsetOfRep
 
 void CharacterData::notifyParentAfterChange(ContainerNode::ChildChangeSource source)
 {
+    NoEventDispatchAssertion assertNoEventDispatch;
+
     document().incDOMTreeVersion();
 
     if (!parentNode())
@@ -223,7 +226,7 @@ void CharacterData::notifyParentAfterChange(ContainerNode::ChildChangeSource sou
 
 void CharacterData::dispatchModifiedEvent(const String& oldData)
 {
-    if (std::unique_ptr<MutationObserverInterestGroup> mutationRecipients = MutationObserverInterestGroup::createForCharacterDataMutation(*this))
+    if (auto mutationRecipients = MutationObserverInterestGroup::createForCharacterDataMutation(*this))
         mutationRecipients->enqueueMutationRecord(MutationRecord::createCharacterData(*this, oldData));
 
     if (!isInShadowTree()) {

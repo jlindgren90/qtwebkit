@@ -28,7 +28,6 @@
 #include "Document.h"
 #include "ElementIterator.h"
 #include "Event.h"
-#include "EventNames.h"
 #include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
@@ -209,7 +208,7 @@ void HTMLFrameSetElement::willRecalcStyle(Style::Change)
 Node::InsertionNotificationRequest HTMLFrameSetElement::insertedInto(ContainerNode& insertionPoint)
 {
     HTMLElement::insertedInto(insertionPoint);
-    if (insertionPoint.inDocument()) {
+    if (insertionPoint.isConnected()) {
         if (Frame* frame = document().frame())
             frame->loader().client().dispatchDidBecomeFrameset(document().isFrameSet());
     }
@@ -220,7 +219,7 @@ Node::InsertionNotificationRequest HTMLFrameSetElement::insertedInto(ContainerNo
 void HTMLFrameSetElement::removedFrom(ContainerNode& insertionPoint)
 {
     HTMLElement::removedFrom(insertionPoint);
-    if (insertionPoint.inDocument()) {
+    if (insertionPoint.isConnected()) {
         if (Frame* frame = document().frame())
             frame->loader().client().dispatchDidBecomeFrameset(document().isFrameSet());
     }

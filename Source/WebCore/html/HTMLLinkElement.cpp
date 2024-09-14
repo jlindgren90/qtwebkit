@@ -47,7 +47,6 @@
 #include "MediaList.h"
 #include "MediaQueryEvaluator.h"
 #include "MouseEvent.h"
-#include "Page.h"
 #include "RenderStyle.h"
 #include "SecurityOrigin.h"
 #include "Settings.h"
@@ -114,8 +113,8 @@ void HTMLLinkElement::setDisabledState(bool disabled)
     if (oldDisabledState == m_disabledState)
         return;
 
-    ASSERT(inDocument() || !styleSheetIsLoading());
-    if (!inDocument())
+    ASSERT(isConnected() || !styleSheetIsLoading());
+    if (!isConnected())
         return;
 
     // If we change the disabled state while the sheet is still loading, then we have to
@@ -203,7 +202,7 @@ bool HTMLLinkElement::shouldLoadLink()
     if (!dispatchBeforeLoadEvent(getNonEmptyURLAttribute(hrefAttr)))
         return false;
     // A beforeload handler might have removed us from the document or changed the document.
-    if (!inDocument() || &document() != originalDocument.ptr())
+    if (!isConnected() || &document() != originalDocument.ptr())
         return false;
     return true;
 }
@@ -220,7 +219,7 @@ String HTMLLinkElement::crossOrigin() const
 
 void HTMLLinkElement::process()
 {
-    if (!inDocument()) {
+    if (!isConnected()) {
         ASSERT(!m_sheet);
         return;
     }
@@ -231,7 +230,7 @@ void HTMLLinkElement::process()
         return;
 
     bool treatAsStyleSheet = m_relAttribute.isStyleSheet
-        || (document().settings() && document().settings()->treatsAnyTextCSSLinkAsStylesheet() && m_type.containsIgnoringASCIICase("text/css"));
+        || (document().settings().treatsAnyTextCSSLinkAsStylesheet() && m_type.containsIgnoringASCIICase("text/css"));
 
     if (m_disabledState != Disabled && treatAsStyleSheet && document().frame() && url.isValid()) {
         String charset = attributeWithoutSynchronization(charsetAttr);
@@ -267,14 +266,15 @@ void HTMLLinkElement::process()
         std::optional<ResourceLoadPriority> priority;
         if (!isActive)
             priority = ResourceLoadPriority::VeryLow;
-        CachedResourceRequest request(url, CachedResourceLoader::defaultCachedResourceOptions(), priority, WTFMove(charset));
-        request.setInitiator(this);
 
-        if (document().contentSecurityPolicy()->allowStyleWithNonce(attributeWithoutSynchronization(HTMLNames::nonceAttr))) {
-            ResourceLoaderOptions options = CachedResourceLoader::defaultCachedResourceOptions();
+        ResourceLoaderOptions options = CachedResourceLoader::defaultCachedResourceOptions();
+        options.sameOriginDataURLFlag = SameOriginDataURLFlag::Set;
+        if (document().contentSecurityPolicy()->allowStyleWithNonce(attributeWithoutSynchronization(HTMLNames::nonceAttr)))
             options.contentSecurityPolicyImposition = ContentSecurityPolicyImposition::SkipPolicyCheck;
-            request.setOptions(options);
-        }
+
+        CachedResourceRequest request(url, options, priority, WTFMove(charset));
+        request.setInitiator(*this);
+
         request.setAsPotentiallyCrossOrigin(crossOrigin(), document());
 
         m_cachedSheet = document().cachedResourceLoader().requestCSSStyleSheet(WTFMove(request));
@@ -303,9 +303,9 @@ void HTMLLinkElement::clearSheet()
 
 Node::InsertionNotificationRequest HTMLLinkElement::insertedInto(ContainerNode& insertionPoint)
 {
-    bool wasInDocument = inDocument();
+    bool wasInDocument = isConnected();
     HTMLElement::insertedInto(insertionPoint);
-    if (!insertionPoint.inDocument() || wasInDocument)
+    if (!insertionPoint.isConnected() || wasInDocument)
         return InsertionDone;
 
     m_styleScope = &Style::Scope::forNode(*this);
@@ -318,8 +318,10 @@ Node::InsertionNotificationRequest HTMLLinkElement::insertedInto(ContainerNode& 
 void HTMLLinkElement::removedFrom(ContainerNode& insertionPoint)
 {
     HTMLElement::removedFrom(insertionPoint);
-    if (!insertionPoint.inDocument() || inDocument())
+    if (!insertionPoint.isConnected() || isConnected())
         return;
+
+    m_linkLoader.cancelLoad();
 
     if (m_sheet)
         clearSheet();
@@ -354,7 +356,7 @@ void HTMLLinkElement::initializeStyleSheet(Ref<StyleSheetContents>&& styleSheet,
 
 void HTMLLinkElement::setCSSStyleSheet(const String& href, const URL& baseURL, const String& charset, const CachedCSSStyleSheet* cachedStyleSheet)
 {
-    if (!inDocument()) {
+    if (!isConnected()) {
         ASSERT(!m_sheet);
         return;
     }
@@ -368,7 +370,7 @@ void HTMLLinkElement::setCSSStyleSheet(const String& href, const URL& baseURL, c
     CSSParserContext parserContext(document(), baseURL, charset);
     auto cachePolicy = frame->loader().subresourceCachePolicy();
 
-    if (RefPtr<StyleSheetContents> restoredSheet = const_cast<CachedCSSStyleSheet*>(cachedStyleSheet)->restoreParsedStyleSheet(parserContext, cachePolicy)) {
+    if (auto restoredSheet = const_cast<CachedCSSStyleSheet*>(cachedStyleSheet)->restoreParsedStyleSheet(parserContext, cachePolicy)) {
         ASSERT(restoredSheet->isCacheable());
         ASSERT(!restoredSheet->isLoading());
         initializeStyleSheet(restoredSheet.releaseNonNull(), *cachedStyleSheet);
@@ -382,7 +384,7 @@ void HTMLLinkElement::setCSSStyleSheet(const String& href, const URL& baseURL, c
     auto styleSheet = StyleSheetContents::create(href, parserContext);
     initializeStyleSheet(styleSheet.copyRef(), *cachedStyleSheet);
 
-    styleSheet.get().parseAuthorStyleSheet(cachedStyleSheet, document().securityOrigin());
+    styleSheet.get().parseAuthorStyleSheet(cachedStyleSheet, &document().securityOrigin());
 
     m_loading = false;
     styleSheet.get().notifyLoadedSheet(cachedStyleSheet);

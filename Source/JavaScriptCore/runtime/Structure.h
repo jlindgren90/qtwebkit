@@ -464,6 +464,11 @@ public:
         return OBJECT_OFFSETOF(Structure, m_propertyTableUnsafe);
     }
 
+    static ptrdiff_t inlineCapacityOffset()
+    {
+        return OBJECT_OFFSETOF(Structure, m_inlineCapacity);
+    }
+
     static Structure* createStructure(VM&);
         
     bool transitionWatchpointSetHasBeenInvalidated() const
@@ -655,8 +660,9 @@ private:
     void findStructuresAndMapForMaterialization(Vector<Structure*, 8>& structures, Structure*&, PropertyTable*&);
     
     static Structure* toDictionaryTransition(VM&, Structure*, DictionaryKind, DeferredStructureTransitionWatchpointFire* = nullptr);
-    
-    template<typename Func>
+
+    enum class ShouldPin { No, Yes };
+    template<ShouldPin, typename Func>
     PropertyOffset add(VM&, PropertyName, unsigned attributes, const Func&);
     PropertyOffset add(VM&, PropertyName, unsigned attributes);
     template<typename Func>
@@ -720,9 +726,10 @@ private:
 
     bool isValid(JSGlobalObject*, StructureChain* cachedPrototypeChain) const;
     bool isValid(ExecState*, StructureChain* cachedPrototypeChain) const;
-        
-    JS_EXPORT_PRIVATE void pin(VM&, PropertyTable*);
-    void pinForCaching(VM&, PropertyTable*);
+
+    // You have to hold the structure lock to do these.
+    JS_EXPORT_PRIVATE void pin(const AbstractLocker&, VM&, PropertyTable*);
+    void pinForCaching(const AbstractLocker&, VM&, PropertyTable*);
     
     bool isRareData(JSCell* cell) const
     {
@@ -735,6 +742,8 @@ private:
         return static_cast<StructureRareData*>(m_previousOrRareData.get());
     }
 
+    template<typename DetailsFunc>
+    bool checkOffsetConsistency(PropertyTable*, const DetailsFunc&) const;
     bool checkOffsetConsistency() const;
 
     JS_EXPORT_PRIVATE void allocateRareData(VM&);

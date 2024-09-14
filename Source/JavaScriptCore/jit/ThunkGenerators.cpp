@@ -316,7 +316,7 @@ static MacroAssemblerCodeRef nativeForGenerator(VM* vm, CodeSpecializationKind k
     jit.emitGetFromCallFrameHeaderPtr(CallFrameSlot::callee, ARM64Registers::x1);
     jit.loadPtr(JSInterfaceJIT::Address(ARM64Registers::x1, JSFunction::offsetOfExecutable()), ARM64Registers::x2);
     jit.call(JSInterfaceJIT::Address(ARM64Registers::x2, executableOffsetToFunction));
-#elif CPU(ARM) || CPU(SH4) || CPU(MIPS)
+#elif CPU(ARM) || CPU(MIPS)
 #if CPU(MIPS)
     // Allocate stack space for (unused) 16 bytes (8-byte aligned) for 4 arguments.
     jit.subPtr(JSInterfaceJIT::TrustedImm32(16), JSInterfaceJIT::stackPointerRegister);
@@ -440,6 +440,15 @@ MacroAssemblerCodeRef arityFixupGenerator(VM* vm)
 
     jit.neg64(JSInterfaceJIT::argumentGPR0);
 
+    // Adjust call frame register and stack pointer to account for missing args.
+    // We need to change the stack pointer first before performing copy/fill loops.
+    // This stack space below the stack pointer is considered unsed by OS. Therefore,
+    // OS may corrupt this space when constructing a signal stack.
+    jit.move(JSInterfaceJIT::argumentGPR0, extraTemp);
+    jit.lshift64(JSInterfaceJIT::TrustedImm32(3), extraTemp);
+    jit.addPtr(extraTemp, JSInterfaceJIT::callFrameRegister);
+    jit.addPtr(extraTemp, JSInterfaceJIT::stackPointerRegister);
+
     // Move current frame down argumentGPR0 number of slots
     JSInterfaceJIT::Label copyLoop(jit.label());
     jit.load64(JSInterfaceJIT::regT3, extraTemp);
@@ -455,12 +464,6 @@ MacroAssemblerCodeRef arityFixupGenerator(VM* vm)
     jit.addPtr(JSInterfaceJIT::TrustedImm32(8), JSInterfaceJIT::regT3);
     jit.branchAdd32(MacroAssembler::NonZero, JSInterfaceJIT::TrustedImm32(1), JSInterfaceJIT::argumentGPR2).linkTo(fillUndefinedLoop, &jit);
     
-    // Adjust call frame register and stack pointer to account for missing args
-    jit.move(JSInterfaceJIT::argumentGPR0, extraTemp);
-    jit.lshift64(JSInterfaceJIT::TrustedImm32(3), extraTemp);
-    jit.addPtr(extraTemp, JSInterfaceJIT::callFrameRegister);
-    jit.addPtr(extraTemp, JSInterfaceJIT::stackPointerRegister);
-
     done.link(&jit);
 
 #  if CPU(X86_64)

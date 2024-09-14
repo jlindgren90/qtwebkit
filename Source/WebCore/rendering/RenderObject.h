@@ -30,6 +30,7 @@
 #include "FloatQuad.h"
 #include "Frame.h"
 #include "LayoutRect.h"
+#include "Page.h"
 #include "PaintPhase.h"
 #include "RenderObjectEnums.h"
 #include "RenderStyle.h"
@@ -40,7 +41,7 @@
 namespace WebCore {
 
 class AffineTransform;
-class AnimationController;
+class CSSAnimationController;
 class Color;
 class Cursor;
 class Document;
@@ -223,9 +224,7 @@ public:
     virtual bool isCounter() const { return false; }
     virtual bool isQuote() const { return false; }
 
-#if ENABLE(DETAILS_ELEMENT)
     virtual bool isDetailsMarker() const { return false; }
-#endif
     virtual bool isEmbeddedObject() const { return false; }
     virtual bool isFieldset() const { return false; }
     virtual bool isFileUploadControl() const { return false; }
@@ -515,6 +514,8 @@ public:
 
     Document& document() const { return m_node.document(); }
     Frame& frame() const;
+    Page& page() const;
+    Settings& settings() const { return page().settings(); }
 
     // Returns the object containing this one. Can be different from parent for positioned elements.
     // If repaintContainer and repaintContainerSkipped are not null, on return *repaintContainerSkipped
@@ -770,7 +771,7 @@ public:
     
     void removeFromParent();
 
-    AnimationController& animation() const;
+    CSSAnimationController& animation() const;
 
     // Map points and quads through elements, potentially via 3d transforms. You should never need to call these directly; use
     // localToAbsolute/absoluteToLocal methods instead.
@@ -1007,7 +1008,15 @@ inline Frame& RenderObject::frame() const
     return *document().frame();
 }
 
-inline AnimationController& RenderObject::animation() const
+inline Page& RenderObject::page() const
+{
+    // The render tree will always be torn down before Frame is disconnected from Page,
+    // so it's safe to assume Frame::page() is non-null as long as there are live RenderObjects.
+    ASSERT(frame().page());
+    return *frame().page();
+}
+
+inline CSSAnimationController& RenderObject::animation() const
 {
     return frame().animation();
 }

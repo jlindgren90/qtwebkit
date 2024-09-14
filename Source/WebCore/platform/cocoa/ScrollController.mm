@@ -41,31 +41,6 @@
 
 #if ENABLE(RUBBER_BANDING) || ENABLE(CSS_SCROLL_SNAP)
 
-#if PLATFORM(MAC)
-static NSTimeInterval systemUptime()
-{
-    if ([[NSProcessInfo processInfo] respondsToSelector:@selector(systemUptime)])
-        return [[NSProcessInfo processInfo] systemUptime];
-
-    // Get how long system has been up. Found by looking getting "boottime" from the kernel.
-    static struct timeval boottime = {0, 0};
-    if (!boottime.tv_sec) {
-        int mib[2] = {CTL_KERN, KERN_BOOTTIME};
-        size_t size = sizeof(boottime);
-        if (-1 == sysctl(mib, 2, &boottime, &size, 0, 0))
-            boottime.tv_sec = 0;
-    }
-    struct timeval now;
-    if (boottime.tv_sec && -1 != gettimeofday(&now, 0)) {
-        struct timeval uptime;
-        timersub(&now, &boottime, &uptime);
-        NSTimeInterval result = uptime.tv_sec + (uptime.tv_usec / 1E+6);
-        return result;
-    }
-    return 0;
-}
-#endif
-
 namespace WebCore {
 
 #if ENABLE(RUBBER_BANDING)
@@ -427,7 +402,7 @@ void ScrollController::stopSnapRubberbandTimer()
 
 void ScrollController::snapRubberBand()
 {
-    CFTimeInterval timeDelta = systemUptime() - m_lastMomentumScrollTimestamp;
+    CFTimeInterval timeDelta = [NSProcessInfo processInfo].systemUptime - m_lastMomentumScrollTimestamp;
     if (m_lastMomentumScrollTimestamp && timeDelta >= scrollVelocityZeroingTimeout)
         m_momentumVelocity = FloatSize();
 
@@ -553,14 +528,15 @@ bool ScrollController::processWheelEventForScrollSnap(const PlatformWheelEvent& 
     case WheelEventStatus::UserScrolling:
         stopScrollSnapTimer();
         m_scrollSnapState->transitionToUserInteractionState();
+        m_dragEndedScrollingVelocity = -wheelEvent.scrollingVelocity();
         break;
     case WheelEventStatus::UserScrollEnd:
-        m_dragEndedScrollingVelocity = -wheelEvent.scrollingVelocity();
         m_scrollSnapState->transitionToSnapAnimationState(m_client.scrollExtent(), m_client.viewportSize(), m_client.pageScaleFactor(), m_client.scrollOffset());
         startScrollSnapTimer();
         break;
     case WheelEventStatus::InertialScrollBegin:
         m_scrollSnapState->transitionToGlideAnimationState(m_client.scrollExtent(), m_client.viewportSize(), m_client.pageScaleFactor(), m_client.scrollOffset(), m_dragEndedScrollingVelocity, FloatSize(-wheelEvent.deltaX(), -wheelEvent.deltaY()));
+        m_dragEndedScrollingVelocity = { };
         isInertialScrolling = true;
         break;
     case WheelEventStatus::InertialScrolling:
@@ -581,18 +557,24 @@ bool ScrollController::processWheelEventForScrollSnap(const PlatformWheelEvent& 
 
 void ScrollController::updateScrollSnapState(const ScrollableArea& scrollableArea)
 {
-    if (auto* snapOffsets = scrollableArea.horizontalSnapOffsets())
-        updateScrollSnapPoints(ScrollEventAxis::Horizontal, *snapOffsets);
-    else
-        updateScrollSnapPoints(ScrollEventAxis::Horizontal, { });
+    if (auto* snapOffsets = scrollableArea.horizontalSnapOffsets()) {
+        if (auto* snapOffsetRanges = scrollableArea.horizontalSnapOffsetRanges())
+            updateScrollSnapPoints(ScrollEventAxis::Horizontal, *snapOffsets, *snapOffsetRanges);
+        else
+            updateScrollSnapPoints(ScrollEventAxis::Horizontal, *snapOffsets, { });
+    } else
+        updateScrollSnapPoints(ScrollEventAxis::Horizontal, { }, { });
 
-    if (auto* snapOffsets = scrollableArea.verticalSnapOffsets())
-        updateScrollSnapPoints(ScrollEventAxis::Vertical, *snapOffsets);
-    else
-        updateScrollSnapPoints(ScrollEventAxis::Vertical, { });
+    if (auto* snapOffsets = scrollableArea.verticalSnapOffsets()) {
+        if (auto* snapOffsetRanges = scrollableArea.verticalSnapOffsetRanges())
+            updateScrollSnapPoints(ScrollEventAxis::Vertical, *snapOffsets, *snapOffsetRanges);
+        else
+            updateScrollSnapPoints(ScrollEventAxis::Vertical, *snapOffsets, { });
+    } else
+        updateScrollSnapPoints(ScrollEventAxis::Vertical, { }, { });
 }
 
-void ScrollController::updateScrollSnapPoints(ScrollEventAxis axis, const Vector<LayoutUnit>& snapPoints)
+void ScrollController::updateScrollSnapPoints(ScrollEventAxis axis, const Vector<LayoutUnit>& snapPoints, const Vector<ScrollOffsetRange<LayoutUnit>>& snapRanges)
 {
     if (!m_scrollSnapState) {
         if (snapPoints.isEmpty())
@@ -604,7 +586,7 @@ void ScrollController::updateScrollSnapPoints(ScrollEventAxis axis, const Vector
     if (snapPoints.isEmpty() && m_scrollSnapState->snapOffsetsForAxis(otherScrollEventAxis(axis)).isEmpty())
         m_scrollSnapState = nullptr;
     else
-        m_scrollSnapState->setSnapOffsetsForAxis(axis, snapPoints);
+        m_scrollSnapState->setSnapOffsetsAndPositionRangesForAxis(axis, snapPoints, snapRanges);
 }
 
 void ScrollController::startScrollSnapTimer()
@@ -680,7 +662,7 @@ void ScrollController::setNearestScrollSnapIndexForAxisAndOffset(ScrollEventAxis
     LayoutUnit clampedOffset = std::min(std::max(LayoutUnit(offset / scaleFactor), snapOffsets.first()), snapOffsets.last());
 
     unsigned activeIndex = 0;
-    closestSnapOffset<LayoutUnit, float>(snapState.snapOffsetsForAxis(axis), clampedOffset, 0, activeIndex);
+    closestSnapOffset(snapState.snapOffsetsForAxis(axis), snapState.snapOffsetRangesForAxis(axis), clampedOffset, 0, activeIndex);
 
     if (activeIndex == activeScrollSnapIndexForAxis(axis))
         return;

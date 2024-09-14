@@ -90,8 +90,7 @@ static inline Length blendFunc(const AnimationBase*, const Length& from, const L
 
 static inline LengthSize blendFunc(const AnimationBase* anim, const LengthSize& from, const LengthSize& to, double progress)
 {
-    return LengthSize(blendFunc(anim, from.width(), to.width(), progress),
-                      blendFunc(anim, from.height(), to.height(), progress));
+    return { blendFunc(anim, from.width, to.width, progress), blendFunc(anim, from.height, to.height, progress) };
 }
 
 static inline ShadowStyle blendFunc(const AnimationBase* anim, ShadowStyle from, ShadowStyle to, double progress)
@@ -126,7 +125,7 @@ static inline TransformOperations blendFunc(const AnimationBase* animation, cons
     return to.blendByUsingMatrixInterpolation(from, progress, is<RenderBox>(*animation->renderer()) ? downcast<RenderBox>(*animation->renderer()).borderBoxRect().size() : LayoutSize());
 }
 
-static inline PassRefPtr<ClipPathOperation> blendFunc(const AnimationBase*, ClipPathOperation* from, ClipPathOperation* to, double progress)
+static inline RefPtr<ClipPathOperation> blendFunc(const AnimationBase*, ClipPathOperation* from, ClipPathOperation* to, double progress)
 {
     if (!from || !to)
         return to;
@@ -144,7 +143,7 @@ static inline PassRefPtr<ClipPathOperation> blendFunc(const AnimationBase*, Clip
     return ShapeClipPathOperation::create(toShape.blend(fromShape, progress));
 }
 
-static inline PassRefPtr<ShapeValue> blendFunc(const AnimationBase*, ShapeValue* from, ShapeValue* to, double progress)
+static inline RefPtr<ShapeValue> blendFunc(const AnimationBase*, ShapeValue* from, ShapeValue* to, double progress)
 {
     if (!from || !to)
         return to;
@@ -161,10 +160,10 @@ static inline PassRefPtr<ShapeValue> blendFunc(const AnimationBase*, ShapeValue*
     if (!fromShape.canBlend(toShape))
         return to;
 
-    return ShapeValue::createShapeValue(toShape.blend(fromShape, progress), to->cssBox());
+    return ShapeValue::create(toShape.blend(fromShape, progress), to->cssBox());
 }
 
-static inline PassRefPtr<FilterOperation> blendFunc(const AnimationBase* animation, FilterOperation* fromOp, FilterOperation* toOp, double progress, bool blendToPassthrough = false)
+static inline RefPtr<FilterOperation> blendFunc(const AnimationBase* animation, FilterOperation* fromOp, FilterOperation* toOp, double progress, bool blendToPassthrough = false)
 {
     ASSERT(toOp);
     if (toOp->blendingNeedsRendererSize()) {
@@ -219,7 +218,7 @@ static inline FilterOperations blendFunc(const AnimationBase* anim, const Filter
     return result;
 }
 
-static inline PassRefPtr<StyleImage> blendFilter(const AnimationBase* anim, CachedImage* image, const FilterOperations& from, const FilterOperations& to, double progress)
+static inline RefPtr<StyleImage> blendFilter(const AnimationBase* anim, CachedImage* image, const FilterOperations& from, const FilterOperations& to, double progress)
 {
     ASSERT(image);
     FilterOperations filterResult = blendFilterOperations(anim, from, to, progress);
@@ -279,13 +278,15 @@ static inline Vector<SVGLengthValue> blendFunc(const AnimationBase*, const Vecto
     return result;
 }
 
-static inline PassRefPtr<StyleImage> crossfadeBlend(const AnimationBase*, StyleCachedImage* fromStyleImage, StyleCachedImage* toStyleImage, double progress)
+static inline RefPtr<StyleImage> crossfadeBlend(const AnimationBase*, StyleCachedImage* fromStyleImage, StyleCachedImage* toStyleImage, double progress)
 {
     // If progress is at one of the extremes, we want getComputedStyle to show the image,
     // not a completed cross-fade, so we hand back one of the existing images.
     if (!progress)
         return fromStyleImage;
     if (progress == 1)
+        return toStyleImage;
+    if (!fromStyleImage->cachedImage() || !toStyleImage->cachedImage())
         return toStyleImage;
 
     auto fromImageValue = CSSImageValue::create(*fromStyleImage->cachedImage());
@@ -296,7 +297,7 @@ static inline PassRefPtr<StyleImage> crossfadeBlend(const AnimationBase*, StyleC
     return StyleGeneratedImage::create(WTFMove(crossfadeValue));
 }
 
-static inline PassRefPtr<StyleImage> blendFunc(const AnimationBase* anim, StyleImage* from, StyleImage* to, double progress)
+static inline RefPtr<StyleImage> blendFunc(const AnimationBase* anim, StyleImage* from, StyleImage* to, double progress)
 {
     if (!from || !to)
         return to;
@@ -365,12 +366,12 @@ static inline NinePieceImage blendFunc(const AnimationBase* anim, const NinePiec
     if (from.image()->imageSize(anim->renderer(), 1.0) != to.image()->imageSize(anim->renderer(), 1.0))
         return to;
 
-    RefPtr<StyleImage> newContentImage = blendFunc(anim, from.image(), to.image(), progress);
-
-    return NinePieceImage(newContentImage, from.imageSlices(), from.fill(), from.borderSlices(), from.outset(), from.horizontalRule(), from.verticalRule());
+    return NinePieceImage(blendFunc(anim, from.image(), to.image(), progress),
+        from.imageSlices(), from.fill(), from.borderSlices(), from.outset(), from.horizontalRule(), from.verticalRule());
 }
 
 #if ENABLE(VARIATION_FONTS)
+
 static inline FontVariationSettings blendFunc(const AnimationBase* anim, const FontVariationSettings& from, const FontVariationSettings& to, double progress)
 {
     if (from.size() != to.size())
@@ -387,6 +388,7 @@ static inline FontVariationSettings blendFunc(const AnimationBase* anim, const F
     }
     return result;
 }
+
 #endif
 
 class AnimationPropertyWrapperBase {
@@ -493,7 +495,7 @@ template <typename T>
 class LengthPropertyWrapper : public PropertyWrapperGetter<const T&> {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    LengthPropertyWrapper(CSSPropertyID prop, const T& (RenderStyle::*getter)() const, void (RenderStyle::*setter)(T))
+    LengthPropertyWrapper(CSSPropertyID prop, const T& (RenderStyle::*getter)() const, void (RenderStyle::*setter)(T&&))
         : PropertyWrapperGetter<const T&>(prop, getter)
         , m_setter(setter)
     {
@@ -505,7 +507,7 @@ public:
     }
 
 protected:
-    void (RenderStyle::*m_setter)(T);
+    void (RenderStyle::*m_setter)(T&&);
 };
 
 class PropertyWrapperClipPath : public RefCountedPropertyWrapper<ClipPathOperation> {
@@ -1050,7 +1052,7 @@ public:
 class FillLayersPropertyWrapper : public AnimationPropertyWrapperBase {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    typedef const FillLayer* (RenderStyle::*LayersGetter)() const;
+    typedef const FillLayer& (RenderStyle::*LayersGetter)() const;
     typedef FillLayer& (RenderStyle::*LayersAccessor)();
 
     FillLayersPropertyWrapper(CSSPropertyID prop, LayersGetter getter, LayersAccessor accessor)
@@ -1087,8 +1089,8 @@ public:
         if (!a || !b)
             return false;
 
-        const FillLayer* fromLayer = (a->*m_layersGetter)();
-        const FillLayer* toLayer = (b->*m_layersGetter)();
+        auto* fromLayer = &(a->*m_layersGetter)();
+        auto* toLayer = &(b->*m_layersGetter)();
 
         while (fromLayer && toLayer) {
             if (!m_fillLayerPropertyWrapper->equals(fromLayer, toLayer))
@@ -1103,9 +1105,9 @@ public:
 
     void blend(const AnimationBase* anim, RenderStyle* dst, const RenderStyle* a, const RenderStyle* b, double progress) const override
     {
-        const FillLayer* aLayer = (a->*m_layersGetter)();
-        const FillLayer* bLayer = (b->*m_layersGetter)();
-        FillLayer* dstLayer = &(dst->*m_layersAccessor)();
+        auto* aLayer = &(a->*m_layersGetter)();
+        auto* bLayer = &(b->*m_layersGetter)();
+        auto* dstLayer = &(dst->*m_layersAccessor)();
 
         while (aLayer && bLayer && dstLayer) {
             m_fillLayerPropertyWrapper->blend(anim, dstLayer, aLayer, bLayer, progress);
@@ -1288,7 +1290,7 @@ class CSSPropertyAnimationWrapperMap {
 public:
     static CSSPropertyAnimationWrapperMap& singleton()
     {
-        // FIXME: This data is never destroyed. Maybe we should ref count it and toss it when the last AnimationController is destroyed?
+        // FIXME: This data is never destroyed. Maybe we should ref count it and toss it when the last CSSAnimationController is destroyed?
         static NeverDestroyed<CSSPropertyAnimationWrapperMap> map;
         return map;
     }

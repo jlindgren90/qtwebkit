@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2015-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2010, 2015-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,7 @@ class TestInvocation;
 class OriginSettings;
 class PlatformWebView;
 class EventSenderProxy;
+struct TestCommand;
 struct TestOptions;
 
 // FIXME: Rename this TestRunner?
@@ -147,6 +148,17 @@ public:
 
     void setShouldDownloadUndisplayableMIMETypes(bool value) { m_shouldDownloadUndisplayableMIMETypes = value; }
 
+    void setStatisticsPrevalentResource(WKStringRef hostName, bool value);
+    bool isStatisticsPrevalentResource(WKStringRef hostName);
+    void setStatisticsHasHadUserInteraction(WKStringRef hostName, bool value);
+    bool isStatisticsHasHadUserInteraction(WKStringRef hostName);
+    void setStatisticsTimeToLiveUserInteraction(double seconds);
+    void statisticsFireDataModificationHandler();
+    void setStatisticsNotifyPagesWhenDataRecordsWereScanned(bool);
+    void setStatisticsShouldClassifyResourcesBeforeDataRecordsRemoval(bool);
+    void setStatisticsMinimumTimeBetweeenDataRecordsRemoval(double);
+    void statisticsResetToConsistentState();
+
 private:
     WKRetainPtr<WKPageConfigurationRef> generatePageConfiguration(WKContextConfigurationRef);
     WKRetainPtr<WKContextConfigurationRef> generateContextConfiguration() const;
@@ -177,7 +189,7 @@ private:
     void initializeTestPluginDirectory();
 
     void ensureViewSupportsOptionsForTest(const TestInvocation&);
-    TestOptions testOptionsForTest(const std::string& pathOrURL) const;
+    TestOptions testOptionsForTest(const TestCommand&) const;
     void updatePlatformSpecificTestOptionsForTest(TestOptions&, const std::string& pathOrURL) const;
 
     void updateWebViewSizeForTest(const TestInvocation&);
@@ -351,6 +363,15 @@ private:
     std::unique_ptr<EventSenderProxy> m_eventSenderProxy;
 
     WorkQueueManager m_workQueueManager;
+};
+
+struct TestCommand {
+    std::string pathOrURL;
+    std::string absolutePath;
+    bool shouldDumpPixels { false };
+    std::string expectedPixelHash;
+    int timeout { 0 };
+    bool dumpJSConsoleLogInStdErr { false };
 };
 
 } // namespace WTR

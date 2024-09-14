@@ -30,15 +30,18 @@
 
 #import "AVCaptureDeviceManager.h"
 #import "AudioSourceProvider.h"
-#import "CoreMediaSoftLink.h"
 #import "Logging.h"
 #import "MediaConstraints.h"
 #import "RealtimeMediaSourceSettings.h"
-#import "SoftLinking.h"
 #import "UUID.h"
-#import <AVFoundation/AVFoundation.h>
+#import <AVFoundation/AVCaptureDevice.h>
+#import <AVFoundation/AVCaptureInput.h>
+#import <AVFoundation/AVCaptureOutput.h>
+#import <AVFoundation/AVCaptureSession.h>
 #import <objc/runtime.h>
 #import <wtf/MainThread.h>
+
+#import "CoreMediaSoftLink.h"
 
 typedef AVCaptureConnection AVCaptureConnectionType;
 typedef AVCaptureDevice AVCaptureDeviceTypedef;
@@ -123,12 +126,10 @@ static dispatch_queue_t globaVideoCaptureSerialQueue()
 }
 
 AVMediaCaptureSource::AVMediaCaptureSource(AVCaptureDeviceTypedef* device, const AtomicString& id, RealtimeMediaSource::Type type)
-    : RealtimeMediaSource(id, type, emptyString())
+    : RealtimeMediaSource(id, type, device.localizedName)
     , m_objcObserver(adoptNS([[WebCoreAVMediaCaptureSourceObserver alloc] initWithCallback:this]))
     , m_device(device)
-    , m_weakPtrFactory(this)
 {
-    setName(device.localizedName);
     setPersistentID(device.uniqueID);
     setMuted(true);
 }
@@ -237,12 +238,6 @@ void AVMediaCaptureSource::reset()
     for (NSString *keyName in sessionKVOProperties())
         [m_session removeObserver:m_objcObserver.get() forKeyPath:keyName];
 
-    for (const auto& preview : m_previews) {
-        if (preview)
-            preview->invalidate();
-    }
-    m_previews.clear();
-
     shutdownCaptureSession();
     m_session = nullptr;
 }
@@ -272,45 +267,6 @@ AudioSourceProvider* AVMediaCaptureSource::audioSourceProvider()
 {
     ASSERT_NOT_REACHED();
     return nullptr;
-}
-
-RefPtr<RealtimeMediaSourcePreview> AVMediaCaptureSource::preview()
-{
-    RefPtr<AVMediaSourcePreview> preview = createPreview();
-    if (!preview)
-        return nullptr;
-
-    m_previews.append(preview->createWeakPtr());
-    return preview.leakRef();
-}
-
-void AVMediaCaptureSource::removePreview(AVMediaSourcePreview* preview)
-{
-    size_t index;
-    for (index = 0; index < m_previews.size(); ++index) {
-        if (m_previews[index].get() == preview)
-            break;
-    }
-
-    if (index < m_previews.size())
-        m_previews.remove(index);
-}
-
-AVMediaSourcePreview::AVMediaSourcePreview(AVMediaCaptureSource* parent)
-    : m_parent(parent->createWeakPtr())
-{
-}
-
-AVMediaSourcePreview::~AVMediaSourcePreview()
-{
-    if (m_parent)
-        m_parent->removePreview(this);
-}
-
-void AVMediaSourcePreview::invalidate()
-{
-    m_parent = nullptr;
-    RealtimeMediaSourcePreview::invalidate();
 }
 
 NSArray* sessionKVOProperties()

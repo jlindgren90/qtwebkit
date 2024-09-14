@@ -199,6 +199,13 @@ public:
     static bool shouldUseHighResolutionTimers() { return gShouldUseHighResolutionTimers; }
 #endif
 
+    static bool isPostLoadCPUUsageMeasurementEnabled();
+    static bool isPostBackgroundingCPUUsageMeasurementEnabled();
+    static bool isPerActivityStateCPUUsageMeasurementEnabled();
+
+    static bool isPostLoadMemoryUsageMeasurementEnabled();
+    static bool isPostBackgroundingMemoryUsageMeasurementEnabled();
+
     static bool globalConstRedeclarationShouldThrow();
 
     WEBCORE_EXPORT void setBackgroundShouldExtendBeyondPage(bool);
@@ -419,5 +426,50 @@ private:
     static bool gResourceLoadStatisticsEnabledEnabled;
     static bool gAllowsAnySSLCertificate;
 };
+
+inline bool Settings::isPostLoadCPUUsageMeasurementEnabled()
+{
+#if PLATFORM(COCOA)
+    return true;
+#else
+    return false;
+#endif
+}
+
+inline bool Settings::isPostBackgroundingCPUUsageMeasurementEnabled()
+{
+#if PLATFORM(MAC)
+    return true;
+#else
+    return false;
+#endif
+}
+
+inline bool Settings::isPerActivityStateCPUUsageMeasurementEnabled()
+{
+#if PLATFORM(MAC)
+    return true;
+#else
+    return false;
+#endif
+}
+
+inline bool Settings::isPostLoadMemoryUsageMeasurementEnabled()
+{
+#if PLATFORM(COCOA)
+    return true;
+#else
+    return false;
+#endif
+}
+
+inline bool Settings::isPostBackgroundingMemoryUsageMeasurementEnabled()
+{
+#if PLATFORM(MAC)
+    return true;
+#else
+    return false;
+#endif
+}
 
 } // namespace WebCore

@@ -16,14 +16,17 @@ const buttonPositions = [
     [mediaControls.forwardButton, 127, 16],
     [mediaControls.airplayButton, 12, 13],
     [mediaControls.pipButton, 44, 13],
-    [mediaControls.tracksButton, 82, 15],
-    [mediaControls.fullscreenButton, 114, 13]
+    [mediaControls.tracksButton, 79, 15],
+    [mediaControls.fullscreenButton, 111, 13]
 ];
 
 let style;
 scheduler.frameDidFire = function()
 {
     document.body.appendChild(mediaControls.element);
+
+    if (buttonPositions.some(buttonPosition => buttonPosition[0].width == 0))
+        return;
 
     for (let [button, x, y, width] of buttonPositions) {
         style = window.getComputedStyle(button.element);
@@ -35,8 +38,7 @@ scheduler.frameDidFire = function()
     }
 
     mediaControls.element.remove();
-
-    finishJSTest();
+    finishMediaControlsTest();
 };
 
 </script>

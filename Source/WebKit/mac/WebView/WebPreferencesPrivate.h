@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2016 Apple Inc.  All rights reserved.
+ * Copyright (C) 2005-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -227,6 +227,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)showDebugBorders;
 - (void)setShowDebugBorders:(BOOL)show;
 
+- (BOOL)simpleLineLayoutEnabled;
+- (void)setSimpleLineLayoutEnabled:(BOOL)enabled;
+
 - (BOOL)simpleLineLayoutDebugBordersEnabled;
 - (void)setSimpleLineLayoutDebugBordersEnabled:(BOOL)enabled;
 
@@ -247,6 +250,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 
 - (BOOL)forceSoftwareWebGLRendering;
 - (void)setForceSoftwareWebGLRendering:(BOOL)forced;
+
+- (BOOL)preferLowPowerWebGLRendering;
+- (void)setPreferLowPowerWebGLRendering:(BOOL)preferLowPower;
 
 - (BOOL)accelerated2dCanvasEnabled;
 - (void)setAccelerated2dCanvasEnabled:(BOOL)enabled;
@@ -496,9 +502,6 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setCustomElementsEnabled:(BOOL)flag;
 - (BOOL)customElementsEnabled;
 
-- (void)setDOMIteratorEnabled:(BOOL)flag;
-- (BOOL)DOMIteratorEnabled;
-
 - (void)setFetchAPIEnabled:(BOOL)flag;
 - (BOOL)fetchAPIEnabled;
 
@@ -522,5 +525,12 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 @property (nonatomic) BOOL attachmentElementEnabled;
 @property (nonatomic) BOOL allowsInlineMediaPlaybackAfterFullscreen;
 @property (nonatomic) BOOL intersectionObserverEnabled;
+@property (nonatomic) BOOL userTimingEnabled;
+@property (nonatomic) BOOL resourceTimingEnabled;
+@property (nonatomic) BOOL linkPreloadEnabled;
+
+#if TARGET_OS_IPHONE
+@property (nonatomic) BOOL quickLookDocumentSavingEnabled;
+#endif
 
 @end

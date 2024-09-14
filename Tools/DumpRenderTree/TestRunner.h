@@ -36,6 +36,8 @@
 #include <vector>
 #include <wtf/RefCounted.h>
 
+extern FILE* testResult;
+
 class TestRunner : public WTR::UIScriptContextDelegate, public RefCounted<TestRunner> {
     WTF_MAKE_NONCOPYABLE(TestRunner);
 public:
@@ -372,6 +374,8 @@ public:
 
     void setDumpJSConsoleLogInStdErr(bool inStdErr) { m_dumpJSConsoleLogInStdErr = inStdErr; }
     bool dumpJSConsoleLogInStdErr() const { return m_dumpJSConsoleLogInStdErr; }
+
+    void setSpellCheckerLoggingEnabled(bool);
 
 private:
     TestRunner(const std::string& testURL, const std::string& expectedPixelHash);

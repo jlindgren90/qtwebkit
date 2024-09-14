@@ -1636,22 +1636,21 @@ bool RenderBlock::paintChild(RenderBox& child, PaintInfo& paintInfo, const Layou
 void RenderBlock::paintCaret(PaintInfo& paintInfo, const LayoutPoint& paintOffset, CaretType type)
 {
     // Paint the caret if the FrameSelection says so or if caret browsing is enabled
-    bool caretBrowsing = frame().settings().caretBrowsingEnabled();
     RenderBlock* caretPainter;
     bool isContentEditable;
     if (type == CursorCaret) {
         caretPainter = frame().selection().caretRendererWithoutUpdatingLayout();
         isContentEditable = frame().selection().selection().hasEditableStyle();
     } else {
-        caretPainter = frame().page()->dragCaretController().caretRenderer();
-        isContentEditable = frame().page()->dragCaretController().isContentEditable();
+        caretPainter = page().dragCaretController().caretRenderer();
+        isContentEditable = page().dragCaretController().isContentEditable();
     }
 
-    if (caretPainter == this && (isContentEditable || caretBrowsing)) {
+    if (caretPainter == this && (isContentEditable || settings().caretBrowsingEnabled())) {
         if (type == CursorCaret)
             frame().selection().paintCaret(paintInfo.context(), paintOffset, paintInfo.rect);
         else
-            frame().page()->dragCaretController().paintDragCaret(&frame(), paintInfo.context(), paintOffset, paintInfo.rect);
+            page().dragCaretController().paintDragCaret(&frame(), paintInfo.context(), paintOffset, paintInfo.rect);
     }
 }
 
@@ -1843,7 +1842,7 @@ void RenderBlock::paintContinuationOutlines(PaintInfo& info, const LayoutPoint& 
 
 bool RenderBlock::shouldPaintSelectionGaps() const
 {
-    if (frame().settings().selectionPaintingWithoutSelectionGapsEnabled())
+    if (settings().selectionPaintingWithoutSelectionGapsEnabled())
         return false;
 
     return selectionState() != SelectionNone && style().visibility() == VISIBLE && isSelectionRoot();
@@ -3017,7 +3016,10 @@ RenderBlock* RenderBlock::firstLineBlock() const
 
 static RenderStyle styleForFirstLetter(const RenderElement& firstLetterBlock, const RenderObject& firstLetterContainer)
 {
-    auto firstLetterStyle = RenderStyle::clone(*firstLetterBlock.getCachedPseudoStyle(FIRST_LETTER, &firstLetterContainer.firstLineStyle()));
+    auto* containerFirstLetterStyle = firstLetterBlock.getCachedPseudoStyle(FIRST_LETTER, &firstLetterContainer.firstLineStyle());
+    // FIXME: There appears to be some path where we have a first letter renderer without first letter style.
+    ASSERT(containerFirstLetterStyle);
+    auto firstLetterStyle = RenderStyle::clone(containerFirstLetterStyle ? *containerFirstLetterStyle : firstLetterContainer.firstLineStyle());
 
     // If we have an initial letter drop that is >= 1, then we need to force floating to be on.
     if (firstLetterStyle.initialLetterDrop() >= 1 && !firstLetterStyle.isFloating())

@@ -29,8 +29,6 @@
 #include "Attr.h"
 #include "BeforeLoadEvent.h"
 #include "ChildListMutationScope.h"
-#include "Chrome.h"
-#include "ChromeClient.h"
 #include "ComposedTreeAncestorIterator.h"
 #include "ContainerNodeAlgorithms.h"
 #include "ContextMenuController.h"
@@ -430,11 +428,10 @@ static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const V
     HashSet<RefPtr<Node>> nodeSet;
     for (const auto& variant : vector) {
         WTF::switchOn(variant,
-            [&](const RefPtr<Node>& node) { nodeSet.add(const_cast<Node*>(node.get())); },
-            [](const String&) { }
+            [&] (const RefPtr<Node>& node) { nodeSet.add(const_cast<Node*>(node.get())); },
+            [] (const String&) { }
         );
     }
-
     return nodeSet;
 }
 
@@ -914,10 +911,10 @@ ExceptionOr<void> Node::checkSetPrefix(const AtomicString& prefix)
 bool Node::isDescendantOf(const Node& other) const
 {
     // Return true if other is an ancestor of this, otherwise false
-    if (!other.hasChildNodes() || inDocument() != other.inDocument())
+    if (!other.hasChildNodes() || isConnected() != other.isConnected())
         return false;
     if (other.isDocumentNode())
-        return &document() == &other && !isDocumentNode() && inDocument();
+        return &document() == &other && !isDocumentNode() && isConnected();
     for (const auto* ancestor = parentNode(); ancestor; ancestor = ancestor->parentNode()) {
         if (ancestor == &other)
             return true;
@@ -1139,6 +1136,19 @@ ContainerNode* Node::parentInComposedTree() const
     return parentNode();
 }
 
+Element* Node::parentElementInComposedTree() const
+{
+    if (auto* slot = assignedSlot())
+        return slot;
+    if (auto* parent = parentNode()) {
+        if (is<ShadowRoot>(*parent))
+            return downcast<ShadowRoot>(*parent).host();
+        if (is<Element>(*parent))
+            return downcast<Element>(parent);
+    }
+    return nullptr;
+}
+
 bool Node::isInUserAgentShadowTree() const
 {
     auto* shadowRoot = containingShadowRoot();
@@ -1210,9 +1220,9 @@ Node& Node::getRootNode(const GetRootNodeOptions& options) const
 
 Node::InsertionNotificationRequest Node::insertedInto(ContainerNode& insertionPoint)
 {
-    ASSERT(insertionPoint.inDocument() || isContainerNode());
-    if (insertionPoint.inDocument())
-        setFlag(InDocumentFlag);
+    ASSERT(insertionPoint.isConnected() || isContainerNode());
+    if (insertionPoint.isConnected())
+        setFlag(IsConnectedFlag);
     if (parentOrShadowHostNode()->isInShadowTree())
         setFlag(IsInShadowTreeFlag);
 
@@ -1223,9 +1233,9 @@ Node::InsertionNotificationRequest Node::insertedInto(ContainerNode& insertionPo
 
 void Node::removedFrom(ContainerNode& insertionPoint)
 {
-    ASSERT(insertionPoint.inDocument() || isContainerNode());
-    if (insertionPoint.inDocument())
-        clearFlag(InDocumentFlag);
+    ASSERT(insertionPoint.isConnected() || isContainerNode());
+    if (insertionPoint.isConnected())
+        clearFlag(IsConnectedFlag);
     if (isInShadowTree() && !treeScope().rootNode().isShadowRoot())
         clearFlag(IsInShadowTreeFlag);
 }
@@ -1497,12 +1507,12 @@ ExceptionOr<void> Node::setTextContent(const String& text)
         return setNodeValue(text);
     case ELEMENT_NODE:
     case DOCUMENT_FRAGMENT_NODE: {
-        auto container = makeRef(downcast<ContainerNode>(*this));
-        ChildListMutationScope mutation(container);
-        container->removeChildren();
+        auto& container = downcast<ContainerNode>(*this);
         if (text.isEmpty())
-            return { };
-        return container->appendChild(document().createTextNode(text));
+            container.replaceAllChildren(nullptr);
+        else
+            container.replaceAllChildren(document().createTextNode(text));
+        return { };
     }
     case DOCUMENT_NODE:
     case DOCUMENT_TYPE_NODE:
@@ -1588,8 +1598,8 @@ unsigned short Node::compareDocumentPosition(Node& otherNode)
 
     // If one node is in the document and the other is not, we must be disconnected.
     // If the nodes have different owning documents, they must be disconnected.  Note that we avoid
-    // comparing Attr nodes here, since they return false from inDocument() all the time (which seems like a bug).
-    if (start1->inDocument() != start2->inDocument() || &start1->treeScope() != &start2->treeScope())
+    // comparing Attr nodes here, since they return false from isConnected() all the time (which seems like a bug).
+    if (start1->isConnected() != start2->isConnected() || &start1->treeScope() != &start2->treeScope())
         return compareDetachedElementsPosition(*this, otherNode);
 
     // We need to find a common ancestor container, and then compare the indices of the two immediate children.
@@ -2041,96 +2051,97 @@ void Node::clearEventTargetData()
 Vector<std::unique_ptr<MutationObserverRegistration>>* Node::mutationObserverRegistry()
 {
     if (!hasRareData())
-        return 0;
-    NodeMutationObserverData* data = rareData()->mutationObserverData();
+        return nullptr;
+    auto* data = rareData()->mutationObserverData();
     if (!data)
-        return 0;
+        return nullptr;
     return &data->registry;
 }
 
 HashSet<MutationObserverRegistration*>* Node::transientMutationObserverRegistry()
 {
     if (!hasRareData())
-        return 0;
-    NodeMutationObserverData* data = rareData()->mutationObserverData();
+        return nullptr;
+    auto* data = rareData()->mutationObserverData();
     if (!data)
-        return 0;
+        return nullptr;
     return &data->transientRegistry;
 }
 
-template<typename Registry>
-static inline void collectMatchingObserversForMutation(HashMap<MutationObserver*, MutationRecordDeliveryOptions>& observers, Registry* registry, Node* target, MutationObserver::MutationType type, const QualifiedName* attributeName)
+template<typename Registry> static inline void collectMatchingObserversForMutation(HashMap<MutationObserver*, MutationRecordDeliveryOptions>& observers, Registry* registry, Node& target, MutationObserver::MutationType type, const QualifiedName* attributeName)
 {
     if (!registry)
         return;
 
     for (auto& registration : *registry) {
         if (registration->shouldReceiveMutationFrom(target, type, attributeName)) {
-            MutationRecordDeliveryOptions deliveryOptions = registration->deliveryOptions();
-            auto result = observers.add(registration->observer(), deliveryOptions);
+            auto deliveryOptions = registration->deliveryOptions();
+            auto result = observers.add(&registration->observer(), deliveryOptions);
             if (!result.isNewEntry)
                 result.iterator->value |= deliveryOptions;
         }
     }
 }
 
-void Node::getRegisteredMutationObserversOfType(HashMap<MutationObserver*, MutationRecordDeliveryOptions>& observers, MutationObserver::MutationType type, const QualifiedName* attributeName)
+HashMap<MutationObserver*, MutationRecordDeliveryOptions> Node::registeredMutationObservers(MutationObserver::MutationType type, const QualifiedName* attributeName)
 {
+    HashMap<MutationObserver*, MutationRecordDeliveryOptions> result;
     ASSERT((type == MutationObserver::Attributes && attributeName) || !attributeName);
-    collectMatchingObserversForMutation(observers, mutationObserverRegistry(), this, type, attributeName);
-    collectMatchingObserversForMutation(observers, transientMutationObserverRegistry(), this, type, attributeName);
+    collectMatchingObserversForMutation(result, mutationObserverRegistry(), *this, type, attributeName);
+    collectMatchingObserversForMutation(result, transientMutationObserverRegistry(), *this, type, attributeName);
     for (Node* node = parentNode(); node; node = node->parentNode()) {
-        collectMatchingObserversForMutation(observers, node->mutationObserverRegistry(), this, type, attributeName);
-        collectMatchingObserversForMutation(observers, node->transientMutationObserverRegistry(), this, type, attributeName);
+        collectMatchingObserversForMutation(result, node->mutationObserverRegistry(), *this, type, attributeName);
+        collectMatchingObserversForMutation(result, node->transientMutationObserverRegistry(), *this, type, attributeName);
     }
+    return result;
 }
 
-void Node::registerMutationObserver(MutationObserver* observer, MutationObserverOptions options, const HashSet<AtomicString>& attributeFilter)
+void Node::registerMutationObserver(MutationObserver& observer, MutationObserverOptions options, const HashSet<AtomicString>& attributeFilter)
 {
     MutationObserverRegistration* registration = nullptr;
     auto& registry = ensureRareData().ensureMutationObserverData().registry;
 
-    for (size_t i = 0; i < registry.size(); ++i) {
-        if (registry[i]->observer() == observer) {
-            registration = registry[i].get();
+    for (auto& candidateRegistration : registry) {
+        if (&candidateRegistration->observer() == &observer) {
+            registration = candidateRegistration.get();
             registration->resetObservation(options, attributeFilter);
         }
     }
 
     if (!registration) {
-        registry.append(std::make_unique<MutationObserverRegistration>(observer, this, options, attributeFilter));
+        registry.append(std::make_unique<MutationObserverRegistration>(observer, *this, options, attributeFilter));
         registration = registry.last().get();
     }
 
     document().addMutationObserverTypes(registration->mutationTypes());
 }
 
-void Node::unregisterMutationObserver(MutationObserverRegistration* registration)
+void Node::unregisterMutationObserver(MutationObserverRegistration& registration)
 {
     auto* registry = mutationObserverRegistry();
     ASSERT(registry);
     if (!registry)
         return;
 
-    registry->removeFirstMatching([registration](auto& current) {
-        return current.get() == registration;
+    registry->removeFirstMatching([&registration] (auto& current) {
+        return current.get() == &registration;
     });
 }
 
-void Node::registerTransientMutationObserver(MutationObserverRegistration* registration)
+void Node::registerTransientMutationObserver(MutationObserverRegistration& registration)
 {
-    ensureRareData().ensureMutationObserverData().transientRegistry.add(registration);
+    ensureRareData().ensureMutationObserverData().transientRegistry.add(&registration);
 }
 
-void Node::unregisterTransientMutationObserver(MutationObserverRegistration* registration)
+void Node::unregisterTransientMutationObserver(MutationObserverRegistration& registration)
 {
-    HashSet<MutationObserverRegistration*>* transientRegistry = transientMutationObserverRegistry();
+    auto* transientRegistry = transientMutationObserverRegistry();
     ASSERT(transientRegistry);
     if (!transientRegistry)
         return;
 
-    ASSERT(transientRegistry->contains(registration));
-    transientRegistry->remove(registration);
+    ASSERT(transientRegistry->contains(&registration));
+    transientRegistry->remove(&registration);
 }
 
 void Node::notifyMutationObserversNodeWillDetach()
@@ -2141,12 +2152,11 @@ void Node::notifyMutationObserversNodeWillDetach()
     for (Node* node = parentNode(); node; node = node->parentNode()) {
         if (auto* registry = node->mutationObserverRegistry()) {
             for (auto& registration : *registry)
-                registration->observedSubtreeNodeWillDetach(this);
+                registration->observedSubtreeNodeWillDetach(*this);
         }
-
         if (auto* transientRegistry = node->transientMutationObserverRegistry()) {
             for (auto* registration : *transientRegistry)
-                registration->observedSubtreeNodeWillDetach(this);
+                registration->observedSubtreeNodeWillDetach(*this);
         }
     }
 }
@@ -2182,7 +2192,7 @@ void Node::dispatchSubtreeModifiedEvent()
     if (isInShadowTree())
         return;
 
-    ASSERT_WITH_SECURITY_IMPLICATION(!NoEventDispatchAssertion::isEventDispatchForbidden());
+    ASSERT_WITH_SECURITY_IMPLICATION(NoEventDispatchAssertion::isEventDispatchAllowedInSubtree(*this));
 
     if (!document().hasListenerType(Document::DOMSUBTREEMODIFIED_LISTENER))
         return;
@@ -2195,7 +2205,7 @@ void Node::dispatchSubtreeModifiedEvent()
 
 bool Node::dispatchDOMActivateEvent(int detail, Event& underlyingEvent)
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(!NoEventDispatchAssertion::isEventDispatchForbidden());
+    ASSERT_WITH_SECURITY_IMPLICATION(NoEventDispatchAssertion::isEventAllowedInMainThread());
     Ref<UIEvent> event = UIEvent::create(eventNames().DOMActivateEvent, true, true, document().defaultView(), detail);
     event->setUnderlyingEvent(&underlyingEvent);
     dispatchScopedEvent(event);
@@ -2243,7 +2253,7 @@ void Node::defaultEventHandler(Event& event)
     } else if (eventType == eventNames().contextmenuEvent) {
         if (Frame* frame = document().frame())
             if (Page* page = frame->page())
-                page->contextMenuController().handleContextMenuEvent(&event);
+                page->contextMenuController().handleContextMenuEvent(event);
 #endif
     } else if (eventType == eventNames().textInputEvent) {
         if (is<TextEvent>(event)) {
@@ -2262,7 +2272,7 @@ void Node::defaultEventHandler(Event& event)
 
             if (renderer) {
                 if (Frame* frame = document().frame())
-                    frame->eventHandler().startPanScrolling(downcast<RenderBox>(renderer));
+                    frame->eventHandler().startPanScrolling(downcast<RenderBox>(*renderer));
             }
         }
 #endif
@@ -2284,7 +2294,7 @@ void Node::defaultEventHandler(Event& event)
 
         if (renderer && renderer->node()) {
             if (Frame* frame = document().frame())
-                frame->eventHandler().defaultTouchEventHandler(renderer->node(), &downcast<TouchEvent>(event));
+                frame->eventHandler().defaultTouchEventHandler(*renderer->node(), downcast<TouchEvent>(event));
         }
 #endif
     }
@@ -2387,7 +2397,7 @@ void Node::updateAncestorConnectedSubframeCountForInsertion() const
 
 bool Node::inRenderedDocument() const
 {
-    return inDocument() && document().hasLivingRenderTree();
+    return isConnected() && document().hasLivingRenderTree();
 }
 
 void* Node::opaqueRootSlow() const

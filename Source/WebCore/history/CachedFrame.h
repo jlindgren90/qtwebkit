@@ -52,7 +52,9 @@ public:
 protected:
     CachedFrameBase(Frame&);
     ~CachedFrameBase();
-    
+
+    void pruneDetachedChildFrames();
+
     RefPtr<Document> m_document;
     RefPtr<DocumentLoader> m_documentLoader;
     RefPtr<FrameView> m_view;
@@ -60,7 +62,6 @@ protected:
     std::unique_ptr<ScriptCachedFrameData> m_cachedFrameScriptData;
     std::unique_ptr<CachedFramePlatformData> m_cachedFramePlatformData;
     bool m_isMainFrame;
-    bool m_isComposited;
     std::optional<HasInsecureContent> m_hasInsecureContent;
 
     Vector<std::unique_ptr<CachedFrame>> m_childFrames;

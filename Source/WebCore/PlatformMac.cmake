@@ -107,6 +107,7 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/graphics/cocoa"
     "${WEBCORE_DIR}/platform/graphics/cg"
     "${WEBCORE_DIR}/platform/graphics/cv"
+    "${WEBCORE_DIR}/platform/graphics/egl"
     "${WEBCORE_DIR}/platform/graphics/opentype"
     "${WEBCORE_DIR}/platform/graphics/opengl"
     "${WEBCORE_DIR}/platform/graphics/mac"
@@ -287,7 +288,6 @@ list(APPEND WebCore_SOURCES
     platform/LocalizedStrings.cpp
     platform/RuntimeApplicationChecks.mm
     platform/ScrollableArea.cpp
-    platform/VNodeTracker.cpp
 
     platform/audio/AudioSession.cpp
 
@@ -313,9 +313,11 @@ list(APPEND WebCore_SOURCES
     platform/cf/SharedBufferCF.cpp
     platform/cf/URLCF.cpp
 
+    platform/cocoa/CPUTimeCocoa.mm
     platform/cocoa/ContentFilterUnblockHandlerCocoa.mm
     platform/cocoa/CoreVideoSoftLink.cpp
     platform/cocoa/DisplaySleepDisablerCocoa.cpp
+    platform/cocoa/FileSystemCocoa.mm
     platform/cocoa/KeyEventCocoa.mm
     platform/cocoa/LocalizedStringsCocoa.mm
     platform/cocoa/MIMETypeRegistryCocoa.mm
@@ -326,13 +328,11 @@ list(APPEND WebCore_SOURCES
     platform/cocoa/ScrollController.mm
     platform/cocoa/ScrollSnapAnimatorState.mm
     platform/cocoa/SearchPopupMenuCocoa.mm
+    platform/cocoa/SharedBufferCocoa.mm
     platform/cocoa/SystemVersion.mm
     platform/cocoa/TelephoneNumberDetectorCocoa.cpp
     platform/cocoa/ThemeCocoa.mm
-    platform/cocoa/VNodeTrackerCocoa.cpp
     platform/cocoa/WebCoreNSErrorExtras.mm
-
-    platform/crypto/commoncrypto/CryptoDigestCommonCrypto.cpp
 
     platform/gamepad/mac/HIDGamepad.cpp
     platform/gamepad/mac/HIDGamepadProvider.cpp
@@ -422,7 +422,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/cv/VideoTextureCopierCV.cpp
 
     platform/graphics/mac/ColorMac.mm
-    platform/graphics/mac/ComplexTextController.cpp
     platform/graphics/mac/ComplexTextControllerCoreText.mm
     platform/graphics/mac/DisplayRefreshMonitorMac.cpp
     platform/graphics/mac/FloatPointMac.mm
@@ -482,7 +481,6 @@ list(APPEND WebCore_SOURCES
     platform/mac/ScrollViewMac.mm
     platform/mac/ScrollbarThemeMac.mm
     platform/mac/SerializedPlatformRepresentationMac.mm
-    platform/mac/SharedBufferMac.mm
     platform/mac/SoundMac.mm
     platform/mac/SuddenTermination.mm
     platform/mac/SystemSleepListenerMac.mm
@@ -595,7 +593,6 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     Modules/indexeddb/shared
     Modules/indexeddb/server
 
-    bindings/generic
     bindings/js
 
     bridge/objc
@@ -652,6 +649,8 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     platform/graphics/transforms
 
     platform/graphics/ca/cocoa
+
+    platform/mediastream/libwebrtc
 
     platform/network/cf
     platform/network/cocoa
@@ -749,6 +748,9 @@ list(APPEND WebCoreTestSupport_SOURCES
     testing/Internals.mm
     testing/MockContentFilter.cpp
     testing/MockContentFilterSettings.cpp
+    testing/MockQuickLookHandleClient.cpp
+
+    testing/cocoa/WebArchiveDumpSupport.mm
 )
 
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} "-compatibility_version 1 -current_version ${WEBKIT_MAC_VERSION}")

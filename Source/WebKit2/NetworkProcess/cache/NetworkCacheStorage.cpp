@@ -53,9 +53,9 @@ static double computeRecordWorth(FileTimes);
 struct Storage::ReadOperation {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    ReadOperation(const Key& key, const RetrieveCompletionHandler& completionHandler)
+    ReadOperation(const Key& key, RetrieveCompletionHandler&& completionHandler)
         : key(key)
-        , completionHandler(completionHandler)
+        , completionHandler(WTFMove(completionHandler))
     { }
 
     void cancel();
@@ -211,6 +211,7 @@ Storage::Storage(const String& baseDirectoryPath, Salt salt)
     : m_basePath(baseDirectoryPath)
     , m_recordsPath(makeRecordsDirectoryPath(baseDirectoryPath))
     , m_salt(salt)
+    , m_canUseSharedMemoryForBodyData(canUseSharedMemoryForPath(baseDirectoryPath))
     , m_readOperationTimeoutTimer(*this, &Storage::cancelAllReadOperations)
     , m_writeOperationDispatchTimer(*this, &Storage::dispatchPendingWriteOperations)
     , m_ioQueue(WorkQueue::create("com.apple.WebKit.Cache.Storage", WorkQueue::Type::Concurrent))
@@ -364,8 +365,7 @@ struct RecordMetaData {
 
     unsigned cacheStorageVersion;
     Key key;
-    // FIXME: Add encoder/decoder for time_point.
-    std::chrono::milliseconds epochRelativeTimeStamp;
+    std::chrono::system_clock::time_point timeStamp;
     SHA1::Digest headerHash;
     uint64_t headerSize;
     SHA1::Digest bodyHash;
@@ -380,12 +380,12 @@ static bool decodeRecordMetaData(RecordMetaData& metaData, const Data& fileData)
 {
     bool success = false;
     fileData.apply([&metaData, &success](const uint8_t* data, size_t size) {
-        Decoder decoder(data, size);
+        WTF::Persistence::Decoder decoder(data, size);
         if (!decoder.decode(metaData.cacheStorageVersion))
             return false;
         if (!decoder.decode(metaData.key))
             return false;
-        if (!decoder.decode(metaData.epochRelativeTimeStamp))
+        if (!decoder.decode(metaData.timeStamp))
             return false;
         if (!decoder.decode(metaData.headerHash))
             return false;
@@ -439,8 +439,7 @@ void Storage::readRecord(ReadOperation& readOperation, const Data& recordData)
         return;
 
     // Sanity check against time stamps in future.
-    auto timeStamp = std::chrono::system_clock::time_point(metaData.epochRelativeTimeStamp);
-    if (timeStamp > std::chrono::system_clock::now())
+    if (metaData.timeStamp > std::chrono::system_clock::now())
         return;
 
     Data bodyData;
@@ -456,19 +455,20 @@ void Storage::readRecord(ReadOperation& readOperation, const Data& recordData)
     readOperation.expectedBodyHash = metaData.bodyHash;
     readOperation.resultRecord = std::make_unique<Storage::Record>(Storage::Record {
         metaData.key,
-        timeStamp,
+        metaData.timeStamp,
         headerData,
-        bodyData
+        bodyData,
+        metaData.bodyHash
     });
 }
 
 static Data encodeRecordMetaData(const RecordMetaData& metaData)
 {
-    Encoder encoder;
+    WTF::Persistence::Encoder encoder;
 
     encoder << metaData.cacheStorageVersion;
     encoder << metaData.key;
-    encoder << metaData.epochRelativeTimeStamp;
+    encoder << metaData.timeStamp;
     encoder << metaData.headerHash;
     encoder << metaData.headerSize;
     encoder << metaData.bodyHash;
@@ -510,7 +510,7 @@ Data Storage::encodeRecord(const Record& record, std::optional<BlobStorage::Blob
     ASSERT(!blob || bytesEqual(blob.value().data, record.body));
 
     RecordMetaData metaData(record.key);
-    metaData.epochRelativeTimeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(record.timeStamp.time_since_epoch());
+    metaData.timeStamp = record.timeStamp;
     metaData.headerHash = computeSHA1(record.header, m_salt);
     metaData.headerSize = record.header.size();
     metaData.bodyHash = blob ? blob.value().hash : computeSHA1(record.body, m_salt);
@@ -804,7 +804,7 @@ void Storage::traverse(const String& type, TraverseFlags flags, TraverseHandler&
 {
     ASSERT(RunLoop::isMain());
     ASSERT(traverseHandler);
-    // Avoid non-thread safe std::function copies.
+    // Avoid non-thread safe Function copies.
 
     auto traverseOperationPtr = std::make_unique<TraverseOperation>(type, flags, WTFMove(traverseHandler));
     auto& traverseOperation = *traverseOperationPtr;
@@ -835,9 +835,10 @@ void Storage::traverse(const String& type, TraverseFlags flags, TraverseHandler&
                 if (decodeRecordHeader(fileData, metaData, headerData, m_salt)) {
                     Record record {
                         metaData.key,
-                        std::chrono::system_clock::time_point(metaData.epochRelativeTimeStamp),
+                        metaData.timeStamp,
                         headerData,
-                        { }
+                        { },
+                        metaData.bodyHash
                     };
                     RecordInfo info {
                         static_cast<size_t>(metaData.bodySize),
@@ -888,7 +889,7 @@ void Storage::setCapacity(size_t capacity)
     shrinkIfNeeded();
 }
 
-void Storage::clear(const String& type, std::chrono::system_clock::time_point modifiedSinceTime, std::function<void ()>&& completionHandler)
+void Storage::clear(const String& type, std::chrono::system_clock::time_point modifiedSinceTime, Function<void ()>&& completionHandler)
 {
     ASSERT(RunLoop::isMain());
     LOG(NetworkCacheStorage, "(NetworkProcess) clearing cache");

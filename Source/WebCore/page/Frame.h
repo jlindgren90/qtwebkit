@@ -60,7 +60,7 @@ class RegularExpression;
 
 namespace WebCore {
 
-class AnimationController;
+class CSSAnimationController;
 class Color;
 class Document;
 class Editor;
@@ -105,7 +105,8 @@ enum {
     LayerTreeFlagsIncludeTileCaches = 1 << 2,
     LayerTreeFlagsIncludeRepaintRects = 1 << 3,
     LayerTreeFlagsIncludePaintingPhases = 1 << 4,
-    LayerTreeFlagsIncludeContentLayers = 1 << 5
+    LayerTreeFlagsIncludeContentLayers = 1 << 5,
+    LayerTreeFlagsIncludeAcceleratesDrawing = 1 << 6,
 };
 typedef unsigned LayerTreeFlags;
 
@@ -149,11 +150,13 @@ public:
     NavigationScheduler& navigationScheduler() const;
     FrameSelection& selection() const;
     FrameTree& tree() const;
-    AnimationController& animation() const;
+    CSSAnimationController& animation() const;
     ScriptController& script();
     
     WEBCORE_EXPORT RenderView* contentRenderer() const; // Root of the render tree for the document contained in this frame.
     WEBCORE_EXPORT RenderWidget* ownerRenderer() const; // Renderer for the element that contains this frame.
+
+    bool documentIsBeingReplaced() const { return m_documentIsBeingReplaced; }
 
 // ======== All public functions below this point are candidates to move out of Frame into another class. ========
 
@@ -162,7 +165,7 @@ public:
     WEBCORE_EXPORT String layerTreeAsText(LayerTreeFlags = 0) const;
     WEBCORE_EXPORT String trackedRepaintRectsAsText() const;
 
-    WEBCORE_EXPORT static Frame* frameForWidget(const Widget*);
+    WEBCORE_EXPORT static Frame* frameForWidget(const Widget&);
 
     Settings& settings() const { return *m_settings; }
 
@@ -288,7 +291,7 @@ private:
     const std::unique_ptr<ScriptController> m_script;
     const std::unique_ptr<Editor> m_editor;
     const std::unique_ptr<FrameSelection> m_selection;
-    const std::unique_ptr<AnimationController> m_animationController;
+    const std::unique_ptr<CSSAnimationController> m_animationController;
 
 #if ENABLE(DATA_DETECTION)
     RetainPtr<NSArray> m_dataDetectionResults;
@@ -318,6 +321,7 @@ private:
 
     int m_activeDOMObjectsAndAnimationsSuspendedCount;
     bool m_mainFrameWasDestroyed { false };
+    bool m_documentIsBeingReplaced { false };
 
 protected:
     std::unique_ptr<EventHandler> m_eventHandler;
@@ -363,7 +367,7 @@ inline Editor& Frame::editor() const
     return *m_editor;
 }
 
-inline AnimationController& Frame::animation() const
+inline CSSAnimationController& Frame::animation() const
 {
     return *m_animationController;
 }

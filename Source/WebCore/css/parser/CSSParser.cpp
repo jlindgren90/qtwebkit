@@ -84,20 +84,14 @@ CSSParserContext::CSSParserContext(Document& document, const URL& baseURL, const
     , cssGridLayoutEnabled(document.isCSSGridLayoutEnabled())
 #endif
 {
-    if (Settings* settings = document.settings()) {
-        needsSiteSpecificQuirks = settings->needsSiteSpecificQuirks();
-        enforcesCSSMIMETypeInNoQuirksMode = settings->enforceCSSMIMETypeInNoQuirksMode();
-        useLegacyBackgroundSizeShorthandBehavior = settings->useLegacyBackgroundSizeShorthandBehavior();
+    needsSiteSpecificQuirks = document.settings().needsSiteSpecificQuirks();
+    enforcesCSSMIMETypeInNoQuirksMode = document.settings().enforceCSSMIMETypeInNoQuirksMode();
+    useLegacyBackgroundSizeShorthandBehavior = document.settings().useLegacyBackgroundSizeShorthandBehavior();
 #if ENABLE(TEXT_AUTOSIZING)
-        textAutosizingEnabled = settings->textAutosizingEnabled();
+    textAutosizingEnabled = document.settings().textAutosizingEnabled();
 #endif
-        springTimingFunctionEnabled = settings->springTimingFunctionEnabled();
-
-#if ENABLE(VARIATION_FONTS)
-        variationFontsEnabled = settings->variationFontsEnabled();
-#endif
-        deferredCSSParserEnabled = settings->deferredCSSParserEnabled();
-    }
+    springTimingFunctionEnabled = document.settings().springTimingFunctionEnabled();
+    deferredCSSParserEnabled = document.settings().deferredCSSParserEnabled();
 
 #if PLATFORM(IOS)
     // FIXME: Force the site specific quirk below to work on iOS. Investigating other site specific quirks
@@ -119,9 +113,6 @@ bool operator==(const CSSParserContext& a, const CSSParserContext& b)
         && a.needsSiteSpecificQuirks == b.needsSiteSpecificQuirks
         && a.enforcesCSSMIMETypeInNoQuirksMode == b.enforcesCSSMIMETypeInNoQuirksMode
         && a.useLegacyBackgroundSizeShorthandBehavior == b.useLegacyBackgroundSizeShorthandBehavior
-#if ENABLE(VARIATION_FONTS)
-        && a.variationFontsEnabled == b.variationFontsEnabled
-#endif
         && a.springTimingFunctionEnabled == b.springTimingFunctionEnabled
         && a.deferredCSSParserEnabled == b.deferredCSSParserEnabled;
 }

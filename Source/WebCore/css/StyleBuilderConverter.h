@@ -62,18 +62,18 @@ public:
     static Length convertLengthOrAuto(StyleResolver&, const CSSValue&);
     static Length convertLengthSizing(StyleResolver&, const CSSValue&);
     static Length convertLengthMaxSizing(StyleResolver&, const CSSValue&);
-    template <typename T> static T convertComputedLength(StyleResolver&, const CSSValue&);
-    template <typename T> static T convertLineWidth(StyleResolver&, const CSSValue&);
+    template<typename T> static T convertComputedLength(StyleResolver&, const CSSValue&);
+    template<typename T> static T convertLineWidth(StyleResolver&, const CSSValue&);
     static float convertSpacing(StyleResolver&, const CSSValue&);
     static LengthSize convertRadius(StyleResolver&, const CSSValue&);
     static LengthPoint convertObjectPosition(StyleResolver&, const CSSValue&);
     static TextDecoration convertTextDecoration(StyleResolver&, const CSSValue&);
-    template <typename T> static T convertNumber(StyleResolver&, const CSSValue&);
-    template <typename T> static T convertNumberOrAuto(StyleResolver&, const CSSValue&);
+    template<typename T> static T convertNumber(StyleResolver&, const CSSValue&);
+    template<typename T> static T convertNumberOrAuto(StyleResolver&, const CSSValue&);
     static short convertWebkitHyphenateLimitLines(StyleResolver&, const CSSValue&);
-    template <CSSPropertyID property> static NinePieceImage convertBorderImage(StyleResolver&, CSSValue&);
-    template <CSSPropertyID property> static NinePieceImage convertBorderMask(StyleResolver&, CSSValue&);
-    template <CSSPropertyID property> static PassRefPtr<StyleImage> convertStyleImage(StyleResolver&, CSSValue&);
+    template<CSSPropertyID> static NinePieceImage convertBorderImage(StyleResolver&, CSSValue&);
+    template<CSSPropertyID> static NinePieceImage convertBorderMask(StyleResolver&, CSSValue&);
+    template<CSSPropertyID> static RefPtr<StyleImage> convertStyleImage(StyleResolver&, CSSValue&);
     static TransformOperations convertTransform(StyleResolver&, const CSSValue&);
     static String convertString(StyleResolver&, const CSSValue&);
     static String convertStringOrAuto(StyleResolver&, const CSSValue&);
@@ -91,7 +91,7 @@ public:
     static float convertTextStrokeWidth(StyleResolver&, const CSSValue&);
     static LineBoxContain convertLineBoxContain(StyleResolver&, const CSSValue&);
     static TextDecorationSkip convertTextDecorationSkip(StyleResolver&, const CSSValue&);
-    static PassRefPtr<ShapeValue> convertShapeValue(StyleResolver&, CSSValue&);
+    static RefPtr<ShapeValue> convertShapeValue(StyleResolver&, CSSValue&);
 #if ENABLE(CSS_SCROLL_SNAP)
     static ScrollSnapType convertScrollSnapType(StyleResolver&, const CSSValue&);
     static ScrollSnapAlign convertScrollSnapAlign(StyleResolver&, const CSSValue&);
@@ -234,13 +234,13 @@ inline Length StyleBuilderConverter::convertLengthMaxSizing(StyleResolver& style
     return convertLengthSizing(styleResolver, value);
 }
 
-template <typename T>
+template<typename T>
 inline T StyleBuilderConverter::convertComputedLength(StyleResolver& styleResolver, const CSSValue& value)
 {
     return downcast<CSSPrimitiveValue>(value).computeLength<T>(styleResolver.state().cssToLengthConversionData());
 }
 
-template <typename T>
+template<typename T>
 inline T StyleBuilderConverter::convertLineWidth(StyleResolver& styleResolver, const CSSValue& value)
 {
     auto& primitiveValue = downcast<CSSPrimitiveValue>(value);
@@ -294,21 +294,19 @@ inline Length StyleBuilderConverter::convertToRadiusLength(CSSToLengthConversion
 
 inline LengthSize StyleBuilderConverter::convertRadius(StyleResolver& styleResolver, const CSSValue& value)
 {
-    auto& primitiveValue = downcast<CSSPrimitiveValue>(value);
-    Pair* pair = primitiveValue.pairValue();
+    auto* pair = downcast<CSSPrimitiveValue>(value).pairValue();
     if (!pair || !pair->first() || !pair->second())
-        return LengthSize(Length(0, Fixed), Length(0, Fixed));
+        return { { 0, Fixed }, { 0, Fixed } };
 
     CSSToLengthConversionData conversionData = styleResolver.state().cssToLengthConversionData();
-    Length radiusWidth = convertToRadiusLength(conversionData, *pair->first());
-    Length radiusHeight = convertToRadiusLength(conversionData, *pair->second());
+    LengthSize radius { convertToRadiusLength(conversionData, *pair->first()), convertToRadiusLength(conversionData, *pair->second()) };
 
-    ASSERT(!radiusWidth.isNegative());
-    ASSERT(!radiusHeight.isNegative());
-    if (radiusWidth.isZero() || radiusHeight.isZero())
-        return LengthSize(Length(0, Fixed), Length(0, Fixed));
+    ASSERT(!radius.width.isNegative());
+    ASSERT(!radius.height.isNegative());
+    if (radius.width.isZero() || radius.height.isZero())
+        return { { 0, Fixed }, { 0, Fixed } };
 
-    return LengthSize(radiusWidth, radiusHeight);
+    return radius;
 }
 
 inline Length StyleBuilderConverter::convertTo100PercentMinusLength(const Length& length)
@@ -333,7 +331,7 @@ inline Length StyleBuilderConverter::convertPositionComponentY(StyleResolver& st
     return convertPositionComponent<CSSValueTop, CSSValueBottom>(styleResolver, downcast<CSSPrimitiveValue>(value));
 }
 
-template <CSSValueID cssValueFor0, CSSValueID cssValueFor100>
+template<CSSValueID cssValueFor0, CSSValueID cssValueFor100>
 inline Length StyleBuilderConverter::convertPositionComponent(StyleResolver& styleResolver, const CSSPrimitiveValue& value)
 {
     Length length;
@@ -392,13 +390,13 @@ inline TextDecoration StyleBuilderConverter::convertTextDecoration(StyleResolver
     return result;
 }
 
-template <typename T>
+template<typename T>
 inline T StyleBuilderConverter::convertNumber(StyleResolver&, const CSSValue& value)
 {
     return downcast<CSSPrimitiveValue>(value).value<T>(CSSPrimitiveValue::CSS_NUMBER);
 }
 
-template <typename T>
+template<typename T>
 inline T StyleBuilderConverter::convertNumberOrAuto(StyleResolver& styleResolver, const CSSValue& value)
 {
     if (downcast<CSSPrimitiveValue>(value).valueID() == CSSValueAuto)
@@ -414,7 +412,7 @@ inline short StyleBuilderConverter::convertWebkitHyphenateLimitLines(StyleResolv
     return primitiveValue.value<short>(CSSPrimitiveValue::CSS_NUMBER);
 }
 
-template <CSSPropertyID property>
+template<CSSPropertyID property>
 inline NinePieceImage StyleBuilderConverter::convertBorderImage(StyleResolver& styleResolver, CSSValue& value)
 {
     NinePieceImage image;
@@ -422,7 +420,7 @@ inline NinePieceImage StyleBuilderConverter::convertBorderImage(StyleResolver& s
     return image;
 }
 
-template <CSSPropertyID property>
+template<CSSPropertyID property>
 inline NinePieceImage StyleBuilderConverter::convertBorderMask(StyleResolver& styleResolver, CSSValue& value)
 {
     NinePieceImage image;
@@ -431,8 +429,8 @@ inline NinePieceImage StyleBuilderConverter::convertBorderMask(StyleResolver& st
     return image;
 }
 
-template <CSSPropertyID property>
-inline PassRefPtr<StyleImage> StyleBuilderConverter::convertStyleImage(StyleResolver& styleResolver, CSSValue& value)
+template<CSSPropertyID>
+inline RefPtr<StyleImage> StyleBuilderConverter::convertStyleImage(StyleResolver& styleResolver, CSSValue& value)
 {
     return styleResolver.styleImage(value);
 }
@@ -560,10 +558,9 @@ inline EResize StyleBuilderConverter::convertResize(StyleResolver& styleResolver
     auto& primitiveValue = downcast<CSSPrimitiveValue>(value);
 
     EResize resize = RESIZE_NONE;
-    if (primitiveValue.valueID() == CSSValueAuto) {
-        if (Settings* settings = styleResolver.document().settings())
-            resize = settings->textAreasAreResizable() ? RESIZE_BOTH : RESIZE_NONE;
-    } else
+    if (primitiveValue.valueID() == CSSValueAuto)
+        resize = styleResolver.settings().textAreasAreResizable() ? RESIZE_BOTH : RESIZE_NONE;
+    else
         resize = primitiveValue;
 
     return resize;
@@ -758,7 +755,7 @@ static inline bool isImageShape(const CSSValue& value)
     return is<CSSImageValue>(value) || is<CSSImageSetValue>(value) || is<CSSImageGeneratorValue>(value);
 }
 
-inline PassRefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleResolver& styleResolver, CSSValue& value)
+inline RefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleResolver& styleResolver, CSSValue& value)
 {
     if (is<CSSPrimitiveValue>(value)) {
         ASSERT(downcast<CSSPrimitiveValue>(value).valueID() == CSSValueNone);
@@ -766,12 +763,12 @@ inline PassRefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleReso
     }
 
     if (isImageShape(value))
-        return ShapeValue::createImageValue(styleResolver.styleImage(value));
+        return ShapeValue::create(styleResolver.styleImage(value).releaseNonNull());
 
     RefPtr<BasicShape> shape;
     CSSBoxType referenceBox = BoxMissing;
     for (auto& currentValue : downcast<CSSValueList>(value)) {
-        CSSPrimitiveValue& primitiveValue = downcast<CSSPrimitiveValue>(currentValue.get());
+        auto& primitiveValue = downcast<CSSPrimitiveValue>(currentValue.get());
         if (primitiveValue.isShape())
             shape = basicShapeForValue(styleResolver.state().cssToLengthConversionData(), *primitiveValue.shapeValue());
         else if (primitiveValue.valueID() == CSSValueContentBox
@@ -786,10 +783,10 @@ inline PassRefPtr<ShapeValue> StyleBuilderConverter::convertShapeValue(StyleReso
     }
 
     if (shape)
-        return ShapeValue::createShapeValue(WTFMove(shape), referenceBox);
+        return ShapeValue::create(shape.releaseNonNull(), referenceBox);
 
     if (referenceBox != BoxMissing)
-        return ShapeValue::createBoxShapeValue(referenceBox);
+        return ShapeValue::create(referenceBox);
 
     ASSERT_NOT_REACHED();
     return nullptr;

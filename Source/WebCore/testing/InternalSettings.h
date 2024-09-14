@@ -73,7 +73,6 @@ public:
     ExceptionOr<void> setShouldDisplayTrackKind(const String& kind, bool enabled);
     ExceptionOr<bool> shouldDisplayTrackKind(const String& kind);
     ExceptionOr<void> setStorageBlockingPolicy(const String&);
-    static void setLangAttributeAwareFormControlUIEnabled(bool);
     ExceptionOr<void> setImagesEnabled(bool);
     ExceptionOr<void> setMinimumTimerInterval(double intervalInSeconds);
     ExceptionOr<void> setDefaultVideoPosterURL(const String&);
@@ -88,17 +87,17 @@ public:
     ExceptionOr<void> setBackgroundShouldExtendBeyondPage(bool);
     ExceptionOr<void> setShouldConvertPositionStyleOnCopy(bool);
     ExceptionOr<void> setScrollingTreeIncludesFrames(bool);
+    ExceptionOr<void> setAllowUnclampedScrollPosition(bool);
     ExceptionOr<void> setAllowsInlineMediaPlayback(bool);
     ExceptionOr<void> setAllowsInlineMediaPlaybackAfterFullscreen(bool);
     ExceptionOr<void> setInlineMediaPlaybackRequiresPlaysInlineAttribute(bool);
-    static void setIndexedDBWorkersEnabled(bool);
     ExceptionOr<String> userInterfaceDirectionPolicy();
     ExceptionOr<void> setUserInterfaceDirectionPolicy(const String&);
     ExceptionOr<String> systemLayoutDirection();
     ExceptionOr<void> setSystemLayoutDirection(const String&);
-    ExceptionOr<bool> variationFontsEnabled();
-    ExceptionOr<void> setVariationFontsEnabled(bool);
     
+    static void setAllowsAnySSLCertificate(bool);
+
     ExceptionOr<bool> deferredCSSParserEnabled();
     ExceptionOr<void> setDeferredCSSParserEnabled(bool);
 
@@ -110,7 +109,10 @@ public:
     ForcedAccessibilityValue forcedPrefersReducedMotionAccessibilityValue() const;
     void setForcedPrefersReducedMotionAccessibilityValue(ForcedAccessibilityValue);
 
-    static void setAllowsAnySSLCertificate(bool);
+    // RuntimeEnabledFeatures.
+    static void setIndexedDBWorkersEnabled(bool);
+    static void setCSSGridLayoutEnabled(bool);
+    static void setWebGL2Enabled(bool);
 
 private:
     explicit InternalSettings(Page*);
@@ -143,7 +145,6 @@ private:
         bool m_originalCanvasUsesAcceleratedDrawing;
         bool m_originalMockScrollbarsEnabled;
         bool m_originalUsesOverlayScrollbars;
-        bool m_langAttributeAwareFormControlUIEnabled;
         bool m_imagesEnabled;
         bool m_preferMIMETypeForImages;
         std::chrono::milliseconds m_minimumTimerInterval;
@@ -174,12 +175,6 @@ private:
         bool m_allowsInlineMediaPlayback;
         bool m_allowsInlineMediaPlaybackAfterFullscreen;
         bool m_inlineMediaPlaybackRequiresPlaysInlineAttribute;
-#if ENABLE(INDEXED_DATABASE_IN_WORKERS)
-        bool m_indexedDBWorkersEnabled;
-#endif
-#if ENABLE(VARIATION_FONTS)
-        bool m_variationFontsEnabled;
-#endif
         bool m_deferredCSSParserEnabled;
         bool m_inputEventsEnabled;
 
@@ -189,6 +184,11 @@ private:
         Settings::ForcedAccessibilityValue m_forcedColorsAreInvertedAccessibilityValue;
         Settings::ForcedAccessibilityValue m_forcedDisplayIsMonochromeAccessibilityValue;
         Settings::ForcedAccessibilityValue m_forcedPrefersReducedMotionAccessibilityValue;
+
+        // Runtime enabled settings.
+        bool m_indexedDBWorkersEnabled;
+        bool m_cssGridLayoutEnabled;
+        bool m_webGL2Enabled;
     };
 
     Page* m_page;

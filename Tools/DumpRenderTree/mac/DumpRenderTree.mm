@@ -34,6 +34,7 @@
 #import "DefaultPolicyDelegate.h"
 #import "DumpRenderTreeDraggingInfo.h"
 #import "DumpRenderTreePasteboard.h"
+#import "DumpRenderTreeSpellChecker.h"
 #import "DumpRenderTreeWindow.h"
 #import "EditingDelegate.h"
 #import "EventSendingController.h"
@@ -178,13 +179,16 @@ volatile bool done;
 NavigationController* gNavigationController = nullptr;
 RefPtr<TestRunner> gTestRunner;
 
-WebFrame *mainFrame = nullptr;
+WebFrame *mainFrame = nil;
 // This is the topmost frame that is loading, during a given load, or nil when no load is 
 // in progress.  Usually this is the same as the main frame, but not always.  In the case
 // where a frameset is loaded, and then new content is loaded into one of the child frames,
 // that child frame is the "topmost frame that is loading".
-WebFrame *topLoadingFrame = nullptr; // !nil iff a load is in progress
+WebFrame *topLoadingFrame = nil; // !nil iff a load is in progress
 
+#if PLATFORM(MAC)
+NSWindow *mainWindow = nil;
+#endif
 
 CFMutableSetRef disallowedURLs= nullptr;
 static CFRunLoopTimerRef waitToDumpWatchdog;
@@ -797,6 +801,7 @@ WebView *createWebViewAndOffscreenWindow()
     NSScreen *firstScreen = [[NSScreen screens] firstObject];
     NSRect windowRect = (showWebView) ? NSOffsetRect(rect, 100, 100) : NSOffsetRect(rect, -10000, [firstScreen frame].size.height - rect.size.height + 10000);
     DumpRenderTreeWindow *window = [[DumpRenderTreeWindow alloc] initWithContentRect:windowRect styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];
+    mainWindow = window;
 
     [window setColorSpace:[firstScreen colorSpace]];
     [window setCollectionBehavior:NSWindowCollectionBehaviorStationary];
@@ -894,10 +899,25 @@ static NSString *libraryPathForDumpRenderTree()
         return [@"~/Library/Application Support/DumpRenderTree" stringByExpandingTildeInPath];
 }
 
+static void enableExperimentalFeatures(WebPreferences* preferences)
+{
+    [preferences setCSSGridLayoutEnabled:YES];
+    // FIXME: SpringTimingFunction
+    [preferences setGamepadsEnabled:YES];
+    [preferences setLinkPreloadEnabled:YES];
+    [preferences setModernMediaControlsEnabled:YES];
+    // FIXME: InputEvents
+    [preferences setSubtleCryptoEnabled:YES];
+    [preferences setUserTimingEnabled:YES];
+    [preferences setWebAnimationsEnabled:YES];
+    [preferences setWebGL2Enabled:YES];
+}
+
 // Called before each test.
-static void resetWebPreferencesToConsistentValues(const TestOptions& options)
+static void resetWebPreferencesToConsistentValues()
 {
     WebPreferences *preferences = [WebPreferences standardPreferences];
+    enableExperimentalFeatures(preferences);
 
     [preferences setNeedsStorageAccessFromFileURLsQuirk: NO];
     [preferences setAllowUniversalAccessFromFileURLs:YES];
@@ -984,8 +1004,6 @@ static void resetWebPreferencesToConsistentValues(const TestOptions& options)
     [preferences setShadowDOMEnabled:YES];
     [preferences setCustomElementsEnabled:YES];
 
-    [preferences setDOMIteratorEnabled:YES];
-
     [preferences setWebGL2Enabled:YES];
 
     [preferences setFetchAPIEnabled:YES];
@@ -994,17 +1012,22 @@ static void resetWebPreferencesToConsistentValues(const TestOptions& options)
 
     [preferences setHiddenPageDOMTimerThrottlingEnabled:NO];
     [preferences setHiddenPageCSSAnimationSuspensionEnabled:NO];
-
-    preferences.intersectionObserverEnabled = options.enableIntersectionObserver;
-    preferences.modernMediaControlsEnabled = options.enableModernMediaControls;
-
-    [preferences setSubtleCryptoEnabled:YES];
-
+    
     [preferences setMediaStreamEnabled:YES];
     [preferences setPeerConnectionEnabled:YES];
 
+    [preferences setResourceTimingEnabled:YES];
+
     [WebPreferences _clearNetworkLoaderSession];
     [WebPreferences _setCurrentNetworkLoaderSessionCookieAcceptPolicy:NSHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain];
+}
+
+static void setWebPreferencesForTestOptions(const TestOptions& options)
+{
+    WebPreferences *preferences = [WebPreferences standardPreferences];
+
+    preferences.intersectionObserverEnabled = options.enableIntersectionObserver;
+    preferences.modernMediaControlsEnabled = options.enableModernMediaControls;
 }
 
 // Called once on DumpRenderTree startup.
@@ -1742,11 +1765,11 @@ void dump()
             resultMimeType = @"application/pdf";
         } else if (gTestRunner->dumpDOMAsWebArchive()) {
             WebArchive *webArchive = [[mainFrame DOMDocument] webArchive];
-            resultString = CFBridgingRelease(createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
+            resultString = CFBridgingRelease(WebCoreTestSupport::createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
             resultMimeType = @"application/x-webarchive";
         } else if (gTestRunner->dumpSourceAsWebArchive()) {
             WebArchive *webArchive = [[mainFrame dataSource] webArchive];
-            resultString = CFBridgingRelease(createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
+            resultString = CFBridgingRelease(WebCoreTestSupport::createXMLStringFromWebArchiveData((CFDataRef)[webArchive data]));
             resultMimeType = @"application/x-webarchive";
         } else
             resultString = [mainFrame renderTreeAsExternalRepresentationForPrinting:gTestRunner->isPrinting()];
@@ -1823,6 +1846,7 @@ static bool shouldMakeViewportFlexible(const char* pathOrURL)
 static void resetWebViewToConsistentStateBeforeTesting(const TestOptions& options)
 {
     WebView *webView = [mainFrame webView];
+
 #if PLATFORM(IOS)
     adjustWebDocumentForStandardViewport(gWebBrowserView, gWebScrollView);
     [webView _setAllowsMessaging:YES];
@@ -1853,7 +1877,8 @@ static void resetWebViewToConsistentStateBeforeTesting(const TestOptions& option
 
     [WebCache clearCachedCredentials];
     
-    resetWebPreferencesToConsistentValues(options);
+    resetWebPreferencesToConsistentValues();
+    setWebPreferencesForTestOptions(options);
 
     TestRunner::setSerializeHTTPLoads(false);
     TestRunner::setAllowsAnySSLCertificate(false);
@@ -1893,6 +1918,8 @@ static void resetWebViewToConsistentStateBeforeTesting(const TestOptions& option
 #endif
 
     [mainFrame _clearOpener];
+
+    setSpellCheckerLoggingEnabled(false);
 
     resetAccumulatedLogs();
     WebCoreTestSupport::initializeLogChannelsIfNecessary();
@@ -1987,7 +2014,7 @@ static void runTest(const string& inputLine)
     NSString *informationString = [@"CRASHING TEST: " stringByAppendingString:testPath];
     WKSetCrashReportApplicationSpecificInformation((CFStringRef)informationString);
 
-    TestOptions options(url);
+    TestOptions options(url, command);
     resetWebViewToConsistentStateBeforeTesting(options);
 
     const char* testURL([[url absoluteString] UTF8String]);
@@ -2077,6 +2104,13 @@ static void runTest(const string& inputLine)
         gTestRunner->closeWebInspector();
         gTestRunner->setDeveloperExtrasEnabled(false);
     }
+
+#if PLATFORM(MAC)
+    // Make sure the WebView is parented, since the test may have unparented it.
+    WebView *webView = [mainFrame webView];
+    if (![webView superview])
+        [[mainWindow contentView] addSubview:webView];
+#endif
 
     if (gTestRunner->closeRemainingWindowsWhenComplete()) {
         NSArray* array = [DumpRenderTreeWindow openWindows];

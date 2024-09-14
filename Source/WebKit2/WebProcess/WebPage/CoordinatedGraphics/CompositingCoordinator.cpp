@@ -35,6 +35,7 @@
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/InspectorController.h>
 #include <WebCore/MainFrame.h>
+#include <WebCore/MemoryPressureHandler.h>
 #include <WebCore/Page.h>
 #include <wtf/SetForScope.h>
 
@@ -146,7 +147,7 @@ double CompositingCoordinator::timestamp() const
 
 void CompositingCoordinator::syncDisplayState()
 {
-#if ENABLE(REQUEST_ANIMATION_FRAME) && !USE(REQUEST_ANIMATION_FRAME_TIMER) && !USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
+#if !USE(REQUEST_ANIMATION_FRAME_TIMER) && !USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
     // Make sure that any previously registered animation callbacks are being executed before we flush the layers.
     m_lastAnimationServiceTime = timestamp();
     m_page->mainFrame().view()->serviceScriptedAnimations();
@@ -154,14 +155,12 @@ void CompositingCoordinator::syncDisplayState()
     m_page->mainFrame().view()->updateLayoutAndStyleIfNeededRecursive();
 }
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
 double CompositingCoordinator::nextAnimationServiceTime() const
 {
     // According to the requestAnimationFrame spec, rAF callbacks should not be faster than 60FPS.
     static const double MinimalTimeoutForAnimations = 1. / 60.;
     return std::max<double>(0., MinimalTimeoutForAnimations - timestamp() + m_lastAnimationServiceTime);
 }
-#endif
 
 void CompositingCoordinator::clearPendingStateChanges()
 {
@@ -408,15 +407,21 @@ void CompositingCoordinator::scheduleReleaseInactiveAtlases()
 
 void CompositingCoordinator::releaseInactiveAtlasesTimerFired()
 {
+    releaseAtlases(MemoryPressureHandler::singleton().isUnderMemoryPressure() ? ReleaseUnused : ReleaseInactive);
+}
+
+void CompositingCoordinator::releaseAtlases(ReleaseAtlasPolicy policy)
+{
     // We always want to keep one atlas for root contents layer.
     std::unique_ptr<UpdateAtlas> atlasToKeepAnyway;
     bool foundActiveAtlasForRootContentsLayer = false;
     for (int i = m_updateAtlases.size() - 1;  i >= 0; --i) {
         UpdateAtlas* atlas = m_updateAtlases[i].get();
-        if (!atlas->isInUse())
+        bool inUse = atlas->isInUse();
+        if (!inUse)
             atlas->addTimeInactive(ReleaseInactiveAtlasesTimerInterval);
         bool usableForRootContentsLayer = !atlas->supportsAlpha();
-        if (atlas->isInactive()) {
+        if (atlas->isInactive() || (!inUse && policy == ReleaseUnused)) {
             if (!foundActiveAtlasForRootContentsLayer && !atlasToKeepAnyway && usableForRootContentsLayer)
                 atlasToKeepAnyway = WTFMove(m_updateAtlases[i]);
             m_updateAtlases.remove(i);

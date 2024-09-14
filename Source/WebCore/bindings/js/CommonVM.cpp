@@ -32,13 +32,13 @@
 #include <heap/HeapInlines.h>
 #include <runtime/VM.h>
 #include <wtf/MainThread.h>
+#include <wtf/text/AtomicString.h>
 
 using namespace JSC;
 
 namespace WebCore {
 
 VM* g_commonVMOrNull;
-bool g_opaqueRootWriteBarrierEnabled;
 
 VM& commonVMSlow()
 {
@@ -56,17 +56,15 @@ VM& commonVMSlow()
 #endif
     
     g_commonVMOrNull->setGlobalConstRedeclarationShouldThrow(Settings::globalConstRedeclarationShouldThrow());
-    g_commonVMOrNull->heap.addMutatorShouldBeFencedCache(g_opaqueRootWriteBarrierEnabled);
     
-    initNormalWorldClientData(g_commonVMOrNull);
+    JSVMClientData::initNormalWorld(g_commonVMOrNull);
     
     return *g_commonVMOrNull;
 }
 
-void writeBarrierOpaqueRootSlow(void* root)
+void addImpureProperty(const AtomicString& propertyName)
 {
-    if (VM* vm = g_commonVMOrNull)
-        vm->heap.writeBarrierOpaqueRoot(root);
+    commonVM().addImpureProperty(propertyName);
 }
 
 } // namespace WebCore

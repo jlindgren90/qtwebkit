@@ -313,8 +313,6 @@ public:
     WEBCORE_EXPORT ExceptionOr<void> insertAdjacentHTML(const String& where, const String& html);
     WEBCORE_EXPORT ExceptionOr<void> insertAdjacentText(const String& where, const String& text);
 
-    bool ieForbidsInsertHTML() const;
-
     const RenderStyle* computedStyle(PseudoId = NOPSEUDO) override;
 
     bool needsStyleInvalidation() const;
@@ -703,7 +701,7 @@ inline Element* Node::parentElement() const
 
 inline const Element* Element::rootElement() const
 {
-    if (inDocument())
+    if (isConnected())
         return document().documentElement();
 
     const Element* highest = this;

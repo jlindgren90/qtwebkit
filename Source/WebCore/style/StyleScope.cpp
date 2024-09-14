@@ -37,10 +37,7 @@
 #include "HTMLSlotElement.h"
 #include "HTMLStyleElement.h"
 #include "InspectorInstrumentation.h"
-#include "Page.h"
-#include "PageGroup.h"
 #include "ProcessingInstruction.h"
-#include "SVGNames.h"
 #include "SVGStyleElement.h"
 #include "Settings.h"
 #include "ShadowRoot.h"
@@ -120,7 +117,7 @@ void Scope::clearResolver()
 
 Scope& Scope::forNode(Node& node)
 {
-    ASSERT(node.inDocument());
+    ASSERT(node.isConnected());
     auto* shadowRoot = node.containingShadowRoot();
     if (shadowRoot)
         return shadowRoot->styleScope();
@@ -195,7 +192,7 @@ void Scope::removePendingSheet(RemovePendingSheetNotificationType notification)
 
 void Scope::addStyleSheetCandidateNode(Node& node, bool createdByParser)
 {
-    if (!node.inDocument())
+    if (!node.isConnected())
         return;
     
     // Until the <body> exists, we have no choice but to compare document positions,
@@ -234,7 +231,7 @@ void Scope::removeStyleSheetCandidateNode(Node& node)
 
 void Scope::collectActiveStyleSheets(Vector<RefPtr<StyleSheet>>& sheets)
 {
-    if (m_document.settings() && !m_document.settings()->authorAndUserStylesEnabled())
+    if (!m_document.settings().authorAndUserStylesEnabled())
         return;
 
     for (auto& node : m_styleSheetCandidateNodes) {

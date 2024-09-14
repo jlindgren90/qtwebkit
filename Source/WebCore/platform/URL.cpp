@@ -717,6 +717,18 @@ String URL::hostAndPort() const
     return host();
 }
 
+String URL::protocolHostAndPort() const
+{
+    String result = m_string.substring(0, m_portEnd);
+
+    if (m_passwordEnd - m_userStart > 0) {
+        const int allowForTrailingAtSign = 1;
+        result.remove(m_userStart, m_passwordEnd - m_userStart + allowForTrailingAtSign);
+    }
+
+    return result;
+}
+
 String URL::user() const
 {
     return decodeURLEscapeSequences(m_string.substring(m_userStart, m_userEnd - m_userStart));
@@ -1114,17 +1126,17 @@ void URL::setPass(const String& password)
     }
 }
 
-void URL::setFragmentIdentifier(const String& s)
+void URL::setFragmentIdentifier(StringView identifier)
 {
     if (!m_isValid)
         return;
 
-    // FIXME: Non-ASCII characters must be encoded and escaped to match parse() expectations.
-    if (URLParser::enabled()) {
-        URLParser parser(makeString(m_string.left(m_queryEnd), "#", s));
-        *this = parser.result();
-    } else
-        parse(m_string.left(m_queryEnd) + "#" + s);
+    // FIXME: Optimize the case where the identifier already happens to be equal to what was passed?
+    // FIXME: Is it correct to do this without encoding and escaping non-ASCII characters?
+    if (URLParser::enabled())
+        *this = URLParser { makeString(StringView { m_string }.substring(0, m_queryEnd), '#', identifier) }.result();
+    else
+        parse(m_string.left(m_queryEnd) + "#" + identifier);
 }
 
 void URL::removeFragmentIdentifier()
@@ -1365,7 +1377,7 @@ String URL::serialize(bool omitFragment) const
         }
     } else if (protocolIs("file"))
         urlBuilder.appendLiteral("//");
-    if (cannotBeABaseURL(*this))
+    if (WebCore::cannotBeABaseURL(*this))
         urlBuilder.append(m_string, m_portEnd, m_pathEnd - m_portEnd);
     else {
         urlBuilder.appendLiteral("/");

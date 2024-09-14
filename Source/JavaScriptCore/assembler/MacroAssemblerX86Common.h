@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2014-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2008, 2014-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -327,6 +327,12 @@ public:
         ctzAfterBsf<32>(dst);
     }
 
+    // Only used for testing purposes.
+    void illegalInstruction()
+    {
+        m_assembler.illegalInstruction();
+    }
+    
     void lshift32(RegisterID shift_amount, RegisterID dest)
     {
         if (shift_amount == X86Registers::ecx)
@@ -1586,6 +1592,36 @@ public:
         else {
             moveDouble(src2, dst);
             andFloat(src1, dst);
+        }
+    }
+
+    void orDouble(FPRegisterID src, FPRegisterID dst)
+    {
+        m_assembler.orps_rr(src, dst);
+    }
+
+    void orDouble(FPRegisterID src1, FPRegisterID src2, FPRegisterID dst)
+    {
+        if (src1 == dst)
+            orDouble(src2, dst);
+        else {
+            moveDouble(src2, dst);
+            orDouble(src1, dst);
+        }
+    }
+
+    void orFloat(FPRegisterID src, FPRegisterID dst)
+    {
+        m_assembler.orps_rr(src, dst);
+    }
+
+    void orFloat(FPRegisterID src1, FPRegisterID src2, FPRegisterID dst)
+    {
+        if (src1 == dst)
+            orFloat(src2, dst);
+        else {
+            moveDouble(src2, dst);
+            orFloat(src1, dst);
         }
     }
 

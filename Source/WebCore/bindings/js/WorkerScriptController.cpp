@@ -53,7 +53,7 @@ WorkerScriptController::WorkerScriptController(WorkerGlobalScope* workerGlobalSc
 {
     m_vm->heap.acquireAccess(); // It's not clear that we have good discipline for heap access, so turn it on permanently.
     m_vm->ensureWatchdog();
-    initNormalWorldClientData(m_vm.get());
+    JSVMClientData::initNormalWorld(m_vm.get());
 }
 
 WorkerScriptController::~WorkerScriptController()
@@ -126,7 +126,7 @@ void WorkerScriptController::evaluate(const ScriptSourceCode& sourceCode, NakedP
 
     JSC::evaluate(exec, sourceCode.jsSourceCode(), m_workerGlobalScopeWrapper->globalThis(), returnedException);
 
-    if ((returnedException && isTerminatedExecutionException(returnedException)) || isTerminatingExecution()) {
+    if ((returnedException && isTerminatedExecutionException(vm, returnedException)) || isTerminatingExecution()) {
         forbidExecution();
         return;
     }

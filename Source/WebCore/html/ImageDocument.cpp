@@ -35,6 +35,7 @@
 #include "FrameLoaderClient.h"
 #include "FrameView.h"
 #include "HTMLBodyElement.h"
+#include "HTMLHeadElement.h"
 #include "HTMLHtmlElement.h"
 #include "HTMLImageElement.h"
 #include "HTMLNames.h"
@@ -127,7 +128,7 @@ LayoutSize ImageDocument::imageSize()
 
 void ImageDocument::updateDuringParsing()
 {
-    if (!frame()->settings().areImagesEnabled())
+    if (!settings().areImagesEnabled())
         return;
 
     if (!m_imageElement)
@@ -214,6 +215,10 @@ void ImageDocument::createDocumentStructure()
     rootElement->insertedByParser();
 
     frame()->injectUserScripts(InjectAtDocumentStart);
+
+    // We need a <head> so that the call to setTitle() later on actually has an <head> to append to <title> to.
+    auto head = HTMLHeadElement::create(*this);
+    rootElement->appendChild(head);
 
     auto body = HTMLBodyElement::create(*this);
     body->setAttribute(styleAttr, "margin: 0px");

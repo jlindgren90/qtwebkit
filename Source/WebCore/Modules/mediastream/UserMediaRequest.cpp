@@ -88,7 +88,7 @@ SecurityOrigin* UserMediaRequest::topLevelDocumentOrigin() const
 {
     if (!m_scriptExecutionContext)
         return nullptr;
-    return m_scriptExecutionContext->topOrigin();
+    return &m_scriptExecutionContext->topOrigin();
 }
 
 static bool isSecure(DocumentLoader& documentLoader)
@@ -101,7 +101,7 @@ static bool isSecure(DocumentLoader& documentLoader)
 
 static bool canCallGetUserMedia(Document& document, String& errorMessage)
 {
-    bool requiresSecureConnection = document.frame()->settings().mediaCaptureRequiresSecureConnection();
+    bool requiresSecureConnection = document.settings().mediaCaptureRequiresSecureConnection();
     if (requiresSecureConnection && !isSecure(*document.loader())) {
         errorMessage = "Trying to call getUserMedia from an insecure document.";
         return false;
@@ -109,9 +109,9 @@ static bool canCallGetUserMedia(Document& document, String& errorMessage)
 
     auto& topDocument = document.topDocument();
     if (&document != &topDocument) {
-        auto& topOrigin = *topDocument.topOrigin();
+        auto& topOrigin = topDocument.topOrigin();
 
-        if (!document.securityOrigin()->isSameSchemeHostPort(&topOrigin)) {
+        if (!document.securityOrigin().isSameSchemeHostPort(topOrigin)) {
             errorMessage = "Trying to call getUserMedia from a document with a different security origin than its top-level frame.";
             return false;
         }
@@ -122,7 +122,7 @@ static bool canCallGetUserMedia(Document& document, String& errorMessage)
                 return false;
             }
 
-            if (!ancestorDocument->securityOrigin()->isSameSchemeHostPort(&topOrigin)) {
+            if (!ancestorDocument->securityOrigin().isSameSchemeHostPort(topOrigin)) {
                 errorMessage = "Trying to call getUserMedia from a document with a different security origin than its top-level frame.";
                 return false;
             }

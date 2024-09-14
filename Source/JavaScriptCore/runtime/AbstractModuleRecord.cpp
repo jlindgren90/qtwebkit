@@ -46,14 +46,14 @@ AbstractModuleRecord::AbstractModuleRecord(VM& vm, Structure* structure, const I
 
 void AbstractModuleRecord::destroy(JSCell* cell)
 {
-    AbstractModuleRecord* thisObject = jsCast<AbstractModuleRecord*>(cell);
+    AbstractModuleRecord* thisObject = static_cast<AbstractModuleRecord*>(cell);
     thisObject->AbstractModuleRecord::~AbstractModuleRecord();
 }
 
 void AbstractModuleRecord::finishCreation(ExecState* exec, VM& vm)
 {
     Base::finishCreation(vm);
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
     putDirect(vm, Identifier::fromString(&vm, ASCIILiteral("registryEntry")), jsUndefined());
     putDirect(vm, Identifier::fromString(&vm, ASCIILiteral("evaluated")), jsBoolean(false));
 

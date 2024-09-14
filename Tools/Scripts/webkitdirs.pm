@@ -228,7 +228,7 @@ sub determineBaseProductDir
     my $setSharedPrecompsDir;
     $baseProductDir = $ENV{"WEBKIT_OUTPUTDIR"};
 
-    if (!defined($baseProductDir) and isAppleMacWebKit()) {
+    if (!defined($baseProductDir) and isAppleCocoaWebKit()) {
         # Silently remove ~/Library/Preferences/xcodebuild.plist which can
         # cause build failure. The presence of
         # ~/Library/Preferences/xcodebuild.plist can prevent xcodebuild from
@@ -268,7 +268,7 @@ sub determineBaseProductDir
         $baseProductDir = "$baseProductDir/$branch";
     }
 
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         $baseProductDir =~ s|^\Q$(SRCROOT)/..\E$|$sourceDir|;
         $baseProductDir =~ s|^\Q$(SRCROOT)/../|$sourceDir/|;
         $baseProductDir =~ s|^~/|$ENV{HOME}/|;
@@ -320,7 +320,7 @@ sub determineArchitecture
     determineBaseProductDir();
     determineXcodeSDK();
 
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         if (open ARCHITECTURE, "$baseProductDir/Architecture") {
             $architecture = <ARCHITECTURE>;
             close ARCHITECTURE;
@@ -339,7 +339,6 @@ sub determineArchitecture
             }
         }
     } elsif (isCMakeBuild()) {
-        my $host_processor = "";
         if (open my $cmake_sysinfo, "cmake --system-information |") {
             while (<$cmake_sysinfo>) {
                 next unless index($_, 'CMAKE_SYSTEM_PROCESSOR') == 0;
@@ -801,7 +800,7 @@ sub determinePassedArchitecture
 
     $passedArchitecture = undef;
     if (checkForArgumentAndRemoveFromARGV("--32-bit")) {
-        if (isAppleMacWebKit()) {
+        if (isAppleCocoaWebKit()) {
             # PLATFORM_IOS: Don't run `arch` command inside Simulator environment
             local %ENV = %ENV;
             delete $ENV{DYLD_ROOT_PATH};
@@ -848,41 +847,12 @@ sub setArchitecture
     $architecture = $passedArchitecture if $passedArchitecture;
 }
 
-sub skipSafariExecutableEntitlementChecks
-{
-    return `defaults read /Library/Preferences/org.webkit.BuildConfiguration SkipSafariExecutableEntitlementChecks 2>/dev/null` eq "1\n";
-}
-
-sub executableHasEntitlements
-{
-    my $executablePath = shift;
-    return (`codesign -d --entitlements - $executablePath 2>&1` =~ /<key>/);
-}
-
-sub safariPathFromSafariBundle
-{
-    my ($safariBundle) = @_;
-
-    die "Safari path is only relevant on Apple Mac platform\n" unless isAppleMacWebKit();
-
-    my $safariPath = "$safariBundle/Contents/MacOS/Safari";
-    return $safariPath if skipSafariExecutableEntitlementChecks();
-
-    my $safariForWebKitDevelopmentPath = "$safariBundle/Contents/MacOS/SafariForWebKitDevelopment";
-    return $safariForWebKitDevelopmentPath if -f $safariForWebKitDevelopmentPath && executableHasEntitlements($safariPath);
-
-    return $safariPath;
-}
-
-sub installedSafariPath
-{
-    return safariPathFromSafariBundle("/Applications/Safari.app");
-}
-
 # Locate Safari.
 sub safariPath
 {
-    die "Safari path is only relevant on Apple Mac platform\n" unless isAppleMacWebKit();
+    die "Safari path is only relevant on Apple Mac platform\n" unless isAppleCocoaWebKit();
+
+    my $safariPath;
 
     # Use WEBKIT_SAFARI environment variable if present.
     my $safariBundle = $ENV{WEBKIT_SAFARI};
@@ -892,11 +862,14 @@ sub safariPath
         if (-d "$configurationProductDir/Safari.app") {
             $safariBundle = "$configurationProductDir/Safari.app";
         }
-        if (!$safariBundle) {
-            return installedSafariPath();
-        }
     }
-    my $safariPath = safariPathFromSafariBundle($safariBundle);
+
+    if ($safariBundle) {
+        $safariPath = "$safariBundle/Contents/MacOS/Safari";
+    } else {
+        $safariPath = "/Applications/Safari.app/Contents/MacOS/SafariForWebKitDevelopment";
+    }
+
     die "Can't find executable at $safariPath.\n" if !-x $safariPath;
     return $safariPath;
 }
@@ -959,7 +932,7 @@ sub builtDylibPathForName
     if (isIOSWebKit()) {
         return "$configurationProductDir/$libraryName.framework/$libraryName";
     }
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         return "$configurationProductDir/$libraryName.framework/Versions/A/$libraryName";
     }
     if (isAppleWinWebKit()) {
@@ -978,7 +951,7 @@ sub checkFrameworks # FIXME: This is a poor name since only the Mac calls built 
 {
     return if isAnyWindows();
     my @frameworks = ("JavaScriptCore", "WebCore");
-    push(@frameworks, "WebKit") if isAppleMacWebKit(); # FIXME: This seems wrong, all ports should have a WebKit these days.
+    push(@frameworks, "WebKit") if isAppleCocoaWebKit(); # FIXME: This seems wrong, all ports should have a WebKit these days.
     for my $framework (@frameworks) {
         my $path = builtDylibPathForName($framework);
         die "Can't find built framework at \"$path\".\n" unless -e $path;
@@ -1285,10 +1258,10 @@ sub isCrossCompilation()
 
 sub isAppleWebKit()
 {
-    return isAppleMacWebKit() || isAppleWinWebKit();
+    return isAppleCocoaWebKit() || isAppleWinWebKit();
 }
 
-sub isAppleMacWebKit()
+sub isAppleCocoaWebKit()
 {
     return (portName() eq Mac) || isIOSWebKit();
 }
@@ -1365,7 +1338,7 @@ sub determineNmPath()
 {
     return if $nmPath;
 
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         $nmPath = `xcrun -find nm`;
         chomp $nmPath;
     }
@@ -1522,7 +1495,7 @@ sub launcherName()
 {
     if (isGtk() || isEfl() || isQt()) {
         return "MiniBrowser";
-    } elsif (isAppleMacWebKit()) {
+    } elsif (isAppleCocoaWebKit()) {
         return "Safari";
     } elsif (isAppleWinWebKit()) {
         return "MiniBrowser";
@@ -1862,7 +1835,7 @@ sub wrapperPrefixIfNeeded()
     if (isAnyWindows() || isJSCOnly()) {
         return ();
     }
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         return ("xcrun");
     }
     if (-e getJhbuildPath()) {
@@ -2163,7 +2136,7 @@ sub determineIsCMakeBuild()
 
 sub isCMakeBuild()
 {
-    return 1 unless isAppleMacWebKit();
+    return 1 unless isAppleCocoaWebKit();
     determineIsCMakeBuild();
     return $isCMakeBuild;
 }
@@ -2271,7 +2244,7 @@ sub mobileSafariBundle()
     determineConfigurationProductDir();
 
     # Use MobileSafari.app in product directory if present.
-    if (isAppleMacWebKit() && -d "$configurationProductDir/MobileSafari.app") {
+    if (isAppleCocoaWebKit() && -d "$configurationProductDir/MobileSafari.app") {
         return "$configurationProductDir/MobileSafari.app";
     }
     return installedMobileSafariBundle();
@@ -2575,7 +2548,7 @@ sub execMacWebKitAppForDebugging($)
 
 sub debugSafari
 {
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         checkFrameworks();
         execMacWebKitAppForDebugging(safariPath());
     }
@@ -2589,7 +2562,7 @@ sub runSafari
         return runIOSWebKitApp(mobileSafariBundle());
     }
 
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         return runMacWebKitApp(safariPath());
     }
 
@@ -2604,7 +2577,7 @@ sub runSafari
 
 sub runMiniBrowser
 {
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         return runMacWebKitApp(File::Spec->catfile(productDir(), "MiniBrowser.app", "Contents", "MacOS", "MiniBrowser"));
     } elsif (isAppleWinWebKit()) {
         my $result;
@@ -2617,7 +2590,7 @@ sub runMiniBrowser
 
 sub debugMiniBrowser
 {
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         execMacWebKitAppForDebugging(File::Spec->catfile(productDir(), "MiniBrowser.app", "Contents", "MacOS", "MiniBrowser"));
     }
     
@@ -2626,7 +2599,7 @@ sub debugMiniBrowser
 
 sub runWebKitTestRunner
 {
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         return runMacWebKitApp(File::Spec->catfile(productDir(), "WebKitTestRunner"));
     }
 
@@ -2635,7 +2608,7 @@ sub runWebKitTestRunner
 
 sub debugWebKitTestRunner
 {
-    if (isAppleMacWebKit()) {
+    if (isAppleCocoaWebKit()) {
         execMacWebKitAppForDebugging(File::Spec->catfile(productDir(), "WebKitTestRunner"));
     }
 

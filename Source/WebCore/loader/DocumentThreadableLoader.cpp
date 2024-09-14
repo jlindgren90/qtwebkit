@@ -110,6 +110,11 @@ DocumentThreadableLoader::DocumentThreadableLoader(Document& document, Threadabl
     if (m_async && m_options.mode == FetchOptions::Mode::Cors)
         m_originalHeaders = request.httpHeaderFields();
 
+    if (document.page() && document.page()->isRunningUserScripts() && SchemeRegistry::isUserExtensionScheme(request.url().protocol().toStringWithoutCopying())) {
+        m_options.mode = FetchOptions::Mode::NoCors;
+        m_options.filteringPolicy = ResponseFilteringPolicy::Disable;
+    }
+
     // As per step 11 of https://fetch.spec.whatwg.org/#main-fetch, data scheme (if same-origin data-URL flag is set) and about scheme are considered same-origin.
     if (request.url().protocolIsData())
         m_sameOriginRequest = options.sameOriginDataURLFlag == SameOriginDataURLFlag::Set;
@@ -281,13 +286,18 @@ void DocumentThreadableLoader::responseReceived(CachedResource& resource, const 
 void DocumentThreadableLoader::didReceiveResponse(unsigned long identifier, const ResourceResponse& response, ResourceResponse::Tainting tainting)
 {
     ASSERT(m_client);
+    ASSERT(response.type() != ResourceResponse::Type::Error);
 
     InspectorInstrumentation::didReceiveThreadableLoaderResponse(*this, identifier);
 
-    ASSERT(response.type() != ResourceResponse::Type::Error);
+    if (options().filteringPolicy == ResponseFilteringPolicy::Disable) {
+        m_client->didReceiveResponse(identifier, response);
+        return;
+    }
+
     if (response.type() == ResourceResponse::Type::Default) {
         m_client->didReceiveResponse(identifier, ResourceResponse::filterResponse(response, tainting));
-        if (tainting == ResourceResponse::Tainting::Opaque && options().opaqueResponse == OpaqueResponseBodyPolicy::DoNotReceive) {
+        if (tainting == ResourceResponse::Tainting::Opaque) {
             clearResource();
             if (m_client)
                 m_client->didFinishLoading(identifier, 0.0);
@@ -374,7 +384,7 @@ void DocumentThreadableLoader::loadRequest(ResourceRequest&& request, SecurityCh
         CachedResourceRequest newRequest(WTFMove(request), options);
         if (RuntimeEnabledFeatures::sharedFeatures().resourceTimingEnabled())
             newRequest.setInitiator(m_options.initiator);
-        newRequest.setOrigin(&securityOrigin());
+        newRequest.setOrigin(securityOrigin());
 
         ASSERT(!m_resource);
         // We create an URL here as the request will be moved in requestRawResource
@@ -483,8 +493,7 @@ bool DocumentThreadableLoader::isXMLHttpRequest() const
 
 SecurityOrigin& DocumentThreadableLoader::securityOrigin() const
 {
-    ASSERT(m_document.securityOrigin());
-    return m_origin ? *m_origin : *m_document.securityOrigin();
+    return m_origin ? *m_origin : m_document.securityOrigin();
 }
 
 const ContentSecurityPolicy& DocumentThreadableLoader::contentSecurityPolicy() const

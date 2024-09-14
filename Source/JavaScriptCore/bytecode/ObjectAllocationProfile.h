@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +48,7 @@ public:
 
     bool isNull() { return !m_structure; }
 
-    void initialize(VM& vm, JSCell* owner, JSObject* prototype, unsigned inferredInlineCapacity)
+    void initialize(VM& vm, JSGlobalObject* globalObject, JSCell* owner, JSObject* prototype, unsigned inferredInlineCapacity)
     {
         ASSERT(!m_allocator);
         ASSERT(!m_structure);
@@ -82,7 +82,7 @@ public:
         ASSERT(inlineCapacity <= JSFinalObject::maxInlineCapacity());
 
         size_t allocationSize = JSFinalObject::allocationSize(inlineCapacity);
-        MarkedAllocator* allocator = vm.heap.allocatorForObjectWithoutDestructor(allocationSize);
+        MarkedAllocator* allocator = vm.cellSpace.allocatorFor(allocationSize);
         
         // Take advantage of extra inline capacity available in the size class.
         if (allocator) {
@@ -92,7 +92,7 @@ public:
                 inlineCapacity = JSFinalObject::maxInlineCapacity();
         }
 
-        Structure* structure = vm.prototypeMap.emptyObjectStructureForPrototype(prototype, inlineCapacity);
+        Structure* structure = vm.prototypeMap.emptyObjectStructureForPrototype(globalObject, prototype, inlineCapacity);
 
         // Ensure that if another thread sees the structure, it will see it properly created
         WTF::storeStoreFence();
@@ -139,7 +139,7 @@ private:
             JSValue value = prototype->getDirect(vm, propertyNameVector[i]);
 
             // Functions are common, and are usually class-level objects that are not overridden.
-            if (jsDynamicCast<JSFunction*>(value))
+            if (jsDynamicCast<JSFunction*>(vm, value))
                 continue;
 
             ++count;

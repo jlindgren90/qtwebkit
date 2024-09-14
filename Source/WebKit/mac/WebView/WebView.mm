@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2005-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2006 David Smith (catfish.man@gmail.com)
  * Copyright (C) 2010 Igalia S.L
  *
@@ -40,6 +40,7 @@
 #import "StorageThread.h"
 #import "WebAlternativeTextClient.h"
 #import "WebApplicationCacheInternal.h"
+#import "WebArchive.h"
 #import "WebBackForwardListInternal.h"
 #import "WebBaseNetscapePluginView.h"
 #import "WebCache.h"
@@ -120,10 +121,10 @@
 #import <JavaScriptCore/Exception.h>
 #import <JavaScriptCore/JSValueRef.h>
 #import <WebCore/AlternativeTextUIController.h>
-#import <WebCore/AnimationController.h>
 #import <WebCore/ApplicationCacheStorage.h>
 #import <WebCore/BackForwardController.h>
 #import <WebCore/CFNetworkSPI.h>
+#import <WebCore/CSSAnimationController.h>
 #import <WebCore/Chrome.h>
 #import <WebCore/ColorMac.h>
 #import <WebCore/DatabaseManager.h>
@@ -156,6 +157,7 @@
 #import <WebCore/JSElement.h>
 #import <WebCore/JSNodeList.h>
 #import <WebCore/JSNotification.h>
+#import <WebCore/LibWebRTCProvider.h>
 #import <WebCore/LocalizedStrings.h>
 #import <WebCore/LogInitialization.h>
 #import <WebCore/MIMETypeRegistry.h>
@@ -255,7 +257,6 @@
 #import "WebPlainWhiteView.h"
 #import "WebPluginController.h"
 #import "WebPolicyDelegatePrivate.h"
-#import "WebSQLiteDatabaseTrackerClient.h"
 #import "WebStorageManagerPrivate.h"
 #import "WebUIKitSupport.h"
 #import "WebVisiblePosition.h"
@@ -278,6 +279,7 @@
 #import <WebCore/WebCoreThreadMessage.h>
 #import <WebCore/WebCoreThreadRun.h>
 #import <WebCore/WebEvent.h>
+#import <WebCore/WebSQLiteDatabaseTrackerClient.h>
 #import <WebCore/WebVideoFullscreenControllerAVKit.h>
 #import <libkern/OSAtomic.h>
 #import <wtf/FastMalloc.h>
@@ -504,10 +506,6 @@ static const char webViewIsOpen[] = "At least one WebView is still open.";
 - (void)_preferencesChanged:(WebPreferences *)preferences;
 - (void)_updateScreenScaleFromWindow;
 @end
-
-@interface NSURLCache (WebPrivate)
-- (CFURLCacheRef)_CFURLCache;
-@end
 #endif
 
 #if !PLATFORM(IOS)
@@ -580,6 +578,38 @@ static WebPageVisibilityState kit(PageVisibilityState visibilityState)
     ASSERT_NOT_REACHED();
     return WebPageVisibilityStateVisible;
 }
+
+namespace WebKit {
+
+class DeferredPageDestructor {
+public:
+    static void createDeferredPageDestructor(std::unique_ptr<Page> page)
+    {
+        new DeferredPageDestructor(WTFMove(page));
+    }
+
+private:
+    DeferredPageDestructor(std::unique_ptr<Page> page)
+        : m_page(WTFMove(page))
+    {
+        tryDestruction();
+    }
+
+    void tryDestruction()
+    {
+        if (m_page->insideNestedRunLoop()) {
+            m_page->whenUnnested([this] { tryDestruction(); });
+            return;
+        }
+
+        m_page = nullptr;
+        delete this;
+    }
+
+    std::unique_ptr<Page> m_page;
+};
+
+} // namespace WebKit
 
 @interface WebView (WebFileInternal)
 #if !PLATFORM(IOS)
@@ -1022,7 +1052,8 @@ static String webKitBundleVersionString()
     JSLockHolder lock(execState);
 
     // Make sure the context has a DOMWindow global object, otherwise this context didn't originate from a WebView.
-    if (!toJSDOMWindow(execState->lexicalGlobalObject()))
+    JSC::JSGlobalObject* globalObject = execState->lexicalGlobalObject();
+    if (!toJSDOMWindow(globalObject->vm(), globalObject))
         return;
 
     reportException(execState, toJS(execState, exception));
@@ -1279,7 +1310,7 @@ static void WebKitInitializeGamepadProviderIfNecessary()
 
 #if PLATFORM(IOS)
         // Set the WebSQLiteDatabaseTrackerClient.
-        SQLiteDatabaseTracker::setClient(WebSQLiteDatabaseTrackerClient::sharedWebSQLiteDatabaseTrackerClient());
+        SQLiteDatabaseTracker::setClient(&WebSQLiteDatabaseTrackerClient::sharedWebSQLiteDatabaseTrackerClient());
 
         if ([standardPreferences databasesEnabled])
 #endif
@@ -1309,19 +1340,24 @@ static void WebKitInitializeGamepadProviderIfNecessary()
     _private->group = WebViewGroup::getOrCreate(groupName, _private->preferences._localStorageDatabasePath);
     _private->group->addWebView(self);
 
-    PageConfiguration pageConfiguration(makeUniqueRef<WebEditorClient>(self), SocketProvider::create());
+    PageConfiguration pageConfiguration(
+        makeUniqueRef<WebEditorClient>(self),
+        SocketProvider::create(),
+        makeUniqueRef<WebCore::LibWebRTCProvider>()
+    );
 #if !PLATFORM(IOS)
     pageConfiguration.chromeClient = new WebChromeClient(self);
     pageConfiguration.contextMenuClient = new WebContextMenuClient(self);
     // FIXME: We should enable this on iOS as well.
     pageConfiguration.validationMessageClient = std::make_unique<WebValidationMessageClient>(self);
-#if ENABLE(DRAG_SUPPORT)
-    pageConfiguration.dragClient = new WebDragClient(self);
-#endif
     pageConfiguration.inspectorClient = new WebInspectorClient(self);
 #else
     pageConfiguration.chromeClient = new WebChromeClientIOS(self);
     pageConfiguration.inspectorClient = new WebInspectorClient(self);
+#endif
+
+#if ENABLE(DRAG_SUPPORT)
+    pageConfiguration.dragClient = new WebDragClient(self);
 #endif
 
     pageConfiguration.backForwardClient = BackForwardList::create(self);
@@ -1564,7 +1600,11 @@ static void WebKitInitializeGamepadProviderIfNecessary()
     _private->group = WebViewGroup::getOrCreate(groupName, _private->preferences._localStorageDatabasePath);
     _private->group->addWebView(self);
 
-    PageConfiguration pageConfiguration(makeUniqueRef<WebEditorClient>(self), SocketProvider::create());
+    PageConfiguration pageConfiguration(
+        makeUniqueRef<WebEditorClient>(self),
+        SocketProvider::create(),
+        makeUniqueRef<WebCore::LibWebRTCProvider>()
+    );
     pageConfiguration.chromeClient = new WebChromeClientIOS(self);
 #if ENABLE(DRAG_SUPPORT)
     pageConfiguration.dragClient = new WebDragClient(self);
@@ -1933,12 +1973,6 @@ static NSMutableSet *knownPluginMIMETypes()
     return _private->page->renderTreeSize();
 }
 
-// FIXME: This is incorrectly named, and should be removed <rdar://problem/22242515>.
-- (NSSize)_contentsSizeRespectingOverflow
-{
-    return [[[[self mainFrame] frameView] documentView] bounds].size;
-}
-
 - (void)_dispatchTileDidDraw:(CALayer*)tile
 {
     id mailDelegate = [self _webMailDelegate];
@@ -2147,8 +2181,8 @@ static bool fastDocumentTeardownEnabled()
     // all the plug-ins in the page cache to break any retain cycles.
     // See comment in HistoryItem::releaseAllPendingPageCaches() for more information.
     Page* page = _private->page;
-    _private->page = 0;
-    delete page;
+    _private->page = nullptr;
+    WebKit::DeferredPageDestructor::createDeferredPageDestructor(std::unique_ptr<Page>(page));
 
 #if !PLATFORM(IOS)
     if (_private->hasSpellCheckerDocumentTag) {
@@ -2611,7 +2645,6 @@ static bool needsSelfRetainWhileLoadingQuirk()
     settings.setAllowUniversalAccessFromFileURLs([preferences allowUniversalAccessFromFileURLs]);
     settings.setAllowFileAccessFromFileURLs([preferences allowFileAccessFromFileURLs]);
     settings.setNeedsStorageAccessFromFileURLsQuirk([preferences needsStorageAccessFromFileURLsQuirk]);
-    settings.setJavaScriptCanOpenWindowsAutomatically([preferences javaScriptCanOpenWindowsAutomatically]);
     settings.setMinimumFontSize([preferences minimumFontSize]);
     settings.setMinimumLogicalFontSize([preferences minimumLogicalFontSize]);
     settings.setPictographFontFamily([preferences pictographFontFamily]);
@@ -2655,12 +2688,14 @@ static bool needsSelfRetainWhileLoadingQuirk()
     settings.setDisplayListDrawingEnabled([preferences displayListDrawingEnabled]);
     settings.setCanvasUsesAcceleratedDrawing([preferences canvasUsesAcceleratedDrawing]);
     settings.setShowDebugBorders([preferences showDebugBorders]);
+    settings.setSimpleLineLayoutEnabled([preferences simpleLineLayoutEnabled]);
     settings.setSimpleLineLayoutDebugBordersEnabled([preferences simpleLineLayoutDebugBordersEnabled]);
     settings.setShowRepaintCounter([preferences showRepaintCounter]);
     settings.setWebGLEnabled([preferences webGLEnabled]);
     settings.setSubpixelCSSOMElementMetricsEnabled([preferences subpixelCSSOMElementMetricsEnabled]);
 
     settings.setForceSoftwareWebGLRendering([preferences forceSoftwareWebGLRendering]);
+    settings.setPreferLowPowerWebGLRendering([preferences preferLowPowerWebGLRendering]);
     settings.setAccelerated2dCanvasEnabled([preferences accelerated2dCanvasEnabled]);
     settings.setLoadDeferringEnabled(shouldEnableLoadDeferring());
     settings.setWindowFocusRestricted(shouldRestrictWindowFocus());
@@ -2703,6 +2738,8 @@ static bool needsSelfRetainWhileLoadingQuirk()
 
     settings.setAllowDisplayOfInsecureContent(shouldAllowDisplayAndRunningOfInsecureContent());
     settings.setAllowRunningOfInsecureContent(shouldAllowDisplayAndRunningOfInsecureContent());
+
+    settings.setJavaScriptCanOpenWindowsAutomatically([preferences javaScriptCanOpenWindowsAutomatically] || shouldAllowWindowOpenWithoutUserGesture());
 
     settings.setVisualViewportEnabled([preferences visualViewportEnabled]);
 
@@ -2833,15 +2870,9 @@ static bool needsSelfRetainWhileLoadingQuirk()
     RuntimeEnabledFeatures::sharedFeatures().setGamepadsEnabled([preferences gamepadsEnabled]);
 #endif
 
-#if ENABLE(INDEXED_DATABASE)
-    RuntimeEnabledFeatures::sharedFeatures().setWebkitIndexedDBEnabled(true);
-#endif
-
     RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled([preferences shadowDOMEnabled]);
 
     RuntimeEnabledFeatures::sharedFeatures().setInteractiveFormValidationEnabled([self interactiveFormValidationEnabled]);
-
-    RuntimeEnabledFeatures::sharedFeatures().setDOMIteratorEnabled([preferences DOMIteratorEnabled]);
 
     RuntimeEnabledFeatures::sharedFeatures().setModernMediaControlsEnabled([preferences modernMediaControlsEnabled]);
 
@@ -2875,6 +2906,10 @@ static bool needsSelfRetainWhileLoadingQuirk()
     RuntimeEnabledFeatures::sharedFeatures().setSubtleCryptoEnabled([preferences subtleCryptoEnabled]);
 #endif
 
+    RuntimeEnabledFeatures::sharedFeatures().setUserTimingEnabled(preferences.userTimingEnabled);
+    RuntimeEnabledFeatures::sharedFeatures().setResourceTimingEnabled(preferences.resourceTimingEnabled);
+    RuntimeEnabledFeatures::sharedFeatures().setLinkPreloadEnabled(preferences.linkPreloadEnabled);
+
     NSTimeInterval timeout = [preferences incrementalRenderingSuppressionTimeoutInSeconds];
     if (timeout > 0)
         settings.setIncrementalRenderingSuppressionTimeoutInSeconds(timeout);
@@ -2904,8 +2939,6 @@ static bool needsSelfRetainWhileLoadingQuirk()
 #endif
 
     settings.setAllowContentSecurityPolicySourceStarToMatchAnyProtocol(shouldAllowContentSecurityPolicySourceStarToMatchAnyProtocol());
-
-    settings.setAllowWindowOpenWithoutUserGesture(shouldAllowWindowOpenWithoutUserGesture());
 
     settings.setShouldConvertInvalidURLsToBlank(shouldConvertInvalidURLsToBlank());
 
@@ -3294,7 +3327,7 @@ static inline IMP getMethod(id o, SEL s)
     Document* document = core([frame DOMDocument]);
     if (Element* element = document ? document->webkitCurrentFullScreenElement() : 0) {
         SEL selector = @selector(webView:closeFullScreenWithListener:);
-        if (_private->UIDelegate && [_private->UIDelegate respondsToSelector:selector]) {
+        if ([_private->UIDelegate respondsToSelector:selector]) {
             WebKitFullScreenListener *listener = [[WebKitFullScreenListener alloc] initWithElement:element];
             CallUIDelegate(self, selector, listener);
             [listener release];
@@ -3468,8 +3501,8 @@ static inline IMP getMethod(id o, SEL s)
     NSView *documentView = [[kit(&frameView->frame()) frameView] documentView];
 
     for (const auto& widget: frameView->children()) {
-        if (is<FrameView>(*widget)) {
-            [self _addScrollerDashboardRegionsForFrameView:downcast<FrameView>(widget.get()) dashboardRegions:regions];
+        if (is<FrameView>(widget)) {
+            [self _addScrollerDashboardRegionsForFrameView:&downcast<FrameView>(widget.get()) dashboardRegions:regions];
             continue;
         }
 
@@ -3993,19 +4026,7 @@ static inline IMP getMethod(id o, SEL s)
 #if PLATFORM(IOS)
 - (NSDictionary *)quickLookContentForURL:(NSURL *)url
 {
-#if USE(QUICK_LOOK)
-    NSString *uti = qlPreviewConverterUTIForURL(url);
-    if (!uti)
-        return nil;
-
-    NSString *fileName = qlPreviewConverterFileNameForURL(url);
-    if (!fileName)
-        return nil;
-
-    return [NSDictionary dictionaryWithObjectsAndKeys: fileName, WebQuickLookFileNameKey, uti, WebQuickLookUTIKey, nil];
-#else
     return nil;
-#endif
 }
 
 - (BOOL)_isStopping
@@ -4910,7 +4931,7 @@ static Vector<String> toStringVector(NSArray* patterns)
 
     _private->customDeviceScaleFactor = customScaleFactor;
 
-    if (oldScaleFactor != [self _deviceScaleFactor])
+    if (_private->page && oldScaleFactor != [self _deviceScaleFactor])
         _private->page->setDeviceScaleFactor([self _deviceScaleFactor]);
 }
 #endif
@@ -6444,7 +6465,7 @@ static NSString * const backingPropertyOldScaleFactorKey = @"NSBackingPropertyOl
     return [self _elementAtWindowPoint:[self convertPoint:point toView:nil]];
 }
 
-#if ENABLE(DRAG_SUPPORT)
+#if ENABLE(DRAG_SUPPORT) && PLATFORM(MAC)
 // The following 2 internal NSView methods are called on the drag destination to make scrolling while dragging work.
 // Scrolling while dragging will only work if the drag destination is in a scroll view. The WebView is the drag destination. 
 // When dragging to a WebView, the document subview should scroll, but it doesn't because it is not the drag destination. 
@@ -6516,8 +6537,46 @@ static NSString * const backingPropertyOldScaleFactorKey = @"NSBackingPropertyOl
 {
     IntPoint client([draggingInfo draggingLocation]);
     IntPoint global(globalPoint([draggingInfo draggingLocation], [self window]));
-    DragData dragData(draggingInfo, client, global, static_cast<DragOperation>([draggingInfo draggingSourceOperationMask]), [self applicationFlags:draggingInfo]);
-    return core(self)->dragController().performDragOperation(dragData);
+    DragData *dragData = new DragData(draggingInfo, client, global, static_cast<DragOperation>([draggingInfo draggingSourceOperationMask]), [self applicationFlags:draggingInfo]);
+
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
+    NSArray* types = draggingInfo.draggingPasteboard.types;
+    if (![types containsObject:WebArchivePboardType] && ![types containsObject:NSFilenamesPboardType] && [types containsObject:NSFilesPromisePboardType]) {
+        NSArray *files = [draggingInfo.draggingPasteboard propertyListForType:NSFilesPromisePboardType];
+        if (![files isKindOfClass:[NSArray class]]) {
+            delete dragData;
+            return false;
+        }
+        size_t fileCount = files.count;
+        Vector<String> *fileNames = new Vector<String>;
+        NSURL *dropLocation = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
+        [draggingInfo enumerateDraggingItemsWithOptions:0 forView:self classes:@[[NSFilePromiseReceiver class]] searchOptions:@{ } usingBlock:^(NSDraggingItem * __nonnull draggingItem, NSInteger idx, BOOL * __nonnull stop) {
+            NSFilePromiseReceiver *item = draggingItem.item;
+            NSDictionary *options = @{ };
+
+            [item receivePromisedFilesAtDestination:dropLocation options:options operationQueue:[NSOperationQueue new] reader:^(NSURL * _Nonnull fileURL, NSError * _Nullable errorOrNil) {
+                if (errorOrNil)
+                    return;
+
+                dispatch_async(dispatch_get_main_queue(), [self, path = RetainPtr<NSString>(fileURL.path), fileNames, fileCount, dragData] {
+                    fileNames->append(path.get());
+                    if (fileNames->size() == fileCount) {
+                        dragData->setFileNames(*fileNames);
+                        core(self)->dragController().performDragOperation(*dragData);
+                        delete dragData;
+                        delete fileNames;
+                    }
+                });
+            }];
+        }];
+
+        return true;
+    }
+#endif
+    bool returnValue = core(self)->dragController().performDragOperation(*dragData);
+    delete dragData;
+
+    return returnValue;
 }
 
 - (NSView *)_hitTest:(NSPoint *)point dragTypes:(NSSet *)types
@@ -6527,7 +6586,7 @@ static NSString * const backingPropertyOldScaleFactorKey = @"NSBackingPropertyOl
         return self;
     return hitView;
 }
-#endif
+#endif // ENABLE(DRAG_SUPPORT) && PLATFORM(MAC)
 
 - (BOOL)acceptsFirstResponder
 {
@@ -7379,7 +7438,7 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSC::JSValue j
     }
     if (jsValue.isObject()) {
         JSObject* object = jsValue.getObject();
-        if (object->inherits(DateInstance::info())) {
+        if (object->inherits(vm, DateInstance::info())) {
             DateInstance* date = static_cast<DateInstance*>(object);
             double ms = date->internalNumber();
             if (!std::isnan(ms)) {
@@ -7388,8 +7447,7 @@ static NSAppleEventDescriptor* aeDescFromJSValue(ExecState* exec, JSC::JSValue j
                 if (noErr == UCConvertCFAbsoluteTimeToLongDateTime(utcSeconds, &ldt))
                     return [NSAppleEventDescriptor descriptorWithDescriptorType:typeLongDateTime bytes:&ldt length:sizeof(ldt)];
             }
-        }
-        else if (object->inherits(JSArray::info())) {
+        } else if (object->inherits(vm, JSArray::info())) {
             static NeverDestroyed<HashSet<JSObject*>> visitedElems;
             if (!visitedElems.get().contains(object)) {
                 visitedElems.get().add(object);
@@ -8242,11 +8300,10 @@ FORWARD(toggleUnderline)
 {
     Frame* coreFrame = core([self _selectedOrMainFrame]);
     if (coreFrame)
-        return coreFrame->editor().fontAttributesForSelectionStart();
+        return coreFrame->editor().fontAttributesForSelectionStart().autorelease();
     
     return nil;
 }
-
 
 @end
 
@@ -8522,7 +8579,7 @@ static WebFrameView *containingFrameView(NSView *view)
 #if PLATFORM(IOS)
     nsurlCacheMemoryCapacity = std::max(nsurlCacheMemoryCapacity, [nsurlCache memoryCapacity]);
     CFURLCacheRef cfCache;
-    if ([nsurlCache respondsToSelector:@selector(_CFURLCache)] && (cfCache = [nsurlCache _CFURLCache]))
+    if ((cfCache = [nsurlCache _CFURLCache]))
         CFURLCacheSetMemoryCapacity(cfCache, nsurlCacheMemoryCapacity);
     else
         [nsurlCache setMemoryCapacity:nsurlCacheMemoryCapacity];
@@ -9269,7 +9326,7 @@ bool LayerFlushController::flushLayers()
 {
     // FIXME: We should enable this on iOS as well.
 #if PLATFORM(MAC)
-    _private->formValidationBubble = std::make_unique<ValidationBubble>(self, message);
+    _private->formValidationBubble = ValidationBubble::create(self, message);
     _private->formValidationBubble->showRelativeTo(enclosingIntRect([self _convertRectFromRootView:anchorRect]));
 #else
     UNUSED_PARAM(message);
@@ -9480,7 +9537,8 @@ static NSTextAlignment nsTextAlignmentFromRenderStyle(const RenderStyle* style)
 
 - (void)updateTextTouchBar
 {
-    if (_private->_isDeferringTextTouchBarUpdates) {
+    BOOL touchBarsRequireInitialization = !_private->_richTextTouchBar || !_private->_plainTextTouchBar;
+    if (_private->_isDeferringTextTouchBarUpdates && !touchBarsRequireInitialization) {
         _private->_needsDeferredTextTouchBarUpdate = YES;
         return;
     }
@@ -9820,7 +9878,7 @@ static NSTextAlignment nsTextAlignmentFromRenderStyle(const RenderStyle* style)
     if (!page)
         return 0;
     JSContextRef context = [[self mainFrame] globalContext];
-    auto* notification = JSNotification::toWrapped(toJS(toJS(context), jsNotification));
+    auto* notification = JSNotification::toWrapped(toJS(context)->vm(), toJS(toJS(context), jsNotification));
     return static_cast<WebNotificationClient*>(NotificationController::clientFrom(*page))->notificationIDForTesting(notification);
 #else
     return 0;

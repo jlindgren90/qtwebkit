@@ -1771,11 +1771,11 @@ static RefPtr<CSSValue> consumeTransformValue(CSSParserTokenRange& range, CSSPar
     RefPtr<CSSValue> parsedValue;
     switch (functionId) {
     case CSSValueRotate:
-    case CSSValueRotatex:
-    case CSSValueRotatey:
-    case CSSValueRotatez:
-    case CSSValueSkewx:
-    case CSSValueSkewy:
+    case CSSValueRotateX:
+    case CSSValueRotateY:
+    case CSSValueRotateZ:
+    case CSSValueSkewX:
+    case CSSValueSkewY:
     case CSSValueSkew:
         parsedValue = consumeAngle(args, cssParserMode, UnitlessQuirk::Forbid);
         if (!parsedValue)
@@ -1787,9 +1787,9 @@ static RefPtr<CSSValue> consumeTransformValue(CSSParserTokenRange& range, CSSPar
                 return nullptr;
         }
         break;
-    case CSSValueScalex:
-    case CSSValueScaley:
-    case CSSValueScalez:
+    case CSSValueScaleX:
+    case CSSValueScaleY:
+    case CSSValueScaleZ:
     case CSSValueScale:
         parsedValue = consumeNumber(args, ValueRangeAll);
         if (!parsedValue)
@@ -1805,8 +1805,8 @@ static RefPtr<CSSValue> consumeTransformValue(CSSParserTokenRange& range, CSSPar
         if (!consumePerspective(args, cssParserMode, transformValue))
             return nullptr;
         break;
-    case CSSValueTranslatex:
-    case CSSValueTranslatey:
+    case CSSValueTranslateX:
+    case CSSValueTranslateY:
     case CSSValueTranslate:
         parsedValue = consumeLengthOrPercent(args, cssParserMode, ValueRangeAll);
         if (!parsedValue)
@@ -1818,7 +1818,7 @@ static RefPtr<CSSValue> consumeTransformValue(CSSParserTokenRange& range, CSSPar
                 return nullptr;
         }
         break;
-    case CSSValueTranslatez:
+    case CSSValueTranslateZ:
         parsedValue = consumeLength(args, cssParserMode, ValueRangeAll);
         break;
     case CSSValueMatrix:
@@ -3656,9 +3656,7 @@ RefPtr<CSSValue> CSSPropertyParser::parseSingleValue(CSSPropertyID property, CSS
         return consumeFontSynthesis(m_range);
 #if ENABLE(VARIATION_FONTS)
     case CSSPropertyFontVariationSettings:
-        if (m_context.variationFontsEnabled)
-            return consumeFontVariationSettings(m_range);
-        return nullptr;
+        return consumeFontVariationSettings(m_range);
 #endif
     case CSSPropertyLetterSpacing:
         return consumeLetterSpacing(m_range, m_context.mode);

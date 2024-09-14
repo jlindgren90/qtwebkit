@@ -158,26 +158,31 @@ void JSDOMGlobalObject::addBuiltinGlobals(VM& vm)
 void JSDOMGlobalObject::finishCreation(VM& vm)
 {
     Base::finishCreation(vm);
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
 
     addBuiltinGlobals(vm);
+    
+    RELEASE_ASSERT(classInfo());
 }
 
 void JSDOMGlobalObject::finishCreation(VM& vm, JSObject* thisValue)
 {
     Base::finishCreation(vm, thisValue);
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
 
     addBuiltinGlobals(vm);
+    
+    RELEASE_ASSERT(classInfo());
 }
 
 ScriptExecutionContext* JSDOMGlobalObject::scriptExecutionContext() const
 {
-    if (inherits(JSDOMWindowBase::info()))
+    if (inherits(vm(), JSDOMWindowBase::info()))
         return jsCast<const JSDOMWindowBase*>(this)->scriptExecutionContext();
-    if (inherits(JSWorkerGlobalScopeBase::info()))
+    if (inherits(vm(), JSWorkerGlobalScopeBase::info()))
         return jsCast<const JSWorkerGlobalScopeBase*>(this)->scriptExecutionContext();
-    ASSERT_NOT_REACHED();
+    dataLog("Unexpected global object: ", JSValue(this), "\n");
+    RELEASE_ASSERT_NOT_REACHED();
     return 0;
 }
 

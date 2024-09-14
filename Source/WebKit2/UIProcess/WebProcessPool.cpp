@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,10 +37,12 @@
 #include "DownloadProxy.h"
 #include "DownloadProxyMessages.h"
 #include "GamepadData.h"
+#include "HighPerformanceGraphicsUsageSampler.h"
 #include "LogInitialization.h"
 #include "NetworkProcessCreationParameters.h"
 #include "NetworkProcessMessages.h"
 #include "NetworkProcessProxy.h"
+#include "PerActivityStateCPUUsageSampler.h"
 #include "SandboxExtension.h"
 #include "StatisticsData.h"
 #include "TextChecker.h"
@@ -59,6 +61,7 @@
 #include "WebNotificationManagerProxy.h"
 #include "WebPageGroup.h"
 #include "WebPreferences.h"
+#include "WebPreferencesKeys.h"
 #include "WebProcessCreationParameters.h"
 #include "WebProcessMessages.h"
 #include "WebProcessPoolMessages.h"
@@ -69,6 +72,7 @@
 #include <WebCore/LinkHash.h>
 #include <WebCore/LogInitialization.h>
 #include <WebCore/ResourceRequest.h>
+#include <WebCore/RuntimeEnabledFeatures.h>
 #include <WebCore/SessionID.h>
 #include <WebCore/URLParser.h>
 #include <runtime/JSCInlines.h>
@@ -165,6 +169,10 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
     , m_memorySamplerEnabled(false)
     , m_memorySamplerInterval(1400.0)
     , m_websiteDataStore(m_configuration->shouldHaveLegacyDataStore() ? API::WebsiteDataStore::create(legacyWebsiteDataStoreConfiguration(m_configuration)).ptr() : nullptr)
+#if PLATFORM(MAC)
+    , m_highPerformanceGraphicsUsageSampler(std::make_unique<HighPerformanceGraphicsUsageSampler>(*this))
+    , m_perActivityStateCPUUsageSampler(std::make_unique<PerActivityStateCPUUsageSampler>(*this))
+#endif
     , m_shouldUseTestingNetworkSession(false)
     , m_processTerminationEnabled(true)
     , m_canHandleHTTPSServerTrustEvaluation(true)
@@ -179,10 +187,8 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
     for (auto& scheme : m_configuration->alwaysRevalidatedURLSchemes())
         m_schemesToRegisterAsAlwaysRevalidated.add(scheme);
 
-#if ENABLE(CACHE_PARTITIONING)
     for (const auto& urlScheme : m_configuration->cachePartitionedURLSchemes())
         m_schemesToRegisterAsCachePartitioned.add(urlScheme);
-#endif
 
     platformInitialize();
 
@@ -412,14 +418,12 @@ void WebProcessPool::networkProcessCrashed(NetworkProcessProxy* networkProcessPr
     m_networkProcess = nullptr;
 }
 
-void WebProcessPool::getNetworkProcessConnection(PassRefPtr<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply> reply)
+void WebProcessPool::getNetworkProcessConnection(Ref<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply>&& reply)
 {
-    ASSERT(reply);
-
     ensureNetworkProcess();
     ASSERT(m_networkProcess);
 
-    m_networkProcess->getNetworkProcessConnection(reply);
+    m_networkProcess->getNetworkProcessConnection(WTFMove(reply));
 }
 
 #if ENABLE(DATABASE_PROCESS)
@@ -444,13 +448,11 @@ void WebProcessPool::ensureDatabaseProcess()
     m_databaseProcess->send(Messages::DatabaseProcess::InitializeDatabaseProcess(parameters), 0);
 }
 
-void WebProcessPool::getDatabaseProcessConnection(PassRefPtr<Messages::WebProcessProxy::GetDatabaseProcessConnection::DelayedReply> reply)
+void WebProcessPool::getDatabaseProcessConnection(Ref<Messages::WebProcessProxy::GetDatabaseProcessConnection::DelayedReply>&& reply)
 {
-    ASSERT(reply);
-
     ensureDatabaseProcess();
 
-    m_databaseProcess->getDatabaseProcessConnection(reply);
+    m_databaseProcess->getDatabaseProcessConnection(WTFMove(reply));
 }
 
 void WebProcessPool::databaseProcessCrashed(DatabaseProcessProxy* databaseProcessProxy)
@@ -572,6 +574,12 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
     if (!parameters.mediaKeyStorageDirectory.isEmpty())
         SandboxExtension::createHandleWithoutResolvingPath(parameters.mediaKeyStorageDirectory, SandboxExtension::ReadWrite, parameters.mediaKeyStorageDirectoryExtensionHandle);
 
+#if ENABLE(MEDIA_STREAM)
+    // FIXME: Remove this and related parameter when <rdar://problem/29448368> is fixed.
+    if (RuntimeEnabledFeatures::sharedFeatures().mediaStreamEnabled())
+        SandboxExtension::createHandleForGenericExtension("com.apple.webkit.microphone", parameters.audioCaptureExtensionHandle);
+#endif
+    
     parameters.shouldUseTestingNetworkSession = m_shouldUseTestingNetworkSession;
 
     parameters.cacheModel = cacheModel();
@@ -586,9 +594,7 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
     copyToVector(m_schemesToRegisterAsDisplayIsolated, parameters.urlSchemesRegisteredAsDisplayIsolated);
     copyToVector(m_schemesToRegisterAsCORSEnabled, parameters.urlSchemesRegisteredAsCORSEnabled);
     copyToVector(m_schemesToRegisterAsAlwaysRevalidated, parameters.urlSchemesRegisteredAsAlwaysRevalidated);
-#if ENABLE(CACHE_PARTITIONING)
     copyToVector(m_schemesToRegisterAsCachePartitioned, parameters.urlSchemesRegisteredAsCachePartitioned);
-#endif
 
     parameters.shouldAlwaysUseComplexTextCodePath = m_alwaysUsesComplexTextCodePath;
     parameters.shouldUseFontSmoothing = m_shouldUseFontSmoothing;
@@ -792,8 +798,12 @@ Ref<WebPageProxy> WebProcessPool::createWebPage(PageClient& pageClient, Ref<API:
     } else if (pageConfiguration->relatedPage()) {
         // Sharing processes, e.g. when creating the page via window.open().
         process = &pageConfiguration->relatedPage()->process();
-    } else
+    } else {
+#if ENABLE(MEDIA_STREAM)
+        RuntimeEnabledFeatures::sharedFeatures().setMediaStreamEnabled(pageConfiguration->preferences()->store().getBoolValueForKey(WebPreferencesKey::mediaStreamEnabledKey()));
+#endif
         process = &createNewWebProcessRespectingProcessCountLimit();
+    }
 
     return process->createWebPage(pageClient, WTFMove(pageConfiguration));
 }
@@ -990,13 +1000,11 @@ void WebProcessPool::unregisterGlobalURLSchemeAsHavingCustomProtocolHandlers(con
         processPool->unregisterSchemeForCustomProtocol(urlScheme);
 }
 
-#if ENABLE(CACHE_PARTITIONING)
 void WebProcessPool::registerURLSchemeAsCachePartitioned(const String& urlScheme)
 {
     m_schemesToRegisterAsCachePartitioned.add(urlScheme);
     sendToAllProcesses(Messages::WebProcess::RegisterURLSchemeAsCachePartitioned(urlScheme));
 }
-#endif
 
 void WebProcessPool::setCacheModel(CacheModel cacheModel)
 {
@@ -1136,8 +1144,8 @@ void WebProcessPool::terminateDatabaseProcess()
 
 void WebProcessPool::allowSpecificHTTPSCertificateForHost(const WebCertificateInfo* certificate, const String& host)
 {
-    if (m_networkProcess)
-        m_networkProcess->send(Messages::NetworkProcess::AllowSpecificHTTPSCertificateForHost(certificate->certificateInfo(), host), 0);
+    ensureNetworkProcess();
+    m_networkProcess->send(Messages::NetworkProcess::AllowSpecificHTTPSCertificateForHost(certificate->certificateInfo(), host), 0);
 }
 
 void WebProcessPool::updateAutomationCapabilities() const
@@ -1269,6 +1277,8 @@ void WebProcessPool::startedUsingGamepads(IPC::Connection& connection)
 
     if (!wereAnyProcessesUsingGamepads)
         UIGamepadProvider::singleton().processPoolStartedUsingGamepads(*this);
+
+    proxy->send(Messages::WebProcess::SetInitialGamepads(UIGamepadProvider::singleton().snapshotGamepads()), 0);
 }
 
 void WebProcessPool::stoppedUsingGamepads(IPC::Connection& connection)
@@ -1427,6 +1437,17 @@ void WebProcessPool::updateHiddenPageThrottlingAutoIncreaseLimit()
 
     int limitInMilliseconds = maximumTimerThrottlePerPageInMS * m_hiddenPageThrottlingAutoIncreasesCounter.value();
     sendToAllProcesses(Messages::WebProcess::SetHiddenPageTimerThrottlingIncreaseLimit(limitInMilliseconds));
+}
+
+void WebProcessPool::reportWebContentCPUTime(int64_t cpuTime, uint64_t activityState)
+{
+#if PLATFORM(MAC)
+    if (m_perActivityStateCPUUsageSampler)
+        m_perActivityStateCPUUsageSampler->reportWebContentCPUTime(cpuTime, static_cast<WebCore::ActivityStateForCPUSampling>(activityState));
+#else
+    UNUSED_PARAM(cpuTime);
+    UNUSED_PARAM(activityState);
+#endif
 }
 
 } // namespace WebKit

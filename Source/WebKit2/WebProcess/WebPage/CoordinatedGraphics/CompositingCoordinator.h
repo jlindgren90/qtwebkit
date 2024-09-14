@@ -86,11 +86,14 @@ public:
 
     void syncDisplayState();
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     double nextAnimationServiceTime() const;
-#endif
 
 private:
+    enum ReleaseAtlasPolicy {
+        ReleaseInactive,
+        ReleaseUnused
+    };
+
     // GraphicsLayerClient
     void notifyAnimationStarted(const WebCore::GraphicsLayer*, const String&, double time) override;
     void notifyFlushRequired(const WebCore::GraphicsLayer*) override;
@@ -126,8 +129,8 @@ private:
     void purgeBackingStores();
 
     void scheduleReleaseInactiveAtlases();
-
     void releaseInactiveAtlasesTimerFired();
+    void releaseAtlases(ReleaseAtlasPolicy);
 
     double timestamp() const;
 
@@ -156,9 +159,7 @@ private:
     WebCore::FloatRect m_visibleContentsRect;
     WebCore::Timer m_releaseInactiveAtlasesTimer;
 
-#if ENABLE(REQUEST_ANIMATION_FRAME)
     double m_lastAnimationServiceTime { 0 };
-#endif
 };
 
 }

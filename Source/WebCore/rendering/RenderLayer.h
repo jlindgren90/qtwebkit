@@ -134,6 +134,8 @@ public:
     void addChild(RenderLayer* newChild, RenderLayer* beforeChild = nullptr);
     RenderLayer* removeChild(RenderLayer*);
 
+    Page& page() const { return renderer().page(); }
+
     void removeOnlyThisLayer();
     void insertOnlyThisLayer();
 
@@ -204,9 +206,8 @@ public:
 
     void availableContentSizeChanged(AvailableSizeChangeReason) override;
 
+    // "absoluteRect" is in scaled document coordinates.
     void scrollRectToVisible(SelectionRevealMode, const LayoutRect& absoluteRect, bool insideFixed, const ScrollAlignment& alignX, const ScrollAlignment& alignY);
-
-    LayoutRect getRectToExpose(const LayoutRect& visibleRect, const LayoutRect& visibleRectRelativeToDocument, const LayoutRect& exposeRect, bool insideFixed, const ScrollAlignment& alignX, const ScrollAlignment& alignY);
 
     bool scrollsOverflow() const;
     bool hasScrollbars() const { return m_hBar || m_vBar; }
@@ -782,6 +783,8 @@ private:
 
     bool setupClipPath(GraphicsContext&, const LayerPaintingInfo&, const LayoutSize& offsetFromRoot, LayoutRect& rootRelativeBounds, bool& rootRelativeBoundsComputed);
 
+    class FilterInfo;
+    std::pair<FilterInfo*, std::unique_ptr<FilterEffectRendererHelper>> filterPainter(GraphicsContext&, PaintLayerFlags) const;
     bool hasFilterThatIsPainting(GraphicsContext&, PaintLayerFlags) const;
     std::unique_ptr<FilterEffectRendererHelper> setupFilters(GraphicsContext&, LayerPaintingInfo&, PaintLayerFlags, const LayoutSize& offsetFromRoot, LayoutRect& rootRelativeBounds, bool& rootRelativeBoundsComputed);
     void applyFilters(FilterEffectRendererHelper*, GraphicsContext& originalContext, const LayerPaintingInfo&, const LayerFragments&);
@@ -939,6 +942,8 @@ private:
     ClipRect backgroundClipRect(const ClipRectsContext&) const;
 
     RenderLayer* enclosingTransformedAncestor() const;
+
+    LayoutRect getRectToExpose(const LayoutRect& visibleRect, const LayoutRect& exposeRect, bool insideFixed, const ScrollAlignment& alignX, const ScrollAlignment& alignY) const;
 
     // Convert a point in absolute coords into layer coords, taking transforms into account
     LayoutPoint absoluteToContents(const LayoutPoint&) const;
@@ -1145,8 +1150,6 @@ private:
     IntRect m_blockSelectionGapsBounds;
 
     std::unique_ptr<RenderLayerBacking> m_backing;
-
-    class FilterInfo;
 };
 
 inline void RenderLayer::clearZOrderLists()

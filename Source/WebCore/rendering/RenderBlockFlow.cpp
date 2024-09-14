@@ -1672,12 +1672,9 @@ static inline LayoutUnit calculateMinimumPageHeight(const RenderStyle& renderSty
 
 static inline bool needsAppleMailPaginationQuirk(RootInlineBox& lineBox)
 {
-    const auto& renderer = lineBox.renderer();
+    auto& renderer = lineBox.renderer();
 
-    if (!renderer.document().settings())
-        return false;
-
-    if (!renderer.document().settings()->appleMailPaginationQuirkEnabled())
+    if (!renderer.settings().appleMailPaginationQuirkEnabled())
         return false;
 
     if (renderer.element() && renderer.element()->idForStyleResolution() == "messageContentContainer")
@@ -2118,7 +2115,7 @@ void RenderBlockFlow::deleteLines()
     RenderBlock::deleteLines();
 }
 
-void RenderBlockFlow::moveFloatsTo(RenderBlockFlow* toBlockFlow)
+void RenderBlockFlow::addFloatsToNewParent(RenderBlockFlow& toBlockFlow) const
 {
     // When a portion of the render tree is being detached, anonymous blocks
     // will be combined as their children are deleted. In this process, the
@@ -2137,30 +2134,21 @@ void RenderBlockFlow::moveFloatsTo(RenderBlockFlow* toBlockFlow)
     // all be wrong, but since toBlockFlow is already marked for layout, this
     // will get fixed before anything gets displayed.
     // See bug https://bugs.webkit.org/show_bug.cgi?id=115566
-    if (m_floatingObjects) {
-        if (!toBlockFlow->m_floatingObjects)
-            toBlockFlow->createFloatingObjects();
+    if (!m_floatingObjects)
+        return;
 
-        const FloatingObjectSet& fromFloatingObjectSet = m_floatingObjects->set();
-        auto end = fromFloatingObjectSet.end();
+    if (!toBlockFlow.m_floatingObjects)
+        toBlockFlow.createFloatingObjects();
 
-        for (auto it = fromFloatingObjectSet.begin(); it != end; ++it) {
-            FloatingObject* floatingObject = it->get();
-
-            // Don't insert the object again if it's already in the list
-            if (toBlockFlow->containsFloat(floatingObject->renderer()))
-                continue;
-
-            toBlockFlow->m_floatingObjects->add(floatingObject->unsafeClone());
-        }
-    }
+    for (auto& floatingObject : m_floatingObjects->set())
+        toBlockFlow.m_floatingObjects->add(floatingObject->cloneForNewParent());
 }
 
 void RenderBlockFlow::moveAllChildrenIncludingFloatsTo(RenderBlock& toBlock, bool fullRemoveInsert)
 {
-    RenderBlockFlow& toBlockFlow = downcast<RenderBlockFlow>(toBlock);
+    auto& toBlockFlow = downcast<RenderBlockFlow>(toBlock);
     moveAllChildrenTo(&toBlockFlow, fullRemoveInsert);
-    moveFloatsTo(&toBlockFlow);
+    addFloatsToNewParent(toBlockFlow);
 }
 
 void RenderBlockFlow::addOverflowFromFloats()
@@ -3906,11 +3894,10 @@ void RenderBlockFlow::addChild(RenderObject* newChild, RenderObject* beforeChild
 {
     if (multiColumnFlowThread())
         return multiColumnFlowThread()->addChild(newChild, beforeChild);
-    if (beforeChild) {
-        if (RenderFlowThread* containingFlowThread = flowThreadContainingBlock())
-            beforeChild = containingFlowThread->resolveMovedChild(beforeChild);
-    }
-    RenderBlock::addChild(newChild, beforeChild);
+    auto* beforeChildOrPlaceholder = beforeChild;
+    if (auto* containingFlowThread = flowThreadContainingBlock())
+        beforeChildOrPlaceholder = containingFlowThread->resolveMovedChild(beforeChild);
+    RenderBlock::addChild(newChild, beforeChildOrPlaceholder);
 }
 
 void RenderBlockFlow::removeChild(RenderObject& oldChild)

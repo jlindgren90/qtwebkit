@@ -25,6 +25,8 @@ validationMessageTimerMagnification type=int, initial=50
 # draw canvas in software.
 minimumAccelerated2dCanvasSize type=int, initial=257*256
 
+maximumAccelerated2dCanvasSize type=unsigned, initial=5120*2880
+
 layoutFallbackWidth type=int, initial=980
 deviceWidth type=int, initial=0
 deviceHeight type=int, initial=0
@@ -101,7 +103,6 @@ offlineStorageDatabaseEnabled initial=true
 downloadableBinaryFontsEnabled initial=true
 
 xssAuditorEnabled initial=false
-unsafePluginPastingEnabled initial=true
 acceleratedCompositingForFixedPositionEnabled initial=defaultAcceleratedCompositingForFixedPositionEnabled
 acceleratedCompositingForOverflowScrollEnabled initial=false
 rubberBandingForSubScrollableRegionsEnabled initial=true, conditional=RUBBER_BANDING
@@ -109,10 +110,9 @@ rubberBandingForSubScrollableRegionsEnabled initial=true, conditional=RUBBER_BAN
 experimentalNotificationsEnabled initial=false
 webGLEnabled initial=false
 webGLErrorsToConsoleEnabled initial=true
-openGLMultisamplingEnabled initial=true
 forceSoftwareWebGLRendering initial=false
+preferLowPowerWebGLRendering initial=true
 accelerated2dCanvasEnabled initial=false
-antialiased2dCanvasEnabled initial=true
 loadDeferringEnabled initial=true
 webAudioEnabled initial=false
 paginateDuringLayoutEnabled initial=false
@@ -167,7 +167,6 @@ requestAnimationFrameEnabled initial=true
 touchAdjustmentEnabled initial=true
 
 fixedPositionCreatesStackingContext initial=defaultFixedPositionCreatesStackingContext
-syncXHRInDocumentsEnabled initial=true
 cookieEnabled initial=true
 mediaEnabled initial=true
 DOMPasteAllowed initial=false
@@ -186,7 +185,6 @@ primaryPlugInSnapshotDetectionEnabled initial=true
 maximumPlugInSnapshotAttempts type=unsigned, initial=20
 frameFlatteningEnabled initial=false
 
-allowCustomScrollbarInMainFrame initial=true
 webSecurityEnabled initial=true
 spatialNavigationEnabled initial=false
 
@@ -204,7 +202,6 @@ defaultVideoPosterURL type=String
 smartInsertDeleteEnabled initial=defaultSmartInsertDeleteEnabled
 selectTrailingWhitespaceEnabled initial=defaultSelectTrailingWhitespaceEnabled
 
-selectionIncludesAltImageText initial=true
 useLegacyBackgroundSizeShorthandBehavior initial=false
 fixedBackgroundsPaintRelativeToDocument initial=defaultFixedBackgroundsPaintRelativeToDocument
 
@@ -272,8 +269,6 @@ systemLayoutDirection type=TextDirection, initial=LTR
 
 allowContentSecurityPolicySourceStarToMatchAnyProtocol initial=false
 
-allowWindowOpenWithoutUserGesture initial=false
-
 selectionPaintingWithoutSelectionGapsEnabled initial=false
 
 shouldConvertInvalidURLsToBlank initial=true
@@ -281,8 +276,6 @@ shouldConvertInvalidURLsToBlank initial=true
 springTimingFunctionEnabled initial=false
 
 treatIPAddressAsDomain initial=false
-
-variationFontsEnabled initial=true, setNeedsStyleRecalcInAllFrames=1, conditional=VARIATION_FONTS
 
 # Runtime-enabled features
 visualViewportEnabled initial=false, setNeedsStyleRecalcInAllFrames=1
@@ -300,3 +293,5 @@ largeImageAsyncDecodingEnabled initial=true
 animatedImageAsyncDecodingEnabled initial=true
 
 shouldSuppressKeyboardInputDuringProvisionalNavigation initial=false
+
+langAttributeAwareFormControlUIEnabled initial=false

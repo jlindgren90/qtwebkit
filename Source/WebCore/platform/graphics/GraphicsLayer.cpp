@@ -118,7 +118,6 @@ GraphicsLayer::GraphicsLayer(Type type, GraphicsLayerClient& client)
     , m_contentsOpaque(false)
     , m_preserves3D(false)
     , m_backfaceVisibility(true)
-    , m_usingTiledBacking(false)
     , m_masksToBounds(false)
     , m_drawsContent(false)
     , m_contentsVisible(true)
@@ -365,13 +364,19 @@ void GraphicsLayer::noteDeviceOrPageScaleFactorChangedIncludingDescendants()
         childLayers[i]->noteDeviceOrPageScaleFactorChangedIncludingDescendants();
 }
 
+void GraphicsLayer::setIsInWindow(bool inWindow)
+{
+    if (TiledBacking* tiledBacking = this->tiledBacking())
+        tiledBacking->setIsInWindow(inWindow);
+}
+
 void GraphicsLayer::setReplicatedByLayer(GraphicsLayer* layer)
 {
     if (m_replicaLayer == layer)
         return;
 
     if (m_replicaLayer)
-        m_replicaLayer->setReplicatedLayer(0);
+        m_replicaLayer->setReplicatedLayer(nullptr);
 
     if (layer)
         layer->setReplicatedLayer(this);
@@ -447,7 +452,7 @@ void GraphicsLayer::getDebugBorderInfo(Color& color, float& width) const
     }
     
     if (drawsContent()) {
-        if (m_usingTiledBacking) {
+        if (tiledBacking()) {
             color = Color(255, 128, 0, 128); // tiled layer: orange
             return;
         }
@@ -661,6 +666,20 @@ void GraphicsLayer::addRepaintRect(const FloatRect& repaintRect)
     }
 }
 
+void GraphicsLayer::traverse(GraphicsLayer& layer, std::function<void (GraphicsLayer&)> traversalFunc)
+{
+    traversalFunc(layer);
+
+    for (auto* childLayer : layer.children())
+        traverse(*childLayer, traversalFunc);
+
+    if (auto* replicaLayer = layer.replicaLayer())
+        traverse(*replicaLayer, traversalFunc);
+
+    if (auto* maskLayer = layer.maskLayer())
+        traverse(*maskLayer, traversalFunc);
+}
+
 void GraphicsLayer::dumpLayer(TextStream& ts, int indent, LayerTreeAsTextBehavior behavior) const
 {
     writeIndent(ts, indent);
@@ -681,7 +700,7 @@ static void dumpChildren(TextStream& ts, const Vector<GraphicsLayer*>& children,
 {
     totalChildCount += children.size();
     for (auto* child : children) {
-        if (!child->client().shouldSkipLayerInDump(child, behavior)) {
+        if ((behavior & LayerTreeAsTextDebug) || !child->client().shouldSkipLayerInDump(child, behavior)) {
             child->dumpLayer(ts, indent + 2, behavior);
             continue;
         }
@@ -733,9 +752,9 @@ void GraphicsLayer::dumpProperties(TextStream& ts, int indent, LayerTreeAsTextBe
     }
 #endif
 
-    if (m_usingTiledBacking) {
+    if (type() == Type::Normal && tiledBacking()) {
         writeIndent(ts, indent + 1);
-        ts << "(usingTiledLayer " << m_usingTiledBacking << ")\n";
+        ts << "(usingTiledLayer 1)\n";
     }
 
     bool needsIOSDumpRenderTreeMainFrameRenderViewLayerIsAlwaysOpaqueHack = m_client.needsIOSDumpRenderTreeMainFrameRenderViewLayerIsAlwaysOpaqueHack(*this);
@@ -774,6 +793,11 @@ void GraphicsLayer::dumpProperties(TextStream& ts, int indent, LayerTreeAsTextBe
     if (m_backgroundColor.isValid() && m_client.shouldDumpPropertyForLayer(this, "backgroundColor")) {
         writeIndent(ts, indent + 1);
         ts << "(backgroundColor " << m_backgroundColor.nameForRenderTreeAsText() << ")\n";
+    }
+
+    if (behavior & LayerTreeAsTextIncludeAcceleratesDrawing && m_acceleratesDrawing) {
+        writeIndent(ts, indent + 1);
+        ts << "(acceleratesDrawing " << m_acceleratesDrawing << ")\n";
     }
 
     if (!m_transform.isIdentity()) {

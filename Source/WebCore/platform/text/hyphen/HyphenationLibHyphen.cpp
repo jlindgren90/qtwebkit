@@ -184,9 +184,9 @@ template<>
 class TinyLRUCachePolicy<AtomicString, RefPtr<WebCore::HyphenationDictionary>>
 {
 public:
-    static TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>>& cache()
+    static TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>, 32>& cache()
     {
-        static NeverDestroyed<TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>>> cache;
+        static NeverDestroyed<TinyLRUCache<AtomicString, RefPtr<WebCore::HyphenationDictionary>, 32>> cache;
         return cache;
     }
 
@@ -249,7 +249,11 @@ size_t lastHyphenLocation(StringView string, size_t beforeIndex, const AtomicStr
     char* hyphenArrayData = hyphenArray.data();
 
     String lowercaseLocaleIdentifier = AtomicString(localeIdentifier.string().convertToASCIILowercase());
-    ASSERT(availableLocales().contains(lowercaseLocaleIdentifier));
+
+    // Web content may specify strings for locales which do not exist or that we do not have.
+    if (!availableLocales().contains(lowercaseLocaleIdentifier))
+        return 0;
+
     for (const auto& dictionaryPath : availableLocales().get(lowercaseLocaleIdentifier)) {
         RefPtr<HyphenationDictionary> dictionary = WTF::TinyLRUCachePolicy<AtomicString, RefPtr<HyphenationDictionary>>::cache().get(AtomicString(dictionaryPath));
 

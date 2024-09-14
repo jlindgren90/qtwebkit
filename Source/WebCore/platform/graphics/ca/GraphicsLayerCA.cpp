@@ -924,8 +924,8 @@ bool GraphicsLayerCA::animationCanBeAccelerated(const KeyframeValueList& valueLi
 
 #if ENABLE(CSS_ANIMATIONS_LEVEL_2)
     // If there is a trigger that depends on the scroll position, we cannot accelerate the animation.
-    if (anim->trigger()->isScrollAnimationTrigger()) {
-        ScrollAnimationTrigger& scrollTrigger = downcast<ScrollAnimationTrigger>(*anim->trigger().get());
+    if (is<ScrollAnimationTrigger>(anim->trigger())) {
+        auto& scrollTrigger = downcast<ScrollAnimationTrigger>(*anim->trigger());
         if (scrollTrigger.hasEndValue())
             return false;
     }
@@ -1332,32 +1332,16 @@ void GraphicsLayerCA::setVisibleAndCoverageRects(const VisibleAndCoverageRects& 
     if (intersectsCoverageRect != m_intersectsCoverageRect) {
         m_uncommittedChanges |= CoverageRectChanged;
         m_intersectsCoverageRect = intersectsCoverageRect;
-
-        if (GraphicsLayerCA* maskLayer = downcast<GraphicsLayerCA>(m_maskLayer)) {
-            maskLayer->m_uncommittedChanges |= CoverageRectChanged;
-            maskLayer->m_intersectsCoverageRect = intersectsCoverageRect;
-        }
     }
 
     if (visibleRectChanged) {
         m_uncommittedChanges |= CoverageRectChanged;
         m_visibleRect = rects.visibleRect;
-
-        if (GraphicsLayerCA* maskLayer = downcast<GraphicsLayerCA>(m_maskLayer)) {
-            // FIXME: this assumes that the mask layer has the same geometry as this layer (which is currently always true).
-            maskLayer->m_uncommittedChanges |= CoverageRectChanged;
-            maskLayer->m_visibleRect = rects.visibleRect;
-        }
     }
 
     if (coverageRectChanged) {
         m_uncommittedChanges |= CoverageRectChanged;
         m_coverageRect = rects.coverageRect;
-
-        if (GraphicsLayerCA* maskLayer = downcast<GraphicsLayerCA>(m_maskLayer)) {
-            maskLayer->m_uncommittedChanges |= CoverageRectChanged;
-            maskLayer->m_coverageRect = rects.coverageRect;
-        }
     }
 }
 
@@ -1382,7 +1366,7 @@ void GraphicsLayerCA::recursiveCommitChanges(const CommitState& commitState, con
 #ifdef VISIBLE_TILE_WASH
     // Use having a transform as a key to making the tile wash layer. If every layer gets a wash,
     // they start to obscure useful information.
-    if ((!m_transform.isIdentity() || m_usingTiledBacking) && !m_visibleTileWashLayer) {
+    if ((!m_transform.isIdentity() || tiledBacking()) && !m_visibleTileWashLayer) {
         static NeverDestroyed<Color> washFillColor(255, 0, 0, 50);
         static NeverDestroyed<Color> washBorderColor(255, 0, 0, 100);
         
@@ -1423,8 +1407,10 @@ void GraphicsLayerCA::recursiveCommitChanges(const CommitState& commitState, con
     
     childCommitState.ancestorIsViewportConstrained |= m_isViewportConstrained;
 
-    if (GraphicsLayerCA* maskLayer = downcast<GraphicsLayerCA>(m_maskLayer))
+    if (GraphicsLayerCA* maskLayer = downcast<GraphicsLayerCA>(m_maskLayer)) {
+        maskLayer->setVisibleAndCoverageRects(rects, m_isViewportConstrained || commitState.ancestorIsViewportConstrained);
         maskLayer->commitLayerChangesBeforeSublayers(childCommitState, pageScaleFactor, baseRelativePosition);
+    }
 
     const Vector<GraphicsLayer*>& childLayers = children();
     size_t numChildren = childLayers.size();
@@ -1559,13 +1545,15 @@ void GraphicsLayerCA::commitLayerChangesBeforeSublayers(CommitState& commitState
 
     bool needTiledLayer = requiresTiledLayer(pageScaleFactor);
     bool needBackdropLayerType = (customAppearance() == LightBackdropAppearance || customAppearance() == DarkBackdropAppearance);
-    PlatformCALayer::LayerType neededLayerType = m_layer->layerType();
+
+    PlatformCALayer::LayerType currentLayerType = m_layer->layerType();
+    PlatformCALayer::LayerType neededLayerType = currentLayerType;
 
     if (needBackdropLayerType)
         neededLayerType = layerTypeForCustomBackdropAppearance(customAppearance());
     else if (needTiledLayer)
         neededLayerType = PlatformCALayer::LayerTypeTiledBackingLayer;
-    else if (isCustomBackdropLayerType(m_layer->layerType()) || m_usingTiledBacking)
+    else if (currentLayerType == PlatformCALayer::LayerTypeTiledBackingLayer || isCustomBackdropLayerType(m_layer->layerType()))
         neededLayerType = PlatformCALayer::LayerTypeWebLayer;
 
     if (neededLayerType != m_layer->layerType())
@@ -2541,20 +2529,18 @@ void GraphicsLayerCA::updateMasksToBoundsRect()
 void GraphicsLayerCA::updateMaskLayer()
 {
     PlatformCALayer* maskCALayer = m_maskLayer ? downcast<GraphicsLayerCA>(*m_maskLayer).primaryLayer() : nullptr;
-    m_layer->setMask(maskCALayer);
-
-    if (m_backdropLayer) {
-        if (m_maskLayer) {
-            ReplicaState replicaState(ReplicaState::ChildBranch);
-            RefPtr<PlatformCALayer> maskClone = downcast<GraphicsLayerCA>(*m_maskLayer).fetchCloneLayers(this, replicaState, IntermediateCloneLevel);
-            m_backdropLayer->setMask(maskClone.get());
-        } else
-            m_backdropLayer->setMask(nullptr);
+    
+    LayerMap* layerCloneMap;
+    if (m_structuralLayer) {
+        m_structuralLayer->setMask(maskCALayer);
+        layerCloneMap = m_structuralLayerClones.get();
+    } else {
+        m_layer->setMask(maskCALayer);
+        layerCloneMap = m_layerClones.get();
     }
 
     LayerMap* maskLayerCloneMap = m_maskLayer ? downcast<GraphicsLayerCA>(*m_maskLayer).primaryLayerClones() : nullptr;
-    
-    if (LayerMap* layerCloneMap = m_layerClones.get()) {
+    if (layerCloneMap) {
         for (auto& clone : *layerCloneMap) {
             PlatformCALayer* maskClone = maskLayerCloneMap ? maskLayerCloneMap->get(clone.key) : nullptr;
             clone.value->setMask(maskClone);
@@ -2805,7 +2791,7 @@ bool GraphicsLayerCA::createAnimationFromKeyframes(const KeyframeValueList& valu
     int animationIndex = 0;
     
     RefPtr<PlatformCAAnimation> caAnimation;
-    
+
     if (isKeyframe) {
         caAnimation = createKeyframeAnimation(animation, propertyIdToString(valueList.property()), additive);
         valuesOK = setAnimationKeyframes(valueList, animation, caAnimation.get());
@@ -2816,7 +2802,7 @@ bool GraphicsLayerCA::createAnimationFromKeyframes(const KeyframeValueList& valu
             caAnimation = createBasicAnimation(animation, propertyIdToString(valueList.property()), additive);
         valuesOK = setAnimationEndpoints(valueList, animation, caAnimation.get());
     }
-    
+
     if (!valuesOK)
         return false;
 
@@ -3024,13 +3010,12 @@ void GraphicsLayerCA::setupAnimation(PlatformCAAnimation* propertyAnim, const An
     propertyAnim->setFillMode(fillMode);
 }
 
-const TimingFunction* GraphicsLayerCA::timingFunctionForAnimationValue(const AnimationValue& animValue, const Animation& anim)
+const TimingFunction& GraphicsLayerCA::timingFunctionForAnimationValue(const AnimationValue& animValue, const Animation& anim)
 {
     if (animValue.timingFunction())
-        return animValue.timingFunction();
+        return *animValue.timingFunction();
     if (anim.isTimingFunctionSet())
-        return anim.timingFunction().get();
-    
+        return *anim.timingFunction();
     return CubicBezierTimingFunction::defaultTimingFunction();
 }
 
@@ -3054,9 +3039,7 @@ bool GraphicsLayerCA::setAnimationEndpoints(const KeyframeValueList& valueList, 
 
     // This codepath is used for 2-keyframe animations, so we still need to look in the start
     // for a timing function. Even in the reversing animation case, the first keyframe provides the timing function.
-    const TimingFunction* timingFunction = timingFunctionForAnimationValue(valueList.at(0), *animation);
-    if (timingFunction)
-        basicAnim->setTimingFunction(timingFunction, !forwards);
+    basicAnim->setTimingFunction(&timingFunctionForAnimationValue(valueList.at(0), *animation), !forwards);
 
     return true;
 }
@@ -3086,13 +3069,13 @@ bool GraphicsLayerCA::setAnimationKeyframes(const KeyframeValueList& valueList, 
         }
 
         if (i < (valueList.size() - 1))
-            timingFunctions.append(timingFunctionForAnimationValue(forwards ? curValue : valueList.at(index - 1), *animation));
+            timingFunctions.append(&timingFunctionForAnimationValue(forwards ? curValue : valueList.at(index - 1), *animation));
     }
-    
+
     keyframeAnim->setKeyTimes(keyTimes);
     keyframeAnim->setValues(values);
     keyframeAnim->setTimingFunctions(timingFunctions, !forwards);
-    
+
     return true;
 }
 
@@ -3105,8 +3088,8 @@ bool GraphicsLayerCA::setTransformAnimationEndpoints(const KeyframeValueList& va
     unsigned fromIndex = !forwards;
     unsigned toIndex = forwards;
     
-    const TransformAnimationValue& startValue = static_cast<const TransformAnimationValue&>(valueList.at(fromIndex));
-    const TransformAnimationValue& endValue = static_cast<const TransformAnimationValue&>(valueList.at(toIndex));
+    auto& startValue = static_cast<const TransformAnimationValue&>(valueList.at(fromIndex));
+    auto& endValue = static_cast<const TransformAnimationValue&>(valueList.at(toIndex));
 
     if (isMatrixAnimation) {
         TransformationMatrix fromTransform, toTransform;
@@ -3149,10 +3132,9 @@ bool GraphicsLayerCA::setTransformAnimationEndpoints(const KeyframeValueList& va
 
     // This codepath is used for 2-keyframe animations, so we still need to look in the start
     // for a timing function. Even in the reversing animation case, the first keyframe provides the timing function.
-    const TimingFunction* timingFunction = timingFunctionForAnimationValue(valueList.at(0), *animation);
-    basicAnim->setTimingFunction(timingFunction, !forwards);
+    basicAnim->setTimingFunction(&timingFunctionForAnimationValue(valueList.at(0), *animation), !forwards);
 
-    PlatformCAAnimation::ValueFunctionType valueFunction = getValueFunctionNameForTransformOperation(transformOpType);
+    auto valueFunction = getValueFunctionNameForTransformOperation(transformOpType);
     if (valueFunction != PlatformCAAnimation::NoValueFunction)
         basicAnim->setValueFunction(valueFunction);
 
@@ -3204,7 +3186,7 @@ bool GraphicsLayerCA::setTransformAnimationKeyframes(const KeyframeValueList& va
         }
 
         if (i < (valueList.size() - 1))
-            timingFunctions.append(timingFunctionForAnimationValue(forwards ? curValue : valueList.at(index - 1), *animation));
+            timingFunctions.append(&timingFunctionForAnimationValue(forwards ? curValue : valueList.at(index - 1), *animation));
     }
     
     keyframeAnim->setKeyTimes(keyTimes);
@@ -3260,7 +3242,7 @@ bool GraphicsLayerCA::setFilterAnimationEndpoints(const KeyframeValueList& value
 
     // This codepath is used for 2-keyframe animations, so we still need to look in the start
     // for a timing function. Even in the reversing animation case, the first keyframe provides the timing function.
-    basicAnim->setTimingFunction(timingFunctionForAnimationValue(valueList.at(0), *animation), !forwards);
+    basicAnim->setTimingFunction(&timingFunctionForAnimationValue(valueList.at(0), *animation), !forwards);
 
     return true;
 }
@@ -3288,7 +3270,7 @@ bool GraphicsLayerCA::setFilterAnimationKeyframes(const KeyframeValueList& value
         }
 
         if (i < (valueList.size() - 1))
-            timingFunctions.append(timingFunctionForAnimationValue(forwards ? curValue : valueList.at(index - 1), *animation));
+            timingFunctions.append(&timingFunctionForAnimationValue(forwards ? curValue : valueList.at(index - 1), *animation));
     }
     
     keyframeAnim->setKeyTimes(keyTimes);
@@ -3512,6 +3494,9 @@ void GraphicsLayerCA::dumpAdditionalProperties(TextStream& textStream, int inden
         IntRect gridExtent = tiledBacking()->tileGridExtent();
         writeIndent(textStream, indent + 1);
         textStream << "(top left tile " << gridExtent.x() << ", " << gridExtent.y() << " tiles grid " << gridExtent.width() << " x " << gridExtent.height() << ")\n";
+
+        writeIndent(textStream, indent + 1);
+        textStream << "(in window " << tiledBacking()->isInWindow() << ")\n";
     }
     
     if (behavior & LayerTreeAsTextIncludeContentLayers) {
@@ -3566,11 +3551,12 @@ void GraphicsLayerCA::changeLayerTypeTo(PlatformCALayer::LayerType newLayerType)
     if (newLayerType == oldLayerType)
         return;
 
-    RefPtr<PlatformCALayer> oldLayer = m_layer;
+    bool wasTiledLayer = oldLayerType == PlatformCALayer::LayerTypeTiledBackingLayer;
+    bool isTiledLayer = newLayerType == PlatformCALayer::LayerTypeTiledBackingLayer;
 
+    RefPtr<PlatformCALayer> oldLayer = m_layer;
     m_layer = createPlatformCALayer(newLayerType, this);
 
-    m_usingTiledBacking = newLayerType == PlatformCALayer::LayerTypeTiledBackingLayer;
     m_usingBackdropLayerType = isCustomBackdropLayerType(newLayerType);
 
     m_layer->adoptSublayers(*oldLayer);
@@ -3609,7 +3595,7 @@ void GraphicsLayerCA::changeLayerTypeTo(PlatformCALayer::LayerType newLayerType)
         | NameChanged
         | DebugIndicatorsChanged;
     
-    if (m_usingTiledBacking)
+    if (isTiledLayer)
         m_uncommittedChanges |= CoverageRectChanged;
 
     moveAnimations(oldLayer.get(), m_layer.get());
@@ -3617,8 +3603,8 @@ void GraphicsLayerCA::changeLayerTypeTo(PlatformCALayer::LayerType newLayerType)
     // need to tell new layer to draw itself
     setNeedsDisplay();
 
-    if (oldLayerType == PlatformCALayer::LayerTypeTiledBackingLayer || newLayerType == PlatformCALayer::LayerTypeTiledBackingLayer)
-        client().tiledBackingUsageChanged(this, m_usingTiledBacking);
+    if (wasTiledLayer || isTiledLayer)
+        client().tiledBackingUsageChanged(this, isTiledLayer);
 }
 
 GraphicsLayer::CompositingCoordinatesOrientation GraphicsLayerCA::defaultContentsOrientation() const

@@ -46,7 +46,7 @@ static void* keyValueObservingContext = &keyValueObservingContext;
 static const int testHeaderBannerHeight = 42;
 static const int testFooterBannerHeight = 58;
 
-@interface WK2BrowserWindowController () <WKNavigationDelegate, WKUIDelegate, _WKIconLoadingDelegate>
+@interface WK2BrowserWindowController () <NSTextFinderBarContainer, WKNavigationDelegate, WKUIDelegate, _WKIconLoadingDelegate>
 @end
 
 @implementation WK2BrowserWindowController {
@@ -56,6 +56,10 @@ static const int testFooterBannerHeight = 58;
     BOOL _isPrivateBrowsingWindow;
 
     BOOL _useShrinkToFit;
+
+    NSTextFinder *_textFinder;
+    NSView *_textFindBarView;
+    BOOL _findBarVisible;
 }
 
 - (void)awakeFromNib
@@ -65,6 +69,7 @@ static const int testFooterBannerHeight = 58;
 
     _webView.allowsMagnification = YES;
     _webView.allowsBackForwardNavigationGestures = YES;
+    _webView._editable = self.isEditable;
 
     [_webView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     [containerView addSubview:_webView];
@@ -90,6 +95,12 @@ static const int testFooterBannerHeight = 58;
         | _WKRenderingProgressEventFirstPaintAfterSuppressedIncrementalRendering;
 
     _zoomTextOnly = NO;
+
+    _textFinder = [[NSTextFinder alloc] init];
+    _textFinder.incrementalSearchingEnabled = YES;
+    _textFinder.incrementalSearchingShouldDimContentView = YES;
+    _textFinder.client = _webView;
+    _textFinder.findBarContainer = self;
 }
 
 - (instancetype)initWithConfiguration:(WKWebViewConfiguration *)configuration
@@ -111,6 +122,8 @@ static const int testFooterBannerHeight = 58;
     [progressIndicator unbind:NSHiddenBinding];
     [progressIndicator unbind:NSValueBinding];
 
+    [_textFinder release];
+
     [_webView release];
     [_configuration release];
 
@@ -122,24 +135,6 @@ static const int testFooterBannerHeight = 58;
     [urlText setStringValue:[self addProtocolIfNecessary:[urlText stringValue]]];
 
     [_webView loadRequest:[NSURLRequest requestWithURL:[NSURL _webkit_URLWithUserTypedString:[urlText stringValue]]]];
-}
-
-- (IBAction)showHideWebView:(id)sender
-{
-    BOOL hidden = ![_webView isHidden];
-    
-    [_webView setHidden:hidden];
-}
-
-- (IBAction)removeReinsertWebView:(id)sender
-{
-    if ([_webView window]) {
-        [_webView retain];
-        [_webView removeFromSuperview]; 
-    } else {
-        [containerView addSubview:_webView];
-        [_webView release];
-    }
 }
 
 - (IBAction)setPageScale:(id)sender
@@ -187,7 +182,7 @@ static BOOL areEssentiallyEqual(double a, double b)
 
 - (BOOL)validateMenuItem:(NSMenuItem *)menuItem
 {
-    SEL action = [menuItem action];
+    SEL action = menuItem.action;
 
     if (action == @selector(zoomIn:))
         return [self canZoomIn];
@@ -198,7 +193,6 @@ static BOOL areEssentiallyEqual(double a, double b)
     
     // Disabled until missing WK2 functionality is exposed via API/SPI.
     if (action == @selector(dumpSourceToConsole:)
-        || action == @selector(find:)
         || action == @selector(forceRepaint:))
         return NO;
     
@@ -208,6 +202,8 @@ static BOOL areEssentiallyEqual(double a, double b)
         [menuItem setTitle:[_webView window] ? @"Remove Web View" : @"Insert Web View"];
     else if (action == @selector(toggleZoomMode:))
         [menuItem setState:_zoomTextOnly ? NSOnState : NSOffState];
+    else if (action == @selector(toggleEditable:))
+        [menuItem setState:self.isEditable ? NSOnState : NSOffState];
 
     if (action == @selector(setPageScale:))
         [menuItem setState:areEssentiallyEqual([_webView _pageScale], [self pageScaleForMenuItemTag:[menuItem tag]])];
@@ -291,6 +287,12 @@ static BOOL areEssentiallyEqual(double a, double b)
     return _webView;
 }
 
+- (void)setEditable:(BOOL)editable
+{
+    [super setEditable:editable];
+    _webView._editable = editable;
+}
+
 - (BOOL)validateUserInterfaceItem:(id <NSValidatedUserInterfaceItem>)item
 {
     SEL action = item.action;
@@ -315,10 +317,6 @@ static BOOL areEssentiallyEqual(double a, double b)
 {
     [(BrowserAppDelegate *)[[NSApplication sharedApplication] delegate] browserWindowWillClose:self.window];
     [self autorelease];
-}
-
-- (void)applicationTerminating
-{
 }
 
 #define DefaultMinimumZoomFactor (.5)
@@ -372,6 +370,7 @@ static BOOL areEssentiallyEqual(double a, double b)
     preferences._tiledScrollingIndicatorVisible = settings.tiledScrollingIndicatorVisible;
     preferences._compositingBordersVisible = settings.layerBordersVisible;
     preferences._compositingRepaintCountersVisible = settings.layerBordersVisible;
+    preferences._simpleLineLayoutEnabled = settings.simpleLineLayoutEnabled;
     preferences._simpleLineLayoutDebugBordersEnabled = settings.simpleLineLayoutDebugBordersEnabled;
     preferences._acceleratedDrawingEnabled = settings.acceleratedDrawingEnabled;
     preferences._resourceUsageOverlayVisible = settings.resourceUsageOverlayVisible;
@@ -422,7 +421,7 @@ static BOOL areEssentiallyEqual(double a, double b)
         title = url.lastPathComponent ?: url._web_userVisibleString;
     }
 
-    self.window.title = [NSString stringWithFormat:@"%@%@ [WK2 %d]", _isPrivateBrowsingWindow ? @"🙈 " : @"", title, _webView._webProcessIdentifier];
+    self.window.title = [NSString stringWithFormat:@"%@%@ [WK2 %d]%@", _isPrivateBrowsingWindow ? @"🙈 " : @"", title, _webView._webProcessIdentifier, _webView._editable ? @" [Editable]" : @""];
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
@@ -532,13 +531,9 @@ static BOOL areEssentiallyEqual(double a, double b)
     [self fetch:nil];
 }
 
-- (IBAction)performFindPanelAction:(id)sender
+- (void)loadHTMLString:(NSString *)HTMLString
 {
-    [findPanelWindow makeKeyAndOrderFront:sender];
-}
-
-- (IBAction)find:(id)sender
-{
+    [_webView loadHTMLString:HTMLString baseURL:nil];
 }
 
 static NSSet *dataTypes()
@@ -673,6 +668,51 @@ static NSSet *dataTypes()
     completionHandler(^void (NSData *data) {
         LOG(@"Icon URL %@ received icon data of length %u", parameters.url, (unsigned)data.length);
     });
+}
+
+#pragma mark Find in Page
+
+- (IBAction)performTextFinderAction:(id)sender
+{
+    [_textFinder performAction:[sender tag]];
+}
+
+- (NSView *)findBarView
+{
+    return _textFindBarView;
+}
+
+- (void)setFindBarView:(NSView *)findBarView
+{
+    if (_textFindBarView)
+        [_textFindBarView removeFromSuperview];
+    _textFindBarView = findBarView;
+    _findBarVisible = YES;
+    [containerView addSubview:_textFindBarView];
+    [_textFindBarView setFrame:NSMakeRect(0, 0, containerView.bounds.size.width, _textFindBarView.frame.size.height)];
+}
+
+- (BOOL)isFindBarVisible
+{
+    return _findBarVisible;
+}
+
+- (void)setFindBarVisible:(BOOL)findBarVisible
+{
+    _findBarVisible = findBarVisible;
+    if (findBarVisible)
+        [containerView addSubview:_textFindBarView];
+    else
+        [_textFindBarView removeFromSuperview];
+}
+
+- (NSView *)contentView
+{
+    return _webView;
+}
+
+- (void)findBarViewDidChangeHeight
+{
 }
 
 @end

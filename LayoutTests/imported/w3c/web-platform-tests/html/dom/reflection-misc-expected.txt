@@ -597,6 +597,39 @@ PASS script.type: IDL set to "\0"
 PASS script.type: IDL set to null 
 PASS script.type: IDL set to object "test-toString" 
 PASS script.type: IDL set to object "test-valueOf" 
+PASS script.noModule: typeof IDL attribute 
+PASS script.noModule: IDL get with DOM attribute unset 
+PASS script.noModule: setAttribute() to "" 
+PASS script.noModule: setAttribute() to " foo " 
+PASS script.noModule: setAttribute() to undefined 
+PASS script.noModule: setAttribute() to null 
+PASS script.noModule: setAttribute() to 7 
+PASS script.noModule: setAttribute() to 1.5 
+PASS script.noModule: setAttribute() to true 
+PASS script.noModule: setAttribute() to false 
+PASS script.noModule: setAttribute() to object "[object Object]" 
+PASS script.noModule: setAttribute() to NaN 
+PASS script.noModule: setAttribute() to Infinity 
+PASS script.noModule: setAttribute() to -Infinity 
+PASS script.noModule: setAttribute() to "\0" 
+PASS script.noModule: setAttribute() to object "test-toString" 
+PASS script.noModule: setAttribute() to object "test-valueOf" 
+PASS script.noModule: setAttribute() to "noModule" 
+PASS script.noModule: IDL set to "" 
+PASS script.noModule: IDL set to " foo " 
+PASS script.noModule: IDL set to undefined 
+PASS script.noModule: IDL set to null 
+PASS script.noModule: IDL set to 7 
+PASS script.noModule: IDL set to 1.5 
+PASS script.noModule: IDL set to true 
+PASS script.noModule: IDL set to false 
+PASS script.noModule: IDL set to object "[object Object]" 
+PASS script.noModule: IDL set to NaN 
+PASS script.noModule: IDL set to Infinity 
+PASS script.noModule: IDL set to -Infinity 
+PASS script.noModule: IDL set to "\0" 
+PASS script.noModule: IDL set to object "test-toString" 
+PASS script.noModule: IDL set to object "test-valueOf" 
 PASS script.charset: typeof IDL attribute 
 PASS script.charset: IDL get with DOM attribute unset 
 PASS script.charset: setAttribute() to "" 
@@ -714,6 +747,134 @@ PASS script.crossOrigin: IDL set to "xuse-credentials"
 PASS script.crossOrigin: IDL set to "use-credentials\0" 
 PASS script.crossOrigin: IDL set to "se-credentials" 
 PASS script.crossOrigin: IDL set to "USE-CREDENTIALS" 
+PASS script.nonce: typeof IDL attribute 
+PASS script.nonce: IDL get with DOM attribute unset 
+PASS script.nonce: setAttribute() to "" 
+PASS script.nonce: setAttribute() to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " 
+PASS script.nonce: setAttribute() to undefined 
+PASS script.nonce: setAttribute() to 7 
+PASS script.nonce: setAttribute() to 1.5 
+PASS script.nonce: setAttribute() to true 
+PASS script.nonce: setAttribute() to false 
+PASS script.nonce: setAttribute() to object "[object Object]" 
+PASS script.nonce: setAttribute() to NaN 
+PASS script.nonce: setAttribute() to Infinity 
+PASS script.nonce: setAttribute() to -Infinity 
+PASS script.nonce: setAttribute() to "\0" 
+PASS script.nonce: setAttribute() to null 
+PASS script.nonce: setAttribute() to object "test-toString" 
+PASS script.nonce: setAttribute() to object "test-valueOf" 
+PASS script.nonce: IDL set to "" 
+PASS script.nonce: IDL set to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " 
+PASS script.nonce: IDL set to undefined 
+PASS script.nonce: IDL set to 7 
+PASS script.nonce: IDL set to 1.5 
+PASS script.nonce: IDL set to true 
+PASS script.nonce: IDL set to false 
+PASS script.nonce: IDL set to object "[object Object]" 
+PASS script.nonce: IDL set to NaN 
+PASS script.nonce: IDL set to Infinity 
+PASS script.nonce: IDL set to -Infinity 
+PASS script.nonce: IDL set to "\0" 
+PASS script.nonce: IDL set to null 
+PASS script.nonce: IDL set to object "test-toString" 
+PASS script.nonce: IDL set to object "test-valueOf" 
+FAIL script.integrity: typeof IDL attribute assert_equals: expected "string" but got "undefined"
+FAIL script.integrity: IDL get with DOM attribute unset assert_equals: expected (string) "" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to "" assert_equals: IDL get expected (string) "" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " assert_equals: IDL get expected (string) " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " but got (undefined) undefined
+FAIL script.integrity: setAttribute() to undefined assert_equals: IDL get expected (string) "undefined" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to 7 assert_equals: IDL get expected (string) "7" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to 1.5 assert_equals: IDL get expected (string) "1.5" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to true assert_equals: IDL get expected (string) "true" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to false assert_equals: IDL get expected (string) "false" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to object "[object Object]" assert_equals: IDL get expected (string) "[object Object]" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to NaN assert_equals: IDL get expected (string) "NaN" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to Infinity assert_equals: IDL get expected (string) "Infinity" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to -Infinity assert_equals: IDL get expected (string) "-Infinity" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to "\0" assert_equals: IDL get expected (string) "\0" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to null assert_equals: IDL get expected (string) "null" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to object "test-toString" assert_equals: IDL get expected (string) "test-toString" but got (undefined) undefined
+FAIL script.integrity: setAttribute() to object "test-valueOf" assert_equals: IDL get expected (string) "test-valueOf" but got (undefined) undefined
+FAIL script.integrity: IDL set to "" assert_equals: getAttribute() expected "" but got "test-valueOf"
+FAIL script.integrity: IDL set to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " assert_equals: getAttribute() expected " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " but got "test-valueOf"
+FAIL script.integrity: IDL set to undefined assert_equals: getAttribute() expected "undefined" but got "test-valueOf"
+FAIL script.integrity: IDL set to 7 assert_equals: getAttribute() expected "7" but got "test-valueOf"
+FAIL script.integrity: IDL set to 1.5 assert_equals: getAttribute() expected "1.5" but got "test-valueOf"
+FAIL script.integrity: IDL set to true assert_equals: getAttribute() expected "true" but got "test-valueOf"
+FAIL script.integrity: IDL set to false assert_equals: getAttribute() expected "false" but got "test-valueOf"
+FAIL script.integrity: IDL set to object "[object Object]" assert_equals: getAttribute() expected "[object Object]" but got "test-valueOf"
+FAIL script.integrity: IDL set to NaN assert_equals: getAttribute() expected "NaN" but got "test-valueOf"
+FAIL script.integrity: IDL set to Infinity assert_equals: getAttribute() expected "Infinity" but got "test-valueOf"
+FAIL script.integrity: IDL set to -Infinity assert_equals: getAttribute() expected "-Infinity" but got "test-valueOf"
+FAIL script.integrity: IDL set to "\0" assert_equals: getAttribute() expected "\0" but got "test-valueOf"
+FAIL script.integrity: IDL set to null assert_equals: getAttribute() expected "null" but got "test-valueOf"
+FAIL script.integrity: IDL set to object "test-toString" assert_equals: getAttribute() expected "test-toString" but got "test-valueOf"
+FAIL script.integrity: IDL set to object "test-valueOf" assert_equals: IDL get expected (string) "test-valueOf" but got (object) object "test-valueOf"
+PASS script.event: typeof IDL attribute 
+PASS script.event: IDL get with DOM attribute unset 
+PASS script.event: setAttribute() to "" 
+PASS script.event: setAttribute() to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " 
+PASS script.event: setAttribute() to undefined 
+PASS script.event: setAttribute() to 7 
+PASS script.event: setAttribute() to 1.5 
+PASS script.event: setAttribute() to true 
+PASS script.event: setAttribute() to false 
+PASS script.event: setAttribute() to object "[object Object]" 
+PASS script.event: setAttribute() to NaN 
+PASS script.event: setAttribute() to Infinity 
+PASS script.event: setAttribute() to -Infinity 
+PASS script.event: setAttribute() to "\0" 
+PASS script.event: setAttribute() to null 
+PASS script.event: setAttribute() to object "test-toString" 
+PASS script.event: setAttribute() to object "test-valueOf" 
+PASS script.event: IDL set to "" 
+PASS script.event: IDL set to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " 
+PASS script.event: IDL set to undefined 
+PASS script.event: IDL set to 7 
+PASS script.event: IDL set to 1.5 
+PASS script.event: IDL set to true 
+PASS script.event: IDL set to false 
+PASS script.event: IDL set to object "[object Object]" 
+PASS script.event: IDL set to NaN 
+PASS script.event: IDL set to Infinity 
+PASS script.event: IDL set to -Infinity 
+PASS script.event: IDL set to "\0" 
+PASS script.event: IDL set to null 
+PASS script.event: IDL set to object "test-toString" 
+PASS script.event: IDL set to object "test-valueOf" 
+PASS script.htmlFor (<script for>): typeof IDL attribute 
+PASS script.htmlFor (<script for>): IDL get with DOM attribute unset 
+PASS script.htmlFor (<script for>): setAttribute() to "" 
+PASS script.htmlFor (<script for>): setAttribute() to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " 
+PASS script.htmlFor (<script for>): setAttribute() to undefined 
+PASS script.htmlFor (<script for>): setAttribute() to 7 
+PASS script.htmlFor (<script for>): setAttribute() to 1.5 
+PASS script.htmlFor (<script for>): setAttribute() to true 
+PASS script.htmlFor (<script for>): setAttribute() to false 
+PASS script.htmlFor (<script for>): setAttribute() to object "[object Object]" 
+PASS script.htmlFor (<script for>): setAttribute() to NaN 
+PASS script.htmlFor (<script for>): setAttribute() to Infinity 
+PASS script.htmlFor (<script for>): setAttribute() to -Infinity 
+PASS script.htmlFor (<script for>): setAttribute() to "\0" 
+PASS script.htmlFor (<script for>): setAttribute() to null 
+PASS script.htmlFor (<script for>): setAttribute() to object "test-toString" 
+PASS script.htmlFor (<script for>): setAttribute() to object "test-valueOf" 
+PASS script.htmlFor (<script for>): IDL set to "" 
+PASS script.htmlFor (<script for>): IDL set to " \0\x01\x02\x03\x04\x05\x06\x07 \b\t\n\v\f\r\x0e\x0f \x10\x11\x12\x13\x14\x15\x16\x17 \x18\x19\x1a\x1b\x1c\x1d\x1e\x1f  foo " 
+PASS script.htmlFor (<script for>): IDL set to undefined 
+PASS script.htmlFor (<script for>): IDL set to 7 
+PASS script.htmlFor (<script for>): IDL set to 1.5 
+PASS script.htmlFor (<script for>): IDL set to true 
+PASS script.htmlFor (<script for>): IDL set to false 
+PASS script.htmlFor (<script for>): IDL set to object "[object Object]" 
+PASS script.htmlFor (<script for>): IDL set to NaN 
+PASS script.htmlFor (<script for>): IDL set to Infinity 
+PASS script.htmlFor (<script for>): IDL set to -Infinity 
+PASS script.htmlFor (<script for>): IDL set to "\0" 
+PASS script.htmlFor (<script for>): IDL set to null 
+PASS script.htmlFor (<script for>): IDL set to object "test-toString" 
+PASS script.htmlFor (<script for>): IDL set to object "test-valueOf" 
 PASS noscript.title: typeof IDL attribute 
 PASS noscript.title: IDL get with DOM attribute unset 
 PASS noscript.title: setAttribute() to "" 
@@ -2386,11 +2547,11 @@ FAIL menu.type: setAttribute() to "\0" assert_equals: IDL get expected (string) 
 FAIL menu.type: setAttribute() to null assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
 FAIL menu.type: setAttribute() to object "test-toString" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
 FAIL menu.type: setAttribute() to object "test-valueOf" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
-FAIL menu.type: setAttribute() to "popup" assert_equals: IDL get expected (string) "popup" but got (undefined) undefined
-FAIL menu.type: setAttribute() to "xpopup" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
-FAIL menu.type: setAttribute() to "popup\0" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
-FAIL menu.type: setAttribute() to "opup" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
-FAIL menu.type: setAttribute() to "POPUP" assert_equals: IDL get expected (string) "popup" but got (undefined) undefined
+FAIL menu.type: setAttribute() to "context" assert_equals: IDL get expected (string) "context" but got (undefined) undefined
+FAIL menu.type: setAttribute() to "xcontext" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
+FAIL menu.type: setAttribute() to "context\0" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
+FAIL menu.type: setAttribute() to "ontext" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
+FAIL menu.type: setAttribute() to "CONTEXT" assert_equals: IDL get expected (string) "context" but got (undefined) undefined
 FAIL menu.type: setAttribute() to "toolbar" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
 FAIL menu.type: setAttribute() to "xtoolbar" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
 FAIL menu.type: setAttribute() to "toolbar\0" assert_equals: IDL get expected (string) "toolbar" but got (undefined) undefined
@@ -2411,11 +2572,11 @@ FAIL menu.type: IDL set to "\0" assert_equals: getAttribute() expected "\0" but 
 FAIL menu.type: IDL set to null assert_equals: IDL get expected (string) "toolbar" but got (object) null
 FAIL menu.type: IDL set to object "test-toString" assert_equals: getAttribute() expected "test-toString" but got "TOOLBAR"
 FAIL menu.type: IDL set to object "test-valueOf" assert_equals: getAttribute() expected "test-valueOf" but got "TOOLBAR"
-FAIL menu.type: IDL set to "popup" assert_equals: getAttribute() expected "popup" but got "TOOLBAR"
-FAIL menu.type: IDL set to "xpopup" assert_equals: getAttribute() expected "xpopup" but got "TOOLBAR"
-FAIL menu.type: IDL set to "popup\0" assert_equals: getAttribute() expected "popup\0" but got "TOOLBAR"
-FAIL menu.type: IDL set to "opup" assert_equals: getAttribute() expected "opup" but got "TOOLBAR"
-FAIL menu.type: IDL set to "POPUP" assert_equals: getAttribute() expected "POPUP" but got "TOOLBAR"
+FAIL menu.type: IDL set to "context" assert_equals: getAttribute() expected "context" but got "TOOLBAR"
+FAIL menu.type: IDL set to "xcontext" assert_equals: getAttribute() expected "xcontext" but got "TOOLBAR"
+FAIL menu.type: IDL set to "context\0" assert_equals: getAttribute() expected "context\0" but got "TOOLBAR"
+FAIL menu.type: IDL set to "ontext" assert_equals: getAttribute() expected "ontext" but got "TOOLBAR"
+FAIL menu.type: IDL set to "CONTEXT" assert_equals: getAttribute() expected "CONTEXT" but got "TOOLBAR"
 FAIL menu.type: IDL set to "toolbar" assert_equals: getAttribute() expected "toolbar" but got "TOOLBAR"
 FAIL menu.type: IDL set to "xtoolbar" assert_equals: getAttribute() expected "xtoolbar" but got "TOOLBAR"
 FAIL menu.type: IDL set to "toolbar\0" assert_equals: getAttribute() expected "toolbar\0" but got "TOOLBAR"

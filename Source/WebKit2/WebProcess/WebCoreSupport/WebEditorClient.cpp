@@ -238,21 +238,21 @@ void WebEditorClient::getClientPasteboardDataForRange(Range* range, Vector<Strin
     m_page->injectedBundleEditorClient().getPasteboardDataForRange(*m_page, range, pasteboardTypes, pasteboardData);
 }
 
-void WebEditorClient::registerUndoStep(PassRefPtr<UndoStep> step)
+void WebEditorClient::registerUndoStep(UndoStep& step)
 {
     // FIXME: Add assertion that the command being reapplied is the same command that is
     // being passed to us.
     if (m_page->isInRedo())
         return;
 
-    RefPtr<WebUndoStep> webStep = WebUndoStep::create(step);
-    m_page->addWebUndoStep(webStep->stepID(), webStep.get());
-    uint32_t editAction = static_cast<uint32_t>(webStep->step()->editingAction());
+    auto webStep = WebUndoStep::create(&step);
+    auto editAction = static_cast<uint32_t>(webStep->step()->editingAction());
 
+    m_page->addWebUndoStep(webStep->stepID(), webStep.ptr());
     m_page->send(Messages::WebPageProxy::RegisterEditCommandForUndo(webStep->stepID(), editAction));
 }
 
-void WebEditorClient::registerRedoStep(PassRefPtr<UndoStep>)
+void WebEditorClient::registerRedoStep(UndoStep&)
 {
 }
 
@@ -526,14 +526,12 @@ void WebEditorClient::getGuessesForWord(const String& word, const String& contex
     m_page->sendSync(Messages::WebPageProxy::GetGuessesForWord(word, context, insertionPointFromCurrentSelection(currentSelection)), Messages::WebPageProxy::GetGuessesForWord::Reply(guesses));
 }
 
-void WebEditorClient::requestCheckingOfString(WTF::PassRefPtr<TextCheckingRequest> prpRequest, const WebCore::VisibleSelection& currentSelection)
+void WebEditorClient::requestCheckingOfString(TextCheckingRequest& request, const WebCore::VisibleSelection& currentSelection)
 {
-    RefPtr<TextCheckingRequest> request = prpRequest;
-
     uint64_t requestID = generateTextCheckingRequestID();
-    m_page->addTextCheckingRequest(requestID, request);
+    m_page->addTextCheckingRequest(requestID, &request);
 
-    m_page->send(Messages::WebPageProxy::RequestCheckingOfString(requestID, request->data(), insertionPointFromCurrentSelection(currentSelection)));
+    m_page->send(Messages::WebPageProxy::RequestCheckingOfString(requestID, request.data(), insertionPointFromCurrentSelection(currentSelection)));
 }
 
 void WebEditorClient::willSetInputMethodState()

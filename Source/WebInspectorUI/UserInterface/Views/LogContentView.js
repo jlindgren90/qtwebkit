@@ -77,11 +77,14 @@ WebInspector.LogContentView = class LogContentView extends WebInspector.ContentV
         this._scopeBar = new WebInspector.ScopeBar("log-scope-bar", scopeBarItems, scopeBarItems[0]);
         this._scopeBar.addEventListener(WebInspector.ScopeBar.Event.SelectionChanged, this._scopeBarSelectionDidChange, this);
 
-        this._clearLogNavigationItem = new WebInspector.ButtonNavigationItem("clear-log", WebInspector.UIString("Clear log (%s or %s)").format(this._logViewController.messagesClearKeyboardShortcut.displayName, this._logViewController.messagesAlternateClearKeyboardShortcut.displayName), "Images/NavigationItemTrash.svg", 15, 15);
+        this._garbageCollectNavigationItem = new WebInspector.ButtonNavigationItem("clear-log", WebInspector.UIString("Collect garbage"), "Images/NavigationItemGarbageCollect.svg", 16, 16);
+        this._garbageCollectNavigationItem.addEventListener(WebInspector.ButtonNavigationItem.Event.Clicked, this._garbageCollect, this);
+
+        let clearImageDimensions = WebInspector.Platform.name === "mac" ? 16 : 15;
+        this._clearLogNavigationItem = new WebInspector.ButtonNavigationItem("clear-log", WebInspector.UIString("Clear log (%s or %s)").format(WebInspector.clearKeyboardShortcut.displayName, this._logViewController.messagesAlternateClearKeyboardShortcut.displayName), "Images/NavigationItemClear.svg", clearImageDimensions, clearImageDimensions);
         this._clearLogNavigationItem.addEventListener(WebInspector.ButtonNavigationItem.Event.Clicked, this._clearLog, this);
 
-        var toolTip = WebInspector.UIString("Show console tab");
-        this._showConsoleTabNavigationItem = new WebInspector.ButtonNavigationItem("show-tab", toolTip, "Images/SplitToggleUp.svg", 16, 16);
+        this._showConsoleTabNavigationItem = new WebInspector.ButtonNavigationItem("show-tab", WebInspector.UIString("Show console tab"), "Images/SplitToggleUp.svg", 16, 16);
         this._showConsoleTabNavigationItem.addEventListener(WebInspector.ButtonNavigationItem.Event.Clicked, this._showConsoleTab, this);
 
         this.messagesElement.addEventListener("contextmenu", this._handleContextMenuEvent.bind(this), false);
@@ -98,7 +101,10 @@ WebInspector.LogContentView = class LogContentView extends WebInspector.ContentV
 
     get navigationItems()
     {
-        let navigationItems = [this._findBanner, this._scopeBar, this._clearLogNavigationItem];
+        let navigationItems = [this._findBanner, this._scopeBar];
+        if (HeapAgent.gc)
+            navigationItems.push(this._garbageCollectNavigationItem);
+        navigationItems.push(this._clearLogNavigationItem);
         if (WebInspector.isShowingSplitConsole())
             navigationItems.push(this._showConsoleTabNavigationItem);
         return navigationItems;
@@ -216,6 +222,11 @@ WebInspector.LogContentView = class LogContentView extends WebInspector.ContentV
         event.preventDefault();
     }
 
+    handleClearShortcut(event)
+    {
+        this._logViewController.requestClearMessages();
+    }
+
     findBannerRevealPreviousResult()
     {
         if (!this.hasPerformedSearch || isEmptyObject(this._searchMatches))
@@ -279,7 +290,7 @@ WebInspector.LogContentView = class LogContentView extends WebInspector.ContentV
 
     _sessionStarted(event)
     {
-        if (WebInspector.logManager.clearLogOnNavigateSetting.value) {
+        if (WebInspector.settings.clearLogOnNavigate.value) {
             this._reappendProvisionalMessages();
             return;
         }
@@ -373,9 +384,6 @@ WebInspector.LogContentView = class LogContentView extends WebInspector.ContentV
 
         contextMenu.appendItem(WebInspector.UIString("Clear Log"), this._clearLog.bind(this));
         contextMenu.appendSeparator();
-
-        let clearLogOnReloadUIString = WebInspector.logManager.clearLogOnNavigateSetting.value ? WebInspector.UIString("Keep Log on Navigation") : WebInspector.UIString("Clear Log on Navigation");
-        contextMenu.appendItem(clearLogOnReloadUIString, this._toggleClearLogOnNavigateSetting.bind(this));
     }
 
     _mousedown(event)
@@ -665,14 +673,18 @@ WebInspector.LogContentView = class LogContentView extends WebInspector.ContentV
         WebInspector.showConsoleTab();
     }
 
-    _toggleClearLogOnNavigateSetting()
-    {
-        WebInspector.logManager.clearLogOnNavigateSetting.value = !WebInspector.logManager.clearLogOnNavigateSetting.value;
-    }
-
     _clearLog()
     {
         WebInspector.logManager.requestClearMessages();
+    }
+
+    _garbageCollect()
+    {
+        // COMPATIBILITY (iOS 10.3): Worker targets did not support HeapAgent.
+        for (let target of WebInspector.targets) {
+            if (target.HeapAgent)
+                target.HeapAgent.gc();
+        }
     }
 
     _scopeBarSelectionDidChange(event)

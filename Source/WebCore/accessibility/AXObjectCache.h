@@ -302,6 +302,7 @@ public:
     void postTextStateChangeNotification(Node*, const AXTextStateChangeIntent&, const VisibleSelection&);
     void postTextStateChangeNotification(const Position&, const AXTextStateChangeIntent&, const VisibleSelection&);
     void postLiveRegionChangeNotification(AccessibilityObject*);
+    void focusAriaModalNode();
 
     enum AXLoadingEvent {
         AXLoadingStarted,
@@ -382,6 +383,8 @@ private:
     void notificationPostTimerFired();
 
     void liveRegionChangedNotificationPostTimerFired();
+    
+    void focusAriaModalNodeTimerFired();
 
     void postTextStateChangeNotification(AccessibilityObject*, const AXTextStateChangeIntent&, const VisibleSelection&);
 
@@ -419,6 +422,7 @@ private:
     Timer m_liveRegionChangedPostTimer;
     ListHashSet<RefPtr<AccessibilityObject>> m_liveRegionObjectsSet;
     
+    Timer m_focusAriaModalNodeTimer;
     Node* m_currentAriaModalNode;
     ListHashSet<Node*> m_ariaModalNodesSet;
 
@@ -448,7 +452,7 @@ inline AccessibilityObjectInclusion AXComputedObjectAttributeCache::getIgnored(A
 inline AccessibilityReplacedText::AccessibilityReplacedText(const VisibleSelection&) { }
 inline void AccessibilityReplacedText::postTextStateChangeNotification(AXObjectCache*, AXTextEditType, const String&, const VisibleSelection&) { }
 inline void AXComputedObjectAttributeCache::setIgnored(AXID, AccessibilityObjectInclusion) { }
-inline AXObjectCache::AXObjectCache(Document& document) : m_document(document), m_notificationPostTimer(nullptr), m_passwordNotificationPostTimer(nullptr), m_liveRegionChangedPostTimer(nullptr) { }
+inline AXObjectCache::AXObjectCache(Document& document) : m_document(document), m_notificationPostTimer(*this, &AXObjectCache::notificationPostTimerFired), m_passwordNotificationPostTimer(*this, &AXObjectCache::passwordNotificationPostTimerFired), m_liveRegionChangedPostTimer(*this, &AXObjectCache::liveRegionChangedNotificationPostTimerFired), m_focusAriaModalNodeTimer(*this, &AXObjectCache::focusAriaModalNodeTimerFired) { }
 inline AXObjectCache::~AXObjectCache() { }
 inline AccessibilityObject* AXObjectCache::focusedUIElementForPage(const Page*) { return nullptr; }
 inline AccessibilityObject* AXObjectCache::get(RenderObject*) { return nullptr; }
@@ -497,6 +501,7 @@ inline void AXObjectCache::postNotification(RenderObject*, AXNotification, PostT
 inline void AXObjectCache::postNotification(Node*, AXNotification, PostTarget, PostType) { }
 inline void AXObjectCache::postPlatformNotification(AccessibilityObject*, AXNotification) { }
 inline void AXObjectCache::postLiveRegionChangeNotification(AccessibilityObject*) { }
+inline void AXObjectCache::focusAriaModalNode() { }
 inline RefPtr<Range> AXObjectCache::rangeForNodeContents(Node*) { return nullptr; }
 inline void AXObjectCache::remove(AXID) { }
 inline void AXObjectCache::remove(RenderObject*) { }

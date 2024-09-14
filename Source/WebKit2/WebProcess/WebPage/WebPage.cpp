@@ -40,6 +40,7 @@
 #include "InjectedBundle.h"
 #include "InjectedBundleBackForwardList.h"
 #include "InjectedBundleScriptWorld.h"
+#include "LibWebRTCProvider.h"
 #include "LoadParameters.h"
 #include "Logging.h"
 #include "NetscapePlugin.h"
@@ -115,6 +116,7 @@
 #include <JavaScriptCore/APICast.h>
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/ArchiveResource.h>
+#include <WebCore/BackForwardController.h>
 #include <WebCore/Chrome.h>
 #include <WebCore/CommonVM.h>
 #include <WebCore/ContextMenuController.h>
@@ -143,6 +145,8 @@
 #include <WebCore/HistoryController.h>
 #include <WebCore/HistoryItem.h>
 #include <WebCore/HitTestResult.h>
+#include <WebCore/InspectorController.h>
+#include <WebCore/JSDOMExceptionHandling.h>
 #include <WebCore/JSDOMWindow.h>
 #include <WebCore/KeyboardEvent.h>
 #include <WebCore/MIMETypeRegistry.h>
@@ -176,6 +180,7 @@
 #include <WebCore/UserStyleSheet.h>
 #include <WebCore/VisiblePosition.h>
 #include <WebCore/VisibleUnits.h>
+#include <WebCore/WebGLStateTracker.h>
 #include <WebCore/htmlediting.h>
 #include <WebCore/markup.h>
 #include <bindings/ScriptValue.h>
@@ -233,10 +238,6 @@
 #include <wtf/RefCountedLeakCounter.h>
 #endif
 
-#if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
-#include "LayerTreeHost.h"
-#endif
-
 #if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
 #include "CoordinatedLayerTreeHostMessages.h"
 #endif
@@ -277,11 +278,42 @@ private:
     WebPage* m_page;
 };
 
+class DeferredPageDestructor {
+public:
+    static void createDeferredPageDestructor(std::unique_ptr<Page> page, WebPage* webPage)
+    {
+        new DeferredPageDestructor(WTFMove(page), webPage);
+    }
+
+private:
+    DeferredPageDestructor(std::unique_ptr<Page> page, WebPage* webPage)
+        : m_page(WTFMove(page))
+        , m_webPage(webPage)
+    {
+        tryDestruction();
+    }
+
+    void tryDestruction()
+    {
+        if (m_page->insideNestedRunLoop()) {
+            m_page->whenUnnested([this] { tryDestruction(); });
+            return;
+        }
+
+        m_page = nullptr;
+        m_webPage = nullptr;
+        delete this;
+    }
+
+    std::unique_ptr<Page> m_page;
+    RefPtr<WebPage> m_webPage;
+};
+
 DEFINE_DEBUG_ONLY_GLOBAL(WTF::RefCountedLeakCounter, webPageCounter, ("WebPage"));
 
-Ref<WebPage> WebPage::create(uint64_t pageID, const WebPageCreationParameters& parameters)
+Ref<WebPage> WebPage::create(uint64_t pageID, WebPageCreationParameters&& parameters)
 {
-    Ref<WebPage> page = adoptRef(*new WebPage(pageID, parameters));
+    Ref<WebPage> page = adoptRef(*new WebPage(pageID, WTFMove(parameters)));
 
     if (page->pageGroup()->isVisibleToInjectedBundle() && WebProcess::singleton().injectedBundle())
         WebProcess::singleton().injectedBundle()->didCreatePage(page.ptr());
@@ -289,7 +321,7 @@ Ref<WebPage> WebPage::create(uint64_t pageID, const WebPageCreationParameters& p
     return page;
 }
 
-WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
+WebPage::WebPage(uint64_t pageID, WebPageCreationParameters&& parameters)
     : m_pageID(pageID)
     , m_viewSize(parameters.viewSize)
 #if ENABLE(PRIMARY_SNAPSHOTTED_PLUGIN_HEURISTIC)
@@ -330,6 +362,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     , m_userActivity("Process suppression disabled for page.")
     , m_userActivityHysteresis([this](HysteresisState) { updateUserActivity(); })
     , m_userInterfaceLayoutDirection(parameters.userInterfaceLayoutDirection)
+    , m_overrideContentSecurityPolicy { parameters.overrideContentSecurityPolicy }
 {
     ASSERT(m_pageID);
 
@@ -339,8 +372,12 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     Settings::setShouldManageAudioSessionCategory(true);
 #endif
 
-    PageConfiguration pageConfiguration(makeUniqueRef<WebEditorClient>(this), WebSocketProvider::create());
-    pageConfiguration.chromeClient = new WebChromeClient(this);
+    PageConfiguration pageConfiguration(
+        makeUniqueRef<WebEditorClient>(this),
+        WebSocketProvider::create(),
+        makeUniqueRef<WebKit::LibWebRTCProvider>()
+    );
+    pageConfiguration.chromeClient = new WebChromeClient(*this);
 #if ENABLE(CONTEXT_MENUS)
     pageConfiguration.contextMenuClient = new WebContextMenuClient(this);
 #endif
@@ -357,6 +394,9 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     pageConfiguration.loaderClientForMainFrame = new WebFrameLoaderClient;
     pageConfiguration.progressTrackerClient = new WebProgressTrackerClient(*this);
     pageConfiguration.diagnosticLoggingClient = std::make_unique<WebDiagnosticLoggingClient>(*this);
+    pageConfiguration.webGLStateTracker = std::make_unique<WebGLStateTracker>([this](bool isUsingHighPerformanceWebGL) {
+        send(Messages::WebPageProxy::SetIsUsingHighPerformanceWebGL(isUsingHighPerformanceWebGL));
+    });
 
 #if PLATFORM(COCOA)
     pageConfiguration.validationMessageClient = std::make_unique<WebValidationMessageClient>(*this);
@@ -516,10 +556,11 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 
 #if PLATFORM(COCOA)
     m_page->settings().setContentDispositionAttachmentSandboxEnabled(true);
+    setSmartInsertDeleteEnabled(parameters.smartInsertDeleteEnabled);
 #endif
 }
 
-void WebPage::reinitializeWebPage(const WebPageCreationParameters& parameters)
+void WebPage::reinitializeWebPage(WebPageCreationParameters&& parameters)
 {
     if (m_activityState != parameters.activityState)
         setActivityState(parameters.activityState, false, Vector<uint64_t>());
@@ -687,13 +728,9 @@ void WebPage::initializeInjectedBundleFullScreenClient(WKBundlePageFullScreenCli
 }
 #endif
 
-void WebPage::initializeInjectedBundleDiagnosticLoggingClient(WKBundlePageDiagnosticLoggingClientBase* client)
-{
-    m_logDiagnosticMessageClient.initialize(client);
-}
-
 #if ENABLE(NETSCAPE_PLUGIN_API)
-PassRefPtr<Plugin> WebPage::createPlugin(WebFrame* frame, HTMLPlugInElement* pluginElement, const Plugin::Parameters& parameters, String& newMIMEType)
+
+RefPtr<Plugin> WebPage::createPlugin(WebFrame* frame, HTMLPlugInElement* pluginElement, const Plugin::Parameters& parameters, String& newMIMEType)
 {
     String frameURLString = frame->coreFrame()->loader().documentLoader()->responseURL().string();
     String pageURLString = m_page->mainFrame().loader().documentLoader()->responseURL().string();
@@ -1022,6 +1059,8 @@ void WebPage::close()
         m_inspector = nullptr;
     }
 
+    m_page->inspectorController().disconnectAllFrontends();
+
 #if ENABLE(FULLSCREEN_API)
     m_fullScreenManager = nullptr;
 #endif
@@ -1075,12 +1114,12 @@ void WebPage::close()
 #if ENABLE(FULLSCREEN_API)
     m_fullScreenClient.initialize(0);
 #endif
-    m_logDiagnosticMessageClient.initialize(0);
 
     m_printContext = nullptr;
     m_mainFrame->coreFrame()->loader().detachFromParent();
-    m_page = nullptr;
     m_drawingArea = nullptr;
+
+    DeferredPageDestructor::createDeferredPageDestructor(WTFMove(m_page), this);
 
     bool isRunningModal = m_isRunningModal;
     m_isRunningModal = false;
@@ -1320,7 +1359,7 @@ void WebPage::layoutIfNeeded()
 
 WebPage* WebPage::fromCorePage(Page* page)
 {
-    return static_cast<WebChromeClient&>(page->chrome().client()).page();
+    return &static_cast<WebChromeClient&>(page->chrome().client()).page();
 }
 
 void WebPage::setSize(const WebCore::IntSize& viewSize)
@@ -1382,8 +1421,7 @@ void WebPage::sendViewportAttributesChanged(const ViewportArguments& viewportArg
     setFixedLayoutSize(roundedIntSize(attr.layoutSize));
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
-    if (m_drawingArea->layerTreeHost())
-        m_drawingArea->layerTreeHost()->didChangeViewportProperties(attr);
+    m_drawingArea->didChangeViewportAttributes(WTFMove(attr));
 #else
     send(Messages::WebPageProxy::DidChangeViewportProperties(attr));
 #endif
@@ -1541,8 +1579,7 @@ void WebPage::scalePage(double scale, const IntPoint& origin)
         pluginView->pageScaleFactorDidChange();
 
 #if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
-    if (m_drawingArea->layerTreeHost())
-        m_drawingArea->layerTreeHost()->deviceOrPageScaleFactorChanged();
+    m_drawingArea->deviceOrPageScaleFactorChanged();
 #endif
 
     send(Messages::WebPageProxy::PageScaleFactorDidChange(scale));
@@ -1619,8 +1656,7 @@ void WebPage::setDeviceScaleFactor(float scaleFactor)
     }
 
 #if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
-    if (m_drawingArea->layerTreeHost())
-        m_drawingArea->layerTreeHost()->deviceOrPageScaleFactorChanged();
+    m_drawingArea->deviceOrPageScaleFactorChanged();
 #endif
 }
 
@@ -1704,8 +1740,8 @@ void WebPage::viewportPropertiesDidChange(const ViewportArguments& viewportArgum
     if (view && view->useFixedLayout())
         sendViewportAttributesChanged(viewportArguments);
 #if USE(COORDINATED_GRAPHICS_THREADED)
-    else if (auto* layerTreeHost = m_drawingArea->layerTreeHost())
-        layerTreeHost->didChangeViewportProperties(ViewportAttributes());
+    else
+        m_drawingArea->didChangeViewportAttributes(ViewportAttributes());
 #endif
 #endif
 
@@ -1786,7 +1822,8 @@ void WebPage::postInjectedBundleMessage(const String& messageName, const UserDat
 }
 
 #if !PLATFORM(IOS)
-void WebPage::setHeaderPageBanner(PassRefPtr<PageBanner> pageBanner)
+
+void WebPage::setHeaderPageBanner(PageBanner* pageBanner)
 {
     if (m_headerBanner)
         m_headerBanner->detachFromPage();
@@ -1802,7 +1839,7 @@ PageBanner* WebPage::headerPageBanner()
     return m_headerBanner.get();
 }
 
-void WebPage::setFooterPageBanner(PassRefPtr<PageBanner> pageBanner)
+void WebPage::setFooterPageBanner(PageBanner* pageBanner)
 {
     if (m_footerBanner)
         m_footerBanner->detachFromPage();
@@ -1859,7 +1896,7 @@ void WebPage::takeSnapshot(IntRect snapshotRect, IntSize bitmapSize, uint32_t op
 
     ShareableBitmap::Handle handle;
     if (image)
-        image->bitmap()->createHandle(handle, SharedMemory::Protection::ReadOnly);
+        image->bitmap().createHandle(handle, SharedMemory::Protection::ReadOnly);
 
     send(Messages::WebPageProxy::ImageCallback(handle, callbackID));
 }
@@ -1900,10 +1937,8 @@ PassRefPtr<WebImage> WebPage::snapshotAtSize(const IntRect& rect, const IntSize&
     float scaleFactor = std::max(horizontalScaleFactor, verticalScaleFactor);
 
     auto snapshot = WebImage::create(bitmapSize, snapshotOptionsToImageOptions(options));
-    if (!snapshot->bitmap())
-        return nullptr;
 
-    auto graphicsContext = snapshot->bitmap()->createGraphicsContext();
+    auto graphicsContext = snapshot->bitmap().createGraphicsContext();
 
     if (options & SnapshotOptionsPrinting) {
         PrintContext::spoolAllPagesWithBoundaries(*coreFrame, *graphicsContext, snapshotRect.size());
@@ -1969,10 +2004,8 @@ PassRefPtr<WebImage> WebPage::snapshotNode(WebCore::Node& node, SnapshotOptions 
     }
 
     auto snapshot = WebImage::create(snapshotSize, snapshotOptionsToImageOptions(options));
-    if (!snapshot->bitmap())
-        return nullptr;
 
-    auto graphicsContext = snapshot->bitmap()->createGraphicsContext();
+    auto graphicsContext = snapshot->bitmap().createGraphicsContext();
 
     if (!(options & SnapshotOptionsExcludeDeviceScaleFactor)) {
         double deviceScaleFactor = corePage()->deviceScaleFactor();
@@ -2334,7 +2367,7 @@ void WebPage::restoreSessionInternal(const Vector<BackForwardListItemState>& ite
     for (const auto& itemState : itemStates) {
         auto historyItem = toHistoryItem(itemState.pageState);
         historyItem->setWasRestoredFromSession(restoredByAPIRequest == WasRestoredByAPIRequest::Yes);
-        WebBackForwardListProxy::addItemFromUIProcess(itemState.identifier, WTFMove(historyItem), m_pageID);
+        static_cast<WebBackForwardListProxy*>(corePage()->backForward().client())->addItemFromUIProcess(itemState.identifier, WTFMove(historyItem), m_pageID);
     }
 }
 
@@ -2397,7 +2430,6 @@ void WebPage::gestureEvent(const WebGestureEvent& gestureEvent)
     bool handled = handleGestureEvent(gestureEvent, m_page.get());
     send(Messages::WebPageProxy::DidReceiveEvent(static_cast<uint32_t>(gestureEvent.type()), handled));
 }
-
 #endif
 
 bool WebPage::scroll(Page* page, ScrollDirection direction, ScrollGranularity granularity)
@@ -2795,9 +2827,10 @@ void WebPage::getSelectionAsWebArchiveData(uint64_t callbackID)
 
 void WebPage::getSelectionOrContentsAsString(uint64_t callbackID)
 {
-    String resultString = m_mainFrame->selectionAsString();
+    WebFrame* focusedOrMainFrame = WebFrame::fromCoreFrame(m_page->focusController().focusedOrMainFrame());
+    String resultString = focusedOrMainFrame->selectionAsString();
     if (resultString.isEmpty())
-        resultString = m_mainFrame->contentsAsString();
+        resultString = focusedOrMainFrame->contentsAsString();
     send(Messages::WebPageProxy::StringCallback(resultString, callbackID));
 }
 
@@ -3193,8 +3226,6 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 
     RuntimeEnabledFeatures::sharedFeatures().setInteractiveFormValidationEnabled(store.getBoolValueForKey(WebPreferencesKey::interactiveFormValidationEnabledKey()));
 
-    RuntimeEnabledFeatures::sharedFeatures().setDOMIteratorEnabled(store.getBoolValueForKey(WebPreferencesKey::domIteratorEnabledKey()));
-
     // Experimental Features.
 
 #if ENABLE(CSS_GRID_LAYOUT)
@@ -3211,10 +3242,6 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 
     settings.setVisualViewportEnabled(store.getBoolValueForKey(WebPreferencesKey::visualViewportEnabledKey()));
 
-#if ENABLE(VARIATION_FONTS)
-    settings.setVariationFontsEnabled(store.getBoolValueForKey(WebPreferencesKey::variationFontsEnabledKey()));
-#endif
-
     settings.setInputEventsEnabled(store.getBoolValueForKey(WebPreferencesKey::inputEventsEnabledKey()));
     RuntimeEnabledFeatures::sharedFeatures().setInputEventsEnabled(store.getBoolValueForKey(WebPreferencesKey::inputEventsEnabledKey()));
 
@@ -3227,6 +3254,10 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 #if ENABLE(INTERSECTION_OBSERVER)
     RuntimeEnabledFeatures::sharedFeatures().setIntersectionObserverEnabled(store.getBoolValueForKey(WebPreferencesKey::intersectionObserverEnabledKey()));
 #endif
+
+    RuntimeEnabledFeatures::sharedFeatures().setUserTimingEnabled(store.getBoolValueForKey(WebPreferencesKey::userTimingEnabledKey()));
+    RuntimeEnabledFeatures::sharedFeatures().setResourceTimingEnabled(store.getBoolValueForKey(WebPreferencesKey::resourceTimingEnabledKey()));
+    RuntimeEnabledFeatures::sharedFeatures().setLinkPreloadEnabled(store.getBoolValueForKey(WebPreferencesKey::linkPreloadEnabledKey()));
 
     bool processSuppressionEnabled = store.getBoolValueForKey(WebPreferencesKey::pageVisibilityBasedProcessSuppressionEnabledKey());
     if (m_processSuppressionEnabled != processSuppressionEnabled) {
@@ -3490,6 +3521,9 @@ void WebPage::performDragControllerAction(uint64_t action, const WebCore::DragDa
         m_pendingDropSandboxExtension = nullptr;
 
         m_pendingDropExtensionsForFileUpload.clear();
+#if ENABLE(DATA_INTERACTION)
+        send(Messages::WebPageProxy::DidPerformDataInteractionControllerOperation());
+#endif
         break;
     }
 
@@ -3578,6 +3612,7 @@ void WebPage::setActivePopupMenu(WebPopupMenu* menu)
 }
 
 #if ENABLE(INPUT_TYPE_COLOR)
+
 void WebPage::setActiveColorChooser(WebColorChooser* colorChooser)
 {
     m_activeColorChooser = colorChooser;
@@ -3592,11 +3627,12 @@ void WebPage::didChooseColor(const WebCore::Color& color)
 {
     m_activeColorChooser->didChooseColor(color);
 }
+
 #endif
 
-void WebPage::setActiveOpenPanelResultListener(PassRefPtr<WebOpenPanelResultListener> openPanelResultListener)
+void WebPage::setActiveOpenPanelResultListener(Ref<WebOpenPanelResultListener>&& openPanelResultListener)
 {
-    m_activeOpenPanelResultListener = openPanelResultListener;
+    m_activeOpenPanelResultListener = WTFMove(openPanelResultListener);
 }
 
 bool WebPage::findStringFromInjectedBundle(const String& target, FindOptions options)
@@ -3719,7 +3755,7 @@ void WebPage::didCompleteMediaDeviceEnumeration(uint64_t userMediaID, const Vect
 {
     m_userMediaPermissionRequestManager.didCompleteMediaDeviceEnumeration(userMediaID, devices, deviceIdentifierHashSalt, originHasPersistentAccess);
 }
-
+#if ENABLE(SANDBOX_EXTENSIONS)
 void WebPage::grantUserMediaDeviceSandboxExtensions(const MediaDeviceSandboxExtensions& extensions)
 {
     m_userMediaPermissionRequestManager.grantUserMediaDeviceSandboxExtensions(extensions);
@@ -3729,6 +3765,7 @@ void WebPage::revokeUserMediaDeviceSandboxExtensions(const Vector<String>& exten
 {
     m_userMediaPermissionRequestManager.revokeUserMediaDeviceSandboxExtensions(extensionIDs);
 }
+#endif
 #endif
 
 #if !PLATFORM(IOS)
@@ -4266,6 +4303,10 @@ void WebPage::drawRectToImage(uint64_t frameID, const PrintInfo& printInfo, cons
 #endif
 
         auto bitmap = ShareableBitmap::createShareable(imageSize, ShareableBitmap::SupportsAlpha);
+        if (!bitmap) {
+            ASSERT_NOT_REACHED();
+            return;
+        }
         auto graphicsContext = bitmap->createGraphicsContext();
 
         float printingScale = static_cast<float>(imageSize.width()) / rect.width();
@@ -4283,14 +4324,14 @@ void WebPage::drawRectToImage(uint64_t frameID, const PrintInfo& printInfo, cons
             m_printContext->spoolRect(*graphicsContext, rect);
         }
 
-        image = WebImage::create(WTFMove(bitmap));
+        image = WebImage::create(bitmap.releaseNonNull());
     }
 #endif
 
     ShareableBitmap::Handle handle;
 
     if (image)
-        image->bitmap()->createHandle(handle, SharedMemory::Protection::ReadOnly);
+        image->bitmap().createHandle(handle, SharedMemory::Protection::ReadOnly);
 
     send(Messages::WebPageProxy::ImageCallback(handle, callbackID));
 }
@@ -5406,11 +5447,11 @@ bool WebPage::plugInIsPrimarySize(WebCore::HTMLPlugInImageElement& plugInImageEl
 
 #endif // ENABLE(PRIMARY_SNAPSHOTTED_PLUGIN_HEURISTIC)
 
-PassRefPtr<Range> WebPage::currentSelectionAsRange()
+RefPtr<Range> WebPage::currentSelectionAsRange()
 {
-    Frame* frame = frameWithSelection(m_page.get());
+    auto* frame = frameWithSelection(m_page.get());
     if (!frame)
-        return 0;
+        return nullptr;
 
     return frame->selection().toNormalizedRange();
 }
@@ -5419,6 +5460,11 @@ void WebPage::reportUsedFeatures()
 {
     Vector<String> namedFeatures;
     m_loaderClient.featuresUsedInPage(this, namedFeatures);
+}
+
+void WebPage::updateWebsitePolicies(const WebsitePolicies&)
+{
+    // FIXME: Update the website policies in m_page.
 }
 
 unsigned WebPage::extendIncrementalRenderingSuppression()
@@ -5510,7 +5556,7 @@ void WebPage::getSamplingProfilerOutput(uint64_t callbackID)
 #endif
 }
 
-PassRefPtr<WebCore::Range> WebPage::rangeFromEditingRange(WebCore::Frame& frame, const EditingRange& range, EditingRangeIsRelativeTo editingRangeIsRelativeTo)
+RefPtr<WebCore::Range> WebPage::rangeFromEditingRange(WebCore::Frame& frame, const EditingRange& range, EditingRangeIsRelativeTo editingRangeIsRelativeTo)
 {
     ASSERT(range.location != notFound);
 
@@ -5651,9 +5697,9 @@ void WebPage::setUserInterfaceLayoutDirection(uint32_t direction)
 
 #if ENABLE(GAMEPAD)
 
-void WebPage::gamepadActivity(const Vector<GamepadData>& gamepadDatas)
+void WebPage::gamepadActivity(const Vector<GamepadData>& gamepadDatas, bool shouldMakeGamepadsVisible)
 {
-    WebGamepadProvider::singleton().gamepadActivity(gamepadDatas);
+    WebGamepadProvider::singleton().gamepadActivity(gamepadDatas, shouldMakeGamepadsVisible);
 }
 
 #endif

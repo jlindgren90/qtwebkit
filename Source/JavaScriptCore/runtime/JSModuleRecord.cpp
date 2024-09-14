@@ -59,14 +59,14 @@ JSModuleRecord::JSModuleRecord(VM& vm, Structure* structure, const Identifier& m
 
 void JSModuleRecord::destroy(JSCell* cell)
 {
-    JSModuleRecord* thisObject = jsCast<JSModuleRecord*>(cell);
+    JSModuleRecord* thisObject = static_cast<JSModuleRecord*>(cell);
     thisObject->JSModuleRecord::~JSModuleRecord();
 }
 
 void JSModuleRecord::finishCreation(ExecState* exec, VM& vm)
 {
     Base::finishCreation(exec, vm);
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
 }
 
 void JSModuleRecord::visitChildren(JSCell* cell, SlotVisitor& visitor)

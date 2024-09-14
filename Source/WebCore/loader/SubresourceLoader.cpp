@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2007, 2009, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,6 +55,10 @@
 
 #if ENABLE(CONTENT_EXTENSIONS)
 #include "ResourceLoadInfo.h"
+#endif
+
+#if USE(QUICK_LOOK)
+#include "QuickLook.h"
 #endif
 
 namespace WebCore {
@@ -231,6 +235,10 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
         return;
 
     ResourceLoader::willSendRequestInternal(newRequest, redirectResponse);
+
+    if (reachedTerminalState())
+        return;
+
     if (newRequest.isNull()) {
         cancel();
         return;
@@ -247,10 +255,32 @@ void SubresourceLoader::didSendData(unsigned long long bytesSent, unsigned long 
     m_resource->didSendData(bytesSent, totalBytesToBeSent);
 }
 
+#if USE(QUICK_LOOK)
+
+bool SubresourceLoader::shouldCreateQuickLookHandleForResponse(const ResourceResponse& response) const
+{
+    if (m_resource->type() != CachedResource::MainResource)
+        return false;
+
+    if (m_quickLookHandle)
+        return false;
+
+    return QuickLookHandle::shouldCreateForMIMEType(response.mimeType());
+}
+
+#endif
+
 void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
 {
     ASSERT(!response.isNull());
     ASSERT(m_state == Initialized);
+
+#if USE(QUICK_LOOK)
+    if (shouldCreateQuickLookHandleForResponse(response)) {
+        m_quickLookHandle = QuickLookHandle::create(*this, response);
+        return;
+    }
+#endif
 
     // We want redirect responses to be processed through willSendRequestInternal. The only exception is redirection with no Location headers.
     ASSERT(response.httpStatusCode() < 300 || response.httpStatusCode() >= 400 || response.httpStatusCode() == 304 || !response.httpHeaderField(HTTPHeaderName::Location));
@@ -325,15 +355,29 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
 
 void SubresourceLoader::didReceiveData(const char* data, unsigned length, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
+#if USE(QUICK_LOOK)
+    if (auto quickLookHandle = m_quickLookHandle.get()) {
+        if (quickLookHandle->didReceiveData(data, length))
+            return;
+    }
+#endif
+
     didReceiveDataOrBuffer(data, length, nullptr, encodedDataLength, dataPayloadType);
 }
 
 void SubresourceLoader::didReceiveBuffer(Ref<SharedBuffer>&& buffer, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
+#if USE(QUICK_LOOK)
+    if (auto quickLookHandle = m_quickLookHandle.get()) {
+        if (quickLookHandle->didReceiveBuffer(buffer.get()))
+            return;
+    }
+#endif
+
     didReceiveDataOrBuffer(nullptr, 0, WTFMove(buffer), encodedDataLength, dataPayloadType);
 }
 
-void SubresourceLoader::didReceiveDataOrBuffer(const char* data, int length, RefPtr<SharedBuffer>&& prpBuffer, long long encodedDataLength, DataPayloadType dataPayloadType)
+void SubresourceLoader::didReceiveDataOrBuffer(const char* data, int length, RefPtr<SharedBuffer>&& buffer, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
     if (m_resource->response().httpStatusCode() >= 400 && !m_resource->shouldIgnoreHTTPStatusCodeErrors())
         return;
@@ -343,9 +387,8 @@ void SubresourceLoader::didReceiveDataOrBuffer(const char* data, int length, Ref
     // Reference the object in this method since the additional processing can do
     // anything including removing the last reference to this object; one example of this is 3266216.
     Ref<SubresourceLoader> protectedThis(*this);
-    RefPtr<SharedBuffer> buffer = prpBuffer;
-    
-    ResourceLoader::didReceiveDataOrBuffer(data, length, WTFMove(buffer), encodedDataLength, dataPayloadType);
+
+    ResourceLoader::didReceiveDataOrBuffer(data, length, buffer.copyRef(), encodedDataLength, dataPayloadType);
 
     if (!m_loadingMultipartContent) {
         if (auto* resourceData = this->resourceData())
@@ -411,7 +454,7 @@ static void logResourceLoaded(Frame* frame, CachedResource::Type type)
         resourceType = DiagnosticLoggingKeys::otherKey();
         break;
     }
-    frame->page()->diagnosticLoggingClient().logDiagnosticMessageWithValue(DiagnosticLoggingKeys::resourceKey(), DiagnosticLoggingKeys::loadedKey(), resourceType, ShouldSample::Yes);
+    frame->page()->diagnosticLoggingClient().logDiagnosticMessage(DiagnosticLoggingKeys::resourceLoadedKey(), resourceType, ShouldSample::Yes);
 }
 
 bool SubresourceLoader::checkResponseCrossOriginAccessControl(const ResourceResponse& response, String& errorDescription)
@@ -468,12 +511,19 @@ bool SubresourceLoader::checkRedirectionCrossOriginAccessControl(const ResourceR
 
 void SubresourceLoader::didFinishLoading(double finishTime)
 {
+#if USE(QUICK_LOOK)
+    if (auto quickLookHandle = m_quickLookHandle.get()) {
+        if (quickLookHandle->didFinishLoading())
+            return;
+    }
+#endif
+
     if (m_state != Initialized)
         return;
     ASSERT(!reachedTerminalState());
     ASSERT(!m_resource->resourceToRevalidate());
     // FIXME (129394): We should cancel the load when a decode error occurs instead of continuing the load to completion.
-    ASSERT(!m_resource->errorOccurred() || m_resource->status() == CachedResource::DecodeError);
+    ASSERT(!m_resource->errorOccurred() || m_resource->status() == CachedResource::DecodeError || !m_resource->isLoading());
     LOG(ResourceLoading, "Received '%s'.", m_resource->url().string().latin1().data());
     logResourceLoaded(m_frame.get(), m_resource->type());
 
@@ -485,23 +535,25 @@ void SubresourceLoader::didFinishLoading(double finishTime)
     // Mixing times from different processes can cause the finish time to be earlier than
     // the response received time due to inter-process communication lag.
     UNUSED_PARAM(finishTime);
-    double responseEndTime = monotonicallyIncreasingTime();
+    MonotonicTime responseEndTime = MonotonicTime::now();
     m_loadTiming.setResponseEnd(responseEndTime);
 
 #if ENABLE(WEB_TIMING)
-    if (m_documentLoader->cachedResourceLoader().document() && RuntimeEnabledFeatures::sharedFeatures().resourceTimingEnabled())
-        m_documentLoader->cachedResourceLoader().resourceTimingInformation().addResourceTiming(m_resource, *m_documentLoader->cachedResourceLoader().document(), m_resource->loader()->loadTiming());
+    if (RuntimeEnabledFeatures::sharedFeatures().resourceTimingEnabled()) {
+        if (Document* document = m_documentLoader->cachedResourceLoader().document())
+            m_documentLoader->cachedResourceLoader().resourceTimingInformation().addResourceTiming(m_resource, *document, m_resource->loader()->loadTiming());
+    }
 #endif
 
     m_state = Finishing;
-    m_resource->setLoadFinishTime(responseEndTime); // FIXME: Users of the loadFinishTime should use the LoadTiming struct instead.
+    m_resource->setLoadFinishTime(responseEndTime.secondsSinceEpoch().seconds()); // FIXME: Users of the loadFinishTime should use the LoadTiming struct instead.
     m_resource->finishLoading(resourceData());
 
     if (wasCancelled())
         return;
     m_resource->finish();
     ASSERT(!reachedTerminalState());
-    didFinishLoadingOnePart(responseEndTime);
+    didFinishLoadingOnePart(responseEndTime.secondsSinceEpoch().seconds());
     notifyDone();
     if (reachedTerminalState())
         return;
@@ -510,6 +562,11 @@ void SubresourceLoader::didFinishLoading(double finishTime)
 
 void SubresourceLoader::didFail(const ResourceError& error)
 {
+#if USE(QUICK_LOOK)
+    if (auto quickLookHandle = m_quickLookHandle.get())
+        quickLookHandle->didFail();
+#endif
+
     if (m_state != Initialized)
         return;
     ASSERT(!reachedTerminalState());
@@ -565,6 +622,13 @@ void SubresourceLoader::didCancel(const ResourceError&)
 
     m_resource->cancelLoad();
     notifyDone();
+}
+
+void SubresourceLoader::didRetrieveDerivedDataFromCache(const String& type, SharedBuffer& buffer)
+{
+    if (m_state != Initialized)
+        return;
+    m_resource->didRetrieveDerivedDataFromCache(type, buffer);
 }
 
 void SubresourceLoader::notifyDone()

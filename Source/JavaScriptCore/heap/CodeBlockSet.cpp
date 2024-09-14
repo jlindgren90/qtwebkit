@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,8 +32,6 @@
 
 namespace JSC {
 
-static const bool verbose = false;
-
 CodeBlockSet::CodeBlockSet()
 {
 }
@@ -63,17 +61,17 @@ void CodeBlockSet::clearMarksForFullCollection()
         codeBlock->clearVisitWeaklyHasBeenCalled();
 }
 
-void CodeBlockSet::lastChanceToFinalize()
+void CodeBlockSet::lastChanceToFinalize(VM& vm)
 {
     LockHolder locker(&m_lock);
     for (CodeBlock* codeBlock : m_newCodeBlocks)
-        codeBlock->classInfo()->methodTable.destroy(codeBlock);
+        codeBlock->structure(vm)->classInfo()->methodTable.destroy(codeBlock);
 
     for (CodeBlock* codeBlock : m_oldCodeBlocks)
-        codeBlock->classInfo()->methodTable.destroy(codeBlock);
+        codeBlock->structure(vm)->classInfo()->methodTable.destroy(codeBlock);
 }
 
-void CodeBlockSet::deleteUnmarkedAndUnreferenced(CollectionScope scope)
+void CodeBlockSet::deleteUnmarkedAndUnreferenced(VM& vm, CollectionScope scope)
 {
     LockHolder locker(&m_lock);
     Vector<CodeBlock*> unmarked;
@@ -85,7 +83,7 @@ void CodeBlockSet::deleteUnmarkedAndUnreferenced(CollectionScope scope)
             unmarked.append(codeBlock);
         }
         for (CodeBlock* codeBlock : unmarked) {
-            codeBlock->classInfo()->methodTable.destroy(codeBlock);
+            codeBlock->structure(vm)->classInfo()->methodTable.destroy(codeBlock);
             set.remove(codeBlock);
         }
         unmarked.resize(0);
@@ -112,15 +110,6 @@ bool CodeBlockSet::contains(const LockHolder&, void* candidateCodeBlock)
     if (!HashSet<CodeBlock*>::isValidValue(codeBlock))
         return false;
     return m_oldCodeBlocks.contains(codeBlock) || m_newCodeBlocks.contains(codeBlock) || m_currentlyExecuting.contains(codeBlock);
-}
-
-void CodeBlockSet::writeBarrierCurrentlyExecuting(Heap* heap)
-{
-    LockHolder locker(&m_lock);
-    if (verbose)
-        dataLog("Remembering ", m_currentlyExecuting.size(), " code blocks.\n");
-    for (CodeBlock* codeBlock : m_currentlyExecuting)
-        heap->writeBarrier(codeBlock);
 }
 
 void CodeBlockSet::clearCurrentlyExecuting()

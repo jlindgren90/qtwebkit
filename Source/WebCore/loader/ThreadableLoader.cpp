@@ -36,7 +36,6 @@
 #include "DocumentThreadableLoader.h"
 #include "ResourceError.h"
 #include "ScriptExecutionContext.h"
-#include "SecurityOrigin.h"
 #include "WorkerGlobalScope.h"
 #include "WorkerRunLoop.h"
 #include "WorkerThreadableLoader.h"
@@ -52,12 +51,12 @@ ThreadableLoaderOptions::~ThreadableLoaderOptions()
 {
 }
 
-ThreadableLoaderOptions::ThreadableLoaderOptions(const ResourceLoaderOptions& baseOptions, PreflightPolicy preflightPolicy, ContentSecurityPolicyEnforcement contentSecurityPolicyEnforcement, String&& initiator, OpaqueResponseBodyPolicy opaqueResponse)
+ThreadableLoaderOptions::ThreadableLoaderOptions(const ResourceLoaderOptions& baseOptions, PreflightPolicy preflightPolicy, ContentSecurityPolicyEnforcement contentSecurityPolicyEnforcement, String&& initiator, ResponseFilteringPolicy filteringPolicy)
     : ResourceLoaderOptions(baseOptions)
     , preflightPolicy(preflightPolicy)
     , contentSecurityPolicyEnforcement(contentSecurityPolicyEnforcement)
     , initiator(WTFMove(initiator))
-    , opaqueResponse(opaqueResponse)
+    , filteringPolicy(filteringPolicy)
 {
 }
 

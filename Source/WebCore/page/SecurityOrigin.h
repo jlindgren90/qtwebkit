@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2007-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -92,7 +92,7 @@ public:
     // SecurityOrigin. For example, call this function before allowing
     // script from one security origin to read or write objects from
     // another SecurityOrigin.
-    WEBCORE_EXPORT bool canAccess(const SecurityOrigin*) const;
+    WEBCORE_EXPORT bool canAccess(const SecurityOrigin&) const;
 
     // Returns true if this SecurityOrigin can read content retrieved from
     // the given URL. For example, call this function before issuing
@@ -102,7 +102,7 @@ public:
     // Returns true if this SecurityOrigin can receive drag content from the
     // initiator. For example, call this function before allowing content to be
     // dropped onto a target.
-    bool canReceiveDragData(const SecurityOrigin* dragInitiator) const;    
+    bool canReceiveDragData(const SecurityOrigin& dragInitiator) const;
 
     // Returns true if |document| can display content from the given URL (e.g.,
     // in an iframe or as an image). For example, web sites generally cannot
@@ -138,15 +138,13 @@ public:
     void grantStorageAccessFromFileURLsQuirk();
     bool needsStorageAccessFromFileURLsQuirk() const { return m_needsStorageAccessFromFileURLsQuirk; }
 
-#if ENABLE(CACHE_PARTITIONING)
     WEBCORE_EXPORT String domainForCachePartition() const;
-#endif
 
-    bool canAccessDatabase(const SecurityOrigin* topOrigin = nullptr) const { return canAccessStorage(topOrigin); };
-    bool canAccessSessionStorage(const SecurityOrigin* topOrigin) const { return canAccessStorage(topOrigin, AlwaysAllowFromThirdParty); }
+    bool canAccessDatabase(const SecurityOrigin& topOrigin) const { return canAccessStorage(&topOrigin); };
+    bool canAccessSessionStorage(const SecurityOrigin& topOrigin) const { return canAccessStorage(&topOrigin, AlwaysAllowFromThirdParty); }
     bool canAccessLocalStorage(const SecurityOrigin* topOrigin) const { return canAccessStorage(topOrigin); };
-    bool canAccessPluginStorage(const SecurityOrigin* topOrigin) const { return canAccessStorage(topOrigin); }
-    bool canAccessApplicationCache(const SecurityOrigin* topOrigin) const { return canAccessStorage(topOrigin); }
+    bool canAccessPluginStorage(const SecurityOrigin& topOrigin) const { return canAccessStorage(&topOrigin); }
+    bool canAccessApplicationCache(const SecurityOrigin& topOrigin) const { return canAccessStorage(&topOrigin); }
     bool canAccessCookies() const { return !isUnique(); }
     bool canRequestGeolocation() const { return !isUnique(); }
     Policy canShowNotifications() const;
@@ -194,11 +192,11 @@ public:
 
     // This method checks for equality, ignoring the value of document.domain
     // (and whether it was set) but considering the host. It is used for postMessage.
-    WEBCORE_EXPORT bool isSameSchemeHostPort(const SecurityOrigin*) const;
+    WEBCORE_EXPORT bool isSameSchemeHostPort(const SecurityOrigin&) const;
 
     // This method implements the "same origin" algorithm from the HTML Standard:
     // https://html.spec.whatwg.org/multipage/browsers.html#same-origin
-    bool isSameOriginAs(const SecurityOrigin*) const;
+    WEBCORE_EXPORT bool isSameOriginAs(const SecurityOrigin&) const;
 
     static URL urlWithUniqueSecurityOrigin();
 
@@ -208,7 +206,7 @@ private:
     explicit SecurityOrigin(const SecurityOrigin*);
 
     // FIXME: Rename this function to something more semantic.
-    bool passesFileCheck(const SecurityOrigin*) const;
+    bool passesFileCheck(const SecurityOrigin&) const;
 
     // This method checks that the scheme for this origin is an HTTP-family
     // scheme, e.g. HTTP and HTTPS.

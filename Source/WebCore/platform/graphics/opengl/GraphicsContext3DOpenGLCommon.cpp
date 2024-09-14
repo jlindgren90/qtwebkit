@@ -133,8 +133,13 @@ static uint64_t nameHashForShader(const char* name, size_t length)
 RefPtr<GraphicsContext3D> GraphicsContext3D::createForCurrentGLContext()
 {
     auto context = adoptRef(*new GraphicsContext3D({ }, 0, GraphicsContext3D::RenderToCurrentGLContext));
+#if USE(TEXTURE_MAPPER) && !PLATFORM(EFL)
+    if (!context->m_texmapLayer)
+        return nullptr;
+#else
     if (!context->m_private)
         return nullptr;
+#endif
     return WTFMove(context);
 }
 
@@ -1745,6 +1750,12 @@ void GraphicsContext3D::texSubImage2D(GC3Denum target, GC3Dint level, GC3Dint xo
     if (type == HALF_FLOAT_OES)
         type = GL_HALF_FLOAT_ARB;
 #endif
+
+    if (m_usingCoreProfile && format == ALPHA) {
+        // We are using a core profile. This means that GL_ALPHA, which is a valid format in WebGL for texSubImage2D
+        // is not supported in OpenGL. We are using GL_RED to back GL_ALPHA, so do it here as well.
+        format = RED;
+    }
 
     // FIXME: we will need to deal with PixelStore params when dealing with image buffers that differ from the subimage size.
     ::glTexSubImage2D(target, level, xoff, yoff, width, height, format, type, pixels);

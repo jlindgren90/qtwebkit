@@ -46,7 +46,7 @@ public:
     typedef typename Context::ControlType ControlType;
     typedef typename Context::ExpressionList ExpressionList;
 
-    FunctionParser(VM*, Context&, const uint8_t* functionStart, size_t functionLength, const Signature*, const ImmutableFunctionIndexSpace&, const ModuleInformation&);
+    FunctionParser(VM*, Context&, const uint8_t* functionStart, size_t functionLength, const Signature*, const ModuleInformation&, const Vector<SignatureIndex>&);
 
     Result WARN_UNUSED_RETURN parse();
 
@@ -82,18 +82,18 @@ private:
     ExpressionList m_expressionStack;
     Vector<ControlEntry> m_controlStack;
     const Signature* m_signature;
-    const ImmutableFunctionIndexSpace& m_functionIndexSpace;
     const ModuleInformation& m_info;
+    const Vector<SignatureIndex>& m_moduleSignatureIndicesToUniquedSignatureIndices;
     unsigned m_unreachableBlocks { 0 };
 };
 
 template<typename Context>
-FunctionParser<Context>::FunctionParser(VM* vm, Context& context, const uint8_t* functionStart, size_t functionLength, const Signature* signature, const ImmutableFunctionIndexSpace& functionIndexSpace, const ModuleInformation& info)
+FunctionParser<Context>::FunctionParser(VM* vm, Context& context, const uint8_t* functionStart, size_t functionLength, const Signature* signature, const ModuleInformation& info, const Vector<SignatureIndex>& moduleSignatureIndicesToUniquedSignatureIndices)
     : Parser(vm, functionStart, functionLength)
     , m_context(context)
     , m_signature(signature)
-    , m_functionIndexSpace(functionIndexSpace)
     , m_info(info)
+    , m_moduleSignatureIndicesToUniquedSignatureIndices(moduleSignatureIndicesToUniquedSignatureIndices)
 {
     if (verbose)
         dataLogLn("Parsing function starting at: ", (uintptr_t)functionStart, " of length: ", functionLength);
@@ -134,7 +134,7 @@ auto FunctionParser<Context>::parseBody() -> PartialResult
 
         if (verbose) {
             dataLogLn("processing op (", m_unreachableBlocks, "): ",  RawPointer(reinterpret_cast<void*>(op)), ", ", makeString(static_cast<OpType>(op)), " at offset: ", RawPointer(reinterpret_cast<void*>(m_offset)));
-            m_context.dump(m_controlStack, m_expressionStack);
+            m_context.dump(m_controlStack, &m_expressionStack);
         }
 
         if (m_unreachableBlocks)
@@ -308,9 +308,9 @@ auto FunctionParser<Context>::parseExpression(OpType op) -> PartialResult
     case Call: {
         uint32_t functionIndex;
         WASM_PARSER_FAIL_IF(!parseVarUInt32(functionIndex), "can't parse call's function index");
-        WASM_PARSER_FAIL_IF(functionIndex >= m_functionIndexSpace.size, "call function index ", functionIndex, " exceeds function index space ", m_functionIndexSpace.size);
+        WASM_PARSER_FAIL_IF(functionIndex >= m_info.functionIndexSpaceSize(), "call function index ", functionIndex, " exceeds function index space ", m_info.functionIndexSpaceSize());
 
-        SignatureIndex calleeSignatureIndex = m_functionIndexSpace.buffer.get()[functionIndex].signatureIndex;
+        SignatureIndex calleeSignatureIndex = m_info.signatureIndexFromFunctionIndexSpace(functionIndex);
         const Signature* calleeSignature = SignatureInformation::get(m_vm, calleeSignatureIndex);
         WASM_PARSER_FAIL_IF(calleeSignature->argumentCount() > m_expressionStack.size(), "call function index ", functionIndex, " has ", calleeSignature->argumentCount(), " arguments, but the expression stack currently holds ", m_expressionStack.size(), " values");
 
@@ -327,7 +327,7 @@ auto FunctionParser<Context>::parseExpression(OpType op) -> PartialResult
         if (result != Context::emptyExpression)
             m_expressionStack.append(result);
 
-            return { };
+        return { };
     }
 
     case CallIndirect: {
@@ -337,9 +337,9 @@ auto FunctionParser<Context>::parseExpression(OpType op) -> PartialResult
         WASM_PARSER_FAIL_IF(!parseVarUInt32(signatureIndex), "can't get call_indirect's signature index");
         WASM_PARSER_FAIL_IF(!parseVarUInt1(reserved), "can't get call_indirect's reserved byte");
         WASM_PARSER_FAIL_IF(reserved, "call_indirect's 'reserved' varuint1 must be 0x0");
-        WASM_PARSER_FAIL_IF(m_info.signatureIndices.size() <= signatureIndex, "call_indirect's signature index ", signatureIndex, " exceeds known signatures ", m_info.signatureIndices.size());
+        WASM_PARSER_FAIL_IF(m_moduleSignatureIndicesToUniquedSignatureIndices.size() <= signatureIndex, "call_indirect's signature index ", signatureIndex, " exceeds known signatures ", m_moduleSignatureIndicesToUniquedSignatureIndices.size());
 
-        SignatureIndex calleeSignatureIndex = m_info.signatureIndices[signatureIndex];
+        SignatureIndex calleeSignatureIndex = m_moduleSignatureIndicesToUniquedSignatureIndices[signatureIndex];
         const Signature* calleeSignature = SignatureInformation::get(m_vm, calleeSignatureIndex);
         size_t argumentCount = calleeSignature->argumentCount() + 1; // Add the callee's index.
         WASM_PARSER_FAIL_IF(argumentCount > m_expressionStack.size(), "call_indirect expects ", argumentCount, " arguments, but the expression stack currently holds ", m_expressionStack.size(), " values");
@@ -389,7 +389,7 @@ auto FunctionParser<Context>::parseExpression(OpType op) -> PartialResult
     }
 
     case Else: {
-        WASM_PARSER_FAIL_IF(m_controlStack.isEmpty(), "can't use else block at the top-level of a function");
+        WASM_PARSER_FAIL_IF(m_controlStack.size() == 1, "can't use else block at the top-level of a function");
         WASM_TRY_ADD_TO_CONTEXT(addElse(m_controlStack.last().controlData, m_expressionStack));
         m_expressionStack.shrink(0);
         return { };
@@ -478,15 +478,40 @@ auto FunctionParser<Context>::parseExpression(OpType op) -> PartialResult
         return { };
     }
 
-    case GrowMemory:
-        return fail("not yet implemented: grow_memory"); // FIXME: Not yet implemented.
+    case GrowMemory: {
+        WASM_PARSER_FAIL_IF(!m_info.memory, "grow_memory is only valid if a memory is defined or imported");
 
-    case CurrentMemory:
-        return fail("not yet implemented: current_memory"); // FIXME: Not yet implemented.
+        uint8_t reserved;
+        WASM_PARSER_FAIL_IF(!parseVarUInt1(reserved), "can't parse reserved varUint1 for grow_memory");
+        WASM_PARSER_FAIL_IF(reserved != 0, "reserved varUint1 for grow_memory must be zero");
 
+        ExpressionType delta;
+        WASM_TRY_POP_EXPRESSION_STACK_INTO(delta, "expect an i32 argument to grow_memory on the stack");
+
+        ExpressionType result;
+        WASM_TRY_ADD_TO_CONTEXT(addGrowMemory(delta, result));
+        m_expressionStack.append(result);
+
+        return { };
+    }
+
+    case CurrentMemory: {
+        WASM_PARSER_FAIL_IF(!m_info.memory, "current_memory is only valid if a memory is defined or imported");
+
+        uint8_t reserved;
+        WASM_PARSER_FAIL_IF(!parseVarUInt1(reserved), "can't parse reserved varUint1 for current_memory");
+        WASM_PARSER_FAIL_IF(reserved != 0, "reserved varUint1 for current_memory must be zero");
+
+        ExpressionType result;
+        WASM_TRY_ADD_TO_CONTEXT(addCurrentMemory(result));
+        m_expressionStack.append(result);
+
+        return { };
+    }
     }
 
     ASSERT_NOT_REACHED();
+    return { };
 }
 
 // FIXME: We should try to use the same decoder function for both unreachable and reachable code. https://bugs.webkit.org/show_bug.cgi?id=165965
@@ -584,6 +609,13 @@ auto FunctionParser<Context>::parseUnreachableExpression(OpType op) -> PartialRe
         return { };
     }
 
+    case GrowMemory:
+    case CurrentMemory: {
+        uint8_t reserved;
+        WASM_PARSER_FAIL_IF(!parseVarUInt1(reserved), "can't parse reserved varUint1 for grow_memory/current_memory");
+        return { };
+    }
+
     // no immediate cases
     FOR_EACH_WASM_BINARY_OP(CREATE_CASE)
     FOR_EACH_WASM_UNARY_OP(CREATE_CASE)
@@ -591,9 +623,7 @@ auto FunctionParser<Context>::parseUnreachableExpression(OpType op) -> PartialRe
     case Nop:
     case Return:
     case Select:
-    case Drop:
-    case GrowMemory:
-    case CurrentMemory: {
+    case Drop: {
         return { };
     }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -2976,6 +2976,140 @@ void testBitOrImmBitOrArgImm32(int a, int b, int c)
             innerBitOr));
 
     CHECK(compileAndRun<int>(proc, b) == (a | (b | c)));
+}
+
+double bitOrDouble(double a, double b)
+{
+    return bitwise_cast<double>(bitwise_cast<uint64_t>(a) | bitwise_cast<uint64_t>(b));
+}
+
+void testBitOrArgDouble(double a)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argument = root->appendNew<ArgumentRegValue>(proc, Origin(), FPRInfo::argumentFPR0);
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argument, argument);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    CHECK(isIdentical(compileAndRun<double>(proc, a), bitOrDouble(a, a)));
+}
+
+void testBitOrArgsDouble(double a, double b)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argumentA = root->appendNew<ArgumentRegValue>(proc, Origin(), FPRInfo::argumentFPR0);
+    Value* argumentB = root->appendNew<ArgumentRegValue>(proc, Origin(), FPRInfo::argumentFPR1);
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argumentA, argumentB);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    CHECK(isIdentical(compileAndRun<double>(proc, a, b), bitOrDouble(a, b)));
+}
+
+void testBitOrArgImmDouble(double a, double b)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argumentA = root->appendNew<ArgumentRegValue>(proc, Origin(), FPRInfo::argumentFPR0);
+    Value* argumentB = root->appendNew<ConstDoubleValue>(proc, Origin(), b);
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argumentA, argumentB);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    CHECK(isIdentical(compileAndRun<double>(proc, a, b), bitOrDouble(a, b)));
+}
+
+void testBitOrImmsDouble(double a, double b)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argumentA = root->appendNew<ConstDoubleValue>(proc, Origin(), a);
+    Value* argumentB = root->appendNew<ConstDoubleValue>(proc, Origin(), b);
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argumentA, argumentB);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+    
+    CHECK(isIdentical(compileAndRun<double>(proc), bitOrDouble(a, b)));
+}
+
+float bitOrFloat(float a, float b)
+{
+    return bitwise_cast<float>(bitwise_cast<uint32_t>(a) | bitwise_cast<uint32_t>(b));
+}
+
+void testBitOrArgFloat(float a)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argument = root->appendNew<Value>(proc, BitwiseCast, Origin(),
+        root->appendNew<Value>(proc, Trunc, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)));
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argument, argument);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    CHECK(isIdentical(compileAndRun<float>(proc, bitwise_cast<int32_t>(a)), bitOrFloat(a, a)));
+}
+
+void testBitOrArgsFloat(float a, float b)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argumentA = root->appendNew<Value>(proc, BitwiseCast, Origin(),
+        root->appendNew<Value>(proc, Trunc, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)));
+    Value* argumentB = root->appendNew<Value>(proc, BitwiseCast, Origin(),
+        root->appendNew<Value>(proc, Trunc, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1)));
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argumentA, argumentB);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    CHECK(isIdentical(compileAndRun<float>(proc, bitwise_cast<int32_t>(a), bitwise_cast<int32_t>(b)), bitOrFloat(a, b)));
+}
+
+void testBitOrArgImmFloat(float a, float b)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argumentA = root->appendNew<Value>(proc, BitwiseCast, Origin(),
+        root->appendNew<Value>(proc, Trunc, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)));
+    Value* argumentB = root->appendNew<ConstFloatValue>(proc, Origin(), b);
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argumentA, argumentB);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    CHECK(isIdentical(compileAndRun<float>(proc, bitwise_cast<int32_t>(a), bitwise_cast<int32_t>(b)), bitOrFloat(a, b)));
+}
+
+void testBitOrImmsFloat(float a, float b)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argumentA = root->appendNew<ConstFloatValue>(proc, Origin(), a);
+    Value* argumentB = root->appendNew<ConstFloatValue>(proc, Origin(), b);
+    Value* result = root->appendNew<Value>(proc, BitOr, Origin(), argumentA, argumentB);
+    root->appendNewControlValue(proc, Return, Origin(), result);
+
+    CHECK(isIdentical(compileAndRun<float>(proc), bitOrFloat(a, b)));
+}
+
+void testBitOrArgsFloatWithUselessDoubleConversion(float a, float b)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argumentA = root->appendNew<Value>(proc, BitwiseCast, Origin(),
+        root->appendNew<Value>(proc, Trunc, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0)));
+    Value* argumentB = root->appendNew<Value>(proc, BitwiseCast, Origin(),
+        root->appendNew<Value>(proc, Trunc, Origin(),
+            root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1)));
+    Value* argumentAasDouble = root->appendNew<Value>(proc, FloatToDouble, Origin(), argumentA);
+    Value* argumentBasDouble = root->appendNew<Value>(proc, FloatToDouble, Origin(), argumentB);
+    Value* doubleResult = root->appendNew<Value>(proc, BitOr, Origin(), argumentAasDouble, argumentBasDouble);
+    Value* floatResult = root->appendNew<Value>(proc, DoubleToFloat, Origin(), doubleResult);
+    root->appendNewControlValue(proc, Return, Origin(), floatResult);
+    
+    double doubleA = a;
+    double doubleB = b;
+    float expected = static_cast<float>(bitOrDouble(doubleA, doubleB));
+    CHECK(isIdentical(compileAndRun<float>(proc, bitwise_cast<int32_t>(a), bitwise_cast<int32_t>(b)), expected));
 }
 
 void testBitXorArgs(int64_t a, int64_t b)
@@ -11697,6 +11831,50 @@ void testCheckSelectCheckSelect()
     CHECK(invoke<int>(*code, true, false) == 667);
 }
 
+void testCheckSelectAndCSE()
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+
+    auto* selectValue = root->appendNew<Value>(
+        proc, Select, Origin(),
+        root->appendNew<Value>(
+            proc, BitAnd, Origin(),
+            root->appendNew<Value>(
+                proc, Trunc, Origin(),
+                root->appendNew<ArgumentRegValue>(
+                    proc, Origin(), GPRInfo::argumentGPR0)),
+            root->appendNew<Const32Value>(proc, Origin(), 0xff)),
+        root->appendNew<ConstPtrValue>(proc, Origin(), -42),
+        root->appendNew<ConstPtrValue>(proc, Origin(), 35));
+
+    auto* constant = root->appendNew<ConstPtrValue>(proc, Origin(), 42);
+    auto* addValue = root->appendNew<Value>(proc, Add, Origin(), selectValue, constant);
+
+    CheckValue* check = root->appendNew<CheckValue>(proc, Check, Origin(), addValue);
+    unsigned generationCount = 0;
+    check->setGenerator(
+        [&] (CCallHelpers& jit, const StackmapGenerationParams&) {
+            AllowMacroScratchRegisterUsage allowScratch(jit);
+
+            generationCount++;
+            jit.move(CCallHelpers::TrustedImm32(666), GPRInfo::returnValueGPR);
+            jit.emitFunctionEpilogue();
+            jit.ret();
+        });
+
+    auto* addValue2 = root->appendNew<Value>(proc, Add, Origin(), selectValue, constant);
+
+    root->appendNewControlValue(
+        proc, Return, Origin(),
+        root->appendNew<Value>(proc, Add, Origin(), addValue, addValue2));
+
+    auto code = compile(proc);
+    CHECK(generationCount == 1);
+    CHECK(invoke<int>(*code, true) == 0);
+    CHECK(invoke<int>(*code, false) == 666);
+}
+
 double b3Pow(double x, int y)
 {
     if (y < 0 || y > 1000)
@@ -13199,6 +13377,166 @@ void testBranchBitAndImmFusion(
     CHECK(terminal.args[2].kind() == Air::Arg::BitImm || terminal.args[2].kind() == Air::Arg::BitImm64);
 }
 
+void testTerminalPatchpointThatNeedsToBeSpilled()
+{
+    // This is a unit test for how FTL's heap allocation fast paths behave.
+    Procedure proc;
+    
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* success = proc.addBlock();
+    BasicBlock* slowPath = proc.addBlock();
+    
+    PatchpointValue* patchpoint = root->appendNew<PatchpointValue>(proc, Int32, Origin());
+    patchpoint->effects.terminal = true;
+    patchpoint->clobber(RegisterSet::macroScratchRegisters());
+    
+    root->appendSuccessor(success);
+    root->appendSuccessor(FrequentedBlock(slowPath, FrequencyClass::Rare));
+    
+    patchpoint->setGenerator(
+        [&] (CCallHelpers& jit, const StackmapGenerationParams& params) {
+            AllowMacroScratchRegisterUsage allowScratch(jit);
+            jit.move(CCallHelpers::TrustedImm32(42), params[0].gpr());
+            
+            CCallHelpers::Jump jumpToSuccess;
+            if (!params.fallsThroughToSuccessor(0))
+                jumpToSuccess = jit.jump();
+            
+            Vector<Box<CCallHelpers::Label>> labels = params.successorLabels();
+            
+            params.addLatePath(
+                [=] (CCallHelpers& jit) {
+                    if (jumpToSuccess.isSet())
+                        jumpToSuccess.linkTo(*labels[0], &jit);
+                });
+        });
+    
+    Vector<Value*> args;
+    {
+        RegisterSet fillAllGPRsSet = RegisterSet::allGPRs();
+        fillAllGPRsSet.exclude(RegisterSet::stackRegisters());
+        fillAllGPRsSet.exclude(RegisterSet::reservedHardwareRegisters());
+
+        for (unsigned i = 0; i < fillAllGPRsSet.numberOfSetRegisters(); i++)
+            args.append(success->appendNew<Const32Value>(proc, Origin(), i));
+    }
+
+    {
+        // Now force all values into every available register.
+        PatchpointValue* p = success->appendNew<PatchpointValue>(proc, Void, Origin());
+        for (Value* v : args)
+            p->append(v, ValueRep::SomeRegister);
+        p->setGenerator([&] (CCallHelpers&, const StackmapGenerationParams&) { });
+    }
+
+    {
+        // Now require the original patchpoint to be materialized into a register.
+        PatchpointValue* p = success->appendNew<PatchpointValue>(proc, Void, Origin());
+        p->append(patchpoint, ValueRep::SomeRegister);
+        p->setGenerator([&] (CCallHelpers&, const StackmapGenerationParams&) { });
+    }
+
+    success->appendNew<Value>(proc, Return, Origin(), success->appendNew<Const32Value>(proc, Origin(), 10));
+    
+    slowPath->appendNew<Value>(proc, Return, Origin(), slowPath->appendNew<Const32Value>(proc, Origin(), 20));
+    
+    auto code = compile(proc);
+    CHECK_EQ(invoke<int>(*code), 10);
+}
+
+void testTerminalPatchpointThatNeedsToBeSpilled2()
+{
+    // This is a unit test for how FTL's heap allocation fast paths behave.
+    Procedure proc;
+    
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* one = proc.addBlock();
+    BasicBlock* success = proc.addBlock();
+    BasicBlock* slowPath = proc.addBlock();
+
+    Value* arg = root->appendNew<Value>(
+        proc, Trunc, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0));
+
+    root->appendNew<Value>(
+        proc, Branch, Origin(), arg);
+    root->appendSuccessor(one);
+    root->appendSuccessor(FrequentedBlock(slowPath, FrequencyClass::Rare));
+    
+    PatchpointValue* patchpoint = one->appendNew<PatchpointValue>(proc, Int32, Origin());
+    patchpoint->effects.terminal = true;
+    patchpoint->clobber(RegisterSet::macroScratchRegisters());
+    patchpoint->append(arg, ValueRep::SomeRegister);
+    
+    one->appendSuccessor(success);
+    one->appendSuccessor(FrequentedBlock(slowPath, FrequencyClass::Rare));
+    
+    patchpoint->setGenerator(
+        [&] (CCallHelpers& jit, const StackmapGenerationParams& params) {
+            AllowMacroScratchRegisterUsage allowScratch(jit);
+            jit.move(CCallHelpers::TrustedImm32(666), params[0].gpr());
+            auto goToFastPath = jit.branch32(CCallHelpers::Equal, params[1].gpr(), CCallHelpers::TrustedImm32(42));
+            auto jumpToSlow = jit.jump();
+            
+            // Make sure the asserts here pass.
+            params.fallsThroughToSuccessor(0);
+            params.fallsThroughToSuccessor(1);
+
+            Vector<Box<CCallHelpers::Label>> labels = params.successorLabels();
+            
+            params.addLatePath(
+                [=] (CCallHelpers& jit) {
+                    goToFastPath.linkTo(*labels[0], &jit);
+                    jumpToSlow.linkTo(*labels[1], &jit);
+                });
+        });
+    
+    Vector<Value*> args;
+    {
+        RegisterSet fillAllGPRsSet = RegisterSet::allGPRs();
+        fillAllGPRsSet.exclude(RegisterSet::stackRegisters());
+        fillAllGPRsSet.exclude(RegisterSet::reservedHardwareRegisters());
+
+        for (unsigned i = 0; i < fillAllGPRsSet.numberOfSetRegisters(); i++)
+            args.append(success->appendNew<Const32Value>(proc, Origin(), i));
+    }
+
+    {
+        // Now force all values into every available register.
+        PatchpointValue* p = success->appendNew<PatchpointValue>(proc, Void, Origin());
+        for (Value* v : args)
+            p->append(v, ValueRep::SomeRegister);
+        p->setGenerator([&] (CCallHelpers&, const StackmapGenerationParams&) { });
+    }
+
+    {
+        // Now require the original patchpoint to be materialized into a register.
+        PatchpointValue* p = success->appendNew<PatchpointValue>(proc, Void, Origin());
+        p->append(patchpoint, ValueRep::SomeRegister);
+        p->setGenerator([&] (CCallHelpers&, const StackmapGenerationParams&) { });
+    }
+
+    success->appendNew<Value>(proc, Return, Origin(), patchpoint);
+    
+    slowPath->appendNew<Value>(proc, Return, Origin(), arg);
+    
+    auto original1 = Options::maxB3TailDupBlockSize();
+    auto original2 = Options::maxB3TailDupBlockSuccessors();
+
+    // Tail duplication will break the critical edge we're trying to test because it
+    // will clone the slowPath block for both edges to it!
+    Options::maxB3TailDupBlockSize() = 0;
+    Options::maxB3TailDupBlockSuccessors() = 0;
+
+    auto code = compile(proc);
+    CHECK_EQ(invoke<int>(*code, 1), 1);
+    CHECK_EQ(invoke<int>(*code, 0), 0);
+    CHECK_EQ(invoke<int>(*code, 42), 666);
+
+    Options::maxB3TailDupBlockSize() = original1;
+    Options::maxB3TailDupBlockSuccessors() = original2;
+}
+
 void testPatchpointTerminalReturnValue(bool successIsRare)
 {
     // This is a unit test for how FTL's heap allocation fast paths behave.
@@ -14083,6 +14421,10 @@ void run(const char* filter)
         return !filter || !!strcasestr(testName, filter);
     };
 
+    // We run this test first because it fiddles with some
+    // JSC options.
+    testTerminalPatchpointThatNeedsToBeSpilled2();
+
     RUN(test42());
     RUN(testLoad42());
     RUN(testLoadOffsetImm9Max());
@@ -14447,6 +14789,15 @@ void run(const char* filter)
     RUN(testBitOrImmBitOrArgImm32(7, 2, 3));
     RUN(testBitOrImmBitOrArgImm32(6, 1, 6));
     RUN(testBitOrImmBitOrArgImm32(24, 0xffff, 7));
+    RUN_UNARY(testBitOrArgDouble, floatingPointOperands<double>());
+    RUN_BINARY(testBitOrArgsDouble, floatingPointOperands<double>(), floatingPointOperands<double>());
+    RUN_BINARY(testBitOrArgImmDouble, floatingPointOperands<double>(), floatingPointOperands<double>());
+    RUN_BINARY(testBitOrImmsDouble, floatingPointOperands<double>(), floatingPointOperands<double>());
+    RUN_UNARY(testBitOrArgFloat, floatingPointOperands<float>());
+    RUN_BINARY(testBitOrArgsFloat, floatingPointOperands<float>(), floatingPointOperands<float>());
+    RUN_BINARY(testBitOrArgImmFloat, floatingPointOperands<float>(), floatingPointOperands<float>());
+    RUN_BINARY(testBitOrImmsFloat, floatingPointOperands<float>(), floatingPointOperands<float>());
+    RUN_BINARY(testBitOrArgsFloatWithUselessDoubleConversion, floatingPointOperands<float>(), floatingPointOperands<float>());
 
     RUN_BINARY(testBitXorArgs, int64Operands(), int64Operands());
     RUN_UNARY(testBitXorSameArg, int64Operands());
@@ -15290,6 +15641,7 @@ void run(const char* filter)
     RUN(testSelectInvert());
     RUN(testCheckSelect());
     RUN(testCheckSelectCheckSelect());
+    RUN(testCheckSelectAndCSE());
     RUN_BINARY(testPowDoubleByIntegerLoop, floatingPointOperands<double>(), int64Operands());
 
     RUN(testTruncOrHigh());
@@ -15458,6 +15810,7 @@ void run(const char* filter)
     RUN(testSomeEarlyRegister());
     RUN(testPatchpointTerminalReturnValue(true));
     RUN(testPatchpointTerminalReturnValue(false));
+    RUN(testTerminalPatchpointThatNeedsToBeSpilled());
 
     RUN(testMemoryFence());
     RUN(testStoreFence());

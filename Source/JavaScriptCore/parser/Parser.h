@@ -314,6 +314,7 @@ public:
         m_allowsLexicalDeclarations = true;
     }
     bool isLexicalScope() { return m_isLexicalScope; }
+    bool usesEval() { return m_usesEval; }
 
     const HashSet<UniquedStringImpl*>& closedVariableCandidates() const { return m_closedVariableCandidates; }
     VariableEnvironment& declaredVariables() { return m_declaredVariables; }
@@ -683,6 +684,7 @@ public:
         parameters.strictMode = m_strictMode;
         parameters.needsFullActivation = m_needsFullActivation;
         parameters.innerArrowFunctionFeatures = m_innerArrowFunctionFeatures;
+        parameters.needsSuperBinding = m_needsSuperBinding;
         for (const UniquedStringImplPtrSet& set : m_usedVariables)
             copyCapturedVariablesToVector(set, parameters.usedVariables);
 
@@ -706,6 +708,7 @@ public:
         m_strictMode = info->strictMode;
         m_innerArrowFunctionFeatures = info->innerArrowFunctionFeatures;
         m_needsFullActivation = info->needsFullActivation;
+        m_needsSuperBinding = info->needsSuperBinding;
         UniquedStringImplPtrSet& destSet = m_usedVariables.last();
         for (unsigned i = 0; i < info->usedVariablesCount; ++i)
             destSet.add(info->usedVariables()[i]);
@@ -1381,13 +1384,8 @@ private:
     }
     
     NEVER_INLINE void logError(bool);
-    template <typename A> NEVER_INLINE void logError(bool, const A&);
-    template <typename A, typename B> NEVER_INLINE void logError(bool, const A&, const B&);
-    template <typename A, typename B, typename C> NEVER_INLINE void logError(bool, const A&, const B&, const C&);
-    template <typename A, typename B, typename C, typename D> NEVER_INLINE void logError(bool, const A&, const B&, const C&, const D&);
-    template <typename A, typename B, typename C, typename D, typename E> NEVER_INLINE void logError(bool, const A&, const B&, const C&, const D&, const E&);
-    template <typename A, typename B, typename C, typename D, typename E, typename F> NEVER_INLINE void logError(bool, const A&, const B&, const C&, const D&, const E&, const F&);
-    template <typename A, typename B, typename C, typename D, typename E, typename F, typename G> NEVER_INLINE void logError(bool, const A&, const B&, const C&, const D&, const E&, const F&, const G&);
+    template <typename... Args>
+    NEVER_INLINE void logError(bool, Args&&...);
     
     NEVER_INLINE void updateErrorWithNameAndMessage(const char* beforeMessage, const String& name, const char* afterMessage)
     {
@@ -1602,6 +1600,23 @@ private:
     bool isDisallowedIdentifierAwait(const JSToken& token)
     {
         return token.m_type == AWAIT && (!m_parserState.allowAwait || currentScope()->isAsyncFunctionBoundary() || m_scriptMode == JSParserScriptMode::Module);
+    }
+    
+    ALWAYS_INLINE SuperBinding adjustSuperBindingForBaseConstructor(ConstructorKind constructorKind, SuperBinding superBinding, ScopeRef functionScope)
+    {
+        return adjustSuperBindingForBaseConstructor(constructorKind, superBinding, functionScope->needsSuperBinding(), functionScope->usesEval(), functionScope->innerArrowFunctionFeatures());
+    }
+    
+    ALWAYS_INLINE SuperBinding adjustSuperBindingForBaseConstructor(ConstructorKind constructorKind, SuperBinding superBinding, bool scopeNeedsSuperBinding, bool currentScopeUsesEval, InnerArrowFunctionCodeFeatures innerArrowFunctionFeatures)
+    {
+        SuperBinding methodSuperBinding = superBinding;
+        
+        if (constructorKind == ConstructorKind::Base) {
+            bool isSuperUsedInInnerArrowFunction = innerArrowFunctionFeatures & SuperPropertyInnerArrowFunctionFeature;
+            methodSuperBinding = (scopeNeedsSuperBinding || isSuperUsedInInnerArrowFunction || currentScopeUsesEval) ? SuperBinding::Needed : SuperBinding::NotNeeded;
+        }
+        
+        return methodSuperBinding;
     }
 
     const char* disallowedIdentifierAwaitReason()

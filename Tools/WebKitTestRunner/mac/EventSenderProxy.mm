@@ -600,11 +600,10 @@ void EventSenderProxy::startAndCancelMouseForceClick()
 void EventSenderProxy::mouseMoveTo(double x, double y)
 {
     NSView *view = m_testController->mainWebView()->platformView();
-    NSPoint position = [view convertPoint:NSMakePoint(x, y) toView:nil];
-    m_position.x = position.x;
-    m_position.y = position.y;
-    NSEvent *event = [NSEvent mouseEventWithType:(m_leftMouseButtonDown ? NSEventTypeLeftMouseDragged : NSEventTypeMouseMoved)
-                                        location:position
+    NSPoint newMousePosition = [view convertPoint:NSMakePoint(x, y) toView:nil];
+    bool isDrag = m_leftMouseButtonDown;
+    NSEvent *event = [NSEvent mouseEventWithType:(isDrag ? NSEventTypeLeftMouseDragged : NSEventTypeMouseMoved)
+                                        location:newMousePosition
                                    modifierFlags:0 
                                        timestamp:absoluteTimeForEventTime(currentEventTime())
                                     windowNumber:view.window.windowNumber
@@ -613,11 +612,22 @@ void EventSenderProxy::mouseMoveTo(double x, double y)
                                       clickCount:(m_leftMouseButtonDown ? m_clickCount : 0) 
                                         pressure:0];
 
+    CGEventRef cgEvent = event.CGEvent;
+    CGEventSetIntegerValueField(cgEvent, kCGMouseEventDeltaX, newMousePosition.x - m_position.x);
+    CGEventSetIntegerValueField(cgEvent, kCGMouseEventDeltaY, newMousePosition.y - m_position.y);
+    event = [NSEvent eventWithCGEvent:cgEvent];
+    m_position.x = newMousePosition.x;
+    m_position.y = newMousePosition.y;
+
     NSPoint windowLocation = event.locationInWindow;
-    NSView *targetView = [m_testController->mainWebView()->platformView() hitTest:windowLocation];
+    // Always target drags at the WKWebView to allow for drag-scrolling outside the view.
+    NSView *targetView = isDrag ? m_testController->mainWebView()->platformView() : [m_testController->mainWebView()->platformView() hitTest:windowLocation];
     if (targetView) {
         [NSApp _setCurrentEvent:event];
-        [targetView mouseMoved:event];
+        if (isDrag)
+            [targetView mouseDragged:event];
+        else
+            [targetView mouseMoved:event];
         [NSApp _setCurrentEvent:nil];
     } else
         WTFLogAlways("mouseMoveTo failed to find a target view at %f,%f\n", windowLocation.x, windowLocation.y);

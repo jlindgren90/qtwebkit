@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013, 2015-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,6 +27,7 @@
 
 #include "CellState.h"
 #include "HandleTypes.h"
+#include "IterationStatus.h"
 #include "MarkStack.h"
 #include "OpaqueRootSet.h"
 #include "VisitRaceKey.h"
@@ -92,6 +93,7 @@ public:
     void append(const Weak<T>& weak);
     
     JS_EXPORT_PRIVATE void addOpaqueRoot(void*);
+    
     JS_EXPORT_PRIVATE bool containsOpaqueRoot(void*) const;
     TriState containsOpaqueRootTriState(void*) const;
 
@@ -103,6 +105,8 @@ public:
 
     size_t bytesVisited() const { return m_bytesVisited; }
     size_t visitCount() const { return m_visitCount; }
+    
+    void addToVisitCount(size_t value) { m_visitCount += value; }
 
     void donate();
     void drain(MonotonicTime timeout = MonotonicTime::infinity());
@@ -114,6 +118,14 @@ public:
 
     SharedDrainResult drainInParallel(MonotonicTime timeout = MonotonicTime::infinity());
     SharedDrainResult drainInParallelPassively(MonotonicTime timeout = MonotonicTime::infinity());
+
+    // Attempts to perform an increment of draining that involves only walking `bytes` worth of data. This
+    // is likely to accidentally walk more or less than that. It will usually mark more than bytes. It may
+    // mark less than bytes if we're reaching termination or if the global worklist is empty (which may in
+    // rare cases happen temporarily even if we're not reaching termination).
+    size_t performIncrementOfDraining(size_t bytes);
+    
+    JS_EXPORT_PRIVATE void mergeIfNecessary();
 
     // This informs the GC about auxiliary of some size that we are keeping alive. If you don't do
     // this then the space will be freed at end of GC.
@@ -133,8 +145,6 @@ public:
     
     HeapVersion markingVersion() const { return m_markingVersion; }
 
-    void mergeOpaqueRootsIfNecessary();
-    
     bool mutatorIsStopped() const { return m_mutatorIsStopped; }
     
     Lock& rightToRun() { return m_rightToRun; }
@@ -149,8 +159,14 @@ public:
     
     void didRace(const VisitRaceKey&);
     void didRace(JSCell* cell, const char* reason) { didRace(VisitRaceKey(cell, reason)); }
-    void didNotRace(const VisitRaceKey&);
-    void didNotRace(JSCell* cell, const char* reason) { didNotRace(VisitRaceKey(cell, reason)); }
+    
+    void visitAsConstraint(const JSCell*);
+    
+    bool didReachTermination();
+    
+    void setIgnoreNewOpaqueRoots(bool value) { m_ignoreNewOpaqueRoots = value; }
+
+    void donateAll();
 
 private:
     friend class ParallelModeEnabler;
@@ -172,32 +188,42 @@ private:
     
     void noteLiveAuxiliaryCell(HeapCell*);
     
-    JS_EXPORT_PRIVATE void mergeOpaqueRoots();
+    void mergeOpaqueRoots();
+
     void mergeOpaqueRootsIfProfitable();
 
     void visitChildren(const JSCell*);
     
     void donateKnownParallel();
     void donateKnownParallel(MarkStackArray& from, MarkStackArray& to);
-    
-    bool hasWork();
-    bool didReachTermination();
+
+    void donateAll(const AbstractLocker&);
+
+    bool hasWork(const AbstractLocker&);
+    bool didReachTermination(const AbstractLocker&);
+
+    template<typename Func>
+    IterationStatus forEachMarkStack(const Func&);
+
+    MarkStackArray& correspondingGlobalStack(MarkStackArray&);
 
     MarkStackArray m_collectorStack;
     MarkStackArray m_mutatorStack;
     OpaqueRootSet m_opaqueRoots; // Handle-owning data structures not visible to the garbage collector.
+    bool m_ignoreNewOpaqueRoots { false }; // Useful as a debugging mode.
     
     size_t m_bytesVisited;
     size_t m_visitCount;
+    size_t m_nonCellVisitCount { 0 }; // Used for incremental draining, ignored otherwise.
     bool m_isInParallelMode;
-    
+
     HeapVersion m_markingVersion;
     
     Heap& m_heap;
 
     HeapSnapshotBuilder* m_heapSnapshotBuilder { nullptr };
     JSCell* m_currentCell { nullptr };
-    bool m_isVisitingMutatorStack { false };
+    bool m_isFirstVisit { false };
     bool m_mutatorIsStopped { false };
     bool m_canOptimizeForStoppedMutator { false };
     Lock m_rightToRun;

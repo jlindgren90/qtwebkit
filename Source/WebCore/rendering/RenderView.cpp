@@ -168,11 +168,8 @@ void RenderView::unscheduleLazyRepaint(RenderBox& renderer)
 
 void RenderView::lazyRepaintTimerFired()
 {
-    bool shouldRepaint = document().pageCacheState() == Document::NotInPageCache;
-
     for (auto& renderer : m_renderersNeedingLazyRepaint) {
-        if (shouldRepaint)
-            renderer->repaint();
+        renderer->repaint();
         renderer->setRenderBoxNeedsLazyRepaint(false);
     }
     m_renderersNeedingLazyRepaint.clear();
@@ -409,7 +406,7 @@ LayoutUnit RenderView::clientLogicalWidthForFixedPosition() const
         return isHorizontalWritingMode() ? frameView().customFixedPositionLayoutRect().width() : frameView().customFixedPositionLayoutRect().height();
 #endif
 
-    if (frameView().frame().settings().visualViewportEnabled())
+    if (settings().visualViewportEnabled())
         return isHorizontalWritingMode() ? frameView().layoutViewportRect().width() : frameView().layoutViewportRect().height();
 
     return clientLogicalWidth();
@@ -426,7 +423,7 @@ LayoutUnit RenderView::clientLogicalHeightForFixedPosition() const
         return isHorizontalWritingMode() ? frameView().customFixedPositionLayoutRect().height() : frameView().customFixedPositionLayoutRect().width();
 #endif
 
-    if (frameView().frame().settings().visualViewportEnabled())
+    if (settings().visualViewportEnabled())
         return isHorizontalWritingMode() ? frameView().layoutViewportRect().height() : frameView().layoutViewportRect().width();
 
     return clientLogicalHeight();
@@ -593,7 +590,7 @@ void RenderView::paintBoxDecorations(PaintInfo& paintInfo, const LayoutPoint&)
         rootObscuresBackground = rendererObscuresBackground(*rootRenderer);
     }
 
-    bool backgroundShouldExtendBeyondPage = frameView().frame().settings().backgroundShouldExtendBeyondPage();
+    bool backgroundShouldExtendBeyondPage = settings().backgroundShouldExtendBeyondPage();
     compositor().setRootExtendedBackgroundColor(backgroundShouldExtendBeyondPage ? frameView().documentBackgroundColor() : Color());
 
     Page* page = document().page();
@@ -1437,7 +1434,7 @@ RenderView::RepaintRegionAccumulator::~RepaintRegionAccumulator()
 unsigned RenderView::pageNumberForBlockProgressionOffset(int offset) const
 {
     int columnNumber = 0;
-    const Pagination& pagination = frameView().frame().page()->pagination();
+    const Pagination& pagination = page().pagination();
     if (pagination.mode == Pagination::Unpaginated)
         return columnNumber;
     
@@ -1462,7 +1459,7 @@ unsigned RenderView::pageNumberForBlockProgressionOffset(int offset) const
 
 unsigned RenderView::pageCount() const
 {
-    const Pagination& pagination = frameView().frame().page()->pagination();
+    const Pagination& pagination = page().pagination();
     if (pagination.mode == Pagination::Unpaginated)
         return 0;
     

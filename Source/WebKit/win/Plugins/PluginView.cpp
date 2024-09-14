@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008, 2009, 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2008 Collabora Ltd. All rights reserved.
  * Copyright (C) 2010 Girish Ramakrishnan <girish@forwardbias.in>
  *
@@ -31,6 +31,7 @@
 #include "PluginDatabase.h"
 #include "PluginDebug.h"
 #include "PluginPackage.h"
+#include "WebFrameLoaderClient.h"
 #include <WebCore/BridgeJSC.h>
 #include <WebCore/Chrome.h>
 #include <WebCore/CommonVM.h>
@@ -275,7 +276,7 @@ void PluginView::mediaCanStart(Document&)
 {
     ASSERT(!m_isStarted);
     if (!start())
-        parentFrame()->loader().client().dispatchDidFailToStartPlugin(this);
+        static_cast<WebFrameLoaderClient&>(parentFrame()->loader().client()).dispatchDidFailToStartPlugin(this);
 }
 
 PluginView::~PluginView()
@@ -512,7 +513,7 @@ NPError PluginView::load(const FrameLoadRequest& frameLoadRequest, bool sendNoti
         // For security reasons, only allow JS requests to be made on the frame that contains the plug-in.
         if (!targetFrameName.isNull() && m_parentFrame->tree().find(targetFrameName) != m_parentFrame)
             return NPERR_INVALID_PARAM;
-    } else if (!m_parentFrame->document()->securityOrigin()->canDisplay(url))
+    } else if (!m_parentFrame->document()->securityOrigin().canDisplay(url))
         return NPERR_GENERIC_ERROR;
 
     scheduleRequest(std::make_unique<PluginRequest>(frameLoadRequest, sendNotification, notifyData, arePopupsAllowed()));
@@ -592,7 +593,7 @@ NPError PluginView::destroyStream(NPStream* stream, NPReason reason)
 void PluginView::status(const char* message)
 {
     if (Page* page = m_parentFrame->page())
-        page->chrome().setStatusbarText(m_parentFrame.get(), String::fromUTF8(message));
+        page->chrome().setStatusbarText(*m_parentFrame, String::fromUTF8(message));
 }
 
 NPError PluginView::setValue(NPPVariable variable, void* value)
@@ -792,7 +793,7 @@ PluginView::PluginView(Frame* parentFrame, const IntSize& size, PluginPackage* p
 void PluginView::focusPluginElement()
 {
     if (Page* page = m_parentFrame->page())
-        page->focusController().setFocusedElement(m_element, m_parentFrame);
+        page->focusController().setFocusedElement(m_element, *m_parentFrame);
     else
         m_parentFrame->document()->setFocusedElement(m_element);
 }

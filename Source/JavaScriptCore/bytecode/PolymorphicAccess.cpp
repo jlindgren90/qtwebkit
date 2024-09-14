@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -638,7 +638,7 @@ void AccessCase::generateWithGuard(
         fallThrough.append(
             jit.branchTestPtr(
                 CCallHelpers::NonZero,
-                CCallHelpers::Address(baseGPR, DirectArguments::offsetOfOverrides())));
+                CCallHelpers::Address(baseGPR, DirectArguments::offsetOfMappedArguments())));
         jit.load32(
             CCallHelpers::Address(baseGPR, DirectArguments::offsetOfLength()),
             valueRegs.payloadGPR());
@@ -1264,7 +1264,7 @@ void AccessCase::generateImpl(AccessGenerationState& state)
             size_t newSize = newStructure()->outOfLineCapacity() * sizeof(JSValue);
             
             if (allocatingInline) {
-                MarkedAllocator* allocator = vm.heap.allocatorForAuxiliaryData(newSize);
+                MarkedAllocator* allocator = vm.auxiliarySpace.allocatorFor(newSize);
                 
                 if (!allocator) {
                     // Yuck, this case would suck!

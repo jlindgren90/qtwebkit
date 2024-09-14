@@ -22,8 +22,11 @@
 #include "JSTestMediaQueryListListener.h"
 
 #include "JSDOMBinding.h"
-#include "JSDOMConstructor.h"
+#include "JSDOMBindingCaller.h"
+#include "JSDOMConstructorNotConstructable.h"
 #include "JSDOMConvert.h"
+#include "JSDOMExceptionHandling.h"
+#include "JSDOMWrapperCache.h"
 #include "JSMediaQueryListListener.h"
 #include <runtime/Error.h>
 #include <runtime/FunctionPrototype.h>
@@ -110,7 +113,7 @@ JSTestMediaQueryListListener::JSTestMediaQueryListListener(Structure* structure,
 void JSTestMediaQueryListListener::finishCreation(VM& vm)
 {
     Base::finishCreation(vm);
-    ASSERT(inherits(info()));
+    ASSERT(inherits(vm, info()));
 
 }
 
@@ -132,14 +135,14 @@ void JSTestMediaQueryListListener::destroy(JSC::JSCell* cell)
 
 template<> inline JSTestMediaQueryListListener* BindingCaller<JSTestMediaQueryListListener>::castForOperation(ExecState& state)
 {
-    return jsDynamicDowncast<JSTestMediaQueryListListener*>(state.thisValue());
+    return jsDynamicDowncast<JSTestMediaQueryListListener*>(state.vm(), state.thisValue());
 }
 
 EncodedJSValue jsTestMediaQueryListListenerConstructor(ExecState* state, EncodedJSValue thisValue, PropertyName)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestMediaQueryListListenerPrototype* domObject = jsDynamicDowncast<JSTestMediaQueryListListenerPrototype*>(JSValue::decode(thisValue));
+    JSTestMediaQueryListListenerPrototype* domObject = jsDynamicDowncast<JSTestMediaQueryListListenerPrototype*>(vm, JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestMediaQueryListListener::getConstructor(state->vm(), domObject->globalObject()));
@@ -150,7 +153,7 @@ bool setJSTestMediaQueryListListenerConstructor(ExecState* state, EncodedJSValue
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestMediaQueryListListenerPrototype* domObject = jsDynamicDowncast<JSTestMediaQueryListListenerPrototype*>(JSValue::decode(thisValue));
+    JSTestMediaQueryListListenerPrototype* domObject = jsDynamicDowncast<JSTestMediaQueryListListenerPrototype*>(vm, JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -193,7 +196,7 @@ bool JSTestMediaQueryListListenerOwner::isReachableFromOpaqueRoots(JSC::Handle<J
 
 void JSTestMediaQueryListListenerOwner::finalize(JSC::Handle<JSC::Unknown> handle, void* context)
 {
-    auto* jsTestMediaQueryListListener = jsCast<JSTestMediaQueryListListener*>(handle.slot()->asCell());
+    auto* jsTestMediaQueryListListener = static_cast<JSTestMediaQueryListListener*>(handle.slot()->asCell());
     auto& world = *static_cast<DOMWrapperWorld*>(context);
     uncacheWrapper(world, &jsTestMediaQueryListListener->wrapped(), jsTestMediaQueryListListener);
 }
@@ -236,9 +239,9 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestMe
     return wrap(state, globalObject, impl);
 }
 
-TestMediaQueryListListener* JSTestMediaQueryListListener::toWrapped(JSC::JSValue value)
+TestMediaQueryListListener* JSTestMediaQueryListListener::toWrapped(JSC::VM& vm, JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicDowncast<JSTestMediaQueryListListener*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestMediaQueryListListener*>(vm, value))
         return &wrapper->wrapped();
     return nullptr;
 }

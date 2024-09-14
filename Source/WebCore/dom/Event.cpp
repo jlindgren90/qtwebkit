@@ -150,11 +150,6 @@ bool Event::isTouchEvent() const
     return false;
 }
 
-bool Event::isDragEvent() const
-{
-    return false;
-}
-
 bool Event::isClipboardEvent() const
 {
     return false;
@@ -185,11 +180,6 @@ bool Event::isWheelEvent() const
     return false;
 }
 
-Ref<Event> Event::cloneFor(HTMLIFrameElement*) const
-{
-    return Event::create(type(), bubbles(), cancelable());
-}
-
 void Event::setTarget(RefPtr<EventTarget>&& target)
 {
     if (m_target == target)
@@ -198,6 +188,11 @@ void Event::setTarget(RefPtr<EventTarget>&& target)
     m_target = WTFMove(target);
     if (m_target)
         receivedTarget();
+}
+
+void Event::setCurrentTarget(EventTarget* currentTarget)
+{
+    m_currentTarget = currentTarget;
 }
 
 Vector<EventTarget*> Event::composedPath() const

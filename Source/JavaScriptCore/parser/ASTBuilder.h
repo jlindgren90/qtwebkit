@@ -178,6 +178,12 @@ public:
     {
         return new (m_parserArena) SuperNode(location);
     }
+    ExpressionNode* createImportExpr(const JSTokenLocation& location, ExpressionNode* expr, const JSTextPosition& start, const JSTextPosition& divot, const JSTextPosition& end)
+    {
+        auto* node = new (m_parserArena) ImportNode(location, expr);
+        setExceptionLocation(node, start, divot, end);
+        return node;
+    }
     ExpressionNode* createNewTargetExpr(const JSTokenLocation location)
     {
         usesNewTarget();
@@ -269,7 +275,7 @@ public:
         return node;
     }
 
-    TemplateStringNode* createTemplateString(const JSTokenLocation& location, const Identifier& cooked, const Identifier& raw)
+    TemplateStringNode* createTemplateString(const JSTokenLocation& location, const Identifier* cooked, const Identifier* raw)
     {
         return new (m_parserArena) TemplateStringNode(location, cooked, raw);
     }

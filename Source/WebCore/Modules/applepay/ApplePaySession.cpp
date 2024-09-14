@@ -162,7 +162,7 @@ static std::optional<int64_t> parseAmount(const String& amountString)
     return amount;
 }
 
-static ExceptionOr<PaymentRequest::LineItem> convertAndValidate(ApplePayLineItem&& lineItem)
+static ExceptionOr<PaymentRequest::LineItem> convertAndValidateTotal(ApplePayLineItem&& lineItem)
 {
     auto amount = parseAmount(lineItem.amount);
     if (!amount)
@@ -176,12 +176,34 @@ static ExceptionOr<PaymentRequest::LineItem> convertAndValidate(ApplePayLineItem
     return WTFMove(result);
 }
 
-static ExceptionOr<Vector<PaymentRequest::LineItem>> convertAndValidate(Vector<ApplePayLineItem>&& lineItems)
+static ExceptionOr<PaymentRequest::LineItem> convertAndValidate(ApplePayLineItem&& lineItem)
+{
+    PaymentRequest::LineItem result;
+
+    // It is OK for pending types to not have an amount.
+    if (lineItem.type != PaymentRequest::LineItem::Type::Pending) {
+        auto amount = parseAmount(lineItem.amount);
+        if (!amount)
+            return Exception { TypeError, makeString("\"" + lineItem.amount, "\" is not a valid amount.") };
+
+        result.amount = *amount;
+    }
+
+    result.type = lineItem.type;
+    result.label = lineItem.label;
+
+    return WTFMove(result);
+}
+
+static ExceptionOr<Vector<PaymentRequest::LineItem>> convertAndValidate(std::optional<Vector<ApplePayLineItem>>&& lineItems)
 {
     Vector<PaymentRequest::LineItem> result;
-    result.reserveInitialCapacity(lineItems.size());
+    if (!lineItems)
+        return WTFMove(result);
+
+    result.reserveInitialCapacity(lineItems->size());
     
-    for (auto lineItem : lineItems) {
+    for (auto lineItem : lineItems.value()) {
         auto convertedLineItem = convertAndValidate(WTFMove(lineItem));
         if (convertedLineItem.hasException())
             return convertedLineItem.releaseException();
@@ -295,12 +317,11 @@ static ExceptionOr<PaymentRequest> convertAndValidate(unsigned version, ApplePay
 {
     PaymentRequest result;
 
-    auto total = convertAndValidate(WTFMove(paymentRequest.total));
+    auto total = convertAndValidateTotal(WTFMove(paymentRequest.total));
     if (total.hasException())
         return total.releaseException();
     result.setTotal(total.releaseReturnValue());
 
-    // FIXME: Should this swallow exceptions like the old code seemed to do?
     auto lineItems = convertAndValidate(WTFMove(paymentRequest.lineItems));
     if (lineItems.hasException())
         return lineItems.releaseException();
@@ -376,16 +397,16 @@ static ExceptionOr<void> canCallApplePaySessionAPIs(Document& document)
 
     auto& topDocument = document.topDocument();
     if (&document != &topDocument) {
-        auto& topOrigin = *topDocument.topOrigin();
+        auto& topOrigin = topDocument.topOrigin();
 
-        if (!document.securityOrigin()->isSameSchemeHostPort(&topOrigin))
+        if (!document.securityOrigin().isSameSchemeHostPort(topOrigin))
             return Exception { INVALID_ACCESS_ERR, "Trying to call an ApplePaySession API from a document with an different security origin than its top-level frame." };
 
         for (auto* ancestorDocument = document.parentDocument(); ancestorDocument != &topDocument; ancestorDocument = ancestorDocument->parentDocument()) {
             if (!isSecure(*ancestorDocument->loader()))
                 return Exception { INVALID_ACCESS_ERR, "Trying to call an ApplePaySession API from a document with an insecure parent frame." };
 
-            if (!ancestorDocument->securityOrigin()->isSameSchemeHostPort(&topOrigin))
+            if (!ancestorDocument->securityOrigin().isSameSchemeHostPort(topOrigin))
                 return Exception { INVALID_ACCESS_ERR, "Trying to call an ApplePaySession API from a document with an different security origin than its top-level frame." };
         }
     }
@@ -445,7 +466,7 @@ static bool shouldDiscloseApplePayCapability(Document& document)
     if (!page || page->usesEphemeralSession())
         return false;
 
-    return document.frame()->settings().applePayCapabilityDisclosureAllowed();
+    return document.settings().applePayCapabilityDisclosureAllowed();
 }
 
 ExceptionOr<bool> ApplePaySession::canMakePayments(ScriptExecutionContext& scriptExecutionContext)
@@ -609,7 +630,7 @@ ExceptionOr<void> ApplePaySession::completeShippingMethodSelection(unsigned shor
     if (!authorizationStatus)
         return Exception { INVALID_ACCESS_ERR };
 
-    auto convertedNewTotal = convertAndValidate(WTFMove(newTotal));
+    auto convertedNewTotal = convertAndValidateTotal(WTFMove(newTotal));
     if (convertedNewTotal.hasException())
         return convertedNewTotal.releaseException();
 
@@ -646,7 +667,7 @@ ExceptionOr<void> ApplePaySession::completeShippingContactSelection(unsigned sho
     if (convertedNewShippingMethods.hasException())
         return convertedNewShippingMethods.releaseException();
 
-    auto convertedNewTotal = convertAndValidate(WTFMove(newTotal));
+    auto convertedNewTotal = convertAndValidateTotal(WTFMove(newTotal));
     if (convertedNewTotal.hasException())
         return convertedNewTotal.releaseException();
 
@@ -675,7 +696,7 @@ ExceptionOr<void> ApplePaySession::completePaymentMethodSelection(ApplePayLineIt
     if (!canCompletePaymentMethodSelection())
         return Exception { INVALID_ACCESS_ERR };
 
-    auto convertedNewTotal = convertAndValidate(WTFMove(newTotal));
+    auto convertedNewTotal = convertAndValidateTotal(WTFMove(newTotal));
     if (convertedNewTotal.hasException())
         return convertedNewTotal.releaseException();
 

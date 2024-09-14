@@ -111,7 +111,6 @@
 #include "SVGNames.h"
 #include "SVGSVGElement.h"
 #include "SVGURIReference.h"
-#include "SecurityOrigin.h"
 #include "Settings.h"
 #include "ShadowData.h"
 #include "ShadowRoot.h"
@@ -135,7 +134,6 @@
 #include "VisitedLinkState.h"
 #include "WebKitCSSRegionRule.h"
 #include "WebKitFontFamilyNames.h"
-#include "XMLNames.h"
 #include <bitset>
 #include <wtf/SetForScope.h>
 #include <wtf/StdLibExtras.h>
@@ -168,7 +166,7 @@ inline void StyleResolver::State::cacheBorderAndBackground()
     m_hasUAAppearance = m_style->hasAppearance();
     if (m_hasUAAppearance) {
         m_borderData = m_style->border();
-        m_backgroundData = *m_style->backgroundLayers();
+        m_backgroundData = m_style->backgroundLayers();
         m_backgroundColor = m_style->backgroundColor();
     }
 }
@@ -234,7 +232,7 @@ StyleResolver::StyleResolver(Document& document)
     : m_matchedPropertiesCacheAdditionsSinceLastSweep(0)
     , m_matchedPropertiesCacheSweepTimer(*this, &StyleResolver::sweepMatchedPropertiesCache)
     , m_document(document)
-    , m_matchAuthorAndUserStyles(m_document.settings() ? m_document.settings()->authorAndUserStylesEnabled() : true)
+    , m_matchAuthorAndUserStyles(m_document.settings().authorAndUserStylesEnabled())
 #if ENABLE(CSS_DEVICE_ADAPTATION)
     , m_viewportStyleResolver(ViewportStyleResolver::create(&document))
 #endif
@@ -684,12 +682,8 @@ std::unique_ptr<RenderStyle> StyleResolver::defaultStyleForElement()
 {
     m_state.setStyle(RenderStyle::createPtr());
     // Make sure our fonts are initialized if we don't inherit them from our parent style.
-    initializeFontStyle(documentSettings());
-    if (documentSettings())
-        m_state.style()->fontCascade().update(&document().fontSelector());
-    else
-        m_state.style()->fontCascade().update(nullptr);
-
+    initializeFontStyle();
+    m_state.style()->fontCascade().update(&document().fontSelector());
     return m_state.takeStyle();
 }
 
@@ -923,7 +917,7 @@ void StyleResolver::adjustRenderStyle(RenderStyle& style, const RenderStyle& par
             || style.hasBlendMode()
             || style.hasIsolation()
             || style.position() == StickyPosition
-            || (style.position() == FixedPosition && documentSettings() && documentSettings()->fixedPositionCreatesStackingContext())
+            || (style.position() == FixedPosition && settings().fixedPositionCreatesStackingContext())
             || style.hasFlowFrom()
             || style.willChangeCreatesStackingContext())
             style.setZIndex(0);
@@ -1328,7 +1322,7 @@ void StyleResolver::applyMatchedProperties(const MatchResult& matchResult, const
         // We can build up the style by copying non-inherited properties from an earlier style object built using the same exact
         // style declarations. We then only need to apply the inherited properties, if any, as their values can depend on the 
         // element context. This is fast and saves memory by reusing the style data structures.
-        state.style()->copyNonInheritedFrom(cacheItem->renderStyle.get());
+        state.style()->copyNonInheritedFrom(*cacheItem->renderStyle);
         if (state.parentStyle()->inheritedDataShared(cacheItem->parentRenderStyle.get()) && !isAtShadowBoundary(element)) {
             EInsideLink linkStatus = state.style()->insideLink();
             // If the cache item parent style has identical inherited properties to the current parent style then the
@@ -1485,8 +1479,6 @@ inline bool StyleResolver::isValidCueStyleProperty(CSSPropertyID id)
     case CSSPropertyBackgroundPositionX:
     case CSSPropertyBackgroundPositionY:
     case CSSPropertyBackgroundRepeat:
-    case CSSPropertyBackgroundRepeatX:
-    case CSSPropertyBackgroundRepeatY:
     case CSSPropertyBackgroundSize:
     case CSSPropertyColor:
     case CSSPropertyFont:
@@ -1507,6 +1499,8 @@ inline bool StyleResolver::isValidCueStyleProperty(CSSPropertyID id)
     case CSSPropertyTextDecoration:
     case CSSPropertyTextShadow:
     case CSSPropertyBorderStyle:
+    case CSSPropertyWebkitTextStrokeColor:
+    case CSSPropertyWebkitTextStrokeWidth:
         return true;
     default:
         break;
@@ -1661,17 +1655,10 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     if (isInherit && !CSSProperty::isInheritedProperty(id))
         state.style()->setHasExplicitlyInheritedProperties();
     
-    if (id == CSSPropertyCustom) {
-        CSSCustomPropertyValue* customProperty = &downcast<CSSCustomPropertyValue>(*valueToApply);
-        if (isInherit) {
-            RefPtr<CSSCustomPropertyValue> customVal = state.parentStyle()->getCustomPropertyValue(customProperty->name());
-            if (!customVal)
-                customVal = CSSCustomPropertyValue::createInvalid();
-            state.style()->setCustomPropertyValue(customProperty->name(), customVal);
-        } else if (isInitial)
-            state.style()->setCustomPropertyValue(customProperty->name(), CSSCustomPropertyValue::createInvalid());
-        else
-            state.style()->setCustomPropertyValue(customProperty->name(), customProperty);
+    if (customPropertyValue) {
+        auto& name = customPropertyValue->name();
+        auto* value = isInitial ? nullptr : isInherit ? state.parentStyle()->customProperties().get(name) : customPropertyValue;
+        state.style()->setCustomPropertyValue(name, value ? makeRef(*value) : CSSCustomPropertyValue::createInvalid());
         return;
     }
 
@@ -1689,7 +1676,7 @@ RefPtr<StyleImage> StyleResolver::styleImage(CSSValue& value)
 {
     if (is<CSSImageGeneratorValue>(value)) {
         if (is<CSSGradientValue>(value))
-            return StyleGeneratedImage::create(*downcast<CSSGradientValue>(value).gradientWithStylesResolved(this));
+            return StyleGeneratedImage::create(downcast<CSSGradientValue>(value).gradientWithStylesResolved(*this));
 
         if (is<CSSFilterImageValue>(value)) {
             // FilterImage needs to calculate FilterOperations.
@@ -1751,9 +1738,8 @@ void StyleResolver::checkForGenericFamilyChange(RenderStyle* style, const Render
     if (CSSValueID sizeIdentifier = childFont.keywordSizeAsIdentifier())
         size = Style::fontSizeForKeyword(sizeIdentifier, childFont.useFixedDefaultSize(), document());
     else {
-        Settings* settings = documentSettings();
-        float fixedScaleFactor = (settings && settings->defaultFixedFontSize() && settings->defaultFontSize())
-            ? static_cast<float>(settings->defaultFixedFontSize()) / settings->defaultFontSize()
+        float fixedScaleFactor = (settings().defaultFixedFontSize() && settings().defaultFontSize())
+            ? static_cast<float>(settings().defaultFixedFontSize()) / settings().defaultFontSize()
             : 1;
         size = parentFont.useFixedDefaultSize() ?
                 childFont.specifiedSize() / fixedScaleFactor :
@@ -1765,11 +1751,10 @@ void StyleResolver::checkForGenericFamilyChange(RenderStyle* style, const Render
     style->setFontDescription(newFontDescription);
 }
 
-void StyleResolver::initializeFontStyle(Settings* settings)
+void StyleResolver::initializeFontStyle()
 {
     FontCascadeDescription fontDescription;
-    if (settings)
-        fontDescription.setRenderingMode(settings->fontRenderingMode());
+    fontDescription.setRenderingMode(settings().fontRenderingMode());
     fontDescription.setOneFamily(standardFamily);
     fontDescription.setKeywordSizeFromIdentifier(CSSValueMedium);
     setFontSize(fontDescription, Style::fontSizeForKeyword(CSSValueMedium, false, document()));

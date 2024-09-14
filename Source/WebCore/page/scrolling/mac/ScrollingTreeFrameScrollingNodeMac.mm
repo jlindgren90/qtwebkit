@@ -37,7 +37,6 @@
 #import "ScrollingCoordinator.h"
 #import "ScrollingTree.h"
 #import "ScrollingStateTree.h"
-#import "Settings.h"
 #import "TextStream.h"
 #import "TileController.h"
 #import "WebLayer.h"
@@ -89,6 +88,16 @@ static inline Vector<LayoutUnit> convertToLayoutUnits(const Vector<float>& snapO
         snapOffsets.uncheckedAppend(offset);
 
     return snapOffsets;
+}
+
+static inline Vector<ScrollOffsetRange<LayoutUnit>> convertToLayoutUnits(const Vector<ScrollOffsetRange<float>>& snapOffsetRangesAsFloat)
+{
+    Vector<ScrollOffsetRange<LayoutUnit>> snapOffsetRanges;
+    snapOffsetRanges.reserveInitialCapacity(snapOffsetRangesAsFloat.size());
+    for (auto range : snapOffsetRangesAsFloat)
+        snapOffsetRanges.uncheckedAppend({ range.start, range.end });
+
+    return snapOffsetRanges;
 }
 #endif
 
@@ -146,11 +155,11 @@ void ScrollingTreeFrameScrollingNodeMac::commitStateBeforeChildren(const Scrolli
     }
 
 #if ENABLE(CSS_SCROLL_SNAP)
-    if (scrollingStateNode.hasChangedProperty(ScrollingStateFrameScrollingNode::HorizontalSnapOffsets))
-        m_scrollController.updateScrollSnapPoints(ScrollEventAxis::Horizontal, convertToLayoutUnits(scrollingStateNode.horizontalSnapOffsets()));
+    if (scrollingStateNode.hasChangedProperty(ScrollingStateFrameScrollingNode::HorizontalSnapOffsets) || scrollingStateNode.hasChangedProperty(ScrollingStateFrameScrollingNode::HorizontalSnapOffsetRanges))
+        m_scrollController.updateScrollSnapPoints(ScrollEventAxis::Horizontal, convertToLayoutUnits(scrollingStateNode.horizontalSnapOffsets()), convertToLayoutUnits(scrollingStateNode.horizontalSnapOffsetRanges()));
 
-    if (scrollingStateNode.hasChangedProperty(ScrollingStateFrameScrollingNode::VerticalSnapOffsets))
-        m_scrollController.updateScrollSnapPoints(ScrollEventAxis::Vertical, convertToLayoutUnits(scrollingStateNode.verticalSnapOffsets()));
+    if (scrollingStateNode.hasChangedProperty(ScrollingStateFrameScrollingNode::VerticalSnapOffsets) || scrollingStateNode.hasChangedProperty(ScrollingStateFrameScrollingNode::VerticalSnapOffsetRanges))
+        m_scrollController.updateScrollSnapPoints(ScrollEventAxis::Vertical, convertToLayoutUnits(scrollingStateNode.verticalSnapOffsets()), convertToLayoutUnits(scrollingStateNode.verticalSnapOffsetRanges()));
 
     if (scrollingStateNode.hasChangedProperty(ScrollingStateScrollingNode::CurrentHorizontalSnapOffsetIndex))
         m_scrollController.setActiveScrollSnapIndexForAxis(ScrollEventAxis::Horizontal, scrollingStateNode.currentHorizontalSnapPointIndex());

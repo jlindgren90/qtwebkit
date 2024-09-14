@@ -109,7 +109,6 @@ private:
     BOOL _allowsInlineMediaPlayback;
     BOOL _inlineMediaPlaybackRequiresPlaysInlineAttribute;
     BOOL _allowsInlineMediaPlaybackAfterFullscreen;
-    unsigned _contentUpdateFrequency;
 #endif
 
     BOOL _invisibleAutoplayNotPermitted;
@@ -126,11 +125,16 @@ private:
     BOOL _initialCapitalizationEnabled;
     BOOL _waitsForPaintAfterViewDidMoveToWindow;
     BOOL _controlledByAutomation;
+#if ENABLE(MEDIA_STREAM)
+    BOOL _mediaStreamEnabled;
+#endif
 
 #if ENABLE(APPLE_PAY)
     BOOL _applePayEnabled;
 #endif
     BOOL _needsStorageAccessFromFileURLsQuirk;
+
+    NSString *_overrideContentSecurityPolicy;
 }
 
 - (instancetype)init
@@ -144,12 +148,11 @@ private:
     _inlineMediaPlaybackRequiresPlaysInlineAttribute = !_allowsInlineMediaPlayback;
     _allowsInlineMediaPlaybackAfterFullscreen = !_allowsInlineMediaPlayback;
     _mediaDataLoadsAutomatically = NO;
-    if (linkedOnOrAfter(WebKit::LibraryVersion::FirstWithMediaTypesRequiringUserActionForPlayback))
+    if (WebKit::linkedOnOrAfter(WebKit::SDKVersion::FirstWithMediaTypesRequiringUserActionForPlayback))
         _mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAudio;
     else
         _mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAll;
     _ignoresViewportScaleLimits = NO;
-    _contentUpdateFrequency = 60;
 #else
     _mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeNone;
     _mediaDataLoadsAutomatically = YES;
@@ -293,6 +296,9 @@ private:
     configuration->_initialCapitalizationEnabled = self->_initialCapitalizationEnabled;
     configuration->_waitsForPaintAfterViewDidMoveToWindow = self->_waitsForPaintAfterViewDidMoveToWindow;
     configuration->_controlledByAutomation = self->_controlledByAutomation;
+#if ENABLE(MEDIA_STREAM)
+    configuration->_mediaStreamEnabled = self->_mediaStreamEnabled;
+#endif
 
 #if PLATFORM(IOS)
     configuration->_allowsInlineMediaPlayback = self->_allowsInlineMediaPlayback;
@@ -302,7 +308,6 @@ private:
     configuration->_alwaysRunsAtForegroundPriority = _alwaysRunsAtForegroundPriority;
     configuration->_selectionGranularity = self->_selectionGranularity;
     configuration->_ignoresViewportScaleLimits = self->_ignoresViewportScaleLimits;
-    configuration->_contentUpdateFrequency = self->_contentUpdateFrequency;
 #endif
 #if PLATFORM(MAC)
     configuration->_userInterfaceDirectionPolicy = self->_userInterfaceDirectionPolicy;
@@ -321,6 +326,7 @@ private:
     configuration->_applePayEnabled = self->_applePayEnabled;
 #endif
     configuration->_needsStorageAccessFromFileURLsQuirk = self->_needsStorageAccessFromFileURLsQuirk;
+    configuration->_overrideContentSecurityPolicy = self->_overrideContentSecurityPolicy;
 
     return configuration;
 }
@@ -588,16 +594,6 @@ static NSString *defaultApplicationNameForUserAgent()
 {
     _allowsInlineMediaPlaybackAfterFullscreen = allows;
 }
-
-- (NSUInteger)_contentUpdateFrequency
-{
-    return _contentUpdateFrequency;
-}
-
-- (void)_setContentUpdateFrequency:(NSUInteger)contentUpdateFrequency
-{
-    _contentUpdateFrequency = contentUpdateFrequency;
-}
 #endif // PLATFORM(IOS)
 
 - (BOOL)_invisibleAutoplayNotPermitted
@@ -696,6 +692,22 @@ static NSString *defaultApplicationNameForUserAgent()
     _controlledByAutomation = controlledByAutomation;
 }
 
+- (BOOL)_mediaStreamEnabled
+{
+#if ENABLE(MEDIA_STREAM)
+    return _mediaStreamEnabled;
+#else
+    return NO;
+#endif
+}
+
+- (void)_setMediaStreamEnabled:(BOOL)enabled
+{
+#if ENABLE(MEDIA_STREAM)
+    _mediaStreamEnabled = enabled;
+#endif
+}
+
 #if PLATFORM(MAC)
 - (BOOL)_showsURLsInToolTips
 {
@@ -763,6 +775,16 @@ static NSString *defaultApplicationNameForUserAgent()
 - (void)_setNeedsStorageAccessFromFileURLsQuirk:(BOOL)needsLocalStorageQuirk
 {
     _needsStorageAccessFromFileURLsQuirk = needsLocalStorageQuirk;
+}
+
+- (NSString *)_overrideContentSecurityPolicy
+{
+    return _overrideContentSecurityPolicy;
+}
+
+- (void)_setOverrideContentSecurityPolicy:(NSString *)overrideContentSecurityPolicy
+{
+    _overrideContentSecurityPolicy = overrideContentSecurityPolicy;
 }
 
 @end

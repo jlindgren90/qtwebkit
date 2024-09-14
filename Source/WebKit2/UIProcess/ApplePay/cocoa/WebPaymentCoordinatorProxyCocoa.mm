@@ -227,13 +227,6 @@ void WebPaymentCoordinatorProxy::platformCanMakePaymentsWithActiveCard(const Str
 void WebPaymentCoordinatorProxy::platformOpenPaymentSetup(const String& merchantIdentifier, const String& domainName, std::function<void (bool)> completionHandler)
 {
     auto passLibrary = adoptNS([allocPKPassLibraryInstance() init]);
-    if (![passLibrary respondsToSelector:@selector(openPaymentSetupForMerchantIdentifier:domain:completion:)]) {
-        RunLoop::main().dispatch([completionHandler] {
-            completionHandler(false);
-        });
-        return;
-    }
-
     [passLibrary openPaymentSetupForMerchantIdentifier:merchantIdentifier domain:domainName completion:[completionHandler](BOOL result) {
         RunLoop::main().dispatch([completionHandler, result] {
             completionHandler(result);
@@ -245,6 +238,8 @@ static PKAddressField toPKAddressField(const WebCore::PaymentRequest::ContactFie
 {
     PKAddressField result = 0;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     if (contactFields.postalAddress)
         result |= PKAddressFieldPostalAddress;
     if (contactFields.phone)
@@ -253,6 +248,7 @@ static PKAddressField toPKAddressField(const WebCore::PaymentRequest::ContactFie
         result |= PKAddressFieldEmail;
     if (contactFields.name)
         result |= PKAddressFieldName;
+#pragma clang diagnostic pop
 
     return result;
 }
@@ -377,10 +373,13 @@ RetainPtr<PKPaymentRequest> toPKPaymentRequest(WebPageProxy& webPageProxy, const
 
     [result setCountryCode:paymentRequest.countryCode()];
     [result setCurrencyCode:paymentRequest.currencyCode()];
-    [result setRequiredBillingAddressFields:toPKAddressField(paymentRequest.requiredBillingContactFields())];
     [result setBillingContact:paymentRequest.billingContact().pkContact()];
-    [result setRequiredShippingAddressFields:toPKAddressField(paymentRequest.requiredShippingContactFields())];
     [result setShippingContact:paymentRequest.shippingContact().pkContact()];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [result setRequiredBillingAddressFields:toPKAddressField(paymentRequest.requiredBillingContactFields())];
+    [result setRequiredShippingAddressFields:toPKAddressField(paymentRequest.requiredShippingContactFields())];
+#pragma clang diagnostic pop
 
     [result setSupportedNetworks:toSupportedNetworks(paymentRequest.supportedNetworks()).get()];
     [result setMerchantCapabilities:toPKMerchantCapabilities(paymentRequest.merchantCapabilities())];
@@ -429,6 +428,8 @@ RetainPtr<PKPaymentRequest> toPKPaymentRequest(WebPageProxy& webPageProxy, const
 
 static PKPaymentAuthorizationStatus toPKPaymentAuthorizationStatus(WebCore::PaymentAuthorizationStatus status)
 {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     switch (status) {
     case WebCore::PaymentAuthorizationStatus::Success:
         return PKPaymentAuthorizationStatusSuccess;
@@ -447,6 +448,7 @@ static PKPaymentAuthorizationStatus toPKPaymentAuthorizationStatus(WebCore::Paym
     case WebCore::PaymentAuthorizationStatus::PINLockout:
         return PKPaymentAuthorizationStatusPINLockout;
     }
+#pragma clang diagnostic pop
 }
 
 void WebPaymentCoordinatorProxy::platformCompletePaymentSession(WebCore::PaymentAuthorizationStatus status)

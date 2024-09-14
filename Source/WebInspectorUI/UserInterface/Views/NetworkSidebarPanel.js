@@ -27,7 +27,9 @@ WebInspector.NetworkSidebarPanel = class NetworkSidebarPanel extends WebInspecto
 {
     constructor(contentBrowser)
     {
-        super("network", WebInspector.UIString("Network"), true);
+        super("network", WebInspector.UIString("Network"), false);
+
+        WebInspector.Frame.addEventListener(WebInspector.Frame.Event.MainResourceDidChange, this._mainResourceDidChange, this);
 
         this.contentBrowser = contentBrowser;
 
@@ -170,6 +172,16 @@ WebInspector.NetworkSidebarPanel = class NetworkSidebarPanel extends WebInspecto
     }
 
     // Private
+
+    _mainResourceDidChange(event)
+    {
+        let frame = event.target;
+        if (!frame.isMainFrame() || WebInspector.settings.clearNetworkOnNavigate.value)
+            return;
+
+        for (let treeElement of this.contentTreeOutline.children)
+            treeElement.element.classList.add("preserved");
+    }
 
     _networkTimelineReset(event)
     {

@@ -28,7 +28,6 @@
 
 #include "CompositionEvent.h"
 #include "EventContext.h"
-#include "EventNames.h"
 #include "EventPath.h"
 #include "Frame.h"
 #include "FrameView.h"
@@ -97,7 +96,7 @@ static void dispatchEventInDOM(Event& event, const EventPath& path)
         const EventContext& eventContext = path.contextAt(i);
         if (eventContext.currentTargetSameAsTarget())
             event.setEventPhase(Event::AT_TARGET);
-        else if (event.bubbles() && !event.cancelBubble())
+        else if (event.bubbles())
             event.setEventPhase(Event::BUBBLING_PHASE);
         else
             continue;
@@ -129,7 +128,7 @@ static bool shouldSuppressEventDispatchInDOM(Node& node, Event& event)
 
 bool EventDispatcher::dispatchEvent(Node& node, Event& event)
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(!NoEventDispatchAssertion::isEventDispatchForbidden());
+    ASSERT_WITH_SECURITY_IMPLICATION(NoEventDispatchAssertion::isEventAllowedInMainThread());
     Ref<Node> protectedNode(node);
     RefPtr<FrameView> view = node.document().view();
     EventPath eventPath(node, event);
@@ -148,7 +147,7 @@ bool EventDispatcher::dispatchEvent(Node& node, Event& event)
     if (!event.target())
         return true;
 
-    ASSERT_WITH_SECURITY_IMPLICATION(!NoEventDispatchAssertion::isEventDispatchForbidden());
+    ASSERT_WITH_SECURITY_IMPLICATION(NoEventDispatchAssertion::isEventAllowedInMainThread());
 
     InputElementClickState clickHandlingState;
     if (is<HTMLInputElement>(node))

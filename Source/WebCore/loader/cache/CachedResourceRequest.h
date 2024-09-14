@@ -58,7 +58,7 @@ public:
     const ResourceLoaderOptions& options() const { return m_options; }
     void setOptions(const ResourceLoaderOptions& options) { m_options = options; }
     const std::optional<ResourceLoadPriority>& priority() const { return m_priority; }
-    void setInitiator(PassRefPtr<Element>);
+    void setInitiator(Element&);
     void setInitiator(const AtomicString& name);
     const AtomicString& initiatorName() const;
     bool allowsCaching() const { return m_options.cachingPolicy == CachingPolicy::AllowCaching; }
@@ -75,11 +75,11 @@ public:
 #if ENABLE(CONTENT_EXTENSIONS)
     void applyBlockedStatus(const ContentExtensions::BlockedStatus&);
 #endif
-#if ENABLE(CACHE_PARTITIONING)
     void setDomainForCachePartition(Document&);
-#endif
+    bool isLinkPreload() const { return m_isLinkPreload; }
+    void setIsLinkPreload() { m_isLinkPreload = true; }
 
-    void setOrigin(RefPtr<SecurityOrigin>&& origin) { m_origin = WTFMove(origin); }
+    void setOrigin(Ref<SecurityOrigin>&& origin) { m_origin = WTFMove(origin); }
     RefPtr<SecurityOrigin> releaseOrigin() { return WTFMove(m_origin); }
     SecurityOrigin* origin() const { return m_origin.get(); }
 
@@ -97,6 +97,7 @@ private:
     AtomicString m_initiatorName;
     RefPtr<SecurityOrigin> m_origin;
     String m_fragmentIdentifier;
+    bool m_isLinkPreload { false };
 };
 
 void upgradeInsecureResourceRequestIfNeeded(ResourceRequest&, Document&);

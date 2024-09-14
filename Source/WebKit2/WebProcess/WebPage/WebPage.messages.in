@@ -96,6 +96,8 @@ messages -> WebPage LegacyReceiver {
     SetAllowsMediaDocumentInlinePlayback(bool allows)
     HandleTwoFingerTapAtPoint(WebCore::IntPoint point, uint64_t requestID)
     SetForceAlwaysUserScalable(bool userScalable)
+    GetRectsForGranularityWithSelectionOffset(uint32_t granularity, int32_t offset, uint64_t callbackID);
+    GetRectsAtSelectionOffsetWithText(int32_t offset, String text, uint64_t callbackID);
 #endif
 
     SetControlledByAutomation(bool controlled)
@@ -146,6 +148,7 @@ messages -> WebPage LegacyReceiver {
 
     DidRemoveBackForwardItem(uint64_t backForwardItemID)
 
+    UpdateWebsitePolicies(struct WebKit::WebsitePolicies websitePolicies)
     DidReceivePolicyDecision(uint64_t frameID, uint64_t listenerID, uint32_t policyAction, uint64_t navigationID, WebKit::DownloadID downloadID)
 
     ClearSelection()
@@ -246,6 +249,10 @@ messages -> WebPage LegacyReceiver {
     DragEnded(WebCore::IntPoint clientPosition, WebCore::IntPoint globalPosition, uint64_t operation)
 #endif
 
+#if ENABLE(DATA_INTERACTION)
+    RequestStartDataInteraction(WebCore::IntPoint clientPosition, WebCore::IntPoint globalPosition)
+#endif
+
     # Popup menu.
     DidChangeSelectedIndexForActivePopupMenu(int32_t newIndex)
     SetTextForActivePopupMenu(int32_t index)
@@ -292,8 +299,10 @@ messages -> WebPage LegacyReceiver {
     UserMediaAccessWasGranted(uint64_t userMediaID, String audioDeviceUID, String videoDeviceUID)
     UserMediaAccessWasDenied(uint64_t userMediaID, uint64_t reason, String invalidConstraint)
     DidCompleteMediaDeviceEnumeration(uint64_t userMediaID, Vector<WebCore::CaptureDevice> devices, String mediaDeviceIdentifierHashSalt, bool hasPersistentAccess)
+#if ENABLE(SANDBOX_EXTENSIONS)
     GrantUserMediaDeviceSandboxExtensions(WebKit::MediaDeviceSandboxExtensions sandboxExtensions)
     RevokeUserMediaDeviceSandboxExtensions(Vector<String> sandboxExtensionIDs)
+#endif
 #endif
 
     # Notification
@@ -422,10 +431,13 @@ messages -> WebPage LegacyReceiver {
     DataDetectorsDidHideUI(WebCore::PageOverlay::PageOverlayID pageOverlay)
 
     HandleAcceptedCandidate(struct WebCore::TextCheckingResult acceptedCandidate)
-    RequestActiveNowPlayingSessionInfo()
 
     SetHeaderBannerHeightForTesting(int height);
     SetFooterBannerHeightForTesting(int height);
+#endif
+
+#if PLATFORM(COCOA)
+    RequestActiveNowPlayingSessionInfo()
 #endif
 
     SetShouldDispatchFakeMouseMoveEvents(bool shouldDispatchFakeMouseMoveEvents)
@@ -457,6 +469,10 @@ messages -> WebPage LegacyReceiver {
     SetUseIconLoadingClient(bool useIconLoadingClient)
 
 #if ENABLE(GAMEPAD)
-    GamepadActivity(Vector<WebKit::GamepadData> gamepadDatas)
+    GamepadActivity(Vector<WebKit::GamepadData> gamepadDatas, bool shouldMakeGamepadsVisible)
+#endif
+
+#if USE(QUICK_LOOK)
+    DidReceivePasswordForQuickLookDocument(String password)
 #endif
 }
