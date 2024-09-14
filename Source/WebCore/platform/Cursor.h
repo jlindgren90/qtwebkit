@@ -182,7 +182,7 @@ public:
 #endif
 
 #if PLATFORM(QT)
-    mutable Optional<QCursor> m_platformCursor;
+    mutable std::optional<QCursor> m_platformCursor;
 #elif !USE(APPKIT)
     mutable PlatformCursor m_platformCursor;
 #else

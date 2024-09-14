@@ -110,6 +110,7 @@ public:
     void didChangeSelectionAndUpdateLayout() override;
     void updateEditorStateAfterLayoutIfEditabilityChanged() override;
     void discardedComposition(Frame *) override;
+    void canceledComposition() override;
     void overflowScrollPositionChanged() override;
 
     bool isEditing() const;

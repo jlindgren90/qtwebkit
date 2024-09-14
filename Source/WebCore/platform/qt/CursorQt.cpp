@@ -69,10 +69,10 @@ Cursor& Cursor::operator=(const Cursor& other)
 }
 
 #ifndef QT_NO_CURSOR
-static Optional<QCursor> createCustomCursor(Image* image, const IntPoint& hotSpot)
+static std::optional<QCursor> createCustomCursor(Image* image, const IntPoint& hotSpot)
 {
     if (!image->nativeImageForCurrentFrame())
-        return Nullopt;
+        return std::nullopt;
     IntPoint effectiveHotSpot = determineHotSpot(image, hotSpot);
     return QCursor(toQPixmap(image->nativeImageForCurrentFrame()), effectiveHotSpot.x(), effectiveHotSpot.y());
 }

@@ -381,7 +381,7 @@ void FrameLoaderClientQt::dispatchDidNavigateWithinPage()
     if (!loaderCompleted)
         return;
 
-    dispatchDidCommitLoad(Nullopt);
+    dispatchDidCommitLoad(std::nullopt);
     dispatchDidFinishLoad();
 }
 
@@ -455,7 +455,7 @@ void FrameLoaderClientQt::dispatchDidReceiveTitle(const StringWithDirection& tit
 }
 
 
-void FrameLoaderClientQt::dispatchDidCommitLoad(Optional<HasInsecureContent>)
+void FrameLoaderClientQt::dispatchDidCommitLoad(std::optional<HasInsecureContent>)
 {
     if (dumpFrameLoaderCallbacks)
         printf("%s - didCommitLoadForFrame\n", qPrintable(drtDescriptionSuitableForTestResult(m_frame)));

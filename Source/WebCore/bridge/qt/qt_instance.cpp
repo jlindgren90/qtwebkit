@@ -21,6 +21,7 @@
 #include "qt_instance.h"
 
 #include "APICast.h"
+#include "CommonVM.h"
 #include "Error.h"
 #include "JSDOMBinding.h"
 #include "JSDOMWindowBase.h"
@@ -91,7 +92,7 @@ QtInstance::QtInstance(QObject* o, PassRefPtr<RootObject> rootObject, ValueOwner
 
 QtInstance::~QtInstance()
 {
-    JSLockHolder lock(WebCore::JSDOMWindowBase::commonVM());
+    JSLockHolder lock(WebCore::commonVM());
 
     cachedInstances.remove(m_hashkey);
 
@@ -118,7 +119,7 @@ QtInstance::~QtInstance()
 
 PassRefPtr<QtInstance> QtInstance::getQtInstance(QObject* o, PassRefPtr<RootObject> rootObject, ValueOwnership ownership)
 {
-    JSLockHolder lock(WebCore::JSDOMWindowBase::commonVM());
+    JSLockHolder lock(WebCore::commonVM());
 
     foreach (QtInstance* instance, cachedInstances.values(o))
         if (instance->rootObject() == rootObject) {

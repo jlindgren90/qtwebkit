@@ -432,7 +432,7 @@ QUrl QWebFrameAdapter::lastRequestedUrl() const
 
 QWebSecurityOrigin QWebFrameAdapter::securityOrigin() const
 {
-    QWebSecurityOriginPrivate* priv = new QWebSecurityOriginPrivate(frame->document()->securityOrigin());
+    QWebSecurityOriginPrivate* priv = new QWebSecurityOriginPrivate(*frame->document()->securityOrigin());
     return QWebSecurityOrigin(priv);
 }
 

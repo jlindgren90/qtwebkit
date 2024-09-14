@@ -248,6 +248,11 @@ void Pasteboard::write(const PasteboardURL& pasteboardURL)
         updateSystemPasteboard();
 }
 
+void Pasteboard::writeTrustworthyWebURLsPboardType(const PasteboardURL&)
+{
+    // TODO
+}
+
 void Pasteboard::write(const PasteboardImage& pasteboardImage)
 {
     // TODO

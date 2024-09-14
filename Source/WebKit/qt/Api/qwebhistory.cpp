@@ -175,8 +175,9 @@ QIcon QWebHistoryItem::icon() const
 */
 QVariant QWebHistoryItem::userData() const
 {
-    if (d->item)
-        return d->item->userData();
+    // FIXME
+    // if (d->item)
+    //     return d->item->userData();
     return QVariant();
 }
 
@@ -191,8 +192,9 @@ QVariant QWebHistoryItem::userData() const
 */
 void QWebHistoryItem::setUserData(const QVariant& userData)
 {
-    if (d->item)
-        d->item->setUserData(userData);
+    // FIXME
+    // if (d->item)
+    //     d->item->setUserData(userData);
 }
 
 /*!*

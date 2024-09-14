@@ -108,7 +108,7 @@ public:
     void dispatchDidReceiveIcon() override;
     void dispatchDidStartProvisionalLoad() override;
     void dispatchDidReceiveTitle(const StringWithDirection&) override;
-    void dispatchDidCommitLoad(Optional<HasInsecureContent>) override;
+    void dispatchDidCommitLoad(std::optional<HasInsecureContent>) override;
     void dispatchDidFailProvisionalLoad(const ResourceError&) override;
     void dispatchDidFailLoad(const WebCore::ResourceError&) override;
     void dispatchDidFinishDocumentLoad() override;

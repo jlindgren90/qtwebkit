@@ -200,8 +200,9 @@ void encodeBackForwardTree(KeyedEncoderQt& encoder, const HistoryItem& item)
 {
     encoder.encodeString("title", item.title());
     encodeBackForwardTreeNode(encoder, item);
-    if (item.userData().isValid())
-        encoder.encodeVariant("userData", item.userData());
+    // FIXME
+    // if (item.userData().isValid())
+    //     encoder.encodeVariant("userData", item.userData());
 }
 
 template<typename F>
@@ -303,9 +304,10 @@ bool decodeBackForwardTree(KeyedDecoderQt& decoder, HistoryItem& item)
     }))
         return false;
 
-    QVariant userData;
-    if (decoder.decodeVariant("userData", userData))
-        item.setUserData(userData);
+    // FIXME
+    // QVariant userData;
+    // if (decoder.decodeVariant("userData", userData))
+    //     item.setUserData(userData);
 
     return decodeBackForwardTreeNode(decoder, item);
 }

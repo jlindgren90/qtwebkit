@@ -155,11 +155,11 @@ static inline Qt::DropAction dragOpToDropAction(unsigned actions)
 static inline QWebPageAdapter::VisibilityState webCoreVisibilityStateToWebPageVisibilityState(WebCore::PageVisibilityState state)
 {
     switch (state) {
-    case WebCore::PageVisibilityStatePrerender:
+    case WebCore::PageVisibilityState::Prerender:
         return QWebPageAdapter::VisibilityStatePrerender;
-    case WebCore::PageVisibilityStateVisible:
+    case WebCore::PageVisibilityState::Visible:
         return QWebPageAdapter::VisibilityStateVisible;
-    case WebCore::PageVisibilityStateHidden:
+    case WebCore::PageVisibilityState::Hidden:
         return QWebPageAdapter::VisibilityStateHidden;
     default:
         ASSERT(false);
@@ -220,7 +220,7 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.applicationCacheStorage = ApplicationCacheStorage::create(String(), "ApplicationCache");
     pageConfiguration.databaseProvider = &WebDatabaseProvider::singleton();
     pageConfiguration.pluginInfoProvider = adoptRef(new EmptyPluginInfoProvider);
-    pageConfiguration.storageNamespaceProvider = WebStorageNamespaceProvider::create(
+    pageConfiguration.storageNamespaceProvider = WebKit::WebStorageNamespaceProvider::create(
         QWebSettings::globalSettings()->localStoragePath());
     pageConfiguration.userContentProvider = &userContentProvider();
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();

@@ -33,7 +33,6 @@
 #include "CSSValueKeywords.h"
 #include "ChromeClient.h"
 #include "Color.h"
-#include "ExceptionCodePlaceholder.h"
 #include "FileList.h"
 #include "GraphicsContext.h"
 #include "HTMLInputElement.h"
