@@ -252,7 +252,7 @@ private:
 
     void platformSetDefersLoading(bool);
 
-    void platformContinueSynchronousDidReceiveResponse();
+    virtual void platformContinueSynchronousDidReceiveResponse();
 
     void scheduleFailure(FailureType);
 

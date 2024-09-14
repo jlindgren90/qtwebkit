@@ -166,6 +166,11 @@ void BlobResourceHandle::continueDidReceiveResponse()
     readAsync();
 }
 
+void BlobResourceHandle::platformContinueSynchronousDidReceiveResponse()
+{
+    // FIXME: added to avoid calling the ResourceHandleSoup function
+}
+
 void BlobResourceHandle::start()
 {
     if (!m_async) {
