@@ -1212,17 +1212,6 @@ static RefPtr<Node> findInsertionPoint(PassRefPtr<Node> root)
     while (node->hasChildNodes() && node->firstChild()->isElementNode())
         node = node->firstChild();
 
-    // TODO: Implement SVG support
-    if (node->isHTMLElement()) {
-        HTMLElement* element = static_cast<HTMLElement*>(node.get());
-
-        // The insert point could be a non-enclosable tag and it can thus
-        // never have children, so go one up. Get the parent element, and not
-        // note as a root note will always exist.
-        if (element->ieForbidsInsertHTML())
-            node = node->parentElement();
-    }
-
     return node;
 }
 
@@ -2079,18 +2068,18 @@ static QVariant convertJSValueToWebElementVariant(JSC::JSObject* object, int *di
 {
     Element* element = 0;
     QVariant ret;
-    if (object && object->inherits(JSElement::info())) {
-        element = JSElement::toWrapped(object);
+    if (object && object->inherits(*object->vm(), JSElement::info())) {
+        element = JSElement::toWrapped(*object->vm(), object);
         *distance = 0;
         // Allow other objects to reach this one. This won't cause our algorithm to
         // loop since when we find an Element we do not recurse.
         visitedObjects->remove(toRef(object));
-    } else if (object && object->inherits(JSDocument::info())) {
+    } else if (object && object->inherits(*object->vm(), JSDocument::info())) {
         // To support TestRunnerQt::nodesFromRect(), used in DRT, we do an implicit
         // conversion from 'document' to the QWebElement representing the 'document.documentElement'.
         // We can't simply use a QVariantMap in nodesFromRect() because it currently times out
         // when serializing DOMMimeType and DOMPlugin, even if we limit the recursion.
-        element = JSDocument::toWrapped(object)->documentElement();
+        element = JSDocument::toWrapped(*object->vm(), object)->documentElement();
     }
 
     return QVariant::fromValue<QWebElement>(QtWebElementRuntime::create(element));

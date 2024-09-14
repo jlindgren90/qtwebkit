@@ -144,7 +144,7 @@ public:
 
     static const CubicBezierTimingFunction& defaultTimingFunction()
     {
-        static const CubicBezierTimingFunction& function = create().leakRef();
+        static const Ref<CubicBezierTimingFunction> function = create();
         return function;
     }
 

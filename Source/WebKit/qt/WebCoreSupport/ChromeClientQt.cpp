@@ -215,11 +215,11 @@ void ChromeClientQt::focusedFrameChanged(Frame*)
 {
 }
 
-Page* ChromeClientQt::createWindow(Frame* frame, const FrameLoadRequest&, const WindowFeatures& features, const NavigationAction&)
+Page* ChromeClientQt::createWindow(Frame& frame, const FrameLoadRequest&, const WindowFeatures& features, const NavigationAction&)
 {
 #if ENABLE(FULLSCREEN_API)
-    if (frame->document() && frame->document()->webkitCurrentFullScreenElement())
-        frame->document()->webkitCancelFullScreen();
+    if (frame.document() && frame.document()->webkitCurrentFullScreenElement())
+        frame.document()->webkitCancelFullScreen();
 #else
     UNUSED_PARAM(frame);
 #endif
@@ -359,7 +359,7 @@ bool ChromeClientQt::canRunBeforeUnloadConfirmPanel()
     return true;
 }
 
-bool ChromeClientQt::runBeforeUnloadConfirmPanel(const String& message, Frame* frame)
+bool ChromeClientQt::runBeforeUnloadConfirmPanel(const String& message, Frame& frame)
 {
     return runJavaScriptConfirm(frame, message);
 }
@@ -371,20 +371,20 @@ void ChromeClientQt::closeWindowSoon()
     QMetaObject::invokeMethod(m_webPage->handle(), "windowCloseRequested");
 }
 
-void ChromeClientQt::runJavaScriptAlert(Frame* f, const String& msg)
+void ChromeClientQt::runJavaScriptAlert(Frame& f, const String& msg)
 {
-    m_webPage->javaScriptAlert(QWebFrameAdapter::kit(f), msg);
+    m_webPage->javaScriptAlert(QWebFrameAdapter::kit(&f), msg);
 }
 
-bool ChromeClientQt::runJavaScriptConfirm(Frame* f, const String& msg)
+bool ChromeClientQt::runJavaScriptConfirm(Frame& f, const String& msg)
 {
-    return m_webPage->javaScriptConfirm(QWebFrameAdapter::kit(f), msg);
+    return m_webPage->javaScriptConfirm(QWebFrameAdapter::kit(&f), msg);
 }
 
-bool ChromeClientQt::runJavaScriptPrompt(Frame* f, const String& message, const String& defaultValue, String& result)
+bool ChromeClientQt::runJavaScriptPrompt(Frame& f, const String& message, const String& defaultValue, String& result)
 {
     QString x = result;
-    QWebFrameAdapter* webFrame = QWebFrameAdapter::kit(f);
+    QWebFrameAdapter* webFrame = QWebFrameAdapter::kit(&f);
     bool rc = m_webPage->javaScriptPrompt(webFrame, message, defaultValue, &x);
 
     // Fix up a quirk in the QInputDialog class. If no input happened the string should be empty
@@ -499,10 +499,10 @@ PlatformPageClient ChromeClientQt::platformPageClient() const
     return m_webPage->client.data();
 }
 
-void ChromeClientQt::contentsSizeChanged(Frame* frame, const IntSize& size) const
+void ChromeClientQt::contentsSizeChanged(Frame& frame, const IntSize& size) const
 {
-    if (frame->loader().networkingContext())
-        QWebFrameAdapter::kit(frame)->contentsSizeDidChange(toQSize(size));
+    if (frame.loader().networkingContext())
+        QWebFrameAdapter::kit(&frame)->contentsSizeDidChange(toQSize(size));
 }
 
 void ChromeClientQt::mouseDidMoveOverElement(const HitTestResult& result, unsigned)
@@ -524,12 +524,12 @@ void ChromeClientQt::setToolTip(const String &tip, TextDirection)
     m_webPage->setToolTip(tip);
 }
 
-void ChromeClientQt::print(Frame* frame)
+void ChromeClientQt::print(Frame& frame)
 {
-    emit m_webPage->printRequested(QWebFrameAdapter::kit(frame));
+    emit m_webPage->printRequested(QWebFrameAdapter::kit(&frame));
 }
 
-void ChromeClientQt::exceededDatabaseQuota(Frame* frame, const String& databaseName, DatabaseDetails)
+void ChromeClientQt::exceededDatabaseQuota(Frame& frame, const String& databaseName, DatabaseDetails)
 {
 #if 0 // FIXME
     quint64 quota = QWebSettings::offlineStorageDefaultQuota();
@@ -538,7 +538,7 @@ void ChromeClientQt::exceededDatabaseQuota(Frame* frame, const String& databaseN
         DatabaseManager::singleton().setQuota(frame->document()->securityOrigin(), quota);
 #endif
 
-    m_webPage->databaseQuotaExceeded(QWebFrameAdapter::kit(frame), databaseName);
+    m_webPage->databaseQuotaExceeded(QWebFrameAdapter::kit(&frame), databaseName);
 }
 
 void ChromeClientQt::reachedMaxAppCacheSize(int64_t)
@@ -547,7 +547,7 @@ void ChromeClientQt::reachedMaxAppCacheSize(int64_t)
     notImplemented();
 }
 
-void ChromeClientQt::reachedApplicationCacheOriginQuota(SecurityOrigin* origin, int64_t totalSpaceNeeded)
+void ChromeClientQt::reachedApplicationCacheOriginQuota(SecurityOrigin& origin, int64_t totalSpaceNeeded)
 {
 #if 0 // FIXME: no ApplicationCacheStorage::singleton() any more
     int64_t quota;
@@ -565,40 +565,38 @@ void ChromeClientQt::reachedApplicationCacheOriginQuota(SecurityOrigin* origin, 
 }
 
 #if ENABLE(INPUT_TYPE_COLOR)
-std::unique_ptr<ColorChooser> ChromeClientQt::createColorChooser(ColorChooserClient* client, const Color& color)
+std::unique_ptr<ColorChooser> ChromeClientQt::createColorChooser(ColorChooserClient& client, const Color& color)
 {
     const QColor selectedColor = m_webPage->colorSelectionRequested(toQColor(color));
-    client->didChooseColor(fromQColor(selectedColor));
-    client->didEndChooser();
+    client.didChooseColor(fromQColor(selectedColor));
+    client.didEndChooser();
     return nullptr;
 }
 #endif
 
-void ChromeClientQt::runOpenPanel(Frame* frame, PassRefPtr<FileChooser> prpFileChooser)
+void ChromeClientQt::runOpenPanel(Frame& frame, FileChooser& fileChooser)
 {
-    RefPtr<FileChooser> fileChooser = prpFileChooser;
-
     QStringList suggestedFileNames;
-    for (unsigned i = 0; i < fileChooser->settings().selectedFiles.size(); ++i)
-        suggestedFileNames += fileChooser->settings().selectedFiles[i];
+    for (unsigned i = 0; i < fileChooser.settings().selectedFiles.size(); ++i)
+        suggestedFileNames += fileChooser.settings().selectedFiles[i];
 
-    const bool allowMultiple = fileChooser->settings().allowsMultipleFiles;
+    const bool allowMultiple = fileChooser.settings().allowsMultipleFiles;
 
-    QStringList result = m_webPage->chooseFiles(QWebFrameAdapter::kit(frame), allowMultiple, suggestedFileNames);
+    QStringList result = m_webPage->chooseFiles(QWebFrameAdapter::kit(&frame), allowMultiple, suggestedFileNames);
     if (!result.isEmpty()) {
         if (allowMultiple) {
             Vector<String> names;
             for (int i = 0; i < result.count(); ++i)
                 names.append(result.at(i));
-            fileChooser->chooseFiles(names);
+            fileChooser.chooseFiles(names);
         } else
-            fileChooser->chooseFile(result.first());
+            fileChooser.chooseFile(result.first());
     }
 }
 
-void ChromeClientQt::loadIconForFiles(const Vector<String>& filenames, FileIconLoader* loader)
+void ChromeClientQt::loadIconForFiles(const Vector<String>& filenames, FileIconLoader& loader)
 {
-    loader->notifyFinished(Icon::createIconForFiles(filenames));
+    loader.iconLoaded(Icon::createIconForFiles(filenames));
 }
 
 void ChromeClientQt::setCursor(const Cursor& cursor)
@@ -627,7 +625,7 @@ void ChromeClientQt::serviceScriptedAnimations()
 }
 #endif
 
-void ChromeClientQt::attachRootGraphicsLayer(Frame* frame, GraphicsLayer* graphicsLayer)
+void ChromeClientQt::attachRootGraphicsLayer(Frame& frame, GraphicsLayer* graphicsLayer)
 {
     // stub
 }
@@ -710,14 +708,14 @@ void ChromeClientQt::exitVideoFullscreenForVideoElement(HTMLVideoElement& videoE
 #endif
 
 #if ENABLE(FULLSCREEN_API)
-bool ChromeClientQt::supportsFullScreenForElement(const Element*, bool withKeyboard)
+bool ChromeClientQt::supportsFullScreenForElement(const Element&, bool withKeyboard)
 {
     return !withKeyboard;
 }
 
-void ChromeClientQt::enterFullScreenForElement(Element* element)
+void ChromeClientQt::enterFullScreenForElement(Element& element)
 {
-    m_webPage->fullScreenRequested(QWebFullScreenRequest::createEnterRequest(m_webPage, QWebElement(element)));
+    m_webPage->fullScreenRequested(QWebFullScreenRequest::createEnterRequest(m_webPage, QWebElement(&element)));
 }
 
 void ChromeClientQt::exitFullScreenForElement(Element* element)
@@ -760,17 +758,17 @@ bool ChromeClientQt::hasOpenedPopup() const
     return false;
 }
 
-RefPtr<PopupMenu> ChromeClientQt::createPopupMenu(PopupMenuClient* client) const
+RefPtr<PopupMenu> ChromeClientQt::createPopupMenu(PopupMenuClient& client) const
 {
-    return adoptRef(new PopupMenuQt(client, this));
+    return adoptRef(new PopupMenuQt(&client, this));
 }
 
-RefPtr<SearchPopupMenu> ChromeClientQt::createSearchPopupMenu(PopupMenuClient* client) const
+RefPtr<SearchPopupMenu> ChromeClientQt::createSearchPopupMenu(PopupMenuClient& client) const
 {
     return adoptRef(new SearchPopupMenuQt(createPopupMenu(client)));
 }
 
-void ChromeClientQt::attachViewOverlayGraphicsLayer(WebCore::Frame*, WebCore::GraphicsLayer*)
+void ChromeClientQt::attachViewOverlayGraphicsLayer(Frame&, GraphicsLayer*)
 {
 }
 

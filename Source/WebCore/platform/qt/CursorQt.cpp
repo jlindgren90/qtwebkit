@@ -45,30 +45,6 @@
 
 namespace WebCore {
 
-Cursor::Cursor(const Cursor& other)
-    : m_type(other.m_type)
-    , m_image(other.m_image)
-    , m_hotSpot(other.m_hotSpot)
-#ifndef QT_NO_CURSOR
-    , m_platformCursor(other.m_platformCursor)
-#endif
-{
-}
-
-Cursor::~Cursor() = default;
-
-Cursor& Cursor::operator=(const Cursor& other)
-{
-    m_type = other.m_type;
-    m_image = other.m_image;
-    m_hotSpot = other.m_hotSpot;
-#ifndef QT_NO_CURSOR
-    m_platformCursor = other.m_platformCursor;
-#endif
-    return *this;
-}
-
-#ifndef QT_NO_CURSOR
 static std::optional<QCursor> createCustomCursor(Image* image, const IntPoint& hotSpot)
 {
     if (!image->nativeImageForCurrentFrame())
@@ -76,11 +52,9 @@ static std::optional<QCursor> createCustomCursor(Image* image, const IntPoint& h
     IntPoint effectiveHotSpot = determineHotSpot(image, hotSpot);
     return QCursor(toQPixmap(image->nativeImageForCurrentFrame()), effectiveHotSpot.x(), effectiveHotSpot.y());
 }
-#endif
 
 void Cursor::ensurePlatformCursor() const
 {
-#ifndef QT_NO_CURSOR
     if (m_platformCursor)
         return;
 
@@ -201,7 +175,6 @@ void Cursor::ensurePlatformCursor() const
     default:
         ASSERT_NOT_REACHED();
     }
-#endif
 }
 
 }

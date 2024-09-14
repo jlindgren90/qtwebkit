@@ -389,7 +389,7 @@ QWebElement QWebFrameAdapter::ownerElement() const
 QString QWebFrameAdapter::title() const
 {
     if (frame->document())
-        return frame->loader().documentLoader()->title().string();
+        return frame->loader().documentLoader()->title().string;
     return QString();
 }
 
@@ -432,7 +432,7 @@ QUrl QWebFrameAdapter::lastRequestedUrl() const
 
 QWebSecurityOrigin QWebFrameAdapter::securityOrigin() const
 {
-    QWebSecurityOriginPrivate* priv = new QWebSecurityOriginPrivate(*frame->document()->securityOrigin());
+    QWebSecurityOriginPrivate* priv = new QWebSecurityOriginPrivate(frame->document()->securityOrigin());
     return QWebSecurityOrigin(priv);
 }
 

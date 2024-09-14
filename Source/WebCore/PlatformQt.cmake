@@ -108,6 +108,7 @@ list(APPEND WebCore_SOURCES
 
     platform/graphics/gstreamer/ImageGStreamerCairo.cpp
 
+    platform/graphics/harfbuzz/ComplexTextControllerHarfBuzz.cpp
     platform/graphics/harfbuzz/HarfBuzzFace.cpp
     platform/graphics/harfbuzz/HarfBuzzFaceCairo.cpp
     platform/graphics/harfbuzz/HarfBuzzShaper.cpp

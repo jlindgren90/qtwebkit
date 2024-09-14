@@ -119,14 +119,14 @@ public:
     void dispatchShow() override;
 
     void dispatchDecidePolicyForResponse(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, FramePolicyFunction) override;
-    void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, PassRefPtr<FormState>, const WTF::String&, FramePolicyFunction) override;
-    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, PassRefPtr<FormState>, FramePolicyFunction) override;
+    void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, const WTF::String&, FramePolicyFunction) override;
+    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, FramePolicyFunction) override;
     void cancelPolicyCheck() override;
 
     void dispatchUnableToImplementPolicy(const WebCore::ResourceError&) override;
 
-    void dispatchWillSendSubmitEvent(PassRefPtr<FormState>) override { }
-    void dispatchWillSubmitForm(PassRefPtr<FormState>, FramePolicyFunction) override;
+    void dispatchWillSendSubmitEvent(Ref<FormState>&&) override { }
+    void dispatchWillSubmitForm(FormState&, FramePolicyFunction) override;
 
     void revertToProvisionalState(DocumentLoader*) override { }
     void setMainDocumentError(DocumentLoader*, const ResourceError&) override;
@@ -145,7 +145,7 @@ public:
     void updateGlobalHistoryRedirectLinks() override;
     bool shouldGoToHistoryItem(HistoryItem*) const override;
     void didDisplayInsecureContent() override;
-    void didRunInsecureContent(SecurityOrigin*, const URL&) override;
+    void didRunInsecureContent(SecurityOrigin&, const URL&) override;
     void didDetectXSS(const URL&, bool didBlockEntirePage) override;
 
     ResourceError cancelledError(const ResourceRequest&) override;
@@ -189,12 +189,12 @@ public:
     bool canCachePage() const override;
     void convertMainResourceLoadToDownload(DocumentLoader*,SessionID, const ResourceRequest&, const WebCore::ResourceResponse&) override;
 
-    RefPtr<Frame> createFrame(const URL&, const String& name, HTMLFrameOwnerElement*, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight) override;
-    RefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement*, const URL&, const Vector<String>&, const Vector<String>&, const String&, bool) override;
+    RefPtr<Frame> createFrame(const URL&, const String& name, HTMLFrameOwnerElement&, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight) override;
+    RefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement&, const URL&, const Vector<String>&, const Vector<String>&, const String&, bool) override;
     void recreatePlugin(Widget*) override { }
     void redirectDataToPlugin(Widget* pluginWidget) override;
 
-    PassRefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement*, const URL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues) override;
+    RefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement&, const URL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues) override;
 
     ObjectContentType objectContentType(const URL&, const String& mimeTypeIn) override;
     String overrideMediaType() const override;
@@ -209,7 +209,7 @@ public:
     void updateCachedDocumentLoader(DocumentLoader &) override;
     void prefetchDNS(const WTF::String &) override;
 
-    PassRefPtr<FrameNetworkingContext> createNetworkingContext() override;
+    Ref<FrameNetworkingContext> createNetworkingContext() override;
 
     const URL& lastRequestedUrl() const { return m_lastRequestedUrl; }
 

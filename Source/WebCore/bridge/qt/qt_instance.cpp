@@ -153,7 +153,7 @@ QtInstance* QtInstance::getInstance(JSObject* object)
 {
     if (!object)
         return 0;
-    if (!object->inherits(QtRuntimeObject::info()))
+    if (!object->inherits(*object->vm(), QtRuntimeObject::info()))
         return 0;
     return static_cast<QtInstance*>(static_cast<RuntimeObject*>(object)->getInternalInstance());
 }

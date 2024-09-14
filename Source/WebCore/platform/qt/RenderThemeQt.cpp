@@ -159,7 +159,7 @@ bool RenderThemeQt::isControlStyled(const RenderStyle& style, const BorderData& 
     case SearchFieldPart:
         // Test the style to see if the UA border and background match.
         return (style.border() != border
-                || *style.backgroundLayers() != fill
+                || style.backgroundLayers() != fill
                 || style.visitedDependentColor(CSSPropertyBackgroundColor) != backgroundColor);
     default:
         return RenderTheme::isControlStyled(style, border, fill, backgroundColor);
