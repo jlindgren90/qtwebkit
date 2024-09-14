@@ -20,13 +20,15 @@
 #ifndef QWEBHISTORY_P_H
 #define QWEBHISTORY_P_H
 
-#include "BackForwardList.h"
 #include "HistoryItem.h"
 #include "qwebkitglobal.h"
+#include "win/BackForwardList.h"
 #include <QtCore/qglobal.h>
 #include <QtCore/qshareddata.h>
 
 class QWebPageAdapter;
+
+namespace WebCore { class Page; }
 
 class QWEBKIT_EXPORT QWebHistoryItemPrivate : public QSharedData {
 public:
@@ -60,7 +62,8 @@ public:
 
 class QWebHistoryPrivate : public QSharedData {
 public:
-    QWebHistoryPrivate(WebCore::BackForwardList* l)
+    QWebHistoryPrivate(BackForwardList* l, WebCore::Page* page)
+        : m_page(page)
     {
         l->ref();
         lst = l;
@@ -74,7 +77,8 @@ public:
 
     QWebPageAdapter* page();
 
-    WebCore::BackForwardList* lst;
+    BackForwardList* lst;
+    WebCore::Page* m_page;
 };
 
 

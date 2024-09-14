@@ -228,6 +228,8 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/VisitedLinkStoreQt.cpp
     qt/WebCoreSupport/WebDatabaseProviderQt.cpp
     qt/WebCoreSupport/WebEventConversion.cpp
+
+    win/BackForwardList.cpp
 )
 
 if (COMPILER_IS_GCC_OR_CLANG)

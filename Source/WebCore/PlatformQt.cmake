@@ -247,6 +247,7 @@ list(REMOVE_DUPLICATES WebCore_SYSTEM_INCLUDE_DIRECTORIES)
 set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     bridge
     dom
+    history
     html
     loader
     page
