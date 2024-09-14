@@ -59,6 +59,22 @@
 
 using namespace WebCore;
 
+template<class T>
+RefPtr<T> toRefPtr(ExceptionOr<Ref<T>>&& val)
+{
+    if (val.hasException())
+        return RefPtr<T>();
+    return adoptRef(&val.releaseReturnValue().leakRef());
+}
+
+template<class T>
+T* toPtr(ExceptionOr<T*>&& val)
+{
+    if (val.hasException())
+        return nullptr;
+    return val.releaseReturnValue();
+}
+
 class QWebElementPrivate {
 public:
 };
@@ -241,8 +257,7 @@ QWebElement QWebElement::findFirst(const QString &selectorQuery) const
 {
     if (!m_element)
         return QWebElement();
-    ExceptionCode exception = 0; // ###
-    return QWebElement(m_element->querySelector(selectorQuery, exception));
+    return QWebElement(toPtr(m_element->querySelector(selectorQuery)));
 }
 
 /*!
@@ -256,8 +271,7 @@ void QWebElement::setPlainText(const QString &text)
 {
     if (!m_element || !m_element->isHTMLElement())
         return;
-    ExceptionCode exception = 0;
-    static_cast<HTMLElement*>(m_element)->setInnerText(text, exception);
+    static_cast<HTMLElement*>(m_element)->setInnerText(text);
 }
 
 /*!
@@ -289,9 +303,7 @@ void QWebElement::setOuterXml(const QString &markup)
     if (!m_element || !m_element->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-
-    static_cast<HTMLElement*>(m_element)->setOuterHTML(markup, exception);
+    static_cast<HTMLElement*>(m_element)->setOuterHTML(markup);
 }
 
 /*!
@@ -329,9 +341,7 @@ void QWebElement::setInnerXml(const QString &markup)
     if (!m_element || !m_element->isHTMLElement())
         return;
 
-    ExceptionCode exception = 0;
-
-    static_cast<HTMLElement*>(m_element)->setInnerHTML(markup, exception);
+    static_cast<HTMLElement*>(m_element)->setInnerHTML(markup);
 }
 
 /*!
@@ -364,8 +374,7 @@ void QWebElement::setAttribute(const QString &name, const QString &value)
 {
     if (!m_element)
         return;
-    ExceptionCode exception = 0;
-    m_element->setAttribute(String(name), String(value), exception);
+    m_element->setAttribute(String(name), String(value));
 }
 
 /*!
@@ -379,8 +388,7 @@ void QWebElement::setAttributeNS(const QString &namespaceUri, const QString &nam
 {
     if (!m_element)
         return;
-    WebCore::ExceptionCode exception = 0;
-    m_element->setAttributeNS(String(namespaceUri), String(name), String(value), exception);
+    m_element->setAttributeNS(String(namespaceUri), String(name), String(value));
 }
 
 /*!
@@ -981,7 +989,7 @@ void QWebElement::appendInside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent));
     if (!fragment)
         return;
 
@@ -1028,7 +1036,7 @@ void QWebElement::prependInside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent));
     if (!fragment)
         return;
 
@@ -1081,7 +1089,7 @@ void QWebElement::prependOutside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent));
 
     parent->insertBefore(*fragment, m_element, exception);
 }
@@ -1131,7 +1139,7 @@ void QWebElement::appendOutside(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent));
 
     if (!m_element->nextSibling())
         parent->appendChild(*fragment, exception);
@@ -1168,8 +1176,7 @@ QWebElement &QWebElement::takeFromDocument()
     if (!m_element)
         return *this;
 
-    ExceptionCode exception = 0;
-    m_element->remove(exception);
+    m_element->remove();
 
     return *this;
 }
@@ -1184,8 +1191,7 @@ void QWebElement::removeFromDocument()
     if (!m_element)
         return;
 
-    ExceptionCode exception = 0;
-    m_element->remove(exception);
+    m_element->remove();
     m_element->deref();
     m_element = 0;
 }
@@ -1278,7 +1284,7 @@ void QWebElement::encloseContentsWith(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(m_element), markup, AllowScriptingContent));
 
     if (!fragment || !fragment->firstChild())
         return;
@@ -1352,7 +1358,7 @@ void QWebElement::encloseWith(const QString &markup)
         return;
 
     ExceptionCode exception = 0;
-    RefPtr<DocumentFragment> fragment = createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent, exception);
+    RefPtr<DocumentFragment> fragment = toRefPtr(createContextualFragment(*downcast<HTMLElement>(parent), markup, AllowScriptingContent));
 
     if (!fragment || !fragment->firstChild())
         return;
@@ -1523,8 +1529,7 @@ QWebElementCollectionPrivate* QWebElementCollectionPrivate::create(const PassRef
         return 0;
 
     // Let WebKit do the hard work hehehe
-    ExceptionCode exception = 0; // ###
-    RefPtr<NodeList> nodes = context->querySelectorAll(query, exception);
+    RefPtr<NodeList> nodes = toRefPtr(context->querySelectorAll(query));
     if (!nodes)
         return 0;
 

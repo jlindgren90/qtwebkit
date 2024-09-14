@@ -310,6 +310,7 @@ QByteArray QtField::name() const
 
 JSValue QtField::valueFromInstance(ExecState* exec, const Instance* inst) const
 {
+    auto scope = DECLARE_THROW_SCOPE(exec->vm());
     const QtInstance* instance = static_cast<const QtInstance*>(inst);
     QObject* obj = instance->getObject();
 
@@ -329,11 +330,11 @@ JSValue QtField::valueFromInstance(ExecState* exec, const Instance* inst) const
         JSValueRef exception = 0;
         JSValueRef jsValue = convertQVariantToValue(toRef(exec), inst->rootObject(), val, &exception);
         if (exception)
-            return exec->vm().throwException(exec, toJS(exec, exception));
+            return throwException(exec, scope, toJS(exec, exception));
         return toJS(exec, jsValue);
     }
     QString msg = QString(QLatin1String("cannot access member `%1' of deleted QObject")).arg(QLatin1String(name()));
-    return exec->vm().throwException(exec, createError(exec, msg.toLatin1().constData()));
+    return throwException(exec, scope, createError(exec, msg.toLatin1().constData()));
 }
 
 bool QtField::setValueToInstance(ExecState* exec, const Instance* inst, JSValue aValue) const
@@ -341,6 +342,7 @@ bool QtField::setValueToInstance(ExecState* exec, const Instance* inst, JSValue 
     if (m_type == ChildObject) // QtScript doesn't allow setting to a named child
         return false;
 
+    auto scope = DECLARE_THROW_SCOPE(exec->vm());
     const QtInstance* instance = static_cast<const QtInstance*>(inst);
     QObject* obj = instance->getObject();
     if (obj) {
@@ -352,7 +354,7 @@ bool QtField::setValueToInstance(ExecState* exec, const Instance* inst, JSValue 
         JSValueRef exception = 0;
         QVariant val = convertValueToQVariant(toRef(exec), toRef(exec, aValue), argtype, 0, &exception);
         if (exception) {
-            exec->vm().throwException(exec, toJS(exec, exception));
+            throwException(exec, scope, toJS(exec, exception));
             return false;
         }
         if (m_type == MetaProperty) {
@@ -367,7 +369,7 @@ bool QtField::setValueToInstance(ExecState* exec, const Instance* inst, JSValue 
 #endif
     } else {
         QString msg = QString(QLatin1String("cannot access member `%1' of deleted QObject")).arg(QLatin1String(name()));
-        exec->vm().throwException(exec, createError(exec, msg.toLatin1().constData()));
+        throwException(exec, scope, createError(exec, msg.toLatin1().constData()));
     }
     return false;
 }
