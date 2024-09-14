@@ -198,7 +198,7 @@ WEBCORE_EXPORT bool filesHaveSameVolume(const String&, const String&);
 RetainPtr<CFURLRef> pathAsURL(const String&);
 #endif
 
-#if PLATFORM(GTK)
+#if USE(GLIB)
 String filenameForDisplay(const String&);
 CString applicationDirectoryPath();
 CString sharedResourcesPath();

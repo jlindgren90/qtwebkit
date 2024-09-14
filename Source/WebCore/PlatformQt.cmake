@@ -75,6 +75,7 @@ list(APPEND WebCore_SOURCES
     platform/glib/EventLoopGlib.cpp
     platform/glib/FileSystemGlib.cpp
     platform/glib/MainThreadSharedTimerGLib.cpp
+    platform/glib/SharedBufferGlib.cpp
 
     platform/graphics/ImageSource.cpp
     platform/graphics/PlatformDisplay.cpp
@@ -161,7 +162,6 @@ list(APPEND WebCore_SOURCES
     platform/qt/ScrollViewQt.cpp
     platform/qt/ScrollbarThemeQStyle.cpp
     platform/qt/ScrollbarThemeQt.cpp
-    platform/qt/SharedBufferQt.cpp
     platform/qt/SoundQt.cpp
     platform/qt/TemporaryLinkStubsQt.cpp
     platform/qt/URLQt.cpp
