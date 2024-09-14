@@ -36,7 +36,7 @@
 #include "IntPoint.h"
 #include "IntRect.h"
 #include "IntSize.h"
-#include "NativeImagePtr.h"
+#include "RefPtrCairo.h"
 
 #include <QColor>
 #include <QFont>
@@ -91,9 +91,9 @@ inline QFont toQFont(const FontCascade& fontCascade)
     return font;
 }
 
-inline QImage toQImage(NativeImagePtr&& nativeImg)
+inline QImage toQImage(RefPtr<cairo_surface_t>&& image)
 {
-    cairo_surface_t* surface = nativeImg.leakRef();
+    cairo_surface_t* surface = image.leakRef();
     if (!surface || cairo_surface_get_type(surface) != CAIRO_SURFACE_TYPE_IMAGE
                  || cairo_image_surface_get_format(surface) != CAIRO_FORMAT_ARGB32)
         return QImage();
@@ -112,9 +112,9 @@ inline QImage toQImage(NativeImagePtr&& nativeImg)
                   cleanup, surface);
 }
 
-inline QPixmap toQPixmap(NativeImagePtr&& nativeImg)
+inline QPixmap toQPixmap(RefPtr<cairo_surface_t>&& image)
 {
-    return QPixmap::fromImage(toQImage(std::move(nativeImg)));
+    return QPixmap::fromImage(toQImage(std::move(image)));
 }
 
 } // namespace WebCore

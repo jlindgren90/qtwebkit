@@ -28,6 +28,7 @@
 #include <wtf/StackBounds.h>
 #include <wtf/StackStats.h>
 #include <wtf/Vector.h>
+#include <functional>
 
 namespace JSC {
 

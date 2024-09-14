@@ -418,7 +418,7 @@ void EditorClientQt::handleKeyboardEvent(KeyboardEvent* event)
     if (start->isContentEditable()) {
         bool doSpatialNavigation = false;
         if (isSpatialNavigationEnabled(&frame)) {
-            if (!kevent->modifiers()) {
+            if (kevent->modifiers().isEmpty()) {
                 switch (kevent->windowsVirtualKeyCode()) {
                 case VK_LEFT:
                 case VK_RIGHT:
@@ -642,6 +642,10 @@ void EditorClientQt::didApplyStyle()
 }
 
 void EditorClientQt::didChangeSelectionAndUpdateLayout()
+{
+}
+
+void EditorClientQt::updateEditorStateAfterLayoutIfEditabilityChanged()
 {
 }
 

@@ -28,6 +28,7 @@
 #include "CredentialStorage.h"
 #include "SessionID.h"
 #include <wtf/text/WTFString.h>
+#include <functional>
 
 #if PLATFORM(COCOA) || USE(CFURLCONNECTION)
 #include "CFNetworkSPI.h"

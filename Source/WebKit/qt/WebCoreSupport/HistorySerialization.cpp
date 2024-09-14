@@ -189,7 +189,7 @@ static void encodeBackForwardTreeNode(KeyedEncoder& encoder, const HistoryItem& 
 
     encoder.encodeFloat("pageScaleFactor", item.pageScaleFactor());
 
-    encoder.encodeConditionalObject("stateObject", item.stateObject().get(), [](KeyedEncoder& encoder, const SerializedScriptValue& stateObject) {
+    encoder.encodeConditionalObject("stateObject", item.stateObject(), [](KeyedEncoder& encoder, const SerializedScriptValue& stateObject) {
         encoder.encodeBytes("data", stateObject.data().data(), stateObject.data().size());
     });
 

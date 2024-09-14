@@ -112,7 +112,7 @@ QString QWebSecurityOrigin::host() const
 */
 int QWebSecurityOrigin::port() const
 {
-    return d->origin->port();
+    return d->origin->port().valueOr(0); // FIXME: check this
 }
 
 /*!

@@ -772,6 +772,12 @@ String validationMessagePatternMismatchText()
     return String();
 }
 
+String validationMessageTooShortText(int, int)
+{
+    notImplemented();
+    return String();
+}
+
 String validationMessageTooLongText(int, int)
 {
     notImplemented();

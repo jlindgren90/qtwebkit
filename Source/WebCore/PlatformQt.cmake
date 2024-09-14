@@ -16,6 +16,7 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/bytecompiler"
     "${JAVASCRIPTCORE_DIR}/dfg"
     "${JAVASCRIPTCORE_DIR}/disassembler"
+    "${JAVASCRIPTCORE_DIR}/domjit"
     "${JAVASCRIPTCORE_DIR}/heap"
     "${JAVASCRIPTCORE_DIR}/debugger"
     "${JAVASCRIPTCORE_DIR}/interpreter"
@@ -79,7 +80,6 @@ list(APPEND WebCore_SOURCES
 
     platform/graphics/cairo/BackingStoreBackendCairoImpl.cpp
     platform/graphics/cairo/BackingStoreBackendCairoX11.cpp
-    platform/graphics/cairo/BitmapImageCairo.cpp
     platform/graphics/cairo/CairoUtilities.cpp
     platform/graphics/cairo/FloatRectCairo.cpp
     platform/graphics/cairo/FontCairo.cpp
@@ -90,6 +90,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/cairo/ImageBufferCairo.cpp
     platform/graphics/cairo/ImageCairo.cpp
     platform/graphics/cairo/IntRectCairo.cpp
+    platform/graphics/cairo/NativeImageCairo.cpp
     platform/graphics/cairo/PathCairo.cpp
     platform/graphics/cairo/PatternCairo.cpp
     platform/graphics/cairo/PlatformContextCairo.cpp
@@ -117,7 +118,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/x11/PlatformDisplayX11.cpp
     platform/graphics/x11/XUniqueResource.cpp
 
-    platform/image-decoders/cairo/ImageDecoderCairo.cpp
+    platform/image-decoders/cairo/ImageBackingStoreCairo.cpp
 
     platform/network/soup/AuthenticationChallengeSoup.cpp
     platform/network/soup/CertificateInfo.cpp
@@ -132,7 +133,7 @@ list(APPEND WebCore_SOURCES
     platform/network/soup/ResourceHandleSoup.cpp
     platform/network/soup/ResourceRequestSoup.cpp
     platform/network/soup/ResourceResponseSoup.cpp
-    platform/network/soup/SocketStreamHandleSoup.cpp
+    platform/network/soup/SocketStreamHandleImplSoup.cpp
     platform/network/soup/SoupNetworkSession.cpp
     platform/network/soup/SynchronousLoaderClientSoup.cpp
     platform/network/soup/WebKitSoupRequestGeneric.cpp

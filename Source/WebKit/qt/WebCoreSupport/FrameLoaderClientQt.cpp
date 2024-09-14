@@ -381,7 +381,7 @@ void FrameLoaderClientQt::dispatchDidNavigateWithinPage()
     if (!loaderCompleted)
         return;
 
-    dispatchDidCommitLoad();
+    dispatchDidCommitLoad(Nullopt);
     dispatchDidFinishLoad();
 }
 
@@ -455,7 +455,7 @@ void FrameLoaderClientQt::dispatchDidReceiveTitle(const StringWithDirection& tit
 }
 
 
-void FrameLoaderClientQt::dispatchDidCommitLoad()
+void FrameLoaderClientQt::dispatchDidCommitLoad(Optional<HasInsecureContent>)
 {
     if (dumpFrameLoaderCallbacks)
         printf("%s - didCommitLoadForFrame\n", qPrintable(drtDescriptionSuitableForTestResult(m_frame)));
@@ -509,7 +509,7 @@ void FrameLoaderClientQt::dispatchDidFinishLoad()
     emitLoadFinished(true);
 }
 
-void FrameLoaderClientQt::dispatchDidLayout(LayoutMilestones milestones)
+void FrameLoaderClientQt::dispatchDidReachLayoutMilestone(LayoutMilestones milestones)
 {
     if (!m_webFrame)
         return;

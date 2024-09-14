@@ -252,18 +252,18 @@ InspectorClientQt::ConnectionType InspectorClientQt::connectionType() const
     return ConnectionType::Local;
 }
 
-bool InspectorClientQt::sendMessageToFrontend(const String& message)
+void InspectorClientQt::sendMessageToFrontend(const String& message)
 {
     if (m_remoteFrontEndChannel) {
         WTF::CString msg = message.utf8();
         m_remoteFrontEndChannel->webSocketSend(msg.data(), msg.length());
-        return true;
+        return;
     }
     if (!m_frontendWebPage)
-        return false;
+        return;
 
     Page* frontendPage = m_frontendWebPage->page;
-    return doDispatchMessageOnFrontendPage(frontendPage, message);
+    doDispatchMessageOnFrontendPage(frontendPage, message);
 }
 
 InspectorFrontendClientQt::InspectorFrontendClientQt(QWebPageAdapter* inspectedWebPage, InspectorController* inspectedPageController, std::unique_ptr<QObject> inspectorView, WebCore::Page* inspectorPage, InspectorClientQt* inspectorClient)
