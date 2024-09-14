@@ -69,7 +69,6 @@ namespace WebCore {
 
 class AudioSourceProvider;
 class AuthenticationChallenge;
-class Document;
 class MediaPlaybackTarget;
 #if ENABLE(MEDIA_SOURCE)
 class MediaSourcePrivateClient;
@@ -94,7 +93,6 @@ struct PlatformMedia {
         AVFoundationMediaPlayerType,
         AVFoundationCFMediaPlayerType,
         AVFoundationAssetType,
-        QtMediaPlayerType,
     } type;
 
     union {
@@ -104,7 +102,6 @@ struct PlatformMedia {
         AVPlayer* avfMediaPlayer;
         AVCFPlayer* avcfMediaPlayer;
         AVAsset* avfAsset;
-        MediaPlayerPrivateInterface* qtMediaPlayer;
     } media;
 };
 
@@ -144,9 +141,6 @@ class MediaPlayerRequestInstallMissingPluginsCallback;
 class MediaPlayerClient {
 public:
     virtual ~MediaPlayerClient() { }
-
-    // Get the document which the media player is owned by
-    virtual Document* mediaPlayerOwningDocument() { return 0; }
 
     // the network state has changed
     virtual void mediaPlayerNetworkStateChanged(MediaPlayer*) { }

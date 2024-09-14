@@ -1454,18 +1454,6 @@ void Page::setVolumeOfMediaElement(double volume, uint64_t elementID)
 }
 #endif
 
-#if PLATFORM(QT)
-void Page::pluginVisibilityChanged(bool visible)
-{
-    for (auto& view : pluginViews()) {
-        if (visible)
-            view->show();
-        else
-            view->hide();
-    }
-}
-#endif // PLATFORM(QT)
-
 #if !ASSERT_DISABLED
 void Page::checkSubframeCountConsistency() const
 {

@@ -39,8 +39,6 @@
 #include <gst/app/gstappsrc.h>
 #include <gst/gst.h>
 #include <gst/pbutils/missing-plugins.h>
-#include <wtf/Condition.h>
-#include <wtf/Lock.h>
 #include <wtf/MainThread.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/glib/GMutexLocker.h>

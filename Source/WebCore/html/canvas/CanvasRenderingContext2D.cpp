@@ -2308,17 +2308,7 @@ Ref<TextMetrics> CanvasRenderingContext2D::measureText(const String& text)
     String normalizedText = text;
     normalizeSpaces(normalizedText);
 
-#if PLATFORM(QT)
-    // We always use complex text shaping since it can't be turned off for QPainterPath::addText().
-    FontCascade::CodePath oldCodePath = FontCascade::codePath();
-    FontCascade::setCodePath(FontCascade::Complex);
-#endif
-
     metrics->setWidth(fontProxy().width(TextRun(normalizedText)));
-
-#if PLATFORM(QT)
-    FontCascade::setCodePath(oldCodePath);
-#endif
 
     return metrics;
 }
@@ -2476,12 +2466,6 @@ void CanvasRenderingContext2D::drawTextInternal(const String& text, float x, flo
 
     c->setTextDrawingMode(fill ? TextModeFill : TextModeStroke);
 
-#if PLATFORM(QT)
-    // We always use complex text shaping since it can't be turned off for QPainterPath::addText().
-    FontCascade::CodePath oldCodePath = FontCascade::codePath();
-    FontCascade::setCodePath(FontCascade::Complex);
-#endif
-
     GraphicsContextStateSaver stateSaver(*c);
     if (useMaxWidth) {
         c->translate(location.x(), location.y());
@@ -2503,10 +2487,6 @@ void CanvasRenderingContext2D::drawTextInternal(const String& text, float x, flo
         fontProxy.drawBidiText(*c, textRun, location, FontCascade::UseFallbackIfFontNotReady);
         didDraw(textRect);
     }
-
-#if PLATFORM(QT)
-    FontCascade::setCodePath(oldCodePath);
-#endif
 }
 
 void CanvasRenderingContext2D::inflateStrokeRect(FloatRect& rect) const

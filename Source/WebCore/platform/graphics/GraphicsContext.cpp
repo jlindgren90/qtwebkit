@@ -492,7 +492,7 @@ bool GraphicsContext::getShadow(FloatSize& offset, float& blur, Color& color) co
     return hasShadow();
 }
 
-#if PLATFORM(QT) || USE(CAIRO)
+#if USE(CAIRO)
 bool GraphicsContext::mustUseShadowBlur() const
 {
     // We can't avoid ShadowBlur if the shadow has blur.

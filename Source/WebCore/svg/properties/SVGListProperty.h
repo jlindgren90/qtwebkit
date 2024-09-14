@@ -208,7 +208,7 @@ public:
             // It is also associated with our animated property, so it can notify the SVG Element which holds the SVGAnimated*List
             // that it has been modified (and thus can call svgAttributeChanged(associatedAttributeName)).
             wrapper = ListItemTearOff::create(animatedList, UndefinedRole, m_values->at(index));
-            m_wrappers->at(index) = wrapper.get();
+            m_wrappers->at(index) = wrapper;
         }
 
         return wrapper.releaseNonNull();

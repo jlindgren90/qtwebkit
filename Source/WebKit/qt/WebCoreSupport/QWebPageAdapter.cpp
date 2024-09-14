@@ -297,9 +297,7 @@ QWebPageAdapter::VisibilityState QWebPageAdapter::visibilityState() const
 
 void QWebPageAdapter::setPluginsVisible(bool visible)
 {
-    if (!page)
-        return;
-    page->pluginVisibilityChanged(visible);
+    // stub
 }
 
 void QWebPageAdapter::setNetworkAccessManager(QNetworkAccessManager *manager)

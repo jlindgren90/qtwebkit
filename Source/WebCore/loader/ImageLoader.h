@@ -57,9 +57,6 @@ public:
     bool imageComplete() const { return m_imageComplete; }
 
     CachedImage* image() const { return m_image.get(); }
-#if PLATFORM(QT)
-    void setImage(CachedImage*);
-#endif
     void clearImage(); // Cancels pending beforeload and load events, and doesn't dispatch new ones.
 
     void setLoadManually(bool loadManually) { m_loadManually = loadManually; }
@@ -90,9 +87,6 @@ private:
     RenderImageResource* renderImageResource();
     void updateRenderer();
 
-#if PLATFORM(QT)
-    void setImageWithoutConsideringPendingLoadEvent(CachedImage*);
-#endif
     void clearImageWithoutConsideringPendingLoadEvent();
     void clearFailedLoadURL();
 

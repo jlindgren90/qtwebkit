@@ -73,11 +73,6 @@ public:
             m_baseVal = nullptr;
         else if (&property == m_animVal)
             m_animVal = nullptr;
-        else {
-            size_t i = m_wrappers.find(&property);
-            if (i != notFound)
-                m_wrappers[i] = nullptr;
-        }
     }
 
     int findItem(SVGProperty* property)

@@ -36,8 +36,6 @@
 typedef struct CGAffineTransform CGAffineTransform;
 #elif USE(CAIRO)
 #include <cairo.h>
-#elif PLATFORM(QT)
-#include <QTransform>
 #endif
 
 #if PLATFORM(WIN)
@@ -181,8 +179,6 @@ public:
     WEBCORE_EXPORT operator CGAffineTransform() const;
 #elif USE(CAIRO)
     operator cairo_matrix_t() const;
-#elif PLATFORM(QT)
-    operator QTransform() const;
 #endif
 
 #if PLATFORM(WIN)

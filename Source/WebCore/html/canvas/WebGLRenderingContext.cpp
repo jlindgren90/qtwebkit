@@ -63,10 +63,6 @@
 #include <JavaScriptCore/JSGenericTypedArrayViewInlines.h>
 #include <heap/HeapInlines.h>
 
-#if PLATFORM(QT)
-#undef emit
-#endif
-
 namespace WebCore {
 
 WebGLRenderingContext::WebGLRenderingContext(HTMLCanvasElement& passedCanvas, GraphicsContext3DAttributes attributes)

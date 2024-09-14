@@ -26,7 +26,6 @@
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 
 #include "GRefPtrGStreamer.h"
-#include "ImageOrientation.h"
 #include "MainThreadNotifier.h"
 #include "MediaPlayerPrivate.h"
 #include "PlatformLayer.h"

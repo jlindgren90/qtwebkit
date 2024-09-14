@@ -51,10 +51,6 @@
 #include "MediaStreamPrivate.h"
 #endif
 
-#if PLATFORM(QT)
-#include <QtGlobal>
-#endif
-
 #if USE(GSTREAMER)
 #include "MediaPlayerPrivateGStreamer.h"
 #if ENABLE(MEDIA_STREAM) && USE(OPENWEBRTC)
