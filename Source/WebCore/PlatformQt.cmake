@@ -72,8 +72,6 @@ list(APPEND WebCore_SOURCES
 
     platform/audio/qt/AudioBusQt.cpp
 
-    platform/crypto/qt/CryptoDigestQt.cpp
-
     platform/glib/EventLoopGlib.cpp
     platform/glib/MainThreadSharedTimerGLib.cpp
 
@@ -191,6 +189,7 @@ list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
     ${GLIB_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
     ${HYPHEN_INCLUDE_DIR}
+    ${LIBGCRYPT_INCLUDE_DIRS}
     ${LIBSOUP_INCLUDE_DIRS}
     ${LIBXML2_INCLUDE_DIR}
     ${LIBXSLT_INCLUDE_DIR}
@@ -209,6 +208,7 @@ list(APPEND WebCore_LIBRARIES
     ${GLIB_LIBRARIES}
     ${HARFBUZZ_LIBRARIES}
     ${HYPHEN_LIBRARIES}
+    ${LIBGCRYPT_LIBRARIES}
     ${LIBSOUP_LIBRARIES}
     ${LIBXML2_LIBRARIES}
     ${LIBXSLT_LIBRARIES}
