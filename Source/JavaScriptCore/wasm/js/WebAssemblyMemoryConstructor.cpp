@@ -96,19 +96,18 @@ static EncodedJSValue JSC_HOST_CALL constructJSWebAssemblyMemory(ExecState* exec
         }
     }
 
-    bool failed;
-    Wasm::Memory memory(initialPageCount, maximumPageCount, failed);
-    if (failed)
+    RefPtr<Wasm::Memory> memory = Wasm::Memory::create(vm, initialPageCount, maximumPageCount);
+    if (!memory)
         return JSValue::encode(throwException(exec, throwScope, createOutOfMemoryError(exec)));
 
-    return JSValue::encode(JSWebAssemblyMemory::create(vm, exec->lexicalGlobalObject()->WebAssemblyMemoryStructure(), WTFMove(memory)));
+    return JSValue::encode(JSWebAssemblyMemory::create(vm, exec->lexicalGlobalObject()->WebAssemblyMemoryStructure(), adoptRef(*memory.leakRef())));
 }
 
-static EncodedJSValue JSC_HOST_CALL callJSWebAssemblyMemory(ExecState* state)
+static EncodedJSValue JSC_HOST_CALL callJSWebAssemblyMemory(ExecState* exec)
 {
-    VM& vm = state->vm();
+    VM& vm = exec->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    return JSValue::encode(throwConstructorCannotBeCalledAsFunctionTypeError(state, throwScope, "WebAssembly.Memory"));
+    return JSValue::encode(throwConstructorCannotBeCalledAsFunctionTypeError(exec, throwScope, "WebAssembly.Memory"));
 }
 
 WebAssemblyMemoryConstructor* WebAssemblyMemoryConstructor::create(VM& vm, Structure* structure, WebAssemblyMemoryPrototype* thisPrototype)

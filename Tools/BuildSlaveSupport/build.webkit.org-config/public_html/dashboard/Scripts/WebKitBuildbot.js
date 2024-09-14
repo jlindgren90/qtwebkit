@@ -53,6 +53,8 @@ WebKitBuildbot = function()
             "Apple El Capitan LLINT CLoop (BuildAndTest)": {heading: "LLINT CLoop (BuildAndTest)"},
             "Apple El Capitan Debug JSC (Tests)": {heading: "Debug JSC (Tests)"},
             "Apple El Capitan Release JSC (Tests)": {heading: "Release JSC (Tests)"},
+            "Apple El Capitan Debug Test262 (Tests)": {heading: "Debug Test262 (Tests)"},
+            "Apple El Capitan Release Test262 (Tests)": {heading: "Release Test262 (Tests)"},
         }},
         "Apple iOS 10 Release (Build)": {platform: Dashboard.Platform.iOS10Device, debug: false, builder: true, architecture: Buildbot.BuildArchitecture.Universal},
         "Apple iOS 10 Simulator Release (Build)": {platform: Dashboard.Platform.iOS10Simulator, debug: false, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
@@ -69,9 +71,7 @@ WebKitBuildbot = function()
         "GTK Linux 64-bit Release (Tests)": {platform: Dashboard.Platform.LinuxGTK, debug: false, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
         "GTK Linux 64-bit Debug (Build)": {platform: Dashboard.Platform.LinuxGTK, debug: true, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
         "GTK Linux 64-bit Debug (Tests)": {platform: Dashboard.Platform.LinuxGTK, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
-        "GTK Linux 64-bit Release (Perf)": {platform: Dashboard.Platform.LinuxGTK, debug: false, performance: true, heading: "Performance"},
-        "EFL Linux 64-bit Release WK2": {platform: Dashboard.Platform.LinuxEFL, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
-        "EFL Linux 64-bit Release WK2 (Perf)": {platform: Dashboard.Platform.LinuxEFL, performance: true, heading: "Performance"}
+        "GTK Linux 64-bit Release (Perf)": {platform: Dashboard.Platform.LinuxGTK, debug: false, performance: true, heading: "Performance"}
     };
 
     Buildbot.call(this, "https://build.webkit.org/", queueInfo);

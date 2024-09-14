@@ -40,6 +40,7 @@
 #import <UIKit/UIView.h>
 #import <WebCore/Color.h>
 #import <WebCore/FloatQuad.h>
+#import <wtf/BlockPtr.h>
 #import <wtf/Forward.h>
 #import <wtf/Vector.h>
 #import <wtf/text/WTFString.h>
@@ -60,6 +61,7 @@ class TextStream;
 }
 
 namespace WebKit {
+class InputViewUpdateDeferrer;
 class NativeWebTouchEvent;
 class SmartMagnificationController;
 class WebOpenPanelResultListenerProxy;
@@ -69,16 +71,23 @@ class WebPageProxy;
 @class WKActionSheetAssistant;
 @class WKFormInputSession;
 @class WKInspectorNodeSearchGestureRecognizer;
-@class WebIOSEvent;
+@class WebEvent;
 @class _UIHighlightView;
 @class _UIWebHighlightLongPressGestureRecognizer;
+
+#if ENABLE(DATA_INTERACTION)
+@class WKDataInteractionCaretView;
+#endif
 
 typedef void (^UIWKAutocorrectionCompletionHandler)(UIWKAutocorrectionRects *rectsForInput);
 typedef void (^UIWKAutocorrectionContextHandler)(UIWKAutocorrectionContext *autocorrectionContext);
 typedef void (^UIWKDictationContextHandler)(NSString *selectedText, NSString *beforeText, NSString *afterText);
 typedef void (^UIWKSelectionCompletionHandler)(void);
 typedef void (^UIWKSelectionWithDirectionCompletionHandler)(BOOL selectionEndIsMoving);
-typedef void (^UIWKKeyWebEventCompletionHandler)(WebIOSEvent *theEvent, BOOL wasHandled);
+typedef void (^UIWKKeyWebEventCompletionHandler)(::WebEvent *theEvent, BOOL wasHandled);
+
+typedef BlockPtr<void(WebKit::InteractionInformationAtPosition)> InteractionInformationCallback;
+typedef std::pair<WebKit::InteractionInformationRequest, InteractionInformationCallback> InteractionInformationRequestAndCallback;
 
 namespace WebKit {
 
@@ -118,12 +127,10 @@ struct WKAutoCorrectionData {
     RetainPtr<UITapGestureRecognizer> _twoFingerDoubleTapGestureRecognizer;
     RetainPtr<UITapGestureRecognizer> _twoFingerSingleTapGestureRecognizer;
     RetainPtr<WKInspectorNodeSearchGestureRecognizer> _inspectorNodeSearchGestureRecognizer;
-#if ENABLE(DATA_INTERACTION)
-    RetainPtr<UILongPressGestureRecognizer> _dataInteractionGestureRecognizer;
-#endif
 
     RetainPtr<UIWKTextInteractionAssistant> _textSelectionAssistant;
     RetainPtr<UIWKSelectionAssistant> _webSelectionAssistant;
+    BOOL _suppressAssistantSelectionView;
 
     RetainPtr<UITextInputTraits> _traits;
     RetainPtr<UIWebFormAccessory> _formAccessoryView;
@@ -163,10 +170,16 @@ struct WKAutoCorrectionData {
     UIWKKeyWebEventCompletionHandler _keyWebEventHandler;
 
     CGPoint _lastInteractionLocation;
+    uint64_t _layerTreeTransactionIdAtLastTouchStart;
 
     WebKit::WKSelectionDrawingInfo _lastSelectionDrawingInfo;
 
     std::optional<WebKit::InteractionInformationRequest> _outstandingPositionInformationRequest;
+
+    uint64_t _positionInformationCallbackDepth;
+    Vector<std::optional<InteractionInformationRequestAndCallback>> _pendingPositionInformationHandlers;
+    
+    std::unique_ptr<WebKit::InputViewUpdateDeferrer> _inputViewUpdateDeferrer;
 
     BOOL _isEditable;
     BOOL _showingTextStyleOptions;
@@ -190,6 +203,9 @@ struct WKAutoCorrectionData {
 
 #if ENABLE(DATA_INTERACTION)
     WebKit::WKDataInteractionState _dataInteractionState;
+    RetainPtr<WKDataInteraction> _dataInteraction;
+    RetainPtr<WKDataOperation> _dataOperation;
+    CGPoint _deferredActionSheetRequestLocation;
 #endif
 }
 
@@ -197,7 +213,7 @@ struct WKAutoCorrectionData {
 
 @interface WKContentView (WKInteraction) <UIGestureRecognizerDelegate, UIWebTouchEventsGestureRecognizerDelegate, UITextInputPrivate, UIWebFormAccessoryDelegate, UIWKInteractionViewProtocol, WKFileUploadPanelDelegate, WKActionSheetAssistantDelegate
 #if ENABLE(DATA_INTERACTION)
-    , WKViewDataInteractionSourceDelegate, WKDataInteractionSessionDelegate, WKViewDataInteractionDestinationDelegate, WKDataInteractionItemVisualTarget
+    , WKDataInteractionDelegate, WKDataOperationDelegate
 #endif
 >
 
@@ -208,6 +224,7 @@ struct WKAutoCorrectionData {
 @property (nonatomic, readonly) const WebKit::WKAutoCorrectionData& autocorrectionData;
 @property (nonatomic, readonly) const WebKit::AssistedNodeInformation& assistedNodeInformation;
 @property (nonatomic, readonly) UIWebFormAccessory *formAccessoryView;
+@property (nonatomic) BOOL suppressAssistantSelectionView;
 
 - (void)setupInteraction;
 - (void)cleanupInteraction;
@@ -235,6 +252,7 @@ struct WKAutoCorrectionData {
 #endif
 - (void)_commitPotentialTapFailed;
 - (void)_didNotHandleTapAsClick:(const WebCore::IntPoint&)point;
+- (void)_didCompleteSyntheticClick;
 - (void)_didGetTapHighlightForRequest:(uint64_t)requestID color:(const WebCore::Color&)color quads:(const Vector<WebCore::FloatQuad>&)highlightedQuads topLeftRadius:(const WebCore::IntSize&)topLeftRadius topRightRadius:(const WebCore::IntSize&)topRightRadius bottomLeftRadius:(const WebCore::IntSize&)bottomLeftRadius bottomRightRadius:(const WebCore::IntSize&)bottomRightRadius;
 
 - (BOOL)_mayDisableDoubleTapGesturesDuringSingleTap;
@@ -243,7 +261,7 @@ struct WKAutoCorrectionData {
 - (void)_stopAssistingNode;
 - (void)_selectionChanged;
 - (void)_updateChangedSelection;
-- (BOOL)_interpretKeyEvent:(WebIOSEvent *)theEvent isCharEvent:(BOOL)isCharEvent;
+- (BOOL)_interpretKeyEvent:(::WebEvent *)theEvent isCharEvent:(BOOL)isCharEvent;
 - (void)_positionInformationDidChange:(const WebKit::InteractionInformationAtPosition&)info;
 - (void)_attemptClickAtLocation:(CGPoint)location;
 - (void)_willStartScrollingOrZooming;
@@ -255,7 +273,7 @@ struct WKAutoCorrectionData {
 - (void)_showPlaybackTargetPicker:(BOOL)hasVideo fromRect:(const WebCore::IntRect&)elementRect;
 - (void)_showRunOpenPanel:(API::OpenPanelParameters*)parameters resultListener:(WebKit::WebOpenPanelResultListenerProxy*)listener;
 - (void)accessoryDone;
-- (void)_didHandleKeyEvent:(WebIOSEvent *)event eventWasHandled:(BOOL)eventWasHandled;
+- (void)_didHandleKeyEvent:(::WebEvent *)event eventWasHandled:(BOOL)eventWasHandled;
 - (Vector<WebKit::OptionItem>&) assistedNodeSelectOptions;
 - (void)_enableInspectorNodeSearch;
 - (void)_disableInspectorNodeSearch;
@@ -267,19 +285,25 @@ struct WKAutoCorrectionData {
 - (void)_accessibilityRetrieveRectsEnclosingSelectionOffset:(NSInteger)offset withGranularity:(UITextGranularity)granularity;
 - (void)_accessibilityRetrieveRectsAtSelectionOffset:(NSInteger)offset withText:(NSString *)text;
 
+@property (nonatomic, readonly) WebKit::InteractionInformationAtPosition currentPositionInformation;
+- (void)doAfterPositionInformationUpdate:(void (^)(WebKit::InteractionInformationAtPosition))action forRequest:(WebKit::InteractionInformationRequest)request;
+- (void)ensurePositionInformationIsUpToDate:(WebKit::InteractionInformationRequest)request;
+
 #if ENABLE(DATA_INTERACTION)
-- (void)_didPerformDataInteractionControllerOperation;
+- (void)_didPerformDataInteractionControllerOperation:(BOOL)handled;
 - (void)_didHandleStartDataInteractionRequest:(BOOL)started;
-- (void)_startDataInteractionWithImage:(RetainPtr<CGImageRef>)image atClientPosition:(CGPoint)clientPosition anchorPoint:(CGPoint)anchorPoint isLink:(BOOL)isLink;
-- (void)_simulateDataInteractionGestureRecognized:(UILongPressGestureRecognizer *)gestureRecognizer WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (void)_simulateDataInteractionEntered:(id)info WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (void)_simulateDataInteractionUpdated:(id)info WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (void)_simulateDataInteractionPerformOperation:(id)info WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (void)_simulateDataInteractionEnded:(id)info WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (void)_simulateDataInteractionSessionDidEnd:(id)session withOperation:(NSUInteger)operation WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (void)_simulateFailedDataInteractionWithIndex:(NSInteger)sourceIndex WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (void)_simulateWillBeginDataInteractionWithIndex:(NSInteger)sourceIndex withSession:(id)session WK_API_AVAILABLE(ios(WK_IOS_TBA));
-- (NSArray *)_simulatedItemsForDataInteractionWithIndex:(NSInteger)sourceIndex WK_API_AVAILABLE(ios(WK_IOS_TBA));
+- (void)_startDataInteractionWithImage:(RetainPtr<CGImageRef>)image withIndicatorData:(std::optional<WebCore::TextIndicatorData>)indicatorData atClientPosition:(CGPoint)clientPosition anchorPoint:(CGPoint)anchorPoint action:(uint64_t)action;
+- (void)_didConcludeEditDataInteraction:(std::optional<WebCore::TextIndicatorData>)data;
+- (void)_didChangeDataInteractionCaretRect:(CGRect)previousRect currentRect:(CGRect)rect;
+
+- (void)_simulateDataInteractionEntered:(id)info;
+- (BOOL)_simulateDataInteractionUpdated:(id)info;
+- (void)_simulateDataInteractionPerformOperation:(id)info;
+- (void)_simulateDataInteractionEnded:(id)info;
+- (void)_simulateDataInteractionSessionDidEnd:(id)session;
+- (void)_simulateWillBeginDataInteractionWithSession:(id)session;
+- (NSArray *)_simulatedItemsForSession:(id)session;
+- (void)_simulatePrepareForDataInteractionSession:(id)session completion:(dispatch_block_t)completion;
 #endif
 
 @end

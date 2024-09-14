@@ -123,7 +123,11 @@ void PageClientImpl::setViewNeedsDisplay(const WebCore::Region&)
 
 void PageClientImpl::requestScroll(const FloatPoint& scrollPosition, const IntPoint& scrollOrigin, bool isProgrammaticScroll)
 {
-    ASSERT_NOT_REACHED();
+}
+
+WebCore::FloatPoint PageClientImpl::viewScrollPosition()
+{
+    return { };
 }
 
 IntSize PageClientImpl::viewSize()
@@ -169,6 +173,9 @@ bool PageClientImpl::isViewFocused()
 
 void PageClientImpl::makeFirstResponder()
 {
+    if (m_shouldSuppressFirstResponderChanges)
+        return;
+
      [[m_view window] makeFirstResponder:m_view];
 }
     
@@ -337,7 +344,7 @@ void PageClientImpl::executeUndoRedo(WebPageProxy::UndoOrRedo undoOrRedo)
     return (undoOrRedo == WebPageProxy::Undo) ? [[m_view undoManager] undo] : [[m_view undoManager] redo];
 }
 
-void PageClientImpl::setDragImage(const IntPoint& clientPosition, PassRefPtr<ShareableBitmap> dragImage, bool isLinkDrag)
+void PageClientImpl::setDragImage(const IntPoint& clientPosition, PassRefPtr<ShareableBitmap> dragImage, DragSourceAction action)
 {
     RetainPtr<CGImageRef> dragCGImage = dragImage->makeCGImage();
     RetainPtr<NSImage> dragNSImage = adoptNS([[NSImage alloc] initWithCGImage:dragCGImage.get() size:dragImage->size()]);
@@ -345,7 +352,7 @@ void PageClientImpl::setDragImage(const IntPoint& clientPosition, PassRefPtr<Sha
     size.scale(1.0 / m_impl->page().deviceScaleFactor());
     [dragNSImage setSize:size];
 
-    m_impl->dragImageForView(m_view, dragNSImage.get(), clientPosition, isLinkDrag);
+    m_impl->dragImageForView(m_view, dragNSImage.get(), clientPosition, action == DragSourceActionLink);
 }
 
 void PageClientImpl::setPromisedDataForImage(const String& pasteboardName, PassRefPtr<SharedBuffer> imageBuffer, const String& filename, const String& extension, const String& title, const String& url, const String& visibleURL, PassRefPtr<SharedBuffer> archiveBuffer)
@@ -440,9 +447,9 @@ RefPtr<WebColorPicker> PageClientImpl::createColorPicker(WebPageProxy* page, con
 }
 #endif
 
-Ref<ValidationBubble> PageClientImpl::createValidationBubble(const String& message)
+Ref<ValidationBubble> PageClientImpl::createValidationBubble(const String& message, const ValidationBubble::Settings& settings)
 {
-    return ValidationBubble::create(m_view, message);
+    return ValidationBubble::create(m_view, message, settings);
 }
 
 void PageClientImpl::setTextIndicator(Ref<TextIndicator> textIndicator, WebCore::TextIndicatorWindowLifetime lifetime)
@@ -764,12 +771,6 @@ void PageClientImpl::didSameDocumentNavigationForMainFrame(SameDocumentNavigatio
 {
     if (auto gestureController = m_impl->gestureController())
         gestureController->didSameDocumentNavigationForMainFrame(type);
-}
-
-void PageClientImpl::removeNavigationGestureSnapshot()
-{
-    if (auto gestureController = m_impl->gestureController())
-        gestureController->removeSwipeSnapshot();
 }
 
 void PageClientImpl::handleControlledElementIDResponse(const String& identifier)

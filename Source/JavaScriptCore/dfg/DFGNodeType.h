@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -226,6 +226,7 @@ namespace JSC { namespace DFG {
     macro(GetScope, NodeResultJS) \
     macro(SkipScope, NodeResultJS) \
     macro(ResolveScope, NodeResultJS | NodeMustGenerate) \
+    macro(ResolveScopeForHoistingFuncDeclInEval, NodeResultJS | NodeMustGenerate) \
     macro(GetGlobalObject, NodeResultJS) \
     macro(GetClosureVar, NodeResultJS) \
     macro(PutClosureVar, NodeMustGenerate) \
@@ -244,6 +245,19 @@ namespace JSC { namespace DFG {
     macro(CheckInBounds, NodeMustGenerate) \
     macro(CheckStringIdent, NodeMustGenerate) \
     macro(CheckTypeInfoFlags, NodeMustGenerate) /* Takes an OpInfo with the flags you want to test are set */\
+    macro(ParseInt, NodeMustGenerate | NodeResultJS) \
+    \
+    /* Atomics object functions. */\
+    macro(AtomicsAdd, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(AtomicsAnd, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(AtomicsCompareExchange, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(AtomicsExchange, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(AtomicsIsLockFree, NodeResultBoolean) \
+    macro(AtomicsLoad, NodeResultJS | NodeMustGenerate) \
+    macro(AtomicsOr, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(AtomicsStore, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(AtomicsSub, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(AtomicsXor, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
     \
     /* Optimizations for array mutation. */\
     macro(ArrayPush, NodeResultJS | NodeMustGenerate) \
@@ -334,6 +348,7 @@ namespace JSC { namespace DFG {
     macro(ToNumber, NodeResultJS | NodeMustGenerate) \
     macro(CallObjectConstructor, NodeResultJS) \
     macro(CallStringConstructor, NodeResultJS | NodeMustGenerate) \
+    macro(NumberToStringWithRadix, NodeResultJS | NodeMustGenerate) \
     macro(NewStringObject, NodeResultJS) \
     macro(MakeRope, NodeResultJS) \
     macro(In, NodeResultBoolean | NodeMustGenerate) \
@@ -390,8 +405,8 @@ namespace JSC { namespace DFG {
     /* flow. */\
     macro(BottomValue, NodeResultJS) \
     \
-    /* Checks the watchdog timer. If the timer has fired, we call operation operationHandleWatchdogTimer*/ \
-    macro(CheckWatchdogTimer, NodeMustGenerate) \
+    /* Checks for VM traps. If there is a trap, we'll jettison or call operation operationHandleTraps. */ \
+    macro(CheckTraps, NodeMustGenerate) \
     /* Write barriers */\
     macro(StoreBarrier, NodeMustGenerate) \
     macro(FencedStoreBarrier, NodeMustGenerate) \
@@ -434,6 +449,48 @@ inline NodeFlags defaultFlags(NodeType op)
 #define DFG_OP_ENUM(opcode, flags) case opcode: return flags;
     FOR_EACH_DFG_OP(DFG_OP_ENUM)
 #undef DFG_OP_ENUM
+    default:
+        RELEASE_ASSERT_NOT_REACHED();
+        return 0;
+    }
+}
+
+inline bool isAtomicsIntrinsic(NodeType op)
+{
+    switch (op) {
+    case AtomicsAdd:
+    case AtomicsAnd:
+    case AtomicsCompareExchange:
+    case AtomicsExchange:
+    case AtomicsLoad:
+    case AtomicsOr:
+    case AtomicsStore:
+    case AtomicsSub:
+    case AtomicsXor:
+    case AtomicsIsLockFree:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static const unsigned maxNumExtraAtomicsArgs = 2;
+
+inline unsigned numExtraAtomicsArgs(NodeType op)
+{
+    switch (op) {
+    case AtomicsLoad:
+        return 0;
+    case AtomicsAdd:
+    case AtomicsAnd:
+    case AtomicsExchange:
+    case AtomicsOr:
+    case AtomicsStore:
+    case AtomicsSub:
+    case AtomicsXor:
+        return 1;
+    case AtomicsCompareExchange:
+        return 2;
     default:
         RELEASE_ASSERT_NOT_REACHED();
         return 0;

@@ -276,7 +276,7 @@ void WebChromeClient::runModal()
     m_page.runModal();
 }
 
-void WebChromeClient::reportProcessCPUTime(int64_t cpuTime, ActivityStateForCPUSampling activityState)
+void WebChromeClient::reportProcessCPUTime(Seconds cpuTime, ActivityStateForCPUSampling activityState)
 {
     WebProcess::singleton().send(Messages::WebProcessPool::ReportWebContentCPUTime(cpuTime, static_cast<uint64_t>(activityState)), 0);
 }
@@ -782,7 +782,7 @@ void WebChromeClient::runOpenPanel(Frame& frame, FileChooser& fileChooser)
 
 void WebChromeClient::loadIconForFiles(const Vector<String>& filenames, FileIconLoader& loader)
 {
-    loader.iconLoaded(Icon::createIconForFiles(filenames));
+    loader.iconLoaded(createIconForFiles(filenames));
 }
 
 #if !PLATFORM(IOS)
@@ -795,6 +795,11 @@ void WebChromeClient::setCursor(const Cursor& cursor)
 void WebChromeClient::setCursorHiddenUntilMouseMoves(bool hiddenUntilMouseMoves)
 {
     m_page.send(Messages::WebPageProxy::SetCursorHiddenUntilMouseMoves(hiddenUntilMouseMoves));
+}
+
+RefPtr<Icon> WebChromeClient::createIconForFiles(const Vector<String>& filenames)
+{
+    return Icon::createIconForFiles(filenames);
 }
 
 #endif
@@ -822,11 +827,7 @@ bool WebChromeClient::shouldNotifyOnFormChanges()
 
 bool WebChromeClient::selectItemWritingDirectionIsNatural()
 {
-#if PLATFORM(EFL)
-    return true;
-#else
     return false;
-#endif
 }
 
 bool WebChromeClient::selectItemAlignmentFollowsMenuWritingDirection()
@@ -1015,7 +1016,7 @@ Color WebChromeClient::underlayColor() const
 
 void WebChromeClient::pageExtendedBackgroundColorDidChange(Color backgroundColor) const
 {
-#if PLATFORM(MAC) || PLATFORM(EFL)
+#if PLATFORM(MAC)
     m_page.send(Messages::WebPageProxy::PageExtendedBackgroundColorDidChange(backgroundColor));
 #else
     UNUSED_PARAM(backgroundColor);
@@ -1087,9 +1088,9 @@ void WebChromeClient::isPlayingMediaDidChange(MediaProducer::MediaStateFlags sta
     m_page.send(Messages::WebPageProxy::IsPlayingMediaDidChange(state, sourceElementID));
 }
 
-void WebChromeClient::didPlayMediaPreventedFromPlayingWithoutUserGesture()
+void WebChromeClient::handleAutoplayEvent(AutoplayEvent event, OptionSet<AutoplayEventFlags> flags)
 {
-    m_page.send(Messages::WebPageProxy::DidPlayMediaPreventedFromPlayingWithoutUserGesture());
+    m_page.send(Messages::WebPageProxy::HandleAutoplayEvent(event, flags));
 }
 
 #if ENABLE(MEDIA_SESSION)

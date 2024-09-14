@@ -30,6 +30,7 @@
 #include "AXObjectCache.h"
 #include "Chrome.h"
 #include "Document.h"
+#include "Editing.h"
 #include "Editor.h"
 #include "EditorClient.h"
 #include "Element.h"
@@ -58,7 +59,6 @@
 #include "ShadowRoot.h"
 #include "SpatialNavigation.h"
 #include "Widget.h"
-#include "htmlediting.h" // For firstPositionInOrBeforeNode
 #include <limits>
 #include <wtf/CurrentTime.h>
 #include <wtf/Ref.h>
@@ -1089,7 +1089,7 @@ bool FocusController::advanceFocusDirectionally(FocusDirection direction, Keyboa
 
 void FocusController::setFocusedElementNeedsRepaint()
 {
-    m_focusRepaintTimer.startOneShot(0.033);
+    m_focusRepaintTimer.startOneShot(33_ms);
 }
 
 void FocusController::focusRepaintTimerFired()

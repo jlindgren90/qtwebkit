@@ -15,6 +15,7 @@ Property values requiring vendor prefixes:
 None
 ------------------------------------------------------------------------
 List of files:
+/LayoutTests/imported/w3c/web-platform-tests/html/dom/OWNERS
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/elements-embedded.js
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/elements-forms.js
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/elements-grouping.js
@@ -25,6 +26,7 @@ List of files:
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/elements-tabular.js
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/elements-text.js
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/interfaces.html
+/LayoutTests/imported/w3c/web-platform-tests/html/dom/interfaces.worker.js
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/new-harness.js
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/original-harness.js
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/reflection-embedded.html
@@ -37,3 +39,5 @@ List of files:
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/reflection-tabular.html
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/reflection-text.html
 /LayoutTests/imported/w3c/web-platform-tests/html/dom/reflection.js
+/LayoutTests/imported/w3c/web-platform-tests/html/dom/self-origin.any.js
+/LayoutTests/imported/w3c/web-platform-tests/html/dom/self-origin.sub.html

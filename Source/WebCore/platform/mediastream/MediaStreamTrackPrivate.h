@@ -48,6 +48,8 @@ public:
         virtual void trackSettingsChanged(MediaStreamTrackPrivate&) = 0;
         virtual void trackEnabledChanged(MediaStreamTrackPrivate&) = 0;
         virtual void sampleBufferUpdated(MediaStreamTrackPrivate&, MediaSample&) { };
+        virtual void audioSamplesAvailable(MediaStreamTrackPrivate&) { };
+        virtual void readyStateChanged(MediaStreamTrackPrivate&) { };
     };
 
     static Ref<MediaStreamTrackPrivate> create(Ref<RealtimeMediaSource>&&);
@@ -64,11 +66,12 @@ public:
     void stopProducingData() { m_source->stopProducingData(); }
     bool isProducingData() { return m_source->isProducingData(); }
 
+    bool isIsolated() const { return m_source->isIsolated(); }
+
     bool muted() const;
     void setMuted(bool muted) { m_source->setMuted(muted); }
 
-    bool readonly() const;
-    bool remote() const;
+    bool isCaptureTrack() const;
 
     bool enabled() const { return m_isEnabled; }
     void setEnabled(bool);
@@ -84,7 +87,7 @@ public:
     void removeObserver(Observer&);
 
     const RealtimeMediaSourceSettings& settings() const;
-    RefPtr<RealtimeMediaSourceCapabilities> capabilities() const;
+    const RealtimeMediaSourceCapabilities& capabilities() const;
 
     void applyConstraints(const MediaConstraints&, RealtimeMediaSource::SuccessHandler, RealtimeMediaSource::FailureHandler);
 
@@ -92,22 +95,31 @@ public:
 
     void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&);
 
+    enum class ReadyState { None, Live, Ended };
+    ReadyState readyState() const { return m_readyState; }
+
 private:
     MediaStreamTrackPrivate(Ref<RealtimeMediaSource>&&, String&& id);
 
     // RealtimeMediaSourceObserver
     void sourceStopped() final;
     void sourceMutedChanged() final;
+    void sourceEnabledChanged() final;
     void sourceSettingsChanged() final;
     bool preventSourceFromStopping() final;
     void videoSampleAvailable(MediaSample&) final;
+    void audioSamplesAvailable(const MediaTime&, const PlatformAudioData&, const AudioStreamDescription&, size_t) final;
+
+    void updateReadyState();
 
     Vector<Observer*> m_observers;
     Ref<RealtimeMediaSource> m_source;
 
     String m_id;
-    bool m_isEnabled;
-    bool m_isEnded;
+    ReadyState m_readyState { ReadyState::None };
+    bool m_isEnabled { true };
+    bool m_isEnded { false };
+    bool m_haveProducedData { false };
 };
 
 typedef Vector<RefPtr<MediaStreamTrackPrivate>> MediaStreamTrackPrivateVector;

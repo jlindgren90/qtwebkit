@@ -202,11 +202,8 @@ void TiledCoreAnimationDrawingArea::updatePreferences(const WebPreferencesStore&
 #endif
 
     // Fixed position elements need to be composited and create stacking contexts
-    // in order to be scrolled by the ScrollingCoordinator. We also want to keep
-    // Settings:setFixedPositionCreatesStackingContext() enabled for iOS. See
-    // <rdar://problem/9813262> for more details.
+    // in order to be scrolled by the ScrollingCoordinator.
     settings.setAcceleratedCompositingForFixedPositionEnabled(true);
-    settings.setFixedPositionCreatesStackingContext(true);
 
     if (MainFrame* mainFrame = m_webPage.mainFrame())
         DebugPageOverlays::settingsChanged(*mainFrame);
@@ -475,7 +472,7 @@ void TiledCoreAnimationDrawingArea::activityStateDidChange(ActivityState::Flags 
     }
 
     if (m_wantsDidUpdateActivityState || !m_nextActivityStateChangeCallbackIDs.isEmpty())
-        m_sendDidUpdateActivityStateTimer.startOneShot(0);
+        m_sendDidUpdateActivityStateTimer.startOneShot(0_s);
 }
 
 void TiledCoreAnimationDrawingArea::didUpdateActivityStateTimerFired()

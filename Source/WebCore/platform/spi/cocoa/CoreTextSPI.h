@@ -84,6 +84,8 @@ CFBitVectorRef CTFontCopyGlyphCoverageForFeature(CTFontRef, CFDictionaryRef feat
 
 CTFontDescriptorRef CTFontDescriptorCreateWithAttributesAndOptions(CFDictionaryRef attributes, CTFontDescriptorOptions);
 
+extern const CFStringRef kCTFontCSSWeightAttribute;
+extern const CFStringRef kCTFontCSSWidthAttribute;
 extern const CFStringRef kCTFontDescriptorTextStyleAttribute;
 extern const CFStringRef kCTFontUIFontDesignTrait;
 
@@ -117,14 +119,15 @@ extern const CGFloat kCTFontWeightBold;
 extern const CGFloat kCTFontWeightHeavy;
 extern const CGFloat kCTFontWeightBlack;
 
+extern const CFStringRef kCTUIFontTextStyleTitle0;
 extern const CFStringRef kCTUIFontTextStyleTitle1;
 extern const CFStringRef kCTUIFontTextStyleTitle2;
 extern const CFStringRef kCTUIFontTextStyleTitle3;
+extern const CFStringRef kCTUIFontTextStyleTitle4;
 CTFontDescriptorRef CTFontCreatePhysicalFontDescriptorForCharactersWithLanguage(CTFontRef currentFont, const UTF16Char* characters, CFIndex length, CFStringRef language, CFIndex* coveredLength);
 
 CTFontRef CTFontCreatePhysicalFontForCharactersWithLanguage(CTFontRef, const UTF16Char* characters, CFIndex length, CFStringRef language, CFIndex* coveredLength);
 bool CTFontIsAppleColorEmoji(CTFontRef);
-bool CTFontDescriptorIsSystemUIFont(CTFontDescriptorRef);
 CTFontRef CTFontCreateForCharacters(CTFontRef currentFont, const UTF16Char *characters, CFIndex length, CFIndex *coveredLength);
 
 WTF_EXTERN_C_END

@@ -57,6 +57,7 @@ private:
     std::unique_ptr<DrawingAreaProxy> createDrawingAreaProxy() override;
     void setViewNeedsDisplay(const WebCore::Region&) override;
     void requestScroll(const WebCore::FloatPoint& scrollPosition, const WebCore::IntPoint& scrollOrigin, bool isProgrammaticScroll) override;
+    WebCore::FloatPoint viewScrollPosition() override;
     WebCore::IntSize viewSize() override;
     bool isViewWindowActive() override;
     bool isViewFocused() override;
@@ -144,6 +145,8 @@ private:
 #endif
 
     WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection() override { return WebCore::UserInterfaceLayoutDirection::LTR; }
+
+    void didChangeAvoidsUnsafeArea(bool) override { }
 
     // Members of PageClientImpl class
     GtkWidget* m_viewWidget;

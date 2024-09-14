@@ -30,6 +30,7 @@
 #import <UIKit/UIAlertController_Private.h>
 #import <UIKit/UIApplication_Private.h>
 #import <UIKit/UIBarButtonItem_Private.h>
+#import <UIKit/UICalloutBar.h>
 #import <UIKit/UIDatePicker_Private.h>
 #import <UIKit/UIDevice_Private.h>
 #import <UIKit/UIDocumentMenuViewController_Private.h>
@@ -54,6 +55,7 @@
 #import <UIKit/UIStringDrawing_Private.h>
 #import <UIKit/UITableViewCell_Private.h>
 #import <UIKit/UITapGestureRecognizer_Private.h>
+#import <UIKit/UITextEffectsWindow.h>
 #import <UIKit/UITextInput_Private.h>
 #import <UIKit/UITextInteractionAssistant_Private.h>
 #import <UIKit/UIViewControllerTransitioning_Private.h>
@@ -77,6 +79,10 @@
 
 #if HAVE(LINK_PREVIEW)
 #import <UIKit/UIPreviewItemController.h>
+#endif
+
+#if ENABLE(DATA_INTERACTION)
+#import <UIKit/UIItemProvider_Private.h>
 #endif
 
 #else
@@ -299,6 +305,13 @@ typedef enum {
 @end
 #endif
 
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+typedef NS_ENUM(NSInteger, UIScrollViewContentInsetAdjustmentBehavior) {
+    UIScrollViewContentInsetAdjustmentAutomatic = 0,
+    UIScrollViewContentInsetAdjustmentAlways = 3,
+};
+#endif
+
 @interface UIScrollView ()
 - (void)_stopScrollingAndZoomingAnimations;
 - (void)_zoomToCenter:(CGPoint)center scale:(CGFloat)scale duration:(CFTimeInterval)duration force:(BOOL)force;
@@ -309,6 +322,10 @@ typedef enum {
 @property (nonatomic) CGFloat horizontalScrollDecelerationFactor;
 @property (nonatomic) CGFloat verticalScrollDecelerationFactor;
 @property (nonatomic, readonly) BOOL _isInterruptingDeceleration;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+@property (nonatomic, readonly) UIEdgeInsets _systemContentInset;
+@property (nonatomic, setter=_setContentInsetAdjustmentBehavior:, getter=_contentInsetAdjustmentBehavior) UIScrollViewContentInsetAdjustmentBehavior contentInsetAdjustmentBehavior;
+#endif
 @end
 
 @interface NSString (UIKitDetails)
@@ -450,6 +467,9 @@ typedef NS_ENUM (NSInteger, _UIBackdropMaskViewFlags) {
 - (void)setSize:(CGSize)size;
 @property (nonatomic, assign, setter=_setBackdropMaskViewFlags:) NSInteger _backdropMaskViewFlags;
 - (void)_populateArchivedSubviews:(NSMutableSet *)encodedViews;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+- (void)safeAreaInsetsDidChange;
+#endif
 @end
 
 @interface UIWebSelectionView : UIView
@@ -853,10 +873,19 @@ typedef enum {
 
 #endif // USE(APPLE_INTERNAL_SDK)
 
+@interface UIColor (IPI)
++ (UIColor *)insertionPointColor;
+@end
+
 @interface UIView (IPI)
 - (UIScrollView *)_scroller;
 - (CGPoint)accessibilityConvertPointFromSceneReferenceCoordinates:(CGPoint)point;
 - (CGRect)accessibilityConvertRectToSceneReferenceCoordinates:(CGRect)rect;
+@end
+
+@interface UIPeripheralHost (IPI)
+- (void)_beginIgnoringReloadInputViews;
+- (void)_endIgnoringReloadInputViews;
 @end
 
 @interface UIResponder ()

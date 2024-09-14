@@ -22,6 +22,7 @@
 #include "config.h"
 #include "FontCache.h"
 
+#include "CairoUtilities.h"
 #include "FcUniquePtr.h"
 #include "Font.h"
 #include "RefPtrCairo.h"
@@ -57,6 +58,7 @@ static RefPtr<FcPattern> createFontConfigPatternForCharacters(const UChar* chara
 
     FcPatternAddBool(pattern.get(), FC_SCALABLE, FcTrue);
     FcConfigSubstitute(nullptr, pattern.get(), FcMatchPattern);
+    cairo_ft_font_options_substitute(getDefaultCairoFontOptions(), pattern.get());
     FcDefaultSubstitute(pattern.get());
     return pattern;
 }
@@ -121,6 +123,11 @@ Vector<String> FontCache::systemFontFamilies()
     return fontFamilies;
 }
 
+Ref<Font> FontCache::lastResortFallbackFontForEveryCharacter(const FontDescription& fontDescription)
+{
+    return lastResortFallbackFont(fontDescription);
+}
+
 Ref<Font> FontCache::lastResortFallbackFont(const FontDescription& fontDescription)
 {
     // We want to return a fallback font here, otherwise the logic preventing FontConfig
@@ -133,7 +140,7 @@ Ref<Font> FontCache::lastResortFallbackFont(const FontDescription& fontDescripti
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-Vector<FontTraitsMask> FontCache::getTraitsInFamily(const AtomicString&)
+Vector<FontSelectionCapabilities> FontCache::getFontSelectionCapabilitiesInFamily(const AtomicString&)
 {
     return { };
 }
@@ -158,31 +165,25 @@ static String getFamilyNameStringFromFamily(const AtomicString& family)
     return "";
 }
 
-static int fontWeightToFontconfigWeight(FontWeight weight)
+static int fontWeightToFontconfigWeight(FontSelectionValue weight)
 {
-    switch (weight) {
-    case FontWeight100:
+    if (weight < FontSelectionValue(150))
         return FC_WEIGHT_THIN;
-    case FontWeight200:
+    if (weight < FontSelectionValue(250))
         return FC_WEIGHT_ULTRALIGHT;
-    case FontWeight300:
+    if (weight < FontSelectionValue(350))
         return FC_WEIGHT_LIGHT;
-    case FontWeight400:
+    if (weight < FontSelectionValue(450))
         return FC_WEIGHT_REGULAR;
-    case FontWeight500:
+    if (weight < FontSelectionValue(550))
         return FC_WEIGHT_MEDIUM;
-    case FontWeight600:
+    if (weight < FontSelectionValue(650))
         return FC_WEIGHT_SEMIBOLD;
-    case FontWeight700:
+    if (weight < FontSelectionValue(750))
         return FC_WEIGHT_BOLD;
-    case FontWeight800:
+    if (weight < FontSelectionValue(850))
         return FC_WEIGHT_EXTRABOLD;
-    case FontWeight900:
-        return FC_WEIGHT_ULTRABLACK;
-    default:
-        ASSERT_NOT_REACHED();
-        return FC_WEIGHT_REGULAR;
-    }
+    return FC_WEIGHT_ULTRABLACK;
 }
 
 // This is based on Chromium BSD code from Skia (src/ports/SkFontMgr_fontconfig.cpp). It is a
@@ -261,6 +262,7 @@ static Vector<String> strongAliasesForFamily(const String& family)
         return Vector<String>();
 
     FcConfigSubstitute(nullptr, pattern.get(), FcMatchPattern);
+    cairo_ft_font_options_substitute(getDefaultCairoFontOptions(), pattern.get());
     FcDefaultSubstitute(pattern.get());
 
     FcUniquePtr<FcObjectSet> familiesOnly(FcObjectSetBuild(FC_FAMILY, nullptr));
@@ -322,7 +324,7 @@ static inline bool isCommonlyUsedGenericFamily(const String& familyNameString)
         || equalLettersIgnoringASCIICase(familyNameString, "cursive");
 }
 
-std::unique_ptr<FontPlatformData> FontCache::createFontPlatformData(const FontDescription& fontDescription, const AtomicString& family, const FontFeatureSettings*, const FontVariantSettings*)
+std::unique_ptr<FontPlatformData> FontCache::createFontPlatformData(const FontDescription& fontDescription, const AtomicString& family, const FontFeatureSettings*, const FontVariantSettings*, FontSelectionSpecifiedCapabilities)
 {
     // The CSS font matching algorithm (http://www.w3.org/TR/css3-fonts/#font-matching-algorithm)
     // says that we must find an exact match for font family, slant (italic or oblique can be used)
@@ -355,6 +357,7 @@ std::unique_ptr<FontPlatformData> FontCache::createFontPlatformData(const FontDe
     // configuration step, before any matching occurs, we allow arbitrary family substitutions,
     // since this is an exact matter of respecting the user's font configuration.
     FcConfigSubstitute(nullptr, pattern.get(), FcMatchPattern);
+    cairo_ft_font_options_substitute(getDefaultCairoFontOptions(), pattern.get());
     FcDefaultSubstitute(pattern.get());
 
     FcChar8* fontConfigFamilyNameAfterConfiguration;

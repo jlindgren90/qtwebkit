@@ -11,12 +11,13 @@
 #ifndef WEBRTC_SDK_OBJC_FRAMEWORK_CLASSES_VIDEOTOOLBOXVIDEOCODECFACTORY_H_
 #define WEBRTC_SDK_OBJC_FRAMEWORK_CLASSES_VIDEOTOOLBOXVIDEOCODECFACTORY_H_
 
+#include "webrtc/base/export.h"
 #include "webrtc/media/engine/webrtcvideoencoderfactory.h"
 #include "webrtc/media/engine/webrtcvideodecoderfactory.h"
 
 namespace webrtc {
 
-class VideoToolboxVideoEncoderFactory
+class WEBRTC_DYLIB_EXPORT VideoToolboxVideoEncoderFactory
     : public cricket::WebRtcVideoEncoderFactory {
  public:
   VideoToolboxVideoEncoderFactory();
@@ -28,10 +29,14 @@ class VideoToolboxVideoEncoderFactory
   const std::vector<cricket::VideoCodec>& supported_codecs() const override;
 
  private:
-  std::vector<cricket::VideoCodec> supported_codecs_;
+  virtual VideoEncoder* CreateSupportedVideoEncoder(const cricket::VideoCodec& codec);
+
+  // TODO(magjed): Mutable because it depends on a field trial and it is
+  // recalculated every call to supported_codecs().
+  mutable std::vector<cricket::VideoCodec> supported_codecs_;
 };
 
-class VideoToolboxVideoDecoderFactory
+class WEBRTC_DYLIB_EXPORT VideoToolboxVideoDecoderFactory
     : public cricket::WebRtcVideoDecoderFactory {
  public:
   VideoToolboxVideoDecoderFactory();

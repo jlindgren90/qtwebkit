@@ -28,16 +28,18 @@
 
 #if WK_API_ENABLED
 
+#import "WKHTTPCookieStoreInternal.h"
 #import "WKNSArray.h"
 #import "WKWebsiteDataRecordInternal.h"
 #import "WebsiteDataFetchOption.h"
+#import "_WKWebsiteDataStoreConfiguration.h"
 #import <wtf/BlockPtr.h>
 
 @implementation WKWebsiteDataStore
 
 + (WKWebsiteDataStore *)defaultDataStore
 {
-    return WebKit::wrapper(*API::WebsiteDataStore::defaultDataStore().get());
+    return WebKit::wrapper(API::WebsiteDataStore::defaultDataStore().get());
 }
 
 + (WKWebsiteDataStore *)nonPersistentDataStore
@@ -145,6 +147,27 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
 
 @implementation WKWebsiteDataStore (WKPrivate)
 
+- (instancetype)_initWithConfiguration:(_WKWebsiteDataStoreConfiguration *)configuration
+{
+    if (!(self = [super init]))
+        return nil;
+
+    auto config = API::WebsiteDataStore::defaultDataStoreConfiguration();
+
+    if (configuration._webStorageDirectory)
+        config.localStorageDirectory = configuration._webStorageDirectory.path;
+    if (configuration._webSQLDatabaseDirectory)
+        config.webSQLDatabaseDirectory = configuration._webSQLDatabaseDirectory.path;
+    if (configuration._indexedDBDatabaseDirectory)
+        config.indexedDBDatabaseDirectory = configuration._indexedDBDatabaseDirectory.path;
+    if (configuration._cookieStorageFile)
+        config.cookieStorageFile = configuration._cookieStorageFile.path;
+
+    API::Object::constructInWrapper<API::WebsiteDataStore>(self, config, WebCore::SessionID::generatePersistentSessionID());
+
+    return self;
+}
+
 - (void)_fetchDataRecordsOfTypes:(NSSet<NSString *> *)dataTypes withOptions:(_WKWebsiteDataStoreFetchOptions)options completionHandler:(void (^)(NSArray<WKWebsiteDataRecord *> *))completionHandler
 {
     auto completionHandlerCopy = makeBlockPtr(completionHandler);
@@ -172,6 +195,11 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
 - (void)_setResourceLoadStatisticsEnabled:(BOOL)enabled
 {
     _websiteDataStore->websiteDataStore().setResourceLoadStatisticsEnabled(enabled);
+}
+
+- (WKHTTPCookieStore *)httpCookieStore
+{
+    return WebKit::wrapper(_websiteDataStore->httpCookieStore());
 }
 
 @end

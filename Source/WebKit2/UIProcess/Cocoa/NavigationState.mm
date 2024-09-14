@@ -168,6 +168,7 @@ void NavigationState::setNavigationDelegate(id <WKNavigationDelegate> delegate)
 #if USE(QUICK_LOOK)
     m_navigationDelegateMethods.webViewDidStartLoadForQuickLookDocumentInMainFrame = [delegate respondsToSelector:@selector(_webView:didStartLoadForQuickLookDocumentInMainFrameWithFileName:uti:)];
     m_navigationDelegateMethods.webViewDidFinishLoadForQuickLookDocumentInMainFrame = [delegate respondsToSelector:@selector(_webView:didFinishLoadForQuickLookDocumentInMainFrame:)];
+    m_navigationDelegateMethods.webViewDidRequestPasswordForQuickLookDocument = [delegate respondsToSelector:@selector(_webViewDidRequestPasswordForQuickLookDocument:)];
 #endif
 }
 
@@ -246,6 +247,20 @@ void NavigationState::navigationGestureSnapshotWasRemoved()
     [static_cast<id <WKNavigationDelegatePrivate>>(navigationDelegate) _webViewDidRemoveNavigationGestureSnapshot:m_webView];
 }
 
+#if USE(QUICK_LOOK)
+void NavigationState::didRequestPasswordForQuickLookDocument()
+{
+    if (!m_navigationDelegateMethods.webViewDidRequestPasswordForQuickLookDocument)
+        return;
+
+    auto navigationDelegate = m_navigationDelegate.get();
+    if (!navigationDelegate)
+        return;
+
+    [static_cast<id <WKNavigationDelegatePrivate>>(navigationDelegate) _webViewDidRequestPasswordForQuickLookDocument:m_webView];
+}
+#endif
+
 void NavigationState::didFirstPaint()
 {
     if (!m_navigationDelegateMethods.webViewRenderingProgressDidChange)
@@ -296,7 +311,7 @@ void NavigationState::NavigationClient::decidePolicyForNavigationAction(WebPageP
         RefPtr<API::NavigationAction> localNavigationAction = &navigationAction;
         RefPtr<WebFramePolicyListenerProxy> localListener = WTFMove(listener);
 
-        tryAppLink(WTFMove(localNavigationAction), mainFrameURLString, [localListener, localNavigationAction = RefPtr<API::NavigationAction>(&navigationAction)] (bool followedLinkToApp) {
+        tryAppLink(WTFMove(localNavigationAction), mainFrameURLString, [webPage = RefPtr<WebPageProxy>(&webPageProxy), localListener, localNavigationAction = RefPtr<API::NavigationAction>(&navigationAction)] (bool followedLinkToApp) {
             if (followedLinkToApp) {
                 localListener->ignore();
                 return;
@@ -308,7 +323,7 @@ void NavigationState::NavigationClient::decidePolicyForNavigationAction(WebPageP
             }
 
             RetainPtr<NSURLRequest> nsURLRequest = adoptNS(wrapper(API::URLRequest::create(localNavigationAction->request()).leakRef()));
-            if ([NSURLConnection canHandleRequest:nsURLRequest.get()]) {
+            if ([NSURLConnection canHandleRequest:nsURLRequest.get()] || webPage->urlSchemeHandlerForScheme([nsURLRequest URL].scheme)) {
                 if (localNavigationAction->shouldPerformDownload())
                     localListener->download();
                 else
@@ -872,7 +887,7 @@ void NavigationState::didChangeIsLoading()
     } else {
         // Delay releasing the background activity for 3 seconds to give the application a chance to start another navigation
         // before suspending the WebContent process <rdar://problem/27910964>.
-        m_releaseActivityTimer.startOneShot(3s);
+        m_releaseActivityTimer.startOneShot(3_s);
     }
 #endif
 

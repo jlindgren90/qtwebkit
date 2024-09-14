@@ -1,3 +1,307 @@
+2017-04-27  Alex Christensen  <achristensen@webkit.org>
+
+        Modernize Frame.h
+        https://bugs.webkit.org/show_bug.cgi?id=171357
+
+        Reviewed by Andy Estes.
+
+        * WebCoreSupport/WebEditorClient.cpp:
+        (WebEditorClient::isSelectTrailingWhitespaceEnabled):
+        * WebCoreSupport/WebEditorClient.h:
+
+2017-04-20  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [WinCairo] Fix build break after updating ANGLE
+        https://bugs.webkit.org/show_bug.cgi?id=170980
+
+        Reviewed by Brent Fulgham.
+
+        * WebCoreSupport/AcceleratedCompositingContext.cpp: Define GL_GLEXT_PROTOTYPES.
+
+2017-04-19  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] REGRESSION(r215486): Windows Release build is broken
+        https://bugs.webkit.org/show_bug.cgi?id=171024
+        <rdar://problem/31722618>
+
+        Reviewed by Mark Lam.
+
+        Windows WebKit refers to a handful of JSC methods that are always
+        inline. We need to include 'HeapInlines.h' to get the implementation
+        of these methods.
+
+        * Plugins/PluginPackage.cpp:
+        * WebFrame.cpp:
+        * WebView.cpp:
+
+2017-04-15  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Unreviewed, fix the Windows build after r215385
+
+        r215385 introduced a new virtual method on ChromeClient that needs to be implemented in WebChromeClient for
+        Windows in WebKit1.
+
+        * WebCoreSupport/WebChromeClient.cpp:
+        (WebChromeClient::createIconForFiles):
+        * WebCoreSupport/WebChromeClient.h:
+
+2017-04-10  Chris Dumez  <cdumez@apple.com>
+
+        Drop Timer::startOneShot() overload taking a double
+        https://bugs.webkit.org/show_bug.cgi?id=170659
+
+        Reviewed by Yusuke Suzuki.
+
+        Drop Timer::startOneShot() overload taking a double as people should use Seconds type now.
+
+        * Plugins/PluginMessageThrottlerWin.cpp:
+        (WebCore::PluginMessageThrottlerWin::appendMessage):
+        (WebCore::PluginMessageThrottlerWin::messageThrottleTimerFired):
+        * Plugins/PluginViewWin.cpp:
+        (WebCore::PluginView::invalidateRect):
+        * WebCoreSupport/AcceleratedCompositingContext.cpp:
+        (AcceleratedCompositingContext::scheduleLayerFlush):
+
+2017-04-09  Chris Dumez  <cdumez@apple.com>
+
+        Drop Timer::startRepeating() overload taking a double
+        https://bugs.webkit.org/show_bug.cgi?id=170656
+
+        Reviewed by Yusuke Suzuki.
+
+        Drop Timer::startRepeating() overload taking a double as people should use Seconds type now.
+
+        * FullscreenVideoController.cpp:
+
+2017-04-09  Chris Dumez  <cdumez@apple.com>
+
+        Start dropping Timer API dealing with double
+        https://bugs.webkit.org/show_bug.cgi?id=170649
+
+        Reviewed by Yusuke Suzuki.
+
+        Start dropping Timer API dealing with double as people should use Seconds now.
+
+        * Plugins/PluginPackage.cpp:
+        (WebCore::PluginPackage::freeLibrarySoon):
+        * Plugins/PluginStream.cpp:
+        (WebCore::PluginStream::deliverData):
+        * Plugins/PluginView.cpp:
+        (WebCore::PluginView::requestTimerFired):
+        (WebCore::PluginView::scheduleRequest):
+        (WebCore::PluginView::setJavaScriptPaused):
+        (WebCore::PluginView::keepAlive):
+        * Plugins/PluginViewWin.cpp:
+        (WebCore::PluginView::wndProc):
+        * WebView.cpp:
+        (WebView::closeWindowSoon):
+
+2017-04-08  Chris Dumez  <cdumez@apple.com>
+
+        Drop std::chrono support from Timer class
+        https://bugs.webkit.org/show_bug.cgi?id=170645
+
+        Reviewed by Sam Weinig.
+
+        Drop std::chrono support from Timer class now that we prefer using Seconds type.
+
+        * WebView.cpp:
+        (WebView::setCacheModel):
+
+2017-03-31  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [WinCairo] WebCore::PlatformDisplay::terminateEGLDisplay causes a crash in libGLESv2.dll while processing atexit
+        https://bugs.webkit.org/show_bug.cgi?id=170331
+
+        Reviewed by Michael Catanzaro.
+
+        * WebKitDLL.cpp:
+        (shutDownWebKit): Call PlatformDisplay::shutDownEglDisplays in shutDownWebKit.
+
+2017-03-30  James Craig  <jcraig@apple.com>
+
+        AX: Expose a new AXSubrole for explicit ARIA "group" role
+        https://bugs.webkit.org/show_bug.cgi?id=169810
+        <rdar://problem/31039693>
+
+        Reviewed by Chris Fleizach.
+
+        Account for Windows platform role mapping.
+
+        * AccessibleBase.cpp:
+        (MSAARole):
+
+2017-03-24  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        [WK2] Add a UI delegate SPI hook to enable or disable navigation on drop
+        https://bugs.webkit.org/show_bug.cgi?id=169168
+        <rdar://problem/30688374>
+
+        Reviewed by Tim Horton.
+
+        Minor tweak to adjust for a changed interface. See WebKit and WebCore ChangeLogs for more information.
+
+        * WebCoreSupport/WebDragClient.cpp:
+        (WebDragClient::actionMaskForDrag):
+        * WebCoreSupport/WebDragClient.h:
+
+2017-03-13  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Compile fix.
+        https://bugs.webkit.org/show_bug.cgi?id=169545
+
+        Reviewed by Brent Fulgham.
+
+        Fix inconsistent dll linkage warnings.
+ 
+        * WebKitDLL.cpp:
+        * WebKitDLL.h:
+
+2017-03-13  Per Arne Vollan  <pvollan@apple.com>
+
+        Unreviewed Win build fix.
+        
+        WebCore::CookiesStrategy::addCookie has been removed, we should also remove the override.
+
+        * WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebPlatformStrategies::addCookie): Deleted.
+        (WebPlatformStrategies::addCookie): Deleted.
+        * WebCoreSupport/WebPlatformStrategies.h:
+
+2017-03-10  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Re-export a few symbols for backwards compatibility
+        https://bugs.webkit.org/show_bug.cgi?id=169490
+        <rdar://problem/30983623>
+
+        Reviewed by Dean Jackson.
+
+        Re-introduce a workaround that re-exports a few JavaScriptCore functions
+        that had been erroneously exported by WebKit in older builds. This
+        is needed so that we do not break certain old software still being used.
+
+        * WebKitDLL.cpp:
+        (DllMain): Bind functions at startup.
+        (bindJavaScriptTrampoline): Find JavaScriptCore library functions and
+        re-export them from WebKit.dll.
+        * WebKitDLL.h: Only advertise these functions when building WebKt itself.
+
+2017-03-06  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Expand font-weight and font-stretch to take any number
+        https://bugs.webkit.org/show_bug.cgi?id=168889
+
+        Reviewed by Simon Fraser.
+
+        Migrate off old enum types.
+
+        * WebKitGraphics.cpp:
+        (makeFont):
+
+2017-03-02  Sam Weinig  <sam@webkit.org>
+
+        Rename htmlediting.h/cpp to Editing.h/cpp
+        https://bugs.webkit.org/show_bug.cgi?id=169103
+
+        Reviewed by Alex Christensen.
+
+        * AccessibleTextImpl.cpp:
+
+2017-03-01  Alex Christensen  <achristensen@webkit.org>
+
+        Actually fix Windows build.
+
+        * WebFrame.cpp:
+        (WebFrame::invalidate):
+        r213266 changed Style::Force to ResolveStyleType::Rebuild, so I did so here.
+
+2017-03-01  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build after r213266
+        https://bugs.webkit.org/show_bug.cgi?id=169049
+
+        * WebFrame.cpp:
+        (WebFrame::invalidate):
+
+2017-02-27  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Http preload tests are failing.
+        https://bugs.webkit.org/show_bug.cgi?id=168910
+
+        Reviewed by Alex Christensen.
+
+        The feature is not enabled.
+
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
+2017-02-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Better handle Thread and RunLoop initialization
+        https://bugs.webkit.org/show_bug.cgi?id=167828
+
+        Reviewed by Yusuke Suzuki.
+
+        Remove unnecessary call to WTF::initializeMainThread().
+
+        * WebView.cpp:
+        (WebView::WebView):
+
+2017-02-20  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Custom scale factor is not applied in all cases.
+        https://bugs.webkit.org/show_bug.cgi?id=168117
+
+        Reviewed by Brent Fulgham.
+
+        We should not call the function deviceScaleFactorForWindow directly, since this
+        will return the system scale factor, and ignore the custom scale factor.
+
+        * WebView.cpp:
+        (WebView::handleContextMenuEvent):
+        (WebView::handleMouseEvent):
+        (WebView::setAcceleratedCompositing):
+
+2017-02-16  Daniel Bates  <dabates@apple.com>
+
+        Remove Chromium-specific code to call FrameLoaderClient::redirectDataToPlugin(nullptr)
+        https://bugs.webkit.org/show_bug.cgi?id=168417
+        <rdar://problem/30541748>
+
+        Reviewed by Brent Fulgham.
+
+        Update override of FrameLoaderClient::redirectDataToPlugin() to take a Widget& instead of a
+        Widget* as it is always called with a valid Widget.
+
+        * WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebFrameLoaderClient::redirectDataToPlugin):
+        * WebCoreSupport/WebFrameLoaderClient.h:
+
+2017-02-15  Anders Carlsson  <andersca@apple.com>
+
+        Another attempt at fixing the Windows build.
+
+        * WebCoreSupport/WebDragClient.cpp:
+        (WebDragClient::startDrag):
+
+2017-02-15  Anders Carlsson  <andersca@apple.com>
+
+        Try to fix the Windows build.
+
+        * WebCoreSupport/WebDragClient.h:
+
+2017-02-15  Anders Carlsson  <andersca@apple.com>
+
+        Modernize DragClient::startDrag somewhat
+        https://bugs.webkit.org/show_bug.cgi?id=168379
+
+        Reviewed by Tim Horton.
+
+        Update for WebCore changes.
+
+        * WebCoreSupport/WebDragClient.cpp:
+        (WebDragClient::startDrag):
+
 2017-02-10  Daniel Bates  <dabates@apple.com>
 
         Attempt to fix the WinCairo 64-Bit Release build following <https://trac.webkit.org/changeset/212173>

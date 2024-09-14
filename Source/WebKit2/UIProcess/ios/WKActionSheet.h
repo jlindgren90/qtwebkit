@@ -30,7 +30,8 @@
 
 typedef NS_ENUM(NSInteger, WKActionSheetPresentationStyle) {
     WKActionSheetPresentAtTouchLocation,
-    WKActionSheetPresentAtElementRect
+    WKActionSheetPresentAtElementRect,
+    WKActionSheetPresentAtClosestIndicatorRect
 };
 
 @protocol WKActionSheetDelegate;
@@ -40,7 +41,7 @@ typedef NS_ENUM(NSInteger, WKActionSheetPresentationStyle) {
 
 @property (nonatomic, assign) id <WKActionSheetDelegate> sheetDelegate;
 @property (nonatomic) UIPopoverArrowDirection arrowDirections;
-- (void)doneWithSheet;
+- (void)doneWithSheet:(BOOL)dismiss;
 - (BOOL)presentSheet:(WKActionSheetPresentationStyle)style;
 - (BOOL)presentSheetFromRect:(CGRect)presentationRect;
 - (void)updateSheetPosition;
@@ -51,6 +52,7 @@ typedef NS_ENUM(NSInteger, WKActionSheetPresentationStyle) {
 - (UIView *)hostViewForSheet;
 - (CGRect)initialPresentationRectInHostViewForSheet;
 - (CGRect)presentationRectForIndicatedElement;
+- (CGRect)presentationRectForElementUsingClosestIndicatedRect;
 - (CGRect)presentationRectInHostViewForSheet;
 - (void)updatePositionInformation;
 @end

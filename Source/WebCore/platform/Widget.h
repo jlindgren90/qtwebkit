@@ -73,10 +73,6 @@ QT_END_NAMESPACE
 typedef QObject* PlatformWidget;
 #endif
 
-#if PLATFORM(EFL)
-typedef Evas_Object* PlatformWidget;
-#endif
-
 #if PLATFORM(QT)
 class QWebPageClient;
 typedef QWebPageClient* PlatformPageClient;

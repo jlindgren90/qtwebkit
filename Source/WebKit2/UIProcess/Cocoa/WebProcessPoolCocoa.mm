@@ -26,6 +26,7 @@
 #import "config.h"
 #import "WebProcessPool.h"
 
+#import "LegacyCustomProtocolManagerClient.h"
 #import "NetworkProcessCreationParameters.h"
 #import "NetworkProcessMessages.h"
 #import "NetworkProcessProxy.h"
@@ -146,8 +147,9 @@ void WebProcessPool::platformInitialize()
     WebKit::WebMemoryPressureHandler::singleton();
 #endif
 
-    if (m_websiteDataStore)
-        m_websiteDataStore->registerSharedResourceLoadObserver();
+    setLegacyCustomProtocolManagerClient(std::make_unique<LegacyCustomProtocolManagerClient>());
+
+    m_websiteDataStore->websiteDataStore().registerSharedResourceLoadObserver();
 }
 
 #if PLATFORM(IOS)
@@ -245,6 +247,17 @@ void WebProcessPool::platformInitializeWebProcess(WebProcessCreationParameters& 
     ASSERT(parameters.uiProcessCookieStorageIdentifier.isEmpty());
     parameters.uiProcessCookieStorageIdentifier.append(CFDataGetBytePtr(cookieStorageData.get()), CFDataGetLength(cookieStorageData.get()));
 #endif
+#if ENABLE(MEDIA_STREAM)
+    // Allow microphone access if either preference is set because WebRTC requires microphone access.
+    bool mediaDevicesEnabled = m_defaultPageGroup->preferences().mediaDevicesEnabled();
+    bool webRTCEnabled = m_defaultPageGroup->preferences().peerConnectionEnabled();
+    if ([defaults objectForKey:@"ExperimentalPeerConnectionEnabled"])
+        webRTCEnabled = [defaults boolForKey:@"ExperimentalPeerConnectionEnabled"];
+    
+    // FIXME: Remove this and related parameter when <rdar://problem/29448368> is fixed.
+    if (!parameters.shouldCaptureAudioInUIProcess && (mediaDevicesEnabled || webRTCEnabled))
+        SandboxExtension::createHandleForGenericExtension("com.apple.webkit.microphone", parameters.audioCaptureExtensionHandle);
+#endif
 }
 
 void WebProcessPool::platformInitializeNetworkProcess(NetworkProcessCreationParameters& parameters)
@@ -255,9 +268,6 @@ void WebProcessPool::platformInitializeNetworkProcess(NetworkProcessCreationPara
 
     parameters.parentProcessName = [[NSProcessInfo processInfo] processName];
     parameters.uiProcessBundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-
-    for (const auto& scheme : globalURLSchemesWithCustomProtocolHandlers())
-        parameters.urlSchemesRegisteredForCustomProtocols.append(scheme);
 
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 
@@ -279,7 +289,7 @@ void WebProcessPool::platformInitializeNetworkProcess(NetworkProcessCreationPara
 #endif
 
     parameters.shouldSuppressMemoryPressureHandler = [defaults boolForKey:WebKitSuppressMemoryPressureHandlerDefaultsKey];
-    parameters.loadThrottleLatency = std::chrono::milliseconds([defaults integerForKey:WebKitNetworkLoadThrottleLatencyMillisecondsDefaultsKey]);
+    parameters.loadThrottleLatency = Seconds { [defaults integerForKey:WebKitNetworkLoadThrottleLatencyMillisecondsDefaultsKey] / 1000. };
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     RetainPtr<CFDataRef> cookieStorageData = adoptCF(CFHTTPCookieStorageCreateIdentifyingData(kCFAllocatorDefault, [[NSHTTPCookieStorage sharedHTTPCookieStorage] _cookieStorage]));
@@ -294,6 +304,14 @@ void WebProcessPool::platformInitializeNetworkProcess(NetworkProcessCreationPara
     parameters.recordReplayCacheLocation = [defaults stringForKey:WebKitRecordReplayCacheLocationDefaultsKey];
     if (parameters.recordReplayCacheLocation.isEmpty())
         parameters.recordReplayCacheLocation = parameters.diskCacheDirectory;
+#endif
+#if ENABLE(WEB_RTC)
+    bool webRTCEnabled = m_defaultPageGroup->preferences().peerConnectionEnabled();
+    if ([defaults objectForKey:@"ExperimentalPeerConnectionEnabled"])
+        webRTCEnabled = [defaults boolForKey:@"ExperimentalPeerConnectionEnabled"];
+
+    if (webRTCEnabled)
+        SandboxExtension::createHandleForGenericExtension("com.apple.webkit.webrtc", parameters.webRTCNetworkingHandle);
 #endif
 }
 
@@ -320,7 +338,7 @@ String WebProcessPool::networkingCachesDirectory() const
     NSError *error = nil;
     NSString* nsPath = path;
     if (![[NSFileManager defaultManager] createDirectoryAtPath:nsPath withIntermediateDirectories:YES attributes:nil error:&error]) {
-        NSLog(@"could not create \"%@\", error %@", nsPath, error);
+        NSLog(@"could not create networking caches directory \"%@\", error %@", nsPath, error);
         return String();
     }
 
@@ -339,7 +357,7 @@ String WebProcessPool::webContentCachesDirectory() const
     NSError *error = nil;
     NSString* nsPath = path;
     if (![[NSFileManager defaultManager] createDirectoryAtPath:nsPath withIntermediateDirectories:YES attributes:nil error:&error]) {
-        NSLog(@"could not create \"%@\", error %@", nsPath, error);
+        NSLog(@"could not create web content caches directory \"%@\", error %@", nsPath, error);
         return String();
     }
 
@@ -452,6 +470,33 @@ String WebProcessPool::legacyPlatformDefaultNetworkCacheDirectory()
 
     return stringByResolvingSymlinksInPath([cachePath stringByStandardizingPath]);
 }
+
+String WebProcessPool::legacyPlatformDefaultJavaScriptConfigurationDirectory()
+{
+#if PLATFORM(IOS)
+    String path = pathForProcessContainer();
+    if (path.isEmpty())
+        path = NSHomeDirectory();
+    
+    path = path + "/Library/WebKit/JavaScriptCoreDebug";
+    path = stringByResolvingSymlinksInPath(path);
+
+    return path;
+#else
+    RetainPtr<NSString> javaScriptConfigPath = @"~/Library/WebKit/JavaScriptCoreDebug";
+    
+    return stringByResolvingSymlinksInPath([javaScriptConfigPath stringByStandardizingPath]);
+#endif
+}
+
+#if PLATFORM(IOS)
+void WebProcessPool::setJavaScriptConfigurationFileEnabledFromDefaults()
+{
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+    setJavaScriptConfigurationFileEnabled([defaults boolForKey:@"WebKitJavaScriptCoreUseConfigFile"]);
+}
+#endif
 
 bool WebProcessPool::isNetworkCacheEnabled()
 {

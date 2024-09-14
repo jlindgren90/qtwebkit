@@ -38,6 +38,10 @@
 #include <WebCore/PageOverlayController.h>
 #include <WebCore/Settings.h>
 
+#if USE(GLIB_EVENT_LOOP)
+#include <wtf/glib/RunLoopSourcePriority.h>
+#endif
+
 using namespace WebCore;
 
 namespace WebKit {
@@ -50,14 +54,13 @@ AcceleratedDrawingArea::~AcceleratedDrawingArea()
 }
 
 AcceleratedDrawingArea::AcceleratedDrawingArea(WebPage& webPage, const WebPageCreationParameters& parameters)
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
-    : DrawingArea(DrawingAreaTypeCoordinated, webPage)
-#else
     : DrawingArea(DrawingAreaTypeImpl, webPage)
-#endif
     , m_exitCompositingTimer(RunLoop::main(), this, &AcceleratedDrawingArea::exitAcceleratedCompositingMode)
     , m_discardPreviousLayerTreeHostTimer(RunLoop::main(), this, &AcceleratedDrawingArea::discardPreviousLayerTreeHost)
 {
+#if USE(GLIB_EVENT_LOOP)
+    m_discardPreviousLayerTreeHostTimer.setPriority(RunLoopSourcePriority::ReleaseUnusedResourcesTimer);
+#endif
     if (!m_webPage.isVisible())
         suspendPainting();
 }
@@ -220,6 +223,15 @@ void AcceleratedDrawingArea::scheduleCompositingLayerFlushImmediately()
     scheduleCompositingLayerFlush();
 }
 
+#if USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
+RefPtr<WebCore::DisplayRefreshMonitor> AcceleratedDrawingArea::createDisplayRefreshMonitor(WebCore::PlatformDisplayID displayID)
+{
+    if (!m_layerTreeHost || m_wantsToExitAcceleratedCompositingMode || exitAcceleratedCompositingModePending())
+        return nullptr;
+    return m_layerTreeHost->createDisplayRefreshMonitor(displayID);
+}
+#endif
+
 void AcceleratedDrawingArea::updateBackingStoreState(uint64_t stateID, bool respondImmediately, float deviceScaleFactor, const IntSize& size, const IntSize& scrollOffset)
 {
     ASSERT(!m_inUpdateBackingStoreState);
@@ -235,16 +247,10 @@ void AcceleratedDrawingArea::updateBackingStoreState(uint64_t stateID, bool resp
         m_webPage.layoutIfNeeded();
         m_webPage.scrollMainFrameIfNotAtMaxScrollPosition(scrollOffset);
 
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
-        // Coordinated Graphics sets the size of the root layer to contents size.
-        if (!m_webPage.useFixedLayout())
-            m_layerTreeHost->sizeDidChange(m_webPage.size());
-#else
         if (m_layerTreeHost)
             m_layerTreeHost->sizeDidChange(m_webPage.size());
         else if (m_previousLayerTreeHost)
             m_previousLayerTreeHost->sizeDidChange(m_webPage.size());
-#endif
     } else {
         ASSERT(size == m_webPage.size());
         if (!m_shouldSendDidUpdateBackingStoreState) {
@@ -371,7 +377,7 @@ void AcceleratedDrawingArea::exitAcceleratedCompositingModeSoon()
     if (exitAcceleratedCompositingModePending())
         return;
 
-    m_exitCompositingTimer.startOneShot(0);
+    m_exitCompositingTimer.startOneShot(0_s);
 }
 
 void AcceleratedDrawingArea::exitAcceleratedCompositingModeNow()
@@ -387,7 +393,7 @@ void AcceleratedDrawingArea::exitAcceleratedCompositingModeNow()
     m_previousLayerTreeHost->setIsDiscardable(true);
     m_previousLayerTreeHost->pauseRendering();
     m_previousLayerTreeHost->setLayerFlushSchedulingEnabled(false);
-    m_discardPreviousLayerTreeHostTimer.startOneShot(5);
+    m_discardPreviousLayerTreeHostTimer.startOneShot(5_s);
 #else
     m_layerTreeHost = nullptr;
 #endif
@@ -402,13 +408,6 @@ void AcceleratedDrawingArea::discardPreviousLayerTreeHost()
     m_previousLayerTreeHost->invalidate();
     m_previousLayerTreeHost = nullptr;
 }
-
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
-void AcceleratedDrawingArea::didReceiveCoordinatedLayerTreeHostMessage(IPC::Connection& connection, IPC::Decoder& decoder)
-{
-    m_layerTreeHost->didReceiveCoordinatedLayerTreeHostMessage(connection, decoder);
-}
-#endif
 
 #if USE(TEXTURE_MAPPER_GL) && PLATFORM(GTK) && PLATFORM(X11) && !USE(REDIRECTED_XCOMPOSITE_WINDOW)
 void AcceleratedDrawingArea::setNativeSurfaceHandleForCompositing(uint64_t handle)

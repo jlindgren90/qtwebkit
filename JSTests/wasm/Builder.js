@@ -27,12 +27,7 @@ import * as assert from 'assert.js';
 import * as BuildWebAssembly from 'Builder_WebAssemblyBinary.js';
 import * as LLB from 'LowLevelBinary.js';
 import * as WASM from 'WASM.js';
-
-const _toJavaScriptName = name => {
-    const camelCase = name.replace(/([^a-z0-9].)/g, c => c[1].toUpperCase());
-    const CamelCase = camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
-    return CamelCase;
-};
+import * as util from 'utilities.js';
 
 const _isValidValue = (value, type) => {
     switch (type) {
@@ -192,7 +187,7 @@ const _normalizeMutability = (mutability) => {
     else if (mutability === "immutable")
         return 0;
     else
-        throw new Error(`mutability should be either "mutable" or "immutable", but got ${global.mutablity}`);
+        throw new Error(`mutability should be either "mutable" or "immutable", but got ${mutability}`);
 };
 
 const _exportGlobalContinuation = (builder, section, nextBuilder) => {
@@ -225,7 +220,7 @@ const _importGlobalContinuation = (builder, section, nextBuilder) => {
             End: () => nextBuilder
         };
         for (let op of WASM.description.value_type) {
-            globalBuilder[_toJavaScriptName(op)] = (module, field, mutability) => {
+            globalBuilder[util.toJavaScriptName(op)] = (module, field, mutability) => {
                 assert.isString(module, `Import global module should be a string, got "${module}"`);
                 assert.isString(field, `Import global field should be a string, got "${field}"`);
                 assert.isString(mutability, `Import global mutability should be a string, got "${mutability}"`);
@@ -318,7 +313,7 @@ const _checkImms = (op, imms, expectedImms, ret) => {
 const _createFunctionBuilder = (func, builder, previousBuilder) => {
     let functionBuilder = {};
     for (const op in WASM.description.opcode) {
-        const name = _toJavaScriptName(op);
+        const name = util.toJavaScriptName(op);
         const value = WASM.description.opcode[op].value;
         const ret = WASM.description.opcode[op]["return"];
         const param = WASM.description.opcode[op].parameter;
@@ -423,7 +418,7 @@ export default class Builder {
             preamble[p.name] = p.value;
         this.setPreamble(preamble);
         this._sections = [];
-        this._functionIndexSpace = {};
+        this._functionIndexSpace = new Map();
         this._functionIndexSpaceCount = 0;
         this._registerSectionBuilders();
     }
@@ -435,18 +430,29 @@ export default class Builder {
         this._preamble = Object.assign(this._preamble || {}, p);
         return this;
     }
+    _functionIndexSpaceKeyHash(obj) {
+        // We don't need a full hash, just something that has a defined order for Map. Objects we insert aren't nested.
+        if (typeof(obj) !== 'object')
+            return obj;
+        const keys = Object.keys(obj).sort();
+        let entries = [];
+        for (let k in keys)
+            entries.push([k, obj[k]]);
+        return JSON.stringify(entries);
+    }
     _registerFunctionToIndexSpace(name) {
         if (typeof(name) === "undefined") {
             // Registering a nameless function still adds it to the function index space. Register it as something that can't normally be registered.
             name = {};
         }
+        const value = this._functionIndexSpaceCount++;
         // Collisions are fine: we'll simply count the function and forget the previous one.
-        this._functionIndexSpace[name] = this._functionIndexSpaceCount++;
+        this._functionIndexSpace.set(this._functionIndexSpaceKeyHash(name), value);
         // Map it both ways, the number space is distinct from the name space.
-        this._functionIndexSpace[this._functionIndexSpace[name]] = name;
+        this._functionIndexSpace.set(this._functionIndexSpaceKeyHash(value), name);
     }
     _getFunctionFromIndexSpace(name) {
-        return this._functionIndexSpace[name];
+        return this._functionIndexSpace.get(this._functionIndexSpaceKeyHash(name));
     }
     _registerSectionBuilders() {
         for (const section in WASM.description.section) {
@@ -531,7 +537,7 @@ export default class Builder {
                         }
                     };
                     for (let op of WASM.description.value_type) {
-                        globalBuilder[_toJavaScriptName(op)] = (initValue, mutability) => {
+                        globalBuilder[util.toJavaScriptName(op)] = (initValue, mutability) => {
                             s.data.push({ type: op, op: op + ".const", mutability: _normalizeMutability(mutability), initValue });
                             return _errorHandlingProxyFor(globalBuilder);
                         };
@@ -568,7 +574,10 @@ export default class Builder {
                 break;
 
             case "Element":
-                this[section] = function() {
+                this[section] = function(...args) {
+                    if (args.length !== 0)
+                        throw new Error("You're doing it wrong. This element does not take arguments. You must chain the call with another Element()");
+
                     const s = this._addSection(section);
                     const elementBuilder = {
                         End: () => this,

@@ -81,7 +81,6 @@ public:
     DECLARE_PROPERTY_CUSTOM_HANDLERS(Fill);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(FontFamily);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(FontSize);
-    DECLARE_PROPERTY_CUSTOM_HANDLERS(FontWeight);
 #if ENABLE(CSS_IMAGE_RESOLUTION)
     DECLARE_PROPERTY_CUSTOM_HANDLERS(ImageResolution);
 #endif
@@ -98,11 +97,9 @@ public:
     DECLARE_PROPERTY_CUSTOM_HANDLERS(FontVariantLigatures);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(FontVariantNumeric);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(FontVariantEastAsian);
-#if ENABLE(CSS_GRID_LAYOUT)
     DECLARE_PROPERTY_CUSTOM_HANDLERS(GridTemplateAreas);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(GridTemplateColumns);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(GridTemplateRows);
-#endif // ENABLE(CSS_GRID_LAYOUT)
     DECLARE_PROPERTY_CUSTOM_HANDLERS(WebkitMaskBoxImageOutset);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(WebkitMaskBoxImageRepeat);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(WebkitMaskBoxImageSlice);
@@ -129,6 +126,8 @@ public:
     static void applyValueBaselineShift(StyleResolver&, CSSValue&);
     static void applyValueDirection(StyleResolver&, CSSValue&);
     static void applyValueVerticalAlign(StyleResolver&, CSSValue&);
+    static void applyInitialTextAlign(StyleResolver&);
+    static void applyValueTextAlign(StyleResolver&, CSSValue&);
 #if ENABLE(DASHBOARD_SUPPORT)
     static void applyValueWebkitDashboardRegion(StyleResolver&, CSSValue&);
 #endif
@@ -141,6 +140,9 @@ public:
     static void applyValueWritingMode(StyleResolver&, CSSValue&);
     static void applyValueAlt(StyleResolver&, CSSValue&);
     static void applyValueWillChange(StyleResolver&, CSSValue&);
+
+    static void applyValueStrokeWidth(StyleResolver&, CSSValue&);
+    static void applyValueStrokeColor(StyleResolver&, CSSValue&);
 
 private:
     static void resetEffectiveZoom(StyleResolver&);
@@ -168,6 +170,18 @@ inline void StyleBuilderCustom::applyValueDirection(StyleResolver& styleResolver
 {
     styleResolver.style()->setDirection(downcast<CSSPrimitiveValue>(value));
     styleResolver.style()->setHasExplicitlySetDirection(true);
+}
+
+inline void StyleBuilderCustom::applyInitialTextAlign(StyleResolver& styleResolver)
+{
+    styleResolver.style()->setTextAlign(RenderStyle::initialTextAlign());
+    styleResolver.style()->setHasExplicitlySetTextAlign(true);
+}
+
+inline void StyleBuilderCustom::applyValueTextAlign(StyleResolver& styleResolver, CSSValue& value)
+{
+    styleResolver.style()->setTextAlign(StyleBuilderConverter::convertTextAlign(styleResolver, value));
+    styleResolver.style()->setHasExplicitlySetTextAlign(true);
 }
 
 inline void StyleBuilderCustom::resetEffectiveZoom(StyleResolver& styleResolver)
@@ -904,6 +918,10 @@ inline void StyleBuilderCustom::applyValueFontFamily(StyleResolver& styleResolve
                 family = pictographFamily;
                 isGenericFamily = true;
                 break;
+            case CSSValueSystemUi:
+                family = systemUiFamily;
+                isGenericFamily = true;
+                break;
             default:
                 break;
             }
@@ -1293,42 +1311,6 @@ inline void StyleBuilderCustom::applyValueWebkitSvgShadow(StyleResolver& styleRe
     svgStyle.setShadow(std::make_unique<ShadowData>(location, blur, 0, Normal, false, color.isValid() ? color : Color::transparent));
 }
 
-inline void StyleBuilderCustom::applyInitialFontWeight(StyleResolver& styleResolver)
-{
-    auto fontDescription = styleResolver.fontDescription();
-    fontDescription.setWeight(FontWeightNormal);
-    styleResolver.setFontDescription(fontDescription);
-}
-
-inline void StyleBuilderCustom::applyInheritFontWeight(StyleResolver& styleResolver)
-{
-    auto fontDescription = styleResolver.fontDescription();
-    fontDescription.setWeight(styleResolver.parentFontDescription().weight());
-    styleResolver.setFontDescription(fontDescription);
-}
-
-inline void StyleBuilderCustom::applyValueFontWeight(StyleResolver& styleResolver, CSSValue& value)
-{
-    auto& primitiveValue = downcast<CSSPrimitiveValue>(value);
-    auto fontDescription = styleResolver.fontDescription();
-    switch (primitiveValue.valueID()) {
-    case CSSValueInvalid:
-        ASSERT_NOT_REACHED();
-        break;
-    case CSSValueBolder:
-        fontDescription.setWeight(styleResolver.parentStyle()->fontDescription().weight());
-        fontDescription.setWeight(fontDescription.bolderWeight());
-        break;
-    case CSSValueLighter:
-        fontDescription.setWeight(styleResolver.parentStyle()->fontDescription().weight());
-        fontDescription.setWeight(fontDescription.lighterWeight());
-        break;
-    default:
-        fontDescription.setWeight(primitiveValue);
-    }
-    styleResolver.setFontDescription(fontDescription);
-}
-
 inline void StyleBuilderCustom::applyInitialColumnGap(StyleResolver& styleResolver)
 {
     styleResolver.style()->setHasNormalColumnGap();
@@ -1664,7 +1646,6 @@ inline void StyleBuilderCustom::applyValueFontSize(StyleResolver& styleResolver,
     styleResolver.setFontDescription(fontDescription);
 }
 
-#if ENABLE(CSS_GRID_LAYOUT)
 inline void StyleBuilderCustom::applyInitialGridTemplateAreas(StyleResolver& styleResolver)
 {
     styleResolver.style()->setNamedGridArea(RenderStyle::initialNamedGridArea());
@@ -1763,7 +1744,6 @@ inline void StyleBuilderCustom::applyValueGridTemplateRows(StyleResolver& styleR
 
     SET_TRACKS_DATA(tracksData, styleResolver.style(), Row);
 }
-#endif // ENABLE(CSS_GRID_LAYOUT)
 
 void StyleBuilderCustom::applyValueAlt(StyleResolver& styleResolver, CSSValue& value)
 {
@@ -1815,6 +1795,22 @@ inline void StyleBuilderCustom::applyValueWillChange(StyleResolver& styleResolve
         }
     }
     styleResolver.style()->setWillChange(WTFMove(willChange));
+}
+
+inline void StyleBuilderCustom::applyValueStrokeWidth(StyleResolver& styleResolver, CSSValue& value)
+{
+    styleResolver.style()->setStrokeWidth(StyleBuilderConverter::convertLength(styleResolver, value));
+    styleResolver.style()->setHasExplicitlySetStrokeWidth(true);
+}
+
+inline void StyleBuilderCustom::applyValueStrokeColor(StyleResolver& styleResolver, CSSValue& value)
+{
+    auto& primitiveValue = downcast<CSSPrimitiveValue>(value);
+    if (styleResolver.applyPropertyToRegularStyle())
+        styleResolver.style()->setStrokeColor(styleResolver.colorFromPrimitiveValue(primitiveValue, /* forVisitedLink */ false));
+    if (styleResolver.applyPropertyToVisitedLinkStyle())
+        styleResolver.style()->setVisitedLinkStrokeColor(styleResolver.colorFromPrimitiveValue(primitiveValue, /* forVisitedLink */ true));
+    styleResolver.style()->setHasExplicitlySetStrokeColor(true);
 }
 
 } // namespace WebCore

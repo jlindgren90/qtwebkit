@@ -26,6 +26,7 @@
 #pragma once
 
 #include "APIUserInitiatedAction.h"
+#include "BackgroundProcessResponsivenessTimer.h"
 #include "ChildProcessProxy.h"
 #include "MessageReceiverMap.h"
 #include "PluginInfoStore.h"
@@ -54,38 +55,50 @@ struct PluginInfo;
 
 namespace WebKit {
 
+enum class SimulatedCrashReason {
+    ExceededActiveMemoryLimit,
+    ExceededInactiveMemoryLimit,
+    ExceededBackgroundCPULimit,
+};
+
 class NetworkProcessProxy;
+class UserMediaCaptureManagerProxy;
 class WebBackForwardListItem;
 class WebPageGroup;
 class WebProcessPool;
+class WebsiteDataStore;
 enum class WebsiteDataType;
 struct WebNavigationDataStore;
 struct WebsiteData;
 
-class WebProcessProxy : public ChildProcessProxy, ResponsivenessTimer::Client, private ProcessThrottlerClient {
+class WebProcessProxy : public ChildProcessProxy, public ResponsivenessTimer::Client, private ProcessThrottlerClient {
 public:
     typedef HashMap<uint64_t, RefPtr<WebBackForwardListItem>> WebBackForwardListItemMap;
     typedef HashMap<uint64_t, RefPtr<WebFrameProxy>> WebFrameProxyMap;
     typedef HashMap<uint64_t, WebPageProxy*> WebPageProxyMap;
     typedef HashMap<uint64_t, RefPtr<API::UserInitiatedAction>> UserInitiatedActionMap;
 
-    static Ref<WebProcessProxy> create(WebProcessPool&);
+    static Ref<WebProcessProxy> create(WebProcessPool&, WebsiteDataStore&);
     ~WebProcessProxy();
 
     WebConnection* webConnection() const { return m_webConnection.get(); }
 
     WebProcessPool& processPool() { return m_processPool; }
 
+    // FIXME: WebsiteDataStores should be made per-WebPageProxy throughout WebKit2
+    WebsiteDataStore& websiteDataStore() const { return m_websiteDataStore.get(); }
+
     static WebPageProxy* webPage(uint64_t pageID);
     Ref<WebPageProxy> createWebPage(PageClient&, Ref<API::PageConfiguration>&&);
-    void addExistingWebPage(WebPageProxy*, uint64_t pageID);
-    void removeWebPage(uint64_t pageID);
+    void addExistingWebPage(WebPageProxy&, uint64_t pageID);
+    void removeWebPage(WebPageProxy&, uint64_t pageID);
 
     WTF::IteratorRange<WebPageProxyMap::const_iterator::Values> pages() const { return m_pageMap.values(); }
     unsigned pageCount() const { return m_pageMap.size(); }
+    unsigned visiblePageCount() const { return m_visiblePageCounter.value(); }
 
     void addVisitedLinkStore(VisitedLinkStore&);
-    void addWebUserContentControllerProxy(WebUserContentControllerProxy&);
+    void addWebUserContentControllerProxy(WebUserContentControllerProxy&, WebPageCreationParameters&);
     void didDestroyVisitedLinkStore(VisitedLinkStore&);
     void didDestroyWebUserContentControllerProxy(WebUserContentControllerProxy&);
 
@@ -93,12 +106,15 @@ public:
     RefPtr<API::UserInitiatedAction> userInitiatedActivity(uint64_t);
 
     ResponsivenessTimer& responsivenessTimer() { return m_responsivenessTimer; }
+    bool isResponsive() const;
 
     WebFrameProxy* webFrame(uint64_t) const;
     bool canCreateFrame(uint64_t frameID) const;
     void frameCreated(uint64_t, WebFrameProxy*);
     void disconnectFramesFromPage(WebPageProxy*); // Including main frame.
     size_t frameCountInPage(WebPageProxy*) const; // Including main frame.
+
+    VisibleWebPageToken visiblePageToken() const;
 
     void updateTextCheckerState();
 
@@ -120,7 +136,7 @@ public:
     void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, Function<void(WebsiteData)> completionHandler);
     void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::chrono::system_clock::time_point modifiedSince, Function<void()> completionHandler);
     void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType>, const Vector<WebCore::SecurityOriginData>&, Function<void()> completionHandler);
-    static void deleteWebsiteDataForTopPrivatelyOwnedDomainsInAllPersistentDataStores(OptionSet<WebsiteDataType>, Vector<String>& topPrivatelyOwnedDomains, bool shouldNotifyPages, std::function<void()> completionHandler);
+    static void deleteWebsiteDataForTopPrivatelyControlledDomainsInAllPersistentDataStores(OptionSet<WebsiteDataType>, Vector<String>&& topPrivatelyControlledDomains, bool shouldNotifyPages, std::function<void(Vector<String>)> completionHandler);
 
     void enableSuddenTermination();
     void disableSuddenTermination();
@@ -149,9 +165,19 @@ public:
 
     void isResponsive(std::function<void(bool isWebProcessResponsive)>);
     void didReceiveMainThreadPing();
+    void didReceiveBackgroundResponsivenessPing();
+
+    void memoryPressureStatusChanged(bool isUnderMemoryPressure) { m_isUnderMemoryPressure = isUnderMemoryPressure; }
+    bool isUnderMemoryPressure() const { return m_isUnderMemoryPressure; }
+
+    void processTerminated();
+
+    void didExceedBackgroundCPULimit();
+    void didExceedActiveMemoryLimit();
+    void didExceedInactiveMemoryLimit();
 
 private:
-    explicit WebProcessProxy(WebProcessPool&);
+    explicit WebProcessProxy(WebProcessPool&, WebsiteDataStore&);
 
     // From ChildProcessProxy
     void getLaunchOptions(ProcessLauncher::LaunchOptions&) override;
@@ -189,6 +215,8 @@ private:
 
     static const HashSet<String>& platformPathsWithAssumedReadAccess();
 
+    void updateBackgroundResponsivenessTimer();
+
     // IPC::Connection::Client
     friend class WebConnectionToWebProcess;
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
@@ -219,7 +247,10 @@ private:
 
     bool canTerminateChildProcess();
 
+    void simulateProcessCrash(SimulatedCrashReason);
+
     ResponsivenessTimer m_responsivenessTimer;
+    BackgroundProcessResponsivenessTimer m_backgroundResponsivenessTimer;
     
     RefPtr<WebConnectionToWebProcess> m_webConnection;
     Ref<WebProcessPool> m_processPool;
@@ -247,6 +278,17 @@ private:
 
     enum class NoOrMaybe { No, Maybe } m_isResponsive;
     Vector<std::function<void(bool webProcessIsResponsive)>> m_isResponsiveCallbacks;
+
+    VisibleWebPageCounter m_visiblePageCounter;
+
+    // FIXME: WebsiteDataStores should be made per-WebPageProxy throughout WebKit2. Get rid of this member.
+    Ref<WebsiteDataStore> m_websiteDataStore;
+
+    bool m_isUnderMemoryPressure { false };
+
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+    std::unique_ptr<UserMediaCaptureManagerProxy> m_userMediaCaptureManagerProxy;
+#endif
 };
 
 } // namespace WebKit

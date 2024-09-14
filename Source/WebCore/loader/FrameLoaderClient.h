@@ -83,8 +83,8 @@ class NavigationAction;
 class Page;
 class PluginViewBase;
 class PolicyChecker;
+class PreviewLoaderClient;
 class ProtectionSpace;
-class QuickLookHandleClient;
 class RTCPeerConnectionHandler;
 class ResourceError;
 class ResourceHandle;
@@ -277,7 +277,7 @@ public:
     virtual RefPtr<Frame> createFrame(const URL&, const String& name, HTMLFrameOwnerElement&, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight) = 0;
     virtual RefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement&, const URL&, const Vector<String>&, const Vector<String>&, const String&, bool loadManually) = 0;
     virtual void recreatePlugin(Widget*) = 0;
-    virtual void redirectDataToPlugin(Widget* pluginWidget) = 0;
+    virtual void redirectDataToPlugin(Widget&) = 0;
 
     virtual RefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement&, const URL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues) = 0;
 
@@ -342,7 +342,7 @@ public:
     virtual bool isEmptyFrameLoaderClient() { return false; }
 
 #if USE(QUICK_LOOK)
-    virtual RefPtr<QuickLookHandleClient> createQuickLookHandleClient(const String&, const String&) = 0;
+    virtual RefPtr<PreviewLoaderClient> createPreviewLoaderClient(const String&, const String&) = 0;
 #endif
 
 #if ENABLE(CONTENT_FILTERING)

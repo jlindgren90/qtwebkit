@@ -24,14 +24,19 @@
  */
 
 #import <WebKit/WebKit.h>
+#import <wtf/RetainPtr.h>
 
 #if WK_API_ENABLED
+
+@class _WKProcessPoolConfiguration;
 
 @interface TestMessageHandler : NSObject <WKScriptMessageHandler>
 - (void)addMessage:(NSString *)message withHandler:(dispatch_block_t)handler;
 @end
 
 @interface TestWKWebView : WKWebView
+- (instancetype)initWithFrame:(CGRect)frame configuration:(WKWebViewConfiguration *)configuration processPoolConfiguration:(_WKProcessPoolConfiguration *)processPoolConfiguration;
+- (void)clearMessageHandlers:(NSArray *)messageNames;
 - (void)performAfterReceivingMessage:(NSString *)message action:(dispatch_block_t)action;
 - (void)loadTestPageNamed:(NSString *)pageName;
 - (void)synchronouslyLoadTestPageNamed:(NSString *)pageName;
@@ -40,11 +45,18 @@
 - (void)performAfterLoading:(dispatch_block_t)actions;
 @end
 
+#if PLATFORM(IOS)
+@interface TestWKWebView (IOSOnly)
+@property (nonatomic, readonly) RetainPtr<NSArray> selectionRectsAfterPresentationUpdate;
+@end
+#endif
+
 #if PLATFORM(MAC)
 @interface TestWKWebView (MacOnly)
 // Simulates clicking with a pressure-sensitive device, if possible.
 - (void)mouseDownAtPoint:(NSPoint)point simulatePressure:(BOOL)simulatePressure;
 - (void)mouseUpAtPoint:(NSPoint)point;
+- (void)sendClicksAtPoint:(NSPoint)point numberOfClicks:(NSUInteger)numberOfClicks;
 - (void)typeCharacter:(char)character;
 @end
 #endif

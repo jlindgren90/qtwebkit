@@ -35,6 +35,7 @@
 #import "DocumentFragment.h"
 #import "DocumentLoader.h"
 #import "DocumentMarkerController.h"
+#import "Editing.h"
 #import "EditorClient.h"
 #import "FontCascade.h"
 #import "Frame.h"
@@ -59,10 +60,9 @@
 #import "Text.h"
 #import "TypingCommand.h"
 #import "WAKAppKitStubs.h"
-#import "htmlediting.h"
 #import "markup.h"
 #import <MobileCoreServices/MobileCoreServices.h>
-#include <wtf/text/StringBuilder.h>
+#import <wtf/text/StringBuilder.h>
 
 SOFT_LINK_FRAMEWORK(AppSupport)
 SOFT_LINK(AppSupport, CPSharedResourcesDirectory, CFStringRef, (void), ())
@@ -197,7 +197,7 @@ static void getImage(Element& imageElement, RefPtr<Image>& image, CachedImage*& 
     cachedImage = tentativeCachedImage;
 }
 
-void Editor::writeImageToPasteboard(Pasteboard& pasteboard, Element& imageElement, const URL&, const String& title)
+void Editor::writeImageToPasteboard(Pasteboard& pasteboard, Element& imageElement, const URL& url, const String& title)
 {
     PasteboardImage pasteboardImage;
 
@@ -207,7 +207,7 @@ void Editor::writeImageToPasteboard(Pasteboard& pasteboard, Element& imageElemen
         return;
     ASSERT(cachedImage);
 
-    pasteboardImage.url.url = imageElement.document().completeURL(stripLeadingAndTrailingHTMLSpaces(imageElement.imageSourceURL()));
+    pasteboardImage.url.url = url.isEmpty() ? imageElement.document().completeURL(stripLeadingAndTrailingHTMLSpaces(imageElement.imageSourceURL())) : url;
     pasteboardImage.url.title = title;
     pasteboardImage.resourceMIMEType = pasteboard.resourceMIMEType(cachedImage->response().mimeType());
     pasteboardImage.resourceData = cachedImage->resourceBuffer();
@@ -320,7 +320,7 @@ bool Editor::WebContentReader::readImage(Ref<SharedBuffer>&& buffer, const Strin
     return fragment;
 }
 
-bool Editor::WebContentReader::readURL(const URL& url, const String&)
+bool Editor::WebContentReader::readURL(const URL& url, const String& title)
 {
     if (url.isEmpty())
         return false;
@@ -339,16 +339,18 @@ bool Editor::WebContentReader::readURL(const URL& url, const String&)
         RetainPtr<NSString> fileType = adoptNS((NSString *)UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (CFStringRef)[localPath pathExtension], NULL));
         NSData *data = [NSData dataWithContentsOfFile:localPath];
         if (UTTypeConformsTo((CFStringRef)fileType.get(), kUTTypePNG)) {
-            addFragment(frame.editor().createFragmentForImageResourceAndAddResource(ArchiveResource::create(SharedBuffer::wrapNSData([[data copy] autorelease]), URL::fakeURLWithRelativePart("image.png"), @"image/png", emptyString(), emptyString())));
+            addFragment(frame.editor().createFragmentForImageResourceAndAddResource(ArchiveResource::create(SharedBuffer::create([[data copy] autorelease]), URL::fakeURLWithRelativePart("image.png"), @"image/png", emptyString(), emptyString())));
             return fragment;
         } else if (UTTypeConformsTo((CFStringRef)fileType.get(), kUTTypeJPEG)) {
-            addFragment(frame.editor().createFragmentForImageResourceAndAddResource(ArchiveResource::create(SharedBuffer::wrapNSData([[data copy] autorelease]), URL::fakeURLWithRelativePart("image.jpg"), @"image/jpg", emptyString(), emptyString())));
+            addFragment(frame.editor().createFragmentForImageResourceAndAddResource(ArchiveResource::create(SharedBuffer::create([[data copy] autorelease]), URL::fakeURLWithRelativePart("image.jpg"), @"image/jpg", emptyString(), emptyString())));
             return fragment;
         }
     } else {
         auto anchor = HTMLAnchorElement::create(*frame.document());
         anchor->setAttributeWithoutSynchronization(HTMLNames::hrefAttr, url.string());
-        anchor->appendChild(frame.document()->createTextNode([[(NSURL *)url absoluteString] precomposedStringWithCanonicalMapping]));
+
+        String linkText = title.length() ? title : String([[(NSURL *)url absoluteString] precomposedStringWithCanonicalMapping]);
+        anchor->appendChild(frame.document()->createTextNode(linkText));
 
         auto newFragment = frame.document()->createDocumentFragment();
         newFragment->appendChild(anchor);

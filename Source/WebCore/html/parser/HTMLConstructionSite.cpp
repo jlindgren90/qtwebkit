@@ -127,9 +127,13 @@ static inline void executeInsertTask(HTMLConstructionSiteTask& task)
 static inline void executeReparentTask(HTMLConstructionSiteTask& task)
 {
     ASSERT(task.operation == HTMLConstructionSiteTask::Reparent);
+    ASSERT(!task.nextChild);
 
     if (auto* parent = task.child->parentNode())
         parent->parserRemoveChild(*task.child);
+
+    if (task.child->parentNode())
+        return;
 
     task.parent->parserAppendChild(*task.child);
 }
@@ -140,12 +144,20 @@ static inline void executeInsertAlreadyParsedChildTask(HTMLConstructionSiteTask&
 
     if (ContainerNode* parent = task.child->parentNode())
         parent->parserRemoveChild(*task.child);
+
+    if (task.child->parentNode())
+        return;
+
+    if (task.nextChild && task.nextChild->parentNode() != task.parent)
+        return;
+
     insert(task);
 }
 
 static inline void executeTakeAllChildrenAndReparentTask(HTMLConstructionSiteTask& task)
 {
     ASSERT(task.operation == HTMLConstructionSiteTask::TakeAllChildrenAndReparent);
+    ASSERT(!task.nextChild);
 
     auto* furthestBlock = task.oldParent();
     task.parent->takeAllChildrenFrom(furthestBlock);
@@ -469,10 +481,14 @@ void HTMLConstructionSite::insertHTMLBodyElement(AtomicHTMLToken&& token)
 void HTMLConstructionSite::insertHTMLFormElement(AtomicHTMLToken&& token, bool isDemoted)
 {
     auto element = createHTMLElement(token);
-    m_form = &downcast<HTMLFormElement>(element.get());
-    m_form->setDemoted(isDemoted);
-    attachLater(currentNode(), *m_form);
-    m_openElements.push(HTMLStackItem::create(*m_form, WTFMove(token)));
+    auto& formElement = downcast<HTMLFormElement>(element.get());
+    // If there is no template element on the stack of open elements, set the
+    // form element pointer to point to the element created.
+    if (!openElements().hasTemplateInHTMLScope())
+        m_form = &formElement;
+    formElement.setDemoted(isDemoted);
+    attachLater(currentNode(), formElement);
+    m_openElements.push(HTMLStackItem::create(formElement, WTFMove(token)));
 }
 
 void HTMLConstructionSite::insertHTMLElement(AtomicHTMLToken&& token)

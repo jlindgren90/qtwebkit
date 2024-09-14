@@ -27,11 +27,11 @@
 #include "WebPrintOperationGtk.h"
 
 #include "WebCoreArgumentCoders.h"
+#include "WebErrors.h"
 #include "WebPage.h"
 #include "WebPageProxyMessages.h"
 #include "WebProcess.h"
 #include <WebCore/DocumentLoader.h>
-#include <WebCore/ErrorsGtk.h>
 #include <WebCore/Frame.h>
 #include <WebCore/IntRect.h>
 #include <WebCore/NotImplemented.h>
@@ -210,6 +210,7 @@ struct PrintPagesData {
         , firstSheetNumber(0)
         , numberOfSheets(0)
         , firstPagePosition(0)
+        , lastPagePosition(0)
         , collated(0)
         , uncollated(0)
         , isDone(false)
@@ -362,7 +363,6 @@ struct PrintPagesData {
     GRefPtr<GMainLoop> mainLoop;
 
     int totalPrinted;
-    size_t totalToPrint;
     int pageNumber;
     Vector<size_t> pages;
     size_t sheetNumber;

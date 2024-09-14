@@ -56,7 +56,7 @@ class SlotVisitor {
     friend class Heap;
 
 public:
-    SlotVisitor(Heap&);
+    SlotVisitor(Heap&, CString codeName);
     ~SlotVisitor();
 
     MarkStackArray& collectorMarkStack() { return m_collectorStack; }
@@ -85,13 +85,16 @@ public:
     //
     // If you are not a root and you don't know what kind of barrier you have, then you
     // shouldn't call these methods.
-    JS_EXPORT_PRIVATE void appendUnbarriered(JSValue);
+    void appendUnbarriered(JSValue);
     void appendUnbarriered(JSValue*, size_t);
     void appendUnbarriered(JSCell*);
     
     template<typename T>
     void append(const Weak<T>& weak);
     
+    void appendHiddenUnbarriered(JSValue);
+    void appendHiddenUnbarriered(JSCell*);
+
     JS_EXPORT_PRIVATE void addOpaqueRoot(void*);
     
     JS_EXPORT_PRIVATE bool containsOpaqueRoot(void*) const;
@@ -167,17 +170,20 @@ public:
     void setIgnoreNewOpaqueRoots(bool value) { m_ignoreNewOpaqueRoots = value; }
 
     void donateAll();
+    
+    const char* codeName() const { return m_codeName.data(); }
 
 private:
     friend class ParallelModeEnabler;
     
     void appendJSCellOrAuxiliary(HeapCell*);
-    void appendHidden(JSValue);
 
-    JS_EXPORT_PRIVATE void setMarkedAndAppendToMarkStack(JSCell*);
+    JS_EXPORT_PRIVATE void appendSlow(JSCell*, Dependency);
+    JS_EXPORT_PRIVATE void appendHiddenSlow(JSCell*, Dependency);
+    void appendHiddenSlowImpl(JSCell*, Dependency);
     
     template<typename ContainerType>
-    void setMarkedAndAppendToMarkStack(ContainerType&, JSCell*);
+    void setMarkedAndAppendToMarkStack(ContainerType&, JSCell*, Dependency);
     
     void appendToMarkStack(JSCell*);
     
@@ -227,6 +233,8 @@ private:
     bool m_mutatorIsStopped { false };
     bool m_canOptimizeForStoppedMutator { false };
     Lock m_rightToRun;
+    
+    CString m_codeName;
     
 public:
 #if !ASSERT_DISABLED

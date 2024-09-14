@@ -198,6 +198,8 @@ void TileGrid::setTileNeedsDisplayInRect(const TileIndex& tileIndex, TileInfo& t
 void TileGrid::updateTileLayerProperties()
 {
     bool acceleratesDrawing = m_controller.acceleratesDrawing();
+    bool deepColor = m_controller.wantsDeepColorBackingStore();
+    bool subpixelAntialiasedText = m_controller.supportsSubpixelAntialiasedText();
     bool opaque = m_controller.tilesAreOpaque();
     Color tileDebugBorderColor = m_controller.tileDebugBorderColor();
     float tileDebugBorderWidth = m_controller.tileDebugBorderWidth();
@@ -205,6 +207,8 @@ void TileGrid::updateTileLayerProperties()
     for (TileMap::const_iterator it = m_tiles.begin(), end = m_tiles.end(); it != end; ++it) {
         const TileInfo& tileInfo = it->value;
         tileInfo.layer->setAcceleratesDrawing(acceleratesDrawing);
+        tileInfo.layer->setWantsDeepColorBackingStore(deepColor);
+        tileInfo.layer->setSupportsSubpixelAntialiasedText(subpixelAntialiasedText);
         tileInfo.layer->setOpaque(opaque);
         tileInfo.layer->setBorderColor(tileDebugBorderColor);
         tileInfo.layer->setBorderWidth(tileDebugBorderWidth);
@@ -361,7 +365,7 @@ void TileGrid::revalidateTiles(TileValidationPolicy validationPolicy)
     TileCohort currCohort = nextTileCohort();
     unsigned tilesInCohort = 0;
 
-    double minimumRevalidationTimerDuration = std::numeric_limits<double>::max();
+    Seconds minimumRevalidationTimerDuration = Seconds::infinity();
     bool needsTileRevalidation = false;
     
     auto tileSize = m_controller.tileSize();
@@ -400,7 +404,7 @@ void TileGrid::revalidateTiles(TileValidationPolicy validationPolicy)
                         continue;
                     double timeUntilCohortExpires = cohort.timeUntilExpiration();
                     if (timeUntilCohortExpires > 0) {
-                        minimumRevalidationTimerDuration = std::min(minimumRevalidationTimerDuration, timeUntilCohortExpires);
+                        minimumRevalidationTimerDuration = std::min(minimumRevalidationTimerDuration, Seconds { timeUntilCohortExpires });
                         needsTileRevalidation = true;
                     } else
                         tileLayer->removeFromSuperlayer();
@@ -519,7 +523,7 @@ TileGrid::TileCohort TileGrid::oldestTileCohort() const
 
 void TileGrid::scheduleCohortRemoval()
 {
-    const double cohortRemovalTimerSeconds = 1;
+    const Seconds cohortRemovalTimerSeconds { 1_s };
 
     // Start the timer, or reschedule the timer from now if it's already active.
     if (!m_cohortRemovalTimer.isActive())

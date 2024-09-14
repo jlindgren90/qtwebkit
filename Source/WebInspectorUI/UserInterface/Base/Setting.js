@@ -112,4 +112,9 @@ WebInspector.settings = {
     clearLogOnNavigate: new WebInspector.Setting("clear-log-on-navigate", true),
     clearNetworkOnNavigate: new WebInspector.Setting("clear-network-on-navigate", true),
     zoomFactor: new WebInspector.Setting("zoom-factor", 1),
+    layoutDirection: new WebInspector.Setting("layout-direction-override", "system"),
+    stylesShowInlineWarnings: new WebInspector.Setting("styles-show-inline-warning", true),
+    stylesInsertNewline: new WebInspector.Setting("styles-insert-newline", true),
+    stylesSelectOnFirstClick: new WebInspector.Setting("styles-select-on-first-click", true),
+    showScopeChainOnPause: new WebInspector.Setting("show-scope-chain-sidebar", true),
 };

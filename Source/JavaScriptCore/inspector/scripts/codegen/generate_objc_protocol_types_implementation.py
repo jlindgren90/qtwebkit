@@ -31,12 +31,12 @@ from string import Template
 
 try:
     from .generator import Generator, ucfirst
-    from .models import ObjectType, Frameworks
+    from .models import ObjectType, EnumType, Frameworks
     from .objc_generator import ObjCTypeCategory, ObjCGenerator
     from .objc_generator_templates import ObjCGeneratorTemplates as ObjCTemplates
 except ValueError:
     from generator import Generator, ucfirst
-    from models import ObjectType, Frameworks
+    from models import ObjectType, EnumType, Frameworks
     from objc_generator import ObjCTypeCategory, ObjCGenerator
     from objc_generator_templates import ObjCGeneratorTemplates as ObjCTemplates
 
@@ -135,13 +135,24 @@ class ObjCProtocolTypesImplementationGenerator(ObjCGenerator):
 
         for member in declaration.type_members:
             member_name = member.member_name
-            conversion_expression = self.payload_to_objc_expression_for_member(declaration, member)
 
             if not member.is_optional:
                 lines.append('    THROW_EXCEPTION_FOR_REQUIRED_PROPERTY(payload[@"%s"], @"%s");' % (member_name, member_name))
 
+            objc_type = self.objc_type_for_member(declaration, member)
             var_name = ObjCGenerator.identifier_to_objc_identifier(member_name)
-            lines.append('    self.%s = %s;' % (var_name, conversion_expression))
+            conversion_expression = self.payload_to_objc_expression_for_member(declaration, member)
+            if isinstance(member.type, EnumType):
+                lines.append('    std::optional<%s> %s = %s;' % (objc_type, var_name, conversion_expression))
+                if not member.is_optional:
+                    lines.append('    THROW_EXCEPTION_FOR_BAD_ENUM_VALUE(%s, @"%s");' % (var_name, member_name))
+                    lines.append('    self.%s = %s.value();' % (var_name, var_name))
+                else:
+                    lines.append('    if (%s)' % var_name)
+                    lines.append('        self.%s = %s.value();' % (var_name, var_name))
+            else:
+                lines.append('    self.%s = %s;' % (var_name, conversion_expression))
+
             lines.append('')
 
         lines.append('    return self;')
@@ -201,10 +212,18 @@ class ObjCProtocolTypesImplementationGenerator(ObjCGenerator):
         var_name = ObjCGenerator.identifier_to_objc_identifier(member.member_name)
         getter_method = ObjCGenerator.objc_getter_method_for_member(declaration, member)
         basic_expression = '[super %s:@"%s"]' % (getter_method, member.member_name)
-        conversion_expression = self.protocol_to_objc_expression_for_member(declaration, member, basic_expression)
-        lines = []
-        lines.append('- (%s)%s' % (objc_type, var_name))
-        lines.append('{')
-        lines.append('    return %s;' % conversion_expression)
-        lines.append('}')
+        category = ObjCTypeCategory.category_for_type(member.type)
+        if category is ObjCTypeCategory.Object:
+            lines = []
+            lines.append('- (%s)%s' % (objc_type, var_name))
+            lines.append('{')
+            lines.append(self.protocol_to_objc_code_block_for_object_member(declaration, member, basic_expression))
+            lines.append('}')
+        else:
+            conversion_expression = self.protocol_to_objc_expression_for_member(declaration, member, basic_expression)
+            lines = []
+            lines.append('- (%s)%s' % (objc_type, var_name))
+            lines.append('{')
+            lines.append('    return %s;' % conversion_expression)
+            lines.append('}')
         return '\n'.join(lines)

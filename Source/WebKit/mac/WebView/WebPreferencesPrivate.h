@@ -162,11 +162,17 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setSubtleCryptoEnabled:(BOOL)flag;
 - (BOOL)subtleCryptoEnabled;
 
+- (void)setMediaDevicesEnabled:(BOOL)flag;
+- (BOOL)mediaDevicesEnabled;
+
 - (void)setMediaStreamEnabled:(BOOL)flag;
 - (BOOL)mediaStreamEnabled;
 
 - (void)setPeerConnectionEnabled:(BOOL)flag;
 - (BOOL)peerConnectionEnabled;
+
+- (void)setWebRTCLegacyAPIEnabled:(BOOL)flag;
+- (BOOL)webRTCLegacyAPIEnabled;
 
 #if !TARGET_OS_IPHONE
 // zero means do AutoScale
@@ -224,6 +230,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)acceleratedCompositingEnabled;
 - (void)setAcceleratedCompositingEnabled:(BOOL)enabled;
 
+- (BOOL)subpixelAntialiasedLayerTextEnabled;
+- (void)setSubpixelAntialiasedLayerTextEnabled:(BOOL)enabled;
+
 - (BOOL)showDebugBorders;
 - (void)setShowDebugBorders:(BOOL)show;
 
@@ -251,8 +260,11 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)forceSoftwareWebGLRendering;
 - (void)setForceSoftwareWebGLRendering:(BOOL)forced;
 
-- (BOOL)preferLowPowerWebGLRendering;
-- (void)setPreferLowPowerWebGLRendering:(BOOL)preferLowPower;
+- (BOOL)forceLowPowerGPUForWebGL;
+- (void)setForceWebGLUsesLowPower:(BOOL)forceLowPower;
+
+- (BOOL)webGPUEnabled;
+- (void)setWebGPUEnabled:(BOOL)enabled;
 
 - (BOOL)accelerated2dCanvasEnabled;
 - (void)setAccelerated2dCanvasEnabled:(BOOL)enabled;
@@ -493,8 +505,17 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setMockCaptureDevicesEnabled:(BOOL)flag;
 - (BOOL)mockCaptureDevicesEnabled;
 
+- (void)setEnumeratingAllNetworkInterfacesEnabled:(BOOL)flag;
+- (BOOL)enumeratingAllNetworkInterfacesEnabled;
+
+- (void)setIceCandidateFilteringEnabled:(BOOL)flag;
+- (BOOL)iceCandidateFilteringEnabled;
+
 - (void)setMediaCaptureRequiresSecureConnection:(BOOL)flag;
 - (BOOL)mediaCaptureRequiresSecureConnection;
+
+- (void)setUseAVFoundationAudioCapture:(BOOL)flag;
+- (BOOL)useAVFoundationAudioCapture;
 
 - (void)setShadowDOMEnabled:(BOOL)flag;
 - (BOOL)shadowDOMEnabled;
@@ -504,6 +525,12 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 
 - (void)setFetchAPIEnabled:(BOOL)flag;
 - (BOOL)fetchAPIEnabled;
+
+- (void)setReadableByteStreamAPIEnabled:(BOOL)flag;
+- (BOOL)readableByteStreamAPIEnabled;
+
+- (void)setWritableStreamAPIEnabled:(BOOL)flag;
+- (BOOL)writableStreamAPIEnabled;
 
 - (void)setDownloadAttributeEnabled:(BOOL)flag;
 - (BOOL)downloadAttributeEnabled;
@@ -517,6 +544,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setModernMediaControlsEnabled:(BOOL)flag;
 - (BOOL)modernMediaControlsEnabled;
 
+- (void)setCredentialManagementEnabled:(BOOL)flag;
+- (BOOL)credentialManagementEnabled;
+
 @property (nonatomic) BOOL visualViewportEnabled;
 @property (nonatomic) BOOL largeImageAsyncDecodingEnabled;
 @property (nonatomic) BOOL animatedImageAsyncDecodingEnabled;
@@ -528,6 +558,7 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 @property (nonatomic) BOOL userTimingEnabled;
 @property (nonatomic) BOOL resourceTimingEnabled;
 @property (nonatomic) BOOL linkPreloadEnabled;
+@property (nonatomic) BOOL credentialManagementEnabled;
 
 #if TARGET_OS_IPHONE
 @property (nonatomic) BOOL quickLookDocumentSavingEnabled;

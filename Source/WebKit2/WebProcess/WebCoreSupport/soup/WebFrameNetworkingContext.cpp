@@ -52,26 +52,9 @@ void WebFrameNetworkingContext::ensurePrivateBrowsingSession(SessionID sessionID
     SessionTracker::setSession(sessionID, NetworkSession::create(sessionID));
 }
 
-void WebFrameNetworkingContext::setCookieAcceptPolicyForAllContexts(HTTPCookieAcceptPolicy policy)
+void WebFrameNetworkingContext::ensureWebsiteDataStoreSession(WebsiteDataStoreParameters&&)
 {
-    SoupCookieJarAcceptPolicy soupPolicy = SOUP_COOKIE_JAR_ACCEPT_ALWAYS;
-    switch (policy) {
-    case HTTPCookieAcceptPolicyAlways:
-        soupPolicy = SOUP_COOKIE_JAR_ACCEPT_ALWAYS;
-        break;
-    case HTTPCookieAcceptPolicyNever:
-        soupPolicy = SOUP_COOKIE_JAR_ACCEPT_NEVER;
-        break;
-    case HTTPCookieAcceptPolicyOnlyFromMainDocumentDomain:
-        soupPolicy = SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY;
-        break;
-    }
-
-    soup_cookie_jar_set_accept_policy(NetworkStorageSession::defaultStorageSession().cookieStorage(), soupPolicy);
-
-    NetworkStorageSession::forEach([&] (const NetworkStorageSession& session) {
-        soup_cookie_jar_set_accept_policy(session.cookieStorage(), soupPolicy);
-    });
+    // FIXME: Implement
 }
 
 WebFrameNetworkingContext::WebFrameNetworkingContext(WebFrame* frame)

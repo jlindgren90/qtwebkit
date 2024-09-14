@@ -217,20 +217,17 @@ unsigned ComplexTextController::offsetForPosition(float h, bool includePartialGl
                 // could use the glyph's "ligature carets". This is available in CoreText via CTFontGetLigatureCaretPositions().
                 unsigned hitIndex = hitGlyphStart + (hitGlyphEnd - hitGlyphStart) * (m_run.ltr() ? x / adjustedAdvance : 1 - x / adjustedAdvance);
                 unsigned stringLength = complexTextRun.stringLength();
-                UBreakIterator* cursorPositionIterator = cursorMovementIterator(StringView(complexTextRun.characters(), stringLength));
+                CachedTextBreakIterator cursorPositionIterator(StringView(complexTextRun.characters(), stringLength), TextBreakIterator::Mode::Caret, nullAtom);
                 unsigned clusterStart;
-                if (ubrk_isBoundary(cursorPositionIterator, hitIndex))
+                if (cursorPositionIterator.isBoundary(hitIndex))
                     clusterStart = hitIndex;
-                else {
-                    int preceeding = ubrk_preceding(cursorPositionIterator, hitIndex);
-                    clusterStart = preceeding == UBRK_DONE ? 0 : preceeding;
-                }
+                else
+                    clusterStart = cursorPositionIterator.preceding(hitIndex).value_or(0);
 
                 if (!includePartialGlyphs)
                     return complexTextRun.stringLocation() + clusterStart;
 
-                int following = ubrk_following(cursorPositionIterator, hitIndex);
-                unsigned clusterEnd = following == UBRK_DONE ? stringLength : following;
+                unsigned clusterEnd = cursorPositionIterator.following(hitIndex).value_or(stringLength);
 
                 float clusterWidth;
                 // FIXME: The search stops at the boundaries of complexTextRun. In theory, it should go on into neighboring ComplexTextRuns
@@ -703,7 +700,6 @@ static inline std::pair<bool, bool> expansionLocation(bool ideograph, bool treat
 void ComplexTextController::adjustGlyphsAndAdvances()
 {
     bool afterExpansion = (m_run.expansionBehavior() & LeadingExpansionMask) == ForbidLeadingExpansion;
-    float widthSinceLastCommit = 0;
     size_t runCount = m_complexTextRuns.size();
     bool hasExtraSpacing = (m_font.letterSpacing() || m_font.wordSpacing() || m_expansion) && !m_run.spacingDisabled();
     bool runForcesLeadingExpansion = (m_run.expansionBehavior() & LeadingExpansionMask) == ForceLeadingExpansion;
@@ -745,7 +741,7 @@ void ComplexTextController::adjustGlyphsAndAdvances()
             FloatSize advance = treatAsSpace ? FloatSize(spaceWidth, advances[i].height()) : advances[i];
 
             if (ch == '\t' && m_run.allowTabs())
-                advance.setWidth(m_font.tabWidth(font, m_run.tabSize(), m_run.xPos() + m_totalWidth + widthSinceLastCommit));
+                advance.setWidth(m_font.tabWidth(font, m_run.tabSize(), m_run.xPos() + m_totalWidth));
             else if (FontCascade::treatAsZeroWidthSpace(ch) && !treatAsSpace) {
                 advance.setWidth(0);
                 glyph = font.spaceGlyph();
@@ -788,17 +784,22 @@ void ComplexTextController::adjustGlyphsAndAdvances()
                     if (m_expansion) {
                         bool expandLeft, expandRight;
                         std::tie(expandLeft, expandRight) = expansionLocation(ideograph, treatAsSpace, m_run.ltr(), afterExpansion, forbidLeadingExpansion, forbidTrailingExpansion, forceLeadingExpansion, forceTrailingExpansion);
-                        m_expansion -= m_expansionPerOpportunity;
-                        advance.expand(m_expansionPerOpportunity, 0);
                         if (expandLeft) {
+                            m_expansion -= m_expansionPerOpportunity;
                             // Increase previous width
-                            if (m_adjustedBaseAdvances.isEmpty())
+                            if (m_adjustedBaseAdvances.isEmpty()) {
+                                advance.expand(m_expansionPerOpportunity, 0);
                                 complexTextRun.growInitialAdvanceHorizontally(m_expansionPerOpportunity);
-                            else
+                            } else {
                                 m_adjustedBaseAdvances.last().expand(m_expansionPerOpportunity, 0);
+                                m_totalWidth += m_expansionPerOpportunity;
+                            }
                         }
-                        if (expandRight)
+                        if (expandRight) {
+                            m_expansion -= m_expansionPerOpportunity;
+                            advance.expand(m_expansionPerOpportunity, 0);
                             afterExpansion = true;
+                        }
                     } else
                         afterExpansion = false;
 
@@ -809,7 +810,7 @@ void ComplexTextController::adjustGlyphsAndAdvances()
                     afterExpansion = false;
             }
 
-            widthSinceLastCommit += advance.width();
+            m_totalWidth += advance.width();
 
             // FIXME: Combining marks should receive a text emphasis mark if they are combine with a space.
             if (m_forTextEmphasis && (!FontCascade::canReceiveTextEmphasis(ch) || (U_GET_GC_MASK(ch) & U_GC_M_MASK)))
@@ -837,8 +838,6 @@ void ComplexTextController::adjustGlyphsAndAdvances()
         if (!isMonotonic)
             complexTextRun.setIsNonMonotonic();
     }
-
-    m_totalWidth += widthSinceLastCommit;
 }
 
 // Missing glyphs run constructor. Core Text will not generate a run of missing glyphs, instead falling back on

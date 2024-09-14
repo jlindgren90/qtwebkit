@@ -51,8 +51,8 @@
 using namespace WebCore;
 using namespace WebKit;
 
-#if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/WebDragClientAdditions.mm>)
-#import <WebKitAdditions/WebDragClientAdditions.mm>
+#if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/WebDragClientAdditionsWebKit2.mm>)
+#import <WebKitAdditions/WebDragClientAdditionsWebKit2.mm>
 #endif
 
 #if PLATFORM(MAC)
@@ -82,10 +82,14 @@ static PassRefPtr<ShareableBitmap> convertImageToBitmap(NSImage *image, const In
     return WTFMove(bitmap);
 }
 
-void WebDragClient::startDrag(RetainPtr<NSImage> image, const IntPoint& point, const IntPoint&, const FloatPoint&, DataTransfer&, Frame& frame, bool linkDrag)
+void WebDragClient::didConcludeEditDrag()
 {
-    IntSize bitmapSize([image size]);
-    RefPtr<ShareableBitmap> bitmap = convertImageToBitmap(image.get(), bitmapSize, frame);
+}
+
+void WebDragClient::startDrag(DragImage image, const IntPoint& point, const IntPoint&, const FloatPoint&, DataTransfer&, Frame& frame, DragSourceAction dragSourceAction)
+{
+    IntSize bitmapSize([image.get() size]);
+    RefPtr<ShareableBitmap> bitmap = convertImageToBitmap(image.get().get(), bitmapSize, frame);
     ShareableBitmap::Handle handle;
     if (!bitmap || !bitmap->createHandle(handle))
         return;
@@ -93,7 +97,7 @@ void WebDragClient::startDrag(RetainPtr<NSImage> image, const IntPoint& point, c
     m_page->willStartDrag();
 
     // FIXME: Seems this message should be named StartDrag, not SetDragImage.
-    m_page->send(Messages::WebPageProxy::SetDragImage(frame.view()->contentsToWindow(point), handle, { }, linkDrag));
+    m_page->send(Messages::WebPageProxy::SetDragImage(frame.view()->contentsToWindow(point), handle, std::nullopt, { }, dragSourceAction));
 }
 
 static WebCore::CachedImage* cachedImage(Element& element)
@@ -161,7 +165,7 @@ void WebDragClient::declareAndWriteDragImage(const String& pasteboardName, Eleme
     SharedMemory::Handle archiveHandle;
     size_t archiveSize = 0;
     if (data) {
-        RefPtr<SharedBuffer> archiveBuffer = SharedBuffer::wrapNSData((NSData *)data.get());
+        RefPtr<SharedBuffer> archiveBuffer = SharedBuffer::create((NSData *)data.get());
         RefPtr<SharedMemory> archiveSharedMemoryBuffer = SharedMemory::allocate(archiveBuffer->size());
         if (!archiveSharedMemoryBuffer)
             return;

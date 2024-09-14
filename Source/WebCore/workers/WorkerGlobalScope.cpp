@@ -97,8 +97,27 @@ WorkerGlobalScope::~WorkerGlobalScope()
 {
     ASSERT(currentThread() == thread().threadID());
 
+#if ENABLE(WEB_TIMING)
+    m_performance = nullptr;
+#endif
+
     // Notify proxy that we are going away. This can free the WorkerThread object, so do not access it after this.
     thread().workerReportingProxy().workerGlobalScopeDestroyed();
+}
+
+String WorkerGlobalScope::origin() const
+{
+    auto* securityOrigin = this->securityOrigin();
+    return securityOrigin ? securityOrigin->toString() : emptyString();
+}
+
+void WorkerGlobalScope::removeAllEventListeners()
+{
+    EventTarget::removeAllEventListeners();
+
+#if ENABLE(WEB_TIMING)
+    m_performance->removeAllEventListeners();
+#endif
 }
 
 void WorkerGlobalScope::applyContentSecurityPolicyResponseHeaders(const ContentSecurityPolicyResponseHeaders& contentSecurityPolicyResponseHeaders)
@@ -194,7 +213,7 @@ void WorkerGlobalScope::postTask(Task&& task)
 
 int WorkerGlobalScope::setTimeout(std::unique_ptr<ScheduledAction> action, int timeout)
 {
-    return DOMTimer::install(*this, WTFMove(action), std::chrono::milliseconds(timeout), true);
+    return DOMTimer::install(*this, WTFMove(action), Seconds::fromMilliseconds(timeout), true);
 }
 
 void WorkerGlobalScope::clearTimeout(int timeoutId)
@@ -204,7 +223,7 @@ void WorkerGlobalScope::clearTimeout(int timeoutId)
 
 int WorkerGlobalScope::setInterval(std::unique_ptr<ScheduledAction> action, int timeout)
 {
-    return DOMTimer::install(*this, WTFMove(action), std::chrono::milliseconds(timeout), false);
+    return DOMTimer::install(*this, WTFMove(action), Seconds::fromMilliseconds(timeout), false);
 }
 
 void WorkerGlobalScope::clearInterval(int timeoutId)
@@ -285,7 +304,7 @@ void WorkerGlobalScope::addMessage(MessageSource source, MessageLevel level, con
 
     std::unique_ptr<Inspector::ConsoleMessage> message;
     if (callStack)
-        message = std::make_unique<Inspector::ConsoleMessage>(source, MessageType::Log, level, messageText, WTFMove(callStack), requestIdentifier);
+        message = std::make_unique<Inspector::ConsoleMessage>(source, MessageType::Log, level, messageText, callStack.releaseNonNull(), requestIdentifier);
     else
         message = std::make_unique<Inspector::ConsoleMessage>(source, MessageType::Log, level, messageText, sourceURL, lineNumber, columnNumber, state, requestIdentifier);
     InspectorInstrumentation::addMessageToConsole(*this, WTFMove(message));
@@ -358,7 +377,7 @@ Crypto& WorkerGlobalScope::crypto()
 
 Performance& WorkerGlobalScope::performance() const
 {
-    return m_performance;
+    return *m_performance;
 }
 
 #endif

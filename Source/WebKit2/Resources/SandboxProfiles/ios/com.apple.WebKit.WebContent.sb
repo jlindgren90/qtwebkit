@@ -34,6 +34,14 @@
 (play-media)
 (media-remote)
 
+(deny sysctl*)
+(allow sysctl-read
+    (sysctl-name
+        "hw.availcpu"
+        "hw.ncpu"
+        "hw.model"
+        "kern.memorystatus_level"))
+
 ;; Read-only preferences and data
 (mobile-preferences-read
     "com.apple.LaunchServices"
@@ -101,3 +109,22 @@
 ;; Allow CoreMedia to communicate with mediaserverd in order to implement custom media loading
 (allow mach-lookup
     (global-name "com.apple.coremedia.customurlloader.xpc"))
+
+;; Media capture, microphone access
+(with-filter (extension "com.apple.webkit.microphone")
+    (allow device-microphone))
+
+;; Media capture, camera access
+(with-filter (extension "com.apple.webkit.camera")
+    (allow user-preference-read
+        (preference-domain "com.apple.coremedia"))
+    (allow file-read* (subpath "/Library/CoreMediaIO/Plug-Ins/DAL"))
+    (allow mach-lookup (extension "com.apple.app-sandbox.mach"))
+    (allow device-camera))
+
+;; Support incoming video connections
+(allow mach-lookup
+    (global-name "com.apple.audio.audiohald")
+    (global-name "com.apple.coremedia.compressionsession")
+    (global-name "com.apple.coremedia.decompressionsession")
+    (global-name "com.apple.coremedia.videoqueue"))

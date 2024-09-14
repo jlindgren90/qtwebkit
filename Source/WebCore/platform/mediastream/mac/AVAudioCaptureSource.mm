@@ -29,8 +29,8 @@
 #if ENABLE(MEDIA_STREAM) && USE(AVFOUNDATION)
 
 #import "AudioSampleBufferList.h"
-#import "AudioSourceObserverObjC.h"
 #import "CAAudioStreamDescription.h"
+#import "CaptureDevice.h"
 #import "Logging.h"
 #import "MediaConstraints.h"
 #import "MediaSampleAVFObjC.h"
@@ -42,6 +42,7 @@
 #import <AVFoundation/AVCaptureSession.h>
 #import <CoreAudio/CoreAudioTypes.h>
 #import <wtf/HashSet.h>
+#import <wtf/NeverDestroyed.h>
 
 #import "CoreMediaSoftLink.h"
 
@@ -76,27 +77,40 @@ SOFT_LINK_POINTER(AVFoundation, AVMediaTypeAudio, NSString *)
 
 namespace WebCore {
 
-RefPtr<AVMediaCaptureSource> AVAudioCaptureSource::create(AVCaptureDeviceTypedef* device, const AtomicString& id, const MediaConstraints* constraints, String& invalidConstraint)
+class AVAudioCaptureSourceFactory : public RealtimeMediaSource::AudioCaptureFactory {
+public:
+    CaptureSourceOrError createAudioCaptureSource(const String& deviceID, const MediaConstraints* constraints) final {
+        AVCaptureDeviceTypedef *device = [getAVCaptureDeviceClass() deviceWithUniqueID:deviceID];
+        return device ? AVAudioCaptureSource::create(device, emptyString(), constraints) : CaptureSourceOrError();
+    }
+};
+
+CaptureSourceOrError AVAudioCaptureSource::create(AVCaptureDeviceTypedef* device, const AtomicString& id, const MediaConstraints* constraints)
 {
-    auto source = adoptRef(new AVAudioCaptureSource(device, id));
+    auto source = adoptRef(*new AVAudioCaptureSource(device, id));
     if (constraints) {
         auto result = source->applyConstraints(*constraints);
-        if (result) {
-            invalidConstraint = result.value().first;
-            source = nullptr;
-        }
+        if (result)
+            return String(result.value().first);
     }
 
-    return source;
+    return CaptureSourceOrError(WTFMove(source));
+}
+
+RealtimeMediaSource::AudioCaptureFactory& AVAudioCaptureSource::factory()
+{
+    static NeverDestroyed<AVAudioCaptureSourceFactory> factory;
+    return factory.get();
 }
 
 AVAudioCaptureSource::AVAudioCaptureSource(AVCaptureDeviceTypedef* device, const AtomicString& id)
-    : AVMediaCaptureSource(device, id, RealtimeMediaSource::Audio)
+    : AVMediaCaptureSource(device, id, Type::Audio)
 {
 }
     
 AVAudioCaptureSource::~AVAudioCaptureSource()
 {
+    shutdownCaptureSession();
 }
 
 void AVAudioCaptureSource::initializeCapabilities(RealtimeMediaSourceCapabilities& capabilities)
@@ -115,25 +129,6 @@ void AVAudioCaptureSource::updateSettings(RealtimeMediaSourceSettings& settings)
     // FIXME: support volume
 
     settings.setDeviceId(id());
-}
-
-void AVAudioCaptureSource::addObserver(AudioSourceObserverObjC& observer)
-{
-    LockHolder lock(m_lock);
-    m_observers.append(&observer);
-    if (m_inputDescription)
-        observer.prepare(&m_inputDescription->streamDescription());
-}
-
-void AVAudioCaptureSource::removeObserver(AudioSourceObserverObjC& observer)
-{
-    LockHolder lock(m_lock);
-    m_observers.removeFirst(&observer);
-}
-
-void AVAudioCaptureSource::start()
-{
-    startProducingData();
 }
 
 void AVAudioCaptureSource::setupCaptureSession()
@@ -165,9 +160,8 @@ void AVAudioCaptureSource::shutdownCaptureSession()
         m_audioConnection = nullptr;
         m_inputDescription = nullptr;
 
-        for (auto& observer : m_observers)
-            observer->unprepare();
-        m_observers.shrink(0);
+        if (m_audioSourceProvider)
+            m_audioSourceProvider->unprepare();
     }
 
     // Don't hold the lock when destroying the audio provider, it will call back into this object
@@ -194,20 +188,12 @@ void AVAudioCaptureSource::captureOutputDidOutputSampleBufferFromConnection(AVCa
     if (!m_inputDescription || *m_inputDescription != *streamDescription) {
         m_inputDescription = std::make_unique<CAAudioStreamDescription>(*streamDescription);
 
-        if (!m_observers.isEmpty()) {
-            for (auto& observer : m_observers)
-                observer->prepare(streamDescription);
-        }
+        if (m_audioSourceProvider)
+            m_audioSourceProvider->prepare(streamDescription);
     }
 
     m_list = std::make_unique<WebAudioBufferList>(*m_inputDescription, sampleBuffer);
     audioSamplesAvailable(toMediaTime(CMSampleBufferGetPresentationTimeStamp(sampleBuffer)), *m_list, CAAudioStreamDescription(*streamDescription), CMSampleBufferGetNumSamples(sampleBuffer));
-
-    if (m_observers.isEmpty())
-        return;
-
-    for (auto& observer : m_observers)
-        observer->process(formatDescription, sampleBuffer);
 }
 
 AudioSourceProvider* AVAudioCaptureSource::audioSourceProvider()

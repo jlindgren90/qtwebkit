@@ -27,8 +27,7 @@
 
 #if USE(LIBWEBRTC)
 
-#include <WebCore/LibWebRTCMacros.h>
-#include <WebCore/LibWebRTCUtils.h>
+#include <WebCore/LibWebRTCProvider.h>
 #include <webrtc/base/asyncpacketsocket.h>
 #include <wtf/Deque.h>
 #include <wtf/Forward.h>
@@ -49,7 +48,7 @@ class LibWebRTCSocketFactory;
 
 class LibWebRTCSocket final : public rtc::AsyncPacketSocket {
 public:
-    enum class Type { UDP, ServerTCP, ClientTCP };
+    enum class Type { UDP, ServerTCP, ClientTCP, ServerConnectionTCP };
 
     LibWebRTCSocket(LibWebRTCSocketFactory&, uint64_t identifier, Type, const rtc::SocketAddress& localAddress, const rtc::SocketAddress& remoteAddress);
     ~LibWebRTCSocket();
@@ -67,9 +66,10 @@ private:
     friend class WebRTCSocket;
     void signalReadPacket(const WebCore::SharedBuffer&, rtc::SocketAddress&&, int64_t);
     void signalSentPacket(int, int64_t);
-    void signalAddressReady(const String&);
+    void signalAddressReady(const rtc::SocketAddress&);
     void signalConnect();
     void signalClose(int);
+    void signalNewConnection(rtc::AsyncPacketSocket*);
 
     // AsyncPacketSocket API
     int GetError() const final { return m_error; }

@@ -143,7 +143,7 @@ public:
     // For AX objects with elements that back them.
     AccessibilityObject* getOrCreate(RenderObject*);
     AccessibilityObject* getOrCreate(Widget*);
-    AccessibilityObject* getOrCreate(Node*);
+    WEBCORE_EXPORT AccessibilityObject* getOrCreate(Node*);
 
     // used for objects without backing elements
     AccessibilityObject* getOrCreate(AccessibilityRole);
@@ -222,7 +222,7 @@ public:
     CharacterOffset nextCharacterOffset(const CharacterOffset&, bool ignoreNextNodeStart = true);
     CharacterOffset previousCharacterOffset(const CharacterOffset&, bool ignorePreviousNodeEnd = true);
     void startOrEndTextMarkerDataForRange(TextMarkerData&, RefPtr<Range>, bool);
-    CharacterOffset startOrEndCharacterOffsetForRange(RefPtr<Range>, bool);
+    CharacterOffset startOrEndCharacterOffsetForRange(RefPtr<Range>, bool, bool enterTextControls = false);
     AccessibilityObject* accessibilityObjectForTextMarkerData(TextMarkerData&);
     RefPtr<Range> rangeForUnorderedCharacterOffsets(const CharacterOffset&, const CharacterOffset&);
     static RefPtr<Range> rangeForNodeContents(Node*);
@@ -262,6 +262,7 @@ public:
         AXAutocorrectionOccured,
         AXCheckedStateChanged,
         AXChildrenChanged,
+        AXCurrentChanged,
         AXFocusedUIElementChanged,
         AXLayoutComplete,
         AXLoadComplete,
@@ -351,7 +352,7 @@ protected:
     bool isNodeInUse(Node* n) { return m_textMarkerNodes.contains(n); }
     
     // CharacterOffset functions.
-    enum TraverseOption { TraverseOptionDefault = 1 << 0, TraverseOptionToNodeEnd = 1 << 1, TraverseOptionIncludeStart = 1 << 2, TraverseOptionValidateOffset = 1 << 3 };
+    enum TraverseOption { TraverseOptionDefault = 1 << 0, TraverseOptionToNodeEnd = 1 << 1, TraverseOptionIncludeStart = 1 << 2, TraverseOptionValidateOffset = 1 << 3, TraverseOptionDoNotEnterTextControls = 1 << 4 };
     Node* nextNode(Node*) const;
     Node* previousNode(Node*) const;
     CharacterOffset traverseToOffsetInRange(RefPtr<Range>, int, TraverseOption = TraverseOptionDefault, bool stayWithinRange = false);

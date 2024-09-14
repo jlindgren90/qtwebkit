@@ -35,7 +35,6 @@
 #include "LegacyTileLayer.h"
 #include "LegacyTileLayerPool.h"
 #include "Logging.h"
-#include "MemoryPressureHandler.h"
 #include "QuartzCoreSPI.h"
 #include "SystemMemory.h"
 #include "WAKWindow.h"
@@ -43,6 +42,7 @@
 #include "WebCoreSystemInterface.h"
 #include "WebCoreThreadRun.h"
 #include <wtf/CurrentTime.h>
+#include <wtf/MemoryPressureHandler.h>
 #include <wtf/RAMSize.h>
 
 @interface WAKView (WebViewExtras)
@@ -420,7 +420,7 @@ void LegacyTileCache::finishedCreatingTiles(bool didCreateTiles, bool createMore
 
     // Keep creating tiles until the whole coverRect is covered.
     if (createMore)
-        m_tileCreationTimer.startOneShot(0);
+        m_tileCreationTimer.startOneShot(0_s);
 }
 
 void LegacyTileCache::tileCreationTimerFired()
@@ -782,7 +782,7 @@ void LegacyTileCache::setSpeculativeTileCreationEnabled(bool enabled)
         return;
     m_isSpeculativeTileCreationEnabled = enabled;
     if (m_isSpeculativeTileCreationEnabled)
-        m_tileCreationTimer.startOneShot(0);
+        m_tileCreationTimer.startOneShot(0_s);
 }
 
 bool LegacyTileCache::hasPendingDraw() const

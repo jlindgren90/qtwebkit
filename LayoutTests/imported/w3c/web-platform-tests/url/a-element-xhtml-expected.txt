@@ -13,6 +13,7 @@ PASS Parsing: <	   :foo.com
 PASS Parsing: < foo.com  > against <http://example.org/foo/bar> 
 PASS Parsing: <a:	 foo.com> against <http://example.org/foo/bar> 
 PASS Parsing: <http://f:21/ b ? d # e > against <http://example.org/foo/bar> 
+PASS Parsing: <lolscheme:x x#x x> against <about:blank> 
 PASS Parsing: <http://f:/c> against <http://example.org/foo/bar> 
 PASS Parsing: <http://f:0/c> against <http://example.org/foo/bar> 
 PASS Parsing: <http://f:00000000000000/c> against <http://example.org/foo/bar> 
@@ -23,6 +24,7 @@ PASS Parsing: <http://f:
 /c> against <http://example.org/foo/bar> 
 PASS Parsing: <http://f:fifty-two/c> against <http://example.org/foo/bar> 
 PASS Parsing: <http://f:999999/c> against <http://example.org/foo/bar> 
+PASS Parsing: <non-special://f:999999/c> against <http://example.org/foo/bar> 
 FAIL Parsing: <http://f: 21 / b ? d # e > against <http://example.org/foo/bar> assert_equals: failure should set href to input expected "http://f: 21 / b ? d # e " but got "http://f: 21 / b ? d # e"
 PASS Parsing: <> against <http://example.org/foo/bar> 
 PASS Parsing: <  	> against <http://example.org/foo/bar> 
@@ -267,20 +269,24 @@ PASS Parsing: <http://﷐zyx.com> against <http://other.com/>
 PASS Parsing: <http://%ef%b7%90zyx.com> against <http://other.com/> 
 PASS Parsing: <https://�> against <about:blank> 
 PASS Parsing: <https://%EF%BF%BD> against <about:blank> 
+PASS Parsing: <https://x/�?�#�> against <about:blank> 
 PASS Parsing: <http://Ｇｏ.com> against <http://other.com/> 
 PASS Parsing: <http://％４１.com> against <http://other.com/> 
 PASS Parsing: <http://%ef%bc%85%ef%bc%94%ef%bc%91.com> against <http://other.com/> 
 PASS Parsing: <http://％００.com> against <http://other.com/> 
 PASS Parsing: <http://%ef%bc%85%ef%bc%90%ef%bc%90.com> against <http://other.com/> 
 PASS Parsing: <http://你好你好> against <http://other.com/> 
+PASS Parsing: <https://faß.ExAmPlE/> against <about:blank> 
+PASS Parsing: <sc://faß.ExAmPlE/> against <about:blank> 
 PASS Parsing: <http://%zz%66%a.com> against <http://other.com/> 
 PASS Parsing: <http://%25> against <http://other.com/> 
 PASS Parsing: <http://hello%00> against <http://other.com/> 
 PASS Parsing: <http://%30%78%63%30%2e%30%32%35%30.01> against <http://other.com/> 
 PASS Parsing: <http://%30%78%63%30%2e%30%32%35%30.01%2e> against <http://other.com/> 
-FAIL Parsing: <http://192.168.0.257> against <http://other.com/> assert_unreached: Expected URL to fail parsing Reached unreachable code
+PASS Parsing: <http://192.168.0.257> against <http://other.com/> 
 PASS Parsing: <http://%3g%78%63%30%2e%30%32%35%30%2E.01> against <http://other.com/> 
 PASS Parsing: <http://192.168.0.1 hello> against <http://other.com/> 
+PASS Parsing: <https://x x:12> against <about:blank> 
 PASS Parsing: <http://０Ｘｃ０．０２５０．０１> against <http://other.com/> 
 PASS Parsing: <http://[www.google.com]/> against <about:blank> 
 PASS Parsing: <http://[google.com]> against <http://other.com/> 
@@ -344,6 +350,8 @@ PASS Parsing: <sc://]/> against <about:blank>
 PASS Parsing: <x> against <sc://ñ> 
 PASS Parsing: <sc:\../> against <about:blank> 
 PASS Parsing: <sc::a@example.net> against <about:blank> 
+PASS Parsing: <wow:%NBD> against <about:blank> 
+PASS Parsing: <wow:%1G> against <about:blank> 
 PASS Parsing: <ftp://example.com%80/> against <about:blank> 
 PASS Parsing: <ftp://example.com%A0/> against <about:blank> 
 PASS Parsing: <https://example.com%80/> against <about:blank> 
@@ -372,30 +380,67 @@ PASS Parsing: <http://256> against <http://other.com/>
 PASS Parsing: <http://256.com> against <http://other.com/> 
 PASS Parsing: <http://999999999> against <http://other.com/> 
 PASS Parsing: <http://999999999.com> against <http://other.com/> 
-FAIL Parsing: <http://10000000000> against <http://other.com/> assert_unreached: Expected URL to fail parsing Reached unreachable code
+PASS Parsing: <http://10000000000> against <http://other.com/> 
 PASS Parsing: <http://10000000000.com> against <http://other.com/> 
 PASS Parsing: <http://4294967295> against <http://other.com/> 
-FAIL Parsing: <http://4294967296> against <http://other.com/> assert_unreached: Expected URL to fail parsing Reached unreachable code
+PASS Parsing: <http://4294967296> against <http://other.com/> 
 PASS Parsing: <http://0xffffffff> against <http://other.com/> 
-FAIL Parsing: <http://0xffffffff1> against <http://other.com/> assert_unreached: Expected URL to fail parsing Reached unreachable code
-FAIL Parsing: <http://256.256.256.256> against <http://other.com/> assert_unreached: Expected URL to fail parsing Reached unreachable code
+PASS Parsing: <http://0xffffffff1> against <http://other.com/> 
+PASS Parsing: <http://256.256.256.256> against <http://other.com/> 
 PASS Parsing: <http://256.256.256.256.256> against <http://other.com/> 
+PASS Parsing: <https://0x.0x.0> against <about:blank> 
 PASS Parsing: <file:///C%3A/> against <about:blank> 
 PASS Parsing: <file:///C%7C/> against <about:blank> 
 PASS Parsing: <pix/submit.gif> against <file:///C:/Users/Domenic/Dropbox/GitHub/tmpvar/jsdom/test/level2/html/files/anchor.html> 
-FAIL Parsing: <..> against <file:///C:/> assert_equals: href expected "file:///C:/" but got "file:///"
+PASS Parsing: <..> against <file:///C:/> 
 PASS Parsing: <..> against <file:///> 
-FAIL Parsing: </> against <file:///C:/a/b> assert_equals: href expected "file:///C:/" but got "file:///"
-FAIL Parsing: <//d:> against <file:///C:/a/b> assert_equals: href expected "file:///d:" but got "file://d/"
-FAIL Parsing: <//d:/..> against <file:///C:/a/b> assert_equals: href expected "file:///d:/" but got "file:///"
+PASS Parsing: </> against <file:///C:/a/b> 
+PASS Parsing: <//d:> against <file:///C:/a/b> 
+PASS Parsing: <//d:/..> against <file:///C:/a/b> 
 PASS Parsing: <..> against <file:///ab:/> 
 PASS Parsing: <..> against <file:///1:/> 
+PASS Parsing: <> against <file:///test?test#test> 
+PASS Parsing: <file:> against <file:///test?test#test> 
+PASS Parsing: <?x> against <file:///test?test#test> 
+PASS Parsing: <file:?x> against <file:///test?test#test> 
+PASS Parsing: <#x> against <file:///test?test#test> 
+PASS Parsing: <file:#x> against <file:///test?test#test> 
+FAIL Parsing: <file:\\//> against <about:blank> assert_equals: href expected "file:///" but got "file:////"
+FAIL Parsing: <file:\\\\> against <about:blank> assert_equals: href expected "file:///" but got "file:////"
+FAIL Parsing: <file:\\\\?fox> against <about:blank> assert_equals: href expected "file:///?fox" but got "file:////?fox"
+FAIL Parsing: <file:\\\\#guppy> against <about:blank> assert_equals: href expected "file:///#guppy" but got "file:////#guppy"
+FAIL Parsing: <file://spider///> against <about:blank> assert_equals: href expected "file://spider/" but got "file://spider///"
+FAIL Parsing: <file:\\localhost//> against <about:blank> assert_equals: href expected "file:///" but got "file:////"
+PASS Parsing: <file:///localhost//cat> against <about:blank> 
+FAIL Parsing: <file://\/localhost//cat> against <about:blank> assert_equals: href expected "file:///localhost//cat" but got "file:////localhost//cat"
+FAIL Parsing: <file://localhost//a//../..//> against <about:blank> assert_equals: href expected "file:///" but got "file://///"
+FAIL Parsing: </////mouse> against <file:///elephant> assert_equals: href expected "file:///mouse" but got "file://///mouse"
+PASS Parsing: <\//pig> against <file://lion/> 
+FAIL Parsing: <\/localhost//pig> against <file://lion/> assert_equals: href expected "file:///pig" but got "file:////pig"
+FAIL Parsing: <//localhost//pig> against <file://lion/> assert_equals: href expected "file:///pig" but got "file:////pig"
+FAIL Parsing: </..//localhost//pig> against <file://lion/> assert_equals: href expected "file://lion/localhost//pig" but got "file:////localhost//pig"
+PASS Parsing: <file://> against <file://ape/> 
+FAIL Parsing: </rooibos> against <file://tea/> assert_equals: href expected "file://tea/rooibos" but got "file:///rooibos"
+FAIL Parsing: </?chai> against <file://tea/> assert_equals: href expected "file://tea/?chai" but got "file:///?chai"
+FAIL Parsing: <file://example.net/C:/> against <about:blank> assert_equals: href expected "file:///C:/" but got "file://example.net/C:/"
+FAIL Parsing: <file://1.2.3.4/C:/> against <about:blank> assert_equals: href expected "file:///C:/" but got "file://1.2.3.4/C:/"
+FAIL Parsing: <file://[1::8]/C:/> against <about:blank> assert_equals: href expected "file:///C:/" but got "file://[1::8]/C:/"
+PASS Parsing: <file:/C|/> against <about:blank> 
+PASS Parsing: <file://C|/> against <about:blank> 
 PASS Parsing: <file:> against <about:blank> 
 PASS Parsing: <file:?q=v> against <about:blank> 
 PASS Parsing: <file:#frag> against <about:blank> 
 PASS Parsing: <http://[1:0::]> against <http://example.net/> 
-FAIL Parsing: <http://?> against <about:blank> assert_unreached: Expected URL to fail parsing Reached unreachable code
-FAIL Parsing: <http://#> against <about:blank> assert_unreached: Expected URL to fail parsing Reached unreachable code
+PASS Parsing: <http://[0:1:2:3:4:5:6:7:8]> against <http://example.net/> 
+PASS Parsing: <https://[0::0::0]> against <about:blank> 
+PASS Parsing: <https://[0:.0]> against <about:blank> 
+PASS Parsing: <https://[0:0:]> against <about:blank> 
+PASS Parsing: <https://[0:1:2:3:4:5:6:7.0.0.0.1]> against <about:blank> 
+PASS Parsing: <https://[0:1.00.0.0.0]> against <about:blank> 
+PASS Parsing: <https://[0:1.290.0.0.0]> against <about:blank> 
+PASS Parsing: <https://[0:1.23.23]> against <about:blank> 
+PASS Parsing: <http://?> against <about:blank> 
+PASS Parsing: <http://#> against <about:blank> 
 PASS Parsing: <sc://ñ> against <about:blank> 
 PASS Parsing: <sc://ñ?x> against <about:blank> 
 PASS Parsing: <sc://ñ#x> against <about:blank> 
@@ -403,9 +448,9 @@ PASS Parsing: <#x> against <sc://ñ>
 PASS Parsing: <?x> against <sc://ñ> 
 PASS Parsing: <sc://?> against <about:blank> 
 PASS Parsing: <sc://#> against <about:blank> 
-FAIL Parsing: <///> against <sc://x/> assert_equals: href expected "sc:///" but got "///"
-FAIL Parsing: <////> against <sc://x/> assert_equals: href expected "sc:////" but got "////"
-FAIL Parsing: <////x/> against <sc://x/> assert_equals: href expected "sc:////x/" but got "sc://x/"
+PASS Parsing: <///> against <sc://x/> 
+PASS Parsing: <////> against <sc://x/> 
+PASS Parsing: <////x/> against <sc://x/> 
 PASS Parsing: <tftp://foobar.com/someconfig;mode=netascii> against <about:blank> 
 PASS Parsing: <telnet://user:pass@foobar.com:23/> against <about:blank> 
 PASS Parsing: <ut2004://10.10.10.10:7777/Index.ut2> against <about:blank> 
@@ -424,4 +469,6 @@ PASS Parsing: <non-special://[1:2:0:0:5:0:0:0]/> against <about:blank>
 PASS Parsing: <non-special://[1:2:0:0:0:0:0:3]/> against <about:blank> 
 PASS Parsing: <non-special://[1:2::3]:80/> against <about:blank> 
 PASS Parsing: <non-special://[:80/> against <about:blank> 
+PASS Parsing: <blob:https://example.com:443/> against <about:blank> 
+PASS Parsing: <blob:d3958f5c-0777-0845-9dcf-2cb28783acaf> against <about:blank> 
 

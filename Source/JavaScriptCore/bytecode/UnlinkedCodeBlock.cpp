@@ -410,7 +410,12 @@ void UnlinkedCodeBlock::shrinkToFit()
         m_rareData->m_switchJumpTables.shrinkToFit();
         m_rareData->m_stringSwitchJumpTables.shrinkToFit();
         m_rareData->m_expressionInfoFatPositions.shrinkToFit();
+        m_rareData->m_opProfileControlFlowBytecodeOffsets.shrinkToFit();
     }
+}
+
+void UnlinkedCodeBlock::dump(PrintStream&) const
+{
 }
 
 } // namespace JSC

@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2001 Harri Porten (porten@kde.org)
- *  Copyright (C) 2004-2008, 2013, 2016 Apple Inc. All rights reserved.
+ *  Copyright (C) 2004-2017 Apple Inc. All rights reserved.
  *  Copyright (C) 2009 Torch Mobile, Inc.
  *  Copyright (C) 2015 Jordan Harband (ljharb@gmail.com)
  *
@@ -37,6 +37,7 @@
 #include "JSStringIterator.h"
 #include "Lookup.h"
 #include "ObjectPrototype.h"
+#include "ParseInt.h"
 #include "PropertyNameArray.h"
 #include "RegExpCache.h"
 #include "RegExpConstructor.h"
@@ -141,7 +142,7 @@ void StringPrototype::finishCreation(VM& vm, JSGlobalObject* globalObject, JSStr
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("slice", stringProtoFuncSlice, DontEnum, 2);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("substr", stringProtoFuncSubstr, DontEnum, 2);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("substring", stringProtoFuncSubstring, DontEnum, 2);
-    JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION("toLowerCase", stringProtoFuncToLowerCase, DontEnum, 0, ToLowerCaseIntrinsic);
+    JSC_NATIVE_INTRINSIC_FUNCTION_WITHOUT_TRANSITION("toLowerCase", stringProtoFuncToLowerCase, DontEnum, 0, StringPrototypeToLowerCaseIntrinsic);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION("toUpperCase", stringProtoFuncToUpperCase, DontEnum, 0);
 #if ENABLE(INTL)
     JSC_BUILTIN_FUNCTION_WITHOUT_TRANSITION("localeCompare", stringPrototypeLocaleCompareCodeGenerator, DontEnum);
@@ -539,21 +540,23 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingRegExpSearch(
                     OUT_OF_MEMORY(exec, scope);
 
                 unsigned i = 0;
+                cachedCall.clearArguments();
                 for (; i < regExp->numSubpatterns() + 1; ++i) {
                     int matchStart = ovector[i * 2];
                     int matchLen = ovector[i * 2 + 1] - matchStart;
 
                     if (matchStart < 0)
-                        cachedCall.setArgument(i, jsUndefined());
+                        cachedCall.appendArgument(jsUndefined());
                     else
-                        cachedCall.setArgument(i, jsSubstring(&vm, source, matchStart, matchLen));
+                        cachedCall.appendArgument(jsSubstring(&vm, source, matchStart, matchLen));
                 }
 
-                cachedCall.setArgument(i++, jsNumber(result.start));
-                cachedCall.setArgument(i++, string);
+                cachedCall.appendArgument(jsNumber(result.start));
+                cachedCall.appendArgument(string);
 
                 cachedCall.setThis(jsUndefined());
                 JSValue jsResult = cachedCall.call();
+                RETURN_IF_EXCEPTION(scope, encodedJSValue());
                 replacements.append(jsResult.toWTFString(exec));
                 RETURN_IF_EXCEPTION(scope, encodedJSValue());
 
@@ -578,21 +581,23 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingRegExpSearch(
                     OUT_OF_MEMORY(exec, scope);
 
                 unsigned i = 0;
+                cachedCall.clearArguments();
                 for (; i < regExp->numSubpatterns() + 1; ++i) {
                     int matchStart = ovector[i * 2];
                     int matchLen = ovector[i * 2 + 1] - matchStart;
 
                     if (matchStart < 0)
-                        cachedCall.setArgument(i, jsUndefined());
+                        cachedCall.appendArgument(jsUndefined());
                     else
-                        cachedCall.setArgument(i, jsSubstring(&vm, source, matchStart, matchLen));
+                        cachedCall.appendArgument(jsSubstring(&vm, source, matchStart, matchLen));
                 }
 
-                cachedCall.setArgument(i++, jsNumber(result.start));
-                cachedCall.setArgument(i++, string);
+                cachedCall.appendArgument(jsNumber(result.start));
+                cachedCall.appendArgument(string);
 
                 cachedCall.setThis(jsUndefined());
                 JSValue jsResult = cachedCall.call();
+                RETURN_IF_EXCEPTION(scope, encodedJSValue());
                 replacements.append(jsResult.toWTFString(exec));
                 RETURN_IF_EXCEPTION(scope, encodedJSValue());
 
@@ -732,6 +737,7 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingStringSearch(VM& vm, ExecState* 
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     const String& string = jsString->value(exec);
+    RETURN_IF_EXCEPTION(scope, encodedJSValue());
     String searchString = searchValue.toWTFString(exec);
     RETURN_IF_EXCEPTION(scope, encodedJSValue());
 
@@ -759,7 +765,7 @@ static ALWAYS_INLINE EncodedJSValue replaceUsingStringSearch(VM& vm, ExecState* 
 
     size_t matchEnd = matchStart + searchString.impl()->length();
     int ovector[2] = { static_cast<int>(matchStart),  static_cast<int>(matchEnd)};
-    String middlePart = substituteBackreferences(replaceString, string, ovector, 0);
+    String middlePart = callType != CallType::None ? replaceString : substituteBackreferences(replaceString, string, ovector, 0);
 
     size_t leftLength = stringImpl->length() - matchEnd;
     String rightPart(StringImpl::createSubstringSharingImpl(*stringImpl, matchEnd, leftLength));

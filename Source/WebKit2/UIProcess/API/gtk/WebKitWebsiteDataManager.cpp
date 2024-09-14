@@ -21,6 +21,7 @@
 #include "WebKitWebsiteDataManager.h"
 
 #include "APIWebsiteDataStore.h"
+#include "WebKitCookieManagerPrivate.h"
 #include "WebKitWebsiteDataManagerPrivate.h"
 #include "WebKitWebsiteDataPrivate.h"
 #include "WebsiteDataFetchOption.h"
@@ -69,6 +70,8 @@ using namespace WebKit;
  * Since: 2.10
  */
 
+using namespace WebKit;
+
 enum {
     PROP_0,
 
@@ -83,6 +86,11 @@ enum {
 };
 
 struct _WebKitWebsiteDataManagerPrivate {
+    ~_WebKitWebsiteDataManagerPrivate()
+    {
+        ASSERT(processPools.isEmpty());
+    }
+
     RefPtr<API::WebsiteDataStore> websiteDataStore;
     GUniquePtr<char> baseDataDirectory;
     GUniquePtr<char> baseCacheDirectory;
@@ -91,6 +99,9 @@ struct _WebKitWebsiteDataManagerPrivate {
     GUniquePtr<char> applicationCacheDirectory;
     GUniquePtr<char> indexedDBDirectory;
     GUniquePtr<char> webSQLDirectory;
+
+    GRefPtr<WebKitCookieManager> cookieManager;
+    Vector<WebProcessPool*> processPools;
 };
 
 WEBKIT_DEFINE_TYPE(WebKitWebsiteDataManager, webkit_website_data_manager, G_TYPE_OBJECT)
@@ -339,7 +350,7 @@ static void webkit_website_data_manager_class_init(WebKitWebsiteDataManagerClass
 WebKitWebsiteDataManager* webkitWebsiteDataManagerCreate(WebsiteDataStore::Configuration&& configuration)
 {
     WebKitWebsiteDataManager* manager = WEBKIT_WEBSITE_DATA_MANAGER(g_object_new(WEBKIT_TYPE_WEBSITE_DATA_MANAGER, nullptr));
-    manager->priv->websiteDataStore = API::WebsiteDataStore::create(WTFMove(configuration));
+    manager->priv->websiteDataStore = API::WebsiteDataStore::createLegacy(WTFMove(configuration));
 
     return manager;
 }
@@ -358,10 +369,27 @@ API::WebsiteDataStore& webkitWebsiteDataManagerGetDataStore(WebKitWebsiteDataMan
         configuration.webSQLDatabaseDirectory = !priv->webSQLDirectory ?
             API::WebsiteDataStore::defaultWebSQLDatabaseDirectory() : WebCore::stringFromFileSystemRepresentation(priv->webSQLDirectory.get());
         configuration.mediaKeysStorageDirectory = API::WebsiteDataStore::defaultMediaKeysStorageDirectory();
-        priv->websiteDataStore = API::WebsiteDataStore::create(WTFMove(configuration));
+        priv->websiteDataStore = API::WebsiteDataStore::createLegacy(WTFMove(configuration));
     }
 
     return *priv->websiteDataStore;
+}
+
+void webkitWebsiteDataManagerAddProcessPool(WebKitWebsiteDataManager* manager, WebProcessPool& processPool)
+{
+    ASSERT(!manager->priv->processPools.contains(&processPool));
+    manager->priv->processPools.append(&processPool);
+}
+
+void webkitWebsiteDataManagerRemoveProcessPool(WebKitWebsiteDataManager* manager, WebProcessPool& processPool)
+{
+    ASSERT(manager->priv->processPools.contains(&processPool));
+    manager->priv->processPools.removeFirst(&processPool);
+}
+
+const Vector<WebProcessPool*>& webkitWebsiteDataManagerGetProcessPools(WebKitWebsiteDataManager* manager)
+{
+    return manager->priv->processPools;
 }
 
 /**
@@ -576,6 +604,26 @@ const gchar* webkit_website_data_manager_get_websql_directory(WebKitWebsiteDataM
     return priv->webSQLDirectory.get();
 }
 
+/**
+ * webkit_website_data_manager_get_cookie_manager:
+ * @manager: a #WebKitWebsiteDataManager
+ *
+ * Get the #WebKitCookieManager of @manager.
+ *
+ * Returns: (transfer none): a #WebKitCookieManager
+ *
+ * Since: 2.16
+ */
+WebKitCookieManager* webkit_website_data_manager_get_cookie_manager(WebKitWebsiteDataManager* manager)
+{
+    g_return_val_if_fail(WEBKIT_IS_WEBSITE_DATA_MANAGER(manager), nullptr);
+
+    if (!manager->priv->cookieManager)
+        manager->priv->cookieManager = adoptGRef(webkitCookieManagerCreate(manager));
+
+    return manager->priv->cookieManager.get();
+}
+
 static OptionSet<WebsiteDataType> toWebsiteDataTypes(WebKitWebsiteDataTypes types)
 {
     OptionSet<WebsiteDataType> returnValue;
@@ -593,8 +641,12 @@ static OptionSet<WebsiteDataType> toWebsiteDataTypes(WebKitWebsiteDataTypes type
         returnValue |= WebsiteDataType::WebSQLDatabases;
     if (types & WEBKIT_WEBSITE_DATA_INDEXEDDB_DATABASES)
         returnValue |= WebsiteDataType::IndexedDBDatabases;
+#if ENABLE(NETSCAPE_PLUGIN_API)
     if (types & WEBKIT_WEBSITE_DATA_PLUGIN_DATA)
         returnValue |= WebsiteDataType::PlugInData;
+#endif
+    if (types & WEBKIT_WEBSITE_DATA_COOKIES)
+        returnValue |= WebsiteDataType::Cookies;
     return returnValue;
 }
 
@@ -701,7 +753,7 @@ void webkit_website_data_manager_remove(WebKitWebsiteDataManager* manager, WebKi
  *
  * Finish an asynchronous operation started with webkit_website_data_manager_remove().
  *
- * Returns: %TRUE if website data resources were succesfully removed, or %FALSE otherwise.
+ * Returns: %TRUE if website data resources were successfully removed, or %FALSE otherwise.
  *
  * Since: 2.16
  */
@@ -723,10 +775,14 @@ gboolean webkit_website_data_manager_remove_finish(WebKitWebsiteDataManager* man
  * @user_data: (closure): the data to pass to callback function
  *
  * Asynchronously clear the website data of the given @types modified in the past @timespan.
- * If @timespan is 0 all website data will be removed.
+ * If @timespan is 0, all website data will be removed.
  *
  * When the operation is finished, @callback will be called. You can then call
  * webkit_website_data_manager_clear_finish() to get the result of the operation.
+ *
+ * Due to implementation limitations, this function does not currently delete
+ * any stored cookies if @timespan is nonzero. This behavior may change in the
+ * future.
  *
  * Since: 2.16
  */
@@ -749,7 +805,7 @@ void webkit_website_data_manager_clear(WebKitWebsiteDataManager* manager, WebKit
  *
  * Finish an asynchronous operation started with webkit_website_data_manager_clear()
  *
- * Returns: %TRUE if website data was succesfully cleared, or %FALSE otherwise.
+ * Returns: %TRUE if website data was successfully cleared, or %FALSE otherwise.
  *
  * Since: 2.16
  */

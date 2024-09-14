@@ -22,7 +22,7 @@ class VideoEncoder;
 
 namespace cricket {
 
-class WebRtcVideoEncoderFactory {
+class WEBRTC_DYLIB_EXPORT WebRtcVideoEncoderFactory {
  public:
   // This VideoCodec class is deprecated. Use cricket::VideoCodec directly
   // instead and the corresponding factory function. See
@@ -36,9 +36,9 @@ class WebRtcVideoEncoderFactory {
 
     VideoCodec(webrtc::VideoCodecType t,
                const std::string& nm,
-               int /* w */,
-               int /* h */,
-               int /* fr */)
+               int,
+               int,
+               int)
         : type(t), name(nm) {}
   };
 

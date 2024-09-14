@@ -34,6 +34,7 @@
 #import <WebKit/WKNavigationDelegate.h>
 #import <WebKit/WKPreferencesPrivate.h>
 #import <WebKit/WKUIDelegate.h>
+#import <WebKit/WKUIDelegatePrivate.h>
 #import <WebKit/WKWebViewConfigurationPrivate.h>
 #import <WebKit/WKWebViewPrivate.h>
 #import <WebKit/WKWebsiteDataStorePrivate.h>
@@ -375,6 +376,7 @@ static BOOL areEssentiallyEqual(double a, double b)
     preferences._acceleratedDrawingEnabled = settings.acceleratedDrawingEnabled;
     preferences._resourceUsageOverlayVisible = settings.resourceUsageOverlayVisible;
     preferences._displayListDrawingEnabled = settings.displayListDrawingEnabled;
+    preferences._subpixelAntialiasedLayerTextEnabled = settings.subpixelAntialiasedLayerTextEnabled;
     preferences._visualViewportEnabled = settings.visualViewportEnabled;
     preferences._largeImageAsyncDecodingEnabled = settings.largeImageAsyncDecodingEnabled;
     preferences._animatedImageAsyncDecodingEnabled = settings.animatedImageAsyncDecodingEnabled;
@@ -506,11 +508,16 @@ static BOOL areEssentiallyEqual(double a, double b)
     openPanel.allowsMultipleSelection = parameters.allowsMultipleSelection;
 
     [openPanel beginSheetModalForWindow:webView.window completionHandler:^(NSInteger result) {
-        if (result == NSFileHandlingPanelOKButton)
+        if (result == NSModalResponseOK)
             completionHandler(openPanel.URLs);
         else
             completionHandler(nil);
     }];
+}
+
+- (WKDragDestinationAction)_webView:(WKWebView *)webView dragDestinationActionMaskForDraggingInfo:(id)draggingInfo
+{
+    return WKDragDestinationActionAny;
 }
 
 - (void)updateTextFieldFromURL:(NSURL *)URL

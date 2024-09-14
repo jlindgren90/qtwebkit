@@ -46,6 +46,9 @@ String WebsiteDataRecord::displayNameForCookieHostName(const String& hostName)
 #if PLATFORM(COCOA)
     if (hostName == String(kCFHTTPCookieLocalFileDomain))
         return displayNameForLocalFiles();
+#else
+    if (hostName == "localhost")
+        return hostName;
 #endif
 
 #if ENABLE(PUBLIC_SUFFIX_LIST)
@@ -103,5 +106,35 @@ void WebsiteDataRecord::addPluginDataHostName(const String& hostName)
     pluginDataHostNames.add(hostName);
 }
 #endif
+
+static inline bool hostIsInDomain(StringView host, StringView domain)
+{
+    if (!host.endsWithIgnoringASCIICase(domain))
+        return false;
+    
+    ASSERT(host.length() >= domain.length());
+    unsigned suffixOffset = host.length() - domain.length();
+    return !suffixOffset || host[suffixOffset - 1] == '.';
+}
+
+bool WebsiteDataRecord::matchesTopPrivatelyControlledDomain(const String& topPrivatelyControlledDomain) const
+{
+    if (topPrivatelyControlledDomain.isEmpty())
+        return false;
+
+    if (types.contains(WebsiteDataType::Cookies)) {
+        for (const auto& hostName : cookieHostNames) {
+            if (hostIsInDomain(hostName, topPrivatelyControlledDomain))
+                return true;
+        }
+    }
+
+    for (const auto& dataRecordOriginData : origins) {
+        if (hostIsInDomain(dataRecordOriginData.securityOrigin().get().host(), topPrivatelyControlledDomain))
+            return true;
+    }
+
+    return false;
+}
 
 }

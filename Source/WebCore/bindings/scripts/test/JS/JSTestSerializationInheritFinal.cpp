@@ -208,7 +208,7 @@ static inline bool setJSTestSerializationInheritFinalFinalLongAttributeFooFuncti
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = convert<IDLLong>(state, value, IntegerConversionConfiguration::Normal);
+    auto nativeValue = convert<IDLLong>(state, value);
     RETURN_IF_EXCEPTION(throwScope, false);
     impl.setFinalLongAttributeFoo(WTFMove(nativeValue));
     return true;
@@ -227,7 +227,7 @@ static inline bool setJSTestSerializationInheritFinalFinalLongAttributeBarFuncti
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = convert<IDLLong>(state, value, IntegerConversionConfiguration::Normal);
+    auto nativeValue = convert<IDLLong>(state, value);
     RETURN_IF_EXCEPTION(throwScope, false);
     impl.setFinalLongAttributeBar(WTFMove(nativeValue));
     return true;
@@ -239,40 +239,21 @@ JSValue JSTestSerializationInheritFinal::getConstructor(VM& vm, const JSGlobalOb
     return getDOMConstructor<JSTestSerializationInheritFinalConstructor>(vm, *jsCast<const JSDOMGlobalObject*>(globalObject));
 }
 
-static inline EncodedJSValue jsTestSerializationInheritFinalPrototypeFunctionToJSONCaller(ExecState* state, JSTestSerializationInheritFinal* thisObject, JSC::ThrowScope& throwScope)
+JSC::JSObject* JSTestSerializationInheritFinal::serialize(ExecState* state, JSTestSerializationInheritFinal* thisObject, ThrowScope& throwScope)
 {
     auto& vm = state->vm();
-    auto* result = constructEmptyObject(state);
-
-    auto firstStringAttributeValue = jsTestSerializationFirstStringAttributeGetter(*state, *thisObject, throwScope);
-    ASSERT(!throwScope.exception());
-    result->putDirect(vm, Identifier::fromString(&vm, "firstStringAttribute"), firstStringAttributeValue);
-
-    auto secondLongAttributeValue = jsTestSerializationSecondLongAttributeGetter(*state, *thisObject, throwScope);
-    ASSERT(!throwScope.exception());
-    result->putDirect(vm, Identifier::fromString(&vm, "secondLongAttribute"), secondLongAttributeValue);
-
-    auto fourthUnrestrictedDoubleAttributeValue = jsTestSerializationFourthUnrestrictedDoubleAttributeGetter(*state, *thisObject, throwScope);
-    ASSERT(!throwScope.exception());
-    result->putDirect(vm, Identifier::fromString(&vm, "fourthUnrestrictedDoubleAttribute"), fourthUnrestrictedDoubleAttributeValue);
-
-    auto fifthLongAttributeValue = jsTestSerializationFifthLongAttributeGetter(*state, *thisObject, throwScope);
-    ASSERT(!throwScope.exception());
-    result->putDirect(vm, Identifier::fromString(&vm, "fifthLongAttribute"), fifthLongAttributeValue);
-
-    auto sixthTypedefAttributeValue = jsTestSerializationSixthTypedefAttributeGetter(*state, *thisObject, throwScope);
-    ASSERT(!throwScope.exception());
-    result->putDirect(vm, Identifier::fromString(&vm, "sixthTypedefAttribute"), sixthTypedefAttributeValue);
-
-    auto inheritLongAttributeValue = jsTestSerializationInheritInheritLongAttributeGetter(*state, *thisObject, throwScope);
-    ASSERT(!throwScope.exception());
-    result->putDirect(vm, Identifier::fromString(&vm, "inheritLongAttribute"), inheritLongAttributeValue);
+    auto* result = JSTestSerializationInherit::serialize(state, thisObject, throwScope);
 
     auto finalLongAttributeBarValue = jsTestSerializationInheritFinalFinalLongAttributeBarGetter(*state, *thisObject, throwScope);
     ASSERT(!throwScope.exception());
     result->putDirect(vm, Identifier::fromString(&vm, "finalLongAttributeBar"), finalLongAttributeBarValue);
 
-    return JSValue::encode(result);
+    return result;
+}
+
+static inline EncodedJSValue jsTestSerializationInheritFinalPrototypeFunctionToJSONCaller(ExecState* state, JSTestSerializationInheritFinal* thisObject, JSC::ThrowScope& throwScope)
+{
+    return JSValue::encode(JSTestSerializationInheritFinal::serialize(state, thisObject, throwScope));
 }
 
 EncodedJSValue JSC_HOST_CALL jsTestSerializationInheritFinalPrototypeFunctionToJSON(ExecState* state)

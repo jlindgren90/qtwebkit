@@ -1,3 +1,4 @@
+main.js
 gesture-recognizers/gesture-recognizer.js
 gesture-recognizers/tap.js
 gesture-recognizers/pinch.js
@@ -5,6 +6,7 @@ controls/scheduler.js
 controls/layout-node.js
 controls/layout-item.js
 controls/icon-service.js
+controls/background-tint.js
 controls/time-control.js
 controls/time-label.js
 controls/slider.js
@@ -30,6 +32,7 @@ controls/status-label.js
 controls/controls-bar.js
 controls/tracks-panel.js
 controls/media-controls.js
+controls/inline-layout-support.js
 controls/ios-inline-media-controls.js
 controls/macos-media-controls.js
 controls/macos-inline-media-controls.js
@@ -58,5 +61,6 @@ media/tracks-support.js
 media/volume-down-support.js
 media/volume-support.js
 media/volume-up-support.js
+media/media-document-controller.js
 media/media-controller.js
-main.js
+

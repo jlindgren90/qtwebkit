@@ -8,6 +8,9 @@
     "http/tests/xmlhttprequest/timeout-greater-than-default-network-timeout.html": [
         "slow"
     ],
+    "imported/w3c/web-platform-tests/IndexedDB/idb-binary-key-roundtrip.htm": [
+        "slow"
+    ],
     "imported/w3c/web-platform-tests/IndexedDB/idbcursor-continuePrimaryKey-exception-order.htm": [
         "slow"
     ],
@@ -29,10 +32,22 @@
     "imported/w3c/web-platform-tests/IndexedDB/idbobjectstore_createIndex8-valid_keys.htm": [
         "slow"
     ],
+    "imported/w3c/web-platform-tests/IndexedDB/idbobjectstore_getKey.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/IndexedDB/interleaved-cursors.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/IndexedDB/key-conversion-exceptions.htm": [
+        "slow"
+    ],
     "imported/w3c/web-platform-tests/IndexedDB/key_valid.html": [
         "slow"
     ],
     "imported/w3c/web-platform-tests/IndexedDB/keypath_maxsize.htm": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/IndexedDB/parallel-cursors-upgrade.html": [
         "slow"
     ],
     "imported/w3c/web-platform-tests/IndexedDB/writer-starvation.htm": [
@@ -170,6 +185,9 @@
     "imported/w3c/web-platform-tests/XMLHttpRequest/xmlhttprequest-timeout-overridesexpires.html": [
         "slow"
     ],
+    "imported/w3c/web-platform-tests/XMLHttpRequest/xmlhttprequest-timeout-reused.html": [
+        "slow"
+    ],
     "imported/w3c/web-platform-tests/XMLHttpRequest/xmlhttprequest-timeout-simple.html": [
         "slow"
     ],
@@ -195,6 +213,9 @@
         "slow"
     ],
     "imported/w3c/web-platform-tests/XMLHttpRequest/xmlhttprequest-timeout-worker-twice.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/cors/status-async.htm": [
         "slow"
     ],
     "imported/w3c/web-platform-tests/dom/nodes/Document-characterSet-normalization.html": [
@@ -437,6 +458,21 @@
     "imported/w3c/web-platform-tests/fetch/api/request/request-cache.html": [
         "slow"
     ],
+    "imported/w3c/web-platform-tests/fetch/api/request/request-keepalive-quota.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/fetch/http-cache/cc-request.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/fetch/http-cache/freshness.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/fetch/http-cache/heuristic.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/fetch/http-cache/partial.html": [
+        "slow"
+    ],
     "imported/w3c/web-platform-tests/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-cross-origin.html": [
         "slow"
     ],
@@ -471,6 +507,57 @@
         "slow"
     ],
     "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/creating_browsing_context_test_01.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-negative-innerwidth-innerheight.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-negative-screenx-screeny.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-negative-top-left.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-negative-width-height.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-height.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-innerheight.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-innerwidth.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-left.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-screenx.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-screeny.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-top.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-non-integer-width.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-tokenization-innerheight-innerwidth.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-tokenization-noopener.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-tokenization-screenx-screeny.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-tokenization-top-left.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/open-features-tokenization-width-height.html": [
         "slow"
     ],
     "imported/w3c/web-platform-tests/html/dom/interfaces.html": [
@@ -684,6 +771,12 @@
         "slow"
     ],
     "imported/w3c/web-platform-tests/html/syntax/parsing/html5lib_webkit02.html": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/tools/html5lib_test.xml": [
+        "slow"
+    ],
+    "imported/w3c/web-platform-tests/html/tools/html5lib_test_fragment.xml": [
         "slow"
     ],
     "imported/w3c/web-platform-tests/media-source/SourceBuffer-abort-readyState.html": [

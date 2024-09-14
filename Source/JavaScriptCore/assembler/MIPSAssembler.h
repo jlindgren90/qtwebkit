@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Apple Inc. All rights reserved.
+ * Copyright (C) 2009-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2009 University of Szeged
  * All rights reserved.
  * Copyright (C) 2010 MIPS Technologies, Inc. All rights reserved.
@@ -32,6 +32,7 @@
 
 #include "AssemblerBuffer.h"
 #include "JITCompilationEffort.h"
+#include <limits.h>
 #include <wtf/Assertions.h>
 #include <wtf/SegmentedVector.h>
 
@@ -191,9 +192,24 @@ public:
     {
         emitInst(0x00000000);
     }
+    
+    static void fillNops(void* base, size_t size, bool isCopyingToExecutableMemory)
+    {
+        UNUSED_PARAM(isCopyingToExecutableMemory);
+        RELEASE_ASSERT(!(size % sizeof(int32_t)));
 
+        int32_t* ptr = static_cast<int32_t*>(base);
+        const size_t num32s = size / sizeof(int32_t);
+        const int32_t insn = 0x00000000;
+        for (size_t i = 0; i < num32s; i++)
+            *ptr++ = insn;
+    }
+    
     void sync()
     {
+        // FIXME: https://bugs.webkit.org/show_bug.cgi?id=169984
+        // We might get a performance improvements by using SYNC_MB in some or
+        // all cases.
         emitInst(0x0000000f);
     }
 
@@ -445,6 +461,14 @@ public:
     {
         int value = 512; /* BRK_BUG */
         emitInst(0x0000000d | ((value & 0x3ff) << OP_SH_CODE));
+    }
+
+    static bool isBkpt(void* address)
+    {
+        int value = 512; /* BRK_BUG */
+        MIPSWord expected = (0x0000000d | ((value & 0x3ff) << OP_SH_CODE));
+        MIPSWord candidateInstruction = *reinterpret_cast<MIPSWord*>(address);
+        return candidateInstruction == expected;
     }
 
     void bgez(RegisterID rs, int imm)
@@ -737,6 +761,35 @@ public:
     // writable region of memory; to modify the code in an execute-only execuable
     // pool the 'repatch' and 'relink' methods should be used.
 
+    static size_t linkDirectJump(void* code, void* to)
+    {
+        MIPSWord* insn = reinterpret_cast<MIPSWord*>(reinterpret_cast<intptr_t>(code));
+        size_t ops = 0;
+        int32_t slotAddr = reinterpret_cast<int>(insn) + 4;
+        int32_t toAddr = reinterpret_cast<int>(to);
+
+        if ((slotAddr & 0xf0000000) != (toAddr & 0xf0000000)) {
+            // lui
+            *insn = 0x3c000000 | (MIPSRegisters::t9 << OP_SH_RT) | ((toAddr >> 16) & 0xffff);
+            ++insn;
+            // ori
+            *insn = 0x34000000 | (MIPSRegisters::t9 << OP_SH_RT) | (MIPSRegisters::t9 << OP_SH_RS) | (toAddr & 0xffff);
+            ++insn;
+            // jr
+            *insn = 0x00000008 | (MIPSRegisters::t9 << OP_SH_RS);
+            ++insn;
+            ops = 4 * sizeof(MIPSWord);
+        } else {
+            // j
+            *insn = 0x08000000 | ((toAddr & 0x0fffffff) >> 2);
+            ++insn;
+            ops = 2 * sizeof(MIPSWord);
+        }
+        // nop
+        *insn = 0x00000000;
+        return ops;
+    }
+
     void linkJump(AssemblerLabel from, AssemblerLabel to)
     {
         ASSERT(to.isSet());
@@ -784,6 +837,11 @@ public:
         int flushSize = linkWithOffset(insn, to);
 
         cacheFlush(insn, flushSize);
+    }
+
+    static void relinkJumpToNop(void* from)
+    {
+        relinkJump(from, from);
     }
 
     static void relinkCall(void* from, void* to)
@@ -856,42 +914,48 @@ public:
 
     static ptrdiff_t maxJumpReplacementSize()
     {
-        return sizeof(MIPSWord) * 2;
+        return sizeof(MIPSWord) * 4;
+    }
+
+    static constexpr ptrdiff_t patchableJumpSize()
+    {
+        return sizeof(MIPSWord) * 8;
     }
 
     static void revertJumpToMove(void* instructionStart, RegisterID rt, int imm)
     {
         MIPSWord* insn = static_cast<MIPSWord*>(instructionStart);
+        size_t codeSize = 2 * sizeof(MIPSWord);
 
         // lui
         *insn = 0x3c000000 | (rt << OP_SH_RT) | ((imm >> 16) & 0xffff);
         ++insn;
         // ori
         *insn = 0x34000000 | (rt << OP_SH_RS) | (rt << OP_SH_RT) | (imm & 0xffff);
-        cacheFlush(insn, 2 * sizeof(MIPSWord));
+        ++insn;
+        // if jr $t9
+        if (*insn == 0x03200008) {
+            *insn = 0x00000000;
+            codeSize += sizeof(MIPSWord);
+        }
+        cacheFlush(insn, codeSize);
     }
 
-    static bool canJumpWithJ(void* instructionStart, void* to)
+    static void replaceWithBkpt(void* instructionStart)
     {
-        intptr_t slotAddr = reinterpret_cast<intptr_t>(instructionStart) + 4;
-        intptr_t toAddr = reinterpret_cast<intptr_t>(to);
-        return (slotAddr & 0xf0000000) == (toAddr & 0xf0000000);
+        ASSERT(!(bitwise_cast<uintptr_t>(instructionStart) & 3));
+        MIPSWord* insn = reinterpret_cast<MIPSWord*>(reinterpret_cast<intptr_t>(instructionStart));
+        int value = 512; /* BRK_BUG */
+        insn[0] = (0x0000000d | ((value & 0x3ff) << OP_SH_CODE));
+        cacheFlush(instructionStart, sizeof(MIPSWord));
     }
 
     static void replaceWithJump(void* instructionStart, void* to)
     {
         ASSERT(!(bitwise_cast<uintptr_t>(instructionStart) & 3));
         ASSERT(!(bitwise_cast<uintptr_t>(to) & 3));
-        ASSERT(canJumpWithJ(instructionStart, to));
-        MIPSWord* insn = reinterpret_cast<MIPSWord*>(instructionStart);
-        int32_t toAddr = reinterpret_cast<int32_t>(to);
-
-        // j <to>
-        *insn = 0x08000000 | ((toAddr & 0x0fffffff) >> 2);
-        ++insn;
-        // nop
-        *insn = 0x00000000;
-        cacheFlush(instructionStart, 2 * sizeof(MIPSWord));
+        size_t ops = linkDirectJump(instructionStart, to);
+        cacheFlush(instructionStart, ops);
     }
 
     static void replaceWithLoad(void* instructionStart)

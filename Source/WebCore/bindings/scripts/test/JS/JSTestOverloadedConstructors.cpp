@@ -123,7 +123,7 @@ static inline EncodedJSValue constructJSTestOverloadedConstructors4(ExecState* s
     ASSERT(castedThis);
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
-    auto string = convert<IDLDOMString>(*state, state->uncheckedArgument(0), StringConversionConfiguration::Normal);
+    auto string = convert<IDLDOMString>(*state, state->uncheckedArgument(0));
     RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
     auto object = TestOverloadedConstructors::create(WTFMove(string));
     return JSValue::encode(toJSNewlyCreated<IDLInterface<TestOverloadedConstructors>>(*state, *castedThis->globalObject(), WTFMove(object)));
@@ -138,7 +138,7 @@ static inline EncodedJSValue constructJSTestOverloadedConstructors5(ExecState* s
     ASSERT(castedThis);
     auto longArgs = convertVariadicArguments<IDLLong>(*state, 0);
     RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
-    auto object = TestOverloadedConstructors::create(WTFMove(longArgs));
+    auto object = TestOverloadedConstructors::create(WTFMove(longArgs.arguments.value()));
     return JSValue::encode(toJSNewlyCreated<IDLInterface<TestOverloadedConstructors>>(*state, *castedThis->globalObject(), WTFMove(object)));
 }
 

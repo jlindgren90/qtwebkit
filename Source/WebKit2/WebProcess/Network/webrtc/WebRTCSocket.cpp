@@ -40,7 +40,7 @@ namespace WebKit {
 void WebRTCSocket::signalOnNetworkThread(LibWebRTCSocketFactory& factory, uint64_t identifier, Function<void(LibWebRTCSocket&)>&& callback)
 {
     // factory is staying valid during the process lifetime.
-    WebCore::callOnWebRTCNetworkThread([&factory, identifier, callback = WTFMove(callback)]() {
+    WebCore::LibWebRTCProvider::callOnWebRTCNetworkThread([&factory, identifier, callback = WTFMove(callback)]() {
         auto* socket = factory.socket(identifier);
         if (!socket)
             return;
@@ -54,10 +54,10 @@ WebRTCSocket::WebRTCSocket(LibWebRTCSocketFactory& factory, uint64_t identifier)
 {
 }
 
-void WebRTCSocket::signalAddressReady(const String& address)
+void WebRTCSocket::signalAddressReady(const RTCNetwork::SocketAddress& address)
 {
     signalOnNetworkThread(m_factory, m_identifier, [address](LibWebRTCSocket& socket) {
-        socket.signalAddressReady(address);
+        socket.signalAddressReady(address.value);
     });
 }
 
@@ -87,6 +87,13 @@ void WebRTCSocket::signalClose(int error)
 {
     signalOnNetworkThread(m_factory, m_identifier, [error](LibWebRTCSocket& socket) {
         socket.signalClose(error);
+    });
+}
+
+void WebRTCSocket::signalNewConnection(uint64_t newSocketIdentifier, const RTCNetwork::SocketAddress& remoteAddress)
+{
+    signalOnNetworkThread(m_factory, m_identifier, [newSocketIdentifier, remoteAddress = RTCNetwork::isolatedCopy(remoteAddress.value)](LibWebRTCSocket& socket) {
+        socket.signalNewConnection(socket.m_factory.createNewConnectionSocket(socket, newSocketIdentifier, remoteAddress));
     });
 }
 

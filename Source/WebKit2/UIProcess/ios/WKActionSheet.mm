@@ -63,10 +63,14 @@
 
 - (void)dealloc
 {
+    [self _cleanup];
+    [super dealloc];
+}
+
+- (void)_cleanup
+{
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
-
-    [super dealloc];
 }
 
 #pragma mark - Sheet presentation code
@@ -76,13 +80,24 @@
     // Calculate the presentation rect just before showing.
     CGRect presentationRect = CGRectZero;
     if (UI_USER_INTERFACE_IDIOM() != UIUserInterfaceIdiomPhone) {
-        presentationRect = style == WKActionSheetPresentAtElementRect ? [_sheetDelegate presentationRectForIndicatedElement] : [_sheetDelegate initialPresentationRectInHostViewForSheet];
+        presentationRect = [self _presentationRectForStyle:style];
         if (CGRectIsEmpty(presentationRect))
             return NO;
     }
 
     _currentPresentationStyle = style;
     return [self presentSheetFromRect:presentationRect];
+}
+
+- (CGRect)_presentationRectForStyle:(WKActionSheetPresentationStyle)style
+{
+    if (style == WKActionSheetPresentAtElementRect)
+        return [_sheetDelegate presentationRectForIndicatedElement];
+
+    if (style == WKActionSheetPresentAtClosestIndicatorRect)
+        return [_sheetDelegate presentationRectForElementUsingClosestIndicatedRect];
+
+    return [_sheetDelegate initialPresentationRectInHostViewForSheet];
 }
 
 - (BOOL)presentSheetFromRect:(CGRect)presentationRect
@@ -108,9 +123,9 @@
     return YES;
 }
 
-- (void)doneWithSheet
+- (void)doneWithSheet:(BOOL)dismiss
 {
-    if (_currentPresentingViewController)
+    if (dismiss && _currentPresentingViewController)
         [_currentPresentingViewController dismissViewControllerAnimated:YES completion:nil];
 
     _currentPresentingViewController = nil;
@@ -118,7 +133,7 @@
     _popoverPresentationControllerDelegateWhileRotating = nil;
     _currentPresentationStyle = WKActionSheetPresentAtTouchLocation;
 
-    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_didRotateAndLayout) object:nil];
+    [self _cleanup];
 }
 
 #pragma mark - Rotation handling code
@@ -196,7 +211,7 @@
     if (_isRotating || !_readyToPresentAfterRotation || isBeingPresented)
         return;
 
-    CGRect presentationRect = _currentPresentationStyle == WKActionSheetPresentAtElementRect ? [_sheetDelegate presentationRectForIndicatedElement] : [_sheetDelegate initialPresentationRectInHostViewForSheet];
+    CGRect presentationRect = [self _presentationRectForStyle:_currentPresentationStyle];
     BOOL wasPresentedViewControllerModal = [_presentedViewControllerWhileRotating isModalInPopover];
 
     if (!CGRectIsEmpty(presentationRect) || wasPresentedViewControllerModal) {

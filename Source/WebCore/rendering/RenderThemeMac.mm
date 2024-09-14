@@ -114,10 +114,10 @@
 
 // We estimate the animation rate of a Mac OS X progress bar is 33 fps.
 // Hard code the value here because we haven't found API for it.
-const double progressAnimationFrameRate = 0.033;
+static const Seconds progressAnimationFrameRate = 33_ms;
 
 // Mac OS X progress bar animation seems to have 256 frames.
-const double progressAnimationNumFrames = 256;
+static const double progressAnimationNumFrames = 256;
 
 @interface WebCoreRenderThemeNotificationObserver : NSObject
 {
@@ -292,15 +292,15 @@ String RenderThemeMac::mediaControlsScript()
 #endif
 }
 
-String RenderThemeMac::mediaControlsBase64StringForIconAndPlatform(const String& iconName, const String& platform)
+String RenderThemeMac::mediaControlsBase64StringForIconNameAndType(const String& iconName, const String& iconType)
 {
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
     if (!RuntimeEnabledFeatures::sharedFeatures().modernMediaControlsEnabled())
         return emptyString();
 
-    String directory = "modern-media-controls/images/" + platform;
+    String directory = "modern-media-controls/images";
     NSBundle *bundle = [NSBundle bundleForClass:[WebCoreRenderThemeBundle class]];
-    return [[NSData dataWithContentsOfFile:[bundle pathForResource:iconName ofType:@"png" inDirectory:directory]] base64EncodedStringWithOptions:0];
+    return [[NSData dataWithContentsOfFile:[bundle pathForResource:iconName ofType:iconType inDirectory:directory]] base64EncodedStringWithOptions:0];
 #else
     return emptyString();
 #endif
@@ -357,7 +357,7 @@ Color RenderThemeMac::platformInactiveListBoxSelectionBackgroundColor() const
     return platformInactiveSelectionBackgroundColor();
 }
 
-static FontWeight toFontWeight(NSInteger appKitFontWeight)
+static FontSelectionValue toFontWeight(NSInteger appKitFontWeight)
 {
     ASSERT(appKitFontWeight > 0 && appKitFontWeight < 15);
     if (appKitFontWeight > 14)
@@ -365,21 +365,21 @@ static FontWeight toFontWeight(NSInteger appKitFontWeight)
     else if (appKitFontWeight < 1)
         appKitFontWeight = 1;
 
-    static const FontWeight fontWeights[] = {
-        FontWeight100,
-        FontWeight100,
-        FontWeight200,
-        FontWeight300,
-        FontWeight400,
-        FontWeight500,
-        FontWeight600,
-        FontWeight600,
-        FontWeight700,
-        FontWeight800,
-        FontWeight800,
-        FontWeight900,
-        FontWeight900,
-        FontWeight900
+    static const FontSelectionValue fontWeights[] = {
+        FontSelectionValue(100),
+        FontSelectionValue(100),
+        FontSelectionValue(200),
+        FontSelectionValue(300),
+        FontSelectionValue(400),
+        FontSelectionValue(500),
+        FontSelectionValue(600),
+        FontSelectionValue(600),
+        FontSelectionValue(700),
+        FontSelectionValue(800),
+        FontSelectionValue(800),
+        FontSelectionValue(900),
+        FontSelectionValue(900),
+        FontSelectionValue(900)
     };
     return fontWeights[appKitFontWeight - 1];
 }
@@ -420,7 +420,7 @@ void RenderThemeMac::updateCachedSystemFontDescription(CSSValueID cssValueId, Fo
         return;
 
     if (fontName.isNull())
-        fontName = AtomicString("-apple-system", AtomicString::ConstructFromLiteral);
+        fontName = AtomicString("system-ui", AtomicString::ConstructFromLiteral);
 
     NSFontManager *fontManager = [NSFontManager sharedFontManager];
     fontDescription.setIsAbsoluteSize(true);
@@ -1129,14 +1129,14 @@ int RenderThemeMac::minimumProgressBarHeight(const RenderStyle& style) const
     return sizeForSystemFont(style, progressBarSizes()).height();
 }
 
-double RenderThemeMac::animationRepeatIntervalForProgressBar(RenderProgress&) const
+Seconds RenderThemeMac::animationRepeatIntervalForProgressBar(RenderProgress&) const
 {
     return progressAnimationFrameRate;
 }
 
 double RenderThemeMac::animationDurationForProgressBar(RenderProgress&) const
 {
-    return progressAnimationNumFrames * progressAnimationFrameRate;
+    return progressAnimationNumFrames * progressAnimationFrameRate.value();
 }
 
 void RenderThemeMac::adjustProgressBarStyle(StyleResolver&, RenderStyle&, const Element*) const

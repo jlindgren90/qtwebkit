@@ -45,14 +45,17 @@ namespace WebCore {
 class AVCaptureDeviceManager final : public CaptureDeviceManager {
     friend class NeverDestroyed<AVCaptureDeviceManager>;
 public:
-    Vector<CaptureDeviceInfo>& captureDeviceList() final;
+    WEBCORE_EXPORT static void setUseAVFoundationAudioCapture(bool);
+
+    Vector<CaptureDevice>& captureDevices() final;
 
     static AVCaptureDeviceManager& singleton();
 
-    Vector<CaptureDevice> getSourcesInfo() final;
-
     void deviceConnected();
     void deviceDisconnected(AVCaptureDevice*);
+
+    Vector<CaptureDevice> getAudioSourcesInfo() final;
+    Vector<CaptureDevice> getVideoSourcesInfo() final;
 
 protected:
     static bool isAvailable();
@@ -60,12 +63,12 @@ protected:
     AVCaptureDeviceManager();
     ~AVCaptureDeviceManager() final;
 
-    RefPtr<RealtimeMediaSource> createMediaSourceForCaptureDeviceWithConstraints(const CaptureDeviceInfo&, const MediaConstraints*, String&) final;
-    void refreshCaptureDeviceList() final;
+    void refreshCaptureDevices() final;
     void registerForDeviceNotifications();
+    void refreshAVCaptureDevicesOfType(CaptureDevice::DeviceType);
 
     RetainPtr<WebCoreAVCaptureDeviceManagerObserver> m_objcObserver;
-    Vector<CaptureDeviceInfo> m_devices;
+    Vector<CaptureDevice> m_devices;
 };
 
 } // namespace WebCore

@@ -24,6 +24,10 @@
 #include "AppendPipeline.h"
 #include "MediaPlayerPrivateGStreamerMSE.h"
 #include "WebKitMediaSourceGStreamer.h"
+#include <gst/gst.h>
+
+GST_DEBUG_CATEGORY_EXTERN(webkit_mse_debug);
+#define GST_CAT_DEFAULT webkit_mse_debug
 
 #if ENABLE(VIDEO) && USE(GSTREAMER) && ENABLE(MEDIA_SOURCE)
 
@@ -174,7 +178,8 @@ void MediaSourceClientGStreamerMSE::flush(AtomicString trackId)
 {
     ASSERT(WTF::isMainThread());
 
-    if (m_playerPrivate)
+    // This is only for on-the-fly reenqueues after appends. When seeking, the seek will do its own flush.
+    if (m_playerPrivate && !m_playerPrivate->m_seeking)
         m_playerPrivate->m_playbackPipeline->flush(trackId);
 }
 

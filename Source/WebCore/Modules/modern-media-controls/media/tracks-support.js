@@ -100,18 +100,26 @@ class TracksSupport extends MediaControllerSupport
     {
         if (sectionIndex == 0 && this._canPickAudioTracks())
             return this._audioTracks()[trackIndex].enabled;
-        return this._textTracks()[trackIndex].mode !== "disabled";
+
+        const trackItem = this._textTracks()[trackIndex];
+        const host = this.mediaController.host;
+        const usesAutomaticTrack = host ? host.captionDisplayMode === "automatic" : false;
+
+        if (host && trackItem === host.captionMenuOffItem && (host.captionDisplayMode === "forced-only" || host.captionDisplayMode === "manual"))
+            return true;
+        if (host && trackItem === host.captionMenuAutomaticItem && usesAutomaticTrack)
+            return true;
+        return !usesAutomaticTrack && trackItem.mode !== "disabled";
     }
 
     tracksPanelSelectionDidChange(trackIndex, sectionIndex)
     {
-        if (sectionIndex == 0 && this._canPickAudioTracks()) {
-            let track = this._audioTracks()[trackIndex];
-            track.enabled = !track.enabled;
-        } else {
-            let track = this._textTracks()[trackIndex];
-            track.mode = track.mode === "disabled" ? "showing" : "disabled";
-        }
+        if (sectionIndex == 0 && this._canPickAudioTracks())
+            this._audioTracks().forEach((audioTrack, index) => audioTrack.enabled = index === trackIndex);
+        else if (this.mediaController.host)
+            this.mediaController.host.setSelectedTextTrack(this._textTracks()[trackIndex]);
+        else
+            this._textTracks().forEach((textTrack, index) => textTrack.mode = index === trackIndex ? "showing" : "disabled");
 
         this.mediaController.controls.hideTracksPanel();
     }
@@ -147,9 +155,7 @@ class TracksSupport extends MediaControllerSupport
 
     _sortedTrackList(tracks)
     {
-        if (this.mediaController.host)
-            return this.mediaController.host.sortedTrackListForMenu(tracks);
-        return tracks;
+        return Array.from(this.mediaController.host ? this.mediaController.host.sortedTrackListForMenu(tracks) : tracks);
     }
 
 }

@@ -33,6 +33,7 @@
 #import "DataTransfer.h"
 #import "DocumentFragment.h"
 #import "DocumentLoader.h"
+#import "Editing.h"
 #import "Editor.h"
 #import "EditorClient.h"
 #import "File.h"
@@ -62,9 +63,7 @@
 #import "StyleProperties.h"
 #import "Text.h"
 #import "TypingCommand.h"
-#import "UUID.h"
 #import "WebNSAttributedStringExtras.h"
-#import "htmlediting.h"
 #import "markup.h"
 
 namespace WebCore {
@@ -204,7 +203,7 @@ RefPtr<SharedBuffer> Editor::imageInWebArchiveFormat(Element& imageElement)
     RefPtr<LegacyWebArchive> archive = LegacyWebArchive::create(imageElement);
     if (!archive)
         return nullptr;
-    return SharedBuffer::wrapCFData(archive->rawDataRepresentation().get());
+    return SharedBuffer::create(archive->rawDataRepresentation().get());
 }
 
 RefPtr<SharedBuffer> Editor::dataSelectionForPasteboard(const String& pasteboardType)
@@ -251,14 +250,14 @@ static void getImage(Element& imageElement, RefPtr<Image>& image, CachedImage*& 
     cachedImage = tentativeCachedImage;
 }
 
-void Editor::fillInUserVisibleForm(PasteboardURL& pasteboardURL)
+String Editor::userVisibleString(const URL& url)
 {
-    pasteboardURL.userVisibleForm = client()->userVisibleString(pasteboardURL.url);
+    return client()->userVisibleString(url);
 }
 
 void Editor::selectionWillChange()
 {
-    if (!hasComposition() || ignoreCompositionSelectionChange() || m_frame.selection().isNone())
+    if (!hasComposition() || ignoreSelectionChanges() || m_frame.selection().isNone())
         return;
 
     cancelComposition();
@@ -486,24 +485,13 @@ RefPtr<DocumentFragment> Editor::webContentFromPasteboard(Pasteboard& pasteboard
     return WTFMove(reader.fragment);
 }
 
-Ref<DocumentFragment> Editor::createFragmentForImageAndURL(const String& url)
-{
-    auto imageElement = HTMLImageElement::create(*m_frame.document());
-    imageElement->setAttributeWithoutSynchronization(HTMLNames::srcAttr, url);
-
-    auto fragment = document().createDocumentFragment();
-    fragment->appendChild(imageElement);
-
-    return fragment;
-}
-
 void Editor::applyFontStyles(const String& fontFamily, double fontSize, unsigned fontTraits)
 {
     auto& cssValuePool = CSSValuePool::singleton();
     Ref<MutableStyleProperties> style = MutableStyleProperties::create();
     style->setProperty(CSSPropertyFontFamily, cssValuePool.createFontFamilyValue(fontFamily));
     style->setProperty(CSSPropertyFontStyle, (fontTraits & NSFontItalicTrait) ? CSSValueItalic : CSSValueNormal);
-    style->setProperty(CSSPropertyFontWeight, cssValuePool.createValue(fontTraits & NSFontBoldTrait ? FontWeightBold : FontWeightNormal));
+    style->setProperty(CSSPropertyFontWeight, (fontTraits & NSFontBoldTrait) ? CSSValueBold : CSSValueNormal);
     style->setProperty(CSSPropertyFontSize, cssValuePool.createValue(fontSize, CSSPrimitiveValue::CSS_PX));
     applyStyleToSelection(style.ptr(), EditActionSetFont);
 }

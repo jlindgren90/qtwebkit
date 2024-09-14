@@ -103,6 +103,8 @@ public:
         BackForwardListItem,
         CacheManager,
         ColorPickerResultListener,
+        ContentExtension,
+        ContentExtensionStore,
         ContextMenuListener,
         CookieManager,
         Download,
@@ -114,6 +116,7 @@ public:
         FullScreenManager,
         GeolocationManager,
         GeolocationPermissionRequest,
+        HTTPCookieStore,
         HitTestResult,
         GeolocationPosition,
         GrammarDetail,
@@ -144,9 +147,8 @@ public:
         RunJavaScriptConfirmResultListener,
         RunJavaScriptPromptResultListener,
         TextChecker,
+        URLSchemeTask,
         UserContentController,
-        UserContentExtension,
-        UserContentExtensionStore,
         UserContentWorld,
         UserInitiatedAction,
         UserMediaPermissionCheck,
@@ -191,13 +193,6 @@ public:
 #if USE(SOUP)
         SoupRequestManager,
         SoupCustomProtocolRequestManager,
-#endif
-#if PLATFORM(EFL)
-        PopupMenuItem,
-#if ENABLE(TOUCH_EVENTS)
-        TouchPoint,
-        TouchEvent,
-#endif
 #endif
     };
 

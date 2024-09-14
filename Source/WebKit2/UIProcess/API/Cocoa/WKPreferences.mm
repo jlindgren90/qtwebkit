@@ -365,6 +365,16 @@ static _WKStorageBlockingPolicy toAPI(WebCore::SecurityOrigin::StorageBlockingPo
     _preferences->setTextAutosizingEnabled(enabled);
 }
 
+- (BOOL)_subpixelAntialiasedLayerTextEnabled
+{
+    return _preferences->subpixelAntialiasedLayerTextEnabled();
+}
+
+- (void)_setSubpixelAntialiasedLayerTextEnabled:(BOOL)enabled
+{
+    _preferences->setSubpixelAntialiasedLayerTextEnabled(enabled);
+}
+
 - (BOOL)_developerExtrasEnabled
 {
     return _preferences->developerExtrasEnabled();
@@ -535,6 +545,66 @@ static _WKStorageBlockingPolicy toAPI(WebCore::SecurityOrigin::StorageBlockingPo
 - (void)_setLoadsImagesAutomatically:(BOOL)loadsImagesAutomatically
 {
     _preferences->setLoadsImagesAutomatically(loadsImagesAutomatically);
+}
+
+- (BOOL)_mediaDevicesEnabled
+{
+    return _preferences->mediaDevicesEnabled();
+}
+
+- (void)_setMediaDevicesEnabled:(BOOL)enabled
+{
+    _preferences->setMediaDevicesEnabled(enabled);
+}
+
+- (BOOL)_mockCaptureDevicesEnabled
+{
+    return _preferences->mockCaptureDevicesEnabled();
+}
+
+- (void)_setMockCaptureDevicesEnabled:(BOOL)enabled
+{
+    _preferences->setMockCaptureDevicesEnabled(enabled);
+}
+
+- (BOOL)_mediaCaptureRequiresSecureConnection
+{
+    return _preferences->mediaCaptureRequiresSecureConnection();
+}
+
+- (void)_setMediaCaptureRequiresSecureConnection:(BOOL)requiresSecureConnection
+{
+    _preferences->setMediaCaptureRequiresSecureConnection(requiresSecureConnection);
+}
+
+- (BOOL)_enumeratingAllNetworkInterfacesEnabled
+{
+    return _preferences->enumeratingAllNetworkInterfacesEnabled();
+}
+
+- (void)_setEnumeratingAllNetworkInterfacesEnabled:(BOOL)enabled
+{
+    _preferences->setEnumeratingAllNetworkInterfacesEnabled(enabled);
+}
+
+- (BOOL)_iceCandidateFiltertingEnabled
+{
+    return _preferences->iceCandidateFilteringEnabled();
+}
+
+- (void)_setICECandidateFilteringEnabled:(BOOL)enabled
+{
+    _preferences->setICECandidateFilteringEnabled(enabled);
+}
+
+- (BOOL)_webRTCLegacyAPIEnabled
+{
+    return _preferences->webRTCLegacyAPIEnabled();
+}
+
+- (void)_setWebRTCLegacyAPIEnabled:(BOOL)enabled
+{
+    _preferences->setWebRTCLegacyAPIEnabled(enabled);
 }
 
 @end

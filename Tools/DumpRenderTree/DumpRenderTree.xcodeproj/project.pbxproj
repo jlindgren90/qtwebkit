@@ -80,6 +80,7 @@
 		2D403F1B15087209005358D2 /* LayoutTestHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D403EA215087142005358D2 /* LayoutTestHelper.m */; };
 		2DA2E3A51E1BA54100A3BBD0 /* DumpRenderTreeSpellChecker.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DA2E3A41E1BA54100A3BBD0 /* DumpRenderTreeSpellChecker.mm */; };
 		31117B3D15D9A56A00163BC8 /* MockWebNotificationProvider.mm in Sources */ = {isa = PBXBuildFile; fileRef = 31117B3B15D9A56A00163BC8 /* MockWebNotificationProvider.mm */; };
+		312943F91E71F2B4001EE2CC /* IOOSLayoutTestCommunication.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3148A0551E6F90F400D3B316 /* IOSLayoutTestCommunication.cpp */; };
 		4464CABE1C20A08B00E5BB55 /* DumpRenderTreeAppMain.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4464CABD1C20A07000E5BB55 /* DumpRenderTreeAppMain.mm */; };
 		4AD6A11413C8124000EA9737 /* FormValue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4AD6A11313C8124000EA9737 /* FormValue.cpp */; };
 		5106803E15CC7B10001A8A23 /* SlowNPPNew.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5106803D15CC7B10001A8A23 /* SlowNPPNew.cpp */; };
@@ -109,7 +110,7 @@
 		A1158D59189274360088C17B /* PixelDumpSupportIOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1158D57189273EB0088C17B /* PixelDumpSupportIOS.mm */; };
 		A134E531188FC27000901D06 /* DumpRenderTreeMain.mm in Sources */ = {isa = PBXBuildFile; fileRef = A134E52F188FC27000901D06 /* DumpRenderTreeMain.mm */; };
 		A134E53618905EFF00901D06 /* AccessibilityCommonMac.mm in Sources */ = {isa = PBXBuildFile; fileRef = BC0E26140E2DA4C6001B6BC3 /* AccessibilityCommonMac.mm */; };
-		A8B91ADA0CF3B32F008F91FF /* DumpRenderTreePasteboard.m in Sources */ = {isa = PBXBuildFile; fileRef = A8B91AD70CF3B32F008F91FF /* DumpRenderTreePasteboard.m */; };
+		A8B91ADA0CF3B32F008F91FF /* DumpRenderTreePasteboard.mm in Sources */ = {isa = PBXBuildFile; fileRef = A8B91AD70CF3B32F008F91FF /* DumpRenderTreePasteboard.mm */; };
 		A8B91ADC0CF3B32F008F91FF /* DumpRenderTreeWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = A8B91AD90CF3B32F008F91FF /* DumpRenderTreeWindow.mm */; };
 		A8D79CEB0FC28B2C004AC8FE /* DumpRenderTreeFileDraggingSource.m in Sources */ = {isa = PBXBuildFile; fileRef = A8D79CE90FC28B2C004AC8FE /* DumpRenderTreeFileDraggingSource.m */; };
 		A9BB7C5C1C505278002C525B /* AccessibilityTextMarkerIOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = A9BB7C5B1C505278002C525B /* AccessibilityTextMarkerIOS.mm */; };
@@ -294,6 +295,8 @@
 		2DA2E3A41E1BA54100A3BBD0 /* DumpRenderTreeSpellChecker.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = DumpRenderTreeSpellChecker.mm; path = mac/DumpRenderTreeSpellChecker.mm; sourceTree = "<group>"; };
 		31117B3A15D9A56A00163BC8 /* MockWebNotificationProvider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MockWebNotificationProvider.h; path = mac/MockWebNotificationProvider.h; sourceTree = "<group>"; };
 		31117B3B15D9A56A00163BC8 /* MockWebNotificationProvider.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MockWebNotificationProvider.mm; path = mac/MockWebNotificationProvider.mm; sourceTree = "<group>"; };
+		3148A0551E6F90F400D3B316 /* IOSLayoutTestCommunication.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = IOSLayoutTestCommunication.cpp; path = ../TestRunnerShared/IOSLayoutTestCommunication.cpp; sourceTree = "<group>"; };
+		3148A0561E6F90F400D3B316 /* IOSLayoutTestCommunication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IOSLayoutTestCommunication.h; path = ../TestRunnerShared/IOSLayoutTestCommunication.h; sourceTree = "<group>"; };
 		32A70AAB03705E1F00C91783 /* DumpRenderTreePrefix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DumpRenderTreePrefix.h; sourceTree = "<group>"; };
 		375F09710DAC3CB600C8B4E5 /* WebKitWeightWatcher100.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = WebKitWeightWatcher100.ttf; path = fonts/WebKitWeightWatcher100.ttf; sourceTree = "<group>"; };
 		375F09720DAC3CB600C8B4E5 /* WebKitWeightWatcher200.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = WebKitWeightWatcher200.ttf; path = fonts/WebKitWeightWatcher200.ttf; sourceTree = "<group>"; };
@@ -343,7 +346,7 @@
 		A803FF7409CAAD08009B2A37 /* DumpRenderTree.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = DumpRenderTree.h; sourceTree = "<group>"; };
 		A817090308B164D300CCB9FB /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = JavaScriptCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A84F608908B136DA00E9745F /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
-		A8B91AD70CF3B32F008F91FF /* DumpRenderTreePasteboard.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DumpRenderTreePasteboard.m; path = mac/DumpRenderTreePasteboard.m; sourceTree = "<group>"; };
+		A8B91AD70CF3B32F008F91FF /* DumpRenderTreePasteboard.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = DumpRenderTreePasteboard.mm; path = mac/DumpRenderTreePasteboard.mm; sourceTree = "<group>"; };
 		A8B91AD90CF3B32F008F91FF /* DumpRenderTreeWindow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = DumpRenderTreeWindow.mm; path = mac/DumpRenderTreeWindow.mm; sourceTree = "<group>"; };
 		A8B91ADD0CF3B372008F91FF /* DumpRenderTreeWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DumpRenderTreeWindow.h; path = mac/DumpRenderTreeWindow.h; sourceTree = "<group>"; };
 		A8B91ADF0CF3B372008F91FF /* DumpRenderTreePasteboard.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DumpRenderTreePasteboard.h; path = mac/DumpRenderTreePasteboard.h; sourceTree = "<group>"; };
@@ -472,6 +475,7 @@
 			isa = PBXGroup;
 			children = (
 				0F18E6F11D6B9C640027E547 /* DerivedSources.make */,
+				3148A0651E6F90F400D3B316 /* TestRunnerShared */,
 				0F18E6E71D6B9BF50027E547 /* UIScriptContext */,
 				A1158D6A18927CE10088C17B /* ios */,
 				A134E53418905E6C00901D06 /* config.h */,
@@ -695,6 +699,16 @@
 			name = LayoutTestHelper;
 			sourceTree = "<group>";
 		};
+		3148A0651E6F90F400D3B316 /* TestRunnerShared */ = {
+			isa = PBXGroup;
+			children = (
+				3148A0551E6F90F400D3B316 /* IOSLayoutTestCommunication.cpp */,
+				3148A0561E6F90F400D3B316 /* IOSLayoutTestCommunication.h */,
+			);
+			name = TestRunnerShared;
+			path = ../WebKitTestRunner;
+			sourceTree = "<group>";
+		};
 		417DA9181373674D007C57FB /* WebCoreTestSupport */ = {
 			isa = PBXGroup;
 			children = (
@@ -780,7 +794,7 @@
 			isa = PBXGroup;
 			children = (
 				A8B91ADF0CF3B372008F91FF /* DumpRenderTreePasteboard.h */,
-				A8B91AD70CF3B32F008F91FF /* DumpRenderTreePasteboard.m */,
+				A8B91AD70CF3B32F008F91FF /* DumpRenderTreePasteboard.mm */,
 				2DA2E3A31E1BA54100A3BBD0 /* DumpRenderTreeSpellChecker.h */,
 				2DA2E3A41E1BA54100A3BBD0 /* DumpRenderTreeSpellChecker.mm */,
 				A8B91ADD0CF3B372008F91FF /* DumpRenderTreeWindow.h */,
@@ -1111,7 +1125,7 @@
 				9830F31F15C81181005AB206 /* DumpRenderTreeCommon.cpp in Sources */,
 				BCA18B7B0C9B08F100114369 /* DumpRenderTreeDraggingInfo.mm in Sources */,
 				A8D79CEB0FC28B2C004AC8FE /* DumpRenderTreeFileDraggingSource.m in Sources */,
-				A8B91ADA0CF3B32F008F91FF /* DumpRenderTreePasteboard.m in Sources */,
+				A8B91ADA0CF3B32F008F91FF /* DumpRenderTreePasteboard.mm in Sources */,
 				A8B91ADC0CF3B32F008F91FF /* DumpRenderTreeWindow.mm in Sources */,
 				BCA18B620C9B08C200114369 /* EditingDelegate.mm in Sources */,
 				BCA18B700C9B08DB00114369 /* EventSendingController.mm in Sources */,
@@ -1145,6 +1159,7 @@
 				7CBBC3231DDFCF9A00786B9D /* TestOptions.mm in Sources */,
 				0F18E70F1D6BACB60027E547 /* UIScriptControllerMac.mm in Sources */,
 				BC9D90240C97472E0099A4A3 /* WorkQueue.cpp in Sources */,
+				312943F91E71F2B4001EE2CC /* IOSLayoutTestCommunication.cpp in Sources */,
 				BCA18B260C9B015C00114369 /* WorkQueueItemMac.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

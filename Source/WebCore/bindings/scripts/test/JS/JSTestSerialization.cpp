@@ -293,7 +293,7 @@ static inline bool setJSTestSerializationFirstStringAttributeFunction(ExecState&
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = convert<IDLDOMString>(state, value, StringConversionConfiguration::Normal);
+    auto nativeValue = convert<IDLDOMString>(state, value);
     RETURN_IF_EXCEPTION(throwScope, false);
     impl.setFirstStringAttribute(WTFMove(nativeValue));
     return true;
@@ -312,7 +312,7 @@ static inline bool setJSTestSerializationSecondLongAttributeFunction(ExecState& 
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = convert<IDLLong>(state, value, IntegerConversionConfiguration::Normal);
+    auto nativeValue = convert<IDLLong>(state, value);
     RETURN_IF_EXCEPTION(throwScope, false);
     impl.setSecondLongAttribute(WTFMove(nativeValue));
     return true;
@@ -369,7 +369,7 @@ static inline bool setJSTestSerializationFifthLongAttributeFunction(ExecState& s
     UNUSED_PARAM(state);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = convert<IDLLong>(state, value, IntegerConversionConfiguration::Normal);
+    auto nativeValue = convert<IDLLong>(state, value);
     RETURN_IF_EXCEPTION(throwScope, false);
     impl.setFifthLongAttribute(WTFMove(nativeValue));
     return true;
@@ -400,7 +400,7 @@ JSValue JSTestSerialization::getConstructor(VM& vm, const JSGlobalObject* global
     return getDOMConstructor<JSTestSerializationConstructor>(vm, *jsCast<const JSDOMGlobalObject*>(globalObject));
 }
 
-static inline EncodedJSValue jsTestSerializationPrototypeFunctionToJSONCaller(ExecState* state, JSTestSerialization* thisObject, JSC::ThrowScope& throwScope)
+JSC::JSObject* JSTestSerialization::serialize(ExecState* state, JSTestSerialization* thisObject, ThrowScope& throwScope)
 {
     auto& vm = state->vm();
     auto* result = constructEmptyObject(state);
@@ -425,7 +425,12 @@ static inline EncodedJSValue jsTestSerializationPrototypeFunctionToJSONCaller(Ex
     ASSERT(!throwScope.exception());
     result->putDirect(vm, Identifier::fromString(&vm, "sixthTypedefAttribute"), sixthTypedefAttributeValue);
 
-    return JSValue::encode(result);
+    return result;
+}
+
+static inline EncodedJSValue jsTestSerializationPrototypeFunctionToJSONCaller(ExecState* state, JSTestSerialization* thisObject, JSC::ThrowScope& throwScope)
+{
+    return JSValue::encode(JSTestSerialization::serialize(state, thisObject, throwScope));
 }
 
 EncodedJSValue JSC_HOST_CALL jsTestSerializationPrototypeFunctionToJSON(ExecState* state)

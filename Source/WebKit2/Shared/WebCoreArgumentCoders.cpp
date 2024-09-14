@@ -31,7 +31,6 @@
 #include <WebCore/AuthenticationChallenge.h>
 #include <WebCore/BlobPart.h>
 #include <WebCore/CertificateInfo.h>
-#include <WebCore/Cookie.h>
 #include <WebCore/Credential.h>
 #include <WebCore/Cursor.h>
 #include <WebCore/DatabaseDetails.h>
@@ -49,6 +48,8 @@
 #include <WebCore/Image.h>
 #include <WebCore/JSDOMExceptionHandling.h>
 #include <WebCore/Length.h>
+#include <WebCore/LengthBox.h>
+#include <WebCore/MediaSelectionOption.h>
 #include <WebCore/Path.h>
 #include <WebCore/PluginData.h>
 #include <WebCore/ProtectionSpace.h>
@@ -389,6 +390,17 @@ bool ArgumentCoder<FloatRect>::decode(Decoder& decoder, FloatRect& floatRect)
     return SimpleArgumentCoder<FloatRect>::decode(decoder, floatRect);
 }
 
+
+void ArgumentCoder<FloatBoxExtent>::encode(Encoder& encoder, const FloatBoxExtent& floatBoxExtent)
+{
+    SimpleArgumentCoder<FloatBoxExtent>::encode(encoder, floatBoxExtent);
+}
+    
+bool ArgumentCoder<FloatBoxExtent>::decode(Decoder& decoder, FloatBoxExtent& floatBoxExtent)
+{
+    return SimpleArgumentCoder<FloatBoxExtent>::decode(decoder, floatBoxExtent);
+}
+    
 
 void ArgumentCoder<FloatSize>::encode(Encoder& encoder, const FloatSize& floatSize)
 {
@@ -1220,10 +1232,9 @@ void ArgumentCoder<DragData>::encode(Encoder& encoder, const DragData& dragData)
     encoder.encodeEnum(dragData.flags());
 #if PLATFORM(COCOA)
     encoder << dragData.pasteboardName();
-#endif
-#if PLATFORM(MAC)
     encoder << dragData.fileNames();
 #endif
+    encoder.encodeEnum(dragData.dragDestinationAction());
 }
 
 bool ArgumentCoder<DragData>::decode(Decoder& decoder, DragData& dragData)
@@ -1245,17 +1256,20 @@ bool ArgumentCoder<DragData>::decode(Decoder& decoder, DragData& dragData)
         return false;
 
     String pasteboardName;
+    Vector<String> fileNames;
 #if PLATFORM(COCOA)
     if (!decoder.decode(pasteboardName))
         return false;
-#endif
-    Vector<String> fileNames;
-#if PLATFORM(MAC)
+
     if (!decoder.decode(fileNames))
         return false;
 #endif
 
-    dragData = DragData(pasteboardName, clientPosition, globalPosition, draggingSourceOperationMask, applicationFlags);
+    DragDestinationAction destinationAction;
+    if (!decoder.decodeEnum(destinationAction))
+        return false;
+
+    dragData = DragData(pasteboardName, clientPosition, globalPosition, draggingSourceOperationMask, applicationFlags, destinationAction);
     dragData.setFileNames(fileNames);
 
     return true;
@@ -1279,41 +1293,6 @@ bool ArgumentCoder<CompositionUnderline>::decode(Decoder& decoder, CompositionUn
     if (!decoder.decode(underline.thick))
         return false;
     if (!decoder.decode(underline.color))
-        return false;
-
-    return true;
-}
-
-
-void ArgumentCoder<Cookie>::encode(Encoder& encoder, const Cookie& cookie)
-{
-    encoder << cookie.name;
-    encoder << cookie.value;
-    encoder << cookie.domain;
-    encoder << cookie.path;
-    encoder << cookie.expires;
-    encoder << cookie.httpOnly;
-    encoder << cookie.secure;
-    encoder << cookie.session;
-}
-
-bool ArgumentCoder<Cookie>::decode(Decoder& decoder, Cookie& cookie)
-{
-    if (!decoder.decode(cookie.name))
-        return false;
-    if (!decoder.decode(cookie.value))
-        return false;
-    if (!decoder.decode(cookie.domain))
-        return false;
-    if (!decoder.decode(cookie.path))
-        return false;
-    if (!decoder.decode(cookie.expires))
-        return false;
-    if (!decoder.decode(cookie.httpOnly))
-        return false;
-    if (!decoder.decode(cookie.secure))
-        return false;
-    if (!decoder.decode(cookie.session))
         return false;
 
     return true;
@@ -1427,6 +1406,23 @@ static bool decodeSharedBuffer(Decoder& decoder, RefPtr<SharedBuffer>& buffer)
     return true;
 }
 
+void ArgumentCoder<PasteboardURL>::encode(Encoder& encoder, const PasteboardURL& content)
+{
+    encoder << content.url;
+    encoder << content.title;
+}
+
+bool ArgumentCoder<PasteboardURL>::decode(Decoder& decoder, PasteboardURL& content)
+{
+    if (!decoder.decode(content.url))
+        return false;
+
+    if (!decoder.decode(content.title))
+        return false;
+
+    return true;
+}
+
 void ArgumentCoder<PasteboardWebContent>::encode(Encoder& encoder, const PasteboardWebContent& content)
 {
     encoder << content.canSmartCopyOrDelete;
@@ -1435,6 +1431,7 @@ void ArgumentCoder<PasteboardWebContent>::encode(Encoder& encoder, const Pastebo
     encodeSharedBuffer(encoder, content.dataInWebArchiveFormat.get());
     encodeSharedBuffer(encoder, content.dataInRTFDFormat.get());
     encodeSharedBuffer(encoder, content.dataInRTFFormat.get());
+    encodeSharedBuffer(encoder, content.dataInAttributedStringFormat.get());
 
     encoder << content.clientTypes;
     encoder << static_cast<uint64_t>(content.clientData.size());
@@ -1453,6 +1450,8 @@ bool ArgumentCoder<PasteboardWebContent>::decode(Decoder& decoder, PasteboardWeb
     if (!decodeSharedBuffer(decoder, content.dataInRTFDFormat))
         return false;
     if (!decodeSharedBuffer(decoder, content.dataInRTFFormat))
+        return false;
+    if (!decodeSharedBuffer(decoder, content.dataInAttributedStringFormat))
         return false;
     if (!decoder.decode(content.clientTypes))
         return false;
@@ -2020,22 +2019,6 @@ bool ArgumentCoder<FilterOperations>::decode(Decoder& decoder, FilterOperations&
 }
 #endif // !USE(COORDINATED_GRAPHICS)
 
-void ArgumentCoder<SessionID>::encode(Encoder& encoder, const SessionID& sessionID)
-{
-    encoder << sessionID.sessionID();
-}
-
-bool ArgumentCoder<SessionID>::decode(Decoder& decoder, SessionID& sessionID)
-{
-    uint64_t session;
-    if (!decoder.decode(session))
-        return false;
-
-    sessionID = SessionID(session);
-
-    return true;
-}
-
 void ArgumentCoder<BlobPart>::encode(Encoder& encoder, const BlobPart& blobPart)
 {
     encoder << static_cast<uint32_t>(blobPart.type());
@@ -2082,12 +2065,15 @@ void ArgumentCoder<TextIndicatorData>::encode(Encoder& encoder, const TextIndica
     encoder << textIndicatorData.selectionRectInRootViewCoordinates;
     encoder << textIndicatorData.textBoundingRectInRootViewCoordinates;
     encoder << textIndicatorData.textRectsInBoundingRectCoordinates;
+    encoder << textIndicatorData.contentImageWithoutSelectionRectInRootViewCoordinates;
     encoder << textIndicatorData.contentImageScaleFactor;
+    encoder << textIndicatorData.estimatedBackgroundColor;
     encoder.encodeEnum(textIndicatorData.presentationTransition);
     encoder << static_cast<uint64_t>(textIndicatorData.options);
 
     encodeOptionalImage(encoder, textIndicatorData.contentImage.get());
     encodeOptionalImage(encoder, textIndicatorData.contentImageWithHighlight.get());
+    encodeOptionalImage(encoder, textIndicatorData.contentImageWithoutSelection.get());
 }
 
 bool ArgumentCoder<TextIndicatorData>::decode(Decoder& decoder, TextIndicatorData& textIndicatorData)
@@ -2101,7 +2087,13 @@ bool ArgumentCoder<TextIndicatorData>::decode(Decoder& decoder, TextIndicatorDat
     if (!decoder.decode(textIndicatorData.textRectsInBoundingRectCoordinates))
         return false;
 
+    if (!decoder.decode(textIndicatorData.contentImageWithoutSelectionRectInRootViewCoordinates))
+        return false;
+
     if (!decoder.decode(textIndicatorData.contentImageScaleFactor))
+        return false;
+
+    if (!decoder.decode(textIndicatorData.estimatedBackgroundColor))
         return false;
 
     if (!decoder.decodeEnum(textIndicatorData.presentationTransition))
@@ -2116,6 +2108,9 @@ bool ArgumentCoder<TextIndicatorData>::decode(Decoder& decoder, TextIndicatorDat
         return false;
 
     if (!decodeOptionalImage(decoder, textIndicatorData.contentImageWithHighlight))
+        return false;
+
+    if (!decodeOptionalImage(decoder, textIndicatorData.contentImageWithoutSelection))
         return false;
 
     return true;
@@ -2376,45 +2371,16 @@ bool ArgumentCoder<ResourceLoadStatistics>::decode(Decoder& decoder, WebCore::Re
 #if ENABLE(MEDIA_STREAM)
 void ArgumentCoder<MediaConstraintsData>::encode(Encoder& encoder, const WebCore::MediaConstraintsData& constraint)
 {
-    encoder << constraint.mandatoryConstraints;
-
-    auto& advancedConstraints = constraint.advancedConstraints;
-    encoder << static_cast<uint64_t>(advancedConstraints.size());
-    for (const auto& advancedConstraint : advancedConstraints)
-        encoder << advancedConstraint;
-
-    encoder << constraint.isValid;
+    encoder << constraint.mandatoryConstraints
+        << constraint.advancedConstraints
+        << constraint.isValid;
 }
 
 bool ArgumentCoder<MediaConstraintsData>::decode(Decoder& decoder, WebCore::MediaConstraintsData& constraints)
 {
-    MediaTrackConstraintSetMap mandatoryConstraints;
-    if (!decoder.decode(mandatoryConstraints))
-        return false;
-
-    uint64_t advancedCount;
-    if (!decoder.decode(advancedCount))
-        return false;
-
-    Vector<MediaTrackConstraintSetMap> advancedConstraints;
-    advancedConstraints.reserveInitialCapacity(advancedCount);
-    for (size_t i = 0; i < advancedCount; ++i) {
-        MediaTrackConstraintSetMap map;
-        if (!decoder.decode(map))
-            return false;
-
-        advancedConstraints.uncheckedAppend(WTFMove(map));
-    }
-
-    bool isValid;
-    if (!decoder.decode(isValid))
-        return false;
-
-    constraints.mandatoryConstraints = WTFMove(mandatoryConstraints);
-    constraints.advancedConstraints = WTFMove(advancedConstraints);
-    constraints.isValid = isValid;
-
-    return true;
+    return decoder.decode(constraints.mandatoryConstraints)
+        && decoder.decode(constraints.advancedConstraints)
+        && decoder.decode(constraints.isValid);
 }
 
 void ArgumentCoder<CaptureDevice>::encode(Encoder& encoder, const WebCore::CaptureDevice& device)
@@ -2422,7 +2388,8 @@ void ArgumentCoder<CaptureDevice>::encode(Encoder& encoder, const WebCore::Captu
     encoder << device.persistentId();
     encoder << device.label();
     encoder << device.groupId();
-    encoder.encodeEnum(device.kind());
+    encoder << device.enabled();
+    encoder.encodeEnum(device.type());
 }
 
 bool ArgumentCoder<CaptureDevice>::decode(Decoder& decoder, WebCore::CaptureDevice& device)
@@ -2439,14 +2406,19 @@ bool ArgumentCoder<CaptureDevice>::decode(Decoder& decoder, WebCore::CaptureDevi
     if (!decoder.decode(groupId))
         return false;
 
-    CaptureDevice::SourceKind kind;
-    if (!decoder.decodeEnum(kind))
+    bool enabled;
+    if (!decoder.decode(enabled))
+        return false;
+
+    CaptureDevice::DeviceType type;
+    if (!decoder.decodeEnum(type))
         return false;
 
     device.setPersistentId(persistentId);
     device.setLabel(label);
     device.setGroupId(groupId);
-    device.setKind(kind);
+    device.setType(type);
+    device.setEnabled(enabled);
 
     return true;
 }
@@ -2507,5 +2479,22 @@ bool ArgumentCoder<ScrollOffsetRange<float>>::decode(Decoder& decoder, ScrollOff
 }
 
 #endif
+
+void ArgumentCoder<MediaSelectionOption>::encode(Encoder& encoder, const MediaSelectionOption& option)
+{
+    encoder << option.displayName;
+    encoder << option.type;
+}
+
+bool ArgumentCoder<MediaSelectionOption>::decode(Decoder& decoder, MediaSelectionOption& option)
+{
+    if (!decoder.decode(option.displayName))
+        return false;
+
+    if (!decoder.decode(option.type))
+        return false;
+
+    return true;
+}
 
 } // namespace IPC

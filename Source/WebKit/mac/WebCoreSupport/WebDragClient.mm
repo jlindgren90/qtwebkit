@@ -32,8 +32,8 @@
 #import "WebDOMOperations.h"
 #import "WebFrame.h"
 #import "WebFrameInternal.h"
+#import "WebFrameView.h"
 #import "WebHTMLViewInternal.h"
-#import "WebHTMLViewPrivate.h"
 #import "WebKitLogging.h"
 #import "WebKitNSStringExtras.h"
 #import "WebNSURLExtras.h"
@@ -55,8 +55,13 @@
 #import <WebCore/MainFrame.h>
 #import <WebCore/Page.h>
 #import <WebCore/Pasteboard.h>
+#import <WebCore/PasteboardWriter.h>
 
 using namespace WebCore;
+
+#if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/WebDragClientAdditionsWebKit1.mm>)
+#import <WebKitAdditions/WebDragClientAdditionsWebKit1.mm>
+#endif
 
 WebDragClient::WebDragClient(WebView* webView)
     : m_webView(webView) 
@@ -66,16 +71,20 @@ WebDragClient::WebDragClient(WebView* webView)
 
 #if PLATFORM(MAC)
 
+bool WebDragClient::useLegacyDragClient()
+{
+    return false;
+}
+
+void WebDragClient::didConcludeEditDrag()
+{
+}
+
 static WebHTMLView *getTopHTMLView(Frame* frame)
 {
     ASSERT(frame);
     ASSERT(frame->page());
     return (WebHTMLView*)[[kit(&frame->page()->mainFrame()) frameView] documentView];
-}
-
-WebCore::DragDestinationAction WebDragClient::actionMaskForDrag(const WebCore::DragData& dragData)
-{
-    return (WebCore::DragDestinationAction)[[m_webView _UIDelegateForwarder] webView:m_webView dragDestinationActionMaskForDraggingInfo:dragData.platformData()];
 }
 
 void WebDragClient::willPerformDragDestinationAction(WebCore::DragDestinationAction action, const WebCore::DragData& dragData)
@@ -95,20 +104,20 @@ void WebDragClient::willPerformDragSourceAction(WebCore::DragSourceAction action
     [[m_webView _UIDelegateForwarder] webView:m_webView willPerformDragSourceAction:(WebDragSourceAction)action fromPoint:mouseDownPoint withPasteboard:[NSPasteboard pasteboardWithName:dataTransfer.pasteboard().name()]];
 }
 
-void WebDragClient::startDrag(DragImageRef dragImage, const IntPoint& at, const IntPoint& eventPos, const FloatPoint&, DataTransfer& dataTransfer, Frame& frame, bool linkDrag)
+void WebDragClient::startDrag(DragImage dragImage, const IntPoint& at, const IntPoint& eventPos, const FloatPoint&, DataTransfer& dataTransfer, Frame& frame, DragSourceAction dragSourceAction)
 {
     RetainPtr<WebHTMLView> htmlView = (WebHTMLView*)[[kit(&frame) frameView] documentView];
     if (![htmlView.get() isKindOfClass:[WebHTMLView class]])
         return;
     
-    NSEvent *event = linkDrag ? frame.eventHandler().currentNSEvent() : [htmlView.get() _mouseDownEvent];
+    NSEvent *event = dragSourceAction == DragSourceActionLink ? frame.eventHandler().currentNSEvent() : [htmlView.get() _mouseDownEvent];
     WebHTMLView* topHTMLView = getTopHTMLView(&frame);
     RetainPtr<WebHTMLView> topViewProtector = topHTMLView;
     
     [topHTMLView _stopAutoscrollTimer];
     NSPasteboard *pasteboard = [NSPasteboard pasteboardWithName:dataTransfer.pasteboard().name()];
 
-    NSImage *dragNSImage = dragImage.get();
+    NSImage *dragNSImage = dragImage.get().get();
     WebHTMLView *sourceHTMLView = htmlView.get();
 
     IntSize size([dragNSImage size]);
@@ -130,6 +139,30 @@ void WebDragClient::startDrag(DragImageRef dragImage, const IntPoint& at, const 
 #pragma clang diagnostic pop
 }
 
+void WebDragClient::beginDrag(DragItem dragItem, Frame& frame, const IntPoint& mouseDownPosition, const IntPoint& mouseDraggedPosition, DataTransfer& dataTransfer, DragSourceAction dragSourceAction)
+{
+    ASSERT(!dataTransfer.pasteboard().hasData());
+
+    RetainPtr<WebHTMLView> topWebHTMLView = dynamic_objc_cast<WebHTMLView>(m_webView.mainFrame.frameView.documentView);
+    ASSERT(topWebHTMLView);
+
+    [topWebHTMLView _stopAutoscrollTimer];
+
+    auto draggingItem = adoptNS([[NSDraggingItem alloc] initWithPasteboardWriter:createPasteboardWriter(dragItem.data).get()]);
+
+    auto dragImageSize = IntSize { [dragItem.image.get() size] };
+
+    dragImageSize.scale(1 / frame.page()->deviceScaleFactor());
+    [dragItem.image.get() setSize:dragImageSize];
+
+    NSRect draggingFrame = NSMakeRect(mouseDraggedPosition.x() - dragImageSize.width() * dragItem.imageAnchorPoint.x(), mouseDraggedPosition.y() - dragImageSize.height() * dragItem.imageAnchorPoint.y(), dragImageSize.width(), dragImageSize.height());
+    [draggingItem setDraggingFrame:draggingFrame contents:dragItem.image.get().get()];
+
+    // FIXME: We should be able to make a fake event with the mosue dragged coordinates.
+    NSEvent *event = frame.eventHandler().currentNSEvent();
+    [topWebHTMLView.get() beginDraggingSessionWithItems:@[ draggingItem.get() ] event:event source:topWebHTMLView.get()];
+}
+
 void WebDragClient::declareAndWriteDragImage(const String& pasteboardName, Element& element, const URL& url, const String& title, WebCore::Frame* frame)
 {
     ASSERT(pasteboardName);
@@ -145,11 +178,15 @@ void WebDragClient::declareAndWriteAttachment(const String& pasteboardName, Elem
 }
 #endif
 
-#else
+#elif !ENABLE(DATA_INTERACTION)
 
-WebCore::DragDestinationAction WebDragClient::actionMaskForDrag(const WebCore::DragData&)
+bool WebDragClient::useLegacyDragClient()
 {
-    return DragDestinationActionNone;
+    return false;
+}
+
+void WebDragClient::didConcludeEditDrag()
+{
 }
 
 void WebDragClient::willPerformDragDestinationAction(WebCore::DragDestinationAction, const WebCore::DragData&)
@@ -165,7 +202,11 @@ void WebDragClient::willPerformDragSourceAction(WebCore::DragSourceAction, const
 {
 }
 
-void WebDragClient::startDrag(DragImageRef, const IntPoint&, const IntPoint&, const FloatPoint&, DataTransfer&, Frame&, bool)
+void WebDragClient::startDrag(WebCore::DragImage, const IntPoint&, const IntPoint&, const FloatPoint&, DataTransfer&, Frame&, WebCore::DragSourceAction)
+{
+}
+
+void WebDragClient::beginDrag(DragItem, Frame&, const IntPoint&, const IntPoint&, DataTransfer&, DragSourceAction)
 {
 }
 

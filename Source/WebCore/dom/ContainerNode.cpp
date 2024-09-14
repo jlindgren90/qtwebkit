@@ -69,8 +69,9 @@ static void dispatchChildRemovalEvents(Node&);
 
 ChildNodesLazySnapshot* ChildNodesLazySnapshot::latestSnapshot;
 
-#ifndef NDEBUG
+#if !ASSERT_DISABLED
 unsigned NoEventDispatchAssertion::s_count = 0;
+unsigned NoEventDispatchAssertion::DisableAssertionsInScope::s_existingCount = 0;
 NoEventDispatchAssertion::EventAllowedScope* NoEventDispatchAssertion::EventAllowedScope::s_currentScope = nullptr;
 #endif
 
@@ -592,23 +593,27 @@ void ContainerNode::removeBetween(Node* previousChild, Node* nextChild, Node& ol
 void ContainerNode::parserRemoveChild(Node& oldChild)
 {
     disconnectSubframesIfNeeded(*this, DescendantsOnly);
+    if (oldChild.parentNode() != this)
+        return;
 
-    NoEventDispatchAssertion assertNoEventDispatch;
+    {
+        NoEventDispatchAssertion assertNoEventDispatch;
 
-    document().nodeChildrenWillBeRemoved(*this);
+        document().nodeChildrenWillBeRemoved(*this);
 
-    ASSERT(oldChild.parentNode() == this);
-    ASSERT(!oldChild.isDocumentFragment());
+        ASSERT(oldChild.parentNode() == this);
+        ASSERT(!oldChild.isDocumentFragment());
 
-    Node* prev = oldChild.previousSibling();
-    Node* next = oldChild.nextSibling();
+        Node* prev = oldChild.previousSibling();
+        Node* next = oldChild.nextSibling();
 
-    ChildListMutationScope(*this).willRemoveChild(oldChild);
-    oldChild.notifyMutationObserversNodeWillDetach();
+        ChildListMutationScope(*this).willRemoveChild(oldChild);
+        oldChild.notifyMutationObserversNodeWillDetach();
 
-    removeBetween(prev, next, oldChild);
+        removeBetween(prev, next, oldChild);
 
-    notifyChildRemoved(oldChild, prev, next, ChildChangeSourceParser);
+        notifyChildRemoved(oldChild, prev, next, ChildChangeSourceParser);
+    }
 }
 
 // https://dom.spec.whatwg.org/#concept-node-replace-all
@@ -768,11 +773,12 @@ void ContainerNode::parserAppendChild(Node& newChild)
     ASSERT(!newChild.isDocumentFragment());
     ASSERT(!hasTagName(HTMLNames::templateTag));
 
-    if (&document() != &newChild.document())
-        document().adoptNode(newChild);
-
     {
         NoEventDispatchAssertion assertNoEventDispatch;
+
+        if (&document() != &newChild.document())
+            document().adoptNode(newChild);
+
         appendChildCommon(newChild);
         treeScope().adoptIfNeeded(newChild);
     }

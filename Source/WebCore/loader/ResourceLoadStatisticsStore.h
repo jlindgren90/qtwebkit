@@ -47,7 +47,8 @@ public:
 
     bool isEmpty() const { return m_resourceStatisticsMap.isEmpty(); }
     size_t size() const { return m_resourceStatisticsMap.size(); }
-    void clear() { m_resourceStatisticsMap.clear(); }
+    WEBCORE_EXPORT void clearInMemory();
+    WEBCORE_EXPORT void clearInMemoryAndPersistent();
 
     ResourceLoadStatistics& ensureResourceStatisticsForPrimaryDomain(const String&);
     void setResourceStatisticsForPrimaryDomain(const String&, ResourceLoadStatistics&&);
@@ -57,10 +58,15 @@ public:
     WEBCORE_EXPORT void mergeStatistics(const Vector<ResourceLoadStatistics>&);
     WEBCORE_EXPORT Vector<ResourceLoadStatistics> takeStatistics();
 
-    WEBCORE_EXPORT void setNotificationCallback(std::function<void()> handler);
+    WEBCORE_EXPORT void setNotificationCallback(std::function<void()>);
+    WEBCORE_EXPORT void setShouldPartitionCookiesCallback(std::function<void(const Vector<String>& domainsToRemove, const Vector<String>& domainsToAdd, bool clearFirst)>&&);
+    WEBCORE_EXPORT void setWritePersistentStoreCallback(std::function<void()>&&);
 
     void fireDataModificationHandler();
     void setTimeToLiveUserInteraction(double seconds);
+    void setTimeToLiveCookiePartitionFree(double seconds);
+    WEBCORE_EXPORT void fireShouldPartitionCookiesHandler();
+    void fireShouldPartitionCookiesHandler(const Vector<String>& domainsToRemove, const Vector<String>& domainsToAdd, bool clearFirst);
 
     WEBCORE_EXPORT void processStatistics(std::function<void(ResourceLoadStatistics&)>&&);
 
@@ -72,6 +78,8 @@ private:
 
     HashMap<String, ResourceLoadStatistics> m_resourceStatisticsMap;
     std::function<void()> m_dataAddedHandler;
+    std::function<void(const Vector<String>&, const Vector<String>&, bool clearFirst)> m_shouldPartitionCookiesForDomainsHandler;
+    std::function<void()> m_writePersistentStoreHandler;
 };
     
 } // namespace WebCore

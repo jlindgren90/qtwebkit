@@ -25,10 +25,12 @@
 
 #import "config.h"
 #import "WebProcess.h"
+#import "WebProcessCocoa.h"
 
-#import "CustomProtocolManager.h"
+#import "LegacyCustomProtocolManager.h"
 #import "Logging.h"
 #import "ObjCObjectGraph.h"
+#import <runtime/ConfigFile.h>
 #import "SandboxExtension.h"
 #import "SandboxInitializationParameters.h"
 #import "SecItemShim.h"
@@ -43,9 +45,11 @@
 #import "WebPage.h"
 #import "WebProcessCreationParameters.h"
 #import "WebProcessProxyMessages.h"
+#import "WebsiteDataStoreParameters.h"
 #import <JavaScriptCore/Options.h>
 #import <WebCore/AXObjectCache.h>
 #import <WebCore/CFNetworkSPI.h>
+#import <WebCore/CPUMonitor.h>
 #import <WebCore/FileSystem.h>
 #import <WebCore/FontCache.h>
 #import <WebCore/FontCascade.h>
@@ -64,16 +68,32 @@
 #import <stdio.h>
 
 #if PLATFORM(IOS)
+#import "CelestialSPI.h"
 #import <WebCore/GraphicsServicesSPI.h>
+#import <WebCore/SoftLinking.h>
 #endif
 
 #if USE(OS_STATE)
 #include <os/state_private.h>
 #endif
 
+#if PLATFORM(IOS)
+SOFT_LINK_PRIVATE_FRAMEWORK_OPTIONAL(Celestial)
+
+SOFT_LINK_CLASS_OPTIONAL(Celestial, AVSystemController)
+
+SOFT_LINK_CONSTANT_MAY_FAIL(Celestial, AVSystemController_PIDToInheritApplicationStateFrom, NSString *)
+
+#define AVSystemController_PIDToInheritApplicationStateFrom getAVSystemController_PIDToInheritApplicationStateFrom()
+#endif
+
 using namespace WebCore;
 
 namespace WebKit {
+
+#if PLATFORM(MAC)
+static const Seconds backgroundCPUMonitoringInterval { 8_min };
+#endif
 
 void WebProcess::platformSetCacheModel(CacheModel)
 {
@@ -101,6 +121,7 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
     SandboxExtension::consumePermanently(parameters.applicationCacheDirectoryExtensionHandle);
     SandboxExtension::consumePermanently(parameters.mediaCacheDirectoryExtensionHandle);
     SandboxExtension::consumePermanently(parameters.mediaKeyStorageDirectoryExtensionHandle);
+    SandboxExtension::consumePermanently(parameters.javaScriptConfigurationDirectoryExtensionHandle);
 #if ENABLE(MEDIA_STREAM)
     SandboxExtension::consumePermanently(parameters.audioCaptureExtensionHandle);
 #endif
@@ -110,6 +131,11 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
     SandboxExtension::consumePermanently(parameters.containerTemporaryDirectoryExtensionHandle);
 #endif
 #endif
+
+    if (!parameters.javaScriptConfigurationDirectory.isEmpty()) {
+        String javaScriptConfigFile = parameters.javaScriptConfigurationDirectory + "/JSC.config";
+        JSC::processConfigFile(javaScriptConfigFile.latin1().data(), "com.apple.WebKit.WebContent", parameters.uiProcessBundleIdentifier.latin1().data());
+    }
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     setSharedHTTPCookieStorage(parameters.uiProcessCookieStorageIdentifier);
@@ -145,6 +171,16 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
 #if TARGET_OS_IPHONE
     // Priority decay on iOS 9 is impacting page load time so we fix the priority of the WebProcess' main thread (rdar://problem/22003112).
     pthread_set_fixedpriority_self();
+#endif
+
+#if PLATFORM(IOS)
+    if (canLoadAVSystemController_PIDToInheritApplicationStateFrom()) {
+        pid_t pid = WebProcess::singleton().presenterApplicationPid();
+        NSError *error = nil;
+        [[getAVSystemControllerClass() sharedAVSystemController] setAttribute:@(pid) forKey:AVSystemController_PIDToInheritApplicationStateFrom error:&error];
+        if (error)
+            WTFLogAlways("Failed to set up PID proxying: %s", [[error localizedDescription] UTF8String]);
+    }
 #endif
 }
 
@@ -247,7 +283,7 @@ void WebProcess::registerWithStateDumper()
                 memset(os_state, 0, neededSize);
                 os_state->osd_type = OS_STATE_DATA_SERIALIZED_NSCF_OBJECT;
                 os_state->osd_data_size = data.length;
-                strcpy(os_state->osd_title, "WebContent state"); // NB: Only 64 bytes of buffer here.
+                strlcpy(os_state->osd_title, "WebContent state", sizeof(os_state->osd_title));
                 memcpy(os_state->osd_data, data.bytes, data.length);
             }
 
@@ -361,6 +397,49 @@ void WebProcess::updateActivePages()
 #endif
 }
 
+void WebProcess::updateBackgroundCPULimit()
+{
+#if PLATFORM(MAC)
+    std::optional<double> backgroundCPULimit;
+
+    // Use the largest limit among all pages in this process.
+    for (auto& page : m_pageMap.values()) {
+        auto pageCPULimit = page->backgroundCPULimit();
+        if (!pageCPULimit) {
+            backgroundCPULimit = std::nullopt;
+            break;
+        }
+        if (!backgroundCPULimit || pageCPULimit > backgroundCPULimit.value())
+            backgroundCPULimit = pageCPULimit;
+    }
+
+    if (m_backgroundCPULimit == backgroundCPULimit)
+        return;
+
+    m_backgroundCPULimit = backgroundCPULimit;
+    updateBackgroundCPUMonitorState();
+#endif
+}
+
+void WebProcess::updateBackgroundCPUMonitorState()
+{
+#if PLATFORM(MAC)
+    if (!m_backgroundCPULimit || hasVisibleWebPage()) {
+        if (m_backgroundCPUMonitor)
+            m_backgroundCPUMonitor->setCPULimit(std::nullopt);
+        return;
+    }
+
+    if (!m_backgroundCPUMonitor) {
+        m_backgroundCPUMonitor = std::make_unique<CPUMonitor>(backgroundCPUMonitoringInterval, [this](double cpuUsage) {
+            RELEASE_LOG(PerformanceLogging, "%p - WebProcess exceeded background CPU limit of %.1f%% (was using %.1f%%)", this, m_backgroundCPULimit.value() * 100, cpuUsage * 100);
+            parentProcessConnection()->send(Messages::WebProcessProxy::DidExceedBackgroundCPULimit(), 0);
+        });
+    }
+    m_backgroundCPUMonitor->setCPULimit(m_backgroundCPULimit.value());
+#endif
+}
+
 RefPtr<ObjCObjectGraph> WebProcess::transformHandlesToObjects(ObjCObjectGraph& objectGraph)
 {
     struct Transformer final : ObjCObjectGraph::Transformer {
@@ -445,6 +524,12 @@ void WebProcess::destroyRenderingResources()
     double endTime = monotonicallyIncreasingTime();
 #endif
     RELEASE_LOG(ProcessSuspension, "%p - WebProcess::destroyRenderingResources() took %.2fms", this, (endTime - startTime) * 1000.0);
+}
+
+// FIXME: This should live somewhere else, and it should have the implementation in line instead of calling out to WKSI.
+void _WKSetCrashReportApplicationSpecificInformation(NSString *infoString)
+{
+    return WKSetCrashReportApplicationSpecificInformation((__bridge CFStringRef)infoString);
 }
 
 } // namespace WebKit

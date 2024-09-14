@@ -31,17 +31,71 @@
 
 #if USE(LIBWEBRTC)
 
+#include <webrtc/common_video/include/corevideo_frame_buffer.h>
 #include <webrtc/common_video/libyuv/include/webrtc_libyuv.h>
 #include <webrtc/media/base/videoframe.h>
+#include <wtf/MainThread.h>
 
 #include "CoreMediaSoftLink.h"
+#include "CoreVideoSoftLink.h"
 
 namespace WebCore {
 
 RealtimeOutgoingVideoSource::RealtimeOutgoingVideoSource(Ref<RealtimeMediaSource>&& videoSource)
     : m_videoSource(WTFMove(videoSource))
+    , m_blackFrameTimer(*this, &RealtimeOutgoingVideoSource::sendOneBlackFrame)
 {
     m_videoSource->addObserver(*this);
+    setSizeFromSource();
+}
+
+bool RealtimeOutgoingVideoSource::setSource(Ref<RealtimeMediaSource>&& newSource)
+{
+    if (!m_initialSettings)
+        m_initialSettings = m_videoSource->settings();
+
+    auto newSettings = newSource->settings();
+
+    if (m_initialSettings->width() < newSettings.width() || m_initialSettings->height() < newSettings.height())
+        return false;
+
+    m_videoSource->removeObserver(*this);
+    m_videoSource = WTFMove(newSource);
+    m_videoSource->addObserver(*this);
+    setSizeFromSource();
+    return true;
+}
+
+void RealtimeOutgoingVideoSource::stop()
+{
+    m_videoSource->removeObserver(*this);
+    m_blackFrameTimer.stop();
+    m_isStopped = true;
+}
+
+void RealtimeOutgoingVideoSource::sourceMutedChanged()
+{
+    ASSERT(m_muted != m_videoSource->muted());
+    m_muted = m_videoSource->muted();
+
+    if (m_muted && m_sinks.size() && m_enabled)
+        sendBlackFrame();
+}
+
+void RealtimeOutgoingVideoSource::sourceEnabledChanged()
+{
+    ASSERT(m_enabled != m_videoSource->enabled());
+    m_enabled = m_videoSource->enabled();
+
+    if (!m_enabled && m_sinks.size() && !m_muted)
+        sendBlackFrame();
+}
+
+void RealtimeOutgoingVideoSource::setSizeFromSource()
+{
+    const auto& settings = m_videoSource->settings();
+    m_width = settings.width();
+    m_height = settings.height();
 }
 
 bool RealtimeOutgoingVideoSource::GetStats(Stats*)
@@ -61,40 +115,74 @@ void RealtimeOutgoingVideoSource::RemoveSink(rtc::VideoSinkInterface<webrtc::Vid
     m_sinks.removeFirst(sink);
 }
 
+void RealtimeOutgoingVideoSource::sendBlackFrame()
+{
+    if (!m_blackFrame) {
+        auto frame = m_bufferPool.CreateBuffer(m_width, m_height);
+        frame->SetToBlack();
+        m_blackFrame = WTFMove(frame);
+    }
+    sendOneBlackFrame();
+    // FIXME: We should not need to send two black frames but VTB requires that so we are sure a black frame is sent over the wire.
+    m_blackFrameTimer.startOneShot(0_s);
+}
+
+void RealtimeOutgoingVideoSource::sendOneBlackFrame()
+{
+    sendFrame(rtc::scoped_refptr<webrtc::VideoFrameBuffer>(m_blackFrame));
+}
+
+void RealtimeOutgoingVideoSource::sendFrame(rtc::scoped_refptr<webrtc::VideoFrameBuffer>&& buffer)
+{
+    webrtc::VideoFrame frame(buffer, 0, 0, m_currentRotation);
+    for (auto* sink : m_sinks)
+        sink->OnFrame(frame);
+}
+
 void RealtimeOutgoingVideoSource::videoSampleAvailable(MediaSample& sample)
 {
     if (!m_sinks.size())
         return;
 
+    if (m_muted || !m_enabled)
+        return;
+
+    switch (sample.videoRotation()) {
+    case MediaSample::VideoRotation::None:
+        m_currentRotation = webrtc::kVideoRotation_0;
+        break;
+    case MediaSample::VideoRotation::UpsideDown:
+        m_currentRotation = webrtc::kVideoRotation_180;
+        break;
+    case MediaSample::VideoRotation::Right:
+        m_currentRotation = webrtc::kVideoRotation_90;
+        break;
+    case MediaSample::VideoRotation::Left:
+        m_currentRotation = webrtc::kVideoRotation_270;
+        break;
+    }
+
     ASSERT(sample.platformSample().type == PlatformSample::CMSampleBufferType);
     auto pixelBuffer = static_cast<CVPixelBufferRef>(CMSampleBufferGetImageBuffer(sample.platformSample().sample.cmSampleBuffer));
     auto pixelFormatType = CVPixelBufferGetPixelFormatType(pixelBuffer);
 
-    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
-    uint8_t* src = reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
-
-    // FIXME: Shouldn't we use RealtimeMediaSource::size()
-    const auto& settings = m_videoSource->settings();
-
-    // FIXME: We should not need to allocate one buffer per frame.
-    auto dest = webrtc::I420Buffer::Create(settings.width(), settings.height());
-
-    if (pixelFormatType == kCVPixelFormatType_420YpCbCr8Planar) {
-        // We probably can memcpy the data directly
-        webrtc::ConvertToI420(webrtc::kI420, src, 0, 0, settings.width(), settings.height(), 0, webrtc::kVideoRotation_0, dest);
-    } else if (pixelFormatType == kCVPixelFormatType_32BGRA)
-        webrtc::ConvertToI420(webrtc::kARGB, src, 0, 0, settings.width(), settings.height(), 0, webrtc::kVideoRotation_0, dest);
-    else {
-        // FIXME: Mock source conversion works with kBGRA while regular camera works with kARGB
-        ASSERT(pixelFormatType == kCVPixelFormatType_32ARGB);
-        webrtc::ConvertToI420(webrtc::kBGRA, src, 0, 0, settings.width(), settings.height(), 0, webrtc::kVideoRotation_0, dest);
+    if (pixelFormatType == kCVPixelFormatType_420YpCbCr8Planar || pixelFormatType == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
+        sendFrame(new rtc::RefCountedObject<webrtc::CoreVideoFrameBuffer>(pixelBuffer));
+        return;
     }
 
-    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    auto* source = reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
 
-    webrtc::VideoFrame frame(dest, 0, 0,  webrtc::kVideoRotation_0);
-    for (auto* sink : m_sinks)
-        sink->OnFrame(frame);
+    auto newBuffer = m_bufferPool.CreateBuffer(m_width, m_height);
+    if (pixelFormatType == kCVPixelFormatType_32BGRA)
+        webrtc::ConvertToI420(webrtc::kARGB, source, 0, 0, m_width, m_height, 0, webrtc::kVideoRotation_0, newBuffer);
+    else {
+        ASSERT(pixelFormatType == kCVPixelFormatType_32ARGB);
+        webrtc::ConvertToI420(webrtc::kBGRA, source, 0, 0, m_width, m_height, 0, webrtc::kVideoRotation_0, newBuffer);
+    }
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+    sendFrame(WTFMove(newBuffer));
 }
 
 } // namespace WebCore

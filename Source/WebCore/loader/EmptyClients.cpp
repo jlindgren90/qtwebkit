@@ -56,6 +56,7 @@
 #include "StorageArea.h"
 #include "StorageNamespace.h"
 #include "StorageNamespaceProvider.h"
+#include "StorageType.h"
 #include "TextCheckerClient.h"
 #include "ThreadableWebSocketChannel.h"
 #include "UserContentProvider.h"
@@ -68,7 +69,7 @@
 #endif
 
 #if USE(QUICK_LOOK)
-#include "QuickLookHandleClient.h"
+#include "PreviewLoaderClient.h"
 #endif
 
 namespace WebCore {
@@ -129,9 +130,8 @@ class EmptyDiagnosticLoggingClient final : public DiagnosticLoggingClient {
 class EmptyDragClient final : public DragClient {
     void willPerformDragDestinationAction(DragDestinationAction, const DragData&) final { }
     void willPerformDragSourceAction(DragSourceAction, const IntPoint&, DataTransfer&) final { }
-    DragDestinationAction actionMaskForDrag(const DragData&) final { return DragDestinationActionNone; }
     DragSourceAction dragSourceActionMaskForPoint(const IntPoint&) final { return DragSourceActionNone; }
-    void startDrag(DragImageRef, const IntPoint&, const IntPoint&, const FloatPoint&, DataTransfer&, Frame&, bool) final { }
+    void startDrag(DragImage, const IntPoint&, const IntPoint&, const FloatPoint&, DataTransfer&, Frame&, DragSourceAction) final { }
     void dragControllerDestroyed() final { }
 };
 
@@ -146,7 +146,7 @@ public:
 private:
     bool shouldDeleteRange(Range*) final { return false; }
     bool smartInsertDeleteEnabled() final { return false; }
-    bool isSelectTrailingWhitespaceEnabled() final { return false; }
+    bool isSelectTrailingWhitespaceEnabled() const final { return false; }
     bool isContinuousSpellCheckingEnabled() final { return false; }
     void toggleContinuousSpellChecking() final { }
     bool isGrammarCheckingEnabled() final { return false; }
@@ -424,7 +424,7 @@ class EmptyFrameLoaderClient final : public FrameLoaderClient {
     ObjectContentType objectContentType(const URL&, const String&) final { return ObjectContentType::None; }
     String overrideMediaType() const final { return { }; }
 
-    void redirectDataToPlugin(Widget*) final { }
+    void redirectDataToPlugin(Widget&) final { }
     void dispatchDidClearWindowObjectInWorld(DOMWrapperWorld&) final { }
 
     void registerForIconNotification(bool) final { }
@@ -448,7 +448,7 @@ class EmptyFrameLoaderClient final : public FrameLoaderClient {
     void prefetchDNS(const String&) final { }
 
 #if USE(QUICK_LOOK)
-    RefPtr<QuickLookHandleClient> createQuickLookHandleClient(const String&, const String&) final { return nullptr; }
+    RefPtr<PreviewLoaderClient> createPreviewLoaderClient(const String&, const String&) final { return nullptr; }
 #endif
 };
 
@@ -490,10 +490,11 @@ class EmptyPaymentCoordinatorClient final : public PaymentCoordinatorClient {
     void openPaymentSetup(const String&, const String&, std::function<void(bool)> completionHandler) final { callOnMainThread([completionHandler] { completionHandler(false); }); }
     bool showPaymentUI(const URL&, const Vector<URL>&, const PaymentRequest&) final { return false; }
     void completeMerchantValidation(const PaymentMerchantSession&) final { }
-    void completeShippingMethodSelection(PaymentAuthorizationStatus, std::optional<PaymentRequest::TotalAndLineItems>) final { }
-    void completeShippingContactSelection(PaymentAuthorizationStatus, const Vector<PaymentRequest::ShippingMethod>&, std::optional<PaymentRequest::TotalAndLineItems>) final { }
-    void completePaymentMethodSelection(std::optional<WebCore::PaymentRequest::TotalAndLineItems>) final { }
-    void completePaymentSession(PaymentAuthorizationStatus) final { }
+    void completeShippingMethodSelection(std::optional<ShippingMethodUpdate>&&) final { }
+    void completeShippingContactSelection(std::optional<ShippingContactUpdate>&&) final { }
+    void completePaymentMethodSelection(std::optional<PaymentMethodUpdate>&&) final { }
+    void completePaymentSession(std::optional<PaymentAuthorizationResult>&&) final { }
+    void cancelPaymentSession() final { }
     void abortPaymentSession() final { }
     void paymentCoordinatorDestroyed() final { }
 };
@@ -550,7 +551,7 @@ class EmptyStorageNamespaceProvider final : public StorageNamespaceProvider {
         void clear(Frame*) final { }
         bool contains(const String&) final { return false; }
         bool canAccessStorage(Frame*) final { return false; }
-        StorageType storageType() const final { return LocalStorage; }
+        StorageType storageType() const final { return StorageType::Local; }
         size_t memoryBytesUsedByCache() final { return 0; }
         SecurityOriginData securityOrigin() const final { return { }; }
     };
@@ -562,14 +563,15 @@ class EmptyStorageNamespaceProvider final : public StorageNamespaceProvider {
 
     RefPtr<StorageNamespace> createSessionStorageNamespace(Page&, unsigned) final;
     RefPtr<StorageNamespace> createLocalStorageNamespace(unsigned) final;
+    RefPtr<StorageNamespace> createEphemeralLocalStorageNamespace(Page&, unsigned) final;
     RefPtr<StorageNamespace> createTransientLocalStorageNamespace(SecurityOrigin&, unsigned) final;
 };
 
 class EmptyUserContentProvider final : public UserContentProvider {
-    void forEachUserScript(const std::function<void(DOMWrapperWorld&, const UserScript&)>&) const final { }
-    void forEachUserStyleSheet(const std::function<void(const UserStyleSheet&)>&) const final { }
+    void forEachUserScript(Function<void(DOMWrapperWorld&, const UserScript&)>&&) const final { }
+    void forEachUserStyleSheet(Function<void(const UserStyleSheet&)>&&) const final { }
 #if ENABLE(USER_MESSAGE_HANDLERS)
-    void forEachUserMessageHandler(const std::function<void(const UserMessageHandlerDescriptor&)>&) const final { }
+    void forEachUserMessageHandler(Function<void(const UserMessageHandlerDescriptor&)>&&) const final { }
 #endif
 #if ENABLE(CONTENT_EXTENSIONS)
     ContentExtensions::ContentExtensionsBackend& userContentExtensionBackend() final { static NeverDestroyed<ContentExtensions::ContentExtensionsBackend> backend; return backend.get(); };
@@ -672,6 +674,11 @@ RefPtr<StorageNamespace> EmptyStorageNamespaceProvider::createSessionStorageName
 }
 
 RefPtr<StorageNamespace> EmptyStorageNamespaceProvider::createLocalStorageNamespace(unsigned)
+{
+    return adoptRef(*new EmptyStorageNamespace);
+}
+
+RefPtr<StorageNamespace> EmptyStorageNamespaceProvider::createEphemeralLocalStorageNamespace(Page&, unsigned)
 {
     return adoptRef(*new EmptyStorageNamespace);
 }

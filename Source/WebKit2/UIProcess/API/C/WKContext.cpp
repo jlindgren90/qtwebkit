@@ -404,7 +404,7 @@ WKCookieManagerRef WKContextGetCookieManager(WKContextRef contextRef)
 
 WKWebsiteDataStoreRef WKContextGetWebsiteDataStore(WKContextRef context)
 {
-    return toAPI(toImpl(context)->websiteDataStore());
+    return toAPI(&toImpl(context)->websiteDataStore());
 }
 
 WKApplicationCacheManagerRef WKContextGetApplicationCacheManager(WKContextRef context)
@@ -502,6 +502,16 @@ void WKContextGetStatisticsWithOptions(WKContextRef contextRef, WKStatisticsOpti
     toImpl(contextRef)->getStatistics(optionsMask, toGenericCallbackFunction(context, callback));
 }
 
+bool WKContextJavaScriptConfigurationFileEnabled(WKContextRef contextRef)
+{
+    return toImpl(contextRef)->javaScriptConfigurationFileEnabled();
+}
+
+void WKContextSetJavaScriptConfigurationFileEnabled(WKContextRef contextRef, bool enable)
+{
+    toImpl(contextRef)->setJavaScriptConfigurationFileEnabled(enable);
+}
+
 void WKContextGarbageCollectJavaScriptObjects(WKContextRef contextRef)
 {
     toImpl(contextRef)->garbageCollectJavaScriptObjects();
@@ -515,6 +525,11 @@ void WKContextSetJavaScriptGarbageCollectorTimerEnabled(WKContextRef contextRef,
 void WKContextUseTestingNetworkSession(WKContextRef context)
 {
     toImpl(context)->useTestingNetworkSession();
+}
+
+void WKContextSetAllowsAnySSLCertificateForWebSocketTesting(WKContextRef context, bool allows)
+{
+    toImpl(context)->setAllowsAnySSLCertificateForWebSocket(allows);
 }
 
 void WKContextClearCachedCredentials(WKContextRef context)
@@ -561,6 +576,11 @@ void WKContextSetMemoryCacheDisabled(WKContextRef contextRef, bool disabled)
 void WKContextSetFontWhitelist(WKContextRef contextRef, WKArrayRef arrayRef)
 {
     toImpl(contextRef)->setFontWhitelist(toImpl(arrayRef));
+}
+
+void WKContextTerminateNetworkProcess(WKContextRef context)
+{
+    toImpl(context)->terminateNetworkProcess();
 }
 
 pid_t WKContextGetNetworkProcessIdentifier(WKContextRef contextRef)

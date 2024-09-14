@@ -75,6 +75,9 @@ public:
     void setModernMediaControlsEnabled(bool areEnabled) { m_areModernMediaControlsEnabled = areEnabled; }
     bool modernMediaControlsEnabled() const { return m_areModernMediaControlsEnabled; }
 
+    void setCredentialManagementEnabled(bool isEnabled) { m_isCredentialManagementEnabled = isEnabled; }
+    bool credentialManagementEnabled() const { return m_isCredentialManagementEnabled; }
+
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
     void setIndexedDBWorkersEnabled(bool isEnabled) { m_isIndexedDBWorkersEnabled = isEnabled; }
     bool indexedDBWorkersEnabled() const { return m_isIndexedDBWorkersEnabled; }
@@ -86,13 +89,17 @@ public:
 #endif
 
 #if ENABLE(MEDIA_STREAM)
+    bool mediaDevicesEnabled() const { return m_isMediaDevicesEnabled; }
+    void setMediaDevicesEnabled(bool isEnabled) { m_isMediaDevicesEnabled = isEnabled; }
     bool mediaStreamEnabled() const { return m_isMediaStreamEnabled; }
     void setMediaStreamEnabled(bool isEnabled) { m_isMediaStreamEnabled = isEnabled; }
 #endif
 
 #if ENABLE(WEB_RTC)
-    bool peerConnectionEnabled() const { return m_isMediaStreamEnabled && m_isPeerConnectionEnabled; }
+    bool peerConnectionEnabled() const { return m_isPeerConnectionEnabled; }
     void setPeerConnectionEnabled(bool isEnabled) { m_isPeerConnectionEnabled = isEnabled; }
+    bool webRTCLegacyAPIEnabled() const { return m_webRTCLegacyAPIEnabled; }
+    void setWebRTCLegacyAPIEnabled(bool isEnabled) { m_webRTCLegacyAPIEnabled = isEnabled; }
 #endif
 
 #if ENABLE(LEGACY_CSS_VENDOR_PREFIXES)
@@ -151,20 +158,30 @@ public:
     bool webGL2Enabled() const { return m_isWebGL2Enabled; }
 #endif
 
+#if ENABLE(WEBGPU)
+    void setWebGPUEnabled(bool isEnabled) { m_isWebGPUEnabled = isEnabled; }
+    bool webGPUEnabled() const { return m_isWebGPUEnabled; }
+#endif
+
 #if ENABLE(FETCH_API)
     void setFetchAPIEnabled(bool isEnabled) { m_isFetchAPIEnabled = isEnabled; }
     bool fetchAPIEnabled() const { return m_isFetchAPIEnabled; }
 #endif
-
+    
+#if ENABLE(STREAMS_API)
+    void setReadableByteStreamAPIEnabled(bool isEnabled) { m_isReadableByteStreamAPIEnabled = isEnabled; }
+    bool readableByteStreamAPIEnabled() const { return m_isReadableByteStreamAPIEnabled; }
+    void setWritableStreamAPIEnabled(bool isEnabled) { m_isWritableStreamAPIEnabled = isEnabled; }
+    bool writableStreamAPIEnabled() const { return m_isWritableStreamAPIEnabled; }
+#endif
+    
 #if ENABLE(DOWNLOAD_ATTRIBUTE)
     void setDownloadAttributeEnabled(bool isEnabled) { m_isDownloadAttributeEnabled = isEnabled; }
     bool downloadAttributeEnabled() const { return m_isDownloadAttributeEnabled; }
 #endif
 
-#if ENABLE(CSS_GRID_LAYOUT)
     void setCSSGridLayoutEnabled(bool isEnabled) { m_cssGridLayoutEnabled = isEnabled; }
     bool isCSSGridLayoutEnabled() const { return m_cssGridLayoutEnabled; }
-#endif
 
 #if ENABLE(INTERSECTION_OBSERVER)
     void setIntersectionObserverEnabled(bool isEnabled) { m_intersectionObserverEnabled = isEnabled; }
@@ -207,6 +224,7 @@ private:
     bool m_isResourceTimingEnabled { false };
     bool m_isUserTimingEnabled { false };
     bool m_isInteractiveFormValidationEnabled { false };
+    bool m_isCredentialManagementEnabled { false };
 
     bool m_isDOMIteratorEnabled { true };
     bool m_isGeolocationEnabled { true };
@@ -219,11 +237,13 @@ private:
 #endif
 
 #if ENABLE(MEDIA_STREAM)
+    bool m_isMediaDevicesEnabled { false };
     bool m_isMediaStreamEnabled { true };
 #endif
 
 #if ENABLE(WEB_RTC)
     bool m_isPeerConnectionEnabled { true };
+    bool m_webRTCLegacyAPIEnabled { true };
 #endif
 
 #if ENABLE(LEGACY_CSS_VENDOR_PREFIXES)
@@ -266,12 +286,21 @@ private:
     bool m_areAnimationTriggersEnabled { false };
 #endif
 
+#if ENABLE(STREAMS_API)
+    bool m_isReadableByteStreamAPIEnabled { false };
+    bool m_isWritableStreamAPIEnabled { false };
+#endif
+
 #if ENABLE(WEB_ANIMATIONS)
     bool m_areWebAnimationsEnabled { false };
 #endif
 
 #if ENABLE(WEBGL2)
     bool m_isWebGL2Enabled { false };
+#endif
+
+#if ENABLE(WEBGPU)
+    bool m_isWebGPUEnabled { false };
 #endif
 
 #if ENABLE(FETCH_API)
@@ -282,9 +311,7 @@ private:
     bool m_isDownloadAttributeEnabled { false };
 #endif
 
-#if ENABLE(CSS_GRID_LAYOUT)
     bool m_cssGridLayoutEnabled { true };
-#endif
 
 #if ENABLE(ENCRYPTED_MEDIA)
     bool m_encryptedMediaAPIEnabled { false };

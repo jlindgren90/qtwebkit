@@ -31,16 +31,51 @@
 #include "MainThread.h"
 
 #include <wtf/RunLoop.h>
+#include <wtf/glib/RunLoopSourcePriority.h>
+
+static pthread_t mainThreadPthread;
 
 namespace WTF {
 
+class MainThreadDispatcher {
+public:
+    MainThreadDispatcher()
+        : m_timer(RunLoop::main(), this, &MainThreadDispatcher::fired)
+    {
+        m_timer.setPriority(RunLoopSourcePriority::MainThreadDispatcherTimer);
+    }
+
+    void schedule()
+    {
+        m_timer.startOneShot(0_s);
+    }
+
+private:
+    void fired()
+    {
+        dispatchFunctionsFromMainThread();
+    }
+
+    RunLoop::Timer<MainThreadDispatcher> m_timer;
+};
+
 void initializeMainThreadPlatform()
 {
+    mainThreadPthread = pthread_self();
+}
+
+bool isMainThread()
+{
+    ASSERT(mainThreadPthread);
+    return pthread_equal(pthread_self(), mainThreadPthread);
 }
 
 void scheduleDispatchFunctionsOnMainThread()
 {
-    RunLoop::main().dispatch(std::function<void()>(dispatchFunctionsFromMainThread));
+    // Use a RunLoop::Timer instead of RunLoop::dispatch() to be able to use a different priority and
+    // avoid the double queue because dispatchOnMainThread also queues the functions.
+    static MainThreadDispatcher dispatcher;
+    dispatcher.schedule();
 }
 
 } // namespace WTF

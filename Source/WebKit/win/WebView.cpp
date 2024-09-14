@@ -77,6 +77,7 @@
 #include "resource.h"
 #include <JavaScriptCore/APICast.h>
 #include <JavaScriptCore/Exception.h>
+#include <JavaScriptCore/HeapInlines.h>
 #include <JavaScriptCore/InitializeThreading.h>
 #include <JavaScriptCore/JSCJSValue.h>
 #include <JavaScriptCore/JSLock.h>
@@ -409,7 +410,6 @@ bool WebView::s_allowSiteSpecificHacks = false;
 WebView::WebView()
 {
     JSC::initializeThreading();
-    WTF::initializeMainThread();
     RunLoop::initializeMainRunLoop();
 
     m_backingStoreSize.cx = m_backingStoreSize.cy = 0;
@@ -526,7 +526,7 @@ void WebView::setCacheModel(WebCacheModel cacheModel)
     unsigned cacheTotalCapacity = 0;
     unsigned cacheMinDeadCapacity = 0;
     unsigned cacheMaxDeadCapacity = 0;
-    auto deadDecodedDataDeletionInterval = std::chrono::seconds { 0 };
+    Seconds deadDecodedDataDeletionInterval;
 
     unsigned pageCacheSize = 0;
 
@@ -638,7 +638,7 @@ void WebView::setCacheModel(WebCacheModel cacheModel)
         // can prove that the overall system gain would justify the regression.
         cacheMaxDeadCapacity = max(24u, cacheMaxDeadCapacity);
 
-        deadDecodedDataDeletionInterval = std::chrono::seconds { 60 };
+        deadDecodedDataDeletionInterval = 60_s;
 
         // Memory cache capacity (in bytes)
         // (These values are small because WebCore does most caching itself.)
@@ -1517,7 +1517,7 @@ void WebView::closeWindowSoon()
     m_closeWindowTimer = WindowCloseTimer::create(this);
     if (!m_closeWindowTimer)
         return;
-    m_closeWindowTimer->startOneShot(0);
+    m_closeWindowTimer->startOneShot(0_s);
 
     AddRef();
 }
@@ -1659,7 +1659,7 @@ bool WebView::handleContextMenuEvent(WPARAM wParam, LPARAM lParam)
     Frame* targetFrame = result.innerNonSharedNode() ? result.innerNonSharedNode()->document().frame() : &m_page->focusController().focusedOrMainFrame();
 
     targetFrame->view()->setCursor(pointerCursor());
-    PlatformMouseEvent mouseEvent(m_viewWindow, WM_RBUTTONUP, wParam, lParam);
+    PlatformMouseEvent mouseEvent(m_viewWindow, WM_RBUTTONUP, wParam, makeScaledPoint(IntPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)), deviceScaleFactor()));
     bool handledEvent = targetFrame->eventHandler().sendContextMenuEvent(mouseEvent);
     if (!handledEvent)
         return false;
@@ -1827,7 +1827,7 @@ bool WebView::handleMouseEvent(UINT message, WPARAM wParam, LPARAM lParam)
     // Create our event.
     // On WM_MOUSELEAVE we need to create a mouseout event, so we force the position
     // of the event to be at (MINSHORT, MINSHORT).
-    LPARAM position = (message == WM_MOUSELEAVE) ? ((MINSHORT << 16) | MINSHORT) : lParam;
+    LPARAM position = (message == WM_MOUSELEAVE) ? ((MINSHORT << 16) | MINSHORT) : makeScaledPoint(IntPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)), deviceScaleFactor());
     PlatformMouseEvent mouseEvent(m_viewWindow, message, wParam, position, m_mouseActivated);
 
     setMouseActivated(false);
@@ -3857,9 +3857,10 @@ HRESULT WebView::hostWindow(_Deref_opt_out_ HWND* window)
 
 static Frame *incrementFrame(Frame *curr, bool forward, bool wrapFlag)
 {
+    CanWrap canWrap = wrapFlag ? CanWrap::Yes : CanWrap::No;
     return forward
-        ? curr->tree().traverseNextWithWrap(wrapFlag)
-        : curr->tree().traversePreviousWithWrap(wrapFlag);
+        ? curr->tree().traverseNext(canWrap)
+        : curr->tree().traversePrevious(canWrap);
 }
 
 HRESULT WebView::searchFor(_In_ BSTR str, BOOL forward, BOOL caseFlag, BOOL wrapFlag, _Out_ BOOL* found)
@@ -5271,6 +5272,11 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     RuntimeEnabledFeatures::sharedFeatures().setResourceTimingEnabled(!!enabled);
+
+    hr = prefsPrivate->linkPreloadEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    RuntimeEnabledFeatures::sharedFeatures().setLinkPreloadEnabled(!!enabled);
 
     hr = preferences->privateBrowsingEnabled(&enabled);
     if (FAILED(hr))
@@ -7160,6 +7166,7 @@ void WebView::setAcceleratedCompositing(bool accelerated)
             ASSERT(m_viewWindow);
             m_layerTreeHost->setWindow(m_viewWindow);
             m_layerTreeHost->setPage(page());
+            m_layerTreeHost->setScaleFactor(deviceScaleFactor());
 
             // FIXME: We could perhaps get better performance by never allowing this layer to
             // become tiled (or choosing a higher-than-normal tiling threshold).
@@ -7462,7 +7469,7 @@ HRESULT WebView::defaultMinimumTimerInterval(_Out_ double* interval)
 {
     if (!interval)
         return E_POINTER;
-    *interval = DOMTimer::defaultMinimumInterval().count() / 1000.;
+    *interval = DOMTimer::defaultMinimumInterval().seconds();
     return S_OK;
 }
 
@@ -7471,8 +7478,7 @@ HRESULT WebView::setMinimumTimerInterval(double interval)
     if (!m_page)
         return E_FAIL;
 
-    auto intervalMS = std::chrono::milliseconds((std::chrono::milliseconds::rep)(interval * 1000));
-    page()->settings().setMinimumDOMTimerInterval(intervalMS);
+    page()->settings().setMinimumDOMTimerInterval(Seconds { interval });
     return S_OK;
 }
 

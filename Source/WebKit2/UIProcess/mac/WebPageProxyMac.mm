@@ -269,10 +269,10 @@ void WebPageProxy::replaceSelectionWithPasteboardData(const Vector<String>& type
 #endif
 
 #if ENABLE(DRAG_SUPPORT)
-void WebPageProxy::setDragImage(const WebCore::IntPoint& clientPosition, const ShareableBitmap::Handle& dragImageHandle, const FloatPoint&, bool isLinkDrag)
+void WebPageProxy::setDragImage(const WebCore::IntPoint& clientPosition, const ShareableBitmap::Handle& dragImageHandle, std::optional<TextIndicatorData>, const FloatPoint&, uint64_t action)
 {
     if (auto dragImage = ShareableBitmap::create(dragImageHandle))
-        m_pageClient.setDragImage(clientPosition, WTFMove(dragImage), isLinkDrag);
+        m_pageClient.setDragImage(clientPosition, WTFMove(dragImage), static_cast<DragSourceAction>(action));
 
     process().send(Messages::WebPage::DidStartDrag(), m_pageID);
 }
@@ -574,7 +574,7 @@ void WebPageProxy::editorStateChanged(const EditorState& editorState)
     if (couldChangeSecureInputState && !editorState.selectionIsNone)
         m_pageClient.updateSecureInputState();
     
-    if (editorState.shouldIgnoreCompositionSelectionChange)
+    if (editorState.shouldIgnoreSelectionChanges)
         return;
     
     m_pageClient.selectionDidChange();
@@ -597,7 +597,7 @@ void WebPageProxy::rootViewToWindow(const WebCore::IntRect& viewRect, WebCore::I
 
 void WebPageProxy::showValidationMessage(const IntRect& anchorClientRect, const String& message)
 {
-    m_validationBubble = m_pageClient.createValidationBubble(message);
+    m_validationBubble = m_pageClient.createValidationBubble(message, { m_preferences->minimumFontSize() });
     m_validationBubble->showRelativeTo(anchorClientRect);
 }
 

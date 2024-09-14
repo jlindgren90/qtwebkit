@@ -35,6 +35,7 @@
 #include "EditorInsertAction.h"
 #include "FindOptions.h"
 #include "FrameSelection.h"
+#include "PasteboardWriterData.h"
 #include "TextChecking.h"
 #include "TextEventInputType.h"
 #include "TextIteratorBehavior.h"
@@ -65,6 +66,7 @@ class HitTestResult;
 class KeyboardEvent;
 class KillRing;
 class Pasteboard;
+class PasteboardWriterData;
 class SharedBuffer;
 class Font;
 class SpellCheckRequest;
@@ -147,6 +149,7 @@ public:
 
     WEBCORE_EXPORT void copyURL(const URL&, const String& title);
     void copyURL(const URL&, const String& title, Pasteboard&);
+    PasteboardWriterData::URL pasteboardWriterURL(const URL&, const String& title);
 #if !PLATFORM(IOS)
     WEBCORE_EXPORT void copyImage(const HitTestResult&);
 #endif
@@ -170,8 +173,8 @@ public:
     
     TriState selectionUnorderedListState() const;
     TriState selectionOrderedListState() const;
-    WEBCORE_EXPORT PassRefPtr<Node> insertOrderedList();
-    WEBCORE_EXPORT PassRefPtr<Node> insertUnorderedList();
+    WEBCORE_EXPORT RefPtr<Node> insertOrderedList();
+    WEBCORE_EXPORT RefPtr<Node> insertUnorderedList();
     WEBCORE_EXPORT bool canIncreaseSelectionListLevel();
     WEBCORE_EXPORT bool canDecreaseSelectionListLevel();
     WEBCORE_EXPORT RefPtr<Node> increaseSelectionListLevel();
@@ -309,7 +312,7 @@ public:
     // smartInsertDeleteEnabled and selectTrailingWhitespaceEnabled are 
     // mutually exclusive, meaning that enabling one will disable the other.
     bool smartInsertDeleteEnabled();
-    bool isSelectTrailingWhitespaceEnabled();
+    bool isSelectTrailingWhitespaceEnabled() const;
     
     WEBCORE_EXPORT bool hasBidiSelection() const;
 
@@ -331,10 +334,10 @@ public:
     const Vector<CompositionUnderline>& customCompositionUnderlines() const { return m_customCompositionUnderlines; }
 
     enum class RevealSelection { No, Yes };
-    WEBCORE_EXPORT void setIgnoreCompositionSelectionChange(bool, RevealSelection shouldRevealExistingSelection = RevealSelection::Yes);
-    bool ignoreCompositionSelectionChange() const { return m_ignoreCompositionSelectionChange; }
+    WEBCORE_EXPORT void setIgnoreSelectionChanges(bool, RevealSelection shouldRevealExistingSelection = RevealSelection::Yes);
+    bool ignoreSelectionChanges() const { return m_ignoreSelectionChanges; }
 
-    WEBCORE_EXPORT PassRefPtr<Range> rangeForPoint(const IntPoint& windowPoint);
+    WEBCORE_EXPORT RefPtr<Range> rangeForPoint(const IntPoint& windowPoint);
 
     void clear();
 
@@ -408,7 +411,7 @@ public:
     void textDidChangeInTextArea(Element*);
     WEBCORE_EXPORT WritingDirection baseWritingDirectionForSelectionStart() const;
 
-    WEBCORE_EXPORT void replaceSelectionWithFragment(PassRefPtr<DocumentFragment>, bool selectReplacement, bool smartReplace, bool matchStyle, EditAction = EditActionInsert, MailBlockquoteHandling = MailBlockquoteHandling::RespectBlockquote);
+    WEBCORE_EXPORT void replaceSelectionWithFragment(DocumentFragment&, bool selectReplacement, bool smartReplace, bool matchStyle, EditAction = EditActionInsert, MailBlockquoteHandling = MailBlockquoteHandling::RespectBlockquote);
     WEBCORE_EXPORT void replaceSelectionWithText(const String&, bool selectReplacement, bool smartReplace, EditAction = EditActionInsert);
     WEBCORE_EXPORT bool selectionStartHasMarkerFor(DocumentMarker::MarkerType, int from, int length) const;
     void updateMarkersForWordsAffectedByEditing(bool onlyHandleWordsContainingSelection);
@@ -464,9 +467,10 @@ public:
     WEBCORE_EXPORT void replaceSelectionWithAttributedString(NSAttributedString *, MailBlockquoteHandling = MailBlockquoteHandling::RespectBlockquote);
 #endif
 
-#if PLATFORM(COCOA) || PLATFORM(EFL) || PLATFORM(GTK) || PLATFORM(QT)
+#if PLATFORM(COCOA) || PLATFORM(GTK) || PLATFORM(QT)
     WEBCORE_EXPORT void writeSelectionToPasteboard(Pasteboard&);
     WEBCORE_EXPORT void writeImageToPasteboard(Pasteboard&, Element& imageElement, const URL&, const String& title);
+    void writeSelection(PasteboardWriterData&);
 #endif
 
 #if ENABLE(TELEPHONE_NUMBER_DETECTION) && !PLATFORM(IOS)
@@ -482,6 +486,8 @@ public:
 
     void setIsGettingDictionaryPopupInfo(bool b) { m_isGettingDictionaryPopupInfo = b; }
     bool isGettingDictionaryPopupInfo() const { return m_isGettingDictionaryPopupInfo; }
+
+    Ref<DocumentFragment> createFragmentForImageAndURL(const String&);
 
 private:
     class WebContentReader;
@@ -522,10 +528,9 @@ private:
     String selectionInHTMLFormat();
     RefPtr<SharedBuffer> imageInWebArchiveFormat(Element&);
     RefPtr<DocumentFragment> createFragmentForImageResourceAndAddResource(RefPtr<ArchiveResource>&&);
-    Ref<DocumentFragment> createFragmentForImageAndURL(const String&);
     RefPtr<DocumentFragment> createFragmentAndAddResources(NSAttributedString *);
     FragmentAndResources createFragment(NSAttributedString *);
-    void fillInUserVisibleForm(PasteboardURL&);
+    String userVisibleString(const URL&);
 
     static RefPtr<SharedBuffer> dataInRTFDFormat(NSAttributedString *);
     static RefPtr<SharedBuffer> dataInRTFFormat(NSAttributedString *);
@@ -539,7 +544,7 @@ private:
     unsigned m_compositionStart;
     unsigned m_compositionEnd;
     Vector<CompositionUnderline> m_customCompositionUnderlines;
-    bool m_ignoreCompositionSelectionChange { false };
+    bool m_ignoreSelectionChanges { false };
     bool m_shouldStartNewKillRingSequence { false };
     bool m_shouldStyleWithCSS { false };
     const std::unique_ptr<KillRing> m_killRing;
@@ -588,9 +593,3 @@ inline bool Editor::markedTextMatchesAreHighlighted() const
 }
 
 } // namespace WebCore
-
-#if PLATFORM(COCOA)
-// This function is declared here but defined in the WebKitLegacy framework.
-// FIXME: Get rid of this and change this so it doesn't use WebKitLegacy.
-extern "C" void _WebCreateFragment(WebCore::Document&, NSAttributedString *, WebCore::FragmentAndResources&);
-#endif

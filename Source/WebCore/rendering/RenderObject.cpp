@@ -29,6 +29,7 @@
 
 #include "AXObjectCache.h"
 #include "CSSAnimationController.h"
+#include "Editing.h"
 #include "FloatQuad.h"
 #include "FlowThreadController.h"
 #include "FrameSelection.h"
@@ -69,7 +70,6 @@
 #include "SVGRenderSupport.h"
 #include "StyleResolver.h"
 #include "TransformState.h"
-#include "htmlediting.h"
 #include <algorithm>
 #include <stdio.h>
 #include <wtf/RefCountedLeakCounter.h>
@@ -158,6 +158,12 @@ bool RenderObject::isLegend() const
     return node() && node()->hasTagName(legendTag);
 }
 
+    
+bool RenderObject::isFieldset() const
+{
+    return node() && node()->hasTagName(fieldsetTag);
+}
+
 bool RenderObject::isHTMLMarquee() const
 {
     return node() && node()->renderer() == this && node()->hasTagName(marqueeTag);
@@ -191,8 +197,8 @@ RenderObject::FlowThreadState RenderObject::computedFlowThreadState(const Render
         // containingBlock() skips svg boundary (SVG root is a RenderReplaced).
         if (auto* svgRoot = SVGRenderSupport::findTreeRootObject(downcast<RenderElement>(renderer)))
             inheritedFlowState = svgRoot->flowThreadState();
-    } else if (auto* containingBlock = renderer.containingBlock())
-        inheritedFlowState = containingBlock->flowThreadState();
+    } else if (auto* container = renderer.container())
+        inheritedFlowState = container->flowThreadState();
     else {
         // Splitting lines or doing continuation, so just keep the current state.
         inheritedFlowState = renderer.flowThreadState();
@@ -220,7 +226,7 @@ void RenderObject::resetFlowThreadStateOnRemoval()
     if (flowThreadState() == NotInsideFlowThread)
         return;
 
-    if (!documentBeingDestroyed() && is<RenderElement>(*this)) {
+    if (!renderTreeBeingDestroyed() && is<RenderElement>(*this)) {
         downcast<RenderElement>(*this).removeFromRenderFlowThread();
         return;
     }
@@ -1467,7 +1473,7 @@ void RenderObject::willBeDestroyed()
 
     removeFromParent();
 
-    ASSERT(documentBeingDestroyed() || !is<RenderElement>(*this) || !view().frameView().hasSlowRepaintObject(downcast<RenderElement>(*this)));
+    ASSERT(renderTreeBeingDestroyed() || !is<RenderElement>(*this) || !view().frameView().hasSlowRepaintObject(downcast<RenderElement>(*this)));
 
     // The remove() call above may invoke axObjectCache()->childrenChanged() on the parent, which may require the AX render
     // object for this renderer. So we remove the AX render object now, after the renderer is removed.
@@ -1475,7 +1481,8 @@ void RenderObject::willBeDestroyed()
         cache->remove(this);
 
     // FIXME: Would like to do this in RenderBoxModelObject, but the timing is so complicated that this can't easily
-    // be moved into RenderBoxModelObject::destroy.
+    // be moved into RenderLayerModelObject::willBeDestroyed().
+    // FIXME: Is this still true?
     if (hasLayer()) {
         setHasLayer(false);
         downcast<RenderLayerModelObject>(*this).destroyLayer();
@@ -1505,7 +1512,7 @@ void RenderObject::willBeRemovedFromTree()
 void RenderObject::destroyAndCleanupAnonymousWrappers()
 {
     // If the tree is destroyed, there is no need for a clean-up phase.
-    if (documentBeingDestroyed()) {
+    if (renderTreeBeingDestroyed()) {
         destroy();
         return;
     }
@@ -1547,6 +1554,12 @@ void RenderObject::destroy()
         return;
     }
     delete this;
+}
+
+Position RenderObject::positionForPoint(const LayoutPoint& point)
+{
+    // FIXME: This should just create a Position object instead (webkit.org/b/168566). 
+    return positionForPoint(point, nullptr).deepEquivalent();
 }
 
 VisiblePosition RenderObject::positionForPoint(const LayoutPoint&, const RenderRegion*)
@@ -1970,18 +1983,6 @@ void RenderObject::setHasOutlineAutoAncestor(bool hasOutlineAutoAncestor)
 {
     if (hasOutlineAutoAncestor || hasRareData())
         ensureRareData().setHasOutlineAutoAncestor(hasOutlineAutoAncestor);
-}
-
-void RenderObject::setIsRegisteredForVisibleInViewportCallback(bool registered)
-{
-    if (registered || hasRareData())
-        ensureRareData().setIsRegisteredForVisibleInViewportCallback(registered);
-}
-
-void RenderObject::setVisibleInViewportState(VisibleInViewportState visible)
-{
-    if (visible != VisibilityUnknown || hasRareData())
-        ensureRareData().setVisibleInViewportState(visible);
 }
 
 RenderObject::RareDataMap& RenderObject::rareDataMap()

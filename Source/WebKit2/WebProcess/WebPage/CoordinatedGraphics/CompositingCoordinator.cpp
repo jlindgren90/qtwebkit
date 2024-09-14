@@ -35,9 +35,13 @@
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/InspectorController.h>
 #include <WebCore/MainFrame.h>
-#include <WebCore/MemoryPressureHandler.h>
 #include <WebCore/Page.h>
+#include <wtf/MemoryPressureHandler.h>
 #include <wtf/SetForScope.h>
+
+#if USE(GLIB_EVENT_LOOP)
+#include <wtf/glib/RunLoopSourcePriority.h>
+#endif
 
 using namespace WebCore;
 
@@ -46,8 +50,11 @@ namespace WebKit {
 CompositingCoordinator::CompositingCoordinator(Page* page, CompositingCoordinator::Client& client)
     : m_page(page)
     , m_client(client)
-    , m_releaseInactiveAtlasesTimer(*this, &CompositingCoordinator::releaseInactiveAtlasesTimerFired)
+    , m_releaseInactiveAtlasesTimer(RunLoop::main(), this, &CompositingCoordinator::releaseInactiveAtlasesTimerFired)
 {
+#if USE(GLIB_EVENT_LOOP)
+    m_releaseInactiveAtlasesTimer.setPriority(RunLoopSourcePriority::ReleaseUnusedResourcesTimer);
+#endif
 }
 
 CompositingCoordinator::~CompositingCoordinator()
@@ -397,12 +404,12 @@ bool CompositingCoordinator::paintToSurface(const IntSize& size, CoordinatedSurf
     return m_updateAtlases.last()->paintOnAvailableBuffer(size, atlasID, offset, client);
 }
 
-const double ReleaseInactiveAtlasesTimerInterval = 0.5;
+const Seconds releaseInactiveAtlasesTimerInterval { 500_ms };
 
 void CompositingCoordinator::scheduleReleaseInactiveAtlases()
 {
     if (!m_releaseInactiveAtlasesTimer.isActive())
-        m_releaseInactiveAtlasesTimer.startRepeating(ReleaseInactiveAtlasesTimerInterval);
+        m_releaseInactiveAtlasesTimer.startRepeating(releaseInactiveAtlasesTimerInterval);
 }
 
 void CompositingCoordinator::releaseInactiveAtlasesTimerFired()
@@ -419,7 +426,7 @@ void CompositingCoordinator::releaseAtlases(ReleaseAtlasPolicy policy)
         UpdateAtlas* atlas = m_updateAtlases[i].get();
         bool inUse = atlas->isInUse();
         if (!inUse)
-            atlas->addTimeInactive(ReleaseInactiveAtlasesTimerInterval);
+            atlas->addTimeInactive(releaseInactiveAtlasesTimerInterval.value());
         bool usableForRootContentsLayer = !atlas->supportsAlpha();
         if (atlas->isInactive() || (!inUse && policy == ReleaseUnused)) {
             if (!foundActiveAtlasForRootContentsLayer && !atlasToKeepAnyway && usableForRootContentsLayer)

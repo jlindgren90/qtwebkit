@@ -25,6 +25,7 @@
 #include "FontCascade.h"
 
 #include "CharacterProperties.h"
+#include "ComplexTextController.h"
 #include "FloatRect.h"
 #include "FontCache.h"
 #include "GlyphBuffer.h"
@@ -121,7 +122,7 @@ FontCascade::FontCascade(const FontPlatformData& fontData, FontSmoothingMode fon
     m_fontDescription.setSpecifiedSize(CTFontGetSize(fontData.font()));
     m_fontDescription.setComputedSize(CTFontGetSize(fontData.font()));
     m_fontDescription.setIsItalic(CTFontGetSymbolicTraits(fontData.font()) & kCTFontTraitItalic);
-    m_fontDescription.setWeight((CTFontGetSymbolicTraits(fontData.font()) & kCTFontTraitBold) ? FontWeightBold : FontWeightNormal);
+    m_fontDescription.setWeight((CTFontGetSymbolicTraits(fontData.font()) & kCTFontTraitBold) ? boldWeightValue() : normalWeightValue());
 #endif
 }
 
@@ -348,6 +349,43 @@ void FontCascade::drawEmphasisMarks(GraphicsContext& context, const TextRun& run
         drawEmphasisMarksForComplexText(context, run, mark, point, from, destination);
 }
 
+float FontCascade::widthOfTextRange(const TextRun& run, unsigned from, unsigned to, HashSet<const Font*>* fallbackFonts, float* outWidthBeforeRange, float* outWidthAfterRange) const
+{
+    ASSERT(from <= to);
+    ASSERT(to <= run.length());
+
+    float offsetBeforeRange = 0;
+    float offsetAfterRange = 0;
+    float totalWidth = 0;
+
+    auto codePathToUse = codePath(run);
+    if (codePathToUse == Complex) {
+        ComplexTextController complexIterator(*this, run, false, fallbackFonts);
+        complexIterator.advance(from, nullptr, IncludePartialGlyphs, fallbackFonts);
+        offsetBeforeRange = complexIterator.runWidthSoFar();
+        complexIterator.advance(to, nullptr, IncludePartialGlyphs, fallbackFonts);
+        offsetAfterRange = complexIterator.runWidthSoFar();
+        complexIterator.advance(run.length(), nullptr, IncludePartialGlyphs, fallbackFonts);
+        totalWidth = complexIterator.runWidthSoFar();
+    } else {
+        WidthIterator simpleIterator(this, run, fallbackFonts);
+        simpleIterator.advance(from, nullptr);
+        offsetBeforeRange = simpleIterator.runWidthSoFar();
+        simpleIterator.advance(to, nullptr);
+        offsetAfterRange = simpleIterator.runWidthSoFar();
+        simpleIterator.advance(run.length(), nullptr);
+        totalWidth = simpleIterator.runWidthSoFar();
+    }
+
+    if (outWidthBeforeRange)
+        *outWidthBeforeRange = offsetBeforeRange;
+
+    if (outWidthAfterRange)
+        *outWidthAfterRange = totalWidth - offsetAfterRange;
+
+    return offsetAfterRange - offsetBeforeRange;
+}
+
 float FontCascade::width(const TextRun& run, HashSet<const Font*>* fallbackFonts, GlyphOverflow* glyphOverflow) const
 {
     CodePath codePathToUse = codePath(run);
@@ -382,6 +420,8 @@ float FontCascade::width(const TextRun& run, HashSet<const Font*>* fallbackFonts
 
 float FontCascade::widthForSimpleText(StringView text) const
 {
+    if (text.isNull() || text.isEmpty())
+        return 0;
     ASSERT(codePath(TextRun(text)) != FontCascade::Complex);
     float* cacheEntry = m_fonts->widthCache().add(text, std::numeric_limits<float>::quiet_NaN());
     if (cacheEntry && !std::isnan(*cacheEntry))
@@ -389,9 +429,15 @@ float FontCascade::widthForSimpleText(StringView text) const
 
     Vector<GlyphBufferGlyph, 16> glyphs;
     Vector<GlyphBufferAdvance, 16> advances;
+    bool hasKerningOrLigatures = enableKerning() || requiresShaping();
+    float runWidth = 0;
     auto& font = primaryFont();
     for (unsigned i = 0; i < text.length(); ++i) {
         auto glyph = glyphDataForCharacter(text[i], false).glyph;
+        auto glyphWidth = font.widthForGlyph(glyph);
+        runWidth += glyphWidth;
+        if (!hasKerningOrLigatures)
+            continue;
 #if USE(CAIRO)
         cairo_glyph_t cairoGlyph;
         cairoGlyph.index = glyph;
@@ -399,12 +445,17 @@ float FontCascade::widthForSimpleText(StringView text) const
 #else
         glyphs.append(glyph);
 #endif
-        advances.append(FloatSize(font.widthForGlyph(glyph), 0));
+        advances.append(FloatSize(glyphWidth, 0));
     }
-    font.applyTransforms(&glyphs[0], &advances[0], glyphs.size(), enableKerning(), requiresShaping());
-    float runWidth = 0;
-    for (auto& advance : advances)
-        runWidth += advance.width();
+    if (hasKerningOrLigatures) {
+        font.applyTransforms(&glyphs[0], &advances[0], glyphs.size(), enableKerning(), requiresShaping());
+        // This is needed only to match the result of the slow path. Same glyph widths but different floating point arithmentics can
+        // produce different run width.
+        float runWidthDifferenceWithTransformApplied = -runWidth;
+        for (auto& advance : advances)
+            runWidthDifferenceWithTransformApplied += advance.width();
+        runWidth += runWidthDifferenceWithTransformApplied;
+    }
 
     if (cacheEntry)
         *cacheEntry = runWidth;
@@ -736,6 +787,60 @@ FontCascade::CodePath FontCascade::characterRangeCodePath(const UChar* character
 
             UChar32 supplementaryCharacter = U16_GET_SUPPLEMENTARY(c, next);
 
+            if (supplementaryCharacter < 0x10A00)
+                continue;
+            if (supplementaryCharacter < 0x10A60) // Kharoshthi
+                return Complex;
+            if (supplementaryCharacter < 0x11000)
+                continue;
+            if (supplementaryCharacter < 0x11080) // Brahmi
+                return Complex;
+            if (supplementaryCharacter < 0x110D0) // Kaithi
+                return Complex;
+            if (supplementaryCharacter < 0x11100)
+                continue;
+            if (supplementaryCharacter < 0x11150) // Chakma
+                return Complex;
+            if (supplementaryCharacter < 0x11180) // Mahajani
+                return Complex;
+            if (supplementaryCharacter < 0x111E0) // Sharada
+                return Complex;
+            if (supplementaryCharacter < 0x11200)
+                continue;
+            if (supplementaryCharacter < 0x11250) // Khojki
+                return Complex;
+            if (supplementaryCharacter < 0x112B0)
+                continue;
+            if (supplementaryCharacter < 0x11300) // Khudawadi
+                return Complex;
+            if (supplementaryCharacter < 0x11380) // Grantha
+                return Complex;
+            if (supplementaryCharacter < 0x11400)
+                continue;
+            if (supplementaryCharacter < 0x11480) // Newa
+                return Complex;
+            if (supplementaryCharacter < 0x114E0) // Tirhuta
+                return Complex;
+            if (supplementaryCharacter < 0x11580)
+                continue;
+            if (supplementaryCharacter < 0x11600) // Siddham
+                return Complex;
+            if (supplementaryCharacter < 0x11660) // Modi
+                return Complex;
+            if (supplementaryCharacter < 0x11680)
+                continue;
+            if (supplementaryCharacter < 0x116D0) // Takri
+                return Complex;
+            if (supplementaryCharacter < 0x11C00)
+                continue;
+            if (supplementaryCharacter < 0x11C70) // Bhaiksuki
+                return Complex;
+            if (supplementaryCharacter < 0x11CC0) // Marchen
+                return Complex;
+            if (supplementaryCharacter < 0x1E900)
+                continue;
+            if (supplementaryCharacter < 0x1E960) // Adlam
+                return Complex;
             if (supplementaryCharacter < 0x1F1E6) // U+1F1E6 through U+1F1FF Regional Indicator Symbols
                 continue;
             if (supplementaryCharacter <= 0x1F1FF)

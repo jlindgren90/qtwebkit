@@ -29,6 +29,7 @@
 #include "config.h"
 #include "SubresourceLoader.h"
 
+#include "CachedRawResource.h"
 #include "CachedResourceLoader.h"
 #include "CrossOriginAccessControl.h"
 #include "DiagnosticLoggingClient.h"
@@ -42,11 +43,12 @@
 #include "MemoryCache.h"
 #include "Page.h"
 #include "ResourceLoadObserver.h"
+#include "ResourceTiming.h"
 #include "RuntimeEnabledFeatures.h"
 #include <wtf/Ref.h>
 #include <wtf/RefCountedLeakCounter.h>
-#include <wtf/SetForScope.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/SystemTracing.h>
 #include <wtf/text/CString.h>
 
 #if PLATFORM(IOS)
@@ -58,7 +60,7 @@
 #endif
 
 #if USE(QUICK_LOOK)
-#include "QuickLook.h"
+#include "PreviewLoader.h"
 #endif
 
 namespace WebCore {
@@ -80,7 +82,6 @@ SubresourceLoader::RequestCountTracker::~RequestCountTracker()
 SubresourceLoader::SubresourceLoader(Frame& frame, CachedResource& resource, const ResourceLoaderOptions& options)
     : ResourceLoader(frame, options)
     , m_resource(&resource)
-    , m_loadingMultipartContent(false)
     , m_state(Uninitialized)
     , m_requestCountTracker(std::in_place, frame.document()->cachedResourceLoader(), resource)
 {
@@ -152,9 +153,6 @@ bool SubresourceLoader::init(const ResourceRequest& request)
     m_state = Initialized;
     m_documentLoader->addSubresourceLoader(this);
 
-    // FIXME: https://bugs.webkit.org/show_bug.cgi?id=155633.
-    // SubresourceLoader could use the document origin as a default and set PotentiallyCrossOriginEnabled requests accordingly.
-    // This would simplify resource loader users as they would only need to set fetch mode to Cors.
     m_origin = m_resource->origin();
 
     return true;
@@ -176,8 +174,10 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
         return;
     }
 
-    if (newRequest.requester() != ResourceRequestBase::Requester::Main)
+    if (newRequest.requester() != ResourceRequestBase::Requester::Main) {
+        TracePoint(SubresourceLoadWillStart);
         ResourceLoadObserver::sharedObserver().logSubresourceLoading(m_frame.get(), newRequest, redirectResponse);
+    }
 
     ASSERT(!newRequest.isNull());
     if (!redirectResponse.isNull()) {
@@ -191,7 +191,8 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
             opaqueRedirectedResponse.setURL(redirectResponse.url());
             opaqueRedirectedResponse.setType(ResourceResponse::Type::Opaqueredirect);
             m_resource->responseReceived(opaqueRedirectedResponse);
-            didFinishLoading(currentTime());
+            NetworkLoadMetrics emptyMetrics;
+            didFinishLoading(emptyMetrics);
             return;
         } else if (m_redirectCount++ >= options().maxRedirectCount) {
             cancel(ResourceError(String(), 0, request().url(), ASCIILiteral("Too many redirections"), ResourceError::Type::General));
@@ -257,15 +258,15 @@ void SubresourceLoader::didSendData(unsigned long long bytesSent, unsigned long 
 
 #if USE(QUICK_LOOK)
 
-bool SubresourceLoader::shouldCreateQuickLookHandleForResponse(const ResourceResponse& response) const
+bool SubresourceLoader::shouldCreatePreviewLoaderForResponse(const ResourceResponse& response) const
 {
     if (m_resource->type() != CachedResource::MainResource)
         return false;
 
-    if (m_quickLookHandle)
+    if (m_previewLoader)
         return false;
 
-    return QuickLookHandle::shouldCreateForMIMEType(response.mimeType());
+    return PreviewLoader::shouldCreateForMIMEType(response.mimeType());
 }
 
 #endif
@@ -276,14 +277,18 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
     ASSERT(m_state == Initialized);
 
 #if USE(QUICK_LOOK)
-    if (shouldCreateQuickLookHandleForResponse(response)) {
-        m_quickLookHandle = QuickLookHandle::create(*this, response);
+    if (shouldCreatePreviewLoaderForResponse(response)) {
+        m_previewLoader = PreviewLoader::create(*this, response);
         return;
     }
 #endif
 
-    // We want redirect responses to be processed through willSendRequestInternal. The only exception is redirection with no Location headers.
+    // We want redirect responses to be processed through willSendRequestInternal.
+    // The only exception is redirection with no Location headers. Or in rare circumstances,
+    // cases of too many redirects from CFNetwork (<rdar://problem/30610988>).
+#if !PLATFORM(COCOA)
     ASSERT(response.httpStatusCode() < 300 || response.httpStatusCode() >= 400 || response.httpStatusCode() == 304 || !response.httpHeaderField(HTTPHeaderName::Location));
+#endif
 
     // Reference the object in this method since the additional processing can do
     // anything including removing the last reference to this object; one example of this is 3266216.
@@ -296,12 +301,14 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
         if (response.httpStatusCode() == 304) {
             // 304 Not modified / Use local copy
             // Existing resource is ok, just use it updating the expiration time.
-            m_resource->setResponse(response);
-            MemoryCache::singleton().revalidationSucceeded(*m_resource, response);
+            ResourceResponse revalidationResponse = response;
+            revalidationResponse.setSource(ResourceResponse::Source::MemoryCacheAfterValidation);
+            m_resource->setResponse(revalidationResponse);
+            MemoryCache::singleton().revalidationSucceeded(*m_resource, revalidationResponse);
             if (m_frame && m_frame->page())
                 m_frame->page()->diagnosticLoggingClient().logDiagnosticMessageWithResult(DiagnosticLoggingKeys::cachedResourceRevalidationKey(), emptyString(), DiagnosticLoggingResultPass, ShouldSample::Yes);
             if (!reachedTerminalState())
-                ResourceLoader::didReceiveResponse(response);
+                ResourceLoader::didReceiveResponse(revalidationResponse);
             return;
         }
         // Did not get 304 response, continue as a regular resource load.
@@ -346,8 +353,9 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
         clearResourceData();
         // Since a subresource loader does not load multipart sections progressively, data was delivered to the loader all at once.
         // After the first multipart section is complete, signal to delegates that this load is "finished"
+        NetworkLoadMetrics emptyMetrics;
         m_documentLoader->subresourceLoaderFinishedLoadingOnePart(this);
-        didFinishLoadingOnePart(0);
+        didFinishLoadingOnePart(emptyMetrics);
     }
 
     checkForHTTPStatusCodeError();
@@ -356,8 +364,8 @@ void SubresourceLoader::didReceiveResponse(const ResourceResponse& response)
 void SubresourceLoader::didReceiveData(const char* data, unsigned length, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
 #if USE(QUICK_LOOK)
-    if (auto quickLookHandle = m_quickLookHandle.get()) {
-        if (quickLookHandle->didReceiveData(data, length))
+    if (auto previewLoader = m_previewLoader.get()) {
+        if (previewLoader->didReceiveData(data, length))
             return;
     }
 #endif
@@ -368,8 +376,8 @@ void SubresourceLoader::didReceiveData(const char* data, unsigned length, long l
 void SubresourceLoader::didReceiveBuffer(Ref<SharedBuffer>&& buffer, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
 #if USE(QUICK_LOOK)
-    if (auto quickLookHandle = m_quickLookHandle.get()) {
-        if (quickLookHandle->didReceiveBuffer(buffer.get()))
+    if (auto previewLoader = m_previewLoader.get()) {
+        if (previewLoader->didReceiveBuffer(buffer.get()))
             return;
     }
 #endif
@@ -379,6 +387,8 @@ void SubresourceLoader::didReceiveBuffer(Ref<SharedBuffer>&& buffer, long long e
 
 void SubresourceLoader::didReceiveDataOrBuffer(const char* data, int length, RefPtr<SharedBuffer>&& buffer, long long encodedDataLength, DataPayloadType dataPayloadType)
 {
+    ASSERT(m_resource);
+
     if (m_resource->response().httpStatusCode() >= 400 && !m_resource->shouldIgnoreHTTPStatusCodeErrors())
         return;
     ASSERT(!m_resource->resourceToRevalidate());
@@ -454,6 +464,7 @@ static void logResourceLoaded(Frame* frame, CachedResource::Type type)
         resourceType = DiagnosticLoggingKeys::otherKey();
         break;
     }
+    
     frame->page()->diagnosticLoggingClient().logDiagnosticMessage(DiagnosticLoggingKeys::resourceLoadedKey(), resourceType, ShouldSample::Yes);
 }
 
@@ -509,11 +520,11 @@ bool SubresourceLoader::checkRedirectionCrossOriginAccessControl(const ResourceR
     return true;
 }
 
-void SubresourceLoader::didFinishLoading(double finishTime)
+void SubresourceLoader::didFinishLoading(const NetworkLoadMetrics& networkLoadMetrics)
 {
 #if USE(QUICK_LOOK)
-    if (auto quickLookHandle = m_quickLookHandle.get()) {
-        if (quickLookHandle->didFinishLoading())
+    if (auto previewLoader = m_previewLoader.get()) {
+        if (previewLoader->didFinishLoading())
             return;
     }
 #endif
@@ -530,31 +541,34 @@ void SubresourceLoader::didFinishLoading(double finishTime)
     Ref<SubresourceLoader> protectedThis(*this);
     CachedResourceHandle<CachedResource> protectResource(m_resource);
 
-    // FIXME: The finishTime that is passed in is from the NetworkProcess and is more accurate.
-    // However, all other load times are generated from the web process or offsets.
-    // Mixing times from different processes can cause the finish time to be earlier than
-    // the response received time due to inter-process communication lag.
-    UNUSED_PARAM(finishTime);
-    MonotonicTime responseEndTime = MonotonicTime::now();
-    m_loadTiming.setResponseEnd(responseEndTime);
+    // FIXME: Remove this with deprecatedNetworkLoadMetrics.
+    m_loadTiming.setResponseEnd(MonotonicTime::now());
 
 #if ENABLE(WEB_TIMING)
-    if (RuntimeEnabledFeatures::sharedFeatures().resourceTimingEnabled()) {
-        if (Document* document = m_documentLoader->cachedResourceLoader().document())
-            m_documentLoader->cachedResourceLoader().resourceTimingInformation().addResourceTiming(m_resource, *document, m_resource->loader()->loadTiming());
+    if (networkLoadMetrics.isComplete())
+        reportResourceTiming(networkLoadMetrics);
+    else {
+        // This is the legacy path for platforms (and ResourceHandle paths) that do not provide
+        // complete load metrics in didFinishLoad. In those cases, fall back to the possibility
+        // that they populated partial load timing information on the ResourceResponse.
+        reportResourceTiming(m_resource->response().deprecatedNetworkLoadMetrics());
     }
 #endif
 
+    if (m_resource->type() != CachedResource::MainResource)
+        TracePoint(SubresourceLoadDidEnd);
+
     m_state = Finishing;
-    m_resource->setLoadFinishTime(responseEndTime.secondsSinceEpoch().seconds()); // FIXME: Users of the loadFinishTime should use the LoadTiming struct instead.
     m_resource->finishLoading(resourceData());
 
     if (wasCancelled())
         return;
+
     m_resource->finish();
     ASSERT(!reachedTerminalState());
-    didFinishLoadingOnePart(responseEndTime.secondsSinceEpoch().seconds());
+    didFinishLoadingOnePart(networkLoadMetrics);
     notifyDone();
+
     if (reachedTerminalState())
         return;
     releaseResources();
@@ -563,8 +577,8 @@ void SubresourceLoader::didFinishLoading(double finishTime)
 void SubresourceLoader::didFail(const ResourceError& error)
 {
 #if USE(QUICK_LOOK)
-    if (auto quickLookHandle = m_quickLookHandle.get())
-        quickLookHandle->didFail();
+    if (auto previewLoader = m_previewLoader.get())
+        previewLoader->didFail();
 #endif
 
     if (m_state != Initialized)
@@ -575,6 +589,10 @@ void SubresourceLoader::didFail(const ResourceError& error)
     Ref<SubresourceLoader> protectedThis(*this);
     CachedResourceHandle<CachedResource> protectResource(m_resource);
     m_state = Finishing;
+
+    if (m_resource->type() != CachedResource::MainResource)
+        TracePoint(SubresourceLoadDidEnd);
+
     if (m_resource->resourceToRevalidate())
         MemoryCache::singleton().revalidationFailed(*m_resource);
     m_resource->setResourceError(error);
@@ -620,6 +638,9 @@ void SubresourceLoader::didCancel(const ResourceError&)
     if (m_state == Uninitialized)
         return;
 
+    if (m_resource->type() != CachedResource::MainResource)
+        TracePoint(SubresourceLoadDidEnd);
+
     m_resource->cancelLoad();
     notifyDone();
 }
@@ -638,9 +659,9 @@ void SubresourceLoader::notifyDone()
 
     m_requestCountTracker = std::nullopt;
 #if PLATFORM(IOS)
-    m_documentLoader->cachedResourceLoader().loadDone(m_resource, m_state != CancelledWhileInitializing);
+    m_documentLoader->cachedResourceLoader().loadDone(m_state != CancelledWhileInitializing);
 #else
-    m_documentLoader->cachedResourceLoader().loadDone(m_resource);
+    m_documentLoader->cachedResourceLoader().loadDone();
 #endif
     if (reachedTerminalState())
         return;
@@ -659,5 +680,36 @@ void SubresourceLoader::releaseResources()
     m_resource = nullptr;
     ResourceLoader::releaseResources();
 }
+
+#if ENABLE(WEB_TIMING)
+void SubresourceLoader::reportResourceTiming(const NetworkLoadMetrics& networkLoadMetrics)
+{
+    if (!RuntimeEnabledFeatures::sharedFeatures().resourceTimingEnabled())
+        return;
+
+    if (!ResourceTimingInformation::shouldAddResourceTiming(*m_resource))
+        return;
+
+    Document* document = m_documentLoader->cachedResourceLoader().document();
+    if (!document)
+        return;
+
+    SecurityOrigin& origin = m_origin ? *m_origin : document->securityOrigin();
+    auto resourceTiming = ResourceTiming::fromLoad(*m_resource, m_resource->initiatorName(), m_loadTiming, networkLoadMetrics, origin);
+
+    // Worker resources loaded here are all CachedRawResources loaded through WorkerThreadableLoader.
+    // Pass the ResourceTiming information on so that WorkerThreadableLoader may add them to the
+    // Worker's Performance object.
+    if (options().initiatorContext == InitiatorContext::Worker) {
+        ASSERT(m_origin);
+        ASSERT(is<CachedRawResource>(m_resource));
+        downcast<CachedRawResource>(*m_resource).finishedTimingForWorkerLoad(WTFMove(resourceTiming));
+        return;
+    }
+
+    ASSERT(options().initiatorContext == InitiatorContext::Document);
+    m_documentLoader->cachedResourceLoader().resourceTimingInformation().addResourceTiming(*m_resource, *document, WTFMove(resourceTiming));
+}
+#endif
 
 }

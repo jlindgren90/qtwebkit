@@ -39,6 +39,7 @@
 #include "Logging.h"
 #include "PlatformCAFilters.h"
 #include "PlatformCALayer.h"
+#include "PlatformScreen.h"
 #include "RotateTransformOperation.h"
 #include "ScaleTransformOperation.h"
 #include "TextStream.h"
@@ -316,6 +317,15 @@ bool GraphicsLayer::supportsBackgroundColorContent()
     return true;
 }
 
+bool GraphicsLayer::supportsSubpixelAntialiasedLayerText()
+{
+#if PLATFORM(MAC)
+    return true;
+#else
+    return false;
+#endif
+}
+
 std::unique_ptr<GraphicsLayer> GraphicsLayer::create(GraphicsLayerFactory* factory, GraphicsLayerClient& client, Type layerType)
 {
     std::unique_ptr<GraphicsLayer> graphicsLayer;
@@ -341,7 +351,12 @@ bool GraphicsLayerCA::filtersCanBeComposited(const FilterOperations& filters)
 PassRefPtr<PlatformCALayer> GraphicsLayerCA::createPlatformCALayer(PlatformCALayer::LayerType layerType, PlatformCALayerClient* owner)
 {
 #if PLATFORM(COCOA)
-    return PlatformCALayerCocoa::create(layerType, owner);
+    auto result = PlatformCALayerCocoa::create(layerType, owner);
+    
+    if (result->canHaveBackingStore())
+        result->setWantsDeepColorBackingStore(screenSupportsExtendedColor());
+    
+    return result;
 #elif PLATFORM(WIN)
     return PlatformCALayerWin::create(layerType, owner);
 #endif
@@ -375,11 +390,6 @@ static LayerDisplayListHashMap& layerDisplayListMap()
 
 GraphicsLayerCA::GraphicsLayerCA(Type layerType, GraphicsLayerClient& client)
     : GraphicsLayer(layerType, client)
-    , m_needsFullRepaint(false)
-    , m_usingBackdropLayerType(false)
-    , m_isViewportConstrained(false)
-    , m_intersectsCoverageRect(false)
-    , m_hasEverPainted(false)
 {
 }
 
@@ -566,6 +576,26 @@ void GraphicsLayerCA::setPosition(const FloatPoint& point)
     noteLayerPropertyChanged(GeometryChanged);
 }
 
+void GraphicsLayerCA::syncPosition(const FloatPoint& point)
+{
+    if (point == m_position)
+        return;
+
+    GraphicsLayer::syncPosition(point);
+    // Ensure future flushes will recompute the coverage rect and update tiling.
+    noteLayerPropertyChanged(NeedsComputeVisibleAndCoverageRect, DontScheduleFlush);
+}
+
+void GraphicsLayerCA::setApproximatePosition(const FloatPoint& point)
+{
+    if (point == m_approximatePosition)
+        return;
+
+    GraphicsLayer::setApproximatePosition(point);
+    // Ensure future flushes will recompute the coverage rect and update tiling.
+    noteLayerPropertyChanged(NeedsComputeVisibleAndCoverageRect, DontScheduleFlush);
+}
+
 void GraphicsLayerCA::setAnchorPoint(const FloatPoint3D& point)
 {
     if (point == m_anchorPoint)
@@ -591,6 +621,15 @@ void GraphicsLayerCA::setBoundsOrigin(const FloatPoint& origin)
 
     GraphicsLayer::setBoundsOrigin(origin);
     noteLayerPropertyChanged(GeometryChanged);
+}
+
+void GraphicsLayerCA::syncBoundsOrigin(const FloatPoint& origin)
+{
+    if (origin == m_boundsOrigin)
+        return;
+
+    GraphicsLayer::syncBoundsOrigin(origin);
+    noteLayerPropertyChanged(NeedsComputeVisibleAndCoverageRect, DontScheduleFlush);
 }
 
 void GraphicsLayerCA::setTransform(const TransformationMatrix& t)
@@ -730,6 +769,15 @@ void GraphicsLayerCA::setContentsOpaque(bool opaque)
 
     GraphicsLayer::setContentsOpaque(opaque);
     noteLayerPropertyChanged(ContentsOpaqueChanged);
+}
+
+void GraphicsLayerCA::setSupportsSubpixelAntialiasedText(bool supportsSubpixelAntialiasedText)
+{
+    if (m_supportsSubpixelAntialiasedText == supportsSubpixelAntialiasedText)
+        return;
+
+    GraphicsLayer::setSupportsSubpixelAntialiasedText(supportsSubpixelAntialiasedText);
+    noteLayerPropertyChanged(SupportsSubpixelAntialiasedTextChanged);
 }
 
 void GraphicsLayerCA::setBackfaceVisibility(bool visible)
@@ -1140,12 +1188,24 @@ FloatPoint GraphicsLayerCA::computePositionRelativeToBase(float& pageScale) cons
     return FloatPoint();
 }
 
-void GraphicsLayerCA::flushCompositingState(const FloatRect& clipRect)
+void GraphicsLayerCA::flushCompositingState(const FloatRect& visibleRect)
 {
-    TransformState state(TransformState::UnapplyInverseTransformDirection, FloatQuad(clipRect));
-    FloatQuad coverageQuad(clipRect);
+    TransformState state(TransformState::UnapplyInverseTransformDirection, FloatQuad(visibleRect));
+    FloatQuad coverageQuad(visibleRect);
     state.setSecondaryQuad(&coverageQuad);
-    recursiveCommitChanges(CommitState(), state);
+
+    CommitState commitState;
+    commitState.ancestorHadChanges = visibleRect != m_previousCommittedVisibleRect;
+    m_previousCommittedVisibleRect = visibleRect;
+
+#if PLATFORM(IOS)
+    // In WK1, UIKit may be changing layer bounds behind our back in overflow-scroll layers, so disable the optimization.
+    // See the similar test in computeVisibleAndCoverageRect().
+    if (m_layer->isPlatformCALayerCocoa())
+        commitState.ancestorHadChanges = true;
+#endif
+
+    recursiveCommitChanges(commitState, state);
 }
 
 void GraphicsLayerCA::flushCompositingStateForThisLayerOnly()
@@ -1330,27 +1390,48 @@ void GraphicsLayerCA::setVisibleAndCoverageRects(const VisibleAndCoverageRects& 
     // FIXME: we need to take reflections into account when determining whether this layer intersects the coverage rect.
     bool intersectsCoverageRect = isViewportConstrained || rects.coverageRect.intersects(FloatRect(m_boundsOrigin, size()));
     if (intersectsCoverageRect != m_intersectsCoverageRect) {
-        m_uncommittedChanges |= CoverageRectChanged;
+        addUncommittedChanges(CoverageRectChanged);
         m_intersectsCoverageRect = intersectsCoverageRect;
     }
 
     if (visibleRectChanged) {
-        m_uncommittedChanges |= CoverageRectChanged;
+        addUncommittedChanges(CoverageRectChanged);
         m_visibleRect = rects.visibleRect;
     }
 
     if (coverageRectChanged) {
-        m_uncommittedChanges |= CoverageRectChanged;
+        addUncommittedChanges(CoverageRectChanged);
         m_coverageRect = rects.coverageRect;
     }
+}
+
+bool GraphicsLayerCA::needsCommit(const CommitState& commitState)
+{
+    if (commitState.ancestorHadChanges)
+        return true;
+    if (m_uncommittedChanges)
+        return true;
+    if (hasDescendantsWithUncommittedChanges())
+        return true;
+    // Accelerated transforms move the underlying layers without GraphicsLayers getting invalidated.
+    if (isRunningTransformAnimation())
+        return true;
+    if (hasDescendantsWithRunningTransformAnimations())
+        return true;
+
+    return false;
 }
 
 // rootRelativeTransformForScaling is a transform from the root, but for layers with transform animations, it cherry-picked the state of the
 // animation that contributes maximally to the scale (on every layer with animations down the hierarchy).
 void GraphicsLayerCA::recursiveCommitChanges(const CommitState& commitState, const TransformState& state, float pageScaleFactor, const FloatPoint& positionRelativeToBase, bool affectedByPageScale)
 {
+    if (!needsCommit(commitState))
+        return;
+
     TransformState localState = state;
     CommitState childCommitState = commitState;
+
     bool affectedByTransformAnimation = commitState.ancestorHasTransformAnimation;
 
     bool accumulateTransform = accumulatesTransform(*this);
@@ -1387,7 +1468,11 @@ void GraphicsLayerCA::recursiveCommitChanges(const CommitState& commitState, con
 #endif
 
     bool hadChanges = m_uncommittedChanges;
-    
+
+    // FIXME: This could be more fine-grained. Only some types of changes have impact on sublayers.
+    if (!childCommitState.ancestorHadChanges)
+        childCommitState.ancestorHadChanges = hadChanges;
+
     if (appliesPageScale()) {
         pageScaleFactor = this->pageScaleFactor();
         affectedByPageScale = true;
@@ -1414,10 +1499,15 @@ void GraphicsLayerCA::recursiveCommitChanges(const CommitState& commitState, con
 
     const Vector<GraphicsLayer*>& childLayers = children();
     size_t numChildren = childLayers.size();
+
+    bool hasDescendantsWithRunningTransformAnimations = false;
     
     for (size_t i = 0; i < numChildren; ++i) {
         GraphicsLayerCA& currentChild = downcast<GraphicsLayerCA>(*childLayers[i]);
         currentChild.recursiveCommitChanges(childCommitState, localState, pageScaleFactor, baseRelativePosition, affectedByPageScale);
+
+        if (currentChild.isRunningTransformAnimation() || currentChild.hasDescendantsWithRunningTransformAnimations())
+            hasDescendantsWithRunningTransformAnimations = true;
     }
 
     if (GraphicsLayerCA* replicaLayer = downcast<GraphicsLayerCA>(m_replicaLayer))
@@ -1425,6 +1515,9 @@ void GraphicsLayerCA::recursiveCommitChanges(const CommitState& commitState, con
 
     if (GraphicsLayerCA* maskLayer = downcast<GraphicsLayerCA>(m_maskLayer))
         maskLayer->commitLayerChangesAfterSublayers(childCommitState);
+
+    setHasDescendantsWithUncommittedChanges(false);
+    setHasDescendantsWithRunningTransformAnimations(hasDescendantsWithRunningTransformAnimations);
 
     bool hadDirtyRects = m_uncommittedChanges & DirtyRectsChanged;
     commitLayerChangesAfterSublayers(childCommitState);
@@ -1540,7 +1633,7 @@ void GraphicsLayerCA::commitLayerChangesBeforeSublayers(CommitState& commitState
     if (!m_uncommittedChanges) {
         // Ensure that we cap layer depth in commitLayerChangesAfterSublayers().
         if (commitState.treeDepth > cMaxLayerTreeDepth)
-            m_uncommittedChanges |= ChildrenChanged;
+            addUncommittedChanges(ChildrenChanged);
     }
 
     bool needTiledLayer = requiresTiledLayer(pageScaleFactor);
@@ -1665,6 +1758,9 @@ void GraphicsLayerCA::commitLayerChangesBeforeSublayers(CommitState& commitState
     if (m_uncommittedChanges & AcceleratesDrawingChanged)
         updateAcceleratesDrawing();
 
+    if (m_uncommittedChanges & SupportsSubpixelAntialiasedTextChanged)
+        updateSupportsSubpixelAntialiasedText();
+
     if (m_uncommittedChanges & DebugIndicatorsChanged)
         updateDebugBorder();
 
@@ -1679,7 +1775,7 @@ void GraphicsLayerCA::commitLayerChangesBeforeSublayers(CommitState& commitState
 
     // Ensure that we cap layer depth in commitLayerChangesAfterSublayers().
     if (commitState.treeDepth > cMaxLayerTreeDepth)
-        m_uncommittedChanges |= ChildrenChanged;
+        addUncommittedChanges(ChildrenChanged);
 }
 
 void GraphicsLayerCA::commitLayerChangesAfterSublayers(CommitState& commitState)
@@ -2089,7 +2185,7 @@ void GraphicsLayerCA::ensureStructuralLayer(StructuralLayerPurpose purpose)
             // Release the structural layer.
             m_structuralLayer = nullptr;
 
-            m_uncommittedChanges |= structuralLayerChangeFlags;
+            addUncommittedChanges(structuralLayerChangeFlags);
         }
         return;
     }
@@ -2117,7 +2213,7 @@ void GraphicsLayerCA::ensureStructuralLayer(StructuralLayerPurpose purpose)
     if (!structuralLayerChanged)
         return;
     
-    m_uncommittedChanges |= structuralLayerChangeFlags;
+    addUncommittedChanges(structuralLayerChangeFlags);
 
     // We've changed the layer that our parent added to its sublayer list, so tell it to update
     // sublayers again in its commitLayerChangesAfterSublayers().
@@ -2194,6 +2290,11 @@ void GraphicsLayerCA::updateCoverage()
 void GraphicsLayerCA::updateAcceleratesDrawing()
 {
     m_layer->setAcceleratesDrawing(m_acceleratesDrawing);
+}
+
+void GraphicsLayerCA::updateSupportsSubpixelAntialiasedText()
+{
+    m_layer->setSupportsSubpixelAntialiasedText(m_supportsSubpixelAntialiasedText);
 }
 
 static void setLayerDebugBorder(PlatformCALayer& layer, Color borderColor, float borderWidth)
@@ -2531,7 +2632,7 @@ void GraphicsLayerCA::updateMaskLayer()
     PlatformCALayer* maskCALayer = m_maskLayer ? downcast<GraphicsLayerCA>(*m_maskLayer).primaryLayer() : nullptr;
     
     LayerMap* layerCloneMap;
-    if (m_structuralLayer) {
+    if (m_structuralLayer && structuralLayerPurpose() == StructuralLayerForBackdrop) {
         m_structuralLayer->setMask(maskCALayer);
         layerCloneMap = m_structuralLayerClones.get();
     } else {
@@ -3499,6 +3600,11 @@ void GraphicsLayerCA::dumpAdditionalProperties(TextStream& textStream, int inden
         textStream << "(in window " << tiledBacking()->isInWindow() << ")\n";
     }
     
+    if (m_layer->wantsDeepColorBackingStore()) {
+        writeIndent(textStream, indent + 1);
+        textStream << "(deep color 1)\n";
+    }
+    
     if (behavior & LayerTreeAsTextIncludeContentLayers) {
         dumpInnerLayer(textStream, "structural layer", m_structuralLayer.get(), indent, behavior);
         dumpInnerLayer(textStream, "contents clipping layer", m_contentsClippingLayer.get(), indent, behavior);
@@ -3578,7 +3684,7 @@ void GraphicsLayerCA::changeLayerTypeTo(PlatformCALayer::LayerType newLayerType)
         oldLayer->superlayer()->replaceSublayer(*oldLayer, *m_layer);
     }
 
-    m_uncommittedChanges |= ChildrenChanged
+    addUncommittedChanges(ChildrenChanged
         | GeometryChanged
         | TransformChanged
         | ChildrenTransformChanged
@@ -3588,15 +3694,16 @@ void GraphicsLayerCA::changeLayerTypeTo(PlatformCALayer::LayerType newLayerType)
         | BackgroundColorChanged
         | ContentsScaleChanged
         | AcceleratesDrawingChanged
+        | SupportsSubpixelAntialiasedTextChanged
         | FiltersChanged
         | BackdropFiltersChanged
         | MaskLayerChanged
         | OpacityChanged
         | NameChanged
-        | DebugIndicatorsChanged;
+        | DebugIndicatorsChanged);
     
     if (isTiledLayer)
-        m_uncommittedChanges |= CoverageRectChanged;
+        addUncommittedChanges(CoverageRectChanged);
 
     moveAnimations(oldLayer.get(), m_layer.get());
     
@@ -3970,12 +4077,33 @@ bool GraphicsLayerCA::canThrottleLayerFlush() const
     return !(m_uncommittedChanges & TilesAdded);
 }
 
+void GraphicsLayerCA::addUncommittedChanges(LayerChangeFlags flags)
+{
+    m_uncommittedChanges |= flags;
+
+    if (m_isCommittingChanges)
+        return;
+
+    for (auto* ancestor = parent(); ancestor; ancestor = ancestor->parent()) {
+        auto& ancestorCA = static_cast<GraphicsLayerCA&>(*ancestor);
+        ASSERT(!ancestorCA.m_isCommittingChanges);
+        if (ancestorCA.hasDescendantsWithUncommittedChanges())
+            return;
+        ancestorCA.setHasDescendantsWithUncommittedChanges(true);
+    }
+}
+
+void GraphicsLayerCA::setHasDescendantsWithUncommittedChanges(bool value)
+{
+    m_hasDescendantsWithUncommittedChanges = value;
+}
+
 void GraphicsLayerCA::noteLayerPropertyChanged(LayerChangeFlags flags, ScheduleFlushOrNot scheduleFlush)
 {
     bool hadUncommittedChanges = !!m_uncommittedChanges;
     bool oldCanThrottleLayerFlush = canThrottleLayerFlush();
 
-    m_uncommittedChanges |= flags;
+    addUncommittedChanges(flags);
 
     if (scheduleFlush == ScheduleFlush) {
         bool needsFlush = !hadUncommittedChanges || oldCanThrottleLayerFlush != canThrottleLayerFlush();

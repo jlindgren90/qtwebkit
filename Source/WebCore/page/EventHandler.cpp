@@ -36,6 +36,7 @@
 #include "CursorList.h"
 #include "DragController.h"
 #include "DragState.h"
+#include "Editing.h"
 #include "Editor.h"
 #include "EditorClient.h"
 #include "EventNames.h"
@@ -93,7 +94,6 @@
 #include "WheelEvent.h"
 #include "WheelEventDeltaFilter.h"
 #include "WindowsKeyboardCodes.h"
-#include "htmlediting.h"
 #include <wtf/Assertions.h>
 #include <wtf/CurrentTime.h>
 #include <wtf/NeverDestroyed.h>
@@ -157,14 +157,14 @@ using namespace SVGNames;
 // during a scroll. The short interval is used if the content responds to the mouse events
 // in fakeMouseMoveDurationThreshold or less, otherwise the long interval is used.
 const double fakeMouseMoveDurationThreshold = 0.01;
-const double fakeMouseMoveShortInterval = 0.1;
-const double fakeMouseMoveLongInterval = 0.25;
+const Seconds fakeMouseMoveShortInterval = { 100_ms };
+const Seconds fakeMouseMoveLongInterval = { 250_ms };
 #endif
 
 #if ENABLE(CURSOR_SUPPORT)
 // The amount of time to wait for a cursor update on style and layout changes
 // Set to 50Hz, no need to be faster than common screen refresh rate
-const double cursorUpdateInterval = 0.02;
+static const Seconds cursorUpdateInterval { 20_ms };
 
 const int maximumCursorSize = 128;
 #endif
@@ -1118,7 +1118,7 @@ DragSourceAction EventHandler::updateDragSourceActionsAllowed() const
 }
 #endif // ENABLE(DRAG_SUPPORT)
 
-HitTestResult EventHandler::hitTestResultAtPoint(const LayoutPoint& point, HitTestRequest::HitTestRequestType hitType, const LayoutSize& padding)
+HitTestResult EventHandler::hitTestResultAtPoint(const LayoutPoint& point, HitTestRequest::HitTestRequestType hitType, const LayoutSize& padding) const
 {
     Ref<Frame> protectedFrame(m_frame);
 
@@ -1487,34 +1487,62 @@ std::optional<Cursor> EventHandler::selectCursor(const HitTestResult& result, bo
             return iBeam;
         return pointerCursor();
     }
-    case CursorCross:
-        return crossCursor();
+    case CursorDefault:
+        return pointerCursor();
+    case CursorNone:
+        return noneCursor();
+    case CursorContextMenu:
+        return contextMenuCursor();
+    case CursorHelp:
+        return helpCursor();
     case CursorPointer:
         return handCursor();
+    case CursorProgress:
+        return progressCursor();
+    case CursorWait:
+        return waitCursor();
+    case CursorCell:
+        return cellCursor();
+    case CursorCrosshair:
+        return crossCursor();
+    case CursorText:
+        return iBeamCursor();
+    case CursorVerticalText:
+        return verticalTextCursor();
+    case CursorAlias:
+        return aliasCursor();
+    case CursorCopy:
+        return copyCursor();
     case CursorMove:
         return moveCursor();
-    case CursorAllScroll:
-        return moveCursor();
+    case CursorNoDrop:
+        return noDropCursor();
+    case CursorNotAllowed:
+        return notAllowedCursor();
+    case CursorGrab:
+        return grabCursor();
+    case CursorGrabbing:
+        return grabbingCursor();
     case CursorEResize:
         return eastResizeCursor();
-    case CursorWResize:
-        return westResizeCursor();
     case CursorNResize:
         return northResizeCursor();
-    case CursorSResize:
-        return southResizeCursor();
     case CursorNeResize:
         return northEastResizeCursor();
-    case CursorSwResize:
-        return southWestResizeCursor();
     case CursorNwResize:
         return northWestResizeCursor();
+    case CursorSResize:
+        return southResizeCursor();
     case CursorSeResize:
         return southEastResizeCursor();
-    case CursorNsResize:
-        return northSouthResizeCursor();
+    case CursorSwResize:
+        return southWestResizeCursor();
+    case CursorWResize:
+        return westResizeCursor();
     case CursorEwResize:
         return eastWestResizeCursor();
+    case CursorNsResize:
+        return northSouthResizeCursor();
     case CursorNeswResize:
         return northEastSouthWestResizeCursor();
     case CursorNwseResize:
@@ -1523,40 +1551,12 @@ std::optional<Cursor> EventHandler::selectCursor(const HitTestResult& result, bo
         return columnResizeCursor();
     case CursorRowResize:
         return rowResizeCursor();
-    case CursorText:
-        return iBeamCursor();
-    case CursorWait:
-        return waitCursor();
-    case CursorHelp:
-        return helpCursor();
-    case CursorVerticalText:
-        return verticalTextCursor();
-    case CursorCell:
-        return cellCursor();
-    case CursorContextMenu:
-        return contextMenuCursor();
-    case CursorProgress:
-        return progressCursor();
-    case CursorNoDrop:
-        return noDropCursor();
-    case CursorAlias:
-        return aliasCursor();
-    case CursorCopy:
-        return copyCursor();
-    case CursorNone:
-        return noneCursor();
-    case CursorNotAllowed:
-        return notAllowedCursor();
-    case CursorDefault:
-        return pointerCursor();
+    case CursorAllScroll:
+        return moveCursor();
     case CursorZoomIn:
         return zoomInCursor();
     case CursorZoomOut:
         return zoomOutCursor();
-    case CursorWebkitGrab:
-        return grabCursor();
-    case CursorWebkitGrabbing:
-        return grabbingCursor();
     }
     return pointerCursor();
 }
@@ -2899,8 +2899,9 @@ bool EventHandler::sendContextMenuEventForKey()
         RenderBoxModelObject* box = focusedElement->renderBoxModelObject();
         if (!box)
             return false;
-        IntRect clippedRect = box->pixelSnappedAbsoluteClippedOverflowRect();
-        location = IntPoint(clippedRect.x(), clippedRect.maxY() - 1);
+
+        IntRect boundingBoxRect = box->absoluteBoundingBoxRect(true);
+        location = IntPoint(boundingBoxRect.x(), boundingBoxRect.maxY() - 1);
     } else {
         location = IntPoint(
             rightAligned ? view->contentsWidth() - kContextMenuMargin : kContextMenuMargin,
@@ -2932,14 +2933,14 @@ bool EventHandler::sendContextMenuEventForKey()
 
     PlatformMouseEvent platformMouseEvent(position, globalPosition, RightButton, eventType, 1, false, false, false, false, WTF::currentTime(), ForceAtClick, NoTap);
 
-    return !dispatchMouseEvent(eventNames().contextmenuEvent, targetNode, true, 0, platformMouseEvent, false);
+    return sendContextMenuEvent(platformMouseEvent);
 }
 #endif // ENABLE(CONTEXT_MENUS)
 
 void EventHandler::scheduleHoverStateUpdate()
 {
     if (!m_hoverTimer.isActive())
-        m_hoverTimer.startOneShot(0);
+        m_hoverTimer.startOneShot(0_s);
 }
 
 #if ENABLE(CURSOR_SUPPORT)
@@ -3092,7 +3093,20 @@ bool EventHandler::isKeyEventAllowedInFullScreen(const PlatformKeyboardEvent& ke
 }
 #endif
 
-bool EventHandler::keyEvent(const PlatformKeyboardEvent& initialKeyEvent)
+bool EventHandler::keyEvent(const PlatformKeyboardEvent& keyEvent)
+{
+    Document* topDocument = m_frame.document() ? &m_frame.document()->topDocument() : nullptr;
+    bool savedUserDidInteractWithPage = topDocument ? topDocument->userDidInteractWithPage() : false;
+    bool wasHandled = internalKeyEvent(keyEvent);
+
+    // If the key event was not handled, do not treat it as user interaction with the page.
+    if (topDocument && !wasHandled)
+        topDocument->setUserDidInteractWithPage(savedUserDidInteractWithPage);
+
+    return wasHandled;
+}
+
+bool EventHandler::internalKeyEvent(const PlatformKeyboardEvent& initialKeyEvent)
 {
     Ref<Frame> protectedFrame(m_frame);
     RefPtr<FrameView> protector(m_frame.view());
@@ -3429,7 +3443,7 @@ bool EventHandler::dragHysteresisExceeded(const FloatPoint& dragViewportLocation
     return mouseMovementExceedsThreshold(dragViewportLocation, threshold);
 }
     
-void EventHandler::freeDataTransfer()
+void EventHandler::invalidateDataTransfer()
 {
     if (!dragState().dataTransfer)
         return;
@@ -3448,7 +3462,7 @@ void EventHandler::dragSourceEndedAt(const PlatformMouseEvent& event, DragOperat
         // For now we don't care if event handler cancels default behavior, since there is no default behavior.
         dispatchDragSrcEvent(eventNames().dragendEvent, event);
     }
-    freeDataTransfer();
+    invalidateDataTransfer();
     dragState().source = nullptr;
     // In case the drag was ended due to an escape key press we need to ensure
     // that consecutive mousemove events don't reinitiate the drag and drop.
@@ -3564,7 +3578,7 @@ bool EventHandler::handleDrag(const MouseEventWithHitTestResults& event, CheckDr
     DragOperation srcOp = DragOperationNone;      
     
     // This does work only if we missed a dragEnd. Do it anyway, just to make sure the old dataTransfer gets numbed.
-    freeDataTransfer();
+    invalidateDataTransfer();
 
     dragState().dataTransfer = createDraggingDataTransfer();
     
@@ -3580,7 +3594,10 @@ bool EventHandler::handleDrag(const MouseEventWithHitTestResults& event, CheckDr
                 // The renderer has disappeared, this can happen if the onStartDrag handler has hidden
                 // the element in some way.  In this case we just kill the drag.
                 m_mouseDownMayStartDrag = false;
-                goto cleanupDrag;
+                invalidateDataTransfer();
+                dragState().source = nullptr;
+
+                return true;
             }
         } 
         
@@ -3618,10 +3635,9 @@ bool EventHandler::handleDrag(const MouseEventWithHitTestResults& event, CheckDr
         }
     } 
 
-cleanupDrag:
     if (!m_mouseDownMayStartDrag) {
         // Something failed to start the drag, clean up.
-        freeDataTransfer();
+        invalidateDataTransfer();
         dragState().source = nullptr;
     }
     
@@ -3678,7 +3694,7 @@ bool EventHandler::isKeyboardOptionTab(KeyboardEvent& event)
 
 bool EventHandler::eventInvertsTabsToLinksClientCallResult(KeyboardEvent& event)
 {
-#if PLATFORM(COCOA) || PLATFORM(EFL)
+#if PLATFORM(COCOA)
     return isKeyboardOptionTab(event);
 #else
     UNUSED_PARAM(event);

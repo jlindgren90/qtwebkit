@@ -123,7 +123,7 @@ public:
     bool isArrowFunction() const { return parseMode() == SourceParseMode::ArrowFunctionMode; }
     bool isGetter() const { return parseMode() == SourceParseMode::GetterMode; }
     bool isSetter() const { return parseMode() == SourceParseMode::SetterMode; }
-    bool isGenerator() const { return SourceParseModeSet(SourceParseMode::GeneratorBodyMode, SourceParseMode::GeneratorWrapperFunctionMode).contains(parseMode()); }
+    bool isGenerator() const { return isGeneratorParseMode(parseMode()); }
     bool isMethod() const { return parseMode() == SourceParseMode::MethodMode; }
     bool hasCallerAndArgumentsProperties() const
     {
@@ -136,7 +136,8 @@ public:
         return SourceParseModeSet(
             SourceParseMode::NormalFunctionMode,
             SourceParseMode::GeneratorBodyMode,
-            SourceParseMode::GeneratorWrapperFunctionMode
+            SourceParseMode::GeneratorWrapperFunctionMode,
+            SourceParseMode::GeneratorWrapperMethodMode
         ).contains(parseMode()) || isClass();
     }
     DerivedContextType derivedContextType() const { return m_unlinkedExecutable->derivedContextType(); }
@@ -145,7 +146,6 @@ public:
     const Identifier& ecmaName() { return m_unlinkedExecutable->ecmaName(); }
     const Identifier& inferredName() { return m_unlinkedExecutable->inferredName(); }
     unsigned parameterCount() const { return m_unlinkedExecutable->parameterCount(); } // Excluding 'this'!
-    unsigned functionLength() const { return m_unlinkedExecutable->functionLength(); }
     SourceParseMode parseMode() const { return m_unlinkedExecutable->parseMode(); }
     JSParserScriptMode scriptMode() const { return m_unlinkedExecutable->scriptMode(); }
     const SourceCode& classSource() const { return m_unlinkedExecutable->classSource(); }

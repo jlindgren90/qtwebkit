@@ -43,7 +43,7 @@ class AudioSourceProvider;
 
 struct MediaTrackConstraints;
 
-class MediaStreamTrack final : public RefCounted<MediaStreamTrack>, public ActiveDOMObject, public EventTargetWithInlineData, private MediaStreamTrackPrivate::Observer {
+class MediaStreamTrack : public RefCounted<MediaStreamTrack>, public ActiveDOMObject, public EventTargetWithInlineData, private MediaStreamTrackPrivate::Observer {
 public:
     class Observer {
     public:
@@ -54,6 +54,8 @@ public:
     static Ref<MediaStreamTrack> create(ScriptExecutionContext&, Ref<MediaStreamTrackPrivate>&&);
     virtual ~MediaStreamTrack();
 
+    virtual bool isCanvas() const { return false; }
+
     const AtomicString& kind() const;
     const String& id() const;
     const String& label() const;
@@ -62,16 +64,16 @@ public:
     void setEnabled(bool);
 
     bool muted() const;
-    bool readonly() const;
-    bool remote() const;
 
-    enum class State { New, Live, Ended };
+    enum class State { Live, Ended };
     State readyState() const;
 
     bool ended() const;
 
     Ref<MediaStreamTrack> clone();
-    void stopProducingData();
+    void stopTrack();
+
+    bool isCaptureTrack() const;
 
     struct TrackSettings {
         std::optional<int> width;
@@ -86,7 +88,7 @@ public:
         String deviceId;
         String groupId;
     };
-    TrackSettings getSettings() const;
+    WEBCORE_EXPORT TrackSettings getSettings() const;
 
     struct TrackCapabilities {
         std::optional<LongRange> width;
@@ -117,8 +119,10 @@ public:
     using RefCounted::ref;
     using RefCounted::deref;
 
-private:
+protected:
     MediaStreamTrack(ScriptExecutionContext&, Ref<MediaStreamTrackPrivate>&&);
+
+private:
     explicit MediaStreamTrack(MediaStreamTrack&);
 
     void configureTrackRendering();
@@ -135,10 +139,10 @@ private:
     ScriptExecutionContext* scriptExecutionContext() const final { return ActiveDOMObject::scriptExecutionContext(); }
 
     // MediaStreamTrackPrivate::Observer
-    void trackEnded(MediaStreamTrackPrivate&) override;
-    void trackMutedChanged(MediaStreamTrackPrivate&) override;
-    void trackSettingsChanged(MediaStreamTrackPrivate&) override;
-    void trackEnabledChanged(MediaStreamTrackPrivate&) override;
+    void trackEnded(MediaStreamTrackPrivate&) final;
+    void trackMutedChanged(MediaStreamTrackPrivate&) final;
+    void trackSettingsChanged(MediaStreamTrackPrivate&) final;
+    void trackEnabledChanged(MediaStreamTrackPrivate&) final;
 
     WeakPtr<MediaStreamTrack> createWeakPtr() { return m_weakPtrFactory.createWeakPtr(); }
 

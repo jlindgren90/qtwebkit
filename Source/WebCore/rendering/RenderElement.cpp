@@ -76,9 +76,7 @@
 #include <wtf/MathExtras.h>
 #include <wtf/StackStats.h>
 
-#if ENABLE(CSS_GRID_LAYOUT)
 #include "RenderGrid.h"
-#endif
 
 namespace WebCore {
 
@@ -116,6 +114,8 @@ inline RenderElement::RenderElement(ContainerNode& elementOrDocument, RenderStyl
     , m_renderBlockShouldForceRelayoutChildren(false)
     , m_renderBlockFlowHasMarkupTruncation(false)
     , m_renderBlockFlowLineLayoutPath(RenderBlockFlow::UndeterminedPath)
+    , m_isRegisteredForVisibleInViewportCallback(false)
+    , m_visibleInViewportState(static_cast<unsigned>(VisibleInViewportState::Unknown))
     , m_firstChild(nullptr)
     , m_lastChild(nullptr)
     , m_style(WTFMove(style))
@@ -134,37 +134,16 @@ RenderElement::RenderElement(Document& document, RenderStyle&& style, BaseTypeFl
 
 RenderElement::~RenderElement()
 {
-    if (hasInitializedStyle()) {
-        for (auto* bgLayer = &m_style.backgroundLayers(); bgLayer; bgLayer = bgLayer->next()) {
-            if (auto* backgroundImage = bgLayer->image())
-                backgroundImage->removeClient(this);
-        }
-        for (auto* maskLayer = &m_style.maskLayers(); maskLayer; maskLayer = maskLayer->next()) {
-            if (auto* maskImage = maskLayer->image())
-                maskImage->removeClient(this);
-        }
-        if (auto* borderImage = m_style.borderImage().image())
-            borderImage->removeClient(this);
-        if (auto* maskBoxImage = m_style.maskBoxImage().image())
-            maskBoxImage->removeClient(this);
-        if (auto shapeValue = m_style.shapeOutside()) {
-            if (auto shapeImage = shapeValue->image())
-                shapeImage->removeClient(this);
-        }
-    }
-    if (m_hasPausedImageAnimations)
-        view().removeRendererWithPausedImageAnimations(*this);
-    if (isRegisteredForVisibleInViewportCallback())
-        view().unregisterForVisibleInViewportCallback(*this);
+    // Do not add any code here. Add it to willBeDestroyed() instead.
 }
 
-RenderPtr<RenderElement> RenderElement::createFor(Element& element, RenderStyle&& style)
+RenderPtr<RenderElement> RenderElement::createFor(Element& element, RenderStyle&& style, RendererCreationType creationType)
 {
     // Minimal support for content properties replacing an entire element.
     // Works only if we have exactly one piece of content and it's a URL.
     // Otherwise acts as if we didn't support this feature.
     const ContentData* contentData = style.contentData();
-    if (contentData && !contentData->next() && is<ImageContentData>(*contentData) && !element.isPseudoElement()) {
+    if (creationType == CreateAllRenderers && contentData && !contentData->next() && is<ImageContentData>(*contentData) && !element.isPseudoElement()) {
         Style::loadPendingResources(style, element.document(), &element);
         auto& styleImage = downcast<ImageContentData>(*contentData).image();
         auto image = createRenderer<RenderImage>(element, WTFMove(style), const_cast<StyleImage*>(&styleImage));
@@ -177,42 +156,51 @@ RenderPtr<RenderElement> RenderElement::createFor(Element& element, RenderStyle&
     case CONTENTS:
         return nullptr;
     case INLINE:
-        return createRenderer<RenderInline>(element, WTFMove(style));
+        if (creationType == CreateAllRenderers)
+            return createRenderer<RenderInline>(element, WTFMove(style));
+        FALLTHROUGH; // Fieldsets should make a block flow if display:inline is set.
     case BLOCK:
     case INLINE_BLOCK:
     case COMPACT:
         return createRenderer<RenderBlockFlow>(element, WTFMove(style));
     case LIST_ITEM:
         return createRenderer<RenderListItem>(element, WTFMove(style));
-    case TABLE:
-    case INLINE_TABLE:
-        return createRenderer<RenderTable>(element, WTFMove(style));
-    case TABLE_ROW_GROUP:
-    case TABLE_HEADER_GROUP:
-    case TABLE_FOOTER_GROUP:
-        return createRenderer<RenderTableSection>(element, WTFMove(style));
-    case TABLE_ROW:
-        return createRenderer<RenderTableRow>(element, WTFMove(style));
-    case TABLE_COLUMN_GROUP:
-    case TABLE_COLUMN:
-        return createRenderer<RenderTableCol>(element, WTFMove(style));
-    case TABLE_CELL:
-        return createRenderer<RenderTableCell>(element, WTFMove(style));
-    case TABLE_CAPTION:
-        return createRenderer<RenderTableCaption>(element, WTFMove(style));
-    case BOX:
-    case INLINE_BOX:
-        return createRenderer<RenderDeprecatedFlexibleBox>(element, WTFMove(style));
     case FLEX:
     case INLINE_FLEX:
     case WEBKIT_FLEX:
     case WEBKIT_INLINE_FLEX:
         return createRenderer<RenderFlexibleBox>(element, WTFMove(style));
-#if ENABLE(CSS_GRID_LAYOUT)
     case GRID:
     case INLINE_GRID:
         return createRenderer<RenderGrid>(element, WTFMove(style));
-#endif
+    case BOX:
+    case INLINE_BOX:
+        return createRenderer<RenderDeprecatedFlexibleBox>(element, WTFMove(style));
+    default: {
+        if (creationType == OnlyCreateBlockAndFlexboxRenderers)
+            return createRenderer<RenderBlockFlow>(element, WTFMove(style));
+        switch (style.display()) {
+        case TABLE:
+        case INLINE_TABLE:
+            return createRenderer<RenderTable>(element, WTFMove(style));
+        case TABLE_CELL:
+            return createRenderer<RenderTableCell>(element, WTFMove(style));
+        case TABLE_CAPTION:
+            return createRenderer<RenderTableCaption>(element, WTFMove(style));
+        case TABLE_ROW_GROUP:
+        case TABLE_HEADER_GROUP:
+        case TABLE_FOOTER_GROUP:
+            return createRenderer<RenderTableSection>(element, WTFMove(style));
+        case TABLE_ROW:
+            return createRenderer<RenderTableRow>(element, WTFMove(style));
+        case TABLE_COLUMN_GROUP:
+        case TABLE_COLUMN:
+            return createRenderer<RenderTableCol>(element, WTFMove(style));
+        default:
+            break;
+        }
+        break;
+    }
     }
     ASSERT_NOT_REACHED();
     return nullptr;
@@ -558,7 +546,7 @@ void RenderElement::insertChildInternal(RenderObject* newChild, RenderObject* be
     }
 
     newChild->initializeFlowThreadStateOnInsertion();
-    if (!documentBeingDestroyed()) {
+    if (!renderTreeBeingDestroyed()) {
         if (notifyChildren == NotifyChildren)
             newChild->insertedIntoTree();
         if (is<RenderElement>(*newChild))
@@ -589,7 +577,7 @@ void RenderElement::removeChildInternal(RenderObject& oldChild, NotifyChildrenTy
     // So that we'll get the appropriate dirty bit set (either that a normal flow child got yanked or
     // that a positioned child got yanked). We also repaint, so that the area exposed when the child
     // disappears gets repainted properly.
-    if (!documentBeingDestroyed() && notifyChildren == NotifyChildren && oldChild.everHadLayout()) {
+    if (!renderTreeBeingDestroyed() && notifyChildren == NotifyChildren && oldChild.everHadLayout()) {
         oldChild.setNeedsLayoutAndPrefWidthsRecalc();
         // We only repaint |oldChild| if we have a RenderLayer as its visual overflow may not be tracked by its parent.
         if (oldChild.isBody())
@@ -603,13 +591,16 @@ void RenderElement::removeChildInternal(RenderObject& oldChild, NotifyChildrenTy
         downcast<RenderBox>(oldChild).deleteLineBoxWrapper();
     else if (is<RenderLineBreak>(oldChild))
         downcast<RenderLineBreak>(oldChild).deleteInlineBoxWrapper();
+    
+    if (!renderTreeBeingDestroyed() && is<RenderFlexibleBox>(this) && !oldChild.isFloatingOrOutOfFlowPositioned() && oldChild.isBox())
+        downcast<RenderFlexibleBox>(this)->clearCachedChildIntrinsicContentLogicalHeight(downcast<RenderBox>(oldChild));
 
     // If oldChild is the start or end of the selection, then clear the selection to
     // avoid problems of invalid pointers.
-    if (!documentBeingDestroyed() && oldChild.isSelectionBorder())
+    if (!renderTreeBeingDestroyed() && oldChild.isSelectionBorder())
         frame().selection().setNeedsSelectionUpdate();
 
-    if (!documentBeingDestroyed() && notifyChildren == NotifyChildren)
+    if (!renderTreeBeingDestroyed() && notifyChildren == NotifyChildren)
         oldChild.willBeRemovedFromTree();
 
     oldChild.resetFlowThreadStateOnRemoval();
@@ -636,7 +627,7 @@ void RenderElement::removeChildInternal(RenderObject& oldChild, NotifyChildrenTy
 
     // rendererRemovedFromTree walks the whole subtree. We can improve performance
     // by skipping this step when destroying the entire tree.
-    if (!documentBeingDestroyed() && is<RenderElement>(oldChild))
+    if (!renderTreeBeingDestroyed() && is<RenderElement>(oldChild))
         RenderCounter::rendererRemovedFromTree(downcast<RenderElement>(oldChild));
 
     if (AXObjectCache* cache = document().existingAXObjectCache())
@@ -811,6 +802,8 @@ void RenderElement::propagateStyleToAnonymousChildren(StylePropagationType propa
         if (elementChild.isInFlowPositioned() && downcast<RenderBlock>(elementChild).isAnonymousBlockContinuation())
             newStyle.setPosition(elementChild.style().position());
 
+        updateAnonymousChildStyle(elementChild, newStyle);
+        
         elementChild.setStyle(WTFMove(newStyle));
     }
 }
@@ -845,7 +838,7 @@ void RenderElement::styleWillChange(StyleDifference diff, const RenderStyle& new
 #endif
 #if PLATFORM(IOS) && ENABLE(TOUCH_EVENTS)
         if (visibilityChanged)
-            document().dirtyTouchEventRects();
+            document().setTouchEventRegionsNeedUpdate();
 #endif
         if (visibilityChanged) {
             if (AXObjectCache* cache = document().existingAXObjectCache())
@@ -1001,13 +994,8 @@ void RenderElement::styleDidChange(StyleDifference diff, const RenderStyle* oldS
     if (s_affectsParentBlock)
         handleDynamicFloatPositionChange();
 
-    if (s_noLongerAffectsParentBlock) {
+    if (s_noLongerAffectsParentBlock)
         removeAnonymousWrappersForInlinesIfNecessary();
-        // Fresh floats need to be reparented if they actually belong to the previous anonymous block.
-        // It copies the logic of RenderBlock::addChildIgnoringContinuation
-        if (style().isFloating() && previousSibling() && previousSibling()->isAnonymousBlock())
-            downcast<RenderBoxModelObject>(*parent()).moveChildTo(&downcast<RenderBoxModelObject>(*previousSibling()), this);
-    }
 
     SVGRenderSupport::styleChanged(*this, oldStyle);
 
@@ -1095,7 +1083,7 @@ void RenderElement::willBeRemovedFromTree()
 
 inline void RenderElement::clearLayoutRootIfNeeded() const
 {
-    if (documentBeingDestroyed())
+    if (renderTreeBeingDestroyed())
         return;
 
     if (view().frameView().layoutRoot() != this)
@@ -1120,13 +1108,15 @@ void RenderElement::willBeDestroyed()
 
     destroyLeftoverChildren();
 
+    unregisterForVisibleInViewportCallback();
+
     if (hasCounterNodeMap())
         RenderCounter::destroyCounterNodes(*this);
 
     RenderObject::willBeDestroyed();
 
 #if !ASSERT_DISABLED
-    if (!documentBeingDestroyed() && view().hasRenderNamedFlowThreads()) {
+    if (!renderTreeBeingDestroyed() && view().hasRenderNamedFlowThreads()) {
         // After remove, the object and the associated information should not be in any flow thread.
         for (auto& flowThread : *view().flowThreadController().renderNamedFlowThreadList()) {
             ASSERT(!flowThread->hasChildInfo(this));
@@ -1135,6 +1125,27 @@ void RenderElement::willBeDestroyed()
 #endif
 
     clearLayoutRootIfNeeded();
+
+    if (hasInitializedStyle()) {
+        for (auto* bgLayer = &m_style.backgroundLayers(); bgLayer; bgLayer = bgLayer->next()) {
+            if (auto* backgroundImage = bgLayer->image())
+                backgroundImage->removeClient(this);
+        }
+        for (auto* maskLayer = &m_style.maskLayers(); maskLayer; maskLayer = maskLayer->next()) {
+            if (auto* maskImage = maskLayer->image())
+                maskImage->removeClient(this);
+        }
+        if (auto* borderImage = m_style.borderImage().image())
+            borderImage->removeClient(this);
+        if (auto* maskBoxImage = m_style.maskBoxImage().image())
+            maskBoxImage->removeClient(this);
+        if (auto shapeValue = m_style.shapeOutside()) {
+            if (auto shapeImage = shapeValue->image())
+                shapeImage->removeClient(this);
+        }
+    }
+    if (m_hasPausedImageAnimations)
+        view().removeRendererWithPausedImageAnimations(*this);
 }
 
 void RenderElement::setNeedsPositionedMovementLayout(const RenderStyle* oldStyle)
@@ -1207,9 +1218,10 @@ void RenderElement::paintAsInlineBlock(PaintInfo& paintInfo, const LayoutPoint& 
     // Paint all phases atomically, as though the element established its own stacking context.
     // (See Appendix E.2, section 6.4 on inline block/table/replaced elements in the CSS2.1 specification.)
     // This is also used by other elements (e.g. flex items and grid items).
-    if (paintInfo.phase == PaintPhaseSelection) {
+    PaintPhase paintPhaseToUse = isExcludedAndPlacedInBorder() ? paintInfo.phase : PaintPhaseForeground;
+    if (paintInfo.phase == PaintPhaseSelection)
         paint(paintInfo, childPoint);
-    } else if (paintInfo.phase == PaintPhaseForeground) {
+    else if (paintInfo.phase == paintPhaseToUse) {
         paintPhase(*this, PaintPhaseBlockBackground, paintInfo, childPoint);
         paintPhase(*this, PaintPhaseChildBlockBackgrounds, paintInfo, childPoint);
         paintPhase(*this, PaintPhaseFloat, paintInfo, childPoint);
@@ -1217,7 +1229,7 @@ void RenderElement::paintAsInlineBlock(PaintInfo& paintInfo, const LayoutPoint& 
         paintPhase(*this, PaintPhaseOutline, paintInfo, childPoint);
 
         // Reset |paintInfo| to the original phase.
-        paintInfo.phase = PaintPhaseForeground;
+        paintInfo.phase = paintPhaseToUse;
     }
 }
 
@@ -1421,30 +1433,30 @@ bool RenderElement::mayCauseRepaintInsideViewport(const IntRect* optionalViewpor
     return visibleRect.intersects(enclosingIntRect(absoluteClippedOverflowRect()));
 }
 
-static bool shouldRepaintForImageAnimation(const RenderElement& renderer, const IntRect& visibleRect)
+bool RenderElement::shouldRepaintInVisibleRect(const IntRect& visibleRect) const
 {
-    const Document& document = renderer.document();
-    if (document.activeDOMObjectsAreSuspended())
+    if (document().activeDOMObjectsAreSuspended())
         return false;
-    if (renderer.style().visibility() != VISIBLE)
+    if (style().visibility() != VISIBLE)
         return false;
-    if (renderer.view().frameView().isOffscreen())
+    if (view().frameView().isOffscreen())
         return false;
 
     // Use background rect if we are the root or if we are the body and the background is propagated to the root.
     // FIXME: This is overly conservative as the image may not be a background-image, in which case it will not
     // be propagated to the root. At this point, we unfortunately don't have access to the image anymore so we
     // can no longer check if it is a background image.
-    bool backgroundIsPaintedByRoot = renderer.isDocumentElementRenderer();
-    if (renderer.isBody()) {
-        auto& rootRenderer = *renderer.parent(); // If <body> has a renderer then <html> does too.
+    bool backgroundIsPaintedByRoot = isDocumentElementRenderer();
+    if (isBody()) {
+        auto& rootRenderer = *parent(); // If <body> has a renderer then <html> does too.
         ASSERT(rootRenderer.isDocumentElementRenderer());
         ASSERT(is<HTMLHtmlElement>(rootRenderer.element()));
         // FIXME: Should share body background propagation code.
         backgroundIsPaintedByRoot = !rootRenderer.hasBackground();
 
     }
-    LayoutRect backgroundPaintingRect = backgroundIsPaintedByRoot ? renderer.view().backgroundRect() : renderer.absoluteClippedOverflowRect();
+
+    LayoutRect backgroundPaintingRect = backgroundIsPaintedByRoot ? view().backgroundRect() : absoluteClippedOverflowRect();
     if (!visibleRect.intersects(enclosingIntRect(backgroundPaintingRect)))
         return false;
 
@@ -1453,53 +1465,68 @@ static bool shouldRepaintForImageAnimation(const RenderElement& renderer, const 
 
 void RenderElement::registerForVisibleInViewportCallback()
 {
-    if (isRegisteredForVisibleInViewportCallback())
+    if (m_isRegisteredForVisibleInViewportCallback)
         return;
-    setIsRegisteredForVisibleInViewportCallback(true);
+    m_isRegisteredForVisibleInViewportCallback = true;
 
     view().registerForVisibleInViewportCallback(*this);
 }
 
 void RenderElement::unregisterForVisibleInViewportCallback()
 {
-    if (!isRegisteredForVisibleInViewportCallback())
+    if (!m_isRegisteredForVisibleInViewportCallback)
         return;
-    setIsRegisteredForVisibleInViewportCallback(false);
+    m_isRegisteredForVisibleInViewportCallback = false;
 
     view().unregisterForVisibleInViewportCallback(*this);
 }
 
-void RenderElement::visibleInViewportStateChanged(VisibleInViewportState state)
+void RenderElement::setVisibleInViewportState(VisibleInViewportState state)
 {
     if (state == visibleInViewportState())
         return;
-    setVisibleInViewportState(state);
-
-    if (element())
-        element()->isVisibleInViewportChanged();
+    m_visibleInViewportState = static_cast<unsigned>(state);
+    visibleInViewportStateChanged();
 }
 
-void RenderElement::newImageAnimationFrameAvailable(CachedImage& image)
+void RenderElement::visibleInViewportStateChanged()
+{
+    ASSERT_NOT_REACHED();
+}
+
+VisibleInViewportState RenderElement::imageFrameAvailable(CachedImage& image, ImageAnimatingState animatingState, const IntRect* changeRect)
 {
     auto& frameView = view().frameView();
     auto visibleRect = frameView.windowToContents(frameView.windowClipRect());
-    if (!shouldRepaintForImageAnimation(*this, visibleRect)) {
-        // FIXME: It would be better to pass the image along with the renderer
-        // so that we can be smarter about detecting if the image is inside the
-        // viewport in repaintForPausedImageAnimationsIfNeeded().
-        view().addRendererWithPausedImageAnimations(*this);
-        return;
-    }
-    imageChanged(&image);
+    bool shouldRepaint = shouldRepaintInVisibleRect(visibleRect);
+
+    if (!shouldRepaint && animatingState == ImageAnimatingState::Yes)
+        view().addRendererWithPausedImageAnimations(*this, image);
+
+    // Static images should repaint even if they are outside the viewport rectangle
+    // because they should be inside the TileCoverageRect.
+    if (shouldRepaint || animatingState == ImageAnimatingState::No)
+        imageChanged(&image, changeRect);
+
+    return shouldRepaint ? VisibleInViewportState::Yes : VisibleInViewportState::No;
 }
 
-bool RenderElement::repaintForPausedImageAnimationsIfNeeded(const IntRect& visibleRect)
+void RenderElement::didRemoveCachedImageClient(CachedImage& cachedImage)
+{
+    if (hasPausedImageAnimations())
+        view().removeRendererWithPausedImageAnimations(*this, cachedImage);
+}
+
+bool RenderElement::repaintForPausedImageAnimationsIfNeeded(const IntRect& visibleRect, CachedImage& cachedImage)
 {
     ASSERT(m_hasPausedImageAnimations);
-    if (!shouldRepaintForImageAnimation(*this, visibleRect))
+    if (!shouldRepaintInVisibleRect(visibleRect))
         return false;
 
     repaint();
+
+    if (auto* image = cachedImage.image())
+        image->startAnimation();
 
     // For directly-composited animated GIFs it does not suffice to call repaint() to resume animation. We need to mark the image as changed.
     if (is<RenderBoxModelObject>(*this))

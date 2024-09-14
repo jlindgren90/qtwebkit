@@ -45,6 +45,10 @@
 #include "ColorChooser.h"
 #endif
 
+#if USE(SOUP)
+#include "SoupNetworkSession.h"
+#endif
+
 namespace WebCore {
 
 InternalSettings::Backup::Backup(Settings& settings)
@@ -58,7 +62,7 @@ InternalSettings::Backup::Backup(Settings& settings)
     , m_originalMockScrollbarsEnabled(settings.mockScrollbarsEnabled())
     , m_imagesEnabled(settings.areImagesEnabled())
     , m_preferMIMETypeForImages(settings.preferMIMETypeForImages())
-    , m_minimumTimerInterval(settings.minimumDOMTimerInterval())
+    , m_minimumDOMTimerInterval(settings.minimumDOMTimerInterval())
 #if ENABLE(VIDEO_TRACK)
     , m_shouldDisplaySubtitles(settings.shouldDisplaySubtitles())
     , m_shouldDisplayCaptions(settings.shouldDisplayCaptions())
@@ -97,11 +101,12 @@ InternalSettings::Backup::Backup(Settings& settings)
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
     , m_indexedDBWorkersEnabled(RuntimeEnabledFeatures::sharedFeatures().indexedDBWorkersEnabled())
 #endif
-#if ENABLE(CSS_GRID_LAYOUT)
     , m_cssGridLayoutEnabled(RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled())
-#endif
 #if ENABLE(WEBGL2)
     , m_webGL2Enabled(RuntimeEnabledFeatures::sharedFeatures().webGL2Enabled())
+#endif
+#if ENABLE(WEBGPU)
+    , m_webGPUEnabled(RuntimeEnabledFeatures::sharedFeatures().webGPUEnabled())
 #endif
 {
 }
@@ -146,7 +151,7 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
     settings.setCanvasUsesAcceleratedDrawing(m_originalCanvasUsesAcceleratedDrawing);
     settings.setImagesEnabled(m_imagesEnabled);
     settings.setPreferMIMETypeForImages(m_preferMIMETypeForImages);
-    settings.setMinimumDOMTimerInterval(m_minimumTimerInterval);
+    settings.setMinimumDOMTimerInterval(m_minimumDOMTimerInterval);
 #if ENABLE(VIDEO_TRACK)
     settings.setShouldDisplaySubtitles(m_shouldDisplaySubtitles);
     settings.setShouldDisplayCaptions(m_shouldDisplayCaptions);
@@ -184,11 +189,12 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
     RuntimeEnabledFeatures::sharedFeatures().setIndexedDBWorkersEnabled(m_indexedDBWorkersEnabled);
 #endif
-#if ENABLE(CSS_GRID_LAYOUT)
     RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled(m_cssGridLayoutEnabled);
-#endif
 #if ENABLE(WEBGL2)
     RuntimeEnabledFeatures::sharedFeatures().setWebGL2Enabled(m_webGL2Enabled);
+#endif
+#if ENABLE(WEBGPU)
+    RuntimeEnabledFeatures::sharedFeatures().setWebGPUEnabled(m_webGPUEnabled);
 #endif
 }
 
@@ -246,6 +252,8 @@ void InternalSettings::resetToConsistentState()
     m_page->setPageScaleFactor(1, { 0, 0 });
     m_page->mainFrame().setPageAndTextZoomFactors(1, 1);
     m_page->setCanStartMedia(true);
+
+    settings().setShouldDispatchRequestAnimationFrameEvents(false);
 
     settings().setForcePendingWebGLPolicy(false);
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -538,7 +546,7 @@ ExceptionOr<void> InternalSettings::setMinimumTimerInterval(double intervalInSec
 {
     if (!m_page)
         return Exception { INVALID_ACCESS_ERR };
-    settings().setMinimumDOMTimerInterval(std::chrono::milliseconds((std::chrono::milliseconds::rep)(intervalInSeconds * 1000)));
+    settings().setMinimumDOMTimerInterval(Seconds { intervalInSeconds });
     return { };
 }
 
@@ -562,7 +570,7 @@ ExceptionOr<void> InternalSettings::setTimeWithoutMouseMovementBeforeHidingContr
 {
     if (!m_page)
         return Exception { INVALID_ACCESS_ERR };
-    settings().setTimeWithoutMouseMovementBeforeHidingControls(time);
+    settings().setTimeWithoutMouseMovementBeforeHidingControls(Seconds { time });
     return { };
 }
 
@@ -682,11 +690,7 @@ void InternalSettings::setIndexedDBWorkersEnabled(bool enabled)
 
 void InternalSettings::setCSSGridLayoutEnabled(bool enabled)
 {
-#if ENABLE(CSS_GRID_LAYOUT)
     RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled(enabled);
-#else
-    UNUSED_PARAM(enabled);
-#endif
 }
 
 void InternalSettings::setWebGL2Enabled(bool enabled)
@@ -696,6 +700,25 @@ void InternalSettings::setWebGL2Enabled(bool enabled)
 #else
     UNUSED_PARAM(enabled);
 #endif
+}
+
+void InternalSettings::setWebGPUEnabled(bool enabled)
+{
+#if ENABLE(WEBGPU)
+    RuntimeEnabledFeatures::sharedFeatures().setWebGPUEnabled(enabled);
+#else
+    UNUSED_PARAM(enabled);
+#endif
+}
+
+bool InternalSettings::shouldDispatchRequestAnimationFrameEvents()
+{
+    return settings().shouldDispatchRequestAnimationFrameEvents();
+}
+
+void InternalSettings::setShouldDispatchRequestAnimationFrameEvents(bool shouldDispatchRequestAnimationFrameEvents)
+{
+    settings().setShouldDispatchRequestAnimationFrameEvents(shouldDispatchRequestAnimationFrameEvents);
 }
 
 ExceptionOr<String> InternalSettings::userInterfaceDirectionPolicy()
@@ -759,6 +782,9 @@ ExceptionOr<void> InternalSettings::setSystemLayoutDirection(const String& direc
 void InternalSettings::setAllowsAnySSLCertificate(bool allowsAnyCertificate)
 {
     Settings::setAllowsAnySSLCertificate(allowsAnyCertificate);
+#if USE(SOUP)
+    SoupNetworkSession::setShouldIgnoreTLSErrors(allowsAnyCertificate);
+#endif
 }
 
 ExceptionOr<bool> InternalSettings::deferredCSSParserEnabled()

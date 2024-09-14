@@ -441,7 +441,10 @@ void EventSenderProxy::mouseScrollBy(int horizontal, int vertical)
 void EventSenderProxy::continuousMouseScrollBy(int horizontal, int vertical, bool paged)
 {
     // Gtk+ does not support paged scroll events.
-    g_return_if_fail(!paged);
+    if (paged) {
+        WTFLogAlways("EventSenderProxy::continuousMouseScrollBy not implemented for paged scroll events");
+        return;
+    }
 
     GdkEvent* event = gdk_event_new(GDK_SCROLL);
     event->scroll.x = m_position.x;
@@ -463,11 +466,6 @@ void EventSenderProxy::mouseScrollByWithWheelAndMomentumPhases(int x, int y, int
     // Gtk+ does not have the concept of wheel gesture phases or momentum. Just relay to
     // the mouse wheel handler.
     mouseScrollBy(x, y);
-}
-
-void EventSenderProxy::swipeGestureWithWheelAndMomentumPhases(int, int, int, int)
-{
-    notImplemented();
 }
 
 void EventSenderProxy::leapForward(int milliseconds)

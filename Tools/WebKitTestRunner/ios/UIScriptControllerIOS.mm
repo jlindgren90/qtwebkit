@@ -94,6 +94,18 @@ void UIScriptController::doAfterNextStablePresentationUpdate(JSValueRef callback
     }];
 }
 
+void UIScriptController::doAfterVisibleContentRectUpdate(JSValueRef callback)
+{
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+
+    unsigned callbackID = m_context->prepareForAsyncTask(callback, CallbackTypeNonPersistent);
+    [webView _doAfterNextVisibleContentRectUpdate:^ {
+        if (!m_context)
+            return;
+        m_context->asyncTaskComplete(callbackID);
+    }];
+}
+
 void UIScriptController::zoomToScale(double scale, JSValueRef callback)
 {
     TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
@@ -536,6 +548,11 @@ JSRetainPtr<JSStringRef> UIScriptController::scrollingTreeAsText() const
     return JSStringCreateWithCFString((CFStringRef)[webView _scrollingTreeAsText]);
 }
 
+JSObjectRef UIScriptController::propertiesOfLayerWithID(uint64_t layerID) const
+{
+    return JSValueToObject(m_context->jsContext(), [JSValue valueWithObject:[TestController::singleton().mainWebView()->platformView() _propertiesOfLayerWithID:layerID] inContext:[JSContext contextWithJSGlobalContextRef:m_context->jsContext()]].JSValueRef, nullptr);
+}
+
 void UIScriptController::removeViewFromWindow(JSValueRef callback)
 {
     TestController::singleton().mainWebView()->removeFromWindow();
@@ -649,6 +666,13 @@ void UIScriptController::platformClearAllCallbacks()
     webView.didHideKeyboardCallback = nil;
     webView.didShowKeyboardCallback = nil;
     webView.didEndScrollingCallback = nil;
+}
+
+void UIScriptController::setSafeAreaInsets(double top, double right, double bottom, double left)
+{
+    UIEdgeInsets insets = UIEdgeInsetsMake(top, left, bottom, right);
+    TestRunnerWKWebView *webView = TestController::singleton().mainWebView()->platformView();
+    webView.overrideSafeAreaInsets = insets;
 }
 
 }

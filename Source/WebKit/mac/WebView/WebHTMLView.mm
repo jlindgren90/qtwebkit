@@ -138,6 +138,7 @@
 #import <wtf/MathExtras.h>
 #import <wtf/ObjcRuntimeExtras.h>
 #import <wtf/RunLoop.h>
+#import <wtf/SystemTracing.h>
 
 #if !PLATFORM(IOS)
 #import "WebNSEventExtras.h"
@@ -778,6 +779,7 @@ const float _WebHTMLViewPrintingMaximumShrinkFactor = PrintContext::maximumShrin
 // Fake URL scheme.
 #define WebDataProtocolScheme @"webkit-fake-url"
 
+#if !PLATFORM(IOS)
 // <rdar://problem/4985524> References to WebCoreScrollView as a subview of a WebHTMLView may be present
 // in some NIB files, so NSUnarchiver must be still able to look up this now-unused class.
 @interface WebCoreScrollView : NSScrollView
@@ -786,7 +788,6 @@ const float _WebHTMLViewPrintingMaximumShrinkFactor = PrintContext::maximumShrin
 @implementation WebCoreScrollView
 @end
 
-#if !PLATFORM(IOS)
 // We need this to be able to safely reference the CachedImage for the promised drag data
 static CachedImageClient& promisedDataClient()
 {
@@ -2389,7 +2390,8 @@ static bool mouseEventIsPartOfClickOrDrag(NSEvent *event)
     if (!coreFrame)
         return nil;
 
-    auto dragImage = createDragImageForSelection(*coreFrame);
+    TextIndicatorData textIndicator;
+    auto dragImage = createDragImageForSelection(*coreFrame, textIndicator);
     [dragImage _web_dissolveToFraction:WebDragImageAlpha];
 
     return dragImage.autorelease();
@@ -2552,7 +2554,7 @@ static bool mouseEventIsPartOfClickOrDrag(NSEvent *event)
             
         NSDictionary *documentAttributes = [[NSDictionary alloc] initWithObjectsAndKeys:
             [[self class] _excludedElementsForAttributedStringConversion], NSExcludedElementsDocumentAttribute,
-            self, @"WebResourceHandler", nil];
+            nil];
         NSArray *s;
         
         BOOL wasDeferringCallbacks = [[self _webView] defersCallbacks];
@@ -4193,6 +4195,8 @@ static BOOL currentScrollIsBlit(NSView *clipView)
 - (void)drawRect:(NSRect)rect
 {
     LOG(View, "%@ drawing", self);
+    
+    TraceScope scope(WebHTMLViewPaintStart, WebHTMLViewPaintEnd);
 
 #if !PLATFORM(IOS)
     const NSRect *rects;
@@ -4691,6 +4695,42 @@ static bool matchesExtensionOrEquivalent(NSString *filename, NSString *extension
     
     return [NSArray arrayWithObject:[path lastPathComponent]];
 }
+
+// MARK: NSDraggingSource
+
+- (NSDragOperation)draggingSession:(NSDraggingSession *)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context
+{
+    ASSERT(![self _webView] || [self _isTopHTMLView]);
+
+    Page* page = core([self _webView]);
+    if (!page)
+        return NSDragOperationNone;
+
+    return (NSDragOperation)page->dragController().sourceDragOperation();
+}
+
+- (void)draggingSession:(NSDraggingSession *)session endedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation
+{
+    ASSERT(![self _webView] || [self _isTopHTMLView]);
+
+    NSPoint windowLocation = [self.window convertRectFromScreen:{ screenPoint, NSZeroSize }].origin;
+
+    if (Page* page = core([self _webView]))
+        page->dragController().dragEnded();
+
+    [[self _frame] _dragSourceEndedAt:windowLocation operation:operation];
+
+    // Prevent queued mouseDragged events from coming after the drag and fake mouseUp event.
+    _private->ignoringMouseDraggedEvents = YES;
+
+    // Once the dragging machinery kicks in, we no longer get mouse drags or the up event.
+    // WebCore expects to get balanced down/up's, so we must fake up a mouseup.
+    NSEvent *fakeEvent = [NSEvent mouseEventWithType:NSEventTypeLeftMouseUp location:windowLocation modifierFlags:[NSApp currentEvent].modifierFlags timestamp:[NSDate timeIntervalSinceReferenceDate] windowNumber:self.window. windowNumber context:nullptr eventNumber:0 clickCount:0 pressure:0];
+
+    // This will also update the mouseover state.
+    [self mouseUp:fakeEvent];
+}
+
 #endif // ENABLE(DRAG_SUPPORT) && PLATFORM(MAC)
 
 #if !PLATFORM(IOS)
@@ -5592,7 +5632,7 @@ static RetainPtr<CFStringRef> fontNameForDescription(NSString *familyName, BOOL 
     // Find the font the same way the rendering code would later if it encountered this CSS.
     FontDescription fontDescription;
     fontDescription.setIsItalic(italic);
-    fontDescription.setWeight(bold ? FontWeight900 : FontWeight500);
+    fontDescription.setWeight(bold ? FontSelectionValue(900) : FontSelectionValue(500));
     RefPtr<Font> font = FontCache::singleton().fontForFamily(fontDescription, familyName);
     return adoptCF(CTFontCopyPostScriptName(font->getCTFont()));
 }
@@ -7174,7 +7214,7 @@ static void extractUnderlines(NSAttributedString *string, Vector<CompositionUnde
 
     [self _updateSecureInputState];
 
-    if (!coreFrame->editor().hasComposition() || coreFrame->editor().ignoreCompositionSelectionChange())
+    if (!coreFrame->editor().hasComposition() || coreFrame->editor().ignoreSelectionChanges())
         return;
 
     unsigned start;
@@ -7337,7 +7377,8 @@ static CGImageRef selectionImage(Frame* frame, bool forceBlackText)
 #if PLATFORM(IOS)
     return selectionImage(coreFrame, forceBlackText);
 #else
-    return createDragImageForSelection(*coreFrame, forceBlackText).autorelease();
+    TextIndicatorData textIndicator;
+    return createDragImageForSelection(*coreFrame, textIndicator, forceBlackText).autorelease();
 #endif
 }
 

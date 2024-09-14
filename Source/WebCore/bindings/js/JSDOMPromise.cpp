@@ -38,41 +38,10 @@ using namespace JSC;
 
 namespace WebCore {
 
-DeferredPromise::DeferredPromise(JSDOMGlobalObject& globalObject, JSPromiseDeferred& promiseDeferred)
-    : ActiveDOMCallback(globalObject.scriptExecutionContext())
-    , m_deferred(&promiseDeferred)
-    , m_globalObject(&globalObject)
-{
-    auto locker = lockDuringMarking(globalObject.vm().heap, globalObject.gcLock());
-    globalObject.vm().heap.writeBarrier(&globalObject, &promiseDeferred);
-    globalObject.deferredPromises(locker).add(this);
-}
-
-DeferredPromise::~DeferredPromise()
-{
-    clear();
-}
-
-void DeferredPromise::clear()
-{
-    ASSERT(!m_deferred || m_globalObject);
-    if (m_deferred && m_globalObject) {
-        auto locker = lockDuringMarking(m_globalObject->vm().heap, m_globalObject->gcLock());
-        m_globalObject->deferredPromises(locker).remove(this);
-    }
-    m_deferred.clear();
-}
-
-void DeferredPromise::contextDestroyed()
-{
-    ActiveDOMCallback::contextDestroyed();
-    clear();
-}
-
 JSC::JSValue DeferredPromise::promise() const
 {
-    ASSERT(m_deferred);
-    return m_deferred->promise();
+    ASSERT(deferred());
+    return deferred()->promise();
 }
 
 void DeferredPromise::callFunction(ExecState& exec, JSValue function, JSValue resolution)
@@ -97,7 +66,7 @@ void DeferredPromise::reject()
     if (isSuspended())
         return;
 
-    ASSERT(m_deferred);
+    ASSERT(deferred());
     ASSERT(m_globalObject);
     auto& state = *m_globalObject->globalExec();
     JSC::JSLockHolder locker(&state);
@@ -109,7 +78,7 @@ void DeferredPromise::reject(std::nullptr_t)
     if (isSuspended())
         return;
 
-    ASSERT(m_deferred);
+    ASSERT(deferred());
     ASSERT(m_globalObject);
     auto& state = *m_globalObject->globalExec();
     JSC::JSLockHolder locker(&state);
@@ -121,11 +90,19 @@ void DeferredPromise::reject(Exception&& exception)
     if (isSuspended())
         return;
 
-    ASSERT(m_deferred);
+    ASSERT(deferred());
     ASSERT(m_globalObject);
     auto& state = *m_globalObject->globalExec();
     JSC::JSLockHolder locker(&state);
-    reject(state, createDOMException(state, WTFMove(exception)));
+
+    auto scope = DECLARE_THROW_SCOPE(state.vm());
+    auto error = createDOMException(state, WTFMove(exception));
+    if (UNLIKELY(scope.exception())) {
+        ASSERT(isTerminatedExecutionException(state.vm(), scope.exception()));
+        return;
+    }
+
+    reject(state, error);
 }
 
 void DeferredPromise::reject(ExceptionCode ec, const String& message)
@@ -133,11 +110,20 @@ void DeferredPromise::reject(ExceptionCode ec, const String& message)
     if (isSuspended())
         return;
 
-    ASSERT(m_deferred);
+    ASSERT(deferred());
     ASSERT(m_globalObject);
-    JSC::ExecState* state = m_globalObject->globalExec();
-    JSC::JSLockHolder locker(state);
-    reject(*state, createDOMException(state, ec, message));
+    auto& state = *m_globalObject->globalExec();
+    JSC::JSLockHolder locker(&state);
+
+    auto scope = DECLARE_THROW_SCOPE(state.vm());
+    auto error = createDOMException(&state, ec, message);
+    if (UNLIKELY(scope.exception())) {
+        ASSERT(isTerminatedExecutionException(state.vm(), scope.exception()));
+        return;
+    }
+
+
+    reject(state, error);
 }
 
 void DeferredPromise::reject(const JSC::PrivateName& privateName)
@@ -145,7 +131,7 @@ void DeferredPromise::reject(const JSC::PrivateName& privateName)
     if (isSuspended())
         return;
 
-    ASSERT(m_deferred);
+    ASSERT(deferred());
     ASSERT(m_globalObject);
     JSC::ExecState* state = m_globalObject->globalExec();
     JSC::JSLockHolder locker(state);

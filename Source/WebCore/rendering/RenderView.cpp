@@ -121,6 +121,7 @@ private:
 RenderView::RenderView(Document& document, RenderStyle&& style)
     : RenderBlockFlow(document, WTFMove(style))
     , m_frameView(*document.view())
+    , m_weakFactory(this)
     , m_lazyRepaintTimer(*this, &RenderView::lazyRepaintTimerFired)
 #if ENABLE(SERVICE_CONTROLS)
     , m_selectionRectGatherer(*this)
@@ -153,7 +154,7 @@ void RenderView::scheduleLazyRepaint(RenderBox& renderer)
     renderer.setRenderBoxNeedsLazyRepaint(true);
     m_renderersNeedingLazyRepaint.add(&renderer);
     if (!m_lazyRepaintTimer.isActive())
-        m_lazyRepaintTimer.startOneShot(0);
+        m_lazyRepaintTimer.startOneShot(0_s);
 }
 
 void RenderView::unscheduleLazyRepaint(RenderBox& renderer)
@@ -1232,6 +1233,18 @@ void RenderView::pushLayoutState(RenderObject& root)
     pushLayoutStateForCurrentFlowThread(root);
 }
 
+bool RenderView::pushLayoutStateForPaginationIfNeeded(RenderBlockFlow& layoutRoot)
+{
+    if (m_layoutState)
+        return false;
+    m_layoutState = std::make_unique<LayoutState>(layoutRoot);
+    m_layoutState->m_isPaginated = true;
+    // This is just a flag for known page height (see RenderBlockFlow::checkForPaginationLogicalHeightChange).
+    m_layoutState->m_pageLogicalHeight = 1;
+    pushLayoutStateForCurrentFlowThread(layoutRoot);
+    return true;
+}
+
 IntSize RenderView::viewportSizeForCSSViewportUnits() const
 {
     return frameView().viewportSizeForCSSViewportUnits();
@@ -1378,18 +1391,22 @@ void RenderView::updateVisibleViewportRect(const IntRect& visibleRect)
 {
     resumePausedImageAnimationsIfNeeded(visibleRect);
 
-    for (auto* renderer : m_visibleInViewportRenderers)
-        renderer->visibleInViewportStateChanged(visibleRect.intersects(enclosingIntRect(renderer->absoluteClippedOverflowRect())) ? RenderElement::VisibleInViewport : RenderElement::NotVisibleInViewport);
+    for (auto* renderer : m_visibleInViewportRenderers) {
+        auto state = visibleRect.intersects(enclosingIntRect(renderer->absoluteClippedOverflowRect())) ? VisibleInViewportState::Yes : VisibleInViewportState::No;
+        renderer->setVisibleInViewportState(state);
+    }
 }
 
-void RenderView::addRendererWithPausedImageAnimations(RenderElement& renderer)
+void RenderView::addRendererWithPausedImageAnimations(RenderElement& renderer, CachedImage& image)
 {
-    if (renderer.hasPausedImageAnimations()) {
-        ASSERT(m_renderersWithPausedImageAnimation.contains(&renderer));
-        return;
-    }
+    ASSERT(!renderer.hasPausedImageAnimations() || m_renderersWithPausedImageAnimation.contains(&renderer));
+
     renderer.setHasPausedImageAnimations(true);
-    m_renderersWithPausedImageAnimation.add(&renderer);
+    auto& images = m_renderersWithPausedImageAnimation.ensure(&renderer, [] {
+        return Vector<CachedImage*>();
+    }).iterator->value;
+    if (!images.contains(&image))
+        images.append(&image);
 }
 
 void RenderView::removeRendererWithPausedImageAnimations(RenderElement& renderer)
@@ -1401,22 +1418,47 @@ void RenderView::removeRendererWithPausedImageAnimations(RenderElement& renderer
     m_renderersWithPausedImageAnimation.remove(&renderer);
 }
 
+void RenderView::removeRendererWithPausedImageAnimations(RenderElement& renderer, CachedImage& image)
+{
+    ASSERT(renderer.hasPausedImageAnimations());
+
+    auto it = m_renderersWithPausedImageAnimation.find(&renderer);
+    ASSERT(it != m_renderersWithPausedImageAnimation.end());
+
+    auto& images = it->value;
+    if (!images.contains(&image))
+        return;
+
+    if (images.size() == 1)
+        removeRendererWithPausedImageAnimations(renderer);
+    else
+        images.removeFirst(&image);
+}
+
 void RenderView::resumePausedImageAnimationsIfNeeded(IntRect visibleRect)
 {
-    Vector<RenderElement*, 10> toRemove;
-    for (auto* renderer : m_renderersWithPausedImageAnimation) {
-        if (renderer->repaintForPausedImageAnimationsIfNeeded(visibleRect))
-            toRemove.append(renderer);
+    Vector<std::pair<RenderElement*, CachedImage*>, 10> toRemove;
+    for (auto& it : m_renderersWithPausedImageAnimation) {
+        auto* renderer = it.key;
+        for (auto* image : it.value) {
+            if (renderer->repaintForPausedImageAnimationsIfNeeded(visibleRect, *image))
+                toRemove.append(std::make_pair(renderer, image));
+        }
     }
-    for (auto& renderer : toRemove)
-        removeRendererWithPausedImageAnimations(*renderer);
+    for (auto& pair : toRemove)
+        removeRendererWithPausedImageAnimations(*pair.first, *pair.second);
 }
 
 RenderView::RepaintRegionAccumulator::RepaintRegionAccumulator(RenderView* view)
-    : m_rootView(view ? view->document().topDocument().renderView() : nullptr)
 {
-    if (!m_rootView)
+    if (!view)
         return;
+
+    auto* rootRenderView = view->document().topDocument().renderView();
+    if (!rootRenderView)
+        return;
+
+    m_rootView = rootRenderView->createWeakPtr();
     m_wasAccumulatingRepaintRegion = !!m_rootView->m_accumulatedRepaintRegion;
     if (!m_wasAccumulatingRepaintRegion)
         m_rootView->m_accumulatedRepaintRegion = std::make_unique<Region>();

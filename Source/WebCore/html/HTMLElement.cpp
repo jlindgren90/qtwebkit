@@ -101,8 +101,8 @@ static inline CSSValueID unicodeBidiAttributeForDirAuto(HTMLElement& element)
 
 unsigned HTMLElement::parseBorderWidthAttribute(const AtomicString& value) const
 {
-    if (std::optional<unsigned> borderWidth = parseHTMLNonNegativeInteger(value))
-        return borderWidth.value();
+    if (auto optionalBorderWidth = parseHTMLNonNegativeInteger(value))
+        return optionalBorderWidth.value();
 
     return hasTagName(tableTag) ? 1 : 0;
 }
@@ -183,7 +183,7 @@ void HTMLElement::collectStyleForPresentationAttribute(const QualifiedName& name
         case ContentEditableType::True:
             addPropertyToPresentationAttributeStyle(style, CSSPropertyWordWrap, CSSValueBreakWord);
             addPropertyToPresentationAttributeStyle(style, CSSPropertyWebkitNbspMode, CSSValueSpace);
-            addPropertyToPresentationAttributeStyle(style, CSSPropertyWebkitLineBreak, CSSValueAfterWhiteSpace);
+            addPropertyToPresentationAttributeStyle(style, CSSPropertyLineBreak, CSSValueAfterWhiteSpace);
 #if PLATFORM(IOS)
             addPropertyToPresentationAttributeStyle(style, CSSPropertyWebkitTextSizeAdjust, CSSValueNone);
 #endif
@@ -424,8 +424,8 @@ void HTMLElement::parseAttribute(const QualifiedName& name, const AtomicString& 
     if (name == tabindexAttr) {
         if (value.isEmpty())
             clearTabIndexExplicitlyIfNeeded();
-        else if (std::optional<int> tabIndex = parseHTMLInteger(value))
-            setTabIndexExplicitly(tabIndex.value());
+        else if (auto optionalTabIndex = parseHTMLInteger(value))
+            setTabIndexExplicitly(optionalTabIndex.value());
         return;
     }
 
@@ -451,7 +451,10 @@ static Ref<DocumentFragment> textToFragment(Document& document, const String& te
                 break;
         }
 
-        fragment->appendChild(Text::create(document, text.substring(start, i - start)));
+        // If text is not the empty string, then append a new Text node whose data is text and node document is document to fragment.
+        if (i > start)
+            fragment->appendChild(Text::create(document, text.substring(start, i - start)));
+
         if (i == length)
             break;
 

@@ -66,13 +66,14 @@ enum ShouldSerializeSelectedTextForDataTransfer { DefaultSelectedTextType, Inclu
 // For writing to the pasteboard. Generally sorted with the richest formats on top.
 
 struct PasteboardWebContent {
-#if !(PLATFORM(EFL) || PLATFORM(GTK) || PLATFORM(QT) || PLATFORM(WIN))
+#if !(PLATFORM(GTK) || PLATFORM(WIN) || PLATFORM(QT))
     WEBCORE_EXPORT PasteboardWebContent();
     WEBCORE_EXPORT ~PasteboardWebContent();
     bool canSmartCopyOrDelete;
     RefPtr<SharedBuffer> dataInWebArchiveFormat;
     RefPtr<SharedBuffer> dataInRTFDFormat;
     RefPtr<SharedBuffer> dataInRTFFormat;
+    RefPtr<SharedBuffer> dataInAttributedStringFormat;
     String dataInHTMLFormat;
     String dataInStringFormat;
     Vector<String> clientTypes;
@@ -103,10 +104,10 @@ struct PasteboardImage {
 #if PLATFORM(MAC)
     RefPtr<SharedBuffer> dataInWebArchiveFormat;
 #endif
-#if !(PLATFORM(EFL) || PLATFORM(WIN)|| PLATFORM(QT))
+#if !(PLATFORM(WIN) || PLATFORM(QT))
     PasteboardURL url;
 #endif
-#if !(PLATFORM(EFL) || PLATFORM(GTK) || PLATFORM(WIN))
+#if !(PLATFORM(GTK) || PLATFORM(WIN))
     RefPtr<SharedBuffer> resourceData;
     String resourceMIMEType;
 #endif
@@ -118,7 +119,7 @@ class PasteboardWebContentReader {
 public:
     virtual ~PasteboardWebContentReader() { }
 
-#if !(PLATFORM(EFL) || PLATFORM(GTK) || PLATFORM(QT) || PLATFORM(WIN))
+#if !(PLATFORM(GTK) || PLATFORM(WIN) || PLATFORM(QT))
     virtual bool readWebArchive(SharedBuffer*) = 0;
     virtual bool readFilenames(const Vector<String>&) = 0;
     virtual bool readHTML(const String&) = 0;
@@ -204,6 +205,8 @@ public:
 #endif
 
 #if PLATFORM(IOS)
+    explicit Pasteboard(long changeCount);
+
     static NSArray* supportedPasteboardTypes();
     static String resourceMIMEType(const NSString *mimeType);
 #endif
@@ -238,6 +241,11 @@ public:
 private:
 #if PLATFORM(QT)
     const QMimeData* readData() const;
+#endif
+
+#if PLATFORM(IOS)
+    bool respectsUTIFidelities() const;
+    void readRespectingUTIFidelities(PasteboardWebContentReader&);
 #endif
 
 #if PLATFORM(WIN)

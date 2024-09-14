@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef GraphicsLayerCA_h
-#define GraphicsLayerCA_h
+#pragma once
 
 #include "GraphicsLayer.h"
 #include "PlatformCAAnimation.h"
@@ -76,9 +75,12 @@ public:
     WEBCORE_EXPORT void setReplicatedLayer(GraphicsLayer*) override;
 
     WEBCORE_EXPORT void setPosition(const FloatPoint&) override;
+    WEBCORE_EXPORT void syncPosition(const FloatPoint&) override;
+    WEBCORE_EXPORT void setApproximatePosition(const FloatPoint&) override;
     WEBCORE_EXPORT void setAnchorPoint(const FloatPoint3D&) override;
     WEBCORE_EXPORT void setSize(const FloatSize&) override;
     WEBCORE_EXPORT void setBoundsOrigin(const FloatPoint&) override;
+    WEBCORE_EXPORT void syncBoundsOrigin(const FloatPoint&) override;
 
     WEBCORE_EXPORT void setTransform(const TransformationMatrix&) override;
 
@@ -95,6 +97,8 @@ public:
     WEBCORE_EXPORT void setBackgroundColor(const Color&) override;
 
     WEBCORE_EXPORT void setContentsOpaque(bool) override;
+    WEBCORE_EXPORT void setSupportsSubpixelAntialiasedText(bool) override;
+
     WEBCORE_EXPORT void setBackfaceVisibility(bool) override;
 
     // return true if we started an animation
@@ -151,9 +155,11 @@ public:
 
     struct CommitState {
         int treeDepth { 0 };
+        bool ancestorHadChanges { false };
         bool ancestorHasTransformAnimation { false };
         bool ancestorIsViewportConstrained { false };
     };
+    bool needsCommit(const CommitState&);
     void recursiveCommitChanges(const CommitState&, const TransformState&, float pageScaleFactor = 1, const FloatPoint& positionRelativeToBase = FloatPoint(), bool affectedByPageScale = false);
 
     WEBCORE_EXPORT void flushCompositingState(const FloatRect&) override;
@@ -406,6 +412,7 @@ private:
     void updateAnimations();
     void updateContentsNeedsDisplay();
     void updateAcceleratesDrawing();
+    void updateSupportsSubpixelAntialiasedText();
     void updateDebugBorder();
     void updateTiles();
     void updateContentsScale(float pageScaleFactor);
@@ -453,50 +460,58 @@ private:
     bool appendToUncommittedAnimations(const KeyframeValueList&, const FilterOperation*, const Animation*, const String& animationName, int animationIndex, double timeOffset);
 
     enum LayerChange : uint64_t {
-        NoChange =                      0,
-        NameChanged =                   1LLU << 1,
-        ChildrenChanged =               1LLU << 2, // also used for content layer, and preserves-3d, and size if tiling changes?
-        GeometryChanged =               1LLU << 3,
-        TransformChanged =              1LLU << 4,
-        ChildrenTransformChanged =      1LLU << 5,
-        Preserves3DChanged =            1LLU << 6,
-        MasksToBoundsChanged =          1LLU << 7,
-        DrawsContentChanged =           1LLU << 8,
-        BackgroundColorChanged =        1LLU << 9,
-        ContentsOpaqueChanged =         1LLU << 10,
-        BackfaceVisibilityChanged =     1LLU << 11,
-        OpacityChanged =                1LLU << 12,
-        AnimationChanged =              1LLU << 13,
-        DirtyRectsChanged =             1LLU << 14,
-        ContentsImageChanged =          1LLU << 15,
-        ContentsPlatformLayerChanged =  1LLU << 16,
-        ContentsColorLayerChanged =     1LLU << 17,
-        ContentsRectsChanged =          1LLU << 18,
-        MasksToBoundsRectChanged =      1LLU << 19,
-        MaskLayerChanged =              1LLU << 20,
-        ReplicatedLayerChanged =        1LLU << 21,
-        ContentsNeedsDisplay =          1LLU << 22,
-        AcceleratesDrawingChanged =     1LLU << 23,
-        ContentsScaleChanged =          1LLU << 24,
-        ContentsVisibilityChanged =     1LLU << 25,
-        CoverageRectChanged =           1LLU << 26,
-        FiltersChanged =                1LLU << 27,
-        BackdropFiltersChanged =        1LLU << 28,
-        BackdropFiltersRectChanged =    1LLU << 29,
-        TilingAreaChanged =             1LLU << 30,
-        TilesAdded =                    1LLU << 31,
-        DebugIndicatorsChanged =        1LLU << 32,
-        CustomAppearanceChanged =       1LLU << 33,
-        BlendModeChanged =              1LLU << 34,
-        ShapeChanged =                  1LLU << 35,
-        WindRuleChanged =               1LLU << 36,
-        UserInteractionEnabledChanged = 1LLU << 37,
+        NoChange                                = 0,
+        NameChanged                             = 1LLU << 1,
+        ChildrenChanged                         = 1LLU << 2, // also used for content layer, and preserves-3d, and size if tiling changes?
+        GeometryChanged                         = 1LLU << 3,
+        TransformChanged                        = 1LLU << 4,
+        ChildrenTransformChanged                = 1LLU << 5,
+        Preserves3DChanged                      = 1LLU << 6,
+        MasksToBoundsChanged                    = 1LLU << 7,
+        DrawsContentChanged                     = 1LLU << 8,
+        BackgroundColorChanged                  = 1LLU << 9,
+        ContentsOpaqueChanged                   = 1LLU << 10,
+        BackfaceVisibilityChanged               = 1LLU << 11,
+        OpacityChanged                          = 1LLU << 12,
+        AnimationChanged                        = 1LLU << 13,
+        DirtyRectsChanged                       = 1LLU << 14,
+        ContentsImageChanged                    = 1LLU << 15,
+        ContentsPlatformLayerChanged            = 1LLU << 16,
+        ContentsColorLayerChanged               = 1LLU << 17,
+        ContentsRectsChanged                    = 1LLU << 18,
+        MasksToBoundsRectChanged                = 1LLU << 19,
+        MaskLayerChanged                        = 1LLU << 20,
+        ReplicatedLayerChanged                  = 1LLU << 21,
+        ContentsNeedsDisplay                    = 1LLU << 22,
+        AcceleratesDrawingChanged               = 1LLU << 23,
+        SupportsSubpixelAntialiasedTextChanged  = 1LLU << 24,
+        ContentsScaleChanged                    = 1LLU << 25,
+        ContentsVisibilityChanged               = 1LLU << 26,
+        CoverageRectChanged                     = 1LLU << 27,
+        FiltersChanged                          = 1LLU << 28,
+        BackdropFiltersChanged                  = 1LLU << 29,
+        BackdropFiltersRectChanged              = 1LLU << 30,
+        TilingAreaChanged                       = 1LLU << 31,
+        TilesAdded                              = 1LLU << 32,
+        DebugIndicatorsChanged                  = 1LLU << 33,
+        CustomAppearanceChanged                 = 1LLU << 34,
+        BlendModeChanged                        = 1LLU << 35,
+        ShapeChanged                            = 1LLU << 36,
+        WindRuleChanged                         = 1LLU << 37,
+        UserInteractionEnabledChanged           = 1LLU << 38,
+        NeedsComputeVisibleAndCoverageRect      = 1LLU << 39,
     };
     typedef uint64_t LayerChangeFlags;
+    void addUncommittedChanges(LayerChangeFlags);
+    bool hasDescendantsWithUncommittedChanges() const { return m_hasDescendantsWithUncommittedChanges; }
+    void setHasDescendantsWithUncommittedChanges(bool);
     enum ScheduleFlushOrNot { ScheduleFlush, DontScheduleFlush };
     void noteLayerPropertyChanged(LayerChangeFlags, ScheduleFlushOrNot = ScheduleFlush);
     void noteSublayersChanged(ScheduleFlushOrNot = ScheduleFlush);
     void noteChangesForScaleSensitiveProperties();
+
+    bool hasDescendantsWithRunningTransformAnimations() const { return m_hasDescendantsWithRunningTransformAnimations; }
+    void setHasDescendantsWithRunningTransformAnimations(bool b) { m_hasDescendantsWithRunningTransformAnimations = b; }
 
     void propagateLayerChangeToReplicas(ScheduleFlushOrNot = ScheduleFlush);
 
@@ -530,11 +545,12 @@ private:
     FloatRect m_coverageRect; // Area for which we should maintain backing store, in the coordinate space of this layer.
     
     ContentsLayerPurpose m_contentsLayerPurpose { NoContentsLayer };
-    bool m_needsFullRepaint : 1;
-    bool m_usingBackdropLayerType : 1;
-    bool m_isViewportConstrained : 1;
-    bool m_intersectsCoverageRect : 1;
-    bool m_hasEverPainted : 1;
+    bool m_needsFullRepaint { false };
+    bool m_usingBackdropLayerType { false };
+    bool m_isViewportConstrained { false };
+    bool m_intersectsCoverageRect { false };
+    bool m_hasEverPainted { false };
+    bool m_hasDescendantsWithRunningTransformAnimations { false };
 
     Color m_contentsSolidColor;
 
@@ -582,17 +598,23 @@ private:
     AnimationsMap m_runningAnimations;
 
     Vector<FloatRect> m_dirtyRects;
-    
+
     std::unique_ptr<DisplayList::DisplayList> m_displayList;
 
     FloatSize m_pixelAlignmentOffset;
 
+#if PLATFORM(WIN)
+    // FIXME: when initializing m_uncommittedChanges to a non-zero value, nothing is painted on Windows, see https://bugs.webkit.org/show_bug.cgi?id=168666.
+    LayerChangeFlags m_uncommittedChanges { 0 };
+#else
     LayerChangeFlags m_uncommittedChanges { CoverageRectChanged };
+#endif
+    bool m_hasDescendantsWithUncommittedChanges { false };
+
     bool m_isCommittingChanges { false };
+    FloatRect m_previousCommittedVisibleRect;
 };
 
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_GRAPHICSLAYER(WebCore::GraphicsLayerCA, isGraphicsLayerCA())
-
-#endif // GraphicsLayerCA_h

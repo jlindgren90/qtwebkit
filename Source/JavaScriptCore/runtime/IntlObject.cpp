@@ -92,21 +92,15 @@ void IntlObject::finishCreation(VM& vm, JSGlobalObject* globalObject)
     Structure* collatorStructure = IntlCollator::createStructure(vm, globalObject, collatorPrototype);
     IntlCollatorConstructor* collatorConstructor = IntlCollatorConstructor::create(vm, IntlCollatorConstructor::createStructure(vm, globalObject, globalObject->functionPrototype()), collatorPrototype, collatorStructure);
 
-    collatorPrototype->putDirectWithoutTransition(vm, vm.propertyNames->constructor, collatorConstructor, DontEnum);
-
     // Set up NumberFormat.
     IntlNumberFormatPrototype* numberFormatPrototype = IntlNumberFormatPrototype::create(vm, globalObject, IntlNumberFormatPrototype::createStructure(vm, globalObject, globalObject->objectPrototype()));
     Structure* numberFormatStructure = IntlNumberFormat::createStructure(vm, globalObject, numberFormatPrototype);
     IntlNumberFormatConstructor* numberFormatConstructor = IntlNumberFormatConstructor::create(vm, IntlNumberFormatConstructor::createStructure(vm, globalObject, globalObject->functionPrototype()), numberFormatPrototype, numberFormatStructure);
 
-    numberFormatPrototype->putDirectWithoutTransition(vm, vm.propertyNames->constructor, numberFormatConstructor, DontEnum);
-
     // Set up DateTimeFormat.
     IntlDateTimeFormatPrototype* dateTimeFormatPrototype = IntlDateTimeFormatPrototype::create(vm, globalObject, IntlDateTimeFormatPrototype::createStructure(vm, globalObject, globalObject->objectPrototype()));
     Structure* dateTimeFormatStructure = IntlDateTimeFormat::createStructure(vm, globalObject, dateTimeFormatPrototype);
     IntlDateTimeFormatConstructor* dateTimeFormatConstructor = IntlDateTimeFormatConstructor::create(vm, IntlDateTimeFormatConstructor::createStructure(vm, globalObject, globalObject->functionPrototype()), dateTimeFormatPrototype, dateTimeFormatStructure);
-
-    dateTimeFormatPrototype->putDirectWithoutTransition(vm, vm.propertyNames->constructor, dateTimeFormatConstructor, DontEnum);
 
     // 8.1 Properties of the Intl Object (ECMA-402 2.0)
     putDirectWithoutTransition(vm, vm.propertyNames->Collator, collatorConstructor, DontEnum);
@@ -548,13 +542,15 @@ Vector<String> canonicalizeLocaleList(ExecState& state, JSValue locales)
     JSObject* localesObject;
     if (locales.isString()) {
         //  a. Let aLocales be CreateArrayFromList(«locales»).
-        JSArray* localesArray = JSArray::tryCreate(vm, globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous), 1);
+        JSArray* localesArray = JSArray::tryCreate(vm, globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous));
         if (!localesArray) {
             throwOutOfMemoryError(&state, scope);
             RETURN_IF_EXCEPTION(scope, Vector<String>());
         }
 
-        localesArray->initializeIndex(vm, 0, locales);
+        localesArray->push(&state, locales);
+        RETURN_IF_EXCEPTION(scope, Vector<String>());
+
         // 4. Let O be ToObject(aLocales).
         localesObject = localesArray;
     } else {
@@ -1036,7 +1032,7 @@ EncodedJSValue JSC_HOST_CALL intlObjectFuncGetCanonicalLocales(ExecState* state)
 
     // 2. Return CreateArrayFromList(ll).
     JSGlobalObject* globalObject = state->jsCallee()->globalObject();
-    JSArray* localeArray = JSArray::tryCreate(vm, globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous), localeList.size());
+    JSArray* localeArray = JSArray::tryCreate(vm, globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous));
     if (!localeArray) {
         throwOutOfMemoryError(state, scope);
         return encodedJSValue();
@@ -1044,7 +1040,7 @@ EncodedJSValue JSC_HOST_CALL intlObjectFuncGetCanonicalLocales(ExecState* state)
 
     auto length = localeList.size();
     for (size_t i = 0; i < length; ++i) {
-        localeArray->initializeIndex(vm, i, jsString(state, localeList[i]));
+        localeArray->push(state, jsString(state, localeList[i]));
         RETURN_IF_EXCEPTION(scope, encodedJSValue());
     }
     return JSValue::encode(localeArray);

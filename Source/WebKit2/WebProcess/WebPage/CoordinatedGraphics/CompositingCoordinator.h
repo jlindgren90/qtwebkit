@@ -37,7 +37,6 @@
 #include <WebCore/GraphicsLayerClient.h>
 #include <WebCore/GraphicsLayerFactory.h>
 #include <WebCore/IntRect.h>
-#include <WebCore/Timer.h>
 
 namespace WebCore {
 class Page;
@@ -79,6 +78,7 @@ public:
 
     void createRootLayer(const WebCore::IntSize&);
     WebCore::GraphicsLayer* rootLayer() const { return m_rootLayer.get(); }
+    WebCore::GraphicsLayer* rootCompositingLayer() const { return m_rootCompositingLayer; }
     WebCore::CoordinatedGraphicsLayer* mainContentsLayer();
 
     bool flushPendingLayerChanges();
@@ -157,7 +157,7 @@ private:
     bool m_didInitializeRootCompositingLayer { false };
 
     WebCore::FloatRect m_visibleContentsRect;
-    WebCore::Timer m_releaseInactiveAtlasesTimer;
+    RunLoop::Timer<CompositingCoordinator> m_releaseInactiveAtlasesTimer;
 
     double m_lastAnimationServiceTime { 0 };
 };

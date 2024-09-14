@@ -249,7 +249,7 @@ void ContextMenuController::contextMenuItemSelected(ContextMenuAction action, co
         // For now, call into the client. This is temporary!
         frame->editor().copyImage(m_context.hitTestResult());
         break;
-#if PLATFORM(QT) || PLATFORM(GTK) || PLATFORM(EFL)
+#if PLATFORM(GTK) || PLATFORM(QT)
     case ContextMenuItemTagCopyImageUrlToClipboard:
         frame->editor().copyURL(m_context.hitTestResult().absoluteImageURL(), m_context.hitTestResult().textContent());
         break;
@@ -351,7 +351,7 @@ void ContextMenuController::contextMenuItemSelected(ContextMenuAction action, co
         insertUnicodeCharacter(zeroWidthNonJoiner, *frame);
         break;
 #endif
-#if PLATFORM(GTK) || PLATFORM(QT) || PLATFORM(EFL)
+#if PLATFORM(GTK) || PLATFORM(QT)
     case ContextMenuItemTagSelectAll:
         frame->editor().command("SelectAll").execute();
         break;
@@ -754,7 +754,7 @@ void ContextMenuController::populate()
         contextMenuItemTagDownloadImageToDisk());
     ContextMenuItem CopyImageItem(ActionType, ContextMenuItemTagCopyImageToClipboard, 
         contextMenuItemTagCopyImageToClipboard());
-#if PLATFORM(QT) || PLATFORM(GTK) || PLATFORM(EFL)
+#if PLATFORM(GTK) || PLATFORM(QT)
     ContextMenuItem CopyImageUrlItem(ActionType, ContextMenuItemTagCopyImageUrlToClipboard, 
         contextMenuItemTagCopyImageUrlToClipboard());
 #endif
@@ -808,11 +808,11 @@ void ContextMenuController::populate()
 #if PLATFORM(GTK)
     ContextMenuItem DeleteItem(ActionType, ContextMenuItemTagDelete, contextMenuItemTagDelete());
 #endif
-#if PLATFORM(GTK) || PLATFORM(QT) || PLATFORM(EFL)
+#if PLATFORM(GTK) || PLATFORM(QT)
     ContextMenuItem SelectAllItem(ActionType, ContextMenuItemTagSelectAll, contextMenuItemTagSelectAll());
 #endif
 
-#if PLATFORM(GTK) || PLATFORM(EFL) || PLATFORM(WIN)
+#if PLATFORM(GTK) || PLATFORM(WIN)
     ContextMenuItem ShareMenuItem;
 #else
     ContextMenuItem ShareMenuItem(SubmenuType, ContextMenuItemTagShareMenu, emptyString());
@@ -863,7 +863,7 @@ void ContextMenuController::populate()
             appendItem(DownloadImageItem, m_contextMenu.get());
             if (imageURL.isLocalFile() || m_context.hitTestResult().image())
                 appendItem(CopyImageItem, m_contextMenu.get());
-#if PLATFORM(QT) || PLATFORM(GTK) || PLATFORM(EFL)
+#if PLATFORM(GTK) || PLATFORM(QT)
             appendItem(CopyImageUrlItem, m_contextMenu.get());
 #endif
         }
@@ -1050,7 +1050,7 @@ void ContextMenuController::populate()
         appendItem(DeleteItem, m_contextMenu.get());
         appendItem(*separatorItem(), m_contextMenu.get());
 #endif
-#if PLATFORM(GTK) || PLATFORM(QT) || PLATFORM(EFL)
+#if PLATFORM(GTK) || PLATFORM(QT)
         appendItem(SelectAllItem, m_contextMenu.get());
 #endif
 
@@ -1221,7 +1221,7 @@ void ContextMenuController::checkOrEnableIfNeeded(ContextMenuItem& item) const
             shouldEnable = true;
             break;
 #endif
-#if PLATFORM(GTK) || PLATFORM(EFL) || PLATFORM(QT)
+#if PLATFORM(GTK) || PLATFORM(QT)
         case ContextMenuItemTagSelectAll:
             shouldEnable = true;
             break;
@@ -1339,7 +1339,7 @@ void ContextMenuController::checkOrEnableIfNeeded(ContextMenuItem& item) const
         case ContextMenuItemTagCopyLinkToClipboard:
         case ContextMenuItemTagOpenImageInNewWindow:
         case ContextMenuItemTagCopyImageToClipboard:
-#if PLATFORM(QT) || PLATFORM(GTK) || PLATFORM(EFL)
+#if PLATFORM(GTK) || PLATFORM(QT)
         case ContextMenuItemTagCopyImageUrlToClipboard:
 #endif
             break;

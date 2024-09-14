@@ -29,10 +29,11 @@ function syncLoop(options)
     global.Metric.clearStaticMap();
     global.Platform.clearStaticMap();
     global.Repository.clearStaticMap();
-    global.RootSet.clearStaticMap();
+    global.CommitSet.clearStaticMap();
     global.Test.clearStaticMap();
     global.TestGroup.clearStaticMap();
     global.Triggerable.clearStaticMap();
+    global.TriggerableRepositoryGroup.clearStaticMap();
 
     let serverConfig = JSON.parse(fs.readFileSync(options['--server-config-json'], 'utf8'));
     let buildbotConfig = JSON.parse(fs.readFileSync(options['--buildbot-config-json'], 'utf8'));

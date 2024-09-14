@@ -103,6 +103,7 @@
 
 #if PLATFORM(IOS)
 #import "DumpRenderTreeBrowserView.h"
+#import "IOSLayoutTestCommunication.h"
 #import "UIKitSPI.h"
 #import <QuartzCore/QuartzCore.h>
 #import <WebCore/CoreGraphicsSPI.h>
@@ -378,6 +379,7 @@ static NSSet *allowedFontFamilySet()
         @"Kokonor",
         @"Krungthep",
         @"KufiStandardGK",
+        @"LastResort",
         @"LiHei Pro",
         @"LiSong Pro",
         @"Lucida Grande",
@@ -427,68 +429,6 @@ static NSSet *allowedFontFamilySet()
     return fontFamilySet;
 }
 
-#if !ENABLE(PLATFORM_FONT_LOOKUP)
-static IMP appKitAvailableFontFamiliesIMP;
-static IMP appKitAvailableFontsIMP;
-
-static NSArray *drt_NSFontManager_availableFontFamilies(id self, SEL _cmd)
-{
-    static NSArray *availableFontFamilies;
-    if (availableFontFamilies)
-        return availableFontFamilies;
-    
-    NSArray *availableFamilies = wtfCallIMP<id>(appKitAvailableFontFamiliesIMP, self, _cmd);
-
-    NSMutableSet *prunedFamiliesSet = [NSMutableSet setWithArray:availableFamilies];
-    [prunedFamiliesSet intersectSet:allowedFontFamilySet()];
-
-    availableFontFamilies = [[prunedFamiliesSet allObjects] retain];
-    return availableFontFamilies;
-}
-
-static NSArray *drt_NSFontManager_availableFonts(id self, SEL _cmd)
-{
-    static NSArray *availableFonts;
-    if (availableFonts)
-        return availableFonts;
-    
-    NSSet *allowedFamilies = allowedFontFamilySet();
-    NSMutableArray *availableFontList = [[NSMutableArray alloc] initWithCapacity:[allowedFamilies count] * 2];
-    for (NSString *fontFamily in allowedFontFamilySet()) {
-        NSArray* fontsForFamily = [[NSFontManager sharedFontManager] availableMembersOfFontFamily:fontFamily];
-        for (NSArray* fontInfo in fontsForFamily) {
-            // Font name is the first entry in the array.
-            [availableFontList addObject:[fontInfo objectAtIndex:0]];
-        }
-    }
-
-    availableFonts = availableFontList;
-    return availableFonts;
-}
-
-static void swizzleNSFontManagerMethods()
-{
-    Method availableFontFamiliesMethod = class_getInstanceMethod(objc_getClass("NSFontManager"), @selector(availableFontFamilies));
-    ASSERT(availableFontFamiliesMethod);
-    if (!availableFontFamiliesMethod) {
-        NSLog(@"Failed to swizzle the \"availableFontFamilies\" method on NSFontManager");
-        return;
-    }
-    
-    appKitAvailableFontFamiliesIMP = method_setImplementation(availableFontFamiliesMethod, (IMP)drt_NSFontManager_availableFontFamilies);
-
-    Method availableFontsMethod = class_getInstanceMethod(objc_getClass("NSFontManager"), @selector(availableFonts));
-    ASSERT(availableFontsMethod);
-    if (!availableFontsMethod) {
-        NSLog(@"Failed to swizzle the \"availableFonts\" method on NSFontManager");
-        return;
-    }
-    
-    appKitAvailableFontsIMP = method_setImplementation(availableFontsMethod, (IMP)drt_NSFontManager_availableFonts);
-}
-
-#else
-
 static NSArray *fontWhitelist()
 {
     static NSArray *availableFonts;
@@ -508,7 +448,6 @@ static NSArray *fontWhitelist()
     availableFonts = availableFontList;
     return availableFonts;
 }
-#endif
 
 // Activating system copies of these fonts overrides any others that could be preferred, such as ones
 // in /Library/Fonts/Microsoft, and which don't always have the same metrics.
@@ -587,9 +526,6 @@ static void activateTestingFonts()
 
 static void adjustFonts()
 {
-#if !ENABLE(PLATFORM_FONT_LOOKUP)
-    swizzleNSFontManagerMethods();
-#endif
     activateSystemCoreWebFonts();
     activateTestingFonts();
 }
@@ -779,7 +715,7 @@ WebView *createWebViewAndOffscreenWindow()
     [WebView registerURLSchemeAsLocal:@"feeds"];
     [WebView registerURLSchemeAsLocal:@"feedsearch"];
     
-#if PLATFORM(MAC) && ENABLE(PLATFORM_FONT_LOOKUP)
+#if PLATFORM(MAC)
     [WebView _setFontWhitelist:fontWhitelist()];
 #endif
 
@@ -907,10 +843,16 @@ static void enableExperimentalFeatures(WebPreferences* preferences)
     [preferences setLinkPreloadEnabled:YES];
     [preferences setModernMediaControlsEnabled:YES];
     // FIXME: InputEvents
+    [preferences setResourceTimingEnabled:YES];
     [preferences setSubtleCryptoEnabled:YES];
     [preferences setUserTimingEnabled:YES];
     [preferences setWebAnimationsEnabled:YES];
     [preferences setWebGL2Enabled:YES];
+    [preferences setWebGPUEnabled:YES];
+    [preferences setWebRTCLegacyAPIEnabled:YES];
+    [preferences setCredentialManagementEnabled:YES];
+    [preferences setReadableByteStreamAPIEnabled:YES];
+    [preferences setWritableStreamAPIEnabled:YES];
 }
 
 // Called before each test.
@@ -970,11 +912,13 @@ static void resetWebPreferencesToConsistentValues()
         [preferences setUserStyleSheetEnabled:YES];
     } else
         [preferences setUserStyleSheetEnabled:NO];
+
     [preferences setMediaPlaybackAllowsInline:YES];
     [preferences setVideoPlaybackRequiresUserGesture:NO];
     [preferences setAudioPlaybackRequiresUserGesture:NO];
     [preferences setMediaDataLoadsAutomatically:YES];
     [preferences setInvisibleAutoplayNotPermitted:NO];
+    [preferences setSubpixelAntialiasedLayerTextEnabled:NO];
 
 #if PLATFORM(IOS)
     // Enable the tracker before creating the first WebView will
@@ -1005,18 +949,16 @@ static void resetWebPreferencesToConsistentValues()
     [preferences setCustomElementsEnabled:YES];
 
     [preferences setWebGL2Enabled:YES];
-
-    [preferences setFetchAPIEnabled:YES];
+    [preferences setWebGPUEnabled:YES];
 
     [preferences setDownloadAttributeEnabled:YES];
 
     [preferences setHiddenPageDOMTimerThrottlingEnabled:NO];
     [preferences setHiddenPageCSSAnimationSuspensionEnabled:NO];
-    
-    [preferences setMediaStreamEnabled:YES];
-    [preferences setPeerConnectionEnabled:YES];
 
-    [preferences setResourceTimingEnabled:YES];
+    [preferences setMediaDevicesEnabled:YES];
+
+    [preferences setLargeImageAsyncDecodingEnabled:NO];
 
     [WebPreferences _clearNetworkLoaderSession];
     [WebPreferences _setCurrentNetworkLoaderSessionCookieAcceptPolicy:NSHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain];
@@ -1028,6 +970,7 @@ static void setWebPreferencesForTestOptions(const TestOptions& options)
 
     preferences.intersectionObserverEnabled = options.enableIntersectionObserver;
     preferences.modernMediaControlsEnabled = options.enableModernMediaControls;
+    preferences.credentialManagementEnabled = options.enableCredentialManagement;
 }
 
 // Called once on DumpRenderTree startup.
@@ -1128,8 +1071,8 @@ static void testThreadIdentifierMap()
     pthread_join(pthread, 0);
 
     // Now create another thread using WTF. On OSX, it will have the same pthread handle
-    // but should get a different ThreadIdentifier.
-    createThread(runThread, 0, "DumpRenderTree: test");
+    // but should get a different RefPtr<Thread>.
+    Thread::create(runThread, 0, "DumpRenderTree: test");
 }
 
 static void allocateGlobalControllers()
@@ -1293,17 +1236,8 @@ void writeCrashedMessageOnFatalError(int signalCode)
 void dumpRenderTree(int argc, const char *argv[])
 {
 #if PLATFORM(IOS)
-    const char* identifier = getenv("IPC_IDENTIFIER");
-    const char *stdinPath = [[NSString stringWithFormat:@"/tmp/%s_IN", identifier] UTF8String];
-    const char *stdoutPath = [[NSString stringWithFormat:@"/tmp/%s_OUT", identifier] UTF8String];
-    const char *stderrPath = [[NSString stringWithFormat:@"/tmp/%s_ERROR", identifier] UTF8String];
-
-    int infd = open(stdinPath, O_RDWR);
-    dup2(infd, STDIN_FILENO);
-    int outfd = open(stdoutPath, O_RDWR);
-    dup2(outfd, STDOUT_FILENO);
-    int errfd = open(stderrPath, O_RDWR | O_NONBLOCK);
-    dup2(errfd, STDERR_FILENO);
+    setUpIOSLayoutTestCommunication();
+    [UIApplication sharedApplication].idleTimerDisabled = YES;
 #endif
 
     signal(SIGILL, &writeCrashedMessageOnFatalError);
@@ -1364,9 +1298,7 @@ void dumpRenderTree(int argc, const char *argv[])
     }
 
 #if PLATFORM(IOS)
-    close(infd);
-    close(outfd);
-    close(errfd);
+    tearDownIOSLayoutTestCommunication();
 #endif
 }
 
@@ -1863,6 +1795,7 @@ static void resetWebViewToConsistentStateBeforeTesting(const TestOptions& option
     [webView setPolicyDelegate:defaultPolicyDelegate];
     [policyDelegate setPermissive:NO];
     [policyDelegate setControllerToNotifyDone:0];
+    [uiDelegate resetToConsistentStateBeforeTesting:options];
     [frameLoadDelegate resetToConsistentState];
 #if !PLATFORM(IOS)
     [webView _setDashboardBehavior:WebDashboardBehaviorUseBackwardCompatibilityMode to:NO];

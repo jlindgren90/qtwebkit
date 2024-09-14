@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2016 Apple Inc. All rights reserved.
+# Copyright (C) 2011-2017 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -345,24 +345,24 @@ const SlowPutArrayStorageShape = 0x0C
 # Type constants.
 const StringType = 6
 const SymbolType = 7
-const ObjectType = 23
-const FinalObjectType = 24
-const JSFunctionType = 26
-const ArrayType = 34
-const DerivedArrayType = 35
-const ProxyObjectType = 53
+const ObjectType = 24
+const FinalObjectType = 25
+const JSFunctionType = 27
+const ArrayType = 35
+const DerivedArrayType = 36
+const ProxyObjectType = 54
 
 # The typed array types need to be numbered in a particular order because of the manually written
 # switch statement in get_by_val and put_by_val.
-const Int8ArrayType = 36
-const Int16ArrayType = 37
-const Int32ArrayType = 38
-const Uint8ArrayType = 39
-const Uint8ClampedArrayType = 40
-const Uint16ArrayType = 41
-const Uint32ArrayType = 42
-const Float32ArrayType = 43
-const Float64ArrayType = 44
+const Int8ArrayType = 37
+const Int16ArrayType = 38
+const Int32ArrayType = 39
+const Uint8ArrayType = 40
+const Uint8ClampedArrayType = 41
+const Uint16ArrayType = 42
+const Uint32ArrayType = 43
+const Float32ArrayType = 44
+const Float64ArrayType = 45
 
 const FirstArrayType = Int8ArrayType
 const LastArrayType = Float64ArrayType
@@ -1544,19 +1544,17 @@ _llint_op_loop_hint:
     dispatch(1)
 
 
-_llint_op_watchdog:
+_llint_op_check_traps:
     traceExecution()
     loadp CodeBlock[cfr], t1
     loadp CodeBlock::m_vm[t1], t1
-    loadp VM::m_watchdog[t1], t0
-    btpnz t0, .handleWatchdogTimer
-.afterWatchdogTimerCheck:
+    loadb VM::m_traps+VMTraps::m_needTrapHandling[t1], t0
+    btpnz t0, .handleTraps
+.afterHandlingTraps:
     dispatch(1)
-.handleWatchdogTimer:
-    loadb Watchdog::m_timerDidFire[t0], t0
-    btbz t0, .afterWatchdogTimerCheck
-    callWatchdogTimerHandler(.throwHandler)
-    jmp .afterWatchdogTimerCheck
+.handleTraps:
+    callTrapHandler(.throwHandler)
+    jmp .afterHandlingTraps
 .throwHandler:
     jmp _llint_throw_from_slow_path_trampoline
 
@@ -1832,6 +1830,11 @@ _llint_op_put_by_val_with_this:
     traceExecution()
     callOpcodeSlowPath(_slow_path_put_by_val_with_this)
     dispatch(5)
+
+_llint_op_resolve_scope_for_hoisting_func_decl_in_eval:
+    traceExecution()
+    callOpcodeSlowPath(_slow_path_resolve_scope_for_hoisting_func_decl_in_eval)
+    dispatch(4)
 
 # Lastly, make sure that we can link even though we don't support all opcodes.
 # These opcodes should never arise when using LLInt or either JIT. We assert

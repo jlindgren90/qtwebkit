@@ -74,7 +74,7 @@
 
 namespace WebCore {
 
-const double resetLatchedStateTimeout = 0.1;
+static const Seconds resetLatchedStateTimeout { 100_ms };
 
 static RetainPtr<NSEvent>& currentNSEventSlot()
 {
@@ -729,7 +729,7 @@ Ref<DataTransfer> EventHandler::createDraggingDataTransfer() const
     auto pasteboard = std::make_unique<Pasteboard>(NSDragPboard);
 #pragma clang diagnostic pop
     pasteboard->clear();
-    return DataTransfer::createForDragAndDrop();
+    return DataTransfer::createForDrag();
 }
 
 #endif

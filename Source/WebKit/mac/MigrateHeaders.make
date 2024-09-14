@@ -1,4 +1,4 @@
-# Copyright (C) 2006, 2007, 2008 Apple Inc. All rights reserved.
+# Copyright (C) 2006, 2007, 2008, 2017 Apple Inc. All rights reserved.
 # Copyright (C) 2006 Samuel Weinig <sam.weinig@gmail.com>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,14 +29,13 @@ VPATH = DOM $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKitLegacy/WebCorePrivateHead
 
 PRIVATE_HEADERS_DIR = $(BUILT_PRODUCTS_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)
 
-.PHONY : all
-all : \
+HEADERS = \
     $(PRIVATE_HEADERS_DIR)/WebKitAvailability.h \
     $(PRIVATE_HEADERS_DIR)/WebScriptObject.h \
 #
 
 ifeq ($(PLATFORM_NAME), macosx)
-all : \
+HEADERS += \
     $(PRIVATE_HEADERS_DIR)/npapi.h \
     $(PRIVATE_HEADERS_DIR)/npfunctions.h \
     $(PRIVATE_HEADERS_DIR)/npruntime.h \
@@ -45,10 +44,9 @@ all : \
 endif
 
 ifneq ($(PLATFORM_NAME), macosx)
-all : \
+HEADERS += \
+    $(PRIVATE_HEADERS_DIR)/AbstractPasteboard.h \
     $(PRIVATE_HEADERS_DIR)/KeyEventCodesIOS.h \
-    $(PRIVATE_HEADERS_DIR)/ScrollTypes.h \
-    $(PRIVATE_HEADERS_DIR)/SystemMemory.h \
     $(PRIVATE_HEADERS_DIR)/WAKAppKitStubs.h \
     $(PRIVATE_HEADERS_DIR)/WAKResponder.h \
     $(PRIVATE_HEADERS_DIR)/WAKView.h \
@@ -56,21 +54,41 @@ all : \
     $(PRIVATE_HEADERS_DIR)/WKContentObservation.h \
     $(PRIVATE_HEADERS_DIR)/WKGraphics.h \
     $(PRIVATE_HEADERS_DIR)/WKTypes.h \
-    $(PRIVATE_HEADERS_DIR)/WebCoreFrameView.h \
     $(PRIVATE_HEADERS_DIR)/WebCoreThread.h \
     $(PRIVATE_HEADERS_DIR)/WebCoreThreadMessage.h \
     $(PRIVATE_HEADERS_DIR)/WebCoreThreadRun.h \
     $(PRIVATE_HEADERS_DIR)/WebEvent.h \
+    $(PRIVATE_HEADERS_DIR)/WebItemProviderPasteboard.h \
 #
 endif
 
 ifeq ($(findstring ENABLE_IOS_TOUCH_EVENTS, $(FEATURE_DEFINES)), ENABLE_IOS_TOUCH_EVENTS)
-all : \
+HEADERS += \
     $(PRIVATE_HEADERS_DIR)/WebEventRegion.h
 endif
 
+.PHONY : all
+all : $(HEADERS)
+
 WEBCORE_HEADER_REPLACE_RULES = -e 's/<WebCore\//<WebKitLegacy\//' -e "s/(^ *)WEBCORE_EXPORT /\1/"
-WEBCORE_HEADER_MIGRATE_CMD = sed -E $(WEBCORE_HEADER_REPLACE_RULES) $< > $@
+WEBCORE_HEADER_MIGRATE_CMD = sed -E $(WEBCORE_HEADER_REPLACE_RULES) $< > $@; touch $(PRIVATE_HEADERS_DIR)
 
 $(PRIVATE_HEADERS_DIR)/% : % MigrateHeaders.make
 	$(WEBCORE_HEADER_MIGRATE_CMD)
+
+ifneq ($(PLATFORM_NAME), macosx)
+REEXPORT_FILE = $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKitLegacy/ReexportedWebCoreSymbols_$(CURRENT_ARCH).exp
+
+all : $(REEXPORT_FILE)
+
+TAPI_PATH = $(strip $(shell xcrun --find tapi 2>/dev/null))
+ifneq (,$(TAPI_PATH))
+REEXPORT_COMMAND = $(TAPI_PATH) reexport -arch $(CURRENT_ARCH) -$(DEPLOYMENT_TARGET_CLANG_FLAG_NAME)=$($(DEPLOYMENT_TARGET_CLANG_ENV_NAME)) -isysroot $(SDK_DIR) -F $(BUILT_PRODUCTS_DIR) $^ -o $@
+else
+# Temporary stub for SDKs that don't have the tapi command, <rdar://problem/24582471>.
+REEXPORT_COMMAND = touch $@
+endif
+
+$(REEXPORT_FILE) : $(HEADERS)
+	$(REEXPORT_COMMAND)
+endif

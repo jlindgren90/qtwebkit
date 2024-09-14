@@ -151,7 +151,7 @@ typedef struct {
 
 - (CGPDFDocumentRef)pdfDocument
 {
-    return [_pdfDocument CGDocument];
+    return _cgPDFDocument.get();
 }
 
 static void detachViewForPage(PDFPageInfo& page)
@@ -614,7 +614,7 @@ static NSStringCompareOptions stringCompareOptions(_WKFindOptions options)
                 _currentFindMatchIndex = 0;
                 for (const auto& knownMatch : _cachedFindMatches) {
                     if (match.stringRange.location == [knownMatch stringRange].location && match.stringRange.length == [knownMatch stringRange].length) {
-                        page->findClient().didFindString(page.get(), string, { }, _cachedFindMatches.size(), _currentFindMatchIndex);
+                        page->findClient().didFindString(page.get(), string, { }, _cachedFindMatches.size(), _currentFindMatchIndex, false);
                         break;
                     }
                     _currentFindMatchIndex++;
@@ -825,9 +825,14 @@ static NSStringCompareOptions stringCompareOptions(_WKFindOptions options)
 - (NSUInteger)_wk_pageCountForPrintFormatter:(_WKWebViewPrintFormatter *)printFormatter
 {
     CGPDFDocumentRef document = _cgPDFDocument.get();
-    if (CGPDFDocumentAllowsPrinting(document))
-        return CGPDFDocumentGetNumberOfPages(document);
-    return 0;
+    if (!CGPDFDocumentAllowsPrinting(document))
+        return 0;
+
+    size_t numberOfPages = CGPDFDocumentGetNumberOfPages(document);
+    if (printFormatter.snapshotFirstPage)
+        return std::min<NSUInteger>(numberOfPages, 1);
+
+    return numberOfPages;
 }
 
 - (CGPDFDocumentRef)_wk_printedDocument

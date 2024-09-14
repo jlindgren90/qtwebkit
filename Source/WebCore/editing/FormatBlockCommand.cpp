@@ -27,12 +27,12 @@
 #include "FormatBlockCommand.h"
 
 #include "Document.h"
+#include "Editing.h"
 #include "Element.h"
 #include "HTMLElement.h"
 #include "HTMLNames.h"
 #include "Range.h"
 #include "VisibleUnits.h"
-#include "htmlediting.h"
 #include <wtf/NeverDestroyed.h>
 
 namespace WebCore {
@@ -86,7 +86,7 @@ void FormatBlockCommand::formatRange(const Position& start, const Position& end,
         // Create a new blockquote and insert it as a child of the root editable element. We accomplish
         // this by splitting all parents of the current paragraph up to that point.
         blockNode = createBlockElement();
-        insertNodeBefore(blockNode, nodeAfterInsertionPosition);
+        insertNodeBefore(*blockNode, *nodeAfterInsertionPosition);
     }
 
     Position lastParagraphInBlockNode = blockNode->lastChild() ? positionAfterNode(blockNode->lastChild()) : Position();

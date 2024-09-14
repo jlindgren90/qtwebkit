@@ -95,7 +95,6 @@ public:
     const Font& noSynthesizableFeaturesFont() const;
     const Font* emphasisMarkFont(const FontDescription&) const;
     const Font& brokenIdeographFont() const;
-    const Font& nonSyntheticItalicFont() const;
 
     const Font* variantFont(const FontDescription& description, FontVariant variant) const
     {
@@ -272,7 +271,6 @@ private:
         RefPtr<Font> brokenIdeograph;
         RefPtr<Font> verticalRightOrientation;
         RefPtr<Font> uprightOrientation;
-        RefPtr<Font> nonSyntheticItalic;
     };
 
     mutable std::unique_ptr<DerivedFonts> m_derivedFontData;
@@ -339,7 +337,11 @@ ALWAYS_INLINE FloatRect Font::boundsForGlyph(Glyph glyph) const
 
 ALWAYS_INLINE float Font::widthForGlyph(Glyph glyph) const
 {
-    if (isZeroWidthSpaceGlyph(glyph))
+    // The optimization of returning 0 for the zero-width-space glyph is incorrect for the LastResort font,
+    // used in place of the actual font when isLoading() is true on both macOS and iOS.
+    // The zero-width-space glyph in that font does not have a width of zero and, further, that glyph is used
+    // for many other characters and must not be zero width when used for them.
+    if (isZeroWidthSpaceGlyph(glyph) && !isLoading())
         return 0;
 
     float width = m_glyphToWidthMap.metricsForGlyph(glyph);

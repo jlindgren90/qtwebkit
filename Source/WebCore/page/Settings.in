@@ -95,9 +95,6 @@ acceleratedFiltersEnabled initial=false
 useLegacyTextAlignPositionedElementBehavior initial=false
 javaScriptRuntimeFlags type=JSC::RuntimeFlags
 
-# PLATFORM(QT) only
-offlineStorageDatabaseEnabled initial=true
-
 # FIXME: This should really be disabled by default as it makes platforms that don't support the feature download files
 # they can't use by. Leaving enabled for now to not change existing behavior.
 downloadableBinaryFontsEnabled initial=true
@@ -111,7 +108,7 @@ experimentalNotificationsEnabled initial=false
 webGLEnabled initial=false
 webGLErrorsToConsoleEnabled initial=true
 forceSoftwareWebGLRendering initial=false
-preferLowPowerWebGLRendering initial=true
+forceWebGLUsesLowPower initial=false
 accelerated2dCanvasEnabled initial=false
 loadDeferringEnabled initial=true
 webAudioEnabled initial=false
@@ -161,12 +158,6 @@ imageSubsamplingEnabled initial=defaultImageSubsamplingEnabled
 wantsBalancedSetDefersLoadingBehavior initial=false
 requestAnimationFrameEnabled initial=true
 
-# For touch adjustment to apply, the compile option TOUCH_ADJUSTMENT must also be enabled.
-# This setting adds a means to dynamically disable the feature at runtime on systems with
-# support for touch adjustment.
-touchAdjustmentEnabled initial=true
-
-fixedPositionCreatesStackingContext initial=defaultFixedPositionCreatesStackingContext
 cookieEnabled initial=true
 mediaEnabled initial=true
 DOMPasteAllowed initial=false
@@ -209,6 +200,7 @@ textAutosizingEnabled initial=defaultTextAutosizingEnabled(), setNeedsStyleRecal
 textAutosizingWindowSizeOverride type=IntSize, setNeedsStyleRecalcInAllFrames=1, conditional=TEXT_AUTOSIZING
 minimumZoomFontSize type=float, initial=defaultMinimumZoomFontSize(), conditional=TEXT_AUTOSIZING
 
+subpixelAntialiasedLayerTextEnabled initial=false, setNeedsStyleRecalcInAllFrames=1
 simpleLineLayoutEnabled initial=true, setNeedsStyleRecalcInAllFrames=1
 simpleLineLayoutDebugBordersEnabled initial=false, setNeedsStyleRecalcInAllFrames=1
 
@@ -281,6 +273,8 @@ treatIPAddressAsDomain initial=false
 visualViewportEnabled initial=false, setNeedsStyleRecalcInAllFrames=1
 
 inputEventsEnabled initial=true
+
+shouldDispatchRequestAnimationFrameEvents initial=false
 
 quickTimePluginReplacementEnabled initial=defaultQuickTimePluginReplacementEnabled
 youTubeFlashPluginReplacementEnabled initial=defaultYouTubeFlashPluginReplacementEnabled

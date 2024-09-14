@@ -27,8 +27,8 @@
 
 #if ENABLE(WEBGL)
 
-#include "ActiveDOMObject.h"
-#include "CanvasRenderingContext.h"
+#include "ActivityStateChangeObserver.h"
+#include "GPUBasedCanvasRenderingContext.h"
 #include "GraphicsContext3D.h"
 #include "ImageBuffer.h"
 #include "Timer.h"
@@ -109,17 +109,10 @@ inline bool clip2D(GC3Dint x, GC3Dint y, GC3Dsizei width, GC3Dsizei height,
     return (*clippedX != x || *clippedY != y || *clippedWidth != width || *clippedHeight != height);
 }
 
-class WebGLRenderingContextBase : public CanvasRenderingContext, public ActiveDOMObject {
+class WebGLRenderingContextBase : public GPUBasedCanvasRenderingContext, private ActivityStateChangeObserver {
 public:
     static std::unique_ptr<WebGLRenderingContextBase> create(HTMLCanvasElement&, WebGLContextAttributes&, const String&);
     virtual ~WebGLRenderingContextBase();
-
-#if PLATFORM(WIN)
-    // FIXME: Implement accelerated 3d canvas on Windows.
-    bool isAccelerated() const override { return false; }
-#else
-    bool isAccelerated() const override { return true; }
-#endif
 
     int drawingBufferWidth() const;
     int drawingBufferHeight() const;
@@ -213,6 +206,9 @@ public:
     RefPtr<WebGLUniformLocation> getUniformLocation(WebGLProgram*, const String&);
     WebGLAny getVertexAttrib(GC3Duint index, GC3Denum pname);
     long long getVertexAttribOffset(GC3Duint index, GC3Denum pname);
+
+    bool isPreservingDrawingBuffer() const { return m_attributes.preserveDrawingBuffer; }
+    void setPreserveDrawingBuffer(bool value) { m_attributes.preserveDrawingBuffer = value; }
 
     virtual void hint(GC3Denum target, GC3Denum mode) = 0;
     GC3Dboolean isBuffer(WebGLBuffer*);
@@ -339,14 +335,16 @@ public:
     void recycleContext();
     void forceRestoreContext();
     void loseContextImpl(LostContextMode);
+    void dispatchContextChangedEvent();
+    WEBCORE_EXPORT void simulateContextChanged();
 
     GraphicsContext3D* graphicsContext3D() const { return m_context.get(); }
     WebGLContextGroup* contextGroup() const { return m_contextGroup.get(); }
     PlatformLayer* platformLayer() const override;
 
-    void reshape(int width, int height);
+    void reshape(int width, int height) override;
 
-    void markLayerComposited();
+    void markLayerComposited() final;
     void paintRenderingResultsToCanvas() override;
     RefPtr<ImageData> paintRenderingResultsToImageData();
 
@@ -393,6 +391,10 @@ protected:
 
     void destroyGraphicsContext3D();
     void markContextChanged();
+    void markContextChangedAndNotifyCanvasObserver();
+
+    void addActivityStateChangeObserverIfNecessary();
+    void removeActivityStateChangeObserver();
 
     // Query whether it is built on top of compliant GLES2 implementation.
     bool isGLES2Compliant() { return m_isGLES2Compliant; }
@@ -771,10 +773,10 @@ protected:
     WebGLBuffer* validateBufferDataParameters(const char* functionName, GC3Denum target, GC3Denum usage);
 
     // Helper function for tex{Sub}Image2D to make sure image is ready.
-    bool validateHTMLImageElement(const char* functionName, HTMLImageElement*);
-    bool validateHTMLCanvasElement(const char* functionName, HTMLCanvasElement*);
+    bool validateHTMLImageElement(const char* functionName, HTMLImageElement*, ExceptionCode&);
+    bool validateHTMLCanvasElement(const char* functionName, HTMLCanvasElement*, ExceptionCode&);
 #if ENABLE(VIDEO)
-    bool validateHTMLVideoElement(const char* functionName, HTMLVideoElement*);
+    bool validateHTMLVideoElement(const char* functionName, HTMLVideoElement*, ExceptionCode&);
 #endif
 
     // Helper functions for vertexAttribNf{v}.
@@ -831,12 +833,14 @@ private:
     void registerWithWebGLStateTracker();
     void checkForContextLossHandling();
 
+    void activityStateDidChange(ActivityState::Flags oldActivityState, ActivityState::Flags newActivityState) override;
+
     WebGLStateTracker::Token m_trackerToken;
     Timer m_checkForContextLossHandlingTimer;
 };
 
 } // namespace WebCore
 
-SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::WebGLRenderingContextBase, is3d())
+SPECIALIZE_TYPE_TRAITS_CANVASRENDERINGCONTEXT(WebCore::WebGLRenderingContextBase, isWebGL())
 
 #endif

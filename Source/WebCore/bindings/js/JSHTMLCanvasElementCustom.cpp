@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2007, 2016, 2017 Apple Inc. All rights reserved.
  * Copyright (C) 2010 Torch Mobile (Beijing) Co. Ltd. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,10 @@
 #include "JSWebGLRenderingContextBase.h"
 #endif
 
+#if ENABLE(WEBGPU)
+#include "JSWebGPURenderingContext.h"
+#endif
+
 using namespace JSC;
 
 namespace WebCore {
@@ -49,7 +53,7 @@ JSValue JSHTMLCanvasElement::getContext(ExecState& state)
     if (UNLIKELY(state.argumentCount() < 1))
         return throwException(&state, scope, createNotEnoughArgumentsError(&state));
 
-    auto contextId = convert<IDLDOMString>(state, state.uncheckedArgument(0), StringConversionConfiguration::Normal);
+    auto contextId = convert<IDLDOMString>(state, state.uncheckedArgument(0));
     RETURN_IF_EXCEPTION(scope, JSValue());
 
     if (HTMLCanvasElement::is2dType(contextId))
@@ -62,6 +66,11 @@ JSValue JSHTMLCanvasElement::getContext(ExecState& state)
 
         return toJS<IDLNullable<IDLInterface<WebGLRenderingContextBase>>>(state, *globalObject(), static_cast<WebGLRenderingContextBase*>(wrapped().getContextWebGL(contextId, WTFMove(attributes))));
     }
+#endif
+
+#if ENABLE(WEBGPU)
+    if (HTMLCanvasElement::isWebGPUType(contextId))
+        return toJS<IDLNullable<IDLInterface<WebGPURenderingContext>>>(state, *globalObject(), static_cast<WebGPURenderingContext*>(wrapped().getContextWebGPU(contextId)));
 #endif
 
     return jsNull();

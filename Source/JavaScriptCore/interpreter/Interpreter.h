@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2013, 2015-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2012 Research In Motion Limited. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -138,7 +138,7 @@ namespace JSC {
         void getArgumentsData(CallFrame*, JSFunction*&, ptrdiff_t& firstParameterIndex, Register*& argv, int& argc);
         
         NEVER_INLINE HandlerInfo* unwind(VM&, CallFrame*&, Exception*, UnwindStart);
-        void notifyDebuggerOfExceptionToBeThrown(CallFrame*, Exception*);
+        void notifyDebuggerOfExceptionToBeThrown(VM&, CallFrame*, Exception*);
         NEVER_INLINE void debug(CallFrame*, DebugHookType);
         static JSString* stackTraceAsString(VM&, const Vector<StackFrame>&);
 
@@ -154,7 +154,7 @@ namespace JSC {
     private:
         enum ExecutionFlag { Normal, InitializeAndReturn };
 
-        CallFrameClosure prepareForRepeatCall(FunctionExecutable*, CallFrame*, ProtoCallFrame*, JSFunction*, int argumentCountIncludingThis, JSScope*, JSValue*);
+        CallFrameClosure prepareForRepeatCall(FunctionExecutable*, CallFrame*, ProtoCallFrame*, JSFunction*, int argumentCountIncludingThis, JSScope*, const ArgList&);
 
         JSValue execute(CallFrameClosure&);
 

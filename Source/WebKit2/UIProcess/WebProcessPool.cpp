@@ -30,14 +30,15 @@
 #include "APIAutomationClient.h"
 #include "APICustomProtocolManagerClient.h"
 #include "APIDownloadClient.h"
+#include "APIHTTPCookieStore.h"
 #include "APILegacyContextHistoryClient.h"
 #include "APIPageConfiguration.h"
 #include "APIProcessPoolConfiguration.h"
-#include "CustomProtocolManagerMessages.h"
 #include "DownloadProxy.h"
 #include "DownloadProxyMessages.h"
 #include "GamepadData.h"
 #include "HighPerformanceGraphicsUsageSampler.h"
+#include "LegacyCustomProtocolManagerMessages.h"
 #include "LogInitialization.h"
 #include "NetworkProcessCreationParameters.h"
 #include "NetworkProcessMessages.h"
@@ -67,12 +68,12 @@
 #include "WebProcessPoolMessages.h"
 #include "WebProcessProxy.h"
 #include "WebsiteDataStore.h"
+#include "WebsiteDataStoreParameters.h"
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/Language.h>
 #include <WebCore/LinkHash.h>
 #include <WebCore/LogInitialization.h>
 #include <WebCore/ResourceRequest.h>
-#include <WebCore/RuntimeEnabledFeatures.h>
 #include <WebCore/SessionID.h>
 #include <WebCore/URLParser.h>
 #include <runtime/JSCInlines.h>
@@ -115,10 +116,66 @@ namespace WebKit {
 
 DEFINE_DEBUG_ONLY_GLOBAL(WTF::RefCountedLeakCounter, processPoolCounter, ("WebProcessPool"));
 
+static uint64_t generateListenerIdentifier()
+{
+    static uint64_t nextIdentifier = 1;
+    return nextIdentifier++;
+}
+
+static HashMap<uint64_t, Function<void(WebProcessPool&)>>& processPoolCreationListenerFunctionMap()
+{
+    static NeverDestroyed<HashMap<uint64_t, Function<void(WebProcessPool&)>>> map;
+    return map;
+}
+
+uint64_t WebProcessPool::registerProcessPoolCreationListener(Function<void(WebProcessPool&)>&& function)
+{
+    ASSERT(function);
+
+    auto identifier = generateListenerIdentifier();
+    processPoolCreationListenerFunctionMap().set(identifier, WTFMove(function));
+    return identifier;
+}
+
+void WebProcessPool::unregisterProcessPoolCreationListener(uint64_t identifier)
+{
+    processPoolCreationListenerFunctionMap().remove(identifier);
+}
+
 Ref<WebProcessPool> WebProcessPool::create(API::ProcessPoolConfiguration& configuration)
 {
     InitializeWebKit2();
     return adoptRef(*new WebProcessPool(configuration));
+}
+
+void WebProcessPool::notifyThisWebProcessPoolWasCreated()
+{
+    auto& listenerMap = processPoolCreationListenerFunctionMap();
+
+    Vector<uint64_t> identifiers;
+    identifiers.reserveInitialCapacity(listenerMap.size());
+    for (auto identifier : listenerMap.keys())
+        identifiers.uncheckedAppend(identifier);
+
+    for (auto identifier : identifiers) {
+        auto iterator = listenerMap.find(identifier);
+        if (iterator == listenerMap.end())
+            continue;
+
+        // To make sure the Function object stays alive until after the function call has been made,
+        // we temporarily move it out of the map.
+        // This protects it from the Function calling unregisterProcessPoolCreationListener thereby
+        // removing itself from the map of listeners.
+        // If the identifier still exists in the map later, we move it back in.
+        Function<void(WebProcessPool&)> function = WTFMove(iterator->value);
+        function(*this);
+
+        iterator = listenerMap.find(identifier);
+        if (iterator != listenerMap.end()) {
+            ASSERT(!iterator->value);
+            iterator->value = WTFMove(function);
+        }
+    }
 }
 
 static Vector<WebProcessPool*>& processPools()
@@ -143,11 +200,18 @@ static WebsiteDataStore::Configuration legacyWebsiteDataStoreConfiguration(API::
     configuration.mediaCacheDirectory = processPoolConfiguration.mediaCacheDirectory();
     configuration.mediaKeysStorageDirectory = processPoolConfiguration.mediaKeysStorageDirectory();
     configuration.networkCacheDirectory = processPoolConfiguration.diskCacheDirectory();
+    configuration.javaScriptConfigurationDirectory = processPoolConfiguration.javaScriptConfigurationDirectory();
 
     // This is needed to support legacy WK2 clients, which did not have resource load statistics.
     configuration.resourceLoadStatisticsDirectory = API::WebsiteDataStore::defaultResourceLoadStatisticsDirectory();
 
     return configuration;
+}
+
+static HashSet<String, ASCIICaseInsensitiveHash>& globalURLSchemesWithCustomProtocolHandlers()
+{
+    static NeverDestroyed<HashSet<String, ASCIICaseInsensitiveHash>> set;
+    return set;
 }
 
 WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
@@ -158,9 +222,7 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
     , m_automationClient(std::make_unique<API::AutomationClient>())
     , m_downloadClient(std::make_unique<API::DownloadClient>())
     , m_historyClient(std::make_unique<API::LegacyContextHistoryClient>())
-#if USE(SOUP)
     , m_customProtocolManagerClient(std::make_unique<API::CustomProtocolManagerClient>())
-#endif
     , m_visitedLinkStore(VisitedLinkStore::create())
     , m_visitedLinksPopulated(false)
     , m_plugInAutoStartProvider(this)
@@ -168,7 +230,7 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
     , m_shouldUseFontSmoothing(true)
     , m_memorySamplerEnabled(false)
     , m_memorySamplerInterval(1400.0)
-    , m_websiteDataStore(m_configuration->shouldHaveLegacyDataStore() ? API::WebsiteDataStore::create(legacyWebsiteDataStoreConfiguration(m_configuration)).ptr() : nullptr)
+    , m_websiteDataStore(m_configuration->shouldHaveLegacyDataStore() ? API::WebsiteDataStore::createLegacy(legacyWebsiteDataStoreConfiguration(m_configuration)) : API::WebsiteDataStore::defaultDataStore())
 #if PLATFORM(MAC)
     , m_highPerformanceGraphicsUsageSampler(std::make_unique<HighPerformanceGraphicsUsageSampler>(*this))
     , m_perActivityStateCPUUsageSampler(std::make_unique<PerActivityStateCPUUsageSampler>(*this))
@@ -179,9 +241,10 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
     , m_didNetworkProcessCrash(false)
     , m_memoryCacheDisabled(false)
     , m_alwaysRunsAtBackgroundPriority(m_configuration->alwaysRunsAtBackgroundPriority())
+    , m_shouldTakeUIBackgroundAssertion(m_configuration->shouldTakeUIBackgroundAssertion())
     , m_userObservablePageCounter([this](RefCounterEvent) { updateProcessSuppressionState(); })
     , m_processSuppressionDisabledForPageCounter([this](RefCounterEvent) { updateProcessSuppressionState(); })
-    , m_hiddenPageThrottlingAutoIncreasesCounter([this](RefCounterEvent) { m_hiddenPageThrottlingTimer.startOneShot(0); })
+    , m_hiddenPageThrottlingAutoIncreasesCounter([this](RefCounterEvent) { m_hiddenPageThrottlingTimer.startOneShot(0_s); })
     , m_hiddenPageThrottlingTimer(RunLoop::main(), this, &WebProcessPool::updateHiddenPageThrottlingAutoIncreaseLimit)
 {
     for (auto& scheme : m_configuration->alwaysRevalidatedURLSchemes())
@@ -218,9 +281,11 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
 #ifndef NDEBUG
     processPoolCounter.increment();
 #endif
+
+    notifyThisWebProcessPoolWasCreated();
 }
 
-#if !PLATFORM(COCOA)
+#if !PLATFORM(COCOA) && !PLATFORM(GTK)
 void WebProcessPool::platformInitialize()
 {
 }
@@ -301,6 +366,14 @@ void WebProcessPool::setAutomationClient(std::unique_ptr<API::AutomationClient> 
         m_automationClient = WTFMove(automationClient);
 }
 
+void WebProcessPool::setLegacyCustomProtocolManagerClient(std::unique_ptr<API::CustomProtocolManagerClient>&& customProtocolManagerClient)
+{
+    if (!customProtocolManagerClient)
+        m_customProtocolManagerClient = std::make_unique<API::CustomProtocolManagerClient>();
+    else
+        m_customProtocolManagerClient = WTFMove(customProtocolManagerClient);
+}
+
 void WebProcessPool::setMaximumNumberOfProcesses(unsigned maximumNumberOfProcesses)
 {
     // Guard against API misuse.
@@ -354,6 +427,12 @@ NetworkProcessProxy& WebProcessPool::ensureNetworkProcess()
     parameters.diskCacheSizeOverride = m_configuration->diskCacheSizeOverride();
     parameters.canHandleHTTPSServerTrustEvaluation = m_canHandleHTTPSServerTrustEvaluation;
 
+    for (auto& scheme : globalURLSchemesWithCustomProtocolHandlers())
+        parameters.urlSchemesRegisteredForCustomProtocols.append(scheme);
+
+    for (auto& scheme : m_urlSchemesRegisteredForCustomProtocols)
+        parameters.urlSchemesRegisteredForCustomProtocols.append(scheme);
+
     parameters.diskCacheDirectory = m_configuration->diskCacheDirectory();
     if (!parameters.diskCacheDirectory.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(parameters.diskCacheDirectory, parameters.diskCacheDirectoryExtensionHandle);
@@ -382,8 +461,6 @@ NetworkProcessProxy& WebProcessPool::ensureNetworkProcess()
 
     parameters.shouldUseTestingNetworkSession = m_shouldUseTestingNetworkSession;
 
-    parameters.urlParserEnabled = URLParser::enabled();
-    
     // Add any platform specific parameters
     platformInitializeNetworkProcess(parameters);
 
@@ -440,12 +517,14 @@ void WebProcessPool::ensureDatabaseProcess()
     DatabaseProcessCreationParameters parameters;
 #if ENABLE(INDEXED_DATABASE)
     ASSERT(!m_configuration->indexedDBDatabaseDirectory().isEmpty());
-    parameters.indexedDatabaseDirectory = m_configuration->indexedDBDatabaseDirectory();
 
+    parameters.sessionID = websiteDataStore().websiteDataStore().sessionID();
+    parameters.indexedDatabaseDirectory = m_configuration->indexedDBDatabaseDirectory();
     SandboxExtension::createHandleForReadWriteDirectory(parameters.indexedDatabaseDirectory, parameters.indexedDatabaseDirectoryExtensionHandle);
 #endif
 
-    m_databaseProcess->send(Messages::DatabaseProcess::InitializeDatabaseProcess(parameters), 0);
+    ASSERT(!parameters.indexedDatabaseDirectory.isEmpty());
+    m_databaseProcess->send(Messages::DatabaseProcess::InitializeWebsiteDataStore(parameters), 0);
 }
 
 void WebProcessPool::getDatabaseProcessConnection(Ref<Messages::WebProcessProxy::GetDatabaseProcessConnection::DelayedReply>&& reply)
@@ -495,13 +574,13 @@ void WebProcessPool::setAnyPageGroupMightHavePrivateBrowsingEnabled(bool private
         if (privateBrowsingEnabled)
             networkProcess()->send(Messages::NetworkProcess::EnsurePrivateBrowsingSession(SessionID::legacyPrivateSessionID()), 0);
         else
-            networkProcess()->send(Messages::NetworkProcess::DestroyPrivateBrowsingSession(SessionID::legacyPrivateSessionID()), 0);
+            networkProcess()->send(Messages::NetworkProcess::DestroySession(SessionID::legacyPrivateSessionID()), 0);
     }
 
     if (privateBrowsingEnabled)
         sendToAllProcesses(Messages::WebProcess::EnsurePrivateBrowsingSession(SessionID::legacyPrivateSessionID()));
     else
-        sendToAllProcesses(Messages::WebProcess::DestroyPrivateBrowsingSession(SessionID::legacyPrivateSessionID()));
+        sendToAllProcesses(Messages::WebProcess::DestroySession(SessionID::legacyPrivateSessionID()));
 }
 
 void (*s_invalidMessageCallback)(WKStringRef messageName);
@@ -538,48 +617,69 @@ void WebProcessPool::resolvePathsForSandboxExtensions()
     m_resolvedPaths.webSQLDatabaseDirectory = resolveAndCreateReadWriteDirectoryForSandboxExtension(m_configuration->webSQLDatabaseDirectory());
     m_resolvedPaths.mediaCacheDirectory = resolveAndCreateReadWriteDirectoryForSandboxExtension(m_configuration->mediaCacheDirectory());
     m_resolvedPaths.mediaKeyStorageDirectory = resolveAndCreateReadWriteDirectoryForSandboxExtension(m_configuration->mediaKeysStorageDirectory());
+    m_resolvedPaths.indexedDatabaseDirectory = resolveAndCreateReadWriteDirectoryForSandboxExtension(m_configuration->indexedDBDatabaseDirectory());
+
+    m_resolvedPaths.additionalWebProcessSandboxExtensionPaths.reserveCapacity(m_configuration->additionalReadAccessAllowedPaths().size());
+    for (const auto& path : m_configuration->additionalReadAccessAllowedPaths())
+        m_resolvedPaths.additionalWebProcessSandboxExtensionPaths.uncheckedAppend(resolvePathForSandboxExtension(path));
 
     platformResolvePathsForSandboxExtensions();
 }
 
-WebProcessProxy& WebProcessPool::createNewWebProcess()
+WebProcessProxy& WebProcessPool::createNewWebProcess(WebsiteDataStore& websiteDataStore)
 {
     ensureNetworkProcess();
 
-    Ref<WebProcessProxy> process = WebProcessProxy::create(*this);
+    Ref<WebProcessProxy> process = WebProcessProxy::create(*this, websiteDataStore);
 
     WebProcessCreationParameters parameters;
 
-    parameters.urlParserEnabled = URLParser::enabled();
-    
+    websiteDataStore.resolveDirectoriesIfNecessary();
+
     parameters.injectedBundlePath = m_resolvedPaths.injectedBundlePath;
     if (!parameters.injectedBundlePath.isEmpty())
         SandboxExtension::createHandleWithoutResolvingPath(parameters.injectedBundlePath, SandboxExtension::ReadOnly, parameters.injectedBundlePathExtensionHandle);
 
-    parameters.applicationCacheDirectory = m_resolvedPaths.applicationCacheDirectory;
+    parameters.additionalSandboxExtensionHandles.allocate(m_resolvedPaths.additionalWebProcessSandboxExtensionPaths.size());
+    for (size_t i = 0, size = m_resolvedPaths.additionalWebProcessSandboxExtensionPaths.size(); i < size; ++i)
+        SandboxExtension::createHandleWithoutResolvingPath(m_resolvedPaths.additionalWebProcessSandboxExtensionPaths[i], SandboxExtension::ReadOnly, parameters.additionalSandboxExtensionHandles[i]);
+
+    parameters.applicationCacheDirectory = websiteDataStore.resolvedApplicationCacheDirectory();
+    if (parameters.applicationCacheDirectory.isEmpty())
+        parameters.applicationCacheDirectory = m_resolvedPaths.applicationCacheDirectory;
     if (!parameters.applicationCacheDirectory.isEmpty())
         SandboxExtension::createHandleWithoutResolvingPath(parameters.applicationCacheDirectory, SandboxExtension::ReadWrite, parameters.applicationCacheDirectoryExtensionHandle);
 
     parameters.applicationCacheFlatFileSubdirectoryName = m_configuration->applicationCacheFlatFileSubdirectoryName();
 
-    parameters.webSQLDatabaseDirectory = m_resolvedPaths.webSQLDatabaseDirectory;
+    parameters.webSQLDatabaseDirectory = websiteDataStore.resolvedDatabaseDirectory();
+    if (parameters.webSQLDatabaseDirectory.isEmpty())
+        parameters.webSQLDatabaseDirectory = m_resolvedPaths.webSQLDatabaseDirectory;
     if (!parameters.webSQLDatabaseDirectory.isEmpty())
         SandboxExtension::createHandleWithoutResolvingPath(parameters.webSQLDatabaseDirectory, SandboxExtension::ReadWrite, parameters.webSQLDatabaseDirectoryExtensionHandle);
 
-    parameters.mediaCacheDirectory = m_resolvedPaths.mediaCacheDirectory;
+    parameters.mediaCacheDirectory = websiteDataStore.resolvedMediaCacheDirectory();
+    if (parameters.mediaCacheDirectory.isEmpty())
+        parameters.mediaCacheDirectory = m_resolvedPaths.mediaCacheDirectory;
     if (!parameters.mediaCacheDirectory.isEmpty())
         SandboxExtension::createHandleWithoutResolvingPath(parameters.mediaCacheDirectory, SandboxExtension::ReadWrite, parameters.mediaCacheDirectoryExtensionHandle);
 
-    parameters.mediaKeyStorageDirectory = m_resolvedPaths.mediaKeyStorageDirectory;
+    parameters.mediaKeyStorageDirectory = websiteDataStore.resolvedMediaKeysDirectory();
+    if (parameters.mediaKeyStorageDirectory.isEmpty())
+        parameters.mediaKeyStorageDirectory = m_resolvedPaths.mediaKeyStorageDirectory;
     if (!parameters.mediaKeyStorageDirectory.isEmpty())
         SandboxExtension::createHandleWithoutResolvingPath(parameters.mediaKeyStorageDirectory, SandboxExtension::ReadWrite, parameters.mediaKeyStorageDirectoryExtensionHandle);
 
-#if ENABLE(MEDIA_STREAM)
-    // FIXME: Remove this and related parameter when <rdar://problem/29448368> is fixed.
-    if (RuntimeEnabledFeatures::sharedFeatures().mediaStreamEnabled())
-        SandboxExtension::createHandleForGenericExtension("com.apple.webkit.microphone", parameters.audioCaptureExtensionHandle);
+#if PLATFORM(IOS)
+    setJavaScriptConfigurationFileEnabledFromDefaults();
 #endif
-    
+
+    if (javaScriptConfigurationFileEnabled()) {
+        parameters.javaScriptConfigurationDirectory = websiteDataStore.resolvedJavaScriptConfigurationDirectory();
+        if (!parameters.javaScriptConfigurationDirectory.isEmpty())
+            SandboxExtension::createHandleWithoutResolvingPath(parameters.javaScriptConfigurationDirectory, SandboxExtension::ReadWrite, parameters.javaScriptConfigurationDirectoryExtensionHandle);
+    }
+
     parameters.shouldUseTestingNetworkSession = m_shouldUseTestingNetworkSession;
 
     parameters.cacheModel = cacheModel();
@@ -601,7 +701,7 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
 
     parameters.iconDatabaseEnabled = !iconDatabasePath().isEmpty();
 
-    parameters.terminationTimeout = 0;
+    parameters.terminationTimeout = 0_s;
 
     parameters.textCheckerState = TextChecker::state();
 
@@ -643,6 +743,9 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
 #endif
 
     parameters.resourceLoadStatisticsEnabled = resourceLoadStatisticsEnabled();
+#if ENABLE(MEDIA_STREAM)
+    parameters.shouldCaptureAudioInUIProcess = m_configuration->shouldCaptureAudioInUIProcess();
+#endif
 
     // Add any platform specific parameters
     platformInitializeWebProcess(parameters);
@@ -686,7 +789,7 @@ void WebProcessPool::warmInitialProcess()
     if (m_processes.size() >= maximumNumberOfProcesses())
         return;
 
-    createNewWebProcess();
+    createNewWebProcess(m_websiteDataStore->websiteDataStore());
     m_haveInitialEmptyProcess = true;
 }
 
@@ -762,13 +865,35 @@ void WebProcessPool::disconnectProcess(WebProcessProxy* process)
 #endif
 }
 
-WebProcessProxy& WebProcessPool::createNewWebProcessRespectingProcessCountLimit()
+WebProcessProxy& WebProcessPool::createNewWebProcessRespectingProcessCountLimit(WebsiteDataStore& websiteDataStore)
 {
+    // FIXME: https://bugs.webkit.org/show_bug.cgi?id=168676
+    // Once WebsiteDataStores are truly per-view instead of per-process, remove this nonsense.
+
+#if PLATFORM(COCOA)
+    bool mustMatchDataStore = &websiteDataStore != &API::WebsiteDataStore::defaultDataStore()->websiteDataStore();
+#else
+    bool mustMatchDataStore = false;
+#endif
+
     if (m_processes.size() < maximumNumberOfProcesses())
-        return createNewWebProcess();
+        return createNewWebProcess(websiteDataStore);
+
+    Vector<RefPtr<WebProcessProxy>> processesMatchingDataStore;
+    if (mustMatchDataStore) {
+        for (auto& process : m_processes) {
+            if (&process->websiteDataStore() == &websiteDataStore)
+                processesMatchingDataStore.append(process);
+        }
+
+        if (processesMatchingDataStore.isEmpty())
+            return createNewWebProcess(websiteDataStore);
+    }
 
     // Choose the process with fewest pages.
-    auto& process = *std::min_element(m_processes.begin(), m_processes.end(), [](const RefPtr<WebProcessProxy>& a, const RefPtr<WebProcessProxy>& b) {
+    auto* processes = mustMatchDataStore ? &processesMatchingDataStore : &m_processes;
+    ASSERT(!processes->isEmpty());
+    auto& process = *std::min_element(processes->begin(), processes->end(), [](const RefPtr<WebProcessProxy>& a, const RefPtr<WebProcessProxy>& b) {
         return a->pageCount() < b->pageCount();
     });
 
@@ -785,10 +910,11 @@ Ref<WebPageProxy> WebProcessPool::createWebPage(PageClient& pageClient, Ref<API:
         pageConfiguration->setUserContentController(&pageConfiguration->pageGroup()->userContentController());
     if (!pageConfiguration->visitedLinkStore())
         pageConfiguration->setVisitedLinkStore(m_visitedLinkStore.ptr());
+
     if (!pageConfiguration->websiteDataStore()) {
         ASSERT(!pageConfiguration->sessionID().isValid());
-        pageConfiguration->setWebsiteDataStore(m_websiteDataStore.get());
-        pageConfiguration->setSessionID(pageConfiguration->preferences()->privateBrowsingEnabled() ? SessionID::legacyPrivateSessionID() : SessionID::defaultSessionID());
+        pageConfiguration->setWebsiteDataStore(m_websiteDataStore.ptr());
+        pageConfiguration->setSessionID(pageConfiguration->preferences()->privateBrowsingEnabled() ? SessionID::legacyPrivateSessionID() : m_websiteDataStore->websiteDataStore().sessionID());
     }
 
     RefPtr<WebProcessProxy> process;
@@ -798,14 +924,50 @@ Ref<WebPageProxy> WebProcessPool::createWebPage(PageClient& pageClient, Ref<API:
     } else if (pageConfiguration->relatedPage()) {
         // Sharing processes, e.g. when creating the page via window.open().
         process = &pageConfiguration->relatedPage()->process();
-    } else {
-#if ENABLE(MEDIA_STREAM)
-        RuntimeEnabledFeatures::sharedFeatures().setMediaStreamEnabled(pageConfiguration->preferences()->store().getBoolValueForKey(WebPreferencesKey::mediaStreamEnabledKey()));
-#endif
-        process = &createNewWebProcessRespectingProcessCountLimit();
-    }
+    } else
+        process = &createNewWebProcessRespectingProcessCountLimit(pageConfiguration->websiteDataStore()->websiteDataStore());
 
     return process->createWebPage(pageClient, WTFMove(pageConfiguration));
+}
+
+void WebProcessPool::pageAddedToProcess(WebPageProxy& page)
+{
+    auto result = m_sessionToPagesMap.add(page.sessionID(), HashSet<WebPageProxy*>()).iterator->value.add(&page);
+    ASSERT_UNUSED(result, result.isNewEntry);
+
+    auto sessionID = page.sessionID();
+    if (sessionID.isEphemeral()) {
+        sendToNetworkingProcess(Messages::NetworkProcess::EnsurePrivateBrowsingSession(sessionID));
+        page.process().send(Messages::WebProcess::EnsurePrivateBrowsingSession(sessionID), 0);
+    } else if (sessionID != SessionID::defaultSessionID()) {
+        sendToNetworkingProcess(Messages::NetworkProcess::AddWebsiteDataStore(page.websiteDataStore().parameters()));
+        page.process().send(Messages::WebProcess::AddWebsiteDataStore(page.websiteDataStore().parameters()), 0);
+
+        auto databaseParameters = page.websiteDataStore().databaseProcessParameters();
+        if (!databaseParameters.indexedDatabaseDirectory.isEmpty())
+            sendToDatabaseProcessRelaunchingIfNecessary(Messages::DatabaseProcess::InitializeWebsiteDataStore(databaseParameters));
+    }
+}
+
+void WebProcessPool::pageRemovedFromProcess(WebPageProxy& page)
+{
+    auto sessionID = page.sessionID();
+    auto iterator = m_sessionToPagesMap.find(sessionID);
+    ASSERT(iterator != m_sessionToPagesMap.end());
+
+    auto takenPage = iterator->value.take(&page);
+    ASSERT_UNUSED(takenPage, takenPage == &page);
+
+    if (iterator->value.isEmpty()) {
+        m_sessionToPagesMap.remove(iterator);
+
+        if (sessionID == SessionID::defaultSessionID())
+            return;
+
+        // The last user of this non-default SessionID is gone, so clean it up in the child processes.
+        networkProcess()->send(Messages::NetworkProcess::DestroySession(sessionID), 0);
+        page.process().send(Messages::WebProcess::DestroySession(sessionID), 0);
+    }
 }
 
 DownloadProxy* WebProcessPool::download(WebPageProxy* initiatingPage, const ResourceRequest& request, const String& suggestedFilename)
@@ -974,12 +1136,6 @@ void WebProcessPool::registerURLSchemeAsCORSEnabled(const String& urlScheme)
     sendToAllProcesses(Messages::WebProcess::RegisterURLSchemeAsCORSEnabled(urlScheme));
 }
 
-HashSet<String, ASCIICaseInsensitiveHash>& WebProcessPool::globalURLSchemesWithCustomProtocolHandlers()
-{
-    static NeverDestroyed<HashSet<String, ASCIICaseInsensitiveHash>> set;
-    return set;
-}
-
 void WebProcessPool::registerGlobalURLSchemeAsHavingCustomProtocolHandlers(const String& urlScheme)
 {
     if (!urlScheme)
@@ -1124,6 +1280,18 @@ void WebProcessPool::useTestingNetworkSession()
     m_shouldUseTestingNetworkSession = true;
 }
 
+template<typename T, typename U>
+void WebProcessPool::sendSyncToNetworkingProcess(T&& message, U&& reply)
+{
+    if (m_networkProcess && m_networkProcess->canSendMessage())
+        m_networkProcess->sendSync(std::forward<T>(message), std::forward<U>(reply), 0);
+}
+
+void WebProcessPool::setAllowsAnySSLCertificateForWebSocket(bool allows)
+{
+    sendSyncToNetworkingProcess(Messages::NetworkProcess::SetAllowsAnySSLCertificateForWebSocket(allows), Messages::NetworkProcess::SetAllowsAnySSLCertificateForWebSocket::Reply());
+}
+
 void WebProcessPool::clearCachedCredentials()
 {
     sendToAllProcesses(Messages::WebProcess::ClearCachedCredentials());
@@ -1140,6 +1308,20 @@ void WebProcessPool::terminateDatabaseProcess()
     m_databaseProcess->terminate();
     m_databaseProcess = nullptr;
 #endif
+}
+
+void WebProcessPool::terminateNetworkProcess()
+{
+    if (!m_networkProcess)
+        return;
+    
+    m_networkProcess->terminate();
+    m_networkProcess = nullptr;
+}
+
+void WebProcessPool::syncNetworkProcessCookies()
+{
+    sendSyncToNetworkingProcess(Messages::NetworkProcess::SyncAllCookies(), Messages::NetworkProcess::SyncAllCookies::Reply());
 }
 
 void WebProcessPool::allowSpecificHTTPSCertificateForHost(const WebCertificateInfo* certificate, const String& host)
@@ -1188,7 +1370,7 @@ bool WebProcessPool::httpPipeliningEnabled() const
 #endif
 }
 
-void WebProcessPool::getStatistics(uint32_t statisticsMask, std::function<void (API::Dictionary*, CallbackBase::Error)> callbackFunction)
+void WebProcessPool::getStatistics(uint32_t statisticsMask, Function<void (API::Dictionary*, CallbackBase::Error)>&& callbackFunction)
 {
     if (!statisticsMask) {
         callbackFunction(nullptr, CallbackBase::Error::Unknown);
@@ -1224,11 +1406,11 @@ void WebProcessPool::requestNetworkingStatistics(StatisticsRequest* request)
 static WebProcessProxy* webProcessProxyFromConnection(IPC::Connection& connection, const Vector<RefPtr<WebProcessProxy>>& processes)
 {
     for (auto& process : processes) {
-        if (process->connection() == &connection)
+        if (process->hasConnection(connection))
             return process.get();
     }
 
-    // FIXME: Can this ever return null?
+    ASSERT_NOT_REACHED();
     return nullptr;
 }
 
@@ -1330,6 +1512,11 @@ void WebProcessPool::setInitialConnectedGamepads(const Vector<std::unique_ptr<UI
 
 #endif // ENABLE(GAMEPAD)
 
+void WebProcessPool::setJavaScriptConfigurationFileEnabled(bool flag)
+{
+    m_javaScriptConfigurationFileEnabled = flag;
+}
+
 void WebProcessPool::garbageCollectJavaScriptObjects()
 {
     sendToAllProcesses(Messages::WebProcess::GarbageCollectJavaScriptObjects());
@@ -1372,18 +1559,15 @@ void WebProcessPool::setPlugInAutoStartOriginsFilteringOutEntriesAddedAfterTime(
 
 void WebProcessPool::registerSchemeForCustomProtocol(const String& scheme)
 {
-#if USE(SOUP)
-    m_urlSchemesRegisteredForCustomProtocols.add(scheme);
-#endif
-    sendToNetworkingProcess(Messages::CustomProtocolManager::RegisterScheme(scheme));
+    if (!globalURLSchemesWithCustomProtocolHandlers().contains(scheme))
+        m_urlSchemesRegisteredForCustomProtocols.add(scheme);
+    sendToNetworkingProcess(Messages::LegacyCustomProtocolManager::RegisterScheme(scheme));
 }
 
 void WebProcessPool::unregisterSchemeForCustomProtocol(const String& scheme)
 {
-#if USE(SOUP)
     m_urlSchemesRegisteredForCustomProtocols.remove(scheme);
-#endif
-    sendToNetworkingProcess(Messages::CustomProtocolManager::UnregisterScheme(scheme));
+    sendToNetworkingProcess(Messages::LegacyCustomProtocolManager::UnregisterScheme(scheme));
 }
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
@@ -1436,10 +1620,10 @@ void WebProcessPool::updateHiddenPageThrottlingAutoIncreaseLimit()
     static int maximumTimerThrottlePerPageInMS = 200 * 100;
 
     int limitInMilliseconds = maximumTimerThrottlePerPageInMS * m_hiddenPageThrottlingAutoIncreasesCounter.value();
-    sendToAllProcesses(Messages::WebProcess::SetHiddenPageTimerThrottlingIncreaseLimit(limitInMilliseconds));
+    sendToAllProcesses(Messages::WebProcess::SetHiddenPageDOMTimerThrottlingIncreaseLimit(limitInMilliseconds));
 }
 
-void WebProcessPool::reportWebContentCPUTime(int64_t cpuTime, uint64_t activityState)
+void WebProcessPool::reportWebContentCPUTime(Seconds cpuTime, uint64_t activityState)
 {
 #if PLATFORM(MAC)
     if (m_perActivityStateCPUUsageSampler)

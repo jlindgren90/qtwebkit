@@ -423,7 +423,11 @@ void InspectorPageAgent::removeScriptToEvaluateOnLoad(ErrorString& error, const 
 void InspectorPageAgent::reload(ErrorString&, const bool* const optionalIgnoreCache, const String* optionalScriptToEvaluateOnLoad)
 {
     m_pendingScriptToEvaluateOnLoadOnce = optionalScriptToEvaluateOnLoad ? *optionalScriptToEvaluateOnLoad : emptyString();
-    m_page.mainFrame().loader().reload(optionalIgnoreCache ? *optionalIgnoreCache : false);
+
+    OptionSet<ReloadOption> reloadOptions;
+    if (optionalIgnoreCache && *optionalIgnoreCache)
+        reloadOptions |= ReloadOption::FromOrigin;
+    m_page.mainFrame().loader().reload(reloadOptions);
 }
 
 void InspectorPageAgent::navigate(ErrorString&, const String& url)
@@ -802,9 +806,9 @@ void InspectorPageAgent::frameStoppedLoading(Frame& frame)
     m_frontendDispatcher->frameStoppedLoading(frameId(&frame));
 }
 
-void InspectorPageAgent::frameScheduledNavigation(Frame& frame, double delay)
+void InspectorPageAgent::frameScheduledNavigation(Frame& frame, Seconds delay)
 {
-    m_frontendDispatcher->frameScheduledNavigation(frameId(&frame), delay);
+    m_frontendDispatcher->frameScheduledNavigation(frameId(&frame), delay.value());
 }
 
 void InspectorPageAgent::frameClearedScheduledNavigation(Frame& frame)

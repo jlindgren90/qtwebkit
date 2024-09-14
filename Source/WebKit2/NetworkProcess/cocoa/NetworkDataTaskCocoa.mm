@@ -46,6 +46,7 @@
 #import <wtf/text/Base64.h>
 
 namespace WebKit {
+
 #if USE(CREDENTIAL_STORAGE_WITH_NETWORK_SESSION)
 static void applyBasicAuthorizationHeader(WebCore::ResourceRequest& request, const WebCore::Credential& credential)
 {
@@ -53,6 +54,25 @@ static void applyBasicAuthorizationHeader(WebCore::ResourceRequest& request, con
     request.setHTTPHeaderField(WebCore::HTTPHeaderName::Authorization, authenticationHeader);
 }
 #endif
+
+static float toNSURLSessionTaskPriority(WebCore::ResourceLoadPriority priority)
+{
+    switch (priority) {
+    case WebCore::ResourceLoadPriority::VeryLow:
+        return 0;
+    case WebCore::ResourceLoadPriority::Low:
+        return 0.25;
+    case WebCore::ResourceLoadPriority::Medium:
+        return 0.5;
+    case WebCore::ResourceLoadPriority::High:
+        return 0.75;
+    case WebCore::ResourceLoadPriority::VeryHigh:
+        return 1;
+    }
+
+    ASSERT_NOT_REACHED();
+    return NSURLSessionTaskPriorityDefault;
+}
 
 NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataTaskClient& client, const WebCore::ResourceRequest& requestWithCredentials, WebCore::StoredCredentials storedCredentials, WebCore::ContentSniffingPolicy shouldContentSniff, bool shouldClearReferrerOnHTTPSToHTTPRedirect)
     : NetworkDataTask(session, client, requestWithCredentials, storedCredentials, shouldClearReferrerOnHTTPSToHTTPRedirect)
@@ -103,10 +123,15 @@ NetworkDataTaskCocoa::NetworkDataTaskCocoa(NetworkSession& session, NetworkDataT
     LOG(NetworkSession, "%llu Creating NetworkDataTask with URL %s", [m_task taskIdentifier], nsRequest.URL.absoluteString.UTF8String);
 
 #if HAVE(CFNETWORK_STORAGE_PARTITIONING)
-    String storagePartition = WebCore::cookieStoragePartition(request);
-    if (!storagePartition.isEmpty())
+    String storagePartition = session.networkStorageSession().cookieStoragePartition(request);
+    if (!storagePartition.isEmpty()) {
+        LOG(NetworkSession, "%llu Partitioning cookies for URL %s", [m_task taskIdentifier], nsRequest.URL.absoluteString.UTF8String);
         m_task.get()._storagePartitionIdentifier = storagePartition;
+    }
 #endif
+
+    if (WebCore::ResourceRequest::resourcePrioritiesEnabled())
+        m_task.get().priority = toNSURLSessionTaskPriority(request.priority());
 }
 
 NetworkDataTaskCocoa::~NetworkDataTaskCocoa()
@@ -150,10 +175,10 @@ void NetworkDataTaskCocoa::didReceiveChallenge(const WebCore::AuthenticationChal
     }
 }
 
-void NetworkDataTaskCocoa::didCompleteWithError(const WebCore::ResourceError& error)
+void NetworkDataTaskCocoa::didCompleteWithError(const WebCore::ResourceError& error, const WebCore::NetworkLoadMetrics& networkLoadMetrics)
 {
     if (m_client)
-        m_client->didCompleteWithError(error);
+        m_client->didCompleteWithError(error, networkLoadMetrics);
 }
 
 void NetworkDataTaskCocoa::didReceiveData(Ref<WebCore::SharedBuffer>&& data)
@@ -341,7 +366,7 @@ void NetworkDataTaskCocoa::cancel()
 void NetworkDataTaskCocoa::resume()
 {
     if (m_scheduledFailureType != NoFailure)
-        m_failureTimer.startOneShot(0);
+        m_failureTimer.startOneShot(0_s);
     [m_task resume];
 }
 

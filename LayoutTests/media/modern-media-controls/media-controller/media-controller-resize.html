@@ -16,25 +16,20 @@ debug("Checking initial size");
 shouldBeEqualToString("mediaControls.style.width", "320px");
 shouldBeEqualToString("mediaControls.style.height", "240px");
 
-window.requestAnimationFrame(() => {
-    shadowRoot.addEventListener("resize", () => {
-        window.requestAnimationFrame(() => {
-            debug("");
-            debug("Shadow root received a resize event");
-            shouldBeEqualToString("mediaControls.style.width", "400px");
-            shouldBeEqualToString("mediaControls.style.height", "300px");
-
-            debug("");
-            media.remove();
-            finishJSTest();
-        });
+shadowRoot.addEventListener("resize", () => {
+    shouldBeEqualToString("mediaControls.style.width", "400px");
+    shouldBeEqualToString("mediaControls.style.height", "300px");
+    setTimeout(() => {
+        debug("");
+        media.remove();
+        finishJSTest();
     });
-
-    debug("");
-    debug("Resizing to 400x300");
-    media.style.width = "400px";
-    media.style.height = "300px";
 });
+
+debug("");
+debug("Resizing to 400x300");
+media.style.width = "400px";
+media.style.height = "300px";
 
 </script>
 <script src="../../../resources/js-test-post.js"></script>

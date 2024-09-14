@@ -20,17 +20,17 @@
 #endif
 
 #include "webrtc/base/criticalsection.h"
+#include "webrtc/base/neverdestroyed.h"
 #include "webrtc/base/timeutils.h"
 #include "webrtc/system_wrappers/include/rw_lock_wrapper.h"
 
 namespace webrtc {
 
-const double kNtpFracPerMs = 4.294967296E6;
-
-int64_t Clock::NtpToMs(uint32_t ntp_secs, uint32_t ntp_frac) {
-  const double ntp_frac_ms = static_cast<double>(ntp_frac) / kNtpFracPerMs;
-  return 1000 * static_cast<int64_t>(ntp_secs) +
-      static_cast<int64_t>(ntp_frac_ms + 0.5);
+NtpTime Clock::CurrentNtpTime() const {
+  uint32_t seconds;
+  uint32_t fractions;
+  CurrentNtp(seconds, fractions);
+  return NtpTime(seconds, fractions);
 }
 
 class RealTimeClock : public Clock {
@@ -224,7 +224,7 @@ Clock* Clock::GetRealTimeClock() {
   }
   return g_shared_clock;
 #elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
-  static UnixRealTimeClock clock;
+  static NeverDestroyed<UnixRealTimeClock> clock;
   return &clock;
 #else
   return NULL;

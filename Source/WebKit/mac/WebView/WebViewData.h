@@ -29,6 +29,9 @@
 
 #import "WebTypesInternal.h"
 #import "WebDelegateImplementationCaching.h"
+#if HAVE(TOUCH_BAR)
+#import <WebCore/AVKitSPI.h>
+#endif
 #import <WebCore/AlternativeTextClient.h>
 #import <WebCore/LayerFlushScheduler.h>
 #import <WebCore/LayerFlushSchedulerClient.h>
@@ -55,6 +58,8 @@ class WebPlaybackSessionModelMediaElement;
 #endif
 }
 
+@class UIImage;
+@class WebUITextIndicatorData;
 @class WebImmediateActionController;
 @class WebInspector;
 @class WebNodeHighlight;
@@ -104,8 +109,6 @@ class WebSelectionServiceController;
 
 #if HAVE(TOUCH_BAR)
 @class WebTextTouchBarItemController;
-@class AVFunctionBarPlaybackControlsProvider;
-@class AVFunctionBarScrubber;
 #endif
 
 class WebViewLayerFlushScheduler : public WebCore::LayerFlushScheduler {
@@ -190,8 +193,10 @@ private:
     RetainPtr<NSCandidateListTouchBarItem> _richTextCandidateListTouchBarItem;
     RetainPtr<NSCandidateListTouchBarItem> _plainTextCandidateListTouchBarItem;
     RetainPtr<NSCandidateListTouchBarItem> _passwordTextCandidateListTouchBarItem;
-    RetainPtr<AVFunctionBarPlaybackControlsProvider> mediaTouchBarProvider;
-    RetainPtr<AVFunctionBarScrubber> mediaPlaybackControlsView;
+#if ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
+    RetainPtr<AVTouchBarPlaybackControlsProvider> mediaTouchBarProvider;
+    RetainPtr<AVTouchBarScrubber> mediaPlaybackControlsView;
+#endif // ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
 
     BOOL _canCreateTouchBars;
     BOOL _isUpdatingTextTouchBar;
@@ -283,6 +288,12 @@ private:
     WTF::Lock pendingFixedPositionLayoutRectMutex;
     CGRect pendingFixedPositionLayoutRect;
 #endif
+    
+#if ENABLE(DATA_INTERACTION)
+    WebUITextIndicatorData *textIndicatorData;
+    RetainPtr<WebUITextIndicatorData> dataOperationTextIndicator;
+#endif
+
 
 #if !PLATFORM(IOS)
     // WebKit has both a global plug-in database and a separate, per WebView plug-in database. Dashboard uses the per WebView database.

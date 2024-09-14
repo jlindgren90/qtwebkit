@@ -62,12 +62,14 @@
 #include "Logging.h"
 #include "MainFrame.h"
 #include "MemoryCache.h"
+#include "NetworkLoadMetrics.h"
 #include "Page.h"
 #include "PolicyChecker.h"
 #include "ProgressTracker.h"
 #include "ResourceHandle.h"
 #include "ResourceLoadObserver.h"
 #include "SchemeRegistry.h"
+#include "ScriptableDocumentParser.h"
 #include "SecurityPolicy.h"
 #include "Settings.h"
 #include "SubresourceLoader.h"
@@ -305,19 +307,20 @@ void DocumentLoader::stopLoading()
 
     m_isStopping = true;
 
-    FrameLoader* frameLoader = DocumentLoader::frameLoader();
-    
-    if (isLoadingMainResource()) {
-        // Stop the main resource loader and let it send the cancelled message.
-        cancelMainResourceLoad(frameLoader->cancelledError(m_request));
-    } else if (!m_subresourceLoaders.isEmpty() || !m_plugInStreamLoaders.isEmpty()) {
-        // The main resource loader already finished loading. Set the cancelled error on the
-        // document and let the subresourceLoaders and pluginLoaders send individual cancelled messages below.
-        setMainDocumentError(frameLoader->cancelledError(m_request));
-    } else {
-        // If there are no resource loaders, we need to manufacture a cancelled message.
-        // (A back/forward navigation has no resource loaders because its resources are cached.)
-        mainReceivedError(frameLoader->cancelledError(m_request));
+    // The frame may have been detached from this document by the onunload handler
+    if (auto* frameLoader = DocumentLoader::frameLoader()) {
+        if (isLoadingMainResource()) {
+            // Stop the main resource loader and let it send the cancelled message.
+            cancelMainResourceLoad(frameLoader->cancelledError(m_request));
+        } else if (!m_subresourceLoaders.isEmpty() || !m_plugInStreamLoaders.isEmpty()) {
+            // The main resource loader already finished loading. Set the cancelled error on the
+            // document and let the subresourceLoaders and pluginLoaders send individual cancelled messages below.
+            setMainDocumentError(frameLoader->cancelledError(m_request));
+        } else {
+            // If there are no resource loaders, we need to manufacture a cancelled message.
+            // (A back/forward navigation has no resource loaders because its resources are cached.)
+            mainReceivedError(frameLoader->cancelledError(m_request));
+        }
     }
 
     // We always need to explicitly cancel the Document's parser when stopping the load.
@@ -361,7 +364,7 @@ void DocumentLoader::notifyFinished(CachedResource& resource)
     ASSERT_UNUSED(resource, m_mainResource == &resource);
     ASSERT(m_mainResource);
     if (!m_mainResource->errorOccurred() && !m_mainResource->wasCanceled()) {
-        finishedLoading(m_mainResource->loadFinishTime());
+        finishedLoading();
         return;
     }
 
@@ -373,7 +376,7 @@ void DocumentLoader::notifyFinished(CachedResource& resource)
     mainReceivedError(m_mainResource->resourceError());
 }
 
-void DocumentLoader::finishedLoading(double finishTime)
+void DocumentLoader::finishedLoading()
 {
     // There is a bug in CFNetwork where callbacks can be dispatched even when loads are deferred.
     // See <rdar://problem/6304600> for more details.
@@ -388,18 +391,15 @@ void DocumentLoader::finishedLoading(double finishTime)
         // being finished). Clear m_identifierForLoadWithoutResourceLoader
         // before calling dispatchDidFinishLoading so that we don't later try to
         // cancel the already-finished substitute load.
+        NetworkLoadMetrics emptyMetrics;
         unsigned long identifier = m_identifierForLoadWithoutResourceLoader;
         m_identifierForLoadWithoutResourceLoader = 0;
-        frameLoader()->notifier().dispatchDidFinishLoading(this, identifier, finishTime);
+        frameLoader()->notifier().dispatchDidFinishLoading(this, identifier, emptyMetrics, nullptr);
     }
 
     maybeFinishLoadingMultipartContent();
 
-    MonotonicTime responseEndTime = MonotonicTime::fromRawSeconds(finishTime);
-    if (!responseEndTime)
-        responseEndTime = m_timeOfLastDataReceived;
-    if (!responseEndTime)
-        responseEndTime = MonotonicTime::now();
+    MonotonicTime responseEndTime = m_timeOfLastDataReceived ? m_timeOfLastDataReceived : MonotonicTime::now();
     timing().setResponseEnd(responseEndTime);
 
     commitIfReady();
@@ -454,7 +454,7 @@ void DocumentLoader::handleSubstituteDataLoadNow()
 
 void DocumentLoader::startDataLoadTimer()
 {
-    m_dataLoadTimer.startOneShot(0);
+    m_dataLoadTimer.startOneShot(0_s);
 
 #if HAVE(RUNLOOP_TIMER)
     if (SchedulePairHashSet* scheduledPairs = m_frame->page()->scheduledRunLoopPairs())
@@ -567,7 +567,7 @@ void DocumentLoader::willSendRequest(ResourceRequest& newRequest, const Resource
 
     ASSERT(!m_waitingForNavigationPolicy);
     m_waitingForNavigationPolicy = true;
-    frameLoader()->policyChecker().checkNavigationPolicy(newRequest, didReceiveRedirectResponse, [this] (const ResourceRequest& request, FormState*, bool shouldContinue) {
+    frameLoader()->policyChecker().checkNavigationPolicy(newRequest, didReceiveRedirectResponse, [this, protectedThis = makeRef(*this)] (const ResourceRequest& request, FormState*, bool shouldContinue) {
         continueAfterNavigationPolicy(request, shouldContinue);
     });
 }
@@ -729,7 +729,7 @@ static bool isRemoteWebArchive(const DocumentLoader& documentLoader)
         return false;
 
 #if USE(QUICK_LOOK)
-    if (response.url().protocolIs(QLPreviewProtocol()))
+    if (isQuickLookPreviewURL(response.url()))
         return false;
 #endif
 
@@ -810,7 +810,7 @@ void DocumentLoader::continueAfterContentPolicy(PolicyAction policy)
         if (content && content->size())
             dataReceived(content->data(), content->size());
         if (isLoadingMainResource())
-            finishedLoading(0);
+            finishedLoading();
     }
 }
 
@@ -1057,6 +1057,9 @@ bool DocumentLoader::isLoadingInAPISense() const
             return true;
         if (document.hasActiveParser())
             return true;
+        auto* scriptableParser = document.scriptableDocumentParser();
+        if (scriptableParser && scriptableParser->hasScriptsWaitingForStylesheets())
+            return true;
     }
     return frameLoader()->subframeIsLoading();
 }
@@ -1186,7 +1189,7 @@ void DocumentLoader::deliverSubstituteResourcesAfterDelay()
         return;
 
     if (!m_substituteResourceDeliveryTimer.isActive())
-        m_substituteResourceDeliveryTimer.startOneShot(0);
+        m_substituteResourceDeliveryTimer.startOneShot(0_s);
 }
 
 void DocumentLoader::substituteResourceDeliveryTimerFired()
@@ -1420,7 +1423,7 @@ bool DocumentLoader::maybeLoadEmpty()
 
     String mimeType = shouldLoadEmpty ? "text/html" : frameLoader()->client().generatedMIMETypeForURLScheme(m_request.url().protocol().toStringWithoutCopying());
     m_response = ResourceResponse(m_request.url(), mimeType, 0, String());
-    finishedLoading(monotonicallyIncreasingTime());
+    finishedLoading();
     return true;
 }
 
@@ -1478,7 +1481,16 @@ void DocumentLoader::startLoadingMainResource()
     RELEASE_LOG_IF_ALLOWED("startLoadingMainResource: Starting load (frame = %p, main = %d)", m_frame, m_frame->isMainFrame());
 
     static NeverDestroyed<ResourceLoaderOptions> mainResourceLoadOptions(SendCallbacks, SniffContent, BufferData, AllowStoredCredentials, ClientCredentialPolicy::MayAskClientForCredentials, FetchOptions::Credentials::Include, SkipSecurityCheck, FetchOptions::Mode::NoCors, IncludeCertificateInfo, ContentSecurityPolicyImposition::SkipPolicyCheck, DefersLoadingPolicy::AllowDefersLoading, CachingPolicy::AllowCaching);
-    m_mainResource = m_cachedResourceLoader->requestMainResource(CachedResourceRequest(ResourceRequest(request), mainResourceLoadOptions));
+    CachedResourceRequest mainResourceRequest(ResourceRequest(request), mainResourceLoadOptions);
+    if (!m_frame->isMainFrame() && m_frame->document()) {
+        // If we are loading the main resource of a subframe, use the cache partition of the main document.
+        mainResourceRequest.setDomainForCachePartition(*m_frame->document());
+    } else {
+        auto origin = SecurityOrigin::create(request.url());
+        origin->setStorageBlockingPolicy(frameLoader()->frame().settings().storageBlockingPolicy());
+        mainResourceRequest.setDomainForCachePartition(origin->domainForCachePartition());
+    }
+    m_mainResource = m_cachedResourceLoader->requestMainResource(WTFMove(mainResourceRequest));
 
 #if ENABLE(CONTENT_EXTENSIONS)
     if (m_mainResource && m_mainResource->errorOccurred() && m_frame->page() && m_mainResource->resourceError().domain() == ContentExtensions::WebKitContentBlockerDomain) {

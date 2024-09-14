@@ -15,8 +15,29 @@ test(() => {
 
 test(() => {
   // Constructing ReadableStream with an empty underlying byte source object as parameter shouldn't throw.
-  new ReadableStream({ type: 'bytes' });
+  new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' });
+  // Constructor must perform ToString(type).
+  new ReadableStream({ type: { toString() {return 'bytes';} } })
+    .getReader({ mode: 'byob' });
+  new ReadableStream({ type: { toString: null, valueOf() {return 'bytes';} } })
+    .getReader({ mode: 'byob' });
 }, 'ReadableStream with byte source can be constructed with no errors');
+
+test(() => {
+  const ReadableStreamBYOBReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
+  const rs = new ReadableStream({ type: 'bytes' });
+
+  let reader = rs.getReader({ mode: { toString() { return 'byob'; } } });
+  assert_true(reader instanceof ReadableStreamBYOBReader, 'must give a BYOB reader');
+  reader.releaseLock();
+
+  reader = rs.getReader({ mode: { toString: null, valueOf() {return 'byob';} } });
+  assert_true(reader instanceof ReadableStreamBYOBReader, 'must give a BYOB reader');
+  reader.releaseLock();
+
+  reader = rs.getReader({ mode: 'byob', notmode: 'ignored' });
+  assert_true(reader instanceof ReadableStreamBYOBReader, 'must give a BYOB reader');
+}, 'getReader({mode}) must perform ToString()');
 
 promise_test(() => {
   let startCalled = false;
@@ -99,6 +120,32 @@ promise_test(t => {
 
   return Promise.resolve();
 }, 'ReadableStream with byte source: Construct with highWaterMark of 0');
+
+test(() => {
+  new ReadableStream({
+    start(c) {
+      assert_equals(c.desiredSize, 10, 'desiredSize must start at the highWaterMark');
+      c.close();
+      assert_equals(c.desiredSize, 0, 'after closing, desiredSize must be 0');
+    },
+    type: 'bytes'
+  }, {
+    highWaterMark: 10
+  });
+}, 'ReadableStream with byte source: desiredSize when closed');
+
+test(() => {
+  new ReadableStream({
+    start(c) {
+      assert_equals(c.desiredSize, 10, 'desiredSize must start at the highWaterMark');
+      c.error();
+      assert_equals(c.desiredSize, null, 'after erroring, desiredSize must be null');
+    },
+    type: 'bytes'
+  }, {
+    highWaterMark: 10
+  });
+}, 'ReadableStream with byte source: desiredSize when errored');
 
 promise_test(t => {
   const stream = new ReadableStream({

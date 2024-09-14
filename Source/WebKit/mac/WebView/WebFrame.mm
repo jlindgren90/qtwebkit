@@ -65,6 +65,7 @@
 #import <WebCore/DocumentFragment.h>
 #import <WebCore/DocumentLoader.h>
 #import <WebCore/DocumentMarkerController.h>
+#import <WebCore/Editing.h>
 #import <WebCore/Editor.h>
 #import <WebCore/EventHandler.h>
 #import <WebCore/EventNames.h>
@@ -97,7 +98,6 @@
 #import <WebCore/TextIterator.h>
 #import <WebCore/ThreadCheck.h>
 #import <WebCore/VisibleUnits.h>
-#import <WebCore/htmlediting.h>
 #import <WebCore/markup.h>
 #import <WebKitSystemInterface.h>
 #import <bindings/ScriptValue.h>
@@ -1059,6 +1059,9 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
         return WebFrameLoadTypeReplace;
     case FrameLoadType::ReloadFromOrigin:
         return WebFrameLoadTypeReloadFromOrigin;
+    case FrameLoadType::ReloadExpiredOnly:
+        ASSERT_NOT_REACHED();
+        return WebFrameLoadTypeReload;
     }
 }
 
@@ -1753,7 +1756,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     if (!range)
         return nil;
     
-    auto markers = core(self)->document()->markers().markersInRange(core(range), DocumentMarker::DictationResult);
+    auto markers = core(self)->document()->markers().markersInRange(*core(range), DocumentMarker::DictationResult);
     
     // UIKit should only ever give us a DOMRange for a phrase with alternatives, which should not be part of more than one result.
     ASSERT(markers.size() <= 1);
@@ -1926,7 +1929,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 {
     if (_private->coreFrame->selection().isNone() || !fragment)
         return;
-    _private->coreFrame->editor().replaceSelectionWithFragment(core(fragment), selectReplacement, smartReplace, matchStyle);
+    _private->coreFrame->editor().replaceSelectionWithFragment(*core(fragment), selectReplacement, smartReplace, matchStyle);
 }
 
 #if PLATFORM(IOS)
@@ -2213,6 +2216,13 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
         coreFrame->loader().setOpener(0);
 }
 
+- (BOOL)hasRichlyEditableDragCaret
+{
+    if (auto* page = core(self)->page())
+        return page->dragCaretController().isContentRichlyEditable();
+    return NO;
+}
+
 // Used by pagination code called from AppKit when a standalone web page is printed.
 - (NSArray *)_computePageRectsWithPrintScaleFactor:(float)printScaleFactor pageSize:(NSSize)pageSize
 {
@@ -2490,7 +2500,7 @@ static NSURL *createUniqueWebDataURL()
     ResourceRequest request(baseURL);
 
     ResourceResponse response(responseURL, MIMEType, [data length], encodingName);
-    SubstituteData substituteData(WebCore::SharedBuffer::wrapNSData(data), [unreachableURL absoluteURL], response, SubstituteData::SessionHistoryVisibility::Hidden);
+    SubstituteData substituteData(WebCore::SharedBuffer::create(data), [unreachableURL absoluteURL], response, SubstituteData::SessionHistoryVisibility::Hidden);
 
     _private->coreFrame->loader().load(FrameLoadRequest(_private->coreFrame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow, substituteData));
 }
@@ -2539,12 +2549,12 @@ static NSURL *createUniqueWebDataURL()
 
 - (void)reload
 {
-    _private->coreFrame->loader().reload(false);
+    _private->coreFrame->loader().reload({ });
 }
 
 - (void)reloadFromOrigin
 {
-    _private->coreFrame->loader().reload(true);
+    _private->coreFrame->loader().reload(WebCore::ReloadOption::FromOrigin);
 }
 
 - (WebFrame *)findFrameNamed:(NSString *)name

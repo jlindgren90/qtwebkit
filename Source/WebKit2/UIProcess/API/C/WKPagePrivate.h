@@ -42,9 +42,6 @@ enum {
 };
 typedef unsigned WKPageDebugPaintFlags;
 
-WK_EXPORT void WKPageSetDebugPaintFlags(WKPageDebugPaintFlags flags);
-WK_EXPORT WKPageDebugPaintFlags WKPageGetDebugPaintFlags(void);
-
 WK_EXPORT WKStringRef WKPageCopyStandardUserAgentWithApplicationName(WKStringRef);
 
 enum {
@@ -140,6 +137,8 @@ enum {
     kWKMediaIsPlayingVideo = 1 << 1,
     kWKMediaHasActiveAudioCaptureDevice = 1 << 2,
     kWKMediaHasActiveVideoCaptureDevice = 1 << 3,
+    kWKMediaHasMutedAudioCaptureDevice = 1 << 4,
+    kWKMediaHasMutedVideoCaptureDevice = 1 << 5,
 };
 typedef uint32_t WKMediaState;
 

@@ -47,7 +47,8 @@ class PolymorphicAccess;
 
 enum class AccessType : int8_t {
     Get,
-    GetPure,
+    GetWithThis,
+    TryGet,
     Put,
     In
 };
@@ -177,9 +178,11 @@ public:
 
         int8_t baseGPR;
         int8_t valueGPR;
+        int8_t thisGPR;
 #if USE(JSVALUE32_64)
         int8_t valueTagGPR;
         int8_t baseTagGPR;
+        int8_t thisTagGPR;
 #endif
     } patch;
 

@@ -29,6 +29,8 @@
 #if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
 
 #include "LayerTreeContext.h"
+#include <WebCore/DisplayRefreshMonitor.h>
+#include <WebCore/PlatformScreen.h>
 #include <wtf/Forward.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
@@ -78,10 +80,6 @@ public:
 
     virtual WebCore::GraphicsLayerFactory* graphicsLayerFactory() { return nullptr; }
 
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
-    virtual void didReceiveCoordinatedLayerTreeHostMessage(IPC::Connection&, IPC::Decoder&) = 0;
-#endif
-
 #if USE(COORDINATED_GRAPHICS_THREADED)
     virtual void contentsSizeChanged(const WebCore::IntSize&) { };
     virtual void didChangeViewportAttributes(WebCore::ViewportAttributes&&) { };
@@ -98,6 +96,10 @@ public:
 
 #if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
     virtual void deviceOrPageScaleFactorChanged() = 0;
+#endif
+
+#if USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
+    virtual RefPtr<WebCore::DisplayRefreshMonitor> createDisplayRefreshMonitor(WebCore::PlatformDisplayID) { return nullptr; }
 #endif
 
     virtual void setViewOverlayRootLayer(WebCore::GraphicsLayer* viewOverlayRootLayer) { m_viewOverlayRootLayer = viewOverlayRootLayer; }

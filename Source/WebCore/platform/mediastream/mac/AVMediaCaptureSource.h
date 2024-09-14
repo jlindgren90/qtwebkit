@@ -39,6 +39,8 @@ OBJC_CLASS AVCaptureDevice;
 OBJC_CLASS AVCaptureOutput;
 OBJC_CLASS AVCaptureSession;
 OBJC_CLASS AVCaptureVideoDataOutput;
+OBJC_CLASS NSError;
+OBJC_CLASS NSNotification;
 OBJC_CLASS WebCoreAVMediaCaptureSourceObserver;
 
 typedef struct opaqueCMSampleBuffer *CMSampleBufferRef;
@@ -53,7 +55,12 @@ public:
 
     virtual void captureOutputDidOutputSampleBufferFromConnection(AVCaptureOutput*, CMSampleBufferRef, AVCaptureConnection*) = 0;
 
-    virtual void captureSessionIsRunningDidChange(bool);
+    void captureSessionIsRunningDidChange(bool);
+    void captureSessionRuntimeError(RetainPtr<NSError>);
+
+    enum class InterruptionReason { None, VideoNotAllowedInBackground, AudioInUse, VideoInUse, VideoNotAllowedInSideBySide };
+    void captureSessionBeginInterruption(RetainPtr<NSNotification>);
+    void captureSessionEndInterruption(RetainPtr<NSNotification>);
 
     AVCaptureSession *session() const { return m_session.get(); }
 
@@ -61,7 +68,7 @@ public:
 
     void startProducingData() final;
     void stopProducingData() final;
-    bool isProducingData() const final { return m_isRunning; }
+    bool isProducingData() const final;
 
 protected:
     AVMediaCaptureSource(AVCaptureDevice*, const AtomicString&, RealtimeMediaSource::Type);
@@ -77,7 +84,7 @@ protected:
     AVCaptureDevice *device() const { return m_device.get(); }
 
     RealtimeMediaSourceSupportedConstraints& supportedConstraints();
-    RefPtr<RealtimeMediaSourceCapabilities> capabilities() const final;
+    const RealtimeMediaSourceCapabilities& capabilities() const final;
 
     void setVideoSampleBufferDelegate(AVCaptureVideoDataOutput*);
     void setAudioSampleBufferDelegate(AVCaptureAudioDataOutput*);
@@ -89,16 +96,19 @@ private:
     void beginConfiguration() final;
     void commitConfiguration() final;
 
+    bool isCaptureSource() const final { return true; }
+
     void initializeSettings();
     void initializeCapabilities();
 
     RealtimeMediaSourceSettings m_currentSettings;
     RealtimeMediaSourceSupportedConstraints m_supportedConstraints;
     RetainPtr<WebCoreAVMediaCaptureSourceObserver> m_objcObserver;
-    RefPtr<RealtimeMediaSourceCapabilities> m_capabilities;
+    std::unique_ptr<RealtimeMediaSourceCapabilities> m_capabilities;
     RetainPtr<AVCaptureSession> m_session;
     RetainPtr<AVCaptureDevice> m_device;
-    bool m_isRunning { false};
+    InterruptionReason m_interruption { InterruptionReason::None };
+    bool m_isRunning { false };
 };
 
 } // namespace WebCore

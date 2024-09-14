@@ -132,6 +132,7 @@ public:
 
     // Subtree push/pop
     void pushLayoutState(RenderObject&);
+    bool pushLayoutStateForPaginationIfNeeded(RenderBlockFlow&);
     void popLayoutState(RenderObject&) { return popLayoutState(); } // Just doing this to keep popLayoutState() private and to make the subtree calls symmetrical.
 
     // Returns true if layoutState should be used for its cached offset and clip.
@@ -228,8 +229,9 @@ public:
     void registerForVisibleInViewportCallback(RenderElement&);
     void unregisterForVisibleInViewportCallback(RenderElement&);
     void resumePausedImageAnimationsIfNeeded(IntRect visibleRect);
-    void addRendererWithPausedImageAnimations(RenderElement&);
+    void addRendererWithPausedImageAnimations(RenderElement&, CachedImage&);
     void removeRendererWithPausedImageAnimations(RenderElement&);
+    void removeRendererWithPausedImageAnimations(RenderElement&, CachedImage&);
 
     class RepaintRegionAccumulator {
         WTF_MAKE_NONCOPYABLE(RepaintRegionAccumulator);
@@ -238,9 +240,11 @@ public:
         ~RepaintRegionAccumulator();
 
     private:
-        RenderView* m_rootView;
+        WeakPtr<RenderView> m_rootView;
         bool m_wasAccumulatingRepaintRegion;
     };
+
+    WeakPtr<RenderView> createWeakPtr() { return m_weakFactory.createWeakPtr(); }
 
     void scheduleLazyRepaint(RenderBox&);
     void unscheduleLazyRepaint(RenderBox&);
@@ -337,6 +341,7 @@ private:
 private:
     FrameView& m_frameView;
 
+    WeakPtrFactory<RenderView> m_weakFactory;
     RenderObject* m_selectionUnsplitStart { nullptr };
     RenderObject* m_selectionUnsplitEnd { nullptr };
     std::optional<unsigned> m_selectionUnsplitStartPos;
@@ -385,7 +390,7 @@ private:
     bool m_inHitTesting { false };
 #endif
 
-    HashSet<RenderElement*> m_renderersWithPausedImageAnimation;
+    HashMap<RenderElement*, Vector<CachedImage*>> m_renderersWithPausedImageAnimation;
     HashSet<RenderElement*> m_visibleInViewportRenderers;
     Vector<RefPtr<RenderWidget>> m_protectedRenderWidgets;
 

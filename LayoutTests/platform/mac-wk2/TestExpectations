@@ -6,6 +6,7 @@
 #//////////////////////////////////////////////////////////////////////////////////////////
 
 tiled-drawing [ Pass ]
+tiled-drawing/ios [ Skip ]
 fast/visual-viewport/tiled-drawing [ Pass ]
 swipe [ Pass ]
 
@@ -52,6 +53,7 @@ editing/pasteboard/drag-and-drop-image-contenteditable.html
 editing/pasteboard/drag-and-drop-inputimage-contenteditable.html
 editing/pasteboard/drag-and-drop-objectimage-contenteditable.html
 editing/pasteboard/drag-and-drop-attachment-contenteditable.html
+editing/pasteboard/drag-drop-copy-content.html
 editing/pasteboard/drag-drop-dead-frame.html
 editing/pasteboard/drag-drop-input-textarea.html
 editing/pasteboard/drag-drop-list.html
@@ -100,6 +102,7 @@ fast/events/drag-and-drop-fire-drag-dragover.html
 fast/events/drag-and-drop.html
 fast/events/drag-and-drop-link.html
 fast/events/drag-and-drop-link-fast-multiple-times-does-not-crash.html
+fast/events/drag-and-drop-link-containing-block.html
 fast/events/drag-in-frames.html
 fast/events/drag-parent-node.html
 fast/events/draggable-div-nodata.html
@@ -285,6 +288,7 @@ webkit.org/b/139820 fast/frames/lots-of-iframes.html [ Pass Timeout ]
 webkit.org/b/145432 media/video-transformed-by-javascript.html [ Failure ]
 
 # A lot of the disk-cache tests are flaky on mac-wk2
+webkit.org/b/169359 http/tests/cache/disk-cache/disk-cache-remove-several-pending-writes.html [ Pass Failure ]
 webkit.org/b/149087 http/tests/cache/disk-cache/disk-cache-validation-back-navigation-policy.html [ Pass Failure Timeout ]
 webkit.org/b/149087 http/tests/cache/disk-cache/disk-cache-validation-no-body.html [ Pass Failure Timeout ]
 webkit.org/b/149087 http/tests/cache/disk-cache/disk-cache-validation.html [ Pass Failure Timeout ]
@@ -305,10 +309,6 @@ webkit.org/b/151326 [ Yosemite+ ] webarchive/loading/missing-data.html [ Pass Cr
 
 webkit.org/b/151455 [ Release ] http/tests/xmlhttprequest/workers/methods-async.html [ Pass Timeout ]
 
-webkit.org/b/162945 http/tests/cache/disk-cache/disk-cache-request-max-stale.html [ Pass Failure ]
-
-webkit.org/b/162946 http/tests/cache/disk-cache/disk-cache-media.html [ Pass Failure ]
-
 webkit.org/b/150542 fast/forms/state-restore-per-form.html [ Pass Timeout ]
 
 webkit.org/b/151709 [ Release ] http/tests/xmlhttprequest/workers/methods.html [ Pass Timeout ]
@@ -320,6 +320,9 @@ webkit.org/b/155151 [ Debug ElCapitan ] media/track/track-cues-pause-on-exit.htm
 webkit.org/b/155312 inspector/heap/getPreview.html [ Pass Timeout ]
 
 webkit.org/b/156077 inspector/heap/getRemoteObject.html [ Pass Failure ]
+
+# Video fullscreen is not implemented for mac wk2 in webkittestrunner
+media/media-fullscreen-loop-inline.html [ Skip ]
 
 ### END OF (1) Classified failures with bug reports
 ########################################
@@ -422,8 +425,6 @@ http/tests/security/storage-blocking-loosened-private-browsing-plugin.html [ Ski
 http/tests/security/storage-blocking-strengthened-private-browsing-plugin.html [ Skip ]
 plugins/private-browsing-mode-2.html [ Skip ]
 plugins/private-browsing-mode.html [ Skip ]
-storage/domstorage/localstorage/private-browsing-affects-storage.html [ Skip ]
-storage/domstorage/sessionstorage/private-browsing-affects-storage.html [ Skip ]
 storage/websql/private-browsing-noread-nowrite.html [ Skip ]
 
 # There is no network load scheduling or prioritization with NetworkProcess.
@@ -536,22 +537,13 @@ webkit.org/b/162638 [ Sierra+ ] fast/scrolling/rtl-scrollbars-alternate-iframe-b
 # <rdar://problem/25063128>
 [ Sierra+ ] media/media-controls-drag-timeline-set-controls-property.html [ Pass Timeout ]
 
-# <rdar://problem/23379930> swipe tests crashing
-[ Sierra+ ] swipe/basic-cached-back-swipe.html [ Skip ]
-[ Sierra+ ] swipe/main-frame-pinning-requirement.html [ Skip ]
-[ Sierra+ ] swipe/pushState-cached-back-swipe.html [ Skip ]
-[ Sierra+ ] swipe/swipe-start-hysteresis-failures.html [ Skip ]
-
 # Hitting "The certificate for this server is invalid" loading error (not happening in WK1)
 webkit.org/b/160445 [ Sierra+ ] http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html [ Failure ]
 webkit.org/b/160445 [ Sierra+ ] http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html [ Failure ]
 
-webkit.org/b/163604 inspector/debugger/breakpoint-action-eval.html [ Pass Timeout ]
 webkit.org/b/159447 [ Debug ] inspector/debugger/tail-deleted-frames-from-vm-entry.html [ Pass Failure ]
 
 webkit.org/b/167607 [ Debug ] http/tests/inspector/worker/blob-script-with-cross-domain-imported-scripts.html [ Pass Timeout ]
-
-webkit.org/b/159430 [ Debug Sierra+ ] media/restore-from-page-cache.html [ Pass Crash ]
 
 webkit.org/b/159884 http/tests/loading/basic-auth-resend-wrong-credentials.html [ Pass Failure ]
 
@@ -593,11 +585,11 @@ webkit.org/b/162685 http/tests/cache/disk-cache/disk-cache-204-status-code.html 
 
 webkit.org/b/161649 http/tests/cache/disk-cache/resource-becomes-uncacheable.html [ Pass Failure ]
 
-webkit.org/b/163136 [ Release ] http/tests/xmlhttprequest/auth-reject-protection-space.html [ Pass Failure ]
+webkit.org/b/163136 http/tests/xmlhttprequest/auth-reject-protection-space.html [ Pass Failure ]
 
 webkit.org/b/163139 http/tests/loading/basic-auth-load-URL-with-consecutive-slashes.html [ Pass Failure ]
 
-webkit.org/b/162975 [ Debug ] http/tests/cache/disk-cache/memory-cache-revalidation-updates-disk-cache.html [ Pass Failure ]
+webkit.org/b/162975 http/tests/cache/disk-cache/memory-cache-revalidation-updates-disk-cache.html [ Pass Failure ]
 
 webkit.org/b/161653 [ Debug ] storage/indexeddb/key-generator.html [ Pass Timeout ]
 
@@ -606,12 +598,11 @@ webkit.org/b/163453 [ Sierra Release ] http/tests/security/contentSecurityPolicy
 webkit.org/b/163702 platform/mac-wk2/plugins/muted-state.html [ Failure ]
 
 webkit.org/b/164870 [ Debug ] imported/w3c/web-platform-tests/IndexedDB/idbcursor_iterating.htm [ Pass Failure ]
+webkit.org/b/164870 [ ElCapitan Release ] imported/w3c/web-platform-tests/IndexedDB/idbcursor_iterating.htm [ Pass Failure ]
 
 webkit.org/b/165352 fast/dom/Window/window-resize-contents.html [ Pass Timeout ]
 
 webkit.org/b/165392 [ ElCapitan Release ] imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-parameters-1.html [ Pass Failure ]
-
-webkit.org/b/161887 [ ElCapitan ] swipe/main-frame-pinning-requirement.html [ Pass Timeout ]
 
 webkit.org/b/167653 http/tests/contentextensions/block-everything-unless-domain.html [ Pass Timeout ]
 
@@ -619,10 +610,52 @@ webkit.org/b/167206 [ Sierra Release ] mathml/opentype/large-operators-displayst
 
 webkit.org/b/168065 inspector/unit-tests/heap-snapshot.html [ Pass Failure Timeout ]
 
-webkit.org/b/167538 [ Sierra ] fast/css-grid-layout/grid-simplified-layout-positioned.html [ Pass ImageOnlyFailure ]
-
-webkit.org/b/167965 pointer-lock/mouse-event-delivery.html [ Pass Failure ]
-
 webkit.org/b/168235 [ Debug ] imported/w3c/web-platform-tests/html/semantics/text-level-semantics/the-a-element/a-download-click.html [ Pass Failure ]
 
 webkit.org/b/168085 tiled-drawing/scrolling/latched-to-deleted-node.html [ Pass Failure ]
+
+webkit.org/b/168336 [ Debug ] imported/w3c/web-platform-tests/streams/readable-streams/garbage-collection.html [ Pass Timeout ]
+
+webkit.org/b/168089 [ Release ] animations/trigger-container-scroll-empty.html [ Pass Failure ]
+
+webkit.org/b/168391 [ ElCapitan Debug ] storage/indexeddb/modern/idbcursor-continue-primary-key-1.html [ Pass Timeout ]
+
+
+webkit.org/b/168380 [ ElCapitan Debug ] imported/w3c/web-platform-tests/IndexedDB/idb-binary-key-roundtrip.htm [ Pass Failure ]
+
+# Skipped because Mac doesn't have a key to show the context menu
+fast/events/context-activated-by-key-event.html [ Skip ]
+
+[ Release ] js/dom/global-constructors-attributes.html [ Skip ]
+
+webkit.org/b/168933 fast/regions/inline-block-inside-anonymous-overflow-with-covered-controls.html [ Pass ImageOnlyFailure ]
+
+webkit.org/b/168346 [ Sierra Debug ] editing/selection/move-by-word-visually-multi-space.html [ Pass Timeout ]
+
+webkit.org/b/169621 imported/w3c/web-platform-tests/IndexedDB/fire-error-event-exception.html [ Pass Failure ]
+webkit.org/b/169760 imported/w3c/web-platform-tests/IndexedDB/fire-success-event-exception.html [ Pass Failure ]
+
+webkit.org/b/169640 imported/w3c/web-platform-tests/html/webappapis/scripting/events/event-handler-javascript.html [ Failure ]
+
+webkit.org/b/169719 fast/mediacapturefromelement/CanvasCaptureMediaStream-request-frame-events.html [ Pass Failure ]
+
+webkit.org/b/170203 fast/images/animated-image-different-dest-size.html [ Pass ImageOnlyFailure ]
+
+webkit.org/b/170410 fast/images/animated-gif-webkit-transform.html [ Pass Failure ]
+
+# Media loading via network cache requires Sierra or newer.
+[ ElCapitan ] http/tests/cache/disk-cache/disk-cache-media-small.html [ Failure ]
+
+compositing/tiling/non-visible-window-tile-coverage.html [ Pass ]
+
+webkit.org/b/170702 [ Sierra ] http/tests/inspector/network/resource-request-headers.html [ Pass Failure ]
+
+webkit.org/b/170907 [ Sierra Debug ] imported/w3c/web-platform-tests/WebCryptoAPI/derive_bits_keys/hkdf.worker.html [ Pass Failure Timeout ]
+
+webkit.org/b/170629 [ Sierra Debug ] memory/memory-pressure-simulation.html [ Pass Failure ]
+
+webkit.org/b/170484 swipe/main-frame-pinning-requirement.html [ Pass Failure ]
+
+webkit.org/b/170960 [ Sierra ] fast/mediastream/getUserMedia-webaudio.html [ Pass Timeout ]
+
+webkit.org/b/170818 imported/w3c/web-platform-tests/webrtc/rtcpeerconnection/setRemoteDescription.html [ Pass Failure ]

@@ -24,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MockRealtimeMediaSourceCenter_h
-#define MockRealtimeMediaSourceCenter_h
+#pragma once
 
 #if ENABLE(MEDIA_STREAM)
 
@@ -44,10 +43,13 @@ private:
     void validateRequestConstraints(ValidConstraintsHandler validHandler, InvalidConstraintsHandler invalidHandler, const MediaConstraints& audioConstraints, const MediaConstraints& videoConstraints) final;
     Vector<CaptureDevice> getMediaStreamDevices() final;
     void createMediaStream(NewMediaStreamHandler, const String& audioDeviceID, const String& videoDeviceID, const MediaConstraints* audioConstraints, const MediaConstraints* videoConstraints) final;
+
+    RealtimeMediaSource::AudioCaptureFactory* defaultAudioFactory() final;
+    RealtimeMediaSource::VideoCaptureFactory* defaultVideoFactory() final;
+
+    ExceptionOr<void> setDeviceEnabled(const String& persistentID, bool) final;
 };
 
 }
 
 #endif // MockRealtimeMediaSourceCenter_h
-
-#endif

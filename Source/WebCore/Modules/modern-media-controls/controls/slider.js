@@ -23,22 +23,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-class Slider extends LayoutNode
+class Slider extends LayoutItem
 {
 
-    constructor(cssClassName = "")
+    constructor({ layoutDelegate = null, cssClassName = "" } = {})
     {
-        super(`<div class="slider ${cssClassName}"></div>`);
+        super({
+            element: `<div class="slider ${cssClassName}"></div>`,
+            layoutDelegate
+        });
 
-        this._fill = new LayoutNode(`<div class="fill"></div>`);
+        this._canvas = new LayoutNode(`<canvas></canvas>`);
 
         this._input = new LayoutNode(`<input type="range" min="0" max="1" step="0.001" />`);
-        this._input.element.addEventListener("change", this);
+        this._input.element.addEventListener("mousedown", this);
         this._input.element.addEventListener("input", this);
+        this._input.element.addEventListener("change", this);
 
+        this.isActive = false;
         this.value = 0;
 
-        this.children = [this._fill, this._input];
+        this.children = [this._canvas, this._input];
     }
 
     // Public
@@ -52,23 +57,12 @@ class Slider extends LayoutNode
 
     set value(value)
     {
-        if (this._valueIsChanging)
+        if (this.isActive)
             return;
 
         this._value = value;
         this.markDirtyProperty("value");
-        this._updateFill();
-    }
-
-    get width()
-    {
-        return super.width;
-    }
-
-    set width(width)
-    {
-        super.width = width;
-        this._updateFill();
+        this.needsLayout = true;
     }
 
     // Protected
@@ -76,49 +70,90 @@ class Slider extends LayoutNode
     handleEvent(event)
     {
         switch (event.type) {
-        case "input":
-            this._handleInputEvent();
+        case "mousedown":
+            this._handleMousedownEvent();
+            break;
+        case "mouseup":
+            this._handleMouseupEvent();
             break;
         case "change":
-            this._handleChangeEvent();
+        case "input":
+            this._valueDidChange();
             break;
         }
     }
 
     commitProperty(propertyName)
     {
-        if (propertyName === "value") {
+        switch (propertyName) {
+        case "value":
             this._input.element.value = this._value;
             delete this._value;
-        } else
+            break;
+        case "width":
+            this._canvas.element.width = this.width * window.devicePixelRatio;
+        case "height":
+            this._canvas.element.height = this.height * window.devicePixelRatio;
+        default :
             super.commitProperty(propertyName);
+            break;
+        }
+    }
+
+    commit()
+    {
+        super.commit();
+        this.draw(this._canvas.element.getContext("2d"));
+    }
+
+    draw(ctx)
+    {
+        // Implemented by subclasses.
     }
 
     // Private
 
-    _handleInputEvent()
+    _handleMousedownEvent()
     {
-        if (!this._valueIsChanging && this.uiDelegate && typeof this.uiDelegate.controlValueWillStartChanging === "function")
+        const mediaControls = this.parentOfType(MediaControls);
+        this._mouseupTarget = (!mediaControls || mediaControls instanceof MacOSInlineMediaControls) ? window : mediaControls.element;
+        this._mouseupTarget.addEventListener("mouseup", this, true);
+
+        if (this.uiDelegate && typeof this.uiDelegate.controlValueWillStartChanging === "function")
             this.uiDelegate.controlValueWillStartChanging(this);
-        this._valueIsChanging = true;
+        this.isActive = true;
+        this.needsLayout = true;
+    }
+
+    _valueDidChange()
+    {
         if (this.uiDelegate && typeof this.uiDelegate.controlValueDidChange === "function")
             this.uiDelegate.controlValueDidChange(this);
 
-        this._updateFill();
+        this.needsLayout = true;
     }
 
-    _handleChangeEvent()
+    _handleMouseupEvent()
     {
-        delete this._valueIsChanging;
+        this._mouseupTarget.removeEventListener("mouseup", this, true);
+        delete this._mouseupTarget;
+
+        this.isActive = false;
         if (this.uiDelegate && typeof this.uiDelegate.controlValueDidStopChanging === "function")
             this.uiDelegate.controlValueDidStopChanging(this);
 
-        this._updateFill();
+        this.needsLayout = true;
     }
 
-    _updateFill()
-    {
-        this._fill.width = Math.ceil(this.value * this.width);
-    }
+}
 
+function addRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + width, y, x + width, y + radius, radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+    ctx.lineTo(x + radius, y + height);
+    ctx.arcTo(x, y + height, x, y + height - radius, radius);
+    ctx.lineTo(x, y + radius);
+    ctx.arcTo(x, y, x + radius, y, radius);
 }

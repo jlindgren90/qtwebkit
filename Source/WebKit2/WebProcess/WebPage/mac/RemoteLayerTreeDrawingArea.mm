@@ -177,7 +177,6 @@ void RemoteLayerTreeDrawingArea::updatePreferences(const WebPreferencesStore&)
     // Fixed position elements need to be composited and create stacking contexts
     // in order to be scrolled by the ScrollingCoordinator.
     settings.setAcceleratedCompositingForFixedPositionEnabled(true);
-    settings.setFixedPositionCreatesStackingContext(true);
 
     m_rootLayer->setShowDebugBorder(settings.showDebugBorders());
 
@@ -286,7 +285,7 @@ TiledBacking* RemoteLayerTreeDrawingArea::mainFrameTiledBacking() const
 
 void RemoteLayerTreeDrawingArea::scheduleCompositingLayerFlushImmediately()
 {
-    m_layerFlushTimer.startOneShot(0ms);
+    m_layerFlushTimer.startOneShot(0_s);
 }
 
 void RemoteLayerTreeDrawingArea::scheduleCompositingLayerFlush()
@@ -305,9 +304,9 @@ void RemoteLayerTreeDrawingArea::scheduleCompositingLayerFlush()
     if (m_layerFlushTimer.isActive())
         return;
 
-    const auto initialFlushDelay = 500ms;
-    const auto flushDelay = 1500ms;
-    auto throttleDelay = m_isThrottlingLayerFlushes ? (m_isInitialThrottledLayerFlush ? initialFlushDelay : flushDelay) : 0ms;
+    const Seconds initialFlushDelay = 500_ms;
+    const Seconds flushDelay = 1500_ms;
+    Seconds throttleDelay = m_isThrottlingLayerFlushes ? (m_isInitialThrottledLayerFlush ? initialFlushDelay : flushDelay) : 0_s;
     m_isInitialThrottledLayerFlush = false;
 
     m_layerFlushTimer.startOneShot(throttleDelay);
@@ -438,8 +437,6 @@ void RemoteLayerTreeDrawingArea::flushLayers()
 
 void RemoteLayerTreeDrawingArea::didUpdate()
 {
-    TraceScope tracingScope(RAFDidUpdateStart, RAFDidUpdateEnd);
-
     // FIXME: This should use a counted replacement for setLayerTreeStateIsFrozen, but
     // the callers of that function are not strictly paired.
 
@@ -489,7 +486,7 @@ void RemoteLayerTreeDrawingArea::BackingStoreFlusher::flush()
 {
     ASSERT(!m_hasFlushed);
 
-    TraceScope tracingScope(RAFBackingStoreFlushStart, RAFBackingStoreFlushEnd);
+    TraceScope tracingScope(BackingStoreFlushStart, BackingStoreFlushEnd);
     
     for (auto& context : m_contextsToFlush)
         CGContextFlush(context.get());

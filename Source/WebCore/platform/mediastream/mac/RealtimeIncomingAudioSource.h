@@ -32,23 +32,27 @@
 
 #if USE(LIBWEBRTC)
 
-#include "AudioCaptureSourceProviderObjC.h"
 #include "LibWebRTCMacros.h"
 #include "RealtimeMediaSource.h"
 #include <CoreAudio/CoreAudioTypes.h>
 #include <webrtc/api/mediastreaminterface.h>
 #include <wtf/RetainPtr.h>
 
+typedef const struct opaqueCMFormatDescription *CMFormatDescriptionRef;
+
 namespace WebCore {
 
 class WebAudioSourceProviderAVFObjC;
 
-class RealtimeIncomingAudioSource final : public RealtimeMediaSource, private webrtc::AudioTrackSinkInterface, private AudioCaptureSourceProviderObjC {
+class RealtimeIncomingAudioSource final : public RealtimeMediaSource, private webrtc::AudioTrackSinkInterface {
 public:
     static Ref<RealtimeIncomingAudioSource> create(rtc::scoped_refptr<webrtc::AudioTrackInterface>&&, String&&);
 
+    void setSourceTrack(rtc::scoped_refptr<webrtc::AudioTrackInterface>&&);
+
 private:
     RealtimeIncomingAudioSource(rtc::scoped_refptr<webrtc::AudioTrackInterface>&&, String&&);
+    ~RealtimeIncomingAudioSource();
 
     // webrtc::AudioTrackSinkInterface API
     void OnData(const void* audioData, int bitsPerSample, int sampleRate, size_t numberOfChannels, size_t numberOfFrames) final;
@@ -57,7 +61,7 @@ private:
     void startProducingData() final;
     void stopProducingData()  final;
 
-    RefPtr<RealtimeMediaSourceCapabilities> capabilities() const final;
+    const RealtimeMediaSourceCapabilities& capabilities() const final;
     const RealtimeMediaSourceSettings& settings() const final;
 
     MediaConstraints& constraints() { return *m_constraints.get(); }
@@ -67,21 +71,15 @@ private:
 
     AudioSourceProvider* audioSourceProvider() final;
 
-    // AudioCaptureSourceProviderObjC API
-    void addObserver(AudioSourceObserverObjC&) final;
-    void removeObserver(AudioSourceObserverObjC&) final;
-    void start() final;
-
     RealtimeMediaSourceSettings m_currentSettings;
     RealtimeMediaSourceSupportedConstraints m_supportedConstraints;
-    RefPtr<RealtimeMediaSourceCapabilities> m_capabilities;
     RefPtr<MediaConstraints> m_constraints;
     bool m_isProducingData { false };
     rtc::scoped_refptr<webrtc::AudioTrackInterface> m_audioTrack;
 
     RefPtr<WebAudioSourceProviderAVFObjC> m_audioSourceProvider;
-    RetainPtr<CMFormatDescriptionRef> m_formatDescription;
-    Vector<std::reference_wrapper<AudioSourceObserverObjC>> m_audioSourceObservers;
+    AudioStreamBasicDescription m_streamFormat { };
+    uint64_t m_numberOfFrames { 0 };
 };
 
 } // namespace WebCore

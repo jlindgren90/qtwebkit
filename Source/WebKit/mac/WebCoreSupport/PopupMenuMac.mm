@@ -84,7 +84,7 @@ void PopupMenuMac::populate()
             RetainPtr<CTFontRef> font = style.font().primaryFont().getCTFont();
             if (!font) {
                 CGFloat size = style.font().primaryFont().platformData().size();
-                font = adoptCF(CTFontCreateUIFontForLanguage(style.font().weight() < FontWeightBold ? kCTFontUIFontSystem : kCTFontUIFontEmphasizedSystem, size, nullptr));
+                font = adoptCF(CTFontCreateUIFontForLanguage(isFontWeightBold(style.font().weight()) ? kCTFontUIFontEmphasizedSystem : kCTFontUIFontSystem, size, nullptr));
             }
             [attributes setObject:toNSFont(font.get()) forKey:NSFontAttributeName];
         }
@@ -173,13 +173,20 @@ void PopupMenuMac::show(const IntRect& r, FrameView* v, int index)
         if (textDirection == LTR)
             location = NSMakePoint(NSMinX(r) + popOverHorizontalAdjust, NSMaxY(r) - vertOffset);
         else
-            location = NSMakePoint(NSMinX(r) - popOverHorizontalAdjust, NSMaxY(r) - vertOffset);
+            location = NSMakePoint(NSMaxX(r) - popOverHorizontalAdjust, NSMaxY(r) - vertOffset);
 #else
         location = NSMakePoint(NSMinX(r) + popOverHorizontalAdjust, NSMaxY(r) - vertOffset);
 #endif
-    } else
-        location = NSMakePoint(NSMinX(r) + popUnderHorizontalAdjust, NSMaxY(r) + popUnderVerticalAdjust);    
-
+    } else {
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
+        if (textDirection == LTR)
+            location = NSMakePoint(NSMinX(r) + popUnderHorizontalAdjust, NSMaxY(r) + popUnderVerticalAdjust);
+        else
+            location = NSMakePoint(NSMaxX(r) - popUnderHorizontalAdjust, NSMaxY(r) + popUnderVerticalAdjust);
+#else
+        location = NSMakePoint(NSMinX(r) + popUnderHorizontalAdjust, NSMaxY(r) + popUnderVerticalAdjust);
+#endif
+    }
     // Save the current event that triggered the popup, so we can clean up our event
     // state after the NSMenu goes away.
     Ref<Frame> frame(v->frame());
@@ -188,6 +195,7 @@ void PopupMenuMac::show(const IntRect& r, FrameView* v, int index)
     Ref<PopupMenuMac> protector(*this);
 
     RetainPtr<NSView> dummyView = adoptNS([[NSView alloc] initWithFrame:r]);
+    [dummyView.get() setUserInterfaceLayoutDirection:textDirection == LTR ? NSUserInterfaceLayoutDirectionLeftToRight : NSUserInterfaceLayoutDirectionRightToLeft];
     [view addSubview:dummyView.get()];
     location = [dummyView convertPoint:location fromView:view];
     

@@ -36,7 +36,8 @@ class RenderElement : public RenderObject {
 public:
     virtual ~RenderElement();
 
-    static RenderPtr<RenderElement> createFor(Element&, RenderStyle&&);
+    enum RendererCreationType { CreateAllRenderers, OnlyCreateBlockAndFlexboxRenderers };
+    static RenderPtr<RenderElement> createFor(Element&, RenderStyle&&, RendererCreationType = CreateAllRenderers);
 
     bool hasInitializedStyle() const { return m_hasInitializedStyle; }
 
@@ -137,9 +138,11 @@ public:
 
     bool borderImageIsLoadedAndCanBeRendered() const;
     bool mayCauseRepaintInsideViewport(const IntRect* visibleRect = nullptr) const;
+    bool shouldRepaintInVisibleRect(const IntRect& visibleRect) const;
 
     // Returns true if this renderer requires a new stacking context.
-    bool createsGroup() const { return isTransparent() || hasMask() || hasClipPath() || hasFilter() || hasBackdropFilter() || hasBlendMode(); }
+    static bool createsGroupForStyle(const RenderStyle&);
+    bool createsGroup() const { return createsGroupForStyle(style()); }
 
     bool isTransparent() const { return style().opacity() < 1.0f; }
     float opacity() const { return style().opacity(); }
@@ -184,9 +187,12 @@ public:
 
     void registerForVisibleInViewportCallback();
     void unregisterForVisibleInViewportCallback();
-    void visibleInViewportStateChanged(VisibleInViewportState);
 
-    bool repaintForPausedImageAnimationsIfNeeded(const IntRect& visibleRect);
+    VisibleInViewportState visibleInViewportState() const { return static_cast<VisibleInViewportState>(m_visibleInViewportState); }
+    void setVisibleInViewportState(VisibleInViewportState);
+    virtual void visibleInViewportStateChanged();
+
+    bool repaintForPausedImageAnimationsIfNeeded(const IntRect& visibleRect, CachedImage&);
     bool hasPausedImageAnimations() const { return m_hasPausedImageAnimations; }
     void setHasPausedImageAnimations(bool b) { m_hasPausedImageAnimations = b; }
 
@@ -215,6 +221,10 @@ public:
     RespectImageOrientationEnum shouldRespectImageOrientation() const;
 
     void removeFromRenderFlowThread();
+
+    // Called before anonymousChild.setStyle(). Override to set custom styles for
+    // the child.
+    virtual void updateAnonymousChildStyle(const RenderObject&, RenderStyle&) const { };
 
 protected:
     enum BaseTypeFlag {
@@ -273,6 +283,8 @@ protected:
 
     void removeFromRenderFlowThreadIncludingDescendants(bool shouldUpdateState);
     void adjustFlowThreadStateOnContainingBlockChangeIfNeeded();
+    
+    bool noLongerAffectsParentBlock() const { return s_noLongerAffectsParentBlock; }
 
 private:
     RenderElement(ContainerNode&, RenderStyle&&, BaseTypeFlags);
@@ -302,7 +314,8 @@ private:
     std::unique_ptr<RenderStyle> computeFirstLineStyle() const;
     void invalidateCachedFirstLineStyle();
 
-    void newImageAnimationFrameAvailable(CachedImage&) final;
+    VisibleInViewportState imageFrameAvailable(CachedImage&, ImageAnimatingState, const IntRect* changeRect) final;
+    void didRemoveCachedImageClient(CachedImage&) final;
 
     bool getLeadingCorner(FloatPoint& output, bool& insideFixed) const;
     bool getTrailingCorner(FloatPoint& output, bool& insideFixed) const;
@@ -329,6 +342,9 @@ private:
     unsigned m_renderBlockShouldForceRelayoutChildren : 1;
     unsigned m_renderBlockFlowHasMarkupTruncation : 1;
     unsigned m_renderBlockFlowLineLayoutPath : 2;
+
+    unsigned m_isRegisteredForVisibleInViewportCallback : 1;
+    unsigned m_visibleInViewportState : 2;
 
     RenderObject* m_firstChild;
     RenderObject* m_lastChild;
@@ -424,6 +440,11 @@ inline bool RenderElement::canContainAbsolutelyPositionedObjects() const
         || (isRenderBlock() && hasTransformRelatedProperty())
         || isSVGForeignObject()
         || isRenderView();
+}
+
+inline bool RenderElement::createsGroupForStyle(const RenderStyle& style)
+{
+    return style.opacity() < 1.0f || style.hasMask() || style.clipPath() || style.hasFilter() || style.hasBackdropFilter() || style.hasBlendMode();
 }
 
 inline bool RenderObject::isRenderLayerModelObject() const

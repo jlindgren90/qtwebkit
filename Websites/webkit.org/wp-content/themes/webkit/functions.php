@@ -101,7 +101,7 @@ add_filter('query_vars', function( $query_vars ) {
 
 add_filter('the_title', function( $title ) {
     if ( is_admin() ) return $title;
-    $title = str_replace(": ", ":<br>", $title);
+    $title = str_replace(": ", ": <br>", $title);
     return $title;
 });
 
@@ -533,12 +533,14 @@ class WebKit_Nightly_Survey {
             $score[ $SurveyQuestion->question ][ $answer ]++;
         }
 
-        if ($data === false) {
+        if ( $data === false ) {
             $deprecated = null;
             $autoload = 'no';
-            add_option($option, $score, $deprecated, $autoload);
-        } else update_option($option, $score);
-
+            add_option(self::DATA_SETTING_NAME, $score, $deprecated, $autoload);
+        } else {
+            update_option(self::DATA_SETTING_NAME, $score);
+        }
+        
         $httponly = false;
         $secure = false;
         setcookie(self::cookie_name(), 1, time() + YEAR_IN_SECONDS, '/', WP_HOST, $secure, $httponly );

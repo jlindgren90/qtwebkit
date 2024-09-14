@@ -391,6 +391,7 @@ static bool exceedsRenderTreeSizeSizeThreshold(uint64_t thresholdSize, uint64_t 
 void WebPageProxy::didCommitLayerTree(const WebKit::RemoteLayerTreeTransaction& layerTreeTransaction)
 {
     m_pageExtendedBackgroundColor = layerTreeTransaction.pageExtendedBackgroundColor();
+    setAvoidsUnsafeArea(layerTreeTransaction.avoidsUnsafeArea());
 
     if (!m_hasReceivedLayerTreeTransactionAfterDidCommitLoad) {
         if (layerTreeTransaction.transactionID() >= m_firstLayerTreeTransactionIdAfterDidCommitLoad) {
@@ -839,9 +840,9 @@ void WebPageProxy::potentialTapAtPosition(const WebCore::FloatPoint& position, u
     process().send(Messages::WebPage::PotentialTapAtPosition(requestID, position), m_pageID);
 }
 
-void WebPageProxy::commitPotentialTap()
+void WebPageProxy::commitPotentialTap(uint64_t layerTreeTransactionIdAtLastTouchStart)
 {
-    process().send(Messages::WebPage::CommitPotentialTap(m_layerTreeTransactionIdAtLastTouchStart), m_pageID);
+    process().send(Messages::WebPage::CommitPotentialTap(layerTreeTransactionIdAtLastTouchStart), m_pageID);
 }
 
 void WebPageProxy::cancelPotentialTap()
@@ -854,9 +855,9 @@ void WebPageProxy::tapHighlightAtPosition(const WebCore::FloatPoint& position, u
     process().send(Messages::WebPage::TapHighlightAtPosition(requestID, position), m_pageID);
 }
 
-void WebPageProxy::handleTap(const FloatPoint& location)
+void WebPageProxy::handleTap(const FloatPoint& location, uint64_t layerTreeTransactionIdAtLastTouchStart)
 {
-    process().send(Messages::WebPage::HandleTap(roundedIntPoint(location), m_layerTreeTransactionIdAtLastTouchStart), m_pageID);
+    process().send(Messages::WebPage::HandleTap(roundedIntPoint(location), layerTreeTransactionIdAtLastTouchStart), m_pageID);
 }
 
 void WebPageProxy::inspectorNodeSearchMovedToPosition(const WebCore::FloatPoint& position)
@@ -906,12 +907,12 @@ void WebPageProxy::couldNotRestorePageState()
     m_pageClient.couldNotRestorePageState();
 }
 
-void WebPageProxy::restorePageState(const WebCore::FloatPoint& scrollPosition, const WebCore::FloatPoint& scrollOrigin, const WebCore::FloatSize& obscuredInsetOnSave, double scale)
+void WebPageProxy::restorePageState(std::optional<WebCore::FloatPoint> scrollPosition, const WebCore::FloatPoint& scrollOrigin, const WebCore::FloatBoxExtent& obscuredInsetsOnSave, double scale)
 {
-    m_pageClient.restorePageState(scrollPosition, scrollOrigin, obscuredInsetOnSave, scale);
+    m_pageClient.restorePageState(scrollPosition, scrollOrigin, obscuredInsetsOnSave, scale);
 }
 
-void WebPageProxy::restorePageCenterAndScale(const WebCore::FloatPoint& center, double scale)
+void WebPageProxy::restorePageCenterAndScale(std::optional<WebCore::FloatPoint> center, double scale)
 {
     m_pageClient.restorePageCenterAndScale(center, scale);
 }
@@ -1028,11 +1029,6 @@ void WebPageProxy::showPlaybackTargetPicker(bool hasVideo, const IntRect& elemen
     m_pageClient.showPlaybackTargetPicker(hasVideo, elementRect);
 }
 
-void WebPageProxy::zoomToRect(FloatRect rect, double minimumScale, double maximumScale)
-{
-    m_pageClient.zoomToRect(rect, minimumScale, maximumScale);
-}
-
 void WebPageProxy::commitPotentialTapFailed()
 {
     m_pageClient.commitPotentialTapFailed();
@@ -1042,6 +1038,11 @@ void WebPageProxy::didNotHandleTapAsClick(const WebCore::IntPoint& point)
 {
     m_pageClient.didNotHandleTapAsClick(point);
     m_uiClient->didNotHandleTapAsClick(point);
+}
+    
+void WebPageProxy::didCompleteSyntheticClick()
+{
+    m_pageClient.didCompleteSyntheticClick();
 }
 
 void WebPageProxy::disableDoubleTapGesturesDuringTapIfNecessary(uint64_t requestID)
@@ -1085,7 +1086,7 @@ void WebPageProxy::editorStateChanged(const EditorState& editorState)
     if (couldChangeSecureInputState && !editorState.selectionIsNone)
         m_pageClient.updateSecureInputState();
     
-    if (editorState.shouldIgnoreCompositionSelectionChange)
+    if (editorState.shouldIgnoreSelectionChanges)
         return;
     
     // We always need to notify the client on iOS to make sure the selection is redrawn,
@@ -1095,7 +1096,7 @@ void WebPageProxy::editorStateChanged(const EditorState& editorState)
 
 void WebPageProxy::showValidationMessage(const IntRect& anchorClientRect, const String& message)
 {
-    m_validationBubble = m_pageClient.createValidationBubble(message);
+    m_validationBubble = m_pageClient.createValidationBubble(message, { m_preferences->minimumFontSize() });
     m_validationBubble->setAnchorRect(anchorClientRect, uiClient().presentingViewController());
 
     // If we are currently doing a scrolling / zoom animation, then we'll delay showing the validation
@@ -1116,9 +1117,9 @@ void WebPageProxy::setIsScrollingOrZooming(bool isScrollingOrZooming)
 
 #if ENABLE(DATA_INTERACTION)
 
-void WebPageProxy::didPerformDataInteractionControllerOperation()
+void WebPageProxy::didPerformDataInteractionControllerOperation(bool handled)
 {
-    m_pageClient.didPerformDataInteractionControllerOperation();
+    m_pageClient.didPerformDataInteractionControllerOperation(handled);
 }
 
 void WebPageProxy::didHandleStartDataInteractionRequest(bool started)
@@ -1130,6 +1131,11 @@ void WebPageProxy::requestStartDataInteraction(const WebCore::IntPoint& clientPo
 {
     if (isValid())
         m_process->send(Messages::WebPage::RequestStartDataInteraction(clientPosition, globalPosition), m_pageID);
+}
+
+void WebPageProxy::didConcludeEditDataInteraction(std::optional<TextIndicatorData> data)
+{
+    m_pageClient.didConcludeEditDataInteraction(data);
 }
 
 #endif

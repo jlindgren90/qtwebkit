@@ -42,7 +42,7 @@ struct InteractionInformationAtPosition {
 
     bool nodeAtPositionIsAssistedNode { false };
 #if ENABLE(DATA_INTERACTION)
-    bool hasDataInteractionAtPosition { false };
+    bool hasSelectionAtPosition { false };
 #endif
     bool isSelectable { false };
     bool isNearMarkedText { false };
@@ -55,6 +55,7 @@ struct InteractionInformationAtPosition {
 #if ENABLE(DATA_DETECTION)
     bool isDataDetectorLink { false };
 #endif
+    WebCore::FloatPoint adjustedPointForNodeRespondingToClickEvents;
     String url;
     String imageURL;
     String title;

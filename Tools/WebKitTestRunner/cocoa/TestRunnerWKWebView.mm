@@ -26,6 +26,7 @@
 #import "config.h"
 #import "TestRunnerWKWebView.h"
 
+#import "UIKitSPI.h"
 #import "WebKitTestRunnerDraggingInfo.h"
 #import <wtf/Assertions.h>
 #import <wtf/RetainPtr.h>
@@ -38,7 +39,7 @@
 - (void)scrollViewWillBeginZooming:(UIScrollView *)scrollView withView:(UIView *)view;
 - (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale;
 - (void)_didFinishScrolling;
-- (void)_updateVisibleContentRects;
+- (void)_scheduleVisibleContentRectUpdate;
 
 @end
 #endif
@@ -187,7 +188,7 @@
 - (void)_setStableStateOverride:(NSNumber *)overrideBoolean
 {
     m_stableStateOverride = overrideBoolean;
-    [self _updateVisibleContentRects];
+    [self _scheduleVisibleContentRectUpdate];
 }
 
 - (void)_accessibilityDidGetSpeakSelectionContent:(NSString *)content
@@ -201,6 +202,19 @@
 {
     self.retrieveSpeakSelectionContentCompletionHandler = completionHandler;
     [self _accessibilityRetrieveSpeakSelectionContent];
+}
+
+- (void)setOverrideSafeAreaInsets:(UIEdgeInsets)insets
+{
+    _overrideSafeAreaInsets = insets;
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 110000
+    [self _updateSafeAreaInsets];
+#endif
+}
+
+- (UIEdgeInsets)_safeAreaInsetsForFrame:(CGRect)frame inSuperview:(UIView *)view
+{
+    return _overrideSafeAreaInsets;
 }
 
 #endif

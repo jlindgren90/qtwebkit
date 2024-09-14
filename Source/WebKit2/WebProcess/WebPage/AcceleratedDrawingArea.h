@@ -59,8 +59,8 @@ protected:
     void scheduleCompositingLayerFlush() override;
     void scheduleCompositingLayerFlushImmediately() override;
 
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
-    void didReceiveCoordinatedLayerTreeHostMessage(IPC::Connection&, IPC::Decoder&) override;
+#if USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
+    virtual RefPtr<WebCore::DisplayRefreshMonitor> createDisplayRefreshMonitor(WebCore::PlatformDisplayID);
 #endif
 
 #if USE(TEXTURE_MAPPER_GL) && PLATFORM(GTK) && PLATFORM(X11) && !USE(REDIRECTED_XCOMPOSITE_WINDOW)

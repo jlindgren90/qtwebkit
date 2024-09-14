@@ -23,15 +23,16 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebPageCreationParameters_h
-#define WebPageCreationParameters_h
+#pragma once
 
 #include "DrawingAreaInfo.h"
 #include "LayerTreeContext.h"
 #include "SessionState.h"
+#include "WebCompiledContentExtensionData.h"
 #include "WebCoreArgumentCoders.h"
 #include "WebPageGroupData.h"
 #include "WebPreferencesStore.h"
+#include "WebUserContentControllerDataTypes.h"
 #include <WebCore/ActivityState.h>
 #include <WebCore/Color.h>
 #include <WebCore/FloatSize.h>
@@ -42,6 +43,7 @@
 #include <WebCore/ScrollTypes.h>
 #include <WebCore/SessionID.h>
 #include <WebCore/UserInterfaceLayoutDirection.h>
+#include <wtf/HashMap.h>
 #include <wtf/text/WTFString.h>
 
 #if PLATFORM(MAC)
@@ -145,8 +147,25 @@ struct WebPageCreationParameters {
     WebCore::LayoutMilestones observedLayoutMilestones;
 
     String overrideContentSecurityPolicy;
+    std::optional<double> backgroundCPULimit;
+
+    HashMap<String, uint64_t> urlSchemeHandlers;
+
+#if ENABLE(WEB_RTC)
+    bool iceCandidateFilteringEnabled { true };
+#if USE(LIBWEBRTC)
+    bool enumeratingAllNetworkInterfacesEnabled { false };
+#endif
+#endif
+
+    // UserContentController members
+    Vector<std::pair<uint64_t, String>> userContentWorlds;
+    Vector<WebUserScriptData> userScripts;
+    Vector<WebUserStyleSheetData> userStyleSheets;
+    Vector<WebScriptMessageHandlerData> messageHandlers;
+#if ENABLE(CONTENT_EXTENSIONS)
+    Vector<std::pair<String, WebCompiledContentExtensionData>> contentExtensions;
+#endif
 };
 
 } // namespace WebKit
-
-#endif // WebPageCreationParameters_h

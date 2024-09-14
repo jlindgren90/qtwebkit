@@ -40,7 +40,9 @@
 #include "PaintInfo.h"
 #include "RenderBlockFlow.h"
 #include "RenderChildIterator.h"
+#include "RenderFlowThread.h"
 #include "RenderLineBreak.h"
+#include "RenderMultiColumnFlowThread.h"
 #include "RenderStyle.h"
 #include "RenderText.h"
 #include "RenderTextControl.h"
@@ -51,77 +53,9 @@
 #include "SimpleLineLayoutTextFragmentIterator.h"
 #include "Text.h"
 #include "TextPaintStyle.h"
-#include "TextStream.h"
 
 namespace WebCore {
 namespace SimpleLineLayout {
-
-#ifndef NDEBUG
-void printSimpleLineLayoutCoverage();
-void printSimpleLineLayoutBlockList();
-void toggleSimpleLineLayout();
-#endif
-
-enum AvoidanceReason_ : uint64_t {
-    FlowIsInsideRegion                    = 1LLU  << 0,
-    FlowHasHorizonalWritingMode           = 1LLU  << 1,
-    FlowHasOutline                        = 1LLU  << 2,
-    FlowIsRuby                            = 1LLU  << 3,
-    FlowIsPaginated                       = 1LLU  << 4,
-    FlowHasTextOverflow                   = 1LLU  << 5,
-    FlowIsDepricatedFlexBox               = 1LLU  << 6,
-    FlowParentIsPlaceholderElement        = 1LLU  << 7,
-    FlowParentIsTextAreaWithWrapping      = 1LLU  << 8,
-    FlowHasNonSupportedChild              = 1LLU  << 9,
-    FlowHasUnsupportedFloat               = 1LLU  << 10,
-    FlowHasUnsupportedUnderlineDecoration = 1LLU  << 11,
-    FlowHasJustifiedNonLatinText          = 1LLU  << 12,
-    FlowHasOverflowNotVisible             = 1LLU  << 13,
-    FlowHasWebKitNBSPMode                 = 1LLU  << 14,
-    FlowIsNotLTR                          = 1LLU  << 15,
-    FlowHasLineBoxContainProperty         = 1LLU  << 16,
-    FlowIsNotTopToBottom                  = 1LLU  << 17,
-    FlowHasLineBreak                      = 1LLU  << 18,
-    FlowHasNonNormalUnicodeBiDi           = 1LLU  << 19,
-    FlowHasRTLOrdering                    = 1LLU  << 20,
-    FlowHasLineAlignEdges                 = 1LLU  << 21,
-    FlowHasLineSnap                       = 1LLU  << 22,
-    FlowHasTextEmphasisFillOrMark         = 1LLU  << 23,
-    FlowHasTextShadow                     = 1LLU  << 24,
-    FlowHasPseudoFirstLine                = 1LLU  << 25,
-    FlowHasPseudoFirstLetter              = 1LLU  << 26,
-    FlowHasTextCombine                    = 1LLU  << 27,
-    FlowHasTextFillBox                    = 1LLU  << 28,
-    FlowHasBorderFitLines                 = 1LLU  << 29,
-    FlowHasNonAutoLineBreak               = 1LLU  << 30,
-    FlowHasNonAutoTrailingWord            = 1LLU  << 31,
-    FlowHasSVGFont                        = 1LLU  << 32,
-    FlowTextIsEmpty                       = 1LLU  << 33,
-    FlowTextHasSoftHyphen                 = 1LLU  << 34,
-    FlowTextHasDirectionCharacter         = 1LLU  << 35,
-    FlowIsMissingPrimaryFont              = 1LLU  << 36,
-    FlowPrimaryFontIsInsufficient         = 1LLU  << 37,
-    FlowTextIsCombineText                 = 1LLU  << 38,
-    FlowTextIsRenderCounter               = 1LLU  << 39,
-    FlowTextIsRenderQuote                 = 1LLU  << 40,
-    FlowTextIsTextFragment                = 1LLU  << 41,
-    FlowTextIsSVGInlineText               = 1LLU  << 42,
-    FlowHasComplexFontCodePath            = 1LLU  << 43,
-    FeatureIsDisabled                     = 1LLU  << 44,
-    FlowHasNoParent                       = 1LLU  << 45,
-    FlowHasNoChild                        = 1LLU  << 46,
-    FlowChildIsSelected                   = 1LLU  << 47,
-    FlowHasHangingPunctuation             = 1LLU  << 48,
-    FlowFontHasOverflowGlyph              = 1LLU  << 49,
-    FlowTextHasSurrogatePair              = 1LLU  << 50,
-    EndOfReasons                          = 1LLU  << 51
-};
-const unsigned NoReason = 0;
-
-typedef uint64_t AvoidanceReason;
-typedef uint64_t AvoidanceReasonFlags;
-
-enum class IncludeReasons { First , All };
 
 #ifndef NDEBUG
 #define SET_REASON_AND_RETURN_IF_NEEDED(reason, reasons, includeReasons) { \
@@ -175,6 +109,15 @@ static AvoidanceReasonFlags canUseForText(const CharacterType* text, unsigned le
 {
     AvoidanceReasonFlags reasons = { };
     auto& primaryFont = fontCascade.primaryFont();
+    auto& fontMetrics = primaryFont.fontMetrics();
+    auto availableSpaceForGlyphAscent = fontMetrics.ascent();
+    auto availableSpaceForGlyphDescent = fontMetrics.descent();
+    if (lineHeightConstraint) {
+        auto lineHeightPadding = *lineHeightConstraint - fontMetrics.height();
+        availableSpaceForGlyphAscent += lineHeightPadding / 2;
+        availableSpaceForGlyphDescent += lineHeightPadding / 2;
+    }
+
     for (unsigned i = 0; i < length; ++i) {
         auto character = text[i];
         if (FontCascade::treatAsSpace(character))
@@ -191,8 +134,11 @@ static AvoidanceReasonFlags canUseForText(const CharacterType* text, unsigned le
         if (!glyphData.isValid() || glyphData.font != &primaryFont)
             SET_REASON_AND_RETURN_IF_NEEDED(FlowPrimaryFontIsInsufficient, reasons, includeReasons);
 
-        if (lineHeightConstraint && primaryFont.boundsForGlyph(glyphData.glyph).height() > *lineHeightConstraint)
-            SET_REASON_AND_RETURN_IF_NEEDED(FlowFontHasOverflowGlyph, reasons, includeReasons);
+        if (lineHeightConstraint) {
+            auto bounds = primaryFont.boundsForGlyph(glyphData.glyph);
+            if (ceilf(-bounds.y()) > availableSpaceForGlyphAscent || ceilf(bounds.maxY()) > availableSpaceForGlyphDescent)
+                SET_REASON_AND_RETURN_IF_NEEDED(FlowFontHasOverflowGlyph, reasons, includeReasons);
+        }
     }
     return reasons;
 }
@@ -298,7 +244,7 @@ static AvoidanceReasonFlags canUseForStyle(const RenderStyle& style, IncludeReas
     return reasons;
 }
 
-static AvoidanceReasonFlags canUseForWithReason(const RenderBlockFlow& flow, IncludeReasons includeReasons)
+AvoidanceReasonFlags canUseForWithReason(const RenderBlockFlow& flow, IncludeReasons includeReasons)
 {
 #ifndef NDEBUG
     static std::once_flag onceFlag;
@@ -315,8 +261,21 @@ static AvoidanceReasonFlags canUseForWithReason(const RenderBlockFlow& flow, Inc
         SET_REASON_AND_RETURN_IF_NEEDED(FlowHasNoParent, reasons, includeReasons);
     if (!flow.firstChild())
         SET_REASON_AND_RETURN_IF_NEEDED(FlowHasNoChild, reasons, includeReasons);
-    if (flow.flowThreadState() != RenderObject::NotInsideFlowThread)
-        SET_REASON_AND_RETURN_IF_NEEDED(FlowIsInsideRegion, reasons, includeReasons);
+    if (flow.flowThreadState() != RenderObject::NotInsideFlowThread) {
+        auto* flowThread = flow.flowThreadContainingBlock();
+        if (!is<RenderMultiColumnFlowThread>(flowThread))
+            SET_REASON_AND_RETURN_IF_NEEDED(FlowIsInsideANonMultiColumnThread, reasons, includeReasons);
+        auto& columnThread = downcast<RenderMultiColumnFlowThread>(*flowThread);
+        if (columnThread.parent() != &flow.view())
+            SET_REASON_AND_RETURN_IF_NEEDED(MultiColumnFlowIsNotTopLevel, reasons, includeReasons);
+        if (columnThread.hasColumnSpanner())
+            SET_REASON_AND_RETURN_IF_NEEDED(MultiColumnFlowHasColumnSpanner, reasons, includeReasons);
+        auto& style = flow.style();
+        if (style.verticalAlign() != BASELINE)
+            SET_REASON_AND_RETURN_IF_NEEDED(MultiColumnFlowVerticalAlign, reasons, includeReasons);
+        if (style.isFloating())
+            SET_REASON_AND_RETURN_IF_NEEDED(MultiColumnFlowIsFloating, reasons, includeReasons);
+    }
     if (!flow.isHorizontalWritingMode())
         SET_REASON_AND_RETURN_IF_NEEDED(FlowHasHorizonalWritingMode, reasons, includeReasons);
     if (flow.hasOutline())
@@ -413,6 +372,12 @@ static float computeLineLeft(ETextAlign textAlign, float availableWidth, float c
     return 0;
 }
 
+static void revertAllRunsOnCurrentLine(Layout::RunVector& runs)
+{
+    while (!runs.isEmpty() && !runs.last().isEndOfLine)
+        runs.removeLast();
+}
+
 static void revertRuns(Layout::RunVector& runs, unsigned positionToRevertTo, float width)
 {
     while (runs.size()) {
@@ -444,6 +409,8 @@ public:
         ASSERT(!m_fragments);
         m_fragments.emplace();
     }
+    void setHyphenationDisabled() { m_hyphenationDisabled = true; }
+    bool isHyphenationDisabled() const { return m_hyphenationDisabled; }
 
     float availableWidth() const { return m_availableWidth; }
     float logicalLeftOffset() const { return m_logicalLeftOffset; }
@@ -558,11 +525,26 @@ public:
 
     void removeTrailingWhitespace(Layout::RunVector& runs)
     {
-        if (m_lastFragment.type() != TextFragmentIterator::TextFragment::Whitespace || m_lastFragment.end() == m_lastNonWhitespaceFragment.end())
+        if (m_lastFragment.type() != TextFragmentIterator::TextFragment::Whitespace)
             return;
-        revertRuns(runs, m_lastNonWhitespaceFragment.end(), m_trailingWhitespaceWidth);
-        m_runsWidth -= m_trailingWhitespaceWidth;
-        m_lastFragment = m_lastNonWhitespaceFragment;
+        if (m_lastNonWhitespaceFragment) {
+            auto needsReverting = m_lastNonWhitespaceFragment->end() != m_lastFragment.end();
+            // Trailing whitespace fragment might actually have zero length.
+            ASSERT(needsReverting || !m_trailingWhitespaceWidth);
+            if (needsReverting) {
+                revertRuns(runs, m_lastNonWhitespaceFragment->end(), m_trailingWhitespaceWidth);
+                m_runsWidth -= m_trailingWhitespaceWidth;
+            }
+            m_trailingWhitespaceWidth = 0;
+            m_lastFragment = *m_lastNonWhitespaceFragment;
+            return;
+        }
+        // This line is all whitespace.
+        revertAllRunsOnCurrentLine(runs);
+        m_runsWidth = 0;
+        m_trailingWhitespaceWidth = 0;
+        // FIXME: Make m_lastFragment optional.
+        m_lastFragment = TextFragmentIterator::TextFragment();
     }
 
 private:
@@ -577,7 +559,7 @@ private:
     float m_runsWidth { 0 };
     TextFragmentIterator::TextFragment m_overflowedFragment;
     TextFragmentIterator::TextFragment m_lastFragment;
-    TextFragmentIterator::TextFragment m_lastNonWhitespaceFragment;
+    std::optional<TextFragmentIterator::TextFragment> m_lastNonWhitespaceFragment;
     TextFragmentIterator::TextFragment m_lastCompleteFragment;
     float m_uncompletedWidth { 0 };
     float m_trailingWhitespaceWidth { 0 }; // Use this to remove trailing whitespace without re-mesuring the text.
@@ -585,32 +567,9 @@ private:
     // Having one character on the line does not necessarily mean it actually fits.
     // First character of the first fragment might be forced on to the current line even if it does not fit.
     bool m_firstCharacterFits { false };
+    bool m_hyphenationDisabled { false };
     std::optional<Vector<TextFragmentIterator::TextFragment, 30>> m_fragments;
 };
-
-class FragmentForwardIterator : public std::iterator<std::forward_iterator_tag, unsigned> {
-public:
-    FragmentForwardIterator(unsigned fragmentIndex)
-        : m_fragmentIndex(fragmentIndex)
-    {
-    }
-
-    FragmentForwardIterator& operator++()
-    {
-        ++m_fragmentIndex;
-        return *this;
-    }
-
-    bool operator!=(const FragmentForwardIterator& other) const { return m_fragmentIndex != other.m_fragmentIndex; }
-    bool operator==(const FragmentForwardIterator& other) const { return m_fragmentIndex == other.m_fragmentIndex; }
-    unsigned operator*() const { return m_fragmentIndex; }
-
-private:
-    unsigned m_fragmentIndex { 0 };
-};
-
-static FragmentForwardIterator begin(const TextFragmentIterator::TextFragment& fragment)  { return FragmentForwardIterator(fragment.start()); }
-static FragmentForwardIterator end(const TextFragmentIterator::TextFragment& fragment)  { return FragmentForwardIterator(fragment.end()); }
 
 static bool preWrap(const TextFragmentIterator::Style& style)
 {
@@ -632,7 +591,7 @@ static void removeTrailingWhitespace(LineState& lineState, Layout::RunVector& ru
     lineState.removeTrailingWhitespace(runs);
 }
 
-static void updateLineConstrains(const RenderBlockFlow& flow, LineState& line, const TextFragmentIterator::Style& style, bool isFirstLine)
+static void updateLineConstrains(const RenderBlockFlow& flow, LineState& line, const LineState& previousLine, unsigned& numberOfPrecedingLinesWithHyphen, const TextFragmentIterator::Style& style, bool isFirstLine)
 {
     bool shouldApplyTextIndent = !flow.isAnonymous() || flow.parent()->firstChild() == &flow;
     LayoutUnit height = flow.logicalHeight();
@@ -641,24 +600,36 @@ static void updateLineConstrains(const RenderBlockFlow& flow, LineState& line, c
     line.setAvailableWidth(std::max<float>(0, logicalRightOffset - line.logicalLeftOffset()));
     if (style.textAlign == JUSTIFY)
         line.setNeedsAllFragments();
+    numberOfPrecedingLinesWithHyphen = (previousLine.isEmpty() || !previousLine.lastFragment().hasHyphen()) ? 0 : numberOfPrecedingLinesWithHyphen + 1;
+    if (style.hyphenLimitLines && numberOfPrecedingLinesWithHyphen >= *style.hyphenLimitLines)
+        line.setHyphenationDisabled();
+
 }
 
-static std::optional<unsigned> hyphenPositionForFragment(unsigned splitPosition, TextFragmentIterator::TextFragment& fragmentToSplit,
-    const TextFragmentIterator& textFragmentIterator, float availableWidth)
+struct SplitFragmentData {
+    unsigned position;
+    float width;
+};
+static std::optional<unsigned> hyphenPositionForFragment(SplitFragmentData splitData, const TextFragmentIterator::TextFragment& fragmentToSplit,
+    const LineState& line, const TextFragmentIterator& textFragmentIterator, float availableWidth)
 {
     auto& style = textFragmentIterator.style();
-    bool shouldHyphenate = style.shouldHyphenate && (!style.hyphenLimitLines || fragmentToSplit.wrappingWithHyphenCounter() < *style.hyphenLimitLines);
-    if (!shouldHyphenate)
+    if (!style.shouldHyphenate || line.isHyphenationDisabled())
         return std::nullopt;
 
-    if (!enoughWidthForHyphenation(availableWidth, style.font.pixelSize()))
+    // FIXME: This is a workaround for webkit.org/b/169613. See maxPrefixWidth computation in tryHyphenating().
+    // It does not work properly with non-collapsed leading tabs when font is enlarged.
+    auto adjustedAvailableWidth = availableWidth - style.hyphenStringWidth;
+    if (!line.isEmpty())
+        adjustedAvailableWidth += style.spaceWidth;
+    if (!enoughWidthForHyphenation(adjustedAvailableWidth, style.font.pixelSize()))
         return std::nullopt;
 
     // We might be able to fit the hyphen at the split position.
-    auto splitPositionWithHyphen = splitPosition;
+    auto splitPositionWithHyphen = splitData.position;
     // Find a splitting position where hyphen surely fits.
     unsigned start = fragmentToSplit.start();
-    auto leftSideWidth = textFragmentIterator.textWidth(start, splitPosition, 0);
+    auto leftSideWidth = splitData.width;
     while (leftSideWidth + style.hyphenStringWidth > availableWidth) {
         if (--splitPositionWithHyphen <= start)
             return std::nullopt; // No space for hyphen.
@@ -668,22 +639,60 @@ static std::optional<unsigned> hyphenPositionForFragment(unsigned splitPosition,
     return textFragmentIterator.lastHyphenPosition(fragmentToSplit, splitPositionWithHyphen + 1);
 }
 
-static TextFragmentIterator::TextFragment splitFragmentToFitLine(TextFragmentIterator::TextFragment& fragmentToSplit, float availableWidth, bool keepAtLeastOneCharacter, const TextFragmentIterator& textFragmentIterator)
+static SplitFragmentData split(const TextFragmentIterator::TextFragment& fragment, float availableWidth,
+    const TextFragmentIterator& textFragmentIterator)
 {
-    // FIXME: add surrogate pair support.
-    unsigned start = fragmentToSplit.start();
-    auto it = std::upper_bound(begin(fragmentToSplit), end(fragmentToSplit), availableWidth, [&textFragmentIterator, start](float availableWidth, unsigned index) {
-        // FIXME: use the actual left position of the line (instead of 0) to calculated width. It might give false width for tab characters.
-        return availableWidth < textFragmentIterator.textWidth(start, index + 1, 0);
-    });
-    unsigned splitPosition = (*it);
+    ASSERT(availableWidth >= 0);
+    auto left = fragment.start();
+    // Pathological case of (extremely)long string and narrow lines.
+    // Adjust the range so that we can pick a reasonable midpoint.
+    auto averageCharacterWidth = fragment.width() / fragment.length();
+    auto right = std::min<unsigned>(left + (2 * availableWidth / averageCharacterWidth), fragment.end() - 1);
+    // Preserve the left width for the final split position so that we don't need to remeasure the left side again.
+    float leftSideWidth = 0;
+    while (left < right) {
+        auto middle = (left + right) / 2;
+        auto width = textFragmentIterator.textWidth(fragment.start(), middle + 1, 0);
+        if (width < availableWidth) {
+            left = middle + 1;
+            leftSideWidth = width;
+        } else if (width > availableWidth)
+            right = middle;
+        else {
+            right = middle + 1;
+            leftSideWidth = width;
+            break;
+        }
+    }
+    return { right, leftSideWidth };
+}
+
+static TextFragmentIterator::TextFragment splitFragmentToFitLine(TextFragmentIterator::TextFragment& fragmentToSplit,
+    const LineState& line, const TextFragmentIterator& textFragmentIterator)
+{
+    auto availableWidth = line.availableWidth() - line.width();
+    auto splitFragmentData = split(fragmentToSplit, availableWidth, textFragmentIterator);
+    std::optional<unsigned> hyphenPosition = std::nullopt;
     // Does first character fit this line?
-    if (splitPosition == start) {
-        if (keepAtLeastOneCharacter)
-            ++splitPosition;
-    } else if (auto hyphenPosition = hyphenPositionForFragment(splitPosition, fragmentToSplit, textFragmentIterator, availableWidth))
-        return fragmentToSplit.splitWithHyphen(*hyphenPosition, textFragmentIterator);
-    return fragmentToSplit.split(splitPosition, textFragmentIterator);
+    if (splitFragmentData.position == fragmentToSplit.start()) {
+        // Keep at least one character on empty lines.
+        if (line.isEmpty())
+            splitFragmentData.width = textFragmentIterator.textWidth(fragmentToSplit.start(), ++splitFragmentData.position, 0);
+    } else {
+        hyphenPosition = hyphenPositionForFragment(splitFragmentData, fragmentToSplit, line, textFragmentIterator, availableWidth);
+        if (hyphenPosition) {
+            splitFragmentData.position = *hyphenPosition;
+            splitFragmentData.width = textFragmentIterator.textWidth(fragmentToSplit.start(), splitFragmentData.position, 0);
+        }
+    }
+    // If the right side surely does not fit the (next)line, we don't need the width to be kerning/ligature adjusted.
+    // Part of it gets re-measured as the left side during next split.
+    // This saves measuring long chunk of text repeatedly (see pathological case at ::split).
+    auto rightSideWidth = fragmentToSplit.width() - splitFragmentData.width;
+    if (rightSideWidth < 2 * availableWidth)
+        rightSideWidth = textFragmentIterator.textWidth(splitFragmentData.position, fragmentToSplit.end(), 0);
+    return hyphenPosition ? fragmentToSplit.splitWithHyphen(splitFragmentData.position, splitFragmentData.width, rightSideWidth, textFragmentIterator) :
+        fragmentToSplit.split(splitFragmentData.position, splitFragmentData.width, rightSideWidth, textFragmentIterator);
 }
 
 enum PreWrapLineBreakRule { Preserve, Ignore };
@@ -781,7 +790,7 @@ static bool createLineRuns(LineState& line, const LineState& previousLine, Layou
             if (fragment.type() == TextFragmentIterator::TextFragment::Whitespace) {
                 if (!style.collapseWhitespace) {
                     // Split the fragment; (modified)fragment stays on this line, overflowedFragment is pushed to next line.
-                    line.setOverflowedFragment(splitFragmentToFitLine(fragment, line.availableWidth() - line.width(), emptyLine, textFragmentIterator));
+                    line.setOverflowedFragment(splitFragmentToFitLine(fragment, line, textFragmentIterator));
                     line.appendFragmentAndCreateRunIfNeeded(fragment, runs);
                 }
                 // When whitespace collapse is on, whitespace that doesn't fit is simply skipped.
@@ -790,7 +799,7 @@ static bool createLineRuns(LineState& line, const LineState& previousLine, Layou
             // Non-whitespace fragment. (!style.wrapLines: bug138102(preserve existing behavior)
             if (((emptyLine && style.breakFirstWordOnOverflow) || style.breakAnyWordOnOverflow) || !style.wrapLines) {
                 // Split the fragment; (modified)fragment stays on this line, overflowedFragment is pushed to next line.
-                line.setOverflowedFragment(splitFragmentToFitLine(fragment, line.availableWidth() - line.width(), emptyLine, textFragmentIterator));
+                line.setOverflowedFragment(splitFragmentToFitLine(fragment, line, textFragmentIterator));
                 line.appendFragmentAndCreateRunIfNeeded(fragment, runs);
                 break;
             }
@@ -799,7 +808,7 @@ static bool createLineRuns(LineState& line, const LineState& previousLine, Layou
             if (style.shouldHyphenate) {
                 auto fragmentToSplit = fragment;
                 // Split and check if we actually ended up with a hyphen.
-                auto overflowFragment = splitFragmentToFitLine(fragmentToSplit, line.availableWidth() - line.width(), emptyLine, textFragmentIterator);
+                auto overflowFragment = splitFragmentToFitLine(fragmentToSplit, line, textFragmentIterator);
                 if (fragmentToSplit.hasHyphen()) {
                     line.setOverflowedFragment(overflowFragment);
                     line.appendFragmentAndCreateRunIfNeeded(fragmentToSplit, runs);
@@ -912,6 +921,7 @@ static void createTextRuns(Layout::RunVector& runs, RenderBlockFlow& flow, unsig
     LayoutUnit borderAndPaddingBefore = flow.borderAndPaddingBefore();
     LayoutUnit lineHeight = lineHeightFromFlow(flow);
     LineState line;
+    unsigned numberOfPrecedingLinesWithHyphen = 0;
     bool isEndOfContent = false;
     TextFragmentIterator textFragmentIterator = TextFragmentIterator(flow);
     std::optional<unsigned> lastRunIndexOfPreviousLine;
@@ -919,7 +929,7 @@ static void createTextRuns(Layout::RunVector& runs, RenderBlockFlow& flow, unsig
         flow.setLogicalHeight(lineHeight * lineCount + borderAndPaddingBefore);
         LineState previousLine = line;
         line = LineState();
-        updateLineConstrains(flow, line, textFragmentIterator.style(), !lineCount);
+        updateLineConstrains(flow, line, previousLine, numberOfPrecedingLinesWithHyphen, textFragmentIterator.style(), !lineCount);
         isEndOfContent = createLineRuns(line, previousLine, runs, textFragmentIterator);
         closeLineEndingAndAdjustRuns(line, runs, lastRunIndexOfPreviousLine, lineCount, textFragmentIterator, isEndOfContent);
         if (runs.size())
@@ -931,7 +941,6 @@ std::unique_ptr<Layout> create(RenderBlockFlow& flow)
 {
     unsigned lineCount = 0;
     Layout::RunVector runs;
-
     createTextRuns(runs, flow, lineCount);
     return Layout::create(runs, lineCount);
 }
@@ -949,308 +958,5 @@ Layout::Layout(const RunVector& runVector, unsigned lineCount)
     memcpy(m_runs, runVector.data(), m_runCount * sizeof(Run));
 }
 
-#ifndef NDEBUG
-static void printReason(AvoidanceReason reason, TextStream& stream)
-{
-    switch (reason) {
-    case FlowIsInsideRegion:
-        stream << "flow is inside region";
-        break;
-    case FlowHasHorizonalWritingMode:
-        stream << "horizontal writing mode";
-        break;
-    case FlowHasOutline:
-        stream << "outline";
-        break;
-    case FlowIsRuby:
-        stream << "ruby";
-        break;
-    case FlowHasHangingPunctuation:
-        stream << "hanging punctuation";
-        break;
-    case FlowIsPaginated:
-        stream << "paginated";
-        break;
-    case FlowHasTextOverflow:
-        stream << "text-overflow";
-        break;
-    case FlowIsDepricatedFlexBox:
-        stream << "depricatedFlexBox";
-        break;
-    case FlowParentIsPlaceholderElement:
-        stream << "placeholder element";
-        break;
-    case FlowParentIsTextAreaWithWrapping:
-        stream << "wrapping textarea";
-        break;
-    case FlowHasNonSupportedChild:
-        stream << "nested renderers";
-        break;
-    case FlowHasUnsupportedFloat:
-        stream << "complicated float";
-        break;
-    case FlowHasUnsupportedUnderlineDecoration:
-        stream << "text-underline-position: under";
-        break;
-    case FlowHasJustifiedNonLatinText:
-        stream << "text-align: justify with non-latin text";
-        break;
-    case FlowHasOverflowNotVisible:
-        stream << "overflow: hidden | scroll | auto";
-        break;
-    case FlowHasWebKitNBSPMode:
-        stream << "-webkit-nbsp-mode: space";
-        break;
-    case FlowIsNotLTR:
-        stream << "dir is not LTR";
-        break;
-    case FlowHasLineBoxContainProperty:
-        stream << "line-box-contain value indicates variable line height";
-        break;
-    case FlowIsNotTopToBottom:
-        stream << "non top-to-bottom flow";
-        break;
-    case FlowHasLineBreak:
-        stream << "line-break property";
-        break;
-    case FlowHasNonNormalUnicodeBiDi:
-        stream << "non-normal Unicode bidi";
-        break;
-    case FlowHasRTLOrdering:
-        stream << "-webkit-rtl-ordering";
-        break;
-    case FlowHasLineAlignEdges:
-        stream << "-webkit-line-align edges";
-        break;
-    case FlowHasLineSnap:
-        stream << "-webkit-line-snap property";
-        break;
-    case FlowHasTextEmphasisFillOrMark:
-        stream << "text-emphasis (fill/mark)";
-        break;
-    case FlowHasPseudoFirstLine:
-        stream << "first-line";
-        break;
-    case FlowHasPseudoFirstLetter:
-        stream << "first-letter";
-        break;
-    case FlowHasTextCombine:
-        stream << "text combine";
-        break;
-    case FlowHasTextFillBox:
-        stream << "background-color (text-fill)";
-        break;
-    case FlowHasBorderFitLines:
-        stream << "-webkit-border-fit";
-        break;
-    case FlowHasNonAutoLineBreak:
-        stream << "line-break is not auto";
-        break;
-    case FlowHasNonAutoTrailingWord:
-        stream << "-apple-trailing-word is not auto";
-        break;
-    case FlowHasSVGFont:
-        stream << "SVG font";
-        break;
-    case FlowTextHasSoftHyphen:
-        stream << "soft hyphen character";
-        break;
-    case FlowTextHasDirectionCharacter:
-        stream << "direction character";
-        break;
-    case FlowIsMissingPrimaryFont:
-        stream << "missing primary font";
-        break;
-    case FlowPrimaryFontIsInsufficient:
-        stream << "missing glyph or glyph needs another font";
-        break;
-    case FlowTextIsCombineText:
-        stream << "text is combine";
-        break;
-    case FlowTextIsRenderCounter:
-        stream << "unsupported RenderCounter";
-        break;
-    case FlowTextIsRenderQuote:
-        stream << "unsupported RenderQuote";
-        break;
-    case FlowTextIsTextFragment:
-        stream << "unsupported TextFragment";
-        break;
-    case FlowTextIsSVGInlineText:
-        stream << "unsupported SVGInlineText";
-        break;
-    case FlowHasComplexFontCodePath:
-        stream << "text with complex font codepath";
-        break;
-    case FlowHasTextShadow:
-        stream << "text-shadow";
-        break;
-    case FlowChildIsSelected:
-        stream << "selected content";
-        break;
-    case FlowFontHasOverflowGlyph:
-        stream << "-webkit-line-box-contain: glyphs with overflowing text.";
-        break;
-    case FlowTextHasSurrogatePair:
-        stream << "surrogate pair";
-        break;
-    case FlowTextIsEmpty:
-    case FlowHasNoChild:
-    case FlowHasNoParent:
-    case FeatureIsDisabled:
-    default:
-        break;
-    }
-}
-
-static void printReasons(AvoidanceReasonFlags reasons, TextStream& stream)
-{
-    bool first = true;
-    for (auto reasonItem = EndOfReasons >> 1; reasonItem != NoReason; reasonItem >>= 1) {
-        if (!(reasons & reasonItem))
-            continue;
-        stream << (first ? " " : ", ");
-        first = false;
-        printReason(reasonItem, stream);
-    }
-}
-
-static void printTextForSubtree(const RenderObject& renderer, unsigned& charactersLeft, TextStream& stream)
-{
-    if (!charactersLeft)
-        return;
-    if (is<RenderText>(renderer)) {
-        String text = downcast<RenderText>(renderer).text();
-        text = text.stripWhiteSpace();
-        unsigned len = std::min(charactersLeft, text.length());
-        stream << text.left(len);
-        charactersLeft -= len;
-        return;
-    }
-    if (!is<RenderElement>(renderer))
-        return;
-    for (const auto* child = downcast<RenderElement>(renderer).firstChild(); child; child = child->nextSibling())
-        printTextForSubtree(*child, charactersLeft, stream);
-}
-
-static unsigned textLengthForSubtree(const RenderObject& renderer)
-{
-    if (is<RenderText>(renderer))
-        return downcast<RenderText>(renderer).textLength();
-    if (!is<RenderElement>(renderer))
-        return 0;
-    unsigned textLength = 0;
-    for (const auto* child = downcast<RenderElement>(renderer).firstChild(); child; child = child->nextSibling())
-        textLength += textLengthForSubtree(*child);
-    return textLength;
-}
-
-static void collectNonEmptyLeafRenderBlockFlows(const RenderObject& renderer, HashSet<const RenderBlockFlow*>& leafRenderers)
-{
-    if (is<RenderText>(renderer)) {
-        if (!downcast<RenderText>(renderer).textLength())
-            return;
-        // Find RenderBlockFlow ancestor.
-        for (const auto* current = renderer.parent(); current; current = current->parent()) {
-            if (!is<RenderBlockFlow>(current))
-                continue;
-            leafRenderers.add(downcast<RenderBlockFlow>(current));
-            break;
-        }
-        return;
-    }
-    if (!is<RenderElement>(renderer))
-        return;
-    for (const auto* child = downcast<RenderElement>(renderer).firstChild(); child; child = child->nextSibling())
-        collectNonEmptyLeafRenderBlockFlows(*child, leafRenderers);
-}
-
-static void collectNonEmptyLeafRenderBlockFlowsForCurrentPage(HashSet<const RenderBlockFlow*>& leafRenderers)
-{
-    for (const auto* document : Document::allDocuments()) {
-        if (!document->renderView() || document->pageCacheState() != Document::NotInPageCache)
-            continue;
-        if (!document->isHTMLDocument() && !document->isXHTMLDocument())
-            continue;
-        collectNonEmptyLeafRenderBlockFlows(*document->renderView(), leafRenderers);
-    }
-}
-
-void toggleSimpleLineLayout()
-{
-    for (auto* document : Document::allDocuments()) {
-        auto& settings = document->mutableSettings();
-        settings.setSimpleLineLayoutEnabled(!settings.simpleLineLayoutEnabled());
-    }
-}
-
-void printSimpleLineLayoutBlockList()
-{
-    HashSet<const RenderBlockFlow*> leafRenderers;
-    collectNonEmptyLeafRenderBlockFlowsForCurrentPage(leafRenderers);
-    if (!leafRenderers.size()) {
-        WTFLogAlways("No text found in this document\n");
-        return;
-    }
-    TextStream stream;
-    stream << "---------------------------------------------------\n";
-    for (const auto* flow : leafRenderers) {
-        auto reason = canUseForWithReason(*flow, IncludeReasons::All);
-        if (reason == NoReason)
-            continue;
-        unsigned printedLength = 30;
-        stream << "\"";
-        printTextForSubtree(*flow, printedLength, stream);
-        for (;printedLength > 0; --printedLength)
-            stream << " ";
-        stream << "\"(" << textLengthForSubtree(*flow) << "):";
-        printReasons(reason, stream);
-        stream << "\n";
-    }
-    stream << "---------------------------------------------------\n";
-    WTFLogAlways("%s", stream.release().utf8().data());
-}
-
-void printSimpleLineLayoutCoverage()
-{
-    HashSet<const RenderBlockFlow*> leafRenderers;
-    collectNonEmptyLeafRenderBlockFlowsForCurrentPage(leafRenderers);
-    if (!leafRenderers.size()) {
-        WTFLogAlways("No text found in this document\n");
-        return;
-    }
-    TextStream stream;
-    HashMap<AvoidanceReason, unsigned> flowStatistics;
-    unsigned textLength = 0;
-    unsigned unsupportedTextLength = 0;
-    unsigned numberOfUnsupportedLeafBlocks = 0;
-    for (const auto* flow : leafRenderers) {
-        auto flowLength = textLengthForSubtree(*flow);
-        textLength += flowLength;
-        auto reasons = canUseForWithReason(*flow, IncludeReasons::All);
-        if (reasons == NoReason)
-            continue;
-        ++numberOfUnsupportedLeafBlocks;
-        unsupportedTextLength += flowLength;
-        for (auto reasonItem = EndOfReasons >> 1; reasonItem != NoReason; reasonItem >>= 1) {
-            if (!(reasons & reasonItem))
-                continue;
-            auto result = flowStatistics.add(reasonItem, flowLength);
-            if (!result.isNewEntry)
-                result.iterator->value += flowLength;
-        }
-    }
-    stream << "---------------------------------------------------\n";
-    stream << "Number of text blocks: total(" <<  leafRenderers.size() << ") non-simple(" << numberOfUnsupportedLeafBlocks << ")\nText length: total(" <<
-        textLength << ") non-simple(" << unsupportedTextLength << ")\n";
-    for (const auto reasonEntry : flowStatistics) {
-        printReason(reasonEntry.key, stream);
-        stream << ": " << (float)reasonEntry.value / (float)textLength * 100 << "%\n";
-    }
-    stream << "simple line layout coverage: " << (float)(textLength - unsupportedTextLength) / (float)textLength * 100 << "%\n";
-    stream << "---------------------------------------------------\n";
-    WTFLogAlways("%s", stream.release().utf8().data());
-}
-#endif
 }
 }

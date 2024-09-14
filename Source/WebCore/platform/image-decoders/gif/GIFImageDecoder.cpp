@@ -50,17 +50,9 @@ void GIFImageDecoder::setData(SharedBuffer& data, bool allDataReceived)
         m_reader->setData(&data);
 }
 
-bool GIFImageDecoder::isSizeAvailable()
-{
-    if (!ImageDecoder::isSizeAvailable())
-         decode(0, GIFSizeQuery);
-
-    return ImageDecoder::isSizeAvailable();
-}
-
 bool GIFImageDecoder::setSize(const IntSize& size)
 {
-    if (ImageDecoder::isSizeAvailable() && this->size() == size)
+    if (ImageDecoder::encodedDataStatus() >= EncodedDataStatus::SizeAvailable && this->size() == size)
         return true;
 
     if (!ImageDecoder::setSize(size))
@@ -72,7 +64,7 @@ bool GIFImageDecoder::setSize(const IntSize& size)
 
 size_t GIFImageDecoder::frameCount() const
 {
-    const_cast<GIFImageDecoder*>(this)->decode(std::numeric_limits<unsigned>::max(), GIFFrameCountQuery);
+    const_cast<GIFImageDecoder*>(this)->decode(std::numeric_limits<unsigned>::max(), GIFFrameCountQuery, isAllDataReceived());
     return m_frameBufferCache.size();
 }
 
@@ -116,7 +108,7 @@ ImageFrame* GIFImageDecoder::frameBufferAtIndex(size_t index)
 
     ImageFrame& frame = m_frameBufferCache[index];
     if (!frame.isComplete())
-        decode(index + 1, GIFFullQuery);
+        decode(index + 1, GIFFullQuery, isAllDataReceived());
     return &frame;
 }
 
@@ -132,6 +124,10 @@ void GIFImageDecoder::clearFrameBufferCache(size_t clearBeforeFrame)
     // can be asked to clear more frames than we currently have.
     if (m_frameBufferCache.isEmpty())
         return; // Nothing to do.
+
+    // Lock the decodelock here, as we are going to destroy the GIFImageReader and doing so while
+    // there's an ongoing decode will cause a crash.
+    LockHolder locker(m_decodeLock);
 
     // The "-1" here is tricky.  It does not mean that |clearBeforeFrame| is the
     // last frame we wish to preserve, but rather that we never want to clear
@@ -301,7 +297,7 @@ void GIFImageDecoder::gifComplete()
     m_reader = nullptr;
 }
 
-void GIFImageDecoder::decode(unsigned haltAtFrame, GIFQuery query)
+void GIFImageDecoder::decode(unsigned haltAtFrame, GIFQuery query, bool allDataReceived)
 {
     if (failed())
         return;
@@ -335,7 +331,7 @@ void GIFImageDecoder::decode(unsigned haltAtFrame, GIFQuery query)
 
     // It is also a fatal error if all data is received but we failed to decode
     // all frames completely.
-    if (isAllDataReceived() && haltAtFrame >= m_frameBufferCache.size() && m_reader)
+    if (allDataReceived && haltAtFrame >= m_frameBufferCache.size() && m_reader)
         setFailed();
 }
 

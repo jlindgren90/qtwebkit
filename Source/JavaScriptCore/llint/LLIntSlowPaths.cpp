@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,7 +47,6 @@
 #include "JSAsyncFunction.h"
 #include "JSCInlines.h"
 #include "JSCJSValue.h"
-#include "JSFixedArray.h"
 #include "JSGeneratorFunction.h"
 #include "JSGlobalObjectFunctions.h"
 #include "JSLexicalEnvironment.h"
@@ -1494,13 +1493,13 @@ LLINT_SLOW_PATH_DECL(slow_path_throw)
     LLINT_THROW(LLINT_OP_C(1).jsValue());
 }
 
-LLINT_SLOW_PATH_DECL(slow_path_handle_watchdog_timer)
+LLINT_SLOW_PATH_DECL(slow_path_handle_traps)
 {
     LLINT_BEGIN_NO_SET_PC();
-    ASSERT(vm.watchdog());
-    if (UNLIKELY(vm.shouldTriggerTermination(exec)))
-        LLINT_THROW(createTerminatedExecutionException(&vm));
-    LLINT_RETURN_TWO(0, exec);
+    ASSERT(vm.needTrapHandling());
+    vm.handleTraps(exec);
+    UNUSED_PARAM(pc);
+    LLINT_RETURN_TWO(throwScope.exception(), exec);
 }
 
 LLINT_SLOW_PATH_DECL(slow_path_debug)

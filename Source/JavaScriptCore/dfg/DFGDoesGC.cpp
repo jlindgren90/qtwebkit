@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -178,6 +178,7 @@ bool doesGC(Graph& graph, Node* node)
     case ToNumber:
     case ToString:
     case CallStringConstructor:
+    case NumberToStringWithRadix:
     case In:
     case HasOwnProperty:
     case Jump:
@@ -190,7 +191,7 @@ bool doesGC(Graph& graph, Node* node)
     case Throw:
     case CountExecution:
     case ForceOSRExit:
-    case CheckWatchdogTimer:
+    case CheckTraps:
     case StringFromCharCode:
     case MapHash:
     case GetMapBucket:
@@ -266,8 +267,19 @@ bool doesGC(Graph& graph, Node* node)
     case LogShadowChickenTail:
     case GetDynamicVar:
     case PutDynamicVar:
+    case ResolveScopeForHoistingFuncDeclInEval:
     case ResolveScope:
     case NukeStructureAndSetButterfly:
+    case AtomicsAdd:
+    case AtomicsAnd:
+    case AtomicsCompareExchange:
+    case AtomicsExchange:
+    case AtomicsLoad:
+    case AtomicsOr:
+    case AtomicsStore:
+    case AtomicsSub:
+    case AtomicsXor:
+    case AtomicsIsLockFree:
         return false;
 
     case CreateActivation:
@@ -310,6 +322,7 @@ bool doesGC(Graph& graph, Node* node)
     case CallDOMGetter:
     case CallDOM:
     case ArraySlice:
+    case ParseInt: // We might resolve a rope even though we don't clobber anything.
         return true;
         
     case MultiPutByOffset:

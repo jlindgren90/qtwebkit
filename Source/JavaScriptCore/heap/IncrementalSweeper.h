@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "HeapTimer.h"
+#include "JSRunLoopTimer.h"
 #include <wtf/Vector.h>
 
 namespace JSC {
@@ -33,18 +33,19 @@ namespace JSC {
 class Heap;
 class MarkedAllocator;
 
-class IncrementalSweeper : public HeapTimer {
+class IncrementalSweeper : public JSRunLoopTimer {
 public:
+    using Base = JSRunLoopTimer;
     JS_EXPORT_PRIVATE explicit IncrementalSweeper(Heap*);
 
-    void startSweeping();
+    JS_EXPORT_PRIVATE void startSweeping();
 
     JS_EXPORT_PRIVATE void doWork() override;
     bool sweepNextBlock();
-    void willFinishSweeping();
+    JS_EXPORT_PRIVATE void stopSweeping();
 
 private:
-    void doSweep(double startTime);
+    void doSweep(MonotonicTime startTime);
     void scheduleTimer();
     
     MarkedAllocator* m_currentAllocator;

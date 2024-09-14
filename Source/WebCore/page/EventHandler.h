@@ -147,9 +147,7 @@ public:
     WEBCORE_EXPORT void dispatchFakeMouseMoveEventSoon();
     void dispatchFakeMouseMoveEventSoonInQuad(const FloatQuad&);
 
-    WEBCORE_EXPORT HitTestResult hitTestResultAtPoint(const LayoutPoint&,
-        HitTestRequest::HitTestRequestType hitType = HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::DisallowUserAgentShadowContent,
-        const LayoutSize& padding = LayoutSize());
+    WEBCORE_EXPORT HitTestResult hitTestResultAtPoint(const LayoutPoint&, HitTestRequest::HitTestRequestType hitType = HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::DisallowUserAgentShadowContent, const LayoutSize& padding = LayoutSize()) const;
 
     bool mousePressed() const { return m_mousePressed; }
     Node* mousePressNode() const { return m_mousePressNode.get(); }
@@ -234,7 +232,7 @@ public:
 
 #if ENABLE(CONTEXT_MENUS)
     WEBCORE_EXPORT bool sendContextMenuEvent(const PlatformMouseEvent&);
-    bool sendContextMenuEventForKey();
+    WEBCORE_EXPORT bool sendContextMenuEventForKey();
 #endif
 
     void setMouseDownMayStartAutoscroll() { m_mouseDownMayStartAutoscroll = true; }
@@ -347,6 +345,8 @@ private:
 
     WEBCORE_EXPORT bool handleMouseReleaseEvent(const MouseEventWithHitTestResults&);
 
+    bool internalKeyEvent(const PlatformKeyboardEvent&);
+
     std::optional<Cursor> selectCursor(const HitTestResult&, bool shiftKey);
     void updateCursor(FrameView&, const HitTestResult&, bool shiftKey);
 
@@ -391,8 +391,7 @@ private:
 
 #if ENABLE(DRAG_SUPPORT)
     bool dispatchDragEvent(const AtomicString& eventType, Element& target, const PlatformMouseEvent&, DataTransfer*);
-
-    void freeDataTransfer();
+    void invalidateDataTransfer();
 
     bool handleDrag(const MouseEventWithHitTestResults&, CheckDragHysteresis);
 #endif

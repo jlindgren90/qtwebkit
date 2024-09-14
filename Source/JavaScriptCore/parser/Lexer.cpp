@@ -29,10 +29,10 @@
 #include "Identifier.h"
 #include "JSCInlines.h"
 #include "JSFunctionInlines.h"
-#include "JSGlobalObjectFunctions.h"
 #include "KeywordLookup.h"
 #include "Lexer.lut.h"
 #include "Nodes.h"
+#include "ParseInt.h"
 #include "Parser.h"
 #include <ctype.h>
 #include <limits.h>
@@ -1991,7 +1991,7 @@ start:
         shift();
         if (m_current == '-') {
             shift();
-            if (m_atLineStart && m_current == '>') {
+            if ((m_atLineStart || m_terminator) && m_current == '>') {
                 if (m_scriptMode == JSParserScriptMode::Classic) {
                     shift();
                     goto inSingleLineComment;

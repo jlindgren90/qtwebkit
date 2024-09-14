@@ -44,8 +44,6 @@ namespace WTR {
 class TestRunner;
 typedef RunLoop::Timer<TestRunner> PlatformTimerRef;
 }
-#elif PLATFORM(EFL)
-typedef Ecore_Timer* PlatformTimerRef;
 #endif
 
 namespace WTR {
@@ -101,11 +99,12 @@ public:
     void setCanOpenWindows(bool);
     void setCloseRemainingWindowsWhenComplete(bool value) { m_shouldCloseExtraWindows = value; }
     void setXSSAuditorEnabled(bool);
-    void setShadowDOMEnabled(bool);
-    void setCustomElementsEnabled(bool);
     void setModernMediaControlsEnabled(bool);
     void setWebGL2Enabled(bool);
-    void setFetchAPIEnabled(bool);
+    void setWebGPUEnabled(bool);
+    void setWritableStreamAPIEnabled(bool);
+    void setReadableByteStreamAPIEnabled(bool);
+
     void setAllowUniversalAccessFromFileURLs(bool);
     void setAllowFileAccessFromFileURLs(bool);
     void setNeedsStorageAccessFromFileURLsQuirk(bool);
@@ -126,12 +125,11 @@ public:
     void dispatchPendingLoadRequests();
     void setCacheModel(int);
     void setAsynchronousSpellCheckingEnabled(bool);
-    void setDownloadAttributeEnabled(bool);
     void setAllowsAnySSLCertificate(bool);
     void setEncryptedMediaAPIEnabled(bool);
     void setSubtleCryptoEnabled(bool);
-    void setMediaStreamEnabled(bool);
-    void setPeerConnectionEnabled(bool);
+    void setMediaDevicesEnabled(bool);
+    void setWebRTCLegacyAPIEnabled(bool);
 
     // Special DOM functions.
     void clearBackForwardList();
@@ -270,6 +268,7 @@ public:
 
     // Cookies testing
     void setAlwaysAcceptCookies(bool);
+    void setCookieStoragePartitioningEnabled(bool);
 
     // Custom full screen behavior.
     void setHasCustomFullScreenBehavior(bool value) { m_customFullScreenBehavior = value; }
@@ -350,15 +349,27 @@ public:
     void installStatisticsDidModifyDataRecordsCallback(JSValueRef callback);
     void statisticsDidModifyDataRecordsCallback();
     void statisticsFireDataModificationHandler();
+    void statisticsFireShouldPartitionCookiesHandler();
+    void statisticsFireShouldPartitionCookiesHandlerForOneDomain(JSStringRef hostName, bool value);
     void setStatisticsPrevalentResource(JSStringRef hostName, bool value);
     bool isStatisticsPrevalentResource(JSStringRef hostName);
     void setStatisticsHasHadUserInteraction(JSStringRef hostName, bool value);
     bool isStatisticsHasHadUserInteraction(JSStringRef hostName);
+    void setStatisticsSubframeUnderTopFrameOrigin(JSStringRef hostName, JSStringRef topFrameHostName);
+    void setStatisticsSubresourceUnderTopFrameOrigin(JSStringRef hostName, JSStringRef topFrameHostName);
+    void setStatisticsSubresourceUniqueRedirectTo(JSStringRef hostName, JSStringRef hostNameRedirectedTo);
     void setStatisticsTimeToLiveUserInteraction(double seconds);
+    void setStatisticsTimeToLiveCookiePartitionFree(double seconds);
     void setStatisticsNotifyPagesWhenDataRecordsWereScanned(bool);
     void setStatisticsShouldClassifyResourcesBeforeDataRecordsRemoval(bool);
     void setStatisticsMinimumTimeBetweeenDataRecordsRemoval(double);
+    void statisticsClearInMemoryAndPersistentStore();
     void statisticsResetToConsistentState();
+
+    // Open panel
+    void setOpenPanelFiles(JSValueRef);
+
+    void terminateNetworkProcess();
 
 private:
     TestRunner();

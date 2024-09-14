@@ -46,8 +46,10 @@ class GraphicsContext;
 class MockRealtimeVideoSource : public MockRealtimeMediaSource {
 public:
 
-    static RefPtr<MockRealtimeVideoSource> create(const String&, const MediaConstraints*);
+    static CaptureSourceOrError create(const String&, const MediaConstraints*);
     static RefPtr<MockRealtimeVideoSource> createMuted(const String& name);
+
+    static VideoCaptureFactory& factory();
 
     virtual ~MockRealtimeVideoSource() { }
 
@@ -58,6 +60,7 @@ protected:
     ImageBuffer* imageBuffer() const;
 
     double elapsedTime();
+    bool applySize(const IntSize&) override;
 
 private:
     void updateSettings(RealtimeMediaSourceSettings&) override;
@@ -71,13 +74,11 @@ private:
     void drawText(GraphicsContext&);
     void drawBoxes(GraphicsContext&);
 
-    bool applySize(const IntSize&) override;
     bool applyFrameRate(double) override;
     bool applyFacingMode(RealtimeMediaSourceSettings::VideoFacingMode) override { return true; }
     bool applyAspectRatio(double) override { return true; }
 
-    RefPtr<Image> currentFrameImage() override;
-    void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&) override;
+    bool isCaptureSource() const final { return true; }
 
     void generateFrame();
 

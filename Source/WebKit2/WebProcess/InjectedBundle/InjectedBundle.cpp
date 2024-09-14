@@ -184,26 +184,15 @@ void InjectedBundle::overrideBoolPreferenceForTestRunner(WebPageGroupProxy* page
         RuntimeEnabledFeatures::sharedFeatures().setWebAnimationsEnabled(enabled);
 #endif
 
-#if ENABLE(FETCH_API)
-    if (preference == "WebKitFetchAPIEnabled")
-        RuntimeEnabledFeatures::sharedFeatures().setFetchAPIEnabled(enabled);
+#if ENABLE(STREAMS_API)
+    if (preference == "WebKitReadableByteStreamAPIEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setReadableByteStreamAPIEnabled(enabled);
+    if (preference == "WebKitWritableStreamAPIEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setWritableStreamAPIEnabled(enabled);
 #endif
 
-#if ENABLE(DOWNLOAD_ATTRIBUTE)
-    if (preference == "WebKitDownloadAttributeEnabled")
-        RuntimeEnabledFeatures::sharedFeatures().setDownloadAttributeEnabled(enabled);
-#endif
-
-    if (preference == "WebKitShadowDOMEnabled")
-        RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled(enabled);
-
-#if ENABLE(CSS_GRID_LAYOUT)
     if (preference == "WebKitCSSGridLayoutEnabled")
         RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled(enabled);
-#endif
-
-    if (preference == "WebKitCustomElementsEnabled")
-        RuntimeEnabledFeatures::sharedFeatures().setCustomElementsEnabled(enabled);
 
     if (preference == "WebKitInteractiveFormValidationEnabled")
         RuntimeEnabledFeatures::sharedFeatures().setInteractiveFormValidationEnabled(enabled);
@@ -211,6 +200,11 @@ void InjectedBundle::overrideBoolPreferenceForTestRunner(WebPageGroupProxy* page
 #if ENABLE(WEBGL2)
     if (preference == "WebKitWebGL2Enabled")
         RuntimeEnabledFeatures::sharedFeatures().setWebGL2Enabled(enabled);
+#endif
+
+#if ENABLE(WEBGPU)
+    if (preference == "WebKitWebGPUEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setWebGPUEnabled(enabled);
 #endif
 
     if (preference == "WebKitModernMediaControlsEnabled")
@@ -227,13 +221,13 @@ void InjectedBundle::overrideBoolPreferenceForTestRunner(WebPageGroupProxy* page
 #endif
 
 #if ENABLE(MEDIA_STREAM)
-    if (preference == "WebKitMediaStreamEnabled")
-        RuntimeEnabledFeatures::sharedFeatures().setMediaStreamEnabled(enabled);
+    if (preference == "WebKitMediaDevicesEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setMediaDevicesEnabled(enabled);
 #endif
 
 #if ENABLE(WEB_RTC)
-    if (preference == "WebKitPeerConnectionEnabled")
-        RuntimeEnabledFeatures::sharedFeatures().setPeerConnectionEnabled(enabled);
+    if (preference == "WebKitWebRTCLegacyAPIEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setWebRTCLegacyAPIEnabled(enabled);
 #endif
 
     // Map the names used in LayoutTests with the names used in WebCore::Settings and WebPreferencesStore.

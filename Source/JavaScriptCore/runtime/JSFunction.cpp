@@ -104,7 +104,7 @@ JSFunction* JSFunction::createBuiltinFunction(VM& vm, FunctionExecutable* execut
 {
     JSFunction* function = create(vm, executable, globalObject);
     function->putDirect(vm, vm.propertyNames->name, jsString(&vm, executable->name().string()), ReadOnly | DontEnum);
-    function->putDirect(vm, vm.propertyNames->length, jsNumber(executable->functionLength()), ReadOnly | DontEnum);
+    function->putDirect(vm, vm.propertyNames->length, jsNumber(executable->parameterCount()), ReadOnly | DontEnum);
     return function;
 }
 
@@ -112,7 +112,7 @@ JSFunction* JSFunction::createBuiltinFunction(VM& vm, FunctionExecutable* execut
 {
     JSFunction* function = create(vm, executable, globalObject);
     function->putDirect(vm, vm.propertyNames->name, jsString(&vm, name), ReadOnly | DontEnum);
-    function->putDirect(vm, vm.propertyNames->length, jsNumber(executable->functionLength()), ReadOnly | DontEnum);
+    function->putDirect(vm, vm.propertyNames->length, jsNumber(executable->parameterCount()), ReadOnly | DontEnum);
     return function;
 }
 
@@ -237,7 +237,10 @@ public:
 
     StackVisitor::Status operator()(StackVisitor& visitor) const
     {
-        JSCell* callee = visitor->callee();
+        if (!visitor->callee().isCell())
+            return StackVisitor::Continue;
+
+        JSCell* callee = visitor->callee().asCell();
         if (callee != m_targetCallee)
             return StackVisitor::Continue;
 
@@ -279,7 +282,10 @@ public:
 
     StackVisitor::Status operator()(StackVisitor& visitor) const
     {
-        JSCell* callee = visitor->callee();
+        if (!visitor->callee().isCell())
+            return StackVisitor::Continue;
+
+        JSCell* callee = visitor->callee().asCell();
 
         if (callee && callee->inherits(*callee->vm(), JSBoundFunction::info()))
             return StackVisitor::Continue;
@@ -352,7 +358,7 @@ bool JSFunction::getOwnPropertySlot(JSObject* object, ExecState* exec, PropertyN
         PropertyOffset offset = thisObject->getDirectOffset(vm, propertyName, attributes);
         if (!isValidOffset(offset)) {
             JSObject* prototype = nullptr;
-            if (thisObject->jsExecutable()->parseMode() == SourceParseMode::GeneratorWrapperFunctionMode) {
+            if (isGeneratorWrapperParseMode(thisObject->jsExecutable()->parseMode())) {
                 // Unlike function instances, the object that is the value of the a GeneratorFunction's prototype
                 // property does not have a constructor property whose value is the GeneratorFunction instance.
                 // https://tc39.github.io/ecma262/#sec-generatorfunction-instances-prototype
@@ -623,7 +629,7 @@ void JSFunction::reifyLength(VM& vm)
 
     ASSERT(!hasReifiedLength());
     ASSERT(!isHostFunction());
-    JSValue initialValue = jsNumber(jsExecutable()->functionLength());
+    JSValue initialValue = jsNumber(jsExecutable()->parameterCount());
     unsigned initialAttributes = DontEnum | ReadOnly;
     const Identifier& identifier = vm.propertyNames->length;
     putDirect(vm, identifier, initialValue, initialAttributes);

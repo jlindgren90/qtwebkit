@@ -62,7 +62,13 @@ FAKE_REPOSITORY = {
         "import_options": ["generate_git_submodules_description", "generate_gitignore", "generate_init_py"]
     }
 ]
-''' }
+''',
+    '/mock-checkout/LayoutTests/imported/w3c/resources/import-expectations.json': '''
+{
+    "test1": "import",
+    "test2": "skip"
+}'''
+}
 
 
 class TestImporterTest(unittest.TestCase):
@@ -184,11 +190,11 @@ class TestImporterTest(unittest.TestCase):
      }
 ]''',
             '/mock-checkout/LayoutTests/imported/w3c/resources/import-expectations.json': '''
-[
-["web-platform-tests/dir-to-skip", "skip"],
-["web-platform-tests/dir-to-skip/dir-to-import", "import"],
-["web-platform-tests/dir-to-skip/file-to-import.html", "import"]
-]''',
+{
+"web-platform-tests/dir-to-skip": "skip",
+"web-platform-tests/dir-to-skip/dir-to-import": "import",
+"web-platform-tests/dir-to-skip/file-to-import.html": "import"
+}''',
             '/mock-checkout/WebKitBuild/w3c-tests/web-platform-tests/dir-to-skip/test-to-skip.html': 'to be skipped',
             '/mock-checkout/WebKitBuild/w3c-tests/web-platform-tests/dir-to-skip/dir-to-import/test-to-import.html': 'to be imported',
             '/mock-checkout/WebKitBuild/w3c-tests/web-platform-tests/dir-to-skip/dir-to-not-import/test-to-not-import.html': 'to be skipped',
@@ -260,5 +266,26 @@ class TestImporterTest(unittest.TestCase):
         self.assertFalse(fs.exists('/mock-checkout/LayoutTests/w3c/csswg-tests/__init__.py'))
         self.assertTrue(fs.exists('/mock-checkout/LayoutTests/w3c/web-platform-tests/__init__.py'))
         self.assertTrue(fs.getsize('/mock-checkout/LayoutTests/w3c/web-platform-tests/__init__.py') > 0)
+
+    def test_remove_obsolete_content(self):
+        FAKE_FILES = {
+            '/mock-checkout/WebKitBuild/w3c-tests/csswg-tests/temp': '',
+            '/mock-checkout/WebKitBuild/w3c-tests/web-platform-tests/t/new.html': '<!doctype html><script src="/resources/testharness.js"></script><script src="/resources/testharnessreport.js"></script>',
+            '/mock-checkout/WebKitBuild/w3c-tests/web-platform-tests/t/w3c-import.log': 'List of files:\n/LayoutTests/w3c/web-platform-tests/t/obsolete.html',
+            '/mock-checkout/LayoutTests/w3c/web-platform-tests/t/obsolete.html': 'obsoleted content',
+            '/mock-checkout/LayoutTests/w3c/web-platform-tests/t/obsolete-expected.txt': 'PASS',
+        }
+
+        FAKE_FILES.update(FAKE_REPOSITORY)
+
+        host = MockHost()
+        host.executive = MockExecutive2()
+        host.filesystem = MockFileSystem(files=FAKE_FILES)
+
+        fs = self.import_downloaded_tests(['--no-fetch', '--import-all', '-d', 'w3c'], FAKE_FILES)
+
+        self.assertFalse(fs.exists('/mock-checkout/LayoutTests/w3c/web-platform-tests/t/obsolete.html'))
+        self.assertFalse(fs.exists('/mock-checkout/LayoutTests/w3c/web-platform-tests/t/obsolete-expected.txt'))
+        self.assertTrue(fs.exists('/mock-checkout/LayoutTests/w3c/web-platform-tests/t/new.html'))
 
     # FIXME: Needs more tests.

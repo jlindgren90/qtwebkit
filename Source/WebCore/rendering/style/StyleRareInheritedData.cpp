@@ -38,7 +38,7 @@ struct GreaterThanOrSameSizeAsStyleRareInheritedData : public RefCounted<Greater
     void* styleImage;
     Color firstColor;
     float firstFloat;
-    Color colors[5];
+    Color colors[7];
     void* ownPtrs[1];
     AtomicString atomicStrings[5];
     void* refPtrs[2];
@@ -125,6 +125,13 @@ StyleRareInheritedData::StyleRareInheritedData()
     , trailingWord(static_cast<unsigned>(RenderStyle::initialTrailingWord()))
 #endif
     , hangingPunctuation(RenderStyle::initialHangingPunctuation())
+    , paintOrder(static_cast<unsigned>(RenderStyle::initialPaintOrder()))
+    , capStyle(RenderStyle::initialCapStyle())
+    , joinStyle(RenderStyle::initialJoinStyle())
+    , hasSetStrokeWidth(false)
+    , hasSetStrokeColor(false)
+    , strokeWidth(RenderStyle::initialOneLength())
+    , miterLimit(RenderStyle::initialStrokeMiterLimit())
     , hyphenationLimitBefore(-1)
     , hyphenationLimitAfter(-1)
     , hyphenationLimitLines(-1)
@@ -207,6 +214,15 @@ inline StyleRareInheritedData::StyleRareInheritedData(const StyleRareInheritedDa
     , trailingWord(o.trailingWord)
 #endif
     , hangingPunctuation(o.hangingPunctuation)
+    , paintOrder(o.paintOrder)
+    , capStyle(o.capStyle)
+    , joinStyle(o.joinStyle)
+    , hasSetStrokeWidth(o.hasSetStrokeWidth)
+    , hasSetStrokeColor(o.hasSetStrokeColor)
+    , strokeWidth(o.strokeWidth)
+    , strokeColor(o.strokeColor)
+    , visitedLinkStrokeColor(o.visitedLinkStrokeColor)
+    , miterLimit(o.miterLimit)
     , hyphenationString(o.hyphenationString)
     , hyphenationLimitBefore(o.hyphenationLimitBefore)
     , hyphenationLimitAfter(o.hyphenationLimitAfter)
@@ -313,6 +329,15 @@ bool StyleRareInheritedData::operator==(const StyleRareInheritedData& o) const
         && trailingWord == o.trailingWord
 #endif
         && hangingPunctuation == o.hangingPunctuation
+        && paintOrder == o.paintOrder
+        && capStyle == o.capStyle
+        && joinStyle == o.joinStyle
+        && hasSetStrokeWidth == o.hasSetStrokeWidth
+        && hasSetStrokeColor == o.hasSetStrokeColor
+        && strokeWidth == o.strokeWidth
+        && strokeColor == o.strokeColor
+        && visitedLinkStrokeColor == o.visitedLinkStrokeColor
+        && miterLimit == o.miterLimit
         && customProperties == o.customProperties
         && arePointingToEqualData(listStyleImage, o.listStyleImage);
 }

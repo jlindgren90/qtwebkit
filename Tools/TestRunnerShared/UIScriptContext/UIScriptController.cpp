@@ -74,6 +74,10 @@ void UIScriptController::doAfterPresentationUpdate(JSValueRef)
 void UIScriptController::doAfterNextStablePresentationUpdate(JSValueRef)
 {
 }
+
+void UIScriptController::doAfterVisibleContentRectUpdate(JSValueRef)
+{
+}
 #endif
 
 void UIScriptController::setDidStartFormControlInteractionCallback(JSValueRef callback)
@@ -189,6 +193,11 @@ JSObjectRef UIScriptController::contentsOfUserInterfaceItem(JSStringRef interfac
     return nullptr;
 }
 #endif
+
+void UIScriptController::playBackEventStream(JSStringRef stream, JSValueRef callback)
+{
+    platformPlayBackEventStream(stream, callback);
+}
 
 #if !PLATFORM(IOS)
 void UIScriptController::touchDownAtPoint(long x, long y, long touchCount, JSValueRef)
@@ -336,6 +345,11 @@ JSRetainPtr<JSStringRef> UIScriptController::scrollingTreeAsText() const
     return nullptr;
 }
 
+JSObjectRef UIScriptController::propertiesOfLayerWithID(uint64_t layerID) const
+{
+    return nullptr;
+}
+
 void UIScriptController::platformSetDidStartFormControlInteractionCallback()
 {
 }
@@ -385,6 +399,10 @@ JSRetainPtr<JSStringRef> UIScriptController::accessibilitySpeakSelectionContent(
     return nullptr;
 }
 
+void UIScriptController::setSafeAreaInsets(double top, double right, double bottom, double left)
+{
+}
+
 #endif
 
 #if !PLATFORM(COCOA)
@@ -401,7 +419,23 @@ void UIScriptController::addViewToWindow(JSValueRef)
 
 #if !PLATFORM(MAC)
 
+void UIScriptController::overridePreference(JSStringRef, JSStringRef)
+{
+}
+
 void UIScriptController::insertText(JSStringRef, int, int)
+{
+}
+
+void UIScriptController::beginBackSwipe(JSValueRef callback)
+{
+}
+
+void UIScriptController::completeBackSwipe(JSValueRef callback)
+{
+}
+
+void UIScriptController::platformPlayBackEventStream(JSStringRef, JSValueRef)
 {
 }
 

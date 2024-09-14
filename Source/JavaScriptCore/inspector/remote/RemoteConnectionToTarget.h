@@ -50,12 +50,18 @@ class RemoteConnectionToTarget final : public ThreadSafeRefCounted<RemoteConnect
 public:
 #if PLATFORM(COCOA)
     RemoteConnectionToTarget(RemoteControllableTarget*, NSString* connectionIdentifier, NSString* destination);
+#else
+    RemoteConnectionToTarget(RemoteControllableTarget&);
 #endif
     virtual ~RemoteConnectionToTarget();
 
     // Main API.
     bool setup(bool isAutomaticInspection = false, bool automaticallyPause = false);
+#if PLATFORM(COCOA)
+    void sendMessageToTarget(NSString *);
+#else
     void sendMessageToTarget(const String&);
+#endif
     void close();
     void targetClosed();
 

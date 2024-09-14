@@ -35,21 +35,23 @@ typedef const struct __CFData* CFDataRef;
 
 namespace WebCore {
 
-class ImageDecoder {
+class ImageDecoder : public RefCounted<ImageDecoder> {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    ImageDecoder(AlphaOption, GammaAndColorProfileOption);
+    ImageDecoder(const URL& sourceURL, AlphaOption, GammaAndColorProfileOption);
 
-    static std::unique_ptr<ImageDecoder> create(const SharedBuffer&, AlphaOption alphaOption, GammaAndColorProfileOption gammaAndColorProfileOption)
+    static Ref<ImageDecoder> create(const SharedBuffer&, const URL& sourceURL, AlphaOption alphaOption, GammaAndColorProfileOption gammaAndColorProfileOption)
     {
-        return std::make_unique<ImageDecoder>(alphaOption, gammaAndColorProfileOption);
+        return adoptRef(*new ImageDecoder(sourceURL, alphaOption, gammaAndColorProfileOption));
     }
     
     static size_t bytesDecodedToDetermineProperties();
 
-    bool isSizeAvailable() const;
+    EncodedDataStatus encodedDataStatus() const;
+    bool isSizeAvailable() { return encodedDataStatus() >= EncodedDataStatus::SizeAvailable; }
     size_t frameCount() const;
     RepetitionCount repetitionCount() const;
+    String uti() const;
     String filenameExtension() const;
     std::optional<IntPoint> hotSpot() const;
 
@@ -62,7 +64,7 @@ public:
     bool frameAllowSubsamplingAtIndex(size_t) const;
     unsigned frameBytesAtIndex(size_t, SubsamplingLevel = SubsamplingLevel::Default) const;
     
-    NativeImagePtr createFrameImageAtIndex(size_t, SubsamplingLevel = SubsamplingLevel::Default, DecodingMode = DecodingMode::OnDemand) const;
+    NativeImagePtr createFrameImageAtIndex(size_t, SubsamplingLevel = SubsamplingLevel::Default, const DecodingOptions& = DecodingMode::Synchronous) const;
     
     void setData(SharedBuffer&, bool allDataReceived);
     bool isAllDataReceived() const { return m_isAllDataReceived; }

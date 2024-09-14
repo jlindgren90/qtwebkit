@@ -26,63 +26,21 @@
 #pragma once
 
 #include "Color.h"
+#include "DecodingOptions.h"
 #include "ImageBackingStore.h"
 #include "ImageOrientation.h"
+#include "ImageTypes.h"
 #include "IntSize.h"
 #include "NativeImage.h"
+#include <wtf/Deque.h>
 
 namespace WebCore {
-
-class Color;
-
-// There are four subsampling levels: 0 = 1x, 1 = 0.5x, 2 = 0.25x, 3 = 0.125x.
-enum class SubsamplingLevel {
-    Undefinded = -1,
-    First = 0,
-    Default = First,
-    Level0 = First,
-    Level1,
-    Level2,
-    Level3,
-    Last = Level3,
-    Max
-};
-
-inline SubsamplingLevel& operator++(SubsamplingLevel& subsamplingLevel)
-{
-    subsamplingLevel = static_cast<SubsamplingLevel>(static_cast<int>(subsamplingLevel) + 1);
-    ASSERT(subsamplingLevel <= SubsamplingLevel::Max);
-    return subsamplingLevel;
-}
-
-typedef int RepetitionCount;
-
-enum {
-    RepetitionCountNone = 0,
-    RepetitionCountOnce = 1,
-    RepetitionCountInfinite = -1,
-};
-
-enum class AlphaOption {
-    Premultiplied,
-    NotPremultiplied
-};
-
-enum class GammaAndColorProfileOption {
-    Applied,
-    Ignored
-};
-
-enum class DecodingMode {
-    OnDemand,
-    Immediate
-};
 
 class ImageFrame {
     friend class ImageFrameCache;
 public:
-    enum class Caching { Empty, Metadata, MetadataAndImage };
-    enum class Decoding { Empty, BeingDecoded, Partial, Complete };
+    enum class Caching { Metadata, MetadataAndImage };
+    enum class Decoding { None, Partial, Complete };
 
     ImageFrame();
     ImageFrame(const ImageFrame& other) { operator=(other); }
@@ -103,8 +61,8 @@ public:
 
     void setDecoding(Decoding decoding) { m_decoding = decoding; }
     Decoding decoding() const { return m_decoding; }
-    bool isEmpty() const { return m_decoding == Decoding::Empty; }
-    bool isBeingDecoded() const { return m_decoding == Decoding::BeingDecoded; }
+
+    bool isEmpty() const { return m_decoding == Decoding::None; }
     bool isPartial() const { return m_decoding == Decoding::Partial; }
     bool isComplete() const { return m_decoding == Decoding::Complete; }
 
@@ -130,8 +88,9 @@ public:
     void setHasAlpha(bool hasAlpha) { m_hasAlpha = hasAlpha; }
     bool hasAlpha() const { return !hasMetadata() || m_hasAlpha; }
 
-    bool hasNativeImage() const { return m_nativeImage; }
-    bool hasValidNativeImage(SubsamplingLevel subsamplingLevel) const { return hasNativeImage() && subsamplingLevel >= m_subsamplingLevel; }
+    bool hasNativeImage(const std::optional<SubsamplingLevel>& = { }) const;
+    bool hasFullSizeNativeImage(const std::optional<SubsamplingLevel>& = { }) const;
+    bool hasDecodedNativeImageCompatibleWithOptions(const std::optional<SubsamplingLevel>&, const DecodingOptions&) const;
     bool hasMetadata() const { return !size().isEmpty(); }
 
 #if !USE(CG)
@@ -142,7 +101,7 @@ public:
     Color singlePixelSolidColor() const;
 
 private:
-    Decoding m_decoding { Decoding::Empty };
+    Decoding m_decoding { Decoding::None };
     IntSize m_size;
 
 #if !USE(CG)
@@ -152,6 +111,7 @@ private:
 
     NativeImagePtr m_nativeImage;
     SubsamplingLevel m_subsamplingLevel { SubsamplingLevel::Default };
+    DecodingOptions m_decodingOptions;
 
     ImageOrientation m_orientation { DefaultImageOrientation };
     float m_duration { 0 };

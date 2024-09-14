@@ -173,7 +173,7 @@ void ResourceHandle::createNSURLConnection(id delegate, bool shouldUseCredential
     }
 
 #if HAVE(CFNETWORK_STORAGE_PARTITIONING)
-    String storagePartition = cookieStoragePartition(firstRequest());
+    String storagePartition = d->m_context->storageSession().cookieStoragePartition(firstRequest());
     if (!storagePartition.isEmpty()) {
         NSMutableURLRequest *mutableRequest = [[nsRequest mutableCopy] autorelease];
         [mutableRequest _setProperty:storagePartition forKey:@"__STORAGE_PARTITION_IDENTIFIER"];
@@ -736,14 +736,14 @@ void ResourceHandle::continueWillCacheResponse(NSCachedURLResponse *response)
 
 #if USE(CFURLCONNECTION)
     
-void ResourceHandle::getConnectionTimingData(CFURLConnectionRef connection, NetworkLoadTiming& timing)
+void ResourceHandle::getConnectionTimingData(CFURLConnectionRef connection, NetworkLoadMetrics& timing)
 {
     copyTimingData((__bridge NSDictionary*)adoptCF(_CFURLConnectionCopyTimingData(connection)).get(), timing);
 }
     
 #else
     
-void ResourceHandle::getConnectionTimingData(NSURLConnection *connection, NetworkLoadTiming& timing)
+void ResourceHandle::getConnectionTimingData(NSURLConnection *connection, NetworkLoadMetrics& timing)
 {
     copyTimingData([connection _timingData], timing);
 }

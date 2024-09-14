@@ -42,8 +42,10 @@ namespace WebCore {
 class MockRealtimeAudioSource : public MockRealtimeMediaSource {
 public:
 
-    static RefPtr<MockRealtimeAudioSource> create(const String&, const MediaConstraints*);
+    static CaptureSourceOrError create(const String&, const MediaConstraints*);
     static RefPtr<MockRealtimeAudioSource> createMuted(const String& name);
+
+    static AudioCaptureFactory& factory();
 
     virtual ~MockRealtimeAudioSource() = default;
 
@@ -56,7 +58,7 @@ protected:
     virtual void render(double) { }
 
     double elapsedTime();
-    static int renderInterval() { return 60; }
+    static Seconds renderInterval() { return 60_ms; }
 
 private:
 
@@ -70,6 +72,8 @@ private:
     void initializeSupportedConstraints(RealtimeMediaSourceSupportedConstraints&) override;
 
     void tick();
+
+    bool isCaptureSource() const final { return true; }
 
     RunLoop::Timer<MockRealtimeAudioSource> m_timer;
     double m_startTime { NAN };

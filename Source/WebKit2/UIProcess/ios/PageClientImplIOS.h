@@ -51,6 +51,7 @@ private:
     std::unique_ptr<DrawingAreaProxy> createDrawingAreaProxy() override;
     void setViewNeedsDisplay(const WebCore::Region&) override;
     void requestScroll(const WebCore::FloatPoint& scrollPosition, const WebCore::IntPoint& scrollOrigin, bool isProgrammaticScroll) override;
+    WebCore::FloatPoint viewScrollPosition() override;
     WebCore::IntSize viewSize() override;
     bool isViewWindowActive() override;
     bool isViewFocused() override;
@@ -78,7 +79,7 @@ private:
     void executeUndoRedo(WebPageProxy::UndoOrRedo) override;
     void accessibilityWebProcessTokenReceived(const IPC::DataReference&) override;
     bool executeSavedCommandBySelector(const String& selector) override;
-    void setDragImage(const WebCore::IntPoint& clientPosition, PassRefPtr<ShareableBitmap> dragImage, bool isLinkDrag) override;
+    void setDragImage(const WebCore::IntPoint& clientPosition, PassRefPtr<ShareableBitmap> dragImage, WebCore::DragSourceAction) override;
     void updateSecureInputState() override;
     void resetSecureInputState() override;
     void notifyInputContextAboutDiscardedComposition() override;
@@ -97,7 +98,7 @@ private:
 #if ENABLE(CONTEXT_MENUS)
     std::unique_ptr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&) override;
 #endif
-    Ref<WebCore::ValidationBubble> createValidationBubble(const String& message) final;
+    Ref<WebCore::ValidationBubble> createValidationBubble(const String& message, const WebCore::ValidationBubble::Settings&) final;
 
     void setTextIndicator(Ref<WebCore::TextIndicator>, WebCore::TextIndicatorWindowLifetime) override;
     void clearTextIndicator(WebCore::TextIndicatorWindowDismissalAnimation) override;
@@ -121,8 +122,8 @@ private:
 
     void dynamicViewportUpdateChangedTarget(double newScale, const WebCore::FloatPoint& newScrollPosition, uint64_t transactionID) override;
     void couldNotRestorePageState() override;
-    void restorePageState(const WebCore::FloatPoint&, const WebCore::FloatPoint&, const WebCore::FloatSize&, double) override;
-    void restorePageCenterAndScale(const WebCore::FloatPoint&, double) override;
+    void restorePageState(std::optional<WebCore::FloatPoint>, const WebCore::FloatPoint&, const WebCore::FloatBoxExtent&, double) override;
+    void restorePageCenterAndScale(std::optional<WebCore::FloatPoint>, double) override;
 
     void startAssistingNode(const AssistedNodeInformation&, bool userIsInteracting, bool blurPreviousNode, API::Object* userData) override;
     void stopAssistingNode() override;
@@ -148,7 +149,6 @@ private:
     void enableInspectorNodeSearch() override;
     void disableInspectorNodeSearch() override;
 
-    void zoomToRect(WebCore::FloatRect, double minimumScale, double maximumScale) override;
     void overflowScrollViewWillStartPanGesture() override;
     void overflowScrollViewDidScroll() override;
     void overflowScrollWillStartScroll() override;
@@ -185,6 +185,7 @@ private:
     void didFailLoadForMainFrame() override;
     void didSameDocumentNavigationForMainFrame(SameDocumentNavigationType) override;
     void didNotHandleTapAsClick(const WebCore::IntPoint&) override;
+    void didCompleteSyntheticClick() override;
 
     void didChangeBackgroundColor() override;
 
@@ -197,14 +198,18 @@ private:
 
     void handleActiveNowPlayingSessionInfoResponse(bool hasActiveSession, const String& title, double duration, double elapsedTime) override;
 
+    void didChangeAvoidsUnsafeArea(bool avoidsUnsafeArea) override;
+
 #if USE(QUICK_LOOK)
     void requestPasswordForQuickLookDocument(const String& fileName, std::function<void(const String&)>&&) override;
 #endif
 
 #if ENABLE(DATA_INTERACTION)
-    void didPerformDataInteractionControllerOperation() override;
+    void didPerformDataInteractionControllerOperation(bool handled) override;
     void didHandleStartDataInteractionRequest(bool started) override;
-    void startDataInteractionWithImage(const WebCore::IntPoint& clientPosition, const ShareableBitmap::Handle& image, const WebCore::FloatPoint& anchorPoint, bool isLink) override;
+    void startDataInteractionWithImage(const WebCore::IntPoint& clientPosition, const ShareableBitmap::Handle& image, std::optional<WebCore::TextIndicatorData>, const WebCore::FloatPoint& anchorPoint, uint64_t action) override;
+    void didConcludeEditDataInteraction(std::optional<WebCore::TextIndicatorData>) override;
+    void didChangeDataInteractionCaretRect(const WebCore::IntRect& previousCaretRect, const WebCore::IntRect& caretRect) override;
 #endif
 
     WKContentView *m_contentView;

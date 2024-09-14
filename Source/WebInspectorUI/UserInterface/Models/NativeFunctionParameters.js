@@ -696,11 +696,6 @@ WebInspector.NativePrototypeFunctionParameters = {
         __proto__: null,
     },
 
-    ClientRectList: {
-        item: "[index]",
-        __proto__: null,
-    },
-
     CommandLineAPIHost: {
         copyText: "text",
         databaseId: "database",
@@ -728,7 +723,7 @@ WebInspector.NativePrototypeFunctionParameters = {
     },
 
     CustomEvent: {
-        initCustomEvent: "[typeArg], [canBubbleArg], [cancelableArg], [detailArg]",
+        initCustomEvent: "type, [bubbles], [cancelable], [detail]",
         __proto__: null,
     },
 
@@ -820,7 +815,7 @@ WebInspector.NativePrototypeFunctionParameters = {
     },
 
     Event: {
-        initEvent: "type, canBubble, cancelable",
+        initEvent: "type, [bubbles], [cancelable]",
         __proto__: null,
     },
 
@@ -1119,8 +1114,7 @@ WebInspector.NativePrototypeFunctionParameters = {
     },
 
     MessageEvent: {
-        initMessageEvent: "[typeArg], [canBubbleArg], [cancelableArg], [dataArg], [originArg], [lastEventIdArg], [sourceArg], [messagePorts]",
-        webkitInitMessageEvent: "[typeArg], [canBubbleArg], [cancelableArg], [dataArg], [originArg], [lastEventIdArg], [sourceArg], [transferables]",
+        initMessageEvent: "type, [bubbles], [cancelable], [data], [origin], [lastEventId], [source], [messagePorts]",
         __proto__: null,
     },
 
@@ -1158,6 +1152,21 @@ WebInspector.NativePrototypeFunctionParameters = {
         removeNamedItemNS: "[namespaceURI], [localName]",
         setNamedItem: "[node]",
         setNamedItemNS: "[node]",
+        __proto__: null,
+    },
+
+    Navigator: {
+        getUserMedia: "options, successCallback, errorCallback",
+        __proto__: null,
+    },
+
+    NavigatorUserMediaErrorCallback: {
+        handleEvent: "error",
+        __proto__: null,
+    },
+
+    NavigatorUserMediaSuccessCallback: {
+        handleEvent: "stream",
         __proto__: null,
     },
 

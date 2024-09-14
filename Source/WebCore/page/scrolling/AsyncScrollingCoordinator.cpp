@@ -28,6 +28,7 @@
 #if ENABLE(ASYNC_SCROLLING)
 #include "AsyncScrollingCoordinator.h"
 
+#include "DebugPageOverlays.h"
 #include "Document.h"
 #include "EditorClient.h"
 #include "Frame.h"
@@ -157,6 +158,7 @@ void AsyncScrollingCoordinator::frameViewLayoutUpdated(FrameView& frameView)
     node->setTotalContentsSize(frameView.totalContentsSize());
     node->setReachableContentsSize(frameView.totalContentsSize());
     node->setFixedElementsLayoutRelativeToFrame(frameView.fixedElementsLayoutRelativeToFrame());
+    node->setScrollBehaviorForFixedElements(frameView.scrollBehaviorForFixedElements());
 
 #if ENABLE(CSS_SCROLL_SNAP)
     frameView.updateSnapOffsets();
@@ -195,12 +197,13 @@ void AsyncScrollingCoordinator::updateExpectsWheelEventTestTriggerWithFrameView(
     node->setExpectsWheelEventTestTrigger(page->expectsWheelEventTriggers());
 }
 
-void AsyncScrollingCoordinator::frameViewEventTrackingRegionsChanged(FrameView&)
+void AsyncScrollingCoordinator::frameViewEventTrackingRegionsChanged(FrameView& frameView)
 {
     if (!m_scrollingStateTree->rootStateNode())
         return;
 
     setEventTrackingRegionsDirty();
+    DebugPageOverlays::didChangeEventHandlers(frameView.frame());
 }
 
 void AsyncScrollingCoordinator::frameViewRootLayerDidChange(FrameView& frameView)
@@ -281,7 +284,7 @@ void AsyncScrollingCoordinator::scheduleUpdateScrollPositionAfterAsyncScroll(Scr
     }
 
     m_scheduledScrollUpdate = scrollUpdate;
-    m_updateNodeScrollPositionTimer.startOneShot(0);
+    m_updateNodeScrollPositionTimer.startOneShot(0_s);
 }
 
 void AsyncScrollingCoordinator::updateScrollPositionAfterAsyncScrollTimerFired()

@@ -47,7 +47,7 @@
 #define ASSERT_NOT_SYNC_THREAD() ASSERT(!m_syncThreadRunning || !IS_ICON_SYNC_THREAD())
 
 // For methods that are meant to support the sync thread ONLY
-#define IS_ICON_SYNC_THREAD() (m_syncThread == currentThread())
+#define IS_ICON_SYNC_THREAD() (m_syncThread->id() == currentThread())
 #define ASSERT_ICON_SYNC_THREAD() ASSERT(IS_ICON_SYNC_THREAD())
 
 #if PLATFORM(QT) || PLATFORM(GTK)
@@ -67,11 +67,11 @@ static const int currentDatabaseVersion = 6;
 // Icons expire once every 4 days
 static const int iconExpirationTime = 60*60*24*4; 
 
-static const int updateTimerDelay = 5; 
+static const Seconds updateTimerDelay { 5_s };
 
 static bool checkIntegrityOnOpen = false;
 
-#if PLATFORM(GTK) || PLATFORM(EFL)
+#if PLATFORM(GTK)
 // We are not interested in icons that have been unused for more than
 // 30 days, delete them even if they have not been explicitly released.
 static const int notUsedIconExpirationTime = 60*60*24*30;
@@ -141,7 +141,7 @@ bool IconDatabase::open(const String& directory, const String& filename)
     // Lock here as well as first thing in the thread so the thread doesn't actually commence until the createThread() call 
     // completes and m_syncThreadRunning is properly set
     m_syncLock.lock();
-    m_syncThread = createThread(IconDatabase::iconDatabaseSyncThreadStart, this, "WebCore: IconDatabase");
+    m_syncThread = Thread::create(IconDatabase::iconDatabaseSyncThreadStart, this, "WebCore: IconDatabase");
     m_syncThreadRunning = m_syncThread;
     m_syncLock.unlock();
     if (!m_syncThread)
@@ -161,7 +161,7 @@ void IconDatabase::close()
         wakeSyncThread();
         
         // Wait for the sync thread to terminate
-        waitForThreadCompletion(m_syncThread);
+        m_syncThread->waitForCompletion();
     }
 
     m_syncThreadRunning = false;    
@@ -1184,7 +1184,7 @@ void IconDatabase::performURLImport()
 {
     ASSERT_ICON_SYNC_THREAD();
 
-# if PLATFORM(GTK) || PLATFORM(EFL)
+# if PLATFORM(GTK)
     // Do not import icons not used in the last 30 days. They will be automatically pruned later if nobody retains them.
     // Note that IconInfo.stamp is only set when the icon data is retrieved from the server (and thus is not updated whether
     // we use it or not). This code works anyway because the IconDatabase downloads icons again if they are older than 4 days,

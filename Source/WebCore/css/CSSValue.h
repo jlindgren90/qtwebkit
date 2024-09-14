@@ -80,6 +80,8 @@ public:
 #endif
     bool isFontFaceSrcValue() const { return m_classType == FontFaceSrcClass; }
     bool isFontValue() const { return m_classType == FontClass; }
+    bool isFontStyleValue() const { return m_classType == FontStyleClass; }
+    bool isFontStyleRangeValue() const { return m_classType == FontStyleRangeClass; }
     bool isImageGeneratorValue() const { return m_classType >= CanvasClass && m_classType <= RadialGradientClass; }
     bool isGradientValue() const { return m_classType >= LinearGradientClass && m_classType <= RadialGradientClass; }
     bool isNamedImageValue() const { return m_classType == NamedImageClass; }
@@ -103,11 +105,9 @@ public:
     bool isCalcValue() const {return m_classType == CalculationClass; }
     bool isFilterImageValue() const { return m_classType == FilterImageClass; }
     bool isContentDistributionValue() const { return m_classType == CSSContentDistributionClass; }
-#if ENABLE(CSS_GRID_LAYOUT)
     bool isGridAutoRepeatValue() const { return m_classType == GridAutoRepeatClass; }
     bool isGridTemplateAreasValue() const { return m_classType == GridTemplateAreasClass; }
     bool isGridLineNamesValue() const { return m_classType == GridLineNamesClass; }
-#endif
     bool isUnicodeRangeValue() const { return m_classType == UnicodeRangeClass; }
 
 #if ENABLE(CSS_ANIMATIONS_LEVEL_2)
@@ -158,6 +158,8 @@ protected:
         FontVariationClass,
 #endif
         FontClass,
+        FontStyleClass,
+        FontStyleRangeClass,
         FontFaceSrcClass,
         FunctionClass,
 
@@ -171,9 +173,7 @@ protected:
         UnicodeRangeClass,
         LineBoxContainClass,
         CalculationClass,
-#if ENABLE(CSS_GRID_LAYOUT)
         GridTemplateAreasClass,
-#endif
 #if ENABLE(CSS_ANIMATIONS_LEVEL_2)
         AnimationTriggerScrollClass,
 #endif
@@ -191,10 +191,8 @@ protected:
         // as a list.
         ValueListClass,
         ImageSetClass,
-#if ENABLE(CSS_GRID_LAYOUT)
         GridLineNamesClass,
         GridAutoRepeatClass,
-#endif
         // Do not append non-list class types here.
     };
 

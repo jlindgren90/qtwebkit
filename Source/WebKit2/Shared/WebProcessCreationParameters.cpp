@@ -35,20 +35,6 @@
 namespace WebKit {
 
 WebProcessCreationParameters::WebProcessCreationParameters()
-    : shouldAlwaysUseComplexTextCodePath(false)
-    , shouldEnableMemoryPressureReliefLogging(false)
-    , shouldUseFontSmoothing(true)
-    , defaultRequestTimeoutInterval(INT_MAX)
-#if PLATFORM(COCOA)
-    , shouldEnableJIT(false)
-    , shouldEnableFTLJIT(false)
-#endif
-    , memoryCacheDisabled(false)
-#if ENABLE(SERVICE_CONTROLS)
-    , hasImageServices(false)
-    , hasSelectionServices(false)
-    , hasRichContentServices(false)
-#endif
 {
 }
 
@@ -60,6 +46,7 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
 {
     encoder << injectedBundlePath;
     encoder << injectedBundlePathExtensionHandle;
+    encoder << additionalSandboxExtensionHandles;
     encoder << initializationUserData;
     encoder << applicationCacheDirectory;
     encoder << applicationCacheFlatFileSubdirectoryName;
@@ -68,6 +55,8 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << webSQLDatabaseDirectoryExtensionHandle;
     encoder << mediaCacheDirectory;
     encoder << mediaCacheDirectoryExtensionHandle;
+    encoder << javaScriptConfigurationDirectory;
+    encoder << javaScriptConfigurationDirectoryExtensionHandle;
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     encoder << uiProcessCookieStorageIdentifier;
 #endif
@@ -80,6 +69,7 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << mediaKeyStorageDirectoryExtensionHandle;
 #if ENABLE(MEDIA_STREAM)
     encoder << audioCaptureExtensionHandle;
+    encoder << shouldCaptureAudioInUIProcess;
 #endif
     encoder << shouldUseTestingNetworkSession;
     encoder << urlSchemesRegisteredAsEmptyDocument;
@@ -98,7 +88,6 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << shouldSuppressMemoryPressureHandler;
     encoder << shouldUseFontSmoothing;
     encoder << resourceLoadStatisticsEnabled;
-    encoder << urlParserEnabled;
     encoder << fontWhitelist;
     encoder << iconDatabaseEnabled;
     encoder << terminationTimeout;
@@ -163,6 +152,8 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
         return false;
     if (!decoder.decode(parameters.injectedBundlePathExtensionHandle))
         return false;
+    if (!decoder.decode(parameters.additionalSandboxExtensionHandles))
+        return false;
     if (!decoder.decode(parameters.initializationUserData))
         return false;
     if (!decoder.decode(parameters.applicationCacheDirectory))
@@ -178,6 +169,10 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
     if (!decoder.decode(parameters.mediaCacheDirectory))
         return false;
     if (!decoder.decode(parameters.mediaCacheDirectoryExtensionHandle))
+        return false;
+    if (!decoder.decode(parameters.javaScriptConfigurationDirectory))
+        return false;
+    if (!decoder.decode(parameters.javaScriptConfigurationDirectoryExtensionHandle))
         return false;
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     if (!decoder.decode(parameters.uiProcessCookieStorageIdentifier))
@@ -197,6 +192,8 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
         return false;
 #if ENABLE(MEDIA_STREAM)
     if (!decoder.decode(parameters.audioCaptureExtensionHandle))
+        return false;
+    if (!decoder.decode(parameters.shouldCaptureAudioInUIProcess))
         return false;
 #endif
     if (!decoder.decode(parameters.shouldUseTestingNetworkSession))
@@ -232,8 +229,6 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
     if (!decoder.decode(parameters.shouldUseFontSmoothing))
         return false;
     if (!decoder.decode(parameters.resourceLoadStatisticsEnabled))
-        return false;
-    if (!decoder.decode(parameters.urlParserEnabled))
         return false;
     if (!decoder.decode(parameters.fontWhitelist))
         return false;

@@ -61,14 +61,47 @@ bool WebResourceLoadStatisticsManager::hasHadUserInteraction(const String& hostN
     return WebCore::ResourceLoadObserver::sharedObserver().hasHadUserInteraction(URL(URL(), hostName));
 }
 
+void WebResourceLoadStatisticsManager::setSubframeUnderTopFrameOrigin(const String& hostName, const String& topFrameHostName)
+{
+    WebCore::ResourceLoadObserver::sharedObserver().setSubframeUnderTopFrameOrigin(URL(URL(), hostName), URL(URL(), topFrameHostName));
+}
+
+void WebResourceLoadStatisticsManager::setSubresourceUnderTopFrameOrigin(const String& hostName, const String& topFrameHostName)
+{
+    WebCore::ResourceLoadObserver::sharedObserver().setSubresourceUnderTopFrameOrigin(URL(URL(), hostName), URL(URL(), topFrameHostName));
+}
+
+void WebResourceLoadStatisticsManager::setSubresourceUniqueRedirectTo(const String& hostName, const String& hostNameRedirectedTo)
+{
+    WebCore::ResourceLoadObserver::sharedObserver().setSubresourceUniqueRedirectTo(URL(URL(), hostName), URL(URL(), hostNameRedirectedTo));
+}
+
 void WebResourceLoadStatisticsManager::setTimeToLiveUserInteraction(double seconds)
 {
     WebCore::ResourceLoadObserver::sharedObserver().setTimeToLiveUserInteraction(seconds);
 }
 
+void WebResourceLoadStatisticsManager::setTimeToLiveCookiePartitionFree(double seconds)
+{
+    WebCore::ResourceLoadObserver::sharedObserver().setTimeToLiveCookiePartitionFree(seconds);
+}
+
 void WebResourceLoadStatisticsManager::fireDataModificationHandler()
 {
     WebCore::ResourceLoadObserver::sharedObserver().fireDataModificationHandler();
+}
+
+void WebResourceLoadStatisticsManager::fireShouldPartitionCookiesHandler()
+{
+    WebCore::ResourceLoadObserver::sharedObserver().fireShouldPartitionCookiesHandler();
+}
+
+void WebResourceLoadStatisticsManager::fireShouldPartitionCookiesHandlerForOneDomain(const String& hostName, bool value)
+{
+    if (value)
+        WebCore::ResourceLoadObserver::sharedObserver().fireShouldPartitionCookiesHandler({ }, {hostName}, false);
+    else
+        WebCore::ResourceLoadObserver::sharedObserver().fireShouldPartitionCookiesHandler({hostName}, { }, false);
 }
 
 void WebResourceLoadStatisticsManager::setNotifyPagesWhenDataRecordsWereScanned(bool value)
@@ -86,15 +119,19 @@ void WebResourceLoadStatisticsManager::setMinimumTimeBetweeenDataRecordsRemoval(
     WebResourceLoadStatisticsStore::setMinimumTimeBetweeenDataRecordsRemoval(seconds);
 }
 
+void WebResourceLoadStatisticsManager::clearInMemoryAndPersistentStore()
+{
+    WebCore::ResourceLoadObserver::sharedObserver().clearInMemoryAndPersistentStore();
+}
+
 void WebResourceLoadStatisticsManager::resetToConsistentState()
 {
     WebCore::ResourceLoadObserver::sharedObserver().setTimeToLiveUserInteraction(2592000);
+    WebCore::ResourceLoadObserver::sharedObserver().setTimeToLiveCookiePartitionFree(86400);
     WebResourceLoadStatisticsStore::setNotifyPagesWhenDataRecordsWereScanned(false);
     WebResourceLoadStatisticsStore::setShouldClassifyResourcesBeforeDataRecordsRemoval(true);
     WebResourceLoadStatisticsStore::setMinimumTimeBetweeenDataRecordsRemoval(60);
-    auto store = WebCore::ResourceLoadObserver::sharedObserver().statisticsStore();
-    if (store)
-        store->clear();
+    WebCore::ResourceLoadObserver::sharedObserver().clearInMemoryStore();
 }
     
 } // namespace WebKit

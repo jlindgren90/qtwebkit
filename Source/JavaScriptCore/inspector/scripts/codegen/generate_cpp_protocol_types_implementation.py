@@ -167,7 +167,8 @@ class CppProtocolTypesImplementationGenerator(CppGenerator):
         for domain in self.domains_to_generate():
             type_declarations = self.type_declarations_for_domain(domain)
             for type_declaration in [decl for decl in type_declarations if Generator.type_has_open_fields(decl.type)]:
-                for type_member in sorted(type_declaration.type_members, key=lambda member: member.member_name):
+                open_members = Generator.open_fields(type_declaration)
+                for type_member in sorted(open_members, key=lambda member: member.member_name):
                     field_name = '::'.join(['Inspector', 'Protocol', domain.domain_name, ucfirst(type_declaration.type_name), ucfirst(type_member.member_name)])
                     lines.append('const char* %s = "%s";' % (field_name, type_member.member_name))
 

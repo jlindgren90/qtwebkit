@@ -63,9 +63,7 @@ const CSSParserContext& strictCSSParserContext()
 CSSParserContext::CSSParserContext(CSSParserMode mode, const URL& baseURL)
     : baseURL(baseURL)
     , mode(mode)
-#if ENABLE(CSS_GRID_LAYOUT)
     , cssGridLayoutEnabled(RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled())
-#endif
 {
 #if PLATFORM(IOS)
     // FIXME: Force the site specific quirk below to work on iOS. Investigating other site specific quirks
@@ -80,9 +78,7 @@ CSSParserContext::CSSParserContext(Document& document, const URL& baseURL, const
     , charset(charset)
     , mode(document.inQuirksMode() ? HTMLQuirksMode : HTMLStandardMode)
     , isHTMLDocument(document.isHTMLDocument())
-#if ENABLE(CSS_GRID_LAYOUT)
     , cssGridLayoutEnabled(document.isCSSGridLayoutEnabled())
-#endif
 {
     needsSiteSpecificQuirks = document.settings().needsSiteSpecificQuirks();
     enforcesCSSMIMETypeInNoQuirksMode = document.settings().enforceCSSMIMETypeInNoQuirksMode();
@@ -107,9 +103,7 @@ bool operator==(const CSSParserContext& a, const CSSParserContext& b)
         && a.charset == b.charset
         && a.mode == b.mode
         && a.isHTMLDocument == b.isHTMLDocument
-#if ENABLE(CSS_GRID_LAYOUT)
         && a.cssGridLayoutEnabled == b.cssGridLayoutEnabled
-#endif
         && a.needsSiteSpecificQuirks == b.needsSiteSpecificQuirks
         && a.enforcesCSSMIMETypeInNoQuirksMode == b.enforcesCSSMIMETypeInNoQuirksMode
         && a.useLegacyBackgroundSizeShorthandBehavior == b.useLegacyBackgroundSizeShorthandBehavior
@@ -196,7 +190,7 @@ RefPtr<CSSValue> CSSParser::parseSingleValue(CSSPropertyID propertyID, const Str
     if (RefPtr<CSSValue> value = CSSParserFastPaths::maybeParseValue(propertyID, string, context.mode))
         return value;
     CSSTokenizer tokenizer(string);
-    return CSSPropertyParser::parseSingleValue(propertyID, tokenizer.tokenRange(), context, nullptr);
+    return CSSPropertyParser::parseSingleValue(propertyID, tokenizer.tokenRange(), context);
 }
 
 CSSParser::ParseResult CSSParser::parseValue(MutableStyleProperties& declaration, CSSPropertyID propertyID, const String& string, bool important, const CSSParserContext& context)
@@ -261,7 +255,7 @@ RefPtr<CSSValue> CSSParser::parseValueWithVariableReferences(CSSPropertyID propI
             return nullptr;
         
         ParsedPropertyVector parsedProperties;
-        if (!CSSPropertyParser::parseValue(shorthandID, false, resolvedTokens, m_context, nullptr, parsedProperties, StyleRule::Style))
+        if (!CSSPropertyParser::parseValue(shorthandID, false, resolvedTokens, m_context, parsedProperties, StyleRule::Style))
             return nullptr;
         
         for (auto& property : parsedProperties) {
@@ -281,7 +275,7 @@ RefPtr<CSSValue> CSSParser::parseValueWithVariableReferences(CSSPropertyID propI
         if (!variableData->resolveTokenRange(customProperties, variableData->tokens(), resolvedTokens))
             return nullptr;
         
-        return CSSPropertyParser::parseSingleValue(propID, resolvedTokens, m_context, nullptr);
+        return CSSPropertyParser::parseSingleValue(propID, resolvedTokens, m_context);
     }
     
     return nullptr;

@@ -31,6 +31,8 @@ interface UIScriptController {
     void doAfterPresentationUpdate(object callback); // Call the callback after sending a message to the WebProcess and receiving a subsequent update.
     void doAfterNextStablePresentationUpdate(object callback);
 
+    void doAfterVisibleContentRectUpdate(object callback);
+
     void simulateAccessibilitySettingsChangeNotification(object callback);
 
     // Interaction.
@@ -160,6 +162,11 @@ interface UIScriptController {
     //  }
     void sendEventStream(DOMString eventsJSON, object callback);
 
+    void beginBackSwipe(object callback);
+    void completeBackSwipe(object callback);
+
+    void playBackEventStream(DOMString eventStream, object callback);
+
     // Equivalent of pressing the Done button in the form accessory bar.
     void dismissFormAccessoryView();
 
@@ -215,6 +222,8 @@ interface UIScriptController {
 
     readonly attribute DOMString scrollingTreeAsText;
 
+    object propertiesOfLayerWithID(unsigned long long layerID);
+
     void retrieveSpeakSelectionContent(object callback);
     readonly attribute DOMString accessibilitySpeakSelectionContent;
 
@@ -222,4 +231,7 @@ interface UIScriptController {
     void removeViewFromWindow(object callback);
     void addViewToWindow(object callback);
 
+    void overridePreference(DOMString preference, DOMString value);
+
+    void setSafeAreaInsets(double top, double right, double bottom, double left);
 };
