@@ -41,15 +41,7 @@
 #include <wtf/RetainPtr.h>
 #endif
 
-#if PLATFORM(QT)
-#include <QFile>
-#include <QLibrary>
-#if defined(Q_OS_WIN32)
-#include <windows.h>
-#endif
-#endif
-
-#if USE(CF) || (PLATFORM(QT) && defined(Q_OS_MACOS))
+#if USE(CF)
 typedef struct __CFBundle* CFBundleRef;
 typedef const struct __CFData* CFDataRef;
 #endif
@@ -74,14 +66,6 @@ namespace WebCore {
 typedef HMODULE PlatformModule;
 #elif PLATFORM(EFL)
 typedef Eina_Module* PlatformModule;
-#elif PLATFORM(QT)
-#if defined(Q_OS_MACOS)
-typedef CFBundleRef PlatformModule;
-#elif !defined(QT_NO_LIBRARY)
-typedef QLibrary* PlatformModule;
-#else
-typedef void* PlatformModule;
-#endif
 #elif USE(GLIB)
 typedef GModule* PlatformModule;
 #elif USE(CF)
@@ -114,10 +98,7 @@ typedef unsigned PlatformModuleVersion;
 #endif
 
 // PlatformFileHandle
-#if PLATFORM(QT)
-typedef QFile* PlatformFileHandle;
-const PlatformFileHandle invalidPlatformFileHandle = 0;
-#elif USE(GLIB) && !PLATFORM(EFL) && !PLATFORM(WIN)
+#if USE(GLIB) && !PLATFORM(EFL) && !PLATFORM(WIN)
 typedef GFileIOStream* PlatformFileHandle;
 const PlatformFileHandle invalidPlatformFileHandle = 0;
 #elif OS(WINDOWS)

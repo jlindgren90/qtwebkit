@@ -73,6 +73,7 @@ list(APPEND WebCore_SOURCES
     platform/audio/qt/AudioBusQt.cpp
 
     platform/glib/EventLoopGlib.cpp
+    platform/glib/FileSystemGlib.cpp
     platform/glib/MainThreadSharedTimerGLib.cpp
 
     platform/graphics/ImageSource.cpp
@@ -144,7 +145,6 @@ list(APPEND WebCore_SOURCES
     platform/qt/DataTransferItemQt.cpp
     platform/qt/DragDataQt.cpp
     platform/qt/DragImageQt.cpp
-    platform/qt/FileSystemQt.cpp
     platform/qt/KeyedDecoderQt.cpp
     platform/qt/KeyedEncoderQt.cpp
     platform/qt/LanguageQt.cpp
@@ -204,6 +204,7 @@ list(APPEND WebCore_LIBRARIES
     ${FONTCONFIG_LIBRARIES}
     ${FREETYPE2_LIBRARIES}
     ${GLIB_GIO_LIBRARIES}
+    ${GLIB_GMODULE_LIBRARIES}
     ${GLIB_GOBJECT_LIBRARIES}
     ${GLIB_LIBRARIES}
     ${HARFBUZZ_LIBRARIES}

@@ -207,6 +207,7 @@ CString applicationDirectoryPath()
     return dirname.get();
 }
 
+#if !PLATFORM(QT)
 CString sharedResourcesPath()
 {
     static CString cachedPath;
@@ -226,6 +227,7 @@ CString sharedResourcesPath()
     cachedPath = dataPath.get();
     return cachedPath;
 }
+#endif
 
 bool getVolumeFreeSpace(const String& path, uint64_t& freeSpace)
 {
