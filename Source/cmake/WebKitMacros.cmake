@@ -259,21 +259,6 @@ macro(GENERATE_DOM_NAMES _namespace _attrs)
         VERBATIM)
 endmacro()
 
-
-macro(GENERATE_GRAMMAR _prefix _input _output_header _output_source _features)
-    # This is a workaround for winflexbison, which does not work corretly when
-    # run in a different working directory than the installation directory.
-    get_filename_component(_working_directory ${BISON_EXECUTABLE} PATH)
-
-    add_custom_command(
-        OUTPUT ${_output_header} ${_output_source}
-        MAIN_DEPENDENCY ${_input}
-        DEPENDS ${_input}
-        COMMAND ${PERL_EXECUTABLE} ${WEBCORE_DIR}/css/makegrammar.pl --outputDir ${DERIVED_SOURCES_WEBCORE_DIR} --extraDefines "${_features}" --preprocessor "${CODE_GENERATOR_PREPROCESSOR}" --bison "${BISON_EXECUTABLE}" --symbolsPrefix ${_prefix} ${_input}
-        WORKING_DIRECTORY ${_working_directory}
-        VERBATIM)
-endmacro()
-
 macro(MAKE_HASH_TOOLS _source)
     get_filename_component(_name ${_source} NAME_WE)
 
@@ -308,7 +293,6 @@ macro(WEBKIT_WRAP_SOURCELIST)
 endmacro()
 
 macro(WEBKIT_FRAMEWORK _target)
-    include_directories(${${_target}_INCLUDE_DIRECTORIES})
     include_directories(SYSTEM ${${_target}_SYSTEM_INCLUDE_DIRECTORIES})
     add_library(${_target} ${${_target}_LIBRARY_TYPE}
         ${${_target}_HEADERS}
@@ -316,6 +300,7 @@ macro(WEBKIT_FRAMEWORK _target)
         ${${_target}_PRIVATE_HEADERS}
         ${${_target}_PUBLIC_HEADERS}
     )
+    target_include_directories(${_target} PUBLIC "$<BUILD_INTERFACE:${${_target}_INCLUDE_DIRECTORIES}>")
     target_link_libraries(${_target} ${${_target}_LIBRARIES})
     set_target_properties(${_target} PROPERTIES COMPILE_DEFINITIONS "BUILDING_${_target}")
 

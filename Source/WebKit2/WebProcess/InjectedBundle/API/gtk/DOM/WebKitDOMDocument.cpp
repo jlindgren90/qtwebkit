@@ -88,13 +88,13 @@ static gboolean webkit_dom_document_dispatch_event(WebKitDOMEventTarget* target,
         return false;
     WebCore::Document* coreTarget = static_cast<WebCore::Document*>(WEBKIT_DOM_OBJECT(target)->coreObject);
 
-    WebCore::ExceptionCode ec = 0;
-    gboolean result = coreTarget->dispatchEventForBindings(*coreEvent, ec);
-    if (ec) {
-        WebCore::ExceptionCodeDescription description(ec);
+    auto result = coreTarget->dispatchEventForBindings(*coreEvent);
+    if (result.hasException()) {
+        WebCore::ExceptionCodeDescription description(result.releaseException().code());
         g_set_error_literal(error, g_quark_from_string("WEBKIT_DOM"), description.code, description.name);
+        return false;
     }
-    return result;
+    return result.releaseReturnValue();
 }
 
 static gboolean webkit_dom_document_add_event_listener(WebKitDOMEventTarget* target, const char* eventName, GClosure* handler, gboolean useCapture)
@@ -1917,8 +1917,16 @@ gchar* webkit_dom_document_get_visibility_state(WebKitDOMDocument* self)
     WebCore::JSMainThreadNullState state;
     g_return_val_if_fail(WEBKIT_DOM_IS_DOCUMENT(self), 0);
     WebCore::Document* item = WebKit::core(self);
-    gchar* result = convertToUTF8String(item->visibilityState());
-    return result;
+    switch (item->visibilityState()) {
+    case WebCore::Document::VisibilityState::Hidden:
+        return convertToUTF8String("hidden");
+    case WebCore::Document::VisibilityState::Visible:
+        return convertToUTF8String("visible");
+    case WebCore::Document::VisibilityState::Prerender:
+        return convertToUTF8String("prerender");
+    }
+    ASSERT_NOT_REACHED();
+    return nullptr;
 }
 
 gboolean webkit_dom_document_get_hidden(WebKitDOMDocument* self)

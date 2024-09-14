@@ -633,7 +633,7 @@ bool RenderImage::nodeAtPoint(const HitTestRequest& request, HitTestResult& resu
             LayoutRect contentBox = contentBoxRect();
             float scaleFactor = 1 / style().effectiveZoom();
             LayoutPoint mapLocation = locationInContainer.point() - toLayoutSize(accumulatedOffset) - locationOffset() - toLayoutSize(contentBox.location());
-            mapLocation.scale(scaleFactor, scaleFactor);
+            mapLocation.scale(scaleFactor);
 
             if (map->mapMouseEvent(mapLocation, contentBox.size(), tempResult))
                 tempResult.setInnerNonSharedNode(element());
@@ -682,6 +682,9 @@ void RenderImage::layout()
 
 void RenderImage::layoutShadowControls(const LayoutSize& oldSize)
 {
+    // We expect a single containing box under the UA shadow root.
+    ASSERT(firstChild() == lastChild());
+
     auto* controlsRenderer = downcast<RenderBox>(firstChild());
     if (!controlsRenderer)
         return;

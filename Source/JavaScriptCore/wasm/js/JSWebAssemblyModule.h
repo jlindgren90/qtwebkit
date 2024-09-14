@@ -29,32 +29,97 @@
 
 #include "JSDestructibleObject.h"
 #include "JSObject.h"
+#include "JSWebAssemblyCallee.h"
+#include "UnconditionalFinalizer.h"
+#include "WasmFormat.h"
+#include <wtf/Bag.h>
+#include <wtf/Vector.h>
 
 namespace JSC {
 
-namespace Wasm {
-struct FunctionCompilation;
-class Memory;
-}
+class SymbolTable;
 
 class JSWebAssemblyModule : public JSDestructibleObject {
 public:
     typedef JSDestructibleObject Base;
 
-    static JSWebAssemblyModule* create(VM&, Structure*, Vector<std::unique_ptr<Wasm::FunctionCompilation>>*, std::unique_ptr<Wasm::Memory>*);
+    static JSWebAssemblyModule* create(VM&, Structure*, std::unique_ptr<Wasm::ModuleInformation>&&, Bag<CallLinkInfo>&&, Vector<Wasm::WasmToJSStub>&&, Wasm::ImmutableFunctionIndexSpace&&, SymbolTable*, unsigned);
     static Structure* createStructure(VM&, JSGlobalObject*, JSValue);
 
     DECLARE_INFO;
 
+    const Wasm::ModuleInformation& moduleInformation() const { return *m_moduleInformation.get(); }
+    SymbolTable* exportSymbolTable() const { return m_exportSymbolTable.get(); }
+    Wasm::SignatureIndex signatureForFunctionIndexSpace(unsigned functionIndexSpace) const
+    {
+        ASSERT(functionIndexSpace < m_functionIndexSpace.size);
+        return m_functionIndexSpace.buffer.get()[functionIndexSpace].signatureIndex;
+    }
+    unsigned importCount() const { return m_wasmToJSStubs.size(); }
+
+    JSWebAssemblyCallee* jsEntrypointCalleeFromFunctionIndexSpace(unsigned functionIndexSpace)
+    {
+        RELEASE_ASSERT(functionIndexSpace >= importCount());
+        unsigned calleeIndex = functionIndexSpace - importCount();
+        RELEASE_ASSERT(calleeIndex < m_calleeCount);
+        return callees()[calleeIndex].get();
+    }
+
+    JSWebAssemblyCallee* wasmEntrypointCalleeFromFunctionIndexSpace(unsigned functionIndexSpace)
+    {
+        RELEASE_ASSERT(functionIndexSpace >= importCount());
+        unsigned calleeIndex = functionIndexSpace - importCount();
+        RELEASE_ASSERT(calleeIndex < m_calleeCount);
+        return callees()[calleeIndex + m_calleeCount].get();
+    }
+
+    void setJSEntrypointCallee(VM& vm, unsigned calleeIndex, JSWebAssemblyCallee* callee)
+    {
+        RELEASE_ASSERT(calleeIndex < m_calleeCount);
+        callees()[calleeIndex].set(vm, this, callee);
+    }
+
+    void setWasmEntrypointCallee(VM& vm, unsigned calleeIndex, JSWebAssemblyCallee* callee)
+    {
+        RELEASE_ASSERT(calleeIndex < m_calleeCount);
+        callees()[calleeIndex + m_calleeCount].set(vm, this, callee);
+    }
+
+    WriteBarrier<JSWebAssemblyCallee>* callees()
+    {
+        return bitwise_cast<WriteBarrier<JSWebAssemblyCallee>*>(bitwise_cast<char*>(this) + offsetOfCallees());
+    }
+
+    static ptrdiff_t offsetOfFunctionIndexSpace() { return OBJECT_OFFSETOF(JSWebAssemblyModule, m_functionIndexSpace); }
+
 protected:
-    JSWebAssemblyModule(VM&, Structure*, Vector<std::unique_ptr<Wasm::FunctionCompilation>>*, std::unique_ptr<Wasm::Memory>*);
-    void finishCreation(VM&);
+    JSWebAssemblyModule(VM&, Structure*, std::unique_ptr<Wasm::ModuleInformation>&&, Bag<CallLinkInfo>&&, Vector<Wasm::WasmToJSStub>&&, Wasm::ImmutableFunctionIndexSpace&&, unsigned calleeCount);
+    void finishCreation(VM&, SymbolTable*);
     static void destroy(JSCell*);
     static void visitChildren(JSCell*, SlotVisitor&);
 
 private:
-    Vector<std::unique_ptr<Wasm::FunctionCompilation>> m_compiledFunctions;
-    std::unique_ptr<Wasm::Memory> m_memory;
+    static size_t offsetOfCallees()
+    {
+        return WTF::roundUpToMultipleOf<sizeof(WriteBarrier<JSWebAssemblyCallee>)>(sizeof(JSWebAssemblyModule));
+    }
+
+    static size_t allocationSize(unsigned numCallees)
+    {
+        return offsetOfCallees() + sizeof(WriteBarrier<JSWebAssemblyCallee>) * numCallees * 2;
+    }
+
+    class UnconditionalFinalizer : public JSC::UnconditionalFinalizer { 
+        void finalizeUnconditionally() override;
+    };
+
+    UnconditionalFinalizer m_unconditionalFinalizer;
+    std::unique_ptr<Wasm::ModuleInformation> m_moduleInformation;
+    Bag<CallLinkInfo> m_callLinkInfos;
+    WriteBarrier<SymbolTable> m_exportSymbolTable;
+    Vector<Wasm::WasmToJSStub> m_wasmToJSStubs;
+    const Wasm::ImmutableFunctionIndexSpace m_functionIndexSpace;
+    unsigned m_calleeCount;
 };
 
 } // namespace JSC

@@ -28,14 +28,13 @@
 #include "CachedResourceRequest.h"
 #include "CachedXSLStyleSheet.h"
 #include "Document.h"
-#include "ExceptionCode.h"
 #include "Frame.h"
 #include "FrameLoader.h"
-#include "XSLStyleSheet.h"
-#include "XMLDocumentParser.h" // for parseAttributes()
 #include "MediaList.h"
 #include "StyleScope.h"
 #include "StyleSheetContents.h"
+#include "XMLDocumentParser.h"
+#include "XSLStyleSheet.h"
 
 namespace WebCore {
 
@@ -146,7 +145,7 @@ void ProcessingInstruction::checkStyleSheet()
 #endif
             {
                 String charset = attrs.get("charset");
-                CachedResourceRequest request(document().completeURL(href), CachedResourceLoader::defaultCachedResourceOptions(), Nullopt, charset.isEmpty() ? document().charset() : WTFMove(charset));
+                CachedResourceRequest request(document().completeURL(href), CachedResourceLoader::defaultCachedResourceOptions(), std::nullopt, charset.isEmpty() ? document().charset() : WTFMove(charset));
 
                 m_cachedSheet = document().cachedResourceLoader().requestCSSStyleSheet(WTFMove(request));
             }

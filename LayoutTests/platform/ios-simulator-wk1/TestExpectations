@@ -19,6 +19,8 @@ http/tests/quicklook/top-navigation-blocked.html
 # Selectively re-enable viewport tests that work
 fast/viewport/ios/ipad/width-is-device-width.html [ Pass ]
 
+editing/input/focus-change-with-marked-text.html [ Pass ]
+
 # <rdar://problem/6501130> LayoutTests: Enable editing tests after we support editing
 editing/deleting/4922367.html
 editing/deleting/5126166.html
@@ -1019,6 +1021,10 @@ crypto/webkitSubtle/rsa-indexeddb-private.html
 crypto/webkitSubtle/rsa-indexeddb.html
 fast/history/page-cache-indexed-closed-db.html
 fast/history/page-cache-indexed-opened-db.html
+crypto/subtle/rsa-indexeddb-non-exportable-private.html
+crypto/subtle/rsa-indexeddb-non-exportable.html
+crypto/subtle/rsa-indexeddb-private.html
+crypto/subtle/rsa-indexeddb.html
 
 # ShouldOpenExternalURLs not yet supported in WK1
 loader/navigation-policy [ Skip ]
@@ -1332,11 +1338,15 @@ webkit.org/b/155495 compositing/visible-rect/animated-from-none.html [ Failure P
 # <a download> is not supported in WK1 yet.
 webkit.org/b/156069 fast/dom/HTMLAnchorElement/anchor-download-synthetic-click.html [ Skip ]
 webkit.org/b/156069 fast/dom/HTMLAnchorElement/anchor-download-user-triggered-synthetic-click.html [ Skip ]
+webkit.org/b/156069 fast/dom/HTMLAnchorElement/anchor-file-blob-download.html [ Skip ]
 webkit.org/b/156069 http/tests/download/area-download.html [ Skip ]
 webkit.org/b/156069 http/tests/security/anchor-download-allow-blob.html [ Skip ]
 webkit.org/b/156069 http/tests/security/anchor-download-allow-data.html [ Skip ]
 webkit.org/b/156069 http/tests/security/anchor-download-allow-sameorigin.html [ Skip ]
 webkit.org/b/156069 http/tests/security/anchor-download-block-crossorigin.html [ Skip ]
+
+# testRunner.setShouldDownloadUndisplayableMIMETypes() is not supported on WK1.
+fast/dom/HTMLAnchorElement/anchor-file-blob-convert-to-download.html [ Skip ]
 
 webkit.org/b/137572 scrollbars/scrollbar-iframe-click-does-not-blur-content.html [ Failure ]
 
@@ -1875,3 +1885,7 @@ imported/blink/imported/csswg-test/css-writing-modes-3/bidi-unset-007.html [ Pas
 imported/blink/imported/csswg-test/css-writing-modes-3/block-embed-001.html [ Pass ImageOnlyFailure ]
 imported/w3c/web-platform-tests/fetch/api/redirect/redirect-count.html [ Crash Pass ]
 imported/mozilla/svg/text/clipPath-content.svg [ Pass ImageOnlyFailure ]
+
+# Hover test does not apply
+fast/css/deferred-parsing/hover-test.html [ Skip ]
+

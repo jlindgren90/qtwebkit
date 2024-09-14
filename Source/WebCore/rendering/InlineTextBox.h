@@ -20,8 +20,7 @@
  *
  */
 
-#ifndef InlineTextBox_h
-#define InlineTextBox_h
+#pragma once
 
 #include "InlineBox.h"
 #include "RenderText.h"
@@ -107,9 +106,9 @@ private:
     LayoutUnit selectionBottom() const;
     LayoutUnit selectionHeight() const;
 
-    StringView substringToRender(Optional<unsigned> overridingLength = { }) const;
-    String hyphenatedStringForTextRun(const RenderStyle&, Optional<unsigned> alternateLength = { }) const;
-    TextRun constructTextRun(const RenderStyle&, StringView alternateStringToRender = { }, Optional<unsigned> alternateLength = { }) const;
+    StringView substringToRender(std::optional<unsigned> overridingLength = { }) const;
+    String hyphenatedStringForTextRun(const RenderStyle&, std::optional<unsigned> alternateLength = { }) const;
+    TextRun constructTextRun(const RenderStyle&, StringView alternateStringToRender = { }, std::optional<unsigned> alternateLength = { }) const;
     TextRun constructTextRun(const RenderStyle&, StringView, unsigned maximumLength) const;
 
 public:
@@ -183,5 +182,3 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_INLINE_BOX(InlineTextBox, isInlineTextBox())
-
-#endif // InlineTextBox_h

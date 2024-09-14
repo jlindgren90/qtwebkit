@@ -465,15 +465,12 @@ void NetscapePluginInstanceProxy::syntheticKeyDownWithCommandModifier(int keyCod
 {
     NSData *charactersData = [NSData dataWithBytes:&character length:1];
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     _WKPHPluginInstanceKeyboardEvent(m_pluginHostProxy->port(), m_pluginID,
                                      [NSDate timeIntervalSinceReferenceDate], 
-                                     NPCocoaEventKeyDown, NSCommandKeyMask,
+                                     NPCocoaEventKeyDown, NSEventModifierFlagCommand,
                                      const_cast<char*>(reinterpret_cast<const char*>([charactersData bytes])), [charactersData length], 
                                      const_cast<char*>(reinterpret_cast<const char*>([charactersData bytes])), [charactersData length], 
                                      false, keyCode, character);
-#pragma clang diagnostic pop
 }
 
 void NetscapePluginInstanceProxy::flagsChanged(NSEvent *event)
@@ -892,7 +889,7 @@ bool NetscapePluginInstanceProxy::evaluate(uint32_t objectID, const String& scri
     Strong<JSGlobalObject> globalObject(vm, frame->script().globalObject(pluginWorld()));
     ExecState* exec = globalObject->globalExec();
 
-    UserGestureIndicator gestureIndicator(allowPopups ? Optional<ProcessingUserGestureState>(ProcessingUserGesture) : Nullopt);
+    UserGestureIndicator gestureIndicator(allowPopups ? std::optional<ProcessingUserGestureState>(ProcessingUserGesture) : std::nullopt);
     
     JSValue result = JSC::evaluate(exec, makeSource(script));
     
@@ -1323,7 +1320,7 @@ void NetscapePluginInstanceProxy::addValueToArray(NSMutableArray *array, ExecSta
 
     if (value.isString()) {
         [array addObject:[NSNumber numberWithInt:StringValueType]];
-        [array addObject:value.toWTFString(exec)];
+        [array addObject:asString(value)->value(exec)];
     } else if (value.isNumber()) {
         [array addObject:[NSNumber numberWithInt:DoubleValueType]];
         [array addObject:[NSNumber numberWithDouble:value.toNumber(exec)]];

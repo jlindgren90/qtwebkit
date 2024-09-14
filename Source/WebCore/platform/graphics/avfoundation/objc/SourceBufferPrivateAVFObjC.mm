@@ -31,7 +31,6 @@
 #import "AVFoundationSPI.h"
 #import "CDMSessionAVContentKeySession.h"
 #import "CDMSessionMediaSourceAVFObjC.h"
-#import "ExceptionCodePlaceholder.h"
 #import "Logging.h"
 #import "MediaDescription.h"
 #import "MediaPlayerPrivateMediaSourceAVFObjC.h"
@@ -608,6 +607,7 @@ void SourceBufferPrivateAVFObjC::didProvideContentKeyRequestInitializationDataFo
     }
 #else
     UNUSED_PARAM(initData);
+    UNUSED_PARAM(hasSessionSemaphore);
 #endif
 }
 
@@ -681,8 +681,10 @@ void SourceBufferPrivateAVFObjC::resetParserState()
 
 void SourceBufferPrivateAVFObjC::destroyParser()
 {
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (m_mediaSource && m_mediaSource->player()->hasStreamSession())
         [m_mediaSource->player()->streamSession() removeStreamDataParser:m_parser.get()];
+#endif
 
     [m_delegate invalidate];
     m_delegate = nullptr;
@@ -802,6 +804,7 @@ void SourceBufferPrivateAVFObjC::trackDidChangeEnabled(AudioTrackPrivateMediaSou
 
 void SourceBufferPrivateAVFObjC::setCDMSession(CDMSessionMediaSourceAVFObjC* session)
 {
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (session == m_session)
         return;
 
@@ -828,6 +831,9 @@ void SourceBufferPrivateAVFObjC::setCDMSession(CDMSessionMediaSourceAVFObjC* ses
             });
         }
     }
+#else
+    UNUSED_PARAM(session);
+#endif
 }
 
 void SourceBufferPrivateAVFObjC::flush()
@@ -903,7 +909,7 @@ void SourceBufferPrivateAVFObjC::flush(AtomicString trackIDString)
 void SourceBufferPrivateAVFObjC::flush(AVSampleBufferDisplayLayer *renderer)
 {
     [renderer flush];
-    m_cachedSize = Nullopt;
+    m_cachedSize = std::nullopt;
 
     if (m_mediaSource) {
         m_mediaSource->player()->setHasAvailableVideoFrame(false);
@@ -966,8 +972,6 @@ bool SourceBufferPrivateAVFObjC::isReadyForMoreSamples(AtomicString trackIDStrin
         return [m_displayLayer isReadyForMoreMediaData];
     else if (m_audioRenderers.contains(trackID))
         return [m_audioRenderers.get(trackID) isReadyForMoreMediaData];
-    else
-        ASSERT_NOT_REACHED();
 
     return false;
 }
@@ -1002,7 +1006,7 @@ void SourceBufferPrivateAVFObjC::seekToTime(MediaTime time)
 
 FloatSize SourceBufferPrivateAVFObjC::naturalSize()
 {
-    return m_cachedSize.valueOr(FloatSize());
+    return m_cachedSize.value_or(FloatSize());
 }
 
 void SourceBufferPrivateAVFObjC::didBecomeReadyForMoreSamples(int trackID)
@@ -1031,8 +1035,7 @@ void SourceBufferPrivateAVFObjC::notifyClientWhenReadyForMoreSamples(AtomicStrin
         [m_audioRenderers.get(trackID) requestMediaDataWhenReadyOnQueue:dispatch_get_main_queue() usingBlock:^{
             didBecomeReadyForMoreSamples(trackID);
         }];
-    } else
-        ASSERT_NOT_REACHED();
+    }
 }
 
 }

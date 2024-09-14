@@ -51,7 +51,7 @@ bool GenericArguments<Type>::getOwnPropertySlot(JSObject* object, ExecState* exe
         }
     }
     
-    Optional<uint32_t> index = parseIndex(ident);
+    std::optional<uint32_t> index = parseIndex(ident);
     if (index && thisObject->canAccessIndexQuickly(index.value())) {
         slot.setValue(thisObject, None, thisObject->getIndexQuickly(index.value()));
         return true;
@@ -66,11 +66,13 @@ bool GenericArguments<Type>::getOwnPropertySlotByIndex(JSObject* object, ExecSta
     Type* thisObject = jsCast<Type*>(object);
     
     if (thisObject->canAccessIndexQuickly(index)) {
-        slot.setValue(thisObject, None, thisObject->getIndexQuickly(index));
+        JSValue result = thisObject->getIndexQuickly(index);
+        slot.setValue(thisObject, None, result);
         return true;
     }
     
-    return Base::getOwnPropertySlotByIndex(object, exec, index, slot);
+    bool result = Base::getOwnPropertySlotByIndex(object, exec, index, slot);
+    return result;
 }
 
 template<typename Type>
@@ -115,7 +117,7 @@ bool GenericArguments<Type>::put(JSCell* cell, ExecState* exec, PropertyName ide
     if (UNLIKELY(isThisValueAltered(slot, thisObject)))
         return ordinarySetSlow(exec, thisObject, ident, value, slot.thisValue(), slot.isStrictMode());
     
-    Optional<uint32_t> index = parseIndex(ident);
+    std::optional<uint32_t> index = parseIndex(ident);
     if (index && thisObject->canAccessIndexQuickly(index.value())) {
         thisObject->setIndexQuickly(vm, index.value(), value);
         return true;
@@ -129,7 +131,7 @@ bool GenericArguments<Type>::putByIndex(JSCell* cell, ExecState* exec, unsigned 
 {
     Type* thisObject = jsCast<Type*>(cell);
     VM& vm = exec->vm();
-
+    
     if (thisObject->canAccessIndexQuickly(index)) {
         thisObject->setIndexQuickly(vm, index, value);
         return true;
@@ -150,7 +152,7 @@ bool GenericArguments<Type>::deleteProperty(JSCell* cell, ExecState* exec, Prope
             || ident == vm.propertyNames->iteratorSymbol))
         thisObject->overrideThings(vm);
     
-    Optional<uint32_t> index = parseIndex(ident);
+    std::optional<uint32_t> index = parseIndex(ident);
     if (index && thisObject->canAccessIndexQuickly(index.value())) {
         thisObject->overrideArgument(vm, index.value());
         return true;
@@ -184,7 +186,7 @@ bool GenericArguments<Type>::defineOwnProperty(JSObject* object, ExecState* exec
         || ident == vm.propertyNames->iteratorSymbol)
         thisObject->overrideThingsIfNecessary(vm);
     else {
-        Optional<uint32_t> optionalIndex = parseIndex(ident);
+        std::optional<uint32_t> optionalIndex = parseIndex(ident);
         if (optionalIndex && thisObject->canAccessIndexQuickly(optionalIndex.value())) {
             uint32_t index = optionalIndex.value();
             if (!descriptor.isAccessorDescriptor()) {

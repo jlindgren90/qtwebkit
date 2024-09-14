@@ -721,7 +721,6 @@ public:
     void compileDeleteById(Node*);
     void compileDeleteByVal(Node*);
     void compileTryGetById(Node*);
-    void compilePureGetById(Node*);
     void compileIn(Node*);
     
     void nonSpeculativeNonPeepholeCompareNullOrUndefined(Edge operand);
@@ -959,6 +958,11 @@ public:
     JITCompiler::Call callOperation(P_JITOperation_EPS operation, GPRReg result, GPRReg old, size_t size)
     {
         m_jit.setupArgumentsWithExecState(old, TrustedImmPtr(size));
+        return appendCallSetResult(operation, result);
+    }
+    JITCompiler::Call callOperation(C_JITOperation_EPUi operation, GPRReg result, void* arg1, uint32_t arg2)
+    {
+        m_jit.setupArgumentsWithExecState(TrustedImmPtr(arg1), TrustedImm32(arg2));
         return appendCallSetResult(operation, result);
     }
     JITCompiler::Call callOperation(P_JITOperation_ES operation, GPRReg result, size_t size)
@@ -2575,6 +2579,7 @@ public:
     
     void compileAllocatePropertyStorage(Node*);
     void compileReallocatePropertyStorage(Node*);
+    void compileNukeStructureAndSetButterfly(Node*);
     void compileGetButterfly(Node*);
     void compileCallDOMGetter(Node*);
     void compileCallDOM(Node*);
@@ -2668,9 +2673,12 @@ public:
     void compileCreateDirectArguments(Node*);
     void compileGetFromArguments(Node*);
     void compilePutToArguments(Node*);
+    void compileGetArgument(Node*);
     void compileCreateScopedArguments(Node*);
     void compileCreateClonedArguments(Node*);
     void compileCreateRest(Node*);
+    void compileSpread(Node*);
+    void compileNewArrayWithSpread(Node*);
     void compileGetRestLength(Node*);
     void compileNotifyWrite(Node*);
     bool compileRegExpExec(Node*);
@@ -2921,7 +2929,7 @@ public:
     };
     Vector<SlowPathLambda> m_slowPathLambdas;
     Vector<SilentRegisterSavePlan> m_plans;
-    Optional<unsigned> m_outOfLineStreamIndex;
+    std::optional<unsigned> m_outOfLineStreamIndex;
 };
 
 

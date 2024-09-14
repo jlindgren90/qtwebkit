@@ -21,7 +21,6 @@
 #include "config.h"
 #include "JSTestNode.h"
 
-#include "ExceptionCode.h"
 #include "JSDOMBinding.h"
 #include "JSDOMConstructor.h"
 #include "JSDOMConvert.h"
@@ -85,10 +84,10 @@ template<> EncodedJSValue JSC_HOST_CALL JSTestNodeConstructor::construct(ExecSta
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     UNUSED_PARAM(throwScope);
-    auto* castedThis = jsCast<JSTestNodeConstructor*>(state->callee());
+    auto* castedThis = jsCast<JSTestNodeConstructor*>(state->jsCallee());
     ASSERT(castedThis);
     auto object = TestNode::create();
-    return JSValue::encode(toJSNewlyCreated(state, castedThis->globalObject(), WTFMove(object)));
+    return JSValue::encode(toJSNewlyCreated<IDLInterface<TestNode>>(*state, *castedThis->globalObject(), WTFMove(object)));
 }
 
 template<> JSValue JSTestNodeConstructor::prototypeForStructure(JSC::VM& vm, const JSDOMGlobalObject& globalObject)
@@ -154,6 +153,13 @@ const ClassInfo JSTestNode::s_info = { "TestNode", &Base::s_info, 0, CREATE_METH
 JSTestNode::JSTestNode(Structure* structure, JSDOMGlobalObject& globalObject, Ref<TestNode>&& impl)
     : JSNode(structure, globalObject, WTFMove(impl))
 {
+}
+
+void JSTestNode::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
+
 }
 
 JSObject* JSTestNode::createPrototype(VM& vm, JSGlobalObject* globalObject)

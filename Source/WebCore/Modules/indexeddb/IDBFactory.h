@@ -49,14 +49,12 @@ namespace IDBClient {
 class IDBConnectionProxy;
 }
 
-typedef int ExceptionCode;
-
 class IDBFactory : public ThreadSafeRefCounted<IDBFactory> {
 public:
     static Ref<IDBFactory> create(IDBClient::IDBConnectionProxy&);
     ~IDBFactory();
 
-    ExceptionOr<Ref<IDBOpenDBRequest>> open(ScriptExecutionContext&, const String& name, Optional<uint64_t> version);
+    ExceptionOr<Ref<IDBOpenDBRequest>> open(ScriptExecutionContext&, const String& name, std::optional<uint64_t> version);
     ExceptionOr<Ref<IDBOpenDBRequest>> deleteDatabase(ScriptExecutionContext&, const String& name);
 
     ExceptionOr<short> cmp(JSC::ExecState&, JSC::JSValue first, JSC::JSValue second);
@@ -66,7 +64,7 @@ public:
 private:
     explicit IDBFactory(IDBClient::IDBConnectionProxy&);
 
-    ExceptionOr<Ref<IDBOpenDBRequest>> openInternal(ScriptExecutionContext&, const String& name, unsigned long long version);
+    ExceptionOr<Ref<IDBOpenDBRequest>> openInternal(ScriptExecutionContext&, const String& name, uint64_t version);
 
     Ref<IDBClient::IDBConnectionProxy> m_connectionProxy;
 };

@@ -53,6 +53,7 @@
 #include <JavaScriptCore/JSLock.h>
 #include <WebCore/ApplicationCache.h>
 #include <WebCore/ApplicationCacheStorage.h>
+#include <WebCore/CommonVM.h>
 #include <WebCore/FrameLoader.h>
 #include <WebCore/FrameView.h>
 #include <WebCore/GCController.h>
@@ -216,6 +217,26 @@ void InjectedBundle::overrideBoolPreferenceForTestRunner(WebPageGroupProxy* page
     if (preference == "WebKitModernMediaControlsEnabled")
         RuntimeEnabledFeatures::sharedFeatures().setModernMediaControlsEnabled(enabled);
 
+#if ENABLE(ENCRYPTED_MEDIA)
+    if (preference == "WebKitEncryptedMediaAPIEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setEncryptedMediaAPIEnabled(enabled);
+#endif
+
+#if ENABLE(SUBTLE_CRYPTO)
+    if (preference == "WebKitSubtleCryptoEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setSubtleCryptoEnabled(enabled);
+#endif
+
+#if ENABLE(MEDIA_STREAM)
+    if (preference == "WebKitMediaStreamEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setMediaStreamEnabled(enabled);
+#endif
+
+#if ENABLE(WEB_RTC)
+    if (preference == "WebKitPeerConnectionEnabled")
+        RuntimeEnabledFeatures::sharedFeatures().setPeerConnectionEnabled(enabled);
+#endif
+
     // Map the names used in LayoutTests with the names used in WebCore::Settings and WebPreferencesStore.
 #define FOR_EACH_OVERRIDE_BOOL_PREFERENCE(macro) \
     macro(WebKitAcceleratedCompositingEnabled, AcceleratedCompositingEnabled, acceleratedCompositingEnabled) \
@@ -234,9 +255,11 @@ void InjectedBundle::overrideBoolPreferenceForTestRunner(WebPageGroupProxy* page
     macro(WebKitShouldRespectImageOrientation, ShouldRespectImageOrientation, shouldRespectImageOrientation) \
     macro(WebKitEnableCaretBrowsing, CaretBrowsingEnabled, caretBrowsingEnabled) \
     macro(WebKitDisplayImagesKey, LoadsImagesAutomatically, loadsImagesAutomatically) \
-    macro(WebKitMediaStreamEnabled, MediaStreamEnabled, mediaStreamEnabled) \
     macro(WebKitHTTPEquivEnabled, HttpEquivEnabled, httpEquivEnabled) \
-    macro(WebKitVisualViewportEnabled, VisualViewportEnabled, visualViewportEnabled)
+    macro(WebKitVisualViewportEnabled, VisualViewportEnabled, visualViewportEnabled) \
+    macro(WebKitLargeImageAsyncDecodingEnabled, LargeImageAsyncDecodingEnabled, largeImageAsyncDecodingEnabled) \
+    macro(WebKitAnimatedImageAsyncDecodingEnabled, AnimatedImageAsyncDecodingEnabled, animatedImageAsyncDecodingEnabled) \
+    \
 
 #define OVERRIDE_PREFERENCE_AND_SET_IN_EXISTING_PAGES(TestRunnerName, SettingsName, WebPreferencesName) \
     if (preference == #TestRunnerName) { \
@@ -254,17 +277,6 @@ void InjectedBundle::overrideBoolPreferenceForTestRunner(WebPageGroupProxy* page
 #undef FOR_EACH_OVERRIDE_BOOL_PREFERENCE
 }
 
-void InjectedBundle::overrideXSSAuditorEnabledForTestRunner(WebPageGroupProxy* pageGroup, bool enabled)
-{
-    // Override the preference for all future pages.
-    WebPreferencesStore::overrideBoolValueForKey(WebPreferencesKey::xssAuditorEnabledKey(), enabled);
-
-    // Change the setting for existing ones.
-    const HashSet<Page*>& pages = PageGroup::pageGroup(pageGroup->identifier())->pages();
-    for (HashSet<Page*>::iterator iter = pages.begin(); iter != pages.end(); ++iter)
-        (*iter)->settings().setXSSAuditorEnabled(enabled);
-}
-
 void InjectedBundle::setAllowUniversalAccessFromFileURLs(WebPageGroupProxy* pageGroup, bool enabled)
 {
     const HashSet<Page*>& pages = PageGroup::pageGroup(pageGroup->identifier())->pages();
@@ -279,6 +291,13 @@ void InjectedBundle::setAllowFileAccessFromFileURLs(WebPageGroupProxy* pageGroup
         (*iter)->settings().setAllowFileAccessFromFileURLs(enabled);
 }
 
+void InjectedBundle::setNeedsStorageAccessFromFileURLsQuirk(WebPageGroupProxy* pageGroup, bool needsQuirk)
+{
+    const HashSet<Page*>& pages = PageGroup::pageGroup(pageGroup->identifier())->pages();
+    for (auto page : pages)
+        page->settings().setNeedsStorageAccessFromFileURLsQuirk(needsQuirk);
+}
+
 void InjectedBundle::setMinimumLogicalFontSize(WebPageGroupProxy* pageGroup, int size)
 {
     const HashSet<Page*>& pages = PageGroup::pageGroup(pageGroup->identifier())->pages();
@@ -291,13 +310,6 @@ void InjectedBundle::setFrameFlatteningEnabled(WebPageGroupProxy* pageGroup, boo
     const HashSet<Page*>& pages = PageGroup::pageGroup(pageGroup->identifier())->pages();
     for (HashSet<Page*>::iterator iter = pages.begin(); iter != pages.end(); ++iter)
         (*iter)->settings().setFrameFlatteningEnabled(enabled);
-}
-
-void InjectedBundle::setPluginsEnabled(WebPageGroupProxy* pageGroup, bool enabled)
-{
-    const HashSet<Page*>& pages = PageGroup::pageGroup(pageGroup->identifier())->pages();
-    for (HashSet<Page*>::iterator iter = pages.begin(); iter != pages.end(); ++iter)
-        (*iter)->settings().setPluginsEnabled(enabled);
 }
 
 void InjectedBundle::setJavaScriptCanAccessClipboard(WebPageGroupProxy* pageGroup, bool enabled)
@@ -481,8 +493,8 @@ void InjectedBundle::garbageCollectJavaScriptObjectsOnAlternateThreadForDebuggin
 
 size_t InjectedBundle::javaScriptObjectsCount()
 {
-    JSLockHolder lock(JSDOMWindow::commonVM());
-    return JSDOMWindow::commonVM().heap.objectCount();
+    JSLockHolder lock(commonVM());
+    return commonVM().heap.objectCount();
 }
 
 void InjectedBundle::reportException(JSContextRef context, JSValueRef exception)

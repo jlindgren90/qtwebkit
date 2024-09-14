@@ -30,8 +30,10 @@
 
 #include "IDBCursorInfo.h"
 #include "IDBGetAllRecordsData.h"
+#include "IDBGetRecordData.h"
 #include "IDBGetResult.h"
 #include "IDBIndexInfo.h"
+#include "IDBIterateCursorData.h"
 #include "IDBKeyRangeData.h"
 #include "Logging.h"
 #include "MemoryIndexCursor.h"
@@ -349,7 +351,7 @@ IDBError MemoryIDBBackingStore::addRecord(const IDBResourceIdentifier& transacti
     return objectStore->addRecord(*transaction, keyData, value);
 }
 
-IDBError MemoryIDBBackingStore::getRecord(const IDBResourceIdentifier& transactionIdentifier, uint64_t objectStoreIdentifier, const IDBKeyRangeData& range, IDBGetResult& outValue)
+IDBError MemoryIDBBackingStore::getRecord(const IDBResourceIdentifier& transactionIdentifier, uint64_t objectStoreIdentifier, const IDBKeyRangeData& range, IDBGetRecordDataType type, IDBGetResult& outValue)
 {
     LOG(IndexedDB, "MemoryIDBBackingStore::getRecord");
 
@@ -362,7 +364,15 @@ IDBError MemoryIDBBackingStore::getRecord(const IDBResourceIdentifier& transacti
     if (!objectStore)
         return { IDBDatabaseException::UnknownError, ASCIILiteral("No backing store object store found") };
 
-    outValue = objectStore->valueForKeyRange(range);
+    switch (type) {
+    case IDBGetRecordDataType::KeyAndValue:
+        outValue = objectStore->valueForKeyRange(range);
+        break;
+    case IDBGetRecordDataType::KeyOnly:
+        outValue = objectStore->lowestKeyWithRecordInRange(range);
+        break;
+    }
+
     return { };
 }
 
@@ -526,7 +536,7 @@ IDBError MemoryIDBBackingStore::openCursor(const IDBResourceIdentifier& transact
     return { };
 }
 
-IDBError MemoryIDBBackingStore::iterateCursor(const IDBResourceIdentifier& transactionIdentifier, const IDBResourceIdentifier& cursorIdentifier, const IDBKeyData& key, uint32_t count, IDBGetResult& outData)
+IDBError MemoryIDBBackingStore::iterateCursor(const IDBResourceIdentifier& transactionIdentifier, const IDBResourceIdentifier& cursorIdentifier, const IDBIterateCursorData& data, IDBGetResult& outData)
 {
     LOG(IndexedDB, "MemoryIDBBackingStore::iterateCursor");
 
@@ -537,7 +547,7 @@ IDBError MemoryIDBBackingStore::iterateCursor(const IDBResourceIdentifier& trans
     if (!cursor)
         return { IDBDatabaseException::UnknownError, ASCIILiteral("No backing store cursor found in which to iterate cursor") };
 
-    cursor->iterate(key, count, outData);
+    cursor->iterate(data.keyData, data.primaryKeyData, data.count, outData);
 
     return { };
 }

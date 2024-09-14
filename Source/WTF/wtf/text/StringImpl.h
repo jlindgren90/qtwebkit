@@ -143,6 +143,7 @@ class StringImpl {
     friend struct WTF::UCharBufferTranslator;
     friend class JSC::LLInt::Data;
     friend class JSC::LLIntOffsetsExtractor;
+    friend class SymbolImpl;
     
 private:
     enum BufferOwnership {
@@ -153,43 +154,24 @@ private:
 
     // The bottom 6 bits in the hash are flags.
 public:
-    static const unsigned s_flagCount = 6;
+    static constexpr const unsigned s_flagCount = 6;
 private:
-    static const unsigned s_flagMask = (1u << s_flagCount) - 1;
-    COMPILE_ASSERT(s_flagCount <= StringHasher::flagCount, StringHasher_reserves_enough_bits_for_StringImpl_flags);
-    static const unsigned s_flagStringKindCount = 4;
+    static constexpr const unsigned s_flagMask = (1u << s_flagCount) - 1;
+    static_assert(s_flagCount <= StringHasher::flagCount, "StringHasher reserves enough bits for StringImpl flags");
+    static constexpr const unsigned s_flagStringKindCount = 4;
 
-    static const unsigned s_hashFlagStringKindIsAtomic = 1u << (s_flagStringKindCount);
-    static const unsigned s_hashFlagStringKindIsSymbol = 1u << (s_flagStringKindCount + 1);
-    static const unsigned s_hashMaskStringKind = s_hashFlagStringKindIsAtomic | s_hashFlagStringKindIsSymbol;
-    static const unsigned s_hashFlag8BitBuffer = 1u << 3;
-    static const unsigned s_hashFlagDidReportCost = 1u << 2;
-    static const unsigned s_hashMaskBufferOwnership = (1u << 0) | (1u << 1);
+    static constexpr const unsigned s_hashFlagStringKindIsAtomic = 1u << (s_flagStringKindCount);
+    static constexpr const unsigned s_hashFlagStringKindIsSymbol = 1u << (s_flagStringKindCount + 1);
+    static constexpr const unsigned s_hashMaskStringKind = s_hashFlagStringKindIsAtomic | s_hashFlagStringKindIsSymbol;
+    static constexpr const unsigned s_hashFlag8BitBuffer = 1u << 3;
+    static constexpr const unsigned s_hashFlagDidReportCost = 1u << 2;
+    static constexpr const unsigned s_hashMaskBufferOwnership = (1u << 0) | (1u << 1);
 
     enum StringKind {
         StringNormal = 0u, // non-symbol, non-atomic
         StringAtomic = s_hashFlagStringKindIsAtomic, // non-symbol, atomic
         StringSymbol = s_hashFlagStringKindIsSymbol, // symbol, non-atomic
     };
-
-    // Used to construct static strings, which have an special refCount that can never hit zero.
-    // This means that the static string will never be destroyed, which is important because
-    // static strings will be shared across threads & ref-counted in a non-threadsafe manner.
-    friend class NeverDestroyed<StringImpl>;
-    enum ConstructEmptyStringTag { ConstructEmptyString };
-    StringImpl(ConstructEmptyStringTag)
-        : m_refCount(s_refCountFlagIsStaticString)
-        , m_length(0)
-        , m_data8(reinterpret_cast<const LChar*>(&m_length))
-        , m_hashAndFlags(s_hashFlag8BitBuffer | StringAtomic | BufferOwned)
-    {
-        // Ensure that the hash is computed so that AtomicStringHash can call existingHash()
-        // with impunity. The empty string is special because it is never entered into
-        // AtomicString's HashKey, but still needs to compare correctly.
-        STRING_STATS_ADD_8BIT_STRING(m_length);
-
-        hash();
-    }
 
     // FIXME: there has to be a less hacky way to do this.
     enum Force8Bit { Force8BitConstructor };
@@ -304,43 +286,6 @@ private:
         STRING_STATS_ADD_16BIT_STRING2(m_length, true);
     }
 
-    enum CreateSymbolTag { CreateSymbol };
-    // Used to create new symbol strings that holds existing 8-bit [[Description]] string as a substring buffer (BufferSubstring).
-    StringImpl(CreateSymbolTag, const LChar* characters, unsigned length, Ref<StringImpl>&& base)
-        : m_refCount(s_refCountIncrement)
-        , m_length(length)
-        , m_data8(characters)
-        , m_hashAndFlags(s_hashFlag8BitBuffer | StringSymbol | BufferSubstring)
-    {
-        ASSERT(is8Bit());
-        ASSERT(m_data8);
-        ASSERT(base->bufferOwnership() != BufferSubstring);
-
-        substringBuffer() = &base.leakRef();
-        symbolRegistry() = nullptr;
-        hashForSymbol() = nextHashForSymbol();
-
-        STRING_STATS_ADD_8BIT_STRING2(m_length, true);
-    }
-
-    // Used to create new symbol strings that holds existing 16-bit [[Description]] string as a substring buffer (BufferSubstring).
-    StringImpl(CreateSymbolTag, const UChar* characters, unsigned length, Ref<StringImpl>&& base)
-        : m_refCount(s_refCountIncrement)
-        , m_length(length)
-        , m_data16(characters)
-        , m_hashAndFlags(StringSymbol | BufferSubstring)
-    {
-        ASSERT(!is8Bit());
-        ASSERT(m_data16);
-        ASSERT(base->bufferOwnership() != BufferSubstring);
-
-        substringBuffer() = &base.leakRef();
-        symbolRegistry() = nullptr;
-        hashForSymbol() = nextHashForSymbol();
-
-        STRING_STATS_ADD_16BIT_STRING2(m_length, true);
-    }
-
 public:
     WTF_EXPORT_STRING_API static void destroy(StringImpl*);
 
@@ -412,9 +357,6 @@ public:
 
         return constructInternal<T>(resultImpl, length);
     }
-
-    WTF_EXPORT_STRING_API static Ref<SymbolImpl> createNullSymbol();
-    WTF_EXPORT_STRING_API static Ref<SymbolImpl> createSymbol(StringImpl& rep);
 
     // Reallocate the StringImpl. The originalString must be only owned by the Ref,
     // and the buffer ownership must be BufferInternal. Just like the input pointer of realloc(),
@@ -489,7 +431,6 @@ public:
     StringKind stringKind() const { return static_cast<StringKind>(m_hashAndFlags & s_hashMaskStringKind); }
     bool isSymbol() const { return m_hashAndFlags & s_hashFlagStringKindIsSymbol; }
     bool isAtomic() const { return m_hashAndFlags & s_hashFlagStringKindIsAtomic; }
-    bool isNullSymbol() const { return isSymbol() && (substringBuffer() == null()); }
 
     void setIsAtomic(bool isAtomic)
     {
@@ -559,19 +500,8 @@ public:
 
     WTF_EXPORT_PRIVATE unsigned concurrentHash() const;
 
-    unsigned symbolAwareHash() const
-    {
-        if (isSymbol())
-            return hashForSymbol();
-        return hash();
-    }
-
-    unsigned existingSymbolAwareHash() const
-    {
-        if (isSymbol())
-            return hashForSymbol();
-        return existingHash();
-    }
+    unsigned symbolAwareHash() const;
+    unsigned existingSymbolAwareHash() const;
 
     bool isStatic() const { return m_refCount & s_refCountFlagIsStaticString; }
 
@@ -610,7 +540,41 @@ public:
         m_refCount = tempRefCount;
     }
 
-    WTF_EXPORT_PRIVATE static StringImpl* empty();
+    class StaticStringImpl {
+    public:
+        // Used to construct static strings, which have an special refCount that can never hit zero.
+        // This means that the static string will never be destroyed, which is important because
+        // static strings will be shared across threads & ref-counted in a non-threadsafe manner.
+        template<unsigned charactersCount>
+        constexpr StaticStringImpl(const char (&characters)[charactersCount], StringKind stringKind = StringNormal)
+            : m_refCount(s_refCountFlagIsStaticString)
+            , m_length(charactersCount - 1)
+            , m_data8(characters)
+            , m_hashAndFlags(s_hashFlag8BitBuffer | stringKind | BufferInternal | (StringHasher::computeLiteralHashAndMaskTop8Bits(characters) << s_flagCount))
+        {
+        }
+
+        template<unsigned charactersCount>
+        constexpr StaticStringImpl(const char16_t (&characters)[charactersCount], StringKind stringKind = StringNormal)
+            : m_refCount(s_refCountFlagIsStaticString)
+            , m_length(charactersCount - 1)
+            , m_data16(characters)
+            , m_hashAndFlags(stringKind | BufferInternal | (StringHasher::computeLiteralHashAndMaskTop8Bits(characters) << s_flagCount))
+        {
+        }
+
+        // These member variables must match the layout of StringImpl.
+        unsigned m_refCount;
+        unsigned m_length;
+        union {
+            const char* m_data8;
+            const char16_t* m_data16;
+        };
+        unsigned m_hashAndFlags;
+    };
+
+    WTF_EXPORTDATA static StaticStringImpl s_atomicEmptyString;
+    ALWAYS_INLINE static StringImpl* empty() { return reinterpret_cast<StringImpl*>(&s_atomicEmptyString); }
 
     // FIXME: Does this really belong in StringImpl?
     template <typename T> static void copyChars(T* destination, const T* source, unsigned numCharacters)
@@ -747,50 +711,45 @@ public:
     ALWAYS_INLINE static StringStats& stringStats() { return m_stringStats; }
 #endif
 
-    Ref<StringImpl> extractFoldedStringInSymbol()
-    {
-        ASSERT(isSymbol());
-        ASSERT(bufferOwnership() == BufferSubstring);
-        ASSERT(substringBuffer());
-        ASSERT(!substringBuffer()->isSymbol());
-        return createSubstringSharingImpl(*this, 0, length());
-    }
-
-    SymbolRegistry* const& symbolRegistry() const
-    {
-        ASSERT(isSymbol());
-        return *(tailPointer<SymbolRegistry*>() + 1);
-    }
-
-    SymbolRegistry*& symbolRegistry()
-    {
-        ASSERT(isSymbol());
-        return *(tailPointer<SymbolRegistry*>() + 1);
-    }
-
-    const unsigned& hashForSymbol() const
-    {
-        return const_cast<StringImpl*>(this)->hashForSymbol();
-    }
-
-    unsigned& hashForSymbol()
-    {
-        ASSERT(isSymbol());
-        return *reinterpret_cast<unsigned*>((tailPointer<SymbolRegistry*>() + 2));
-    }
-
 protected:
     ~StringImpl();
 
-private:
-    bool requiresCopy() const
-    {
-        if (bufferOwnership() != BufferInternal)
-            return true;
+    enum CreateSymbolTag { CreateSymbol };
 
-        if (is8Bit())
-            return m_data8 == tailPointer<LChar>();
-        return m_data16 == tailPointer<UChar>();
+    // Used to create new symbol strings that holds existing 8-bit [[Description]] string as a substring buffer (BufferSubstring).
+    StringImpl(CreateSymbolTag, const LChar* characters, unsigned length)
+        : m_refCount(s_refCountIncrement)
+        , m_length(length)
+        , m_data8(characters)
+        , m_hashAndFlags(s_hashFlag8BitBuffer | StringSymbol | BufferSubstring)
+    {
+        ASSERT(is8Bit());
+        ASSERT(m_data8);
+        STRING_STATS_ADD_8BIT_STRING2(m_length, true);
+    }
+
+    // Used to create new symbol strings that holds existing 16-bit [[Description]] string as a substring buffer (BufferSubstring).
+    StringImpl(CreateSymbolTag, const UChar* characters, unsigned length)
+        : m_refCount(s_refCountIncrement)
+        , m_length(length)
+        , m_data16(characters)
+        , m_hashAndFlags(StringSymbol | BufferSubstring)
+    {
+        ASSERT(!is8Bit());
+        ASSERT(m_data16);
+        STRING_STATS_ADD_16BIT_STRING2(m_length, true);
+    }
+
+    // Null symbol.
+    StringImpl(CreateSymbolTag)
+        : m_refCount(s_refCountIncrement)
+        , m_length(0)
+        , m_data8(empty()->characters8())
+        , m_hashAndFlags(s_hashFlag8BitBuffer | StringSymbol | BufferSubstring)
+    {
+        ASSERT(is8Bit());
+        ASSERT(m_data8);
+        STRING_STATS_ADD_8BIT_STRING2(m_length, true);
     }
 
     template<typename T>
@@ -808,6 +767,17 @@ private:
 #else
         return roundUpToMultipleOf<alignof(T)>(offsetof(StringImpl, m_hashAndFlags) + sizeof(StringImpl::m_hashAndFlags));
 #endif
+    }
+
+private:
+    bool requiresCopy() const
+    {
+        if (bufferOwnership() != BufferInternal)
+            return true;
+
+        if (is8Bit())
+            return m_data8 == tailPointer<LChar>();
+        return m_data16 == tailPointer<UChar>();
     }
 
     template<typename T>
@@ -848,8 +818,6 @@ private:
     template <typename CharType> static Ref<StringImpl> reallocateInternal(Ref<StringImpl>&&, unsigned, CharType*&);
     template <typename CharType> static Ref<StringImpl> createInternal(const CharType*, unsigned);
     WTF_EXPORT_PRIVATE NEVER_INLINE unsigned hashSlowCase() const;
-    WTF_EXPORT_PRIVATE static unsigned nextHashForSymbol();
-    WTF_EXPORT_PRIVATE static StringImpl* null();
 
     // The bottom bit in the ref count indicates a static (immortal) string.
     static const unsigned s_refCountFlagIsStaticString = 0x1;
@@ -860,6 +828,8 @@ private:
 #endif
 
 public:
+    // FIXME: It should be replaced with StaticStringImpl.
+    // https://bugs.webkit.org/show_bug.cgi?id=165134
     struct StaticASCIILiteral {
         // These member variables must match the layout of StringImpl.
         unsigned m_refCount;
@@ -882,7 +852,7 @@ public:
 #endif
 
 private:
-    // These member variables must match the layout of StaticASCIILiteral.
+    // These member variables must match the layout of StaticASCIILiteral and StaticStringImpl.
     unsigned m_refCount;
     unsigned m_length;
     union {
@@ -893,6 +863,7 @@ private:
 };
 
 static_assert(sizeof(StringImpl) == sizeof(StringImpl::StaticASCIILiteral), "");
+static_assert(sizeof(StringImpl) == sizeof(StringImpl::StaticStringImpl), "");
 
 #if !ASSERT_DISABLED
 // StringImpls created from StaticASCIILiteral will ASSERT

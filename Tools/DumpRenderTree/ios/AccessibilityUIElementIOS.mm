@@ -986,6 +986,11 @@ JSStringRef AccessibilityUIElement::accessibilityValue() const
     return JSStringCreateWithCharacters(0, 0);
 }
 
+void AccessibilityUIElement::clearSelectedChildren() const
+{
+    // FIXME: implement
+}
+
 JSStringRef AccessibilityUIElement::documentEncoding()
 {
     return JSStringCreateWithCharacters(0, 0);
@@ -1068,6 +1073,18 @@ bool AccessibilityUIElement::isCollapsed() const
 bool AccessibilityUIElement::isIgnored() const
 {
     return ![m_element isAccessibilityElement];
+}
+
+bool AccessibilityUIElement::isSingleLine() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isMultiLine() const
+{
+    // FIXME: implement
+    return false;
 }
 
 bool AccessibilityUIElement::hasPopup() const

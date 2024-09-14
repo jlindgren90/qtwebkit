@@ -1,3 +1,186 @@
+2016-12-13  Brady Eidson  <beidson@apple.com>
+
+        Add a PerfTest targeting IDBObjectStore.get().
+        https://bugs.webkit.org/show_bug.cgi?id=165816
+
+        Reviewed by Alex Christensen.
+
+        * IndexedDB/objectstore-get.html: Added.
+
+2016-12-13  Brady Eidson  <beidson@apple.com>
+
+        Add a PerfTest targeting IDBIndex.get().
+        https://bugs.webkit.org/show_bug.cgi?id=165803
+
+        Reviewed by Alex Christensen.
+
+        * IndexedDB/index-get.html: Added.
+
+2016-12-12  Brady Eidson  <beidson@apple.com>
+
+        More IndexedDB perf tests.
+        https://bugs.webkit.org/show_bug.cgi?id=165634
+
+        Reviewed by Sam Weinig.
+
+        * IndexedDB/index-multientry.html:
+        * IndexedDB/large-number-of-inserts-responsiveness.html: Added.
+        * IndexedDB/large-number-of-inserts.html: Added.
+        * IndexedDB/objectstore-cursor.html: Added. Runtime cut in 1/4th compared to r209672.
+
+        * resources/runner.js:
+
+2016-12-12  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r209672.
+        https://bugs.webkit.org/show_bug.cgi?id=165766
+
+        IndexedDB/objectstore-cursor.html perf test always times out
+        (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "More IndexedDB perf tests."
+        https://bugs.webkit.org/show_bug.cgi?id=165634
+        http://trac.webkit.org/changeset/209672
+
+2016-12-10  Brady Eidson  <beidson@apple.com>
+
+        More IndexedDB perf tests.
+        https://bugs.webkit.org/show_bug.cgi?id=165634
+
+        Reviewed by Sam Weinig.
+
+        * IndexedDB/index-multientry.html:
+        * IndexedDB/large-number-of-inserts-responsiveness.html: Added.
+        * IndexedDB/large-number-of-inserts.html: Added.
+        * IndexedDB/objectstore-cursor.html: Added.
+        
+        * resources/runner.js: Add "track responsiveness" functionality to PerfTestRunner.
+
+2016-12-06  Filip Pizlo  <fpizlo@apple.com>
+
+        Concurrent GC should be stable enough to land enabled
+        https://bugs.webkit.org/show_bug.cgi?id=164990
+
+        Reviewed by Geoffrey Garen.
+        
+        Made CDjs more configurable and refined the "large.js" configuration. I was using that one and
+        the new "long.js" configuration to tune concurrent eden GCs.
+        
+        Added a new way of running Splay in browser, which using chartjs to plot the execution times of
+        2000 iterations. This includes the minified chartjs.
+
+        * JetStream/Octane2/splay-detail.html: Added.
+        * JetStream/cdjs/benchmark.js:
+        (benchmarkImpl):
+        (benchmark):
+        * JetStream/cdjs/long.js: Added.
+
+2016-12-07  Brady Eidson  <beidson@apple.com>
+
+        Add IDB perf tests stressing key size.
+        https://bugs.webkit.org/show_bug.cgi?id=165567
+
+        Reviewed by Alex Christensen.
+
+        * IndexedDB/large-array-keys.html: Added.
+        * IndexedDB/large-binary-keys.html: Added.
+        * IndexedDB/large-string-keys.html: Added.
+
+2016-12-05  Brady Eidson  <beidson@apple.com>
+
+        Add an IndexedDB perf test to PerformanceTests.
+        https://bugs.webkit.org/show_bug.cgi?id=165430
+
+        Reviewed by Alex Christensen.
+
+        * IndexedDB/index-multientry.html: Added.
+
+2016-12-02  Filip Pizlo  <fpizlo@apple.com>
+
+        ES6SampleBench should report an average for Steady State so that all of the numbers are comparable
+        https://bugs.webkit.org/show_bug.cgi?id=165325
+
+        Reviewed by Saam Barati.
+
+        This makes all of the numbers that ES6SampleBench reports comparable to each other: they all speak of the time
+        it took to run an iteration of something.
+
+        * ES6SampleBench/results.js:
+        (Results.prototype.reportResult):
+
+2016-11-18  Jer Noble  <jer.noble@apple.com>
+
+        Add some performance tests for various aspects of media loading and playback.
+        https://bugs.webkit.org/show_bug.cgi?id=164977
+
+        Reviewed by Darin Adler.
+
+        Add new tests for a few aspects of media playback; namely: how quickly  media elements fire
+        the "canplaythrough" event when all data is immediately available, how quickly HLS playback
+        switches resolutions, and at what playback rate MSE-backed video can play without dropping
+        frames. Skip these tests by default, as they're not runnable on all ports, and they require
+        a webserver (run-webkit-httpd) to complete on macOS.
+
+        * Media/HLSCanPlayThrough.html: Added.
+        * Media/HLSGearChange.html: Added.
+        * Media/MSECanPlayThrough.html: Added.
+        * Media/MSEPlaybackRate.html: Added.
+        * Media/StandardCanPlayThrough.html: Added.
+        * Media/hls/1080p/iframe_index.m3u8: Added.
+        * Media/hls/1080p/prog_index.m3u8: Added.
+        * Media/hls/1080p/test.ts: Added.
+        * Media/hls/480p/iframe_index.m3u8: Added.
+        * Media/hls/480p/prog_index.m3u8: Added.
+        * Media/hls/480p/test.ts: Added.
+        * Media/hls/720p/iframe_index.m3u8: Added.
+        * Media/hls/720p/prog_index.m3u8: Added.
+        * Media/hls/720p/test.ts: Added.
+        * Media/hls/720p/test.ts.back: Added.
+        * Media/hls/index.m3u8: Added.
+        * Media/media-source-loader.js: Added.
+        (MediaSourceLoader):
+        (MediaSourceLoader.prototype.loadManifest):
+        (MediaSourceLoader.prototype.loadManifestSucceeded):
+        (MediaSourceLoader.prototype.loadManifestFailed):
+        (MediaSourceLoader.prototype.loadMediaData):
+        (MediaSourceLoader.prototype.loadMediaDataSucceeded):
+        (MediaSourceLoader.prototype.loadMediaDataFailed):
+        (MediaSourceLoader.prototype.get type):
+        (MediaSourceLoader.prototype.get duration):
+        (MediaSourceLoader.prototype.get initSegment):
+        (MediaSourceLoader.prototype.get mediaSegmentsLength):
+        (MediaSourceLoader.prototype.mediaSegments):
+        (MediaSourceLoader.prototype.get everyMediaSegment):
+        * Media/test-fragmented-video.json: Added.
+        * Media/test-fragmented-video.mp4: Added.
+        * Media/test.mp4: Added.
+        * Skipped:
+
+2016-11-18  Filip Pizlo  <fpizlo@apple.com>
+
+        Concurrent GC should be able to run splay in debug mode and earley/raytrace in release mode with no perf regression
+        https://bugs.webkit.org/show_bug.cgi?id=164282
+
+        Reviewed by Geoffrey Garen and Oliver Hunt.
+        
+        CDjs is a fun benchmark for stressing concurrent GCs, but to really give the GC a good
+        workout you need to increase the amount of work that the test does. This adds a second
+        configuration of the benchmark that has more aircraft. It uses much more memory and causes us
+        to do more GCs and those GCs take longer.
+
+        * JetStream/cdjs/benchmark.js:
+        (benchmarkImpl):
+        (benchmark):
+        * JetStream/cdjs/large.js: Added.
+
+2016-11-14  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, revert unintended change.
+
+        * ES6SampleBench/Air/benchmark.js:
+
 2016-10-03  Saam Barati  <sbarati@apple.com>
 
         MapHash should speculate on the type of its child node

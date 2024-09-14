@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,23 +21,6 @@
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * =========================================================================
- *
- * Copyright (c) 2015 by the repository authors of
- * WebAssembly/polyfill-prototype-1.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 #pragma once
@@ -47,41 +30,23 @@
 #include "B3Compilation.h"
 #include "B3Type.h"
 #include "CodeLocation.h"
+#include "Identifier.h"
+#include "MacroAssemblerCodeRef.h"
+#include "RegisterAtOffsetList.h"
+#include "WasmMemoryInformation.h"
+#include "WasmOps.h"
+#include "WasmPageCount.h"
+#include "WasmSignature.h"
+#include <limits>
+#include <memory>
+#include <wtf/Optional.h>
 #include <wtf/Vector.h>
-#include <wtf/text/WTFString.h>
 
 namespace JSC {
 
 class JSFunction;
 
 namespace Wasm {
-
-enum Type : uint8_t {
-    Void,
-    I32,
-    I64,
-    F32,
-    F64,
-    LastValueType = F64,
-};
-
-static_assert(I32 == 1, "Wasm needs I32 to have the value 1");
-static_assert(I64 == 2, "Wasm needs I64 to have the value 2");
-static_assert(F32 == 3, "Wasm needs F32 to have the value 3");
-static_assert(F64 == 4, "Wasm needs F64 to have the value 4");
-
-inline B3::Type toB3Type(Type type)
-{
-    switch (type) {
-    case I32: return B3::Int32;
-    case I64: return B3::Int64;
-    case F32: return B3::Float;
-    case F64: return B3::Double;
-    case Void: return B3::Void;
-    default: break;
-    }
-    RELEASE_ASSERT_NOT_REACHED();
-}
 
 inline bool isValueType(Type type)
 {
@@ -96,48 +61,189 @@ inline bool isValueType(Type type)
     }
     return false;
 }
-
-const char* toString(Type);
-
-struct Signature {
-    Type returnType;
-    Vector<Type> arguments;
+    
+enum class ExternalKind : uint8_t {
+    // FIXME auto-generate this. https://bugs.webkit.org/show_bug.cgi?id=165231
+    Function = 0,
+    Table = 1,
+    Memory = 2,
+    Global = 3,
 };
 
-struct FunctionImport {
-    String functionName;
+template<typename Int>
+static bool isValidExternalKind(Int val)
+{
+    switch (val) {
+    case static_cast<Int>(ExternalKind::Function):
+    case static_cast<Int>(ExternalKind::Table):
+    case static_cast<Int>(ExternalKind::Memory):
+    case static_cast<Int>(ExternalKind::Global):
+        return true;
+    default:
+        return false;
+    }
+}
+
+static_assert(static_cast<int>(ExternalKind::Function) == 0, "Wasm needs Function to have the value 0");
+static_assert(static_cast<int>(ExternalKind::Table)    == 1, "Wasm needs Table to have the value 1");
+static_assert(static_cast<int>(ExternalKind::Memory)   == 2, "Wasm needs Memory to have the value 2");
+static_assert(static_cast<int>(ExternalKind::Global)   == 3, "Wasm needs Global to have the value 3");
+
+static inline const char* makeString(ExternalKind kind)
+{
+    switch (kind) {
+    case ExternalKind::Function: return "Function";
+    case ExternalKind::Table: return "Table";
+    case ExternalKind::Memory: return "Memory";
+    case ExternalKind::Global: return "Global";
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+    return "?";
+}
+
+struct Import {
+    Identifier module;
+    Identifier field;
+    ExternalKind kind;
+    unsigned kindIndex; // Index in the vector of the corresponding kind.
 };
 
-struct FunctionImportSignature {
-    uint32_t signatureIndex;
-    uint32_t functionImportIndex;
+struct Export {
+    Identifier field;
+    ExternalKind kind;
+    unsigned kindIndex; // Index in the vector of the corresponding kind.
 };
 
-struct FunctionDeclaration {
-    uint32_t signatureIndex;
+struct Global {
+    enum Mutability : uint8_t {
+        // FIXME auto-generate this. https://bugs.webkit.org/show_bug.cgi?id=165231
+        Mutable = 1,
+        Immutable = 0
+    };
+
+    enum InitializationType {
+        IsImport,
+        FromGlobalImport,
+        FromExpression
+    };
+
+    Mutability mutability;
+    Type type;
+    InitializationType initializationType { IsImport };
+    uint64_t initialBitsOrImportNumber { 0 };
 };
 
-struct FunctionPointerTable {
-    uint32_t signatureIndex;
-    Vector<uint32_t> functionIndices;
-    Vector<JSFunction*> functions;
-};
-
-struct FunctionInformation {
-    Signature* signature;
+struct FunctionLocationInBinary {
     size_t start;
     size_t end;
 };
 
-struct UnlinkedCall {
+struct Segment {
+    uint32_t offset;
+    uint32_t sizeInBytes;
+    // Bytes are allocated at the end.
+    uint8_t& byte(uint32_t pos)
+    {
+        ASSERT(pos < sizeInBytes);
+        return *reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(this) + sizeof(offset) + sizeof(sizeInBytes) + pos);
+    }
+    static Segment* create(uint32_t, uint32_t);
+    static void destroy(Segment*);
+    typedef std::unique_ptr<Segment, decltype(&Segment::destroy)> Ptr;
+    static Ptr adoptPtr(Segment*);
+};
+
+struct Element {
+    uint32_t offset;
+    Vector<uint32_t> functionIndices;
+};
+
+class TableInformation {
+public:
+    TableInformation()
+    {
+        ASSERT(!*this);
+    }
+
+    TableInformation(uint32_t initial, std::optional<uint32_t> maximum, bool isImport)
+        : m_initial(initial)
+        , m_maximum(maximum)
+        , m_isImport(isImport)
+        , m_isValid(true)
+    {
+        ASSERT(*this);
+    }
+
+    explicit operator bool() const { return m_isValid; }
+    bool isImport() const { return m_isImport; }
+    uint32_t initial() const { return m_initial; }
+    std::optional<uint32_t> maximum() const { return m_maximum; }
+
+private:
+    uint32_t m_initial;
+    std::optional<uint32_t> m_maximum;
+    bool m_isImport { false };
+    bool m_isValid { false };
+};
+
+struct ModuleInformation {
+    Vector<SignatureIndex> signatureIndices;
+    Vector<Import> imports;
+    Vector<SignatureIndex> importFunctionSignatureIndices;
+    Vector<SignatureIndex> internalFunctionSignatureIndices;
+    MemoryInformation memory;
+    Vector<Export> exports;
+    std::optional<uint32_t> startFunctionIndexSpace;
+    Vector<Segment::Ptr> data;
+    Vector<Element> elements;
+    TableInformation tableInformation;
+    Vector<Global> globals;
+    unsigned firstInternalGlobal { 0 };
+
+    ~ModuleInformation();
+};
+
+struct UnlinkedWasmToWasmCall {
     CodeLocationCall callLocation;
     size_t functionIndex;
 };
 
-struct FunctionCompilation {
-    Vector<UnlinkedCall> unlinkedCalls;
-    std::unique_ptr<B3::Compilation> code;
-    std::unique_ptr<B3::Compilation> jsEntryPoint;
+struct Entrypoint {
+    std::unique_ptr<B3::Compilation> compilation;
+    RegisterAtOffsetList calleeSaveRegisters;
+};
+
+struct WasmInternalFunction {
+    CodeLocationDataLabelPtr wasmCalleeMoveLocation;
+    CodeLocationDataLabelPtr jsToWasmCalleeMoveLocation;
+
+    Entrypoint wasmEntrypoint;
+    Entrypoint jsToWasmEntrypoint;
+};
+
+typedef MacroAssemblerCodeRef WasmToJSStub;
+
+// WebAssembly direct calls and call_indirect use indices into "function index space". This space starts with all imports, and then all internal functions.
+// CallableFunction and FunctionIndexSpace are only meant as fast lookup tables for these opcodes, and do not own code.
+struct CallableFunction {
+    CallableFunction() = default;
+
+    CallableFunction(SignatureIndex signatureIndex, void* code = nullptr)
+        : signatureIndex(signatureIndex)
+        , code(code)
+    {
+    }
+
+    // FIXME pack the SignatureIndex and the code pointer into one 64-bit value. https://bugs.webkit.org/show_bug.cgi?id=165511
+    SignatureIndex signatureIndex { Signature::invalidIndex };
+    void* code { nullptr };
+};
+typedef Vector<CallableFunction> FunctionIndexSpace;
+
+
+struct ImmutableFunctionIndexSpace {
+    MallocPtr<CallableFunction> buffer;
+    size_t size;
 };
 
 } } // namespace JSC::Wasm

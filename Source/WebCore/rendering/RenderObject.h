@@ -154,7 +154,7 @@ public:
     WEBCORE_EXPORT RenderLayer* enclosingLayer() const;
 
     // Scrolling is a RenderBox concept, however some code just cares about recursively scrolling our enclosing ScrollableArea(s).
-    WEBCORE_EXPORT bool scrollRectToVisible(SelectionRevealMode, const LayoutRect&, const ScrollAlignment& alignX = ScrollAlignment::alignCenterIfNeeded, const ScrollAlignment& alignY = ScrollAlignment::alignCenterIfNeeded);
+    WEBCORE_EXPORT bool scrollRectToVisible(SelectionRevealMode, const LayoutRect& absoluteRect, bool insideFixed, const ScrollAlignment& alignX = ScrollAlignment::alignCenterIfNeeded, const ScrollAlignment& alignY = ScrollAlignment::alignCenterIfNeeded);
 
     // Convenience function for getting to the nearest enclosing box of a RenderObject.
     WEBCORE_EXPORT RenderBox& enclosingBox() const;
@@ -243,7 +243,6 @@ public:
 #endif
     virtual bool isSnapshottedPlugIn() const { return false; }
     virtual bool isProgress() const { return false; }
-    virtual bool isRenderSVGBlock() const { return false; };
     virtual bool isRenderButton() const { return false; }
     virtual bool isRenderIFrame() const { return false; }
     virtual bool isRenderImage() const { return false; }
@@ -327,8 +326,6 @@ public:
     FlowThreadState flowThreadState() const { return m_bitfields.flowThreadState(); }
     void setFlowThreadState(FlowThreadState state) { m_bitfields.setFlowThreadState(state); }
 
-    virtual bool requiresForcedStyleRecalcPropagation() const { return false; }
-
 #if ENABLE(MATHML)
     virtual bool isRenderMathMLBlock() const { return false; }
     virtual bool isRenderMathMLTable() const { return false; }
@@ -351,6 +348,7 @@ public:
     // FIXME: Until all SVG renders can be subclasses of RenderSVGModelObject we have
     // to add SVG renderer methods to RenderObject with an ASSERT_NOT_REACHED() default implementation.
     virtual bool isRenderSVGModelObject() const { return false; }
+    virtual bool isRenderSVGBlock() const { return false; };
     virtual bool isSVGRoot() const { return false; }
     virtual bool isSVGContainer() const { return false; }
     virtual bool isSVGTransformableContainer() const { return false; }
@@ -818,6 +816,10 @@ protected:
     virtual RenderFlowThread* locateFlowThreadContainingBlock() const;
     static void calculateBorderStyleColor(const EBorderStyle&, const BoxSide&, Color&);
 
+    void initializeFlowThreadStateOnInsertion();
+    void resetFlowThreadStateOnRemoval();
+    static FlowThreadState computedFlowThreadState(const RenderObject&);
+
 private:
 #ifndef NDEBUG
     bool isSetNeedsLayoutForbidden() const { return m_setNeedsLayoutForbidden; }
@@ -966,6 +968,7 @@ private:
 
     RenderObjectBitfields m_bitfields;
 
+    // FIXME: This should be RenderElementRareData.
     class RenderObjectRareData {
     public:
         RenderObjectRareData()
@@ -985,17 +988,16 @@ private:
         // From RenderElement
         ADD_BOOLEAN_BITFIELD(isRegisteredForVisibleInViewportCallback, IsRegisteredForVisibleInViewportCallback);
         ADD_ENUM_BITFIELD(visibleInViewportState, VisibleInViewportState, VisibleInViewportState, 2);
-
+        std::unique_ptr<RenderStyle> cachedFirstLineStyle;
     };
     
-    RenderObjectRareData rareData() const;
+    const RenderObject::RenderObjectRareData& rareData() const;
     RenderObjectRareData& ensureRareData();
     void removeRareData();
     
-    // Note: RenderObjectRareData is stored by value.
-    typedef HashMap<const RenderObject*, RenderObjectRareData> RareDataHash;
+    typedef HashMap<const RenderObject*, std::unique_ptr<RenderObjectRareData>> RareDataMap;
 
-    static RareDataHash& rareDataMap();
+    static RareDataMap& rareDataMap();
 
 #undef ADD_BOOLEAN_BITFIELD
 };
@@ -1108,7 +1110,7 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
 SPECIALIZE_TYPE_TRAITS_END()
 
 #if ENABLE(TREE_DEBUGGING)
-// Outside the WebCore namespace for ease of invocation from gdb.
+// Outside the WebCore namespace for ease of invocation from the debugger.
 void showNodeTree(const WebCore::RenderObject*);
 void showLineTree(const WebCore::RenderObject*);
 void showRenderTree(const WebCore::RenderObject*);

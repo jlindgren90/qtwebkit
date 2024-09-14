@@ -459,7 +459,6 @@ public:
             
         case PhantomDirectArguments:
         case PhantomClonedArguments:
-        case PhantomCreateRest:
             // These pretend to be the empty value constant for the benefit of the DFG backend, which
             // otherwise wouldn't take kindly to a node that doesn't compute a value.
             return true;
@@ -473,7 +472,7 @@ public:
     {
         ASSERT(hasConstant());
         
-        if (op() == PhantomDirectArguments || op() == PhantomClonedArguments || op() == PhantomCreateRest) {
+        if (op() == PhantomDirectArguments || op() == PhantomClonedArguments) {
             // These pretend to be the empty value constant for the benefit of the DFG backend, which
             // otherwise wouldn't take kindly to a node that doesn't compute a value.
             return FrozenValue::emptySingleton();
@@ -534,7 +533,7 @@ public:
     
     void convertToGetByOffset(StorageAccessData& data, Edge storage, Edge base)
     {
-        ASSERT(m_op == GetById || m_op == GetByIdFlush || m_op == PureGetById || m_op == MultiGetByOffset);
+        ASSERT(m_op == GetById || m_op == GetByIdFlush || m_op == MultiGetByOffset);
         m_opInfo = &data;
         children.setChild1(storage);
         children.setChild2(base);
@@ -544,7 +543,7 @@ public:
     
     void convertToMultiGetByOffset(MultiGetByOffsetData* data)
     {
-        ASSERT(m_op == GetById || m_op == GetByIdFlush || m_op == PureGetById);
+        ASSERT(m_op == GetById || m_op == GetByIdFlush);
         m_opInfo = data;
         child1().setUseKind(CellUse);
         m_op = MultiGetByOffset;
@@ -587,7 +586,7 @@ public:
 
     void convertToPhantomNewFunction()
     {
-        ASSERT(m_op == NewFunction || m_op == NewGeneratorFunction);
+        ASSERT(m_op == NewFunction || m_op == NewGeneratorFunction || m_op == NewAsyncFunction);
         m_op = PhantomNewFunction;
         m_flags |= NodeMustGenerate;
         m_opInfo = OpInfoWrapper();
@@ -599,6 +598,16 @@ public:
     {
         ASSERT(m_op == NewGeneratorFunction);
         m_op = PhantomNewGeneratorFunction;
+        m_flags |= NodeMustGenerate;
+        m_opInfo = OpInfoWrapper();
+        m_opInfo2 = OpInfoWrapper();
+        children = AdjacencyList();
+    }
+
+    void convertToPhantomNewAsyncFunction()
+    {
+        ASSERT(m_op == NewAsyncFunction);
+        m_op = PhantomNewAsyncFunction;
         m_flags |= NodeMustGenerate;
         m_opInfo = OpInfoWrapper();
         m_opInfo2 = OpInfoWrapper();
@@ -922,7 +931,6 @@ public:
         switch (op()) {
         case TryGetById:
         case GetById:
-        case PureGetById:
         case GetByIdFlush:
         case GetByIdWithThis:
         case PutById:
@@ -1060,6 +1068,12 @@ public:
         default:
             return false;
         }
+    }
+
+    BitVector* bitVector()
+    {
+        ASSERT(op() == NewArrayWithSpread || op() == PhantomNewArrayWithSpread);
+        return m_opInfo.as<BitVector*>();
     }
 
     // Return the indexing type that an array allocation *wants* to use. It may end up using a different
@@ -1433,7 +1447,6 @@ public:
         case ArithCeil:
         case ArithTrunc:
         case GetDirectPname:
-        case PureGetById:
         case GetById:
         case GetByIdFlush:
         case GetByIdWithThis:
@@ -1456,6 +1469,7 @@ public:
         case MultiGetByOffset:
         case GetClosureVar:
         case GetFromArguments:
+        case GetArgument:
         case ArrayPop:
         case ArrayPush:
         case RegExpExec:
@@ -1493,6 +1507,7 @@ public:
         case OverridesHasInstance:
         case NewFunction:
         case NewGeneratorFunction:
+        case NewAsyncFunction:
         case CreateActivation:
         case MaterializeCreateActivation:
         case NewRegexp:
@@ -1728,6 +1743,7 @@ public:
         switch (op()) {
         case NewFunction:
         case NewGeneratorFunction:
+        case NewAsyncFunction:
             return true;
         default:
             return false;
@@ -1739,6 +1755,7 @@ public:
         switch (op()) {
         case PhantomNewFunction:
         case PhantomNewGeneratorFunction:
+        case PhantomNewAsyncFunction:
             return true;
         default:
             return false;
@@ -1751,9 +1768,12 @@ public:
         case PhantomNewObject:
         case PhantomDirectArguments:
         case PhantomCreateRest:
+        case PhantomSpread:
+        case PhantomNewArrayWithSpread:
         case PhantomClonedArguments:
         case PhantomNewFunction:
         case PhantomNewGeneratorFunction:
+        case PhantomNewAsyncFunction:
         case PhantomCreateActivation:
             return true;
         default:
@@ -2425,6 +2445,17 @@ public:
         return m_opInfo.as<unsigned>();
     }
 
+    bool hasArgumentIndex()
+    {
+        return op() == GetArgument;
+    }
+
+    unsigned argumentIndex()
+    {
+        ASSERT(hasArgumentIndex());
+        return m_opInfo.as<unsigned>();
+    }
+
     void dumpChildren(PrintStream& out)
     {
         if (!child1())
@@ -2560,15 +2591,18 @@ public:
     BasicBlock* owner;
 };
 
-inline bool nodeComparator(Node* a, Node* b)
-{
-    return a->index() < b->index();
-}
+struct NodeComparator {
+    template<typename NodePtrType>
+    bool operator()(NodePtrType a, NodePtrType b) const
+    {
+        return a->index() < b->index();
+    }
+};
 
 template<typename T>
 CString nodeListDump(const T& nodeList)
 {
-    return sortedListDump(nodeList, nodeComparator);
+    return sortedListDump(nodeList, NodeComparator());
 }
 
 template<typename T>
@@ -2579,7 +2613,7 @@ CString nodeMapDump(const T& nodeMap, DumpContext* context = 0)
         typename T::const_iterator iter = nodeMap.begin();
         iter != nodeMap.end(); ++iter)
         keys.append(iter->key);
-    std::sort(keys.begin(), keys.end(), nodeComparator);
+    std::sort(keys.begin(), keys.end(), NodeComparator());
     StringPrintStream out;
     CommaPrinter comma;
     for(unsigned i = 0; i < keys.size(); ++i)
@@ -2593,7 +2627,7 @@ CString nodeValuePairListDump(const T& nodeValuePairList, DumpContext* context =
     using V = typename T::ValueType;
     T sortedList = nodeValuePairList;
     std::sort(sortedList.begin(), sortedList.end(), [](const V& a, const V& b) {
-        return nodeComparator(a.node, b.node);
+        return NodeComparator()(a.node, b.node);
     });
 
     StringPrintStream out;

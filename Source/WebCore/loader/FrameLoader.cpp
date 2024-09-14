@@ -85,9 +85,11 @@
 #include "MIMETypeRegistry.h"
 #include "MainFrame.h"
 #include "MemoryCache.h"
+#include "MemoryRelease.h"
 #include "Page.h"
 #include "PageCache.h"
 #include "PageTransitionEvent.h"
+#include "PerformanceLogging.h"
 #include "PlatformStrategies.h"
 #include "PluginData.h"
 #include "PluginDocument.h"
@@ -100,7 +102,6 @@
 #include "SVGDocument.h"
 #include "SVGLocatable.h"
 #include "SVGNames.h"
-#include "SVGPreserveAspectRatio.h"
 #include "SVGViewElement.h"
 #include "SVGViewSpec.h"
 #include "SchemeRegistry.h"
@@ -133,10 +134,8 @@
 
 #if PLATFORM(IOS)
 #include "DocumentType.h"
-#include "MemoryPressureHandler.h"
 #include "ResourceLoader.h"
 #include "RuntimeApplicationChecks.h"
-#include "SystemMemory.h"
 #include "WKContentObservation.h"
 #endif
 
@@ -148,10 +147,6 @@ using namespace HTMLNames;
 using namespace SVGNames;
 
 static const char defaultAcceptHeader[] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-
-#if PLATFORM(IOS)
-const int memoryLevelThresholdToPrunePageCache = 20;
-#endif
 
 bool isBackForwardLoadType(FrameLoadType type)
 {
@@ -343,9 +338,9 @@ void FrameLoader::changeLocation(const FrameLoadRequest& request)
     urlSelected(request, nullptr);
 }
 
-void FrameLoader::urlSelected(const URL& url, const String& passedTarget, Event* triggeringEvent, LockHistory lockHistory, LockBackForwardList lockBackForwardList, ShouldSendReferrer shouldSendReferrer, ShouldOpenExternalURLsPolicy shouldOpenExternalURLsPolicy, Optional<NewFrameOpenerPolicy> openerPolicy, const AtomicString& downloadAttribute)
+void FrameLoader::urlSelected(const URL& url, const String& passedTarget, Event* triggeringEvent, LockHistory lockHistory, LockBackForwardList lockBackForwardList, ShouldSendReferrer shouldSendReferrer, ShouldOpenExternalURLsPolicy shouldOpenExternalURLsPolicy, std::optional<NewFrameOpenerPolicy> openerPolicy, const AtomicString& downloadAttribute)
 {
-    NewFrameOpenerPolicy newFrameOpenerPolicy = openerPolicy.valueOr(shouldSendReferrer == NeverSendReferrer ? NewFrameOpenerPolicy::Suppress : NewFrameOpenerPolicy::Allow);
+    NewFrameOpenerPolicy newFrameOpenerPolicy = openerPolicy.value_or(shouldSendReferrer == NeverSendReferrer ? NewFrameOpenerPolicy::Suppress : NewFrameOpenerPolicy::Allow);
     urlSelected(FrameLoadRequest(m_frame.document()->securityOrigin(), ResourceRequest(url), passedTarget, lockHistory, lockBackForwardList, shouldSendReferrer, AllowNavigationToInvalidURL::Yes, newFrameOpenerPolicy, DoNotReplaceDocumentIfJavaScriptURL, shouldOpenExternalURLsPolicy, downloadAttribute), triggeringEvent);
 }
 
@@ -456,13 +451,13 @@ void FrameLoader::stopLoading(UnloadEventPolicy unloadEventPolicy)
         m_frame.document()->setParsing(false);
     }
 
-    if (Document* doc = m_frame.document()) {
+    if (auto* document = m_frame.document()) {
         // FIXME: HTML5 doesn't tell us to set the state to complete when aborting, but we do anyway to match legacy behavior.
         // http://www.w3.org/Bugs/Public/show_bug.cgi?id=10537
-        doc->setReadyState(Document::Complete);
+        document->setReadyState(Document::Complete);
 
         // FIXME: Should the DatabaseManager watch for something like ActiveDOMObject::stop() rather than being special-cased here?
-        DatabaseManager::singleton().stopDatabases(doc, 0);
+        DatabaseManager::singleton().stopDatabases(*document, nullptr);
     }
 
     // FIXME: This will cancel redirection timer, which really needs to be restarted when restoring the frame from b/f cache.
@@ -573,6 +568,17 @@ void FrameLoader::cancelAndClear()
     m_frame.script().updatePlatformScriptObjects();
 }
 
+static inline bool shouldClearWindowName(const Frame& frame, const Document& newDocument)
+{
+    if (!frame.isMainFrame())
+        return false;
+
+    if (frame.loader().opener())
+        return false;
+
+    return !newDocument.securityOrigin()->isSameOriginAs(frame.document()->securityOrigin());
+}
+
 void FrameLoader::clear(Document* newDocument, bool clearWindowProperties, bool clearScriptObjects, bool clearFrameView)
 {
     m_frame.editor().clear();
@@ -587,14 +593,17 @@ void FrameLoader::clear(Document* newDocument, bool clearWindowProperties, bool 
         bool hadLivingRenderTree = m_frame.document()->hasLivingRenderTree();
         m_frame.document()->prepareForDestruction();
         if (hadLivingRenderTree)
-            m_frame.document()->removeFocusedNodeOfSubtree(m_frame.document());
+            m_frame.document()->removeFocusedNodeOfSubtree(*m_frame.document());
     }
 
     // Do this after detaching the document so that the unload event works.
     if (clearWindowProperties) {
         InspectorInstrumentation::frameWindowDiscarded(m_frame, m_frame.document()->domWindow());
         m_frame.document()->domWindow()->resetUnlessSuspendedForDocumentSuspension();
-        m_frame.script().clearWindowShellsNotMatchingDOMWindow(newDocument->domWindow(), m_frame.document()->pageCacheState() == Document::AboutToEnterPageCache);
+        m_frame.script().clearWindowShell(newDocument->domWindow(), m_frame.document()->pageCacheState() == Document::AboutToEnterPageCache);
+
+        if (shouldClearWindowName(m_frame, *newDocument))
+            m_frame.tree().setName(nullAtom);
     }
 
     m_frame.selection().prepareForDestruction();
@@ -611,9 +620,6 @@ void FrameLoader::clear(Document* newDocument, bool clearWindowProperties, bool 
     m_frame.setDocument(nullptr);
 
     subframeLoader().clear();
-
-    if (clearWindowProperties)
-        m_frame.script().setDOMWindowForWindowShell(newDocument->domWindow());
 
     if (clearScriptObjects)
         m_frame.script().clearScriptObjects();
@@ -632,7 +638,7 @@ void FrameLoader::clear(Document* newDocument, bool clearWindowProperties, bool 
 
 void FrameLoader::receivedFirstData()
 {
-    dispatchDidCommitLoad(Nullopt);
+    dispatchDidCommitLoad(std::nullopt);
     dispatchDidClearWindowObjectsInAllWorlds();
     dispatchGlobalObjectAvailableInAllWorlds();
 
@@ -917,12 +923,14 @@ String FrameLoader::outgoingReferrer() const
     // See http://www.whatwg.org/specs/web-apps/current-work/#fetching-resources
     // for why we walk the parent chain for srcdoc documents.
     Frame* frame = &m_frame;
-    while (frame->document()->isSrcdocDocument()) {
+    while (frame && frame->document()->isSrcdocDocument()) {
         frame = frame->tree().parent();
         // Srcdoc documents cannot be top-level documents, by definition,
         // because they need to be contained in iframes with the srcdoc.
         ASSERT(frame);
     }
+    if (!frame)
+        return emptyString();
     return frame->loader().m_outgoingReferrer;
 }
 
@@ -1411,8 +1419,10 @@ void FrameLoader::loadWithDocumentLoader(DocumentLoader* loader, FrameLoadType t
         m_previousURL = m_frame.document()->url();
 
     // Log main frame navigation types.
-    if (m_frame.isMainFrame())
+    if (m_frame.isMainFrame()) {
         logNavigation(static_cast<MainFrame&>(m_frame), type);
+        static_cast<MainFrame&>(m_frame).performanceLogging().didReachPointOfInterest(PerformanceLogging::MainFrameLoadStarted);
+    }
 
     policyChecker().setLoadType(type);
     RefPtr<FormState> formState = prpFormState;
@@ -1718,7 +1728,8 @@ void FrameLoader::setProvisionalDocumentLoader(DocumentLoader* loader)
 }
 
 void FrameLoader::setState(FrameState newState)
-{    
+{
+    FrameState oldState = m_state;
     m_state = newState;
     
     if (newState == FrameStateProvisional)
@@ -1727,6 +1738,8 @@ void FrameLoader::setState(FrameState newState)
         frameLoadCompleted();
         if (m_documentLoader)
             m_documentLoader->stopRecordingResponses();
+        if (m_frame.isMainFrame() && oldState != newState)
+            static_cast<MainFrame&>(m_frame).performanceLogging().didReachPointOfInterest(PerformanceLogging::MainFrameLoadCompleted);
     }
 }
 
@@ -1750,27 +1763,6 @@ void FrameLoader::commitProvisionalLoad()
         m_frame.document() ? m_frame.document()->url().stringCenterEllipsizedToLength().utf8().data() : "",
         pdl ? pdl->url().stringCenterEllipsizedToLength().utf8().data() : "<no provisional DocumentLoader>");
 
-#if PLATFORM(IOS)
-    // In the case where we are not navigating to a cached page, and the system is under (speculative) memory pressure,
-    // we can try to preemptively release some of the pages in the cache.
-    // FIXME: Right now the capacity is 1 on iOS devices with 256 MB of RAM, so this will always blow away the whole
-    // page cache. We could still preemptively prune the page cache while navigating to a cached page if capacity > 1.
-    // See <rdar://problem/11779846> for more details.
-    if (!cachedPage) {
-        if (MemoryPressureHandler::singleton().isUnderMemoryPressure()) {
-            LOG(MemoryPressure, "Pruning page cache because under memory pressure at: %s", __PRETTY_FUNCTION__);
-            LOG(PageCache, "Pruning page cache to 0 due to memory pressure");
-            // Don't cache any page if we are under memory pressure.
-            PageCache::singleton().pruneToSizeNow(0, PruningReason::MemoryPressure);
-        } else if (systemMemoryLevel() <= memoryLevelThresholdToPrunePageCache) {
-            LOG(MemoryPressure, "Pruning page cache because system memory level is %d at: %s", systemMemoryLevel(), __PRETTY_FUNCTION__);
-            auto& pageCache = PageCache::singleton();
-            LOG(PageCache, "Pruning page cache to %d due to low memory (level %d less or equal to %d threshold)", pageCache.maxSize() / 2, systemMemoryLevel(), memoryLevelThresholdToPrunePageCache);
-            pageCache.pruneToSizeNow(pageCache.maxSize() / 2, PruningReason::MemoryPressure);
-        }
-    }
-#endif
-
     willTransitionToCommitted();
 
     if (!m_frame.tree().parent() && history().currentItem()) {
@@ -1778,7 +1770,7 @@ void FrameLoader::commitProvisionalLoad()
         // We are doing this here because we know for sure that a new page is about to be loaded.
         PageCache::singleton().addIfCacheable(*history().currentItem(), m_frame.page());
         
-        MemoryPressureHandler::singleton().jettisonExpensiveObjectsOnTopLevelNavigation();
+        WebCore::jettisonExpensiveObjectsOnTopLevelNavigation();
     }
 
     if (m_loadType != FrameLoadType::Replace)
@@ -1818,7 +1810,7 @@ void FrameLoader::commitProvisionalLoad()
         requestFromDelegate(mainResourceRequest, mainResourceIdentifier, mainResouceError);
         notifier().dispatchDidReceiveResponse(cachedPage->documentLoader(), mainResourceIdentifier, cachedPage->documentLoader()->response());
 
-        Optional<HasInsecureContent> hasInsecureContent = cachedPage->cachedMainFrame()->hasInsecureContent();
+        std::optional<HasInsecureContent> hasInsecureContent = cachedPage->cachedMainFrame()->hasInsecureContent();
 
         // FIXME: This API should be turned around so that we ground CachedPage into the Page.
         cachedPage->restore(*m_frame.page());
@@ -2101,7 +2093,7 @@ void FrameLoader::open(CachedFrameBase& cachedFrame)
     ASSERT(view);
     view->setWasScrolledByUser(false);
 
-    Optional<IntRect> previousViewFrameRect = m_frame.view() ?  m_frame.view()->frameRect() : Optional<IntRect>(Nullopt);
+    std::optional<IntRect> previousViewFrameRect = m_frame.view() ?  m_frame.view()->frameRect() : std::optional<IntRect>(std::nullopt);
     m_frame.setView(view);
 
     // Use the previous ScrollView's frame rect.
@@ -2371,7 +2363,14 @@ void FrameLoader::setOriginalURLForDownloadRequest(ResourceRequest& request)
 {
     // FIXME: Rename firstPartyForCookies back to mainDocumentURL. It was a mistake to think that it was only used for cookies.
     // The originalURL is defined as the URL of the page where the download was initiated.
-    URL originalURL = m_frame.document() ? m_frame.document()->firstPartyForCookies() : URL();
+    URL originalURL;
+    if (m_frame.document()) {
+        originalURL = m_frame.document()->firstPartyForCookies();
+        // If there is no main document URL, it means that this document is newly opened and just for download purpose.
+        // In this case, we need to set the originalURL to this document's opener's main document URL.
+        if (originalURL.isEmpty() && opener() && opener()->document())
+            originalURL = opener()->document()->firstPartyForCookies();
+    }
     // If the originalURL is the same as the requested URL, we are processing a download
     // initiated directly without a page and do not need to specify the originalURL.
     if (originalURL == request.url())
@@ -3533,7 +3532,7 @@ void FrameLoader::didChangeTitle(DocumentLoader* loader)
 #endif
 }
 
-void FrameLoader::dispatchDidCommitLoad(Optional<HasInsecureContent> initialHasInsecureContent)
+void FrameLoader::dispatchDidCommitLoad(std::optional<HasInsecureContent> initialHasInsecureContent)
 {
     if (m_stateMachine.creatingInitialEmptyDocument())
         return;
@@ -3597,8 +3596,8 @@ void FrameLoader::forcePageTransitionIfNeeded()
 
 void FrameLoader::clearTestingOverrides()
 {
-    m_overrideCachePolicyForTesting = Nullopt;
-    m_overrideResourceLoadPriorityForTesting = Nullopt;
+    m_overrideCachePolicyForTesting = std::nullopt;
+    m_overrideResourceLoadPriorityForTesting = std::nullopt;
     m_isStrictRawResourceValidationPolicyDisabledForTesting = false;
 }
 
@@ -3723,6 +3722,11 @@ RefPtr<Frame> createWindow(Frame& openerFrame, Frame& lookupFrame, const FrameLo
 
     created = true;
     return frame;
+}
+
+bool FrameLoader::shouldSuppressKeyboardInput() const
+{
+    return m_frame.settings().shouldSuppressKeyboardInputDuringProvisionalNavigation() && m_state == FrameStateProvisional;
 }
 
 } // namespace WebCore

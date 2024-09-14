@@ -82,7 +82,7 @@ public:
     virtual bool typeMismatch() const;
     virtual bool valueMissing() const;
     virtual String validationMessage() const;
-    bool valid() const;
+    virtual bool isValid() const;
     virtual void setCustomValidity(const String&);
 
     void formAttributeTargetChanged();
@@ -92,7 +92,7 @@ protected:
 
     void insertedInto(ContainerNode&);
     void removedFrom(ContainerNode&);
-    void didMoveToNewDocument(Document* oldDocument);
+    void didMoveToNewDocument(Document& oldDocument);
 
     void setForm(HTMLFormElement*);
     void formAttributeChanged();

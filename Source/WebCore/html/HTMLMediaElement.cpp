@@ -37,6 +37,7 @@
 #include "ChromeClient.h"
 #include "ClientRect.h"
 #include "ClientRectList.h"
+#include "CommonVM.h"
 #include "ContentSecurityPolicy.h"
 #include "ContentType.h"
 #include "CookieJar.h"
@@ -47,7 +48,6 @@
 #include "DocumentLoader.h"
 #include "ElementIterator.h"
 #include "EventNames.h"
-#include "ExceptionCodePlaceholder.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
 #include "FrameView.h"
@@ -55,6 +55,7 @@
 #include "HTMLSourceElement.h"
 #include "HTMLVideoElement.h"
 #include "JSDOMError.h"
+#include "JSDOMPromise.h"
 #include "JSHTMLMediaElement.h"
 #include "Language.h"
 #include "Logging.h"
@@ -82,6 +83,7 @@
 #include "ResourceLoadInfo.h"
 #include "ScriptController.h"
 #include "ScriptSourceCode.h"
+#include "SecurityOriginData.h"
 #include "SecurityPolicy.h"
 #include "SessionID.h"
 #include "Settings.h"
@@ -152,6 +154,10 @@
 #include "JSMediaControlsHost.h"
 #include "MediaControlsHost.h"
 #include <bindings/ScriptObject.h>
+#endif
+
+#if ENABLE(ENCRYPTED_MEDIA)
+#include "NotImplemented.h"
 #endif
 
 namespace WebCore {
@@ -567,6 +573,15 @@ HTMLMediaElement::~HTMLMediaElement()
     updatePlaybackControlsManager();
 }
 
+static bool needsPlaybackControlsManagerQuirk(Page& page)
+{
+    if (!page.settings().needsSiteSpecificQuirks())
+        return false;
+
+    String host = page.mainFrame().document()->url().host();
+    return equalLettersIgnoringASCIICase(host, "netflix.com") || host.endsWithIgnoringASCIICase(".netflix.com");
+}
+
 HTMLMediaElement* HTMLMediaElement::bestMediaElementForShowingPlaybackControlsManager(MediaElementSession::PlaybackControlsPurpose purpose)
 {
     auto allSessions = PlatformMediaSessionManager::sharedManager().currentSessionsMatching([] (const PlatformMediaSession& session) {
@@ -591,7 +606,15 @@ HTMLMediaElement* HTMLMediaElement::bestMediaElementForShowingPlaybackControlsMa
     if (!strongestSessionCandidate.isVisibleInViewportOrFullscreen && !strongestSessionCandidate.isPlayingAudio && atLeastOneNonCandidateMayBeConfusedForMainContent)
         return nullptr;
 
-    return &strongestSessionCandidate.session->element();
+    HTMLMediaElement* strongestElementCandidate = &strongestSessionCandidate.session->element();
+    if (strongestElementCandidate) {
+        if (Page* page = strongestElementCandidate->document().page()) {
+            if (needsPlaybackControlsManagerQuirk(*page))
+                return nullptr;
+        }
+    }
+
+    return strongestElementCandidate;
 }
 
 void HTMLMediaElement::registerWithDocument(Document& document)
@@ -664,16 +687,14 @@ void HTMLMediaElement::unregisterWithDocument(Document& document)
     removeElementFromDocumentMap(*this, document);
 }
 
-void HTMLMediaElement::didMoveToNewDocument(Document* oldDocument)
+void HTMLMediaElement::didMoveToNewDocument(Document& oldDocument)
 {
     if (m_shouldDelayLoadEvent) {
-        if (oldDocument)
-            oldDocument->decrementLoadEventDelayCount();
+        oldDocument.decrementLoadEventDelayCount();
         document().incrementLoadEventDelayCount();
     }
 
-    if (oldDocument)
-        unregisterWithDocument(*oldDocument);
+    unregisterWithDocument(oldDocument);
 
     registerWithDocument(document());
 
@@ -807,8 +828,12 @@ Node::InsertionNotificationRequest HTMLMediaElement::insertedInto(ContainerNode&
         m_muted = hasAttributeWithoutSynchronization(mutedAttr);
     }
 
+    return InsertionShouldCallFinishedInsertingSubtree;
+}
+
+void HTMLMediaElement::finishedInsertingSubtree()
+{
     configureMediaControls();
-    return InsertionDone;
 }
 
 void HTMLMediaElement::pauseAfterDetachedTask()
@@ -829,7 +854,7 @@ void HTMLMediaElement::pauseAfterDetachedTask()
 
     size_t extraMemoryCost = m_player->extraMemoryCost();
     if (extraMemoryCost > m_reportedExtraMemoryCost) {
-        JSC::VM& vm = JSDOMWindowBase::commonVM();
+        JSC::VM& vm = commonVM();
         JSC::JSLockHolder lock(vm);
 
         size_t extraMemoryCostDelta = extraMemoryCost - m_reportedExtraMemoryCost;
@@ -955,18 +980,18 @@ void HTMLMediaElement::scheduleResolvePendingPlayPromises()
 
 void HTMLMediaElement::rejectPendingPlayPromises(DOMError& error)
 {
-    Vector<PlayPromise> pendingPlayPromises = WTFMove(m_pendingPlayPromises);
+    Vector<DOMPromise<void>> pendingPlayPromises = WTFMove(m_pendingPlayPromises);
 
     for (auto& promise : pendingPlayPromises)
-        promise.reject(error);
+        promise.rejectType<IDLInterface<DOMError>>(error);
 }
 
 void HTMLMediaElement::resolvePendingPlayPromises()
 {
-    Vector<PlayPromise> pendingPlayPromises = WTFMove(m_pendingPlayPromises);
+    Vector<DOMPromise<void>> pendingPlayPromises = WTFMove(m_pendingPlayPromises);
 
     for (auto& promise : pendingPlayPromises)
-        promise.resolve(nullptr);
+        promise.resolve();
 }
 
 void HTMLMediaElement::scheduleNotifyAboutPlaying()
@@ -1046,8 +1071,11 @@ void HTMLMediaElement::setSrcObject(ScriptExecutionContext& context, MediaStream
     // https://bugs.webkit.org/show_bug.cgi?id=124896
 
     m_mediaStreamSrcObject = mediaStream;
-    if (mediaStream)
+    if (mediaStream) {
+        m_settingMediaStreamSrcObject = true;
         setSrc(DOMURL::createPublicURL(context, *mediaStream));
+        m_settingMediaStreamSrcObject = false;
+    }
 }
 #endif
 
@@ -2410,7 +2438,7 @@ String HTMLMediaElement::mediaPlayerMediaKeysStorageDirectory() const
     if (!origin)
         return emptyString();
 
-    return pathByAppendingComponent(storageDirectory, origin->databaseIdentifier());
+    return pathByAppendingComponent(storageDirectory, SecurityOriginData::fromSecurityOrigin(*origin).databaseIdentifier());
 }
 
 void HTMLMediaElement::webkitSetMediaKeys(WebKitMediaKeys* mediaKeys)
@@ -2432,6 +2460,20 @@ void HTMLMediaElement::keyAdded()
 }
 
 #endif
+
+#if ENABLE(ENCRYPTED_MEDIA)
+
+MediaKeys* HTMLMediaElement::mediaKeys() const
+{
+    return nullptr;
+}
+
+void HTMLMediaElement::setMediaKeys(MediaKeys*, Ref<DeferredPromise>&&)
+{
+    notImplemented();
+}
+
+#endif // ENABLE(ENCRYPTED_MEDIA)
 
 void HTMLMediaElement::progressEventTimerFired()
 {
@@ -3021,7 +3063,7 @@ void HTMLMediaElement::setPreload(const String& preload)
     setAttributeWithoutSynchronization(preloadAttr, preload);
 }
 
-void HTMLMediaElement::play(PlayPromise&& promise)
+void HTMLMediaElement::play(DOMPromise<void>&& promise)
 {
     LOG(Media, "HTMLMediaElement::play(%p)", this);
 
@@ -3556,6 +3598,7 @@ void HTMLMediaElement::addVideoTrack(Ref<VideoTrack>&& track)
 void HTMLMediaElement::removeAudioTrack(AudioTrack& track)
 {
     m_audioTracks->remove(track);
+    track.clearClient();
 }
 
 void HTMLMediaElement::removeTextTrack(TextTrack& track, bool scheduleEvent)
@@ -3573,6 +3616,7 @@ void HTMLMediaElement::removeTextTrack(TextTrack& track, bool scheduleEvent)
 void HTMLMediaElement::removeVideoTrack(VideoTrack& track)
 {
     m_videoTracks->remove(track);
+    track.clearClient();
 }
 
 void HTMLMediaElement::forgetResourceSpecificTracks()
@@ -3824,7 +3868,7 @@ static JSC::JSValue controllerJSValue(JSC::ExecState& exec, JSDOMGlobalObject& g
     
     JSC::Identifier controlsHost = JSC::Identifier::fromString(&vm, "controlsHost");
     JSC::JSValue controlsHostJSWrapper = mediaJSWrapperObject->get(&exec, controlsHost);
-    RETURN_IF_EXCEPTION(scope, JSC::JSValue());
+    RETURN_IF_EXCEPTION(scope, JSC::jsNull());
 
     JSC::JSObject* controlsHostJSWrapperObject = jsDynamicDowncast<JSC::JSObject*>(controlsHostJSWrapper);
     if (!controlsHostJSWrapperObject)
@@ -3832,7 +3876,7 @@ static JSC::JSValue controllerJSValue(JSC::ExecState& exec, JSDOMGlobalObject& g
 
     JSC::Identifier controllerID = JSC::Identifier::fromString(&vm, "controller");
     JSC::JSValue controllerJSWrapper = controlsHostJSWrapperObject->get(&exec, controllerID);
-    RETURN_IF_EXCEPTION(scope, JSC::JSValue());
+    RETURN_IF_EXCEPTION(scope, JSC::jsNull());
 
     return controllerJSWrapper;
 }
@@ -4786,6 +4830,12 @@ void HTMLMediaElement::updateVolume()
         m_player->setVolume(m_volume * volumeMultiplier);
     }
 
+#if ENABLE(MEDIA_SESSION)
+    document().updateIsPlayingMedia(m_elementID);
+#else
+    document().updateIsPlayingMedia();
+#endif
+
     if (hasMediaControls())
         mediaControls()->changedVolume();
 #endif
@@ -4964,6 +5014,11 @@ void HTMLMediaElement::userCancelledLoad()
 void HTMLMediaElement::clearMediaPlayer(DelayedActionType flags)
 {
     LOG(Media, "HTMLMediaElement::clearMediaPlayer(%p) - flags = %s", this, actionName(flags).utf8().data());
+
+#if ENABLE(MEDIA_STREAM)
+    if (!m_settingMediaStreamSrcObject)
+        m_mediaStreamSrcObject = nullptr;
+#endif
 
 #if ENABLE(MEDIA_SOURCE)
     detachMediaSource();
@@ -5354,7 +5409,7 @@ void HTMLMediaElement::enterFullscreen(VideoFullscreenMode mode)
 #if ENABLE(FULLSCREEN_API)
     if (document().settings()->fullScreenEnabled()) {
         if (mode == VideoFullscreenModeStandard) {
-            document().requestFullScreenForElement(this, 0, Document::ExemptIFrameAllowFullScreenRequirement);
+            document().requestFullScreenForElement(this, Document::ExemptIFrameAllowFullScreenRequirement);
             return;
         }
 
@@ -5645,8 +5700,9 @@ unsigned HTMLMediaElement::webkitVideoDecodedByteCount() const
 }
 #endif
 
-void HTMLMediaElement::mediaCanStart()
+void HTMLMediaElement::mediaCanStart(Document& document)
 {
+    ASSERT_UNUSED(document, &document == &this->document());
     LOG(Media, "HTMLMediaElement::mediaCanStart(%p) - m_isWaitingUntilMediaCanStart = %s, m_pausedInternal = %s",
         this, boolString(m_isWaitingUntilMediaCanStart), boolString(m_pausedInternal) );
 
@@ -5727,9 +5783,13 @@ void HTMLMediaElement::privateBrowsingStateDidChange()
 MediaControls* HTMLMediaElement::mediaControls() const
 {
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
-    return 0;
+    return nullptr;
 #else
-    return toMediaControls(userAgentShadowRoot()->firstChild());
+    ShadowRoot* root = userAgentShadowRoot();
+    if (!root)
+        return nullptr;
+    
+    return childrenOfType<MediaControls>(*root).first();
 #endif
 }
 
@@ -5740,7 +5800,7 @@ bool HTMLMediaElement::hasMediaControls() const
 #else
 
     if (ShadowRoot* userAgent = userAgentShadowRoot()) {
-        Node* node = userAgent->firstChild();
+        Node* node = childrenOfType<MediaControls>(*root).first();
         ASSERT_WITH_SECURITY_IMPLICATION(!node || node->isMediaControls());
         return node;
     }
@@ -5767,7 +5827,7 @@ bool HTMLMediaElement::createMediaControls()
     if (isFullscreen())
         mediaControls->enteredFullscreen();
 
-    ensureUserAgentShadowRoot().appendChild(mediaControls, ASSERT_NO_EXCEPTION);
+    ensureUserAgentShadowRoot().appendChild(mediaControls);
 
     if (!controls() || !inDocument())
         mediaControls->hide();
@@ -5925,10 +5985,6 @@ void HTMLMediaElement::createMediaPlayer()
 #if ENABLE(MEDIA_SOURCE)
     if (m_mediaSource)
         m_mediaSource->detachFromElement(*this);
-#endif
-
-#if ENABLE(MEDIA_STREAM)
-    m_mediaStreamSrcObject = nullptr;
 #endif
 
 #if ENABLE(VIDEO_TRACK)
@@ -6445,7 +6501,7 @@ RefPtr<VideoPlaybackQuality> HTMLMediaElement::getVideoPlaybackQuality()
 DOMWrapperWorld& HTMLMediaElement::ensureIsolatedWorld()
 {
     if (!m_isolatedWorld)
-        m_isolatedWorld = DOMWrapperWorld::create(JSDOMWindow::commonVM());
+        m_isolatedWorld = DOMWrapperWorld::create(commonVM());
     return *m_isolatedWorld;
 }
 
@@ -6515,6 +6571,9 @@ void HTMLMediaElement::setControllerJSProperty(const char* propertyName, JSC::JS
     JSC::JSLockHolder lock(exec);
 
     JSC::JSValue controllerValue = controllerJSValue(*exec, *globalObject, *this);
+    if (controllerValue.isNull())
+        return;
+
     JSC::PutPropertySlot propertySlot(controllerValue);
     JSC::JSObject* controllerObject = controllerValue.toObject(exec);
     if (!controllerObject)

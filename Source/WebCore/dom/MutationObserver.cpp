@@ -32,7 +32,6 @@
 
 #include "MutationObserver.h"
 
-#include "Dictionary.h"
 #include "Document.h"
 #include "ExceptionCode.h"
 #include "HTMLSlotElement.h"
@@ -80,9 +79,9 @@ ExceptionOr<void> MutationObserver::observe(Node& node, const Init& init)
         options |= ChildList;
     if (init.subtree)
         options |= Subtree;
-    if (init.attributeOldValue.valueOr(false))
+    if (init.attributeOldValue.value_or(false))
         options |= AttributeOldValue;
-    if (init.characterDataOldValue.valueOr(false))
+    if (init.characterDataOldValue.value_or(false))
         options |= CharacterDataOldValue;
 
     HashSet<AtomicString> attributeFilter;

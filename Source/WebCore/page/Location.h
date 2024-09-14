@@ -39,8 +39,6 @@ class DOMWindow;
 class Frame;
 class URL;
 
-typedef int ExceptionCode;
-
 class Location : public ScriptWrappable, public RefCounted<Location>, public DOMWindowProperty {
 public:
     static Ref<Location> create(Frame* frame) { return adoptRef(*new Location(frame)); }
@@ -70,7 +68,7 @@ public:
 
     String toString() const { return href(); }
 
-    Vector<String> ancestorOrigins() const;
+    Ref<DOMStringList> ancestorOrigins() const;
 
 private:
     explicit Location(Frame*);

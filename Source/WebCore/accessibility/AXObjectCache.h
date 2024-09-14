@@ -43,6 +43,7 @@ class Document;
 class HTMLAreaElement;
 class Node;
 class Page;
+class RenderBlock;
 class RenderObject;
 class ScrollView;
 class VisiblePosition;
@@ -110,13 +111,8 @@ struct VisiblePositionIndexRange {
 class AccessibilityReplacedText {
 public:
     AccessibilityReplacedText() { }
-#if HAVE(ACCESSIBILITY)
     AccessibilityReplacedText(const VisibleSelection&);
     void postTextStateChangeNotification(AXObjectCache*, AXTextEditType, const String&, const VisibleSelection&);
-#else
-    AccessibilityReplacedText(const VisibleSelection&) { }
-    void postTextStateChangeNotification(AXObjectCache*, AXTextEditType, const String&, const VisibleSelection&) { }
-#endif
     const VisiblePositionIndexRange& replacedRange() { return m_replacedRange; }
 protected:
     String m_replacedText;
@@ -328,6 +324,8 @@ public:
 #if PLATFORM(MAC)
     static void setShouldRepostNotificationsForTests(bool value);
 #endif
+    void recomputeDeferredIsIgnored(RenderBlock& renderer);
+    void performDeferredIsIgnoredChange();
 
 protected:
     void postPlatformNotification(AccessibilityObject*, AXNotification);
@@ -426,6 +424,7 @@ private:
 
     AXTextStateChangeIntent m_textSelectionIntent;
     bool m_isSynchronizingSelection { false };
+    ListHashSet<RenderBlock*> m_deferredIsIgnoredChangeList;
 };
 
 class AXAttributeCacheEnabler
@@ -446,6 +445,8 @@ bool isNodeAriaVisible(Node*);
     
 #if !HAVE(ACCESSIBILITY)
 inline AccessibilityObjectInclusion AXComputedObjectAttributeCache::getIgnored(AXID) const { return DefaultBehavior; }
+inline AccessibilityReplacedText::AccessibilityReplacedText(const VisibleSelection&) { }
+inline void AccessibilityReplacedText::postTextStateChangeNotification(AXObjectCache*, AXTextEditType, const String&, const VisibleSelection&) { }
 inline void AXComputedObjectAttributeCache::setIgnored(AXID, AccessibilityObjectInclusion) { }
 inline AXObjectCache::AXObjectCache(Document& document) : m_document(document), m_notificationPostTimer(nullptr), m_passwordNotificationPostTimer(nullptr), m_liveRegionChangedPostTimer(nullptr) { }
 inline AXObjectCache::~AXObjectCache() { }

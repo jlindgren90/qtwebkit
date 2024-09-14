@@ -70,6 +70,17 @@ enum UserInterfaceLayoutDirection {
     "RTL"
 };
 
+enum BaseWritingDirection {
+    "Natural",
+    "Ltr",
+    "Rtl"
+};
+
+enum EventThrottlingBehavior {
+    "responsive",
+    "unresponsive"
+};
+
 [
     ExportMacro=WEBCORE_TESTSUPPORT_EXPORT,
     NoInterfaceObject,
@@ -102,6 +113,11 @@ enum UserInterfaceLayoutDirection {
 
     Node ensureUserAgentShadowRoot(Element host);
     Node shadowRoot(Element host);
+
+    // CSS Deferred Parsing Testing.
+    long deferredStyleRulesCount(StyleSheet sheet);
+    long deferredGroupRulesCount(StyleSheet sheet);
+    long deferredKeyframesRulesCount(StyleSheet sheet);
 
     [MayThrowException] DOMString shadowRootType(Node root);
     DOMString shadowPseudoId(Element element);
@@ -221,6 +237,8 @@ enum UserInterfaceLayoutDirection {
     [MayThrowException] boolean isPageBoxVisible(long pageNumber);
 
     unsigned long imageFrameIndex(HTMLImageElement element);
+    void setImageFrameDecodingDuration(HTMLImageElement element, unrestricted float duration);
+    void resetImageAnimation(HTMLImageElement element);
 
     readonly attribute InternalSettings settings;
     readonly attribute unsigned long workerThreadCount;
@@ -304,6 +322,8 @@ enum UserInterfaceLayoutDirection {
     void registerURLSchemeAsBypassingContentSecurityPolicy(DOMString scheme);
     void removeURLSchemeRegisteredAsBypassingContentSecurityPolicy(DOMString scheme);
 
+    void registerDefaultPortForProtocol(unsigned short port, DOMString scheme);
+
     MallocStatistics mallocStatistics();
     TypeConversions typeConversions();
     MemoryInfo memoryInfo();
@@ -323,6 +343,9 @@ enum UserInterfaceLayoutDirection {
 
     boolean isRequestAnimationFrameThrottled();
     boolean areTimersThrottled();
+
+    // Override the behavior of WebPage::eventThrottlingDelay(), which only affects iOS.
+    attribute EventThrottlingBehavior? eventThrottlingBehaviorOverride;
 
     [MayThrowException] void startTrackingStyleRecalcs();
     [MayThrowException] unsigned long styleRecalcCount();
@@ -361,6 +384,7 @@ enum UserInterfaceLayoutDirection {
     [Conditional=VIDEO, MayThrowException] boolean mediaElementHasCharacteristic(HTMLMediaElement element, DOMString characteristic);
 
     [Conditional=LEGACY_ENCRYPTED_MEDIA] void initializeMockCDM();
+    [Conditional=ENCRYPTED_MEDIA] MockCDMFactory registerMockCDM();
 
     [Conditional=SPEECH_SYNTHESIS] void enableMockSpeechSynthesizer();
 
@@ -401,6 +425,7 @@ enum UserInterfaceLayoutDirection {
     [Conditional=VIDEO] void applicationDidEnterForeground();
     [Conditional=VIDEO] void applicationWillEnterBackground();
     [Conditional=VIDEO, MayThrowException] void setMediaSessionRestrictions(DOMString mediaType, DOMString restrictions);
+    [Conditional=VIDEO, MayThrowException] DOMString mediaSessionRestrictions(DOMString mediaType);
     [Conditional=VIDEO] void setMediaElementRestrictions(HTMLMediaElement element, DOMString restrictions);
     [Conditional=WEB_AUDIO] void setAudioContextRestrictions(AudioContext context, DOMString restrictions);
     [Conditional=VIDEO, MayThrowException] void postRemoteControlCommand(DOMString command, optional unrestricted float argument = 0);
@@ -466,8 +491,14 @@ enum UserInterfaceLayoutDirection {
     GCObservation observeGC(any observed);
 
     void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInterfaceLayoutDirection);
+    void setBaseWritingDirection(BaseWritingDirection direction);
 
     boolean userPrefersReducedMotion();
     
     void reportBacktrace();
+
+    [Conditional=POINTER_LOCK] boolean pageHasPendingPointerLock();
+    [Conditional=POINTER_LOCK] boolean pageHasPointerLock();
+
+    sequence<DOMString> accessKeyModifiers();
 };

@@ -1120,6 +1120,8 @@ static void runTest(const string& inputLine)
 
     ::gTestRunner = TestRunner::create(testURL.data(), command.expectedPixelHash);
     ::gTestRunner->setCustomTimeout(command.timeout);
+    ::gTestRunner->setDumpJSConsoleLogInStdErr(command.dumpJSConsoleLogInStdErr);
+
     topLoadingFrame = nullptr;
     done = false;
 

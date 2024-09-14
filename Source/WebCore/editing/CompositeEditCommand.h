@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef CompositeEditCommand_h
-#define CompositeEditCommand_h
+#pragma once
 
 #include "AXObjectCache.h"
 #include "EditCommand.h"
@@ -201,7 +200,7 @@ protected:
     void cloneParagraphUnderNewElement(const Position& start, const Position& end, Node* outerNode, Element* blockElement);
     void cleanupAfterDeletion(VisiblePosition destination = VisiblePosition());
     
-    Optional<VisibleSelection> shouldBreakOutOfEmptyListItem() const;
+    std::optional<VisibleSelection> shouldBreakOutOfEmptyListItem() const;
     bool breakOutOfEmptyListItem();
     bool breakOutOfEmptyMailBlockquotedParagraph();
     
@@ -227,5 +226,3 @@ inline CompositeEditCommand* toCompositeEditCommand(EditCommand* command)
 }
 
 } // namespace WebCore
-
-#endif // CompositeEditCommand_h

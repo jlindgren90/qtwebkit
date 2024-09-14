@@ -28,9 +28,8 @@
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
-#import "CDM.h"
-#import "CDMSession.h"
-#import "ExceptionCode.h"
+#import "LegacyCDM.h"
+#import "LegacyCDMSession.h"
 #import "MediaPlayer.h"
 #import "MediaPlayerPrivateAVFoundationObjC.h"
 #import "SoftLinking.h"

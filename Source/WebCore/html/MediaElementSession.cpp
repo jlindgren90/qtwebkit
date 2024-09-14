@@ -150,6 +150,9 @@ void MediaElementSession::removeBehaviorRestriction(BehaviorRestrictions restric
 
 bool MediaElementSession::playbackPermitted(const HTMLMediaElement& element) const
 {
+    if (element.document().isMediaDocument() && !element.document().ownerElement())
+        return true;
+
     if (pageExplicitlyAllowsElementToAutoplayInline(element))
         return true;
 
@@ -676,7 +679,7 @@ static bool isMainContentForPurposesOfAutoplay(const HTMLMediaElement& element)
     // Elements which are obscured by other elements cannot be main content.
     mainRenderView.hitTest(request, result);
     result.setToNonUserAgentShadowAncestor();
-    Element* hitElement = result.innerElement();
+    Element* hitElement = result.targetElement();
     if (hitElement != &element)
         return false;
 
@@ -698,10 +701,13 @@ static bool isElementRectMostlyInMainFrame(const HTMLMediaElement& element)
 
     IntRect mainFrameRectAdjustedForScrollPosition = IntRect(-mainFrameView->documentScrollPositionRelativeToViewOrigin(), mainFrameView->contentsSize());
     IntRect elementRectInMainFrame = element.clientRect();
-    unsigned totalElementArea = elementRectInMainFrame.area().unsafeGet();
+    auto totalElementArea = elementRectInMainFrame.area<RecordOverflow>();
+    if (totalElementArea.hasOverflowed())
+        return false;
+
     elementRectInMainFrame.intersect(mainFrameRectAdjustedForScrollPosition);
 
-    return elementRectInMainFrame.area().unsafeGet() > totalElementArea / 2;
+    return elementRectInMainFrame.area().unsafeGet() > totalElementArea.unsafeGet() / 2;
 }
 
 static bool isElementLargeRelativeToMainFrame(const HTMLMediaElement& element)

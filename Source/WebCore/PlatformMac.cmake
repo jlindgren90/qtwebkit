@@ -68,9 +68,6 @@ endif ()
 
 list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore"
-    "${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}"
-    "${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/inspector"
-    "${JAVASCRIPTCORE_DIR}/replay"
     "${THIRDPARTY_DIR}/ANGLE"
     "${THIRDPARTY_DIR}/ANGLE/include/KHR"
     "${WEBCORE_DIR}/accessibility/mac"
@@ -126,7 +123,6 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/spi/ios"
     "${WEBCORE_DIR}/platform/spi/mac"
     "${WEBCORE_DIR}/plugins/mac"
-    "${WTF_DIR}"
 )
 
 list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
@@ -157,8 +153,6 @@ list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
 )
 
 list(APPEND WebCore_SOURCES
-    Modules/indieui/UIRequestEvent.cpp
-
     Modules/plugins/QuickTimePluginReplacement.mm
     Modules/plugins/YouTubePluginReplacement.cpp
 
@@ -180,7 +174,6 @@ list(APPEND WebCore_SOURCES
     crypto/CryptoAlgorithm.cpp
     crypto/CryptoAlgorithmRegistry.cpp
     crypto/CryptoKey.cpp
-    crypto/CryptoKeyPair.cpp
     crypto/SubtleCrypto.cpp
     crypto/WebKitSubtleCrypto.cpp
 
@@ -200,6 +193,7 @@ list(APPEND WebCore_SOURCES
     crypto/keys/CryptoKeyDataOctetSequence.cpp
     crypto/keys/CryptoKeyDataRSAComponents.cpp
     crypto/keys/CryptoKeyHMAC.cpp
+    crypto/keys/CryptoKeyRSA.cpp
     crypto/keys/CryptoKeySerializationRaw.cpp
 
     crypto/mac/CryptoAlgorithmAES_CBCMac.cpp
@@ -260,10 +254,12 @@ list(APPEND WebCore_SOURCES
     page/CaptionUserPreferencesMediaAF.cpp
     page/PageDebuggable.cpp
 
-    page/cocoa/UserAgent.mm
+    page/cocoa/MemoryReleaseCocoa.mm
+    page/cocoa/PerformanceLoggingCocoa.mm
     page/cocoa/ResourceUsageOverlayCocoa.mm
     page/cocoa/ResourceUsageThreadCocoa.mm
     page/cocoa/SettingsCocoa.mm
+    page/cocoa/UserAgent.mm
 
     page/mac/ChromeMac.mm
     page/mac/DragControllerMac.mm
@@ -275,10 +271,12 @@ list(APPEND WebCore_SOURCES
     page/mac/WheelEventDeltaFilterMac.mm
 
     page/scrolling/AsyncScrollingCoordinator.cpp
+    page/scrolling/ScrollingMomentumCalculator.cpp
 
     page/scrolling/cocoa/ScrollingStateNode.mm
 
     page/scrolling/mac/ScrollingCoordinatorMac.mm
+    page/scrolling/mac/ScrollingMomentumCalculatorMac.mm
     page/scrolling/mac/ScrollingStateFrameScrollingNodeMac.mm
     page/scrolling/mac/ScrollingThreadMac.mm
     page/scrolling/mac/ScrollingTreeFixedNode.mm
@@ -492,6 +490,7 @@ list(APPEND WebCore_SOURCES
     platform/mac/ThreadCheck.mm
     platform/mac/URLMac.mm
     platform/mac/UserActivityMac.mm
+    platform/mac/ValidationBubbleMac.mm
     platform/mac/WebCoreFullScreenPlaceholderView.mm
     platform/mac/WebCoreFullScreenWarningView.mm
     platform/mac/WebCoreFullScreenWindow.mm
@@ -607,6 +606,7 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     editing/cocoa
     editing/mac
 
+    html/canvas
     html/forms
     html/parser
     html/shadow

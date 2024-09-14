@@ -35,6 +35,12 @@
 #include <wtf/Optional.h>
 #include <wtf/text/AtomicStringHash.h>
 
+namespace JSC {
+class ExecState;
+class JSObject;
+class JSValue;
+}
+
 namespace WebCore {
 
 class ScriptExecutionContext;
@@ -46,11 +52,13 @@ public:
     static ExceptionOr<Ref<Worker>> create(ScriptExecutionContext&, const String& url, JSC::RuntimeFlags);
     virtual ~Worker();
 
-    ExceptionOr<void> postMessage(RefPtr<SerializedScriptValue>&& message, Vector<RefPtr<MessagePort>>&&);
+    ExceptionOr<void> postMessage(JSC::ExecState&, JSC::JSValue message, Vector<JSC::Strong<JSC::JSObject>>&&);
 
     void terminate();
 
     bool hasPendingActivity() const final;
+
+    String identifier() const { return m_identifier; }
 
     ScriptExecutionContext* scriptExecutionContext() const final { return ActiveDOMObject::scriptExecutionContext(); }
 
@@ -71,8 +79,9 @@ private:
     friend void networkStateChanged(bool isOnLine);
 
     RefPtr<WorkerScriptLoader> m_scriptLoader;
+    String m_identifier;
     WorkerGlobalScopeProxy* m_contextProxy; // The proxy outlives the worker to perform thread shutdown.
-    Optional<ContentSecurityPolicyResponseHeaders> m_contentSecurityPolicyResponseHeaders;
+    std::optional<ContentSecurityPolicyResponseHeaders> m_contentSecurityPolicyResponseHeaders;
     bool m_shouldBypassMainWorldContentSecurityPolicy { false };
     JSC::RuntimeFlags m_runtimeFlags;
 };

@@ -53,7 +53,7 @@ public:
 
     const AtomicString& type() const;
 
-    Optional<LinkIconType> iconType() const;
+    std::optional<LinkIconType> iconType() const;
 
     CSSStyleSheet* sheet() const { return m_sheet.get(); }
 
@@ -119,6 +119,7 @@ private:
     void removePendingSheet(RemovePendingSheetNotificationType = RemovePendingSheetNotifyImmediately);
 
     LinkLoader m_linkLoader;
+    Style::Scope* m_styleScope { nullptr };
     CachedResourceHandle<CachedCSSStyleSheet> m_cachedSheet;
     RefPtr<CSSStyleSheet> m_sheet;
     enum DisabledState {
@@ -134,7 +135,6 @@ private:
     LinkRelAttribute m_relAttribute;
     bool m_loading;
     bool m_createdByParser;
-    bool m_isInShadowTree;
     bool m_firedLoad;
     bool m_loadedResource;
 

@@ -365,6 +365,21 @@ RegisterID* ArrayNode::emitBytecode(BytecodeGenerator& generator, RegisterID* ds
     if (!firstPutElement && !m_elision)
         return generator.emitNewArray(generator.finalDestination(dst), m_element, length);
 
+    if (firstPutElement && firstPutElement->value()->isSpreadExpression()) {
+        bool hasElision = false;
+        for (ElementNode* node = m_element; node; node = node->next()) {
+            if (!!node->elision()) {
+                hasElision = true;
+                break;
+            }
+        }
+        if (!!m_elision)
+            hasElision = true;
+
+        if (!hasElision)
+            return generator.emitNewArrayWithSpread(generator.finalDestination(dst), m_element);
+    }
+
     RefPtr<RegisterID> array = generator.emitNewArray(generator.tempDestination(dst), m_element, length);
     ElementNode* n = firstPutElement;
     for (; n; n = n->next()) {
@@ -605,7 +620,7 @@ void PropertyListNode::emitPutConstantProperty(BytecodeGenerator& generator, Reg
         return;
     }
     if (const auto* identifier = node.name()) {
-        Optional<uint32_t> optionalIndex = parseIndex(*identifier);
+        std::optional<uint32_t> optionalIndex = parseIndex(*identifier);
         if (!optionalIndex) {
             generator.emitDirectPutById(newObj, *identifier, value.get(), node.putType());
             return;
@@ -858,6 +873,23 @@ RegisterID* FunctionCallResolveNode::emitBytecode(BytecodeGenerator& generator, 
 RegisterID* BytecodeIntrinsicNode::emitBytecode(BytecodeGenerator& generator, RegisterID* dst)
 {
     return (this->*m_emitter)(generator, dst);
+}
+
+RegisterID* BytecodeIntrinsicNode::emit_intrinsic_argument(BytecodeGenerator& generator, RegisterID* dst)
+{
+    ArgumentListNode* node = m_args->m_listNode;
+    ASSERT(node->m_expr->isNumber());
+    double value = static_cast<NumberNode*>(node->m_expr)->value();
+    int32_t index = static_cast<int32_t>(value);
+    ASSERT(value == index);
+    ASSERT(index >= 0);
+    ASSERT(!node->m_next);
+
+    // The body functions of generator and async have different mechanism for arguments.
+    ASSERT(generator.parseMode() != SourceParseMode::GeneratorBodyMode);
+    ASSERT(!isAsyncFunctionBodyParseMode(generator.parseMode()));
+
+    return generator.emitGetArgument(generator.finalDestination(dst), index);
 }
 
 RegisterID* BytecodeIntrinsicNode::emit_intrinsic_argumentCount(BytecodeGenerator& generator, RegisterID* dst)
@@ -3252,7 +3284,7 @@ void TryNode::emitBytecode(BytecodeGenerator& generator, RegisterID* dst)
     generator.emitLabel(tryStartLabel.get());
     
     if (m_finallyBlock)
-        generator.pushFinallyContext(m_finallyBlock);
+        generator.pushFinallyControlFlowScope(m_finallyBlock);
     TryData* tryData = generator.pushTry(tryStartLabel.get());
 
     generator.emitNode(dst, m_tryBlock);
@@ -3290,7 +3322,7 @@ void TryNode::emitBytecode(BytecodeGenerator& generator, RegisterID* dst)
     if (m_finallyBlock) {
         RefPtr<Label> preFinallyLabel = generator.emitLabel(generator.newLabel().get());
         
-        generator.popFinallyContext();
+        generator.popFinallyControlFlowScope();
 
         RefPtr<Label> finallyEndLabel = generator.newLabel();
 
@@ -3434,26 +3466,24 @@ void FunctionNode::emitBytecode(BytecodeGenerator& generator, RegisterID*)
         ASSERT(startOffset() >= lineStartOffset());
         generator.emitDebugHook(WillLeaveCallFrame, lastLine(), startOffset(), lineStartOffset());
 
-        // load @asyncFunctionResume, and call.
-        RefPtr<RegisterID> startAsyncFunction = generator.newTemporary();
+        // load and call @asyncFunctionResume
         auto var = generator.variable(generator.propertyNames().builtinNames().asyncFunctionResumePrivateName());
-
         RefPtr<RegisterID> scope = generator.newTemporary();
         generator.moveToDestinationIfNeeded(scope.get(), generator.emitResolveScope(scope.get(), var));
-        generator.emitGetFromScope(startAsyncFunction.get(), scope.get(), var, ThrowIfNotFound);
+        RefPtr<RegisterID> asyncFunctionResume = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
 
-        // return @asyncFunctionResume.@call(this, @generator, @undefined, GeneratorResumeMode::NormalMode)
-        CallArguments args(generator, nullptr, 3);
+        CallArguments args(generator, nullptr, 4);
         unsigned argumentCount = 0;
         generator.emitLoad(args.thisRegister(), jsUndefined());
         generator.emitMove(args.argumentRegister(argumentCount++), generator.generatorRegister());
+        generator.emitMove(args.argumentRegister(argumentCount++), generator.promiseCapabilityRegister());
         generator.emitLoad(args.argumentRegister(argumentCount++), jsUndefined());
         generator.emitLoad(args.argumentRegister(argumentCount++), jsNumber(static_cast<int32_t>(JSGeneratorFunction::GeneratorResumeMode::NormalMode)));
         // JSTextPosition(int _line, int _offset, int _lineStartOffset)
         JSTextPosition divot(firstLine(), startOffset(), lineStartOffset());
 
         RefPtr<RegisterID> result = generator.newTemporary();
-        generator.emitCallInTailPosition(result.get(), startAsyncFunction.get(), NoExpectedFunction, args, divot, divot, divot, DebuggableCall::No);
+        generator.emitCallInTailPosition(result.get(), asyncFunctionResume.get(), NoExpectedFunction, args, divot, divot, divot, DebuggableCall::No);
         generator.emitReturn(result.get());
         break;
     }
@@ -3932,12 +3962,11 @@ void ObjectPatternNode::toString(StringBuilder& builder) const
 void ObjectPatternNode::bindValue(BytecodeGenerator& generator, RegisterID* rhs) const
 {
     generator.emitRequireObjectCoercible(rhs, ASCIILiteral("Right side of assignment cannot be destructured"));
-    for (size_t i = 0; i < m_targetPatterns.size(); i++) {
-        auto& target = m_targetPatterns[i];
+    for (const auto& target : m_targetPatterns) {
         RefPtr<RegisterID> temp = generator.newTemporary();
         if (!target.propertyExpression) {
             // Should not emit get_by_id for indexed ones.
-            Optional<uint32_t> optionalIndex = parseIndex(target.propertyName);
+            std::optional<uint32_t> optionalIndex = parseIndex(target.propertyName);
             if (!optionalIndex)
                 generator.emitGetById(temp.get(), rhs, target.propertyName);
             else {

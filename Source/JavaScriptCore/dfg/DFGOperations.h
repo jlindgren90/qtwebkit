@@ -146,8 +146,10 @@ size_t JIT_OPERATION operationObjectIsObject(ExecState*, JSGlobalObject*, JSCell
 size_t JIT_OPERATION operationObjectIsFunction(ExecState*, JSGlobalObject*, JSCell*) WTF_INTERNAL;
 JSCell* JIT_OPERATION operationTypeOfObject(ExecState*, JSGlobalObject*, JSCell*) WTF_INTERNAL;
 int32_t JIT_OPERATION operationTypeOfObjectAsTypeofType(ExecState*, JSGlobalObject*, JSCell*) WTF_INTERNAL;
-char* JIT_OPERATION operationAllocatePropertyStorageWithInitialCapacity(ExecState*) WTF_INTERNAL;
-char* JIT_OPERATION operationAllocatePropertyStorage(ExecState*, size_t newSize) WTF_INTERNAL;
+char* JIT_OPERATION operationAllocateSimplePropertyStorageWithInitialCapacity(ExecState*) WTF_INTERNAL;
+char* JIT_OPERATION operationAllocateSimplePropertyStorage(ExecState*, size_t newSize) WTF_INTERNAL;
+char* JIT_OPERATION operationAllocateComplexPropertyStorageWithInitialCapacity(ExecState*, JSObject*) WTF_INTERNAL;
+char* JIT_OPERATION operationAllocateComplexPropertyStorage(ExecState*, JSObject*, size_t newSize) WTF_INTERNAL;
 char* JIT_OPERATION operationEnsureInt32(ExecState*, JSCell*);
 char* JIT_OPERATION operationEnsureDouble(ExecState*, JSCell*);
 char* JIT_OPERATION operationEnsureContiguous(ExecState*, JSCell*);
@@ -187,6 +189,10 @@ int32_t JIT_OPERATION operationSizeOfVarargs(ExecState*, EncodedJSValue argument
 void JIT_OPERATION operationLoadVarargs(ExecState*, int32_t firstElementDest, EncodedJSValue arguments, int32_t offset, int32_t length, int32_t mandatoryMinimum);
 
 int32_t JIT_OPERATION operationHasOwnProperty(ExecState*, JSObject*, EncodedJSValue);
+
+JSCell* JIT_OPERATION operationSpreadFastArray(ExecState*, JSCell*);
+JSCell* JIT_OPERATION operationSpreadGeneric(ExecState*, JSCell*);
+JSCell* JIT_OPERATION operationNewArrayWithSpreadSlow(ExecState*, void*, uint32_t);
 
 JSCell* JIT_OPERATION operationResolveScope(ExecState*, JSScope*, UniquedStringImpl*);
 EncodedJSValue JIT_OPERATION operationGetDynamicVar(ExecState*, JSObject* scope, UniquedStringImpl*, unsigned);

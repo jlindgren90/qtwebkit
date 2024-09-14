@@ -1492,6 +1492,11 @@ void AccessibilityUIElement::removeSelectionAtIndex(unsigned index) const
     END_AX_OBJC_EXCEPTIONS
 }
 
+void AccessibilityUIElement::clearSelectedChildren() const
+{
+    // FIXME: implement
+}
+
 JSRetainPtr<JSStringRef> AccessibilityUIElement::accessibilityValue() const
 {
     // FIXME: implement
@@ -1614,6 +1619,18 @@ bool AccessibilityUIElement::isIgnored() const
     result = [m_element accessibilityIsIgnored];
     END_AX_OBJC_EXCEPTIONS
     return result;
+}
+
+bool AccessibilityUIElement::isSingleLine() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isMultiLine() const
+{
+    // FIXME: implement
+    return false;
 }
 
 bool AccessibilityUIElement::hasPopup() const

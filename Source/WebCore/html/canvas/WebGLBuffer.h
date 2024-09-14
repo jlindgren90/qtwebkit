@@ -39,13 +39,14 @@ class WebGLBuffer final : public WebGLSharedObject {
 public:
     virtual ~WebGLBuffer();
 
-    static Ref<WebGLBuffer> create(WebGLRenderingContextBase*);
+    static Ref<WebGLBuffer> create(WebGLRenderingContextBase&);
 
     bool associateBufferData(GC3Dsizeiptr size);
     bool associateBufferData(JSC::ArrayBuffer*);
     bool associateBufferData(JSC::ArrayBufferView*);
     bool associateBufferSubData(GC3Dintptr offset, JSC::ArrayBuffer*);
     bool associateBufferSubData(GC3Dintptr offset, JSC::ArrayBufferView*);
+    bool associateCopyBufferSubData(const WebGLBuffer& readBuffer, GC3Dintptr readOffset, GC3Dintptr writeOffset, GC3Dsizeiptr);
 
     void disassociateBufferData();
 
@@ -64,7 +65,7 @@ public:
     bool hasEverBeenBound() const { return object() && m_target; }
 
 protected:
-    WebGLBuffer(WebGLRenderingContextBase*);
+    WebGLBuffer(WebGLRenderingContextBase&);
 
     void deleteObjectImpl(GraphicsContext3D*, Platform3DObject) override;
 

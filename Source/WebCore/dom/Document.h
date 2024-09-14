@@ -35,6 +35,7 @@
 #include "ExceptionOr.h"
 #include "FocusDirection.h"
 #include "FontSelectorClient.h"
+#include "FrameDestructionObserver.h"
 #include "MediaProducer.h"
 #include "MutationObserver.h"
 #include "PageVisibilityState.h"
@@ -197,8 +198,6 @@ class ScriptedAnimationController;
 
 class FontFaceSet;
 
-typedef int ExceptionCode;
-
 #if PLATFORM(IOS)
 class DeviceMotionClient;
 class DeviceMotionController;
@@ -288,6 +287,7 @@ class Document
     , public TreeScope
     , public ScriptExecutionContext
     , public FontSelectorClient
+    , public FrameDestructionObserver
     , public Supplementable<Document> {
 public:
     static Ref<Document> create(Frame* frame, const URL& url)
@@ -343,9 +343,9 @@ public:
     Element* getElementByAccessKey(const String& key);
     void invalidateAccessKeyMap();
 
-    void addImageElementByCaseFoldedUsemap(const AtomicStringImpl&, HTMLImageElement&);
-    void removeImageElementByCaseFoldedUsemap(const AtomicStringImpl&, HTMLImageElement&);
-    HTMLImageElement* imageElementByCaseFoldedUsemap(const AtomicStringImpl&) const;
+    void addImageElementByUsemap(const AtomicStringImpl&, HTMLImageElement&);
+    void removeImageElementByUsemap(const AtomicStringImpl&, HTMLImageElement&);
+    HTMLImageElement* imageElementByUsemap(const AtomicStringImpl&) const;
 
     ExceptionOr<SelectorQuery&> selectorQueryForString(const String&);
     void clearSelectorQueryCache();
@@ -446,8 +446,9 @@ public:
     void setInputCursor(Ref<JSC::InputCursor>&&);
 #endif
 
+    using VisibilityState = PageVisibilityState;
+    WEBCORE_EXPORT VisibilityState visibilityState() const;
     void visibilityStateChanged();
-    WEBCORE_EXPORT String visibilityState() const;
     WEBCORE_EXPORT bool hidden() const;
 
     void setTimerThrottlingEnabled(bool);
@@ -513,7 +514,6 @@ public:
     void setStateForNewFormElements(const Vector<String>&);
 
     WEBCORE_EXPORT FrameView* view() const; // can be NULL
-    Frame* frame() const { return m_frame; } // can be NULL
     WEBCORE_EXPORT Page* page() const; // can be NULL
     WEBCORE_EXPORT Settings* settings() const; // can be NULL
 
@@ -604,7 +604,7 @@ public:
 
     void cancelParsing();
 
-    void write(const SegmentedString& text, Document* ownerDocument = nullptr);
+    void write(SegmentedString&& text, Document* ownerDocument = nullptr);
     WEBCORE_EXPORT void write(const String& text, Document* ownerDocument = nullptr);
     WEBCORE_EXPORT void writeln(const String& text, Document* ownerDocument = nullptr);
 
@@ -673,11 +673,11 @@ public:
     void setReadyState(ReadyState);
     void setParsing(bool);
     bool parsing() const { return m_bParsing; }
-    std::chrono::milliseconds minimumLayoutDelay();
+    Seconds minimumLayoutDelay();
 
     bool shouldScheduleLayout();
     bool isLayoutTimerActive();
-    std::chrono::milliseconds elapsedTime() const;
+    Seconds timeSinceDocumentCreation() const;
     
     void setTextColor(const Color& color) { m_textColor = color; }
     const Color& textColor() const { return m_textColor; }
@@ -709,7 +709,7 @@ public:
     void setFocusNavigationStartingNode(Node*);
     Element* focusNavigationStartingNode(FocusDirection) const;
 
-    void removeFocusedNodeOfSubtree(Node*, bool amongChildrenOnly = false);
+    void removeFocusedNodeOfSubtree(Node&, bool amongChildrenOnly = false);
     void hoveredElementDidDetach(Element*);
     void elementInActiveChainDidDetach(Element*);
 
@@ -737,7 +737,7 @@ public:
 
     void attachNodeIterator(NodeIterator*);
     void detachNodeIterator(NodeIterator*);
-    void moveNodeIteratorsToNewDocument(Node*, Document*);
+    void moveNodeIteratorsToNewDocument(Node&, Document&);
 
     void attachRange(Range*);
     void detachRange(Range*);
@@ -886,8 +886,7 @@ public:
     static bool isValidName(const String&);
 
     // The following breaks a qualified name into a prefix and a local name.
-    // It also does a validity check, and returns false if the qualified name
-    // is invalid. It also sets ExceptionCode when name is invalid.
+    // It also does a validity check, and returns an error if the qualified name is invalid.
     static ExceptionOr<std::pair<AtomicString, AtomicString>> parseQualifiedName(const String& qualifiedName);
     static ExceptionOr<QualifiedName> parseQualifiedName(const AtomicString& namespaceURI, const String& qualifiedName);
 
@@ -1091,13 +1090,14 @@ public:
     bool webkitIsFullScreen() const { return m_fullScreenElement.get(); }
     bool webkitFullScreenKeyboardInputAllowed() const { return m_fullScreenElement.get() && m_areKeysEnabledInFullScreen; }
     Element* webkitCurrentFullScreenElement() const { return m_fullScreenElement.get(); }
-    
+    Element* webkitCurrentFullScreenElementForBindings() const { return ancestorElementInThisScope(webkitCurrentFullScreenElement()); }
+
     enum FullScreenCheckType {
         EnforceIFrameAllowFullScreenRequirement,
         ExemptIFrameAllowFullScreenRequirement,
     };
 
-    void requestFullScreenForElement(Element*, unsigned short flags, FullScreenCheckType);
+    void requestFullScreenForElement(Element*, FullScreenCheckType);
     WEBCORE_EXPORT void webkitCancelFullScreen();
     
     WEBCORE_EXPORT void webkitWillEnterFullScreenForElement(Element*);
@@ -1112,18 +1112,18 @@ public:
     void fullScreenChangeDelayTimerFired();
     bool fullScreenIsAllowedForElement(Element*) const;
     void fullScreenElementRemoved();
-    void removeFullScreenElementOfSubtree(Node*, bool amongChildrenOnly = false);
+    void removeFullScreenElementOfSubtree(Node&, bool amongChildrenOnly = false);
     bool isAnimatingFullScreen() const;
     WEBCORE_EXPORT void setAnimatingFullScreen(bool);
 
     WEBCORE_EXPORT bool webkitFullscreenEnabled() const;
     Element* webkitFullscreenElement() const { return !m_fullScreenElementStack.isEmpty() ? m_fullScreenElementStack.last().get() : nullptr; }
+    Element* webkitFullscreenElementForBindings() const { return ancestorElementInThisScope(webkitFullscreenElement()); }
     WEBCORE_EXPORT void webkitExitFullscreen();
 #endif
 
 #if ENABLE(POINTER_LOCK)
     WEBCORE_EXPORT void exitPointerLock();
-    WEBCORE_EXPORT Element* pointerLockElement() const;
 #endif
 
     // Used to allow element that loads data without going through a FrameLoader to delay the 'load' event.
@@ -1313,6 +1313,7 @@ private:
     friend class IgnoreOpensDuringUnloadCountIncrementer;
 
     void updateTitleElement(Element* newTitleElement);
+    void frameDestroyed() final;
 
     void commonTeardown();
 
@@ -1358,8 +1359,6 @@ private:
     template <typename CharacterType>
     void displayBufferModifiedByEncodingInternal(CharacterType*, unsigned) const;
 
-    PageVisibilityState pageVisibilityState() const;
-
     template <CollectionType collectionType>
     Ref<HTMLCollection> ensureCachedCollection();
 
@@ -1382,6 +1381,7 @@ private:
     void wheelEventHandlersChanged();
 
     HttpEquivPolicy httpEquivPolicy() const;
+    AXObjectCache* existingAXObjectCacheSlow() const;
 
     // DOM Cookies caching.
     const String& cachedDOMCookies() const { return m_cachedDOMCookies; }
@@ -1397,6 +1397,8 @@ private:
     void applyQuickLookSandbox();
 #endif
 
+    bool shouldEnforceHTTP09Sandbox() const;
+
     unsigned m_referencingNodeCount;
 
     std::unique_ptr<StyleResolver> m_userAgentShadowTreeStyleResolver;
@@ -1411,7 +1413,6 @@ private:
     // do eventually load.
     PendingSheetLayout m_pendingSheetLayout;
 
-    Frame* m_frame;
     RefPtr<DOMWindow> m_domWindow;
     WeakPtr<Document> m_contextDocument;
 
@@ -1528,7 +1529,7 @@ private:
     bool m_loadEventFinished;
 
     RefPtr<SerializedScriptValue> m_pendingStateObject;
-    std::chrono::steady_clock::time_point m_startTime;
+    MonotonicTime m_documentCreationTime;
     bool m_overMinimumLayoutThreshold;
     
     std::unique_ptr<ScriptRunner> m_scriptRunner;
@@ -1764,6 +1765,8 @@ private:
 #if ENABLE(WEB_SOCKETS)
     RefPtr<SocketProvider> m_socketProvider;
 #endif
+
+    static bool hasEverCreatedAnAXObjectCache;
 };
 
 inline void Document::notifyRemovePendingSheetIfNeeded()
@@ -1782,6 +1785,13 @@ inline TextEncoding Document::textEncoding() const
 inline const Document* Document::templateDocument() const
 {
     return m_templateDocumentHost ? this : m_templateDocument.get();
+}
+
+inline AXObjectCache* Document::existingAXObjectCache() const
+{
+    if (!hasEverCreatedAnAXObjectCache)
+        return nullptr;
+    return existingAXObjectCacheSlow();
 }
 
 // Put these methods here, because they require the Document definition, but we really want to inline them.

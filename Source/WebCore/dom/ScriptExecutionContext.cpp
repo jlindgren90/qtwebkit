@@ -29,10 +29,12 @@
 #include "ScriptExecutionContext.h"
 
 #include "CachedScript.h"
+#include "CommonVM.h"
 #include "DOMTimer.h"
 #include "DatabaseContext.h"
 #include "Document.h"
 #include "ErrorEvent.h"
+#include "JSDOMWindow.h"
 #include "MessagePort.h"
 #include "NoEventDispatchAssertion.h"
 #include "PublicURLManager.h"
@@ -41,17 +43,11 @@
 #include "Settings.h"
 #include "WorkerGlobalScope.h"
 #include "WorkerThread.h"
+#include <heap/StrongInlines.h>
 #include <inspector/ScriptCallStack.h>
 #include <runtime/Exception.h>
 #include <wtf/MainThread.h>
 #include <wtf/Ref.h>
-
-// FIXME: This is a layering violation.
-#include "JSDOMWindow.h"
-
-#if PLATFORM(IOS)
-#include "Document.h"
-#endif
 
 using namespace Inspector;
 
@@ -137,6 +133,10 @@ ScriptExecutionContext::~ScriptExecutionContext()
 
 void ScriptExecutionContext::processMessagePortMessagesSoon()
 {
+    if (m_willProcessMessagePortMessagesSoon)
+        return;
+
+    m_willProcessMessagePortMessagesSoon = true;
     postTask([] (ScriptExecutionContext& context) {
         context.dispatchMessagePortEvents();
     });
@@ -147,6 +147,8 @@ void ScriptExecutionContext::dispatchMessagePortEvents()
     checkConsistency();
 
     Ref<ScriptExecutionContext> protectedThis(*this);
+    ASSERT(m_willProcessMessagePortMessagesSoon);
+    m_willProcessMessagePortMessagesSoon = false;
 
     // Make a frozen copy of the ports so we can iterate while new ones might be added or destroyed.
     Vector<MessagePort*> possibleMessagePorts;
@@ -350,7 +352,7 @@ void ScriptExecutionContext::willDestroyDestructionObserver(ContextDestructionOb
     m_destructionObservers.remove(&observer);
 }
 
-bool ScriptExecutionContext::sanitizeScriptError(String& errorMessage, int& lineNumber, int& columnNumber, String& sourceURL, Deprecated::ScriptValue& error, CachedScript* cachedScript)
+bool ScriptExecutionContext::sanitizeScriptError(String& errorMessage, int& lineNumber, int& columnNumber, String& sourceURL, JSC::Strong<JSC::Unknown>& error, CachedScript* cachedScript)
 {
     ASSERT(securityOrigin());
     if (cachedScript) {
@@ -362,10 +364,10 @@ bool ScriptExecutionContext::sanitizeScriptError(String& errorMessage, int& line
         return false;
 
     errorMessage = "Script error.";
-    sourceURL = String();
+    sourceURL = { };
     lineNumber = 0;
     columnNumber = 0;
-    error = Deprecated::ScriptValue();
+    error = { };
     return true;
 }
 
@@ -413,7 +415,7 @@ bool ScriptExecutionContext::dispatchErrorEvent(const String& errorMessage, int 
     int line = lineNumber;
     int column = columnNumber;
     String sourceName = sourceURL;
-    Deprecated::ScriptValue error = exception && exception->value() ? Deprecated::ScriptValue(vm(), exception->value()) : Deprecated::ScriptValue();
+    JSC::Strong<JSC::Unknown> error = exception && exception->value() ? JSC::Strong<JSC::Unknown>(vm(), exception->value()) : JSC::Strong<JSC::Unknown>();
     sanitizeScriptError(message, line, column, sourceName, error, cachedScript);
 
     ASSERT(!m_inDispatchErrorEvent);
@@ -471,14 +473,13 @@ std::chrono::milliseconds ScriptExecutionContext::timerAlignmentInterval(bool) c
 JSC::VM& ScriptExecutionContext::vm()
 {
     if (is<Document>(*this))
-        return JSDOMWindow::commonVM();
+        return commonVM();
 
     return downcast<WorkerGlobalScope>(*this).script()->vm();
 }
 
 void ScriptExecutionContext::setDatabaseContext(DatabaseContext* databaseContext)
 {
-    ASSERT(!m_databaseContext);
     m_databaseContext = databaseContext;
 }
 

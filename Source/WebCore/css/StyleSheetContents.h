@@ -18,8 +18,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef StyleSheetContents_h
-#define StyleSheetContents_h
+#pragma once
 
 #include "CSSParserMode.h"
 #include "CachePolicy.h"
@@ -28,6 +27,7 @@
 #include <wtf/ListHashSet.h>
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
+#include <wtf/WeakPtr.h>
 #include <wtf/text/AtomicStringHash.h>
 #include <wtf/text/TextPosition.h>
 #include <functional>
@@ -68,7 +68,6 @@ public:
 
     void parseAuthorStyleSheet(const CachedCSSStyleSheet*, const SecurityOrigin*);
     WEBCORE_EXPORT bool parseString(const String&);
-    bool parseStringAtPosition(const String&, const TextPosition&, bool createdByParser);
 
     bool isCacheable() const;
 
@@ -145,6 +144,8 @@ public:
 
     void shrinkToFit();
 
+    WeakPtr<StyleSheetContents> createWeakPtr() { return m_weakPtrFactory.createWeakPtr(); }
+
 private:
     WEBCORE_EXPORT StyleSheetContents(StyleRuleImport* ownerRule, const String& originalURL, const CSSParserContext&);
     StyleSheetContents(const StyleSheetContents&);
@@ -174,8 +175,8 @@ private:
     CSSParserContext m_parserContext;
 
     Vector<CSSStyleSheet*> m_clients;
+    
+    WeakPtrFactory<StyleSheetContents> m_weakPtrFactory { this };
 };
 
-} // namespace
-
-#endif
+} // namespace WebCore

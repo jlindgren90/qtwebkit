@@ -70,7 +70,6 @@ namespace WebCore {
 
         JSDOMWindowShell* shell() const;
 
-        static JSC::VM& commonVM();
         static void fireFrameClearedWatchpointsForWindow(DOMWindow*);
         static void visitChildren(JSC::JSCell*, JSC::SlotVisitor&);
 

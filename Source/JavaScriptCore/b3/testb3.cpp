@@ -33,6 +33,7 @@
 #include "B3BasicBlockInlines.h"
 #include "B3CCallValue.h"
 #include "B3Compilation.h"
+#include "B3Compile.h"
 #include "B3ComputeDivisionMagic.h"
 #include "B3Const32Value.h"
 #include "B3ConstPtrValue.h"
@@ -118,7 +119,7 @@ VM* vm;
 
 std::unique_ptr<Compilation> compile(Procedure& procedure, unsigned optLevel = 1)
 {
-    return std::make_unique<Compilation>(*vm, procedure, optLevel);
+    return std::make_unique<Compilation>(B3::compile(*vm, procedure, optLevel));
 }
 
 template<typename T, typename... Arguments>
@@ -1755,6 +1756,74 @@ void testDivArgsFloatWithEffectfulDoubleConversion(float a, float b)
     double effect = 0;
     CHECK(isIdentical(compileAndRun<int32_t>(proc, bitwise_cast<int32_t>(a), bitwise_cast<int32_t>(b), &effect), bitwise_cast<int32_t>(a / b)));
     CHECK(isIdentical(effect, static_cast<double>(a) / static_cast<double>(b)));
+}
+
+void testUDivArgsInt32(uint32_t a, uint32_t b)
+{
+    // UDiv with denominator == 0 is invalid.
+    if (!b)
+        return;
+
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argument1 = root->appendNew<Value>(proc, Trunc, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0));
+    Value* argument2 = root->appendNew<Value>(proc, Trunc, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1));
+    Value* result = root->appendNew<Value>(proc, UDiv, Origin(), argument1, argument2);
+    root->appendNew<Value>(proc, Return, Origin(), result);
+
+    CHECK_EQ(compileAndRun<uint32_t>(proc, a, b), a / b);
+}
+
+void testUDivArgsInt64(uint64_t a, uint64_t b)
+{
+    // UDiv with denominator == 0 is invalid.
+    if (!b)
+        return;
+
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argument1 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    Value* argument2 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1);
+    Value* result = root->appendNew<Value>(proc, UDiv, Origin(), argument1, argument2);
+    root->appendNew<Value>(proc, Return, Origin(), result);
+
+    CHECK_EQ(compileAndRun<uint64_t>(proc, a, b), a / b);
+}
+
+void testUModArgsInt32(uint32_t a, uint32_t b)
+{
+    // UMod with denominator == 0 is invalid.
+    if (!b)
+        return;
+
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argument1 = root->appendNew<Value>(proc, Trunc, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0));
+    Value* argument2 = root->appendNew<Value>(proc, Trunc, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1));
+    Value* result = root->appendNew<Value>(proc, UMod, Origin(), argument1, argument2);
+    root->appendNew<Value>(proc, Return, Origin(), result);
+
+    CHECK_EQ(compileAndRun<uint32_t>(proc, a, b), a % b);
+}
+
+void testUModArgsInt64(uint64_t a, uint64_t b)
+{
+    // UMod with denominator == 0 is invalid.
+    if (!b)
+        return;
+
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    Value* argument1 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    Value* argument2 = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1);
+    Value* result = root->appendNew<Value>(proc, UMod, Origin(), argument1, argument2);
+    root->appendNew<Value>(proc, Return, Origin(), result);
+    
+    CHECK_EQ(compileAndRun<uint64_t>(proc, a, b), a % b);
 }
 
 void testSubArg(int a)
@@ -4464,6 +4533,61 @@ void testDoubleToFloatThroughPhi(float value)
     auto code = compile(proc);
     CHECK(isIdentical(invoke<float>(*code, 1, bitwise_cast<int32_t>(value)), value + 42.5f));
     CHECK(isIdentical(invoke<float>(*code, 0, bitwise_cast<int32_t>(value)), static_cast<float>(M_PI)));
+}
+
+void testReduceFloatToDoubleValidates()
+{
+    // Simple case of:
+    //     f = DoubleToFloat(Bitcast(argGPR0))
+    //     if (a) {
+    //         x = FloatConst()
+    //     else
+    //         x = FloatConst()
+    //     p = Phi(x)
+    //     a = Mul(p, p)
+    //     b = Add(a, f)
+    //     c = Add(p, b)
+    //     Return(c)
+    //
+    // This should not crash in the validator after ReduceFloatToDouble.
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+    BasicBlock* thenCase = proc.addBlock();
+    BasicBlock* elseCase = proc.addBlock();
+    BasicBlock* tail = proc.addBlock();
+
+    Value* condition = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    Value* thingy = root->appendNew<Value>(proc, BitwiseCast, Origin(), condition);
+    thingy = root->appendNew<Value>(proc, DoubleToFloat, Origin(), thingy); // Make the phase think it has work to do.
+    root->appendNewControlValue(
+        proc, Branch, Origin(),
+        condition,
+        FrequentedBlock(thenCase), FrequentedBlock(elseCase));
+
+    UpsilonValue* thenValue = thenCase->appendNew<UpsilonValue>(proc, Origin(),
+        thenCase->appendNew<ConstFloatValue>(proc, Origin(), 11.5));
+    thenCase->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(tail));
+
+    UpsilonValue* elseValue = elseCase->appendNew<UpsilonValue>(proc, Origin(), 
+        elseCase->appendNew<ConstFloatValue>(proc, Origin(), 10.5));
+    elseCase->appendNewControlValue(proc, Jump, Origin(), FrequentedBlock(tail));
+
+    Value* phi =  tail->appendNew<Value>(proc, Phi, Float, Origin());
+    thenValue->setPhi(phi);
+    elseValue->setPhi(phi);
+    Value* result = tail->appendNew<Value>(proc, Mul, Origin(), 
+            phi, phi);
+    result = tail->appendNew<Value>(proc, Add, Origin(), 
+            result,
+            thingy);
+    result = tail->appendNew<Value>(proc, Add, Origin(), 
+            phi,
+            result);
+    tail->appendNewControlValue(proc, Return, Origin(), result);
+
+    auto code = compile(proc);
+    CHECK(isIdentical(invoke<float>(*code, 1), 11.5f * 11.5f + static_cast<float>(bitwise_cast<double>(static_cast<uint64_t>(1))) + 11.5f));
+    CHECK(isIdentical(invoke<float>(*code, 0), 10.5f * 10.5f + static_cast<float>(bitwise_cast<double>(static_cast<uint64_t>(0))) + 10.5f));
 }
 
 void testDoubleProducerPhiToFloatConversion(float value)
@@ -11891,6 +12015,76 @@ void testSShrShl64(int64_t value, int32_t sshrAmount, int32_t shlAmount)
 }
 
 template<typename T>
+void testRotR(T valueInt, int32_t shift)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+
+    Value* value = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    if (sizeof(T) == 4)
+        value = root->appendNew<Value>(proc, Trunc, Origin(), value);
+
+    Value* ammount = root->appendNew<Value>(proc, Trunc, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1));
+    root->appendNewControlValue(proc, Return, Origin(),
+        root->appendNew<Value>(proc, RotR, Origin(), value, ammount));
+
+    CHECK_EQ(compileAndRun<T>(proc, valueInt, shift), rotateRight(valueInt, shift));
+}
+
+template<typename T>
+void testRotL(T valueInt, int32_t shift)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+
+    Value* value = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    if (sizeof(T) == 4)
+        value = root->appendNew<Value>(proc, Trunc, Origin(), value);
+
+    Value* ammount = root->appendNew<Value>(proc, Trunc, Origin(),
+        root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR1));
+    root->appendNewControlValue(proc, Return, Origin(),
+        root->appendNew<Value>(proc, RotL, Origin(), value, ammount));
+
+    CHECK_EQ(compileAndRun<T>(proc, valueInt, shift), rotateLeft(valueInt, shift));
+}
+
+template<typename T>
+void testRotRWithImmShift(T valueInt, int32_t shift)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+
+    Value* value = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    if (sizeof(T) == 4)
+        value = root->appendNew<Value>(proc, Trunc, Origin(), value);
+
+    Value* ammount = root->appendIntConstant(proc, Origin(), Int32, shift);
+    root->appendNewControlValue(proc, Return, Origin(),
+        root->appendNew<Value>(proc, RotR, Origin(), value, ammount));
+
+    CHECK_EQ(compileAndRun<T>(proc, valueInt, shift), rotateRight(valueInt, shift));
+}
+
+template<typename T>
+void testRotLWithImmShift(T valueInt, int32_t shift)
+{
+    Procedure proc;
+    BasicBlock* root = proc.addBlock();
+
+    Value* value = root->appendNew<ArgumentRegValue>(proc, Origin(), GPRInfo::argumentGPR0);
+    if (sizeof(T) == 4)
+        value = root->appendNew<Value>(proc, Trunc, Origin(), value);
+
+    Value* ammount = root->appendIntConstant(proc, Origin(), Int32, shift);
+    root->appendNewControlValue(proc, Return, Origin(),
+        root->appendNew<Value>(proc, RotL, Origin(), value, ammount));
+
+    CHECK_EQ(compileAndRun<T>(proc, valueInt, shift), rotateLeft(valueInt, shift));
+}
+
+template<typename T>
 void testComputeDivisionMagic(T value, T magicMultiplier, unsigned shift)
 {
     DivisionMagic<T> magic = computeDivisionMagic(value);
@@ -14053,6 +14247,9 @@ void run(const char* filter)
     RUN_BINARY(testDivArgsFloatWithUselessDoubleConversion, floatingPointOperands<float>(), floatingPointOperands<float>());
     RUN_BINARY(testDivArgsFloatWithEffectfulDoubleConversion, floatingPointOperands<float>(), floatingPointOperands<float>());
 
+    RUN_BINARY(testUDivArgsInt32, int32Operands(), int32Operands());
+    RUN_BINARY(testUDivArgsInt64, int64Operands(), int64Operands());
+
     RUN_UNARY(testModArgDouble, floatingPointOperands<double>());
     RUN_BINARY(testModArgsDouble, floatingPointOperands<double>(), floatingPointOperands<double>());
     RUN_BINARY(testModArgImmDouble, floatingPointOperands<double>(), floatingPointOperands<double>());
@@ -14063,6 +14260,9 @@ void run(const char* filter)
     RUN_BINARY(testModArgImmFloat, floatingPointOperands<float>(), floatingPointOperands<float>());
     RUN_BINARY(testModImmArgFloat, floatingPointOperands<float>(), floatingPointOperands<float>());
     RUN_BINARY(testModImmsFloat, floatingPointOperands<float>(), floatingPointOperands<float>());
+
+    RUN_BINARY(testUModArgsInt32, int32Operands(), int32Operands());
+    RUN_BINARY(testUModArgsInt64, int64Operands(), int64Operands());
 
     RUN(testSubArg(24));
     RUN(testSubArgs(1, 1));
@@ -14483,6 +14683,7 @@ void run(const char* filter)
     RUN_BINARY(testCompareOneFloatToDouble, floatingPointOperands<float>(), floatingPointOperands<double>());
     RUN_BINARY(testCompareFloatToDoubleThroughPhi, floatingPointOperands<float>(), floatingPointOperands<float>());
     RUN_UNARY(testDoubleToFloatThroughPhi, floatingPointOperands<float>());
+    RUN(testReduceFloatToDoubleValidates());
     RUN_UNARY(testDoubleProducerPhiToFloatConversion, floatingPointOperands<float>());
     RUN_UNARY(testDoubleProducerPhiToFloatConversionWithDoubleConsumer, floatingPointOperands<float>());
     RUN_BINARY(testDoubleProducerPhiWithNonFloatConst, floatingPointOperands<float>(), floatingPointOperands<double>());
@@ -15218,6 +15419,16 @@ void run(const char* filter)
     RUN(testSShrShl64(-42000000000, 8, 8));
 
     RUN(testCheckMul64SShr());
+
+    RUN_BINARY(testRotR, int32Operands(), int32Operands());
+    RUN_BINARY(testRotR, int64Operands(), int32Operands());
+    RUN_BINARY(testRotL, int32Operands(), int32Operands());
+    RUN_BINARY(testRotL, int64Operands(), int32Operands());
+
+    RUN_BINARY(testRotRWithImmShift, int32Operands(), int32Operands());
+    RUN_BINARY(testRotRWithImmShift, int64Operands(), int32Operands());
+    RUN_BINARY(testRotLWithImmShift, int32Operands(), int32Operands());
+    RUN_BINARY(testRotLWithImmShift, int64Operands(), int32Operands());
 
     RUN(testComputeDivisionMagic<int32_t>(2, -2147483647, 0));
     RUN(testTrivialInfiniteLoop());

@@ -40,7 +40,6 @@
 #include "EmailInputType.h"
 #include "EventNames.h"
 #include "ExceptionCode.h"
-#include "ExceptionCodePlaceholder.h"
 #include "FileInputType.h"
 #include "FileList.h"
 #include "FormController.h"
@@ -70,7 +69,6 @@
 #include "ShadowRoot.h"
 #include "SubmitInputType.h"
 #include "TelephoneInputType.h"
-#include <wtf/text/TextBreakIterator.h>
 #include "TextInputType.h"
 #include "TimeInputType.h"
 #include "URLInputType.h"
@@ -79,6 +77,7 @@
 #include <wtf/Assertions.h>
 #include <wtf/HashMap.h>
 #include <wtf/text/StringHash.h>
+#include <wtf/text/TextBreakIterator.h>
 
 namespace WebCore {
 
@@ -906,7 +905,7 @@ void InputType::updatePlaceholderText()
 {
 }
 
-void InputType::attributeChanged()
+void InputType::attributeChanged(const QualifiedName&)
 {
 }
 
@@ -956,10 +955,10 @@ void InputType::listAttributeTargetChanged()
 {
 }
 
-Optional<Decimal> InputType::findClosestTickMarkValue(const Decimal&)
+std::optional<Decimal> InputType::findClosestTickMarkValue(const Decimal&)
 {
     ASSERT_NOT_REACHED();
-    return Nullopt;
+    return std::nullopt;
 }
 #endif
 

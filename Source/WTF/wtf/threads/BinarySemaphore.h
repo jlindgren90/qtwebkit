@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2011 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 
 #include <wtf/Noncopyable.h>
 #include <wtf/ThreadingPrimitives.h>
+#include <wtf/TimeWithDynamicClockType.h>
 
 namespace WTF {
 
@@ -39,21 +40,13 @@ public:
     WTF_EXPORT_PRIVATE ~BinarySemaphore();
 
     WTF_EXPORT_PRIVATE void signal();
-    WTF_EXPORT_PRIVATE bool wait(double absoluteTime);
-
-#if PLATFORM(WIN) || (PLATFORM(QT) && OS(WINDOWS))
-    HANDLE event() const { return m_event; }
-#endif
+    WTF_EXPORT_PRIVATE bool wait(TimeWithDynamicClockType);
 
 private:
-#if PLATFORM(WIN) || (PLATFORM(QT) && OS(WINDOWS))
-    HANDLE m_event;
-#else
     bool m_isSet;
 
     Mutex m_mutex;
     ThreadCondition m_condition;
-#endif
 };
 
 } // namespace WTF

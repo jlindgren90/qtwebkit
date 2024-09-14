@@ -27,9 +27,7 @@
 
 #if ENABLE(INDEXED_DATABASE)
 
-#include "Dictionary.h"
 #include "EventTarget.h"
-#include "ExceptionCode.h"
 #include "IDBActiveDOMObject.h"
 #include "IDBConnectionProxy.h"
 #include "IDBConnectionToServer.h"
@@ -45,6 +43,7 @@ class IDBOpenDBRequest;
 class IDBResultData;
 class IDBTransaction;
 class IDBTransactionInfo;
+
 struct EventNames;
 
 class IDBDatabase : public ThreadSafeRefCounted<IDBDatabase>, public EventTargetWithInlineData, public IDBActiveDOMObject {
@@ -59,7 +58,7 @@ public:
     RefPtr<DOMStringList> objectStoreNames() const;
 
     struct ObjectStoreParameters {
-        Optional<IDBKeyPath> keyPath;
+        std::optional<IDBKeyPath> keyPath;
         bool autoIncrement;
     };
 

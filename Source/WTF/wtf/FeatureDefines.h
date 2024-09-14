@@ -320,22 +320,10 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 
 /* --------- EFL port (Unix) --------- */
 #if PLATFORM(EFL)
-
-#if !defined(ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH)
-#define ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH 1
-#endif
-
 #endif /* PLATFORM(EFL) */
 
 /* --------- Gtk port (Unix, Windows, Mac) --------- */
 #if PLATFORM(GTK)
-
-#if OS(UNIX)
-#if !defined(ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH)
-#define ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH 1
-#endif
-#endif
-
 #endif /* PLATFORM(GTK) */
 
 /* ENABLE macro defaults for WebCore */
@@ -367,14 +355,6 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 
 #if !defined(ENABLE_CHANNEL_MESSAGING)
 #define ENABLE_CHANNEL_MESSAGING 1
-#endif
-
-#if !defined(ENABLE_ES6_MODULES)
-#define ENABLE_ES6_MODULES 0
-#endif
-
-#if !defined(ENABLE_ES2017_ASYNCFUNCTION_SYNTAX)
-#define ENABLE_ES2017_ASYNCFUNCTION_SYNTAX 0
 #endif
 
 #if !defined(ENABLE_CONTENT_EXTENSIONS)
@@ -649,12 +629,8 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 #endif
 #endif
 
-#if !defined(ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH)
-#define ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH 0
-#endif
-
 #if !defined(ENABLE_POINTER_LOCK)
-#define ENABLE_POINTER_LOCK 0
+#define ENABLE_POINTER_LOCK 1
 #endif
 
 #if !defined(ENABLE_PROXIMITY_EVENTS)

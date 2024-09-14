@@ -32,51 +32,43 @@
  */
 
 #include "config.h"
+#include "UserMediaRequest.h"
 
 #if ENABLE(MEDIA_STREAM)
-
-#include "UserMediaRequest.h"
 
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "ExceptionCode.h"
-#include "Frame.h"
 #include "JSMediaStream.h"
 #include "JSOverconstrainedError.h"
 #include "MainFrame.h"
-#include "MediaStream.h"
-#include "MediaStreamPrivate.h"
-#include "OverconstrainedError.h"
+#include "MediaConstraintsImpl.h"
 #include "RealtimeMediaSourceCenter.h"
-#include "SecurityOrigin.h"
 #include "Settings.h"
 #include "UserMediaController.h"
-#include <wtf/MainThread.h>
 
 namespace WebCore {
 
-void UserMediaRequest::start(Document* document, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, MediaDevices::Promise&& promise, ExceptionCode& ec)
+ExceptionOr<void> UserMediaRequest::start(Document& document, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, DOMPromise<IDLInterface<MediaStream>>&& promise)
 {
-    UserMediaController* userMedia = UserMediaController::from(document ? document->page() : nullptr);
-    if (!userMedia) {
-        ec = NOT_SUPPORTED_ERR;
-        return;
-    }
+    auto* userMedia = UserMediaController::from(document.page());
+    if (!userMedia)
+        return Exception { NOT_SUPPORTED_ERR }; // FIXME: Why is it better to return an exception here instead of rejecting the promise as we do just below?
 
     if (!audioConstraints->isValid() && !videoConstraints->isValid()) {
         promise.reject(TypeError);
-        return;
+        return { };
     }
 
-    auto request = adoptRef(*new UserMediaRequest(document, userMedia, WTFMove(audioConstraints), WTFMove(videoConstraints), WTFMove(promise)));
-    request->start();
+    adoptRef(*new UserMediaRequest(document, *userMedia, WTFMove(audioConstraints), WTFMove(videoConstraints), WTFMove(promise)))->start();
+    return { };
 }
 
-UserMediaRequest::UserMediaRequest(ScriptExecutionContext* context, UserMediaController* controller, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, MediaDevices::Promise&& promise)
-    : ContextDestructionObserver(context)
+UserMediaRequest::UserMediaRequest(Document& document, UserMediaController& controller, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, DOMPromise<IDLInterface<MediaStream>>&& promise)
+    : ContextDestructionObserver(&document)
     , m_audioConstraints(WTFMove(audioConstraints))
     , m_videoConstraints(WTFMove(videoConstraints))
-    , m_controller(controller)
+    , m_controller(&controller)
     , m_promise(WTFMove(promise))
 {
 }
@@ -89,7 +81,6 @@ SecurityOrigin* UserMediaRequest::userMediaDocumentOrigin() const
 {
     if (!m_scriptExecutionContext)
         return nullptr;
-
     return m_scriptExecutionContext->securityOrigin();
 }
 
@@ -97,19 +88,15 @@ SecurityOrigin* UserMediaRequest::topLevelDocumentOrigin() const
 {
     if (!m_scriptExecutionContext)
         return nullptr;
-
     return m_scriptExecutionContext->topOrigin();
 }
 
 static bool isSecure(DocumentLoader& documentLoader)
 {
-    if (!documentLoader.response().url().protocolIs("https"))
-        return false;
-
-    if (!documentLoader.response().certificateInfo() || documentLoader.response().certificateInfo()->containsNonRootSHA1SignedCertificate())
-        return false;
-
-    return true;
+    auto& response = documentLoader.response();
+    return response.url().protocolIs("https")
+        && response.certificateInfo()
+        && !response.certificateInfo()->containsNonRootSHA1SignedCertificate();
 }
 
 static bool canCallGetUserMedia(Document& document, String& errorMessage)
@@ -153,14 +140,13 @@ void UserMediaRequest::start()
     }
 
     Document& document = downcast<Document>(*m_scriptExecutionContext);
-    DOMWindow& window = *document.domWindow();
 
     // 10.2 - 6.3 Optionally, e.g., based on a previously-established user preference, for security reasons,
     // or due to platform limitations, jump to the step labeled Permission Failure below.
     String errorMessage;
     if (!canCallGetUserMedia(document, errorMessage)) {
         deny(MediaAccessDenialReason::PermissionDenied, emptyString());
-        window.printErrorMessage(errorMessage);
+        document.domWindow()->printErrorMessage(errorMessage);
         return;
     }
 
@@ -188,20 +174,16 @@ void UserMediaRequest::allow(const String& audioDeviceUID, const String& videoDe
             return;
         }
 
-        for (auto& track : stream->getAudioTracks()) {
-            track->applyConstraints(m_audioConstraints);
+        for (auto& track : stream->getAudioTracks())
             track->source().startProducingData();
-        }
 
-        for (auto& track : stream->getVideoTracks()) {
-            track->applyConstraints(m_videoConstraints);
+        for (auto& track : stream->getVideoTracks())
             track->source().startProducingData();
-        }
         
         m_promise.resolve(stream);
     };
 
-    RealtimeMediaSourceCenter::singleton().createMediaStream(WTFMove(callback), m_allowedAudioDeviceUID, m_allowedVideoDeviceUID);
+    RealtimeMediaSourceCenter::singleton().createMediaStream(WTFMove(callback), m_allowedAudioDeviceUID, m_allowedVideoDeviceUID, &m_audioConstraints.get(), &m_videoConstraints.get());
 }
 
 void UserMediaRequest::deny(MediaAccessDenialReason reason, const String& invalidConstraint)
@@ -220,7 +202,7 @@ void UserMediaRequest::deny(MediaAccessDenialReason reason, const String& invali
         m_promise.reject(NOT_FOUND_ERR);
         break;
     case MediaAccessDenialReason::InvalidConstraint:
-        m_promise.reject(OverconstrainedError::create(invalidConstraint, ASCIILiteral("Invalid constraint")).get());
+        m_promise.rejectType<IDLInterface<OverconstrainedError>>(OverconstrainedError::create(invalidConstraint, ASCIILiteral("Invalid constraint")).get());
         break;
     case MediaAccessDenialReason::HardwareError:
         m_promise.reject(NotReadableError);
@@ -236,14 +218,17 @@ void UserMediaRequest::deny(MediaAccessDenialReason reason, const String& invali
 
 void UserMediaRequest::contextDestroyed()
 {
+    ContextDestructionObserver::contextDestroyed();
     Ref<UserMediaRequest> protectedThis(*this);
-
     if (m_controller) {
         m_controller->cancelUserMediaAccessRequest(*this);
         m_controller = nullptr;
     }
+}
 
-    ContextDestructionObserver::contextDestroyed();
+Document* UserMediaRequest::document() const
+{
+    return downcast<Document>(m_scriptExecutionContext);
 }
 
 } // namespace WebCore

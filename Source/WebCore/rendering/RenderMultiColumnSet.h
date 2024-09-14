@@ -23,9 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#ifndef RenderMultiColumnSet_h
-#define RenderMultiColumnSet_h
+#pragma once
 
 #include "LayerFragment.h"
 #include "RenderMultiColumnFlowThread.h"
@@ -137,7 +135,7 @@ private:
     bool isRenderMultiColumnSet() const override { return true; }
     void layout() override;
 
-    void computeLogicalHeight(LayoutUnit logicalHeight, LayoutUnit logicalTop, LogicalExtentComputedValues&) const override;
+    LogicalExtentComputedValues computeLogicalHeight(LayoutUnit logicalHeight, LayoutUnit logicalTop) const override;
 
     void paintObject(PaintInfo&, const LayoutPoint&) override { }
 
@@ -230,6 +228,3 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMultiColumnSet, isRenderMultiColumnSet())
-
-#endif // RenderMultiColumnSet_h
-

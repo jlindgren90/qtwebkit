@@ -157,6 +157,8 @@ protected:
 #endif
 #endif
 
+    GstElement* videoSink() const { return m_videoSink.get(); }
+
     void setStreamVolumeElement(GstStreamVolume*);
     virtual GstElement* createAudioSink() { return 0; }
     virtual GstElement* audioSink() const { return 0; }
@@ -165,12 +167,9 @@ protected:
 
     virtual bool handleSyncMessage(GstMessage*);
 
-    void triggerDrain();
-
     void triggerRepaint(GstSample*);
     void repaint();
 
-    static void drainCallback(MediaPlayerPrivateGStreamerBase*);
     static void repaintCallback(MediaPlayerPrivateGStreamerBase*, GstSample*);
 
     void notifyPlayerOfVolumeChange();

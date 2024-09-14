@@ -44,6 +44,7 @@
 #include "PageConfiguration.h"
 #include "PaymentCoordinatorClient.h"
 #include "PluginInfoProvider.h"
+#include "SecurityOriginData.h"
 #include "StorageArea.h"
 #include "StorageNamespace.h"
 #include "StorageNamespaceProvider.h"
@@ -64,9 +65,9 @@ class EmptyPaymentCoordinatorClient final : public PaymentCoordinatorClient {
     bool showPaymentUI(const URL&, const Vector<URL>&, const PaymentRequest&) override { return false; }
     void completeMerchantValidation(const PaymentMerchantSession&) override { }
 
-    void completeShippingMethodSelection(PaymentAuthorizationStatus, Optional<PaymentRequest::TotalAndLineItems>) override { }
-    void completeShippingContactSelection(PaymentAuthorizationStatus, const Vector<PaymentRequest::ShippingMethod>&, Optional<PaymentRequest::TotalAndLineItems>) override { }
-    void completePaymentMethodSelection(Optional<WebCore::PaymentRequest::TotalAndLineItems>) override { }
+    void completeShippingMethodSelection(PaymentAuthorizationStatus, std::optional<PaymentRequest::TotalAndLineItems>) override { }
+    void completeShippingContactSelection(PaymentAuthorizationStatus, const Vector<PaymentRequest::ShippingMethod>&, std::optional<PaymentRequest::TotalAndLineItems>) override { }
+    void completePaymentMethodSelection(std::optional<WebCore::PaymentRequest::TotalAndLineItems>) override { }
     void completePaymentSession(PaymentAuthorizationStatus) override { }
     void abortPaymentSession() override { }
     void paymentCoordinatorDestroyed() override { }
@@ -101,11 +102,11 @@ class EmptyStorageNamespaceProvider final : public StorageNamespaceProvider {
         bool canAccessStorage(Frame*) override { return false; }
         StorageType storageType() const override { return LocalStorage; }
         size_t memoryBytesUsedByCache() override { return 0; }
-        SecurityOrigin& securityOrigin() override { return SecurityOrigin::createUnique(); }
+        SecurityOriginData securityOrigin() const override { return { }; }
     };
 
     struct EmptyStorageNamespace final : public StorageNamespace {
-        RefPtr<StorageArea> storageArea(RefPtr<SecurityOrigin>&&) override { return adoptRef(new EmptyStorageArea); }
+        RefPtr<StorageArea> storageArea(const SecurityOriginData&) override { return adoptRef(new EmptyStorageArea); }
         RefPtr<StorageNamespace> copy(Page*) override { return adoptRef(new EmptyStorageNamespace); }
     };
 

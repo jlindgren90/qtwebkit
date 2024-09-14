@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 Ericsson AB. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,36 +33,37 @@
 
 #if ENABLE(MEDIA_STREAM)
 
-#include "ContextDestructionObserver.h"
+#include "ExceptionOr.h"
 #include "JSDOMPromise.h"
-#include "MediaDeviceInfo.h"
-#include "ScriptWrappable.h"
-#include <functional>
+#include "MediaTrackConstraints.h"
 
 namespace WebCore {
 
-class Dictionary;
 class Document;
-class MediaConstraintsImpl;
+class MediaDeviceInfo;
 class MediaStream;
-class MediaTrackSupportedConstraints;
+
+struct MediaTrackSupportedConstraints;
 
 class MediaDevices : public ScriptWrappable, public RefCounted<MediaDevices>, public ContextDestructionObserver {
 public:
-    static Ref<MediaDevices> create(ScriptExecutionContext*);
-    virtual ~MediaDevices();
+    static Ref<MediaDevices> create(Document&);
 
     Document* document() const;
 
-    typedef DOMPromise<MediaStream> Promise;
-    typedef DOMPromise<MediaDeviceInfoVector> EnumerateDevicesPromise;
+    using Promise = DOMPromise<IDLInterface<MediaStream>>;
+    using EnumerateDevicesPromise = DOMPromise<IDLSequence<IDLInterface<MediaDeviceInfo>>>;
 
-    ExceptionOr<void> getUserMedia(Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, Promise&&) const;
-    ExceptionOr<void> enumerateDevices(EnumerateDevicesPromise&&) const;
-    RefPtr<MediaTrackSupportedConstraints> getSupportedConstraints();
+    struct StreamConstraints {
+        Variant<bool, MediaTrackConstraints> video;
+        Variant<bool, MediaTrackConstraints> audio;
+    };
+    ExceptionOr<void> getUserMedia(const StreamConstraints&, Promise&&) const;
+    void enumerateDevices(EnumerateDevicesPromise&&) const;
+    MediaTrackSupportedConstraints getSupportedConstraints();
 
 private:
-    explicit MediaDevices(ScriptExecutionContext*);
+    explicit MediaDevices(Document&);
 };
 
 } // namespace WebCore

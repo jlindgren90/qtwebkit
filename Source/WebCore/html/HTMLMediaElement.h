@@ -32,7 +32,6 @@
 #include "GenericEventQueue.h"
 #include "GenericTaskQueue.h"
 #include "HTMLMediaElementEnums.h"
-#include "JSDOMPromise.h"
 #include "MediaCanStartListener.h"
 #include "MediaControllerInterface.h"
 #include "MediaElementSession.h"
@@ -59,6 +58,7 @@ class AudioSourceProvider;
 class AudioTrackList;
 class AudioTrackPrivate;
 class DOMError;
+class DeferredPromise;
 class DisplaySleepDisabler;
 class Event;
 class HTMLSourceElement;
@@ -69,6 +69,9 @@ class MediaControls;
 class MediaControlsHost;
 class MediaElementAudioSourceNode;
 class MediaError;
+#if ENABLE(ENCRYPTED_MEDIA)
+class MediaKeys;
+#endif
 class MediaPlayer;
 class MediaSession;
 class MediaSource;
@@ -83,6 +86,8 @@ class VideoPlaybackQuality;
 class VideoTrackList;
 class VideoTrackPrivate;
 class WebKitMediaKeys;
+
+template<typename> class DOMPromise;
 
 #if ENABLE(VIDEO_TRACK)
 using CueIntervalTree = PODIntervalTree<MediaTime, TextTrackCue*>;
@@ -216,8 +221,7 @@ public:
     bool loop() const;
     void setLoop(bool b);
 
-    typedef DOMPromise<std::nullptr_t> PlayPromise;
-    void play(PlayPromise&&);
+    void play(DOMPromise<void>&&);
 
     WEBCORE_EXPORT void play() override;
     WEBCORE_EXPORT void pause() override;
@@ -253,6 +257,12 @@ public:
     void webkitSetMediaKeys(WebKitMediaKeys*);
 
     void keyAdded();
+#endif
+
+#if ENABLE(ENCRYPTED_MEDIA)
+    MediaKeys* mediaKeys() const;
+
+    void setMediaKeys(MediaKeys*, Ref<DeferredPromise>&&);
 #endif
 
 // controls
@@ -487,7 +497,7 @@ protected:
     void willDetachRenderers() override;
     void didDetachRenderers() override;
 
-    void didMoveToNewDocument(Document* oldDocument) override;
+    void didMoveToNewDocument(Document& oldDocument) override;
 
     enum DisplayMode { Unknown, None, Poster, PosterWaitingForVideo, Video };
     DisplayMode displayMode() const { return m_displayMode; }
@@ -521,6 +531,7 @@ private:
     bool rendererIsNeeded(const RenderStyle&) override;
     bool childShouldCreateRenderer(const Node&) const override;
     InsertionNotificationRequest insertedInto(ContainerNode&) override;
+    void finishedInsertingSubtree() override;
     void removedFrom(ContainerNode&) override;
     void didRecalcStyle(Style::Change) override;
 
@@ -718,7 +729,7 @@ private:
 
     void setPlaybackRateInternal(double);
 
-    void mediaCanStart() override;
+    void mediaCanStart(Document&) final;
 
     void invalidateCachedTime() const;
     void refreshCachedTime() const;
@@ -819,7 +830,7 @@ private:
     RefPtr<TimeRanges> m_playedTimeRanges;
     GenericEventQueue m_asyncEventQueue;
 
-    Vector<PlayPromise> m_pendingPlayPromises;
+    Vector<DOMPromise<void>> m_pendingPlayPromises;
 
     double m_requestedPlaybackRate { 1 };
     double m_reportedPlaybackRate { 1 };
@@ -1014,6 +1025,7 @@ private:
 
 #if ENABLE(MEDIA_STREAM)
     RefPtr<MediaStream> m_mediaStreamSrcObject;
+    bool m_settingMediaStreamSrcObject { false };
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)

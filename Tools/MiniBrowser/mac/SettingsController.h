@@ -40,6 +40,7 @@
 @property (nonatomic, readonly) BOOL simpleLineLayoutDebugBordersEnabled;
 @property (nonatomic, readonly) BOOL incrementalRenderingSuppressed;
 @property (nonatomic, readonly) BOOL tiledScrollingIndicatorVisible;
+@property (nonatomic, readonly, getter=isSpaceReservedForBanners) BOOL spaceReservedForBanners;
 @property (nonatomic, readonly) BOOL resourceUsageOverlayVisible;
 @property (nonatomic, readonly) BOOL nonFastScrollableRegionOverlayVisible;
 @property (nonatomic, readonly) BOOL wheelEventHandlerRegionOverlayVisible;
@@ -50,7 +51,11 @@
 @property (nonatomic, readonly) BOOL displayListDrawingEnabled;
 @property (nonatomic, readonly) BOOL resourceLoadStatisticsEnabled;
 @property (nonatomic, readonly) BOOL visualViewportEnabled;
+@property (nonatomic, readonly) BOOL largeImageAsyncDecodingEnabled;
+@property (nonatomic, readonly) BOOL animatedImageAsyncDecodingEnabled;
+@property (nonatomic, readonly) BOOL loadsAllSiteIcons;
 @property (nonatomic, readonly) BOOL usesGameControllerFramework;
+@property (nonatomic, readonly) BOOL networkCacheSpeculativeRevalidationDisabled;
 
 @property (nonatomic, readonly) NSString *defaultURL;
 

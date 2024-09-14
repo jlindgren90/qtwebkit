@@ -832,6 +832,11 @@ void AccessibilityUIElement::removeSelectionAtIndex(unsigned index) const
 {
 }
 
+void AccessibilityUIElement::clearSelectedChildren() const
+{
+    // FIXME: implement
+}
+
 JSRetainPtr<JSStringRef> AccessibilityUIElement::accessibilityValue() const
 {
     // FIXME: implement
@@ -977,6 +982,18 @@ bool AccessibilityUIElement::isIgnored() const
 {
     bool isAccessibilityElement = [m_element isAccessibilityElement];
     return !isAccessibilityElement;
+}
+
+bool AccessibilityUIElement::isSingleLine() const
+{
+    // FIXME: implement
+    return false;
+}
+
+bool AccessibilityUIElement::isMultiLine() const
+{
+    // FIXME: implement
+    return false;
 }
 
 bool AccessibilityUIElement::hasPopup() const

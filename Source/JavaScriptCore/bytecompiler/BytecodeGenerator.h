@@ -39,7 +39,6 @@
 #include "Nodes.h"
 #include "ParserError.h"
 #include "RegisterID.h"
-#include "SetForScope.h"
 #include "StaticPropertyAnalyzer.h"
 #include "SymbolTable.h"
 #include "TemplateRegistryKey.h"
@@ -48,6 +47,7 @@
 #include <wtf/HashTraits.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/SegmentedVector.h>
+#include <wtf/SetForScope.h>
 #include <wtf/Vector.h>
 
 namespace JSC {
@@ -84,17 +84,17 @@ namespace JSC {
         StatementNode* finallyBlock;
         RegisterID* iterator;
         ThrowableExpressionData* enumerationNode;
-        unsigned scopeContextStackSize;
+        unsigned controlFlowScopeStackSize;
         unsigned switchContextStackSize;
         unsigned forInContextStackSize;
         unsigned tryContextStackSize;
         unsigned labelScopesSize;
-        unsigned symbolTableStackSize;
+        unsigned lexicalScopeStackSize;
         int finallyDepth;
         int dynamicScopeDepth;
     };
 
-    struct ControlFlowContext {
+    struct ControlFlowScope {
         bool isFinallyBlock;
         FinallyContext finallyContext;
     };
@@ -139,7 +139,7 @@ namespace JSC {
         {
         }
 
-        virtual ForInContextType type() const
+        ForInContextType type() const override
         {
             return StructureForInContextType;
         }
@@ -162,7 +162,7 @@ namespace JSC {
         {
         }
 
-        virtual ForInContextType type() const
+        ForInContextType type() const override
         {
             return IndexedForInContextType;
         }
@@ -315,6 +315,8 @@ namespace JSC {
 
         RegisterID* generatorRegister() { return m_generatorRegister; }
 
+        RegisterID* promiseCapabilityRegister() { return m_promiseCapabilityRegister; }
+
         // Returns the next available temporary register. Registers returned by
         // newTemporary require a modified form of reference counting: any
         // register with a refcount of 0 is considered "available", meaning that
@@ -443,7 +445,7 @@ namespace JSC {
             ASSERT(divotEnd.offset >= divot.offset);
 
             int sourceOffset = m_scopeNode->source().startOffset();
-            unsigned firstLine = m_scopeNode->source().firstLine();
+            unsigned firstLine = m_scopeNode->source().firstLine().oneBasedInt();
 
             int divotOffset = divot.offset - sourceOffset;
             int startOffset = divot.offset - divotStart.offset;
@@ -527,6 +529,7 @@ namespace JSC {
         void liftTDZCheckIfPossible(const Variable&);
         RegisterID* emitNewObject(RegisterID* dst);
         RegisterID* emitNewArray(RegisterID* dst, ElementNode*, unsigned length); // stops at first elision
+        RegisterID* emitNewArrayWithSpread(RegisterID* dst, ElementNode*);
         RegisterID* emitNewArrayWithSize(RegisterID* dst, RegisterID* length);
 
         RegisterID* emitNewFunction(RegisterID* dst, FunctionMetadataNode*);
@@ -576,6 +579,8 @@ namespace JSC {
         void emitPutGetterSetter(RegisterID* base, const Identifier& property, unsigned attributes, RegisterID* getter, RegisterID* setter);
         void emitPutGetterByVal(RegisterID* base, RegisterID* property, unsigned propertyDescriptorOptions, RegisterID* getter);
         void emitPutSetterByVal(RegisterID* base, RegisterID* property, unsigned propertyDescriptorOptions, RegisterID* setter);
+
+        RegisterID* emitGetArgument(RegisterID* dst, int32_t index);
 
         // Initialize object with generator fields (@generatorThis, @generatorNext, @generatorState, @generatorFrame)
         void emitPutGeneratorFields(RegisterID* nextFunction);
@@ -695,10 +700,10 @@ namespace JSC {
 
         bool isInFinallyBlock() { return m_finallyDepth > 0; }
 
-        void pushFinallyContext(StatementNode* finallyBlock);
-        void popFinallyContext();
-        void pushIteratorCloseContext(RegisterID* iterator, ThrowableExpressionData* enumerationNode);
-        void popIteratorCloseContext();
+        void pushFinallyControlFlowScope(StatementNode* finallyBlock);
+        void popFinallyControlFlowScope();
+        void pushIteratorCloseControlFlowScope(RegisterID* iterator, ThrowableExpressionData* enumerationNode);
+        void popIteratorCloseControlFlowScope();
 
         void pushIndexedForInScope(RegisterID* local, RegisterID* index);
         void popIndexedForInScope(RegisterID* local);
@@ -792,11 +797,11 @@ namespace JSC {
 
         void allocateCalleeSaveSpace();
         void allocateAndEmitScope();
-        void emitComplexPopScopes(RegisterID*, ControlFlowContext* topScope, ControlFlowContext* bottomScope);
+        void emitComplexPopScopes(RegisterID*, ControlFlowScope* topScope, ControlFlowScope* bottomScope);
 
         typedef HashMap<double, JSValue> NumberMap;
         typedef HashMap<UniquedStringImpl*, JSString*, IdentifierRepHash> IdentifierStringMap;
-        typedef HashMap<TemplateRegistryKey, JSTemplateRegistryKey*> TemplateRegistryKeyMap;
+        typedef HashMap<Ref<TemplateRegistryKey>, JSTemplateRegistryKey*> TemplateRegistryKeyMap;
         
         // Helper for emitCall() and emitConstruct(). This works because the set of
         // expected functions have identical behavior for both call and construct
@@ -880,7 +885,7 @@ namespace JSC {
 
     public:
         JSString* addStringConstant(const Identifier&);
-        JSTemplateRegistryKey* addTemplateRegistryKeyConstant(const TemplateRegistryKey&);
+        JSTemplateRegistryKey* addTemplateRegistryKeyConstant(Ref<TemplateRegistryKey>&&);
 
         Vector<UnlinkedInstruction, 0, UnsafeVectorOverflow>& instructions() { return m_instructions; }
 
@@ -891,13 +896,13 @@ namespace JSC {
 
         bool m_shouldEmitDebugHooks;
 
-        struct SymbolTableStackEntry {
+        struct LexicalScopeStackEntry {
             SymbolTable* m_symbolTable;
             RegisterID* m_scope;
             bool m_isWithScope;
             int m_symbolTableConstantIndex;
         };
-        Vector<SymbolTableStackEntry> m_symbolTableStack;
+        Vector<LexicalScopeStackEntry> m_lexicalScopeStack;
         enum class TDZNecessityLevel {
             NotNeeded,
             Optimize,
@@ -905,7 +910,7 @@ namespace JSC {
         };
         typedef HashMap<RefPtr<UniquedStringImpl>, TDZNecessityLevel, IdentifierRepHash> TDZMap;
         Vector<TDZMap> m_TDZStack;
-        Optional<size_t> m_varScopeSymbolTableIndex;
+        std::optional<size_t> m_varScopeLexicalScopeStackIndex;
         void pushTDZVariables(const VariableEnvironment&, TDZCheckOptimization, TDZRequirement);
 
         ScopeNode* const m_scopeNode;
@@ -928,6 +933,7 @@ namespace JSC {
         RegisterID* m_isDerivedConstuctor { nullptr };
         RegisterID* m_linkTimeConstantRegisters[LinkTimeConstantCount];
         RegisterID* m_arrowFunctionContextLexicalEnvironmentRegister { nullptr };
+        RegisterID* m_promiseCapabilityRegister { nullptr };
 
         SegmentedVector<RegisterID*, 16> m_localRegistersForCalleeSaveRegisters;
         SegmentedVector<RegisterID, 32> m_constantPoolRegisters;
@@ -940,10 +946,10 @@ namespace JSC {
         const CodeType m_codeType;
 
         int localScopeDepth() const;
-        void pushScopedControlFlowContext();
-        void popScopedControlFlowContext();
+        void pushLocalControlFlowScope();
+        void popLocalControlFlowScope();
 
-        Vector<ControlFlowContext, 0, UnsafeVectorOverflow> m_scopeContextStack;
+        Vector<ControlFlowScope, 0, UnsafeVectorOverflow> m_controlFlowScopeStack;
         Vector<SwitchInfo> m_switchContextStack;
         Vector<RefPtr<ForInContext>> m_forInContextStack;
         Vector<TryContext> m_tryContextStack;

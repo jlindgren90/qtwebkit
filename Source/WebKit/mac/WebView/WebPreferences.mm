@@ -507,6 +507,8 @@ public:
         [NSNumber numberWithBool:NO],   WebKitAccelerated2dCanvasEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],  WebKitSubpixelCSSOMElementMetricsEnabledPreferenceKey,
         [NSNumber numberWithBool:NO],  WebKitResourceLoadStatisticsEnabledPreferenceKey,
+        [NSNumber numberWithBool:YES],  WebKitLargeImageAsyncDecodingEnabledPreferenceKey,
+        [NSNumber numberWithBool:YES],  WebKitAnimatedImageAsyncDecodingEnabledPreferenceKey,
 #if PLATFORM(IOS)
         [NSNumber numberWithBool:YES],  WebKitFrameFlatteningEnabledPreferenceKey,
 #else
@@ -625,7 +627,26 @@ public:
 #if ENABLE(WEB_ANIMATIONS)
         [NSNumber numberWithBool:NO], WebKitWebAnimationsEnabledPreferenceKey,
 #endif
+
+#if PLATFORM(IOS)
         [NSNumber numberWithBool:NO], WebKitVisualViewportEnabledPreferenceKey,
+#else
+        [NSNumber numberWithBool:YES], WebKitVisualViewportEnabledPreferenceKey,
+#endif
+
+        [NSNumber numberWithBool:YES], WebKitNeedsStorageAccessFromFileURLsQuirkKey,
+#if ENABLE(SUBTLE_CRYPTO)
+        [NSNumber numberWithBool:YES], WebKitSubtleCryptoEnabledPreferenceKey,
+#endif
+
+#if ENABLE(MEDIA_STREAM)
+        [NSNumber numberWithBool:NO], WebKitMediaStreamEnabledPreferenceKey,
+#endif
+
+#if ENABLE(WEB_RTC)
+        [NSNumber numberWithBool:NO], WebKitPeerConnectionEnabledPreferenceKey,
+#endif
+
         nil];
 
 #if !PLATFORM(IOS)
@@ -1444,6 +1465,16 @@ public:
     [self _setBoolValue: flag forKey: WebKitAllowFileAccessFromFileURLsPreferenceKey];
 }
 
+- (BOOL)needsStorageAccessFromFileURLsQuirk
+{
+    return [self _boolValueForKey: WebKitNeedsStorageAccessFromFileURLsQuirkKey];
+}
+
+-(void)setNeedsStorageAccessFromFileURLsQuirk:(BOOL)flag
+{
+    [self _setBoolValue: flag forKey: WebKitNeedsStorageAccessFromFileURLsQuirkKey];
+}
+
 - (NSTimeInterval)_backForwardCacheExpirationInterval
 {
     return (NSTimeInterval)[self _floatValueForKey:WebKitBackForwardCacheExpirationIntervalKey];
@@ -1872,6 +1903,26 @@ static NSString *classIBCreatorID = nil;
 - (void)setResourceLoadStatisticsEnabled:(BOOL)enabled
 {
     [self _setBoolValue:enabled forKey:WebKitResourceLoadStatisticsEnabledPreferenceKey];
+}
+
+- (BOOL)largeImageAsyncDecodingEnabled
+{
+    return [self _boolValueForKey:WebKitLargeImageAsyncDecodingEnabledPreferenceKey];
+}
+
+- (void)setLargeImageAsyncDecodingEnabled:(BOOL)enabled
+{
+    [self _setBoolValue:enabled forKey:WebKitLargeImageAsyncDecodingEnabledPreferenceKey];
+}
+
+- (BOOL)animatedImageAsyncDecodingEnabled
+{
+    return [self _boolValueForKey:WebKitAnimatedImageAsyncDecodingEnabledPreferenceKey];
+}
+
+- (void)setAnimatedImageAsyncDecodingEnabled:(BOOL)enabled
+{
+    [self _setBoolValue:enabled forKey:WebKitAnimatedImageAsyncDecodingEnabledPreferenceKey];
 }
 
 - (BOOL)canvasUsesAcceleratedDrawing
@@ -2636,6 +2687,36 @@ static NSString *classIBCreatorID = nil;
     [self _setStringValue:directory forKey:WebKitMediaKeysStorageDirectoryKey];
 }
 
+- (BOOL)subtleCryptoEnabled
+{
+    return [self _boolValueForKey:WebKitSubtleCryptoEnabledPreferenceKey];
+}
+
+- (void)setSubtleCryptoEnabled:(BOOL)flag
+{
+    [self _setBoolValue:flag forKey:WebKitSubtleCryptoEnabledPreferenceKey];
+}
+
+- (BOOL)mediaStreamEnabled
+{
+    return [self _boolValueForKey:WebKitMediaStreamEnabledPreferenceKey];
+}
+
+- (void)setMediaStreamEnabled:(BOOL)flag
+{
+    [self _setBoolValue:flag forKey:WebKitMediaStreamEnabledPreferenceKey];
+}
+
+- (BOOL)peerConnectionEnabled
+{
+    return [self _boolValueForKey:WebKitPeerConnectionEnabledPreferenceKey];
+}
+
+- (void)setPeerConnectionEnabled:(BOOL)flag
+{
+    [self _setBoolValue:flag forKey:WebKitPeerConnectionEnabledPreferenceKey];
+}
+
 - (void)setMetaRefreshEnabled:(BOOL)enabled
 {
     [self setHTTPEquivEnabled:enabled];
@@ -2804,6 +2885,16 @@ static NSString *classIBCreatorID = nil;
 - (void)setModernMediaControlsEnabled:(BOOL)flag
 {
     [self _setBoolValue:flag forKey:WebKitModernMediaControlsEnabledPreferenceKey];
+}
+
+- (BOOL)intersectionObserverEnabled
+{
+    return [self _boolValueForKey:WebKitIntersectionObserverEnabledPreferenceKey];
+}
+
+- (void)setIntersectionObserverEnabled:(BOOL)flag
+{
+    [self _setBoolValue:flag forKey:WebKitIntersectionObserverEnabledPreferenceKey];
 }
 
 @end

@@ -35,7 +35,7 @@
 
 namespace JSC { namespace DFG {
 
-ArrayMode ArrayMode::fromObserved(const ConcurrentJITLocker& locker, ArrayProfile* profile, Array::Action action, bool makeSafe)
+ArrayMode ArrayMode::fromObserved(const ConcurrentJSLocker& locker, ArrayProfile* profile, Array::Action action, bool makeSafe)
 {
     Array::Class nonArray;
     if (profile->usesOriginalArrayStructures(locker))
@@ -152,11 +152,10 @@ ArrayMode ArrayMode::fromObserved(const ConcurrentJITLocker& locker, ArrayProfil
 
 static bool canBecomeGetArrayLength(Graph& graph, Node* node)
 {
-    if (node->op() == GetById || node->op() == PureGetById) {
-        auto uid = graph.identifiers()[node->identifierNumber()];
-        return uid == graph.m_vm.propertyNames->length.impl();
-    }
-    return false;
+    if (node->op() != GetById)
+        return false;
+    auto uid = graph.identifiers()[node->identifierNumber()];
+    return uid == graph.m_vm.propertyNames->length.impl();
 }
 
 ArrayMode ArrayMode::refine(
@@ -734,7 +733,7 @@ bool ArrayMode::permitsBoundsCheckLowering() const
 
 void ArrayMode::dump(PrintStream& out) const
 {
-    out.print(type(), arrayClass(), speculation(), conversion());
+    out.print(type(), "+", arrayClass(), "+", speculation(), "+", conversion());
 }
 
 } } // namespace JSC::DFG

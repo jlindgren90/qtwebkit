@@ -51,15 +51,15 @@ bool LoadableClassicScript::isLoaded() const
     return m_cachedScript->isLoaded();
 }
 
-Optional<LoadableScript::Error> LoadableClassicScript::wasErrored() const
+std::optional<LoadableScript::Error> LoadableClassicScript::error() const
 {
     if (m_error)
         return m_error;
 
     if (m_cachedScript->errorOccurred())
-        return Error { ErrorType::CachedScript, Nullopt };
+        return Error { ErrorType::CachedScript, std::nullopt };
 
-    return Nullopt;
+    return std::nullopt;
 }
 
 bool LoadableClassicScript::wasCanceled() const
@@ -101,8 +101,8 @@ void LoadableClassicScript::notifyFinished(CachedResource& resource)
 
 void LoadableClassicScript::execute(ScriptElement& scriptElement)
 {
-    ASSERT(!wasErrored());
-    scriptElement.executeScript(ScriptSourceCode(m_cachedScript.get()));
+    ASSERT(!error());
+    scriptElement.executeClassicScript(ScriptSourceCode(m_cachedScript.get(), JSC::SourceProviderSourceType::Program));
 }
 
 }

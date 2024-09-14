@@ -134,7 +134,7 @@ inline void Heap::writeBarrier(const JSCell* from, JSCell* to)
         return;
     if (!isWithinThreshold(from->cellState(), barrierThreshold()))
         return;
-    if (LIKELY(!to || to->cellState() != CellState::NewWhite))
+    if (LIKELY(!to))
         return;
     writeBarrierSlowPath(from);
 }
@@ -155,6 +155,12 @@ inline void Heap::writeBarrierWithoutFence(const JSCell* from)
         return;
     if (UNLIKELY(isWithinThreshold(from->cellState(), blackThreshold)))
         addToRememberedSet(from);
+}
+
+inline void Heap::mutatorFence()
+{
+    if (isX86() || UNLIKELY(mutatorShouldBeFenced()))
+        WTF::storeStoreFence();
 }
 
 template<typename Functor> inline void Heap::forEachCodeBlock(const Functor& func)
@@ -362,6 +368,12 @@ inline void Heap::stopIfNecessary()
     if (m_worldState.loadRelaxed() == hasAccessBit)
         return;
     stopIfNecessarySlow();
+}
+
+inline void Heap::writeBarrierOpaqueRoot(void* root)
+{
+    if (mutatorShouldBeFenced())
+        writeBarrierOpaqueRootSlow(root);
 }
 
 } // namespace JSC

@@ -27,58 +27,47 @@
 
 #if ENABLE(WEBASSEMBLY)
 
-#include "WasmMemory.h"
+#include "WasmFormat.h"
 #include "WasmOps.h"
 #include "WasmParser.h"
 #include <wtf/Vector.h>
 
 namespace JSC { namespace Wasm {
 
-class ModuleParser : public Parser {
+struct ModuleParserResult {
+    std::unique_ptr<ModuleInformation> module;
+    FunctionIndexSpace functionIndexSpace;
+    Vector<FunctionLocationInBinary> functionLocationInBinary;
+};
+
+class ModuleParser : public Parser<ModuleParserResult> {
 public:
 
-    static const unsigned magicNumber = 0xc;
-
-    ModuleParser(const uint8_t* sourceBuffer, size_t sourceLength)
-        : Parser(sourceBuffer, sourceLength)
+    ModuleParser(VM* vm, const uint8_t* sourceBuffer, size_t sourceLength)
+        : Parser(vm, sourceBuffer, sourceLength)
     {
     }
-    ModuleParser(const Vector<uint8_t>& sourceBuffer)
-        : Parser(sourceBuffer.data(), sourceBuffer.size())
+    ModuleParser(VM* vm, const Vector<uint8_t>& sourceBuffer)
+        : ModuleParser(vm, sourceBuffer.data(), sourceBuffer.size())
     {
     }
 
-    bool WARN_UNUSED_RETURN parse();
-    bool WARN_UNUSED_RETURN failed() const { return m_failed; }
-    const String& errorMessage() const
-    {
-        RELEASE_ASSERT(failed());
-        return m_errorMessage;
-    }
-
-    const Vector<FunctionInformation>& functionInformation() const
-    {
-        RELEASE_ASSERT(!failed());
-        return m_functions;
-    }
-    std::unique_ptr<Memory>& memory()
-    {
-        RELEASE_ASSERT(!failed());
-        return m_memory;
-    }
+    Result WARN_UNUSED_RETURN parse();
 
 private:
-    bool WARN_UNUSED_RETURN parseMemory();
-    bool WARN_UNUSED_RETURN parseFunctionTypes();
-    bool WARN_UNUSED_RETURN parseFunctionSignatures();
-    bool WARN_UNUSED_RETURN parseFunctionDefinitions();
-    bool WARN_UNUSED_RETURN parseFunctionDefinition(uint32_t number);
 
-    Vector<FunctionInformation> m_functions;
-    Vector<Signature> m_signatures;
-    std::unique_ptr<Memory> m_memory;
-    bool m_failed { true };
-    String m_errorMessage;
+#define WASM_SECTION_DECLARE_PARSER(NAME, ID, DESCRIPTION) PartialResult WARN_UNUSED_RETURN parse ## NAME();
+    FOR_EACH_WASM_SECTION(WASM_SECTION_DECLARE_PARSER)
+#undef WASM_SECTION_DECLARE_PARSER
+
+    PartialResult WARN_UNUSED_RETURN parseGlobalType(Global&);
+    PartialResult WARN_UNUSED_RETURN parseMemoryHelper(bool isImport);
+    PartialResult WARN_UNUSED_RETURN parseTableHelper(bool isImport);
+    PartialResult WARN_UNUSED_RETURN parseResizableLimits(uint32_t& initial, std::optional<uint32_t>& maximum);
+    PartialResult WARN_UNUSED_RETURN parseInitExpr(uint8_t&, uint64_t&);
+
+    ModuleParserResult m_result;
+    bool m_hasTable { false };
 };
 
 } } // namespace JSC::Wasm

@@ -41,7 +41,6 @@ class ClientRect;
 class ClientRectList;
 class CustomElementReactionQueue;
 class DatasetDOMStringMap;
-class Dictionary;
 class DOMTokenList;
 class ElementRareData;
 class HTMLDocument;
@@ -202,9 +201,9 @@ public:
     virtual CSSStyleDeclaration* cssomStyle();
 
     const QualifiedName& tagQName() const { return m_tagName; }
-#if ENABLE(CSS_SELECTOR_JIT)
+#if ENABLE(JIT)
     static ptrdiff_t tagQNameMemoryOffset() { return OBJECT_OFFSETOF(Element, m_tagName); }
-#endif // ENABLE(CSS_SELECTOR_JIT)
+#endif // ENABLE(JIT)
     String tagName() const { return nodeName(); }
     bool hasTagName(const QualifiedName& tagName) const { return m_tagName.matches(tagName); }
     bool hasTagName(const HTMLQualifiedName& tagName) const { return ContainerNode::hasTagName(tagName); }
@@ -218,7 +217,7 @@ public:
     const AtomicString& prefix() const final { return m_tagName.prefix(); }
     const AtomicString& namespaceURI() const final { return m_tagName.namespaceURI(); }
 
-    void setPrefix(const AtomicString&, ExceptionCode&) final;
+    ExceptionOr<void> setPrefix(const AtomicString&) final;
 
     String nodeName() const override;
 
@@ -444,6 +443,8 @@ public:
     virtual bool isInRange() const { return false; }
     virtual bool isOutOfRange() const { return false; }
     virtual bool isFrameElementBase() const { return false; }
+    virtual bool isUploadButton() const { return false; }
+    virtual bool isSliderContainerElement() const { return false; }
 
     bool canContainRangeEndPoint() const override;
 
@@ -459,17 +460,9 @@ public:
     virtual void buildPendingResource() { };
 
 #if ENABLE(FULLSCREEN_API)
-    enum {
-        ALLOW_KEYBOARD_INPUT = 1 << 0,
-        LEGACY_MOZILLA_REQUEST = 1 << 1,
-    };
-    
-    WEBCORE_EXPORT void webkitRequestFullScreen(unsigned short flags);
     WEBCORE_EXPORT bool containsFullScreenElement() const;
     void setContainsFullScreenElement(bool);
     void setContainsFullScreenElementOnAncestorsCrossingFrameBoundaries(bool);
-
-    // W3C API
     WEBCORE_EXPORT void webkitRequestFullscreen();
 #endif
 
@@ -477,12 +470,7 @@ public:
     WEBCORE_EXPORT void requestPointerLock();
 #endif
 
-#if ENABLE(INDIE_UI)
-    void setUIActions(const AtomicString&);
-    const AtomicString& UIActions() const;
-#endif
-    
-    virtual bool isSpellCheckingEnabled() const;
+    bool isSpellCheckingEnabled() const;
 
     RenderNamedFlowFragment* renderNamedFlowFragment() const;
 
@@ -512,14 +500,14 @@ public:
 
     WEBCORE_EXPORT bool dispatchMouseForceWillBegin();
 
-    virtual bool willRecalcStyle(Style::Change);
+    virtual void willRecalcStyle(Style::Change);
     virtual void didRecalcStyle(Style::Change);
     virtual void willResetComputedStyle();
     virtual void willAttachRenderers();
     virtual void didAttachRenderers();
     virtual void willDetachRenderers();
     virtual void didDetachRenderers();
-    virtual Optional<ElementStyle> resolveCustomStyle(const RenderStyle& parentStyle, const RenderStyle* shadowHostStyle);
+    virtual std::optional<ElementStyle> resolveCustomStyle(const RenderStyle& parentStyle, const RenderStyle* shadowHostStyle);
 
     LayoutRect absoluteEventHandlerBounds(bool& includesFixedPositionElements) override;
 
@@ -586,7 +574,7 @@ protected:
     void childrenChanged(const ChildChange&) override;
     void removeAllEventListeners() final;
     virtual void parserDidSetAttributes();
-    void didMoveToNewDocument(Document*) override;
+    void didMoveToNewDocument(Document&) override;
 
     void clearTabIndexExplicitlyIfNeeded();
     void setTabIndexExplicitly(int);

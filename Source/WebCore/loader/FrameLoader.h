@@ -118,7 +118,7 @@ public:
     unsigned long loadResourceSynchronously(const ResourceRequest&, StoredCredentials, ClientCredentialPolicy, ResourceError&, ResourceResponse&, RefPtr<SharedBuffer>& data);
 
     void changeLocation(const FrameLoadRequest&);
-    WEBCORE_EXPORT void urlSelected(const URL&, const String& target, Event*, LockHistory, LockBackForwardList, ShouldSendReferrer, ShouldOpenExternalURLsPolicy, Optional<NewFrameOpenerPolicy> = Nullopt, const AtomicString& downloadAttribute = nullAtom);
+    WEBCORE_EXPORT void urlSelected(const URL&, const String& target, Event*, LockHistory, LockBackForwardList, ShouldSendReferrer, ShouldOpenExternalURLsPolicy, std::optional<NewFrameOpenerPolicy> = std::nullopt, const AtomicString& downloadAttribute = nullAtom);
     void submitForm(PassRefPtr<FormSubmission>);
 
     WEBCORE_EXPORT void reload(bool endToEndReload = false, bool contentBlockersEnabled = true);
@@ -299,6 +299,7 @@ public:
     void setProvisionalLoadErrorBeingHandledURL(const URL& url) { m_provisionalLoadErrorBeingHandledURL = url; }
 
     bool isAlwaysOnLoggingAllowed() const;
+    bool shouldSuppressKeyboardInput() const;
 
 private:
     enum FormSubmissionCacheLoadPolicy {
@@ -350,7 +351,7 @@ private:
 
     bool shouldReloadToHandleUnreachableURL(DocumentLoader*);
 
-    void dispatchDidCommitLoad(Optional<HasInsecureContent> initialHasInsecureContent);
+    void dispatchDidCommitLoad(std::optional<HasInsecureContent> initialHasInsecureContent);
 
     void urlSelected(const FrameLoadRequest&, Event*);
 
@@ -452,8 +453,8 @@ private:
 
     RefPtr<FrameNetworkingContext> m_networkingContext;
 
-    Optional<ResourceRequestCachePolicy> m_overrideCachePolicyForTesting;
-    Optional<ResourceLoadPriority> m_overrideResourceLoadPriorityForTesting;
+    std::optional<ResourceRequestCachePolicy> m_overrideCachePolicyForTesting;
+    std::optional<ResourceLoadPriority> m_overrideResourceLoadPriorityForTesting;
     bool m_isStrictRawResourceValidationPolicyDisabledForTesting { false };
 
     URL m_previousURL;

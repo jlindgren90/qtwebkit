@@ -100,7 +100,7 @@ int RenderMathMLBlock::baselinePosition(FontBaseline baselineType, bool firstLin
     if (linePositionMode == PositionOfInteriorLineBoxes)
         return 0;
 
-    return firstLineBaseline().valueOr(RenderBlock::baselinePosition(baselineType, firstLine, direction, linePositionMode));
+    return firstLineBaseline().value_or(RenderBlock::baselinePosition(baselineType, firstLine, direction, linePositionMode));
 }
 
 #if ENABLE(DEBUG_MATH_LAYOUT)
@@ -173,11 +173,11 @@ LayoutUnit toUserUnits(const MathMLElement::Length& length, const RenderStyle& s
     }
 }
 
-Optional<int> RenderMathMLTable::firstLineBaseline() const
+std::optional<int> RenderMathMLTable::firstLineBaseline() const
 {
     // By default the vertical center of <mtable> is aligned on the math axis.
     // This is different than RenderTable::firstLineBoxBaseline, which returns the baseline of the first row of a <table>.
-    return Optional<int>(logicalHeight() / 2 + axisHeight(style()));
+    return std::optional<int>(logicalHeight() / 2 + axisHeight(style()));
 }
 
 void RenderMathMLBlock::layoutItems(bool relayoutChildren)
@@ -245,6 +245,18 @@ void RenderMathMLBlock::layoutBlock(bool relayoutChildren, LayoutUnit)
 
     repainter.repaintAfterLayout();
 
+    clearNeedsLayout();
+}
+
+void RenderMathMLBlock::layoutInvalidMarkup()
+{
+    // Invalid MathML subtrees are just renderered as empty boxes.
+    // FIXME: https://webkit.org/b/135460 - Should we display some "invalid" markup message instead?
+    ASSERT(needsLayout());
+    for (auto child = firstChildBox(); child; child = child->nextSiblingBox())
+        child->layoutIfNeeded();
+    setLogicalWidth(0);
+    setLogicalHeight(0);
     clearNeedsLayout();
 }
 

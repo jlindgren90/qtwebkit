@@ -73,6 +73,7 @@ namespace WebCore {
     macro(queuedSetLocalDescription) \
     macro(queuedSetRemoteDescription) \
     macro(reader) \
+    macro(readIntoRequests) \
     macro(readRequests) \
     macro(readableStreamController) \
     macro(readyPromiseCapability) \
@@ -97,6 +98,7 @@ namespace WebCore {
     macro(streamWritable) \
     macro(structuredCloneArrayBuffer) \
     macro(structuredCloneArrayBufferView) \
+    macro(totalQueuedBytes) \
     macro(underlyingByteSource) \
     macro(underlyingSink) \
     macro(underlyingSource) \

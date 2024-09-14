@@ -98,10 +98,13 @@ NetworkResourceLoader::NetworkResourceLoader(const NetworkResourceLoadParameters
         }
     }
 
+#if !USE(NETWORK_SESSION)
     if (originalRequest().url().protocolIsBlob()) {
         ASSERT(!m_parameters.resourceSandboxExtension);
         m_fileReferences.appendVector(NetworkBlobRegistry::singleton().filesInBlob(connection, originalRequest().url()));
     }
+#endif
+
 
     if (synchronousReply)
         m_synchronousLoadData = std::make_unique<SynchronousLoadData>(WTFMove(synchronousReply));
@@ -219,6 +222,9 @@ void NetworkResourceLoader::startNetworkLoad(const ResourceRequest& request)
     parameters.request = request;
 
 #if USE(NETWORK_SESSION)
+    if (request.url().protocolIsBlob())
+        parameters.blobFileReferences = NetworkBlobRegistry::singleton().filesInBlob(m_connection, originalRequest().url());
+
     auto* networkSession = SessionTracker::networkSession(parameters.sessionID);
     if (!networkSession) {
         WTFLogAlways("Attempted to create a NetworkLoad with a session (id=%" PRIu64 ") that does not exist.", parameters.sessionID.sessionID());
@@ -274,29 +280,10 @@ void NetworkResourceLoader::cleanup()
     m_connection->didCleanupResourceLoader(*this);
 }
 
-void NetworkResourceLoader::didConvertToDownload()
+void NetworkResourceLoader::convertToDownload(DownloadID downloadID, const ResourceRequest& request, const ResourceResponse& response)
 {
-    ASSERT(!m_didConvertToDownload);
     ASSERT(m_networkLoad);
-    m_didConvertToDownload = true;
-}
-    
-#if USE(NETWORK_SESSION)
-void NetworkResourceLoader::didBecomeDownload()
-{
-    ASSERT(m_didConvertToDownload);
-    ASSERT(m_networkLoad);
-    cleanup();
-}
-#endif
-
-bool NetworkResourceLoader::isBecomingDownload() const
-{
-#if USE(NETWORK_SESSION)
-    return m_networkLoad && m_didConvertToDownload;
-#else
-    return false;
-#endif
+    NetworkProcess::singleton().downloadManager().convertNetworkLoadToDownload(downloadID, std::exchange(m_networkLoad, nullptr), WTFMove(m_fileReferences), request, response);
 }
 
 void NetworkResourceLoader::abort()
@@ -306,7 +293,7 @@ void NetworkResourceLoader::abort()
     RELEASE_LOG_IF_ALLOWED("abort: Canceling resource load (pageID = %" PRIu64 ", frameID = %" PRIu64 ", resourceID = %" PRIu64 ")",
         m_parameters.webPageID, m_parameters.webFrameID, m_parameters.identifier);
 
-    if (m_networkLoad && !m_didConvertToDownload) {
+    if (m_networkLoad) {
 #if ENABLE(NETWORK_CACHE)
         if (canUseCache(m_networkLoad->currentRequest())) {
             // We might already have used data from this incomplete load. Ensure older versions don't remain in the cache after cancel.
@@ -316,9 +303,6 @@ void NetworkResourceLoader::abort()
 #endif
         m_networkLoad->cancel();
     }
-
-    if (isBecomingDownload())
-        return;
 
     cleanup();
 }
@@ -366,11 +350,11 @@ auto NetworkResourceLoader::didReceiveResponse(ResourceResponse&& receivedRespon
 #endif
 
     if (shouldContinueDidReceiveResponse) {
-        RELEASE_LOG_IF_ALLOWED("didReceiveResponse: Should wait for message from WebContent process before continuing resource load (pageID = %" PRIu64 ", frameID = %" PRIu64 ", resourceID = %" PRIu64 ")", m_parameters.webPageID, m_parameters.webFrameID, m_parameters.identifier);
+        RELEASE_LOG_IF_ALLOWED("didReceiveResponse: Should not wait for message from WebContent process before continuing resource load (pageID = %" PRIu64 ", frameID = %" PRIu64 ", resourceID = %" PRIu64 ")", m_parameters.webPageID, m_parameters.webFrameID, m_parameters.identifier);
         return ShouldContinueDidReceiveResponse::Yes;
     }
 
-    RELEASE_LOG_IF_ALLOWED("didReceiveResponse: Should not wait for message from WebContent process before continuing resource load (pageID = %" PRIu64 ", frameID = %" PRIu64 ", resourceID = %" PRIu64 ")", m_parameters.webPageID, m_parameters.webFrameID, m_parameters.identifier);
+    RELEASE_LOG_IF_ALLOWED("didReceiveResponse: Should wait for message from WebContent process before continuing resource load (pageID = %" PRIu64 ", frameID = %" PRIu64 ", resourceID = %" PRIu64 ")", m_parameters.webPageID, m_parameters.webFrameID, m_parameters.identifier);
     return ShouldContinueDidReceiveResponse::No;
 }
 

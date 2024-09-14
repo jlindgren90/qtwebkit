@@ -494,7 +494,8 @@ public:
     bool isWebArea() const { return roleValue() == WebAreaRole; }
     virtual bool isCheckbox() const { return roleValue() == CheckBoxRole; }
     virtual bool isRadioButton() const { return roleValue() == RadioButtonRole; }
-    virtual bool isListBox() const { return roleValue() == ListBoxRole; }
+    virtual bool isNativeListBox() const { return false; }
+    bool isListBox() const { return roleValue() == ListBoxRole; }
     virtual bool isListBoxOption() const { return false; }
     virtual bool isAttachment() const { return false; }
     virtual bool isMediaTimeline() const { return false; }
@@ -685,6 +686,8 @@ public:
     static AccessibilityObject* firstAccessibleObjectFromNode(const Node*);
     void findMatchingObjects(AccessibilitySearchCriteria*, AccessibilityChildrenVector&);
     virtual bool isDescendantOfBarrenParent() const { return false; }
+
+    bool isDescendantOfRole(AccessibilityRole) const;
     
     // Text selection
     RefPtr<Range> rangeOfStringClosestToRangeInDirection(Range*, AccessibilitySearchDirection, Vector<String>&) const;
@@ -817,6 +820,7 @@ public:
 #endif
     virtual bool isDetachedFromParent() { return false; }
 
+    virtual bool canHaveSelectedChildren() const { return false; }
     virtual void selectedChildren(AccessibilityChildrenVector&) { }
     virtual void visibleChildren(AccessibilityChildrenVector&) { }
     virtual void tabChildren(AccessibilityChildrenVector&) { }
@@ -920,7 +924,7 @@ public:
     virtual const String ariaLiveRegionStatus() const { return String(); }
     virtual const AtomicString& ariaLiveRegionRelevant() const { return nullAtom; }
     virtual bool ariaLiveRegionAtomic() const { return false; }
-    virtual bool ariaLiveRegionBusy() const { return false; }
+    virtual bool isBusy() const { return false; }
     static const String defaultLiveRegionStatusForRole(AccessibilityRole);
     static bool liveRegionStatusIsEnabled(const AtomicString&);
     static bool contentEditableAttributeIsEnabled(Element*);

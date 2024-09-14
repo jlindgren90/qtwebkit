@@ -52,6 +52,7 @@
 #include "Settings.h"
 #include <limits>
 #include <wtf/Ref.h>
+#include <wtf/SetForScope.h>
 
 namespace WebCore {
 
@@ -363,7 +364,7 @@ void HTMLFormElement::reset()
 
     Ref<HTMLFormElement> protectedThis(*this);
 
-    JSC::SetForScope<bool> isInResetFunctionRestorer(m_isInResetFunction, true);
+    SetForScope<bool> isInResetFunctionRestorer(m_isInResetFunction, true);
 
     if (!dispatchEvent(Event::create(eventNames().resetEvent, true, true)))
         return;
@@ -391,34 +392,14 @@ void HTMLFormElement::resetAssociatedFormControlElements()
 
 // FIXME: We should look to share this code with class HTMLFormControlElement instead of duplicating the logic.
 
-bool HTMLFormElement::autocorrect() const
+bool HTMLFormElement::shouldAutocorrect() const
 {
     const AtomicString& autocorrectValue = attributeWithoutSynchronization(autocorrectAttr);
     if (!autocorrectValue.isEmpty())
         return !equalLettersIgnoringASCIICase(autocorrectValue, "off");
     if (HTMLFormElement* form = this->form())
-        return form->autocorrect();
+        return form->shouldAutocorrect();
     return true;
-}
-
-void HTMLFormElement::setAutocorrect(bool autocorrect)
-{
-    setAttributeWithoutSynchronization(autocorrectAttr, autocorrect ? AtomicString("on", AtomicString::ConstructFromLiteral) : AtomicString("off", AtomicString::ConstructFromLiteral));
-}
-
-WebAutocapitalizeType HTMLFormElement::autocapitalizeType() const
-{
-    return autocapitalizeTypeForAttributeValue(attributeWithoutSynchronization(autocapitalizeAttr));
-}
-
-const AtomicString& HTMLFormElement::autocapitalize() const
-{
-    return stringForAutocapitalizeType(autocapitalizeType());
-}
-
-void HTMLFormElement::setAutocapitalize(const AtomicString& value)
-{
-    setAttributeWithoutSynchronization(autocapitalizeAttr, value);
 }
 
 #endif
@@ -562,7 +543,7 @@ unsigned HTMLFormElement::formElementIndex(FormAssociatedElement* associatedElem
     unsigned currentAssociatedElementsAfterIndex = m_associatedElementsAfterIndex;
     ++m_associatedElementsAfterIndex;
 
-    if (!associatedHTMLElement.isDescendantOf(this))
+    if (!associatedHTMLElement.isDescendantOf(*this))
         return currentAssociatedElementsAfterIndex;
 
     // Check for the special case where this element is the very last thing in
@@ -867,11 +848,10 @@ void HTMLFormElement::resumeFromDocumentSuspension()
     resetAssociatedFormControlElements();
 }
 
-void HTMLFormElement::didMoveToNewDocument(Document* oldDocument)
+void HTMLFormElement::didMoveToNewDocument(Document& oldDocument)
 {
     if (!shouldAutocomplete()) {
-        if (oldDocument)
-            oldDocument->unregisterForDocumentSuspensionCallbacks(this);
+        oldDocument.unregisterForDocumentSuspensionCallbacks(this);
         document().registerForDocumentSuspensionCallbacks(this);
     }
 

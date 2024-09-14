@@ -29,21 +29,56 @@
 
 namespace JSC { namespace Wasm {
 
-struct Sections {
-    enum Section : uint8_t {
-        FunctionTypes = 1,
-        Signatures = 3,
-        Memory = 5,
-        Definitions = 10,
-        Unknown
-    };
-    static bool validateOrder(Section previous, Section next)
-    {
-        if (previous == Unknown)
-            return true;
-        return previous < next;
-    }
+#define FOR_EACH_WASM_SECTION(macro) \
+    macro(Type,     1, "Function signature declarations") \
+    macro(Import,   2, "Import declarations") \
+    macro(Function, 3, "Function declarations") \
+    macro(Table,    4, "Indirect function table and other tables") \
+    macro(Memory,   5, "Memory attributes") \
+    macro(Global,   6, "Global declarations") \
+    macro(Export,   7, "Exports") \
+    macro(Start,    8, "Start function declaration") \
+    macro(Element,  9, "Elements section") \
+    macro(Code,    10, "Function bodies (code)") \
+    macro(Data,    11, "Data segments")
+
+enum class Section : uint8_t {
+#define DEFINE_WASM_SECTION_ENUM(NAME, ID, DESCRIPTION) NAME = ID,
+    FOR_EACH_WASM_SECTION(DEFINE_WASM_SECTION_ENUM)
+#undef DEFINE_WASM_SECTION_ENUM
+    Unknown
 };
+
+template<typename Int>
+static inline bool isValidSection(Int section)
+{
+    switch (section) {
+#define VALIDATE_SECTION(NAME, ID, DESCRIPTION) case static_cast<Int>(Section::NAME): return true;
+        FOR_EACH_WASM_SECTION(VALIDATE_SECTION)
+#undef VALIDATE_SECTION
+    default:
+        return false;
+    }
+}
+
+static inline bool validateOrder(Section previous, Section next)
+{
+    if (previous == Section::Unknown)
+        return true;
+    return static_cast<uint8_t>(previous) < static_cast<uint8_t>(next);
+}
+
+static inline const char* makeString(Section section)
+{
+    switch (section) {
+#define STRINGIFY_SECTION_NAME(NAME, ID, DESCRIPTION) case Section::NAME: return #NAME;
+        FOR_EACH_WASM_SECTION(STRINGIFY_SECTION_NAME)
+#undef STRINGIFY_SECTION_NAME
+    default:
+        RELEASE_ASSERT_NOT_REACHED();
+        return "?";
+    }
+}
 
 } } // namespace JSC::Wasm
 

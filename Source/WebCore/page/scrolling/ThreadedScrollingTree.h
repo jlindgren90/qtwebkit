@@ -43,7 +43,7 @@ class ThreadedScrollingTree : public ScrollingTree {
 public:
     virtual ~ThreadedScrollingTree();
 
-    void commitNewTreeState(std::unique_ptr<ScrollingStateTree>) override;
+    void commitTreeState(std::unique_ptr<ScrollingStateTree>) override;
 
     void handleWheelEvent(const PlatformWheelEvent&) override;
 
@@ -57,7 +57,7 @@ public:
 protected:
     explicit ThreadedScrollingTree(AsyncScrollingCoordinator*);
 
-    void scrollingTreeNodeDidScroll(ScrollingNodeID, const FloatPoint& scrollPosition, SetOrSyncScrollingLayerPosition = SyncScrollingLayerPosition) override;
+    void scrollingTreeNodeDidScroll(ScrollingNodeID, const FloatPoint& scrollPosition, const std::optional<FloatPoint>& layoutViewportOrigin, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync) override;
     void currentSnapPointIndicesDidChange(ScrollingNodeID, unsigned horizontal, unsigned vertical) override;
 #if PLATFORM(MAC)
     void handleWheelEventPhase(PlatformWheelEventPhase) override;

@@ -21,9 +21,9 @@
 #include "config.h"
 #include "JSTestMediaQueryListListener.h"
 
-#include "ExceptionCode.h"
 #include "JSDOMBinding.h"
 #include "JSDOMConstructor.h"
+#include "JSDOMConvert.h"
 #include "JSMediaQueryListListener.h"
 #include <runtime/Error.h>
 #include <runtime/FunctionPrototype.h>
@@ -107,6 +107,13 @@ JSTestMediaQueryListListener::JSTestMediaQueryListListener(Structure* structure,
 {
 }
 
+void JSTestMediaQueryListListener::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
+
+}
+
 JSObject* JSTestMediaQueryListListener::createPrototype(VM& vm, JSGlobalObject* globalObject)
 {
     return JSTestMediaQueryListListenerPrototype::create(vm, globalObject, JSTestMediaQueryListListenerPrototype::createStructure(vm, globalObject, globalObject->objectPrototype()));
@@ -171,10 +178,9 @@ static inline JSC::EncodedJSValue jsTestMediaQueryListListenerPrototypeFunctionM
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
-    if (UNLIKELY(!state->uncheckedArgument(0).isFunction()))
-        return throwArgumentMustBeFunctionError(*state, throwScope, 0, "listener", "TestMediaQueryListListener", "method");
-    auto listener = JSMediaQueryListListener::create(asObject(state->uncheckedArgument(0)), castedThis->globalObject());
-    impl.method(WTFMove(listener));
+    auto listener = convert<IDLCallbackFunction<JSMediaQueryListListener>>(*state, state->uncheckedArgument(0), *castedThis->globalObject(), [](JSC::ExecState& state, JSC::ThrowScope& scope) { throwArgumentMustBeFunctionError(state, scope, 0, "listener", "TestMediaQueryListListener", "method"); });
+    RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
+    impl.method(listener.releaseNonNull());
     return JSValue::encode(jsUndefined());
 }
 

@@ -251,7 +251,7 @@ public:
     double toNumber(ExecState*) const;
 
     // toNumber conversion if it can be done without side effects.
-    Optional<double> toNumberFromPrimitive() const;
+    std::optional<double> toNumberFromPrimitive() const;
 
     JSString* toString(ExecState*) const; // On exception, this returns the empty string.
     JSString* toStringOrNull(ExecState*) const; // On exception, this returns null, to make exception checks faster.
@@ -265,6 +265,7 @@ public:
     JS_EXPORT_PRIVATE double toIntegerPreserveNaN(ExecState*) const;
     int32_t toInt32(ExecState*) const;
     uint32_t toUInt32(ExecState*) const;
+    uint32_t toIndex(ExecState*, const char* errorName) const;
     double toLength(ExecState*) const;
 
     // Floating point conversions (this is a convenience function for WebCore;

@@ -143,6 +143,7 @@ public:
     void setSelectedChild(AccessibilityUIElement*) const;
     void setSelectedChildAtIndex(unsigned) const;
     void removeSelectionAtIndex(unsigned) const;
+    void clearSelectedChildren() const;
     unsigned selectedChildrenCount() const;
     RefPtr<AccessibilityUIElement> selectedChildAtIndex(unsigned) const;
     
@@ -154,6 +155,8 @@ public:
     bool isOffScreen() const;
     bool isCollapsed() const;
     bool isIgnored() const;
+    bool isSingleLine() const;
+    bool isMultiLine() const;
     bool hasPopup() const;
     int hierarchicalLevel() const;
     double clickPointX();

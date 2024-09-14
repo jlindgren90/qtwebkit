@@ -1756,7 +1756,7 @@ namespace JSC {
     class ModuleDeclarationNode : public StatementNode {
     public:
         virtual void analyzeModule(ModuleAnalyzer&) = 0;
-        virtual bool isModuleDeclarationNode() const { return true; }
+        bool isModuleDeclarationNode() const override { return true; }
 
     protected:
         ModuleDeclarationNode(const JSTokenLocation&);

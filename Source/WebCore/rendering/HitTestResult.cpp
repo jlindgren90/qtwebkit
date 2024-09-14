@@ -668,8 +668,9 @@ bool HitTestResult::addNodeToRectBasedTestResult(Node* node, const HitTestReques
     if (!node)
         return true;
 
+    // FIXME: This moves out of a author shadow tree.
     if (request.disallowsUserAgentShadowContent())
-        node = node->document().ancestorInThisScope(node);
+        node = node->document().ancestorNodeInThisScope(node);
 
     mutableRectBasedTestResult().add(node);
 
@@ -688,8 +689,9 @@ bool HitTestResult::addNodeToRectBasedTestResult(Node* node, const HitTestReques
     if (!node)
         return true;
 
+    // FIXME: This moves out of a author shadow tree.
     if (request.disallowsUserAgentShadowContent())
-        node = node->document().ancestorInThisScope(node);
+        node = node->document().ancestorNodeInThisScope(node);
 
     mutableRectBasedTestResult().add(node);
 
@@ -764,14 +766,13 @@ Node* HitTestResult::targetNode() const
     return node;
 }
 
-Element* HitTestResult::innerElement() const
+Element* HitTestResult::targetElement() const
 {
-    Node* node = m_innerNode.get();
-    if (!node)
-        return nullptr;
-    if (is<Element>(*node))
-        return downcast<Element>(node);
-    return node->parentElement();
+    for (Node* node = m_innerNode.get(); node; node = node->parentInComposedTree()) {
+        if (is<Element>(*node))
+            return downcast<Element>(node);
+    }
+    return nullptr;
 }
 
 Element* HitTestResult::innerNonSharedElement() const

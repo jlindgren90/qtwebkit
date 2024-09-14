@@ -30,35 +30,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef UserMediaRequest_h
-#define UserMediaRequest_h
+#pragma once
 
 #if ENABLE(MEDIA_STREAM)
 
 #include "ActiveDOMObject.h"
-#include "Document.h"
-#include "MediaConstraintsImpl.h"
-#include "MediaDevices.h"
-#include <wtf/RefCounted.h>
-#include <wtf/text/WTFString.h>
+#include "JSDOMPromise.h"
 
 namespace WebCore {
 
-class Dictionary;
-class Document;
-class Frame;
-class MediaConstraints;
-class MediaStreamPrivate;
-class UserMediaController;
+class MediaConstraintsImpl;
+class MediaStream;
 class SecurityOrigin;
-
-typedef int ExceptionCode;
+class UserMediaController;
 
 class UserMediaRequest : public RefCounted<UserMediaRequest>, private ContextDestructionObserver {
 public:
-    static void start(Document*, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, MediaDevices::Promise&&, ExceptionCode&);
+    static ExceptionOr<void> start(Document&, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, DOMPromise<IDLInterface<MediaStream>>&&);
 
-    ~UserMediaRequest();
+    virtual ~UserMediaRequest();
 
     void start();
 
@@ -79,12 +69,11 @@ public:
 
     WEBCORE_EXPORT SecurityOrigin* userMediaDocumentOrigin() const;
     WEBCORE_EXPORT SecurityOrigin* topLevelDocumentOrigin() const;
-    Document* document() const { return downcast<Document>(scriptExecutionContext()); }
+    WEBCORE_EXPORT Document* document() const;
 
 private:
-    UserMediaRequest(ScriptExecutionContext*, UserMediaController*, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, MediaDevices::Promise&&);
+    UserMediaRequest(Document&, UserMediaController&, Ref<MediaConstraintsImpl>&& audioConstraints, Ref<MediaConstraintsImpl>&& videoConstraints, DOMPromise<IDLInterface<MediaStream>>&&);
 
-    // ContextDestructionObserver
     void contextDestroyed() final;
     
     Ref<MediaConstraintsImpl> m_audioConstraints;
@@ -97,12 +86,10 @@ private:
     String m_allowedAudioDeviceUID;
 
     UserMediaController* m_controller;
-    MediaDevices::Promise m_promise;
+    DOMPromise<IDLInterface<MediaStream>> m_promise;
     RefPtr<UserMediaRequest> m_protector;
 };
 
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM)
-
-#endif // UserMediaRequest_h

@@ -51,9 +51,7 @@ public:
     void didSendData(uint64_t totalBytesSent, uint64_t totalBytesExpectedToSend);
     void didReceiveChallenge(const WebCore::AuthenticationChallenge&, ChallengeCompletionHandler&&);
     void didCompleteWithError(const WebCore::ResourceError&);
-    void didReceiveResponse(WebCore::ResourceResponse&&, ResponseCompletionHandler&&);
     void didReceiveData(Ref<WebCore::SharedBuffer>&&);
-    void didBecomeDownload();
 
     void willPerformHTTPRedirection(WebCore::ResourceResponse&&, WebCore::ResourceRequest&&, RedirectCompletionHandler&&);
     void transferSandboxExtensionToDownload(Download&);
@@ -61,6 +59,7 @@ public:
     void suspend() override;
     void cancel() override;
     void resume() override;
+    void invalidateAndCancel() override { }
     NetworkDataTask::State state() const override;
 
     void setPendingDownloadLocation(const String&, const SandboxExtension::Handle&, bool /*allowOverwrite*/) override;

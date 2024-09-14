@@ -34,9 +34,14 @@ namespace WebCore {
 
 class BufferSource {
 public:
-    BufferSource(WTF::Variant<RefPtr<JSC::ArrayBufferView>, RefPtr<JSC::ArrayBuffer>>&& variant)
+    using VariantType = WTF::Variant<RefPtr<JSC::ArrayBufferView>, RefPtr<JSC::ArrayBuffer>>;
+
+    BufferSource() { }
+    BufferSource(VariantType&& variant)
         : m_variant(WTFMove(variant))
     { }
+
+    const VariantType& variant() const { return m_variant; }
 
     const uint8_t* data() const
     {
@@ -53,7 +58,7 @@ public:
     }
 
 private:
-    WTF::Variant<RefPtr<JSC::ArrayBufferView>, RefPtr<JSC::ArrayBuffer>> m_variant;
+    VariantType m_variant;
 };
 
 } // namespace WebCore

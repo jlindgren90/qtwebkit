@@ -41,8 +41,6 @@
 #include "EmptyClients.h"
 #include "Event.h"
 #include "EventNames.h"
-#include "ExceptionCode.h"
-#include "ExceptionCodePlaceholder.h"
 #include "ExtensionStyleSheets.h"
 #include "FileSystem.h"
 #include "FocusController.h"
@@ -135,6 +133,12 @@ void Page::forEachPage(std::function<void(Page&)> function)
         return;
     for (Page* page : *allPages)
         function(*page);
+}
+
+void Page::updateValidationBubbleStateIfNeeded()
+{
+    if (auto* client = validationMessageClient())
+        client->updateValidationBubbleStateIfNeeded();
 }
 
 static void networkStateChanged(bool isOnLine)
@@ -555,15 +559,15 @@ bool Page::showAllPlugins() const
     return false;
 }
 
-inline MediaCanStartListener* Page::takeAnyMediaCanStartListener()
+inline std::optional<std::pair<MediaCanStartListener&, Document&>>  Page::takeAnyMediaCanStartListener()
 {
     for (Frame* frame = &mainFrame(); frame; frame = frame->tree().traverseNext()) {
         if (!frame->document())
             continue;
         if (MediaCanStartListener* listener = frame->document()->takeAnyMediaCanStartListener())
-            return listener;
+            return { { *listener, *frame->document() } };
     }
-    return 0;
+    return std::nullopt;
 }
 
 void Page::setCanStartMedia(bool canStartMedia)
@@ -574,10 +578,10 @@ void Page::setCanStartMedia(bool canStartMedia)
     m_canStartMedia = canStartMedia;
 
     while (m_canStartMedia) {
-        MediaCanStartListener* listener = takeAnyMediaCanStartListener();
+        auto listener = takeAnyMediaCanStartListener();
         if (!listener)
             break;
-        listener->mediaCanStart();
+        listener->first.mediaCanStart(listener->second);
     }
 }
 
@@ -638,14 +642,16 @@ void Page::findStringMatchingRanges(const String& target, FindOptions options, i
         RefPtr<Range> selectedRange = frameWithSelection->selection().selection().firstRange();
         if (options & Backwards) {
             for (size_t i = matchRanges.size(); i > 0; --i) {
-                if (selectedRange->compareBoundaryPoints(Range::END_TO_START, *matchRanges[i - 1], IGNORE_EXCEPTION) > 0) {
+                auto result = selectedRange->compareBoundaryPoints(Range::END_TO_START, *matchRanges[i - 1]);
+                if (!result.hasException() && result.releaseReturnValue() > 0) {
                     indexForSelection = i - 1;
                     break;
                 }
             }
         } else {
             for (size_t i = 0, size = matchRanges.size(); i < size; ++i) {
-                if (selectedRange->compareBoundaryPoints(Range::START_TO_END, *matchRanges[i], IGNORE_EXCEPTION) < 0) {
+                auto result = selectedRange->compareBoundaryPoints(Range::START_TO_END, *matchRanges[i]);
+                if (!result.hasException() && result.releaseReturnValue() < 0) {
                     indexForSelection = i;
                     break;
                 }
@@ -1546,10 +1552,10 @@ void Page::setIsPrerender()
 PageVisibilityState Page::visibilityState() const
 {
     if (isVisible())
-        return PageVisibilityStateVisible;
+        return PageVisibilityState::Visible;
     if (m_isPrerender)
-        return PageVisibilityStatePrerender;
-    return PageVisibilityStateHidden;
+        return PageVisibilityState::Prerender;
+    return PageVisibilityState::Hidden;
 }
 
 #if ENABLE(RUBBER_BANDING)
@@ -2005,8 +2011,14 @@ void Page::setShouldPlayToPlaybackTarget(uint64_t clientId, bool shouldPlay)
 
 WheelEventTestTrigger& Page::ensureTestTrigger()
 {
-    if (!m_testTrigger)
+    if (!m_testTrigger) {
         m_testTrigger = adoptRef(new WheelEventTestTrigger());
+        // We need to update the scrolling coordinator so that the mainframe scrolling node can expect wheel event test triggers.
+        if (auto* frameView = mainFrame().view()) {
+            if (m_scrollingCoordinator)
+                m_scrollingCoordinator->updateExpectsWheelEventTestTriggerWithFrameView(*frameView);
+        }
+    }
 
     return *m_testTrigger;
 }
@@ -2068,6 +2080,26 @@ void Page::setCaptionUserPreferencesStyleSheet(const String& styleSheet)
     m_captionUserPreferencesStyleSheet = styleSheet;
     
     invalidateInjectedStyleSheetCacheInAllFrames();
+}
+
+void Page::accessibilitySettingsDidChange()
+{
+    bool neededRecalc = false;
+
+    for (Frame* frame = &mainFrame(); frame; frame = frame->tree().traverseNext()) {
+        if (Document* document = frame->document()) {
+            auto* styleResolver = document->styleScope().resolverIfExists();
+            if (styleResolver && styleResolver->hasMediaQueriesAffectedByAccessibilitySettingsChange()) {
+                document->styleScope().didChangeStyleSheetEnvironment();
+                neededRecalc = true;
+                // FIXME: This instrumentation event is not strictly accurate since cached media query results do not persist across StyleResolver rebuilds.
+                InspectorInstrumentation::mediaQueryResultChanged(*document);
+            }
+        }
+    }
+
+    if (neededRecalc)
+        LOG(Layout, "hasMediaQueriesAffectedByAccessibilitySettingsChange, enqueueing style recalc");
 }
 
 } // namespace WebCore

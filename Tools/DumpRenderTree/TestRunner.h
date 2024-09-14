@@ -94,6 +94,7 @@ public:
     void setFetchAPIEnabled(bool);
     void setAllowUniversalAccessFromFileURLs(bool);
     void setAllowFileAccessFromFileURLs(bool);
+    void setNeedsStorageAccessFromFileURLsQuirk(bool);
     void setAppCacheMaximumSize(unsigned long long quota);
     void setAuthorAndUserStylesEnabled(bool);
     void setCacheModel(int);
@@ -366,8 +367,11 @@ public:
     double timeout() { return m_timeout; }
 
     unsigned imageCountInGeneralPasteboard() const;
-    
+
     void callUIScriptCallback(unsigned callbackID, JSStringRef result);
+
+    void setDumpJSConsoleLogInStdErr(bool inStdErr) { m_dumpJSConsoleLogInStdErr = inStdErr; }
+    bool dumpJSConsoleLogInStdErr() const { return m_dumpJSConsoleLogInStdErr; }
 
 private:
     TestRunner(const std::string& testURL, const std::string& expectedPixelHash);
@@ -433,6 +437,7 @@ private:
     bool m_areLegacyWebNotificationPermissionRequestsIgnored;
     bool m_customFullScreenBehavior;
     bool m_hasPendingWebNotificationClick;
+    bool m_dumpJSConsoleLogInStdErr { false };
 
     double m_databaseDefaultQuota;
     double m_databaseMaxQuota;

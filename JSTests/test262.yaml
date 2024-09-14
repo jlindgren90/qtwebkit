@@ -12886,9 +12886,9 @@
 - path: test262/test/built-ins/ArrayBuffer/Symbol.species/symbol-species.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/ArrayBuffer/allocation-limit.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/ArrayBuffer/allocation-limit.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/ArrayBuffer/data-allocation-after-object-creation.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/ArrayBuffer/data-allocation-after-object-creation.js
@@ -12966,13 +12966,13 @@
 - path: test262/test/built-ins/ArrayBuffer/length-is-absent.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/ArrayBuffer/length-is-too-large-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/ArrayBuffer/length-is-too-large-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/ArrayBuffer/negative-length-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/ArrayBuffer/negative-length-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/ArrayBuffer/newtarget-prototype-is-not-object.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/ArrayBuffer/newtarget-prototype-is-not-object.js
@@ -13254,61 +13254,61 @@
 - path: test262/test/built-ins/ArrayIteratorPrototype/next/property-descriptor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-construct.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-construct.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-is-extensible.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-is-extensible.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-is-subclass.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-is-subclass.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-name.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-name.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-prototype.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction-prototype.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunction.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunctionPrototype-is-extensible.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunctionPrototype-is-extensible.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunctionPrototype-prototype.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunctionPrototype-prototype.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/AsyncFunctionPrototype-to-string.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/AsyncFunction/AsyncFunctionPrototype-to-string.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/instance-construct.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/instance-construct.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/instance-has-name.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/AsyncFunction/instance-has-name.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/instance-length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/AsyncFunction/instance-length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/instance-prototype-property.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/instance-prototype-property.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/AsyncFunction/is-not-a-global.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/AsyncFunction/is-not-a-global.js
@@ -13514,9 +13514,9 @@
 - path: test262/test/built-ins/DataView/buffer-reference.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/byteoffset-is-negative-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/byteoffset-is-negative-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/constructor.js
@@ -13542,9 +13542,9 @@
 - path: test262/test/built-ins/DataView/defined-bytelength-and-byteoffset.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/defined-byteoffset-undefined-bytelength.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/defined-byteoffset-undefined-bytelength.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/defined-byteoffset.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/defined-byteoffset.js
@@ -13554,13 +13554,13 @@
 - path: test262/test/built-ins/DataView/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/excessive-bytelength-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/excessive-bytelength-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/excessive-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/excessive-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/extensibility.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/extensibility.js
@@ -13578,13 +13578,13 @@
 - path: test262/test/built-ins/DataView/name.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/negative-bytelength-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/negative-bytelength-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/newtarget-undefined-throws.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/newtarget-undefined-throws.js
@@ -13718,9 +13718,9 @@
 - path: test262/test/built-ins/DataView/prototype/getFloat32/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat32/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat32/length.js
@@ -13734,9 +13734,9 @@
 - path: test262/test/built-ins/DataView/prototype/getFloat32/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat32/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat32/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -13778,9 +13778,9 @@
 - path: test262/test/built-ins/DataView/prototype/getFloat32/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat64/detached-buffer-after-toindex-byteoffset.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat64/detached-buffer-after-toindex-byteoffset.js
@@ -13794,9 +13794,9 @@
 - path: test262/test/built-ins/DataView/prototype/getFloat64/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat64/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat64/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat64/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat64/length.js
@@ -13810,9 +13810,9 @@
 - path: test262/test/built-ins/DataView/prototype/getFloat64/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat64/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat64/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat64/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat64/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -13854,9 +13854,9 @@
 - path: test262/test/built-ins/DataView/prototype/getFloat64/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getFloat64/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getFloat64/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt16/detached-buffer-after-toindex-byteoffset.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt16/detached-buffer-after-toindex-byteoffset.js
@@ -13870,9 +13870,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt16/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt16/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt16/length.js
@@ -13882,9 +13882,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt16/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt16/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt16/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -13918,9 +13918,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt16/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt32/detached-buffer-after-toindex-byteoffset.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt32/detached-buffer-after-toindex-byteoffset.js
@@ -13934,9 +13934,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt32/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt32/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt32/length.js
@@ -13946,9 +13946,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt32/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt32/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt32/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -13982,9 +13982,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt32/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt8/detached-buffer-after-toindex-byteoffset.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt8/detached-buffer-after-toindex-byteoffset.js
@@ -13998,9 +13998,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt8/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt8/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt8/length.js
@@ -14010,9 +14010,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt8/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt8/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt8/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -14042,9 +14042,9 @@
 - path: test262/test/built-ins/DataView/prototype/getInt8/this-is-not-object.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getInt8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getInt8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint16/detached-buffer-after-toindex-byteoffset.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint16/detached-buffer-after-toindex-byteoffset.js
@@ -14058,9 +14058,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint16/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint16/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint16/length.js
@@ -14070,9 +14070,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint16/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint16/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint16/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -14106,9 +14106,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint16/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint32/detached-buffer-after-toindex-byteoffset.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint32/detached-buffer-after-toindex-byteoffset.js
@@ -14122,9 +14122,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint32/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint32/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint32/length.js
@@ -14134,9 +14134,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint32/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint32/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint32/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -14170,9 +14170,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint32/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint8/detached-buffer-after-toindex-byteoffset.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint8/detached-buffer-after-toindex-byteoffset.js
@@ -14186,9 +14186,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint8/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint8/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint8/length.js
@@ -14198,9 +14198,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint8/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint8/return-abrupt-from-tonumber-byteoffset-symbol.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint8/return-abrupt-from-tonumber-byteoffset-symbol.js
@@ -14230,9 +14230,9 @@
 - path: test262/test/built-ins/DataView/prototype/getUint8/this-is-not-object.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/getUint8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/getUint8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/detached-buffer-after-number-value.js
@@ -14250,13 +14250,13 @@
 - path: test262/test/built-ins/DataView/prototype/setFloat32/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/length.js
@@ -14266,13 +14266,13 @@
 - path: test262/test/built-ins/DataView/prototype/setFloat32/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/range-check-after-value-conversion.js
@@ -14314,9 +14314,9 @@
 - path: test262/test/built-ins/DataView/prototype/setFloat32/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/detached-buffer-after-number-value.js
@@ -14334,13 +14334,13 @@
 - path: test262/test/built-ins/DataView/prototype/setFloat64/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/length.js
@@ -14350,13 +14350,13 @@
 - path: test262/test/built-ins/DataView/prototype/setFloat64/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/range-check-after-value-conversion.js
@@ -14398,9 +14398,9 @@
 - path: test262/test/built-ins/DataView/prototype/setFloat64/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setFloat64/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setFloat64/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/detached-buffer-after-number-value.js
@@ -14418,13 +14418,13 @@
 - path: test262/test/built-ins/DataView/prototype/setInt16/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/length.js
@@ -14434,13 +14434,13 @@
 - path: test262/test/built-ins/DataView/prototype/setInt16/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/range-check-after-value-conversion.js
@@ -14482,9 +14482,9 @@
 - path: test262/test/built-ins/DataView/prototype/setInt16/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/detached-buffer-after-number-value.js
@@ -14502,13 +14502,13 @@
 - path: test262/test/built-ins/DataView/prototype/setInt32/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/length.js
@@ -14518,13 +14518,13 @@
 - path: test262/test/built-ins/DataView/prototype/setInt32/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/range-check-after-value-conversion.js
@@ -14566,9 +14566,9 @@
 - path: test262/test/built-ins/DataView/prototype/setInt32/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/detached-buffer-after-number-value.js
@@ -14586,13 +14586,13 @@
 - path: test262/test/built-ins/DataView/prototype/setInt8/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/length.js
@@ -14602,13 +14602,13 @@
 - path: test262/test/built-ins/DataView/prototype/setInt8/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/range-check-after-value-conversion.js
@@ -14642,9 +14642,9 @@
 - path: test262/test/built-ins/DataView/prototype/setInt8/this-is-not-object.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setInt8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setInt8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/detached-buffer-after-number-value.js
@@ -14662,13 +14662,13 @@
 - path: test262/test/built-ins/DataView/prototype/setUint16/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/length.js
@@ -14678,13 +14678,13 @@
 - path: test262/test/built-ins/DataView/prototype/setUint16/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/range-check-after-value-conversion.js
@@ -14726,9 +14726,9 @@
 - path: test262/test/built-ins/DataView/prototype/setUint16/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint16/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/detached-buffer-after-number-value.js
@@ -14746,13 +14746,13 @@
 - path: test262/test/built-ins/DataView/prototype/setUint32/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/length.js
@@ -14762,13 +14762,13 @@
 - path: test262/test/built-ins/DataView/prototype/setUint32/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/range-check-after-value-conversion.js
@@ -14810,9 +14810,9 @@
 - path: test262/test/built-ins/DataView/prototype/setUint32/to-boolean-littleendian.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint32/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/detached-buffer-after-number-value.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/detached-buffer-after-number-value.js
@@ -14830,13 +14830,13 @@
 - path: test262/test/built-ins/DataView/prototype/setUint8/detached-buffer.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/detachArrayBuffer.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/index-check-before-value-conversion.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/index-is-out-of-range.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/length.js
@@ -14846,13 +14846,13 @@
 - path: test262/test/built-ins/DataView/prototype/setUint8/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/negative-byteoffset-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/no-value-arg.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/range-check-after-value-conversion.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/range-check-after-value-conversion.js
@@ -14886,9 +14886,9 @@
 - path: test262/test/built-ins/DataView/prototype/setUint8/this-is-not-object.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype/setUint8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/DataView/prototype/setUint8/toindex-byteoffset.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/prototype.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/prototype.js
@@ -48286,9 +48286,9 @@
 - path: test262/test/built-ins/TypedArrays/buffer-arg-bufferbyteoffset-throws-from-modulo-element-size.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/buffer-arg-byteoffset-is-negative-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
 - path: test262/test/built-ins/TypedArrays/buffer-arg-byteoffset-is-negative-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/buffer-arg-byteoffset-is-negative-zero.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
 - path: test262/test/built-ins/TypedArrays/buffer-arg-byteoffset-is-negative-zero.js
@@ -48318,9 +48318,9 @@
 - path: test262/test/built-ins/TypedArrays/buffer-arg-defined-length.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/buffer-arg-defined-negative-length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
 - path: test262/test/built-ins/TypedArrays/buffer-arg-defined-negative-length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/buffer-arg-defined-offset.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
 - path: test262/test/built-ins/TypedArrays/buffer-arg-defined-offset.js
@@ -48786,13 +48786,13 @@
 - path: test262/test/built-ins/TypedArrays/length-arg-init-zeros.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/length-arg-is-infinity-throws-rangeerror.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
 - path: test262/test/built-ins/TypedArrays/length-arg-is-infinity-throws-rangeerror.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/length-arg-is-negative-integer-throws-rangeerror.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
 - path: test262/test/built-ins/TypedArrays/length-arg-is-negative-integer-throws-rangeerror.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/length-arg-is-symbol-throws.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/testTypedArray.js"], []
 - path: test262/test/built-ins/TypedArrays/length-arg-is-symbol-throws.js
@@ -55358,9 +55358,9 @@
 - path: test262/test/language/expressions/assignment/target-newtarget.js
   cmd: runTest262 :fail, "ReferenceError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/async-arrow-function/arrow-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/async-arrow-function/arrow-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/async-arrow-function/early-errors-arrow-NSPL-with-USD.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/async-arrow-function/early-errors-arrow-NSPL-with-USD.js
@@ -55430,37 +55430,37 @@
 - path: test262/test/language/expressions/async-function/early-errors-expression-formals-contains-super-property.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/async-function/early-errors-expression-not-simple-assignment-target.js
-  cmd: runTest262 :fail, "ReferenceError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "ReferenceError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/async-function/early-errors-expression-not-simple-assignment-target.js
-  cmd: runTest262 :fail, "ReferenceError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "ReferenceError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/async-function/expression-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/async-function/expression-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/async-function/syntax-expression-is-PrimaryExpression.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/async-function/syntax-expression-is-PrimaryExpression.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/await-BindingIdentifier-in-global.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/await/await-BindingIdentifier-in-global.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/await-BindingIdentifier-nested.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/await/await-BindingIdentifier-nested.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/await-awaits-thenable-not-callable.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/await/await-awaits-thenable-not-callable.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/await/await-awaits-thenables-that-throw.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/await/await-awaits-thenables-that-throw.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/await/await-awaits-thenables.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/await/await-awaits-thenables.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/await/await-in-function.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/await/await-in-function.js
@@ -55474,17 +55474,17 @@
 - path: test262/test/language/expressions/await/await-in-global.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/await-in-nested-function.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/await/await-in-nested-function.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/await-in-nested-generator.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/await/await-in-nested-generator.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/await-throws-rejections.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/await/await-throws-rejections.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/early-errors-await-not-simple-assignment-target.js
   cmd: runTest262 :fail, "ReferenceError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/await/early-errors-await-not-simple-assignment-target.js
@@ -55494,13 +55494,13 @@
 - path: test262/test/language/expressions/await/no-operand.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/await/syntax-await-has-UnaryExpression-with-MultiplicativeExpression.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/await/syntax-await-has-UnaryExpression-with-MultiplicativeExpression.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/await/syntax-await-has-UnaryExpression.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/await/syntax-await-has-UnaryExpression.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/bitwise-and/S11.10.1_A1.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/bitwise-and/S11.10.1_A1.js
@@ -66418,13 +66418,13 @@
 - path: test262/test/language/expressions/object/let-non-strict-syntax.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/async-super-call-body.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/object/method-definition/async-super-call-body.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/object/method-definition/async-super-call-param.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/expressions/object/method-definition/async-super-call-param.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/expressions/object/method-definition/early-errors-object-method-NSPL-with-USD.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/early-errors-object-method-NSPL-with-USD.js
@@ -66444,9 +66444,9 @@
 - path: test262/test/language/expressions/object/method-definition/early-errors-object-method-body-contains-super-call.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/early-errors-object-method-duplicate-parameters.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/early-errors-object-method-duplicate-parameters.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/early-errors-object-method-eval-in-formal-parameters.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/early-errors-object-method-formals-body-duplicate.js
@@ -66626,9 +66626,9 @@
 - path: test262/test/language/expressions/object/method-definition/name-super-prop-param.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/object-method-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/object-method-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/params-dflt-gen-meth-abrupt.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/params-dflt-gen-meth-abrupt.js
@@ -72824,9 +72824,9 @@
 - path: test262/test/language/source-text/6.1.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/async-function/declaration-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/async-function/declaration-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/async-function/early-errors-declaration-NSPL-with-USD.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/async-function/early-errors-declaration-NSPL-with-USD.js
@@ -72874,53 +72874,53 @@
 - path: test262/test/language/statements/async-function/early-errors-no-async-generator.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/async-function/evaluation-body-that-returns-after-await.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-body-that-returns-after-await.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/async-function/evaluation-body-that-returns.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-body-that-returns.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/async-function/evaluation-body-that-throws-after-await.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-body-that-throws-after-await.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/async-function/evaluation-body-that-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-body-that-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/async-function/evaluation-body.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/async-function/evaluation-body.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/async-function/evaluation-default-that-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-default-that-throws.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/async-function/evaluation-mapped-arguments.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-this-value-global.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-this-value-passed.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-this-value-passed.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/async-function/evaluation-unmapped-arguments.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/evaluation-unmapped-arguments.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/async-function/syntax-declaration-line-terminators-allowed.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/async-function/syntax-declaration-line-terminators-allowed.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/async-function/syntax-declaration-no-line-terminator.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/async-function/syntax-declaration-no-line-terminator.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/async-function/syntax-declaration.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/async-function/syntax-declaration.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/block/12.1-1.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/block/12.1-1.js
@@ -73078,9 +73078,9 @@
 - path: test262/test/language/statements/class/definition/basics.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/class/definition/class-method-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/statements/class/definition/class-method-returns-promise.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/class/definition/constructable-but-no-prototype.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/statements/class/definition/constructable-but-no-prototype.js
@@ -73174,13 +73174,13 @@
 - path: test262/test/language/statements/class/definition/invalid-extends.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/class/definition/methods-async-super-call-body.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/class/definition/methods-async-super-call-body.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/class/definition/methods-async-super-call-param.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:async]
 - path: test262/test/language/statements/class/definition/methods-async-super-call-param.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/doneprintHandle.js"], [:strict, :async]
 - path: test262/test/language/statements/class/definition/methods-gen-no-yield.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/statements/class/definition/methods-gen-no-yield.js

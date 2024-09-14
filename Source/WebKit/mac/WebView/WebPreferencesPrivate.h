@@ -53,8 +53,7 @@ typedef enum {
 } WebStorageBlockingPolicy;
 
 typedef enum {
-    WebKitJavaScriptRuntimeFlagsSharedArrayBufferEnabled = 1u << 0,
-    WebKitJavaScriptRuntimeFlagsAllEnabled = WebKitJavaScriptRuntimeFlagsSharedArrayBufferEnabled
+    WebKitJavaScriptRuntimeFlagsAllEnabled = 0
 } WebKitJavaScriptRuntimeFlags;
 
 extern NSString *WebPreferencesChangedNotification;
@@ -139,6 +138,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)allowFileAccessFromFileURLs;
 - (void)setAllowFileAccessFromFileURLs:(BOOL)flag;
 
+- (BOOL)needsStorageAccessFromFileURLsQuirk;
+- (void)setNeedsStorageAccessFromFileURLsQuirk:(BOOL)flag;
+
 - (BOOL)zoomsTextOnly;
 - (void)setZoomsTextOnly:(BOOL)zoomsTextOnly;
 
@@ -156,6 +158,15 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 
 - (BOOL)isSpatialNavigationEnabled;
 - (void)setSpatialNavigationEnabled:(BOOL)flag;
+
+- (void)setSubtleCryptoEnabled:(BOOL)flag;
+- (BOOL)subtleCryptoEnabled;
+
+- (void)setMediaStreamEnabled:(BOOL)flag;
+- (BOOL)mediaStreamEnabled;
+
+- (void)setPeerConnectionEnabled:(BOOL)flag;
+- (BOOL)peerConnectionEnabled;
 
 #if !TARGET_OS_IPHONE
 // zero means do AutoScale
@@ -333,8 +344,8 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)_alwaysRequestGeolocationPermission;
 - (void)_setAlwaysUseAcceleratedOverflowScroll:(BOOL)flag;
 - (BOOL)_alwaysUseAcceleratedOverflowScroll;
-- (void)_setLayoutInterval:(int)l;
-- (int)_layoutInterval;
+- (void)_setLayoutInterval:(int)milliseconds;
+- (int)_layoutInterval; // Milliseonds.
 - (void)_setMaxParseDuration:(float)d;
 - (float)_maxParseDuration;
 - (void)_setInterpolationQuality:(int)quality;
@@ -504,10 +515,12 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)modernMediaControlsEnabled;
 
 @property (nonatomic) BOOL visualViewportEnabled;
+@property (nonatomic) BOOL largeImageAsyncDecodingEnabled;
+@property (nonatomic) BOOL animatedImageAsyncDecodingEnabled;
 @property (nonatomic) BOOL javaScriptMarkupEnabled;
 @property (nonatomic) BOOL mediaDataLoadsAutomatically;
 @property (nonatomic) BOOL attachmentElementEnabled;
 @property (nonatomic) BOOL allowsInlineMediaPlaybackAfterFullscreen;
-
+@property (nonatomic) BOOL intersectionObserverEnabled;
 
 @end

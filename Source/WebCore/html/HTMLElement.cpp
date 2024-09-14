@@ -25,7 +25,7 @@
 #include "config.h"
 #include "HTMLElement.h"
 
-#include "CSSParser.h"
+#include "CSSMarkup.h"
 #include "CSSPropertyNames.h"
 #include "CSSValueKeywords.h"
 #include "CSSValuePool.h"
@@ -101,7 +101,7 @@ static inline CSSValueID unicodeBidiAttributeForDirAuto(HTMLElement& element)
 
 unsigned HTMLElement::parseBorderWidthAttribute(const AtomicString& value) const
 {
-    if (Optional<unsigned> borderWidth = parseHTMLNonNegativeInteger(value))
+    if (std::optional<unsigned> borderWidth = parseHTMLNonNegativeInteger(value))
         return borderWidth.value();
 
     return hasTagName(tableTag) ? 1 : 0;
@@ -117,7 +117,7 @@ void HTMLElement::mapLanguageAttributeToLocale(const AtomicString& value, Mutabl
 {
     if (!value.isEmpty()) {
         // Have to quote so the locale id is treated as a string instead of as a CSS keyword.
-        addPropertyToPresentationAttributeStyle(style, CSSPropertyWebkitLocale, quoteCSSString(value));
+        addPropertyToPresentationAttributeStyle(style, CSSPropertyWebkitLocale, serializeString(value));
     } else {
         // The empty string means the language is explicitly unknown.
         addPropertyToPresentationAttributeStyle(style, CSSPropertyWebkitLocale, CSSValueAuto);
@@ -424,7 +424,7 @@ void HTMLElement::parseAttribute(const QualifiedName& name, const AtomicString& 
     if (name == tabindexAttr) {
         if (value.isEmpty())
             clearTabIndexExplicitlyIfNeeded();
-        else if (Optional<int> tabIndex = parseHTMLInteger(value))
+        else if (std::optional<int> tabIndex = parseHTMLInteger(value))
             setTabIndexExplicitly(tabIndex.value());
         return;
     }
@@ -449,17 +449,16 @@ ExceptionOr<Ref<DocumentFragment>> HTMLElement::textToFragment(const String& tex
                 break;
         }
 
-        ExceptionCode ec = 0;
-        fragment->appendChild(Text::create(document(), text.substring(start, i - start)), ec);
-        if (ec)
-            return Exception { ec };
+        auto appendResult = fragment->appendChild(Text::create(document(), text.substring(start, i - start)));
+        if (appendResult.hasException())
+            return appendResult.releaseException();
 
         if (i == length)
             break;
 
-        fragment->appendChild(HTMLBRElement::create(document()), ec);
-        if (ec)
-            return Exception { ec };
+        appendResult = fragment->appendChild(HTMLBRElement::create(document()));
+        if (appendResult.hasException())
+            return appendResult.releaseException();
 
         // Make sure \r\n doesn't result in two line breaks.
         if (c == '\r' && i + 1 < length && text[i + 1] == '\n')
@@ -577,10 +576,9 @@ ExceptionOr<void> HTMLElement::setOuterText(const String& text)
     if (!parentNode())
         return Exception { HIERARCHY_REQUEST_ERR };
 
-    ExceptionCode ec = 0;
-    parent->replaceChild(*newChild, *this, ec);
-    if (ec)
-        return Exception { ec };
+    auto replaceResult = parent->replaceChild(*newChild, *this);
+    if (replaceResult.hasException())
+        return replaceResult.releaseException();
 
     RefPtr<Node> node = next ? next->previousSibling() : nullptr;
     if (is<Text>(node.get())) {
@@ -1060,6 +1058,37 @@ bool HTMLElement::isActuallyDisabled() const
 {
     return canBeActuallyDisabled() && isDisabledFormControl();
 }
+
+#if ENABLE(IOS_AUTOCORRECT_AND_AUTOCAPITALIZE)
+
+const AtomicString& HTMLElement::autocapitalize() const
+{
+    return stringForAutocapitalizeType(autocapitalizeType());
+}
+
+AutocapitalizeType HTMLElement::autocapitalizeType() const
+{
+    return autocapitalizeTypeForAttributeValue(attributeWithoutSynchronization(HTMLNames::autocapitalizeAttr));
+}
+
+void HTMLElement::setAutocapitalize(const AtomicString& value)
+{
+    setAttributeWithoutSynchronization(autocapitalizeAttr, value);
+}
+
+bool HTMLElement::shouldAutocorrect() const
+{
+    auto autocorrectValue = attributeWithoutSynchronization(HTMLNames::autocorrectAttr);
+    // Unrecognized values fall back to "on".
+    return !equalLettersIgnoringASCIICase(autocorrectValue, "off");
+}
+
+void HTMLElement::setAutocorrect(bool autocorrect)
+{
+    setAttributeWithoutSynchronization(autocorrectAttr, autocorrect ? AtomicString("on", AtomicString::ConstructFromLiteral) : AtomicString("off", AtomicString::ConstructFromLiteral));
+}
+
+#endif
 
 } // namespace WebCore
 

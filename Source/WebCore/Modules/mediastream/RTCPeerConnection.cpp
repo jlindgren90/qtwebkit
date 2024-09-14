@@ -31,16 +31,15 @@
  */
 
 #include "config.h"
+#include "RTCPeerConnection.h"
 
 #if ENABLE(WEB_RTC)
-
-#include "RTCPeerConnection.h"
 
 #include "Document.h"
 #include "Event.h"
 #include "EventNames.h"
-#include "ExceptionCode.h"
 #include "Frame.h"
+#include "MediaEndpointConfiguration.h"
 #include "MediaStream.h"
 #include "MediaStreamTrack.h"
 #include "RTCConfiguration.h"
@@ -69,7 +68,7 @@ Ref<RTCPeerConnection> RTCPeerConnection::create(ScriptExecutionContext& context
 
 RTCPeerConnection::RTCPeerConnection(ScriptExecutionContext& context)
     : ActiveDOMObject(&context)
-    , m_backend(PeerConnectionBackend::create(this))
+    , m_backend(PeerConnectionBackend::create(*this))
 {
 }
 
@@ -78,7 +77,7 @@ RTCPeerConnection::~RTCPeerConnection()
     stop();
 }
 
-ExceptionOr<void> RTCPeerConnection::initializeWith(Document& document, const Dictionary& rtcConfiguration)
+ExceptionOr<void> RTCPeerConnection::initializeWith(Document& document, RTCConfiguration&& configuration)
 {
     if (!document.frame())
         return Exception { NOT_SUPPORTED_ERR };
@@ -86,7 +85,7 @@ ExceptionOr<void> RTCPeerConnection::initializeWith(Document& document, const Di
     if (!m_backend)
         return Exception { NOT_SUPPORTED_ERR };
 
-    return setConfiguration(rtcConfiguration);
+    return setConfiguration(WTFMove(configuration));
 }
 
 ExceptionOr<Ref<RTCRtpSender>> RTCPeerConnection::addTrack(Ref<MediaStreamTrack>&& track, const Vector<std::reference_wrapper<MediaStream>>& streams)
@@ -98,8 +97,8 @@ ExceptionOr<Ref<RTCRtpSender>> RTCPeerConnection::addTrack(Ref<MediaStreamTrack>
     if (!streams.size())
         return Exception { NOT_SUPPORTED_ERR };
 
-    for (auto& sender : m_transceiverSet->getSenders()) {
-        if (sender->trackId() == track->id())
+    for (RTCRtpSender& sender : m_transceiverSet->senders()) {
+        if (sender.trackId() == track->id())
             return Exception { INVALID_ACCESS_ERR };
     }
 
@@ -111,7 +110,7 @@ ExceptionOr<Ref<RTCRtpSender>> RTCPeerConnection::addTrack(Ref<MediaStreamTrack>
 
     // Reuse an existing sender with the same track kind if it has never been used to send before.
     for (auto& transceiver : m_transceiverSet->list()) {
-        RTCRtpSender& existingSender = *transceiver->sender();
+        auto& existingSender = transceiver->sender();
         if (existingSender.trackKind() == track->kind() && existingSender.trackId().isNull() && !transceiver->hasSendingDirection()) {
             existingSender.setTrack(WTFMove(track));
             existingSender.setMediaStreamIds(WTFMove(mediaStreamIds));
@@ -134,7 +133,7 @@ ExceptionOr<Ref<RTCRtpSender>> RTCPeerConnection::addTrack(Ref<MediaStreamTrack>
         // provisional mid if the transceiver is used to create an offer.
         transceiver->setProvisionalMid(transceiverMid);
 
-        sender = transceiver->sender();
+        sender = &transceiver->sender();
         m_transceiverSet->append(WTFMove(transceiver));
     }
 
@@ -148,7 +147,14 @@ ExceptionOr<void> RTCPeerConnection::removeTrack(RTCRtpSender& sender)
     if (m_signalingState == SignalingState::Closed)
         return Exception { INVALID_STATE_ERR };
 
-    if (!m_transceiverSet->getSenders().contains(&sender))
+    bool shouldAbort = true;
+    for (RTCRtpSender& senderInSet : m_transceiverSet->senders()) {
+        if (&senderInSet == &sender) {
+            shouldAbort = sender.isStopped();
+            break;
+        }
+    }
+    if (shouldAbort)
         return { };
 
     sender.stop();
@@ -199,7 +205,7 @@ void RTCPeerConnection::completeAddTransceiver(RTCRtpTransceiver& transceiver, c
 {
     transceiver.setDirection(static_cast<RTCRtpTransceiver::Direction>(init.direction));
 
-    m_transceiverSet->append(&transceiver);
+    m_transceiverSet->append(transceiver);
     m_backend->markAsNeedingNegotiation();
 }
 
@@ -223,7 +229,7 @@ void RTCPeerConnection::queuedCreateAnswer(RTCAnswerOptions&& options, SessionDe
     m_backend->createAnswer(WTFMove(options), WTFMove(promise));
 }
 
-void RTCPeerConnection::queuedSetLocalDescription(RTCSessionDescription& description, PeerConnection::VoidPromise&& promise)
+void RTCPeerConnection::queuedSetLocalDescription(RTCSessionDescription& description, DOMPromise<void>&& promise)
 {
     if (m_signalingState == SignalingState::Closed) {
         promise.reject(INVALID_STATE_ERR);
@@ -248,7 +254,7 @@ RefPtr<RTCSessionDescription> RTCPeerConnection::pendingLocalDescription() const
     return m_backend->pendingLocalDescription();
 }
 
-void RTCPeerConnection::queuedSetRemoteDescription(RTCSessionDescription& description, PeerConnection::VoidPromise&& promise)
+void RTCPeerConnection::queuedSetRemoteDescription(RTCSessionDescription& description, DOMPromise<void>&& promise)
 {
     if (m_signalingState == SignalingState::Closed) {
         promise.reject(INVALID_STATE_ERR);
@@ -273,7 +279,7 @@ RefPtr<RTCSessionDescription> RTCPeerConnection::pendingRemoteDescription() cons
     return m_backend->pendingRemoteDescription();
 }
 
-void RTCPeerConnection::queuedAddIceCandidate(RTCIceCandidate& rtcCandidate, VoidPromise&& promise)
+void RTCPeerConnection::queuedAddIceCandidate(RTCIceCandidate& rtcCandidate, DOMPromise<void>&& promise)
 {
     if (m_signalingState == SignalingState::Closed) {
         promise.reject(INVALID_STATE_ERR);
@@ -342,25 +348,37 @@ String RTCPeerConnection::iceConnectionState() const
     return String();
 }
 
-RTCConfiguration* RTCPeerConnection::getConfiguration() const
+ExceptionOr<void> RTCPeerConnection::setConfiguration(RTCConfiguration&& configuration)
 {
-    return m_configuration.get();
-}
-
-ExceptionOr<void> RTCPeerConnection::setConfiguration(const Dictionary& configuration)
-{
-    if (configuration.isUndefinedOrNull())
-        return Exception { TypeError };
-
     if (m_signalingState == SignalingState::Closed)
         return Exception { INVALID_STATE_ERR };
 
-    auto newConfiguration = RTCConfiguration::create(configuration);
-    if (newConfiguration.hasException())
-        return newConfiguration.releaseException();
+    Vector<MediaEndpointConfiguration::IceServerInfo> servers;
+    if (configuration.iceServers) {
+        servers.reserveInitialCapacity(configuration.iceServers->size());
+        for (auto& server : configuration.iceServers.value()) {
+            Vector<URL> serverURLs;
+            WTF::switchOn(server.urls,
+                [&serverURLs] (const String& string) {
+                    serverURLs.reserveInitialCapacity(1);
+                    serverURLs.uncheckedAppend(URL { URL { }, string });
+                },
+                [&serverURLs] (const Vector<String>& vector) {
+                    serverURLs.reserveInitialCapacity(vector.size());
+                    for (auto& string : vector)
+                        serverURLs.uncheckedAppend(URL { URL { }, string });
+                }
+            );
+            for (auto& serverURL : serverURLs) {
+                if (!(serverURL.protocolIs("turn") || serverURL.protocolIs("turns") || serverURL.protocolIs("stun")))
+                    return Exception { INVALID_ACCESS_ERR };
+            }
+            servers.uncheckedAppend({ WTFMove(serverURLs), server.credential, server.username });
+        }
+    }
 
-    m_configuration = newConfiguration.releaseReturnValue();
-    m_backend->setConfiguration(*m_configuration);
+    m_backend->setConfiguration({ WTFMove(servers), configuration.iceTransportPolicy, configuration.bundlePolicy });
+    m_configuration = WTFMove(configuration);
     return { };
 }
 
@@ -369,12 +387,17 @@ void RTCPeerConnection::privateGetStats(MediaStreamTrack* selector, PeerConnecti
     m_backend->getStats(selector, WTFMove(promise));
 }
 
-ExceptionOr<RefPtr<RTCDataChannel>> RTCPeerConnection::createDataChannel(const String&, const Dictionary&)
+ExceptionOr<Ref<RTCDataChannel>> RTCPeerConnection::createDataChannel(ScriptExecutionContext& context, String&& label, RTCDataChannelInit&& options)
 {
     if (m_signalingState == SignalingState::Closed)
         return Exception { INVALID_STATE_ERR };
 
-    return nullptr;
+    // FIXME: Check options
+    auto channelHandler = m_backend->createDataChannelHandler(label, options);
+    if (!channelHandler)
+        return Exception { NOT_SUPPORTED_ERR };
+
+    return RTCDataChannel::create(context, WTFMove(channelHandler), WTFMove(label), WTFMove(options));
 }
 
 void RTCPeerConnection::close()
@@ -387,8 +410,8 @@ void RTCPeerConnection::close()
     m_iceConnectionState = IceConnectionState::Closed;
     m_signalingState = SignalingState::Closed;
 
-    for (auto& sender : m_transceiverSet->getSenders())
-        sender->stop();
+    for (RTCRtpSender& sender : m_transceiverSet->senders())
+        sender.stop();
 }
 
 void RTCPeerConnection::emulatePlatformEvent(const String& action)
@@ -412,7 +435,7 @@ bool RTCPeerConnection::canSuspendForDocumentSuspension() const
     return false;
 }
 
-void RTCPeerConnection::addTransceiver(RefPtr<RTCRtpTransceiver>&& transceiver)
+void RTCPeerConnection::addTransceiver(Ref<RTCRtpTransceiver>&& transceiver)
 {
     m_transceiverSet->append(WTFMove(transceiver));
 }
@@ -459,7 +482,7 @@ void RTCPeerConnection::fireEvent(Event& event)
     dispatchEvent(event);
 }
 
-void RTCPeerConnection::replaceTrack(RTCRtpSender& sender, RefPtr<MediaStreamTrack>&& withTrack, PeerConnection::VoidPromise&& promise)
+void RTCPeerConnection::replaceTrack(RTCRtpSender& sender, RefPtr<MediaStreamTrack>&& withTrack, DOMPromise<void>&& promise)
 {
     m_backend->replaceTrack(sender, WTFMove(withTrack), WTFMove(promise));
 }

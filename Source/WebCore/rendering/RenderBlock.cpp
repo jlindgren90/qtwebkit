@@ -68,13 +68,12 @@
 #include "Settings.h"
 #include "ShadowRoot.h"
 #include "ShapeOutsideInfo.h"
-#include <wtf/text/TextBreakIterator.h>
 #include "TransformState.h"
 
 #include <wtf/NeverDestroyed.h>
 #include <wtf/Optional.h>
+#include <wtf/SetForScope.h>
 #include <wtf/StackStats.h>
-#include <wtf/TemporaryChange.h>
 
 using namespace WTF;
 using namespace Unicode;
@@ -248,14 +247,14 @@ public:
     RenderBlockRareData()
         : m_paginationStrut(0)
         , m_pageLogicalOffset(0)
-        , m_flowThreadContainingBlock(Nullopt)
+        , m_flowThreadContainingBlock(std::nullopt)
     {
     }
 
     LayoutUnit m_paginationStrut;
     LayoutUnit m_pageLogicalOffset;
 
-    Optional<RenderFlowThread*> m_flowThreadContainingBlock;
+    std::optional<RenderFlowThread*> m_flowThreadContainingBlock;
 };
 
 typedef HashMap<const RenderBlock*, std::unique_ptr<RenderBlockRareData>> RenderBlockRareDataMap;
@@ -423,20 +422,13 @@ static bool borderOrPaddingLogicalWidthChanged(const RenderStyle* oldStyle, cons
 
 void RenderBlock::styleDidChange(StyleDifference diff, const RenderStyle* oldStyle)
 {
-    auto& newStyle = style();
-
     bool hadTransform = hasTransform();
-    bool flowThreadContainingBlockInvalidated = false;
-    if (oldStyle && oldStyle->position() != newStyle.position()) {
-        invalidateFlowThreadContainingBlockIncludingDescendants();
-        flowThreadContainingBlockInvalidated = true;
-    }
-
     RenderBox::styleDidChange(diff, oldStyle);
 
-    if (hadTransform != hasTransform() && !flowThreadContainingBlockInvalidated)
-        invalidateFlowThreadContainingBlockIncludingDescendants();
+    if (hadTransform != hasTransform())
+        adjustFlowThreadStateOnContainingBlockChangeIfNeeded();
 
+    auto& newStyle = style();
     if (!isAnonymousBlock()) {
         // Ensure that all of our continuation blocks pick up the new style.
         for (RenderBlock* currCont = blockElementContinuation(); currCont; currCont = currCont->blockElementContinuation()) {
@@ -679,7 +671,7 @@ static void getInlineRun(RenderObject* start, RenderObject* boundary,
 void RenderBlock::deleteLines()
 {
     if (AXObjectCache* cache = document().existingAXObjectCache())
-        cache->recomputeIsIgnored(this);
+        cache->recomputeDeferredIsIgnored(*this);
 }
 
 void RenderBlock::makeChildrenNonInline(RenderObject* insertionPoint)
@@ -768,7 +760,7 @@ void RenderBlock::removeLeftoverAnonymousBlock(RenderBlock* child)
     child->m_next = 0;
 
     // Remove all the information in the flow thread associated with the leftover anonymous block.
-    child->removeFromRenderFlowThread();
+    child->resetFlowThreadStateOnRemoval();
 
     child->setParent(0);
     child->setPreviousSibling(0);
@@ -812,9 +804,6 @@ void RenderBlock::dropAnonymousBoxChild(RenderBlock& parent, RenderBlock& child)
 {
     parent.setNeedsLayoutAndPrefWidthsRecalc();
     parent.setChildrenInline(child.childrenInline());
-    if (auto* childFlowThread = child.flowThreadContainingBlock())
-        childFlowThread->removeFlowChildInfo(&child);
-
     RenderObject* nextSibling = child.nextSibling();
     parent.removeChildInternal(child, child.hasLayer() ? NotifyChildren : DontNotifyChildren);
     child.moveAllChildrenTo(&parent, nextSibling, child.hasLayer());
@@ -1339,9 +1328,14 @@ void RenderBlock::simplifiedNormalFlowLayout()
     }
 }
 
+bool RenderBlock::canPerformSimplifiedLayout() const
+{
+    return (posChildNeedsLayout() || needsSimplifiedNormalFlowLayout()) && !normalChildNeedsLayout() && !selfNeedsLayout();
+}
+
 bool RenderBlock::simplifiedLayout()
 {
-    if ((!posChildNeedsLayout() && !needsSimplifiedNormalFlowLayout()) || normalChildNeedsLayout() || selfNeedsLayout())
+    if (!canPerformSimplifiedLayout())
         return false;
 
     LayoutStateMaintainer statePusher(view(), *this, locationOffset(), hasTransform() || hasReflection() || style().isFlippedBlocksWritingMode());
@@ -2206,38 +2200,6 @@ LayoutUnit RenderBlock::logicalRightSelectionOffset(RenderBlock& rootBlock, Layo
     return logicalRight;
 }
 
-RenderBlock* RenderBlock::blockBeforeWithinSelectionRoot(LayoutSize& offset) const
-{
-    if (isSelectionRoot())
-        return nullptr;
-
-    const RenderElement* object = this;
-    RenderObject* sibling;
-    do {
-        sibling = object->previousSibling();
-        while (sibling && (!is<RenderBlock>(*sibling) || downcast<RenderBlock>(*sibling).isSelectionRoot()))
-            sibling = sibling->previousSibling();
-
-        offset -= LayoutSize(downcast<RenderBlock>(*object).logicalLeft(), downcast<RenderBlock>(*object).logicalTop());
-        object = object->parent();
-    } while (!sibling && is<RenderBlock>(object) && !downcast<RenderBlock>(*object).isSelectionRoot());
-
-    if (!sibling)
-        return nullptr;
-
-    RenderBlock* beforeBlock = downcast<RenderBlock>(sibling);
-
-    offset += LayoutSize(beforeBlock->logicalLeft(), beforeBlock->logicalTop());
-
-    RenderObject* child = beforeBlock->lastChild();
-    while (is<RenderBlock>(child)) {
-        beforeBlock = downcast<RenderBlock>(child);
-        offset += LayoutSize(beforeBlock->logicalLeft(), beforeBlock->logicalTop());
-        child = beforeBlock->lastChild();
-    }
-    return beforeBlock;
-}
-
 TrackedRendererListHashSet* RenderBlock::positionedObjects() const
 {
     return positionedDescendantsMap().positionedRenderers(*this);
@@ -2830,9 +2792,7 @@ void RenderBlock::computeBlockPreferredLogicalWidths(LayoutUnit& minLogicalWidth
         LayoutUnit childMinPreferredLogicalWidth, childMaxPreferredLogicalWidth;
         if (is<RenderBox>(*child) && child->isHorizontalWritingMode() != isHorizontalWritingMode()) {
             auto& childBox = downcast<RenderBox>(*child);
-            LogicalExtentComputedValues computedValues;
-            childBox.computeLogicalHeight(childBox.borderAndPaddingLogicalHeight(), 0, computedValues);
-            childMinPreferredLogicalWidth = childMaxPreferredLogicalWidth = computedValues.m_extent;
+            childMinPreferredLogicalWidth = childMaxPreferredLogicalWidth = childBox.computeLogicalHeight(childBox.borderAndPaddingLogicalHeight(), 0).m_extent;
         } else {
             childMinPreferredLogicalWidth = child->minPreferredLogicalWidth();
             childMaxPreferredLogicalWidth = child->maxPreferredLogicalWidth();
@@ -2949,7 +2909,7 @@ int RenderBlock::baselinePosition(FontBaseline baselineType, bool firstLine, Lin
         bool ignoreBaseline = (layer() && (layer()->marquee() || (direction == HorizontalLine ? (layer()->verticalScrollbar() || layer()->scrollOffset().y() != 0)
             : (layer()->horizontalScrollbar() || layer()->scrollOffset().x() != 0)))) || (isWritingModeRoot() && !isRubyRun());
         
-        Optional<int> baselinePos = ignoreBaseline ? Optional<int>() : inlineBlockBaseline(direction);
+        std::optional<int> baselinePos = ignoreBaseline ? std::optional<int>() : inlineBlockBaseline(direction);
         
         if (isDeprecatedFlexibleBox()) {
             // Historically, we did this check for all baselines. But we can't
@@ -2959,7 +2919,7 @@ int RenderBlock::baselinePosition(FontBaseline baselineType, bool firstLine, Lin
             // For simplicity, we use this for all uses of deprecated flexbox.
             LayoutUnit bottomOfContent = direction == HorizontalLine ? borderTop() + paddingTop() + contentHeight() : borderRight() + paddingRight() + contentWidth();
             if (baselinePos && baselinePos.value() > bottomOfContent)
-                baselinePos = Optional<int>();
+                baselinePos = std::optional<int>();
         }
         if (baselinePos)
             return direction == HorizontalLine ? marginTop() + baselinePos.value() : marginRight() + baselinePos.value();
@@ -2984,43 +2944,43 @@ LayoutUnit RenderBlock::minLineHeightForReplacedRenderer(bool isFirstLine, Layou
     return std::max<LayoutUnit>(replacedHeight, lineHeight(isFirstLine, isHorizontalWritingMode() ? HorizontalLine : VerticalLine, PositionOfInteriorLineBoxes));
 }
 
-Optional<int> RenderBlock::firstLineBaseline() const
+std::optional<int> RenderBlock::firstLineBaseline() const
 {
     if (isWritingModeRoot() && !isRubyRun())
-        return Optional<int>();
+        return std::optional<int>();
 
     for (RenderBox* curr = firstChildBox(); curr; curr = curr->nextSiblingBox()) {
         if (!curr->isFloatingOrOutOfFlowPositioned()) {
-            if (Optional<int> result = curr->firstLineBaseline())
-                return Optional<int>(curr->logicalTop() + result.value()); // Translate to our coordinate space.
+            if (std::optional<int> result = curr->firstLineBaseline())
+                return std::optional<int>(curr->logicalTop() + result.value()); // Translate to our coordinate space.
         }
     }
 
-    return Optional<int>();
+    return std::optional<int>();
 }
 
-Optional<int> RenderBlock::inlineBlockBaseline(LineDirectionMode lineDirection) const
+std::optional<int> RenderBlock::inlineBlockBaseline(LineDirectionMode lineDirection) const
 {
     if (isWritingModeRoot() && !isRubyRun())
-        return Optional<int>();
+        return std::optional<int>();
 
     bool haveNormalFlowChild = false;
     for (auto* box = lastChildBox(); box; box = box->previousSiblingBox()) {
         if (box->isFloatingOrOutOfFlowPositioned())
             continue;
         haveNormalFlowChild = true;
-        if (Optional<int> result = box->inlineBlockBaseline(lineDirection))
-            return Optional<int>(box->logicalTop() + result.value()); // Translate to our coordinate space.
+        if (std::optional<int> result = box->inlineBlockBaseline(lineDirection))
+            return std::optional<int>(box->logicalTop() + result.value()); // Translate to our coordinate space.
     }
 
     if (!haveNormalFlowChild && hasLineIfEmpty()) {
         auto& fontMetrics = firstLineStyle().fontMetrics();
-        return Optional<int>(fontMetrics.ascent()
+        return std::optional<int>(fontMetrics.ascent()
             + (lineHeight(true, lineDirection, PositionOfInteriorLineBoxes) - fontMetrics.height()) / 2
             + (lineDirection == HorizontalLine ? borderTop() + paddingTop() : borderRight() + paddingRight()));
     }
 
-    return Optional<int>();
+    return std::optional<int>();
 }
 
 static inline bool isRenderBlockFlowOrRenderButton(RenderElement& renderElement)
@@ -3055,52 +3015,52 @@ RenderBlock* RenderBlock::firstLineBlock() const
     return firstLineBlock;
 }
 
-static const RenderStyle& styleForFirstLetter(RenderElement* firstLetterBlock, RenderObject* firstLetterContainer)
+static RenderStyle styleForFirstLetter(const RenderElement& firstLetterBlock, const RenderObject& firstLetterContainer)
 {
-    auto* pseudoStyle = firstLetterBlock->getMutableCachedPseudoStyle(FIRST_LETTER, &firstLetterContainer->firstLineStyle());
-    
+    auto firstLetterStyle = RenderStyle::clone(*firstLetterBlock.getCachedPseudoStyle(FIRST_LETTER, &firstLetterContainer.firstLineStyle()));
+
     // If we have an initial letter drop that is >= 1, then we need to force floating to be on.
-    if (pseudoStyle->initialLetterDrop() >= 1 && !pseudoStyle->isFloating())
-        pseudoStyle->setFloating(pseudoStyle->isLeftToRightDirection() ? LeftFloat : RightFloat);
+    if (firstLetterStyle.initialLetterDrop() >= 1 && !firstLetterStyle.isFloating())
+        firstLetterStyle.setFloating(firstLetterStyle.isLeftToRightDirection() ? LeftFloat : RightFloat);
 
     // We have to compute the correct font-size for the first-letter if it has an initial letter height set.
-    RenderObject* paragraph = firstLetterContainer->isRenderBlockFlow() ? firstLetterContainer : firstLetterContainer->containingBlock();
-    if (pseudoStyle->initialLetterHeight() >= 1 && pseudoStyle->fontMetrics().hasCapHeight() && paragraph->style().fontMetrics().hasCapHeight()) {
+    auto* paragraph = firstLetterContainer.isRenderBlockFlow() ? &firstLetterContainer : firstLetterContainer.containingBlock();
+    if (firstLetterStyle.initialLetterHeight() >= 1 && firstLetterStyle.fontMetrics().hasCapHeight() && paragraph->style().fontMetrics().hasCapHeight()) {
         // FIXME: For ideographic baselines, we want to go from line edge to line edge. This is equivalent to (N-1)*line-height + the font height.
         // We don't yet support ideographic baselines.
         // For an N-line first-letter and for alphabetic baselines, the cap-height of the first letter needs to equal (N-1)*line-height of paragraph lines + cap-height of the paragraph
         // Mathematically we can't rely on font-size, since font().height() doesn't necessarily match. For reliability, the best approach is simply to
         // compare the final measured cap-heights of the two fonts in order to get to the closest possible value.
-        pseudoStyle->setLineBoxContain(LineBoxContainInitialLetter);
+        firstLetterStyle.setLineBoxContain(LineBoxContainInitialLetter);
         int lineHeight = paragraph->style().computedLineHeight();
         
         // Set the font to be one line too big and then ratchet back to get to a precise fit. We can't just set the desired font size based off font height metrics
         // because many fonts bake ascent into the font metrics. Therefore we have to look at actual measured cap height values in order to know when we have a good fit.
-        auto newFontDescription = pseudoStyle->fontDescription();
-        float capRatio = pseudoStyle->fontMetrics().floatCapHeight() / pseudoStyle->fontSize();
-        float startingFontSize = ((pseudoStyle->initialLetterHeight() - 1) * lineHeight + paragraph->style().fontMetrics().capHeight()) / capRatio;
+        auto newFontDescription = firstLetterStyle.fontDescription();
+        float capRatio = firstLetterStyle.fontMetrics().floatCapHeight() / firstLetterStyle.fontSize();
+        float startingFontSize = ((firstLetterStyle.initialLetterHeight() - 1) * lineHeight + paragraph->style().fontMetrics().capHeight()) / capRatio;
         newFontDescription.setSpecifiedSize(startingFontSize);
         newFontDescription.setComputedSize(startingFontSize);
-        pseudoStyle->setFontDescription(newFontDescription);
-        pseudoStyle->fontCascade().update(pseudoStyle->fontCascade().fontSelector());
+        firstLetterStyle.setFontDescription(newFontDescription);
+        firstLetterStyle.fontCascade().update(firstLetterStyle.fontCascade().fontSelector());
         
-        int desiredCapHeight = (pseudoStyle->initialLetterHeight() - 1) * lineHeight + paragraph->style().fontMetrics().capHeight();
-        int actualCapHeight = pseudoStyle->fontMetrics().capHeight();
+        int desiredCapHeight = (firstLetterStyle.initialLetterHeight() - 1) * lineHeight + paragraph->style().fontMetrics().capHeight();
+        int actualCapHeight = firstLetterStyle.fontMetrics().capHeight();
         while (actualCapHeight > desiredCapHeight) {
-            auto newFontDescription = pseudoStyle->fontDescription();
+            auto newFontDescription = firstLetterStyle.fontDescription();
             newFontDescription.setSpecifiedSize(newFontDescription.specifiedSize() - 1);
             newFontDescription.setComputedSize(newFontDescription.computedSize() -1);
-            pseudoStyle->setFontDescription(newFontDescription);
-            pseudoStyle->fontCascade().update(pseudoStyle->fontCascade().fontSelector());
-            actualCapHeight = pseudoStyle->fontMetrics().capHeight();
+            firstLetterStyle.setFontDescription(newFontDescription);
+            firstLetterStyle.fontCascade().update(firstLetterStyle.fontCascade().fontSelector());
+            actualCapHeight = firstLetterStyle.fontMetrics().capHeight();
         }
     }
     
     // Force inline display (except for floating first-letters).
-    pseudoStyle->setDisplay(pseudoStyle->isFloating() ? BLOCK : INLINE);
+    firstLetterStyle.setDisplay(firstLetterStyle.isFloating() ? BLOCK : INLINE);
     // CSS2 says first-letter can't be positioned.
-    pseudoStyle->setPosition(StaticPosition);
-    return *pseudoStyle;
+    firstLetterStyle.setPosition(StaticPosition);
+    return firstLetterStyle;
 }
 
 // CSS 2.1 http://www.w3.org/TR/CSS21/selector.html#first-letter
@@ -3140,16 +3100,16 @@ void RenderBlock::updateFirstLetterStyle(RenderElement* firstLetterBlock, Render
 {
     RenderElement* firstLetter = currentChild->parent();
     RenderElement* firstLetterContainer = firstLetter->parent();
-    auto& pseudoStyle = styleForFirstLetter(firstLetterBlock, firstLetterContainer);
+    auto pseudoStyle = styleForFirstLetter(*firstLetterBlock, *firstLetterContainer);
     ASSERT(firstLetter->isFloating() || firstLetter->isInline());
 
     if (Style::determineChange(firstLetter->style(), pseudoStyle) == Style::Detach) {
         // The first-letter renderer needs to be replaced. Create a new renderer of the right type.
         RenderBoxModelObject* newFirstLetter;
         if (pseudoStyle.display() == INLINE)
-            newFirstLetter = new RenderInline(document(), RenderStyle::clone(pseudoStyle));
+            newFirstLetter = new RenderInline(document(), WTFMove(pseudoStyle));
         else
-            newFirstLetter = new RenderBlockFlow(document(), RenderStyle::clone(pseudoStyle));
+            newFirstLetter = new RenderBlockFlow(document(), WTFMove(pseudoStyle));
         newFirstLetter->initializeStyle();
 
         // Move the first letter into the new renderer.
@@ -3175,18 +3135,18 @@ void RenderBlock::updateFirstLetterStyle(RenderElement* firstLetterBlock, Render
         firstLetter = newFirstLetter;
         firstLetterContainer->addChild(firstLetter, nextSibling);
     } else
-        firstLetter->setStyle(RenderStyle::clone(pseudoStyle));
+        firstLetter->setStyle(WTFMove(pseudoStyle));
 }
 
 void RenderBlock::createFirstLetterRenderer(RenderElement* firstLetterBlock, RenderText* currentTextChild)
 {
     RenderElement* firstLetterContainer = currentTextChild->parent();
-    auto& pseudoStyle = styleForFirstLetter(firstLetterBlock, firstLetterContainer);
+    auto pseudoStyle = styleForFirstLetter(*firstLetterBlock, *firstLetterContainer);
     RenderBoxModelObject* firstLetter = nullptr;
     if (pseudoStyle.display() == INLINE)
-        firstLetter = new RenderInline(document(), RenderStyle::clone(pseudoStyle));
+        firstLetter = new RenderInline(document(), WTFMove(pseudoStyle));
     else
-        firstLetter = new RenderBlockFlow(document(), RenderStyle::clone(pseudoStyle));
+        firstLetter = new RenderBlockFlow(document(), WTFMove(pseudoStyle));
     firstLetter->initializeStyle();
     firstLetterContainer->addChild(firstLetter, currentTextChild);
 
@@ -3359,7 +3319,7 @@ bool RenderBlock::cachedFlowThreadContainingBlockNeedsUpdate() const
 void RenderBlock::setCachedFlowThreadContainingBlockNeedsUpdate()
 {
     RenderBlockRareData& rareData = ensureBlockRareData(this);
-    rareData.m_flowThreadContainingBlock = Nullopt;
+    rareData.m_flowThreadContainingBlock = std::nullopt;
 }
 
 RenderFlowThread* RenderBlock::updateCachedFlowThreadContainingBlock(RenderFlowThread* flowThread) const
@@ -3378,6 +3338,28 @@ RenderFlowThread* RenderBlock::locateFlowThreadContainingBlock() const
 
     ASSERT(rareData->m_flowThreadContainingBlock.value() == RenderBox::locateFlowThreadContainingBlock());
     return rareData->m_flowThreadContainingBlock.value();
+}
+
+void RenderBlock::resetFlowThreadContainingBlockAndChildInfoIncludingDescendants()
+{
+    if (flowThreadState() == NotInsideFlowThread)
+        return;
+
+    if (cachedFlowThreadContainingBlockNeedsUpdate())
+        return;
+
+    auto* flowThread = cachedFlowThreadContainingBlock();
+    setCachedFlowThreadContainingBlockNeedsUpdate();
+
+    if (flowThread)
+        flowThread->removeFlowChildInfo(*this);
+
+    for (auto& child : childrenOfType<RenderElement>(*this)) {
+        if (flowThread)
+            flowThread->removeFlowChildInfo(child);
+        if (is<RenderBlock>(child))
+            downcast<RenderBlock>(child).resetFlowThreadContainingBlockAndChildInfoIncludingDescendants();
+    }
 }
 
 LayoutUnit RenderBlock::paginationStrut() const
@@ -3597,9 +3579,8 @@ RenderRegion* RenderBlock::regionAtBlockOffset(LayoutUnit blockOffset) const
     return flowThread->regionAtBlockOffset(this, offsetFromLogicalTopOfFirstPage() + blockOffset, true);
 }
 
-static bool canComputeRegionRangeForBox(const RenderBlock* parentBlock, const RenderBox& childBox, const RenderFlowThread* flowThreadContainingBlock)
+static bool canComputeRegionRangeForBox(const RenderBlock& parentBlock, const RenderBox& childBox, const RenderFlowThread* flowThreadContainingBlock)
 {
-    ASSERT(parentBlock);
     ASSERT(!childBox.isRenderNamedFlowThread());
 
     if (!flowThreadContainingBlock)
@@ -3629,7 +3610,7 @@ bool RenderBlock::childBoxIsUnsplittableForFragmentation(const RenderBox& child)
 void RenderBlock::computeRegionRangeForBoxChild(const RenderBox& box) const
 {
     RenderFlowThread* flowThread = flowThreadContainingBlock();
-    ASSERT(canComputeRegionRangeForBox(this, box, flowThread));
+    ASSERT(canComputeRegionRangeForBox(*this, box, flowThread));
 
     RenderRegion* startRegion;
     RenderRegion* endRegion;
@@ -3641,13 +3622,13 @@ void RenderBlock::computeRegionRangeForBoxChild(const RenderBox& box) const
         endRegion = flowThread->regionAtBlockOffset(this, offsetFromLogicalTopOfFirstRegion + logicalHeightForChild(box), true);
     }
 
-    flowThread->setRegionRangeForBox(&box, startRegion, endRegion);
+    flowThread->setRegionRangeForBox(box, startRegion, endRegion);
 }
 
 void RenderBlock::estimateRegionRangeForBoxChild(const RenderBox& box) const
 {
     RenderFlowThread* flowThread = flowThreadContainingBlock();
-    if (!canComputeRegionRangeForBox(this, box, flowThread))
+    if (!canComputeRegionRangeForBox(*this, box, flowThread))
         return;
 
     if (childBoxIsUnsplittableForFragmentation(box)) {
@@ -3655,20 +3636,18 @@ void RenderBlock::estimateRegionRangeForBoxChild(const RenderBox& box) const
         return;
     }
 
-    LogicalExtentComputedValues estimatedValues;
-    box.computeLogicalHeight(RenderFlowThread::maxLogicalHeight(), logicalTopForChild(box), estimatedValues);
-
+    auto estimatedValues = box.computeLogicalHeight(RenderFlowThread::maxLogicalHeight(), logicalTopForChild(box));
     LayoutUnit offsetFromLogicalTopOfFirstRegion = box.offsetFromLogicalTopOfFirstPage();
     RenderRegion* startRegion = flowThread->regionAtBlockOffset(this, offsetFromLogicalTopOfFirstRegion, true);
     RenderRegion* endRegion = flowThread->regionAtBlockOffset(this, offsetFromLogicalTopOfFirstRegion + estimatedValues.m_extent, true);
 
-    flowThread->setRegionRangeForBox(&box, startRegion, endRegion);
+    flowThread->setRegionRangeForBox(box, startRegion, endRegion);
 }
 
 bool RenderBlock::updateRegionRangeForBoxChild(const RenderBox& box) const
 {
     RenderFlowThread* flowThread = flowThreadContainingBlock();
-    if (!canComputeRegionRangeForBox(this, box, flowThread))
+    if (!canComputeRegionRangeForBox(*this, box, flowThread))
         return false;
 
     RenderRegion* startRegion = nullptr;

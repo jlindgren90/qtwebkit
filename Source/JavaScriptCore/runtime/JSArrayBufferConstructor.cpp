@@ -86,11 +86,11 @@ static EncodedJSValue JSC_HOST_CALL constructArrayBuffer(ExecState* exec)
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     JSArrayBufferConstructor* constructor =
-        jsCast<JSArrayBufferConstructor*>(exec->callee());
+        jsCast<JSArrayBufferConstructor*>(exec->jsCallee());
     
     unsigned length;
     if (exec->argumentCount()) {
-        length = exec->uncheckedArgument(0).toUInt32(exec);
+        length = exec->uncheckedArgument(0).toIndex(exec, "length");
         RETURN_IF_EXCEPTION(scope, encodedJSValue());
     } else {
         // Although the documentation doesn't say so, it is in fact correct to say

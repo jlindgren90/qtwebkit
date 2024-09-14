@@ -27,7 +27,7 @@
 #pragma once
 
 #include "JSDOMWrapper.h"
-#include "ScriptWrappable.h"
+#include "Node.h"
 #include <domjit/DOMJITPatchpoint.h>
 #include <domjit/DOMJITPatchpointParams.h>
 #include <interpreter/FrameTracers.h>
@@ -152,6 +152,16 @@ inline CCallHelpers::Jump branchIfNotElement(CCallHelpers& jit, GPRReg target)
         CCallHelpers::TrustedImm32(JSC::JSType(JSElementType)));
 }
 
+inline CCallHelpers::Jump branchIfDocumentFragment(CCallHelpers& jit, GPRReg target)
+{
+    return jit.branchIfType(target, JSC::JSType(JSDocumentFragmentNodeType));
+}
+
+inline CCallHelpers::Jump branchIfNotDocumentFragment(CCallHelpers& jit, GPRReg target)
+{
+    return jit.branchIfNotType(target, JSC::JSType(JSDocumentFragmentNodeType));
+}
+
 inline CCallHelpers::Jump branchIfDocumentWrapper(CCallHelpers& jit, GPRReg target)
 {
     return jit.branchIfType(target, JSC::JSType(JSDocumentWrapperType));
@@ -164,6 +174,16 @@ inline CCallHelpers::Jump branchIfNotDocumentWrapper(CCallHelpers& jit, GPRReg t
 
 void loadDocument(MacroAssembler&, GPRReg node, GPRReg output);
 void loadDocumentElement(MacroAssembler&, GPRReg document, GPRReg output);
+
+inline CCallHelpers::Jump branchTestIsElementFlagOnNode(MacroAssembler& jit, CCallHelpers::ResultCondition condition, GPRReg nodeAddress)
+{
+    return jit.branchTest32(condition, CCallHelpers::Address(nodeAddress, Node::nodeFlagsMemoryOffset()), CCallHelpers::TrustedImm32(Node::flagIsElement()));
+}
+
+inline CCallHelpers::Jump branchTestIsHTMLFlagOnNode(MacroAssembler& jit, CCallHelpers::ResultCondition condition, GPRReg nodeAddress)
+{
+    return jit.branchTest32(condition, CCallHelpers::Address(nodeAddress, Node::nodeFlagsMemoryOffset()), CCallHelpers::TrustedImm32(Node::flagIsHTML()));
+}
 
 } }
 

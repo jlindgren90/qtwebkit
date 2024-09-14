@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef PageCache_h
-#define PageCache_h
+#pragma once
 
 #include "HistoryItem.h"
 #include "Timer.h"
@@ -67,9 +66,6 @@ public:
     void markPagesForCaptionPreferencesChanged();
 #endif
 
-    bool shouldClearBackingStores() const { return m_shouldClearBackingStores; }
-    void setShouldClearBackingStores(bool flag) { m_shouldClearBackingStores = flag; }
-
 private:
     PageCache() = default; // Use singleton() instead.
     ~PageCache() = delete; // Make sure nobody accidentally calls delete -- WebCore does not delete singletons.
@@ -80,11 +76,8 @@ private:
 
     ListHashSet<RefPtr<HistoryItem>> m_items;
     unsigned m_maxSize {0};
-    bool m_shouldClearBackingStores {false};
 
     friend class WTF::NeverDestroyed<PageCache>;
 };
 
 } // namespace WebCore
-
-#endif // PageCache_h

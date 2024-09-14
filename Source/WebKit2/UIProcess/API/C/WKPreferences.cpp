@@ -733,6 +733,16 @@ bool WKPreferencesGetFileAccessFromFileURLsAllowed(WKPreferencesRef preferencesR
     return toImpl(preferencesRef)->allowFileAccessFromFileURLs();
 }
 
+void WKPreferencesSetNeedsStorageAccessFromFileURLsQuirk(WKPreferencesRef preferencesRef, bool needsQuirk)
+{
+    toImpl(preferencesRef)->setNeedsStorageAccessFromFileURLsQuirk(needsQuirk);
+}
+
+bool WKPreferencesGetNeedsStorageAccessFromFileURLsQuirk(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->needsStorageAccessFromFileURLsQuirk();
+}
+
 void WKPreferencesSetHixie76WebSocketProtocolEnabled(WKPreferencesRef, bool /*enabled*/)
 {
 }
@@ -810,6 +820,16 @@ void WKPreferencesSetMediaControlsScaleWithPageZoom(WKPreferencesRef preferences
 bool WKPreferencesGetMediaControlsScaleWithPageZoom(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->mediaControlsScaleWithPageZoom();
+}
+
+void WKPreferencesSetModernMediaControlsEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setModernMediaControlsEnabled(flag);
+}
+
+bool WKPreferencesGetModernMediaControlsEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->modernMediaControlsEnabled();
 }
 
 void WKPreferencesSetShowsToolTipOverTruncatedText(WKPreferencesRef preferencesRef, bool flag)
@@ -1261,14 +1281,14 @@ bool WKPreferencesGetNewBlockInsideInlineModelEnabled(WKPreferencesRef preferenc
     return toImpl(preferencesRef)->newBlockInsideInlineModelEnabled();
 }
 
-void WKPreferencesSetNewCSSParserEnabled(WKPreferencesRef preferencesRef, bool flag)
+void WKPreferencesSetDeferredCSSParserEnabled(WKPreferencesRef preferencesRef, bool flag)
 {
-    toImpl(preferencesRef)->setNewCSSParserEnabled(flag);
+    toImpl(preferencesRef)->setDeferredCSSParserEnabled(flag);
 }
 
-bool WKPreferencesGetNewCSSParserEnabled(WKPreferencesRef preferencesRef)
+bool WKPreferencesGetDeferredCSSParserEnabled(WKPreferencesRef preferencesRef)
 {
-    return toImpl(preferencesRef)->newCSSParserEnabled();
+    return toImpl(preferencesRef)->deferredCSSParserEnabled();
 }
 
 void WKPreferencesSetSubpixelCSSOMElementMetricsEnabled(WKPreferencesRef preferencesRef, bool flag)
@@ -1299,6 +1319,16 @@ void WKPreferencesSetMediaStreamEnabled(WKPreferencesRef preferencesRef, bool en
 bool WKPreferencesGetMediaStreamEnabled(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->mediaStreamEnabled();
+}
+
+void WKPreferencesSetPeerConnectionEnabled(WKPreferencesRef preferencesRef, bool enabled)
+{
+    toImpl(preferencesRef)->setPeerConnectionEnabled(enabled);
+}
+
+bool WKPreferencesGetPeerConnectionEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->peerConnectionEnabled();
 }
 
 void WKPreferencesSetSpatialNavigationEnabled(WKPreferencesRef preferencesRef, bool enabled)
@@ -1531,6 +1561,16 @@ bool WKPreferencesGetDownloadAttributeEnabled(WKPreferencesRef preferencesRef)
     return toImpl(preferencesRef)->downloadAttributeEnabled();
 }
 
+void WKPreferencesSetIntersectionObserverEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setIntersectionObserverEnabled(flag);
+}
+
+bool WKPreferencesGetIntersectionObserverEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->intersectionObserverEnabled();
+}
+
 void WKPreferencesSetSelectionPaintingWithoutSelectionGapsEnabled(WKPreferencesRef preferencesRef, bool flag)
 {
     toImpl(preferencesRef)->setSelectionPaintingWithoutSelectionGapsEnabled(flag);
@@ -1569,4 +1609,24 @@ bool WKPreferencesGetApplePayCapabilityDisclosureAllowed(WKPreferencesRef prefer
 void WKPreferencesSetApplePayCapabilityDisclosureAllowed(WKPreferencesRef preferencesRef, bool allowed)
 {
     WebKit::toImpl(preferencesRef)->setApplePayCapabilityDisclosureAllowed(allowed);
+}
+
+void WKPreferencesSetSubtleCryptoEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setSubtleCryptoEnabled(flag);
+}
+
+bool WKPreferencesGetSubtleCryptoEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->subtleCryptoEnabled();
+}
+
+void WKPreferencesSetShouldSuppressKeyboardInputDuringProvisionalNavigation(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setShouldSuppressKeyboardInputDuringProvisionalNavigation(flag);
+}
+
+bool WKPreferencesGetShouldSuppressKeyboardInputDuringProvisionalNavigation(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->shouldSuppressKeyboardInputDuringProvisionalNavigation();
 }

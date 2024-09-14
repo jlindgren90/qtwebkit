@@ -37,16 +37,29 @@ function error(error)
 {
     "use strict";
 
-    //FIXME: Implement appropriate behavior.
-    @throwTypeError("ReadableByteStreamController error() is not implemented");
+    if (!@isReadableByteStreamController(this))
+        throw @makeThisTypeError("ReadableByteStreamController", "error");
+
+    if (this.@controlledReadableStream.@state !== @streamReadable)
+        @throwTypeError("ReadableStream is not readable");
+
+    @readableByteStreamControllerError(this, error);
 }
 
 function close()
 {
     "use strict";
 
-    //FIXME: Implement appropriate behavior.
-    @throwTypeError("ReadableByteStreamController close() is not implemented");
+    if (!@isReadableByteStreamController(this))
+        throw @makeThisTypeError("ReadableByteStreamController", "close");
+
+    if (this.@closeRequested)
+        @throwTypeError("Close has already been requested");
+
+    if (this.@controlledReadableStream.@state !== @streamReadable)
+        @throwTypeError("ReadableStream is not readable");
+
+    @readableByteStreamControllerClose(this);
 }
 
 function byobRequest()
@@ -61,7 +74,8 @@ function desiredSize()
 {
     "use strict";
 
-    //FIXME: Implement appropriate behavior.
-    @throwTypeError("ReadableByteStreamController desiredSize is not implemented");
-}
+    if (!@isReadableByteStreamController(this))
+        throw @makeGetterTypeError("ReadableByteStreamController", "desiredSize");
 
+    return @readableByteStreamControllerGetDesiredSize(this);
+}

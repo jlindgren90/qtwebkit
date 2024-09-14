@@ -71,9 +71,7 @@ public:
             if (!block)
                 continue;
         
-            for (unsigned nodeIndex = 0; nodeIndex < block->size(); ++nodeIndex) {
-                Node* node = block->at(nodeIndex);
-            
+            for (auto* node : *block) {
                 switch (node->op()) {
                 case CheckStructure:
                     assertAreRegistered(node->structureSet());
@@ -119,6 +117,22 @@ public:
                     break;
                 }
 
+                case NewArrayWithSpread: {
+                    JSGlobalObject* globalObject = m_graph.globalObjectFor(node->origin.semantic);
+                    if (m_graph.isWatchingHavingABadTimeWatchpoint(node)) {
+                        // We've compiled assuming we're not having a bad time, so to be consistent
+                        // with AI we must say we produce an original array allocation structure.
+                        registerStructure(globalObject->originalArrayStructureForIndexingType(ArrayWithContiguous));
+                    } else
+                        registerStructure(globalObject->arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous));
+                    break;
+                }
+
+                case Spread: {
+                    registerStructure(m_graph.m_vm.fixedArrayStructure.get());
+                    break;
+                }
+
                 case CreateRest: {
                     if (m_graph.isWatchingHavingABadTimeWatchpoint(node)) {
                         JSGlobalObject* globalObject = m_graph.globalObjectFor(node->origin.semantic);
@@ -160,6 +174,9 @@ public:
                     break;
                 case NewGeneratorFunction:
                     registerStructure(m_graph.globalObjectFor(node->origin.semantic)->generatorFunctionStructure());
+                    break;
+                case NewAsyncFunction:
+                    registerStructure(m_graph.globalObjectFor(node->origin.semantic)->asyncFunctionStructure());
                     break;
 
                 default:

@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef ReplaceSelectionCommand_h
-#define ReplaceSelectionCommand_h
+#pragma once
 
 #include "CompositeEditCommand.h"
 #include "NodeTraversal.h"
@@ -61,7 +60,7 @@ private:
     String inputEventData() const final;
     RefPtr<DataTransfer> inputEventDataTransfer() const final;
     bool willApplyCommand() final;
-    virtual void doApply();
+    void doApply() override;
 
     class InsertedNodes {
     public:
@@ -135,5 +134,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // ReplaceSelectionCommand_h

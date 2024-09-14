@@ -93,6 +93,7 @@ public:
     void connect(Inspector::FrontendChannel*, bool isAutomaticConnection = false) override;
     void disconnect(Inspector::FrontendChannel*) override;
 #endif
+    void terminate();
 
     // Inspector::AutomationBackendDispatcherHandler API
     void getBrowsingContexts(Inspector::ErrorString&, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::Automation::BrowsingContext>>&) override;
@@ -133,7 +134,7 @@ private:
     String handleForWebPageProxy(const WebPageProxy&);
     RefPtr<Inspector::Protocol::Automation::BrowsingContext> buildBrowsingContextForPage(WebPageProxy&);
 
-    Optional<uint64_t> webFrameIDForHandle(const String&);
+    std::optional<uint64_t> webFrameIDForHandle(const String&);
     String handleForWebFrameID(uint64_t frameID);
     String handleForWebFrameProxy(const WebFrameProxy&);
 

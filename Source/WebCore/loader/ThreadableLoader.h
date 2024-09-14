@@ -28,8 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ThreadableLoader_h
-#define ThreadableLoader_h
+#pragma once
 
 #include "ResourceLoaderOptions.h"
 #include <wtf/Noncopyable.h>
@@ -86,6 +85,8 @@ namespace WebCore {
         void ref() { refThreadableLoader(); }
         void deref() { derefThreadableLoader(); }
 
+        static void logError(ScriptExecutionContext&, const ResourceError&, const String&);
+
     protected:
         ThreadableLoader() { }
         virtual ~ThreadableLoader() { }
@@ -94,5 +95,3 @@ namespace WebCore {
     };
 
 } // namespace WebCore
-
-#endif // ThreadableLoader_h

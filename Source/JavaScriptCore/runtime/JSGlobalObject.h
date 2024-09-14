@@ -54,9 +54,9 @@ class JSGlobalObjectInspectorController;
 }
 
 namespace JSC {
-
 class ArrayConstructor;
 class ArrayPrototype;
+class ArrayIteratorAdaptiveWatchpoint;
 class AsyncFunctionPrototype;
 class BooleanPrototype;
 class ConsoleClient;
@@ -71,6 +71,7 @@ class GeneratorPrototype;
 class GeneratorFunctionPrototype;
 class GetterSetter;
 class GlobalCodeBlock;
+class IndirectEvalExecutable;
 class InputCursor;
 class JSArrayBuffer;
 class JSArrayBufferConstructor;
@@ -86,6 +87,7 @@ class JSSharedArrayBufferConstructor;
 class JSSharedArrayBufferPrototype;
 class JSTypedArrayViewConstructor;
 class JSTypedArrayViewPrototype;
+class DirectEvalExecutable;
 class LLIntOffsetsExtractor;
 class Microtask;
 class ModuleLoaderPrototype;
@@ -138,6 +140,7 @@ struct HashTable;
 #define FOR_EACH_WEBASSEMBLY_CONSTRUCTOR_TYPE(macro) \
     macro(WebAssemblyCompileError, webAssemblyCompileError, WebAssemblyCompileError, WebAssemblyCompileError, CompileError, error) \
     macro(WebAssemblyInstance,     webAssemblyInstance,     WebAssemblyInstance,     WebAssemblyInstance,     Instance,     object) \
+    macro(WebAssemblyLinkError,    webAssemblyLinkError,    WebAssemblyLinkError,    WebAssemblyLinkError,    LinkError,    error) \
     macro(WebAssemblyMemory,       webAssemblyMemory,       WebAssemblyMemory,       WebAssemblyMemory,       Memory,       object) \
     macro(WebAssemblyModule,       webAssemblyModule,       WebAssemblyModule,       WebAssemblyModule,       Module,       object) \
     macro(WebAssemblyRuntimeError, webAssemblyRuntimeError, WebAssemblyRuntimeError, WebAssemblyRuntimeError, RuntimeError, error) \
@@ -186,9 +189,6 @@ struct GlobalObjectMethodTable {
 
     typedef JSInternalPromise* (*ModuleLoaderFetchPtr)(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue);
     ModuleLoaderFetchPtr moduleLoaderFetch;
-
-    typedef JSInternalPromise* (*ModuleLoaderTranslatePtr)(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue, JSValue);
-    ModuleLoaderTranslatePtr moduleLoaderTranslate;
 
     typedef JSInternalPromise* (*ModuleLoaderInstantiatePtr)(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue, JSValue);
     ModuleLoaderInstantiatePtr moduleLoaderInstantiate;
@@ -241,7 +241,6 @@ public:
     LazyProperty<JSGlobalObject, NativeErrorConstructor> m_syntaxErrorConstructor;
     WriteBarrier<NativeErrorConstructor> m_typeErrorConstructor;
     LazyProperty<JSGlobalObject, NativeErrorConstructor> m_URIErrorConstructor;
-    WriteBarrier<FunctionConstructor> m_functionConstructor;
     WriteBarrier<ObjectConstructor> m_objectConstructor;
     WriteBarrier<ArrayConstructor> m_arrayConstructor;
     WriteBarrier<JSPromiseConstructor> m_promiseConstructor;
@@ -259,6 +258,7 @@ public:
     LazyProperty<JSGlobalObject, JSFunction> m_arrayProtoToStringFunction;
     LazyProperty<JSGlobalObject, JSFunction> m_arrayProtoValuesFunction;
     LazyProperty<JSGlobalObject, JSFunction> m_initializePromiseFunction;
+    LazyProperty<JSGlobalObject, JSFunction> m_iteratorProtocolFunction;
     WriteBarrier<JSFunction> m_newPromiseCapabilityFunction;
     WriteBarrier<JSFunction> m_functionProtoHasInstanceSymbolFunction;
     LazyProperty<JSGlobalObject, GetterSetter> m_throwTypeErrorGetterSetter;
@@ -315,12 +315,12 @@ public:
     PropertyOffset m_functionNameOffset;
     WriteBarrier<Structure> m_privateNameStructure;
     WriteBarrier<Structure> m_regExpStructure;
-    LazyClassStructure m_asyncFunctionStructure;
+    WriteBarrier<AsyncFunctionPrototype> m_asyncFunctionPrototype;
+    WriteBarrier<Structure> m_asyncFunctionStructure;
     WriteBarrier<Structure> m_generatorFunctionStructure;
     WriteBarrier<Structure> m_dollarVMStructure;
     WriteBarrier<Structure> m_iteratorResultObjectStructure;
     WriteBarrier<Structure> m_regExpMatchesArrayStructure;
-    WriteBarrier<Structure> m_regExpMatchesArraySlowPutStructure;
     WriteBarrier<Structure> m_moduleRecordStructure;
     WriteBarrier<Structure> m_moduleNamespaceObjectStructure;
     WriteBarrier<Structure> m_proxyObjectStructure;
@@ -340,6 +340,8 @@ public:
     
 #if ENABLE(WEBASSEMBLY)
     WriteBarrier<Structure> m_webAssemblyStructure;
+    WriteBarrier<Structure> m_webAssemblyModuleRecordStructure;
+    WriteBarrier<Structure> m_webAssemblyFunctionStructure;
     FOR_EACH_WEBASSEMBLY_CONSTRUCTOR_TYPE(DEFINE_STORAGE_FOR_SIMPLE_TYPE)
 #endif // ENABLE(WEBASSEMBLY)
 
@@ -395,6 +397,15 @@ public:
     std::unique_ptr<JSGlobalObjectRareData> m_rareData;
 
     WeakRandom m_weakRandom;
+
+    InlineWatchpointSet& arrayIteratorProtocolWatchpoint() { return m_arrayIteratorProtocolWatchpoint; }
+    // If this hasn't been invalidated, it means the array iterator protocol
+    // is not observable to user code yet.
+    InlineWatchpointSet m_arrayIteratorProtocolWatchpoint;
+    std::unique_ptr<ArrayIteratorAdaptiveWatchpoint> m_arrayPrototypeSymbolIteratorWatchpoint;
+    std::unique_ptr<ArrayIteratorAdaptiveWatchpoint> m_arrayIteratorPrototypeNext;
+
+    bool isArrayIteratorProtocolFastAndNonObservable();
 
     TemplateRegistry m_templateRegistry;
 
@@ -514,6 +525,7 @@ public:
     JSFunction* arrayProtoToStringFunction() const { return m_arrayProtoToStringFunction.get(this); }
     JSFunction* arrayProtoValuesFunction() const { return m_arrayProtoValuesFunction.get(this); }
     JSFunction* initializePromiseFunction() const { return m_initializePromiseFunction.get(this); }
+    JSFunction* iteratorProtocolFunction() const { return m_iteratorProtocolFunction.get(this); }
     JSFunction* newPromiseCapabilityFunction() const { return m_newPromiseCapabilityFunction.get(); }
     JSFunction* functionProtoHasInstanceSymbolFunction() const { return m_functionProtoHasInstanceSymbolFunction.get(); }
     JSObject* regExpProtoExecFunction() const { return m_regExpProtoExec.get(); }
@@ -540,19 +552,7 @@ public:
     IteratorPrototype* iteratorPrototype() const { return m_iteratorPrototype.get(); }
     GeneratorFunctionPrototype* generatorFunctionPrototype() const { return m_generatorFunctionPrototype.get(); }
     GeneratorPrototype* generatorPrototype() const { return m_generatorPrototype.get(); }
-
-    LazyClassStructure& lazyAsyncFunctionStructure()
-    {
-        return m_asyncFunctionStructure;
-    }
-    const LazyClassStructure& lazyAsyncFunctionStructure() const
-    {
-        return m_asyncFunctionStructure;
-    }
-    AsyncFunctionPrototype* asyncFunctionPrototype() const { return reinterpret_cast<AsyncFunctionPrototype*>(lazyAsyncFunctionStructure().prototype(this)); }
-    AsyncFunctionPrototype* asyncFunctionPrototypeConcurrently() const { return reinterpret_cast<AsyncFunctionPrototype*>(lazyAsyncFunctionStructure().prototypeConcurrently()); }
-    Structure* asyncFunctionStructure() const { return lazyAsyncFunctionStructure().get(this); }
-    Structure* asyncFunctionStructureConcurrently() const { return lazyAsyncFunctionStructure().getConcurrently(); }
+    AsyncFunctionPrototype* asyncFunctionPrototype() const { return m_asyncFunctionPrototype.get(); }
 
     Structure* debuggerScopeStructure() const { return m_debuggerScopeStructure.get(this); }
     Structure* withScopeStructure() const { return m_withScopeStructure.get(this); }
@@ -612,6 +612,7 @@ public:
     Structure* mapStructure() const { return m_mapStructure.get(); }
     Structure* regExpStructure() const { return m_regExpStructure.get(); }
     Structure* generatorFunctionStructure() const { return m_generatorFunctionStructure.get(); }
+    Structure* asyncFunctionStructure() const { return m_asyncFunctionStructure.get(); }
     Structure* setStructure() const { return m_setStructure.get(this); }
     Structure* stringObjectStructure() const { return m_stringObjectStructure.get(); }
     Structure* symbolObjectStructure() const { return m_symbolObjectStructure.get(); }
@@ -624,6 +625,10 @@ public:
     Structure* proxyRevokeStructure() const { return m_proxyRevokeStructure.get(); }
     Structure* moduleLoaderStructure() const { return m_moduleLoaderStructure.get(); }
     Structure* restParameterStructure() const { return arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous); }
+#if ENABLE(WEBASSEMBLY)
+    Structure* webAssemblyModuleRecordStructure() const { return m_webAssemblyModuleRecordStructure.get(); }
+    Structure* webAssemblyFunctionStructure() const { return m_webAssemblyFunctionStructure.get(); }
+#endif // ENABLE(WEBASSEMBLY)
 
     JS_EXPORT_PRIVATE void setRemoteDebuggingEnabled(bool);
     JS_EXPORT_PRIVATE bool remoteDebuggingEnabled() const;
@@ -826,10 +831,6 @@ public:
     double weakRandomNumber() { return m_weakRandom.get(); }
     unsigned weakRandomInteger() { return m_weakRandom.getUint32(); }
     WeakRandom& weakRandom() { return m_weakRandom; }
-
-    UnlinkedProgramCodeBlock* createProgramCodeBlock(CallFrame*, ProgramExecutable*, JSObject** exception);
-    UnlinkedEvalCodeBlock* createEvalCodeBlock(CallFrame*, EvalExecutable*, const VariableEnvironment*);
-    UnlinkedModuleProgramCodeBlock* createModuleProgramCodeBlock(CallFrame*, ModuleProgramExecutable*);
 
     bool needsSiteSpecificQuirks() const { return m_needsSiteSpecificQuirks; }
 

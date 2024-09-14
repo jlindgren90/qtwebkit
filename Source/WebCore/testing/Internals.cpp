@@ -34,6 +34,10 @@
 #include "Autofill.h"
 #include "BackForwardController.h"
 #include "BitmapImage.h"
+#include "CSSKeyframesRule.h"
+#include "CSSMediaRule.h"
+#include "CSSStyleRule.h"
+#include "CSSSupportsRule.h"
 #include "CachedImage.h"
 #include "CachedResourceLoader.h"
 #include "Chrome.h"
@@ -119,6 +123,7 @@
 #include "SourceBuffer.h"
 #include "SpellChecker.h"
 #include "StaticNodeList.h"
+#include "StyleRule.h"
 #include "StyleScope.h"
 #include "StyleSheetContents.h"
 #include "TextIterator.h"
@@ -129,6 +134,7 @@
 #include "ViewportArguments.h"
 #include "WebCoreJSClientData.h"
 #include "WorkerThread.h"
+#include "WritingDirection.h"
 #include "XMLHttpRequest.h"
 #include <bytecode/CodeBlock.h>
 #include <inspector/InspectorAgentBase.h>
@@ -138,6 +144,7 @@
 #include <runtime/JSCJSValue.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuffer.h>
+#include <wtf/text/StringBuilder.h>
 
 #if ENABLE(INPUT_TYPE_COLOR)
 #include "ColorChooser.h"
@@ -152,8 +159,12 @@
 #endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-#include "CDM.h"
-#include "MockCDM.h"
+#include "LegacyCDM.h"
+#include "LegacyMockCDM.h"
+#endif
+
+#if ENABLE(ENCRYPTED_MEDIA)
+#include "MockCDMFactory.h"
 #endif
 
 #if ENABLE(VIDEO_TRACK)
@@ -187,7 +198,6 @@
 #if ENABLE(WEB_RTC)
 #include "MockMediaEndpoint.h"
 #include "RTCPeerConnection.h"
-#include "RTCPeerConnectionHandlerMock.h"
 #endif
 
 #if ENABLE(MEDIA_SOURCE)
@@ -213,6 +223,10 @@
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 #include "MediaPlaybackTargetContext.h"
+#endif
+
+#if ENABLE(POINTER_LOCK)
+#include "PointerLockController.h"
 #endif
 
 using JSC::CallData;
@@ -379,6 +393,7 @@ void Internals::resetToConsistentState(Page& page)
 #endif
     }
 
+    WebCore::clearDefaultPortForProtocolMapForTesting();
     WebCore::overrideUserPreferredLanguages(Vector<String>());
     WebCore::Settings::setUsesOverlayScrollbars(false);
     WebCore::Settings::setUsesMockScrollAnimator(false);
@@ -431,7 +446,6 @@ Internals::Internals(Document& document)
 
 #if ENABLE(WEB_RTC)
     enableMockMediaEndpoint();
-    enableMockRTCPeerConnectionHandler();
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -652,6 +666,32 @@ unsigned Internals::imageFrameIndex(HTMLImageElement& element)
     return is<BitmapImage>(image) ? downcast<BitmapImage>(*image).currentFrame() : 0;
 }
 
+void Internals::setImageFrameDecodingDuration(HTMLImageElement& element, float duration)
+{
+    auto* cachedImage = element.cachedImage();
+    if (!cachedImage)
+        return;
+    
+    auto* image = cachedImage->image();
+    if (!is<BitmapImage>(image))
+        return;
+    
+    downcast<BitmapImage>(*image).setFrameDecodingDurationForTesting(duration);
+}
+
+void Internals::resetImageAnimation(HTMLImageElement& element)
+{
+    auto* cachedImage = element.cachedImage();
+    if (!cachedImage)
+        return;
+
+    auto* image = cachedImage->image();
+    if (!is<BitmapImage>(image))
+        return;
+
+    image->resetAnimation();
+}
+
 void Internals::clearPageCache()
 {
     PageCache::singleton().pruneToSizeNow(0, PruningReason::None);
@@ -819,6 +859,101 @@ void Internals::setShadowPseudoId(Element& element, const String& id)
     return element.setPseudo(id);
 }
 
+static unsigned deferredStyleRulesCountForList(const Vector<RefPtr<StyleRuleBase>>& childRules)
+{
+    unsigned count = 0;
+    for (auto rule : childRules) {
+        if (is<StyleRule>(rule.get())) {
+            auto* cssRule = downcast<StyleRule>(rule.get());
+            if (!cssRule->propertiesWithoutDeferredParsing())
+                count++;
+            continue;
+        }
+        
+        StyleRuleGroup* groupRule = nullptr;
+        if (is<StyleRuleMedia>(rule.get()))
+            groupRule = downcast<StyleRuleMedia>(rule.get());
+        else if (is<StyleRuleSupports>(rule.get()))
+            groupRule = downcast<StyleRuleSupports>(rule.get());
+        if (!groupRule)
+            continue;
+        
+        auto* groupChildRules = groupRule->childRulesWithoutDeferredParsing();
+        if (!groupChildRules)
+            continue;
+        
+        count += deferredStyleRulesCountForList(*groupChildRules);
+    }
+
+    return count;
+}
+
+unsigned Internals::deferredStyleRulesCount(StyleSheet& styleSheet)
+{
+    return deferredStyleRulesCountForList(downcast<CSSStyleSheet>(styleSheet).contents().childRules());
+}
+
+static unsigned deferredGroupRulesCountForList(const Vector<RefPtr<StyleRuleBase>>& childRules)
+{
+    unsigned count = 0;
+    for (auto rule : childRules) {
+        StyleRuleGroup* groupRule = nullptr;
+        if (is<StyleRuleMedia>(rule.get()))
+            groupRule = downcast<StyleRuleMedia>(rule.get());
+        else if (is<StyleRuleSupports>(rule.get()))
+            groupRule = downcast<StyleRuleSupports>(rule.get());
+        if (!groupRule)
+            continue;
+        
+        auto* groupChildRules = groupRule->childRulesWithoutDeferredParsing();
+        if (!groupChildRules)
+            count++;
+        else
+            count += deferredGroupRulesCountForList(*groupChildRules);
+    }
+    return count;
+}
+
+unsigned Internals::deferredGroupRulesCount(StyleSheet& styleSheet)
+{
+    return deferredGroupRulesCountForList(downcast<CSSStyleSheet>(styleSheet).contents().childRules());
+}
+
+static unsigned deferredKeyframesRulesCountForList(const Vector<RefPtr<StyleRuleBase>>& childRules)
+{
+    unsigned count = 0;
+    for (auto rule : childRules) {
+        if (is<StyleRuleKeyframes>(rule.get())) {
+            auto* cssRule = downcast<StyleRuleKeyframes>(rule.get());
+            if (!cssRule->keyframesWithoutDeferredParsing())
+                count++;
+            continue;
+        }
+        
+        StyleRuleGroup* groupRule = nullptr;
+        if (is<StyleRuleMedia>(rule.get()))
+            groupRule = downcast<StyleRuleMedia>(rule.get());
+        else if (is<StyleRuleSupports>(rule.get()))
+            groupRule = downcast<StyleRuleSupports>(rule.get());
+        if (!groupRule)
+            continue;
+        
+        auto* groupChildRules = groupRule->childRulesWithoutDeferredParsing();
+        if (!groupChildRules)
+            continue;
+        
+        count += deferredKeyframesRulesCountForList(*groupChildRules);
+    }
+    
+    return count;
+}
+
+unsigned Internals::deferredKeyframesRulesCount(StyleSheet& styleSheet)
+{
+    StyleSheetContents& contents = downcast<CSSStyleSheet>(styleSheet).contents();
+    return deferredKeyframesRulesCountForList(contents.childRules());
+}
+
 ExceptionOr<bool> Internals::isTimerThrottled(int timeoutId)
 {
     DOMTimer* timer = scriptExecutionContext()->findTimeout(timeoutId);
@@ -842,6 +977,47 @@ bool Internals::isRequestAnimationFrameThrottled() const
 bool Internals::areTimersThrottled() const
 {
     return contextDocument()->isTimerThrottlingEnabled();
+}
+
+void Internals::setEventThrottlingBehaviorOverride(std::optional<EventThrottlingBehavior> value)
+{
+    Document* document = contextDocument();
+    if (!document || !document->page())
+        return;
+
+    if (!value) {
+        document->page()->setEventThrottlingBehaviorOverride(std::nullopt);
+        return;
+    }
+
+    switch (value.value()) {
+    case Internals::EventThrottlingBehavior::Responsive:
+        document->page()->setEventThrottlingBehaviorOverride(WebCore::EventThrottlingBehavior::Responsive);
+        break;
+    case Internals::EventThrottlingBehavior::Unresponsive:
+        document->page()->setEventThrottlingBehaviorOverride(WebCore::EventThrottlingBehavior::Unresponsive);
+        break;
+    }
+}
+
+std::optional<Internals::EventThrottlingBehavior> Internals::eventThrottlingBehaviorOverride() const
+{
+    Document* document = contextDocument();
+    if (!document || !document->page())
+        return std::nullopt;
+
+    auto behavior = document->page()->eventThrottlingBehaviorOverride();
+    if (!behavior)
+        return std::nullopt;
+    
+    switch (behavior.value()) {
+    case WebCore::EventThrottlingBehavior::Responsive:
+        return Internals::EventThrottlingBehavior::Responsive;
+    case WebCore::EventThrottlingBehavior::Unresponsive:
+        return Internals::EventThrottlingBehavior::Unresponsive;
+    }
+
+    return std::nullopt;
 }
 
 String Internals::visiblePlaceholder(Element& element)
@@ -909,11 +1085,6 @@ void Internals::enableMockSpeechSynthesizer()
 void Internals::enableMockMediaEndpoint()
 {
     MediaEndpoint::create = MockMediaEndpoint::create;
-}
-
-void Internals::enableMockRTCPeerConnectionHandler()
-{
-    RTCPeerConnectionHandler::create = RTCPeerConnectionHandlerMock::create;
 }
 
 void Internals::emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection& connection, const String& action)
@@ -1488,10 +1659,6 @@ String Internals::parserMetaData(JSC::JSValue code)
         result.appendLiteral("module");
     else if (executable->isProgramExecutable())
         result.appendLiteral("program");
-#if ENABLE(WEBASSEMBLY)
-    else if (executable->isWebAssemblyExecutable())
-        result.appendLiteral("WebAssembly");
-#endif
     else
         ASSERT_NOT_REACHED();
 
@@ -2174,6 +2341,11 @@ void Internals::removeURLSchemeRegisteredAsBypassingContentSecurityPolicy(const 
     SchemeRegistry::removeURLSchemeRegisteredAsBypassingContentSecurityPolicy(scheme);
 }
 
+void Internals::registerDefaultPortForProtocol(unsigned short port, const String& protocol)
+{
+    registerDefaultPortForProtocolForTesting(port, protocol);
+}
+
 Ref<MallocStatistics> Internals::mallocStatistics() const
 {
     return MallocStatistics::create();
@@ -2446,6 +2618,14 @@ void Internals::initializeMockCDM()
 }
 #endif
 
+#if ENABLE(ENCRYPTED_MEDIA)
+Ref<MockCDMFactory> Internals::registerMockCDM()
+{
+    return MockCDMFactory::create();
+}
+#endif
+
+
 String Internals::markerTextForListItem(Element& element)
 {
     return WebCore::markerTextForListItem(&element);
@@ -2512,7 +2692,7 @@ ExceptionOr<String> Internals::captionsStyleSheetOverride()
 #if ENABLE(VIDEO_TRACK)
     return document->page()->group().captionPreferences().captionsStyleSheetOverride();
 #else
-    return emptyString();
+    return String { emptyString() };
 #endif
 }
 
@@ -2630,6 +2810,9 @@ void Internals::initializeMockMediaSource()
 #if USE(AVFOUNDATION)
     WebCore::Settings::setAVFoundationEnabled(false);
 #endif
+#if USE(GSTREAMER)
+    WebCore::Settings::setGStreamerEnabled(false);
+#endif
     MediaPlayerFactorySupport::callRegisterMediaEngine(MockMediaPlayerMediaSource::registerMediaEngine);
 }
 
@@ -2691,18 +2874,24 @@ void Internals::applicationWillEnterBackground() const
     PlatformMediaSessionManager::sharedManager().applicationWillEnterBackground();
 }
 
+static PlatformMediaSession::MediaType mediaTypeFromString(const String& mediaTypeString)
+{
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "video"))
+        return PlatformMediaSession::Video;
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "audio"))
+        return PlatformMediaSession::Audio;
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "videoaudio"))
+        return PlatformMediaSession::VideoAudio;
+    if (equalLettersIgnoringASCIICase(mediaTypeString, "webaudio"))
+        return PlatformMediaSession::WebAudio;
+
+    return PlatformMediaSession::None;
+}
+
 ExceptionOr<void> Internals::setMediaSessionRestrictions(const String& mediaTypeString, const String& restrictionsString)
 {
-    PlatformMediaSession::MediaType mediaType = PlatformMediaSession::None;
-    if (equalLettersIgnoringASCIICase(mediaTypeString, "video"))
-        mediaType = PlatformMediaSession::Video;
-    else if (equalLettersIgnoringASCIICase(mediaTypeString, "audio"))
-        mediaType = PlatformMediaSession::Audio;
-    else if (equalLettersIgnoringASCIICase(mediaTypeString, "videoaudio"))
-        mediaType = PlatformMediaSession::VideoAudio;
-    else if (equalLettersIgnoringASCIICase(mediaTypeString, "webaudio"))
-        mediaType = PlatformMediaSession::WebAudio;
-    else
+    PlatformMediaSession::MediaType mediaType = mediaTypeFromString(mediaTypeString);
+    if (mediaType == PlatformMediaSession::None)
         return Exception { INVALID_ACCESS_ERR };
 
     PlatformMediaSessionManager::SessionRestrictions restrictions = PlatformMediaSessionManager::sharedManager().restrictions(mediaType);
@@ -2724,6 +2913,37 @@ ExceptionOr<void> Internals::setMediaSessionRestrictions(const String& mediaType
     }
     PlatformMediaSessionManager::sharedManager().addRestriction(mediaType, restrictions);
     return { };
+}
+
+ExceptionOr<String> Internals::mediaSessionRestrictions(const String& mediaTypeString) const
+{
+    PlatformMediaSession::MediaType mediaType = mediaTypeFromString(mediaTypeString);
+    if (mediaType == PlatformMediaSession::None)
+        return Exception { INVALID_ACCESS_ERR };
+
+    PlatformMediaSessionManager::SessionRestrictions restrictions = PlatformMediaSessionManager::sharedManager().restrictions(mediaType);
+    if (restrictions == PlatformMediaSessionManager::NoRestrictions)
+        return String();
+
+    StringBuilder builder;
+    if (restrictions & PlatformMediaSessionManager::ConcurrentPlaybackNotPermitted)
+        builder.append("concurrentplaybacknotpermitted");
+    if (restrictions & PlatformMediaSessionManager::BackgroundProcessPlaybackRestricted) {
+        if (!builder.isEmpty())
+            builder.append(',');
+        builder.append("backgroundprocessplaybackrestricted");
+    }
+    if (restrictions & PlatformMediaSessionManager::BackgroundTabPlaybackRestricted) {
+        if (!builder.isEmpty())
+            builder.append(',');
+        builder.append("backgroundtabplaybackrestricted");
+    }
+    if (restrictions & PlatformMediaSessionManager::InterruptedPlaybackNotPermitted) {
+        if (!builder.isEmpty())
+            builder.append(',');
+        builder.append("interruptedplaybacknotpermitted");
+    }
+    return builder.toString();
 }
 
 void Internals::setMediaElementRestrictions(HTMLMediaElement& element, const String& restrictionsString)
@@ -2995,10 +3215,10 @@ String Internals::pageMediaState()
         string.append("HasPlaybackTargetAvailabilityListener,");
     if (state & MediaProducer::HasAudioOrVideo)
         string.append("HasAudioOrVideo,");
-    if (state & MediaProducer::HasActiveMediaCaptureDevice)
-        string.append("HasActiveMediaCaptureDevice,");
-    if (state & MediaProducer::HasMediaCaptureDevice)
-        string.append("HasMediaCaptureDevice,");
+    if (state & MediaProducer::HasActiveAudioCaptureDevice)
+        string.append("HasActiveAudioCaptureDevice,");
+    if (state & MediaProducer::HasActiveVideoCaptureDevice)
+        string.append("HasActiveVideoCaptureDevice,");
 
     if (string.isEmpty())
         string.append("IsNotPlaying");
@@ -3074,6 +3294,8 @@ ExceptionOr<String> Internals::scrollSnapOffsets(Element& element)
 {
     if (!element.renderBox())
         return String();
+
+    element.document().updateLayout();
 
     RenderBox& box = *element.renderBox();
     ScrollableArea* scrollableArea;
@@ -3300,6 +3522,81 @@ bool Internals::userPrefersReducedMotion() const
 void Internals::reportBacktrace()
 {
     WTFReportBacktrace();
+}
+
+void Internals::setBaseWritingDirection(BaseWritingDirection direction)
+{
+    if (auto* document = contextDocument()) {
+        if (auto* frame = document->frame()) {
+            switch (direction) {
+            case BaseWritingDirection::Ltr:
+                frame->editor().setBaseWritingDirection(LeftToRightWritingDirection);
+                break;
+            case BaseWritingDirection::Rtl:
+                frame->editor().setBaseWritingDirection(RightToLeftWritingDirection);
+                break;
+            case BaseWritingDirection::Natural:
+                frame->editor().setBaseWritingDirection(NaturalWritingDirection);
+                break;
+            }
+        }
+    }
+}
+
+#if ENABLE(POINTER_LOCK)
+bool Internals::pageHasPendingPointerLock() const
+{
+    Document* document = contextDocument();
+    if (!document)
+        return false;
+
+    Page* page = document->page();
+    if (!page)
+        return false;
+
+    return page->pointerLockController().lockPending();
+}
+
+bool Internals::pageHasPointerLock() const
+{
+    Document* document = contextDocument();
+    if (!document)
+        return false;
+
+    Page* page = document->page();
+    if (!page)
+        return false;
+
+    auto& controller = page->pointerLockController();
+    return controller.element() && !controller.lockPending();
+}
+#endif
+
+Vector<String> Internals::accessKeyModifiers() const
+{
+    Vector<String> accessKeyModifierStrings;
+
+    for (auto modifier : EventHandler::accessKeyModifiers()) {
+        switch (modifier) {
+        case PlatformEvent::Modifier::AltKey:
+            accessKeyModifierStrings.append(ASCIILiteral("altKey"));
+            break;
+        case PlatformEvent::Modifier::CtrlKey:
+            accessKeyModifierStrings.append(ASCIILiteral("ctrlKey"));
+            break;
+        case PlatformEvent::Modifier::MetaKey:
+            accessKeyModifierStrings.append(ASCIILiteral("metaKey"));
+            break;
+        case PlatformEvent::Modifier::ShiftKey:
+            accessKeyModifierStrings.append(ASCIILiteral("shiftKey"));
+            break;
+        case PlatformEvent::Modifier::CapsLockKey:
+            accessKeyModifierStrings.append(ASCIILiteral("capsLockKey"));
+            break;
+        }
+    }
+
+    return accessKeyModifierStrings;
 }
 
 } // namespace WebCore

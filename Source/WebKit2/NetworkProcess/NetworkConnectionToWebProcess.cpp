@@ -158,7 +158,7 @@ void NetworkConnectionToWebProcess::removeLoadIdentifier(ResourceLoadIdentifier 
     // Abort the load now, as the WebProcess won't be able to respond to messages any more which might lead
     // to leaked loader resources (connections, threads, etc).
     loader->abort();
-    ASSERT(!m_networkResourceLoaders.contains(identifier) || loader->isBecomingDownload());
+    ASSERT(!m_networkResourceLoaders.contains(identifier));
 }
 
 void NetworkConnectionToWebProcess::setDefersLoading(ResourceLoadIdentifier identifier, bool defers)
@@ -189,14 +189,14 @@ static NetworkStorageSession& storageSession(SessionID sessionID)
 
 void NetworkConnectionToWebProcess::startDownload(SessionID sessionID, DownloadID downloadID, const ResourceRequest& request, const String& suggestedName)
 {
-    NetworkProcess::singleton().downloadManager().startDownload(sessionID, downloadID, request, suggestedName);
+    NetworkProcess::singleton().downloadManager().startDownload(this, sessionID, downloadID, request, suggestedName);
 }
 
 void NetworkConnectionToWebProcess::convertMainResourceLoadToDownload(SessionID sessionID, uint64_t mainResourceLoadIdentifier, DownloadID downloadID, const ResourceRequest& request, const ResourceResponse& response)
 {
     auto& networkProcess = NetworkProcess::singleton();
     if (!mainResourceLoadIdentifier) {
-        networkProcess.downloadManager().startDownload(sessionID, downloadID, request);
+        networkProcess.downloadManager().startDownload(this, sessionID, downloadID, request);
         return;
     }
 
@@ -206,19 +206,7 @@ void NetworkConnectionToWebProcess::convertMainResourceLoadToDownload(SessionID 
         return;
     }
 
-#if USE(NETWORK_SESSION)
-    if (!request.url().protocolIsBlob()) {
-        loader->networkLoad()->convertTaskToDownload(downloadID, request, response);
-        loader->didConvertToDownload();
-        return;
-    }
-#endif
-    networkProcess.downloadManager().convertHandleToDownload(downloadID, loader->networkLoad()->handle(), request, response);
-
-    // Unblock the URL connection operation queue.
-    loader->networkLoad()->handle()->continueDidReceiveResponse();
-
-    loader->didConvertToDownload();
+    loader->convertToDownload(downloadID, request, response);
 }
 
 void NetworkConnectionToWebProcess::cookiesForDOM(SessionID sessionID, const URL& firstParty, const URL& url, String& result)
@@ -263,7 +251,7 @@ void NetworkConnectionToWebProcess::registerFileBlobURL(const URL& url, const St
     NetworkBlobRegistry::singleton().registerFileBlobURL(this, url, path, WTFMove(extension), contentType);
 }
 
-void NetworkConnectionToWebProcess::registerBlobURL(const URL& url, Vector<BlobPart> blobParts, const String& contentType)
+void NetworkConnectionToWebProcess::registerBlobURL(const URL& url, Vector<BlobPart>&& blobParts, const String& contentType)
 {
     NetworkBlobRegistry::singleton().registerBlobURL(this, url, WTFMove(blobParts), contentType);
 }

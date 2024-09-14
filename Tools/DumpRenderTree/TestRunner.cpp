@@ -42,6 +42,7 @@
 #include <JavaScriptCore/JSObjectRef.h>
 #include <JavaScriptCore/JSRetainPtr.h>
 #include <JavaScriptCore/TypedArrayInlines.h>
+#include <JavaScriptCore/VMInlines.h>
 #include <WebCore/LogInitialization.h>
 #include <cstring>
 #include <locale.h>
@@ -51,6 +52,7 @@
 #include <wtf/LoggingAccumulator.h>
 #include <wtf/MathExtras.h>
 #include <wtf/RefPtr.h>
+#include <wtf/RunLoop.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/WTFString.h>
 
@@ -1218,6 +1220,18 @@ static JSValueRef setAllowFileAccessFromFileURLsCallback(JSContextRef context, J
     return JSValueMakeUndefined(context);
 }
 
+static JSValueRef setNeedsStorageAccessFromFileURLsQuirkCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    // Has mac & windows implementation
+    if (argumentCount < 1)
+        return JSValueMakeUndefined(context);
+    
+    TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
+    controller->setNeedsStorageAccessFromFileURLsQuirk(JSValueToBoolean(context, arguments[0]));
+    
+    return JSValueMakeUndefined(context);
+}
+
 static JSValueRef setTabKeyCyclesThroughElementsCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
     // Has mac & windows implementation
@@ -2125,6 +2139,7 @@ JSStaticFunction* TestRunner::staticFunctions()
         { "setAcceptsEditing", setAcceptsEditingCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setAllowUniversalAccessFromFileURLs", setAllowUniversalAccessFromFileURLsCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setAllowFileAccessFromFileURLs", setAllowFileAccessFromFileURLsCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "setNeedsStorageAccessFromFileURLsQuirk", setNeedsStorageAccessFromFileURLsQuirkCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setAllowsAnySSLCertificate", setAllowsAnySSLCertificateCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setAlwaysAcceptCookies", setAlwaysAcceptCookiesCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setAppCacheMaximumSize", setAppCacheMaximumSizeCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
@@ -2379,9 +2394,13 @@ void TestRunner::runUIScript(JSContextRef context, JSStringRef script, JSValueRe
 
 void TestRunner::callUIScriptCallback(unsigned callbackID, JSStringRef result)
 {
-    JSContextRef context = mainFrameJSContext();
-    JSValueRef resultValue = JSValueMakeString(context, result);
-    callTestRunnerCallback(callbackID, 1, &resultValue);
+    JSRetainPtr<JSStringRef> protectedResult(result);
+    
+    RunLoop::main().dispatch([protectedThis = makeRef(*this), callbackID, protectedResult]() mutable {
+        JSContextRef context = protectedThis->mainFrameJSContext();
+        JSValueRef resultValue = JSValueMakeString(context, protectedResult.get());
+        protectedThis->callTestRunnerCallback(callbackID, 1, &resultValue);
+    });
 }
 
 void TestRunner::uiScriptDidComplete(const String& result, unsigned callbackID)

@@ -68,12 +68,12 @@ public:
     virtual void waitForBackingStoreUpdateOnNextPaint() { }
 
     const WebCore::IntSize& size() const { return m_size; }
-    void setSize(const WebCore::IntSize&, const WebCore::IntSize&, const WebCore::IntSize& scrollOffset);
+    bool setSize(const WebCore::IntSize&, const WebCore::IntSize&, const WebCore::IntSize& scrollOffset);
 
     // The timeout we use when waiting for a DidUpdateGeometry message.
-    static constexpr std::chrono::milliseconds didUpdateBackingStoreStateTimeout() { return std::chrono::milliseconds(500); }
+    static constexpr Seconds didUpdateBackingStoreStateTimeout() { return Seconds::fromMilliseconds(500); }
 
-    virtual void waitForPossibleGeometryUpdate(std::chrono::milliseconds = didUpdateBackingStoreStateTimeout()) { }
+    virtual void waitForPossibleGeometryUpdate(Seconds = didUpdateBackingStoreStateTimeout()) { }
 
     virtual void colorSpaceDidChange() { }
     virtual void minimumLayoutSizeDidChange() { }
@@ -82,8 +82,8 @@ public:
     virtual void commitTransientZoom(double, WebCore::FloatPoint) { }
 
 #if PLATFORM(MAC)
-    virtual void setViewExposedRect(Optional<WebCore::FloatRect>);
-    Optional<WebCore::FloatRect> viewExposedRect() const { return m_viewExposedRect; }
+    virtual void setViewExposedRect(std::optional<WebCore::FloatRect>);
+    std::optional<WebCore::FloatRect> viewExposedRect() const { return m_viewExposedRect; }
     void viewExposedRectChangedTimerFired();
 #endif
 
@@ -102,6 +102,8 @@ public:
     virtual bool hasVisibleContent() const { return true; }
 
     virtual void willSendUpdateGeometry() { }
+
+    virtual void prepareForAppSuspension() { }
 
 #if PLATFORM(COCOA)
     virtual WebCore::MachSendRight createFence();
@@ -136,8 +138,8 @@ private:
 
 #if PLATFORM(MAC)
     RunLoop::Timer<DrawingAreaProxy> m_viewExposedRectChangedTimer;
-    Optional<WebCore::FloatRect> m_viewExposedRect;
-    Optional<WebCore::FloatRect> m_lastSentViewExposedRect;
+    std::optional<WebCore::FloatRect> m_viewExposedRect;
+    std::optional<WebCore::FloatRect> m_lastSentViewExposedRect;
 #endif // PLATFORM(MAC)
 #endif
 };

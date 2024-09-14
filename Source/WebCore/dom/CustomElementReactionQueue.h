@@ -89,6 +89,7 @@ private:
 
     private:
         Vector<Ref<Element>> m_elements;
+        bool m_invoking { false };
     };
 
     WEBCORE_EXPORT void processQueue();

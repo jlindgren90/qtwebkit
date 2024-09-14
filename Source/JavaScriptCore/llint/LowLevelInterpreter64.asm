@@ -183,6 +183,7 @@ macro doVMEntry(makeCall)
     move 4, t3
 
 .copyHeaderLoop:
+    # Copy the CodeBlock/Callee/ArgumentCount/|this| from protoCallFrame into the callee frame.
     subi 1, t3
     loadq [protoCallFrame, t3, 8], extraTempReg
     storeq extraTempReg, CodeBlock[sp, t3, 8]
@@ -580,6 +581,23 @@ _llint_op_enter:
 .opEnterDone:
     callOpcodeSlowPath(_slow_path_enter)
     dispatch(1)
+
+
+_llint_op_get_argument:
+    traceExecution()
+    loadisFromInstruction(1, t1)
+    loadisFromInstruction(2, t2)
+    loadi PayloadOffset + ArgumentCount[cfr], t0
+    bilteq t0, t2, .opGetArgumentOutOfBounds
+    loadq ThisArgumentOffset[cfr, t2, 8], t0
+    storeq t0, [cfr, t1, 8]
+    valueProfile(t0, 3, t2)
+    dispatch(4)
+
+.opGetArgumentOutOfBounds:
+    storeq ValueUndefined, [cfr, t1, 8]
+    valueProfile(ValueUndefined, 3, t2)
+    dispatch(4)
 
 
 _llint_op_argument_count:
@@ -1488,6 +1506,7 @@ _llint_op_get_by_val:
 .opGetByValOutOfBounds:
     loadpFromInstruction(4, t0)
     storeb 1, ArrayProfile::m_outOfBounds[t0]
+    jmp .opGetByValSlow
 
 .opGetByValNotIndexedStorage:
     # First lets check if we even have a typed array. This lets us do some boilerplate up front.

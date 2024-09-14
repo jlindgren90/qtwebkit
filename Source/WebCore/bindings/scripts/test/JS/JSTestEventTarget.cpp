@@ -21,7 +21,6 @@
 #include "config.h"
 #include "JSTestEventTarget.h"
 
-#include "ExceptionCode.h"
 #include "JSDOMBinding.h"
 #include "JSDOMConstructor.h"
 #include "JSDOMConvert.h"
@@ -108,6 +107,13 @@ JSTestEventTarget::JSTestEventTarget(Structure* structure, JSDOMGlobalObject& gl
 {
 }
 
+void JSTestEventTarget::finishCreation(VM& vm)
+{
+    Base::finishCreation(vm);
+    ASSERT(inherits(info()));
+
+}
+
 JSObject* JSTestEventTarget::createPrototype(VM& vm, JSGlobalObject* globalObject)
 {
     return JSTestEventTargetPrototype::create(vm, globalObject, JSTestEventTargetPrototype::createStructure(vm, globalObject, JSEventTarget::prototype(vm, globalObject)));
@@ -122,7 +128,7 @@ bool JSTestEventTarget::getOwnPropertySlot(JSObject* object, ExecState* state, P
 {
     auto* thisObject = jsCast<JSTestEventTarget*>(object);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
-    Optional<uint32_t> optionalIndex = parseIndex(propertyName);
+    std::optional<uint32_t> optionalIndex = parseIndex(propertyName);
     if (optionalIndex && optionalIndex.value() < thisObject->wrapped().length()) {
         unsigned index = optionalIndex.value();
         unsigned attributes = ReadOnly;
@@ -220,8 +226,7 @@ static inline JSC::EncodedJSValue jsTestEventTargetPrototypeFunctionItemCaller(J
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
     auto index = convert<IDLUnsignedLong>(*state, state->uncheckedArgument(0), IntegerConversionConfiguration::Normal);
     RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
-    JSValue result = toJS<IDLInterface<Node>>(*state, *castedThis->globalObject(), impl.item(WTFMove(index)));
-    return JSValue::encode(result);
+    return JSValue::encode(toJS<IDLInterface<Node>>(*state, *castedThis->globalObject(), impl.item(WTFMove(index))));
 }
 
 void JSTestEventTarget::visitChildren(JSCell* cell, SlotVisitor& visitor)

@@ -179,11 +179,8 @@ void SpeculativeJIT::cachedGetById(CodeOrigin codeOrigin, GPRReg baseGPR, GPRReg
         slowCases.append(slowPathTarget);
     slowCases.append(gen.slowPathJump());
     
-    auto slowPathFunction = type == AccessType::Get ? operationGetByIdOptimize :
-        type == AccessType::PureGet ? operationPureGetByIdOptimize : operationTryGetByIdOptimize;
-
     auto slowPath = slowPathCall(
-        slowCases, this, slowPathFunction,
+        slowCases, this, type == AccessType::Get ? operationGetByIdOptimize : operationTryGetByIdOptimize,
         spillMode, ExceptionCheckRequirement::CheckNeeded,
         resultGPR, gen.stubInfo(), baseGPR, identifierUID(identifierNumber));
     
@@ -854,7 +851,8 @@ void SpeculativeJIT::emitCall(Node* node)
             shuffleData.numLocals = m_jit.graph().frameRegisterCount();
             shuffleData.callee = ValueRecovery::inGPR(calleeGPR, DataFormatJS);
             shuffleData.args.resize(numAllocatedArgs);
-
+            shuffleData.numPassedArgs = numPassedArgs;
+            
             for (unsigned i = 0; i < numPassedArgs; ++i) {
                 Edge argEdge = m_jit.graph().varArgChild(node, i + 1);
                 GenerationInfo& info = generationInfo(argEdge.node());
@@ -1952,10 +1950,10 @@ void SpeculativeJIT::compileLogicalNot(Node* node)
 
         bool shouldCheckMasqueradesAsUndefined = !masqueradesAsUndefinedWatchpointIsStillValid();
         JSGlobalObject* globalObject = m_jit.graph().globalObjectFor(node->origin.semantic);
-        Optional<GPRTemporary> scratch;
+        std::optional<GPRTemporary> scratch;
         GPRReg scratchGPR = InvalidGPRReg;
         if (shouldCheckMasqueradesAsUndefined) {
-            scratch = GPRTemporary(this);
+            scratch.emplace(this);
             scratchGPR = scratch->gpr();
         }
         bool negateResult = true;
@@ -2106,12 +2104,12 @@ void SpeculativeJIT::emitBranch(Node* node)
             GPRTemporary result(this);
             FPRTemporary fprValue(this);
             FPRTemporary fprTemp(this);
-            Optional<GPRTemporary> scratch;
+            std::optional<GPRTemporary> scratch;
 
             GPRReg scratchGPR = InvalidGPRReg;
             bool shouldCheckMasqueradesAsUndefined = !masqueradesAsUndefinedWatchpointIsStillValid();
             if (shouldCheckMasqueradesAsUndefined) {
-                scratch = GPRTemporary(this);
+                scratch.emplace(this);
                 scratchGPR = scratch->gpr();
             }
 
@@ -3923,6 +3921,16 @@ void SpeculativeJIT::compile(Node* node)
         cellResult(result.gpr(), node, UseChildrenCalledExplicitly);
         break;
     }
+
+    case NewArrayWithSpread: {
+        compileNewArrayWithSpread(node);
+        break;
+    }
+
+    case Spread: {
+        compileSpread(node);
+        break;
+    }
         
     case NewArrayWithSize: {
         JSGlobalObject* globalObject = m_jit.graph().globalObjectFor(node->origin.semantic);
@@ -4095,6 +4103,7 @@ void SpeculativeJIT::compile(Node* node)
         // Rare data is only used to access the allocator & structure
         // We can avoid using an additional GPR this way
         GPRReg rareDataGPR = structureGPR;
+        GPRReg inlineCapacityGPR = rareDataGPR;
 
         MacroAssembler::JumpList slowPath;
 
@@ -4106,6 +4115,11 @@ void SpeculativeJIT::compile(Node* node)
         m_jit.loadPtr(JITCompiler::Address(rareDataGPR, FunctionRareData::offsetOfObjectAllocationProfile() + ObjectAllocationProfile::offsetOfStructure()), structureGPR);
         slowPath.append(m_jit.branchTestPtr(MacroAssembler::Zero, allocatorGPR));
         emitAllocateJSObject(resultGPR, nullptr, allocatorGPR, structureGPR, TrustedImmPtr(0), scratchGPR, slowPath);
+        
+        m_jit.loadPtr(JITCompiler::Address(calleeGPR, JSFunction::offsetOfRareData()), rareDataGPR);
+        m_jit.load32(JITCompiler::Address(rareDataGPR, FunctionRareData::offsetOfObjectAllocationProfile() + ObjectAllocationProfile::offsetOfInlineCapacity()), inlineCapacityGPR);
+        m_jit.emitInitializeInlineStorage(resultGPR, inlineCapacityGPR);
+        m_jit.mutatorFence();
 
         addSlowPathGenerator(slowPathCall(slowPath, this, operationCreateThis, resultGPR, calleeGPR, node->inlineCapacity()));
         
@@ -4130,6 +4144,8 @@ void SpeculativeJIT::compile(Node* node)
 
         m_jit.move(TrustedImmPtr(allocatorPtr), allocatorGPR);
         emitAllocateJSObject(resultGPR, allocatorPtr, allocatorGPR, TrustedImmPtr(structure), TrustedImmPtr(0), scratchGPR, slowPath);
+        m_jit.emitInitializeInlineStorage(resultGPR, structure->inlineCapacity());
+        m_jit.mutatorFence();
 
         addSlowPathGenerator(slowPathCall(slowPath, this, operationNewObject, resultGPR, structure));
         
@@ -4235,11 +4251,6 @@ void SpeculativeJIT::compile(Node* node)
             DFG_CRASH(m_jit.graph(), node, "Bad use kind");
             break;
         }
-        break;
-    }
-
-    case PureGetById: {
-        compilePureGetById(node);
         break;
     }
 
@@ -4383,6 +4394,10 @@ void SpeculativeJIT::compile(Node* node)
         
     case ReallocatePropertyStorage:
         compileReallocatePropertyStorage(node);
+        break;
+        
+    case NukeStructureAndSetButterfly:
+        compileNukeStructureAndSetButterfly(node);
         break;
         
     case GetButterfly:
@@ -4759,11 +4774,11 @@ void SpeculativeJIT::compile(Node* node)
         case StringUse: {
             SpeculateCellOperand input(this, node->child1());
             GPRTemporary result(this);
-            Optional<GPRTemporary> temp;
+            std::optional<GPRTemporary> temp;
 
             GPRReg tempGPR = InvalidGPRReg;
             if (node->child1().useKind() == CellUse) {
-                temp = GPRTemporary(this);
+                temp.emplace(this);
                 tempGPR = temp->gpr();
             }
 
@@ -5155,6 +5170,11 @@ void SpeculativeJIT::compile(Node* node)
         compilePutToArguments(node);
         break;
     }
+
+    case GetArgument: {
+        compileGetArgument(node);
+        break;
+    }
         
     case CreateScopedArguments: {
         compileCreateScopedArguments(node);
@@ -5172,6 +5192,7 @@ void SpeculativeJIT::compile(Node* node)
 
     case NewFunction:
     case NewGeneratorFunction:
+    case NewAsyncFunction:
         compileNewFunction(node);
         break;
 
@@ -5191,15 +5212,15 @@ void SpeculativeJIT::compile(Node* node)
         GPRTemporary structureID(this);
         GPRTemporary result(this);
 
-        Optional<SpeculateCellOperand> keyAsCell;
-        Optional<JSValueOperand> keyAsValue;
+        std::optional<SpeculateCellOperand> keyAsCell;
+        std::optional<JSValueOperand> keyAsValue;
         GPRReg keyGPR;
         if (node->child2().useKind() == UntypedUse) {
-            keyAsValue = JSValueOperand(this, node->child2());
+            keyAsValue.emplace(this, node->child2());
             keyGPR = keyAsValue->gpr();
         } else {
             ASSERT(node->child2().useKind() == StringUse || node->child2().useKind() == SymbolUse);
-            keyAsCell = SpeculateCellOperand(this, node->child2());
+            keyAsCell.emplace(this, node->child2());
             keyGPR = keyAsCell->gpr();
         }
 
@@ -5813,6 +5834,7 @@ void SpeculativeJIT::compile(Node* node)
     case PhantomNewObject:
     case PhantomNewFunction:
     case PhantomNewGeneratorFunction:
+    case PhantomNewAsyncFunction:
     case PhantomCreateActivation:
     case GetMyArgumentByVal:
     case GetMyArgumentByValOutOfBounds:
@@ -5823,6 +5845,8 @@ void SpeculativeJIT::compile(Node* node)
     case KillStack:
     case GetStack:
     case PhantomCreateRest:
+    case PhantomSpread:
+    case PhantomNewArrayWithSpread:
         DFG_CRASH(m_jit.graph(), node, "Unexpected node");
         break;
     }
@@ -5954,10 +5978,12 @@ void SpeculativeJIT::compileAllocateNewArrayWithSize(JSGlobalObject* globalObjec
     m_jit.store64(scratchGPR, MacroAssembler::BaseIndex(storageGPR, scratch2GPR, MacroAssembler::TimesEight));
     m_jit.branchTest32(MacroAssembler::NonZero, scratch2GPR).linkTo(loop, &m_jit);
     done.link(&m_jit);
-            
+    
     Structure* structure = globalObject->arrayStructureForIndexingTypeDuringAllocation(indexingType);
-            
+    
     emitAllocateJSObject<JSArray>(resultGPR, TrustedImmPtr(structure), storageGPR, scratchGPR, scratch2GPR, slowCases);
+    
+    m_jit.mutatorFence();
     
     addSlowPathGenerator(std::make_unique<CallArrayAllocatorWithVariableSizeSlowPathGenerator>(
         slowCases, this, operationNewArrayWithSize, resultGPR,

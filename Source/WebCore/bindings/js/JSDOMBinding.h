@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2001 Harri Porten (porten@kde.org)
- *  Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009, 2013 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003-2006, 2008-2009, 2013, 2016 Apple Inc. All rights reserved.
  *  Copyright (C) 2007 Samuel Weinig <sam@webkit.org>
  *  Copyright (C) 2009 Google, Inc. All rights reserved.
  *  Copyright (C) 2012 Ericsson AB. All rights reserved.
@@ -182,6 +182,7 @@ void addImpureProperty(const AtomicString&);
 
 const JSC::HashTable& getHashTableForGlobalData(JSC::VM&, const JSC::HashTable& staticTable);
 
+String retrieveErrorMessage(JSC::ExecState&, JSC::VM&, JSC::JSValue exception, JSC::CatchScope&);
 WEBCORE_EXPORT void reportException(JSC::ExecState*, JSC::JSValue exception, CachedScript* = nullptr);
 WEBCORE_EXPORT void reportException(JSC::ExecState*, JSC::Exception*, CachedScript* = nullptr, ExceptionDetails* = nullptr);
 void reportCurrentException(JSC::ExecState*);
@@ -214,7 +215,10 @@ String propertyNameToString(JSC::PropertyName);
 
 AtomicString propertyNameToAtomicString(JSC::PropertyName);
 
-WEBCORE_EXPORT String valueToUSVString(JSC::ExecState*, JSC::JSValue);
+WEBCORE_EXPORT String identifierToByteString(JSC::ExecState&, const JSC::Identifier&);
+WEBCORE_EXPORT String valueToByteString(JSC::ExecState&, JSC::JSValue);
+WEBCORE_EXPORT String identifierToUSVString(JSC::ExecState&, const JSC::Identifier&);
+WEBCORE_EXPORT String valueToUSVString(JSC::ExecState&, JSC::JSValue);
 
 int32_t finiteInt32Value(JSC::JSValue, JSC::ExecState*, bool& okay);
 
@@ -333,10 +337,8 @@ struct BindingCaller {
         ASSERT(state);
         auto throwScope = DECLARE_THROW_SCOPE(state->vm());
         auto* thisObject = castForOperation(*state);
-        if (shouldThrow != CastedThisErrorBehavior::Assert && UNLIKELY(!thisObject)) {
-            ASSERT(JSClass::info());
+        if (shouldThrow != CastedThisErrorBehavior::Assert && UNLIKELY(!thisObject))
             return rejectPromiseWithThisTypeError(promise.get(), JSClass::info()->className, operationName);
-        }
         ASSERT(thisObject);
         ASSERT_GC_OBJECT_INHERITS(thisObject, JSClass::info());
         // FIXME: We should refactor the binding generated code to use references for state and thisObject.
@@ -350,7 +352,6 @@ struct BindingCaller {
         auto throwScope = DECLARE_THROW_SCOPE(state->vm());
         auto* thisObject = castForOperation(*state);
         if (shouldThrow != CastedThisErrorBehavior::Assert && UNLIKELY(!thisObject)) {
-            ASSERT(JSClass::info());
             if (shouldThrow == CastedThisErrorBehavior::Throw)
                 return throwThisTypeError(*state, throwScope, JSClass::info()->className, operationName);
             // For custom promise-returning operations
@@ -368,10 +369,8 @@ struct BindingCaller {
         ASSERT(state);
         auto throwScope = DECLARE_THROW_SCOPE(state->vm());
         auto* thisObject = castForAttribute(*state, thisValue);
-        if (UNLIKELY(!thisObject)) {
-            ASSERT(JSClass::info());
+        if (UNLIKELY(!thisObject))
             return (shouldThrow == CastedThisErrorBehavior::Throw) ? throwSetterTypeError(*state, throwScope, JSClass::info()->className, attributeName) : false;
-        }
         return setter(*state, *thisObject, JSC::JSValue::decode(encodedValue), throwScope);
     }
 
@@ -382,7 +381,6 @@ struct BindingCaller {
         auto throwScope = DECLARE_THROW_SCOPE(state->vm());
         auto* thisObject = castForAttribute(*state, thisValue);
         if (UNLIKELY(!thisObject)) {
-            ASSERT(JSClass::info());
             if (shouldThrow == CastedThisErrorBehavior::Throw)
                 return throwGetterTypeError(*state, throwScope, JSClass::info()->className, attributeName);
             if (shouldThrow == CastedThisErrorBehavior::RejectPromise)
@@ -654,8 +652,10 @@ template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalO
 
     JSC::JSArray* array = constructEmptyArray(exec, nullptr, vector.size());
     RETURN_IF_EXCEPTION(scope, JSC::JSValue());
-    for (size_t i = 0; i < vector.size(); ++i)
+    for (size_t i = 0; i < vector.size(); ++i) {
         array->putDirectIndex(exec, i, toJS(exec, globalObject, vector[i]));
+        RETURN_IF_EXCEPTION(scope, JSC::JSValue());
+    }
     return array;
 }
 
@@ -666,8 +666,10 @@ template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalO
 
     JSC::JSArray* array = constructEmptyArray(exec, nullptr, vector.size());
     RETURN_IF_EXCEPTION(scope, JSC::JSValue());
-    for (size_t i = 0; i < vector.size(); ++i)
+    for (size_t i = 0; i < vector.size(); ++i) {
         array->putDirectIndex(exec, i, toJS(exec, globalObject, vector[i].get()));
+        RETURN_IF_EXCEPTION(scope, JSC::JSValue());
+    }
     return array;
 }
 

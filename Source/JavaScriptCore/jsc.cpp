@@ -53,10 +53,13 @@
 #include "JSProxy.h"
 #include "JSString.h"
 #include "JSTypedArrays.h"
+#include "JSWebAssemblyCallee.h"
 #include "LLIntData.h"
+#include "LLIntThunks.h"
 #include "ObjectConstructor.h"
 #include "ParserError.h"
 #include "ProfilerDatabase.h"
+#include "ProtoCallFrame.h"
 #include "SamplingProfiler.h"
 #include "ShadowChicken.h"
 #include "StackVisitor.h"
@@ -65,6 +68,8 @@
 #include "SuperSampler.h"
 #include "TestRunnerUtils.h"
 #include "TypeProfilerLog.h"
+#include "WasmPlan.h"
+#include "WasmMemory.h"
 #include <locale.h>
 #include <math.h>
 #include <stdio.h>
@@ -72,6 +77,7 @@
 #include <string.h>
 #include <thread>
 #include <type_traits>
+#include <wtf/CommaPrinter.h>
 #include <wtf/CurrentTime.h>
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
@@ -178,7 +184,7 @@ public:
         Element* thisObject = jsCast<Element*>(cell);
         ASSERT_GC_OBJECT_INHERITS(thisObject, info());
         Base::visitChildren(thisObject, visitor);
-        visitor.append(&thisObject->m_root);
+        visitor.append(thisObject->m_root);
     }
 
     static ElementHandleOwner* handleOwner();
@@ -325,7 +331,7 @@ public:
     {
         Base::visitChildren(cell, visitor);
         ImpureGetter* thisObject = jsCast<ImpureGetter*>(cell);
-        visitor.append(&thisObject->m_delegate);
+        visitor.append(thisObject->m_delegate);
     }
 
     void setDelegate(VM& vm, JSObject* delegate)
@@ -419,7 +425,7 @@ public:
             return true;
         }
 
-        Optional<uint32_t> index = parseIndex(propertyName);
+        std::optional<uint32_t> index = parseIndex(propertyName);
         if (index && index.value() < thisObject->getLength()) {
             slot.setValue(thisObject, DontDelete | DontEnum, jsNumber(thisObject->m_vector[index.value()]));
             return true;
@@ -516,7 +522,7 @@ public:
         SimpleObject* thisObject = jsCast<SimpleObject*>(cell);
         ASSERT_GC_OBJECT_INHERITS(thisObject, info());
         Base::visitChildren(thisObject, visitor);
-        visitor.append(&thisObject->m_hiddenValue);
+        visitor.append(thisObject->m_hiddenValue);
     }
 
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
@@ -789,16 +795,97 @@ private:
     bool m_enableException { false };
 };
 
-const ClassInfo Element::s_info = { "Element", &Base::s_info, 0, CREATE_METHOD_TABLE(Element) };
-const ClassInfo Masquerader::s_info = { "Masquerader", &Base::s_info, 0, CREATE_METHOD_TABLE(Masquerader) };
-const ClassInfo Root::s_info = { "Root", &Base::s_info, 0, CREATE_METHOD_TABLE(Root) };
-const ClassInfo ImpureGetter::s_info = { "ImpureGetter", &Base::s_info, 0, CREATE_METHOD_TABLE(ImpureGetter) };
-const ClassInfo CustomGetter::s_info = { "CustomGetter", &Base::s_info, 0, CREATE_METHOD_TABLE(CustomGetter) };
-const ClassInfo DOMJITNode::s_info = { "DOMJITNode", &Base::s_info, 0, CREATE_METHOD_TABLE(DOMJITNode) };
-const ClassInfo DOMJITGetter::s_info = { "DOMJITGetter", &Base::s_info, 0, CREATE_METHOD_TABLE(DOMJITGetter) };
-const ClassInfo DOMJITGetterComplex::s_info = { "DOMJITGetterComplex", &Base::s_info, 0, CREATE_METHOD_TABLE(DOMJITGetterComplex) };
-const ClassInfo RuntimeArray::s_info = { "RuntimeArray", &Base::s_info, 0, CREATE_METHOD_TABLE(RuntimeArray) };
-const ClassInfo SimpleObject::s_info = { "SimpleObject", &Base::s_info, 0, CREATE_METHOD_TABLE(SimpleObject) };
+class DOMJITFunctionObject : public DOMJITNode {
+public:
+    DOMJITFunctionObject(VM& vm, Structure* structure)
+        : Base(vm, structure)
+    {
+    }
+
+    DECLARE_INFO;
+    typedef DOMJITNode Base;
+    static const unsigned StructureFlags = Base::StructureFlags;
+
+
+    static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
+    {
+        return Structure::create(vm, globalObject, prototype, TypeInfo(JSC::JSType(LastJSCObjectType + 1), StructureFlags), info());
+    }
+
+    static DOMJITFunctionObject* create(VM& vm, JSGlobalObject* globalObject, Structure* structure)
+    {
+        DOMJITFunctionObject* object = new (NotNull, allocateCell<DOMJITFunctionObject>(vm.heap, sizeof(DOMJITFunctionObject))) DOMJITFunctionObject(vm, structure);
+        object->finishCreation(vm, globalObject);
+        return object;
+    }
+
+    static EncodedJSValue JSC_HOST_CALL safeFunction(ExecState* exec)
+    {
+        VM& vm = exec->vm();
+        auto scope = DECLARE_THROW_SCOPE(vm);
+
+        DOMJITNode* thisObject = jsDynamicCast<DOMJITNode*>(exec->thisValue());
+        if (!thisObject)
+            return throwVMTypeError(exec, scope);
+        return JSValue::encode(jsNumber(thisObject->value()));
+    }
+
+#if ENABLE(JIT)
+    static EncodedJSValue JIT_OPERATION unsafeFunction(ExecState* exec, DOMJITNode* node)
+    {
+        NativeCallFrameTracer tracer(&exec->vm(), exec);
+        return JSValue::encode(jsNumber(node->value()));
+    }
+
+    static Ref<DOMJIT::Patchpoint> checkDOMJITNode()
+    {
+        static const double value = 42.0;
+        Ref<DOMJIT::Patchpoint> patchpoint = DOMJIT::Patchpoint::create();
+        patchpoint->numFPScratchRegisters = 1;
+        patchpoint->setGenerator([=](CCallHelpers& jit, DOMJIT::PatchpointParams& params) {
+            CCallHelpers::JumpList failureCases;
+            // May use scratch registers.
+            jit.loadDouble(CCallHelpers::TrustedImmPtr(&value), params.fpScratch(0));
+            failureCases.append(jit.branch8(
+                CCallHelpers::NotEqual,
+                CCallHelpers::Address(params[0].gpr(), JSCell::typeInfoTypeOffset()),
+                CCallHelpers::TrustedImm32(JSC::JSType(LastJSCObjectType + 1))));
+            return failureCases;
+        });
+        return patchpoint;
+    }
+#endif
+
+private:
+    void finishCreation(VM&, JSGlobalObject*);
+};
+
+#if ENABLE(JIT)
+static const DOMJIT::Signature DOMJITFunctionObjectSignature((uintptr_t)DOMJITFunctionObject::unsafeFunction, DOMJITFunctionObject::checkDOMJITNode, DOMJITFunctionObject::info(), DOMJIT::Effect::forRead(DOMJIT::HeapRange::top()), SpecInt32Only);
+#endif
+
+void DOMJITFunctionObject::finishCreation(VM& vm, JSGlobalObject* globalObject)
+{
+    Base::finishCreation(vm);
+#if ENABLE(JIT)
+    putDirectNativeFunction(vm, globalObject, Identifier::fromString(&vm, "func"), 0, safeFunction, NoIntrinsic, &DOMJITFunctionObjectSignature, ReadOnly);
+#else
+    putDirectNativeFunction(vm, globalObject, Identifier::fromString(&vm, "func"), 0, safeFunction, NoIntrinsic, nullptr, ReadOnly);
+#endif
+}
+
+
+const ClassInfo Element::s_info = { "Element", &Base::s_info, nullptr, CREATE_METHOD_TABLE(Element) };
+const ClassInfo Masquerader::s_info = { "Masquerader", &Base::s_info, nullptr, CREATE_METHOD_TABLE(Masquerader) };
+const ClassInfo Root::s_info = { "Root", &Base::s_info, nullptr, CREATE_METHOD_TABLE(Root) };
+const ClassInfo ImpureGetter::s_info = { "ImpureGetter", &Base::s_info, nullptr, CREATE_METHOD_TABLE(ImpureGetter) };
+const ClassInfo CustomGetter::s_info = { "CustomGetter", &Base::s_info, nullptr, CREATE_METHOD_TABLE(CustomGetter) };
+const ClassInfo DOMJITNode::s_info = { "DOMJITNode", &Base::s_info, nullptr, CREATE_METHOD_TABLE(DOMJITNode) };
+const ClassInfo DOMJITGetter::s_info = { "DOMJITGetter", &Base::s_info, nullptr, CREATE_METHOD_TABLE(DOMJITGetter) };
+const ClassInfo DOMJITGetterComplex::s_info = { "DOMJITGetterComplex", &Base::s_info, nullptr, CREATE_METHOD_TABLE(DOMJITGetterComplex) };
+const ClassInfo DOMJITFunctionObject::s_info = { "DOMJITFunctionObject", &Base::s_info, nullptr, CREATE_METHOD_TABLE(DOMJITFunctionObject) };
+const ClassInfo RuntimeArray::s_info = { "RuntimeArray", &Base::s_info, nullptr, CREATE_METHOD_TABLE(RuntimeArray) };
+const ClassInfo SimpleObject::s_info = { "SimpleObject", &Base::s_info, nullptr, CREATE_METHOD_TABLE(SimpleObject) };
 static bool test262AsyncPassed { false };
 static bool test262AsyncTest { false };
 
@@ -828,6 +915,7 @@ static EncodedJSValue JSC_HOST_CALL functionCreateCustomGetterObject(ExecState*)
 static EncodedJSValue JSC_HOST_CALL functionCreateDOMJITNodeObject(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateDOMJITGetterObject(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateDOMJITGetterComplexObject(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionCreateDOMJITFunctionObject(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateBuiltin(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateGlobalObject(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionSetImpureGetterDelegate(ExecState*);
@@ -906,6 +994,12 @@ static EncodedJSValue JSC_HOST_CALL functionStartSamplingProfiler(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionSamplingProfilerStackTraces(ExecState*);
 #endif
 
+static EncodedJSValue JSC_HOST_CALL functionMaxArguments(ExecState*);
+
+#if ENABLE(WEBASSEMBLY)
+static EncodedJSValue JSC_HOST_CALL functionTestWasmModuleFunctions(ExecState*);
+#endif
+
 #if ENABLE(SAMPLING_FLAGS)
 static EncodedJSValue JSC_HOST_CALL functionSetSamplingFlags(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionClearSamplingFlags(ExecState*);
@@ -967,6 +1061,7 @@ public:
     String m_uncaughtExceptionName;
     bool m_alwaysDumpUncaughtException { false };
     bool m_dumpSamplingProfilerData { false };
+    bool m_enableRemoteDebugging { false };
 
     void parseArguments(int, char**);
 };
@@ -1118,6 +1213,7 @@ protected:
         addFunction(vm, "createDOMJITNodeObject", functionCreateDOMJITNodeObject, 0);
         addFunction(vm, "createDOMJITGetterObject", functionCreateDOMJITGetterObject, 0);
         addFunction(vm, "createDOMJITGetterComplexObject", functionCreateDOMJITGetterComplexObject, 0);
+        addFunction(vm, "createDOMJITFunctionObject", functionCreateDOMJITFunctionObject, 0);
         addFunction(vm, "createBuiltin", functionCreateBuiltin, 2);
         addFunction(vm, "createGlobalObject", functionCreateGlobalObject, 0);
         addFunction(vm, "setImpureGetterDelegate", functionSetImpureGetterDelegate, 2);
@@ -1152,6 +1248,12 @@ protected:
         addFunction(vm, "samplingProfilerStackTraces", functionSamplingProfilerStackTraces, 0);
 #endif
 
+        addFunction(vm, "maxArguments", functionMaxArguments, 0);
+
+#if ENABLE(WEBASSEMBLY)
+        addFunction(vm, "testWasmModuleFunctions", functionTestWasmModuleFunctions, 0);
+#endif
+
         if (!arguments.isEmpty()) {
             JSArray* array = constructEmptyArray(globalExec(), 0);
             for (size_t i = 0; i < arguments.size(); ++i)
@@ -1179,8 +1281,18 @@ protected:
 };
 
 const ClassInfo GlobalObject::s_info = { "global", &JSGlobalObject::s_info, nullptr, CREATE_METHOD_TABLE(GlobalObject) };
-const GlobalObjectMethodTable GlobalObject::s_globalObjectMethodTable = { &supportsRichSourceInfo, &shouldInterruptScript, &javaScriptRuntimeFlags, 0, &shouldInterruptScriptBeforeTimeout, &moduleLoaderResolve, &moduleLoaderFetch, nullptr, nullptr, nullptr, nullptr };
-
+const GlobalObjectMethodTable GlobalObject::s_globalObjectMethodTable = {
+    &supportsRichSourceInfo,
+    &shouldInterruptScript,
+    &javaScriptRuntimeFlags,
+    nullptr,
+    &shouldInterruptScriptBeforeTimeout,
+    &moduleLoaderResolve,
+    &moduleLoaderFetch,
+    nullptr,
+    nullptr,
+    nullptr
+};
 
 GlobalObject::GlobalObject(VM& vm, Structure* structure)
     : JSGlobalObject(vm, structure, &s_globalObjectMethodTable)
@@ -1434,6 +1546,9 @@ JSInternalPromise* GlobalObject::moduleLoaderFetch(JSGlobalObject* globalObject,
 
 static EncodedJSValue printInternal(ExecState* exec, FILE* out)
 {
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     if (test262AsyncTest) {
         JSValue value = exec->argument(0);
         if (value.isString() && WTF::equal(asString(value)->value(exec).impl(), "Test262:AsyncTestComplete"))
@@ -1446,7 +1561,9 @@ static EncodedJSValue printInternal(ExecState* exec, FILE* out)
             if (EOF == fputc(' ', out))
                 goto fail;
 
-        if (fprintf(out, "%s", exec->uncheckedArgument(i).toString(exec)->view(exec).get().utf8().data()) < 0)
+        auto viewWithString = exec->uncheckedArgument(i).toString(exec)->viewWithUnderlyingString(*exec);
+        RETURN_IF_EXCEPTION(scope, encodedJSValue());
+        if (fprintf(out, "%s", viewWithString.view.utf8().data()) < 0)
             goto fail;
     }
 
@@ -1472,7 +1589,11 @@ EncodedJSValue JSC_HOST_CALL functionDumpCallFrame(ExecState* exec)
 
 EncodedJSValue JSC_HOST_CALL functionDebug(ExecState* exec)
 {
-    fprintf(stderr, "--> %s\n", exec->argument(0).toString(exec)->view(exec).get().utf8().data());
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    auto viewWithString = exec->argument(0).toString(exec)->viewWithUnderlyingString(*exec);
+    RETURN_IF_EXCEPTION(scope, encodedJSValue());
+    fprintf(stderr, "--> %s\n", viewWithString.view.utf8().data());
     return JSValue::encode(jsUndefined());
 }
 
@@ -1574,15 +1695,29 @@ EncodedJSValue JSC_HOST_CALL functionCreateSimpleObject(ExecState* exec)
 
 EncodedJSValue JSC_HOST_CALL functionGetHiddenValue(ExecState* exec)
 {
-    JSLockHolder lock(exec);
-    SimpleObject* simpleObject = jsCast<SimpleObject*>(exec->argument(0).asCell());
+    VM& vm = exec->vm();
+    JSLockHolder lock(vm);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    SimpleObject* simpleObject = jsDynamicCast<SimpleObject*>(exec->argument(0));
+    if (UNLIKELY(!simpleObject)) {
+        throwTypeError(exec, scope, ASCIILiteral("Invalid use of getHiddenValue test function"));
+        return encodedJSValue();
+    }
     return JSValue::encode(simpleObject->hiddenValue());
 }
 
 EncodedJSValue JSC_HOST_CALL functionSetHiddenValue(ExecState* exec)
 {
-    JSLockHolder lock(exec);
-    SimpleObject* simpleObject = jsCast<SimpleObject*>(exec->argument(0).asCell());
+    VM& vm = exec->vm();
+    JSLockHolder lock(vm);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    SimpleObject* simpleObject = jsDynamicCast<SimpleObject*>(exec->argument(0));
+    if (UNLIKELY(!simpleObject)) {
+        throwTypeError(exec, scope, ASCIILiteral("Invalid use of setHiddenValue test function"));
+        return encodedJSValue();
+    }
     JSValue value = exec->argument(1);
     simpleObject->setHiddenValue(exec->vm(), value);
     return JSValue::encode(jsUndefined());
@@ -1651,17 +1786,32 @@ EncodedJSValue JSC_HOST_CALL functionCreateDOMJITGetterComplexObject(ExecState* 
     return JSValue::encode(result);
 }
 
-EncodedJSValue JSC_HOST_CALL functionSetImpureGetterDelegate(ExecState* exec)
+EncodedJSValue JSC_HOST_CALL functionCreateDOMJITFunctionObject(ExecState* exec)
 {
     JSLockHolder lock(exec);
+    Structure* structure = DOMJITFunctionObject::createStructure(exec->vm(), exec->lexicalGlobalObject(), jsNull());
+    DOMJITFunctionObject* result = DOMJITFunctionObject::create(exec->vm(), exec->lexicalGlobalObject(), structure);
+    return JSValue::encode(result);
+}
+
+EncodedJSValue JSC_HOST_CALL functionSetImpureGetterDelegate(ExecState* exec)
+{
+    VM& vm = exec->vm();
+    JSLockHolder lock(vm);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     JSValue base = exec->argument(0);
     if (!base.isObject())
         return JSValue::encode(jsUndefined());
     JSValue delegate = exec->argument(1);
     if (!delegate.isObject())
         return JSValue::encode(jsUndefined());
-    ImpureGetter* impureGetter = jsCast<ImpureGetter*>(asObject(base.asCell()));
-    impureGetter->setDelegate(exec->vm(), asObject(delegate.asCell()));
+    ImpureGetter* impureGetter = jsDynamicCast<ImpureGetter*>(asObject(base.asCell()));
+    if (UNLIKELY(!impureGetter)) {
+        throwTypeError(exec, scope, ASCIILiteral("argument is not an ImpureGetter"));
+        return encodedJSValue();
+    }
+    impureGetter->setDelegate(vm, asObject(delegate.asCell()));
     return JSValue::encode(jsUndefined());
 }
 
@@ -1724,10 +1874,8 @@ static EncodedJSValue JSC_HOST_CALL functionGetGetterSetter(ExecState* exec)
     if (!property.isString())
         return JSValue::encode(jsUndefined());
 
-    Identifier ident = Identifier::fromString(&exec->vm(), property.toWTFString(exec));
-
     PropertySlot slot(value, PropertySlot::InternalMethodType::VMInquiry);
-    value.getPropertySlot(exec, ident, slot);
+    value.getPropertySlot(exec, asString(property)->toIdentifier(exec), slot);
 
     JSValue result;
     if (slot.isCacheableGetter())
@@ -1952,7 +2100,7 @@ EncodedJSValue JSC_HOST_CALL functionIsRope(ExecState* exec)
     JSValue argument = exec->argument(0);
     if (!argument.isString())
         return JSValue::encode(jsBoolean(false));
-    const StringImpl* impl = jsCast<JSString*>(argument)->tryGetValueImpl();
+    const StringImpl* impl = asString(argument)->tryGetValueImpl();
     return JSValue::encode(jsBoolean(!impl));
 }
 
@@ -2130,7 +2278,7 @@ EncodedJSValue JSC_HOST_CALL functionFindTypeForExpression(ExecState* exec)
     FunctionExecutable* executable = (jsDynamicCast<JSFunction*>(functionValue.asCell()->getObject()))->jsExecutable();
 
     RELEASE_ASSERT(exec->argument(1).isString());
-    String substring = exec->argument(1).getString(exec);
+    String substring = asString(exec->argument(1))->value(exec);
     String sourceCodeText = executable->source().view().toString();
     unsigned offset = static_cast<unsigned>(sourceCodeText.find(substring) + executable->source().startOffset());
     
@@ -2168,7 +2316,7 @@ EncodedJSValue JSC_HOST_CALL functionHasBasicBlockExecuted(ExecState* exec)
     FunctionExecutable* executable = (jsDynamicCast<JSFunction*>(functionValue.asCell()->getObject()))->jsExecutable();
 
     RELEASE_ASSERT(exec->argument(1).isString());
-    String substring = exec->argument(1).getString(exec);
+    String substring = asString(exec->argument(1))->value(exec);
     String sourceCodeText = executable->source().view().toString();
     RELEASE_ASSERT(sourceCodeText.contains(substring));
     int offset = sourceCodeText.find(substring) + executable->source().startOffset();
@@ -2186,7 +2334,7 @@ EncodedJSValue JSC_HOST_CALL functionBasicBlockExecutionCount(ExecState* exec)
     FunctionExecutable* executable = (jsDynamicCast<JSFunction*>(functionValue.asCell()->getObject()))->jsExecutable();
 
     RELEASE_ASSERT(exec->argument(1).isString());
-    String substring = exec->argument(1).getString(exec);
+    String substring = asString(exec->argument(1))->value(exec);
     String sourceCodeText = executable->source().view().toString();
     RELEASE_ASSERT(sourceCodeText.contains(substring));
     int offset = sourceCodeText.find(substring) + executable->source().startOffset();
@@ -2251,7 +2399,7 @@ EncodedJSValue JSC_HOST_CALL functionCreateBuiltin(ExecState* exec)
     if (exec->argumentCount() < 1 || !exec->argument(0).isString())
         return JSValue::encode(jsUndefined());
 
-    String functionText = exec->argument(0).toWTFString(exec);
+    String functionText = asString(exec->argument(0))->value(exec);
     RETURN_IF_EXCEPTION(scope, encodedJSValue());
 
     const SourceCode& source = makeSource(functionText);
@@ -2278,7 +2426,7 @@ EncodedJSValue JSC_HOST_CALL functionCheckModuleSyntax(ExecState* exec)
     stopWatch.start();
 
     ParserError error;
-    bool validSyntax = checkModuleSyntax(exec, makeSource(source, String(), TextPosition::minimumPosition(), SourceProviderSourceType::Module), error);
+    bool validSyntax = checkModuleSyntax(exec, makeSource(source, String(), TextPosition(), SourceProviderSourceType::Module), error);
     stopWatch.stop();
 
     if (!validSyntax)
@@ -2349,6 +2497,190 @@ EncodedJSValue JSC_HOST_CALL functionSamplingProfilerStackTraces(ExecState* exec
 }
 #endif // ENABLE(SAMPLING_PROFILER)
 
+EncodedJSValue JSC_HOST_CALL functionMaxArguments(ExecState*)
+{
+    return JSValue::encode(jsNumber(JSC::maxArguments));
+}
+
+#if ENABLE(WEBASSEMBLY)
+
+static CString valueWithTypeOfWasmValue(ExecState* exec, VM& vm, JSValue value, JSValue wasmValue)
+{
+    JSString* type = asString(wasmValue.get(exec, makeIdentifier(vm, "type")));
+
+    const String& typeString = type->value(exec);
+    if (typeString == "i64" || typeString == "i32")
+        return toCString(typeString, " ", RawPointer(bitwise_cast<void*>(value)));
+    if (typeString == "f32")
+        return toCString(typeString, " hex: ", RawPointer(bitwise_cast<void*>(value)), ", float: ", bitwise_cast<float>(static_cast<uint32_t>(JSValue::encode(value))));
+    return toCString(typeString, " hex: ", RawPointer(bitwise_cast<void*>(value)), ", double: ", bitwise_cast<double>(value));
+}
+
+static JSValue box(ExecState* exec, VM& vm, JSValue wasmValue)
+{
+
+    JSString* type = asString(wasmValue.get(exec, makeIdentifier(vm, "type")));
+    JSValue value = wasmValue.get(exec, makeIdentifier(vm, "value"));
+
+    auto unboxString = [&] (const char* hexFormat, const char* decFormat, auto& result) {
+        if (!value.isString())
+            return false;
+
+        const char* str = toCString(asString(value)->value(exec)).data();
+        int scanResult;
+        int length = std::strlen(str);
+        if ((length > 2 && (str[0] == '0' && str[1] == 'x'))
+            || (length > 3 && (str[0] == '-' && str[1] == '0' && str[2] == 'x')))
+#if COMPILER(CLANG)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
+            scanResult = sscanf(str, hexFormat, &result);
+        else
+            scanResult = sscanf(str, decFormat, &result);
+#if COMPILER(CLANG)
+#pragma clang diagnostic pop
+#endif
+        RELEASE_ASSERT(scanResult != EOF);
+        return true;
+    };
+
+    const String& typeString = type->value(exec);
+    if (typeString == "i64") {
+        int64_t result;
+        if (!unboxString("%llx", "%lld", result))
+            CRASH();
+        return JSValue::decode(result);
+    }
+
+    if (typeString == "i32") {
+        int32_t result;
+        if (!unboxString("%x", "%d", result))
+            result = value.asInt32();
+        return JSValue::decode(static_cast<uint32_t>(result));
+    }
+
+    if (typeString == "f32") {
+        float result;
+        if (!unboxString("%a", "%f", result))
+            result = value.toFloat(exec);
+        return JSValue::decode(bitwise_cast<uint32_t>(result));
+    }
+
+    RELEASE_ASSERT(typeString == "f64");
+    double result;
+    if (!unboxString("%la", "%lf", result))
+        result = value.asNumber();
+    return JSValue::decode(bitwise_cast<uint64_t>(result));
+}
+
+static JSValue callWasmFunction(VM* vm, JSGlobalObject* globalObject, JSWebAssemblyCallee* wasmCallee, Vector<JSValue>& boxedArgs)
+{
+    JSValue firstArgument;
+    int argCount = 1;
+    JSValue* remainingArgs = nullptr;
+    if (boxedArgs.size()) {
+        remainingArgs = boxedArgs.data();
+        firstArgument = *remainingArgs;
+        remainingArgs++;
+        argCount = boxedArgs.size();
+    }
+
+    ProtoCallFrame protoCallFrame;
+    protoCallFrame.init(nullptr, globalObject->globalExec()->jsCallee(), firstArgument, argCount, remainingArgs);
+
+    return JSValue::decode(vmEntryToWasm(wasmCallee->entrypoint(), vm, &protoCallFrame));
+}
+
+// testWasmModule(JSArrayBufferView source, number functionCount, ...[[WasmValue, [WasmValue]]]) where the ith copy of [[result, [args]]] is a list
+// of arguments to be passed to the ith wasm function as well as the expected result. WasmValue is an object with "type" and "value" properties.
+static EncodedJSValue JSC_HOST_CALL functionTestWasmModuleFunctions(ExecState* exec)
+{
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    if (!Options::useWebAssembly())
+        return throwVMTypeError(exec, scope, ASCIILiteral("testWasmModule should only be called if the useWebAssembly option is set"));
+
+    JSArrayBufferView* source = jsCast<JSArrayBufferView*>(exec->argument(0));
+    uint32_t functionCount = exec->argument(1).toUInt32(exec);
+
+    if (exec->argumentCount() != functionCount + 2)
+        CRASH();
+
+    Wasm::Plan plan(&vm, static_cast<uint8_t*>(source->vector()), source->length());
+    plan.run();
+    if (plan.failed()) {
+        dataLogLn("failed to parse module: ", plan.errorMessage());
+        CRASH();
+    }
+
+    if (plan.internalFunctionCount() != functionCount)
+        CRASH();
+
+    MarkedArgumentBuffer callees;
+    MarkedArgumentBuffer keepAlive;
+    {
+        unsigned lastIndex = UINT_MAX;
+        plan.initializeCallees(exec->lexicalGlobalObject(),
+            [&] (unsigned calleeIndex, JSWebAssemblyCallee* jsEntrypointCallee, JSWebAssemblyCallee* wasmEntrypointCallee) {
+                RELEASE_ASSERT(!calleeIndex || (calleeIndex - 1 == lastIndex));
+                callees.append(jsEntrypointCallee);
+                keepAlive.append(wasmEntrypointCallee);
+                lastIndex = calleeIndex;
+            });
+    }
+
+    void* memoryBytes = nullptr;
+    uint32_t memorySize = 0;
+    std::unique_ptr<Wasm::Memory> memory;
+    std::unique_ptr<Wasm::ModuleInformation> moduleInformation = plan.takeModuleInformation();
+
+    if (!!moduleInformation->memory) {
+        memory = std::make_unique<Wasm::Memory>(moduleInformation->memory.initial(), moduleInformation->memory.maximum());
+        RELEASE_ASSERT(memory->isValid());
+        memoryBytes = memory->memory();
+        memorySize = memory->size();
+    }
+    vm.topWasmMemoryPointer = memoryBytes;
+    vm.topWasmMemorySize = memorySize;
+
+    for (uint32_t i = 0; i < functionCount; ++i) {
+        JSArray* testCases = jsCast<JSArray*>(exec->argument(i + 2));
+        for (unsigned testIndex = 0; testIndex < testCases->length(); ++testIndex) {
+            JSArray* test = jsCast<JSArray*>(testCases->getIndexQuickly(testIndex));
+            JSObject* result = jsCast<JSObject*>(test->getIndexQuickly(0));
+            JSArray* arguments = jsCast<JSArray*>(test->getIndexQuickly(1));
+
+            Vector<JSValue> boxedArgs;
+            for (unsigned argIndex = 0; argIndex < arguments->length(); ++argIndex)
+                boxedArgs.append(box(exec, vm, arguments->getIndexQuickly(argIndex)));
+
+            JSValue callResult;
+            {
+                auto scope = DECLARE_THROW_SCOPE(vm);
+                callResult = callWasmFunction(&vm, exec->lexicalGlobalObject(), jsCast<JSWebAssemblyCallee*>(callees.at(i)), boxedArgs);
+                RETURN_IF_EXCEPTION(scope, { });
+            }
+            JSValue expected = box(exec, vm, result);
+            if (callResult != expected) {
+                dataLog("Arguments: ");
+                CommaPrinter comma(", ");
+                for (unsigned argIndex = 0; argIndex < arguments->length(); ++argIndex)
+                    dataLog(comma, valueWithTypeOfWasmValue(exec, vm, boxedArgs[argIndex], arguments->getIndexQuickly(argIndex)));
+                dataLogLn();
+
+                WTFReportAssertionFailure(__FILE__, __LINE__, WTF_PRETTY_FUNCTION, toCString(" (callResult == ", valueWithTypeOfWasmValue(exec, vm, callResult, result), ", expected == ", valueWithTypeOfWasmValue(exec, vm, expected, result), ")").data());
+                CRASH();
+            }
+        }
+    }
+
+    return encodedJSUndefined();
+}
+
+#endif // ENABLE(WEBASSEBLY)
+
 // Use SEH for Release builds only to get rid of the crash report dialog
 // (luckily the same tests fail in Release and Debug builds so far). Need to
 // be in a separate main function because the jscmain function requires object
@@ -2365,14 +2697,25 @@ EncodedJSValue JSC_HOST_CALL functionSamplingProfilerStackTraces(ExecState* exec
 int jscmain(int argc, char** argv);
 
 static double s_desiredTimeout;
+static double s_timeoutMultiplier = 1.0;
 
 static NO_RETURN_DUE_TO_CRASH void timeoutThreadMain(void*)
 {
-    auto timeout = std::chrono::microseconds(static_cast<std::chrono::microseconds::rep>(s_desiredTimeout * 1000000));
-    std::this_thread::sleep_for(timeout);
-    
-    dataLog("Timed out after ", s_desiredTimeout, " seconds!\n");
+    Seconds timeoutDuration(s_desiredTimeout * s_timeoutMultiplier);
+    sleep(timeoutDuration);
+    dataLog("Timed out after ", timeoutDuration, " seconds!\n");
     CRASH();
+}
+
+static void startTimeoutThreadIfNeeded()
+{
+    if (char* timeoutString = getenv("JSCTEST_timeout")) {
+        if (sscanf(timeoutString, "%lf", &s_desiredTimeout) != 1) {
+            dataLog("WARNING: timeout string is malformed, got ", timeoutString,
+                " but expected a number. Not using a timeout.\n");
+        } else
+            createThread(timeoutThreadMain, 0, "jsc Timeout Thread");
+    }
 }
 
 int main(int argc, char** argv)
@@ -2416,15 +2759,6 @@ int main(int argc, char** argv)
     // threading yet, since that would do somethings that we'd like to defer until after we
     // have a chance to parse options.
     WTF::initializeThreading();
-
-    if (char* timeoutString = getenv("JSCTEST_timeout")) {
-        if (sscanf(timeoutString, "%lf", &s_desiredTimeout) != 1) {
-            dataLog(
-                "WARNING: timeout string is malformed, got ", timeoutString,
-                " but expected a number. Not using a timeout.\n");
-        } else
-            createThread(timeoutThreadMain, 0, "jsc Timeout Thread");
-    }
 
 #if PLATFORM(IOS)
     Options::crashIfCantAllocateJITMemory() = true;
@@ -2777,8 +3111,22 @@ void CommandLine::parseArguments(int argc, char** argv)
             continue;
         }
 
+        static const char* timeoutMultiplierOptStr = "--timeoutMultiplier=";
+        static const unsigned timeoutMultiplierOptStrLength = strlen(timeoutMultiplierOptStr);
+        if (!strncmp(arg, timeoutMultiplierOptStr, timeoutMultiplierOptStrLength)) {
+            const char* valueStr = &arg[timeoutMultiplierOptStrLength];
+            if (sscanf(valueStr, "%lf", &s_timeoutMultiplier) != 1)
+                dataLog("WARNING: --timeoutMultiplier=", valueStr, " is invalid. Expects a numeric ratio.\n");
+            continue;
+        }
+
         if (!strcmp(arg, "--test262-async")) {
             test262AsyncTest = true;
+            continue;
+        }
+
+        if (!strcmp(arg, "--remote-debug")) {
+            m_enableRemoteDebugging = true;
             continue;
         }
 
@@ -2849,6 +3197,7 @@ static int NEVER_INLINE runJSC(VM* vm, CommandLine options)
         vm->m_perBytecodeProfiler = std::make_unique<Profiler::Database>(*vm);
 
     GlobalObject* globalObject = GlobalObject::create(*vm, GlobalObject::createStructure(*vm, jsNull()), options.m_arguments);
+    globalObject->setRemoteDebuggingEnabled(options.m_enableRemoteDebugging);
     bool success = runWithScripts(globalObject, options.m_scripts, options.m_uncaughtExceptionName, options.m_alwaysDumpUncaughtException, options.m_dump, options.m_module);
     if (options.m_interactive && success)
         runInteractive(globalObject);
@@ -2890,6 +3239,9 @@ static int NEVER_INLINE runJSC(VM* vm, CommandLine options)
 
 int jscmain(int argc, char** argv)
 {
+    // Need to override and enable restricted options before we start parsing options below.
+    Options::enableRestrictedOptions(true);
+
     // Note that the options parsing can affect VM creation, and thus
     // comes first.
     CommandLine options(argc, argv);
@@ -2897,6 +3249,7 @@ int jscmain(int argc, char** argv)
     // Initialize JSC before getting VM.
     WTF::initializeMainThread();
     JSC::initializeThreading();
+    startTimeoutThreadIfNeeded();
 
     VM* vm = &VM::create(LargeHeap).leakRef();
     int result;

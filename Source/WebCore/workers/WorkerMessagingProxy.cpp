@@ -36,7 +36,6 @@
 #include "ErrorEvent.h"
 #include "Event.h"
 #include "EventNames.h"
-#include "ExceptionCode.h"
 #include "MessageEvent.h"
 #include "PageGroup.h"
 #include "ScriptExecutionContext.h"
@@ -45,6 +44,7 @@
 #include <inspector/ScriptCallStack.h>
 #include <runtime/ConsoleTypes.h>
 #include <wtf/MainThread.h>
+#include <wtf/RunLoop.h>
 
 namespace WebCore {
 
@@ -55,7 +55,7 @@ WorkerGlobalScopeProxy* WorkerGlobalScopeProxy::create(Worker* worker)
 
 WorkerMessagingProxy::WorkerMessagingProxy(Worker* workerObject)
     : m_scriptExecutionContext(workerObject->scriptExecutionContext())
-    , m_inspectorProxy(std::make_unique<WorkerInspectorProxy>())
+    , m_inspectorProxy(std::make_unique<WorkerInspectorProxy>(workerObject->identifier()))
     , m_workerObject(workerObject)
     , m_mayBeDestroyed(false)
     , m_unconfirmedMessageCount(0)
@@ -80,6 +80,7 @@ void WorkerMessagingProxy::startWorkerGlobalScope(const URL& scriptURL, const St
     ASSERT(m_scriptExecutionContext);
     Document& document = downcast<Document>(*m_scriptExecutionContext);
     WorkerThreadStartMode startMode = m_inspectorProxy->workerStartMode(*m_scriptExecutionContext.get());
+    String identifier = m_inspectorProxy->identifier();
 
 #if ENABLE(INDEXED_DATABASE)
     IDBClient::IDBConnectionProxy* proxy = document.idbConnectionProxy();
@@ -93,7 +94,7 @@ void WorkerMessagingProxy::startWorkerGlobalScope(const URL& scriptURL, const St
     SocketProvider* socketProvider = nullptr;
 #endif
 
-    RefPtr<DedicatedWorkerThread> thread = DedicatedWorkerThread::create(scriptURL, userAgent, sourceCode, *this, *this, startMode, contentSecurityPolicyResponseHeaders, shouldBypassMainWorldContentSecurityPolicy, document.topOrigin(), proxy, socketProvider, runtimeFlags);
+    RefPtr<DedicatedWorkerThread> thread = DedicatedWorkerThread::create(scriptURL, identifier, userAgent, sourceCode, *this, *this, startMode, contentSecurityPolicyResponseHeaders, shouldBypassMainWorldContentSecurityPolicy, document.topOrigin(), proxy, socketProvider, runtimeFlags);
 
     workerThreadCreated(thread);
     thread->start();
@@ -160,7 +161,7 @@ void WorkerMessagingProxy::postExceptionToWorkerObject(const String& errorMessag
         // We don't bother checking the askedToTerminate() flag here, because exceptions should *always* be reported even if the thread is terminated.
         // This is intentionally different than the behavior in MessageWorkerTask, because terminated workers no longer deliver messages (section 4.6 of the WebWorker spec), but they do report exceptions.
 
-        bool errorHandled = !workerObject->dispatchEvent(ErrorEvent::create(errorMessage, sourceURL, lineNumber, columnNumber, Deprecated::ScriptValue()));
+        bool errorHandled = !workerObject->dispatchEvent(ErrorEvent::create(errorMessage, sourceURL, lineNumber, columnNumber, { }));
         if (!errorHandled)
             context.reportException(errorMessage, lineNumber, columnNumber, sourceURL, nullptr, nullptr);
     });
@@ -168,7 +169,7 @@ void WorkerMessagingProxy::postExceptionToWorkerObject(const String& errorMessag
 
 void WorkerMessagingProxy::postMessageToPageInspector(const String& message)
 {
-    m_scriptExecutionContext->postTask([this, message = message.isolatedCopy()] (ScriptExecutionContext&) {
+    RunLoop::main().dispatch([this, message = message.isolatedCopy()] {
         m_inspectorProxy->sendMessageFromWorkerToFrontend(message);
     });
 }

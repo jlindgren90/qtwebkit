@@ -77,10 +77,8 @@ private:
     bool isRenderMathMLOperator() const final { return true; }
     bool isInvisibleOperator() const;
 
-    Optional<int> firstLineBaseline() const final;
+    std::optional<int> firstLineBaseline() const final;
     RenderMathMLOperator* unembellishedOperator() final { return this; }
-
-    bool shouldAllowStretching() const;
 
     LayoutUnit verticalStretchedOperatorShift() const;
 

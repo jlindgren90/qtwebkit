@@ -1,3 +1,257 @@
+2016-12-19  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Enable ES6 Modules
+        https://bugs.webkit.org/show_bug.cgi?id=165849
+
+        Reviewed by Geoffrey Garen.
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+        * WebPreferenceKeysPrivate.h:
+        * WebPreferences.cpp:
+        (WebPreferences::setES6ModulesEnabled): Deleted.
+        (WebPreferences::es6ModulesEnabled): Deleted.
+        * WebPreferences.h:
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
+2016-12-10  Filip Pizlo  <fpizlo@apple.com>
+
+        The DOM should have an advancing wavefront opaque root barrier
+        https://bugs.webkit.org/show_bug.cgi?id=165712
+
+        Reviewed by Yusuke Suzuki.
+        
+        Propagate the JSDOMWindowBase::commonVM() -> commonVM() change.
+
+        * Plugins/PluginView.cpp:
+        (WebCore::PluginView::start):
+        (WebCore::PluginView::stop):
+        (WebCore::PluginView::performRequest):
+        (WebCore::PluginView::npObject):
+        (WebCore::PluginView::privateBrowsingStateChanged):
+        * Plugins/PluginViewWin.cpp:
+        (WebCore::PluginView::dispatchNPEvent):
+        (WebCore::PluginView::handleKeyboardEvent):
+        (WebCore::PluginView::handleMouseEvent):
+        (WebCore::PluginView::setNPWindowRect):
+        * WebCoreStatistics.cpp:
+        (WebCoreStatistics::javaScriptObjectsCount):
+        (WebCoreStatistics::javaScriptGlobalObjectsCount):
+        (WebCoreStatistics::javaScriptProtectedObjectsCount):
+        (WebCoreStatistics::javaScriptProtectedGlobalObjectsCount):
+        (WebCoreStatistics::javaScriptProtectedObjectTypeCounts):
+        (WebCoreStatistics::javaScriptObjectTypeCounts):
+        (WebCoreStatistics::shouldPrintExceptions):
+        (WebCoreStatistics::setShouldPrintExceptions):
+        (WebCoreStatistics::memoryStatistics):
+        * WebJavaScriptCollector.cpp:
+        (WebJavaScriptCollector::objectCount):
+
+2016-12-09  Geoffrey Garen  <ggaren@apple.com>
+
+        TextPosition and OrdinalNumber should be more like idiomatic numbers
+        https://bugs.webkit.org/show_bug.cgi?id=165678
+
+        Reviewed by Filip Pizlo.
+
+        Adopt default constructor.
+
+        * Plugins/PluginPackage.cpp:
+        (WebCore::makeSource):
+
+2016-12-08  Filip Pizlo  <fpizlo@apple.com>
+
+        Enable SharedArrayBuffer, remove the flag
+        https://bugs.webkit.org/show_bug.cgi?id=165614
+
+        Rubber stamped by Geoffrey Garen.
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+
+2016-11-26  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [WTF] Import std::optional reference implementation as WTF::Optional
+        https://bugs.webkit.org/show_bug.cgi?id=164199
+
+        Reviewed by Saam Barati and Sam Weinig.
+
+        Use WTF::Optional::value_or.
+
+        * Plugins/PluginView.cpp:
+        (WebCore::PluginView::performRequest):
+        * WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebFrameLoaderClient::dispatchDidCommitLoad):
+        * WebCoreSupport/WebFrameLoaderClient.h:
+        * WebSecurityOrigin.cpp:
+        (WebSecurityOrigin::port):
+
+2016-11-19  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] When zoomed in and panning on pages with fixed bars, parts of the bars are sometimes missing
+        https://bugs.webkit.org/show_bug.cgi?id=164855
+
+        Reviewed by Sam Weinig.
+        
+        Remove the "inStableState" parameter from flushCompositingState() etc.
+
+        * WebCoreSupport/AcceleratedCompositingContext.cpp:
+        (AcceleratedCompositingContext::flushPendingLayerChanges):
+        * WebView.cpp:
+        (WebView::flushPendingGraphicsLayerChanges):
+
+2016-11-16  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6][WebCore] Change ES6_MODULES compile time flag to runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=164827
+
+        Reviewed by Ryosuke Niwa.
+
+        * Interfaces/IWebPreferencesPrivate.idl:
+        * WebPreferenceKeysPrivate.h:
+        * WebPreferences.cpp:
+        (WebPreferences::setES6ModulesEnabled):
+        (WebPreferences::es6ModulesEnabled):
+        * WebPreferences.h:
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+
+2016-11-14  Alex Christensen  <achristensen@webkit.org>
+
+        Move SecurityOrigin::createFromDatabaseIdentifier to SecurityOriginData
+        https://bugs.webkit.org/show_bug.cgi?id=164720
+
+        Reviewed by Brady Eidson.
+
+        * WebDatabaseManager.cpp:
+        (DidModifyOriginData::dispatchToMainThread):
+        (DidModifyOriginData::DidModifyOriginData):
+        (WebDatabaseManager::dispatchDidModifyOrigin):
+        (WebDatabaseManager::dispatchDidModifyDatabase):
+        * WebDatabaseManager.h:
+        * WebSecurityOrigin.cpp:
+        (WebSecurityOrigin::usage):
+        (WebSecurityOrigin::quota):
+        (WebSecurityOrigin::setQuota):
+
+2016-11-13  Darin Adler  <darin@apple.com>
+
+        Fix exception handling in SQL database code, streamline and update code
+        https://bugs.webkit.org/show_bug.cgi?id=164685
+
+        Reviewed by Sam Weinig.
+
+        * WebDatabaseManager.cpp:
+        (WebDatabaseManager::origins): Use DatabaseTracker.
+        (WebDatabaseManager::databasesWithOrigin): Ditto.
+        (WebDatabaseManager::detailsForDatabase): Use reference.
+        (WebDatabaseManager::deleteAllDatabases): Use DatabaseTracker.
+        (WebDatabaseManager::deleteOrigin): Ditto.
+        (WebDatabaseManager::deleteDatabase): Ditto.
+        (WebDatabaseManager::dispatchDidModifyOrigin): Use reference
+        and DatabaseTracker.
+        (WebDatabaseManager::setQuota): Ditto.
+        (WebDatabaseManager::dispatchDidModifyDatabase): Ditto.
+        * WebDatabaseManager.h: Updated client functions to take a reference.
+
+        * WebSecurityOrigin.cpp:
+        (WebSecurityOrigin::usage): Update to use DatabaseTracker.
+        (WebSecurityOrigin::quota): Ditto.
+        (WebSecurityOrigin::setQuota): Ditto.
+
+2016-11-11  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] defer resolution of getUserMedia promise made in a background tab
+        https://bugs.webkit.org/show_bug.cgi?id=164643
+        <rdar://problem/29048317>
+
+        Unreviewed build fix after r208606.
+
+        * Plugins/PluginView.cpp:
+        (WebCore::PluginView::mediaCanStart):
+        * Plugins/PluginView.h:
+
+2016-11-11  Darin Adler  <darin@apple.com>
+
+        Move Node from ExceptionCode to ExceptionOr
+        https://bugs.webkit.org/show_bug.cgi?id=164515
+
+        Reviewed by Sam Weinig.
+
+        * DOMCoreClasses.cpp:
+        (DOMNode::insertBefore): Update exception handling.
+        (DOMNode::removeChild): Ditto.
+
+2016-10-14  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        MemoryPressureHandler shouldn't know how to release WebCore memory
+        https://bugs.webkit.org/show_bug.cgi?id=160497
+
+        Reviewed by Michael Catanzaro.
+
+        Set the low memory handler before installing the memory pressure handler.
+
+        * WebView.cpp:
+        (WebView::initWithFrame):
+
+2016-11-09  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build after r208499
+        https://bugs.webkit.org/show_bug.cgi?id=164562
+
+        * WebKitDLL.cpp:
+        (shutDownWebKit):
+
+2016-11-09  Darin Adler  <darin@apple.com>
+
+        Move Range from ExceptionCode to ExceptionOr
+        https://bugs.webkit.org/show_bug.cgi?id=164457
+
+        Reviewed by Alex Christensen.
+
+        * WebView.cpp:
+        (WebView::onIMERequestCharPosition): Updated for new exception handling.
+
+2016-11-09  Darin Adler  <darin@apple.com>
+
+        Move EventTarget from ExceptionCode to ExceptionOr
+        https://bugs.webkit.org/show_bug.cgi?id=164465
+
+        Reviewed by Youenn Fablet.
+
+        * DOMCoreClasses.cpp:
+        (DOMNode::dispatchEvent): Updated exception handling.
+        (DOMWindow::dispatchEvent): Ditto.
+
+2016-11-04  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Safari does not emit composition end if blurred for dead key / Japanese IME
+        https://bugs.webkit.org/show_bug.cgi?id=164369
+        <rdar://problem/29050439>
+
+        Reviewed by Ryosuke Niwa.
+
+        Add a stub implementation of canceledComposition.
+
+        * WebCoreSupport/WebEditorClient.cpp:
+        (WebEditorClient::canceledComposition):
+        * WebCoreSupport/WebEditorClient.h:
+
+2016-11-04  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Page visibility tests are timing out.
+        https://bugs.webkit.org/show_bug.cgi?id=164363
+
+        Reviewed by Brent Fulgham.
+
+        Add method to set page visibility.
+
+        * Interfaces/IWebViewPrivate.idl:
+        * WebView.cpp:
+        (WebView::QueryInterface):
+        (WebView::findString):
+        (WebView::setVisibilityState):
+        * WebView.h:
+
 2016-11-01  Ryosuke Niwa  <rniwa@webkit.org>
 
         Remove CUSTOM_ELEMENTS build flag

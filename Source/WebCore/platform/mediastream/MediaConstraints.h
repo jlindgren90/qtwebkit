@@ -29,18 +29,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MediaConstraints_h
-#define MediaConstraints_h
+#pragma once
 
 #if ENABLE(MEDIA_STREAM)
 
 #include "RealtimeMediaSourceSupportedConstraints.h"
 #include <cstdlib>
-#include <wtf/HashMap.h>
-#include <wtf/RefCounted.h>
-#include <wtf/Variant.h>
-#include <wtf/text/StringHash.h>
-#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
@@ -158,14 +152,28 @@ public:
         //    dictionary's value for the constraint does not satisfy the constraint, the
         //    fitness distance is positive infinity.
         bool valid = validForRange(rangeMin, rangeMax);
-        if (m_exact && !valid)
-            return std::numeric_limits<double>::infinity();
+        if (m_exact) {
+            if (valid && m_min && m_exact.value() < m_min.value())
+                valid = false;
+            if (valid && m_max && m_exact.value() > m_max.value())
+                valid = false;
+            if (!valid)
+                return std::numeric_limits<double>::infinity();
+        }
 
-        if (m_min && !valid)
-            return std::numeric_limits<double>::infinity();
+        if (m_min) {
+            if (valid && m_max && m_min.value() > m_max.value())
+                valid = false;
+            if (!valid)
+                return std::numeric_limits<double>::infinity();
+        }
 
-        if (m_max && !valid)
-            return std::numeric_limits<double>::infinity();
+        if (m_max) {
+            if (valid && m_min && m_max.value() < m_min.value())
+                valid = false;
+            if (!valid)
+                return std::numeric_limits<double>::infinity();
+        }
 
         // 3. If no ideal value is specified, the fitness distance is 0.
         if (!m_ideal)
@@ -202,7 +210,6 @@ public:
                 return false;
         }
 
-
         if (m_max) {
             const ValueType constraintMax = m_max.value();
             if (constraintMax < rangeMin && !nearlyEqual(constraintMax, rangeMin))
@@ -227,6 +234,41 @@ public:
             return m_ideal.value();
 
         return 0;
+    }
+
+    ValueType valueForCapabilityRange(ValueType current, ValueType capabilityMin, ValueType capabilityMax) const
+    {
+        ValueType value;
+        ValueType min = capabilityMin;
+        ValueType max = capabilityMax;
+
+        if (m_exact) {
+            ASSERT(validForRange(capabilityMin, capabilityMax));
+            return m_exact.value();
+        }
+
+        if (m_min) {
+            value = m_min.value();
+            ASSERT(validForRange(value, capabilityMax));
+            if (value > min)
+                min = value;
+
+            // If there is no ideal, don't change if minimum is smaller than current.
+            if (!m_ideal && value < current)
+                value = current;
+        }
+
+        if (m_max) {
+            value = m_max.value();
+            ASSERT(validForRange(capabilityMin, value));
+            if (value < max)
+                max = value;
+        }
+
+        if (m_ideal)
+            value = std::max(min, std::min(max, m_ideal.value()));
+
+        return value;
     }
 
     bool isEmpty() const { return !m_min && !m_max && !m_exact && !m_ideal; }
@@ -293,10 +335,10 @@ protected:
         }
     }
 
-    Optional<ValueType> m_min;
-    Optional<ValueType> m_max;
-    Optional<ValueType> m_exact;
-    Optional<ValueType> m_ideal;
+    std::optional<ValueType> m_min;
+    std::optional<ValueType> m_max;
+    std::optional<ValueType> m_exact;
+    std::optional<ValueType> m_ideal;
 };
 
 class IntConstraint final : public NumericConstraint<int> {
@@ -426,8 +468,8 @@ public:
     }
 
 private:
-    Optional<bool> m_exact;
-    Optional<bool> m_ideal;
+    std::optional<bool> m_exact;
+    std::optional<bool> m_ideal;
 };
 
 class StringConstraint : public MediaConstraint {
@@ -447,7 +489,6 @@ public:
 
     void appendExact(const String& value)
     {
-        m_exact.clear();
         m_exact.append(value);
     }
 
@@ -535,10 +576,25 @@ public:
     bool isEmpty() const;
     WEBCORE_EXPORT size_t size() const;
 
-    WEBCORE_EXPORT void set(MediaConstraintType, Optional<IntConstraint>&&);
-    WEBCORE_EXPORT void set(MediaConstraintType, Optional<DoubleConstraint>&&);
-    WEBCORE_EXPORT void set(MediaConstraintType, Optional<BooleanConstraint>&&);
-    WEBCORE_EXPORT void set(MediaConstraintType, Optional<StringConstraint>&&);
+    WEBCORE_EXPORT void set(MediaConstraintType, std::optional<IntConstraint>&&);
+    WEBCORE_EXPORT void set(MediaConstraintType, std::optional<DoubleConstraint>&&);
+    WEBCORE_EXPORT void set(MediaConstraintType, std::optional<BooleanConstraint>&&);
+    WEBCORE_EXPORT void set(MediaConstraintType, std::optional<StringConstraint>&&);
+
+    std::optional<IntConstraint> width() const { return m_width; }
+    std::optional<IntConstraint> height() const { return m_height; }
+    std::optional<IntConstraint> sampleRate() const { return m_sampleRate; }
+    std::optional<IntConstraint> sampleSize() const { return m_sampleSize; }
+
+    std::optional<DoubleConstraint> aspectRatio() const { return m_aspectRatio; }
+    std::optional<DoubleConstraint> frameRate() const { return m_frameRate; }
+    std::optional<DoubleConstraint> volume() const { return m_volume; }
+
+    std::optional<BooleanConstraint> echoCancellation() const { return m_echoCancellation; }
+
+    std::optional<StringConstraint> facingMode() const { return m_facingMode; }
+    std::optional<StringConstraint> deviceId() const { return m_deviceId; }
+    std::optional<StringConstraint> groupId() const { return m_groupId; }
 
     template <class Encoder> void encode(Encoder& encoder) const
     {
@@ -590,20 +646,20 @@ public:
     }
 
 private:
-    Optional<IntConstraint> m_width;
-    Optional<IntConstraint> m_height;
-    Optional<IntConstraint> m_sampleRate;
-    Optional<IntConstraint> m_sampleSize;
+    std::optional<IntConstraint> m_width;
+    std::optional<IntConstraint> m_height;
+    std::optional<IntConstraint> m_sampleRate;
+    std::optional<IntConstraint> m_sampleSize;
 
-    Optional<DoubleConstraint> m_aspectRatio;
-    Optional<DoubleConstraint> m_frameRate;
-    Optional<DoubleConstraint> m_volume;
+    std::optional<DoubleConstraint> m_aspectRatio;
+    std::optional<DoubleConstraint> m_frameRate;
+    std::optional<DoubleConstraint> m_volume;
 
-    Optional<BooleanConstraint> m_echoCancellation;
+    std::optional<BooleanConstraint> m_echoCancellation;
 
-    Optional<StringConstraint> m_facingMode;
-    Optional<StringConstraint> m_deviceId;
-    Optional<StringConstraint> m_groupId;
+    std::optional<StringConstraint> m_facingMode;
+    std::optional<StringConstraint> m_deviceId;
+    std::optional<StringConstraint> m_groupId;
 };
 
 class FlattenedConstraint {
@@ -612,6 +668,7 @@ public:
     void set(const MediaConstraint&);
     void merge(const MediaConstraint&);
     void append(const MediaConstraint&);
+    const MediaConstraint* find(MediaConstraintType) const;
     bool isEmpty() const { return m_variants.isEmpty(); }
 
     class iterator {
@@ -749,5 +806,3 @@ SPECIALIZE_TYPE_TRAITS_MEDIACONSTRAINT(StringConstraint, isString())
 SPECIALIZE_TYPE_TRAITS_MEDIACONSTRAINT(BooleanConstraint, isBoolean())
 
 #endif // ENABLE(MEDIA_STREAM)
-
-#endif // MediaConstraints_h

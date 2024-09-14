@@ -94,6 +94,7 @@ void JIT::emit_op_new_object(Instruction* currentInstruction)
         addSlowCase(Jump());
     JumpList slowCases;
     emitAllocateJSObject(resultReg, allocator, allocatorReg, TrustedImmPtr(structure), TrustedImmPtr(0), scratchReg, slowCases);
+    emitInitializeInlineStorage(resultReg, structure->inlineCapacity());
     addSlowCase(slowCases);
     emitPutVirtualRegister(currentInstruction[1].u.operand);
 }
@@ -752,6 +753,10 @@ void JIT::emit_op_create_this(Instruction* currentInstruction)
 
     JumpList slowCases;
     emitAllocateJSObject(resultReg, nullptr, allocatorReg, structureReg, TrustedImmPtr(0), scratchReg, slowCases);
+    emitGetVirtualRegister(callee, scratchReg);
+    loadPtr(Address(scratchReg, JSFunction::offsetOfRareData()), scratchReg);
+    load32(Address(scratchReg, FunctionRareData::offsetOfObjectAllocationProfile() + ObjectAllocationProfile::offsetOfInlineCapacity()), scratchReg);
+    emitInitializeInlineStorage(resultReg, scratchReg);
     addSlowCase(slowCases);
     emitPutVirtualRegister(currentInstruction[1].u.operand);
 }
@@ -1072,6 +1077,18 @@ void JIT::emit_op_new_array_buffer(Instruction* currentInstruction)
     int size = currentInstruction[3].u.operand;
     const JSValue* values = codeBlock()->constantBuffer(valuesIndex);
     callOperation(operationNewArrayBufferWithProfile, dst, currentInstruction[4].u.arrayAllocationProfile, values, size);
+}
+
+void JIT::emit_op_new_array_with_spread(Instruction* currentInstruction)
+{
+    JITSlowPathCall slowPathCall(this, currentInstruction, slow_path_new_array_with_spread);
+    slowPathCall.call();
+}
+
+void JIT::emit_op_spread(Instruction* currentInstruction)
+{
+    JITSlowPathCall slowPathCall(this, currentInstruction, slow_path_spread);
+    slowPathCall.call();
 }
 
 #if USE(JSVALUE64)
@@ -1476,6 +1493,29 @@ void JIT::emit_op_get_rest_length(Instruction* currentInstruction)
     move(TrustedImm32(JSValue::Int32Tag), regT1);
     emitPutVirtualRegister(dst, JSValueRegs(regT1, regT0));
 #endif
+}
+
+void JIT::emit_op_get_argument(Instruction* currentInstruction)
+{
+    int dst = currentInstruction[1].u.operand;
+    int index = currentInstruction[2].u.operand;
+#if USE(JSVALUE64)
+    JSValueRegs resultRegs(regT0);
+#else
+    JSValueRegs resultRegs(regT1, regT0);
+#endif
+
+    load32(payloadFor(CallFrameSlot::argumentCount), regT2);
+    Jump argumentOutOfBounds = branch32(LessThanOrEqual, regT2, TrustedImm32(index));
+    loadValue(addressFor(CallFrameSlot::thisArgument + index), resultRegs);
+    Jump done = jump();
+
+    argumentOutOfBounds.link(this);
+    moveValue(jsUndefined(), resultRegs);
+
+    done.link(this);
+    emitValueProfilingSite();
+    emitPutVirtualRegister(dst, resultRegs);
 }
 
 } // namespace JSC

@@ -58,6 +58,7 @@ class InternalSettings;
 class MallocStatistics;
 class MediaSession;
 class MemoryInfo;
+class MockCDMFactory;
 class MockContentFilterSettings;
 class MockPageOverlay;
 class NodeList;
@@ -67,6 +68,7 @@ class RenderedDocumentMarker;
 class RTCPeerConnection;
 class SerializedScriptValue;
 class SourceBuffer;
+class StyleSheet;
 class TimeRanges;
 class TypeConversions;
 class XMLHttpRequest;
@@ -103,6 +105,8 @@ public:
     unsigned memoryCacheSize() const;
 
     unsigned imageFrameIndex(HTMLImageElement&);
+    void setImageFrameDecodingDuration(HTMLImageElement&, float duration);
+    void resetImageAnimation(HTMLImageElement&);
 
     void clearPageCache();
     unsigned pageCacheSize() const;
@@ -115,10 +119,19 @@ public:
     String shadowPseudoId(Element&);
     void setShadowPseudoId(Element&, const String&);
 
+    // CSS Deferred Parsing Testing
+    unsigned deferredStyleRulesCount(StyleSheet&);
+    unsigned deferredGroupRulesCount(StyleSheet&);
+    unsigned deferredKeyframesRulesCount(StyleSheet&);
+
     // DOMTimers throttling testing.
     ExceptionOr<bool> isTimerThrottled(int timeoutId);
     bool isRequestAnimationFrameThrottled() const;
     bool areTimersThrottled() const;
+
+    enum EventThrottlingBehavior { Responsive, Unresponsive };
+    void setEventThrottlingBehaviorOverride(std::optional<EventThrottlingBehavior>);
+    std::optional<EventThrottlingBehavior> eventThrottlingBehaviorOverride() const;
 
     // Spatial Navigation testing.
     ExceptionOr<unsigned> lastSpatialNavigationCandidateCount() const;
@@ -314,6 +327,8 @@ public:
     void registerURLSchemeAsBypassingContentSecurityPolicy(const String& scheme);
     void removeURLSchemeRegisteredAsBypassingContentSecurityPolicy(const String& scheme);
 
+    void registerDefaultPortForProtocol(unsigned short port, const String& protocol);
+
     Ref<MallocStatistics> mallocStatistics() const;
     Ref<TypeConversions> typeConversions() const;
     Ref<MemoryInfo> memoryInfo() const;
@@ -356,6 +371,10 @@ public:
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     void initializeMockCDM();
+#endif
+
+#if ENABLE(ENCRYPTED_MEDIA)
+    Ref<MockCDMFactory> registerMockCDM();
 #endif
 
 #if ENABLE(SPEECH_SYNTHESIS)
@@ -413,6 +432,7 @@ public:
     void applicationDidEnterForeground() const;
     void applicationWillEnterBackground() const;
     ExceptionOr<void> setMediaSessionRestrictions(const String& mediaType, const String& restrictions);
+    ExceptionOr<String> mediaSessionRestrictions(const String& mediaType) const;
     void setMediaElementRestrictions(HTMLMediaElement&, const String& restrictions);
     ExceptionOr<void> postRemoteControlCommand(const String&, float argument);
     bool elementIsBlockingDisplaySleep(HTMLMediaElement&) const;
@@ -498,6 +518,16 @@ public:
     bool userPrefersReducedMotion() const;
     
     void reportBacktrace();
+
+    enum class BaseWritingDirection { Natural, Ltr, Rtl };
+    void setBaseWritingDirection(BaseWritingDirection);
+
+#if ENABLE(POINTER_LOCK)
+    bool pageHasPendingPointerLock() const;
+    bool pageHasPointerLock() const;
+#endif
+
+    Vector<String> accessKeyModifiers() const;
 
 private:
     explicit Internals(Document&);

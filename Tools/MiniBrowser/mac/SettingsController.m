@@ -40,7 +40,10 @@ static NSString * const UseWebKit2ByDefaultPreferenceKey = @"UseWebKit2ByDefault
 static NSString * const LayerBordersVisiblePreferenceKey = @"LayerBordersVisible";
 static NSString * const SimpleLineLayoutDebugBordersEnabledPreferenceKey = @"SimpleLineLayoutDebugBordersEnabled";
 static NSString * const TiledScrollingIndicatorVisiblePreferenceKey = @"TiledScrollingIndicatorVisible";
+static NSString * const ReserveSpaceForBannersPreferenceKey = @"ReserveSpaceForBanners";
+
 static NSString * const ResourceUsageOverlayVisiblePreferenceKey = @"ResourceUsageOverlayVisible";
+static NSString * const LoadsAllSiteIconsKey = @"LoadsAllSiteIcons";
 static NSString * const UsesGameControllerFrameworkKey = @"UsesGameControllerFramework";
 static NSString * const IncrementalRenderingSuppressedPreferenceKey = @"IncrementalRenderingSuppressed";
 static NSString * const AcceleratedDrawingEnabledPreferenceKey = @"AcceleratedDrawingEnabled";
@@ -55,11 +58,14 @@ static NSString * const UsePaginatedModePreferenceKey = @"UsePaginatedMode";
 static NSString * const EnableSubPixelCSSOMMetricsPreferenceKey = @"EnableSubPixelCSSOMMetrics";
 
 static NSString * const VisualViewportEnabledPreferenceKey = @"VisualViewportEnabled";
+static NSString * const LargeImageAsyncDecodingEnabledPreferenceKey = @"LargeImageAsyncDecodingEnabled";
+static NSString * const AnimatedImageAsyncDecodingEnabledPreferenceKey = @"AnimatedImageAsyncDecodingEnabled";
 
 // This default name intentionally overlaps with the key that WebKit2 checks when creating a view.
 static NSString * const UseRemoteLayerTreeDrawingAreaPreferenceKey = @"WebKit2UseRemoteLayerTreeDrawingArea";
 
 static NSString * const PerWindowWebProcessesDisabledKey = @"PerWindowWebProcessesDisabled";
+static NSString * const NetworkCacheSpeculativeRevalidationDisabledKey = @"NetworkCacheSpeculativeRevalidationDisabled";
 
 typedef NS_ENUM(NSInteger, DebugOverylayMenuItemTag) {
     NonFastScrollableRegionOverlayTag = 100,
@@ -126,14 +132,19 @@ typedef NS_ENUM(NSInteger, DebugOverylayMenuItemTag) {
     [self _addItemWithTitle:@"Enable Display List Drawing" action:@selector(toggleDisplayListDrawingEnabled:) indented:NO];
     [self _addItemWithTitle:@"Enable Visual Viewport" action:@selector(toggleVisualViewportEnabled:) indented:NO];
     [self _addItemWithTitle:@"Enable Resource Load Statistics" action:@selector(toggleResourceLoadStatisticsEnabled:) indented:NO];
+    [self _addItemWithTitle:@"Enable Large Image Async Decoding" action:@selector(toggleLargeImageAsyncDecodingEnabled:) indented:NO];
+    [self _addItemWithTitle:@"Enable Animated Image Async Decoding" action:@selector(toggleAnimatedImageAsyncDecodingEnabled:) indented:NO];
 
     [self _addHeaderWithTitle:@"WebKit2-only Settings"];
 
+    [self _addItemWithTitle:@"Reserve Space For Banners" action:@selector(toggleReserveSpaceForBanners:) indented:YES];
     [self _addItemWithTitle:@"Show Tiled Scrolling Indicator" action:@selector(toggleShowTiledScrollingIndicator:) indented:YES];
     [self _addItemWithTitle:@"Use UI-Side Compositing" action:@selector(toggleUseUISideCompositing:) indented:YES];
     [self _addItemWithTitle:@"Disable Per-Window Web Processes" action:@selector(togglePerWindowWebProcessesDisabled:) indented:YES];
     [self _addItemWithTitle:@"Show Resource Usage Overlay" action:@selector(toggleShowResourceUsageOverlay:) indented:YES];
+    [self _addItemWithTitle:@"Load All Site Icons Per-Page" action:@selector(toggleLoadsAllSiteIcons:) indented:YES];
     [self _addItemWithTitle:@"Use GameController.framework on macOS (Restart required)" action:@selector(toggleUsesGameControllerFramework:) indented:YES];
+    [self _addItemWithTitle:@"Disable network cache speculative revalidation" action:@selector(toggleNetworkCacheSpeculativeRevalidationDisabled:) indented:YES];
 
     NSMenuItem *debugOverlaysSubmenuItem = [[NSMenuItem alloc] initWithTitle:@"Debug Overlays" action:nil keyEquivalent:@""];
     NSMenu *debugOverlaysMenu = [[NSMenu alloc] initWithTitle:@"Debug Overlays"];
@@ -199,14 +210,24 @@ typedef NS_ENUM(NSInteger, DebugOverylayMenuItemTag) {
         [menuItem setState:[self displayListDrawingEnabled] ? NSOnState : NSOffState];
     else if (action == @selector(toggleResourceLoadStatisticsEnabled:))
         [menuItem setState:[self resourceLoadStatisticsEnabled] ? NSOnState : NSOffState];
+    else if (action == @selector(toggleLargeImageAsyncDecodingEnabled:))
+        [menuItem setState:[self largeImageAsyncDecodingEnabled] ? NSOnState : NSOffState];
+    else if (action == @selector(toggleAnimatedImageAsyncDecodingEnabled:))
+        [menuItem setState:[self animatedImageAsyncDecodingEnabled] ? NSOnState : NSOffState];
     else if (action == @selector(toggleVisualViewportEnabled:))
         [menuItem setState:[self visualViewportEnabled] ? NSOnState : NSOffState];
+    else if (action == @selector(toggleReserveSpaceForBanners:))
+        [menuItem setState:[self isSpaceReservedForBanners] ? NSOnState : NSOffState];
     else if (action == @selector(toggleShowTiledScrollingIndicator:))
         [menuItem setState:[self tiledScrollingIndicatorVisible] ? NSOnState : NSOffState];
     else if (action == @selector(toggleShowResourceUsageOverlay:))
         [menuItem setState:[self resourceUsageOverlayVisible] ? NSOnState : NSOffState];
+    else if (action == @selector(toggleLoadsAllSiteIcons:))
+        [menuItem setState:[self loadsAllSiteIcons] ? NSOnState : NSOffState];
     else if (action == @selector(toggleUsesGameControllerFramework:))
         [menuItem setState:[self usesGameControllerFramework] ? NSOnState : NSOffState];
+    else if (action == @selector(toggleNetworkCacheSpeculativeRevalidationDisabled:))
+        [menuItem setState:[self networkCacheSpeculativeRevalidationDisabled] ? NSOnState : NSOffState];
     else if (action == @selector(toggleUseUISideCompositing:))
         [menuItem setState:[self useUISideCompositing] ? NSOnState : NSOffState];
     else if (action == @selector(togglePerWindowWebProcessesDisabled:))
@@ -344,6 +365,11 @@ typedef NS_ENUM(NSInteger, DebugOverylayMenuItemTag) {
     return [[NSUserDefaults standardUserDefaults] boolForKey:DisplayListDrawingEnabledPreferenceKey];
 }
 
+- (void)toggleReserveSpaceForBanners:(id)sender
+{
+    [self _toggleBooleanDefault:ReserveSpaceForBannersPreferenceKey];
+}
+
 - (void)toggleShowTiledScrollingIndicator:(id)sender
 {
     [self _toggleBooleanDefault:TiledScrollingIndicatorVisiblePreferenceKey];
@@ -354,6 +380,16 @@ typedef NS_ENUM(NSInteger, DebugOverylayMenuItemTag) {
     [self _toggleBooleanDefault:ResourceUsageOverlayVisiblePreferenceKey];
 }
 
+- (BOOL)loadsAllSiteIcons
+{
+    return [[NSUserDefaults standardUserDefaults] boolForKey:LoadsAllSiteIconsKey];
+}
+
+- (void)toggleLoadsAllSiteIcons:(id)sender
+{
+    [self _toggleBooleanDefault:LoadsAllSiteIconsKey];
+}
+
 - (BOOL)usesGameControllerFramework
 {
     return [[NSUserDefaults standardUserDefaults] boolForKey:UsesGameControllerFrameworkKey];
@@ -362,6 +398,21 @@ typedef NS_ENUM(NSInteger, DebugOverylayMenuItemTag) {
 - (void)toggleUsesGameControllerFramework:(id)sender
 {
     [self _toggleBooleanDefault:UsesGameControllerFrameworkKey];
+}
+
+- (BOOL)networkCacheSpeculativeRevalidationDisabled
+{
+    return [[NSUserDefaults standardUserDefaults] boolForKey:NetworkCacheSpeculativeRevalidationDisabledKey];
+}
+
+- (void)toggleNetworkCacheSpeculativeRevalidationDisabled:(id)sender
+{
+    [self _toggleBooleanDefault:NetworkCacheSpeculativeRevalidationDisabledKey];
+}
+
+- (BOOL)isSpaceReservedForBanners
+{
+    return [[NSUserDefaults standardUserDefaults] boolForKey:ReserveSpaceForBannersPreferenceKey];
 }
 
 - (BOOL)tiledScrollingIndicatorVisible
@@ -392,6 +443,26 @@ typedef NS_ENUM(NSInteger, DebugOverylayMenuItemTag) {
 - (BOOL)resourceLoadStatisticsEnabled
 {
     return [[NSUserDefaults standardUserDefaults] boolForKey:ResourceLoadStatisticsEnabledPreferenceKey];
+}
+
+- (void)toggleLargeImageAsyncDecodingEnabled:(id)sender
+{
+    [self _toggleBooleanDefault:LargeImageAsyncDecodingEnabledPreferenceKey];
+}
+
+- (BOOL)largeImageAsyncDecodingEnabled
+{
+    return [[NSUserDefaults standardUserDefaults] boolForKey:LargeImageAsyncDecodingEnabledPreferenceKey];
+}
+
+- (void)toggleAnimatedImageAsyncDecodingEnabled:(id)sender
+{
+    [self _toggleBooleanDefault:AnimatedImageAsyncDecodingEnabledPreferenceKey];
+}
+
+- (BOOL)animatedImageAsyncDecodingEnabled
+{
+    return [[NSUserDefaults standardUserDefaults] boolForKey:AnimatedImageAsyncDecodingEnabledPreferenceKey];
 }
 
 - (void)toggleEnableSubPixelCSSOMMetrics:(id)sender

@@ -23,47 +23,112 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const _notUndef = (v) => {
-    if (typeof v === "undefined")
-        throw new Error("Shouldn't be undefined");
+const _fail = (msg, extra) => {
+    throw new Error(msg + (extra ? ": " + extra : ""));
 };
 
-const _isUndef = (v) => {
-    if (typeof v !== "undefined")
-        throw new Error("Should be undefined");
+export const isNotA = (v, t, msg) => {
+    if (typeof v === t)
+        _fail(`Shouldn't be ${t}`, msg);
 };
 
-const _eq = (lhs, rhs) => {
-    if (lhs !== rhs)
-        throw new Error(`Not the same: "${lhs}" and "${rhs}"`);
+export const isA = (v, t, msg) => {
+    if (typeof v !== t)
+        _fail(`Should be ${t}, got ${typeof(v)}`, msg);
 };
 
-const _ge = (lhs, rhs) => {
-    _notUndef(lhs);
-    _notUndef(rhs);
+export const isNotUndef = (v, msg) => isNotA(v, "undefined", msg);
+export const isUndef = (v, msg) => isA(v, "undefined", msg);
+export const notObject = (v, msg) => isNotA(v, "object", msg);
+export const isObject = (v, msg) => isA(v, "object", msg);
+export const notString = (v, msg) => isNotA(v, "string", msg);
+export const isString = (v, msg) => isA(v, "string", msg);
+export const notNumber = (v, msg) => isNotA(v, "number", msg);
+export const isNumber = (v, msg) => isA(v, "number", msg);
+
+export const hasObjectProperty = (o, p, msg) => {
+    isObject(o, msg);
+    isNotUndef(o[p], msg, `expected object to have property ${p}`);
+};
+
+export const isArray = (v, msg) => {
+    if (!Array.isArray(v))
+        _fail(`Expected an array, got ${typeof(v)}`, msg);
+};
+
+export const isNotArray = (v, msg) => {
+    if (Array.isArray(v))
+        _fail(`Expected to not be an array`, msg);
+};
+
+export const truthy = (v, msg) => {
+    if (!v)
+        _fail(`Expected truthy`, msg);
+};
+
+export const falsy = (v, msg) => {
+    if (v)
+        _fail(`Expected falsy`, msg);
+};
+
+export const eq = (lhs, rhs, msg) => {
+    if (Array.isArray(lhs) && Array.isArray(rhs) && (lhs.length === rhs.length)) {
+        for (let i = 0; i !== lhs.length; ++i)
+            eq(lhs[i], rhs[i], msg);
+    } else if (lhs !== rhs)
+        _fail(`Not the same: "${lhs}" and "${rhs}"`, msg);
+};
+
+const canonicalizeI32 = (number) => {
+    if (Math.round(number) === number && number >= 2 ** 31)
+        number = number - 2 ** 32;
+    return number;
+}
+
+export const eqI32 = (lhs, rhs, msg) => {
+    return eq(canonicalizeI32(lhs), canonicalizeI32(rhs), msg);
+};
+
+export const ge = (lhs, rhs, msg) => {
+    isNotUndef(lhs);
+    isNotUndef(rhs);
     if (!(lhs >= rhs))
-        throw new Error(`Expected: "${lhs}" < "${rhs}"`);
+        _fail(`Expected: "${lhs}" < "${rhs}"`, msg);
 };
+
+export const le = (lhs, rhs, msg) => {
+    isNotUndef(lhs);
+    isNotUndef(rhs);
+    if (!(lhs <= rhs))
+        _fail(`Expected: "${lhs}" > "${rhs}"`, msg);
+};
+
+// Ignore source information at the end of the error message if the expected message didn't specify that information. Sometimes it changes, or it's tricky to get just right.
+const _sourceRe = new RegExp(/ \(evaluating '.*'\)/);
 
 const _throws = (func, type, message, ...args) => {
     try {
         func(...args);
     } catch (e) {
-        if (e instanceof type && e.message === message)
-            return;
-        throw new Error(`Expected to throw a ${type.name} with message "${message}", got ${e.name} with message "${e.message}"`);
+        if (e instanceof type) {
+            if (e.message === message)
+                return e;
+            const cleanMessage = e.message.replace(_sourceRe, '');
+            if (cleanMessage === message)
+                return e;
+        }
+        _fail(`Expected to throw a ${type.name} with message "${message}", got ${e.name} with message "${e.message}"`);
     }
-    throw new Error(`Expected to throw a ${type.name} with message "${message}"`);
+    _fail(`Expected to throw a ${type.name} with message "${message}"`);
 };
 
-const _instanceof = (obj, type) => obj instanceof type;
+const _instanceof = (obj, type, msg) => {
+    if (!(obj instanceof type))
+        _fail(`Expected a ${typeof(type)}, got ${typeof obj}`);
+};
 
 // Use underscore names to avoid clashing with builtin names.
 export {
-    _notUndef as notUndef,
-    _isUndef as isUndef,
-    _eq as eq,
-    _ge as ge,
     _throws as throws,
     _instanceof as instanceof,
 };

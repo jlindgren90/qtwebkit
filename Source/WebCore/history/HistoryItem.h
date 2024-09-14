@@ -24,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef HistoryItem_h
-#define HistoryItem_h
+#pragma once
 
 #include "FloatRect.h"
 #include "FrameLoaderTypes.h"
@@ -43,12 +42,6 @@
 #if PLATFORM(COCOA)
 #import <wtf/RetainPtr.h>
 typedef struct objc_object* id;
-#endif
-
-#if PLATFORM(QT)
-#include <QVariant>
-#include <QByteArray>
-#include <QDataStream>
 #endif
 
 namespace WebCore {
@@ -166,11 +159,6 @@ public:
     WEBCORE_EXPORT void setTransientProperty(const String&, id);
 #endif
 
-#if PLATFORM(QT)
-    QVariant userData() const { return m_userData; }
-    void setUserData(const QVariant& userData) { m_userData = userData; }
-#endif
-
 #ifndef NDEBUG
     int showTree() const;
     int showTreeWithIndent(unsigned indentLevel) const;
@@ -275,17 +263,11 @@ private:
     RetainPtr<id> m_viewState;
     std::unique_ptr<HashMap<String, RetainPtr<id>>> m_transientProperties;
 #endif
+};
 
-#if PLATFORM(QT)
-    QVariant m_userData;
-#endif
-}; //class HistoryItem
+} // namespace WebCore
 
-} //namespace WebCore
-
-#ifndef NDEBUG
-// Outside the WebCore namespace for ease of invocation from gdb.
+#if ENABLE(TREE_DEBUGGING)
+// Outside the WebCore namespace for ease of invocation from the debugger.
 extern "C" int showTree(const WebCore::HistoryItem*);
 #endif
-
-#endif // HISTORYITEM_H

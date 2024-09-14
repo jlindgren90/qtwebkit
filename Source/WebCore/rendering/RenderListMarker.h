@@ -20,8 +20,7 @@
  *
  */
 
-#ifndef RenderListMarker_h
-#define RenderListMarker_h
+#pragma once
 
 #include "RenderBox.h"
 
@@ -44,6 +43,10 @@ public:
     bool isInside() const;
 
     void updateMarginsAndContent();
+
+#if !ASSERT_DISABLED
+    RenderListItem& listItem() const { return m_listItem; }
+#endif
 
 private:
     void element() const = delete;
@@ -88,5 +91,3 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderListMarker, isListMarker())
-
-#endif // RenderListMarker_h

@@ -71,6 +71,7 @@ public:
     bool tooLong() const final;
     bool typeMismatch() const final;
     bool valueMissing() const final;
+    bool isValid() const final;
     WEBCORE_EXPORT String validationMessage() const final;
 
     // Returns the minimum value for type=date, number, or range.  Don't call this for other types.
@@ -84,7 +85,7 @@ public:
     StepRange createStepRange(AnyStepHandling) const;
 
 #if ENABLE(DATALIST_ELEMENT)
-    Optional<Decimal> findClosestTickMarkValue(const Decimal&);
+    std::optional<Decimal> findClosestTickMarkValue(const Decimal&);
 #endif
 
     WEBCORE_EXPORT ExceptionOr<void> stepUp(int = 1);
@@ -302,7 +303,8 @@ public:
 
     void endEditing();
 
-    void setSpellcheckEnabled(bool enabled) { m_isSpellCheckingEnabled = enabled; }
+    void setSpellcheckDisabledExceptTextReplacement(bool disabled) { m_isSpellcheckDisabledExceptTextReplacement = disabled; }
+    bool isSpellcheckDisabledExceptTextReplacement() const { return m_isSpellcheckDisabledExceptTextReplacement; }
 
     static Vector<FileChooserFileInfo> filesFromFileInputFormControlState(const FormControlState&);
 
@@ -336,7 +338,7 @@ private:
     InsertionNotificationRequest insertedInto(ContainerNode&) final;
     void finishedInsertingSubtree() final;
     void removedFrom(ContainerNode&) final;
-    void didMoveToNewDocument(Document* oldDocument) final;
+    void didMoveToNewDocument(Document& oldDocument) final;
 
     bool hasCustomFocusLogic() const final;
     bool isKeyboardFocusable(KeyboardEvent&) const final;
@@ -345,7 +347,6 @@ private:
     bool supportLabels() const final;
     void updateFocusAppearance(SelectionRestorationMode, SelectionRevealMode) final;
     bool shouldUseInputMethod() final;
-    bool isSpellCheckingEnabled() const final;
 
     bool isTextFormControl() const final { return isTextField(); }
 
@@ -447,7 +448,7 @@ private:
 #if ENABLE(TOUCH_EVENTS)
     bool m_hasTouchEventHandler : 1;
 #endif
-    bool m_isSpellCheckingEnabled : 1;
+    bool m_isSpellcheckDisabledExceptTextReplacement : 1;
     std::unique_ptr<InputType> m_inputType;
     // The ImageLoader must be owned by this element because the loader code assumes
     // that it lives as long as its owning element lives. If we move the loader into

@@ -31,6 +31,7 @@
 #include "CSSStyleSheet.h"
 #include "ElementTraversal.h"
 #include "ExceptionCode.h"
+#include "HTMLSlotElement.h"
 #include "RenderElement.h"
 #include "RuntimeEnabledFeatures.h"
 #include "SlotAssignment.h"
@@ -70,6 +71,9 @@ ShadowRoot::ShadowRoot(Document& document, std::unique_ptr<SlotAssignment>&& slo
 
 ShadowRoot::~ShadowRoot()
 {
+    if (inDocument())
+        document().didRemoveInDocumentShadowRoot(*this);
+
     // We cannot let ContainerNode destructor call willBeDeletedFrom()
     // for this ShadowRoot instance because TreeScope destructor
     // clears Node::m_treeScope thus ContainerNode is no longer able
@@ -84,17 +88,29 @@ ShadowRoot::~ShadowRoot()
 
 Node::InsertionNotificationRequest ShadowRoot::insertedInto(ContainerNode& insertionPoint)
 {
-    auto result = DocumentFragment::insertedInto(insertionPoint);
-    if (inDocument())
+    bool wasInDocument = inDocument();
+    DocumentFragment::insertedInto(insertionPoint);
+    if (insertionPoint.inDocument() && !wasInDocument)
         document().didInsertInDocumentShadowRoot(*this);
-    return result;
+    return InsertionDone;
 }
 
 void ShadowRoot::removedFrom(ContainerNode& insertionPoint)
 {
-    if (inDocument())
-        document().didRemoveInDocumentShadowRoot(*this);
     DocumentFragment::removedFrom(insertionPoint);
+    if (insertionPoint.inDocument() && !inDocument())
+        document().didRemoveInDocumentShadowRoot(*this);
+}
+
+void ShadowRoot::didMoveToNewDocument(Document& oldDocument)
+{
+    ASSERT(&document() != &oldDocument);
+    ASSERT(&m_styleScope->document() == &oldDocument);
+
+    // Style scopes are document specific.
+    m_styleScope = std::make_unique<Style::Scope>(*this);
+
+    DocumentFragment::didMoveToNewDocument(oldDocument);
 }
 
 Style::Scope& ShadowRoot::styleScope()
@@ -179,5 +195,14 @@ const Vector<Node*>* ShadowRoot::assignedNodesForSlot(const HTMLSlotElement& slo
     return m_slotAssignment->assignedNodesForSlot(slot, *this);
 }
 
+Vector<ShadowRoot*> assignedShadowRootsIfSlotted(const Node& node)
+{
+    Vector<ShadowRoot*> result;
+    for (auto* slot = node.assignedSlot(); slot; slot = slot->assignedSlot()) {
+        ASSERT(slot->containingShadowRoot());
+        result.append(slot->containingShadowRoot());
+    }
+    return result;
+}
 
 }

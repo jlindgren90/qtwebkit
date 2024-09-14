@@ -32,7 +32,7 @@
 #include "ScrollableArea.h"
 #include <wtf/CurrentTime.h>
 #ifndef NDEBUG
-#include <wtf/TemporaryChange.h>
+#include <wtf/SetForScope.h>
 #endif
 #include <wtf/text/CString.h>
 
@@ -599,18 +599,18 @@ void CoordinatedGraphicsLayer::setFixedToViewport(bool isFixed)
     didChangeLayerState();
 }
 
-void CoordinatedGraphicsLayer::flushCompositingState(const FloatRect& rect, bool viewportIsStable)
+void CoordinatedGraphicsLayer::flushCompositingState(const FloatRect& rect)
 {
     if (CoordinatedGraphicsLayer* mask = downcast<CoordinatedGraphicsLayer>(maskLayer()))
-        mask->flushCompositingStateForThisLayerOnly(viewportIsStable);
+        mask->flushCompositingStateForThisLayerOnly();
 
     if (CoordinatedGraphicsLayer* replica = downcast<CoordinatedGraphicsLayer>(replicaLayer()))
-        replica->flushCompositingStateForThisLayerOnly(viewportIsStable);
+        replica->flushCompositingStateForThisLayerOnly();
 
-    flushCompositingStateForThisLayerOnly(viewportIsStable);
+    flushCompositingStateForThisLayerOnly();
 
     for (auto& child : children())
-        child->flushCompositingState(rect, viewportIsStable);
+        child->flushCompositingState(rect);
 }
 
 void CoordinatedGraphicsLayer::syncChildren()
@@ -784,7 +784,7 @@ void CoordinatedGraphicsLayer::createPlatformLayerIfNeeded()
 }
 #endif
 
-void CoordinatedGraphicsLayer::flushCompositingStateForThisLayerOnly(bool)
+void CoordinatedGraphicsLayer::flushCompositingStateForThisLayerOnly()
 {
     // When we have a transform animation, we need to update visible rect every frame to adjust the visible rect of a backing store.
     bool hasActiveTransformAnimation = selfOrAncestorHasActiveTransformAnimation();
@@ -947,7 +947,7 @@ IntRect CoordinatedGraphicsLayer::transformedVisibleRect()
     // Return a projection of the visible rect (surface coordinates) onto the layer's plane (layer coordinates).
     // The resulting quad might be squewed and the visible rect is the bounding box of this quad,
     // so it might spread further than the real visible area (and then even more amplified by the cover rect multiplier).
-    ASSERT(m_cachedInverseTransform == m_layerTransform.combined().inverse().valueOr(TransformationMatrix()));
+    ASSERT(m_cachedInverseTransform == m_layerTransform.combined().inverse().value_or(TransformationMatrix()));
     FloatRect rect = m_cachedInverseTransform.clampedBoundsOfProjectedQuad(FloatQuad(m_coordinator->visibleContentsRect()));
     clampToContentsRectIfRectIsInfinite(rect, size());
     return enclosingIntRect(rect);
@@ -1041,7 +1041,7 @@ void CoordinatedGraphicsLayer::updateContentBuffers()
 void CoordinatedGraphicsLayer::purgeBackingStores()
 {
 #ifndef NDEBUG
-    TemporaryChange<bool> updateModeProtector(m_isPurging, true);
+    SetForScope<bool> updateModeProtector(m_isPurging, true);
 #endif
     m_mainBackingStore = nullptr;
     m_previousBackingStore = nullptr;
@@ -1139,7 +1139,7 @@ void CoordinatedGraphicsLayer::computeTransformedVisibleRect()
     m_layerTransform.setChildrenTransform(childrenTransform());
     m_layerTransform.combineTransforms(parent() ? downcast<CoordinatedGraphicsLayer>(*parent()).m_layerTransform.combinedForChildren() : TransformationMatrix());
 
-    m_cachedInverseTransform = m_layerTransform.combined().inverse().valueOr(TransformationMatrix());
+    m_cachedInverseTransform = m_layerTransform.combined().inverse().value_or(TransformationMatrix());
 
     // The combined transform will be used in tiledBackingStoreVisibleRect.
     setNeedsVisibleRectAdjustment();

@@ -127,7 +127,7 @@
 #include <WebCore/MIMETypeRegistry.h>
 #include <WebCore/MainFrame.h>
 #include <WebCore/MemoryCache.h>
-#include <WebCore/MemoryPressureHandler.h>
+#include <WebCore/MemoryRelease.h>
 #include <WebCore/NotImplemented.h>
 #include <WebCore/Page.h>
 #include <WebCore/PageCache.h>
@@ -2887,6 +2887,8 @@ HRESULT WebView::QueryInterface(_In_ REFIID riid, _COM_Outptr_ void** ppvObject)
         *ppvObject = static_cast<IWebViewPrivate2*>(this);
     else if (IsEqualGUID(riid, IID_IWebViewPrivate3))
         *ppvObject = static_cast<IWebViewPrivate3*>(this);
+    else if (IsEqualGUID(riid, IID_IWebViewPrivate4))
+        *ppvObject = static_cast<IWebViewPrivate4*>(this);
     else if (IsEqualGUID(riid, IID_IWebIBActions))
         *ppvObject = static_cast<IWebIBActions*>(this);
     else if (IsEqualGUID(riid, IID_IWebViewCSS))
@@ -3082,7 +3084,11 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
 
         WebKitInitializeWebDatabasesIfNecessary();
 
-        MemoryPressureHandler::singleton().install();
+        auto& memoryPressureHandler = MemoryPressureHandler::singleton();
+        memoryPressureHandler.setLowMemoryHandler([] (Critical critical, Synchronous synchronous) {
+            WebCore::releaseMemory(critical, synchronous);
+        });
+        memoryPressureHandler.install();
 
         didOneTimeInitialization = true;
      }
@@ -6319,9 +6325,8 @@ LRESULT WebView::onIMERequestCharPosition(Frame* targetFrame, IMECHARPOSITION* c
         return 0;
     IntRect caret;
     if (RefPtr<Range> range = targetFrame->editor().hasComposition() ? targetFrame->editor().compositionRange() : targetFrame->selection().selection().toNormalizedRange()) {
-        ExceptionCode ec = 0;
         RefPtr<Range> tempRange = range->cloneRange();
-        tempRange->setStart(tempRange->startContainer(), tempRange->startOffset() + charPos->dwCharPos, ec);
+        tempRange->setStart(tempRange->startContainer(), tempRange->startOffset() + charPos->dwCharPos);
         caret = targetFrame->editor().firstRectForRange(tempRange.get());
     }
     caret = targetFrame->view()->contentsToWindow(caret);
@@ -7342,7 +7347,7 @@ void WebView::flushPendingGraphicsLayerChanges()
 #if USE(CA)
     // Updating layout might have taken us out of compositing mode.
     if (m_backingLayer)
-        m_backingLayer->flushCompositingStateForThisLayerOnly(view->viewportIsStable());
+        m_backingLayer->flushCompositingStateForThisLayerOnly();
 
     view->flushCompositingStateIncludingSubframes();
 #elif USE(TEXTURE_MAPPER_GL)
@@ -7792,5 +7797,18 @@ HRESULT WebView::findString(_In_ BSTR string, WebFindOptions options, _Deref_opt
         return E_POINTER;
 
     *found = m_page->findString(toString(string), options);
+    return S_OK;
+}
+
+HRESULT WebView::setVisibilityState(WebPageVisibilityState visibilityState)
+{
+    if (!m_page)
+        return E_FAIL;
+    
+    m_page->setIsVisible(visibilityState == WebPageVisibilityStateVisible);
+
+    if (visibilityState == WebPageVisibilityStatePrerender)
+        m_page->setIsPrerender();
+
     return S_OK;
 }

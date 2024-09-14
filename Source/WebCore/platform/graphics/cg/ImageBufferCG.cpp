@@ -343,7 +343,7 @@ void ImageBuffer::drawConsuming(std::unique_ptr<ImageBuffer> imageBuffer, Graphi
     RetainPtr<CGImageRef> image = IOSurface::sinkIntoImage(IOSurface::createFromImageBuffer(WTFMove(imageBuffer)));
     
     FloatRect adjustedSrcRect = srcRect;
-    adjustedSrcRect.scale(resolutionScale, resolutionScale);
+    adjustedSrcRect.scale(resolutionScale);
     destContext.drawNativeImage(image.get(), backingStoreSize, destRect, adjustedSrcRect, op, blendMode);
 #else
     imageBuffer->draw(destContext, destRect, srcRect, op, blendMode);
@@ -359,14 +359,14 @@ void ImageBuffer::draw(GraphicsContext& destContext, const FloatRect& destRect, 
         image = copyNativeImage(DontCopyBackingStore);
 
     FloatRect adjustedSrcRect = srcRect;
-    adjustedSrcRect.scale(m_resolutionScale, m_resolutionScale);
+    adjustedSrcRect.scale(m_resolutionScale);
     destContext.drawNativeImage(image.get(), m_data.backingStoreSize, destRect, adjustedSrcRect, op, blendMode);
 }
 
 void ImageBuffer::drawPattern(GraphicsContext& destContext, const FloatRect& destRect, const FloatRect& srcRect, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, CompositeOperator op, BlendMode blendMode)
 {
     FloatRect adjustedSrcRect = srcRect;
-    adjustedSrcRect.scale(m_resolutionScale, m_resolutionScale);
+    adjustedSrcRect.scale(m_resolutionScale);
 
     if (!context().isAcceleratedContext()) {
         if (&destContext == &context() || destContext.isAcceleratedContext()) {
@@ -458,7 +458,7 @@ static RetainPtr<CFStringRef> utiFromMIMEType(const String& mimeType)
 #endif
 }
 
-static bool encodeImage(CGImageRef image, CFStringRef uti, Optional<double> quality, CFMutableDataRef data)
+static bool encodeImage(CGImageRef image, CFStringRef uti, std::optional<double> quality, CFMutableDataRef data)
 {
     if (!image || !uti || !data)
         return false;
@@ -483,7 +483,7 @@ static bool encodeImage(CGImageRef image, CFStringRef uti, Optional<double> qual
     return CGImageDestinationFinalize(destination.get());
 }
 
-static String dataURL(CGImageRef image, const String& mimeType, Optional<double> quality)
+static String dataURL(CGImageRef image, const String& mimeType, std::optional<double> quality)
 {
     auto uti = utiFromMIMEType(mimeType);
     ASSERT(uti);
@@ -498,7 +498,7 @@ static String dataURL(CGImageRef image, const String& mimeType, Optional<double>
     return "data:" + mimeType + ";base64," + base64Data;
 }
 
-String ImageBuffer::toDataURL(const String& mimeType, Optional<double> quality, CoordinateSystem) const
+String ImageBuffer::toDataURL(const String& mimeType, std::optional<double> quality, CoordinateSystem) const
 {
     ASSERT(MIMETypeRegistry::isSupportedImageMIMETypeForEncoding(mimeType));
 
@@ -539,7 +539,7 @@ String ImageBuffer::toDataURL(const String& mimeType, Optional<double> quality, 
     return dataURL(image.get(), mimeType, quality);
 }
 
-String dataURL(const ImageData& source, const String& mimeType, Optional<double> quality)
+String dataURL(const ImageData& source, const String& mimeType, std::optional<double> quality)
 {
     ASSERT(MIMETypeRegistry::isSupportedImageMIMETypeForEncoding(mimeType));
 

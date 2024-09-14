@@ -26,8 +26,10 @@
 #import "config.h"
 #import "TestController.h"
 
+#import "HIDEventGenerator.h"
 #import "PlatformWebView.h"
 #import "TestInvocation.h"
+#import "TestRunnerWKWebView.h"
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <WebKit/WKPreferencesRefPrivate.h>
@@ -83,13 +85,20 @@ void TestController::platformResetPreferencesToConsistentValues()
 void TestController::platformResetStateToConsistentValues()
 {
     cocoaResetStateToConsistentValues();
+
+    if (PlatformWebView* webView = mainWebView()) {
+        webView->platformView()._stableStateOverride = nil;
+        UIScrollView *scrollView = webView->platformView().scrollView;
+        [scrollView setZoomScale:1 animated:NO];
+        [scrollView setContentOffset:CGPointZero];
+    }
 }
 
 void TestController::platformConfigureViewForTest(const TestInvocation& test)
 {
     if (test.options().useFlexibleViewport) {
         CGRect screenBounds = [UIScreen mainScreen].bounds;
-        mainWebView()->resizeTo(screenBounds.size.width, screenBounds.size.height);
+        mainWebView()->resizeTo(screenBounds.size.width, screenBounds.size.height, PlatformWebView::WebViewSizingMode::HeightRespectsStatusBar);
         // We also pass data to InjectedBundle::beginTesting() to have it call
         // WKBundlePageSetUseTestingViewportConfiguration(false).
     }

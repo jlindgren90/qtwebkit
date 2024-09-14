@@ -30,10 +30,9 @@
  */
 
 #include "config.h"
+#include "InspectorIndexedDBAgent.h"
 
 #if ENABLE(INDEXED_DATABASE)
-
-#include "InspectorIndexedDBAgent.h"
 
 #include "DOMStringList.h"
 #include "DOMWindow.h"
@@ -43,7 +42,6 @@
 #include "EventListener.h"
 #include "EventNames.h"
 #include "EventTarget.h"
-#include "ExceptionCode.h"
 #include "Frame.h"
 #include "IDBBindingUtilities.h"
 #include "IDBCursor.h"
@@ -62,6 +60,7 @@
 #include "InstrumentingAgents.h"
 #include "ScriptState.h"
 #include "SecurityOrigin.h"
+#include <heap/HeapInlines.h>
 #include <inspector/InjectedScript.h>
 #include <inspector/InjectedScriptManager.h>
 #include <inspector/InspectorFrontendDispatchers.h>
@@ -152,7 +151,7 @@ void ExecutableWithDatabase::start(IDBFactory* idbFactory, SecurityOrigin*, cons
         return;
     }
 
-    auto result = idbFactory->open(*context(), databaseName, Nullopt);
+    auto result = idbFactory->open(*context(), databaseName, std::nullopt);
     if (result.hasException()) {
         requestCallback().sendFailure("Could not open database.");
         return;
@@ -162,7 +161,7 @@ void ExecutableWithDatabase::start(IDBFactory* idbFactory, SecurityOrigin*, cons
 }
 
 
-static RefPtr<KeyPath> keyPathFromIDBKeyPath(const Optional<IDBKeyPath>& idbKeyPath)
+static RefPtr<KeyPath> keyPathFromIDBKeyPath(const std::optional<IDBKeyPath>& idbKeyPath)
 {
     if (!idbKeyPath)
         return KeyPath::create().setType(KeyPath::Type::Null).release();
@@ -340,9 +339,7 @@ static RefPtr<IDBKeyRange> idbKeyRangeFromKeyRange(const InspectorObject* keyRan
     return IDBKeyRange::create(WTFMove(idbLower), WTFMove(idbUpper), lowerOpen, upperOpen);
 }
 
-class DataLoader;
-
-class OpenCursorCallback : public EventListener {
+class OpenCursorCallback final : public EventListener {
 public:
     static Ref<OpenCursorCallback> create(InjectedScript injectedScript, Ref<RequestDataCallback>&& requestCallback, int skipCount, unsigned pageSize)
     {
@@ -434,7 +431,7 @@ private:
     unsigned m_pageSize;
 };
 
-class DataLoader : public ExecutableWithDatabase {
+class DataLoader final : public ExecutableWithDatabase {
 public:
     static Ref<DataLoader> create(ScriptExecutionContext* context, Ref<RequestDataCallback>&& requestCallback, const InjectedScript& injectedScript, const String& objectStoreName, const String& indexName, RefPtr<IDBKeyRange>&& idbKeyRange, int skipCount, unsigned pageSize)
     {
@@ -636,7 +633,7 @@ void InspectorIndexedDBAgent::requestData(ErrorString& errorString, const String
     dataLoader->start(idbFactory, document->securityOrigin(), databaseName);
 }
 
-class ClearObjectStoreListener : public EventListener {
+class ClearObjectStoreListener final : public EventListener {
     WTF_MAKE_NONCOPYABLE(ClearObjectStoreListener);
 public:
     static Ref<ClearObjectStoreListener> create(Ref<ClearObjectStoreCallback> requestCallback)
@@ -672,7 +669,7 @@ private:
     Ref<ClearObjectStoreCallback> m_requestCallback;
 };
 
-class ClearObjectStore : public ExecutableWithDatabase {
+class ClearObjectStore final : public ExecutableWithDatabase {
 public:
     static Ref<ClearObjectStore> create(ScriptExecutionContext* context, const String& objectStoreName, Ref<ClearObjectStoreCallback>&& requestCallback)
     {

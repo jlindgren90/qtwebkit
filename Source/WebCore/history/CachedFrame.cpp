@@ -32,7 +32,6 @@
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "EventNames.h"
-#include "ExceptionCode.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
 #include "FrameView.h"
@@ -165,7 +164,7 @@ CachedFrame::CachedFrame(Frame& frame)
 
     frame.loader().client().savePlatformDataToCachedFrame(this);
 
-    if (m_isComposited && PageCache::singleton().shouldClearBackingStores())
+    if (m_isComposited)
         frame.view()->clearBackingStores();
 
     // documentWillSuspendForPageCache() can set up a layout timer on the FrameView, so clear timers after that.

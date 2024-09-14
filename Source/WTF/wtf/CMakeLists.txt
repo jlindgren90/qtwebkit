@@ -12,6 +12,7 @@ set(WTF_HEADERS
     BubbleSort.h
     BumpPointerAllocator.h
     ByteOrder.h
+    ClockType.h
     CompilationThread.h
     Compiler.h
     Condition.h
@@ -55,6 +56,8 @@ set(WTF_HEADERS
     IteratorRange.h
     ListHashSet.h
     Lock.h
+    LockAlgorithm.h
+    LockedPrintStream.h
     Locker.h
     MD5.h
     MainThread.h
@@ -64,6 +67,7 @@ set(WTF_HEADERS
     MessageQueue.h
     MetaAllocator.h
     MetaAllocatorHandle.h
+    MonotonicTime.h
     Noncopyable.h
     NumberOfCores.h
     OSAllocator.h
@@ -89,6 +93,7 @@ set(WTF_HEADERS
     RandomNumberSeed.h
     RangeSet.h
     RawPointer.h
+    RecursiveLockAdapter.h
     RedBlackTree.h
     Ref.h
     RefCounted.h
@@ -101,6 +106,7 @@ set(WTF_HEADERS
     SharedTask.h
     SaturatedArithmetic.h
     ScopedLambda.h
+    Seconds.h
     SegmentedVector.h
     SmallPtrSet.h
     StackBounds.h
@@ -116,6 +122,7 @@ set(WTF_HEADERS
     ThreadSpecific.h
     Threading.h
     ThreadingPrimitives.h
+    TimeWithDynamicClockType.h
     TinyPtrSet.h
     UniqueRef.h
     VMTags.h
@@ -124,6 +131,7 @@ set(WTF_HEADERS
     Vector.h
     VectorTraits.h
     WTFThreadData.h
+    WallTime.h
     WeakPtr.h
     WordLock.h
     WorkQueue.h
@@ -176,6 +184,7 @@ set(WTF_SOURCES
     Atomics.cpp
     AutomaticThread.cpp
     BitVector.cpp
+    ClockType.cpp
     CompilationThread.cpp
     CrossThreadCopier.cpp
     CryptographicUtilities.cpp
@@ -191,10 +200,12 @@ set(WTF_SOURCES
     GregorianDateTime.cpp
     HashTable.cpp
     Lock.cpp
+    LockedPrintStream.cpp
     MD5.cpp
     MainThread.cpp
     MediaTime.cpp
     MetaAllocator.cpp
+    MonotonicTime.cpp
     NumberOfCores.cpp
     OSRandomSource.cpp
     PageBlock.cpp
@@ -207,12 +218,15 @@ set(WTF_SOURCES
     RefCountedLeakCounter.cpp
     RunLoop.cpp
     SHA1.cpp
+    Seconds.cpp
     SixCharacterHash.cpp
     StackBounds.cpp
     StackStats.cpp
     StringPrintStream.cpp
     Threading.cpp
+    TimeWithDynamicClockType.cpp
     WTFThreadData.cpp
+    WallTime.cpp
     WordLock.cpp
     WorkQueue.cpp
     dtoa.cpp
@@ -235,6 +249,7 @@ set(WTF_SOURCES
     text/StringImpl.cpp
     text/StringStatics.cpp
     text/StringView.cpp
+    text/SymbolImpl.cpp
     text/SymbolRegistry.cpp
     text/TextBreakIterator.cpp
     text/WTFString.cpp

@@ -120,13 +120,15 @@ private:
         String mid;
     };
 
+    std::unique_ptr<RTCDataChannelHandler> createDataChannelHandler(const String&, const RTCDataChannelInit&) final;
+
     void prepareSession(OwrSession*, PeerMediaDescription*);
     void prepareMediaSession(OwrMediaSession*, PeerMediaDescription*, bool isInitiator);
 
     void ensureTransportAgentAndTransceivers(bool isInitiator, const Vector<TransceiverConfig>&);
     void internalAddRemoteCandidate(OwrSession*, const IceCandidate&, const String& ufrag, const String& password);
 
-    Optional<MediaEndpointConfiguration> m_configuration;
+    std::optional<MediaEndpointConfiguration> m_configuration;
     GRegex* m_helperServerRegEx;
 
     OwrTransportAgent* m_transportAgent;
