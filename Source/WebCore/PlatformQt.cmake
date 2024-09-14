@@ -74,6 +74,9 @@ list(APPEND WebCore_SOURCES
 
     platform/crypto/qt/CryptoDigestQt.cpp
 
+    platform/glib/EventLoopGlib.cpp
+    platform/glib/MainThreadSharedTimerGLib.cpp
+
     platform/graphics/ImageSource.cpp
     platform/graphics/PlatformDisplay.cpp
     platform/graphics/WOFFFileFormat.cpp
@@ -143,14 +146,12 @@ list(APPEND WebCore_SOURCES
     platform/qt/DataTransferItemQt.cpp
     platform/qt/DragDataQt.cpp
     platform/qt/DragImageQt.cpp
-    platform/qt/EventLoopQt.cpp
     platform/qt/FileSystemQt.cpp
     platform/qt/KeyedDecoderQt.cpp
     platform/qt/KeyedEncoderQt.cpp
     platform/qt/LanguageQt.cpp
     platform/qt/LocalizedStringsQt.cpp
     platform/qt/LoggingQt.cpp
-    platform/qt/MainThreadSharedTimerQt.cpp
     platform/qt/MIMETypeRegistryQt.cpp
     platform/qt/PasteboardQt.cpp
     platform/qt/PlatformKeyboardEventQt.cpp

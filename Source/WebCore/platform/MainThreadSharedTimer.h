@@ -30,7 +30,7 @@
 #include "SharedTimer.h"
 #include <wtf/NeverDestroyed.h>
 
-#if PLATFORM(GTK)
+#if USE(GLIB)
 #include <wtf/RunLoop.h>
 #endif
 
@@ -50,15 +50,11 @@ public:
     // need to call this from non-member functions at the moment.
     void fired();
 
-#if PLATFORM(QT)
-    bool hasFiredFunction() const { return bool(m_firedFunction); }
-#endif
-
 private:
     MainThreadSharedTimer();
 
     std::function<void()> m_firedFunction;
-#if PLATFORM(GTK)
+#if USE(GLIB)
     RunLoop::Timer<MainThreadSharedTimer> m_timer;
 #endif
 };

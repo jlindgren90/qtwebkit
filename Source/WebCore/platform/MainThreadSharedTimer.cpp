@@ -34,7 +34,7 @@ MainThreadSharedTimer& MainThreadSharedTimer::singleton()
     return instance;
 }
 
-#if !PLATFORM(GTK)
+#if !USE(GLIB)
 MainThreadSharedTimer::MainThreadSharedTimer()
 {
 }
