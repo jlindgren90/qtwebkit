@@ -199,11 +199,11 @@ void NotificationPresenterClientQt::displayNotification(Notification* notificati
     if (!wrapper->m_presenter) {
 #ifndef QT_NO_SYSTEMTRAYICON
         if (!dumpNotification)
-            wrapper->m_closeTimer.startOneShot(notificationTimeout);
+            wrapper->m_closeTimer.startOneShot(WTF::Seconds(notificationTimeout));
 #endif
     }
 
-    wrapper->m_displayEventTimer.startOneShot(0);
+    wrapper->m_displayEventTimer.startOneShot(WTF::Seconds(0));
 
     // Make sure the notification was not cancelled during handling the display event
     if (m_notifications.find(notification) == m_notifications.end())

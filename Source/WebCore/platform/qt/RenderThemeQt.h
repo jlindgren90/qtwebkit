@@ -87,7 +87,7 @@ public:
     int sliderTickOffsetFromTrackCenter() const override;
 #endif
 
-    double caretBlinkInterval() const override;
+    WTF::Seconds caretBlinkInterval() const override;
 
     bool isControlStyled(const RenderStyle&, const BorderData&, const FillLayer&, const Color&) const override;
 
@@ -121,7 +121,7 @@ protected:
 
     void adjustProgressBarStyle(StyleResolver&, RenderStyle&, const Element*) const override;
     // Returns the repeat interval of the animation for the progress bar.
-    double animationRepeatIntervalForProgressBar(RenderProgress&) const override;
+    WTF::Seconds animationRepeatIntervalForProgressBar(RenderProgress&) const override;
 
     void adjustSliderTrackStyle(StyleResolver&, RenderStyle&, const Element*) const override;
 

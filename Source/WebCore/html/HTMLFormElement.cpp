@@ -49,7 +49,6 @@
 #include "RadioNodeList.h"
 #include "RenderTextControl.h"
 #include "ScriptController.h"
-#include "SetForScope.h"
 #include "Settings.h"
 #include <limits>
 #include <wtf/Ref.h>

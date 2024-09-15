@@ -206,7 +206,7 @@ void ScrollbarThemeQStyle::invalidatePart(Scrollbar& scrollbar, ScrollbarPart)
     scrollbar.invalidate();
 }
 
-int ScrollbarThemeQStyle::scrollbarThickness(ScrollbarControlSize controlSize)
+int ScrollbarThemeQStyle::scrollbarThickness(ScrollbarControlSize controlSize, ScrollbarExpansionState)
 {
     const bool mini = controlSize != RegularScrollbar;
     return m_qStyle->scrollBarExtent(mini);

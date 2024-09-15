@@ -107,7 +107,7 @@ Color DragData::asColor() const
     return fromQColor(qvariant_cast<QColor>(m_platformDragData->colorData()));
 }
 
-bool DragData::containsCompatibleContent() const
+bool DragData::containsCompatibleContent(DraggingPurpose) const
 {
     if (!m_platformDragData)
         return false;

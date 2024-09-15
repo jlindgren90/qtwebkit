@@ -58,12 +58,12 @@ void setCookieStoragePrivateBrowsingEnabled(bool)
     notImplemented();
 }
 
-void startObservingCookieChanges(CookieChangeCallbackPtr)
+void startObservingCookieChanges(const NetworkStorageSession&, std::function<void ()>&&)
 {
     notImplemented();
 }
 
-void stopObservingCookieChanges()
+void stopObservingCookieChanges(const NetworkStorageSession&)
 {
     notImplemented();
 }

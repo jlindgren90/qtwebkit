@@ -770,6 +770,13 @@ RefPtr<SearchPopupMenu> ChromeClientQt::createSearchPopupMenu(PopupMenuClient& c
 
 void ChromeClientQt::attachViewOverlayGraphicsLayer(Frame&, GraphicsLayer*)
 {
+    notImplemented();
+}
+
+RefPtr<Icon> ChromeClientQt::createIconForFiles(const Vector<String>&)
+{
+    notImplemented();
+    return nullptr;
 }
 
 } // namespace WebCore

@@ -27,7 +27,6 @@
 #include "CSSParser.h"
 #include "Chrome.h"
 #include "ChromeClientQt.h"
-#include "ClientRect.h"
 #include "ContextMenu.h"
 #include "ContextMenuClientQt.h"
 #include "ContextMenuController.h"
@@ -399,7 +398,7 @@ bool QWebPageAdapter::findText(const QString& subString, FindFlag options)
         Frame* frame = page->mainFrame().tree().firstChild();
         while (frame) {
             frame->selection().clear();
-            frame = frame->tree().traverseNextWithWrap(false);
+            frame = frame->tree().traverseNext(CanWrap::No);
         }
     }
 
@@ -799,8 +798,7 @@ void QWebPageAdapter::dynamicPropertyChangeEvent(QObject* obj, QDynamicPropertyC
         }
     } else if (event->propertyName() == "_q_deadDecodedDataDeletionInterval") {
         double interval = obj->property("_q_deadDecodedDataDeletionInterval").toDouble();
-        MemoryCache::singleton().setDeadDecodedDataDeletionInterval(
-                std::chrono::milliseconds { static_cast<std::chrono::milliseconds::rep>(interval * 1000) });
+        MemoryCache::singleton().setDeadDecodedDataDeletionInterval(WTF::Seconds(interval));
     }  else if (event->propertyName() == "_q_useNativeVirtualKeyAsDOMKey") {
         m_useNativeVirtualKeyAsDOMKey = obj->property("_q_useNativeVirtualKeyAsDOMKey").toBool();
     }
@@ -1058,7 +1056,9 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
         updateNavigationActions();
         break;
     case Reload:
-        mainFrameAdapter().frame->loader().reload(endToEndReload);
+        mainFrameAdapter().frame->loader().reload(endToEndReload ?
+            WTF::OptionSet<ReloadOption>{ReloadOption::FromOrigin} :
+            WTF::OptionSet<ReloadOption>{});
         break;
 
     case SetTextDirectionDefault:

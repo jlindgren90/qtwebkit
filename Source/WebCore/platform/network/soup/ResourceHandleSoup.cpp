@@ -740,7 +740,7 @@ bool ResourceHandle::start()
                 ResourceResponse response(url, mimeType, data.size(), String());
                 me->client()->didReceiveResponse(me.get(), std::move(response));
                 me->client()->didReceiveData(me.get(), data.data(), data.size(), data.size());
-                me->client()->didFinishLoading(me.get(), 0);
+                me->client()->didFinishLoading(me.get());
             });
             return true;
         }

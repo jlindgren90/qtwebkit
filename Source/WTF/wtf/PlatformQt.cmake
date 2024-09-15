@@ -11,6 +11,11 @@ list(APPEND WTF_SOURCES
 
     text/qt/StringQt.cpp
     text/qt/TextBreakIteratorInternalICUQt.cpp
+
+    linux/CurrentProcessMemoryStatus.cpp
+    linux/MemoryPressureHandlerLinux.cpp
+
+    unix/CPUTimeUnix.cpp
 )
 
 list(APPEND WTF_SYSTEM_INCLUDE_DIRECTORIES

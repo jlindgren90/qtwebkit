@@ -53,7 +53,7 @@ public:
     int trackPosition(Scrollbar&) final;
     int trackLength(Scrollbar&) final;
 
-    int scrollbarThickness(ScrollbarControlSize = RegularScrollbar) final;
+    int scrollbarThickness(ScrollbarControlSize, ScrollbarExpansionState) final;
 
     QStyleFacade* qStyle() { return m_qStyle.get(); }
 

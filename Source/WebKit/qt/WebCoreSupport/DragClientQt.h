@@ -36,11 +36,10 @@ class DragClientQt : public DragClient {
 public:
     DragClientQt(ChromeClient* chromeClient) : m_chromeClient(chromeClient) { };
     void willPerformDragDestinationAction(DragDestinationAction, const DragData&) override;
-    DragDestinationAction actionMaskForDrag(const DragData&) override;
     void dragControllerDestroyed() override;
     DragSourceAction dragSourceActionMaskForPoint(const IntPoint&) override;
     void willPerformDragSourceAction(DragSourceAction, const IntPoint&, DataTransfer&) override;
-    void startDrag(DragImageRef, const IntPoint& dragImageOrigin, const IntPoint& eventPos, const FloatPoint&, DataTransfer&, Frame&, bool linkDrag = false) override;
+    void startDrag(DragImage, const IntPoint& dragImageOrigin, const IntPoint& eventPos, const FloatPoint&, DataTransfer&, Frame&, DragSourceAction) override;
 private:
     ChromeClient* m_chromeClient;
 };

@@ -49,7 +49,7 @@ public:
 #if USE(AUTOMATIC_TEXT_REPLACEMENT)
     void toggleSmartInsertDelete() override;
 #endif
-    bool isSelectTrailingWhitespaceEnabled() override;
+    bool isSelectTrailingWhitespaceEnabled() const override;
     bool isContinuousSpellCheckingEnabled() override;
     void toggleContinuousSpellChecking() override;
     bool isGrammarCheckingEnabled() override;

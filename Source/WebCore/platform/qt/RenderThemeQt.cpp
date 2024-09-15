@@ -401,14 +401,14 @@ void RenderThemeQt::adjustMenuListButtonStyle(StyleResolver&, RenderStyle& style
     setPopupPadding(style);
 }
 
-double RenderThemeQt::animationRepeatIntervalForProgressBar(RenderProgress& renderProgress) const
+WTF::Seconds RenderThemeQt::animationRepeatIntervalForProgressBar(RenderProgress& renderProgress) const
 {
     if (renderProgress.position() >= 0)
-        return 0;
+        return WTF::Seconds(0);
 
     // FIXME: Use hard-coded value until http://bugreports.qt.nokia.com/browse/QTBUG-9171 is fixed.
     // Use the value from windows style which is 10 fps.
-    return 0.1;
+    return WTF::Seconds(0.1);
 }
 
 void RenderThemeQt::adjustProgressBarStyle(StyleResolver&, RenderStyle& style, const Element*) const
@@ -904,9 +904,9 @@ void RenderThemeQt::adjustSliderThumbSize(RenderStyle& style, const Element*) co
     }
 }
 
-double RenderThemeQt::caretBlinkInterval() const
+WTF::Seconds RenderThemeQt::caretBlinkInterval() const
 {
-    return static_cast<QGuiApplication*>(qApp)->styleHints()->cursorFlashTime() / 1000.0 / 2.0;
+    return WTF::Seconds(qGuiApp->styleHints()->cursorFlashTime() / 1000.0 / 2.0);
 }
 
 String RenderThemeQt::fileListNameForWidth(const FileList* fileList, const FontCascade& font, int width, bool multipleFilesAllowed) const
@@ -938,8 +938,8 @@ void RenderThemeQt::updateCachedSystemFontDescription(CSSValueID, FontCascadeDes
     fontDescription.setOneFamily(String(fi.family()));
     fontDescription.setSpecifiedSize(fi.pixelSize());
     fontDescription.setIsAbsoluteSize(true);
-    fontDescription.setWeight((fi.bold() ? FontWeightBold : FontWeightNormal));
-    fontDescription.setItalic(fi.italic() ? FontItalicOn : FontItalicOff);
+    fontDescription.setWeight((fi.bold() ? boldWeightValue() : normalWeightValue()));
+    fontDescription.setIsItalic(fi.italic());
 }
 
 StylePainter::StylePainter(GraphicsContext& context)

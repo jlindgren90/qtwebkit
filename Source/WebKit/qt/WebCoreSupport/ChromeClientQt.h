@@ -197,6 +197,8 @@ public:
 
     QWebFullScreenVideoHandler* createFullScreenVideoHandler();
 
+    RefPtr<Icon> createIconForFiles(const Vector<String>&) override;
+
     QWebPageAdapter* m_webPage;
     URL lastHoverURL;
     String lastHoverTitle;

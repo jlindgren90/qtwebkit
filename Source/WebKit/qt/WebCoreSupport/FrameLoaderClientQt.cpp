@@ -1292,7 +1292,7 @@ RefPtr<Widget> FrameLoaderClientQt::createPlugin(const IntSize& pluginSize, HTML
     return nullptr;
 }
 
-void FrameLoaderClientQt::redirectDataToPlugin(Widget* pluginWidget)
+void FrameLoaderClientQt::redirectDataToPlugin(Widget& pluginWidget)
 {
     // stub
 }

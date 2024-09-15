@@ -236,9 +236,11 @@ void QWebSettingsPrivate::apply()
                                       global->attributes.value(QWebSettings::PrintElementBackgrounds));
         settings->setShouldPrintBackgrounds(value);
 
+#if 0 // FIXME
         value = attributes.value(QWebSettings::OfflineStorageDatabaseEnabled,
                                       global->attributes.value(QWebSettings::OfflineStorageDatabaseEnabled));
         settings->setOfflineStorageDatabaseEnabled(value);
+#endif
 
         value = attributes.value(QWebSettings::OfflineWebApplicationCacheEnabled,
                                       global->attributes.value(QWebSettings::OfflineWebApplicationCacheEnabled));
@@ -939,8 +941,8 @@ void QWebSettings::setObjectCacheCapacities(int cacheMinDeadCapacity, int cacheM
     memoryCache.setCapacities(qMax(0, cacheMinDeadCapacity),
                               qMax(0, cacheMaxDead),
                               qMax(0, totalCapacity));
-    memoryCache.setDeadDecodedDataDeletionInterval(disableCache ? std::chrono::seconds{0}
-                                                                : std::chrono::seconds{60});
+    memoryCache.setDeadDecodedDataDeletionInterval(disableCache ? WTF::Seconds(0)
+                                                                : WTF::Seconds(60));
 }
 
 /*!

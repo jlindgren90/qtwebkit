@@ -71,7 +71,12 @@ DragImageRef createDragImageFromImage(Image* image, ImageOrientationDescription)
 
 DragImageRef createDragImageIconForCachedImageFilename(const String&)
 {
-    return 0;
+    return nullptr;
+}
+
+DragImageRef createDragImageForLink(Element&, URL&, const String&, TextIndicatorData&, FontRenderingMode, float)
+{
+    return nullptr;
 }
 
 }

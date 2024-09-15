@@ -25,6 +25,7 @@
 #include "Chrome.h"
 #include "ChromeClientQt.h"
 #include "DocumentLoader.h"
+#include "Editing.h"
 #include "EventHandler.h"
 #include "FocusController.h"
 #include "FrameLoadRequest.h"
@@ -54,7 +55,6 @@
 #include "TiledBackingStore.h"
 #endif
 #include "URL.h"
-#include "htmlediting.h"
 #include "markup.h"
 #include "qt_runtime.h"
 #include "qwebsecurityorigin.h"

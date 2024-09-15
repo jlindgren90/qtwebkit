@@ -206,7 +206,7 @@ void EditorClientQt::respondToChangedSelection(Frame* frame)
         Pasteboard::createForGlobalSelection()->writeSelection(*frame->selection().toNormalizedRange().get(), frame->editor().canSmartCopyOrDelete(), *frame);
 
     m_page->respondToChangedSelection();
-    if (!frame->editor().ignoreCompositionSelectionChange())
+    if (!frame->editor().ignoreSelectionChanges())
         emit m_page->microFocusChanged();
 }
 
@@ -330,7 +330,7 @@ void EditorClientQt::toggleSmartInsertDelete()
 }
 #endif
 
-bool EditorClientQt::isSelectTrailingWhitespaceEnabled()
+bool EditorClientQt::isSelectTrailingWhitespaceEnabled() const
 {
     Page* page = m_page->page;
     if (!page)

@@ -464,7 +464,8 @@ double RenderThemeQStyle::animationDurationForProgressBar(RenderProgress& render
     QSize size = toQSize(roundedIntSize(renderProgress.size()));
     // FIXME: Until http://bugreports.qt.nokia.com/browse/QTBUG-9171 is fixed,
     // we simulate one square animating across the progress bar.
-    return (size.width() / m_qStyle->progressBarChunkWidth(size)) * animationRepeatIntervalForProgressBar(renderProgress);
+    return (size.width() / m_qStyle->progressBarChunkWidth(size))
+        * animationRepeatIntervalForProgressBar(renderProgress).seconds();
 }
 
 bool RenderThemeQStyle::paintProgressBar(const RenderObject& o, const PaintInfo& pi, const IntRect& r)

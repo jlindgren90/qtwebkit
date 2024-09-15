@@ -855,7 +855,8 @@ double RenderThemeQtMobile::animationDurationForProgressBar(RenderProgress& rend
         return 0;
     // Our animation goes back and forth so we need to make it last twice as long
     // and we need the numerator to be an odd number to ensure we get a progress value of 0.5.
-    return (2 * progressAnimationGranularity +1) / progressBarChunkPercentage * animationRepeatIntervalForProgressBar(renderProgress);
+    return (2 * progressAnimationGranularity + 1) / progressBarChunkPercentage
+        * animationRepeatIntervalForProgressBar(renderProgress).seconds();
 }
 
 bool RenderThemeQtMobile::paintProgressBar(const RenderObject& o, const PaintInfo& pi, const IntRect& r)
