@@ -42,17 +42,17 @@
 #import "WebSecurityOriginPrivate.h"
 #import "WebUIDelegatePrivate.h"
 #import "WebViewInternal.h"
-#import <algorithm>
-#import <bindings/ScriptValue.h>
-#import <inspector/InspectorAgentBase.h>
 #import <WebCore/InspectorController.h>
 #import <WebCore/InspectorFrontendClient.h>
 #import <WebCore/MainFrame.h>
 #import <WebCore/Page.h>
 #import <WebCore/ScriptController.h>
-#import <WebCore/SoftLinking.h>
 #import <WebKitLegacy/DOMExtensions.h>
 #import <WebKitSystemInterface.h>
+#import <algorithm>
+#import <bindings/ScriptValue.h>
+#import <inspector/InspectorAgentBase.h>
+#import <wtf/SoftLinking.h>
 #import <wtf/text/Base64.h>
 
 SOFT_LINK_STAGED_FRAMEWORK(WebInspectorUI, PrivateFrameworks, A)
@@ -218,9 +218,7 @@ void WebInspectorFrontendClient::frontendLoaded()
 
 void WebInspectorFrontendClient::startWindowDrag()
 {
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     [[m_frontendWindowController window] performWindowDragWithEvent:[NSApp currentEvent]];
-#endif
 }
 
 String WebInspectorFrontendClient::localizedStringsURL()
@@ -473,12 +471,10 @@ void WebInspectorFrontendClient::append(const String& suggestedURL, const String
     [window setMinSize:NSMakeSize(minimumWindowWidth, minimumWindowHeight)];
     [window setCollectionBehavior:([window collectionBehavior] | NSWindowCollectionBehaviorFullScreenPrimary)];
 
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     CGFloat approximatelyHalfScreenSize = (window.screen.frame.size.width / 2) - 4;
     CGFloat minimumFullScreenWidth = std::max<CGFloat>(636, approximatelyHalfScreenSize);
     [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
     [window setCollectionBehavior:([window collectionBehavior] | NSWindowCollectionBehaviorFullScreenAllowsTiling)];
-#endif
 
     window.titlebarAppearsTransparent = YES;
 

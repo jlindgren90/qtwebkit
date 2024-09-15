@@ -48,7 +48,7 @@ protected:
     bool layerTreeStateIsFrozen() const override { return m_layerTreeStateIsFrozen; }
     LayerTreeHost* layerTreeHost() const override { return m_layerTreeHost.get(); }
     void forceRepaint() override;
-    bool forceRepaintAsync(uint64_t callbackID) override;
+    bool forceRepaintAsync(CallbackID) override;
 
     void setPaintingEnabled(bool) override;
     void updatePreferences(const WebPreferencesStore&) override;
@@ -68,13 +68,14 @@ protected:
     void destroyNativeSurfaceHandleForCompositing(bool&) override;
 #endif
 
-    void activityStateDidChange(WebCore::ActivityState::Flags, bool /* wantsDidUpdateActivityState */, const Vector<uint64_t>& /* callbackIDs */) override;
+    void activityStateDidChange(WebCore::ActivityState::Flags, bool /* wantsDidUpdateActivityState */, const Vector<CallbackID>& /* callbackIDs */) override;
     void attachViewOverlayGraphicsLayer(WebCore::Frame*, WebCore::GraphicsLayer*) override;
 
     void layerHostDidFlushLayers() override;
 
-#if USE(COORDINATED_GRAPHICS_THREADED)
+#if USE(COORDINATED_GRAPHICS)
     void didChangeViewportAttributes(WebCore::ViewportAttributes&&) override;
+    void resetUpdateAtlasForTesting() override;
 #endif
 
 #if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)

@@ -30,6 +30,7 @@
 #include "GraphicsTypes3D.h"
 
 #include "AudioTrackPrivate.h"
+#include "ContentType.h"
 #include "LegacyCDMSession.h"
 #include "InbandTextTrackPrivate.h"
 #include "IntRect.h"
@@ -45,6 +46,7 @@
 #include "VideoTrackPrivate.h"
 #include <runtime/Uint8Array.h>
 #include <wtf/Forward.h>
+#include <wtf/Function.h>
 #include <wtf/HashSet.h>
 #include <wtf/MediaTime.h>
 #include <wtf/Noncopyable.h>
@@ -109,11 +111,11 @@ struct MediaEngineSupportParameters {
 
     MediaEngineSupportParameters() { }
 
-    String type;
-    String codecs;
+    ContentType type;
     URL url;
     bool isMediaSource { false };
     bool isMediaStream { false };
+    Vector<ContentType> contentTypesRequiringHardwareSupport;
 };
 
 extern const PlatformMedia NoPlatformMedia;
@@ -273,6 +275,7 @@ public:
 #endif
 
     virtual bool mediaPlayerShouldDisableSleep() const { return false; }
+    virtual const Vector<ContentType>& mediaContentTypesRequiringHardwareSupport() const;
 };
 
 class MediaPlayerSupportsTypeClient {
@@ -301,6 +304,7 @@ public:
     static void clearMediaCacheForOrigins(const String& path, const HashSet<RefPtr<SecurityOrigin>>&);
     static bool supportsKeySystem(const String& keySystem, const String& mimeType);
 
+    bool supportsPictureInPicture() const;
     bool supportsFullscreen() const;
     bool supportsScanning() const;
     bool canSaveMediaData() const;
@@ -310,7 +314,7 @@ public:
     PlatformLayer* platformLayer() const;
 
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-    void setVideoFullscreenLayer(PlatformLayer*, std::function<void()> completionHandler = [] { });
+    void setVideoFullscreenLayer(PlatformLayer*, WTF::Function<void()>&& completionHandler = [] { });
     void setVideoFullscreenFrame(FloatRect);
     using MediaPlayerEnums::VideoGravity;
     void setVideoFullscreenGravity(VideoGravity);
@@ -385,6 +389,9 @@ public:
     std::unique_ptr<PlatformTimeRanges> seekable();
     MediaTime minTimeSeekable();
     MediaTime maxTimeSeekable();
+
+    double seekableTimeRangesLastModifiedTime();
+    double liveUpdateInterval();
 
     bool didLoadingProgress();
 
@@ -528,7 +535,7 @@ public:
     long platformErrorCode() const;
 
     CachedResourceLoader* cachedResourceLoader();
-    PassRefPtr<PlatformMediaResourceLoader> createResourceLoader();
+    RefPtr<PlatformMediaResourceLoader> createResourceLoader();
 
 #if ENABLE(VIDEO_TRACK)
     void addAudioTrack(AudioTrackPrivate&);
@@ -582,9 +589,11 @@ public:
     void setShouldDisableSleep(bool);
     bool shouldDisableSleep() const;
 
-    const String& contentMIMEType() const { return m_contentMIMEType; }
-    const String& contentTypeCodecs() const { return m_contentTypeCodecs; }
+    String contentMIMEType() const { return m_contentType.containerType(); }
+    String contentTypeCodecs() const { return m_contentType.parameter(ContentType::codecsParameter()); }
     bool contentMIMETypeWasInferredFromExtension() const { return m_contentMIMETypeWasInferredFromExtension; }
+
+    const Vector<ContentType>& mediaContentTypesRequiringHardwareSupport() const;
 
 private:
     MediaPlayer(MediaPlayerClient&);
@@ -598,8 +607,7 @@ private:
     std::unique_ptr<MediaPlayerPrivateInterface> m_private;
     const MediaPlayerFactory* m_currentMediaEngine;
     URL m_url;
-    String m_contentMIMEType;
-    String m_contentTypeCodecs;
+    ContentType m_contentType;
     String m_keySystem;
     IntSize m_size;
     Preload m_preload;
@@ -620,7 +628,7 @@ private:
 #endif
 };
 
-typedef std::function<std::unique_ptr<MediaPlayerPrivateInterface> (MediaPlayer*)> CreateMediaEnginePlayer;
+using CreateMediaEnginePlayer = WTF::Function<std::unique_ptr<MediaPlayerPrivateInterface> (MediaPlayer*)>;
 typedef void (*MediaEngineSupportedTypes)(HashSet<String, ASCIICaseInsensitiveHash>& types);
 typedef MediaPlayer::SupportsType (*MediaEngineSupportsType)(const MediaEngineSupportParameters& parameters);
 typedef HashSet<RefPtr<SecurityOrigin>> (*MediaEngineOriginsInMediaCache)(const String& path);
@@ -628,7 +636,7 @@ typedef void (*MediaEngineClearMediaCache)(const String& path, std::chrono::syst
 typedef void (*MediaEngineClearMediaCacheForOrigins)(const String& path, const HashSet<RefPtr<SecurityOrigin>>&);
 typedef bool (*MediaEngineSupportsKeySystem)(const String& keySystem, const String& mimeType);
 
-typedef void (*MediaEngineRegistrar)(CreateMediaEnginePlayer, MediaEngineSupportedTypes, MediaEngineSupportsType,
+typedef void (*MediaEngineRegistrar)(CreateMediaEnginePlayer&&, MediaEngineSupportedTypes, MediaEngineSupportsType,
     MediaEngineOriginsInMediaCache, MediaEngineClearMediaCache, MediaEngineClearMediaCacheForOrigins, MediaEngineSupportsKeySystem);
 typedef void (*MediaEngineRegister)(MediaEngineRegistrar);
 

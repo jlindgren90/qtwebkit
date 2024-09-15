@@ -31,6 +31,7 @@
 #include "CSSFontFamily.h"
 #include "CSSFontValue.h"
 #include "CSSGradientValue.h"
+#include "CSSGridTemplateAreasValue.h"
 #include "CSSShadowValue.h"
 #include "Counter.h"
 #include "CounterContent.h"
@@ -41,7 +42,6 @@
 #include "Frame.h"
 #include "HTMLElement.h"
 #include "Rect.h"
-#include "RenderTheme.h"
 #include "SVGElement.h"
 #include "SVGRenderStyle.h"
 #include "StyleBuilderConverter.h"
@@ -81,6 +81,7 @@ public:
     DECLARE_PROPERTY_CUSTOM_HANDLERS(Fill);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(FontFamily);
     DECLARE_PROPERTY_CUSTOM_HANDLERS(FontSize);
+    DECLARE_PROPERTY_CUSTOM_HANDLERS(FontStyle);
 #if ENABLE(CSS_IMAGE_RESOLUTION)
     DECLARE_PROPERTY_CUSTOM_HANDLERS(ImageResolution);
 #endif
@@ -721,7 +722,7 @@ inline void StyleBuilderCustom::applyValueWebkitLocale(StyleResolver& styleResol
 
     FontCascadeDescription fontDescription = styleResolver.style()->fontDescription();
     if (primitiveValue.valueID() == CSSValueAuto)
-        fontDescription.setLocale(nullAtom);
+        fontDescription.setLocale(nullAtom());
     else
         fontDescription.setLocale(primitiveValue.stringValue());
     styleResolver.setFontDescription(fontDescription);
@@ -1054,7 +1055,7 @@ inline void StyleBuilderCustom::applyValueWebkitTextEmphasisStyle(StyleResolver&
             else
                 styleResolver.style()->setTextEmphasisMark(value);
         }
-        styleResolver.style()->setTextEmphasisCustomMark(nullAtom);
+        styleResolver.style()->setTextEmphasisCustomMark(nullAtom());
         return;
     }
 
@@ -1066,7 +1067,7 @@ inline void StyleBuilderCustom::applyValueWebkitTextEmphasisStyle(StyleResolver&
         return;
     }
 
-    styleResolver.style()->setTextEmphasisCustomMark(nullAtom);
+    styleResolver.style()->setTextEmphasisCustomMark(nullAtom());
 
     if (primitiveValue.valueID() == CSSValueFilled || primitiveValue.valueID() == CSSValueOpen) {
         styleResolver.style()->setTextEmphasisFill(primitiveValue);
@@ -1384,9 +1385,9 @@ inline void StyleBuilderCustom::applyValueContent(StyleResolver& styleResolver, 
                 styleResolver.style()->setHasAttrContent();
             else
                 const_cast<RenderStyle*>(styleResolver.parentStyle())->setHasAttrContent();
-            QualifiedName attr(nullAtom, contentValue.stringValue().impl(), nullAtom);
+            QualifiedName attr(nullAtom(), contentValue.stringValue().impl(), nullAtom());
             const AtomicString& value = styleResolver.element()->getAttribute(attr);
-            styleResolver.style()->setContent(value.isNull() ? emptyAtom : value.impl(), didSet);
+            styleResolver.style()->setContent(value.isNull() ? emptyAtom() : value.impl(), didSet);
             didSet = true;
             // Register the fact that the attribute value affects the style.
             styleResolver.ruleSets().mutableFeatures().attributeCanonicalLocalNamesInRules.add(attr.localName().impl());
@@ -1582,6 +1583,31 @@ inline float StyleBuilderCustom::determineRubyTextSizeMultiplier(StyleResolver& 
     return 0.25f;
 }
 
+inline void StyleBuilderCustom::applyInitialFontStyle(StyleResolver& styleResolver)
+{
+    auto fontDescription = styleResolver.fontDescription();
+    fontDescription.setItalic(FontCascadeDescription::initialItalic());
+    fontDescription.setFontStyleAxis(FontCascadeDescription::initialFontStyleAxis());
+    styleResolver.setFontDescription(fontDescription);
+}
+
+inline void StyleBuilderCustom::applyInheritFontStyle(StyleResolver& styleResolver)
+{
+    auto fontDescription = styleResolver.fontDescription();
+    fontDescription.setItalic(styleResolver.parentFontDescription().italic());
+    fontDescription.setFontStyleAxis(styleResolver.parentFontDescription().fontStyleAxis());
+    styleResolver.setFontDescription(fontDescription);
+}
+
+inline void StyleBuilderCustom::applyValueFontStyle(StyleResolver& styleResolver, CSSValue& value)
+{
+    auto& fontStyleValue = downcast<CSSFontStyleValue>(value);
+    auto fontDescription = styleResolver.fontDescription();
+    fontDescription.setItalic(StyleBuilderConverter::convertFontStyleFromValue(fontStyleValue));
+    fontDescription.setFontStyleAxis(fontStyleValue.fontStyleValue->valueID() == CSSValueItalic ? FontStyleAxis::ital : FontStyleAxis::slnt);
+    styleResolver.setFontDescription(fontDescription);
+}
+
 inline void StyleBuilderCustom::applyValueFontSize(StyleResolver& styleResolver, CSSValue& value)
 {
     auto fontDescription = styleResolver.style()->fontDescription();
@@ -1757,15 +1783,15 @@ void StyleBuilderCustom::applyValueAlt(StyleResolver& styleResolver, CSSValue& v
         else
             const_cast<RenderStyle*>(styleResolver.parentStyle())->setUnique();
 
-        QualifiedName attr(nullAtom, primitiveValue.stringValue(), nullAtom);
+        QualifiedName attr(nullAtom(), primitiveValue.stringValue(), nullAtom());
         const AtomicString& value = styleResolver.element()->getAttribute(attr);
-        styleResolver.style()->setContentAltText(value.isNull() ? emptyAtom : value);
+        styleResolver.style()->setContentAltText(value.isNull() ? emptyAtom() : value);
 
         // Register the fact that the attribute value affects the style.
         styleResolver.ruleSets().mutableFeatures().attributeCanonicalLocalNamesInRules.add(attr.localName().impl());
         styleResolver.ruleSets().mutableFeatures().attributeLocalNamesInRules.add(attr.localName().impl());
     } else
-        styleResolver.style()->setContentAltText(emptyAtom);
+        styleResolver.style()->setContentAltText(emptyAtom());
 }
 
 inline void StyleBuilderCustom::applyValueWillChange(StyleResolver& styleResolver, CSSValue& value)

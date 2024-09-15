@@ -26,6 +26,7 @@
 #include "config.h"
 #include "JSFunction.h"
 
+#include "BuiltinNames.h"
 #include "ClonedArguments.h"
 #include "CodeBlock.h"
 #include "CommonIdentifiers.h"
@@ -55,7 +56,7 @@ EncodedJSValue JSC_HOST_CALL callHostFunctionAsConstructor(ExecState* exec)
     return throwVMError(exec, scope, createNotAConstructorError(exec, exec->jsCallee()));
 }
 
-const ClassInfo JSFunction::s_info = { "Function", &Base::s_info, 0, CREATE_METHOD_TABLE(JSFunction) };
+const ClassInfo JSFunction::s_info = { "Function", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(JSFunction) };
 
 bool JSFunction::isHostFunctionNonInline() const
 {

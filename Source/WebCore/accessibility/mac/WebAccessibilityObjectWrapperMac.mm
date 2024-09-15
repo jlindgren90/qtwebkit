@@ -65,6 +65,7 @@
 #import "Page.h"
 #import "PluginDocument.h"
 #import "PluginViewBase.h"
+#import "RenderInline.h"
 #import "RenderTextControl.h"
 #import "RenderView.h"
 #import "RenderWidget.h"
@@ -190,6 +191,10 @@ using namespace HTMLNames;
 
 #ifndef NSAccessibilityDatetimeValueAttribute
 #define NSAccessibilityDatetimeValueAttribute @"AXDateTimeValue"
+#endif
+
+#ifndef NSAccessibilityInlineTextAttribute
+#define NSAccessibilityInlineTextAttribute @"AXInlineText"
 #endif
 
 #ifndef NSAccessibilityDropEffectsAttribute
@@ -676,18 +681,30 @@ static CharacterOffset characterOffsetForTextMarker(AXObjectCache* cache, CFType
 static id textMarkerForVisiblePosition(AXObjectCache* cache, const VisiblePosition& visiblePos)
 {
     ASSERT(cache);
-    
-    TextMarkerData textMarkerData;
-    cache->textMarkerDataForVisiblePosition(textMarkerData, visiblePos);
-    if (!textMarkerData.axID)
+
+    auto textMarkerData = cache->textMarkerDataForVisiblePosition(visiblePos);
+    if (!textMarkerData)
         return nil;
-    
-    return CFBridgingRelease(wkCreateAXTextMarker(&textMarkerData, sizeof(textMarkerData)));
+
+    return CFBridgingRelease(wkCreateAXTextMarker(&textMarkerData.value(), sizeof(textMarkerData.value())));
 }
 
 - (id)textMarkerForVisiblePosition:(const VisiblePosition &)visiblePos
 {
     return textMarkerForVisiblePosition(m_object->axObjectCache(), visiblePos);
+}
+
+- (id)textMarkerForFirstPositionInTextControl:(HTMLTextFormControlElement &)textControl
+{
+    auto *cache = m_object->axObjectCache();
+    if (!cache)
+        return nil;
+
+    auto textMarkerData = cache->textMarkerDataForFirstPositionInTextControl(textControl);
+    if (!textMarkerData)
+        return nil;
+
+    return CFBridgingRelease(wkCreateAXTextMarker(&textMarkerData.value(), sizeof(textMarkerData.value())));
 }
 
 static VisiblePosition visiblePositionForTextMarker(AXObjectCache* cache, CFTypeRef textMarker)
@@ -824,7 +841,7 @@ static void AXAttributeStringSetStyle(NSMutableAttributedString* attrString, Ren
     
     // set shadow
     if (style.textShadow())
-        AXAttributeStringSetNumber(attrString, NSAccessibilityShadowTextAttribute, [NSNumber numberWithBool:YES], range);
+        AXAttributeStringSetNumber(attrString, NSAccessibilityShadowTextAttribute, @YES, range);
     else
         [attrString removeAttribute:NSAccessibilityShadowTextAttribute range:range];
     
@@ -845,12 +862,12 @@ static void AXAttributeStringSetStyle(NSMutableAttributedString* attrString, Ren
         auto decorationStyles = TextDecorationPainter::stylesForRenderer(*renderer, decor);
 
         if ((decor & TextDecorationUnderline) != 0) {
-            AXAttributeStringSetNumber(attrString, NSAccessibilityUnderlineTextAttribute, [NSNumber numberWithBool:YES], range);
+            AXAttributeStringSetNumber(attrString, NSAccessibilityUnderlineTextAttribute, @YES, range);
             AXAttributeStringSetColor(attrString, NSAccessibilityUnderlineColorTextAttribute, nsColor(decorationStyles.underlineColor), range);
         }
         
         if ((decor & TextDecorationLineThrough) != 0) {
-            AXAttributeStringSetNumber(attrString, NSAccessibilityStrikethroughTextAttribute, [NSNumber numberWithBool:YES], range);
+            AXAttributeStringSetNumber(attrString, NSAccessibilityStrikethroughTextAttribute, @YES, range);
             AXAttributeStringSetColor(attrString, NSAccessibilityStrikethroughColorTextAttribute, nsColor(decorationStyles.linethroughColor), range);
         }
     }
@@ -858,7 +875,7 @@ static void AXAttributeStringSetStyle(NSMutableAttributedString* attrString, Ren
     // Indicate background highlighting.
     for (Node* node = renderer->node(); node; node = node->parentNode()) {
         if (node->hasTagName(markTag))
-            AXAttributeStringSetNumber(attrString, @"AXHighlight", [NSNumber numberWithBool:YES], range);
+            AXAttributeStringSetNumber(attrString, @"AXHighlight", @YES, range);
     }
 }
 
@@ -887,12 +904,11 @@ static void AXAttributeStringSetSpelling(NSMutableAttributedString* attrString, 
         checkTextOfParagraph(*checker, text, TextCheckingTypeSpelling, results, node->document().frame()->selection().selection());
         
         size_t size = results.size();
-        NSNumber* trueValue = [NSNumber numberWithBool:YES];
         for (unsigned i = 0; i < size; i++) {
             const TextCheckingResult& result = results[i];
-            AXAttributeStringSetNumber(attrString, NSAccessibilityMisspelledTextAttribute, trueValue, NSMakeRange(result.location + range.location, result.length));
+            AXAttributeStringSetNumber(attrString, NSAccessibilityMisspelledTextAttribute, @YES, NSMakeRange(result.location + range.location, result.length));
 #if PLATFORM(MAC)
-            AXAttributeStringSetNumber(attrString, NSAccessibilityMarkedMisspelledTextAttribute, trueValue, NSMakeRange(result.location + range.location, result.length));
+            AXAttributeStringSetNumber(attrString, NSAccessibilityMarkedMisspelledTextAttribute, @YES, NSMakeRange(result.location + range.location, result.length));
 #endif
         }
         return;
@@ -906,9 +922,9 @@ static void AXAttributeStringSetSpelling(NSMutableAttributedString* attrString, 
             break;
         
         NSRange spellRange = NSMakeRange(range.location + currentPosition + misspellingLocation, misspellingLength);
-        AXAttributeStringSetNumber(attrString, NSAccessibilityMisspelledTextAttribute, [NSNumber numberWithBool:YES], spellRange);
+        AXAttributeStringSetNumber(attrString, NSAccessibilityMisspelledTextAttribute, @YES, spellRange);
 #if PLATFORM(MAC)
-        AXAttributeStringSetNumber(attrString, NSAccessibilityMarkedMisspelledTextAttribute, [NSNumber numberWithBool:YES], spellRange);
+        AXAttributeStringSetNumber(attrString, NSAccessibilityMarkedMisspelledTextAttribute, @YES, spellRange);
 #endif
 
         currentPosition += misspellingLocation + misspellingLength;
@@ -1944,6 +1960,7 @@ static const AccessibilityRoleMap& createAccessibilityRoleMap()
         { TimeRole, NSAccessibilityGroupRole },
         { FeedRole, NSAccessibilityGroupRole },
         { FigureRole, NSAccessibilityGroupRole },
+        { FootnoteRole, NSAccessibilityGroupRole },
     };
     AccessibilityRoleMap& roleMap = *new AccessibilityRoleMap;
     
@@ -2060,6 +2077,7 @@ static NSString* roleValueToNSString(AccessibilityRole value)
         case ApplicationGroupRole:
         case ApplicationTextGroupRole:
         case FeedRole:
+        case FootnoteRole:
             return @"AXApplicationGroup";
         case ApplicationLogRole:
             return @"AXApplicationLog";
@@ -2207,7 +2225,7 @@ static NSString* roleValueToNSString(AccessibilityRole value)
 #pragma clang diagnostic pop
 
     const AtomicString& overrideRoleDescription = m_object->roleDescription();
-    if (!overrideRoleDescription.isNull())
+    if (!overrideRoleDescription.isNull() && !overrideRoleDescription.isEmpty())
         return overrideRoleDescription;
     
     NSString* axRole = [self role];
@@ -2911,7 +2929,7 @@ static NSString* roleValueToNSString(AccessibilityRole value)
     if ([attributeName isEqualToString:NSAccessibilityDisclosingAttribute])
         return [NSNumber numberWithBool:m_object->isExpanded()];
     
-    if ((m_object->isListBox() || m_object->isList()) && [attributeName isEqualToString:NSAccessibilityOrientationAttribute])
+    if (m_object->isList() && [attributeName isEqualToString:NSAccessibilityOrientationAttribute])
         return NSAccessibilityVerticalOrientationValue;
     
     if ([attributeName isEqualToString: @"AXSelectedTextMarkerRange"])
@@ -3055,7 +3073,10 @@ static NSString* roleValueToNSString(AccessibilityRole value)
 
     if ([attributeName isEqualToString:NSAccessibilityDatetimeValueAttribute])
         return m_object->datetimeAttributeValue();
-
+    
+    if ([attributeName isEqualToString:NSAccessibilityInlineTextAttribute])
+        return @(m_object->renderer() && is<RenderInline>(m_object->renderer()));
+    
     // ARIA Live region attributes.
     if ([attributeName isEqualToString:NSAccessibilityARIALiveAttribute])
         return m_object->ariaLiveRegionStatus();
@@ -3440,6 +3461,9 @@ static NSString* roleValueToNSString(AccessibilityRole value)
 
 - (void)accessibilityShowContextMenu
 {
+    if (!m_object)
+        return;
+    
     Page* page = m_object->page();
     if (!page)
         return;
@@ -4268,3 +4292,4 @@ static void formatForDebugger(const VisiblePositionRange& range, char* buffer, u
 @end
 
 #endif // HAVE(ACCESSIBILITY)
+

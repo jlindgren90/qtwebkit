@@ -29,6 +29,7 @@
 #if PLATFORM(MAC)
 
 #import "APILegacyContextHistoryClient.h"
+#import "AttributedString.h"
 #import "ColorSpaceData.h"
 #import "FullscreenClient.h"
 #import "GenericCallback.h"
@@ -86,7 +87,6 @@
 #import <WebCore/NSTouchBarSPI.h>
 #import <WebCore/NSWindowSPI.h>
 #import <WebCore/PlatformEventFactoryMac.h>
-#import <WebCore/SoftLinking.h>
 #import <WebCore/TextAlternativeWithRange.h>
 #import <WebCore/TextUndoInsertionMarkupMac.h>
 #import <WebCore/WebActionDisablingCALayerDelegate.h>
@@ -99,6 +99,7 @@
 #import <sys/stat.h>
 #import <wtf/NeverDestroyed.h>
 #import <wtf/SetForScope.h>
+#import <wtf/SoftLinking.h>
 
 #if HAVE(TOUCH_BAR) && ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
 SOFT_LINK_FRAMEWORK(AVKit)
@@ -674,6 +675,9 @@ static const NSUInteger orderedListSegment = 2;
         colorPickerItem.target = self;
         colorPickerItem.action = @selector(_wkChangeColor:);
         colorPickerItem.showsAlpha = NO;
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+        colorPickerItem.allowedColorSpaces = @[ [NSColorSpace sRGBColorSpace] ];
+#endif
     }
 
     return item;
@@ -915,7 +919,11 @@ NSCandidateListTouchBarItem *WebViewImpl::candidateListTouchBarItem() const
 }
 
 #if ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
 AVTouchBarScrubber *WebViewImpl::mediaPlaybackControlsView() const
+#else
+AVFunctionBarScrubber *WebViewImpl::mediaPlaybackControlsView() const
+#endif
 {
     if (m_page->hasActiveVideoForControlsManager())
         return m_mediaPlaybackControlsView.get();
@@ -1344,6 +1352,8 @@ NSWindow *WebViewImpl::window()
 
 void WebViewImpl::processDidExit()
 {
+    dismissContentRelativeChildWindowsWithAnimation(true);
+
     notifyInputContextAboutDiscardedComposition();
 
     if (m_layerHostingView)
@@ -1597,9 +1607,6 @@ void WebViewImpl::updateLayer()
     // udpate response if setFrameSize is called.
     if (frameSizeUpdatesDisabled())
         return;
-
-    if (DrawingAreaProxy* drawingArea = m_page->drawingArea())
-        drawingArea->waitForPossibleGeometryUpdate();
 }
 
 void WebViewImpl::drawRect(CGRect rect)
@@ -2200,7 +2207,7 @@ void WebViewImpl::endDeferringViewInWindowChangesSync()
     }
 }
 
-void WebViewImpl::prepareForMoveToWindow(NSWindow *targetWindow, std::function<void()> completionHandler)
+void WebViewImpl::prepareForMoveToWindow(NSWindow *targetWindow, WTF::Function<void()>&& completionHandler)
 {
     m_shouldDeferViewInWindowChanges = true;
     viewWillMoveToWindow(targetWindow);
@@ -2210,7 +2217,7 @@ void WebViewImpl::prepareForMoveToWindow(NSWindow *targetWindow, std::function<v
     m_shouldDeferViewInWindowChanges = false;
 
     auto weakThis = createWeakPtr();
-    m_page->installActivityStateChangeCompletionHandler([weakThis, completionHandler]() {
+    m_page->installActivityStateChangeCompletionHandler([weakThis, completionHandler = WTFMove(completionHandler)]() {
         completionHandler();
 
         if (!weakThis)
@@ -2528,11 +2535,9 @@ void WebViewImpl::executeEditCommandForSelector(SEL selector, const String& argu
     m_page->executeEditCommand(commandNameForSelector(selector), argument);
 }
 
-void WebViewImpl::registerEditCommand(RefPtr<WebEditCommandProxy> prpCommand, WebPageProxy::UndoOrRedo undoOrRedo)
+void WebViewImpl::registerEditCommand(Ref<WebEditCommandProxy>&& command, WebPageProxy::UndoOrRedo undoOrRedo)
 {
-    RefPtr<WebEditCommandProxy> command = prpCommand;
-
-    RetainPtr<WKEditCommandObjC> commandObjC = adoptNS([[WKEditCommandObjC alloc] initWithWebEditCommandProxy:command]);
+    RetainPtr<WKEditCommandObjC> commandObjC = adoptNS([[WKEditCommandObjC alloc] initWithWebEditCommandProxy:command.ptr()]);
     String actionName = WebEditCommandProxy::nameForEditAction(command->editAction());
 
     NSUndoManager *undoManager = [m_view undoManager];
@@ -2607,9 +2612,13 @@ void WebViewImpl::selectionDidChange()
 #endif
 }
 
-void WebViewImpl::startObservingFontPanel()
+void WebViewImpl::didBecomeEditable()
 {
     [m_windowVisibilityObserver startObservingFontPanel];
+
+    dispatch_async(dispatch_get_main_queue(), [] {
+        [[NSSpellChecker sharedSpellChecker] _preflightChosenSpellServer];
+    });
 }
 
 void WebViewImpl::updateFontPanelIfNeeded()
@@ -3755,14 +3764,12 @@ void WebViewImpl::registerDraggedTypes()
 }
 #endif // ENABLE(DRAG_SUPPORT)
 
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
 void WebViewImpl::startWindowDrag()
 {
     [m_view.window performWindowDragWithEvent:m_lastMouseDownEvent.get()];
 }
-#endif
 
-void WebViewImpl::dragImageForView(NSView *view, NSImage *image, CGPoint clientPoint, bool linkDrag)
+void WebViewImpl::dragImageForView(NSView *view, NSImage *image, CGPoint clientPoint, bool)
 {
     // The call below could release the view.
     RetainPtr<NSView> protector(m_view);
@@ -3776,7 +3783,7 @@ void WebViewImpl::dragImageForView(NSView *view, NSImage *image, CGPoint clientP
     [view dragImage:image
                  at:NSPointFromCGPoint(clientPoint)
              offset:NSZeroSize
-              event:linkDrag ? [NSApp currentEvent] : m_lastMouseDownEvent.get()
+              event:m_lastMouseDownEvent.get()
          pasteboard:pasteboard
              source:m_view
           slideBack:YES];
@@ -3798,8 +3805,8 @@ void WebViewImpl::setFileAndURLTypes(NSString *filename, NSString *extension, NS
     [pasteboard setString:visibleURL forType:NSStringPboardType];
     [pasteboard setString:visibleURL forType:PasteboardTypes::WebURLPboardType];
     [pasteboard setString:title forType:PasteboardTypes::WebURLNamePboardType];
-    [pasteboard setPropertyList:[NSArray arrayWithObjects:[NSArray arrayWithObject:visibleURL], [NSArray arrayWithObject:title], nil] forType:PasteboardTypes::WebURLsWithTitlesPboardType];
-    [pasteboard setPropertyList:[NSArray arrayWithObject:extension] forType:NSFilesPromisePboardType];
+    [pasteboard setPropertyList:@[@[visibleURL], @[title]] forType:PasteboardTypes::WebURLsWithTitlesPboardType];
+    [pasteboard setPropertyList:@[extension] forType:NSFilesPromisePboardType];
     m_promisedFilename = filename;
     m_promisedURL = url;
 }
@@ -3827,11 +3834,8 @@ void WebViewImpl::setPromisedDataForAttachment(NSString *filename, NSString *ext
     [types addObjectsFromArray:PasteboardTypes::forURL()];
     [pasteboard declareTypes:types.get() owner:m_view];
     setFileAndURLTypes(filename, extension, title, url, visibleURL, pasteboard);
-    
-    RetainPtr<NSMutableArray> paths = adoptNS([[NSMutableArray alloc] init]);
-    [paths addObject:title];
-    [pasteboard setPropertyList:paths.get() forType:NSFilenamesPboardType];
-    
+    [pasteboard setPropertyList:@[title] forType:NSFilenamesPboardType];
+
     m_promisedImage = nullptr;
 }
 #endif

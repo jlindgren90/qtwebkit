@@ -35,10 +35,11 @@
 
 #include "EventTarget.h"
 #include "ExceptionOr.h"
-#include "JSDOMPromise.h"
+#include "JSDOMPromiseDeferred.h"
 #include "MediaTrackConstraints.h"
 #include "RealtimeMediaSourceCenter.h"
 #include "Timer.h"
+#include <wtf/WeakPtr.h>
 
 namespace WebCore {
 
@@ -56,8 +57,8 @@ public:
 
     Document* document() const;
 
-    using Promise = DOMPromise<IDLInterface<MediaStream>>;
-    using EnumerateDevicesPromise = DOMPromise<IDLSequence<IDLInterface<MediaDeviceInfo>>>;
+    using Promise = DOMPromiseDeferred<IDLInterface<MediaStream>>;
+    using EnumerateDevicesPromise = DOMPromiseDeferred<IDLSequence<IDLInterface<MediaDeviceInfo>>>;
 
     struct StreamConstraints {
         Variant<bool, MediaTrackConstraints> video;
@@ -81,8 +82,11 @@ private:
     void refEventTarget() override { ref(); }
     void derefEventTarget() override { deref(); }
 
+    WeakPtr<MediaDevices> createWeakPtr() { return m_weakPtrFactory.createWeakPtr(); }
+
     Timer m_scheduledEventTimer;
-    RealtimeMediaSourceCenter::DevicesChangedObserverToken m_deviceChangedToken { 0 };
+    std::optional<RealtimeMediaSourceCenter::DevicesChangedObserverToken> m_deviceChangedToken;
+    WeakPtrFactory<MediaDevices> m_weakPtrFactory;
 };
 
 } // namespace WebCore

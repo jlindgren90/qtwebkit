@@ -138,7 +138,7 @@ void AcceleratedDrawingArea::forceRepaint()
     }
 }
 
-bool AcceleratedDrawingArea::forceRepaintAsync(uint64_t callbackID)
+bool AcceleratedDrawingArea::forceRepaintAsync(CallbackID callbackID)
 {
     return m_layerTreeHost && m_layerTreeHost->forceRepaintAsync(callbackID);
 }
@@ -157,13 +157,14 @@ void AcceleratedDrawingArea::updatePreferences(const WebPreferencesStore& store)
 
 void AcceleratedDrawingArea::mainFrameContentSizeChanged(const IntSize& size)
 {
-    if (m_webPage.useFixedLayout()) {
-        if (m_layerTreeHost)
-            m_layerTreeHost->sizeDidChange(size);
-        else if (m_previousLayerTreeHost)
-            m_previousLayerTreeHost->sizeDidChange(size);
-    }
-    m_webPage.mainFrame()->pageOverlayController().didChangeDocumentSize();
+#if USE(COORDINATED_GRAPHICS_THREADED)
+    if (m_layerTreeHost)
+        m_layerTreeHost->contentsSizeChanged(size);
+    else if (m_previousLayerTreeHost)
+        m_previousLayerTreeHost->contentsSizeChanged(size);
+#else
+    UNUSED_PARAM(size);
+#endif
 }
 
 void AcceleratedDrawingArea::layerHostDidFlushLayers()
@@ -380,6 +381,16 @@ void AcceleratedDrawingArea::exitAcceleratedCompositingModeSoon()
     m_exitCompositingTimer.startOneShot(0_s);
 }
 
+#if USE(COORDINATED_GRAPHICS)
+void AcceleratedDrawingArea::resetUpdateAtlasForTesting()
+{
+    if (!m_layerTreeHost || exitAcceleratedCompositingModePending())
+        return;
+
+    m_layerTreeHost->clearUpdateAtlases();
+}
+#endif
+
 void AcceleratedDrawingArea::exitAcceleratedCompositingModeNow()
 {
     ASSERT(!m_layerTreeStateIsFrozen);
@@ -446,7 +457,7 @@ void AcceleratedDrawingArea::deviceOrPageScaleFactorChanged()
 }
 #endif
 
-void AcceleratedDrawingArea::activityStateDidChange(ActivityState::Flags changed, bool, const Vector<uint64_t>&)
+void AcceleratedDrawingArea::activityStateDidChange(ActivityState::Flags changed, bool, const Vector<CallbackID>&)
 {
     if (changed & ActivityState::IsVisible) {
         if (m_webPage.isVisible())

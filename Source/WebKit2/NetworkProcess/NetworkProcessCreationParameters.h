@@ -63,7 +63,7 @@ struct NetworkProcessCreationParameters {
     bool shouldEnableNetworkCacheSpeculativeRevalidation { false };
 #endif
 #endif
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     Vector<uint8_t> uiProcessCookieStorageIdentifier;
 #endif
 #if PLATFORM(IOS)
@@ -76,6 +76,7 @@ struct NetworkProcessCreationParameters {
     Seconds loadThrottleLatency;
 
     Vector<String> urlSchemesRegisteredForCustomProtocols;
+    pid_t presentingApplicationPID { 0 };
 
 #if PLATFORM(COCOA)
     String parentProcessName;
@@ -90,7 +91,7 @@ struct NetworkProcessCreationParameters {
 #endif
     String httpProxy;
     String httpsProxy;
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#if PLATFORM(COCOA)
     RetainPtr<CFDataRef> networkATSContext;
 #endif
     bool cookieStoragePartitioningEnabled;
@@ -112,9 +113,6 @@ struct NetworkProcessCreationParameters {
 #if ENABLE(NETWORK_CAPTURE)
     String recordReplayMode;
     String recordReplayCacheLocation;
-#endif
-#if ENABLE(WEB_RTC)
-    SandboxExtension::Handle webRTCNetworkingHandle;
 #endif
 };
 

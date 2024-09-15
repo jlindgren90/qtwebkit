@@ -27,7 +27,7 @@ WebInspector.ResourceContentView = class ResourceContentView extends WebInspecto
 {
     constructor(resource, styleClassName)
     {
-        console.assert(resource instanceof WebInspector.Resource, resource);
+        console.assert(resource instanceof WebInspector.Resource || resource instanceof WebInspector.CSSStyleSheet, resource);
         console.assert(typeof styleClassName === "string");
 
         super(resource);
@@ -36,15 +36,19 @@ WebInspector.ResourceContentView = class ResourceContentView extends WebInspecto
 
         this.element.classList.add(styleClassName, "resource");
 
-        // Append a spinner while waiting for contentAvailable. The subclasses are responsible for removing
-        // the spinner before showing the resource content.
-        var spinner = new WebInspector.IndeterminateProgressSpinner;
-        this.element.appendChild(spinner.element);
+        this._spinnerTimeout = setTimeout(() => {
+            // Append a spinner while waiting for contentAvailable. Subclasses are responsible for
+            // removing the spinner before showing the resource content by calling removeLoadingIndicator.
+            let spinner = new WebInspector.IndeterminateProgressSpinner;
+            this.element.appendChild(spinner.element);
+
+            this._spinnerTimeout = undefined;
+        }, 100);
 
         this.element.addEventListener("click", this._mouseWasClicked.bind(this), false);
 
         // Request content last so the spinner will always be removed in case the content is immediately available.
-        resource.requestContent().then(this._contentAvailable.bind(this)).catch(this._protocolError.bind(this));
+        resource.requestContent().then(this._contentAvailable.bind(this)).catch(this.showGenericErrorMessage.bind(this));
 
         if (!this.managesOwnIssues) {
             WebInspector.issueManager.addEventListener(WebInspector.IssueManager.Event.IssueWasAdded, this._issueWasAdded, this);
@@ -77,6 +81,11 @@ WebInspector.ResourceContentView = class ResourceContentView extends WebInspecto
         // Implemented by subclasses.
     }
 
+    showGenericErrorMessage()
+    {
+        this._contentError(WebInspector.UIString("An error occurred trying to load the resource."));
+    }
+
     addIssue(issue)
     {
         // This generically shows only the last issue, subclasses can override for better handling.
@@ -90,6 +99,18 @@ WebInspector.ResourceContentView = class ResourceContentView extends WebInspecto
 
         if (!this.managesOwnIssues)
             WebInspector.issueManager.removeEventListener(null, null, this);
+    }
+
+    // Protected
+
+    removeLoadingIndicator()
+    {
+        if (this._spinnerTimeout) {
+            clearTimeout(this._spinnerTimeout);
+            this._spinnerTimeout = undefined;
+        }
+
+        this.element.removeChildren();
     }
 
     // Private
@@ -112,20 +133,16 @@ WebInspector.ResourceContentView = class ResourceContentView extends WebInspecto
         if (this._hasContent())
             return;
 
-        this.element.removeChildren();
+        this.removeLoadingIndicator();
+
         this.element.appendChild(WebInspector.createMessageTextView(error, true));
 
         this.dispatchEventToListeners(WebInspector.ResourceContentView.Event.ContentError);
     }
 
-    _protocolError(error)
-    {
-        this._contentError(WebInspector.UIString("An error occurred trying to load the resource."));
-    }
-
     _hasContent()
     {
-        return !this.element.querySelector(".indeterminate-progress-spinner");
+        return this.element.hasChildNodes() && !this.element.querySelector(".indeterminate-progress-spinner");
     }
 
     _issueWasAdded(event)

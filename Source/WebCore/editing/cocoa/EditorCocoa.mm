@@ -36,7 +36,9 @@
 #import "Editing.h"
 #import "EditingStyle.h"
 #import "EditorClient.h"
+#import "FontCascade.h"
 #import "Frame.h"
+#import "FrameLoader.h"
 #import "FrameSelection.h"
 #import "HTMLConverter.h"
 #import "HTMLImageElement.h"
@@ -46,9 +48,9 @@
 #import "Pasteboard.h"
 #import "RenderElement.h"
 #import "RenderStyle.h"
-#import "SoftLinking.h"
 #import "Text.h"
 #import <wtf/BlockObjCExceptions.h>
+#import <wtf/SoftLinking.h>
 
 #if PLATFORM(IOS)
 SOFT_LINK_PRIVATE_FRAMEWORK(WebKitLegacy)
@@ -235,7 +237,7 @@ void Editor::replaceSelectionWithAttributedString(NSAttributedString *attributed
 
     if (m_frame.selection().selection().isContentRichlyEditable()) {
         RefPtr<DocumentFragment> fragment = createFragmentAndAddResources(attributedString);
-        if (fragment && shouldInsertFragment(fragment, selectedRange(), EditorInsertAction::Pasted))
+        if (fragment && shouldInsertFragment(*fragment, selectedRange().get(), EditorInsertAction::Pasted))
             pasteAsFragment(fragment.releaseNonNull(), false, false, mailBlockquoteHandling);
     } else {
         String text = attributedString.string;

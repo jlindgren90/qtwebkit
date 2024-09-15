@@ -24,16 +24,16 @@
  */
 
 [
-    Conditional=APPLE_PAY_DELEGATE,
+    Conditional=APPLE_PAY_SESSION_V3,
 ] enum ApplePayErrorCode {
     "unknown",
     "shippingContactInvalid",
     "billingContactInvalid",
-    "addressUnservicable"
+    "addressUnserviceable"
 };
 
 [
-    Conditional=APPLE_PAY_DELEGATE,
+    Conditional=APPLE_PAY_SESSION_V3,
 ] enum ApplePayErrorContactField {
     "phoneNumber",
     "emailAddress",
@@ -43,12 +43,13 @@
     "locality",
     "postalCode",
     "administrativeArea",
-    "country"
+    "country",
+    "countryCode"
 };
 
 [
     Constructor(ApplePayErrorCode errorCode, optional ApplePayErrorContactField contactField, optional DOMString message = ""),
-    Conditional=APPLE_PAY_DELEGATE,
+    Conditional=APPLE_PAY_SESSION_V3,
 ] interface ApplePayError {
     attribute ApplePayErrorCode code;
     attribute ApplePayErrorContactField? contactField;

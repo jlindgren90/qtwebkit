@@ -63,7 +63,7 @@ void RemoteScrollingCoordinatorProxy::connectStateNodeLayers(ScrollingStateTree&
             if (scrollingStateNode.hasChangedProperty(ScrollingStateNode::ScrollLayer))
                 scrollingStateNode.setLayer(layerRepresentationFromLayerOrView(layerTreeHost.getLayer(scrollingStateNode.layer())));
             
-            if (scrollingStateNode.hasChangedProperty(ScrollingStateOverflowScrollingNode::ScrolledContentsLayer))
+            if (scrollingStateNode.hasChangedProperty(ScrollingStateScrollingNode::ScrolledContentsLayer))
                 scrollingStateNode.setScrolledContentsLayer(layerRepresentationFromLayerOrView(layerTreeHost.getLayer(scrollingStateNode.scrolledContentsLayer())));
             break;
         };
@@ -96,7 +96,7 @@ void RemoteScrollingCoordinatorProxy::connectStateNodeLayers(ScrollingStateTree&
 FloatRect RemoteScrollingCoordinatorProxy::customFixedPositionRect() const
 {
     return m_webPageProxy.computeCustomFixedPositionRect(m_webPageProxy.unobscuredContentRect(), m_webPageProxy.unobscuredContentRectRespectingInputViewBounds(), m_webPageProxy.customFixedPositionRect(),
-        m_webPageProxy.displayedContentScale(), WebPageProxy::UnobscuredRectConstraint::Unconstrained, visualViewportEnabled());
+        m_webPageProxy.displayedContentScale(), FrameView::LayoutViewportConstraint::Unconstrained, visualViewportEnabled());
 }
 
 void RemoteScrollingCoordinatorProxy::scrollingTreeNodeWillStartPanGesture()

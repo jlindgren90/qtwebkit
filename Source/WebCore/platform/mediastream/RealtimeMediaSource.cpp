@@ -39,6 +39,7 @@
 #include "MediaConstraints.h"
 #include "NotImplemented.h"
 #include "RealtimeMediaSourceCapabilities.h"
+#include "RealtimeMediaSourceCenter.h"
 #include <wtf/MainThread.h>
 #include <wtf/UUID.h>
 #include <wtf/text/StringHash.h>
@@ -56,121 +57,141 @@ RealtimeMediaSource::RealtimeMediaSource(const String& id, Type type, const Stri
     if (m_id.isEmpty())
         m_id = createCanonicalUUIDString();
     m_persistentID = m_id;
-    m_suppressNotifications = false;
-}
-
-void RealtimeMediaSource::reset()
-{
-    m_stopped = false;
-    m_muted = false;
 }
 
 void RealtimeMediaSource::addObserver(RealtimeMediaSource::Observer& observer)
 {
-    m_observers.append(&observer);
+    m_observers.append(observer);
 }
 
 void RealtimeMediaSource::removeObserver(RealtimeMediaSource::Observer& observer)
 {
-    m_observers.removeFirstMatching([&observer](auto* anObserver) {
-        return anObserver == &observer;
+    m_observers.removeFirstMatching([&observer](auto anObserver) {
+        return &anObserver.get() == &observer;
     });
 
     if (!m_observers.size())
         stop();
 }
 
+void RealtimeMediaSource::setInterrupted(bool interrupted, bool pageMuted)
+{
+    if (interrupted == m_interrupted)
+        return;
+
+    m_interrupted = interrupted;
+    if (!interrupted && pageMuted)
+        return;
+
+    setMuted(interrupted);
+}
+
 void RealtimeMediaSource::setMuted(bool muted)
 {
-    if (m_stopped || m_muted == muted)
+    if (muted)
+        stop();
+    else {
+        if (interrupted())
+            return;
+
+        start();
+    }
+
+    notifyMutedChange(muted);
+}
+
+void RealtimeMediaSource::notifyMutedChange(bool muted)
+{
+    if (m_muted == muted)
         return;
 
     m_muted = muted;
-
-    if (muted) {
-        // FIXME: We need to figure out how to guarantee that at least one black video frame is
-        // emitted after being muted.
-        stopProducingData();
-    } else
-        startProducingData();
 
     notifyMutedObservers();
 }
 
 void RealtimeMediaSource::notifyMutedObservers() const
 {
-    for (auto& observer : m_observers)
-        observer->sourceMutedChanged();
-}
-
-void RealtimeMediaSource::setEnabled(bool enabled)
-{
-    if (m_stopped || m_enabled == enabled)
-        return;
-
-    m_enabled = enabled;
-
-    if (m_stopped)
-        return;
-
-    for (auto& observer : m_observers)
-        observer->sourceEnabledChanged();
+    for (Observer& observer : m_observers)
+        observer.sourceMutedChanged();
 }
 
 void RealtimeMediaSource::settingsDidChange()
 {
     ASSERT(isMainThread());
 
-    if (m_pendingSettingsDidChangeNotification || m_suppressNotifications)
+    if (m_pendingSettingsDidChangeNotification)
         return;
 
     m_pendingSettingsDidChangeNotification = true;
 
     scheduleDeferredTask([this] {
         m_pendingSettingsDidChangeNotification = false;
-        for (auto& observer : m_observers)
-            observer->sourceSettingsChanged();
+        for (Observer& observer : m_observers)
+            observer.sourceSettingsChanged();
     });
 }
 
 void RealtimeMediaSource::videoSampleAvailable(MediaSample& mediaSample)
 {
-    ASSERT(isMainThread());
-    for (const auto& observer : m_observers)
-        observer->videoSampleAvailable(mediaSample);
+    for (Observer& observer : m_observers)
+        observer.videoSampleAvailable(mediaSample);
 }
 
 void RealtimeMediaSource::audioSamplesAvailable(const MediaTime& time, const PlatformAudioData& audioData, const AudioStreamDescription& description, size_t numberOfFrames)
 {
-    for (const auto& observer : m_observers)
-        observer->audioSamplesAvailable(time, audioData, description, numberOfFrames);
+    for (Observer& observer : m_observers)
+        observer.audioSamplesAvailable(time, audioData, description, numberOfFrames);
 }
 
-void RealtimeMediaSource::stop(Observer* callingObserver)
+void RealtimeMediaSource::start()
 {
-    if (stopped())
+    if (m_isProducingData)
         return;
 
-    m_stopped = true;
+    m_isProducingData = true;
+    startProducingData();
 
-    for (const auto& observer : m_observers) {
-        if (observer != callingObserver)
-            observer->sourceStopped();
-    }
+    if (!m_isProducingData)
+        return;
 
+    for (Observer& observer : m_observers)
+        observer.sourceStarted();
+}
+
+void RealtimeMediaSource::stop()
+{
+    if (!m_isProducingData)
+        return;
+
+    m_isProducingData = false;
     stopProducingData();
 }
 
 void RealtimeMediaSource::requestStop(Observer* callingObserver)
 {
-    if (stopped())
+    if (!m_isProducingData)
         return;
 
-    for (const auto& observer : m_observers) {
-        if (observer->preventSourceFromStopping())
+    for (Observer& observer : m_observers) {
+        if (observer.preventSourceFromStopping())
             return;
     }
-    stop(callingObserver);
+
+    stop();
+
+    for (Observer& observer : m_observers) {
+        if (&observer != callingObserver)
+            observer.sourceStopped();
+    }
+}
+
+void RealtimeMediaSource::captureFailed()
+{
+    m_isProducingData = false;
+
+    for (Observer& observer : m_observers)
+        observer.sourceStopped();
 }
 
 bool RealtimeMediaSource::supportsSizeAndFrameRate(std::optional<int>, std::optional<int>, std::optional<double>)
@@ -341,11 +362,7 @@ double RealtimeMediaSource::fitnessDistance(const MediaConstraint& constraint)
     }
 
     case MediaConstraintType::DeviceId: {
-        ASSERT(constraint.isString());
-        if (!capabilities.supportsDeviceId())
-            return 0;
-
-        return downcast<StringConstraint>(constraint).fitnessDistance(m_id);
+        ASSERT_NOT_REACHED();
         break;
     }
 
@@ -485,7 +502,7 @@ void RealtimeMediaSource::applyConstraint(const MediaConstraint& constraint)
             return false;
         };
 
-        auto modeString = downcast<StringConstraint>(constraint).find(filter);
+        auto modeString = downcast<StringConstraint>(constraint).find(WTFMove(filter));
         if (!modeString.isEmpty())
             setFacingMode(RealtimeMediaSourceSettings::videoFacingModeEnum(modeString));
         break;
@@ -502,7 +519,7 @@ void RealtimeMediaSource::applyConstraint(const MediaConstraint& constraint)
     }
 }
 
-bool RealtimeMediaSource::selectSettings(const MediaConstraints& constraints, FlattenedConstraint& candidates, String& failedConstraint)
+bool RealtimeMediaSource::selectSettings(const MediaConstraints& constraints, FlattenedConstraint& candidates, String& failedConstraint, SelectType type)
 {
     m_fitnessScore = std::numeric_limits<double>::infinity();
 
@@ -527,17 +544,37 @@ bool RealtimeMediaSource::selectSettings(const MediaConstraints& constraints, Fl
 
     failedConstraint = emptyString();
 
-    // Check width, height, and frame rate separately, because while they may be supported individually the combination may not be supported.
+    // Check width, height and frame rate jointly, because while they may be supported individually the combination may not be supported.
     double distance = std::numeric_limits<double>::infinity();
-    if (!supportsSizeAndFrameRate(constraints.mandatoryConstraints().width(), constraints.mandatoryConstraints().height(), constraints.mandatoryConstraints().frameRate(), failedConstraint, m_fitnessScore))
+    if (!supportsSizeAndFrameRate(constraints.mandatoryConstraints.width(), constraints.mandatoryConstraints.height(), constraints.mandatoryConstraints.frameRate(), failedConstraint, m_fitnessScore))
         return false;
 
-    constraints.mandatoryConstraints().filter([&](const MediaConstraint& constraint) {
+    constraints.mandatoryConstraints.filter([&](const MediaConstraint& constraint) {
         if (!supportsConstraint(constraint))
             return false;
 
         if (constraint.constraintType() == MediaConstraintType::Width || constraint.constraintType() == MediaConstraintType::Height || constraint.constraintType() == MediaConstraintType::FrameRate) {
             candidates.set(constraint);
+            return false;
+        }
+
+        // The deviceId can't be changed, and the constraint value is the hashed device ID, so verify that the
+        // device's unique ID hashes to the constraint value but don't include the constraint in the flattened
+        // constraint set.
+        if (constraint.constraintType() == MediaConstraintType::DeviceId) {
+            if (type == SelectType::ForApplyConstraints)
+                return false;
+
+            ASSERT(constraint.isString());
+            ASSERT(!constraints.deviceIDHashSalt.isEmpty());
+
+            auto hashedID = RealtimeMediaSourceCenter::singleton().hashStringWithSalt(m_persistentID, constraints.deviceIDHashSalt);
+            double constraintDistance = downcast<StringConstraint>(constraint).fitnessDistance(hashedID);
+            if (std::isinf(constraintDistance)) {
+                failedConstraint = constraint.name();
+                return true;
+            }
+
             return false;
         }
 
@@ -568,7 +605,7 @@ bool RealtimeMediaSource::selectSettings(const MediaConstraints& constraints, Fl
     //     values of properties as exact.
     Vector<std::pair<double, MediaTrackConstraintSetMap>> supportedConstraints;
 
-    for (const auto& advancedConstraint : constraints.advancedConstraints()) {
+    for (const auto& advancedConstraint : constraints.advancedConstraints) {
         double constraintDistance = 0;
         bool supported = false;
 
@@ -678,10 +715,10 @@ bool RealtimeMediaSource::supportsConstraint(const MediaConstraint& constraint) 
 
 bool RealtimeMediaSource::supportsConstraints(const MediaConstraints& constraints, String& invalidConstraint)
 {
-    ASSERT(constraints.isValid());
+    ASSERT(constraints.isValid);
 
     FlattenedConstraint candidates;
-    if (!selectSettings(constraints, candidates, invalidConstraint))
+    if (!selectSettings(constraints, candidates, invalidConstraint, SelectType::ForSupportsConstraints))
         return false;
     
     return true;
@@ -740,18 +777,18 @@ void RealtimeMediaSource::applyConstraints(const FlattenedConstraint& constraint
 
 std::optional<std::pair<String, String>> RealtimeMediaSource::applyConstraints(const MediaConstraints& constraints)
 {
-    ASSERT(constraints.isValid());
+    ASSERT(constraints.isValid);
 
     FlattenedConstraint candidates;
     String failedConstraint;
-    if (!selectSettings(constraints, candidates, failedConstraint))
+    if (!selectSettings(constraints, candidates, failedConstraint, SelectType::ForApplyConstraints))
         return { { failedConstraint, ASCIILiteral("Constraint not supported") } };
 
     applyConstraints(candidates);
     return std::nullopt;
 }
 
-void RealtimeMediaSource::applyConstraints(const MediaConstraints& constraints, SuccessHandler successHandler, FailureHandler failureHandler)
+void RealtimeMediaSource::applyConstraints(const MediaConstraints& constraints, SuccessHandler&& successHandler, FailureHandler&& failureHandler)
 {
     auto result = applyConstraints(constraints);
     if (!result && successHandler)
@@ -856,7 +893,7 @@ void RealtimeMediaSource::setEchoCancellation(bool echoCancellation)
     settingsDidChange();
 }
 
-void RealtimeMediaSource::scheduleDeferredTask(std::function<void()>&& function)
+void RealtimeMediaSource::scheduleDeferredTask(WTF::Function<void()>&& function)
 {
     ASSERT(function);
     callOnMainThread([weakThis = createWeakPtr(), function = WTFMove(function)] {

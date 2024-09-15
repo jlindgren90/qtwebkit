@@ -42,6 +42,10 @@
 #include "PlatformDisplayWin.h"
 #endif
 
+#if PLATFORM(WPE)
+#include "PlatformDisplayWPE.h"
+#endif
+
 #if PLATFORM(GTK)
 #include <gdk/gdk.h>
 #endif
@@ -55,7 +59,11 @@
 #endif
 
 #if USE(EGL)
+#if USE(LIBEPOXY)
+#include <epoxy/egl.h>
+#else
 #include <EGL/egl.h>
+#endif
 #include <wtf/HashSet.h>
 #include <wtf/NeverDestroyed.h>
 #endif
@@ -98,6 +106,10 @@ std::unique_ptr<PlatformDisplay> PlatformDisplay::createPlatformDisplay()
 #endif
 #if PLATFORM(X11)
     return std::make_unique<PlatformDisplayX11>(nullptr);
+#endif
+
+#if PLATFORM(WPE)
+    return std::make_unique<PlatformDisplayWPE>();
 #endif
 
     ASSERT_NOT_REACHED();

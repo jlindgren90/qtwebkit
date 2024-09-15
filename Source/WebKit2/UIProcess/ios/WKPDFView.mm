@@ -32,6 +32,7 @@
 #import "APIUIClient.h"
 #import "ApplicationStateTracker.h"
 #import "CorePDFSPI.h"
+#import "DrawingAreaProxy.h"
 #import "SessionState.h"
 #import "UIKitSPI.h"
 #import "WKPDFPageNumberIndicator.h"
@@ -141,6 +142,7 @@ typedef struct {
     [self _clearPages];
     [_pageNumberIndicator removeFromSuperview];
     dispatch_release(_findQueue);
+    [_actionSheetAssistant cleanupSheet];
     [super dealloc];
 }
 
@@ -426,7 +428,7 @@ static void detachViewForPage(PDFPageInfo& page)
     [highlightView setCornerRadius:highlightBorderRadius];
     [highlightView setColor:highlightColor];
 
-    ASSERT(isMainThread());
+    ASSERT(RunLoop::isMain());
     [self addSubview:highlightView.get()];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, duration * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         [highlightView removeFromSuperview];
@@ -695,7 +697,7 @@ static NSStringCompareOptions stringCompareOptions(_WKFindOptions options)
 
     _positionInformation.request.point = roundedIntPoint([controller.pageView convertPoint:point toView:self]);
 
-    _positionInformation.url = url.absoluteString;
+    _positionInformation.url = url;
     _positionInformation.bounds = roundedIntRect([self convertRect:[controller.pageView convertRectFromPDFPageSpace:annotation.Rect] fromView:controller.pageView]);
 
     [self _highlightLinkAnnotation:linkAnnotation forDuration:.75 completionHandler:^{
@@ -705,7 +707,7 @@ static NSStringCompareOptions stringCompareOptions(_WKFindOptions options)
 
 #pragma mark WKActionSheetAssistantDelegate
 
-- (const WebKit::InteractionInformationAtPosition&)positionInformationForActionSheetAssistant:(WKActionSheetAssistant *)assistant
+- (std::optional<WebKit::InteractionInformationAtPosition>)positionInformationForActionSheetAssistant:(WKActionSheetAssistant *)assistant
 {
     return _positionInformation;
 }
@@ -716,8 +718,8 @@ static NSStringCompareOptions stringCompareOptions(_WKFindOptions options)
         return;
 
     NSDictionary *representations = @{
-        (NSString *)kUTTypeUTF8PlainText : _positionInformation.url,
-        (NSString *)kUTTypeURL : [NSURL URLWithString:_positionInformation.url]
+        (NSString *)kUTTypeUTF8PlainText : (NSString *)_positionInformation.url,
+        (NSString *)kUTTypeURL : (NSURL *)_positionInformation.url
     };
 
     [UIPasteboard generalPasteboard].items = @[ representations ];

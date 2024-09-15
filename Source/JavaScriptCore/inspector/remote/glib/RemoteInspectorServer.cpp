@@ -34,14 +34,12 @@
 #include <wtf/Vector.h>
 #include <wtf/glib/GUniquePtr.h>
 
-#if PLATFORM(GTK)
-#define INSPECTOR_DBUS_INTERFACE "org.webkitgtk.Inspector"
-#define INSPECTOR_DBUS_OBJECT_PATH "/org/webkitgtk/Inspector"
-#define REMOTE_INSPECTOR_DBUS_INTERFACE "org.webkitgtk.RemoteInspector"
-#define REMOTE_INSPECTOR_DBUS_OBJECT_PATH "/org/webkitgtk/RemoteInspector"
-#define REMOTE_INSPECTOR_CLIENT_DBUS_INTERFACE "org.webkitgtk.RemoteInspectorClient"
-#define REMOTE_INSPECTOR_CLIENT_OBJECT_PATH "/org/webkitgtk/RemoteInspectorClient"
-#endif
+#define INSPECTOR_DBUS_INTERFACE "org.webkit.Inspector"
+#define INSPECTOR_DBUS_OBJECT_PATH "/org/webkit/Inspector"
+#define REMOTE_INSPECTOR_DBUS_INTERFACE "org.webkit.RemoteInspector"
+#define REMOTE_INSPECTOR_DBUS_OBJECT_PATH "/org/webkit/RemoteInspector"
+#define REMOTE_INSPECTOR_CLIENT_DBUS_INTERFACE "org.webkit.RemoteInspectorClient"
+#define REMOTE_INSPECTOR_CLIENT_OBJECT_PATH "/org/webkit/RemoteInspectorClient"
 
 namespace Inspector {
 
@@ -131,6 +129,8 @@ const GDBusInterfaceVTable RemoteInspectorServer::s_interfaceVTable = {
     nullptr,
     // set_property
     nullptr,
+    // padding
+    nullptr
 };
 
 RemoteInspectorServer& RemoteInspectorServer::singleton()

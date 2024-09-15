@@ -75,10 +75,17 @@ ExceptionOr<void> FetchResponse::setStatus(int status, const String& statusText)
     return { };
 }
 
-void FetchResponse::initializeWith(JSC::ExecState& execState, JSC::JSValue body)
+void FetchResponse::initializeWith(FetchBody::BindingDataType&& body)
 {
     ASSERT(scriptExecutionContext());
-    extractBody(*scriptExecutionContext(), execState, body);
+    extractBody(*scriptExecutionContext(), WTFMove(body));
+    updateContentType();
+}
+
+void FetchResponse::setBodyAsReadableStream()
+{
+    ASSERT(isBodyNull());
+    setBody(FetchBody::readableStreamBody());
     updateContentType();
 }
 
@@ -173,6 +180,7 @@ void FetchResponse::BodyLoader::didReceiveResponse(const ResourceResponse& resou
 
     m_response.m_response = resourceResponse;
     m_response.m_headers->filterAndFill(resourceResponse.httpHeaderFields(), FetchHeaders::Guard::Response);
+    m_response.updateContentType();
 
     std::exchange(m_promise, std::nullopt)->resolve(m_response);
 }

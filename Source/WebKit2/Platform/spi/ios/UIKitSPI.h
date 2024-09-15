@@ -81,7 +81,8 @@
 #import <UIKit/UIPreviewItemController.h>
 #endif
 
-#if ENABLE(DATA_INTERACTION)
+#if ENABLE(DRAG_SUPPORT)
+#import <UIKit/NSItemProvider+UIKitAdditions_Private.h>
 #import <UIKit/UIItemProvider_Private.h>
 #endif
 
@@ -212,8 +213,12 @@ typedef enum {
 - (void)candidateListShouldBeDismissed:(id)candidateList;
 @end
 
+// FIXME: https://bugs.webkit.org/show_bug.cgi?id=173341
+#ifndef _WEBKIT_UIKITSPI_UIKEYBOARD
+#define _WEBKIT_UIKITSPI_UIKEYBOARD 1
 @interface UIKeyboard : UIView <UIKeyboardImplGeometryDelegate>
 @end
+#endif
 
 @interface UIKeyboard ()
 + (CGSize)defaultSizeForInterfaceOrientation:(UIInterfaceOrientation)orientation;
@@ -236,12 +241,6 @@ typedef enum {
 - (void)deleteFromInputWithFlags:(NSUInteger)flags;
 - (void)replaceText:(id)replacement;
 @property (nonatomic, readwrite, retain) UIResponder <UIKeyInput> *delegate;
-@end
-
-@interface UIGestureRecognizer ()
-#if __IPHONE_OS_VERSION_MAX_ALLOWED < 90200
-@property(nonatomic, copy) NSArray<NSNumber *> *allowedTouchTypes;
-#endif
 @end
 
 @interface UILongPressGestureRecognizer ()
@@ -295,23 +294,6 @@ typedef enum {
 - (CADisplay *)_display;
 @end
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED < 90100
-typedef enum {
-    UITouchTypeDirect
-} UITouchType;
-
-@interface UITouch ()
-@property(nonatomic,readonly) UITouchType type;
-@end
-#endif
-
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
-typedef NS_ENUM(NSInteger, UIScrollViewContentInsetAdjustmentBehavior) {
-    UIScrollViewContentInsetAdjustmentAutomatic = 0,
-    UIScrollViewContentInsetAdjustmentAlways = 3,
-};
-#endif
-
 @interface UIScrollView ()
 - (void)_stopScrollingAndZoomingAnimations;
 - (void)_zoomToCenter:(CGPoint)center scale:(CGFloat)scale duration:(CFTimeInterval)duration force:(BOOL)force;
@@ -324,7 +306,6 @@ typedef NS_ENUM(NSInteger, UIScrollViewContentInsetAdjustmentBehavior) {
 @property (nonatomic, readonly) BOOL _isInterruptingDeceleration;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
 @property (nonatomic, readonly) UIEdgeInsets _systemContentInset;
-@property (nonatomic, setter=_setContentInsetAdjustmentBehavior:, getter=_contentInsetAdjustmentBehavior) UIScrollViewContentInsetAdjustmentBehavior contentInsetAdjustmentBehavior;
 #endif
 @end
 
@@ -389,13 +370,11 @@ typedef enum {
 - (void)willStartScrollingOverflow;
 @end
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
 @class UITextSuggestion;
 
 @protocol UITextInputSuggestionDelegate <UITextInputDelegate>
 - (void)setSuggestions:(NSArray <UITextSuggestion*> *)suggestions;
 @end
-#endif
 
 @interface UIViewController ()
 + (UIViewController *)_viewControllerForFullScreenPresentationFromView:(UIView *)view;
@@ -573,11 +552,6 @@ typedef NS_ENUM(NSInteger, UIWKHandlePosition) {
 @property (nonatomic, assign) NSRange rangeInMarkedText;
 @end
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED < 100000
-@protocol UIResponderStandardEditActions
-@end
-#endif
-
 @interface UIWKTextInteractionAssistant : UITextInteractionAssistant <UIResponderStandardEditActions>
 @end
 
@@ -715,9 +689,12 @@ struct _UIWebTouchEvent {
     bool isPotentialTap;
 };
 
-@protocol UIWebTouchEventsGestureRecognizerDelegate
+@class UIWebTouchEventsGestureRecognizer;
+
+@protocol UIWebTouchEventsGestureRecognizerDelegate <NSObject>
 - (BOOL)isAnyTouchOverActiveArea:(NSSet *)touches;
-- (BOOL)shouldIgnoreWebTouch;
+@optional
+- (BOOL)gestureRecognizer:(UIWebTouchEventsGestureRecognizer *)gestureRecognizer shouldIgnoreWebTouchWithEvent:(UIEvent *)event;
 @end
 
 @interface UIWebTouchEventsGestureRecognizer : UIGestureRecognizer
@@ -885,7 +862,8 @@ typedef enum {
 
 @interface UIPeripheralHost (IPI)
 - (void)_beginIgnoringReloadInputViews;
-- (void)_endIgnoringReloadInputViews;
+- (int)_endIgnoringReloadInputViews;
+- (void)forceReloadInputViews;
 @end
 
 @interface UIResponder ()
@@ -929,9 +907,7 @@ extern const NSString *UIPreviewDataLink;
 extern const NSString *UIPreviewDataDDResult;
 extern const NSString *UIPreviewDataDDContext;
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
 extern const NSString *UIPreviewDataAttachmentList;
 extern const NSString *UIPreviewDataAttachmentIndex;
-#endif
 
 WTF_EXTERN_C_END

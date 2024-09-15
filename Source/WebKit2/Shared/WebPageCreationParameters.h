@@ -28,7 +28,7 @@
 #include "DrawingAreaInfo.h"
 #include "LayerTreeContext.h"
 #include "SessionState.h"
-#include "WebCompiledContentExtensionData.h"
+#include "WebCompiledContentRuleListData.h"
 #include "WebCoreArgumentCoders.h"
 #include "WebPageGroupData.h"
 #include "WebPreferencesStore.h"
@@ -108,6 +108,7 @@ struct WebPageCreationParameters {
 
     WebCore::IntSize minimumLayoutSize;
     bool autoSizingShouldExpandToViewHeight;
+    std::optional<WebCore::IntSize> viewportSizeForCSSViewportUnits;
     
     WebCore::ScrollPinningBehavior scrollPinningBehavior;
 
@@ -136,6 +137,7 @@ struct WebPageCreationParameters {
     WebCore::FloatSize availableScreenSize;
     float textAutosizingWidth;
     bool ignoresViewportScaleLimits;
+    bool allowsBlockSelection;
 #endif
 #if PLATFORM(COCOA)
     bool smartInsertDeleteEnabled;
@@ -147,16 +149,13 @@ struct WebPageCreationParameters {
     WebCore::LayoutMilestones observedLayoutMilestones;
 
     String overrideContentSecurityPolicy;
-    std::optional<double> backgroundCPULimit;
+    std::optional<double> cpuLimit;
 
     HashMap<String, uint64_t> urlSchemeHandlers;
 
-#if ENABLE(WEB_RTC)
+    // WebRTC members.
     bool iceCandidateFilteringEnabled { true };
-#if USE(LIBWEBRTC)
     bool enumeratingAllNetworkInterfacesEnabled { false };
-#endif
-#endif
 
     // UserContentController members
     Vector<std::pair<uint64_t, String>> userContentWorlds;
@@ -164,7 +163,7 @@ struct WebPageCreationParameters {
     Vector<WebUserStyleSheetData> userStyleSheets;
     Vector<WebScriptMessageHandlerData> messageHandlers;
 #if ENABLE(CONTENT_EXTENSIONS)
-    Vector<std::pair<String, WebCompiledContentExtensionData>> contentExtensions;
+    Vector<std::pair<String, WebCompiledContentRuleListData>> contentRuleLists;
 #endif
 };
 

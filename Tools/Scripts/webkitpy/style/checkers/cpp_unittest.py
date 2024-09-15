@@ -1569,6 +1569,15 @@ class CppStyleTest(CppStyleTestBase):
             ''
             '  [security/printf] [4]')
 
+    # Test for insecure temp file creation.
+    def test_insecure_temp_file(self):
+        self.assert_lint(
+            'mktemp(template);',
+            'Never use mktemp.  Use mkstemp or mkostemp instead.'
+            '  [security/temp_file] [5]')
+        self.assert_lint('mkstemp(template);', '')
+        self.assert_lint('mkostemp(template);', '')
+
     # Variable-length arrays are not permitted.
     def test_variable_length_array_detection(self):
         errmsg = ('Do not use variable-length arrays.  Use an appropriately named '
@@ -2907,7 +2916,7 @@ class OrderOfIncludesTest(CppStyleTestBase):
         self.assert_language_rules_check('FooSoftLink.cpp',
                                          '#include "config.h"\n'
                                          '\n'
-                                         '#include "SoftLinking.h"\n',
+                                         '#include <wtf/SoftLinking.h>\n',
                                          '')
         # Having include for existing primary header -> no error.
         self.assert_language_rules_check('foo.cpp',

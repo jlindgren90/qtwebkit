@@ -26,9 +26,8 @@
 #ifndef PlatformPasteboard_h
 #define PlatformPasteboard_h
 
-#include <functional>
 #include <wtf/Forward.h>
-#include <wtf/RefCounted.h>
+#include <wtf/Function.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/Vector.h>
 
@@ -38,6 +37,10 @@ OBJC_CLASS NSPasteboard;
 
 #if PLATFORM(IOS)
 OBJC_CLASS UIPasteboard;
+#endif
+
+#if PLATFORM(WPE)
+struct wpe_pasteboard;
 #endif
 
 namespace WebCore {
@@ -53,11 +56,11 @@ struct PasteboardWebContent;
 class PlatformPasteboard {
 public:
     WEBCORE_EXPORT explicit PlatformPasteboard(const String& pasteboardName);
-#if PLATFORM(IOS)
+#if PLATFORM(IOS) || PLATFORM(WPE)
     WEBCORE_EXPORT PlatformPasteboard();
     WEBCORE_EXPORT Vector<String> filenamesForDataInteraction();
     WEBCORE_EXPORT void getTypesByFidelityForItemAtIndex(Vector<String>& types, int index);
-    WEBCORE_EXPORT void updatePreferredTypeIdentifiers(const Vector<String>& types);
+    WEBCORE_EXPORT void updateSupportedTypeIdentifiers(const Vector<String>& types);
 #endif
     WEBCORE_EXPORT static String uniqueName();
 
@@ -89,7 +92,7 @@ public:
     WEBCORE_EXPORT int numberOfFiles();
 
 #if PLATFORM(GTK)
-    WEBCORE_EXPORT void writeToClipboard(const SelectionData&, std::function<void()>&& primarySelectionCleared);
+    WEBCORE_EXPORT void writeToClipboard(const SelectionData&, WTF::Function<void()>&& primarySelectionCleared);
     WEBCORE_EXPORT Ref<SelectionData> readFromClipboard();
 #endif
 
@@ -99,6 +102,7 @@ private:
     WEBCORE_EXPORT void writeObjectRepresentations(const PasteboardImage&);
     WEBCORE_EXPORT void writeObjectRepresentations(const String& pasteboardType, const String& text);
     WEBCORE_EXPORT void writeObjectRepresentations(const PasteboardURL&);
+    bool allowReadingURLAtIndex(const URL&, int index) const;
 #endif
 
 #if PLATFORM(MAC)
@@ -109,6 +113,9 @@ private:
 #endif
 #if PLATFORM(GTK)
     GtkClipboard* m_clipboard;
+#endif
+#if PLATFORM(WPE)
+    struct wpe_pasteboard* m_pasteboard;
 #endif
 };
 

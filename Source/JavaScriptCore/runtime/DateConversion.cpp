@@ -117,11 +117,7 @@ String formatDateTime(const GregorianDateTime& t, DateTimeFormat format, bool as
 #endif
             if (timeZoneName[0]) {
                 builder.appendLiteral(" (");
-#if OS(WINDOWS)
-                builder.append(String(timeZoneName));
-#else
                 builder.append(timeZoneName);
-#endif
                 builder.append(')');
             }
         }

@@ -1,3 +1,6 @@
+include(CheckCXXSourceCompiles)
+include(CheckFunctionExists)
+
 set_property(DIRECTORY . PROPERTY FOLDER "WebKit2")
 
 set(WebKit2_INCLUDE_DIRECTORIES
@@ -37,7 +40,6 @@ set(WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/UIProcess/Databases"
     "${WEBKIT2_DIR}/UIProcess/Downloads"
     "${WEBKIT2_DIR}/UIProcess/Gamepad"
-    "${WEBKIT2_DIR}/UIProcess/InspectorServer"
     "${WEBKIT2_DIR}/UIProcess/Launcher"
     "${WEBKIT2_DIR}/UIProcess/Network"
     "${WEBKIT2_DIR}/UIProcess/Network/CustomProtocols"
@@ -182,8 +184,8 @@ set(WebKit2_SOURCES
     Shared/UserData.cpp
     Shared/VisitedLinkTable.cpp
     Shared/WebBackForwardListItem.cpp
-    Shared/WebCompiledContentExtension.cpp
-    Shared/WebCompiledContentExtensionData.cpp
+    Shared/WebCompiledContentRuleList.cpp
+    Shared/WebCompiledContentRuleListData.cpp
     Shared/WebConnection.cpp
     Shared/WebConnectionClient.cpp
     Shared/WebContextMenuItem.cpp
@@ -328,12 +330,10 @@ set(WebKit2_SOURCES
     UIProcess/WebProcessProxy.cpp
     UIProcess/WebURLSchemeHandler.cpp
     UIProcess/WebURLSchemeTask.cpp
-    UIProcess/WebVibrationProvider.cpp
-    UIProcess/WebVibrationProxy.cpp
     UIProcess/WebViewportAttributes.cpp
 
-    UIProcess/API/APIContentExtension.cpp
-    UIProcess/API/APIContentExtensionStore.cpp
+    UIProcess/API/APIContentRuleList.cpp
+    UIProcess/API/APIContentRuleListStore.cpp
     UIProcess/API/APIExperimentalFeature.cpp
     UIProcess/API/APIFrameInfo.cpp
     UIProcess/API/APIHTTPCookieStore.cpp
@@ -370,7 +370,6 @@ set(WebKit2_SOURCES
     UIProcess/API/C/WKGeolocationManager.cpp
     UIProcess/API/C/WKGeolocationPermissionRequest.cpp
     UIProcess/API/C/WKGeolocationPosition.cpp
-    UIProcess/API/C/WKGrammarDetail.cpp
     UIProcess/API/C/WKHitTestResult.cpp
     UIProcess/API/C/WKIconDatabase.cpp
     UIProcess/API/C/WKInspector.cpp
@@ -396,7 +395,6 @@ set(WebKit2_SOURCES
     UIProcess/API/C/WKUserContentControllerRef.cpp
     UIProcess/API/C/WKUserMediaPermissionCheck.cpp
     UIProcess/API/C/WKUserMediaPermissionRequest.cpp
-    UIProcess/API/C/WKVibration.cpp
     UIProcess/API/C/WKViewportAttributes.cpp
     UIProcess/API/C/WKWebsiteDataStoreRef.cpp
     UIProcess/API/C/WKWebsitePolicies.cpp
@@ -417,11 +415,6 @@ set(WebKit2_SOURCES
     UIProcess/Gamepad/UIGamepad.cpp
     UIProcess/Gamepad/UIGamepadProvider.cpp
 
-    UIProcess/InspectorServer/HTTPRequest.cpp
-    UIProcess/InspectorServer/WebInspectorServer.cpp
-    UIProcess/InspectorServer/WebSocketServer.cpp
-    UIProcess/InspectorServer/WebSocketServerConnection.cpp
-
     UIProcess/Launcher/ProcessLauncher.cpp
 
     UIProcess/Network/CustomProtocols/LegacyCustomProtocolManagerProxy.cpp
@@ -441,6 +434,7 @@ set(WebKit2_SOURCES
 
     UIProcess/Storage/LocalStorageDatabase.cpp
     UIProcess/Storage/LocalStorageDatabaseTracker.cpp
+    UIProcess/Storage/ResourceLoadStatisticsPersistentStorage.cpp
 
     UIProcess/UserContent/WebScriptMessageHandler.cpp
     UIProcess/UserContent/WebUserContentControllerProxy.cpp
@@ -557,13 +551,13 @@ set(WebKit2_SOURCES
     WebProcess/WebCoreSupport/WebGeolocationClient.cpp
     WebProcess/WebCoreSupport/WebInspectorClient.cpp
     WebProcess/WebCoreSupport/WebNotificationClient.cpp
+    WebProcess/WebCoreSupport/WebPerformanceLoggingClient.cpp
     WebProcess/WebCoreSupport/WebPlatformStrategies.cpp
     WebProcess/WebCoreSupport/WebPlugInClient.cpp
     WebProcess/WebCoreSupport/WebPopupMenu.cpp
     WebProcess/WebCoreSupport/WebProgressTrackerClient.cpp
     WebProcess/WebCoreSupport/WebSearchPopupMenu.cpp
     WebProcess/WebCoreSupport/WebUserMediaClient.cpp
-    WebProcess/WebCoreSupport/WebVibrationClient.cpp
 
     WebProcess/WebPage/DrawingArea.cpp
     WebProcess/WebPage/EventDispatcher.cpp
@@ -630,7 +624,6 @@ set(WebKit2_MESSAGES_IN_FILES
     UIProcess/WebProcessPool.messages.in
     UIProcess/WebProcessProxy.messages.in
     UIProcess/WebResourceLoadStatisticsStore.messages.in
-    UIProcess/WebVibrationProxy.messages.in
 
     UIProcess/Automation/WebAutomationSession.messages.in
 
@@ -724,11 +717,33 @@ else ()
     set(JavaScriptCore_SCRIPTS_DIR "${FORWARDING_HEADERS_DIR}/JavaScriptCore/Scripts")
 endif ()
 
-# librt is needed for shm_open on Linux.
-find_library(LIBRT_LIBRARIES NAMES rt)
-mark_as_advanced(LIBRT_LIBRARIES)
-if (LIBRT_LIBRARIES)
-    list(APPEND WebKit2_LIBRARIES ${LIBRT_LIBRARIES})
+if (COMPILER_IS_GCC_OR_CLANG)
+    set(ATOMIC_TEST_SOURCE
+    "
+        #include <atomic>
+        int main() { std::atomic<int64_t> i(0); i++; return 0; }
+    "
+    )
+    check_cxx_source_compiles("${ATOMIC_TEST_SOURCE}" ATOMIC_INT64_IS_BUILTIN)
+    if (NOT ATOMIC_INT64_IS_BUILTIN)
+        set(CMAKE_REQUIRED_LIBRARIES atomic)
+        check_cxx_source_compiles("${ATOMIC_TEST_SOURCE}" ATOMIC_INT64_REQUIRES_LIBATOMIC)
+        if (ATOMIC_INT64_REQUIRES_LIBATOMIC)
+            list(APPEND WebKit2_LIBRARIES atomic)
+        endif ()
+        unset(CMAKE_REQUIRED_LIBRARIES)
+    endif ()
+endif ()
+
+if (UNIX)
+    check_function_exists(shm_open SHM_OPEN_EXISTS)
+    if (NOT SHM_OPEN_EXISTS)
+        set(CMAKE_REQUIRED_LIBRARIES rt)
+        check_function_exists(shm_open SHM_OPEN_REQUIRES_LIBRT)
+        if (SHM_OPEN_REQUIRES_LIBRT)
+            list(APPEND WebKit2_LIBRARIES rt)
+        endif ()
+    endif ()
 endif ()
 
 macro(ADD_WEBKIT2_PREFIX_HEADER _target)

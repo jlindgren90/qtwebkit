@@ -50,6 +50,10 @@
 #if ENABLE(ACCELERATED_2D_CANVAS)
 #include "GLContext.h"
 #include "TextureMapperGL.h"
+
+#if USE(EGL) && USE(LIBEPOXY)
+#include <epoxy/egl.h>
+#endif
 #include <cairo-gl.h>
 
 #if USE(OPENGL_ES_2)
@@ -135,7 +139,7 @@ void ImageBufferData::swapBuffersIfNeeded()
     if (!m_compositorTexture) {
         createCompositorBuffer();
         LockHolder holder(m_platformLayerProxy->lock());
-        m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_compositorTexture, m_size, TextureMapperGL::ShouldBlend));
+        m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_compositorTexture, m_size, TextureMapperGL::ShouldBlend, GL_RGBA));
     }
 
     // It would be great if we could just swap the buffers here as we do with webgl, but that breaks the cases
@@ -333,7 +337,7 @@ RefPtr<cairo_surface_t> copySurfaceToImageAndAdjustRect(cairo_surface_t* surface
 template <Multiply multiplied>
 RefPtr<Uint8ClampedArray> getImageData(const IntRect& rect, const IntRect& logicalRect, const ImageBufferData& data, const IntSize& size, const IntSize& logicalSize, float resolutionScale)
 {
-    RefPtr<Uint8ClampedArray> result = Uint8ClampedArray::createUninitialized(rect.width() * rect.height() * 4);
+    auto result = Uint8ClampedArray::createUninitialized(rect.width() * rect.height() * 4);
     if (!result)
         return nullptr;
 
@@ -410,7 +414,7 @@ RefPtr<Uint8ClampedArray> getImageData(const IntRect& rect, const IntRect& logic
         destRows += destBytesPerRow;
     }
 
-    return result.release();
+    return result;
 }
 
 template<typename Unit>
@@ -567,7 +571,7 @@ String ImageBuffer::toDataURL(const String& mimeType, std::optional<double> qual
     return "data:" + mimeType + ";base64," + base64Data;
 }
 
-Vector<uint8_t> ImageBuffer::toData(const String& mimeType, std::optional<double> quality) const
+Vector<uint8_t> ImageBuffer::toData(const String& mimeType, std::optional<double>) const
 {
     ASSERT(MIMETypeRegistry::isSupportedImageMIMETypeForEncoding(mimeType));
 

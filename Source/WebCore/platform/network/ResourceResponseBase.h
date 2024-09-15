@@ -38,6 +38,8 @@ namespace WebCore {
 
 class ResourceResponse;
 
+bool isScriptAllowedByNosniff(const ResourceResponse&);
+
 // Do not use this class directly, use the class ResponseResponse instead
 class ResourceResponseBase {
     WTF_MAKE_FAST_ALLOCATED;

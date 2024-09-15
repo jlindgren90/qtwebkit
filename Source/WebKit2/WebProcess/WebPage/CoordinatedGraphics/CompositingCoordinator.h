@@ -60,12 +60,14 @@ public:
         virtual void notifyFlushRequired() = 0;
         virtual void commitSceneState(const WebCore::CoordinatedGraphicsState&) = 0;
         virtual void paintLayerContents(const WebCore::GraphicsLayer*, WebCore::GraphicsContext&, const WebCore::IntRect& clipRect) = 0;
+        virtual void releaseUpdateAtlases(Vector<uint32_t>&&) = 0;
     };
 
     CompositingCoordinator(WebCore::Page*, CompositingCoordinator::Client&);
     virtual ~CompositingCoordinator();
 
     void invalidate();
+    void clearUpdateAtlases();
 
     void setRootCompositingLayer(WebCore::GraphicsLayer*);
     void setViewOverlayRootLayer(WebCore::GraphicsLayer*);
@@ -80,6 +82,8 @@ public:
     WebCore::GraphicsLayer* rootLayer() const { return m_rootLayer.get(); }
     WebCore::GraphicsLayer* rootCompositingLayer() const { return m_rootCompositingLayer; }
     WebCore::CoordinatedGraphicsLayer* mainContentsLayer();
+
+    void forceFrameSync() { m_shouldSyncFrame = true; }
 
     bool flushPendingLayerChanges();
     WebCore::CoordinatedGraphicsState& state() { return m_state; }
@@ -97,7 +101,7 @@ private:
     // GraphicsLayerClient
     void notifyAnimationStarted(const WebCore::GraphicsLayer*, const String&, double time) override;
     void notifyFlushRequired(const WebCore::GraphicsLayer*) override;
-    void paintContents(const WebCore::GraphicsLayer*, WebCore::GraphicsContext&, WebCore::GraphicsLayerPaintingPhase, const WebCore::FloatRect& clipRect) override;
+    void paintContents(const WebCore::GraphicsLayer*, WebCore::GraphicsContext&, WebCore::GraphicsLayerPaintingPhase, const WebCore::FloatRect& clipRect, WebCore::GraphicsLayerPaintFlags) override;
     float deviceScaleFactor() const override;
     float pageScaleFactor() const override;
 
@@ -110,7 +114,7 @@ private:
     // CoordinatedGraphicsLayerClient
     bool isFlushingLayerChanges() const override { return m_isFlushingLayerChanges; }
     WebCore::FloatRect visibleContentsRect() const override;
-    Ref<WebCore::CoordinatedImageBacking> createImageBackingIfNeeded(WebCore::Image*) override;
+    Ref<WebCore::CoordinatedImageBacking> createImageBackingIfNeeded(WebCore::Image&) override;
     void detachLayer(WebCore::CoordinatedGraphicsLayer*) override;
     bool paintToSurface(const WebCore::IntSize&, WebCore::CoordinatedSurface::Flags, uint32_t& /* atlasID */, WebCore::IntPoint&, WebCore::CoordinatedSurface::Client&) override;
     void syncLayerState(WebCore::CoordinatedLayerID, WebCore::CoordinatedGraphicsLayerState&) override;
@@ -148,6 +152,7 @@ private:
     typedef HashMap<WebCore::CoordinatedImageBackingID, RefPtr<WebCore::CoordinatedImageBacking> > ImageBackingMap;
     ImageBackingMap m_imageBackings;
     Vector<std::unique_ptr<UpdateAtlas>> m_updateAtlases;
+    Vector<uint32_t> m_atlasesToRemove;
 
     // We don't send the messages related to releasing resources to renderer during purging, because renderer already had removed all resources.
     bool m_isDestructing { false };

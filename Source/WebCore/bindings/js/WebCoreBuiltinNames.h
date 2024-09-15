@@ -88,6 +88,8 @@ namespace WebCore {
     macro(retrieveResponse) \
     macro(response) \
     macro(setBody) \
+    macro(setBodyAsReadableStream) \
+    macro(setBodyFromInputRequest) \
     macro(setStatus) \
     macro(state) \
     macro(startConsumingStream) \
@@ -116,6 +118,7 @@ namespace WebCore {
     macro(MediaStreamTrack) \
     macro(ReadableByteStreamController) \
     macro(ReadableStream) \
+    macro(ReadableStreamBYOBReader) \
     macro(ReadableStreamBYOBRequest) \
     macro(ReadableStreamDefaultController) \
     macro(ReadableStreamDefaultReader) \

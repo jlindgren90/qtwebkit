@@ -183,3 +183,7 @@
 #define WebKitResourceTimingEnabledPreferenceKey "WebKitResourceTimingEnabled"
 
 #define WebKitLinkPreloadEnabledPreferenceKey "WebKitLinkPreloadEnabled"
+
+#define WebKitMediaPreloadingEnabledPreferenceKey "WebKitMediaPreloadingEnabled"
+
+#define WebKitIsSecureContextAttributeEnabledPreferenceKey "WebKitIsSecureContextAttributeEnabled"

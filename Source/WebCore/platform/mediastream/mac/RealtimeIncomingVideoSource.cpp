@@ -38,9 +38,10 @@
 #include "GraphicsContext.h"
 #include "ImageBuffer.h"
 #include "IntRect.h"
+#include "Logging.h"
 #include "MediaSampleAVFObjC.h"
-#include <webrtc/common_video/include/corevideo_frame_buffer.h>
 #include <webrtc/common_video/libyuv/include/webrtc_libyuv.h>
+#include <webrtc/sdk/objc/Framework/Classes/Video/corevideo_frame_buffer.h>
 #include <wtf/MainThread.h>
 
 #include "CoreMediaSoftLink.h"
@@ -58,7 +59,7 @@ Ref<RealtimeIncomingVideoSource> RealtimeIncomingVideoSource::create(rtc::scoped
     PixelBufferConformerCV conformer(conformerOptions.get());
 
     auto source = adoptRef(*new RealtimeIncomingVideoSource(WTFMove(videoTrack), WTFMove(trackId), conformerOptions.get()));
-    source->startProducingData();
+    source->start();
     return source;
 }
 
@@ -67,17 +68,13 @@ RealtimeIncomingVideoSource::RealtimeIncomingVideoSource(rtc::scoped_refptr<webr
     , m_videoTrack(WTFMove(videoTrack))
     , m_conformer(conformerOptions)
 {
-    m_muted = !m_videoTrack;
     m_currentSettings.setWidth(640);
     m_currentSettings.setHeight(480);
+    notifyMutedChange(!m_videoTrack);
 }
 
 void RealtimeIncomingVideoSource::startProducingData()
 {
-    if (m_isProducingData)
-        return;
-
-    m_isProducingData = true;
     if (m_videoTrack)
         m_videoTrack->AddOrUpdateSink(this, rtc::VideoSinkWants());
 }
@@ -87,25 +84,21 @@ void RealtimeIncomingVideoSource::setSourceTrack(rtc::scoped_refptr<webrtc::Vide
     ASSERT(!m_videoTrack);
     ASSERT(track);
 
-    m_muted = false;
-    m_videoTrack = track;
-    if (m_isProducingData)
+    m_videoTrack = WTFMove(track);
+    notifyMutedChange(!m_videoTrack);
+    if (isProducingData())
         m_videoTrack->AddOrUpdateSink(this, rtc::VideoSinkWants());
 }
 
 void RealtimeIncomingVideoSource::stopProducingData()
 {
-    if (!m_isProducingData)
-        return;
-
-    m_isProducingData = false;
     if (m_videoTrack)
         m_videoTrack->RemoveSink(this);
 }
 
 CVPixelBufferRef RealtimeIncomingVideoSource::pixelBufferFromVideoFrame(const webrtc::VideoFrame& frame)
 {
-    if (muted() || !enabled()) {
+    if (muted()) {
         if (!m_blackFrame || m_blackFrameWidth != frame.width() || m_blackFrameHeight != frame.height()) {
             CVPixelBufferRef pixelBuffer = nullptr;
             auto status = CVPixelBufferCreate(kCFAllocatorDefault, frame.width(), frame.height(), kCVPixelFormatType_420YpCbCr8Planar, nullptr, &pixelBuffer);
@@ -128,13 +121,19 @@ CVPixelBufferRef RealtimeIncomingVideoSource::pixelBufferFromVideoFrame(const we
         return m_blackFrame.get();
     }
     auto buffer = frame.video_frame_buffer();
-    return static_cast<CVPixelBufferRef>(buffer->native_handle());
+    ASSERT(buffer->type() == webrtc::VideoFrameBuffer::Type::kNative);
+    return static_cast<webrtc::CoreVideoFrameBuffer&>(*buffer).pixel_buffer();
 }
 
 void RealtimeIncomingVideoSource::OnFrame(const webrtc::VideoFrame& frame)
 {
-    if (!m_isProducingData)
+    if (!isProducingData())
         return;
+
+#if !RELEASE_LOG_DISABLED
+    if (!(++m_numberOfFrames % 30))
+        RELEASE_LOG(MediaStream, "RealtimeIncomingVideoSource::OnFrame %zu frame", m_numberOfFrames);
+#endif
 
     auto pixelBuffer = pixelBufferFromVideoFrame(frame);
 
@@ -215,11 +214,6 @@ const RealtimeMediaSourceCapabilities& RealtimeIncomingVideoSource::capabilities
 const RealtimeMediaSourceSettings& RealtimeIncomingVideoSource::settings() const
 {
     return m_currentSettings;
-}
-
-RealtimeMediaSourceSupportedConstraints& RealtimeIncomingVideoSource::supportedConstraints()
-{
-    return m_supportedConstraints;
 }
 
 } // namespace WebCore

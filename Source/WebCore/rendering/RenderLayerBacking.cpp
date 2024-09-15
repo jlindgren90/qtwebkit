@@ -44,8 +44,10 @@
 #include "HTMLPlugInElement.h"
 #include "InspectorInstrumentation.h"
 #include "KeyframeList.h"
+#include "Logging.h"
 #include "MainFrame.h"
 #include "Page.h"
+#include "PerformanceLoggingClient.h"
 #include "PluginViewBase.h"
 #include "ProgressTracker.h"
 #include "RenderFlowThread.h"
@@ -545,17 +547,10 @@ void RenderLayerBacking::updateCustomAppearance(const RenderStyle& style)
         m_graphicsLayer->setCustomAppearance(GraphicsLayer::NoCustomAppearance);
 }
 
-// FIXME: the hasAcceleratedTouchScrolling()/needsCompositedScrolling() concepts need to be merged.
 static bool layerOrAncestorIsTransformedOrUsingCompositedScrolling(RenderLayer& layer)
 {
     for (RenderLayer* curr = &layer; curr; curr = curr->parent()) {
-        if (curr->hasTransform()
-#if PLATFORM(IOS)
-            || curr->hasTouchScrollableOverflow()
-#else
-            || curr->needsCompositedScrolling()
-#endif
-            )
+        if (curr->hasTransform() || curr->usesAcceleratedScrolling())
             return true;
     }
 
@@ -681,12 +676,8 @@ bool RenderLayerBacking::updateConfiguration()
     bool needsDescendantsClippingLayer = compositor().clipsCompositingDescendants(m_owningLayer);
 
     if (!renderer().view().needsLayout()) {
-        bool usesCompositedScrolling;
-#if PLATFORM(IOS)
-        usesCompositedScrolling = m_owningLayer.hasTouchScrollableOverflow();
-#else
-        usesCompositedScrolling = m_owningLayer.needsCompositedScrolling();
-#endif
+        bool usesCompositedScrolling = m_owningLayer.usesAcceleratedScrolling();
+
         // Our scrolling layer will clip.
         if (usesCompositedScrolling)
             needsDescendantsClippingLayer = false;
@@ -954,13 +945,17 @@ void RenderLayerBacking::updateGeometry()
         return;
 
     const RenderStyle& style = renderer().style();
+
+    bool isRunningAcceleratedTransformAnimation = renderer().animation().isRunningAcceleratedAnimationOnRenderer(renderer(), CSSPropertyTransform, AnimationBase::Running | AnimationBase::Paused);
+    bool isRunningAcceleratedOpacityAnimation = renderer().animation().isRunningAcceleratedAnimationOnRenderer(renderer(), CSSPropertyOpacity, AnimationBase::Running | AnimationBase::Paused);
+
     // Set transform property, if it is not animating. We have to do this here because the transform
     // is affected by the layer dimensions.
-    if (!renderer().animation().isRunningAcceleratedAnimationOnRenderer(renderer(), CSSPropertyTransform, AnimationBase::Running | AnimationBase::Paused))
+    if (!isRunningAcceleratedTransformAnimation)
         updateTransform(style);
 
     // Set opacity, if it is not animating.
-    if (!renderer().animation().isRunningAcceleratedAnimationOnRenderer(renderer(), CSSPropertyOpacity, AnimationBase::Running | AnimationBase::Paused))
+    if (!isRunningAcceleratedOpacityAnimation)
         updateOpacity(style);
 
     updateFilters(style);
@@ -986,6 +981,14 @@ void RenderLayerBacking::updateGeometry()
     m_compositedBoundsOffsetFromGraphicsLayer = compositedBoundsOffset.fromPrimaryGraphicsLayer();
     m_graphicsLayer->setPosition(primaryGraphicsLayerRect.location());
     m_graphicsLayer->setSize(primaryGraphicsLayerRect.size());
+
+    auto computeAnimationExtent = [&] () -> std::optional<FloatRect> {
+        LayoutRect animatedBounds;
+        if (isRunningAcceleratedTransformAnimation && m_owningLayer.getOverlapBoundsIncludingChildrenAccountingForTransformAnimations(animatedBounds))
+            return FloatRect(animatedBounds);
+        return { };
+    };
+    m_graphicsLayer->setAnimationExtent(computeAnimationExtent());
 
     ComputedOffsets rendererOffset(m_owningLayer, LayoutRect(), parentGraphicsLayerRect, primaryGraphicsLayerRect);
     if (m_ancestorClippingLayer) {
@@ -1489,6 +1492,7 @@ bool RenderLayerBacking::updateOverflowControlsLayers(bool needsHorizontalScroll
     if (needsHorizontalScrollbarLayer) {
         if (!m_layerForHorizontalScrollbar) {
             m_layerForHorizontalScrollbar = createGraphicsLayer("horizontal scrollbar");
+            m_layerForHorizontalScrollbar->setCanDetachBackingStore(false);
             horizontalScrollbarLayerChanged = true;
         }
     } else if (m_layerForHorizontalScrollbar) {
@@ -1501,6 +1505,7 @@ bool RenderLayerBacking::updateOverflowControlsLayers(bool needsHorizontalScroll
     if (needsVerticalScrollbarLayer) {
         if (!m_layerForVerticalScrollbar) {
             m_layerForVerticalScrollbar = createGraphicsLayer("vertical scrollbar");
+            m_layerForVerticalScrollbar->setCanDetachBackingStore(false);
             verticalScrollbarLayerChanged = true;
         }
     } else if (m_layerForVerticalScrollbar) {
@@ -1513,6 +1518,7 @@ bool RenderLayerBacking::updateOverflowControlsLayers(bool needsHorizontalScroll
     if (needsScrollCornerLayer) {
         if (!m_layerForScrollCorner) {
             m_layerForScrollCorner = createGraphicsLayer("scroll corner");
+            m_layerForScrollCorner->setCanDetachBackingStore(false);
             scrollCornerLayerChanged = true;
         }
     } else if (m_layerForScrollCorner) {
@@ -1780,11 +1786,13 @@ void RenderLayerBacking::detachFromScrollingCoordinator(LayerScrollCoordinationR
         return;
 
     if ((roles & Scrolling) && m_scrollingNodeID) {
+        LOG(Compositing, "Detaching Scrolling node %" PRIu64, m_scrollingNodeID);
         scrollingCoordinator->detachFromStateTree(m_scrollingNodeID);
         m_scrollingNodeID = 0;
     }
     
     if ((roles & ViewportConstrained) && m_viewportConstrainedNodeID) {
+        LOG(Compositing, "Detaching ViewportConstrained node %" PRIu64, m_viewportConstrainedNodeID);
         scrollingCoordinator->detachFromStateTree(m_viewportConstrainedNodeID);
         m_viewportConstrainedNodeID = 0;
     }
@@ -2093,7 +2101,7 @@ bool RenderLayerBacking::isSimpleContainerCompositingLayer(PaintedContentsInfo& 
 // Returning true stops the traversal.
 enum class LayerTraversal { Continue, Stop };
 
-static LayerTraversal traverseVisibleNonCompositedDescendantLayers(RenderLayer& parent, std::function<LayerTraversal (const RenderLayer&)> layerFunc)
+static LayerTraversal traverseVisibleNonCompositedDescendantLayers(RenderLayer& parent, const WTF::Function<LayerTraversal (const RenderLayer&)>& layerFunc)
 {
     // FIXME: We shouldn't be called with a stale z-order lists. See bug 85512.
     parent.updateLayerListsIfNeeded();
@@ -2219,6 +2227,14 @@ bool RenderLayerBacking::isDirectlyCompositedImage() const
 
         if (image->orientationForCurrentFrame() != DefaultImageOrientation)
             return false;
+
+#if (PLATFORM(GTK) || PLATFORM(WPE))
+        // GTK and WPE ports don't support rounded rect clipping at TextureMapper level, so they cannot
+        // directly composite images that have border-radius propery. Draw them as non directly composited
+        // content instead. See https://bugs.webkit.org/show_bug.cgi?id=174157.
+        if (imageRenderer.style().hasBorderRadius())
+            return false;
+#endif
 
         return m_graphicsLayer->shouldDirectlyCompositeImage(image);
     }
@@ -2553,7 +2569,7 @@ void RenderLayerBacking::paintIntoLayer(const GraphicsLayer* graphicsLayer, Grap
 }
 
 // Up-call from compositing layer drawing callback.
-void RenderLayerBacking::paintContents(const GraphicsLayer* graphicsLayer, GraphicsContext& context, GraphicsLayerPaintingPhase paintingPhase, const FloatRect& clip)
+void RenderLayerBacking::paintContents(const GraphicsLayer* graphicsLayer, GraphicsContext& context, GraphicsLayerPaintingPhase paintingPhase, const FloatRect& clip, GraphicsLayerPaintFlags flags)
 {
 #ifndef NDEBUG
     renderer().page().setIsPainting(true);
@@ -2576,7 +2592,11 @@ void RenderLayerBacking::paintContents(const GraphicsLayer* graphicsLayer, Graph
             dirtyRect.intersect(enclosingIntRect(compositedBoundsIncludingMargin()));
 
         // We have to use the same root as for hit testing, because both methods can compute and cache clipRects.
-        paintIntoLayer(graphicsLayer, context, dirtyRect, PaintBehaviorNormal, paintingPhase);
+        PaintBehavior behavior = PaintBehaviorNormal;
+        if (flags == GraphicsLayerPaintFlags::AllowAsyncImageDecoding)
+            behavior |= PaintBehaviorAllowAsyncImageDecoding;
+
+        paintIntoLayer(graphicsLayer, context, dirtyRect, behavior, paintingPhase);
 
         InspectorInstrumentation::didPaint(renderer(), dirtyRect);
     } else if (graphicsLayer == layerForHorizontalScrollbar()) {
@@ -2694,6 +2714,12 @@ bool RenderLayerBacking::shouldTemporarilyRetainTileCohorts(const GraphicsLayer*
 bool RenderLayerBacking::useGiantTiles() const
 {
     return renderer().settings().useGiantTiles();
+}
+
+void RenderLayerBacking::logFilledVisibleFreshTile(unsigned blankPixelCount)
+{
+    if (PerformanceLoggingClient* loggingClient = renderer().page().performanceLoggingClient())
+        loggingClient->logScrollingEvent(PerformanceLoggingClient::ScrollingEvent::FilledTile, MonotonicTime::now(), blankPixelCount);
 }
 
 #ifndef NDEBUG

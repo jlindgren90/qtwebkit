@@ -307,10 +307,9 @@
                 "oblique"
             ],
             "codegen-properties": {
-                "name-for-methods": "Italic",
+                "custom": "All",
                 "font-property": true,
-                "high-priority": true,
-                "converter": "FontStyle"
+                "high-priority": true
             },
             "specification": {
                 "category": "css-fonts",
@@ -3503,19 +3502,28 @@
                 "embed",
                 "bidi-override",
                 {
-                    "value": "-webkit-isolate",
-                    "status": "experimental",
+                    "value": "isolate",
                     "url": "https://www.w3.org/TR/css-writing-modes-3/#valdef-unicode-bidi-isolate"
                 },
                 {
-                    "value": "-webkit-isolate-override",
-                    "status": "experimental",
+                    "value": "isolate-override",
                     "url": "https://www.w3.org/TR/css-writing-modes-3/#valdef-unicode-bidi-isolate-override"
                 },
                 {
-                    "value": "-webkit-plaintext",
-                    "status": "experimental",
+                    "value": "plaintext",
                     "url": "https://www.w3.org/TR/css-writing-modes-3/#valdef-unicode-bidi-plaintext"
+                },
+                {
+                    "value": "-webkit-isolate",
+                    "status": "deprecated"
+                },
+                {
+                    "value": "-webkit-isolate-override",
+                    "status": "deprecated"
+                },
+                {
+                    "value": "-webkit-plaintext",
+                    "status": "deprecated"
                 }
             ],
             "specification": {
@@ -4715,6 +4723,18 @@
             "specification": {
                 "category": "css-align",
                 "url": "https://drafts.csswg.org/css-align-3/#propdef-place-items"
+            }
+        },
+        "place-self": {
+            "codegen-properties": {
+                "longhands": [
+                    "align-self",
+                    "justify-self"
+                ]
+            },
+            "specification": {
+                "category": "css-align",
+                "url": "https://drafts.csswg.org/css-align-3/#propdef-place-self"
             }
         },
         "grid": {
@@ -5930,6 +5950,19 @@
             "specification": {
                 "category": "css-transforms",
                 "url": "https://www.w3.org/TR/css-transforms-1/#transform-property"
+            }
+        },
+        "transform-box": {
+            "values" : [
+                "border-box",
+                "fill-box",
+                "view-box"
+            ],
+            "codegen-properties": {
+            },
+            "specification": {
+                "category": "css-transforms",
+                "url": "https://www.w3.org/TR/css-transforms/#propdef-transform-box"
             }
         },
         "transform-origin": {

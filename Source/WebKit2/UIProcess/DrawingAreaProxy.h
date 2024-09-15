@@ -72,8 +72,6 @@ public:
     // The timeout we use when waiting for a DidUpdateGeometry message.
     static constexpr Seconds didUpdateBackingStoreStateTimeout() { return Seconds::fromMilliseconds(500); }
 
-    virtual void waitForPossibleGeometryUpdate(Seconds = didUpdateBackingStoreStateTimeout()) { }
-
     virtual void colorSpaceDidChange() { }
     virtual void minimumLayoutSizeDidChange() { }
 
@@ -90,7 +88,7 @@ public:
 
     virtual void waitForDidUpdateActivityState() { }
     
-    virtual void dispatchAfterEnsuringDrawing(std::function<void (CallbackBase::Error)>) { ASSERT_NOT_REACHED(); }
+    virtual void dispatchAfterEnsuringDrawing(WTF::Function<void (CallbackBase::Error)>&&) { ASSERT_NOT_REACHED(); }
 
     // Hide the content until the currently pending update arrives.
     virtual void hideContentUntilPendingUpdate() { ASSERT_NOT_REACHED(); }

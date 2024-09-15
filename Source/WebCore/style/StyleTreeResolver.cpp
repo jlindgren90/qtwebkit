@@ -26,6 +26,7 @@
 #include "config.h"
 #include "StyleTreeResolver.h"
 
+#include "CSSAnimationController.h"
 #include "CSSFontSelector.h"
 #include "ComposedTreeAncestorIterator.h"
 #include "ComposedTreeIterator.h"
@@ -40,6 +41,8 @@
 #include "NodeRenderStyle.h"
 #include "Page.h"
 #include "PlatformStrategies.h"
+#include "RenderElement.h"
+#include "RenderView.h"
 #include "Settings.h"
 #include "ShadowRoot.h"
 #include "StyleFontSizeFunctions.h"
@@ -258,6 +261,14 @@ ElementUpdate TreeResolver::createAnimatedElementUpdate(std::unique_ptr<RenderSt
 
     if (animatedStyle) {
         auto change = determineChange(renderer->style(), *animatedStyle);
+        if (renderer->hasInitialAnimatedStyle()) {
+            renderer->setHasInitialAnimatedStyle(false);
+            // When we initialize a newly created renderer with initial animated style we don't inherit it to descendants.
+            // The first animation frame needs to correct this.
+            // FIXME: We should compute animated style correctly during initial style resolution when we don't have renderers yet.
+            //        https://bugs.webkit.org/show_bug.cgi?id=171926
+            change = std::max(change, Inherit);
+        }
         // If animation forces render tree reconstruction pass the original style. The animation will be applied on renderer construction.
         // FIXME: We should always use the animated style here.
         auto style = change == Detach ? WTFMove(newStyle) : WTFMove(animatedStyle);
@@ -413,7 +424,8 @@ void TreeResolver::resolveComposedTree()
 
         bool shouldResolve = shouldResolveElement(element, parent.change) || affectedByPreviousSibling;
         if (shouldResolve) {
-            element.resetComputedStyle();
+            if (!element.hasDisplayContents())
+                element.resetComputedStyle();
             element.resetStyleRelations();
 
             if (element.hasCustomStyleResolveCallbacks())

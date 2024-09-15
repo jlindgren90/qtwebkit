@@ -37,6 +37,7 @@
 #include "Logging.h"
 #include "MainFrame.h"
 #include "Page.h"
+#include "PerformanceLoggingClient.h"
 #include "ScrollAnimator.h"
 #include "ScrollingConstraints.h"
 #include "ScrollingStateFixedNode.h"
@@ -376,6 +377,8 @@ void AsyncScrollingCoordinator::reconcileScrollingState(FrameView& frameView, co
     bool oldProgrammaticScroll = frameView.inProgrammaticScroll();
     frameView.setInProgrammaticScroll(programmaticScroll);
 
+    LOG_WITH_STREAM(Scrolling, stream << "AsyncScrollingCoordinator " << this << " reconcileScrollingState scrollPosition " << scrollPosition << " programmaticScroll " << programmaticScroll << " stable " << inStableState << " " << scrollingLayerPositionAction);
+
     std::optional<FloatRect> layoutViewportRect;
 
     WTF::switchOn(layoutViewportOriginOrOverrideRect,
@@ -383,15 +386,21 @@ void AsyncScrollingCoordinator::reconcileScrollingState(FrameView& frameView, co
             if (origin)
                 frameView.setBaseLayoutViewportOrigin(LayoutPoint(origin.value()), FrameView::TriggerLayoutOrNot::No);
         }, [&frameView, &layoutViewportRect, inStableState, visualViewportEnabled = visualViewportEnabled()](std::optional<FloatRect> overrideRect) {
+            if (!overrideRect)
+                return;
+        
             layoutViewportRect = overrideRect;
-            if (overrideRect && inStableState) {
-                if (visualViewportEnabled)
+            if (visualViewportEnabled) {
+                if (inStableState) {
                     frameView.setLayoutViewportOverrideRect(LayoutRect(overrideRect.value()));
-#if PLATFORM(IOS)
-                else
-                    frameView.setCustomFixedPositionLayoutRect(enclosingIntRect(overrideRect.value()));
-#endif
+                    frameView.setUnstableLayoutViewportRect(std::nullopt);
+                } else
+                    frameView.setUnstableLayoutViewportRect(LayoutRect(layoutViewportRect.value()));
             }
+#if PLATFORM(IOS)
+            else if (inStableState)
+                frameView.setCustomFixedPositionLayoutRect(enclosingIntRect(overrideRect.value()));
+#endif
         }
     );
 
@@ -561,8 +570,6 @@ void AsyncScrollingCoordinator::updateOverflowScrollingNode(ScrollingNodeID node
 
 void AsyncScrollingCoordinator::updateViewportConstrainedNode(ScrollingNodeID nodeID, const ViewportConstraints& constraints, GraphicsLayer* graphicsLayer)
 {
-    ASSERT(supportsFixedPositionLayers());
-
     ScrollingStateNode* node = m_scrollingStateTree->stateNodeForID(nodeID);
     if (!node)
         return;
@@ -583,32 +590,25 @@ void AsyncScrollingCoordinator::updateViewportConstrainedNode(ScrollingNodeID no
     }
 }
 
-void AsyncScrollingCoordinator::setSynchronousScrollingReasons(SynchronousScrollingReasons reasons)
+void AsyncScrollingCoordinator::setSynchronousScrollingReasons(FrameView& frameView, SynchronousScrollingReasons reasons)
 {
-    if (!m_scrollingStateTree->rootStateNode())
+    ScrollingStateFrameScrollingNode* scrollingStateNode = static_cast<ScrollingStateFrameScrollingNode*>(m_scrollingStateTree->stateNodeForID(frameView.scrollLayerID()));
+    if (!scrollingStateNode)
         return;
 
     // The FrameView's GraphicsLayer is likely to be out-of-synch with the PlatformLayer
     // at this point. So we'll update it before we switch back to main thread scrolling
     // in order to avoid layer positioning bugs.
     if (reasons)
-        updateMainFrameScrollLayerPosition();
-    m_scrollingStateTree->rootStateNode()->setSynchronousScrollingReasons(reasons);
+        updateScrollLayerPosition(frameView);
+    scrollingStateNode->setSynchronousScrollingReasons(reasons);
 }
 
-void AsyncScrollingCoordinator::updateMainFrameScrollLayerPosition()
+void AsyncScrollingCoordinator::updateScrollLayerPosition(FrameView& frameView)
 {
     ASSERT(isMainThread());
-
-    if (!m_page)
-        return;
-
-    FrameView* frameView = m_page->mainFrame().view();
-    if (!frameView)
-        return;
-
-    if (GraphicsLayer* scrollLayer = scrollLayerForFrameView(*frameView))
-        scrollLayer->setPosition(-frameView->scrollPosition());
+    if (GraphicsLayer* scrollLayer = scrollLayerForFrameView(frameView))
+        scrollLayer->setPosition(-frameView.scrollPosition());
 }
 
 bool AsyncScrollingCoordinator::isRubberBandInProgress() const
@@ -626,12 +626,12 @@ bool AsyncScrollingCoordinator::visualViewportEnabled() const
     return m_page->mainFrame().settings().visualViewportEnabled();
 }
 
-String AsyncScrollingCoordinator::scrollingStateTreeAsText() const
+String AsyncScrollingCoordinator::scrollingStateTreeAsText(ScrollingStateTreeAsTextBehavior behavior) const
 {
     if (m_scrollingStateTree->rootStateNode()) {
         if (m_eventTrackingRegionsDirty)
             m_scrollingStateTree->rootStateNode()->setEventTrackingRegions(absoluteEventTrackingRegions());
-        return m_scrollingStateTree->rootStateNode()->scrollingStateTreeAsText();
+        return m_scrollingStateTree->rootStateNode()->scrollingStateTreeAsText(behavior);
     }
 
     return String();
@@ -703,7 +703,19 @@ void AsyncScrollingCoordinator::updateScrollSnapPropertiesWithFrameView(const Fr
     }
 }
 #endif
-    
+
+void AsyncScrollingCoordinator::reportExposedUnfilledArea(MonotonicTime timestamp, unsigned unfilledArea)
+{
+    if (m_page && m_page->performanceLoggingClient())
+        m_page->performanceLoggingClient()->logScrollingEvent(PerformanceLoggingClient::ScrollingEvent::ExposedTilelessArea, timestamp, unfilledArea);
+}
+
+void AsyncScrollingCoordinator::reportSynchronousScrollingReasonsChanged(MonotonicTime timestamp, SynchronousScrollingReasons reasons)
+{
+    if (m_page && m_page->performanceLoggingClient())
+        m_page->performanceLoggingClient()->logScrollingEvent(PerformanceLoggingClient::ScrollingEvent::SwitchedScrollingMode, timestamp, reasons);
+}
+
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING)

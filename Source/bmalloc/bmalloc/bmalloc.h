@@ -23,6 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+#include "AvailableMemory.h"
 #include "Cache.h"
 #include "Heap.h"
 #include "PerProcess.h"
@@ -75,8 +76,8 @@ inline void scavenge()
 {
     scavengeThisThread();
 
-    std::unique_lock<StaticMutex> lock(PerProcess<Heap>::mutex());
-    PerProcess<Heap>::get()->scavenge(lock, Sync);
+    std::lock_guard<StaticMutex> lock(PerProcess<Heap>::mutex());
+    PerProcess<Heap>::get()->scavenge(lock);
 }
 
 inline bool isEnabled()
@@ -84,6 +85,23 @@ inline bool isEnabled()
     std::unique_lock<StaticMutex> lock(PerProcess<Heap>::mutex());
     return !PerProcess<Heap>::getFastCase()->debugHeap();
 }
+    
+inline size_t availableMemory()
+{
+    return bmalloc::availableMemory();
+}
+    
+#if BPLATFORM(IOS)
+inline size_t memoryFootprint()
+{
+    return bmalloc::memoryFootprint();
+}
+
+inline double percentAvailableMemoryInUse()
+{
+    return bmalloc::percentAvailableMemoryInUse();
+}
+#endif
 
 #if BOS(DARWIN)
 inline void setScavengerThreadQOSClass(qos_class_t overrideClass)

@@ -96,6 +96,7 @@
 #include <wtf/NeverDestroyed.h>
 #include <wtf/ThreadFunctionInvocation.h>
 #include <wtf/ThreadHolder.h>
+#include <wtf/ThreadingPrimitives.h>
 
 #if HAVE(ERRNO_H)
 #include <errno.h>
@@ -155,7 +156,7 @@ static unsigned __stdcall wtfThreadEntryPoint(void* param)
     // Balanced by .leakPtr() in Thread::createInternal.
     auto invocation = std::unique_ptr<ThreadFunctionInvocation>(static_cast<ThreadFunctionInvocation*>(param));
 
-    ThreadHolder::initialize(*invocation->thread);
+    ThreadHolder::initialize(*invocation->thread, Thread::currentID());
     invocation->thread = nullptr;
 
     invocation->function(invocation->data);
@@ -190,7 +191,7 @@ RefPtr<Thread> Thread::createInternal(ThreadFunction entryPoint, void* data, con
 
 void Thread::changePriority(int delta)
 {
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     SetThreadPriority(m_handle, THREAD_PRIORITY_NORMAL + delta);
 }
 
@@ -198,7 +199,7 @@ int Thread::waitForCompletion()
 {
     HANDLE handle;
     {
-        std::unique_lock<std::mutex> locker(m_mutex);
+        std::lock_guard<std::mutex> locker(m_mutex);
         handle = m_handle;
     }
 
@@ -206,7 +207,7 @@ int Thread::waitForCompletion()
     if (joinResult == WAIT_FAILED)
         LOG_ERROR("ThreadIdentifier %u was found to be deadlocked trying to quit", m_id);
 
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     ASSERT(joinableState() == Joinable);
 
     // The thread has already exited, do nothing.
@@ -228,7 +229,7 @@ void Thread::detach()
     // FlsCallback automatically. FlsCallback will call CloseHandle to clean up
     // resource. So in this function, we just mark the thread as detached to
     // avoid calling waitForCompletion for this thread.
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     if (!hasExited())
         didBecomeDetached();
 }
@@ -236,7 +237,7 @@ void Thread::detach()
 auto Thread::suspend() -> Expected<void, PlatformSuspendError>
 {
     RELEASE_ASSERT_WITH_MESSAGE(id() != currentThread(), "We do not support suspending the current thread itself.");
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     DWORD result = SuspendThread(m_handle);
     if (result != (DWORD)-1)
         return { };
@@ -246,13 +247,13 @@ auto Thread::suspend() -> Expected<void, PlatformSuspendError>
 // During resume, suspend or resume should not be executed from the other threads.
 void Thread::resume()
 {
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     ResumeThread(m_handle);
 }
 
 size_t Thread::getRegisters(PlatformRegisters& registers)
 {
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     registers.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
     GetThreadContext(m_handle, &registers);
     return sizeof(CONTEXT);
@@ -272,7 +273,7 @@ Thread& Thread::current()
     RELEASE_ASSERT(isSuccessful);
 
     thread->establish(handle, currentID());
-    ThreadHolder::initialize(thread.get());
+    ThreadHolder::initialize(thread.get(), Thread::currentID());
     return thread.get();
 }
 
@@ -283,7 +284,7 @@ ThreadIdentifier Thread::currentID()
 
 void Thread::establish(HANDLE handle, ThreadIdentifier threadID)
 {
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     m_handle = handle;
     m_id = threadID;
 }
@@ -515,7 +516,9 @@ DWORD absoluteTimeToWaitTimeoutInterval(double absoluteTime)
 // Remove this workaround code when <rdar://problem/31793213> is fixed.
 ThreadIdentifier createThread(ThreadFunction function, void* data, const char* threadName)
 {
-    return Thread::create(function, data, threadName)->id();
+    return Thread::create(threadName, [function, data] {
+        function(data);
+    })->id();
 }
 
 int waitForThreadCompletion(ThreadIdentifier threadID)

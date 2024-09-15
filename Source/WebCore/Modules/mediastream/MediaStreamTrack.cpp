@@ -30,14 +30,16 @@
 
 #if ENABLE(MEDIA_STREAM)
 
+#include "Document.h"
 #include "Event.h"
 #include "EventNames.h"
 #include "JSOverconstrainedError.h"
-#include "MediaConstraintsImpl.h"
+#include "MediaConstraints.h"
 #include "MediaStream.h"
 #include "MediaStreamPrivate.h"
 #include "NotImplemented.h"
 #include "OverconstrainedError.h"
+#include "Page.h"
 #include "ScriptExecutionContext.h"
 #include <wtf/NeverDestroyed.h>
 
@@ -52,15 +54,22 @@ MediaStreamTrack::MediaStreamTrack(ScriptExecutionContext& context, Ref<MediaStr
     : ActiveDOMObject(&context)
     , m_private(WTFMove(privateTrack))
     , m_weakPtrFactory(this)
+    , m_taskQueue(context)
 {
     suspendIfNeeded();
 
     m_private->addObserver(*this);
+
+    if (auto document = this->document())
+        document->addAudioProducer(this);
 }
 
 MediaStreamTrack::~MediaStreamTrack()
 {
     m_private->removeObserver(*this);
+
+    if (auto document = this->document())
+        document->removeAudioProducer(this);
 }
 
 const AtomicString& MediaStreamTrack::kind() const
@@ -113,7 +122,7 @@ Ref<MediaStreamTrack> MediaStreamTrack::clone()
     return MediaStreamTrack::create(*scriptExecutionContext(), m_private->clone());
 }
 
-void MediaStreamTrack::stopTrack()
+void MediaStreamTrack::stopTrack(StopMode mode)
 {
     // NOTE: this method is called when the "stop" method is called from JS, using the "ImplementedAs" IDL attribute.
     // This is done because ActiveDOMObject requires a "stop" method.
@@ -121,8 +130,15 @@ void MediaStreamTrack::stopTrack()
     if (ended())
         return;
 
-    m_ended = true;
+    // An 'ended' event is not posted if m_ended is true when trackEnded is called, so set it now if we are
+    // not supposed to post the event.
+    if (mode == StopMode::Silently)
+        m_ended = true;
+
     m_private->endTrack();
+    m_ended = true;
+
+    configureTrackRendering();
 }
 
 MediaStreamTrack::TrackSettings MediaStreamTrack::getSettings() const
@@ -241,14 +257,17 @@ MediaStreamTrack::TrackCapabilities MediaStreamTrack::getCapabilities() const
     return result;
 }
 
-static Ref<MediaConstraintsImpl> createMediaConstraintsImpl(const std::optional<MediaTrackConstraints>& constraints)
+static MediaConstraints createMediaConstraints(const std::optional<MediaTrackConstraints>& constraints)
 {
-    if (!constraints)
-        return MediaConstraintsImpl::create({ }, { }, true);
-    return createMediaConstraintsImpl(constraints.value());
+    if (!constraints) {
+        MediaConstraints validConstraints;
+        validConstraints.isValid = true;
+        return validConstraints;
+    }
+    return createMediaConstraints(constraints.value());
 }
 
-void MediaStreamTrack::applyConstraints(const std::optional<MediaTrackConstraints>& constraints, DOMPromise<void>&& promise)
+void MediaStreamTrack::applyConstraints(const std::optional<MediaTrackConstraints>& constraints, DOMPromiseDeferred<void>&& promise)
 {
     m_promise = WTFMove(promise);
 
@@ -264,7 +283,7 @@ void MediaStreamTrack::applyConstraints(const std::optional<MediaTrackConstraint
         weakThis->m_promise->resolve();
         weakThis->m_constraints = constraints.value_or(MediaTrackConstraints { });
     };
-    m_private->applyConstraints(createMediaConstraintsImpl(constraints), successHandler, failureHandler);
+    m_private->applyConstraints(createMediaConstraints(constraints), WTFMove(successHandler), WTFMove(failureHandler));
 }
 
 void MediaStreamTrack::addObserver(Observer& observer)
@@ -275,6 +294,53 @@ void MediaStreamTrack::addObserver(Observer& observer)
 void MediaStreamTrack::removeObserver(Observer& observer)
 {
     m_observers.removeFirst(&observer);
+}
+
+void MediaStreamTrack::pageMutedStateDidChange()
+{
+    if (m_ended || !isCaptureTrack())
+        return;
+
+    Document* document = this->document();
+    if (!document || !document->page())
+        return;
+
+    m_private->setMuted(document->page()->isMediaCaptureMuted());
+}
+
+MediaProducer::MediaStateFlags MediaStreamTrack::mediaState() const
+{
+    if (m_ended || !isCaptureTrack())
+        return IsNotPlaying;
+
+    Document* document = this->document();
+    if (!document || !document->page())
+        return IsNotPlaying;
+
+    bool pageCaptureMuted = document->page()->isMediaCaptureMuted();
+
+    if (source().type() == RealtimeMediaSource::Type::Audio) {
+        if (source().interrupted() && !pageCaptureMuted)
+            return HasInterruptedAudioCaptureDevice;
+        if (muted())
+            return HasMutedAudioCaptureDevice;
+        if (m_private->isProducingData())
+            return HasActiveAudioCaptureDevice;
+    } else {
+        if (source().interrupted() && !pageCaptureMuted)
+            return HasInterruptedVideoCaptureDevice;
+        if (muted())
+            return HasMutedVideoCaptureDevice;
+        if (m_private->isProducingData())
+            return HasActiveVideoCaptureDevice;
+    }
+
+    return IsNotPlaying;
+}
+
+void MediaStreamTrack::trackStarted(MediaStreamTrackPrivate&)
+{
+    configureTrackRendering();
 }
 
 void MediaStreamTrack::trackEnded(MediaStreamTrackPrivate&)
@@ -303,7 +369,7 @@ void MediaStreamTrack::trackEnded(MediaStreamTrackPrivate&)
     
 void MediaStreamTrack::trackMutedChanged(MediaStreamTrackPrivate&)
 {
-    if (scriptExecutionContext()->activeDOMObjectsAreSuspended() || scriptExecutionContext()->activeDOMObjectsAreStopped())
+    if (scriptExecutionContext()->activeDOMObjectsAreSuspended() || scriptExecutionContext()->activeDOMObjectsAreStopped() || m_ended)
         return;
 
     AtomicString eventType = muted() ? eventNames().muteEvent : eventNames().unmuteEvent;
@@ -324,6 +390,11 @@ void MediaStreamTrack::trackEnabledChanged(MediaStreamTrackPrivate&)
 
 void MediaStreamTrack::configureTrackRendering()
 {
+    m_taskQueue.enqueueTask([this] {
+        if (auto document = this->document())
+            document->updateIsPlayingMedia();
+    });
+
     // 4.3.1
     // ... media from the source only flows when a MediaStreamTrack object is both unmuted and enabled
 }
@@ -331,6 +402,7 @@ void MediaStreamTrack::configureTrackRendering()
 void MediaStreamTrack::stop()
 {
     stopTrack();
+    m_taskQueue.close();
 }
 
 const char* MediaStreamTrack::activeDOMObjectName() const
@@ -340,13 +412,22 @@ const char* MediaStreamTrack::activeDOMObjectName() const
 
 bool MediaStreamTrack::canSuspendForDocumentSuspension() const
 {
-    // FIXME: We should try and do better here.
-    return false;
+    return !hasPendingActivity();
+}
+
+bool MediaStreamTrack::hasPendingActivity() const
+{
+    return !m_ended;
 }
 
 AudioSourceProvider* MediaStreamTrack::audioSourceProvider()
 {
     return m_private->audioSourceProvider();
+}
+
+Document* MediaStreamTrack::document() const
+{
+    return downcast<Document>(scriptExecutionContext());
 }
 
 } // namespace WebCore

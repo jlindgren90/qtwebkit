@@ -595,6 +595,9 @@ bool SVGElement::shouldMoveToFlowThread(const RenderStyle& styleToUse) const
 
 void SVGElement::sendSVGLoadEventIfPossible(bool sendParentLoadEvents)
 {
+    if (!isConnected() || !document().frame())
+        return;
+
     RefPtr<SVGElement> currentTarget = this;
     while (currentTarget && currentTarget->haveLoadedRequiredResources()) {
         RefPtr<Element> parent;
@@ -1029,7 +1032,7 @@ RefPtr<DeprecatedCSSOMValue> SVGElement::getPresentationAttribute(const String& 
     if (!hasAttributesWithoutUpdate())
         return 0;
 
-    QualifiedName attributeName(nullAtom, name, nullAtom);
+    QualifiedName attributeName(nullAtom(), name, nullAtom());
     const Attribute* attribute = findAttributeByName(attributeName);
     if (!attribute)
         return 0;

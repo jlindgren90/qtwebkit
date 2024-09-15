@@ -31,7 +31,6 @@
 #include "ImageFrame.h"
 #include "IntRect.h"
 #include "IntSize.h"
-#include "PlatformScreen.h"
 #include "SharedBuffer.h"
 #include <wtf/Assertions.h>
 #include <wtf/Optional.h>
@@ -41,15 +40,13 @@
 
 namespace WebCore {
 
-class URL;
-
 // ImageDecoder is a base for all format-specific decoders
 // (e.g. JPEGImageDecoder). This base manages the ImageFrame cache.
 //
 // ENABLE(IMAGE_DECODER_DOWN_SAMPLING) allows image decoders to downsample
 // at decode time. Image decoders will downsample any images larger than
 // |m_maxNumPixels|. FIXME: Not yet supported by all decoders.
-class ImageDecoder : public RefCounted<ImageDecoder> {
+class ImageDecoder : public ThreadSafeRefCounted<ImageDecoder> {
     WTF_MAKE_NONCOPYABLE(ImageDecoder); WTF_MAKE_FAST_ALLOCATED;
 public:
     ImageDecoder(AlphaOption alphaOption, GammaAndColorProfileOption gammaAndColorProfileOption)
@@ -64,7 +61,7 @@ public:
 
     // Returns nullptr if we can't sniff a supported type from the provided data (possibly
     // because there isn't enough data yet).
-    static RefPtr<ImageDecoder> create(const SharedBuffer& data, const URL&, AlphaOption, GammaAndColorProfileOption);
+    static RefPtr<ImageDecoder> create(SharedBuffer& data, AlphaOption, GammaAndColorProfileOption);
 
     virtual String filenameExtension() const = 0;
 

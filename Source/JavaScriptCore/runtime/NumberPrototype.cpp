@@ -54,7 +54,7 @@ static EncodedJSValue JSC_HOST_CALL numberProtoFuncToPrecision(ExecState*);
 
 namespace JSC {
 
-const ClassInfo NumberPrototype::s_info = { "Number", &NumberObject::s_info, &numberPrototypeTable, CREATE_METHOD_TABLE(NumberPrototype) };
+const ClassInfo NumberPrototype::s_info = { "Number", &NumberObject::s_info, &numberPrototypeTable, nullptr, CREATE_METHOD_TABLE(NumberPrototype) };
 
 /* Source for NumberPrototype.lut.h
 @begin numberPrototypeTable
@@ -362,7 +362,7 @@ static char* toStringWithRadix(RadixBuffer& buffer, double originalNumber, unsig
 static String toStringWithRadix(int32_t number, unsigned radix)
 {
     LChar buf[1 + 32]; // Worst case is radix == 2, which gives us 32 digits + sign.
-    LChar* end = buf + WTF_ARRAY_LENGTH(buf);
+    LChar* end = std::end(buf);
     LChar* p = end;
 
     bool negative = false;

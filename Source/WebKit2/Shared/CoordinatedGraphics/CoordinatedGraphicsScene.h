@@ -44,6 +44,10 @@
 #include <WebCore/TextureMapperPlatformLayerProxy.h>
 #endif
 
+namespace WebCore {
+class TextureMapperGL;
+}
+
 namespace WebKit {
 
 class CoordinatedBackingStore;
@@ -66,7 +70,7 @@ public:
     virtual ~CoordinatedGraphicsScene();
     void paintToCurrentGLContext(const WebCore::TransformationMatrix&, float, const WebCore::FloatRect&, const WebCore::Color& backgroundColor, bool drawsBackground, const WebCore::FloatPoint&, WebCore::TextureMapper::PaintFlags = 0);
     void detach();
-    void appendUpdate(std::function<void()>&&);
+    void appendUpdate(Function<void()>&&);
 
     WebCore::TextureMapperLayer* findScrollableContentsLayerAt(const WebCore::FloatPoint&);
 
@@ -85,6 +89,8 @@ public:
     void setViewBackgroundColor(const WebCore::Color& color) { m_viewBackgroundColor = color; }
     WebCore::Color viewBackgroundColor() const { return m_viewBackgroundColor; }
 
+    void releaseUpdateAtlases(const Vector<uint32_t>&);
+
 private:
     void setRootLayerID(WebCore::CoordinatedLayerID);
     void createLayers(const Vector<WebCore::CoordinatedLayerID>&);
@@ -100,12 +106,12 @@ private:
     void setLayerRepaintCountIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
 
     void syncUpdateAtlases(const WebCore::CoordinatedGraphicsState&);
-    void createUpdateAtlas(uint32_t atlasID, PassRefPtr<WebCore::CoordinatedSurface>);
+    void createUpdateAtlas(uint32_t atlasID, RefPtr<WebCore::CoordinatedSurface>&&);
     void removeUpdateAtlas(uint32_t atlasID);
 
     void syncImageBackings(const WebCore::CoordinatedGraphicsState&);
     void createImageBacking(WebCore::CoordinatedImageBackingID);
-    void updateImageBacking(WebCore::CoordinatedImageBackingID, PassRefPtr<WebCore::CoordinatedSurface>);
+    void updateImageBacking(WebCore::CoordinatedImageBackingID, RefPtr<WebCore::CoordinatedSurface>&&);
     void clearImageBackingContents(WebCore::CoordinatedImageBackingID);
     void removeImageBacking(WebCore::CoordinatedImageBackingID);
 
@@ -140,30 +146,26 @@ private:
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
     void onNewBufferAvailable() override;
+    WebCore::TextureMapperGL* texmapGL() override;
 #endif
 
     // Render queue can be accessed ony from main thread or updatePaintNode call stack!
-    Vector<std::function<void()>> m_renderQueue;
+    Vector<Function<void()>> m_renderQueue;
     Lock m_renderQueueMutex;
 
     std::unique_ptr<WebCore::TextureMapper> m_textureMapper;
 
-    typedef HashMap<WebCore::CoordinatedImageBackingID, RefPtr<CoordinatedBackingStore>> ImageBackingMap;
-    ImageBackingMap m_imageBackings;
+    HashMap<WebCore::CoordinatedImageBackingID, RefPtr<CoordinatedBackingStore>> m_imageBackings;
     Vector<RefPtr<CoordinatedBackingStore>> m_releasedImageBackings;
 
-    typedef HashMap<WebCore::TextureMapperLayer*, RefPtr<CoordinatedBackingStore>> BackingStoreMap;
-    BackingStoreMap m_backingStores;
-
+    HashMap<WebCore::TextureMapperLayer*, RefPtr<CoordinatedBackingStore>> m_backingStores;
     HashSet<RefPtr<CoordinatedBackingStore>> m_backingStoresWithPendingBuffers;
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
-    typedef HashMap<WebCore::TextureMapperLayer*, RefPtr<WebCore::TextureMapperPlatformLayerProxy>> PlatformLayerProxyMap;
-    PlatformLayerProxyMap m_platformLayerProxies;
+    HashMap<WebCore::TextureMapperLayer*, RefPtr<WebCore::TextureMapperPlatformLayerProxy>> m_platformLayerProxies;
 #endif
 
-    typedef HashMap<uint32_t /* atlasID */, RefPtr<WebCore::CoordinatedSurface>> SurfaceMap;
-    SurfaceMap m_surfaces;
+    HashMap<uint32_t /* atlasID */, RefPtr<WebCore::CoordinatedSurface>> m_surfaces;
 
     // Below two members are accessed by only the main thread. The painting thread must lock the main thread to access both members.
     CoordinatedGraphicsSceneClient* m_client;
@@ -171,10 +173,8 @@ private:
 
     std::unique_ptr<WebCore::TextureMapperLayer> m_rootLayer;
 
-    typedef HashMap<WebCore::CoordinatedLayerID, std::unique_ptr<WebCore::TextureMapperLayer>> LayerMap;
-    LayerMap m_layers;
-    typedef HashMap<WebCore::CoordinatedLayerID, WebCore::TextureMapperLayer*> LayerRawPtrMap;
-    LayerRawPtrMap m_fixedLayers;
+    HashMap<WebCore::CoordinatedLayerID, std::unique_ptr<WebCore::TextureMapperLayer>> m_layers;
+    HashMap<WebCore::CoordinatedLayerID, WebCore::TextureMapperLayer*> m_fixedLayers;
     WebCore::CoordinatedLayerID m_rootLayerID;
     WebCore::FloatPoint m_scrollPosition;
     WebCore::FloatPoint m_renderedContentsScrollPosition;

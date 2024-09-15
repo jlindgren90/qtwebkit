@@ -27,9 +27,9 @@
 
 #if ENABLE(DFG_JIT)
 
+#include "B3SparseCollection.h"
 #include "BasicBlockLocation.h"
 #include "CodeBlock.h"
-#include "DFGAbstractValue.h"
 #include "DFGAdjacencyList.h"
 #include "DFGArithMode.h"
 #include "DFGArrayMode.h"
@@ -52,7 +52,6 @@
 #include "Operands.h"
 #include "PutByIdVariant.h"
 #include "SpeculatedType.h"
-#include "StructureSet.h"
 #include "TypeLocation.h"
 #include "ValueProfile.h"
 #include <type_traits>
@@ -63,14 +62,15 @@ namespace JSC {
 
 namespace DOMJIT {
 class GetterSetter;
-class Patchpoint;
-class CallDOMGetterPatchpoint;
+class CallDOMGetterSnippet;
 class Signature;
 }
 
 namespace Profiler {
 class ExecutionCounter;
 }
+
+class Snippet;
 
 namespace DFG {
 
@@ -238,7 +238,7 @@ struct StackAccessData {
 
 struct CallDOMGetterData {
     DOMJIT::GetterSetter* domJIT { nullptr };
-    DOMJIT::CallDOMGetterPatchpoint* patchpoint { nullptr };
+    DOMJIT::CallDOMGetterSnippet* snippet { nullptr };
     unsigned identifierNumber { 0 };
 };
 
@@ -246,6 +246,7 @@ struct CallDOMGetterData {
 //
 // Node represents a single operation in the data flow graph.
 struct Node {
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     static const char HashSetTemplateInstantiationString[];
     
@@ -1802,6 +1803,7 @@ public:
         switch (op()) {
         case GetIndexedPropertyStorage:
         case GetArrayLength:
+        case GetVectorLength:
         case In:
         case PutByValDirect:
         case PutByVal:
@@ -1814,6 +1816,7 @@ public:
         case ArrayifyToStructure:
         case ArrayPush:
         case ArrayPop:
+        case ArrayIndexOf:
         case HasIndexedProperty:
         case AtomicsAdd:
         case AtomicsAnd:
@@ -1891,6 +1894,17 @@ public:
     {
         ASSERT(hasArithRoundingMode());
         m_opInfo = static_cast<uint32_t>(mode);
+    }
+
+    bool hasArithUnaryType()
+    {
+        return op() == ArithUnary;
+    }
+
+    Arith::UnaryType arithUnaryType()
+    {
+        ASSERT(hasArithUnaryType());
+        return static_cast<Arith::UnaryType>(m_opInfo.as<uint32_t>());
     }
     
     bool hasVirtualRegister()
@@ -2403,17 +2417,6 @@ public:
         return m_opInfo.as<BasicBlockLocation*>();
     }
 
-    bool hasCheckDOMPatchpoint() const
-    {
-        return op() == CheckDOM;
-    }
-
-    DOMJIT::Patchpoint* checkDOMPatchpoint()
-    {
-        ASSERT(hasCheckDOMPatchpoint());
-        return m_opInfo.as<DOMJIT::Patchpoint*>();
-    }
-
     bool hasCallDOMGetterData() const
     {
         return op() == CallDOMGetter;
@@ -2427,12 +2430,12 @@ public:
 
     bool hasClassInfo() const
     {
-        return op() == CheckDOM;
+        return op() == CheckSubClass;
     }
 
     const ClassInfo* classInfo()
     {
-        return m_opInfo2.as<const ClassInfo*>();
+        return m_opInfo.as<const ClassInfo*>();
     }
 
     bool hasSignature() const
@@ -2522,7 +2525,7 @@ public:
     AdjacencyList children;
 
 private:
-    friend class Graph;
+    friend class B3::SparseCollection<Node>;
 
     unsigned m_index { std::numeric_limits<unsigned>::max() };
     unsigned m_op : 10; // real type is NodeType

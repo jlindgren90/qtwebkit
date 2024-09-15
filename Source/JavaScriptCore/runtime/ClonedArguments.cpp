@@ -34,7 +34,7 @@ namespace JSC {
 
 STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(ClonedArguments);
 
-const ClassInfo ClonedArguments::s_info = { "Arguments", &Base::s_info, 0, CREATE_METHOD_TABLE(ClonedArguments) };
+const ClassInfo ClonedArguments::s_info = { "Arguments", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(ClonedArguments) };
 
 ClonedArguments::ClonedArguments(VM& vm, Structure* structure, Butterfly* butterfly)
     : Base(vm, structure, butterfly)
@@ -54,13 +54,13 @@ ClonedArguments* ClonedArguments::createEmpty(
         butterfly->arrayStorage()->m_numValuesInVector = vectorLength;
 
     } else {
-        void* temp = vm.auxiliarySpace.tryAllocate(Butterfly::totalSize(0, structure->outOfLineCapacity(), true, vectorLength * sizeof(EncodedJSValue)));
-        if (!temp)
+        IndexingHeader indexingHeader;
+        indexingHeader.setVectorLength(vectorLength);
+        indexingHeader.setPublicLength(length);
+        butterfly = Butterfly::tryCreate(vm, 0, 0, structure->outOfLineCapacity(), true, indexingHeader, vectorLength * sizeof(EncodedJSValue));
+        if (!butterfly)
             return 0;
-        butterfly = Butterfly::fromBase(temp, 0, structure->outOfLineCapacity());
-        butterfly->setVectorLength(vectorLength);
-        butterfly->setPublicLength(length);
-        
+
         for (unsigned i = length; i < vectorLength; ++i)
             butterfly->contiguous()[i].clear();
     }
@@ -151,7 +151,7 @@ ClonedArguments* ClonedArguments::createByCopyingFrom(
 
 Structure* ClonedArguments::createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype, IndexingType indexingType)
 {
-    Structure* structure = Structure::create(vm, globalObject, prototype, TypeInfo(ObjectType, StructureFlags), info(), indexingType);
+    Structure* structure = Structure::create(vm, globalObject, prototype, TypeInfo(ClonedArgumentsType, StructureFlags), info(), indexingType);
     PropertyOffset offset;
     structure = structure->addPropertyTransition(vm, structure, vm.propertyNames->length, DontEnum, offset);
     ASSERT(offset == clonedArgumentsLengthPropertyOffset);

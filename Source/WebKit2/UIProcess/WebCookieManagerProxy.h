@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebCookieManagerProxy_h
-#define WebCookieManagerProxy_h
+#pragma once
 
 #include "APIObject.h"
 #include "GenericCallback.h"
@@ -32,7 +31,6 @@
 #include "WebContextSupplement.h"
 #include "WebCookieManagerProxyClient.h"
 #include <WebCore/SessionID.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
 
@@ -61,7 +59,7 @@ class WebCookieManagerProxy : public API::ObjectImpl<API::Object::Type::CookieMa
 public:
     static const char* supplementName();
 
-    static PassRefPtr<WebCookieManagerProxy> create(WebProcessPool*);
+    static Ref<WebCookieManagerProxy> create(WebProcessPool*);
     virtual ~WebCookieManagerProxy();
 
     void initializeClient(const WKCookieManagerClientBase*);
@@ -86,7 +84,7 @@ public:
     void startObservingCookieChanges(WebCore::SessionID);
     void stopObservingCookieChanges(WebCore::SessionID);
 
-    void setCookieObserverCallback(WebCore::SessionID, std::function<void ()>&&);
+    void setCookieObserverCallback(WebCore::SessionID, WTF::Function<void ()>&&);
 
     class Observer {
     public:
@@ -109,13 +107,13 @@ public:
 private:
     WebCookieManagerProxy(WebProcessPool*);
 
-    void didGetHostnamesWithCookies(const Vector<String>&, uint64_t callbackID);
-    void didGetHTTPCookieAcceptPolicy(uint32_t policy, uint64_t callbackID);
+    void didGetHostnamesWithCookies(const Vector<String>&, WebKit::CallbackID);
+    void didGetHTTPCookieAcceptPolicy(uint32_t policy, WebKit::CallbackID);
 
-    void didSetHTTPCookieAcceptPolicy(uint64_t callbackID);
-    void didSetCookies(uint64_t callbackID);
-    void didGetCookies(const Vector<WebCore::Cookie>&, uint64_t callbackID);
-    void didDeleteCookies(uint64_t callbackID);
+    void didSetHTTPCookieAcceptPolicy(WebKit::CallbackID);
+    void didSetCookies(WebKit::CallbackID);
+    void didGetCookies(const Vector<WebCore::Cookie>&, WebKit::CallbackID);
+    void didDeleteCookies(WebKit::CallbackID);
 
     void cookiesDidChange(WebCore::SessionID);
 
@@ -133,12 +131,9 @@ private:
     void persistHTTPCookieAcceptPolicy(HTTPCookieAcceptPolicy);
 #endif
 
-    HashMap<uint64_t, RefPtr<ArrayCallback>> m_arrayCallbacks;
-    HashMap<uint64_t, RefPtr<HTTPCookieAcceptPolicyCallback>> m_httpCookieAcceptPolicyCallbacks;
-    HashMap<uint64_t, RefPtr<VoidCallback>> m_voidCallbacks;
-    HashMap<uint64_t, RefPtr<GetCookiesCallback>> m_getCookiesCallbacks;
+    CallbackMap m_callbacks;
 
-    HashMap<WebCore::SessionID, std::function<void ()>> m_legacyCookieObservers;
+    HashMap<WebCore::SessionID, WTF::Function<void ()>> m_legacyCookieObservers;
     HashMap<WebCore::SessionID, HashSet<Observer*>> m_cookieObservers;
 
     WebCookieManagerProxyClient m_client;
@@ -150,5 +145,3 @@ private:
 };
 
 } // namespace WebKit
-
-#endif // WebCookieManagerProxy_h

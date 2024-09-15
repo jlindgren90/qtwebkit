@@ -26,6 +26,7 @@
 #pragma once
 
 #include "IntSize.h"
+#include <wtf/Optional.h>
 #include <wtf/Variant.h>
 
 namespace WebCore {
@@ -112,12 +113,12 @@ public:
         return WTF::get<std::optional<IntSize>>(m_decodingModeOrSize);
     }
 
-private:
     static int maxDimension(const IntSize& size)
     {
         return std::max(size.width(), size.height());
     }
 
+private:
     template<typename T>
     bool has() const
     {

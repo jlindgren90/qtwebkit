@@ -78,7 +78,7 @@ public:
     WebAutomationSession();
     ~WebAutomationSession();
 
-    void setClient(std::unique_ptr<API::AutomationSessionClient>);
+    void setClient(std::unique_ptr<API::AutomationSessionClient>&&);
 
     void setSessionIdentifier(const String& sessionIdentifier) { m_sessionIdentifier = sessionIdentifier; }
     String sessionIdentifier() const { return m_sessionIdentifier; }
@@ -94,7 +94,7 @@ public:
     // Inspector::RemoteAutomationTarget API
     String name() const override { return m_sessionIdentifier; }
     void dispatchMessageFromRemote(const String& message) override;
-    void connect(Inspector::FrontendChannel*, bool isAutomaticConnection = false) override;
+    void connect(Inspector::FrontendChannel*, bool isAutomaticConnection = false, bool immediatelyPause = false) override;
     void disconnect(Inspector::FrontendChannel*) override;
 #endif
     void terminate();
@@ -225,9 +225,10 @@ private:
     Inspector::FrontendChannel* m_remoteChannel { nullptr };
 #endif
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS) || PLATFORM(GTK)
     // Keep track of currently active modifiers across multiple keystrokes.
     // We don't synthesize platform keyboard events on iOS, so we need to track it ourselves.
+    // GTK+ doesn't keep track of the active modifiers when using synthesized events.
     unsigned m_currentModifiers { 0 };
 #endif
 };

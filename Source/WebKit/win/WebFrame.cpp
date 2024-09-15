@@ -561,11 +561,11 @@ HRESULT WebFrame::loadRequest(_In_opt_ IWebURLRequest* request)
     if (!coreFrame)
         return E_UNEXPECTED;
 
-    coreFrame->loader().load(FrameLoadRequest(coreFrame, requestImpl->resourceRequest(), ShouldOpenExternalURLsPolicy::ShouldNotAllow));
+    coreFrame->loader().load(FrameLoadRequest(*coreFrame, requestImpl->resourceRequest(), ShouldOpenExternalURLsPolicy::ShouldNotAllow));
     return S_OK;
 }
 
-void WebFrame::loadData(PassRefPtr<WebCore::SharedBuffer> data, BSTR mimeType, BSTR textEncodingName, BSTR baseURL, BSTR failingURL)
+void WebFrame::loadData(RefPtr<WebCore::SharedBuffer>&& data, BSTR mimeType, BSTR textEncodingName, BSTR baseURL, BSTR failingURL)
 {
     String mimeTypeString(mimeType, SysStringLen(mimeType));
     if (!mimeType)
@@ -582,16 +582,16 @@ void WebFrame::loadData(PassRefPtr<WebCore::SharedBuffer> data, BSTR mimeType, B
 
     ResourceRequest request(baseCoreURL);
     ResourceResponse response(URL(), mimeTypeString, data->size(), encodingString);
-    SubstituteData substituteData(data, failingCoreURL, response, SubstituteData::SessionHistoryVisibility::Hidden);
+    SubstituteData substituteData(WTFMove(data), failingCoreURL, response, SubstituteData::SessionHistoryVisibility::Hidden);
 
     // This method is only called from IWebFrame methods, so don't ASSERT that the Frame pointer isn't null.
     if (Frame* coreFrame = core(this))
-        coreFrame->loader().load(FrameLoadRequest(coreFrame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow, substituteData));
+        coreFrame->loader().load(FrameLoadRequest(*coreFrame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow, substituteData));
 }
 
 HRESULT WebFrame::loadData(_In_opt_ IStream* data, _In_ BSTR mimeType, _In_ BSTR textEncodingName, _In_ BSTR url)
 {
-    RefPtr<SharedBuffer> sharedBuffer = SharedBuffer::create();
+    auto sharedBuffer = SharedBuffer::create();
 
     STATSTG stat;
     if (SUCCEEDED(data->Stat(&stat, STATFLAG_NONAME))) {
@@ -605,7 +605,7 @@ HRESULT WebFrame::loadData(_In_opt_ IStream* data, _In_ BSTR mimeType, _In_ BSTR
         }
     }
 
-    loadData(sharedBuffer, mimeType, textEncodingName, url, nullptr);
+    loadData(WTFMove(sharedBuffer), mimeType, textEncodingName, url, nullptr);
     return S_OK;
 }
 
@@ -614,7 +614,7 @@ HRESULT WebFrame::loadPlainTextString(_In_ BSTR plainText, _In_ BSTR url)
     RefPtr<SharedBuffer> sharedBuffer = SharedBuffer::create(reinterpret_cast<char*>(plainText), sizeof(UChar) * SysStringLen(plainText));
     BString plainTextMimeType(TEXT("text/plain"), 10);
     BString utf16Encoding(TEXT("utf-16"), 6);
-    loadData(sharedBuffer.release(), plainTextMimeType, utf16Encoding, url, nullptr);
+    loadData(WTFMove(sharedBuffer), plainTextMimeType, utf16Encoding, url, nullptr);
     return S_OK;
 }
 
@@ -622,7 +622,7 @@ void WebFrame::loadHTMLString(_In_ BSTR htmlString, _In_ BSTR baseURL, _In_ BSTR
 {
     RefPtr<SharedBuffer> sharedBuffer = SharedBuffer::create(reinterpret_cast<char*>(htmlString), sizeof(UChar) * SysStringLen(htmlString));
     BString utf16Encoding(TEXT("utf-16"), 6);
-    loadData(sharedBuffer.release(), 0, utf16Encoding, baseURL, unreachableURL);
+    loadData(WTFMove(sharedBuffer), 0, utf16Encoding, baseURL, unreachableURL);
 }
 
 HRESULT WebFrame::loadHTMLString(_In_ BSTR htmlString, _In_ BSTR baseURL)
@@ -1031,7 +1031,7 @@ HRESULT WebFrame::deselectAll()
 
 // WebFrame ---------------------------------------------------------------
 
-PassRefPtr<Frame> WebFrame::createSubframeWithOwnerElement(IWebView* webView, Page* page, HTMLFrameOwnerElement* ownerElement)
+Ref<Frame> WebFrame::createSubframeWithOwnerElement(IWebView* webView, Page* page, HTMLFrameOwnerElement* ownerElement)
 {
     webView->QueryInterface(&d->webView);
     d->webView->Release(); // don't hold the extra ref
@@ -1040,9 +1040,9 @@ PassRefPtr<Frame> WebFrame::createSubframeWithOwnerElement(IWebView* webView, Pa
     d->webView->viewWindow(&viewWindow);
 
     this->AddRef(); // We release this ref in frameLoaderDestroyed()
-    RefPtr<Frame> frame = Frame::create(page, ownerElement, new WebFrameLoaderClient(this));
-    d->frame = frame.get();
-    return frame.release();
+    auto frame = Frame::create(page, ownerElement, new WebFrameLoaderClient(this));
+    d->frame = frame.ptr();
+    return frame;
 }
 
 void WebFrame::initWithWebView(IWebView* webView, Page* page)
@@ -2001,10 +2001,10 @@ HRESULT WebFrame::stringByEvaluatingJavaScriptInScriptWorld(IWebScriptWorld* iWo
     // Start off with some guess at a frame and a global object, we'll try to do better...!
     JSDOMWindow* anyWorldGlobalObject = coreFrame->script().globalObject(mainThreadNormalWorld());
 
-    // The global object is probably a shell object? - if so, we know how to use this!
+    // The global object is probably a proxy object? - if so, we know how to use this!
     JSC::JSObject* globalObjectObj = toJS(globalObjectRef);
-    if (globalObjectObj->inherits(*globalObjectObj->vm(), JSDOMWindowShell::info()))
-        anyWorldGlobalObject = static_cast<JSDOMWindowShell*>(globalObjectObj)->window();
+    if (globalObjectObj->inherits(*globalObjectObj->vm(), JSDOMWindowProxy::info()))
+        anyWorldGlobalObject = static_cast<JSDOMWindowProxy*>(globalObjectObj)->window();
 
     // Get the frame frome the global object we've settled on.
     Frame* frame = anyWorldGlobalObject->wrapped().frame();

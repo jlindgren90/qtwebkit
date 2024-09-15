@@ -45,6 +45,7 @@
 #include "RemoteNetworkingContext.h"
 #include "SessionTracker.h"
 #include "WebCoreArgumentCoders.h"
+#include "WebsiteDataStoreParameters.h"
 #include <WebCore/NetworkStorageSession.h>
 #include <WebCore/PingHandle.h>
 #include <WebCore/PlatformCookieJar.h>
@@ -186,6 +187,25 @@ void NetworkConnectionToWebProcess::destroySocketStream(uint64_t identifier)
 {
     ASSERT(m_networkSocketStreams.get(identifier));
     m_networkSocketStreams.remove(identifier);
+}
+
+void NetworkConnectionToWebProcess::cleanupForSuspension(Function<void()>&& completionHandler)
+{
+#if USE(LIBWEBRTC)
+    if (m_rtcProvider) {
+        m_rtcProvider->closeListeningSockets(WTFMove(completionHandler));
+        return;
+    }
+#endif
+    completionHandler();
+}
+
+void NetworkConnectionToWebProcess::endSuspension()
+{
+#if USE(LIBWEBRTC)
+    if (m_rtcProvider)
+        m_rtcProvider->authorizeListeningSockets();
+#endif
 }
 
 void NetworkConnectionToWebProcess::scheduleResourceLoad(const NetworkResourceLoadParameters& loadParameters)
@@ -399,7 +419,7 @@ void NetworkConnectionToWebProcess::setCaptureExtraNetworkLoadMetricsEnabled(boo
 
 void NetworkConnectionToWebProcess::ensureLegacyPrivateBrowsingSession()
 {
-    NetworkProcess::singleton().ensurePrivateBrowsingSession(SessionID::legacyPrivateSessionID());
+    NetworkProcess::singleton().ensurePrivateBrowsingSession({SessionID::legacyPrivateSessionID(), { }, { }, { }});
 }
 
 } // namespace WebKit

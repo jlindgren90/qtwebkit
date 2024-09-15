@@ -1,7 +1,6 @@
 The tests in this directory were imported from the W3C repository.
 Do NOT modify these tests directly in WebKit.
-Instead, create a pull request on the W3C CSS or WPT github:
-	https://github.com/w3c/csswg-test
+Instead, create a pull request on the WPT github:
 	https://github.com/w3c/web-platform-tests
 
 Then run the Tools/Scripts/import-w3c-tests in WebKit to reimport
@@ -26,7 +25,7 @@ List of files:
 /LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/rsa_pkcs_vectors.js
 /LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/rsa_pss.worker.js
 /LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/rsa_pss_vectors.js
-/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_ecdsa.html
-/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_hmac.html
-/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_rsa_pkcs.html
-/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_rsa_pss.html
+/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_ecdsa.https.html
+/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_hmac.https.html
+/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_rsa_pkcs.https.html
+/LayoutTests/imported/w3c/web-platform-tests/WebCryptoAPI/sign_verify/test_rsa_pss.https.html

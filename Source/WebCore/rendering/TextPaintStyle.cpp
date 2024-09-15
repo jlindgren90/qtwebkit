@@ -45,11 +45,15 @@ TextPaintStyle::TextPaintStyle(const Color& color)
 {
 }
 
+bool textColorIsLegibleAgainstBackgroundColor(const Color& textColor, const Color& backgroundColor)
+{
+    // Semi-arbitrarily chose 65025 (255^2) value here after a few tests.
+    return differenceSquared(textColor, backgroundColor) > 65025;
+}
+
 static Color adjustColorForVisibilityOnBackground(const Color& textColor, const Color& backgroundColor)
 {
-    int d = differenceSquared(textColor, backgroundColor);
-    // Semi-arbitrarily chose 65025 (255^2) value here after a few tests.
-    if (d > 65025)
+    if (textColorIsLegibleAgainstBackgroundColor(textColor, backgroundColor))
         return textColor;
 
     int distanceFromWhite = differenceSquared(textColor, Color::white);
@@ -84,7 +88,7 @@ TextPaintStyle computeTextPaintStyle(const Frame& frame, const RenderStyle& line
     if (lineStyle.insideDefaultButton()) {
         Page* page = frame.page();
         if (page && page->focusController().isActive()) {
-            paintStyle.fillColor = page->theme().systemColor(CSSValueActivebuttontext);
+            paintStyle.fillColor = RenderTheme::singleton().systemColor(CSSValueActivebuttontext);
             return paintStyle;
         }
     }

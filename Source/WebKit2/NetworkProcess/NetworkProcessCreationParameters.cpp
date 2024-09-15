@@ -54,7 +54,7 @@ void NetworkProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << shouldEnableNetworkCacheSpeculativeRevalidation;
 #endif
 #endif
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     encoder << uiProcessCookieStorageIdentifier;
 #endif
 #if PLATFORM(IOS)
@@ -66,6 +66,7 @@ void NetworkProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << shouldUseTestingNetworkSession;
     encoder << loadThrottleLatency;
     encoder << urlSchemesRegisteredForCustomProtocols;
+    encoder << presentingApplicationPID;
 #if PLATFORM(COCOA)
     encoder << parentProcessName;
     encoder << uiProcessBundleIdentifier;
@@ -79,7 +80,7 @@ void NetworkProcessCreationParameters::encode(IPC::Encoder& encoder) const
 #endif
     encoder << httpProxy;
     encoder << httpsProxy;
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#if PLATFORM(COCOA)
     IPC::encode(encoder, networkATSContext.get());
 #endif
     encoder << cookieStoragePartitioningEnabled;
@@ -98,9 +99,6 @@ void NetworkProcessCreationParameters::encode(IPC::Encoder& encoder) const
 #if ENABLE(NETWORK_CAPTURE)
     encoder << recordReplayMode;
     encoder << recordReplayCacheLocation;
-#endif
-#if ENABLE(WEB_RTC)
-    encoder << webRTCNetworkingHandle;
 #endif
 }
 
@@ -128,7 +126,7 @@ bool NetworkProcessCreationParameters::decode(IPC::Decoder& decoder, NetworkProc
         return false;
 #endif
 #endif
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     if (!decoder.decode(result.uiProcessCookieStorageIdentifier))
         return false;
 #endif
@@ -147,6 +145,8 @@ bool NetworkProcessCreationParameters::decode(IPC::Decoder& decoder, NetworkProc
     if (!decoder.decode(result.loadThrottleLatency))
         return false;
     if (!decoder.decode(result.urlSchemesRegisteredForCustomProtocols))
+        return false;
+    if (!decoder.decode(result.presentingApplicationPID))
         return false;
 #if PLATFORM(COCOA)
     if (!decoder.decode(result.parentProcessName))
@@ -171,7 +171,7 @@ bool NetworkProcessCreationParameters::decode(IPC::Decoder& decoder, NetworkProc
         return false;
     if (!decoder.decode(result.httpsProxy))
         return false;
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#if PLATFORM(COCOA)
     if (!IPC::decode(decoder, result.networkATSContext))
         return false;
 #endif
@@ -203,11 +203,6 @@ bool NetworkProcessCreationParameters::decode(IPC::Decoder& decoder, NetworkProc
     if (!decoder.decode(result.recordReplayMode))
         return false;
     if (!decoder.decode(result.recordReplayCacheLocation))
-        return false;
-#endif
-
-#if ENABLE(WEB_RTC)
-    if (!decoder.decode(result.webRTCNetworkingHandle))
         return false;
 #endif
 

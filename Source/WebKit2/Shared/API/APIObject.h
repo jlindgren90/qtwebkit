@@ -26,7 +26,6 @@
 #ifndef APIObject_h
 #define APIObject_h
 
-#include <functional>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -103,8 +102,8 @@ public:
         BackForwardListItem,
         CacheManager,
         ColorPickerResultListener,
-        ContentExtension,
-        ContentExtensionStore,
+        ContentRuleList,
+        ContentRuleListStore,
         ContextMenuListener,
         CookieManager,
         Download,
@@ -153,7 +152,6 @@ public:
         UserInitiatedAction,
         UserMediaPermissionCheck,
         UserMediaPermissionRequest,
-        Vibration,
         ViewportAttributes,
         VisitedLinkStore,
         WebResourceLoadStatisticsManager,

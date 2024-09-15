@@ -161,7 +161,7 @@ void CDM::doSupportedConfigurationStep(MediaKeySystemConfiguration&& candidateCo
         // 23. Return accumulated configuration.
         callback(WTFMove(configuration));
     };
-    getConsentStatus(WTFMove(optionalConfiguration.value()), WTFMove(restrictions), consentCallback);
+    getConsentStatus(WTFMove(optionalConfiguration.value()), WTFMove(restrictions), WTFMove(consentCallback));
 }
 
 bool CDM::isPersistentType(MediaKeySessionType sessionType)
@@ -181,6 +181,9 @@ bool CDM::isPersistentType(MediaKeySessionType sessionType)
         // ↳ "persistent-license"
         return true;
     }
+
+    ASSERT_NOT_REACHED();
+    return false;
 }
 
 std::optional<MediaKeySystemConfiguration> CDM::getSupportedConfiguration(const MediaKeySystemConfiguration& candidateConfiguration, MediaKeysRestrictions& restrictions)
@@ -488,8 +491,7 @@ std::optional<Vector<MediaKeySystemMediaCapability>> CDM::getSupportedCapabiliti
         //       combination of container, media types, robustness and local accumulated configuration in combination
         //       with restrictions:
         MediaEngineSupportParameters parameters;
-        parameters.type = contentType.mimeType();
-        parameters.codecs = codecs;
+        parameters.type = ContentType(contentType.mimeType());
         if (!MediaPlayer::supportsType(parameters, nullptr)) {
             // Try with Media Source:
             parameters.isMediaSource = true;

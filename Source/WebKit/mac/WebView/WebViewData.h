@@ -29,6 +29,7 @@
 
 #import "WebTypesInternal.h"
 #import "WebDelegateImplementationCaching.h"
+#import "WebUIDelegate.h"
 #if HAVE(TOUCH_BAR)
 #import <WebCore/AVKitSPI.h>
 #endif
@@ -128,9 +129,9 @@ private:
 
 class LayerFlushController : public RefCounted<LayerFlushController>, public WebCore::LayerFlushSchedulerClient {
 public:
-    static PassRefPtr<LayerFlushController> create(WebView* webView)
+    static Ref<LayerFlushController> create(WebView* webView)
     {
-        return adoptRef(new LayerFlushController(webView));
+        return adoptRef(*new LayerFlushController(webView));
     }
     
     virtual bool flushLayers();
@@ -194,8 +195,13 @@ private:
     RetainPtr<NSCandidateListTouchBarItem> _plainTextCandidateListTouchBarItem;
     RetainPtr<NSCandidateListTouchBarItem> _passwordTextCandidateListTouchBarItem;
 #if ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
     RetainPtr<AVTouchBarPlaybackControlsProvider> mediaTouchBarProvider;
     RetainPtr<AVTouchBarScrubber> mediaPlaybackControlsView;
+#else
+    RetainPtr<AVFunctionBarPlaybackControlsProvider> mediaTouchBarProvider;
+    RetainPtr<AVFunctionBarScrubber> mediaPlaybackControlsView;
+#endif
 #endif // ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
 
     BOOL _canCreateTouchBars;
@@ -243,6 +249,9 @@ private:
     BOOL closed;
 #if PLATFORM(IOS)
     BOOL closing;
+#if ENABLE(ORIENTATION_EVENTS)
+    NSUInteger deviceOrientation;
+#endif
 #endif
     BOOL shouldCloseWithWindow;
     BOOL mainFrameDocumentReady;
@@ -290,8 +299,12 @@ private:
 #endif
     
 #if ENABLE(DATA_INTERACTION)
-    WebUITextIndicatorData *textIndicatorData;
+    RetainPtr<WebUITextIndicatorData> textIndicatorData;
     RetainPtr<WebUITextIndicatorData> dataOperationTextIndicator;
+    CGRect draggedElementBounds;
+    WebDragSourceAction dragSourceAction;
+    RetainPtr<NSURL> draggedLinkURL;
+    RetainPtr<NSString> draggedLinkTitle;
 #endif
 
 
@@ -307,8 +320,6 @@ private:
 
     BOOL shouldUpdateWhileOffscreen;
 
-    BOOL includesFlattenedCompositingLayersWhenDrawingToBitmap;
-
     // When this flag is set, next time a WebHTMLView draws, it needs to temporarily disable screen updates
     // so that the NSView drawing is visually synchronized with CALayer updates.
     BOOL needsOneShotDrawingSynchronization;
@@ -317,6 +328,7 @@ private:
 
 #if !PLATFORM(IOS)
     NSPasteboard *insertionPasteboard;
+    RetainPtr<NSImage> _mainFrameIcon;
 #endif
             
     NSSize lastLayoutSize;

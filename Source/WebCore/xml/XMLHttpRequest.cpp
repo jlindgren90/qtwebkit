@@ -760,6 +760,7 @@ ExceptionOr<void> XMLHttpRequest::createRequest()
         if (m_loader)
             setPendingActivity(this);
     } else {
+        request.setDomainForCachePartition(scriptExecutionContext()->topOrigin().domainForCachePartition());
         InspectorInstrumentation::willLoadXHRSynchronously(scriptExecutionContext());
         ThreadableLoader::loadResourceSynchronously(*scriptExecutionContext(), WTFMove(request), *this, options);
         InspectorInstrumentation::didLoadXHRSynchronously(scriptExecutionContext());
@@ -937,9 +938,9 @@ String XMLHttpRequest::getAllResponseHeaders() const
         for (auto& header : m_response.httpHeaderFields()) {
             StringBuilder stringBuilder;
             stringBuilder.append(header.key.convertToASCIILowercase());
-            stringBuilder.append(": ");
+            stringBuilder.appendLiteral(": ");
             stringBuilder.append(header.value);
-            stringBuilder.append("\r\n");
+            stringBuilder.appendLiteral("\r\n");
             headers.uncheckedAppend(stringBuilder.toString());
         }
         std::sort(headers.begin(), headers.end(), WTF::codePointCompareLessThan);

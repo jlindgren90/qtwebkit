@@ -27,6 +27,7 @@
 #include "config.h"
 #include "TreeScope.h"
 
+#include "Attr.h"
 #include "DOMWindow.h"
 #include "ElementIterator.h"
 #include "FocusController.h"
@@ -38,12 +39,13 @@
 #include "HTMLMapElement.h"
 #include "HitTestResult.h"
 #include "IdTargetObserverRegistry.h"
+#include "NodeRareData.h"
 #include "Page.h"
 #include "PointerLockController.h"
 #include "RenderView.h"
 #include "RuntimeEnabledFeatures.h"
+#include "Settings.h"
 #include "ShadowRoot.h"
-#include "TreeScopeAdopter.h"
 #include <wtf/text/CString.h>
 
 namespace WebCore {
@@ -109,6 +111,17 @@ Element* TreeScope::getElementById(const String& elementId) const
         return nullptr;
 
     if (RefPtr<AtomicStringImpl> atomicElementId = AtomicStringImpl::lookUp(elementId.impl()))
+        return m_elementsById->getElementById(*atomicElementId, *this);
+
+    return nullptr;
+}
+
+Element* TreeScope::getElementById(StringView elementId) const
+{
+    if (!m_elementsById)
+        return nullptr;
+
+    if (auto atomicElementId = elementId.toExistingAtomicString())
         return m_elementsById->getElementById(*atomicElementId, *this);
 
     return nullptr;
@@ -289,22 +302,32 @@ Node* TreeScope::nodeFromPoint(const LayoutPoint& clientPoint, LayoutPoint* loca
     if (!frame || !view)
         return nullptr;
 
-    float scaleFactor = frame->pageZoomFactor() * frame->frameScaleFactor();
+    LayoutPoint absolutePoint;
+    if (frame->settings().visualViewportEnabled()) {
+        documentScope().updateLayout();
+        FloatPoint layoutViewportPoint = view->clientToLayoutViewportPoint(clientPoint);
+        FloatRect layoutViewportBounds({ }, view->layoutViewportRect().size());
+        if (!layoutViewportBounds.contains(layoutViewportPoint))
+            return nullptr;
+        absolutePoint = LayoutPoint(view->layoutViewportToAbsolutePoint(layoutViewportPoint));
+    } else {
+        float scaleFactor = frame->pageZoomFactor() * frame->frameScaleFactor();
 
-    LayoutPoint contentsPoint = clientPoint;
-    contentsPoint.scale(scaleFactor);
-    contentsPoint.moveBy(view->contentsScrollPosition());
+        absolutePoint = clientPoint;
+        absolutePoint.scale(scaleFactor);
+        absolutePoint.moveBy(view->contentsScrollPosition());
 
-    LayoutRect visibleRect;
+        LayoutRect visibleRect;
 #if PLATFORM(IOS)
-    visibleRect = view->unobscuredContentRect();
+        visibleRect = view->unobscuredContentRect();
 #else
-    visibleRect = view->visibleContentRect();
+        visibleRect = view->visibleContentRect();
 #endif
-    if (!visibleRect.contains(contentsPoint))
-        return nullptr;
+        if (!visibleRect.contains(absolutePoint))
+            return nullptr;
+    }
 
-    HitTestResult result(contentsPoint);
+    HitTestResult result(absolutePoint);
     documentScope().renderView()->hitTest(HitTestRequest(), result);
 
     if (localPoint)
@@ -354,15 +377,6 @@ Element* TreeScope::findAnchor(const String& name)
         }
     }
     return nullptr;
-}
-
-void TreeScope::adoptIfNeeded(Node& node)
-{
-    ASSERT(!node.isDocumentNode());
-    ASSERT(!node.m_deletionHasBegun);
-    TreeScopeAdopter adopter(node, *this);
-    if (adopter.needsScopeChange())
-        adopter.execute();
 }
 
 static Element* focusedFrameOwnerElement(Frame* focusedFrame, Frame* currentFrame)

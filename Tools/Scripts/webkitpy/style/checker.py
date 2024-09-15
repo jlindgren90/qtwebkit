@@ -146,10 +146,15 @@ _PATH_RULES_SPECIFIER = [
       os.path.join('Tools', 'TestWebKitAPI')],
      ["-readability/naming"]),
 
-    ([# The GTK+ API use upper case, underscore separated, words in
+    ([# The GTK+ and WPE APIs use upper case, underscore separated, words in
       # certain types of enums (e.g. signals, properties).
+      os.path.join('Source', 'WebKit2', 'Shared', 'API', 'glib'),
+      os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'glib'),
       os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'gtk'),
-      os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk')],
+      os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'wpe'),
+      os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'glib'),
+      os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk'),
+      os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'wpe')],
      ["-readability/enum_casing"]),
 
     ([# To use GStreamer GL without conflicts of GL symbols,
@@ -170,23 +175,6 @@ _PATH_RULES_SPECIFIER = [
       os.path.join('JavaScriptCore', 'jit', 'JITStubs.cpp')],
      ["-readability/parameter_name",
       "-whitespace/parens"]),
-
-    ([# The EFL APIs use EFL naming style, which includes
-      # both lower-cased and camel-cased, underscore-sparated
-      # values.
-      os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'efl'),
-      os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'efl')],
-     ["-readability/naming",
-      "-readability/parameter_name"]),
-    ([# MiniBrowser/efl are EFL simple application.
-      # They need to use efl coding style and they don't have config.h.
-      os.path.join('Tools', 'MiniBrowser', 'efl')],
-     ["-readability/naming",
-      "-readability/parameter_name",
-      "-runtime/ctype_function",
-      "-whitespace/declaration",
-      "-whitespace/indent",
-      "-build/include_order"]),
 
     # WebKit2 rules:
     # WebKit2 and certain directories have idiosyncracies.
@@ -303,9 +291,14 @@ _CMAKE_FILE_EXTENSION = 'cmake'
 #
 # Do not skip these files, even when they appear in
 # _SKIPPED_FILES_WITH_WARNING or _SKIPPED_FILES_WITHOUT_WARNING.
-_NEVER_SKIPPED_FILES = [
+_NEVER_SKIPPED_JS_FILES = [
     'js-test-pre.js',
+    'js-test-post.js',
+    'js-test-post-async.js',
     'standalone-pre.js',
+]
+
+_NEVER_SKIPPED_FILES = _NEVER_SKIPPED_JS_FILES + [
     'TestExpectations',
 ]
 
@@ -317,15 +310,19 @@ _NEVER_SKIPPED_FILES = [
 _SKIPPED_FILES_WITH_WARNING = [
     os.path.join('Tools', 'TestWebKitAPI', 'Tests', 'WebKitGtk'),
 
-    # WebKit*.h files in Source/WebKit2/UIProcess/API/gtk, except those ending in Private.h are GTK+ API headers, which do not follow WebKit coding style.
+    # WebKit*.h files in Source/WebKit2/UIProcess/API/[gtk|wpe], except those ending in Private.h are API headers, which do not follow WebKit coding style.
     re.compile(re.escape(os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'gtk') + os.path.sep) + r'WebKit(?!.*Private\.h).*\.h$'),
+    re.compile(re.escape(os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'wpe') + os.path.sep) + r'WebKit(?!.*Private\.h).*\.h$'),
     re.compile(re.escape(os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk') + os.path.sep) + r'WebKit(?!.*Private\.h).*\.h$'),
+    re.compile(re.escape(os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'wpe') + os.path.sep) + r'WebKit(?!.*Private\.h).*\.h$'),
 
     # GObject DOM bindings copied from generated code using different coding style.
     os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk', 'DOM'),
 
     os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'gtk', 'webkit2.h'),
-    os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk', 'webkit-web-extension.h')]
+    os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'wpe', 'webkit.h'),
+    os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk', 'webkit-web-extension.h'),
+    os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'wpe', 'webkit-web-extension.h')]
 
 # Files to skip that are more common or obvious.
 #
@@ -628,7 +625,7 @@ class CheckerDispatcher(object):
             # Do not attempt to check non-Inspector or 3rd-party JavaScript files as JS.
             if os.path.join('WebInspectorUI', 'UserInterface') in file_path and (not 'External' in file_path):
                 checker = JSChecker(file_path, handle_style_error)
-            elif basename == 'js-test-pre.js' or basename == 'standalone-pre.js':
+            elif basename in _NEVER_SKIPPED_JS_FILES:
                 checker = JSTestChecker(file_path, handle_style_error)
             else:
                 checker = TextChecker(file_path, handle_style_error)

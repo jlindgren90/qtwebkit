@@ -33,6 +33,7 @@
 #include "HRTFDatabaseLoader.h"
 
 #include "HRTFDatabase.h"
+#include <wtf/HashMap.h>
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
 
@@ -45,18 +46,17 @@ static HashMap<double, HRTFDatabaseLoader*>& loaderMap()
     return loaderMap;
 }
 
-PassRefPtr<HRTFDatabaseLoader> HRTFDatabaseLoader::createAndLoadAsynchronouslyIfNecessary(float sampleRate)
+Ref<HRTFDatabaseLoader> HRTFDatabaseLoader::createAndLoadAsynchronouslyIfNecessary(float sampleRate)
 {
     ASSERT(isMainThread());
 
-    RefPtr<HRTFDatabaseLoader> loader = loaderMap().get(sampleRate);
-    if (loader) {
+    if (RefPtr<HRTFDatabaseLoader> loader = loaderMap().get(sampleRate)) {
         ASSERT(sampleRate == loader->databaseSampleRate());
-        return loader;
+        return loader.releaseNonNull();
     }
 
-    loader = adoptRef(new HRTFDatabaseLoader(sampleRate));
-    loaderMap().add(sampleRate, loader.get());
+    auto loader = adoptRef(*new HRTFDatabaseLoader(sampleRate));
+    loaderMap().add(sampleRate, loader.ptr());
 
     loader->loadAsynchronously();
 
@@ -80,14 +80,6 @@ HRTFDatabaseLoader::~HRTFDatabaseLoader()
     loaderMap().remove(m_databaseSampleRate);
 }
 
-// Asynchronously load the database in this thread.
-static void databaseLoaderEntry(void* threadData)
-{
-    HRTFDatabaseLoader* loader = reinterpret_cast<HRTFDatabaseLoader*>(threadData);
-    ASSERT(loader);
-    loader->load();
-}
-
 void HRTFDatabaseLoader::load()
 {
     ASSERT(!isMainThread());
@@ -105,7 +97,9 @@ void HRTFDatabaseLoader::loadAsynchronously()
     
     if (!m_hrtfDatabase.get() && !m_databaseLoaderThread) {
         // Start the asynchronous database loading process.
-        m_databaseLoaderThread = Thread::create(databaseLoaderEntry, this, "HRTF database loader");
+        m_databaseLoaderThread = Thread::create("HRTF database loader", [this] {
+            load();
+        });
     }
 }
 

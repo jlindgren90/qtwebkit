@@ -63,8 +63,6 @@ class RenderWidget;
 
 Pagination::Mode paginationModeForRenderStyle(const RenderStyle&);
 
-typedef unsigned long long DOMTimeStamp;
-
 class FrameView final : public ScrollView {
 public:
     friend class RenderView;
@@ -114,7 +112,7 @@ public:
     bool layoutPending() const;
     bool isInLayout() const { return m_layoutPhase != OutsideLayout; }
     bool isInRenderTreeLayout() const { return m_layoutPhase == InRenderTreeLayout; }
-    WEBCORE_EXPORT bool inPaintableState() { return m_layoutPhase != InRenderTreeLayout && m_layoutPhase != InViewSizeAdjust && m_layoutPhase != InPostLayout; }
+    bool inPaintableState() { return m_layoutPhase != InRenderTreeLayout && m_layoutPhase != InViewSizeAdjust && m_layoutPhase != InPostLayout; }
 
     RenderElement* layoutRoot() const { return m_layoutRoot; }
     void clearLayoutRoot() { m_layoutRoot = nullptr; }
@@ -260,8 +258,12 @@ public:
     // If set, overrides the default "m_layoutViewportOrigin, size of initial containing block" rect.
     // Used with delegated scrolling (i.e. iOS).
     WEBCORE_EXPORT void setLayoutViewportOverrideRect(std::optional<LayoutRect>);
+    // If set, overrides m_layoutViewportOverrideRect. Only used during unstable scroll updates, so that "client" coordinates are 
+    // computed with an origin that changes along with the scroll position.
+    // FIXME: This is ugly; would be better to be able to make setLayoutViewportOverrideRect() callable during unstable updates. 
+    WEBCORE_EXPORT void setUnstableLayoutViewportRect(std::optional<LayoutRect>);
 
-    // These are in document coordinates, unaffected by zooming.
+    // These are in document coordinates, unaffected by page scale (but affected by zooming).
     WEBCORE_EXPORT LayoutRect layoutViewportRect() const;
     WEBCORE_EXPORT LayoutRect visualViewportRect() const;
     
@@ -305,7 +307,10 @@ public:
     // Static function can be called from another thread.
     static LayoutPoint scrollPositionForFixedPosition(const LayoutRect& visibleContentRect, const LayoutSize& totalContentsSize, const LayoutPoint& scrollPosition, const LayoutPoint& scrollOrigin, float frameScaleFactor, bool fixedElementsLayoutRelativeToFrame, ScrollBehaviorForFixedElements, int headerHeight, int footerHeight);
 
-    WEBCORE_EXPORT static LayoutPoint computeLayoutViewportOrigin(const LayoutRect& visualViewport, const LayoutPoint& stableLayoutViewportOriginMin, const LayoutPoint& stableLayoutViewportOriginMax, const LayoutRect& layoutViewport, ScrollBehaviorForFixedElements fixedBehavior);
+    enum class LayoutViewportConstraint { ConstrainedToDocumentRect, Unconstrained };
+    WEBCORE_EXPORT static LayoutRect computeUpdatedLayoutViewportRect(const LayoutRect& layoutViewport, const LayoutRect& documentRect, const LayoutSize& unobscuredContentSize, const LayoutRect& unobscuredContentRect, const LayoutSize& baseLayoutViewportSize, const LayoutPoint& stableLayoutViewportOriginMin, const LayoutPoint& stableLayoutViewportOriginMax, LayoutViewportConstraint);
+    
+    WEBCORE_EXPORT static LayoutPoint computeLayoutViewportOrigin(const LayoutRect& visualViewport, const LayoutPoint& stableLayoutViewportOriginMin, const LayoutPoint& stableLayoutViewportOriginMax, const LayoutRect& layoutViewport, ScrollBehaviorForFixedElements);
 
     // These layers are positioned differently when there is a topContentInset, a header, or a footer. These value need to be computed
     // on both the main thread and the scrolling thread.
@@ -344,7 +349,7 @@ public:
     void addEmbeddedObjectToUpdate(RenderEmbeddedObject&);
     void removeEmbeddedObjectToUpdate(RenderEmbeddedObject&);
 
-    WEBCORE_EXPORT void paintContents(GraphicsContext&, const IntRect& dirtyRect) final;
+    WEBCORE_EXPORT void paintContents(GraphicsContext&, const IntRect& dirtyRect, SecurityOriginPaintPolicy = SecurityOriginPaintPolicy::AnyOrigin) final;
 
     struct PaintingState {
         PaintBehavior paintBehavior;
@@ -426,6 +431,34 @@ public:
     void maintainScrollPositionAtAnchor(ContainerNode*);
     WEBCORE_EXPORT void scrollElementToRect(const Element&, const IntRect&);
 
+    // Coordinate systems:
+    //
+    // "View"
+    //     Top left is top left of the FrameView/ScrollView/Widget. Size is Widget::boundsRect().size(). 
+    //
+    // "TotalContents"
+    //    Relative to ScrollView's scrolled contents, including headers and footers. Size is totalContentsSize().
+    //
+    // "Contents"
+    //    Relative to ScrollView's scrolled contents, excluding headers and footers, so top left is top left of the scroll view's
+    //    document, and size is contentsSize().
+    //
+    // "Absolute"
+    //    Relative to the document's scroll origin (non-zero for RTL documents), but affected by page zoom and page scale. Mostly used
+    //    in rendering code.
+    //
+    // "Document"
+    //    Relative to the document's scroll origin, but not affected by page zoom or page scale. Size is equivalent to CSS pixel dimensions.
+    //    FIXME: some uses are affected by page zoom (e.g. layout and visual viewports).
+    //
+    // "Client"
+    //    Relative to the visible part of the document (or, more strictly, the layout viewport rect), and with the same scaling
+    //    as Document coordinates, i.e. matching CSS pixels. Affected by scroll origin.
+    //
+    // "LayoutViewport"
+    //    Similar to client coordinates, but affected by page zoom (but not page scale).
+    //
+
     // Methods to convert points and rects between the coordinate space of the renderer, and this view.
     WEBCORE_EXPORT IntRect convertFromRendererToContainingView(const RenderElement*, const IntRect&) const;
     WEBCORE_EXPORT IntRect convertFromContainingViewToRenderer(const RenderElement*, const IntRect&) const;
@@ -437,6 +470,22 @@ public:
     IntRect convertFromContainingView(const IntRect&) const final;
     IntPoint convertToContainingView(const IntPoint&) const final;
     IntPoint convertFromContainingView(const IntPoint&) const final;
+
+    float documentToAbsoluteScaleFactor(std::optional<float> effectiveZoom = std::nullopt) const;
+    float absoluteToDocumentScaleFactor(std::optional<float> effectiveZoom = std::nullopt) const;
+
+    FloatRect absoluteToDocumentRect(FloatRect, std::optional<float> effectiveZoom = std::nullopt) const;
+    FloatPoint absoluteToDocumentPoint(FloatPoint, std::optional<float> effectiveZoom = std::nullopt) const;
+
+    FloatSize documentToClientOffset() const;
+    FloatRect documentToClientRect(FloatRect) const;
+    FloatPoint documentToClientPoint(FloatPoint) const;
+
+    FloatRect layoutViewportToAbsoluteRect(FloatRect) const;
+    FloatPoint layoutViewportToAbsolutePoint(FloatPoint) const;
+
+    // Unlike client coordinates, layout viewport coordinates are affected by page zoom.
+    FloatPoint clientToLayoutViewportPoint(FloatPoint) const;
 
     bool isFrameViewScrollCorner(const RenderScrollbarPart& scrollCorner) const { return m_scrollCorner == &scrollCorner; }
 
@@ -648,7 +697,7 @@ private:
     void performPostLayoutTasks();
     void autoSizeIfEnabled();
 
-    void applyRecursivelyWithVisibleRect(const std::function<void (FrameView& frameView, const IntRect& visibleRect)>&);
+    void applyRecursivelyWithVisibleRect(const WTF::Function<void (FrameView& frameView, const IntRect& visibleRect)>&);
     void resumeVisibleImageAnimations(const IntRect& visibleRect);
     void updateScriptedAnimationsAndTimersThrottlingState(const IntRect& visibleRect);
 
@@ -797,6 +846,7 @@ private:
     
     LayoutPoint m_layoutViewportOrigin;
     std::optional<LayoutRect> m_layoutViewportOverrideRect;
+    std::optional<LayoutRect> m_unstableLayoutViewportRect;
 
     unsigned m_deferSetNeedsLayoutCount;
     bool m_setNeedsLayoutWasDeferred;

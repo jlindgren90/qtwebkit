@@ -35,7 +35,6 @@
 #include "PluginDatabase.h"
 #include "PluginView.h"
 #include "SocketProvider.h"
-#include "SoftLinking.h"
 #include "SubframeLoader.h"
 #include "TextIterator.h"
 #include "WebApplicationCache.h"
@@ -170,6 +169,7 @@
 #include <d2d1.h>
 #include <wtf/MainThread.h>
 #include <wtf/RAMSize.h>
+#include <wtf/SoftLinking.h>
 #include <wtf/UniqueRef.h>
 
 #if USE(CG)
@@ -1038,9 +1038,10 @@ void WebView::sizeChanged(const IntSize& newSize)
     deleteBackingStore();
 
     if (Frame* coreFrame = core(topLevelFrame())) {
-        IntSize logicalSize = newSize;
+        FloatSize logicalSize = newSize;
         logicalSize.scale(1.0f / deviceScaleFactor());
-        coreFrame->view()->resize(logicalSize);
+        auto clientRect = enclosingIntRect(FloatRect(FloatPoint(), logicalSize));
+        coreFrame->view()->resize(clientRect.size());
     }
 
 #if USE(CA)
@@ -2725,7 +2726,7 @@ LRESULT CALLBACK WebView::WebViewWndProc(HWND hWnd, UINT message, WPARAM wParam,
         case WM_XP_THEMECHANGED:
             if (Frame* coreFrame = core(mainFrameImpl)) {
                 webView->deleteBackingStore();
-                coreFrame->page()->theme().themeChanged();
+                RenderTheme::singleton().themeChanged();
                 ScrollbarTheme::theme().themeChanged();
                 RECT windowRect;
                 ::GetClientRect(hWnd, &windowRect);
@@ -2890,6 +2891,8 @@ HRESULT WebView::QueryInterface(_In_ REFIID riid, _COM_Outptr_ void** ppvObject)
         *ppvObject = static_cast<IWebViewPrivate3*>(this);
     else if (IsEqualGUID(riid, IID_IWebViewPrivate4))
         *ppvObject = static_cast<IWebViewPrivate4*>(this);
+    else if (IsEqualGUID(riid, IID_IWebViewPrivate5))
+        *ppvObject = static_cast<IWebViewPrivate5*>(this);
     else if (IsEqualGUID(riid, IID_IWebIBActions))
         *ppvObject = static_cast<IWebIBActions*>(this);
     else if (IsEqualGUID(riid, IID_IWebViewCSS))
@@ -5187,7 +5190,7 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     settings.setShouldDisplayTextDescriptions(enabled);
 #endif
 
-    COMPtr<IWebPreferencesPrivate4> prefsPrivate(Query, preferences);
+    COMPtr<IWebPreferencesPrivate5> prefsPrivate { Query, preferences };
     if (prefsPrivate) {
         hr = prefsPrivate->localStorageDatabasePath(&str);
         if (FAILED(hr))
@@ -5277,6 +5280,16 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     RuntimeEnabledFeatures::sharedFeatures().setLinkPreloadEnabled(!!enabled);
+
+    hr = prefsPrivate->mediaPreloadingEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    RuntimeEnabledFeatures::sharedFeatures().setMediaPreloadingEnabled(!!enabled);
+
+    hr = prefsPrivate->isSecureContextAttributeEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    RuntimeEnabledFeatures::sharedFeatures().setIsSecureContextAttributeEnabled(!!enabled);
 
     hr = preferences->privateBrowsingEnabled(&enabled);
     if (FAILED(hr))
@@ -5453,7 +5466,7 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     hr = prefsPrivate->isFrameFlatteningEnabled(&enabled);
     if (FAILED(hr))
         return hr;
-    settings.setFrameFlatteningEnabled(enabled);
+    settings.setFrameFlattening(enabled ? FrameFlatteningFullyEnabled : FrameFlatteningDisabled);
 
     hr = prefsPrivate->acceleratedCompositingEnabled(&enabled);
     if (FAILED(hr))
@@ -6734,7 +6747,7 @@ HRESULT WebView::globalHistoryItem(_COM_Outptr_opt_ IWebHistoryItem** item)
         return S_OK;
     }
 
-    *item = WebHistoryItem::createInstance(m_globalHistoryItem);
+    *item = WebHistoryItem::createInstance(m_globalHistoryItem.copyRef());
     return S_OK;
 }
 
@@ -7526,9 +7539,9 @@ FullScreenController* WebView::fullScreenController()
     return m_fullscreenController.get();
 }
 
-void WebView::setFullScreenElement(PassRefPtr<Element> element)
+void WebView::setFullScreenElement(RefPtr<Element>&& element)
 {
-    m_fullScreenElement = element;
+    m_fullScreenElement = WTFMove(element);
 }
 
 HWND WebView::fullScreenClientWindow() const
@@ -7831,5 +7844,12 @@ HRESULT WebView::setVisibilityState(WebPageVisibilityState visibilityState)
     if (visibilityState == WebPageVisibilityStatePrerender)
         m_page->setIsPrerender();
 
+    return S_OK;
+}
+
+HRESULT WebView::exitFullscreenIfNeeded()
+{
+    if (fullScreenController() && fullScreenController()->isFullScreen())
+        fullScreenController()->close();
     return S_OK;
 }

@@ -157,7 +157,7 @@ SuccessOr<MediaPlaybackDenialReason> MediaElementSession::playbackPermitted(cons
         return { };
 
     if (requiresFullscreenForVideoPlayback(element) && !fullscreenPermitted(element)) {
-        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of fullscreen restriction");
+        RELEASE_LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of fullscreen restriction");
         return MediaPlaybackDenialReason::FullscreenRequired;
     }
 
@@ -173,18 +173,18 @@ SuccessOr<MediaPlaybackDenialReason> MediaElementSession::playbackPermitted(cons
     }
 #endif
 
-    if (m_restrictions & RequireUserGestureForVideoRateChange && element.isVideo() && !ScriptController::processingUserGestureForMedia()) {
-        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of video rate change restriction");
+    if (m_restrictions & RequireUserGestureForVideoRateChange && element.isVideo() && !element.document().processingUserGestureForMedia()) {
+        RELEASE_LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of video rate change restriction");
         return MediaPlaybackDenialReason::UserGestureRequired;
     }
 
-    if (m_restrictions & RequireUserGestureForAudioRateChange && (!element.isVideo() || element.hasAudio()) && !element.muted() && element.volume() && !ScriptController::processingUserGestureForMedia()) {
-        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of audio rate change restriction");
+    if (m_restrictions & RequireUserGestureForAudioRateChange && (!element.isVideo() || element.hasAudio()) && !element.muted() && element.volume() && !element.document().processingUserGestureForMedia()) {
+        RELEASE_LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of audio rate change restriction");
         return MediaPlaybackDenialReason::UserGestureRequired;
     }
 
-    if (m_restrictions & RequireUserGestureForVideoDueToLowPowerMode && element.isVideo() && !ScriptController::processingUserGestureForMedia()) {
-        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of video low power mode restriction");
+    if (m_restrictions & RequireUserGestureForVideoDueToLowPowerMode && element.isVideo() && !element.document().processingUserGestureForMedia()) {
+        RELEASE_LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of video low power mode restriction");
         return MediaPlaybackDenialReason::UserGestureRequired;
     }
 
@@ -218,12 +218,12 @@ bool MediaElementSession::autoplayPermitted() const
     return true;
 }
 
-bool MediaElementSession::dataLoadingPermitted(const HTMLMediaElement&) const
+bool MediaElementSession::dataLoadingPermitted(const HTMLMediaElement& element) const
 {
     if (m_restrictions & OverrideUserGestureRequirementForMainContent && updateIsMainContent())
         return true;
 
-    if (m_restrictions & RequireUserGestureForLoad && !ScriptController::processingUserGestureForMedia()) {
+    if (m_restrictions & RequireUserGestureForLoad && !element.document().processingUserGestureForMedia()) {
         LOG(Media, "MediaElementSession::dataLoadingPermitted - returning FALSE");
         return false;
     }
@@ -231,9 +231,9 @@ bool MediaElementSession::dataLoadingPermitted(const HTMLMediaElement&) const
     return true;
 }
 
-bool MediaElementSession::fullscreenPermitted(const HTMLMediaElement&) const
+bool MediaElementSession::fullscreenPermitted(const HTMLMediaElement& element) const
 {
-    if (m_restrictions & RequireUserGestureForFullscreen && !ScriptController::processingUserGestureForMedia()) {
+    if (m_restrictions & RequireUserGestureForFullscreen && !element.document().processingUserGestureForMedia()) {
         LOG(Media, "MediaElementSession::fullscreenPermitted - returning FALSE");
         return false;
     }
@@ -275,13 +275,13 @@ bool MediaElementSession::canShowControlsManager(PlaybackControlsPurpose purpose
         return false;
     }
 
-    if (m_element.document().isMediaDocument()) {
+    if (m_element.document().isMediaDocument() && (m_element.document().frame() && m_element.document().frame()->isMainFrame())) {
         LOG(Media, "MediaElementSession::canShowControlsManager - returning TRUE: Is media document");
         return true;
     }
 
     if (client().presentationType() == Audio) {
-        if (!hasBehaviorRestriction(RequireUserGestureToControlControlsManager) || ScriptController::processingUserGestureForMedia()) {
+        if (!hasBehaviorRestriction(RequireUserGestureToControlControlsManager) || m_element.document().processingUserGestureForMedia()) {
             LOG(Media, "MediaElementSession::canShowControlsManager - returning TRUE: Audio element with user gesture");
             return true;
         }
@@ -315,7 +315,7 @@ bool MediaElementSession::canShowControlsManager(PlaybackControlsPurpose purpose
         return false;
     }
 
-    if (!hasBehaviorRestriction(RequireUserGestureToControlControlsManager) || ScriptController::processingUserGestureForMedia()) {
+    if (!hasBehaviorRestriction(RequireUserGestureToControlControlsManager) || m_element.document().processingUserGestureForMedia()) {
         LOG(Media, "MediaElementSession::canShowControlsManager - returning TRUE: No user gesture required");
         return true;
     }
@@ -384,7 +384,7 @@ void MediaElementSession::showPlaybackTargetPicker(const HTMLMediaElement& eleme
 {
     LOG(Media, "MediaElementSession::showPlaybackTargetPicker");
 
-    if (m_restrictions & RequireUserGestureToShowPlaybackTargetPicker && !ScriptController::processingUserGestureForMedia()) {
+    if (m_restrictions & RequireUserGestureToShowPlaybackTargetPicker && !element.document().processingUserGestureForMedia()) {
         LOG(Media, "MediaElementSession::showPlaybackTargetPicker - returning early because of permissions");
         return;
     }
@@ -429,7 +429,7 @@ bool MediaElementSession::wirelessVideoPlaybackDisabled(const HTMLMediaElement& 
     }
 
 #if PLATFORM(IOS)
-    String legacyAirplayAttributeValue = element.attributeWithoutSynchronization(HTMLNames::webkitairplayAttr);
+    auto& legacyAirplayAttributeValue = element.attributeWithoutSynchronization(HTMLNames::webkitairplayAttr);
     if (equalLettersIgnoringASCIICase(legacyAirplayAttributeValue, "deny")) {
         LOG(Media, "MediaElementSession::wirelessVideoPlaybackDisabled - returning TRUE because of legacy attribute");
         return true;

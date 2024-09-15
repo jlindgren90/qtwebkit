@@ -48,6 +48,7 @@
 #include "TextDecorationPainter.h"
 #include "TextPaintStyle.h"
 #include "TextPainter.h"
+#include "TextStream.h"
 #include <stdio.h>
 #include <wtf/text/CString.h>
 
@@ -527,7 +528,7 @@ void InlineTextBox::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset, 
     float emphasisMarkOffset = 0;
     bool emphasisMarkAbove;
     bool hasTextEmphasis = emphasisMarkExistsAndIsAbove(lineStyle, emphasisMarkAbove);
-    const AtomicString& emphasisMark = hasTextEmphasis ? lineStyle.textEmphasisMarkString() : nullAtom;
+    const AtomicString& emphasisMark = hasTextEmphasis ? lineStyle.textEmphasisMarkString() : nullAtom();
     if (!emphasisMark.isEmpty())
         emphasisMarkOffset = emphasisMarkAbove ? -font.fontMetrics().ascent() - font.emphasisMarkDescent(emphasisMark) : font.fontMetrics().descent() + font.emphasisMarkAscent(emphasisMark);
 
@@ -552,7 +553,30 @@ void InlineTextBox::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset, 
     textPainter.addTextShadow(textShadow, selectionShadow);
     textPainter.addEmphasis(emphasisMark, emphasisMarkOffset, combinedText);
 
-    textPainter.paintText(textRun, length, boxRect, textOrigin, selectionStart, selectionEnd, paintSelectedTextOnly, paintSelectedTextSeparately, paintNonSelectedTextOnly);
+    auto draggedContentRanges = renderer().draggedContentRangesBetweenOffsets(m_start, m_start + m_len);
+    if (!draggedContentRanges.isEmpty() && !paintSelectedTextOnly && !paintNonSelectedTextOnly) {
+        // FIXME: Painting with text effects ranges currently only works if we're not also painting the selection.
+        // In the future, we may want to support this capability, but in the meantime, this isn't required by anything.
+        unsigned currentEnd = 0;
+        for (size_t index = 0; index < draggedContentRanges.size(); ++index) {
+            unsigned previousEnd = index ? std::min(draggedContentRanges[index - 1].second, length) : 0;
+            unsigned currentStart = draggedContentRanges[index].first - m_start;
+            currentEnd = std::min(draggedContentRanges[index].second - m_start, length);
+
+            if (previousEnd < currentStart)
+                textPainter.paintTextInRange(textRun, boxRect, textOrigin, previousEnd, currentStart);
+
+            if (currentStart < currentEnd) {
+                context.save();
+                context.setAlpha(0.25);
+                textPainter.paintTextInRange(textRun, boxRect, textOrigin, currentStart, currentEnd);
+                context.restore();
+            }
+        }
+        if (currentEnd < length)
+            textPainter.paintTextInRange(textRun, boxRect, textOrigin, currentEnd, length);
+    } else
+        textPainter.paintText(textRun, length, boxRect, textOrigin, selectionStart, selectionEnd, paintSelectedTextOnly, paintSelectedTextSeparately, paintNonSelectedTextOnly);
 
     // Paint decorations
     TextDecoration textDecorations = lineStyle.textDecorationsInEffect();
@@ -1100,23 +1124,24 @@ const char* InlineTextBox::boxName() const
     return "InlineTextBox";
 }
 
-void InlineTextBox::showLineBox(bool mark, int depth) const
+void InlineTextBox::outputLineBox(TextStream& stream, bool mark, int depth) const
 {
-    fprintf(stderr, "-------- %c-", isDirty() ? 'D' : '-');
+    stream << "-------- " << (isDirty() ? "D" : "-") << "-";
 
     int printedCharacters = 0;
     if (mark) {
-        fprintf(stderr, "*");
+        stream << "*";
         ++printedCharacters;
     }
     while (++printedCharacters <= depth * 2)
-        fputc(' ', stderr);
+        stream << " ";
 
     String value = renderer().text();
     value = value.substring(start(), len());
     value.replaceWithLiteral('\\', "\\\\");
     value.replaceWithLiteral('\n', "\\n");
-    fprintf(stderr, "%s  (%.2f, %.2f) (%.2f, %.2f) (%p) renderer->(%p) run(%d, %d) \"%s\"\n", boxName(), x(), y(), width(), height(), this, &renderer(), start(), start() + len(), value.utf8().data());
+    stream << boxName() << " " << FloatRect(x(), y(), width(), height()) << " (" << this << ") renderer->(" << &renderer() << ") run(" << start() << ", " << start() + len() << ") \"" << value.utf8().data() << "\"";
+    stream.nextLine();
 }
 
 #endif

@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 1999-2002 Harri Porten (porten@kde.org)
  *  Copyright (C) 2001 Peter Kelly (pmk@post.com)
- *  Copyright (C) 2003-2009, 2012, 2016 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003-2017 Apple Inc. All rights reserved.
  *  Copyright (C) 2007 Cameron Zwarich (cwzwarich@uwaterloo.ca)
  *  Copyright (C) 2007 Maks Orlovich
  *
@@ -26,6 +26,7 @@
 #include "JSGlobalObjectFunctions.h"
 
 #include "CallFrame.h"
+#include "CatchScope.h"
 #include "EvalExecutable.h"
 #include "Exception.h"
 #include "IndirectEvalExecutable.h"
@@ -533,7 +534,7 @@ EncodedJSValue JSC_HOST_CALL globalFuncParseInt(ExecState* exec)
 
 EncodedJSValue JSC_HOST_CALL globalFuncParseFloat(ExecState* exec)
 {
-    auto viewWithString = exec->argument(0).toString(exec)->viewWithUnderlyingString(*exec);
+    auto viewWithString = exec->argument(0).toString(exec)->viewWithUnderlyingString(exec);
     return JSValue::encode(jsNumber(parseFloat(viewWithString.view)));
 }
 
@@ -753,7 +754,7 @@ EncodedJSValue JSC_HOST_CALL globalFuncHostPromiseRejectionTracker(ExecState* ex
     ASSERT(operationValue.isNumber());
     auto operation = static_cast<JSPromiseRejectionOperation>(operationValue.toUInt32(exec));
     ASSERT(operation == JSPromiseRejectionOperation::Reject || operation == JSPromiseRejectionOperation::Handle);
-    ASSERT(!scope.exception());
+    scope.assertNoException();
 
     globalObject->globalObjectMethodTable()->promiseRejectionTracker(globalObject, exec, promise, operation);
     RETURN_IF_EXCEPTION(scope, { });
@@ -795,6 +796,22 @@ EncodedJSValue JSC_HOST_CALL globalFuncImportModule(ExecState* exec)
     promise->resolve(exec, internalPromise);
 
     return JSValue::encode(promise->promise());
+}
+
+EncodedJSValue JSC_HOST_CALL globalFuncPropertyIsEnumerable(ExecState* exec)
+{
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    RELEASE_ASSERT(exec->argumentCount() == 2);
+    JSObject* object = jsCast<JSObject*>(exec->uncheckedArgument(0));
+    auto propertyName = exec->uncheckedArgument(1).toPropertyKey(exec);
+    RETURN_IF_EXCEPTION(scope, encodedJSValue());
+
+    scope.release();
+    PropertyDescriptor descriptor;
+    bool enumerable = object->getOwnPropertyDescriptor(exec, propertyName, descriptor) && descriptor.enumerable();
+    return JSValue::encode(jsBoolean(enumerable));
 }
 
 } // namespace JSC

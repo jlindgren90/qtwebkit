@@ -57,10 +57,12 @@ static void contextMenuItemActivatedCallback(GAction* action, GVariant*, WebPage
         static_cast<ContextMenuAction>(GPOINTER_TO_INT(g_object_get_data(G_OBJECT(action), gContextMenuActionId))),
         String::fromUTF8(static_cast<const char*>(g_object_get_data(G_OBJECT(action), gContextMenuTitle))), g_action_get_enabled(action),
         state ? g_variant_get_boolean(state.get()) : false);
+    if (isToggle)
+        g_action_change_state(action, g_variant_new_boolean(!g_variant_get_boolean(state.get())));
     page->contextMenuItemSelected(item);
 }
 
-void WebContextMenuProxyGtk::append(GMenu* menu, const WebContextMenuItemGtk& menuItem)
+void WebContextMenuProxyGtk::append(GMenu* menu, const WebContextMenuItemGlib& menuItem)
 {
     unsigned long signalHandlerId;
     GRefPtr<GMenuItem> gMenuItem;
@@ -77,12 +79,14 @@ void WebContextMenuProxyGtk::append(GMenu* menu, const WebContextMenuItemGtk& me
     case CheckableActionType: {
         GUniquePtr<char> actionName(g_strdup_printf("%s.%s", gContextMenuItemGroup, g_action_get_name(action)));
         gMenuItem = adoptGRef(g_menu_item_new(menuItem.title().utf8().data(), nullptr));
-        g_menu_item_set_action_and_target_value(gMenuItem.get(), actionName.get(), nullptr);
+        g_menu_item_set_action_and_target_value(gMenuItem.get(), actionName.get(), menuItem.gActionTarget());
 
-        g_object_set_data(G_OBJECT(action), gContextMenuActionId, GINT_TO_POINTER(menuItem.action()));
-        g_object_set_data_full(G_OBJECT(action), gContextMenuTitle, g_strdup(menuItem.title().utf8().data()), g_free);
-        signalHandlerId = g_signal_connect(action, "activate", G_CALLBACK(contextMenuItemActivatedCallback), m_page);
-        m_signalHandlers.set(signalHandlerId, action);
+        if (menuItem.action() < ContextMenuItemBaseApplicationTag) {
+            g_object_set_data(G_OBJECT(action), gContextMenuActionId, GINT_TO_POINTER(menuItem.action()));
+            g_object_set_data_full(G_OBJECT(action), gContextMenuTitle, g_strdup(menuItem.title().utf8().data()), g_free);
+            signalHandlerId = g_signal_connect(action, "activate", G_CALLBACK(contextMenuItemActivatedCallback), m_page);
+            m_signalHandlers.set(signalHandlerId, action);
+        }
         break;
     }
     case SubmenuType: {
@@ -98,7 +102,7 @@ void WebContextMenuProxyGtk::append(GMenu* menu, const WebContextMenuItemGtk& me
     g_menu_append_item(menu, gMenuItem.get());
 }
 
-GRefPtr<GMenu> WebContextMenuProxyGtk::buildMenu(const Vector<WebContextMenuItemGtk>& items)
+GRefPtr<GMenu> WebContextMenuProxyGtk::buildMenu(const Vector<WebContextMenuItemGlib>& items)
 {
     GRefPtr<GMenu> menu = adoptGRef(g_menu_new());
     GMenu* sectionMenu = menu.get();
@@ -114,7 +118,7 @@ GRefPtr<GMenu> WebContextMenuProxyGtk::buildMenu(const Vector<WebContextMenuItem
     return menu;
 }
 
-void WebContextMenuProxyGtk::populate(const Vector<WebContextMenuItemGtk>& items)
+void WebContextMenuProxyGtk::populate(const Vector<WebContextMenuItemGlib>& items)
 {
     GRefPtr<GMenu> menu = buildMenu(items);
     gtk_menu_shell_bind_model(GTK_MENU_SHELL(m_menu), G_MENU_MODEL(menu.get()), nullptr, TRUE);
@@ -130,7 +134,7 @@ void WebContextMenuProxyGtk::populate(const Vector<RefPtr<WebContextMenuItem>>& 
             g_menu_append_section(menu.get(), nullptr, G_MENU_MODEL(section.get()));
             sectionMenu = section.get();
         } else {
-            WebContextMenuItemGtk menuitem(item->data());
+            WebContextMenuItemGlib menuitem(item->data());
             append(sectionMenu, menuitem);
         }
     }
@@ -167,13 +171,8 @@ void WebContextMenuProxyGtk::show()
     NativeWebMouseEvent* mouseEvent = m_page->currentlyProcessedMouseDownEvent();
     const GdkEvent* event = mouseEvent ? mouseEvent->nativeEvent() : 0;
     gtk_menu_attach_to_widget(m_menu, GTK_WIDGET(m_webView), nullptr);
-
-#if GTK_CHECK_VERSION(3, 22, 0)
-    gtk_menu_popup_at_pointer(m_menu, event);
-#else
     gtk_menu_popup(m_menu, nullptr, nullptr, reinterpret_cast<GtkMenuPositionFunc>(menuPositionFunction), this,
                    event ? event->button.button : 3, event ? event->button.time : GDK_CURRENT_TIME);
-#endif
 }
 
 void WebContextMenuProxyGtk::showContextMenuWithItems(const Vector<WebContextMenuItemData>& items)
@@ -209,7 +208,6 @@ WebContextMenuProxyGtk::~WebContextMenuProxyGtk()
     gtk_widget_destroy(GTK_WIDGET(m_menu));
 }
 
-#if !GTK_CHECK_VERSION(3, 22, 0)
 void WebContextMenuProxyGtk::menuPositionFunction(GtkMenu* menu, gint* x, gint* y, gboolean* pushIn, WebContextMenuProxyGtk* popupMenu)
 {
     GtkRequisition menuSize;
@@ -226,7 +224,6 @@ void WebContextMenuProxyGtk::menuPositionFunction(GtkMenu* menu, gint* x, gint* 
 
     *pushIn = FALSE;
 }
-#endif
 
 } // namespace WebKit
 #endif // ENABLE(CONTEXT_MENUS)

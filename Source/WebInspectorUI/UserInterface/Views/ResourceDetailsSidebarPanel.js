@@ -27,93 +27,13 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
 {
     constructor()
     {
-        super("resource-details", WebInspector.UIString("Resource"), WebInspector.UIString("Resource"));
+        super("resource-details", WebInspector.UIString("Resource"));
 
         this.element.classList.add("resource");
 
         this._resource = null;
-
-        this._typeMIMETypeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("MIME Type"));
-        this._typeResourceTypeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Resource Type"));
-
-        this._typeSection = new WebInspector.DetailsSection("resource-type", WebInspector.UIString("Type"));
-        this._typeSection.groups = [new WebInspector.DetailsSectionGroup([this._typeMIMETypeRow, this._typeResourceTypeRow])];
-
-        this._locationFullURLRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Full URL"));
-        this._locationSchemeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Scheme"));
-        this._locationHostRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Host"));
-        this._locationPortRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Port"));
-        this._locationPathRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Path"));
-        this._locationQueryStringRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Query String"));
-        this._locationFragmentRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Fragment"));
-        this._locationFilenameRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Filename"));
-        this._initiatorRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Initiator"));
-        this._initiatedRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Initiated"));
-
-        var firstGroup = [this._locationFullURLRow];
-        var secondGroup = [this._locationSchemeRow, this._locationHostRow, this._locationPortRow, this._locationPathRow,
-            this._locationQueryStringRow, this._locationFragmentRow, this._locationFilenameRow];
-        var thirdGroup = [this._initiatorRow, this._initiatedRow];
-
-        this._fullURLGroup = new WebInspector.DetailsSectionGroup(firstGroup);
-        this._locationURLComponentsGroup = new WebInspector.DetailsSectionGroup(secondGroup);
-        this._relatedResourcesGroup = new WebInspector.DetailsSectionGroup(thirdGroup);
-
-        this._locationSection = new WebInspector.DetailsSection("resource-location", WebInspector.UIString("Location"), [this._fullURLGroup, this._locationURLComponentsGroup, this._relatedResourcesGroup]);
-
-        this._queryParametersRow = new WebInspector.DetailsSectionDataGridRow(null, WebInspector.UIString("No Query Parameters"));
-        this._queryParametersSection = new WebInspector.DetailsSection("resource-query-parameters", WebInspector.UIString("Query Parameters"));
-        this._queryParametersSection.groups = [new WebInspector.DetailsSectionGroup([this._queryParametersRow])];
-
-        this._requestDataSection = new WebInspector.DetailsSection("resource-request-data", WebInspector.UIString("Request Data"));
-
-        this._requestMethodRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Method"));
-        this._protocolRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Protocol"));
-        this._priorityRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Priority"));
-        this._cachedRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Cached"));
-
-        this._statusTextRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Status"));
-        this._statusCodeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Code"));
-
-        this._remoteAddressRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("IP Address"));
-        this._connectionIdentifierRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Connection ID"));
-
-        this._encodedSizeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Encoded"));
-        this._decodedSizeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Decoded"));
-        this._transferSizeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Transferred"));
-
-        this._compressedRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Compressed"));
-        this._compressionRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Compression"));
-
-        let requestGroup = new WebInspector.DetailsSectionGroup([this._requestMethodRow, this._protocolRow, this._priorityRow, this._cachedRow]);
-        let statusGroup = new WebInspector.DetailsSectionGroup([this._statusTextRow, this._statusCodeRow]);
-        let connectionGroup = new WebInspector.DetailsSectionGroup([this._remoteAddressRow, this._connectionIdentifierRow]);
-        let sizeGroup = new WebInspector.DetailsSectionGroup([this._encodedSizeRow, this._decodedSizeRow, this._transferSizeRow]);
-        let compressionGroup = new WebInspector.DetailsSectionGroup([this._compressedRow, this._compressionRow]);
-
-        this._requestAndResponseSection = new WebInspector.DetailsSection("resource-request-response", WebInspector.UIString("Request & Response"), [requestGroup, statusGroup, connectionGroup, sizeGroup, compressionGroup]);
-
-        this._requestHeadersRow = new WebInspector.DetailsSectionDataGridRow(null, WebInspector.UIString("No Request Headers"));
-        this._requestHeadersSection = new WebInspector.DetailsSection("resource-request-headers", WebInspector.UIString("Request Headers"));
-        this._requestHeadersSection.groups = [new WebInspector.DetailsSectionGroup([this._requestHeadersRow])];
-
-        this._responseHeadersRow = new WebInspector.DetailsSectionDataGridRow(null, WebInspector.UIString("No Response Headers"));
-        this._responseHeadersSection = new WebInspector.DetailsSection("resource-response-headers", WebInspector.UIString("Response Headers"));
-        this._responseHeadersSection.groups = [new WebInspector.DetailsSectionGroup([this._responseHeadersRow])];
-
-        // Rows for the "Image Size" section.
-        this._imageWidthRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Width"));
-        this._imageHeightRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Height"));
-
-        // "Image Size" section where we display intrinsic metrics for image resources.
-        this._imageSizeSection = new WebInspector.DetailsSection("resource-type", WebInspector.UIString("Image Size"));
-        this._imageSizeSection.groups = [new WebInspector.DetailsSectionGroup([this._imageWidthRow, this._imageHeightRow])];
-
-        this.contentView.element.appendChild(this._typeSection.element);
-        this.contentView.element.appendChild(this._locationSection.element);
-        this.contentView.element.appendChild(this._requestAndResponseSection.element);
-        this.contentView.element.appendChild(this._requestHeadersSection.element);
-        this.contentView.element.appendChild(this._responseHeadersSection.element);
+        this._needsToApplyResourceEventListeners = false;
+        this._needsToRemoveResourceEventListeners = false;
     }
 
     // Public
@@ -161,30 +81,28 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
         if (resource === this._resource)
             return;
 
-        if (this._resource) {
+        if (this._resource && this._needsToRemoveResourceEventListeners) {
             this._resource.removeEventListener(WebInspector.Resource.Event.URLDidChange, this._refreshURL, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.MIMETypeDidChange, this._refreshMIMEType, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.TypeDidChange, this._refreshResourceType, this);
+            this._resource.removeEventListener(WebInspector.Resource.Event.LoadingDidFail, this._refreshErrorReason, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.RequestHeadersDidChange, this._refreshRequestHeaders, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.ResponseReceived, this._refreshRequestAndResponse, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.CacheStatusDidChange, this._refreshRequestAndResponse, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.SizeDidChange, this._refreshDecodedSize, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.TransferSizeDidChange, this._refreshTransferSize, this);
             this._resource.removeEventListener(WebInspector.Resource.Event.InitiatedResourcesDidChange, this._refreshRelatedResourcesSection, this);
+
+            this._needsToRemoveResourceEventListeners = false;
         }
 
         this._resource = resource;
 
         if (this._resource) {
-            this._resource.addEventListener(WebInspector.Resource.Event.URLDidChange, this._refreshURL, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.MIMETypeDidChange, this._refreshMIMEType, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.TypeDidChange, this._refreshResourceType, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.RequestHeadersDidChange, this._refreshRequestHeaders, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.ResponseReceived, this._refreshRequestAndResponse, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.CacheStatusDidChange, this._refreshRequestAndResponse, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.SizeDidChange, this._refreshDecodedSize, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.TransferSizeDidChange, this._refreshTransferSize, this);
-            this._resource.addEventListener(WebInspector.Resource.Event.InitiatedResourcesDidChange, this._refreshRelatedResourcesSection, this);
+            if (this.parentSidebar)
+                this._applyResourceEventListeners();
+            else
+                this._needsToApplyResourceEventListeners = true;
         }
 
         this.needsLayout();
@@ -192,8 +110,104 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
 
     // Protected
 
+    initialLayout()
+    {
+        super.initialLayout();
+
+        this._typeMIMETypeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("MIME Type"));
+        this._typeResourceTypeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Resource Type"));
+
+        this._typeSection = new WebInspector.DetailsSection("resource-type", WebInspector.UIString("Type"));
+        this._typeSection.groups = [new WebInspector.DetailsSectionGroup([this._typeMIMETypeRow, this._typeResourceTypeRow])];
+
+        this._locationFullURLRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Full URL"));
+        this._locationSchemeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Scheme"));
+        this._locationHostRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Host"));
+        this._locationPortRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Port"));
+        this._locationPathRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Path"));
+        this._locationQueryStringRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Query String"));
+        this._locationFragmentRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Fragment"));
+        this._locationFilenameRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Filename"));
+        this._initiatorRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Initiator"));
+        this._initiatedRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Initiated"));
+
+        var firstGroup = [this._locationFullURLRow];
+        var secondGroup = [this._locationSchemeRow, this._locationHostRow, this._locationPortRow, this._locationPathRow, this._locationQueryStringRow, this._locationFragmentRow, this._locationFilenameRow];
+        var thirdGroup = [this._initiatorRow, this._initiatedRow];
+
+        this._fullURLGroup = new WebInspector.DetailsSectionGroup(firstGroup);
+        this._locationURLComponentsGroup = new WebInspector.DetailsSectionGroup(secondGroup);
+        this._relatedResourcesGroup = new WebInspector.DetailsSectionGroup(thirdGroup);
+
+        this._locationSection = new WebInspector.DetailsSection("resource-location", WebInspector.UIString("Location"), [this._fullURLGroup, this._locationURLComponentsGroup, this._relatedResourcesGroup]);
+
+        this._queryParametersRow = new WebInspector.DetailsSectionDataGridRow(null, WebInspector.UIString("No Query Parameters"));
+        this._queryParametersSection = new WebInspector.DetailsSection("resource-query-parameters", WebInspector.UIString("Query Parameters"));
+        this._queryParametersSection.groups = [new WebInspector.DetailsSectionGroup([this._queryParametersRow])];
+
+        this._requestDataSection = new WebInspector.DetailsSection("resource-request-data", WebInspector.UIString("Request Data"));
+
+        this._requestMethodRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Method"));
+        this._protocolRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Protocol"));
+        this._priorityRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Priority"));
+        this._cachedRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Cached"));
+
+        this._statusTextRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Status"));
+        this._statusCodeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Code"));
+        this._errorReasonRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Error"));
+
+        this._remoteAddressRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("IP Address"));
+        this._connectionIdentifierRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Connection ID"));
+
+        this._encodedSizeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Encoded"));
+        this._decodedSizeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Decoded"));
+        this._transferSizeRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Transferred"));
+
+        this._compressedRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Compressed"));
+        this._compressionRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Compression"));
+
+        let requestGroup = new WebInspector.DetailsSectionGroup([this._requestMethodRow, this._protocolRow, this._priorityRow, this._cachedRow]);
+        let statusGroup = new WebInspector.DetailsSectionGroup([this._statusTextRow, this._statusCodeRow, this._errorReasonRow]);
+        let connectionGroup = new WebInspector.DetailsSectionGroup([this._remoteAddressRow, this._connectionIdentifierRow]);
+        let sizeGroup = new WebInspector.DetailsSectionGroup([this._encodedSizeRow, this._decodedSizeRow, this._transferSizeRow]);
+        let compressionGroup = new WebInspector.DetailsSectionGroup([this._compressedRow, this._compressionRow]);
+
+        this._requestAndResponseSection = new WebInspector.DetailsSection("resource-request-response", WebInspector.UIString("Request & Response"));
+        this._requestAndResponseSection.groups = [requestGroup, statusGroup, connectionGroup, sizeGroup, compressionGroup];
+
+        this._requestHeadersRow = new WebInspector.DetailsSectionDataGridRow(null, WebInspector.UIString("No Request Headers"));
+        this._requestHeadersSection = new WebInspector.DetailsSection("resource-request-headers", WebInspector.UIString("Request Headers"));
+        this._requestHeadersSection.groups = [new WebInspector.DetailsSectionGroup([this._requestHeadersRow])];
+
+        this._responseHeadersRow = new WebInspector.DetailsSectionDataGridRow(null, WebInspector.UIString("No Response Headers"));
+        this._responseHeadersSection = new WebInspector.DetailsSection("resource-response-headers", WebInspector.UIString("Response Headers"));
+        this._responseHeadersSection.groups = [new WebInspector.DetailsSectionGroup([this._responseHeadersRow])];
+
+        // Rows for the "Image Size" section.
+        this._imageWidthRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Width"));
+        this._imageHeightRow = new WebInspector.DetailsSectionSimpleRow(WebInspector.UIString("Height"));
+
+        // "Image Size" section where we display intrinsic metrics for image resources.
+        this._imageSizeSection = new WebInspector.DetailsSection("resource-type", WebInspector.UIString("Image Size"));
+        this._imageSizeSection.groups = [new WebInspector.DetailsSectionGroup([this._imageWidthRow, this._imageHeightRow])];
+
+        this.contentView.element.appendChild(this._typeSection.element);
+        this.contentView.element.appendChild(this._locationSection.element);
+        this.contentView.element.appendChild(this._requestAndResponseSection.element);
+        this.contentView.element.appendChild(this._requestHeadersSection.element);
+        this.contentView.element.appendChild(this._responseHeadersSection.element);
+
+        if (this._needsToApplyResourceEventListeners) {
+            this._applyResourceEventListeners();
+
+            this._needsToApplyResourceEventListeners = false;
+        }
+    }
+
     layout()
     {
+        super.layout();
+
         if (!this._resource)
             return;
 
@@ -311,6 +325,26 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
         this._typeMIMETypeRow.value = this._resource.mimeType;
     }
 
+    _refreshErrorReason()
+    {
+        if (!this._resource)
+            return;
+
+        if (!this._resource.hadLoadingError()) {
+            this._errorReasonRow.value = null;
+            return;
+        }
+
+        if (this._resource.failureReasonText)
+            this._errorReasonRow.value = this._resource.failureReasonText;
+        else if (this._resource.statusCode >= 400)
+            this._errorReasonRow.value = WebInspector.UIString("Failure status code");
+        else if (this._resource.canceled)
+            this._errorReasonRow.value = WebInspector.UIString("Load cancelled");
+        else
+            this._errorReasonRow.value = WebInspector.UIString("Unknown error");
+    }
+
     _refreshRequestAndResponse()
     {
         if (!this._resource)
@@ -335,6 +369,7 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
 
         this._statusCodeRow.value = this._resource.statusCode || emDash;
         this._statusTextRow.value = this._resource.statusText || emDash;
+        this._refreshErrorReason();
 
         this._refreshResponseHeaders();
         this._refreshCompressed();
@@ -445,7 +480,7 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
             {
                 var item1 = a.data[sortColumnIdentifier];
                 var item2 = b.data[sortColumnIdentifier];
-                return item1.localeCompare(item2);
+                return item1.extendedLocaleCompare(item2);
             }
 
             dataGrid.sortNodes(comparator);
@@ -462,9 +497,7 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
             return;
 
         function hideImageSection() {
-            let imageSectionElement = this._imageSizeSection.element;
-            if (imageSectionElement.parentNode)
-                this.contentView.element.removeChild(imageSectionElement);
+            this._imageSizeSection.element.remove();
         }
 
         // Hide the section if we're not dealing with an image or if the load failed.
@@ -513,7 +546,6 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
     _refreshRequestDataSection()
     {
         var resource = this._resource;
-
         if (!resource)
             return;
 
@@ -578,5 +610,21 @@ WebInspector.ResourceDetailsSidebarPanel = class ResourceDetailsSidebarPanel ext
         rows.push(dataRow);
 
         this._requestDataSection.groups = [new WebInspector.DetailsSectionGroup(rows)];
+    }
+
+    _applyResourceEventListeners()
+    {
+        this._resource.addEventListener(WebInspector.Resource.Event.URLDidChange, this._refreshURL, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.MIMETypeDidChange, this._refreshMIMEType, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.TypeDidChange, this._refreshResourceType, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.LoadingDidFail, this._refreshErrorReason, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.RequestHeadersDidChange, this._refreshRequestHeaders, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.ResponseReceived, this._refreshRequestAndResponse, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.CacheStatusDidChange, this._refreshRequestAndResponse, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.SizeDidChange, this._refreshDecodedSize, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.TransferSizeDidChange, this._refreshTransferSize, this);
+        this._resource.addEventListener(WebInspector.Resource.Event.InitiatedResourcesDidChange, this._refreshRelatedResourcesSection, this);
+
+        this._needsToRemoveResourceEventListeners = true;
     }
 };

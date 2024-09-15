@@ -410,7 +410,12 @@ AccessibilityObject* AccessibilityRenderObject::nextSibling() const
     if (!nextSibling)
         return nullptr;
     
-    return axObjectCache()->getOrCreate(nextSibling);
+    // Make sure next sibling has the same parent.
+    AccessibilityObject* nextObj = axObjectCache()->getOrCreate(nextSibling);
+    if (nextObj && nextObj->parentObject() != this->parentObject())
+        return nullptr;
+    
+    return nextObj;
 }
 
 static RenderBoxModelObject* nextContinuation(RenderObject& renderer)
@@ -624,15 +629,12 @@ String AccessibilityRenderObject::textUnderElement(AccessibilityTextUnderElement
     if (m_renderer->isBR())
         return ASCIILiteral("\n");
 
-    bool isRenderText = is<RenderText>(*m_renderer);
-
     if (shouldGetTextFromNode(mode))
         return AccessibilityNodeObject::textUnderElement(mode);
 
     // We use a text iterator for text objects AND for those cases where we are
     // explicitly asking for the full text under a given element.
-    bool shouldIncludeAllChildren = mode.childrenInclusion == AccessibilityTextUnderElementMode::TextUnderElementModeIncludeAllChildren;
-    if (isRenderText || shouldIncludeAllChildren) {
+    if (is<RenderText>(*m_renderer) || mode.childrenInclusion == AccessibilityTextUnderElementMode::TextUnderElementModeIncludeAllChildren) {
         // If possible, use a text iterator to get the text, so that whitespace
         // is handled consistently.
         Document* nodeDocument = nullptr;
@@ -666,11 +668,10 @@ String AccessibilityRenderObject::textUnderElement(AccessibilityTextUnderElement
                 if (frame->document() != nodeDocument)
                     return String();
 
-                // The tree should be stable before looking through the children of a non-Render Text object.
-                // Otherwise, further uses of TextIterator will force a layout update, potentially altering
-                // the accessibility tree and causing crashes in the loop that computes the result text.
-                ASSERT((isRenderText || !shouldIncludeAllChildren) || (!nodeDocument->renderView()->layoutState() && !nodeDocument->childNeedsStyleRecalc()));
-
+                // Renders referenced by accessibility objects could get destroyed, if TextIterator ends up triggering
+                // style update/layout here. See also AXObjectCache::deferTextChangedIfNeeded().
+                ASSERT_WITH_SECURITY_IMPLICATION(!nodeDocument->childNeedsStyleRecalc());
+                ASSERT_WITH_SECURITY_IMPLICATION(!nodeDocument->view()->isInRenderTreeLayout());
                 return plainText(textRange.get(), textIteratorBehaviorForTextRange());
             }
         }
@@ -1150,7 +1151,18 @@ AccessibilityObjectInclusion AccessibilityRenderObject::defaultObjectInclusion()
 
     return AccessibilityObject::defaultObjectInclusion();
 }
-
+    
+static bool webAreaIsPresentational(RenderObject* renderer)
+{
+    if (!is<RenderView>(*renderer))
+        return false;
+    
+    if (auto ownerElement = renderer->document().ownerElement())
+        return nodeHasPresentationRole(ownerElement);
+    
+    return false;
+}
+    
 bool AccessibilityRenderObject::computeAccessibilityIsIgnored() const
 {
 #ifndef NDEBUG
@@ -1179,6 +1191,10 @@ bool AccessibilityRenderObject::computeAccessibilityIsIgnored() const
     if (roleValue() == PresentationalRole || inheritsPresentationalRole())
         return true;
     
+    // WebAreas should be ignored if their iframe container is marked as presentational.
+    if (webAreaIsPresentational(m_renderer))
+        return true;
+        
     // An ARIA tree can only have tree items and static text as children.
     if (!isAllowedChildOfTree())
         return true;
@@ -1489,7 +1505,7 @@ const AtomicString& AccessibilityRenderObject::accessKey() const
 {
     Node* node = m_renderer->node();
     if (!is<Element>(node))
-        return nullAtom;
+        return nullAtom();
     return downcast<Element>(*node).getAttribute(accesskeyAttr);
 }
 
@@ -1742,16 +1758,15 @@ void AccessibilityRenderObject::setValue(const String& string)
     if (!m_renderer || !is<Element>(m_renderer->node()))
         return;
     Element& element = downcast<Element>(*m_renderer->node());
-
-    if (!is<RenderBoxModelObject>(*m_renderer))
-        return;
-    RenderBoxModelObject& renderer = downcast<RenderBoxModelObject>(*m_renderer);
-
+    RenderObject& renderer = *m_renderer;
+    
     // FIXME: Do we want to do anything here for ARIA textboxes?
     if (renderer.isTextField() && is<HTMLInputElement>(element))
         downcast<HTMLInputElement>(element).setValue(string);
     else if (renderer.isTextArea() && is<HTMLTextAreaElement>(element))
         downcast<HTMLTextAreaElement>(element).setValue(string);
+    else if (is<HTMLElement>(element) && contentEditableAttributeIsEnabled(&element))
+        downcast<HTMLElement>(element).setInnerText(string);
 }
 
 bool AccessibilityRenderObject::supportsARIAOwns() const
@@ -3113,9 +3128,7 @@ void AccessibilityRenderObject::addAttachmentChildren()
     if (!widget || !widget->isFrameView())
         return;
     
-    AccessibilityObject* axWidget = axObjectCache()->getOrCreate(widget);
-    if (!axWidget->accessibilityIsIgnored())
-        m_children.append(axWidget);
+    addChild(axObjectCache()->getOrCreate(widget));
 }
 
 #if PLATFORM(COCOA)
@@ -3451,10 +3464,10 @@ const String& AccessibilityRenderObject::actionVerb() const
     case WebCoreLinkRole:
         return linkAction;
     default:
-        return nullAtom;
+        return nullAtom();
     }
 #else
-    return nullAtom;
+    return nullAtom();
 #endif
 }
     

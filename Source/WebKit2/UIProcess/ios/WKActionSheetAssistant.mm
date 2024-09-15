@@ -42,8 +42,8 @@
 #import <UIKit/UIView.h>
 #import <WebCore/LocalizedStrings.h>
 #import <WebCore/PathUtilities.h>
-#import <WebCore/SoftLinking.h>
 #import <WebCore/WebCoreNSURLExtras.h>
+#import <wtf/SoftLinking.h>
 #import <wtf/text/WTFString.h>
 
 #if HAVE(APP_LINKS)
@@ -88,9 +88,11 @@ static LSAppLink *appLinkForURL(NSURL *url)
     WeakObjCPtr<id <WKActionSheetAssistantDelegate>> _delegate;
     RetainPtr<WKActionSheet> _interactionSheet;
     RetainPtr<_WKActivatedElementInfo> _elementInfo;
-    UIView *_view;
+    std::optional<WebKit::InteractionInformationAtPosition> _positionInformation;
+    WeakObjCPtr<UIView> _view;
     BOOL _needsLinkIndicator;
     BOOL _isPresentingDDUserInterface;
+    BOOL _hasPendingActionSheet;
 }
 
 - (id <WKActionSheetAssistantDelegate>)delegate
@@ -115,16 +117,28 @@ static LSAppLink *appLinkForURL(NSURL *url)
     [super dealloc];
 }
 
+- (BOOL)synchronouslyRetrievePositionInformation
+{
+    auto delegate = _delegate.get();
+    if (!delegate)
+        return NO;
+
+    // FIXME: This should be asynchronous, since we control the presentation of the action sheet.
+    _positionInformation = [delegate positionInformationForActionSheetAssistant:self];
+    return !!_positionInformation;
+}
+
 - (UIView *)superviewForSheet
 {
-    UIView *view = [_view window];
+    UIView *view = _view.getAutoreleased();
+    UIView *superview = [view window];
 
     // FIXME: WebKit has a delegate to retrieve the superview for the image sheet (superviewForImageSheetForWebView)
     // Do we need it in WK2?
 
     // Find the top most view with a view controller
     UIViewController *controller = nil;
-    UIView *currentView = _view;
+    UIView *currentView = view;
     while (currentView) {
         UIViewController *aController = [UIViewController viewControllerForView:currentView];
         if (aController)
@@ -133,14 +147,14 @@ static LSAppLink *appLinkForURL(NSURL *url)
         currentView = [currentView superview];
     }
     if (controller)
-        view = controller.view;
+        superview = controller.view;
 
-    return view;
+    return superview;
 }
 
 - (CGRect)_presentationRectForSheetGivenPoint:(CGPoint)point inHostView:(UIView *)hostView
 {
-    CGPoint presentationPoint = [hostView convertPoint:point fromView:_view];
+    CGPoint presentationPoint = [hostView convertPoint:point fromView:_view.getAutoreleased()];
     CGRect presentationRect = CGRectMake(presentationPoint.x, presentationPoint.y, 1.0, 1.0);
 
     return CGRectInset(presentationRect, -22.0, -22.0);
@@ -157,15 +171,14 @@ static const CGFloat presentationElementRectPadding = 15;
 {
     UIView *view = [self superviewForSheet];
     auto delegate = _delegate.get();
-    if (!view || !delegate)
+    if (!view || !delegate || !_positionInformation)
         return CGRectZero;
 
-    auto info = [delegate positionInformationForActionSheetAssistant:self];
-    auto indicator = info.linkIndicator;
+    auto indicator = _positionInformation->linkIndicator;
     if (indicator.textRectsInBoundingRectCoordinates.isEmpty())
         return CGRectZero;
 
-    WebCore::FloatPoint touchLocation = info.request.point;
+    WebCore::FloatPoint touchLocation = _positionInformation->request.point;
     WebCore::FloatPoint linkElementLocation = indicator.textBoundingRectInRootViewCoordinates.location();
     Vector<WebCore::FloatRect> indicatedRects;
     for (auto rect : indicator.textRectsInBoundingRectCoordinates) {
@@ -177,7 +190,7 @@ static const CGFloat presentationElementRectPadding = 15;
     for (auto path : WebCore::PathUtilities::pathsWithShrinkWrappedRects(indicatedRects, 0)) {
         auto boundingRect = path.fastBoundingRect();
         if (boundingRect.contains(touchLocation))
-            return CGRectInset([view convertRect:(CGRect)boundingRect fromView:_view], -presentationElementRectPadding, -presentationElementRectPadding);
+            return CGRectInset([view convertRect:(CGRect)boundingRect fromView:_view.getAutoreleased()], -presentationElementRectPadding, -presentationElementRectPadding);
     }
 
     return CGRectZero;
@@ -187,34 +200,32 @@ static const CGFloat presentationElementRectPadding = 15;
 {
     UIView *view = [self superviewForSheet];
     auto delegate = _delegate.get();
-    if (!view || !delegate)
+    if (!view || !delegate || !_positionInformation)
         return CGRectZero;
 
-    auto elementBounds = [delegate positionInformationForActionSheetAssistant:self].bounds;
-    return CGRectInset([view convertRect:elementBounds fromView:_view], -presentationElementRectPadding, -presentationElementRectPadding);
+    auto elementBounds = _positionInformation->bounds;
+    return CGRectInset([view convertRect:elementBounds fromView:_view.getAutoreleased()], -presentationElementRectPadding, -presentationElementRectPadding);
 }
 
 - (CGRect)initialPresentationRectInHostViewForSheet
 {
     UIView *view = [self superviewForSheet];
     auto delegate = _delegate.get();
-    if (!view || !delegate)
+    if (!view || !delegate || !_positionInformation)
         return CGRectZero;
 
-    return [self _presentationRectForSheetGivenPoint:[delegate positionInformationForActionSheetAssistant:self].request.point inHostView:view];
+    return [self _presentationRectForSheetGivenPoint:_positionInformation->request.point inHostView:view];
 }
 
 - (CGRect)presentationRectInHostViewForSheet
 {
     UIView *view = [self superviewForSheet];
     auto delegate = _delegate.get();
-    if (!view || !delegate)
+    if (!view || !delegate || !_positionInformation)
         return CGRectZero;
 
-    const auto& positionInformation = [delegate positionInformationForActionSheetAssistant:self];
-
-    CGRect boundingRect = positionInformation.bounds;
-    CGPoint fromPoint = positionInformation.request.point;
+    CGRect boundingRect = _positionInformation->bounds;
+    CGPoint fromPoint = _positionInformation->request.point;
 
     // FIXME: We must adjust our presentation point to take into account a change in document scale.
 
@@ -274,9 +285,10 @@ static const CGFloat presentationElementRectPadding = 15;
     if (!delegate)
         return;
 
-    const auto& positionInformation = [delegate positionInformationForActionSheetAssistant:self];
+    if (!_positionInformation)
+        return;
 
-    NSURL *targetURL = [NSURL URLWithString:positionInformation.url];
+    NSURL *targetURL = [NSURL URLWithString:_positionInformation->url];
     NSString *urlScheme = [targetURL scheme];
     BOOL isJavaScriptURL = [urlScheme length] && [urlScheme caseInsensitiveCompare:@"javascript"] == NSOrderedSame;
     // FIXME: We should check if Javascript is enabled in the preferences.
@@ -295,7 +307,7 @@ static const CGFloat presentationElementRectPadding = 15;
             titleIsURL = YES;
         }
     } else
-        titleString = positionInformation.title;
+        titleString = _positionInformation->title;
 
     if ([titleString length]) {
         [_interactionSheet setTitle:titleString];
@@ -332,12 +344,13 @@ static const CGFloat presentationElementRectPadding = 15;
     if (!delegate)
         return;
 
-    const auto& positionInformation = [delegate positionInformationForActionSheetAssistant:self];
+    if (![self synchronouslyRetrievePositionInformation])
+        return;
 
     void (^showImageSheetWithAlternateURLBlock)(NSURL*, NSDictionary *userInfo) = ^(NSURL *alternateURL, NSDictionary *userInfo) {
-        NSURL *targetURL = [NSURL _web_URLWithWTFString:positionInformation.url] ?: alternateURL;
-        auto elementBounds = positionInformation.bounds;
-        auto elementInfo = adoptNS([[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeImage URL:targetURL location:positionInformation.request.point title:positionInformation.title ID:positionInformation.idAttribute rect:elementBounds image:positionInformation.image.get() userInfo:userInfo]);
+        NSURL *targetURL = [NSURL _web_URLWithWTFString:_positionInformation->url] ?: alternateURL;
+        auto elementBounds = _positionInformation->bounds;
+        auto elementInfo = adoptNS([[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeImage URL:targetURL location:_positionInformation->request.point title:_positionInformation->title ID:_positionInformation->idAttribute rect:elementBounds image:_positionInformation->image.get() userInfo:userInfo]);
         if ([delegate respondsToSelector:@selector(actionSheetAssistant:showCustomSheetForElement:)] && [delegate actionSheetAssistant:self showCustomSheetForElement:elementInfo.get()])
             return;
         auto defaultActions = [self defaultActionsForImageSheet:elementInfo.get()];
@@ -358,14 +371,20 @@ static const CGFloat presentationElementRectPadding = 15;
 
         _elementInfo = WTFMove(elementInfo);
 
-        if (![_interactionSheet presentSheet:[self _shouldPresentAtTouchLocationForElementRect:elementBounds] ? WKActionSheetPresentAtTouchLocation : WKActionSheetPresentAtElementRect])
+        if (![_interactionSheet presentSheet:presentationStyleForView(_view.getAutoreleased(), _positionInformation.value(), _elementInfo.get())])
             [self cleanupSheet];
     };
 
-    if (positionInformation.url.isEmpty() && positionInformation.image && [delegate respondsToSelector:@selector(actionSheetAssistant:getAlternateURLForImage:completion:)]) {
-        RetainPtr<UIImage> uiImage = adoptNS([[UIImage alloc] initWithCGImage:positionInformation.image->makeCGImageCopy().get()]);
+    if (_positionInformation->url.isEmpty() && _positionInformation->image && [delegate respondsToSelector:@selector(actionSheetAssistant:getAlternateURLForImage:completion:)]) {
+        RetainPtr<UIImage> uiImage = adoptNS([[UIImage alloc] initWithCGImage:_positionInformation->image->makeCGImageCopy().get()]);
 
+        _hasPendingActionSheet = YES;
+        RetainPtr<WKActionSheetAssistant> retainedSelf(self);
         [delegate actionSheetAssistant:self getAlternateURLForImage:uiImage.get() completion:^(NSURL *alternateURL, NSDictionary *userInfo) {
+            if (!retainedSelf->_hasPendingActionSheet)
+                return;
+
+            retainedSelf->_hasPendingActionSheet = NO;
             showImageSheetWithAlternateURLBlock(alternateURL, userInfo);
         }];
         return;
@@ -374,10 +393,10 @@ static const CGFloat presentationElementRectPadding = 15;
     showImageSheetWithAlternateURLBlock(nil, nil);
 }
 
-- (BOOL)_shouldPresentAtTouchLocationForElementRect:(CGRect)elementRect
+static WKActionSheetPresentationStyle presentationStyleForView(UIView *view, const InteractionInformationAtPosition& positionInfo, _WKActivatedElementInfo *elementInfo)
 {
-    auto apparentElementRect = [_view convertRect:elementRect toView:_view.window];
-    auto windowRect = _view.window.bounds;
+    auto apparentElementRect = [view convertRect:positionInfo.bounds toView:view.window];
+    auto windowRect = view.window.bounds;
     apparentElementRect = CGRectIntersection(apparentElementRect, windowRect);
 
     auto leftInset = CGRectGetMinX(apparentElementRect) - CGRectGetMinX(windowRect);
@@ -388,7 +407,13 @@ static const CGFloat presentationElementRectPadding = 15;
     // If at least this much of the window is available for the popover to draw in, then target the element rect when presenting the action menu popover.
     // Otherwise, there is not enough space to position the popover around the element, so revert to using the touch location instead.
     static const CGFloat minimumAvailableWidthOrHeightRatio = 0.4;
-    return std::max(leftInset, rightInset) <= minimumAvailableWidthOrHeightRatio * CGRectGetWidth(windowRect) && std::max(topInset, bottomInset) <= minimumAvailableWidthOrHeightRatio * CGRectGetHeight(windowRect);
+    if (std::max(leftInset, rightInset) <= minimumAvailableWidthOrHeightRatio * CGRectGetWidth(windowRect) && std::max(topInset, bottomInset) <= minimumAvailableWidthOrHeightRatio * CGRectGetHeight(windowRect))
+        return WKActionSheetPresentAtTouchLocation;
+
+    if (elementInfo.type == _WKActivatedElementTypeLink && positionInfo.linkIndicator.textRectsInBoundingRectCoordinates.size())
+        return WKActionSheetPresentAtClosestIndicatorRect;
+
+    return WKActionSheetPresentAtElementRect;
 }
 
 - (void)_appendOpenActionsForURL:(NSURL *)url actions:(NSMutableArray *)defaultActions elementInfo:(_WKActivatedElementInfo *)elementInfo
@@ -423,13 +448,7 @@ static const CGFloat presentationElementRectPadding = 15;
 
 - (RetainPtr<NSArray>)defaultActionsForLinkSheet:(_WKActivatedElementInfo *)elementInfo
 {
-    auto delegate = _delegate.get();
-    if (!delegate)
-        return nil;
-
-    const auto& positionInformation = [delegate positionInformationForActionSheetAssistant:self];
-
-    NSURL *targetURL = [NSURL URLWithString:positionInformation.url];
+    NSURL *targetURL = [elementInfo URL];
     if (!targetURL)
         return nil;
 
@@ -450,10 +469,6 @@ static const CGFloat presentationElementRectPadding = 15;
 
 - (RetainPtr<NSArray>)defaultActionsForImageSheet:(_WKActivatedElementInfo *)elementInfo
 {
-    auto delegate = _delegate.get();
-    if (!delegate)
-        return nil;
-
     NSURL *targetURL = [elementInfo URL];
 
     auto defaultActions = adoptNS([[NSMutableArray alloc] init]);
@@ -488,15 +503,16 @@ static const CGFloat presentationElementRectPadding = 15;
         return;
 
     _needsLinkIndicator = YES;
-    const auto& positionInformation = [delegate positionInformationForActionSheetAssistant:self];
+    if (![self synchronouslyRetrievePositionInformation])
+        return;
 
-    NSURL *targetURL = [NSURL _web_URLWithWTFString:positionInformation.url];
+    NSURL *targetURL = [NSURL _web_URLWithWTFString:_positionInformation->url];
     if (!targetURL) {
         _needsLinkIndicator = NO;
         return;
     }
 
-    auto elementInfo = adoptNS([[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeLink URL:targetURL location:positionInformation.request.point title:positionInformation.title ID:positionInformation.idAttribute rect:positionInformation.bounds image:positionInformation.image.get()]);
+    auto elementInfo = adoptNS([[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeLink URL:targetURL location:_positionInformation->request.point title:_positionInformation->title ID:_positionInformation->idAttribute rect:_positionInformation->bounds image:_positionInformation->image.get()]);
     if ([delegate respondsToSelector:@selector(actionSheetAssistant:showCustomSheetForElement:)] && [delegate actionSheetAssistant:self showCustomSheetForElement:elementInfo.get()]) {
         _needsLinkIndicator = NO;
         return;
@@ -519,18 +535,21 @@ static const CGFloat presentationElementRectPadding = 15;
 
     _elementInfo = WTFMove(elementInfo);
 
-    if (![_interactionSheet presentSheet:[self _shouldPresentAtTouchLocationForElementRect:positionInformation.bounds] ? WKActionSheetPresentAtTouchLocation : WKActionSheetPresentAtClosestIndicatorRect])
+    if (![_interactionSheet presentSheet:presentationStyleForView(_view.getAutoreleased(), _positionInformation.value(), _elementInfo.get())])
         [self cleanupSheet];
 }
 
 - (void)showDataDetectorsSheet
 {
+#if ENABLE(DATA_DETECTION)
     auto delegate = _delegate.get();
     if (!delegate)
         return;
 
-    const WebKit::InteractionInformationAtPosition& positionInformation = [delegate positionInformationForActionSheetAssistant:self];
-    NSURL *targetURL = [NSURL _web_URLWithWTFString:positionInformation.url];
+    if (![self synchronouslyRetrievePositionInformation])
+        return;
+
+    NSURL *targetURL = [NSURL _web_URLWithWTFString:_positionInformation->url];
     if (!targetURL)
         return;
 
@@ -546,17 +565,17 @@ static const CGFloat presentationElementRectPadding = 15;
         context = [delegate dataDetectionContextForActionSheetAssistant:self];
     if ([delegate respondsToSelector:@selector(selectedTextForActionSheetAssistant:)])
         textAtSelection = [delegate selectedTextForActionSheetAssistant:self];
-    if (!positionInformation.textBefore.isEmpty() || !positionInformation.textAfter.isEmpty()) {
+    if (!_positionInformation->textBefore.isEmpty() || !_positionInformation->textAfter.isEmpty()) {
         extendedContext = adoptNS([@{
-            getkDataDetectorsLeadingText() : positionInformation.textBefore,
-            getkDataDetectorsTrailingText() : positionInformation.textAfter,
+            getkDataDetectorsLeadingText() : _positionInformation->textBefore,
+            getkDataDetectorsTrailingText() : _positionInformation->textAfter,
         } mutableCopy]);
         
         if (context)
             [extendedContext addEntriesFromDictionary:context];
         context = extendedContext.get();
     }
-    NSArray *dataDetectorsActions = [controller actionsForURL:targetURL identifier:positionInformation.dataDetectorIdentifier selectedText:textAtSelection results:positionInformation.dataDetectorResults.get() context:context];
+    NSArray *dataDetectorsActions = [controller actionsForURL:targetURL identifier:_positionInformation->dataDetectorIdentifier selectedText:textAtSelection results:_positionInformation->dataDetectorResults.get() context:context];
     if ([dataDetectorsActions count] == 0)
         return;
 
@@ -583,6 +602,7 @@ static const CGFloat presentationElementRectPadding = 15;
 
     if (![_interactionSheet presentSheet:WKActionSheetPresentAtTouchLocation])
         [self cleanupSheet];
+#endif
 }
 
 - (void)cleanupSheet
@@ -595,8 +615,10 @@ static const CGFloat presentationElementRectPadding = 15;
     [_interactionSheet setSheetDelegate:nil];
     _interactionSheet = nil;
     _elementInfo = nil;
+    _positionInformation = std::nullopt;
     _needsLinkIndicator = NO;
     _isPresentingDDUserInterface = NO;
+    _hasPendingActionSheet = NO;
 }
 
 @end

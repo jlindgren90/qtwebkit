@@ -95,7 +95,6 @@ set(WTF_HEADERS
     ParallelJobsOpenMP.h
     ParallelVectorIterator.h
     ParkingLot.h
-    PassRefPtr.h
     Platform.h
     PlatformRegisters.h
     PrintStream.h
@@ -225,7 +224,6 @@ set(WTF_SOURCES
     MD5.cpp
     MainThread.cpp
     MediaTime.cpp
-    MemoryFootprint.cpp
     MemoryPressureHandler.cpp
     MetaAllocator.cpp
     MonotonicTime.cpp
@@ -278,7 +276,6 @@ set(WTF_SOURCES
     text/CString.cpp
     text/StringBuilder.cpp
     text/StringImpl.cpp
-    text/StringStatics.cpp
     text/StringView.cpp
     text/SymbolImpl.cpp
     text/SymbolRegistry.cpp
@@ -339,6 +336,9 @@ if (WIN32)
         ThreadHolderWin.cpp
         ThreadSpecificWin.cpp
         ThreadingWin.cpp
+    )
+    list(APPEND WTF_LIBRARIES
+        winmm
     )
 else ()
     list(APPEND WTF_SOURCES

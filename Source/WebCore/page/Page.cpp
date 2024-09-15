@@ -32,6 +32,7 @@
 #include "ContextMenuClient.h"
 #include "ContextMenuController.h"
 #include "DOMRect.h"
+#include "DOMRectList.h"
 #include "DatabaseProvider.h"
 #include "DiagnosticLoggingClient.h"
 #include "DiagnosticLoggingKeys.h"
@@ -52,6 +53,7 @@
 #include "FrameTree.h"
 #include "FrameView.h"
 #include "HTMLElement.h"
+#include "HTMLMediaElement.h"
 #include "HistoryController.h"
 #include "HistoryItem.h"
 #include "InspectorController.h"
@@ -69,6 +71,7 @@
 #include "PageDebuggable.h"
 #include "PageGroup.h"
 #include "PageOverlayController.h"
+#include "PerformanceLoggingClient.h"
 #include "PerformanceMonitor.h"
 #include "PlatformMediaSessionManager.h"
 #include "PlugInClient.h"
@@ -113,11 +116,6 @@
 #include <wtf/text/Base64.h>
 #include <wtf/text/StringHash.h>
 
-#if ENABLE(WEB_REPLAY)
-#include "ReplayController.h"
-#include <replay/InputCursor.h>
-#endif
-
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 #include "HTMLVideoElement.h"
 #include "MediaPlaybackTarget.h"
@@ -148,7 +146,7 @@ static inline bool isUtilityPageChromeClient(ChromeClient& chromeClient)
 
 DEFINE_DEBUG_ONLY_GLOBAL(WTF::RefCountedLeakCounter, pageCounter, ("Page"));
 
-void Page::forEachPage(std::function<void(Page&)> function)
+void Page::forEachPage(const WTF::Function<void(Page&)>& function)
 {
     if (!allPages)
         return;
@@ -194,9 +192,6 @@ Page::Page(PageConfiguration&& pageConfiguration)
     , m_contextMenuController(std::make_unique<ContextMenuController>(*this, *pageConfiguration.contextMenuClient))
 #endif
     , m_userInputBridge(std::make_unique<UserInputBridge>(*this))
-#if ENABLE(WEB_REPLAY)
-    , m_replayController(std::make_unique<ReplayController>(*this))
-#endif
     , m_inspectorController(std::make_unique<InspectorController>(*this, pageConfiguration.inspectorClient))
 #if ENABLE(POINTER_LOCK)
     , m_pointerLockController(std::make_unique<PointerLockController>(*this))
@@ -205,11 +200,11 @@ Page::Page(PageConfiguration&& pageConfiguration)
     , m_progress(std::make_unique<ProgressTracker>(*pageConfiguration.progressTrackerClient))
     , m_backForwardController(std::make_unique<BackForwardController>(*this, *WTFMove(pageConfiguration.backForwardClient)))
     , m_mainFrame(MainFrame::create(*this, pageConfiguration))
-    , m_theme(RenderTheme::themeForPage(this))
     , m_editorClient(WTFMove(pageConfiguration.editorClient))
     , m_plugInClient(pageConfiguration.plugInClient)
     , m_validationMessageClient(WTFMove(pageConfiguration.validationMessageClient))
     , m_diagnosticLoggingClient(WTFMove(pageConfiguration.diagnosticLoggingClient))
+    , m_performanceLoggingClient(WTFMove(pageConfiguration.performanceLoggingClient))
     , m_webGLStateTracker(WTFMove(pageConfiguration.webGLStateTracker))
     , m_libWebRTCProvider(WTFMove(pageConfiguration.libWebRTCProvider))
     , m_openedByDOM(false)
@@ -279,13 +274,15 @@ Page::Page(PageConfiguration&& pageConfiguration)
     if (!allPages) {
         allPages = new HashSet<Page*>;
         
-        networkStateNotifier().addNetworkStateChangeListener(networkStateChanged);
+        networkStateNotifier().addNetworkStateChangeListener(WTF::Function<void (bool)> { networkStateChanged });
     }
 
     ASSERT(!allPages->contains(this));
     allPages->add(this);
-    if (!isUtilityPage())
+    if (!isUtilityPage()) {
         ++nonUtilityPageCount;
+        MemoryPressureHandler::setPageCount(nonUtilityPageCount);
+    }
 
 #ifndef NDEBUG
     pageCounter.increment();
@@ -307,11 +304,14 @@ Page::~Page()
 
     m_validationMessageClient = nullptr;
     m_diagnosticLoggingClient = nullptr;
+    m_performanceLoggingClient = nullptr;
     m_mainFrame->setView(nullptr);
     setGroupName(String());
     allPages->remove(this);
-    if (!isUtilityPage())
+    if (!isUtilityPage()) {
         --nonUtilityPageCount;
+        MemoryPressureHandler::setPageCount(nonUtilityPageCount);
+    }
     
     m_settings->pageDestroyed();
 
@@ -406,7 +406,7 @@ String Page::synchronousScrollingReasonsAsText()
     return String();
 }
 
-Vector<Ref<DOMRect>> Page::nonFastScrollableRects()
+Ref<DOMRectList> Page::nonFastScrollableRects()
 {
     if (Document* document = m_mainFrame->document())
         document->updateLayout();
@@ -422,10 +422,10 @@ Vector<Ref<DOMRect>> Page::nonFastScrollableRects()
     for (size_t i = 0; i < rects.size(); ++i)
         quads[i] = FloatRect(rects[i]);
 
-    return createDOMRectVector(quads);
+    return DOMRectList::create(quads);
 }
 
-Vector<Ref<DOMRect>> Page::touchEventRectsForEvent(const String& eventName)
+Ref<DOMRectList> Page::touchEventRectsForEvent(const String& eventName)
 {
     if (Document* document = m_mainFrame->document()) {
         document->updateLayout();
@@ -445,10 +445,10 @@ Vector<Ref<DOMRect>> Page::touchEventRectsForEvent(const String& eventName)
     for (size_t i = 0; i < rects.size(); ++i)
         quads[i] = FloatRect(rects[i]);
 
-    return createDOMRectVector(quads);
+    return DOMRectList::create(quads);
 }
 
-Vector<Ref<DOMRect>> Page::passiveTouchEventListenerRects()
+Ref<DOMRectList> Page::passiveTouchEventListenerRects()
 {
     if (Document* document = m_mainFrame->document()) {
         document->updateLayout();
@@ -465,7 +465,7 @@ Vector<Ref<DOMRect>> Page::passiveTouchEventListenerRects()
     for (size_t i = 0; i < rects.size(); ++i)
         quads[i] = FloatRect(rects[i]);
 
-    return createDOMRectVector(quads);
+    return DOMRectList::create(quads);
 }
 
 #if ENABLE(VIEW_MODE_CSS_MEDIA)
@@ -548,7 +548,7 @@ void Page::setGroupName(const String& name)
 
 const String& Page::groupName() const
 {
-    return m_group ? m_group->name() : nullAtom.string();
+    return m_group ? m_group->name() : nullAtom().string();
 }
 
 void Page::initGroup()
@@ -985,6 +985,14 @@ void Page::setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInte
 #endif
 }
 
+#if ENABLE(VIDEO)
+void Page::updateMediaElementRateChangeRestrictions()
+{
+    for (auto* mediaElement : HTMLMediaElement::allMediaElements())
+        mediaElement->updateRateChangeRestrictions();
+}
+#endif
+
 void Page::didStartProvisionalLoad()
 {
     if (m_performanceMonitor)
@@ -1142,8 +1150,6 @@ void Page::removeActivityStateChangeObserver(ActivityStateChangeObserver& observ
 
 void Page::suspendScriptedAnimations()
 {
-    if (settings().shouldDispatchRequestAnimationFrameEvents())
-        WTFReportBacktrace();
     m_scriptedAnimationsSuspended = true;
     for (Frame* frame = &mainFrame(); frame; frame = frame->tree().traverseNext()) {
         if (frame->document())
@@ -1532,6 +1538,18 @@ void Page::setMuted(MediaProducer::MutedStateFlags muted)
     }
 }
 
+void Page::stopMediaCapture()
+{
+#if ENABLE(MEDIA_STREAM)
+    for (Frame* frame = &mainFrame(); frame; frame = frame->tree().traverseNext()) {
+        if (!frame->document())
+            continue;
+
+        frame->document()->stopMediaCapture();
+    }
+#endif
+}
+
 #if ENABLE(MEDIA_SESSION)
 void Page::handleMediaEvent(MediaEventType eventType)
 {
@@ -1678,13 +1696,6 @@ void Page::setIsVisibleInternal(bool isVisible)
         }
     }
 
-    Vector<Ref<Document>> documents;
-    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
-        documents.append(*frame->document());
-
-    for (auto& document : documents)
-        document->visibilityStateChanged();
-
     if (!isVisible) {
         if (m_settings->hiddenPageCSSAnimationSuspensionEnabled())
             mainFrame().animation().suspendAnimations();
@@ -1694,11 +1705,19 @@ void Page::setIsVisibleInternal(bool isVisible)
 #if PLATFORM(IOS)
         suspendDeviceMotionAndOrientationUpdates();
 #endif
+
         suspendScriptedAnimations();
 
         if (FrameView* view = mainFrame().view())
             view->hide();
     }
+
+    Vector<Ref<Document>> documents;
+    for (Frame* frame = &m_mainFrame.get(); frame; frame = frame->tree().traverseNext())
+        documents.append(*frame->document());
+
+    for (auto& document : documents)
+        document->visibilityStateChanged();
 }
 
 void Page::setIsPrerender()
@@ -1770,19 +1789,18 @@ void Page::decrementNestedRunLoopCount()
 
             // This callback may destruct the Page.
             if (m_unnestCallback) {
-                auto callback = m_unnestCallback;
-                m_unnestCallback = nullptr;
+                auto callback = WTFMove(m_unnestCallback);
                 callback();
             }
         });
     }
 }
 
-void Page::whenUnnested(std::function<void()> callback)
+void Page::whenUnnested(WTF::Function<void()>&& callback)
 {
     ASSERT(!m_unnestCallback);
 
-    m_unnestCallback = callback;
+    m_unnestCallback = WTFMove(callback);
 }
 
 #if ENABLE(REMOTE_INSPECTOR)
@@ -2104,6 +2122,8 @@ void Page::mainFrameLoadStarted(const URL& destinationURL, FrameLoadType type)
     String domain;
 #if ENABLE(PUBLIC_SUFFIX_LIST)
     domain = topPrivatelyControlledDomain(destinationURL.host());
+#else
+    UNUSED_PARAM(destinationURL);
 #endif
 
     Navigation navigation = { domain, type };
@@ -2389,5 +2409,28 @@ bool Page::hasSelectionAtPosition(const FloatPoint& position) const
 }
 
 #endif
+
+void Page::disableICECandidateFiltering()
+{
+    m_shouldEnableICECandidateFilteringByDefault = false;
+#if ENABLE(WEB_RTC)
+    m_rtcController.disableICECandidateFiltering();
+#endif
+}
+
+void Page::enableICECandidateFiltering()
+{
+    m_shouldEnableICECandidateFilteringByDefault = true;
+#if ENABLE(WEB_RTC)
+    m_rtcController.enableICECandidateFiltering();
+#endif
+}
+
+void Page::didChangeMainDocument()
+{
+#if ENABLE(WEB_RTC)
+    m_rtcController.reset(m_shouldEnableICECandidateFilteringByDefault);
+#endif
+}
 
 } // namespace WebCore

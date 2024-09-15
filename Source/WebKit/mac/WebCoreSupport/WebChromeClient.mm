@@ -83,7 +83,7 @@
 #import <WebCore/Widget.h>
 #import <WebCore/WindowFeatures.h>
 #import <wtf/BlockObjCExceptions.h>
-#import <wtf/PassRefPtr.h>
+#import <wtf/RefPtr.h>
 #import <wtf/Vector.h>
 #import <wtf/text/WTFString.h>
 
@@ -972,6 +972,13 @@ void WebChromeClient::exitVideoFullscreenForVideoElement(WebCore::HTMLVideoEleme
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
     [m_webView _exitVideoFullscreen];
     END_BLOCK_OBJC_EXCEPTIONS;    
+}
+
+void WebChromeClient::exitVideoFullscreenToModeWithoutAnimation(HTMLVideoElement& videoElement, HTMLMediaElementEnums::VideoFullscreenMode targetMode)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+    [m_webView _exitVideoFullscreen];
+    END_BLOCK_OBJC_EXCEPTIONS;
 }
 
 #endif // ENABLE(VIDEO)

@@ -41,7 +41,6 @@
 
 #ifndef NDEBUG
 #include <stdio.h>
-#include <wtf/ASCIICType.h>
 #include <wtf/text/CString.h>
 #endif
 
@@ -189,6 +188,8 @@ String StyleProperties::getPropertyValue(CSSPropertyID propertyID) const
         return getAlignmentShorthandValue(placeContentShorthand());
     case CSSPropertyPlaceItems:
         return getAlignmentShorthandValue(placeItemsShorthand());
+    case CSSPropertyPlaceSelf:
+        return getAlignmentShorthandValue(placeSelfShorthand());
     case CSSPropertyFont:
         return fontValue();
     case CSSPropertyMargin:
@@ -1145,7 +1146,7 @@ void MutableStyleProperties::mergeAndOverrideOnConflict(const StyleProperties& o
         addParsedProperty(other.propertyAt(i).toCSSProperty());
 }
 
-bool StyleProperties::traverseSubresources(const std::function<bool (const CachedResource&)>& handler) const
+bool StyleProperties::traverseSubresources(const WTF::Function<bool (const CachedResource&)>& handler) const
 {
     unsigned size = propertyCount();
     for (unsigned i = 0; i < size; ++i) {
@@ -1325,25 +1326,25 @@ PropertySetCSSStyleDeclaration* MutableStyleProperties::cssStyleDeclaration()
     return m_cssomWrapper.get();
 }
 
-CSSStyleDeclaration* MutableStyleProperties::ensureCSSStyleDeclaration()
+CSSStyleDeclaration& MutableStyleProperties::ensureCSSStyleDeclaration()
 {
     if (m_cssomWrapper) {
         ASSERT(!static_cast<CSSStyleDeclaration*>(m_cssomWrapper.get())->parentRule());
         ASSERT(!m_cssomWrapper->parentElement());
-        return m_cssomWrapper.get();
+        return *m_cssomWrapper;
     }
-    m_cssomWrapper = std::make_unique<PropertySetCSSStyleDeclaration>(this);
-    return m_cssomWrapper.get();
+    m_cssomWrapper = std::make_unique<PropertySetCSSStyleDeclaration>(*this);
+    return *m_cssomWrapper;
 }
 
-CSSStyleDeclaration* MutableStyleProperties::ensureInlineCSSStyleDeclaration(StyledElement* parentElement)
+CSSStyleDeclaration& MutableStyleProperties::ensureInlineCSSStyleDeclaration(StyledElement& parentElement)
 {
     if (m_cssomWrapper) {
-        ASSERT(m_cssomWrapper->parentElement() == parentElement);
-        return m_cssomWrapper.get();
+        ASSERT(m_cssomWrapper->parentElement() == &parentElement);
+        return *m_cssomWrapper;
     }
-    m_cssomWrapper = std::make_unique<InlineCSSStyleDeclaration>(this, parentElement);
-    return m_cssomWrapper.get();
+    m_cssomWrapper = std::make_unique<InlineCSSStyleDeclaration>(*this, parentElement);
+    return *m_cssomWrapper;
 }
 
 unsigned StyleProperties::averageSizeInBytes()

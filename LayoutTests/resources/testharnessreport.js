@@ -15,12 +15,16 @@ if (self.testRunner) {
     testRunner.dumpAsText();
     testRunner.waitUntilDone();
     testRunner.setCanOpenWindows();
+    testRunner.grantWebNotificationPermission("http://localhost:8800");
     // Let's restrict calling testharness timeout() to wptserve tests for the moment.
     // That will limit the impact to a small number of tests.
     // The risk is that testharness timeout() might be called to late on slow bots to finish properly.
     if (testRunner.timeout && location.port == 8800)
         setTimeout(timeout, testRunner.timeout * 0.9);
 }
+
+if (self.internals && internals.setICECandidateFiltering)
+    internals.setICECandidateFiltering(false);
 
 // Function used to convert the test status code into
 // the corresponding string

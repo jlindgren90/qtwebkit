@@ -31,6 +31,7 @@
 
 namespace WebCore {
 
+class Font;
 class InlineTextBox;
 struct GlyphOverflow;
 
@@ -175,6 +176,8 @@ public:
     bool containsOnlyWhitespace(unsigned from, unsigned len) const;
     
     bool canUseSimplifiedTextMeasuring() const { return m_canUseSimplifiedTextMeasuring; }
+
+    Vector<std::pair<unsigned, unsigned>> draggedContentRangesBetweenOffsets(unsigned startOffset, unsigned endOffset) const;
 
 protected:
     virtual void computePreferredLogicalWidths(float leadWidth);

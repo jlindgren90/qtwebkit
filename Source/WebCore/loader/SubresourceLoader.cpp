@@ -111,7 +111,7 @@ RefPtr<SubresourceLoader> SubresourceLoader::create(Frame& frame, CachedResource
         // is disabled to avoid re-entering style selection from a different thread (see <rdar://problem/9121719>).
         // FIXME: This should be fixed for all ports in <https://bugs.webkit.org/show_bug.cgi?id=56647>.
         subloader->m_iOSOriginalRequest = request;
-        return subloader.release();
+        return subloader;
     }
 #endif
     if (!subloader->init(request))
@@ -176,7 +176,7 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
 
     if (newRequest.requester() != ResourceRequestBase::Requester::Main) {
         TracePoint(SubresourceLoadWillStart);
-        ResourceLoadObserver::sharedObserver().logSubresourceLoading(m_frame.get(), newRequest, redirectResponse);
+        ResourceLoadObserver::shared().logSubresourceLoading(m_frame.get(), newRequest, redirectResponse);
     }
 
     ASSERT(!newRequest.isNull());
@@ -448,6 +448,7 @@ static void logResourceLoaded(Frame* frame, CachedResource::Type type)
         resourceType = DiagnosticLoggingKeys::fontKey();
         break;
     case CachedResource::MediaResource:
+    case CachedResource::Icon:
     case CachedResource::RawResource:
         resourceType = DiagnosticLoggingKeys::rawKey();
         break;
@@ -505,7 +506,7 @@ bool SubresourceLoader::checkRedirectionCrossOriginAccessControl(const ResourceR
         if (!crossOriginFlag && isNextRequestCrossOrigin)
             redirectingToNewOrigin = true;
         else
-            redirectingToNewOrigin = !SecurityOrigin::create(previousRequest.url())->canRequest(newRequest.url());
+            redirectingToNewOrigin = !protocolHostAndPortAreEqual(previousRequest.url(), newRequest.url());
     }
 
     // Implementing https://fetch.spec.whatwg.org/#concept-http-redirect-fetch step 10.

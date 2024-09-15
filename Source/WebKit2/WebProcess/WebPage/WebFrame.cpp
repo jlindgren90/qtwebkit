@@ -53,6 +53,7 @@
 #include <WebCore/CertificateInfo.h>
 #include <WebCore/Chrome.h>
 #include <WebCore/DocumentLoader.h>
+#include <WebCore/Editor.h>
 #include <WebCore/EventHandler.h>
 #include <WebCore/File.h>
 #include <WebCore/Frame.h>
@@ -208,14 +209,14 @@ void WebFrame::invalidate()
     m_coreFrame = 0;
 }
 
-uint64_t WebFrame::setUpPolicyListener(WebCore::FramePolicyFunction policyFunction)
+uint64_t WebFrame::setUpPolicyListener(WebCore::FramePolicyFunction&& policyFunction)
 {
     // FIXME: <rdar://5634381> We need to support multiple active policy listeners.
 
     invalidatePolicyListener();
 
     m_policyListenerID = generateListenerID();
-    m_policyFunction = policyFunction;
+    m_policyFunction = WTFMove(policyFunction);
     return m_policyListenerID;
 }
 
@@ -226,7 +227,7 @@ void WebFrame::invalidatePolicyListener()
 
     m_policyDownloadID = { };
     m_policyListenerID = 0;
-    m_policyFunction = 0;
+    m_policyFunction = nullptr;
 }
 
 void WebFrame::didReceivePolicyDecision(uint64_t listenerID, PolicyAction action, uint64_t navigationID, DownloadID downloadID)
@@ -602,10 +603,10 @@ bool WebFrame::hasVerticalScrollbar() const
     return view->verticalScrollbar();
 }
 
-PassRefPtr<InjectedBundleHitTestResult> WebFrame::hitTest(const IntPoint point) const
+RefPtr<InjectedBundleHitTestResult> WebFrame::hitTest(const IntPoint point) const
 {
     if (!m_coreFrame)
-        return 0;
+        return nullptr;
 
     return InjectedBundleHitTestResult::create(m_coreFrame->eventHandler().hitTestResultAtPoint(point, HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowUserAgentShadowContent));
 }
@@ -817,7 +818,7 @@ RetainPtr<CFDataRef> WebFrame::webArchiveData(FrameFilterFunction callback, void
 }
 #endif
 
-PassRefPtr<ShareableBitmap> WebFrame::createSelectionSnapshot() const
+RefPtr<ShareableBitmap> WebFrame::createSelectionSnapshot() const
 {
     std::unique_ptr<ImageBuffer> snapshot = snapshotSelection(*coreFrame(), WebCore::SnapshotOptionsForceBlackText);
     if (!snapshot)
@@ -834,7 +835,7 @@ PassRefPtr<ShareableBitmap> WebFrame::createSelectionSnapshot() const
     graphicsContext->scale(deviceScaleFactor);
     graphicsContext->drawConsumingImageBuffer(WTFMove(snapshot), FloatPoint());
 
-    return WTFMove(sharedSnapshot);
+    return sharedSnapshot;
 }
     
 } // namespace WebKit

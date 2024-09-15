@@ -30,6 +30,8 @@
 #include "APIArray.h"
 #include "APISecurityOrigin.h"
 #include "DrawingArea.h"
+#include "FindController.h"
+#include "FrameInfoData.h"
 #include "HangDetectionDisabler.h"
 #include "InjectedBundleNavigationAction.h"
 #include "InjectedBundleNodeHandle.h"
@@ -82,10 +84,6 @@
 
 #if ENABLE(ASYNC_SCROLLING)
 #include "RemoteScrollingCoordinator.h"
-#endif
-
-#if USE(COORDINATED_GRAPHICS)
-#include "LayerTreeHost.h"
 #endif
 
 #if PLATFORM(GTK)
@@ -237,21 +235,22 @@ Page* WebChromeClient::createWindow(Frame& frame, const FrameLoadRequest& reques
 
     auto& webProcess = WebProcess::singleton();
 
-    WebFrame* webFrame = WebFrame::fromCoreFrame(frame);
-
     NavigationActionData navigationActionData;
     navigationActionData.navigationType = navigationAction.type();
     navigationActionData.modifiers = InjectedBundleNavigationAction::modifiersForNavigationAction(navigationAction);
     navigationActionData.mouseButton = InjectedBundleNavigationAction::mouseButtonForNavigationAction(navigationAction);
     navigationActionData.syntheticClickType = InjectedBundleNavigationAction::syntheticClickTypeForNavigationAction(navigationAction);
+    navigationActionData.clickLocationInRootViewCoordinates = InjectedBundleNavigationAction::clickLocationInRootViewCoordinatesForNavigationAction(navigationAction);
     navigationActionData.userGestureTokenIdentifier = webProcess.userGestureTokenIdentifier(navigationAction.userGestureToken());
     navigationActionData.canHandleRequest = m_page.canHandleRequest(request.resourceRequest());
     navigationActionData.shouldOpenExternalURLsPolicy = navigationAction.shouldOpenExternalURLsPolicy();
     navigationActionData.downloadAttribute = navigationAction.downloadAttribute();
 
+    WebFrame* webFrame = WebFrame::fromCoreFrame(frame);
+
     uint64_t newPageID = 0;
     WebPageCreationParameters parameters;
-    if (!webProcess.parentProcessConnection()->sendSync(Messages::WebPageProxy::CreateNewPage(webFrame->frameID(), SecurityOriginData::fromFrame(&frame), request.resourceRequest(), windowFeatures, navigationActionData), Messages::WebPageProxy::CreateNewPage::Reply(newPageID, parameters), m_page.pageID()))
+    if (!webProcess.parentProcessConnection()->sendSync(Messages::WebPageProxy::CreateNewPage(webFrame->info(), webFrame->page()->pageID(), request.resourceRequest(), windowFeatures, navigationActionData), Messages::WebPageProxy::CreateNewPage::Reply(newPageID, parameters), m_page.pageID()))
         return nullptr;
 
     if (!newPageID)
@@ -370,7 +369,7 @@ bool WebChromeClient::runBeforeUnloadConfirmPanel(const String& message, Frame& 
 
     HangDetectionDisabler hangDetectionDisabler;
 
-    if (!WebProcess::singleton().parentProcessConnection()->sendSync(Messages::WebPageProxy::RunBeforeUnloadConfirmPanel(message, webFrame->frameID()), Messages::WebPageProxy::RunBeforeUnloadConfirmPanel::Reply(shouldClose), m_page.pageID(), Seconds::infinity(), IPC::SendSyncOption::InformPlatformProcessWillSuspend))
+    if (!WebProcess::singleton().parentProcessConnection()->sendSync(Messages::WebPageProxy::RunBeforeUnloadConfirmPanel(webFrame->frameID(), SecurityOriginData::fromFrame(&frame), message), Messages::WebPageProxy::RunBeforeUnloadConfirmPanel::Reply(shouldClose), m_page.pageID(), Seconds::infinity(), IPC::SendSyncOption::InformPlatformProcessWillSuspend))
         return false;
 
     return shouldClose;
@@ -530,6 +529,11 @@ void WebChromeClient::delegatedScrollRequested(const IntPoint& scrollOffset)
 {
     m_page.pageDidRequestScroll(scrollOffset);
 }
+
+void WebChromeClient::resetUpdateAtlasForTesting()
+{
+    m_page.drawingArea()->resetUpdateAtlasForTesting();
+}
 #endif
 
 IntPoint WebChromeClient::screenToRootView(const IntPoint& point) const
@@ -562,7 +566,7 @@ PlatformPageClient WebChromeClient::platformPageClient() const
 
 void WebChromeClient::contentsSizeChanged(Frame& frame, const IntSize& size) const
 {
-    if (!m_page.corePage()->settings().frameFlatteningEnabled()) {
+    if (m_page.corePage()->settings().frameFlattening() == FrameFlatteningDisabled) {
         WebFrame* largestFrame = findLargestFrameInFrameSet(m_page);
         if (largestFrame != m_cachedFrameSetLargestFrame.get()) {
             m_cachedFrameSetLargestFrame = largestFrame;
@@ -773,7 +777,7 @@ void WebChromeClient::runOpenPanel(Frame& frame, FileChooser& fileChooser)
     if (m_page.activeOpenPanelResultListener())
         return;
 
-    m_page.setActiveOpenPanelResultListener(WebOpenPanelResultListener::create(&m_page, &fileChooser));
+    m_page.setActiveOpenPanelResultListener(WebOpenPanelResultListener::create(m_page, fileChooser));
 
     auto* webFrame = WebFrame::fromCoreFrame(frame);
     ASSERT(webFrame);
@@ -800,17 +804,6 @@ void WebChromeClient::setCursorHiddenUntilMouseMoves(bool hiddenUntilMouseMoves)
 RefPtr<Icon> WebChromeClient::createIconForFiles(const Vector<String>& filenames)
 {
     return Icon::createIconForFiles(filenames);
-}
-
-#endif
-
-#if !USE(REQUEST_ANIMATION_FRAME_TIMER)
-
-void WebChromeClient::scheduleAnimation()
-{
-#if USE(COORDINATED_GRAPHICS)
-    m_page.drawingArea()->layerTreeHost()->scheduleAnimation();
-#endif
 }
 
 #endif
@@ -1080,7 +1073,7 @@ void WebChromeClient::didAddFooterLayer(GraphicsLayer& footerParent)
 
 bool WebChromeClient::shouldUseTiledBackingForFrameView(const FrameView& frameView) const
 {
-    return m_page.drawingArea()->shouldUseTiledBackingForFrameView(&frameView);
+    return m_page.drawingArea()->shouldUseTiledBackingForFrameView(frameView);
 }
 
 void WebChromeClient::isPlayingMediaDidChange(MediaProducer::MediaStateFlags state, uint64_t sourceElementID)

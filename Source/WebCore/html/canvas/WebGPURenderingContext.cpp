@@ -52,7 +52,6 @@
 #include <runtime/Uint32Array.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/CString.h>
-#include <wtf/text/StringBuilder.h>
 
 namespace {
 
@@ -82,15 +81,15 @@ std::unique_ptr<WebGPURenderingContext> WebGPURenderingContext::create(HTMLCanva
     }
 
     std::unique_ptr<WebGPURenderingContext> renderingContext = nullptr;
-    renderingContext = std::unique_ptr<WebGPURenderingContext>(new WebGPURenderingContext(canvas, device));
+    renderingContext = std::unique_ptr<WebGPURenderingContext>(new WebGPURenderingContext(canvas, device.releaseNonNull()));
     renderingContext->suspendIfNeeded();
 
     return renderingContext;
 }
 
-WebGPURenderingContext::WebGPURenderingContext(HTMLCanvasElement& canvas, PassRefPtr<GPUDevice> device)
+WebGPURenderingContext::WebGPURenderingContext(HTMLCanvasElement& canvas, Ref<GPUDevice>&& device)
     : GPUBasedCanvasRenderingContext(canvas)
-    , m_device(device)
+    , m_device(WTFMove(device))
 {
     initializeNewContext();
 }

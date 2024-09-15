@@ -115,7 +115,7 @@ void InsertLineBreakCommand::doApply()
     } else if (is<Text>(*position.deprecatedNode())) {
         // Split a text node
         Text& textNode = downcast<Text>(*position.deprecatedNode());
-        splitTextNode(&textNode, position.deprecatedEditingOffset());
+        splitTextNode(textNode, position.deprecatedEditingOffset());
         insertNodeBefore(*nodeToInsert, textNode);
         Position endingPosition = firstPositionInNode(&textNode);
         
@@ -128,7 +128,7 @@ void InsertLineBreakCommand::doApply()
             ASSERT(!textNode.renderer() || textNode.renderer()->style().collapseWhiteSpace());
             // Deleting insignificant whitespace will remove textNode if it contains nothing but insignificant whitespace.
             if (textNode.isConnected())
-                insertTextIntoNode(&textNode, 0, nonBreakingSpaceString());
+                insertTextIntoNode(textNode, 0, nonBreakingSpaceString());
             else {
                 auto nbspNode = document().createTextNode(nonBreakingSpaceString());
                 auto* nbspNodePtr = nbspNode.ptr();

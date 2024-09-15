@@ -39,15 +39,12 @@
 #import "WKSyntheticClickTapGestureRecognizer.h"
 #import <UIKit/UIView.h>
 #import <WebCore/Color.h>
+#import <WebCore/DragActions.h>
 #import <WebCore/FloatQuad.h>
 #import <wtf/BlockPtr.h>
 #import <wtf/Forward.h>
 #import <wtf/Vector.h>
 #import <wtf/text/WTFString.h>
-
-#if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/WKContentViewInteractionAdditions.h>)
-#import <WebKitAdditions/WKContentViewInteractionAdditions.h>
-#endif
 
 namespace API {
 class OpenPanelParameters;
@@ -59,6 +56,12 @@ class FloatQuad;
 class IntSize;
 class TextStream;
 }
+
+#if ENABLE(DRAG_SUPPORT)
+namespace WebCore {
+struct DragItem;
+}
+#endif
 
 namespace WebKit {
 class InputViewUpdateDeferrer;
@@ -76,7 +79,7 @@ class WebPageProxy;
 @class _UIWebHighlightLongPressGestureRecognizer;
 
 #if ENABLE(DATA_INTERACTION)
-@class WKDataInteractionCaretView;
+@class _UITextDragCaretView;
 #endif
 
 typedef void (^UIWKAutocorrectionCompletionHandler)(UIWKAutocorrectionRects *rectsForInput);
@@ -89,7 +92,54 @@ typedef void (^UIWKKeyWebEventCompletionHandler)(::WebEvent *theEvent, BOOL wasH
 typedef BlockPtr<void(WebKit::InteractionInformationAtPosition)> InteractionInformationCallback;
 typedef std::pair<WebKit::InteractionInformationRequest, InteractionInformationCallback> InteractionInformationRequestAndCallback;
 
+#define FOR_EACH_WKCONTENTVIEW_ACTION(M) \
+    M(_addShortcut) \
+    M(_arrowKey) \
+    M(_define) \
+    M(_lookup) \
+    M(_promptForReplace) \
+    M(_reanalyze) \
+    M(_share) \
+    M(_showTextStyleOptions) \
+    M(_transliterateChinese) \
+    M(copy) \
+    M(cut) \
+    M(paste) \
+    M(replace) \
+    M(select) \
+    M(selectAll) \
+    M(toggleBoldface) \
+    M(toggleItalics) \
+    M(toggleUnderline)
+
 namespace WebKit {
+
+#if ENABLE(DRAG_SUPPORT)
+
+struct WKDataInteractionState {
+    RetainPtr<UIImage> image;
+    std::optional<WebCore::TextIndicatorData> indicatorData;
+    CGPoint adjustedOrigin { CGPointZero };
+    CGPoint lastGlobalPosition { CGPointZero };
+    CGRect elementBounds { CGRectZero };
+    BOOL didBeginDragging { NO };
+    BOOL isPerformingOperation { NO };
+    BOOL isAnimatingConcludeEditDrag { NO };
+    BOOL shouldRestoreCalloutBar { NO };
+    RetainPtr<id <UIDragSession>> dragSession;
+    RetainPtr<id <UIDropSession>> dropSession;
+    BlockPtr<void()> dragStartCompletionBlock;
+    BlockPtr<void()> dragCancelSetDownBlock;
+    WebCore::DragSourceAction sourceAction { WebCore::DragSourceActionNone };
+
+    String linkTitle;
+    WebCore::URL linkURL;
+
+    RetainPtr<UIView> visibleContentViewSnapshot;
+    RetainPtr<_UITextDragCaretView> caretView;
+};
+
+#endif // ENABLE(DRAG_SUPPORT)
 
 struct WKSelectionDrawingInfo {
     enum class SelectionType { None, Plugin, Range };
@@ -203,9 +253,8 @@ struct WKAutoCorrectionData {
 
 #if ENABLE(DATA_INTERACTION)
     WebKit::WKDataInteractionState _dataInteractionState;
-    RetainPtr<WKDataInteraction> _dataInteraction;
-    RetainPtr<WKDataOperation> _dataOperation;
-    CGPoint _deferredActionSheetRequestLocation;
+    RetainPtr<UIDragInteraction> _dataInteraction;
+    RetainPtr<UIDropInteraction> _dataOperation;
 #endif
 }
 
@@ -213,7 +262,7 @@ struct WKAutoCorrectionData {
 
 @interface WKContentView (WKInteraction) <UIGestureRecognizerDelegate, UIWebTouchEventsGestureRecognizerDelegate, UITextInputPrivate, UIWebFormAccessoryDelegate, UIWKInteractionViewProtocol, WKFileUploadPanelDelegate, WKActionSheetAssistantDelegate
 #if ENABLE(DATA_INTERACTION)
-    , WKDataInteractionDelegate, WKDataOperationDelegate
+    , UIDragInteractionDelegate, UIDropInteractionDelegate
 #endif
 >
 
@@ -236,16 +285,10 @@ struct WKAutoCorrectionData {
 - (BOOL)resignFirstResponderForWebView;
 - (BOOL)canPerformActionForWebView:(SEL)action withSender:(id)sender;
 
-- (void)_addShortcut:(id)sender;
-- (void)_arrowKey:(id)sender;
-- (void)_define:(id)sender;
-- (void)_lookup:(id)sender;
-- (void)_reanalyze:(id)sender;
-- (void)_share:(id)sender;
-- (void)_showTextStyleOptions:(id)sender;
-- (void)_promptForReplace:(id)sender;
-- (void)_transliterateChinese:(id)sender;
-- (void)replace:(id)sender;
+#define DECLARE_WKCONTENTVIEW_ACTION_FOR_WEB_VIEW(_action) \
+    - (void)_action ## ForWebView:(id)sender;
+FOR_EACH_WKCONTENTVIEW_ACTION(DECLARE_WKCONTENTVIEW_ACTION_FOR_WEB_VIEW)
+#undef DECLARE_WKCONTENTVIEW_ACTION_FOR_WEB_VIEW
 
 #if ENABLE(TOUCH_EVENTS)
 - (void)_webTouchEvent:(const WebKit::NativeWebTouchEvent&)touchEvent preventsNativeGestures:(BOOL)preventsDefault;
@@ -279,7 +322,9 @@ struct WKAutoCorrectionData {
 - (void)_disableInspectorNodeSearch;
 - (void)_becomeFirstResponderWithSelectionMovingForward:(BOOL)selectingForward completionHandler:(void (^)(BOOL didBecomeFirstResponder))completionHandler;
 - (void)_setDoubleTapGesturesEnabled:(BOOL)enabled;
+#if ENABLE(DATA_DETECTION)
 - (NSArray *)_dataDetectionResults;
+#endif
 - (NSArray<NSValue *> *)_uiTextSelectionRects;
 - (void)accessibilityRetrieveSpeakSelectionContent;
 - (void)_accessibilityRetrieveRectsEnclosingSelectionOffset:(NSInteger)offset withGranularity:(UITextGranularity)granularity;
@@ -287,17 +332,18 @@ struct WKAutoCorrectionData {
 
 @property (nonatomic, readonly) WebKit::InteractionInformationAtPosition currentPositionInformation;
 - (void)doAfterPositionInformationUpdate:(void (^)(WebKit::InteractionInformationAtPosition))action forRequest:(WebKit::InteractionInformationRequest)request;
-- (void)ensurePositionInformationIsUpToDate:(WebKit::InteractionInformationRequest)request;
+- (BOOL)ensurePositionInformationIsUpToDate:(WebKit::InteractionInformationRequest)request;
 
 #if ENABLE(DATA_INTERACTION)
+- (void)_didChangeDragInteractionPolicy;
 - (void)_didPerformDataInteractionControllerOperation:(BOOL)handled;
 - (void)_didHandleStartDataInteractionRequest:(BOOL)started;
-- (void)_startDataInteractionWithImage:(RetainPtr<CGImageRef>)image withIndicatorData:(std::optional<WebCore::TextIndicatorData>)indicatorData atClientPosition:(CGPoint)clientPosition anchorPoint:(CGPoint)anchorPoint action:(uint64_t)action;
+- (void)_startDrag:(RetainPtr<CGImageRef>)image item:(const WebCore::DragItem&)item;
 - (void)_didConcludeEditDataInteraction:(std::optional<WebCore::TextIndicatorData>)data;
 - (void)_didChangeDataInteractionCaretRect:(CGRect)previousRect currentRect:(CGRect)rect;
 
 - (void)_simulateDataInteractionEntered:(id)info;
-- (BOOL)_simulateDataInteractionUpdated:(id)info;
+- (NSUInteger)_simulateDataInteractionUpdated:(id)info;
 - (void)_simulateDataInteractionPerformOperation:(id)info;
 - (void)_simulateDataInteractionEnded:(id)info;
 - (void)_simulateDataInteractionSessionDidEnd:(id)session;
@@ -305,6 +351,8 @@ struct WKAutoCorrectionData {
 - (NSArray *)_simulatedItemsForSession:(id)session;
 - (void)_simulatePrepareForDataInteractionSession:(id)session completion:(dispatch_block_t)completion;
 #endif
+
+- (void)_simulateLongPressActionAtLocation:(CGPoint)location;
 
 @end
 

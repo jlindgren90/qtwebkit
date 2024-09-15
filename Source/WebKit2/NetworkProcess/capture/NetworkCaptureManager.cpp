@@ -298,7 +298,7 @@ int Manager::fuzzyMatchURLs(const WebCore::URL& requestURL, const WebCore::URLPa
         } else {
             DEBUG_LOG("Mismatching parameter names: " STRING_SPECIFIER ", " STRING_SPECIFIER, DEBUG_STR(requestParameter->first), DEBUG_STR(resourceParameter->first));
 
-            const auto scanForwardForMatch = [this, &score, kParameterMatchScore, kParameterMismatchScore, kParameterMissingScore](const auto& fixedIter, auto& scanningIter, const auto& scannerEnd) {
+            const auto scanForwardForMatch = [&score, kParameterMatchScore, kParameterMismatchScore, kParameterMissingScore](const auto& fixedIter, auto& scanningIter, const auto& scannerEnd) {
                 auto scanner = scanningIter;
                 while (scanner != scannerEnd && scanner->key != fixedIter->key)
                     ++scanner;
@@ -409,7 +409,7 @@ String Manager::hashToPath(const String& hash)
 
     StringBuilder fileName;
     fileName.append(hashTail);
-    fileName.append(".data");
+    fileName.appendLiteral(".data");
 
     auto path = WebCore::pathByAppendingComponent(m_recordReplayCacheLocation, kDirNameResources);
     path = WebCore::pathByAppendingComponent(path, hashHead);

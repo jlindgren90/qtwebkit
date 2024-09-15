@@ -44,21 +44,18 @@
 #include "JSLock.h"
 #include "JSSegmentedVariableObjectSubspace.h"
 #include "JSStringSubspace.h"
+#include "JSWebAssemblyCodeBlockSubspace.h"
 #include "MacroAssemblerCodeRef.h"
 #include "Microtask.h"
 #include "NumericStrings.h"
-#include "PrivateName.h"
 #include "PrototypeMap.h"
 #include "SmallStrings.h"
-#include "SourceCode.h"
 #include "Strong.h"
 #include "Subspace.h"
 #include "TemplateRegistryKeyTable.h"
-#include "ThunkGenerators.h"
 #include "VMEntryRecord.h"
 #include "VMTraps.h"
 #include "Watchpoint.h"
-#include <wtf/Bag.h>
 #include <wtf/BumpPointerAllocator.h>
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/DateMath.h>
@@ -76,6 +73,10 @@
 #include <wtf/text/WTFString.h>
 #if ENABLE(REGEXP_TRACING)
 #include <wtf/ListHashSet.h>
+#endif
+
+#if ENABLE(EXCEPTION_SCOPE_VERIFICATION)
+#include <wtf/StackTrace.h>
 #endif
 
 namespace WTF {
@@ -104,6 +105,7 @@ class Interpreter;
 class JSCustomGetterSetterFunction;
 class JSGlobalObject;
 class JSObject;
+class JSRunLoopTimer;
 class JSWebAssemblyInstance;
 class LLIntOffsetsExtractor;
 class NativeExecutable;
@@ -136,11 +138,6 @@ class Watchdog;
 class Watchpoint;
 class WatchpointSet;
 
-#if ENABLE(DFG_JIT)
-namespace DFG {
-class LongLivedState;
-}
-#endif // ENABLE(DFG_JIT)
 #if ENABLE(FTL_JIT)
 namespace FTL {
 class Thunks;
@@ -279,6 +276,11 @@ public:
 
 private:
     RefPtr<JSLock> m_apiLock;
+#if USE(CF)
+    // These need to be initialized before heap below.
+    HashSet<JSRunLoopTimer*> m_runLoopTimers;
+    RetainPtr<CFRunLoopRef> m_runLoop;
+#endif
 
 public:
     Heap heap;
@@ -291,10 +293,9 @@ public:
     JSStringSubspace stringSpace;
     JSDestructibleObjectSubspace destructibleObjectSpace;
     JSSegmentedVariableObjectSubspace segmentedVariableObjectSpace;
-
-#if ENABLE(DFG_JIT)
-    std::unique_ptr<DFG::LongLivedState> dfgState;
-#endif // ENABLE(DFG_JIT)
+#if ENABLE(WEBASSEMBLY)
+    JSWebAssemblyCodeBlockSubspace webAssemblyCodeBlockSpace;
+#endif
 
     VMType vmType;
     ClientData* clientData;
@@ -315,14 +316,11 @@ public:
     Strong<Structure> customGetterSetterStructure;
     Strong<Structure> scopedArgumentsTableStructure;
     Strong<Structure> apiWrapperStructure;
-    Strong<Structure> JSScopeStructure;
-    Strong<Structure> executableStructure;
     Strong<Structure> nativeExecutableStructure;
     Strong<Structure> evalExecutableStructure;
     Strong<Structure> programExecutableStructure;
     Strong<Structure> functionExecutableStructure;
 #if ENABLE(WEBASSEMBLY)
-    Strong<Structure> webAssemblyToJSCalleeStructure;
     Strong<Structure> webAssemblyCodeBlockStructure;
 #endif
     Strong<Structure> moduleProgramExecutableStructure;
@@ -357,10 +355,7 @@ public:
     Strong<Structure> functionCodeBlockStructure;
     Strong<Structure> hashMapBucketSetStructure;
     Strong<Structure> hashMapBucketMapStructure;
-    Strong<Structure> hashMapImplSetStructure;
-    Strong<Structure> hashMapImplMapStructure;
 
-    Strong<JSCell> iterationTerminator;
     Strong<JSCell> emptyPropertyNameEnumerator;
 
     std::unique_ptr<PromiseDeferredTimer> promiseDeferredTimer;
@@ -527,9 +522,6 @@ public:
     void* lastStackTop() { return m_lastStackTop; }
     void setLastStackTop(void*);
 
-    const ClassInfo* const jsArrayClassInfo;
-    const ClassInfo* const jsFinalObjectClassInfo;
-
     JSValue hostCallReturnValue;
     unsigned varargsLength;
     ExecState* newCallFrameReturnValue;
@@ -645,7 +637,7 @@ public:
     bool enableControlFlowProfiler();
     bool disableControlFlowProfiler();
 
-    JS_EXPORT_PRIVATE void queueMicrotask(JSGlobalObject*, Ref<Microtask>&&);
+    void queueMicrotask(JSGlobalObject&, Ref<Microtask>&&);
     JS_EXPORT_PRIVATE void drainMicrotasks();
     void setGlobalConstRedeclarationShouldThrow(bool globalConstRedeclarationThrow) { m_globalConstRedeclarationShouldThrow = globalConstRedeclarationThrow; }
     ALWAYS_INLINE bool globalConstRedeclarationShouldThrow() const { return m_globalConstRedeclarationShouldThrow; }
@@ -673,6 +665,18 @@ public:
     void notifyNeedDebuggerBreak() { m_traps.fireTrap(VMTraps::NeedDebuggerBreak); }
     void notifyNeedTermination() { m_traps.fireTrap(VMTraps::NeedTermination); }
     void notifyNeedWatchdogCheck() { m_traps.fireTrap(VMTraps::NeedWatchdogCheck); }
+
+#if ENABLE(EXCEPTION_SCOPE_VERIFICATION)
+    StackTrace* nativeStackTraceOfLastThrow() const { return m_nativeStackTraceOfLastThrow.get(); }
+    ThreadIdentifier throwingThread() const { return m_throwingThread; }
+#endif
+
+#if USE(CF)
+    CFRunLoopRef runLoop() const { return m_runLoop.get(); }
+    void registerRunLoopTimer(JSRunLoopTimer*);
+    void unregisterRunLoopTimer(JSRunLoopTimer*);
+    JS_EXPORT_PRIVATE void setRunLoop(CFRunLoopRef);
+#endif // USE(CF)
 
 private:
     friend class LLIntOffsetsExtractor;
@@ -706,6 +710,8 @@ private:
     {
 #if ENABLE(EXCEPTION_SCOPE_VERIFICATION)
         m_needExceptionCheck = false;
+        m_nativeStackTraceOfLastThrow = nullptr;
+        m_throwingThread = 0;
 #endif
         m_exception = nullptr;
     }
@@ -752,6 +758,8 @@ private:
     ExceptionEventLocation m_simulatedThrowPointLocation;
     unsigned m_simulatedThrowPointRecursionDepth { 0 };
     mutable bool m_needExceptionCheck { false };
+    std::unique_ptr<StackTrace> m_nativeStackTraceOfLastThrow;
+    ThreadIdentifier m_throwingThread;
 #endif
 
     bool m_failNextNewCodeBlock { false };

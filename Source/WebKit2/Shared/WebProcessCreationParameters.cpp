@@ -57,7 +57,7 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << mediaCacheDirectoryExtensionHandle;
     encoder << javaScriptConfigurationDirectory;
     encoder << javaScriptConfigurationDirectoryExtensionHandle;
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     encoder << uiProcessCookieStorageIdentifier;
 #endif
 #if PLATFORM(IOS)
@@ -98,8 +98,8 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
 #if PLATFORM(COCOA) || USE(CFURLCONNECTION)
     encoder << uiProcessBundleIdentifier;
 #endif
+    encoder << presentingApplicationPID;
 #if PLATFORM(COCOA)
-    encoder << presenterApplicationPid;
     encoder << accessibilityEnhancedUserInterfaceEnabled;
     encoder << acceleratedCompositingPort;
     encoder << uiProcessBundleResourcePath;
@@ -111,7 +111,7 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
         encoder << bundleParameterData->dataReference();
 #endif
 
-#if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
+#if ENABLE(NOTIFICATIONS)
     encoder << notificationPermissions;
 #endif
 
@@ -129,7 +129,7 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << pluginLoadClientPolicies;
 #endif
 
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#if PLATFORM(COCOA)
     IPC::encode(encoder, networkATSContext.get());
 #endif
 
@@ -174,7 +174,7 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
         return false;
     if (!decoder.decode(parameters.javaScriptConfigurationDirectoryExtensionHandle))
         return false;
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     if (!decoder.decode(parameters.uiProcessCookieStorageIdentifier))
         return false;
 #endif
@@ -248,10 +248,9 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
     if (!decoder.decode(parameters.uiProcessBundleIdentifier))
         return false;
 #endif
-
-#if PLATFORM(COCOA)
-    if (!decoder.decode(parameters.presenterApplicationPid))
+    if (!decoder.decode(parameters.presentingApplicationPID))
         return false;
+#if PLATFORM(COCOA)
     if (!decoder.decode(parameters.accessibilityEnhancedUserInterfaceEnabled))
         return false;
     if (!decoder.decode(parameters.acceleratedCompositingPort))
@@ -278,7 +277,7 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
     }
 #endif
 
-#if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
+#if ENABLE(NOTIFICATIONS)
     if (!decoder.decode(parameters.notificationPermissions))
         return false;
 #endif
@@ -304,7 +303,7 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
         return false;
 #endif
 
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#if PLATFORM(COCOA)
     if (!IPC::decode(decoder, parameters.networkATSContext))
         return false;
 #endif

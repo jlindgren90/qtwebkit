@@ -52,6 +52,8 @@
 #include "RuntimeEnabledFeatures.h"
 #include "SchemeRegistry.h"
 #include "SecurityOrigin.h"
+#include "SharedBuffer.h"
+#include "SubresourceIntegrity.h"
 #include "SubresourceLoader.h"
 #include "ThreadableLoaderClient.h"
 #include <wtf/Assertions.h>
@@ -95,6 +97,7 @@ DocumentThreadableLoader::DocumentThreadableLoader(Document& document, Threadabl
     , m_sameOriginRequest(securityOrigin().canRequest(request.url()))
     , m_simpleRequest(true)
     , m_async(blockingBehavior == LoadAsynchronously)
+    , m_delayCallbacksForIntegrityCheck(!m_options.integrity.isEmpty())
     , m_contentSecurityPolicy(WTFMove(contentSecurityPolicy))
     , m_shouldLogError(shouldLogError)
 {
@@ -226,6 +229,7 @@ void DocumentThreadableLoader::redirectReceived(CachedResource& resource, Resour
     ASSERT_UNUSED(resource, &resource == m_resource);
 
     Ref<DocumentThreadableLoader> protectedThis(*this);
+    --m_options.maxRedirectCount;
 
     // FIXME: We restrict this check to Fetch API for the moment, as this might disrupt WorkerScriptLoader.
     // Reassess this check based on https://github.com/whatwg/fetch/issues/393 discussions.
@@ -250,12 +254,13 @@ void DocumentThreadableLoader::redirectReceived(CachedResource& resource, Resour
     m_sameOriginRequest = false;
 
     ASSERT(m_resource);
-    ASSERT(m_resource->loader());
-    ASSERT(m_options.mode == FetchOptions::Mode::Cors);
     ASSERT(m_originalHeaders);
 
-    // Loader might have modified the origin to a unique one, let's reuse it for subsequent loads.
-    m_origin = m_resource->loader()->origin();
+    // Use a unique for subsequent loads if needed.
+    // https://fetch.spec.whatwg.org/#concept-http-redirect-fetch (Step 10).
+    ASSERT(m_options.mode == FetchOptions::Mode::Cors);
+    if (!securityOrigin().canRequest(redirectResponse.url()) && !protocolHostAndPortAreEqual(redirectResponse.url(), request.url()))
+        m_origin = SecurityOrigin::createUnique();
 
     // Except in case where preflight is needed, loading should be able to continue on its own.
     // But we also handle credentials here if it is restricted to SameOrigin.
@@ -263,7 +268,6 @@ void DocumentThreadableLoader::redirectReceived(CachedResource& resource, Resour
         return;
 
     m_options.allowCredentials = DoNotAllowStoredCredentials;
-    m_options.maxRedirectCount -= m_resource->loader()->redirectCount();
 
     clearResource();
 
@@ -296,6 +300,9 @@ void DocumentThreadableLoader::didReceiveResponse(unsigned long identifier, cons
 
     InspectorInstrumentation::didReceiveThreadableLoaderResponse(*this, identifier);
 
+    if (m_delayCallbacksForIntegrityCheck)
+        return;
+
     if (options().filteringPolicy == ResponseFilteringPolicy::Disable) {
         m_client->didReceiveResponse(identifier, response);
         return;
@@ -323,6 +330,9 @@ void DocumentThreadableLoader::dataReceived(CachedResource& resource, const char
 void DocumentThreadableLoader::didReceiveData(unsigned long, const char* data, int dataLength)
 {
     ASSERT(m_client);
+
+    if (m_delayCallbacksForIntegrityCheck)
+        return;
 
     m_client->didReceiveData(data, dataLength);
 }
@@ -361,6 +371,27 @@ void DocumentThreadableLoader::notifyFinished(CachedResource& resource)
 void DocumentThreadableLoader::didFinishLoading(unsigned long identifier)
 {
     ASSERT(m_client);
+
+    if (m_delayCallbacksForIntegrityCheck) {
+        if (!matchIntegrityMetadata(*m_resource, m_options.integrity)) {
+            reportIntegrityMetadataError(m_resource->url());
+            return;
+        }
+
+        auto response = m_resource->response();
+
+        if (options().filteringPolicy == ResponseFilteringPolicy::Disable) {
+            m_client->didReceiveResponse(identifier, response);
+            m_client->didReceiveData(m_resource->resourceBuffer()->data(), m_resource->resourceBuffer()->size());
+        } else {
+            ASSERT(response.type() == ResourceResponse::Type::Default);
+            
+            auto tainting = m_resource->responseTainting();
+            m_client->didReceiveResponse(identifier, ResourceResponse::filterResponse(response, tainting));
+            m_client->didReceiveData(m_resource->resourceBuffer()->data(), m_resource->resourceBuffer()->size());
+        }
+    }
+
     m_client->didFinishLoading(identifier);
 }
 
@@ -407,6 +438,10 @@ void DocumentThreadableLoader::loadRequest(ResourceRequest&& request, SecurityCh
         ResourceLoaderOptions options = m_options;
         options.clientCredentialPolicy = m_sameOriginRequest ? ClientCredentialPolicy::MayAskClientForCredentials : ClientCredentialPolicy::CannotAskClientForCredentials;
         options.contentSecurityPolicyImposition = ContentSecurityPolicyImposition::SkipPolicyCheck;
+        
+        // If there is integrity metadata to validate, we must buffer.
+        if (!m_options.integrity.isEmpty())
+            options.dataBufferingPolicy = BufferData;
 
         request.setAllowCookies(m_options.allowCredentials == AllowStoredCredentials);
         CachedResourceRequest newRequest(WTFMove(request), options);
@@ -572,6 +607,11 @@ void DocumentThreadableLoader::reportContentSecurityPolicyError(const URL& url)
 void DocumentThreadableLoader::reportCrossOriginResourceSharingError(const URL& url)
 {
     logErrorAndFail(ResourceError(errorDomainWebKitInternal, 0, url, "Cross-origin redirection denied by Cross-Origin Resource Sharing policy.", ResourceError::Type::AccessControl));
+}
+
+void DocumentThreadableLoader::reportIntegrityMetadataError(const URL& url)
+{
+    logErrorAndFail(ResourceError(errorDomainWebKitInternal, 0, url, "Failed integrity metadata check.", ResourceError::Type::General));
 }
 
 void DocumentThreadableLoader::logErrorAndFail(const ResourceError& error)

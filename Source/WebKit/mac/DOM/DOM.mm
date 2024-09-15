@@ -27,6 +27,7 @@
 
 #import "DOM.h"
 
+#import "ExceptionHandlers.h"
 #import "DOMElementInternal.h"
 #import "DOMHTMLCanvasElement.h"
 #import "DOMHTMLTableCellElementInternal.h"
@@ -163,7 +164,7 @@ static Class lookupElementClass(const QualifiedName& tag)
 {
     // Do a special lookup to ignore element prefixes
     if (tag.hasPrefix())
-        return elementClassMap->get(QualifiedName(nullAtom, tag.localName(), tag.namespaceURI()).impl());
+        return elementClassMap->get(QualifiedName(nullAtom(), tag.localName(), tag.namespaceURI()).impl());
     
     return elementClassMap->get(tag.impl());
 }
@@ -858,7 +859,11 @@ WebCore::NodeFilter* core(DOMNodeFilter *wrapper)
 
 - (short)acceptNode:(DOMNode *)node
 {
-    return core(self)->acceptNode(core(node));
+    if (!node)
+        raiseTypeErrorException();
+    
+    auto result = core(self)->acceptNode(*core(node));
+    return result.type() == CallbackResultType::Success ? result.releaseReturnValue() : NodeFilter::FILTER_REJECT;
 }
 
 @end

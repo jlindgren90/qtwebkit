@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "Color.h"
+#include "CompositionUnderline.h"
 #include "DataTransferAccessPolicy.h"
 #include "DictationAlternative.h"
 #include "DocumentMarker.h"
@@ -48,6 +48,10 @@ OBJC_CLASS NSAttributedString;
 OBJC_CLASS NSDictionary;
 OBJC_CLASS NSMutableDictionary;
 #endif
+
+namespace PAL {
+class KillRing;
+}
 
 namespace WebCore {
 
@@ -80,17 +84,6 @@ class TextEvent;
 struct PasteboardPlainText;
 struct PasteboardURL;
 struct TextCheckingResult;
-
-struct CompositionUnderline {
-    CompositionUnderline() 
-        : startOffset(0), endOffset(0), thick(false) { }
-    CompositionUnderline(unsigned s, unsigned e, const Color& c, bool t) 
-        : startOffset(s), endOffset(e), color(c), thick(t) { }
-    unsigned startOffset;
-    unsigned endOffset;
-    Color color;
-    bool thick;
-};
 
 enum EditorCommandSource { CommandFromMenuOrKeyBinding, CommandFromDOM, CommandFromDOMWithUserInterface };
 enum EditorParagraphSeparator { EditorParagraphSeparatorIsDiv, EditorParagraphSeparatorIsP };
@@ -160,7 +153,7 @@ public:
     WEBCORE_EXPORT void outdent();
     void transpose();
 
-    bool shouldInsertFragment(PassRefPtr<DocumentFragment>, PassRefPtr<Range>, EditorInsertAction);
+    bool shouldInsertFragment(DocumentFragment&, Range*, EditorInsertAction);
     bool shouldInsertText(const String&, Range*, EditorInsertAction) const;
     WEBCORE_EXPORT bool shouldDeleteRange(Range*) const;
     bool shouldApplyStyle(StyleProperties*, Range*);
@@ -210,7 +203,7 @@ public:
     bool willUnapplyEditing(const EditCommandComposition&) const;
     bool willReapplyEditing(const EditCommandComposition&) const;
 
-    void appliedEditing(PassRefPtr<CompositeEditCommand>);
+    void appliedEditing(CompositeEditCommand&);
     void unappliedEditing(EditCommandComposition&);
     void reappliedEditing(EditCommandComposition&);
     void unappliedSpellCorrection(const VisibleSelection& selectionOfCorrected, const String& corrected, const String& correction);
@@ -222,7 +215,7 @@ public:
     class Command {
     public:
         WEBCORE_EXPORT Command();
-        Command(const EditorInternalCommand*, EditorCommandSource, PassRefPtr<Frame>);
+        Command(const EditorInternalCommand*, EditorCommandSource, Frame&);
 
         WEBCORE_EXPORT bool execute(const String& parameter = String(), Event* triggeringEvent = nullptr) const;
         WEBCORE_EXPORT bool execute(Event* triggeringEvent) const;
@@ -271,7 +264,7 @@ public:
     void markMisspellings(const VisibleSelection&, RefPtr<Range>& firstMisspellingRange);
     void markBadGrammar(const VisibleSelection&);
     void markMisspellingsAndBadGrammar(const VisibleSelection& spellingSelection, bool markGrammar, const VisibleSelection& grammarSelection);
-    void markAndReplaceFor(PassRefPtr<SpellCheckRequest>, const Vector<TextCheckingResult>&);
+    void markAndReplaceFor(const SpellCheckRequest&, const Vector<TextCheckingResult>&);
 
     bool isOverwriteModeEnabled() const { return m_overwriteModeEnabled; }
     WEBCORE_EXPORT void toggleOverwriteModeEnabled();
@@ -299,7 +292,7 @@ public:
 
     void didBeginEditing();
     void didEndEditing();
-    void willWriteSelectionToPasteboard(PassRefPtr<Range>);
+    void willWriteSelectionToPasteboard(Range*);
     void didWriteSelectionToPasteboard();
 
     void showFontPanel();
@@ -343,7 +336,7 @@ public:
 
     VisibleSelection selectionForCommand(Event*);
 
-    KillRing& killRing() const { return *m_killRing; }
+    PAL::KillRing& killRing() const { return *m_killRing; }
     SpellChecker& spellChecker() const { return *m_spellChecker; }
 
     EditingBehavior behavior() const;
@@ -467,7 +460,7 @@ public:
     WEBCORE_EXPORT void replaceSelectionWithAttributedString(NSAttributedString *, MailBlockquoteHandling = MailBlockquoteHandling::RespectBlockquote);
 #endif
 
-#if PLATFORM(COCOA) || PLATFORM(GTK) || PLATFORM(QT)
+#if PLATFORM(COCOA) || PLATFORM(GTK) || PLATFORM(WPE) || PLATFORM(QT)
     WEBCORE_EXPORT void writeSelectionToPasteboard(Pasteboard&);
     WEBCORE_EXPORT void writeImageToPasteboard(Pasteboard&, Element& imageElement, const URL&, const String& title);
     void writeSelection(PasteboardWriterData&);
@@ -547,7 +540,7 @@ private:
     bool m_ignoreSelectionChanges { false };
     bool m_shouldStartNewKillRingSequence { false };
     bool m_shouldStyleWithCSS { false };
-    const std::unique_ptr<KillRing> m_killRing;
+    const std::unique_ptr<PAL::KillRing> m_killRing;
     const std::unique_ptr<SpellChecker> m_spellChecker;
     const std::unique_ptr<AlternativeTextController> m_alternativeTextController;
     VisibleSelection m_mark;

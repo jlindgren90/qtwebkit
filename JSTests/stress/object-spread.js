@@ -295,3 +295,19 @@ function validatePropertyDescriptor(o, p) {
     }
 })();
 
+// Spread overrides properties
+
+(() => {
+    var calls = []
+    var o = { a: 1, b: 2 };
+
+    let executedGetter = false;
+    let executedSetter = false
+    let obj = {get a() {executedGetter = true; return this_a;}, ...o, set a(v) { executedSetter = true; this._a = v}};
+
+    obj.a = 3
+    assert.sameValue(obj.a, undefined);
+    assert(!executedGetter);
+    assert(executedSetter);
+})();
+

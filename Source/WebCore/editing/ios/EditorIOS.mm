@@ -39,6 +39,7 @@
 #import "EditorClient.h"
 #import "FontCascade.h"
 #import "Frame.h"
+#import "FrameLoader.h"
 #import "FrameLoaderClient.h"
 #import "HTMLAnchorElement.h"
 #import "HTMLConverter.h"
@@ -55,17 +56,14 @@
 #import "RenderBlock.h"
 #import "RenderImage.h"
 #import "SharedBuffer.h"
-#import "SoftLinking.h"
 #import "StyleProperties.h"
 #import "Text.h"
 #import "TypingCommand.h"
 #import "WAKAppKitStubs.h"
 #import "markup.h"
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <wtf/SoftLinking.h>
 #import <wtf/text/StringBuilder.h>
-
-SOFT_LINK_FRAMEWORK(AppSupport)
-SOFT_LINK(AppSupport, CPSharedResourcesDirectory, CFStringRef, (void), ())
 
 namespace WebCore {
 
@@ -207,10 +205,17 @@ void Editor::writeImageToPasteboard(Pasteboard& pasteboard, Element& imageElemen
         return;
     ASSERT(cachedImage);
 
-    pasteboardImage.url.url = url.isEmpty() ? imageElement.document().completeURL(stripLeadingAndTrailingHTMLSpaces(imageElement.imageSourceURL())) : url;
+    auto imageSourceURL = imageElement.document().completeURL(stripLeadingAndTrailingHTMLSpaces(imageElement.imageSourceURL()));
+    pasteboardImage.url.url = url.isEmpty() ? imageSourceURL : url;
     pasteboardImage.url.title = title;
+    pasteboardImage.suggestedName = imageSourceURL.lastPathComponent();
     pasteboardImage.resourceMIMEType = pasteboard.resourceMIMEType(cachedImage->response().mimeType());
     pasteboardImage.resourceData = cachedImage->resourceBuffer();
+
+    Position beforeImagePosition(&imageElement, Position::PositionIsBeforeAnchor);
+    Position afterImagePosition(&imageElement, Position::PositionIsAfterAnchor);
+    RefPtr<Range> imageRange = Range::create(imageElement.document(), beforeImagePosition, afterImagePosition);
+    client()->getClientPasteboardDataForRange(imageRange.get(), pasteboardImage.clientTypes, pasteboardImage.clientData);
 
     pasteboard.write(pasteboardImage);
 }
@@ -247,11 +252,18 @@ private:
 
 void Editor::WebContentReader::addFragment(RefPtr<DocumentFragment>&& newFragment)
 {
-    if (fragment) {
-        if (newFragment && newFragment->firstChild())
-            fragment->appendChild(*newFragment->firstChild());
-    } else
+    if (!newFragment)
+        return;
+
+    if (!fragment) {
         fragment = WTFMove(newFragment);
+        return;
+    }
+
+    while (auto* firstChild = newFragment->firstChild()) {
+        if (fragment->appendChild(*firstChild).hasException())
+            break;
+    }
 }
 
 bool Editor::WebContentReader::readWebArchive(SharedBuffer* buffer)
@@ -330,34 +342,21 @@ bool Editor::WebContentReader::readURL(const URL& url, const String& title)
             return true;
     }
 
-    if ([(NSURL *)url isFileURL]) {
-        NSString *localPath = [(NSURL *)url relativePath];
-        // Only allow url attachments from ~/Media for now.
-        if (![localPath hasPrefix:[(NSString *)CPSharedResourcesDirectory() stringByAppendingString:@"/Media/DCIM/"]])
-            return false;
+    if ([(NSURL *)url isFileURL])
+        return false;
 
-        RetainPtr<NSString> fileType = adoptNS((NSString *)UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (CFStringRef)[localPath pathExtension], NULL));
-        NSData *data = [NSData dataWithContentsOfFile:localPath];
-        if (UTTypeConformsTo((CFStringRef)fileType.get(), kUTTypePNG)) {
-            addFragment(frame.editor().createFragmentForImageResourceAndAddResource(ArchiveResource::create(SharedBuffer::create([[data copy] autorelease]), URL::fakeURLWithRelativePart("image.png"), @"image/png", emptyString(), emptyString())));
-            return fragment;
-        } else if (UTTypeConformsTo((CFStringRef)fileType.get(), kUTTypeJPEG)) {
-            addFragment(frame.editor().createFragmentForImageResourceAndAddResource(ArchiveResource::create(SharedBuffer::create([[data copy] autorelease]), URL::fakeURLWithRelativePart("image.jpg"), @"image/jpg", emptyString(), emptyString())));
-            return fragment;
-        }
-    } else {
-        auto anchor = HTMLAnchorElement::create(*frame.document());
-        anchor->setAttributeWithoutSynchronization(HTMLNames::hrefAttr, url.string());
+    auto anchor = HTMLAnchorElement::create(*frame.document());
+    anchor->setAttributeWithoutSynchronization(HTMLNames::hrefAttr, url.string());
 
-        String linkText = title.length() ? title : String([[(NSURL *)url absoluteString] precomposedStringWithCanonicalMapping]);
-        anchor->appendChild(frame.document()->createTextNode(linkText));
+    String linkText = title.length() ? title : String([[(NSURL *)url absoluteString] precomposedStringWithCanonicalMapping]);
+    anchor->appendChild(frame.document()->createTextNode(linkText));
 
-        auto newFragment = frame.document()->createDocumentFragment();
-        newFragment->appendChild(anchor);
-        addFragment(WTFMove(newFragment));
-        return true;
-    }
-    return false;
+    auto newFragment = frame.document()->createDocumentFragment();
+    if (fragment)
+        newFragment->appendChild(Text::create(*frame.document(), { &space, 1 }));
+    newFragment->appendChild(anchor);
+    addFragment(WTFMove(newFragment));
+    return true;
 }
 
 bool Editor::WebContentReader::readPlainText(const String& text)
@@ -402,7 +401,7 @@ void Editor::pasteWithPasteboard(Pasteboard* pasteboard, bool allowPlainText, Ma
         fragment = webContentFromPasteboard(*pasteboard, *range, allowPlainText, chosePlainTextIgnored);
     }
 
-    if (fragment && shouldInsertFragment(fragment, range, EditorInsertAction::Pasted))
+    if (fragment && shouldInsertFragment(*fragment, range.get(), EditorInsertAction::Pasted))
         pasteAsFragment(fragment.releaseNonNull(), canSmartReplaceWithPasteboard(*pasteboard), false, mailBlockquoteHandling);
 }
 
@@ -414,7 +413,7 @@ void Editor::insertDictationPhrases(Vector<Vector<String>>&& dictationPhrases, R
     if (dictationPhrases.isEmpty())
         return;
 
-    applyCommand(DictationCommandIOS::create(document(), WTFMove(dictationPhrases), WTFMove(metadata)));
+    DictationCommandIOS::create(document(), WTFMove(dictationPhrases), WTFMove(metadata))->apply();
 }
 
 void Editor::setDictationPhrasesAsChildOfElement(const Vector<Vector<String>>& dictationPhrases, RetainPtr<id> metadata, Element& element)

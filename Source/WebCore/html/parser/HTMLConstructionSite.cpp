@@ -102,8 +102,10 @@ static inline bool isAllWhitespace(const String& string)
 
 static inline void insert(HTMLConstructionSiteTask& task)
 {
-    if (is<HTMLTemplateElement>(*task.parent))
+    if (is<HTMLTemplateElement>(*task.parent)) {
         task.parent = &downcast<HTMLTemplateElement>(*task.parent).content();
+        task.nextChild = nullptr;
+    }
 
     ASSERT(!task.child->parentNode());
     if (task.nextChild)
@@ -639,7 +641,7 @@ void HTMLConstructionSite::takeAllChildrenAndReparent(HTMLStackItem& newParent, 
 
 Ref<Element> HTMLConstructionSite::createElement(AtomicHTMLToken& token, const AtomicString& namespaceURI)
 {
-    QualifiedName tagName(nullAtom, token.name(), namespaceURI);
+    QualifiedName tagName(nullAtom(), token.name(), namespaceURI);
     auto element = ownerDocumentForCurrentNode().createElement(tagName, true);
     setAttributes(element, token, m_parserContentPolicy);
     return element;
@@ -674,7 +676,7 @@ RefPtr<Element> HTMLConstructionSite::createHTMLElementOrFindCustomElementInterf
             }
         }
 
-        QualifiedName qualifiedName(nullAtom, localName, xhtmlNamespaceURI);
+        QualifiedName qualifiedName(nullAtom(), localName, xhtmlNamespaceURI);
         if (Document::validateCustomElementName(localName) == CustomElementNameValidationStatus::Valid) {
             element = HTMLElement::create(qualifiedName, ownerDocument);
             element->setIsCustomElementUpgradeCandidate();

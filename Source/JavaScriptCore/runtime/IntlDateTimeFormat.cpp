@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2015 Andy VanWagoner (thetalecrafter@gmail.com)
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2016-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@
 
 namespace JSC {
 
-const ClassInfo IntlDateTimeFormat::s_info = { "Object", &Base::s_info, 0, CREATE_METHOD_TABLE(IntlDateTimeFormat) };
+const ClassInfo IntlDateTimeFormat::s_info = { "Object", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(IntlDateTimeFormat) };
 
 static const char* const relevantExtensionKeys[2] = { "ca", "nu" };
 static const size_t indexOfExtensionKeyCa = 0;
@@ -832,7 +832,7 @@ JSObject* IntlDateTimeFormat::resolvedOptions(ExecState& exec)
     // Note: In this version of the ECMAScript 2015 Internationalization API, the timeZone property will be the name of the default time zone if no timeZone property was provided in the options object provided to the Intl.DateTimeFormat constructor. The previous version left the timeZone property undefined in this case.
     if (!m_initializedDateTimeFormat) {
         initializeDateTimeFormat(exec, jsUndefined(), jsUndefined());
-        ASSERT_UNUSED(scope, !scope.exception());
+        scope.assertNoException();
     }
 
     JSObject* options = constructEmptyObject(&exec);
@@ -881,7 +881,7 @@ JSValue IntlDateTimeFormat::format(ExecState& exec, double value)
     // 12.3.4 FormatDateTime abstract operation (ECMA-402 2.0)
     if (!m_initializedDateTimeFormat) {
         initializeDateTimeFormat(exec, jsUndefined(), jsUndefined());
-        ASSERT(!scope.exception());
+        scope.assertNoException();
     }
 
     // 1. If x is not a finite Number, then throw a RangeError exception.
@@ -959,7 +959,9 @@ const char* IntlDateTimeFormat::partTypeString(UDateFormatField field)
     case UDAT_STANDALONE_QUARTER_FIELD:
     case UDAT_RELATED_YEAR_FIELD:
     case UDAT_TIME_SEPARATOR_FIELD:
+#if U_ICU_VERSION_MAJOR_NUM < 58
     case UDAT_FIELD_COUNT:
+#endif
         return "literal";
     }
     // Any newer additions to the UDateFormatField enum should just be considered a "literal" part.

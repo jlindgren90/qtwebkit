@@ -33,7 +33,7 @@
 #include "WebCoreArgumentCoders.h"
 #include "WebProcessProxy.h"
 #include <WebCore/CARingBuffer.h>
-#include <WebCore/MediaConstraintsImpl.h>
+#include <WebCore/MediaConstraints.h>
 #include <WebCore/RealtimeMediaSourceCenter.h>
 #include <WebCore/WebAudioBufferList.h>
 #include <wtf/UniqueRef.h>
@@ -70,10 +70,6 @@ public:
 
     void sourceMutedChanged() final {
         m_manager.process().send(Messages::UserMediaCaptureManager::SourceMutedChanged(m_id, m_source->muted()), 0);
-    }
-
-    void sourceEnabledChanged() final {
-        m_manager.process().send(Messages::UserMediaCaptureManager::SourceEnabledChanged(m_id, m_source->enabled()), 0);
     }
 
     void sourceSettingsChanged() final {
@@ -125,16 +121,15 @@ UserMediaCaptureManagerProxy::~UserMediaCaptureManagerProxy()
     m_process.removeMessageReceiver(Messages::UserMediaCaptureManagerProxy::messageReceiverName());
 }
 
-void UserMediaCaptureManagerProxy::createMediaSourceForCaptureDeviceWithConstraints(uint64_t id, const String& deviceID, WebCore::RealtimeMediaSource::Type type, const MediaConstraintsData& constraintsData, bool& succeeded, String& invalidConstraints)
+void UserMediaCaptureManagerProxy::createMediaSourceForCaptureDeviceWithConstraints(uint64_t id, const String& deviceID, WebCore::RealtimeMediaSource::Type type, const MediaConstraints& constraints, bool& succeeded, String& invalidConstraints, WebCore::RealtimeMediaSourceSettings& settings)
 {
     CaptureSourceOrError sourceOrError;
-    auto constraints = MediaConstraintsImpl::create(MediaConstraintsData(constraintsData));
     switch (type) {
     case WebCore::RealtimeMediaSource::Type::Audio:
-        sourceOrError = RealtimeMediaSourceCenter::singleton().audioFactory()->createAudioCaptureSource(deviceID, constraints.ptr());
+        sourceOrError = RealtimeMediaSourceCenter::singleton().audioFactory().createAudioCaptureSource(deviceID, &constraints);
         break;
     case WebCore::RealtimeMediaSource::Type::Video:
-        sourceOrError = RealtimeMediaSourceCenter::singleton().videoFactory()->createVideoCaptureSource(deviceID, constraints.ptr());
+        sourceOrError = RealtimeMediaSourceCenter::singleton().videoFactory().createVideoCaptureSource(deviceID, &constraints);
         break;
     case WebCore::RealtimeMediaSource::Type::None:
         ASSERT_NOT_REACHED();
@@ -142,9 +137,11 @@ void UserMediaCaptureManagerProxy::createMediaSourceForCaptureDeviceWithConstrai
     }
 
     succeeded = !!sourceOrError;
-    if (sourceOrError)
-        m_proxies.set(id, std::make_unique<SourceProxy>(id, *this, sourceOrError.source()));
-    else
+    if (sourceOrError) {
+        auto source = sourceOrError.source();
+        settings = source->settings();
+        m_proxies.set(id, std::make_unique<SourceProxy>(id, *this, WTFMove(source)));
+    } else
         invalidConstraints = WTFMove(sourceOrError.errorMessage);
 }
 
@@ -152,14 +149,14 @@ void UserMediaCaptureManagerProxy::startProducingData(uint64_t id)
 {
     auto iter = m_proxies.find(id);
     if (iter != m_proxies.end())
-        iter->value->source().startProducingData();
+        iter->value->source().start();
 }
 
 void UserMediaCaptureManagerProxy::stopProducingData(uint64_t id)
 {
     auto iter = m_proxies.find(id);
     if (iter != m_proxies.end())
-        iter->value->source().stopProducingData();
+        iter->value->source().stop();
 }
 
 void UserMediaCaptureManagerProxy::capabilities(uint64_t id, WebCore::RealtimeMediaSourceCapabilities& capabilities)
@@ -176,11 +173,18 @@ void UserMediaCaptureManagerProxy::setMuted(uint64_t id, bool muted)
         iter->value->source().setMuted(muted);
 }
 
-void UserMediaCaptureManagerProxy::setEnabled(uint64_t id, bool enabled)
+void UserMediaCaptureManagerProxy::applyConstraints(uint64_t id, const WebCore::MediaConstraints& constraints)
 {
     auto iter = m_proxies.find(id);
-    if (iter != m_proxies.end())
-        iter->value->source().setEnabled(enabled);
+    if (iter == m_proxies.end())
+        return;
+
+    auto& source = iter->value->source();
+    auto result = source.applyConstraints(constraints);
+    if (!result)
+        m_process.send(Messages::UserMediaCaptureManager::ApplyConstraintsSucceeded(id, source.settings()), 0);
+    else
+        m_process.send(Messages::UserMediaCaptureManager::ApplyConstraintsFailed(id, result.value().first, result.value().second), 0);
 }
 
 }

@@ -59,6 +59,9 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
         this._statusCode = NaN;
         this._statusText = null;
         this._cached = false;
+        this._canceled = false;
+        this._failed = false;
+        this._failureReasonText = null;
         this._receivedNetworkLoadMetrics = false;
         this._responseSource = WebInspector.Resource.ResponseSource.Unknown;
         this._timingData = new WebInspector.ResourceTimingData(this);
@@ -347,13 +350,14 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
     {
         // If content is not available, fallback to using original URL.
         // The client may try to revoke it, but nothing will happen.
-        if (!this.content)
+        let content = this.content;
+        if (!content)
             return this._url;
 
-        var content = this.content;
-        console.assert(content instanceof Blob, content);
+        if (content instanceof Blob)
+            return URL.createObjectURL(content);
 
-        return URL.createObjectURL(content);
+        return null;
     }
 
     isMainResource()
@@ -389,6 +393,11 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
     get canceled()
     {
         return this._canceled;
+    }
+
+    get failureReasonText()
+    {
+        return this._failureReasonText;
     }
 
     get requestDataContentType()
@@ -789,13 +798,16 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
         this.dispatchEventToListeners(WebInspector.Resource.Event.TimestampsDidChange);
     }
 
-    markAsFailed(canceled, elapsedTime)
+    markAsFailed(canceled, elapsedTime, errorText)
     {
         console.assert(!this._finished);
 
         this._failed = true;
         this._canceled = canceled;
         this._finishedOrFailedTimestamp = elapsedTime || NaN;
+
+        if (!this._failureReasonText)
+            this._failureReasonText = errorText || null;
 
         this.dispatchEventToListeners(WebInspector.Resource.Event.LoadingDidFail);
         this.dispatchEventToListeners(WebInspector.Resource.Event.TimestampsDidChange);
@@ -829,6 +841,11 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
         this._responseSource = WebInspector.Resource.ResponseSource.DiskCache;
 
         this.markAsCached();
+    }
+
+    hadLoadingError()
+    {
+        return this._failed || this._canceled || this._statusCode >= 400;
     }
 
     getImageSize(callback)
@@ -870,8 +887,10 @@ WebInspector.Resource = class Resource extends WebInspector.SourceCode
         image.addEventListener("load", imageDidLoad.bind(this), false);
 
         // Set the image source using an object URL once we've obtained its data.
-        this.requestContent().then(function(content) {
+        this.requestContent().then((content) => {
             objectURL = image.src = content.sourceCode.createObjectURL();
+            if (!objectURL)
+                requestContentFailure.call(this);
         }, requestContentFailure.bind(this));
     }
 

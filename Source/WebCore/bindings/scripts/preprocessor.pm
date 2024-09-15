@@ -108,7 +108,7 @@ sub applyPreprocessor
         use Symbol 'gensym'; my $err = gensym;
         $pid = open3(\*PP_IN, \*PP_OUT, $err, $preprocessor, @args, @macros, $fileName);
     } else {
-        $pid = open2(\*PP_OUT, \*PP_IN, $preprocessor, @args, @macros, $fileName);
+        $pid = open2(\*PP_OUT, \*PP_IN, shellwords($preprocessor), @args, @macros, $fileName);
     }
     close PP_IN;
     my @documentContent = <PP_OUT>;

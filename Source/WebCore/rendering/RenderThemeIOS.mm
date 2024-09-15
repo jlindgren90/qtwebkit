@@ -63,7 +63,6 @@
 #import "RenderThemeIOS.h"
 #import "RenderView.h"
 #import "RuntimeEnabledFeatures.h"
-#import "SoftLinking.h"
 #import "UIKitSPI.h"
 #import "UTIUtilities.h"
 #import "UserAgentScripts.h"
@@ -73,6 +72,7 @@
 #import <objc/runtime.h>
 #import <wtf/NeverDestroyed.h>
 #import <wtf/RefPtr.h>
+#import <wtf/SoftLinking.h>
 #import <wtf/StdLibExtras.h>
 
 SOFT_LINK_FRAMEWORK(UIKit)
@@ -295,10 +295,10 @@ RenderThemeIOS::RenderThemeIOS()
     CFNotificationCenterAddObserver(CFNotificationCenterGetLocalCenter(), this, contentSizeCategoryDidChange, UIContentSizeCategoryDidChangeNotification, 0, CFNotificationSuspensionBehaviorDeliverImmediately);
 }
 
-Ref<RenderTheme> RenderTheme::themeForPage(Page*)
+RenderTheme& RenderTheme::singleton()
 {
-    static RenderTheme& renderTheme = RenderThemeIOS::create().leakRef();
-    return renderTheme;
+    static NeverDestroyed<Ref<RenderTheme>> theme(RenderThemeIOS::create());
+    return theme.get();
 }
 
 Ref<RenderTheme> RenderThemeIOS::create()
@@ -1210,6 +1210,21 @@ FontCascadeDescription& RenderThemeIOS::cachedSystemFontDescription(CSSValueID v
     }
 }
 
+static inline FontSelectionValue cssWeightOfSystemFont(CTFontRef font)
+{
+    RetainPtr<CFDictionaryRef> traits = adoptCF(CTFontCopyTraits(font));
+    CFNumberRef resultRef = (CFNumberRef)CFDictionaryGetValue(traits.get(), kCTFontWeightTrait);
+    float result = 0;
+    CFNumberGetValue(resultRef, kCFNumberFloatType, &result);
+    // These numbers were experimentally gathered from weights of the system font.
+    static float weightThresholds[] = { -0.6, -0.365, -0.115, 0.130, 0.235, 0.350, 0.5, 0.7 };
+    for (unsigned i = 0; i < WTF_ARRAY_LENGTH(weightThresholds); ++i) {
+        if (result < weightThresholds[i])
+            return FontSelectionValue((static_cast<int>(i) + 1) * 100);
+    }
+    return FontSelectionValue(900);
+}
+
 void RenderThemeIOS::updateCachedSystemFontDescription(CSSValueID valueID, FontCascadeDescription& fontDescription) const
 {
     RetainPtr<CTFontDescriptorRef> fontDescriptor;
@@ -1217,79 +1232,79 @@ void RenderThemeIOS::updateCachedSystemFontDescription(CSSValueID valueID, FontC
     switch (valueID) {
     case CSSValueAppleSystemHeadline:
         textStyle = kCTUIFontTextStyleHeadline;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemBody:
         textStyle = kCTUIFontTextStyleBody;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
 #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 110000
     case CSSValueAppleSystemTitle0:
         textStyle = kCTUIFontTextStyleTitle0;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
 #endif
     case CSSValueAppleSystemTitle1:
         textStyle = kCTUIFontTextStyleTitle1;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemTitle2:
         textStyle = kCTUIFontTextStyleTitle2;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemTitle3:
         textStyle = kCTUIFontTextStyleTitle3;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
 #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 110000
     case CSSValueAppleSystemTitle4:
         textStyle = kCTUIFontTextStyleTitle4;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
 #endif
     case CSSValueAppleSystemSubheadline:
         textStyle = kCTUIFontTextStyleSubhead;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemFootnote:
         textStyle = kCTUIFontTextStyleFootnote;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemCaption1:
         textStyle = kCTUIFontTextStyleCaption1;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemCaption2:
         textStyle = kCTUIFontTextStyleCaption2;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
 
     // Short version.
     case CSSValueAppleSystemShortHeadline:
         textStyle = kCTUIFontTextStyleShortHeadline;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemShortBody:
         textStyle = kCTUIFontTextStyleShortBody;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemShortSubheadline:
         textStyle = kCTUIFontTextStyleShortSubhead;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemShortFootnote:
         textStyle = kCTUIFontTextStyleShortFootnote;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
     case CSSValueAppleSystemShortCaption1:
         textStyle = kCTUIFontTextStyleShortCaption1;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
 
     // Tall version.
     case CSSValueAppleSystemTallBody:
         textStyle = kCTUIFontTextStyleTallBody;
-        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), 0));
+        fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(textStyle, contentSizeCategory(), nullptr));
         break;
 
     default:
@@ -1302,8 +1317,7 @@ void RenderThemeIOS::updateCachedSystemFontDescription(CSSValueID valueID, FontC
     fontDescription.setIsAbsoluteSize(true);
     fontDescription.setOneFamily(textStyle);
     fontDescription.setSpecifiedSize(CTFontGetSize(font.get()));
-    auto capabilities = capabilitiesForFontDescriptor(adoptCF(CTFontCopyFontDescriptor(font.get())).get());
-    fontDescription.setWeight(capabilities.weight.minimum);
+    fontDescription.setWeight(cssWeightOfSystemFont(font.get()));
     fontDescription.setItalic(normalItalicValue());
 }
 
@@ -1349,7 +1363,7 @@ String RenderThemeIOS::mediaControlsScript()
             NSBundle *bundle = [NSBundle bundleForClass:[WebCoreRenderThemeBundle class]];
 
             StringBuilder scriptBuilder;
-            scriptBuilder.append([NSString stringWithContentsOfFile:[bundle pathForResource:@"modern-media-controls-localized-strings.js" ofType:@"js"] encoding:NSUTF8StringEncoding error:nil]);
+            scriptBuilder.append([NSString stringWithContentsOfFile:[bundle pathForResource:@"modern-media-controls-localized-strings" ofType:@"js"] encoding:NSUTF8StringEncoding error:nil]);
             scriptBuilder.append([NSString stringWithContentsOfFile:[bundle pathForResource:@"modern-media-controls" ofType:@"js" inDirectory:@"modern-media-controls"] encoding:NSUTF8StringEncoding error:nil]);
             m_mediaControlsScript = scriptBuilder.toString();
         }
@@ -1585,7 +1599,7 @@ void AttachmentInfo::buildSingleLine(const String& text, CTFontRef font, UIColor
 
 static BOOL getAttachmentProgress(const RenderAttachment& attachment, float& progress)
 {
-    String progressString = attachment.attachmentElement().attributeWithoutSynchronization(progressAttr);
+    auto& progressString = attachment.attachmentElement().attributeWithoutSynchronization(progressAttr);
     if (progressString.isEmpty())
         return NO;
     bool validProgress;
@@ -1647,7 +1661,7 @@ static RetainPtr<UIImage> iconForAttachment(const RenderAttachment& attachment, 
 
 AttachmentInfo::AttachmentInfo(const RenderAttachment& attachment)
 {
-    attachmentRect = FloatRect(0, 0, attachmentSize.width, attachmentSize.height);
+    attachmentRect = FloatRect(0, 0, attachment.width().toFloat(), attachment.height().toFloat());
 
     hasProgress = getAttachmentProgress(attachment, progress);
 
@@ -1771,9 +1785,11 @@ bool RenderThemeIOS::paintAttachment(const RenderObject& renderer, const PaintIn
 
     context.translate(toFloatSize(paintRect.location()));
 
-    Path borderPath = attachmentBorderPath(info);
-    paintAttachmentBorder(context, borderPath);
-    context.clipPath(borderPath);
+    if (attachment.shouldDrawBorder()) {
+        auto borderPath = attachmentBorderPath(info);
+        paintAttachmentBorder(context, borderPath);
+        context.clipPath(borderPath);
+    }
 
     context.translate(FloatSize(0, info.contentYOrigin));
 

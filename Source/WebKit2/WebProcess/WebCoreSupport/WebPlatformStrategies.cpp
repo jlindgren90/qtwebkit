@@ -324,9 +324,9 @@ void WebPlatformStrategies::getFilenamesForDataInteraction(Vector<String>& filen
     WebProcess::singleton().parentProcessConnection()->sendSync(Messages::WebPasteboardProxy::GetFilenamesForDataInteraction(pasteboardName), Messages::WebPasteboardProxy::GetFilenamesForDataInteraction::Reply(filenames), 0);
 }
 
-void WebPlatformStrategies::updatePreferredTypeIdentifiers(const Vector<String>& identifiers, const String& pasteboardName)
+void WebPlatformStrategies::updateSupportedTypeIdentifiers(const Vector<String>& identifiers, const String& pasteboardName)
 {
-    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPasteboardProxy::UpdatePreferredTypeIdentifiers(identifiers, pasteboardName), 0);
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPasteboardProxy::UpdateSupportedTypeIdentifiers(identifiers, pasteboardName), 0);
 }
 
 RefPtr<WebCore::SharedBuffer> WebPlatformStrategies::readBufferFromPasteboard(int index, const String& pasteboardType, const String& pasteboardName)
@@ -374,5 +374,32 @@ Ref<SelectionData> WebPlatformStrategies::readFromClipboard(const String& pasteb
 }
 
 #endif // PLATFORM(GTK)
+
+#if PLATFORM(WPE)
+// PasteboardStrategy
+
+void WebPlatformStrategies::getTypes(Vector<String>& types)
+{
+    WebProcess::singleton().parentProcessConnection()->sendSync(Messages::WebPasteboardProxy::GetPasteboardTypes(), Messages::WebPasteboardProxy::GetPasteboardTypes::Reply(types), 0);
+}
+
+String WebPlatformStrategies::readStringFromPasteboard(int index, const String& pasteboardType)
+{
+    String value;
+    WebProcess::singleton().parentProcessConnection()->sendSync(Messages::WebPasteboardProxy::ReadStringFromPasteboard(index, pasteboardType), Messages::WebPasteboardProxy::ReadStringFromPasteboard::Reply(value), 0);
+    return value;
+}
+
+void WebPlatformStrategies::writeToPasteboard(const WebCore::PasteboardWebContent& content)
+{
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPasteboardProxy::WriteWebContentToPasteboard(content), 0);
+}
+
+void WebPlatformStrategies::writeToPasteboard(const String& pasteboardType, const String& text)
+{
+    WebProcess::singleton().parentProcessConnection()->send(Messages::WebPasteboardProxy::WriteStringToPasteboard(pasteboardType, text), 0);
+}
+
+#endif // PLATFORM(WPE)
 
 } // namespace WebKit

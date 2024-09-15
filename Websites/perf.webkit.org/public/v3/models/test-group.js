@@ -32,6 +32,7 @@ class TestGroup extends LabeledObject {
         this._isHidden = object.hidden;
     }
 
+    task() { return AnalysisTask.findById(this._taskId); }
     createdAt() { return this._createdAt; }
     isHidden() { return this._isHidden; }
     buildRequests() { return this._buildRequests; }
@@ -48,11 +49,7 @@ class TestGroup extends LabeledObject {
         return request ? request.test() : null;
     }
 
-    platform()
-    {
-        const request = this._lastRequest();
-        return request ? request.platform() : null;
-    }
+    platform() { return this._platform; }
 
     _lastRequest()
     {
@@ -89,15 +86,15 @@ class TestGroup extends LabeledObject {
         const commitSetLabelMap = new Map;
         for (const request of orderedBuildRequests) {
             const set = request.commitSet();
-            if (!this._requestedCommitSets.includes(set))
-                this._requestedCommitSets.push(set);
+            if (!requestedCommitSets.includes(set))
+                requestedCommitSets.push(set);
         }
         return requestedCommitSets;
     }
 
     requestsForCommitSet(commitSet)
     {
-        this._orderedBuildRequests().filter((request) => request.commitSet() == commitSet);
+        return this._orderedBuildRequests().filter((request) => request.commitSet() == commitSet);
     }
 
     labelForCommitSet(commitSet)
@@ -199,7 +196,7 @@ class TestGroup extends LabeledObject {
         return PrivilegedAPI.sendRequest('create-test-group', params).then((data) => {
             return AnalysisTask.fetchById(data['taskId']);
         }).then((task) => {
-            return this._fetchTestGroupsForTask(task.id()).then(() => task);
+            return this.fetchForTask(task.id()).then(() => task);
         });
     }
 
@@ -209,7 +206,7 @@ class TestGroup extends LabeledObject {
         const revisionSets = this._revisionSetsFromCommitSets(commitSets);
         const params = {task: task.id(), name: groupName, platform: platform.id(), test: test.id(), repetitionCount, revisionSets};
         return PrivilegedAPI.sendRequest('create-test-group', params).then((data) => {
-            return this._fetchTestGroupsForTask(task.id());
+            return this.fetchForTask(task.id(), true);
         });
     }
 
@@ -222,7 +219,7 @@ class TestGroup extends LabeledObject {
             name: name,
             repetitionCount: repetitionCount,
             revisionSets: revisionSets,
-        }).then((data) => this._fetchTestGroupsForTask(task.id()));
+        }).then((data) => this.fetchForTask(data['taskId'], true));
     }
 
     static _revisionSetsFromCommitSets(commitSets)
@@ -244,14 +241,14 @@ class TestGroup extends LabeledObject {
         });
     }
 
-    static _fetchTestGroupsForTask(taskId)
+    static findAllByTask(taskId)
     {
-        return this.cachedFetch('/api/test-groups', {task: taskId}, true).then((data) => this._createModelsFromFetchedTestGroups(data));
+        return TestGroup.all().filter((testGroup) => testGroup._taskId == taskId);
     }
 
-    static fetchByTask(taskId)
+    static fetchForTask(taskId, ignoreCache = false)
     {
-        return this.cachedFetch('/api/test-groups', {task: taskId}).then(this._createModelsFromFetchedTestGroups.bind(this));
+        return this.cachedFetch('/api/test-groups', {task: taskId}, ignoreCache).then(this._createModelsFromFetchedTestGroups.bind(this));
     }
 
     static _createModelsFromFetchedTestGroups(data)

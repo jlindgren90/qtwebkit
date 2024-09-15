@@ -25,6 +25,7 @@
 #include "JSObject.h"
 
 #include "ButterflyInlines.h"
+#include "CatchScope.h"
 #include "CustomGetterSetter.h"
 #include "DatePrototype.h"
 #include "ErrorConstructor.h"
@@ -69,9 +70,9 @@ const char* const UnconfigurablePropertyChangeConfigurabilityError = "Attempting
 const char* const UnconfigurablePropertyChangeEnumerabilityError = "Attempting to change enumerable attribute of unconfigurable property.";
 const char* const UnconfigurablePropertyChangeWritabilityError = "Attempting to change writable attribute of unconfigurable property.";
 
-const ClassInfo JSObject::s_info = { "Object", 0, 0, CREATE_METHOD_TABLE(JSObject) };
+const ClassInfo JSObject::s_info = { "Object", nullptr, nullptr, nullptr, CREATE_METHOD_TABLE(JSObject) };
 
-const ClassInfo JSFinalObject::s_info = { "Object", &Base::s_info, 0, CREATE_METHOD_TABLE(JSFinalObject) };
+const ClassInfo JSFinalObject::s_info = { "Object", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(JSFinalObject) };
 
 static inline void getClassPropertyNames(ExecState* exec, const ClassInfo* classInfo, PropertyNameArray& propertyNames, EnumerationMode mode)
 {
@@ -748,7 +749,7 @@ bool ordinarySetSlow(ExecState* exec, JSObject* object, PropertyName propertyNam
 // ECMA 8.6.2.2
 bool JSObject::put(JSCell* cell, ExecState* exec, PropertyName propertyName, JSValue value, PutPropertySlot& slot)
 {
-    return putInline(cell, exec, propertyName, value, slot);
+    return putInlineForJSObject(cell, exec, propertyName, value, slot);
 }
 
 bool JSObject::putInlineSlow(ExecState* exec, PropertyName propertyName, JSValue value, PutPropertySlot& slot)
@@ -802,13 +803,13 @@ bool JSObject::putInlineSlow(ExecState* exec, PropertyName propertyName, JSValue
             ProxyObject* proxy = jsCast<ProxyObject*>(obj);
             return proxy->ProxyObject::put(proxy, exec, propertyName, value, slot);
         }
-        JSValue prototype = obj->getPrototypeDirect();
+        JSValue prototype = obj->getPrototype(vm, exec);
+        RETURN_IF_EXCEPTION(scope, false);
         if (prototype.isNull())
             break;
         obj = asObject(prototype);
     }
 
-    ASSERT(!structure(vm)->prototypeChainMayInterceptStoreTo(vm, propertyName) || obj == this);
     if (!putDirectInternal<PutModePut>(vm, propertyName, value, 0, slot))
         return typeError(exec, scope, slot.isStrictMode(), ASCIILiteral(ReadonlyPropertyWriteError));
     return true;
@@ -1001,7 +1002,7 @@ void JSObject::notifyPresenceOfIndexedAccessors(VM& vm)
 
 Butterfly* JSObject::createInitialIndexedStorage(VM& vm, unsigned length)
 {
-    ASSERT(length < MAX_ARRAY_INDEX);
+    ASSERT(length <= MAX_STORAGE_VECTOR_LENGTH);
     IndexingType oldType = indexingType();
     ASSERT_UNUSED(oldType, !hasIndexedProperties(oldType));
     ASSERT(!structure()->needsSlowPutIndexing());
@@ -1963,7 +1964,7 @@ JSValue JSObject::ordinaryToPrimitive(ExecState* exec, PreferredPrimitiveType hi
             return value;
     }
 
-    ASSERT(!scope.exception());
+    scope.assertNoException();
 
     return throwTypeError(exec, scope, ASCIILiteral("No default value"));
 }
@@ -2036,12 +2037,16 @@ bool JSObject::hasInstance(ExecState* exec, JSValue value, JSValue hasInstanceVa
         MarkedArgumentBuffer args;
         args.append(value);
         JSValue result = call(exec, hasInstanceValue, callType, callData, this, args);
+        RETURN_IF_EXCEPTION(scope, false);
         return result.toBoolean(exec);
     }
 
     TypeInfo info = structure(vm)->typeInfo();
-    if (info.implementsDefaultHasInstance())
-        return defaultHasInstance(exec, value, get(exec, exec->propertyNames().prototype));
+    if (info.implementsDefaultHasInstance()) {
+        JSValue prototype = get(exec, exec->propertyNames().prototype);
+        RETURN_IF_EXCEPTION(scope, false);
+        return defaultHasInstance(exec, value, prototype);
+    }
     if (info.implementsHasInstance())
         return methodTable(vm)->customHasInstance(this, exec, value);
     throwException(exec, scope, createInvalidInstanceofParameterErrorNotFunction(exec, this));
@@ -2050,7 +2055,10 @@ bool JSObject::hasInstance(ExecState* exec, JSValue value, JSValue hasInstanceVa
 
 bool JSObject::hasInstance(ExecState* exec, JSValue value)
 {
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
     JSValue hasInstanceValue = get(exec, exec->propertyNames().hasInstanceSymbol);
+    RETURN_IF_EXCEPTION(scope, false);
 
     return hasInstance(exec, value, hasInstanceValue);
 }
@@ -2356,6 +2364,13 @@ bool JSObject::putIndexedDescriptor(ExecState* exec, SparseArrayEntry* entryInMa
     return true;
 }
 
+ALWAYS_INLINE static bool canDoFastPutDirectIndex(JSObject* object)
+{
+    return isJSArray(object)
+        || isJSFinalObject(object)
+        || TypeInfo::isArgumentsType(object->type());
+}
+
 // Defined in ES5.1 8.12.9
 bool JSObject::defineOwnIndexedProperty(ExecState* exec, unsigned index, const PropertyDescriptor& descriptor, bool throwException)
 {
@@ -2369,7 +2384,7 @@ bool JSObject::defineOwnIndexedProperty(ExecState* exec, unsigned index, const P
         // FIXME: this will pessimistically assume that if attributes are missing then they'll default to false
         // however if the property currently exists missing attributes will override from their current 'true'
         // state (i.e. defineOwnProperty could be used to set a value without needing to entering 'SparseMode').
-        if (!descriptor.attributes() && descriptor.value()) {
+        if (!descriptor.attributes() && descriptor.value() && canDoFastPutDirectIndex(this)) {
             ASSERT(!descriptor.isAccessorDescriptor());
             return putDirectIndex(exec, index, descriptor.value(), 0, throwException ? PutDirectIndexShouldThrow : PutDirectIndexShouldNotThrow);
         }
@@ -2808,9 +2823,15 @@ bool JSObject::putDirectIndexBeyondVectorLengthWithArrayStorage(ExecState* exec,
     return true;
 }
 
-bool JSObject::putDirectIndexBeyondVectorLength(ExecState* exec, unsigned i, JSValue value, unsigned attributes, PutDirectIndexMode mode)
+bool JSObject::putDirectIndexSlowOrBeyondVectorLength(ExecState* exec, unsigned i, JSValue value, unsigned attributes, PutDirectIndexMode mode)
 {
     VM& vm = exec->vm();
+    
+    if (!canDoFastPutDirectIndex(this)) {
+        PropertyDescriptor descriptor;
+        descriptor.setDescriptor(value, attributes);
+        return methodTable(vm)->defineOwnProperty(this, exec, Identifier::from(exec, i), descriptor, mode == PutDirectIndexShouldThrow);
+    }
 
     // i should be a valid array index that is outside of the current vector.
     ASSERT(i <= MAX_ARRAY_INDEX);
@@ -2854,7 +2875,7 @@ bool JSObject::putDirectIndexBeyondVectorLength(ExecState* exec, unsigned i, JSV
         }
         if (!value.isInt32()) {
             convertInt32ForValue(vm, value);
-            return putDirectIndexBeyondVectorLength(exec, i, value, attributes, mode);
+            return putDirectIndexSlowOrBeyondVectorLength(exec, i, value, attributes, mode);
         }
         putByIndexBeyondVectorLengthWithoutAttributes<Int32Shape>(exec, i, value);
         return true;
@@ -2868,12 +2889,12 @@ bool JSObject::putDirectIndexBeyondVectorLength(ExecState* exec, unsigned i, JSV
         }
         if (!value.isNumber()) {
             convertDoubleToContiguous(vm);
-            return putDirectIndexBeyondVectorLength(exec, i, value, attributes, mode);
+            return putDirectIndexSlowOrBeyondVectorLength(exec, i, value, attributes, mode);
         }
         double valueAsDouble = value.asNumber();
         if (valueAsDouble != valueAsDouble) {
             convertDoubleToContiguous(vm);
-            return putDirectIndexBeyondVectorLength(exec, i, value, attributes, mode);
+            return putDirectIndexSlowOrBeyondVectorLength(exec, i, value, attributes, mode);
         }
         putByIndexBeyondVectorLengthWithoutAttributes<DoubleShape>(exec, i, value);
         return true;
@@ -3113,7 +3134,7 @@ bool JSObject::ensureLengthSlow(VM& vm, unsigned length)
 {
     Butterfly* butterfly = m_butterfly.get();
     
-    ASSERT(length < MAX_ARRAY_INDEX);
+    ASSERT(length <= MAX_STORAGE_VECTOR_LENGTH);
     ASSERT(hasContiguous(indexingType()) || hasInt32(indexingType()) || hasDouble(indexingType()) || hasUndecided(indexingType()));
     ASSERT(length > butterfly->vectorLength());
     
@@ -3165,8 +3186,7 @@ bool JSObject::ensureLengthSlow(VM& vm, unsigned length)
 
 void JSObject::reallocateAndShrinkButterfly(VM& vm, unsigned length)
 {
-    ASSERT(length < MAX_ARRAY_INDEX);
-    ASSERT(length < MAX_STORAGE_VECTOR_LENGTH);
+    ASSERT(length <= MAX_STORAGE_VECTOR_LENGTH);
     ASSERT(hasContiguous(indexingType()) || hasInt32(indexingType()) || hasDouble(indexingType()) || hasUndecided(indexingType()));
     ASSERT(m_butterfly.get()->vectorLength() > length);
     ASSERT(!m_butterfly.get()->indexingHeader()->preCapacity(structure()));

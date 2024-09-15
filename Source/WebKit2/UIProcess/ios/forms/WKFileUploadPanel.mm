@@ -45,9 +45,9 @@
 #import <CoreMedia/CoreMedia.h>
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <WebCore/LocalizedStrings.h>
-#import <WebCore/SoftLinking.h>
 #import <WebKit/WebNSFileManagerExtras.h>
 #import <wtf/RetainPtr.h>
+#import <wtf/SoftLinking.h>
 
 using namespace WebKit;
 
@@ -614,7 +614,7 @@ static NSArray *UTIsForMIMETypes(NSArray *mimeTypes)
 - (void)_uploadItemForImageData:(NSData *)imageData imageName:(NSString *)imageName successBlock:(void (^)(_WKFileUploadItem *))successBlock failureBlock:(void (^)(void))failureBlock
 {
     ASSERT_ARG(imageData, imageData);
-    ASSERT(!isMainThread());
+    ASSERT(!RunLoop::isMain());
 
     NSString * const kTemporaryDirectoryName = @"WKWebFileUpload";
 

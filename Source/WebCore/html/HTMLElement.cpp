@@ -58,6 +58,7 @@
 #include "NodeTraversal.h"
 #include "RenderElement.h"
 #include "ScriptController.h"
+#include "ShadowRoot.h"
 #include "SimulatedClick.h"
 #include "StyleProperties.h"
 #include "SubframeLoader.h"
@@ -93,10 +94,10 @@ String HTMLElement::nodeName() const
 static inline CSSValueID unicodeBidiAttributeForDirAuto(HTMLElement& element)
 {
     if (element.hasTagName(preTag) || element.hasTagName(textareaTag))
-        return CSSValueWebkitPlaintext;
+        return CSSValuePlaintext;
     // FIXME: For bdo element, dir="auto" should result in "bidi-override isolate" but we don't support having multiple values in unicode-bidi yet.
     // See https://bugs.webkit.org/show_bug.cgi?id=73164.
-    return CSSValueWebkitIsolate;
+    return CSSValueIsolate;
 }
 
 unsigned HTMLElement::parseBorderWidthAttribute(const AtomicString& value) const
@@ -368,15 +369,15 @@ const AtomicString& HTMLElement::eventNameForEventHandlerAttribute(const Qualifi
 
     // Event handler attributes have no namespace.
     if (!attributeName.namespaceURI().isNull())
-        return nullAtom;
+        return nullAtom();
 
     // Fast early return for names that don't start with "on".
     AtomicStringImpl& localName = *attributeName.localName().impl();
     if (localName.length() < 3 || localName[0] != 'o' || localName[1] != 'n')
-        return nullAtom;
+        return nullAtom();
 
     auto it = map.find(&localName);
-    return it == map.end() ? nullAtom : it->value;
+    return it == map.end() ? nullAtom() : it->value;
 }
 
 const AtomicString& HTMLElement::eventNameForEventHandlerAttribute(const QualifiedName& attributeName)
@@ -401,6 +402,10 @@ Node::Editability HTMLElement::editabilityFromContentEditableAttr(const Node& no
             }
         }
     }
+
+    auto* containingShadowRoot = node.containingShadowRoot();
+    if (containingShadowRoot && containingShadowRoot->mode() == ShadowRootMode::UserAgent)
+        return Editability::ReadOnly;
 
     auto& document = node.document();
     if (is<HTMLDocument>(document))
@@ -484,7 +489,7 @@ static inline const AtomicString& toValidDirValue(const AtomicString& value)
         return rtlValue;
     if (equalLettersIgnoringASCIICase(value, "auto"))
         return autoValue;
-    return nullAtom;
+    return nullAtom();
 }
 
 const AtomicString& HTMLElement::dir() const
@@ -809,7 +814,7 @@ TextDirection HTMLElement::directionality(Node** strongDirectionalityTextNode) c
 
         // Skip elements with valid dir attribute
         if (is<Element>(*node)) {
-            AtomicString dirAttributeValue = downcast<Element>(*node).attributeWithoutSynchronization(dirAttr);
+            auto& dirAttributeValue = downcast<Element>(*node).attributeWithoutSynchronization(dirAttr);
             if (isLTROrRTLIgnoringCase(dirAttributeValue) || equalLettersIgnoringASCIICase(dirAttributeValue, "auto")) {
                 node = NodeTraversal::nextSkippingChildren(*node, this);
                 continue;
@@ -1054,7 +1059,7 @@ void HTMLElement::setAutocapitalize(const AtomicString& value)
 
 bool HTMLElement::shouldAutocorrect() const
 {
-    auto autocorrectValue = attributeWithoutSynchronization(HTMLNames::autocorrectAttr);
+    auto& autocorrectValue = attributeWithoutSynchronization(HTMLNames::autocorrectAttr);
     // Unrecognized values fall back to "on".
     return !equalLettersIgnoringASCIICase(autocorrectValue, "off");
 }

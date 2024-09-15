@@ -53,13 +53,7 @@ NEVER_INLINE NO_RETURN_DUE_TO_CRASH void webAssemblyCouldntUnprotectMemory() { C
 
 void* mmapBytes(size_t bytes)
 {
-#if OS(DARWIN)
-    int fd = VM_TAG_FOR_WEBASSEMBLY_MEMORY;
-#else
-    int fd = -1;
-#endif
-
-    void* location = mmap(nullptr, bytes, PROT_NONE, MAP_PRIVATE | MAP_ANON, fd, 0);
+    void* location = mmap(nullptr, bytes, PROT_NONE, MAP_PRIVATE | MAP_ANON, VM_TAG_FOR_WEBASSEMBLY_MEMORY, 0);
     return location == MAP_FAILED ? nullptr : location;
 }
 
@@ -151,9 +145,9 @@ void* tryGetFastMemory(VM& vm)
             dataLogLnIf(verbose, "tryGetFastMemory re-using ", RawPointer(memory));
         else if (currentlyAllocatedFastMemories.load(std::memory_order_acquire) >= 1) {
             // No memory was available in the cache, but we know there's at least one currently live. Maybe GC will find a free one.
-            // FIXME collectSync(Full) and custom eager destruction of wasm memories could be better. For now use collectAllGarbage. Also, nothing tells us the current VM is holding onto fast memories. https://bugs.webkit.org/show_bug.cgi?id=170748
+            // FIXME collectSync(Full) and custom eager destruction of wasm memories could be better. For now use collectNow. Also, nothing tells us the current VM is holding onto fast memories. https://bugs.webkit.org/show_bug.cgi?id=170748
             dataLogLnIf(verbose, "tryGetFastMemory waiting on GC and retrying");
-            vm.heap.collectAllGarbage();
+            vm.heap.collectNow(Sync, CollectionScope::Full);
             memory = tryGetCachedFastMemory();
             dataLogLnIf(verbose, "tryGetFastMemory waited on GC and retried ", memory? "successfully" : "unseccessfully");
         }
@@ -413,6 +407,8 @@ RefPtr<Memory> Memory::create(VM& vm, PageCount initial, PageCount maximum)
 
     // We're stuck with a slow memory which may be slower or impossible to grow.
     if (!memory) {
+        if (!initialBytes)
+            return adoptRef(new Memory(initial, maximum));
         memory = tryGetSlowMemory(initialBytes);
         if (memory) {
             mappedCapacityBytes = initialBytes;

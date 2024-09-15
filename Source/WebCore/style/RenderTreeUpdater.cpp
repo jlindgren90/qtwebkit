@@ -27,6 +27,7 @@
 #include "RenderTreeUpdater.h"
 
 #include "AXObjectCache.h"
+#include "CSSAnimationController.h"
 #include "ComposedTreeAncestorIterator.h"
 #include "ComposedTreeIterator.h"
 #include "Document.h"
@@ -269,7 +270,10 @@ void RenderTreeUpdater::updateElementRenderer(Element& element, const Style::Ele
 
     bool hasDisplayContents = update.style->display() == CONTENTS;
     if (hasDisplayContents != element.hasDisplayContents()) {
-        element.setHasDisplayContents(hasDisplayContents);
+        if (!hasDisplayContents)
+            element.resetComputedStyle();
+        else
+            element.storeDisplayContentsStyle(RenderStyle::clonePtr(*update.style));
         // Render tree position needs to be recomputed as rendering siblings may be found from the display:contents subtree.
         renderTreePosition().invalidateNextSibling();
     }
@@ -353,8 +357,10 @@ void RenderTreeUpdater::createRenderer(Element& element, RenderStyle&& style)
     auto& initialStyle = newRenderer->style();
     std::unique_ptr<RenderStyle> animatedStyle;
     newRenderer->animation().updateAnimations(*newRenderer, initialStyle, animatedStyle);
-    if (animatedStyle)
+    if (animatedStyle) {
         newRenderer->setStyleInternal(WTFMove(*animatedStyle));
+        newRenderer->setHasInitialAnimatedStyle(true);
+    }
 
     newRenderer->initializeStyle();
 

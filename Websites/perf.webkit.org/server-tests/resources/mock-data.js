@@ -5,18 +5,7 @@ var crypto = require('crypto');
 MockData = {
     resetV3Models: function ()
     {
-        AnalysisTask._fetchAllPromise = null;
-        AnalysisTask.clearStaticMap();
-        BuildRequest.clearStaticMap();
-        CommitLog.clearStaticMap();
-        Metric.clearStaticMap();
-        Platform.clearStaticMap();
-        Repository.clearStaticMap();
-        CommitSet.clearStaticMap();
-        Test.clearStaticMap();
-        TestGroup.clearStaticMap();
-        Triggerable.clearStaticMap();
-        TriggerableRepositoryGroup.clearStaticMap();
+        Manifest.reset();
     },
     emptyTriggeragbleId() { return 1001; },
     someTestId() { return 200; },
@@ -25,21 +14,23 @@ MockData = {
     macosRepositoryId() { return 9; },
     webkitRepositoryId() { return 11; },
     gitWebkitRepositoryId() { return 111; },
-    addMockData: function (db, statusList)
+    sharedRepositoryId() { return 14; },
+    addMockConfiguration: function (db)
     {
-        if (!statusList)
-            statusList = ['pending', 'pending', 'pending', 'pending'];
         return Promise.all([
             db.insert('build_triggerables', {id: 1000, name: 'build-webkit'}),
             db.insert('build_slaves', {id: 20, name: 'sync-slave', password_hash: crypto.createHash('sha256').update('password').digest('hex')}),
             db.insert('repositories', {id: this.macosRepositoryId(), name: 'macOS'}),
             db.insert('repositories', {id: this.webkitRepositoryId(), name: 'WebKit'}),
+            db.insert('repositories', {id: this.sharedRepositoryId(), name: 'Shared'}),
             db.insert('triggerable_repository_groups', {id: 2001, name: 'webkit-svn', triggerable: 1000}),
             db.insert('triggerable_repositories', {repository: this.macosRepositoryId(), group: 2001}),
             db.insert('triggerable_repositories', {repository: this.webkitRepositoryId(), group: 2001}),
             db.insert('commits', {id: 87832, repository: this.macosRepositoryId(), revision: '10.11 15A284'}),
             db.insert('commits', {id: 93116, repository: this.webkitRepositoryId(), revision: '191622', time: (new Date(1445945816878)).toISOString()}),
             db.insert('commits', {id: 96336, repository: this.webkitRepositoryId(), revision: '192736', time: (new Date(1448225325650)).toISOString()}),
+            db.insert('commits', {id: 111168, repository: this.sharedRepositoryId(), revision: '80229', time: '2016-03-02T23:17:54.3Z'}),
+            db.insert('commits', {id: 111169, repository: this.sharedRepositoryId(), revision: '80230', time: '2016-03-02T23:37:18.0Z'}),
             db.insert('builds', {id: 901, number: '901', time: '2015-10-27T12:05:27.1Z'}),
             db.insert('platforms', {id: MockData.somePlatformId(), name: 'some platform'}),
             db.insert('platforms', {id: MockData.otherPlatformId(), name: 'other platform'}),
@@ -48,6 +39,14 @@ MockData = {
             db.insert('test_configurations', {id: 301, metric: 300, platform: MockData.somePlatformId(), type: 'current'}),
             db.insert('test_configurations', {id: 302, metric: 300, platform: MockData.otherPlatformId(), type: 'current'}),
             db.insert('test_runs', {id: 801, config: 301, build: 901, mean_cache: 100}),
+        ]);
+    },
+    addMockData: function (db, statusList)
+    {
+        if (!statusList)
+            statusList = ['pending', 'pending', 'pending', 'pending'];
+        return Promise.all([
+            this.addMockConfiguration(db),
             db.insert('commit_sets', {id: 401}),
             db.insert('commit_set_items', {set: 401, commit: 87832}),
             db.insert('commit_set_items', {set: 401, commit: 93116}),
@@ -124,17 +123,23 @@ MockData = {
             'repositoryGroups': {
                 'webkit-svn': {
                     'repositories': {'WebKit': {}, 'macOS': {}},
-                    'properties': {
-                        'os': '<macOS>',
-                        'wk': '<WebKit>',
+                    'testProperties': {
+                        'os': {'revision': 'macOS'},
+                        'wk': {'revision': 'WebKit'},
                     }
                 }
             },
-            'configurations': [
+            'types': {
+                'some-test': {'test': ['some test']}
+            },
+            'builders': {
+                'builder-1': {'builder': 'some-builder-1'},
+            },
+            'testConfigurations': [
                 {
-                    'platform': 'some platform',
-                    'test': ['some test'],
-                    'builder': 'some-builder-1',
+                    'platforms': ['some platform'],
+                    'types': ['some-test'],
+                    'builders': ['builder-1'],
                 }
             ]
         }
@@ -148,22 +153,24 @@ MockData = {
             'repositoryGroups': {
                 'webkit-svn': {
                     'repositories': {'WebKit': {}, 'macOS': {}},
-                    'properties': {
-                        'os': '<macOS>',
-                        'wk': '<WebKit>',
+                    'testProperties': {
+                        'os': {'revision': 'macOS'},
+                        'wk': {'revision': 'WebKit'},
                     }
                 }
             },
-            'configurations': [
+            'types': {
+                'some-test': {'test': ['some test']},
+            },
+            'builders': {
+                'builder-1': {'builder': 'some-builder-1'},
+                'builder-2': {'builder': 'some builder 2'},
+            },
+            'testConfigurations': [
                 {
-                    'platform': 'some platform',
-                    'test': ['some test'],
-                    'builder': 'some-builder-1',
-                },
-                {
-                    'platform': 'some platform',
-                    'test': ['some test'],
-                    'builder': 'some builder 2',
+                    'platforms': ['some platform'],
+                    'types': ['some-test'],
+                    'builders': ['builder-1', 'builder-2'],
                 }
             ]
         }
@@ -203,7 +210,7 @@ MockData = {
             ],
             'currentStep': {},
             'eta': 721,
-            'number': 124,
+            'number': options.buildNumber || 124,
             'source': {
                 'branch': '',
                 'changes': [],
@@ -228,7 +235,7 @@ MockData = {
             ],
             'currentStep': null,
             'eta': null,
-            'number': 123,
+            'number': options.buildNumber || 123,
             'source': {
                 'branch': '',
                 'changes': [],

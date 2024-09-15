@@ -29,12 +29,14 @@
 #include "CachedResourceLoader.h"
 #include "Document.h"
 #include "Frame.h"
+#include "FrameLoader.h"
 #include "Page.h"
 #include "PageConsoleClient.h"
 #include "ResourceError.h"
 #include "ResourceRequest.h"
 #include "ResourceResponse.h"
 #include "SecurityOrigin.h"
+#include "SharedBuffer.h"
 #include "TransformSource.h"
 #include "XMLDocumentParser.h"
 #include "XSLTExtensions.h"
@@ -49,7 +51,7 @@
 #include <wtf/unicode/UTF8.h>
 
 #if OS(DARWIN) && !PLATFORM(GTK)
-#include "SoftLinking.h"
+#include <wtf/SoftLinking.h>
 
 SOFT_LINK_LIBRARY(libxslt);
 SOFT_LINK(libxslt, xsltFreeStylesheet, void, (xsltStylesheetPtr sheet), (sheet))
@@ -276,9 +278,9 @@ static inline xmlDocPtr xmlDocPtrFromNode(Node& sourceNode, bool& shouldDelete)
 
     xmlDocPtr sourceDoc = nullptr;
     if (sourceIsDocument && ownerDocument->transformSource())
-        sourceDoc = (xmlDocPtr)ownerDocument->transformSource()->platformSource();
+        sourceDoc = ownerDocument->transformSource()->platformSource();
     if (!sourceDoc) {
-        sourceDoc = (xmlDocPtr)xmlDocPtrForString(ownerDocument->cachedResourceLoader(), createMarkup(sourceNode),
+        sourceDoc = xmlDocPtrForString(ownerDocument->cachedResourceLoader(), createMarkup(sourceNode),
             sourceIsDocument ? ownerDocument->url().string() : String());
         shouldDelete = sourceDoc;
     }

@@ -85,7 +85,7 @@ struct PrintInfo;
 - (void)_restorePageScrollPosition:(std::optional<WebCore::FloatPoint>)scrollPosition scrollOrigin:(WebCore::FloatPoint)scrollOrigin previousObscuredInset:(WebCore::FloatBoxExtent)insets scale:(double)scale;
 - (void)_restorePageStateToUnobscuredCenter:(std::optional<WebCore::FloatPoint>)center scale:(double)scale; // FIXME: needs scroll origin?
 
-- (PassRefPtr<WebKit::ViewSnapshot>)_takeViewSnapshot;
+- (RefPtr<WebKit::ViewSnapshot>)_takeViewSnapshot;
 
 - (void)_scrollToContentScrollPosition:(WebCore::FloatPoint)scrollPosition scrollOrigin:(WebCore::IntPoint)scrollOrigin;
 - (BOOL)_scrollToRect:(WebCore::FloatRect)targetRect origin:(WebCore::FloatPoint)origin minimumScrollDistance:(float)minimumScrollDistance;
@@ -119,7 +119,18 @@ struct PrintInfo;
 - (void)_showPasswordViewWithDocumentName:(NSString *)documentName passwordHandler:(void (^)(NSString *))passwordHandler;
 - (void)_hidePasswordView;
 
-- (void)_updateScrollViewInsetAdjustmentBehavior;
+- (void)_didChangeAvoidsUnsafeArea:(BOOL)avoidsUnsafeArea;
+
+- (void)_addShortcut:(id)sender;
+- (void)_arrowKey:(id)sender;
+- (void)_define:(id)sender;
+- (void)_lookup:(id)sender;
+- (void)_reanalyze:(id)sender;
+- (void)_share:(id)sender;
+- (void)_showTextStyleOptions:(id)sender;
+- (void)_promptForReplace:(id)sender;
+- (void)_transliterateChinese:(id)sender;
+- (void)replace:(id)sender;
 
 @property (nonatomic, readonly) WKPasswordView *_passwordView;
 
@@ -128,6 +139,7 @@ struct PrintInfo;
 @property (nonatomic, readonly) WKWebViewContentProviderRegistry *_contentProviderRegistry;
 
 @property (nonatomic, readonly) WKSelectionGranularity _selectionGranularity;
+@property (nonatomic, readonly) BOOL _allowsBlockSelection;
 
 @property (nonatomic, readonly) BOOL _allowsDoubleTapGestures;
 @property (nonatomic, readonly) UIEdgeInsets _computedContentInset;

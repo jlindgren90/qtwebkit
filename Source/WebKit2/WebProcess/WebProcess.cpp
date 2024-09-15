@@ -34,6 +34,7 @@
 #include "DrawingArea.h"
 #include "EventDispatcher.h"
 #include "InjectedBundle.h"
+#include "LibWebRTCNetwork.h"
 #include "Logging.h"
 #include "NetworkConnectionToWebProcessMessages.h"
 #include "NetworkProcessConnection.h"
@@ -101,7 +102,6 @@
 #include <WebCore/ResourceHandle.h>
 #include <WebCore/ResourceLoadObserver.h>
 #include <WebCore/ResourceLoadStatistics.h>
-#include <WebCore/ResourceLoadStatisticsStore.h>
 #include <WebCore/RuntimeApplicationChecks.h>
 #include <WebCore/SchemeRegistry.h>
 #include <WebCore/SecurityOrigin.h>
@@ -113,6 +113,10 @@
 #include <wtf/HashCountedSet.h>
 #include <wtf/RunLoop.h>
 #include <wtf/text/StringHash.h>
+
+#if PLATFORM(WAYLAND)
+#include "WaylandCompositorDisplay.h"
+#endif
 
 #if PLATFORM(COCOA)
 #include "CookieStorageShim.h"
@@ -128,7 +132,7 @@
 #include "WebToDatabaseProcessConnection.h"
 #endif
 
-#if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
+#if ENABLE(NOTIFICATIONS)
 #include "WebNotificationManager.h"
 #endif
 
@@ -166,11 +170,9 @@ WebProcess::WebProcess()
     , m_pluginProcessConnectionManager(PluginProcessConnectionManager::create())
 #endif
     , m_nonVisibleProcessCleanupTimer(*this, &WebProcess::nonVisibleProcessCleanupTimerFired)
-    , m_statisticsChangedTimer(*this, &WebProcess::statisticsChangedTimerFired)
 #if PLATFORM(IOS)
     , m_webSQLiteDatabaseTracker(*this)
 #endif
-    , m_resourceLoadStatisticsStore(WebCore::ResourceLoadStatisticsStore::create())
 {
     // Initialize our platform strategies.
     WebPlatformStrategies::initialize();
@@ -182,7 +184,7 @@ WebProcess::WebProcess()
     addSupplement<WebCookieManager>();
     addSupplement<AuthenticationManager>();
 
-#if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
+#if ENABLE(NOTIFICATIONS)
     addSupplement<WebNotificationManager>();
 #endif
 
@@ -196,11 +198,9 @@ WebProcess::WebProcess()
 
     m_plugInAutoStartOriginHashes.add(SessionID::defaultSessionID(), HashMap<unsigned, double>());
 
-    ResourceLoadObserver::sharedObserver().setStatisticsStore(m_resourceLoadStatisticsStore.copyRef());
-    m_resourceLoadStatisticsStore->setNotificationCallback([this] {
-        if (m_statisticsChangedTimer.isActive())
-            return;
-        m_statisticsChangedTimer.startOneShot(5_s);
+    ResourceLoadObserver::shared().setNotificationCallback([this] (Vector<ResourceLoadStatistics>&& statistics) {
+        ASSERT(!statistics.isEmpty());
+        parentProcessConnection()->send(Messages::WebResourceLoadStatisticsStore::ResourceLoadStatisticsUpdated(WTFMove(statistics)), 0);
     });
 }
 
@@ -249,6 +249,8 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
 {    
     ASSERT(m_pageMap.isEmpty());
 
+    WebCore::setPresentingApplicationPID(parameters.presentingApplicationPID);
+
 #if OS(LINUX)
     if (parameters.memoryPressureMonitorHandle.fileDescriptor() != -1)
         MemoryPressureHandler::singleton().setMemoryPressureMonitorHandle(parameters.memoryPressureMonitorHandle.releaseFileDescriptor());
@@ -275,6 +277,9 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
             else
                 parentProcessConnection()->send(Messages::WebProcessProxy::DidExceedInactiveMemoryLimit(), 0);
         });
+        memoryPressureHandler.setDidExceedInactiveLimitWhileActiveCallback([this] () {
+            parentProcessConnection()->send(Messages::WebProcessProxy::DidExceedInactiveMemoryLimitWhileActive(), 0);
+        });
 #endif
         memoryPressureHandler.setMemoryPressureStatusChangedCallback([this](bool isUnderMemoryPressure) {
             if (parentProcessConnection())
@@ -283,11 +288,11 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
         memoryPressureHandler.install();
     }
 
-    if (!parameters.injectedBundlePath.isEmpty())
-        m_injectedBundle = InjectedBundle::create(parameters, transformHandlesToObjects(parameters.initializationUserData.object()).get());
-
     for (size_t i = 0, size = parameters.additionalSandboxExtensionHandles.size(); i < size; ++i)
         SandboxExtension::consumePermanently(parameters.additionalSandboxExtensionHandles[i]);
+
+    if (!parameters.injectedBundlePath.isEmpty())
+        m_injectedBundle = InjectedBundle::create(parameters, transformHandlesToObjects(parameters.initializationUserData.object()).get());
 
     for (auto& supplement : m_supplements.values())
         supplement->initialize(parameters);
@@ -303,10 +308,6 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
     m_applicationCacheStorage = ApplicationCacheStorage::create(parameters.applicationCacheDirectory, parameters.applicationCacheFlatFileSubdirectoryName);
 #if PLATFORM(IOS)
     m_applicationCacheStorage->setDefaultOriginQuota(25ULL * 1024 * 1024);
-#endif
-
-#if PLATFORM(WAYLAND)
-    m_waylandCompositorDisplayName = parameters.waylandCompositorDisplayName;
 #endif
 
 #if ENABLE(VIDEO)
@@ -387,17 +388,12 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
     audit_token_t auditToken;
     if (parentProcessConnection()->getAuditToken(auditToken)) {
         RetainPtr<CFDataRef> auditData = adoptCF(CFDataCreate(nullptr, (const UInt8*)&auditToken, sizeof(auditToken)));
-        Inspector::RemoteInspector::singleton().setParentProcessInformation(presenterApplicationPid(), auditData);
+        Inspector::RemoteInspector::singleton().setParentProcessInformation(WebCore::presentingApplicationPID(), auditData);
     }
 #endif
 
 #if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
-    for (auto hostIter = parameters.pluginLoadClientPolicies.begin(); hostIter != parameters.pluginLoadClientPolicies.end(); ++hostIter) {
-        for (auto bundleIdentifierIter = hostIter->value.begin(); bundleIdentifierIter != hostIter->value.end(); ++bundleIdentifierIter) {
-            for (auto versionIter = bundleIdentifierIter->value.begin(); versionIter != bundleIdentifierIter->value.end(); ++versionIter)
-                WebPluginInfoProvider::singleton().setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(versionIter->value), hostIter->key, bundleIdentifierIter->key, versionIter->key);
-        }
-    }
+    resetPluginLoadClientPolicies(parameters.pluginLoadClientPolicies);
 #endif
 
 #if ENABLE(GAMEPAD)
@@ -593,7 +589,7 @@ void WebProcess::createWebPage(uint64_t pageID, WebPageCreationParameters&& para
 
         // Balanced by an enableTermination in removeWebPage.
         disableTermination();
-        updateBackgroundCPULimit();
+        updateCPULimit();
     } else
         result.iterator->value->reinitializeWebPage(WTFMove(parameters));
 
@@ -608,7 +604,7 @@ void WebProcess::removeWebPage(uint64_t pageID)
     m_pageMap.remove(pageID);
 
     enableTermination();
-    updateBackgroundCPULimit();
+    updateCPULimit();
 }
 
 bool WebProcess::shouldTerminate()
@@ -915,6 +911,20 @@ void WebProcess::setPluginLoadClientPolicy(uint8_t policy, const String& host, c
 {
 #if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
     WebPluginInfoProvider::singleton().setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(policy), host, bundleIdentifier, versionString);
+#endif
+}
+
+void WebProcess::resetPluginLoadClientPolicies(const HashMap<WTF::String, HashMap<WTF::String, HashMap<WTF::String, uint8_t>>>& pluginLoadClientPolicies)
+{
+#if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
+    clearPluginClientPolicies();
+
+    for (auto& hostPair : pluginLoadClientPolicies) {
+        for (auto& bundleIdentifierPair : hostPair.value) {
+            for (auto& versionPair : bundleIdentifierPair.value)
+                WebPluginInfoProvider::singleton().setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(versionPair.value), hostPair.key, bundleIdentifierPair.key, versionPair.key);
+        }
+    }
 #endif
 }
 
@@ -1236,6 +1246,11 @@ void WebProcess::fetchWebsiteData(WebCore::SessionID sessionID, OptionSet<Websit
         for (auto& origin : MemoryCache::singleton().originsWithCache(sessionID))
             websiteData.entries.append(WebsiteData::Entry { SecurityOriginData::fromSecurityOrigin(*origin), WebsiteDataType::MemoryCache, 0 });
     }
+
+    if (websiteDataTypes.contains(WebsiteDataType::Credentials)) {
+        if (NetworkStorageSession::storageSession(sessionID))
+            websiteData.originsWithCredentials = NetworkStorageSession::storageSession(sessionID)->credentialStorage().originsWithCredentials();
+    }
 }
 
 void WebProcess::deleteWebsiteData(SessionID sessionID, OptionSet<WebsiteDataType> websiteDataTypes, std::chrono::system_clock::time_point modifiedSince)
@@ -1247,6 +1262,11 @@ void WebProcess::deleteWebsiteData(SessionID sessionID, OptionSet<WebsiteDataTyp
         MemoryCache::singleton().evictResources(sessionID);
 
         CrossOriginPreflightResultCache::singleton().empty();
+    }
+
+    if (websiteDataTypes.contains(WebsiteDataType::Credentials)) {
+        if (WebCore::NetworkStorageSession::storageSession(sessionID))
+            NetworkStorageSession::storageSession(sessionID)->credentialStorage().clearCredentials();
     }
 }
 
@@ -1284,11 +1304,11 @@ void WebProcess::updateActivePages()
 {
 }
 
-void WebProcess::updateBackgroundCPULimit()
+void WebProcess::updateCPULimit()
 {
 }
 
-void WebProcess::updateBackgroundCPUMonitorState()
+void WebProcess::updateCPUMonitorState(CPUMonitorUpdateReason)
 {
 }
 
@@ -1297,7 +1317,7 @@ void WebProcess::updateBackgroundCPUMonitorState()
 void WebProcess::pageActivityStateDidChange(uint64_t, WebCore::ActivityState::Flags changed)
 {
     if (changed & WebCore::ActivityState::IsVisible)
-        updateBackgroundCPUMonitorState();
+        updateCPUMonitorState(CPUMonitorUpdateReason::VisibilityHasChanged);
 }
 
 #if PLATFORM(IOS)
@@ -1369,7 +1389,7 @@ void WebProcess::cancelPrepareToSuspend()
     parentProcessConnection()->send(Messages::WebProcessProxy::DidCancelProcessSuspension(), 0);
 }
 
-void WebProcess::markAllLayersVolatile(std::function<void()> completionHandler)
+void WebProcess::markAllLayersVolatile(WTF::Function<void()>&& completionHandler)
 {
     RELEASE_LOG(ProcessSuspension, "%p - WebProcess::markAllLayersVolatile()", this);
     m_pagesMarkingLayersAsVolatile = m_pageMap.size();
@@ -1378,7 +1398,7 @@ void WebProcess::markAllLayersVolatile(std::function<void()> completionHandler)
         return;
     }
     for (auto& page : m_pageMap.values()) {
-        page->markLayersVolatile([this, completionHandler] {
+        page->markLayersVolatile([this, completionHandler = WTFMove(completionHandler)] {
             ASSERT(m_pagesMarkingLayersAsVolatile);
             if (!--m_pagesMarkingLayersAsVolatile)
                 completionHandler();
@@ -1433,14 +1453,6 @@ void WebProcess::nonVisibleProcessCleanupTimerFired()
 #if PLATFORM(COCOA)
     destroyRenderingResources();
 #endif
-}
-
-void WebProcess::statisticsChangedTimerFired()
-{
-    if (m_resourceLoadStatisticsStore->isEmpty())
-        return;
-
-    parentProcessConnection()->send(Messages::WebResourceLoadStatisticsStore::ResourceLoadStatisticsUpdated(m_resourceLoadStatisticsStore->takeStatistics()), 0);
 }
 
 void WebProcess::setResourceLoadStatisticsEnabled(bool enabled)

@@ -34,6 +34,7 @@
 #include "HTMLMediaElement.h"
 #include "TimeRanges.h"
 #include <wtf/CurrentTime.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/AtomicString.h>
 
@@ -316,7 +317,7 @@ const AtomicString& MediaController::playbackState() const
         return playbackStateEnded();
     default:
         ASSERT_NOT_REACHED();
-        return nullAtom;
+        return nullAtom();
     }
 }
 
@@ -341,7 +342,7 @@ static AtomicString eventNameForReadyState(MediaControllerInterface::ReadyState 
         return eventNames().canplaythroughEvent;
     default:
         ASSERT_NOT_REACHED();
-        return nullAtom;
+        return nullAtom();
     }
 }
 

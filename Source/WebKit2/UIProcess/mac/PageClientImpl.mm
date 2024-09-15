@@ -32,6 +32,7 @@
 #import "ColorSpaceData.h"
 #import "DataReference.h"
 #import "DownloadProxy.h"
+#import "DrawingAreaProxy.h"
 #import "NativeWebGestureEvent.h"
 #import "NativeWebKeyboardEvent.h"
 #import "NativeWebMouseEvent.h"
@@ -264,6 +265,7 @@ void PageClientImpl::toolTipChanged(const String& oldToolTip, const String& newT
 void PageClientImpl::didCommitLoadForMainFrame(const String& mimeType, bool useCustomContentProvider)
 {
     m_impl->updateSupportsArbitraryLayoutModes();
+    m_impl->dismissContentRelativeChildWindowsWithAnimation(true);
 }
 
 void PageClientImpl::didFinishLoadingDataForCustomContentProvider(const String& suggestedFilename, const IPC::DataReference& dataReference)
@@ -287,6 +289,11 @@ void PageClientImpl::didChangeContentSize(const WebCore::IntSize& newSize)
 void PageClientImpl::setCursor(const WebCore::Cursor& cursor)
 {
     // FIXME: Would be nice to share this code with WebKit1's WebChromeClient.
+
+    // The Web process may have asked to change the cursor when the view was in an active window, but
+    // if it is no longer in a window or the window is not active, then the cursor should not change.
+    if (!isViewWindowActive())
+        return;
 
     if ([NSApp _cursorRectCursor])
         return;
@@ -317,9 +324,9 @@ void PageClientImpl::didChangeViewportProperties(const WebCore::ViewportAttribut
 {
 }
 
-void PageClientImpl::registerEditCommand(PassRefPtr<WebEditCommandProxy> prpCommand, WebPageProxy::UndoOrRedo undoOrRedo)
+void PageClientImpl::registerEditCommand(Ref<WebEditCommandProxy>&& command, WebPageProxy::UndoOrRedo undoOrRedo)
 {
-    m_impl->registerEditCommand(prpCommand, undoOrRedo);
+    m_impl->registerEditCommand(WTFMove(command), undoOrRedo);
 }
 
 #if USE(INSERTION_UNDO_GROUPING)
@@ -344,7 +351,7 @@ void PageClientImpl::executeUndoRedo(WebPageProxy::UndoOrRedo undoOrRedo)
     return (undoOrRedo == WebPageProxy::Undo) ? [[m_view undoManager] undo] : [[m_view undoManager] redo];
 }
 
-void PageClientImpl::setDragImage(const IntPoint& clientPosition, PassRefPtr<ShareableBitmap> dragImage, DragSourceAction action)
+void PageClientImpl::setDragImage(const IntPoint& clientPosition, Ref<ShareableBitmap>&& dragImage, DragSourceAction action)
 {
     RetainPtr<CGImageRef> dragCGImage = dragImage->makeCGImage();
     RetainPtr<NSImage> dragNSImage = adoptNS([[NSImage alloc] initWithCGImage:dragCGImage.get() size:dragImage->size()]);
@@ -355,10 +362,10 @@ void PageClientImpl::setDragImage(const IntPoint& clientPosition, PassRefPtr<Sha
     m_impl->dragImageForView(m_view, dragNSImage.get(), clientPosition, action == DragSourceActionLink);
 }
 
-void PageClientImpl::setPromisedDataForImage(const String& pasteboardName, PassRefPtr<SharedBuffer> imageBuffer, const String& filename, const String& extension, const String& title, const String& url, const String& visibleURL, PassRefPtr<SharedBuffer> archiveBuffer)
+void PageClientImpl::setPromisedDataForImage(const String& pasteboardName, Ref<SharedBuffer>&& imageBuffer, const String& filename, const String& extension, const String& title, const String& url, const String& visibleURL, RefPtr<SharedBuffer>&& archiveBuffer)
 {
     RefPtr<Image> image = BitmapImage::create();
-    image->setData(imageBuffer.get(), true);
+    image->setData(WTFMove(imageBuffer), true);
     m_impl->setPromisedDataForImage(image.get(), filename, extension, title, url, visibleURL, archiveBuffer.get(), pasteboardName);
 }
 
@@ -414,14 +421,12 @@ IntRect PageClientImpl::rootViewToScreen(const IntRect& rect)
     return enclosingIntRect(tempRect);
 }
 
-#if PLATFORM(MAC)
 IntRect PageClientImpl::rootViewToWindow(const WebCore::IntRect& rect)
 {
     NSRect tempRect = rect;
     tempRect = [m_view convertRect:tempRect toView:nil];
     return enclosingIntRect(tempRect);
 }
-#endif
 
 void PageClientImpl::doneWithKeyEvent(const NativeWebKeyboardEvent& event, bool eventWasHandled)
 {
@@ -434,9 +439,9 @@ RefPtr<WebPopupMenuProxy> PageClientImpl::createPopupMenuProxy(WebPageProxy& pag
 }
 
 #if ENABLE(CONTEXT_MENUS)
-std::unique_ptr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy& page, const ContextMenuContextData& context, const UserData& userData)
+RefPtr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy& page, const ContextMenuContextData& context, const UserData& userData)
 {
-    return std::make_unique<WebContextMenuProxyMac>(m_view, page, context, userData);
+    return WebContextMenuProxyMac::create(m_view, page, context, userData);
 }
 #endif
 
@@ -503,7 +508,7 @@ CALayer *PageClientImpl::acceleratedCompositingRootLayer() const
     return m_impl->acceleratedCompositingRootLayer();
 }
 
-PassRefPtr<ViewSnapshot> PageClientImpl::takeViewSnapshot()
+RefPtr<ViewSnapshot> PageClientImpl::takeViewSnapshot()
 {
     return m_impl->takeViewSnapshot();
 }
@@ -543,11 +548,6 @@ void PageClientImpl::didPerformDictionaryLookup(const DictionaryPopupInfo& dicti
     DictionaryLookup::showPopup(dictionaryPopupInfo, m_view, [this](TextIndicator& textIndicator) {
         m_impl->setTextIndicator(textIndicator, TextIndicatorWindowLifetime::Permanent);
     });
-}
-
-void PageClientImpl::dismissContentRelativeChildWindows(bool withAnimation)
-{
-    m_impl->dismissContentRelativeChildWindowsWithAnimation(withAnimation);
 }
 
 void PageClientImpl::showCorrectionPanel(AlternativeTextType type, const FloatRect& boundingBoxOfReplacedString, const String& replacedString, const String& replacementString, const Vector<String>& alternativeReplacementStrings)
@@ -697,7 +697,7 @@ void PageClientImpl::beganExitFullScreen(const IntRect& initialFrame, const IntR
 
 void PageClientImpl::navigationGestureDidBegin()
 {
-    dismissContentRelativeChildWindows();
+    m_impl->dismissContentRelativeChildWindowsWithAnimation(true);
 
 #if WK_API_ENABLED
     if (m_webView)
@@ -844,9 +844,7 @@ void PageClientImpl::derefView()
 
 void PageClientImpl::startWindowDrag()
 {
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     m_impl->startWindowDrag();
-#endif
 }
 
 NSWindow *PageClientImpl::platformWindow()

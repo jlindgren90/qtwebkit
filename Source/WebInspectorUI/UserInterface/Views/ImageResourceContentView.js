@@ -30,44 +30,74 @@ WebInspector.ImageResourceContentView = class ImageResourceContentView extends W
         super(resource, "image");
 
         this._imageElement = null;
+
+        const toolTip = WebInspector.UIString("Show Grid");
+        const activatedToolTip = WebInspector.UIString("Hide Grid");
+        this._showGridButtonNavigationItem = new WebInspector.ActivateButtonNavigationItem("show-grid", toolTip, activatedToolTip, "Images/NavigationItemCheckers.svg", 13, 13);
+        this._showGridButtonNavigationItem.addEventListener(WebInspector.ButtonNavigationItem.Event.Clicked, this._showGridButtonClicked, this);
+        this._showGridButtonNavigationItem.activated = !!WebInspector.settings.showImageGrid.value;
     }
 
     // Public
 
-    get imageElement()
+    get navigationItems()
     {
-        return this._imageElement;
+        return [this._showGridButtonNavigationItem];
     }
 
     contentAvailable(content, base64Encoded)
     {
-        this.element.removeChildren();
+        let objectURL = this.resource.createObjectURL();
+        if (!objectURL) {
+            this.showGenericErrorMessage();
+            return;
+        }
 
-        var objectURL = this.resource.createObjectURL();
+        this.removeLoadingIndicator();
+
         this._imageElement = document.createElement("img");
-        this._imageElement.dataset.url = this.resource.url;
-
-        var imageElement = this._imageElement;
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", objectURL, true);
-        xhr.responseType = "blob";
-        xhr.onload = function() {
-            if (this.status == 200) {
-                var reader = new FileReader();
-                reader.onload = function() {
-                    imageElement.src = reader.result;
-
-                    URL.revokeObjectURL(objectURL);
-                }
-
-                reader.readAsDataURL(this.response);
-            } else {
-                imageElement.addEventListener("load", function() { URL.revokeObjectURL(objectURL) });
-                imageElement.src = objectURL;
-            }
-        };
-        xhr.send();
+        this._imageElement.addEventListener("load", function() { URL.revokeObjectURL(objectURL); });
+        this._imageElement.src = objectURL;
+        this._imageElement.setAttribute("filename", this.resource.urlComponents.lastPathComponent || "");
+        this._updateImageGrid();
 
         this.element.appendChild(this._imageElement);
+    }
+
+    // Protected
+
+    shown()
+    {
+        super.shown();
+
+        this._updateImageGrid();
+
+        WebInspector.settings.showImageGrid.addEventListener(WebInspector.Setting.Event.Changed, this._updateImageGrid, this);
+    }
+
+    hidden()
+    {
+        WebInspector.settings.showImageGrid.removeEventListener(WebInspector.Setting.Event.Changed, this._updateImageGrid, this);
+
+        super.hidden();
+    }
+
+    // Private
+
+    _updateImageGrid()
+    {
+        if (!this._imageElement)
+            return;
+
+        let activated = WebInspector.settings.showImageGrid.value;
+        this._showGridButtonNavigationItem.activated = activated;
+        this._imageElement.classList.toggle("show-grid", activated);
+    }
+
+    _showGridButtonClicked(event)
+    {
+        WebInspector.settings.showImageGrid.value = !this._showGridButtonNavigationItem.activated;
+
+        this._updateImageGrid();
     }
 };

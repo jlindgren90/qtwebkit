@@ -20,9 +20,11 @@
 #include "config.h"
 #include "TextureMapperGC3DPlatformLayer.h"
 
-#if USE(TEXTURE_MAPPER)
+#if ENABLE(GRAPHICS_CONTEXT_3D) && USE(TEXTURE_MAPPER)
 
-#if USE(OPENGL_ES_2)
+#if USE(LIBEPOXY)
+#include <epoxy/gl.h>
+#elif USE(OPENGL_ES_2)
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -91,7 +93,7 @@ void TextureMapperGC3DPlatformLayer::swapBuffersIfNeeded()
 
     {
         LockHolder holder(m_platformLayerProxy->lock());
-        m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_context.m_compositorTexture, textureSize, flags));
+        m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_context.m_compositorTexture, textureSize, flags, m_context.m_internalColorFormat));
     }
 
     m_context.markLayerComposited();
@@ -129,4 +131,4 @@ void TextureMapperGC3DPlatformLayer::paintToTextureMapper(TextureMapper& texture
 
 } // namespace WebCore
 
-#endif // USE(TEXTURE_MAPPER)
+#endif // ENABLE(GRAPHICS_CONTEXT_3D) && USE(TEXTURE_MAPPER)

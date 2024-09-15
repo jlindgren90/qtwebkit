@@ -26,20 +26,16 @@
 #pragma once
 
 #include "BytecodeConventions.h"
-#include "CodeSpecializationKind.h"
 #include "CodeType.h"
-#include "ConstructAbility.h"
 #include "ExpressionRangeInfo.h"
 #include "HandlerInfo.h"
 #include "Identifier.h"
 #include "JSCell.h"
-#include "JSString.h"
 #include "LockDuringMarking.h"
 #include "ParserModes.h"
 #include "RegExp.h"
 #include "SpecialPointer.h"
 #include "UnlinkedFunctionExecutable.h"
-#include "VariableEnvironment.h"
 #include "VirtualRegister.h"
 #include <algorithm>
 #include <wtf/BitVector.h>
@@ -68,7 +64,7 @@ typedef unsigned UnlinkedArrayProfile;
 typedef unsigned UnlinkedArrayAllocationProfile;
 typedef unsigned UnlinkedObjectAllocationProfile;
 typedef unsigned UnlinkedLLIntCallLinkInfo;
-typedef std::pair<IdentifierSet, unsigned> ConstantIndentifierSetEntry;
+using ConstantIndentifierSetEntry = std::pair<IdentifierSet, unsigned>;
 
 struct UnlinkedStringJumpTable {
     struct OffsetLocation {
@@ -186,7 +182,7 @@ public:
         m_bitVectors.append(WTFMove(bitVector));
         return m_bitVectors.size() - 1;
     }
-    
+
     void addSetConstant(IdentifierSet& set)
     {
         VM& vm = *this->vm();

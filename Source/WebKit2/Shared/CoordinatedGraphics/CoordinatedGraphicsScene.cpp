@@ -1,6 +1,7 @@
 /*
     Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies)
     Copyright (C) 2012 Company 100, Inc.
+    Copyright (C) 2017 Sony Interactive Entertainment Inc.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -36,7 +37,7 @@ namespace WebKit {
 
 void CoordinatedGraphicsScene::dispatchOnMainThread(Function<void()>&& function)
 {
-    if (isMainThread()) {
+    if (RunLoop::isMain()) {
         function();
         return;
     }
@@ -167,6 +168,14 @@ void CoordinatedGraphicsScene::onNewBufferAvailable()
 {
     updateViewport();
 }
+
+TextureMapperGL* CoordinatedGraphicsScene::texmapGL()
+{
+    if (!m_textureMapper)
+        return nullptr;
+
+    return static_cast<TextureMapperGL*>(m_textureMapper.get());
+}
 #endif
 
 void CoordinatedGraphicsScene::setLayerRepaintCountIfNeeded(TextureMapperLayer* layer, const CoordinatedGraphicsLayerState& state)
@@ -232,8 +241,8 @@ void CoordinatedGraphicsScene::setLayerState(CoordinatedLayerID id, const Coordi
     if (layerState.solidColorChanged)
         layer->setSolidColor(layerState.solidColor);
 
-    if (layerState.debugBorderColorChanged || layerState.debugBorderWidthChanged)
-        layer->setDebugVisuals(layerState.showDebugBorders, layerState.debugBorderColor, layerState.debugBorderWidth, layerState.showRepaintCounter);
+    if (layerState.debugVisualsChanged)
+        layer->setDebugVisuals(layerState.debugVisuals.showDebugBorders, layerState.debugVisuals.debugBorderColor, layerState.debugVisuals.debugBorderWidth, layerState.debugVisuals.showRepaintCounter);
 
     if (layerState.replicaChanged)
         layer->setReplicaLayer(getLayerByIDIfExists(layerState.replica));
@@ -348,9 +357,9 @@ void CoordinatedGraphicsScene::createBackingStoreIfNeeded(TextureMapperLayer* la
     if (m_backingStores.contains(layer))
         return;
 
-    RefPtr<CoordinatedBackingStore> backingStore(CoordinatedBackingStore::create());
-    m_backingStores.add(layer, backingStore);
-    layer->setBackingStore(backingStore);
+    auto backingStore = CoordinatedBackingStore::create();
+    m_backingStores.add(layer, backingStore.copyRef());
+    layer->setBackingStore(WTFMove(backingStore));
 }
 
 void CoordinatedGraphicsScene::removeBackingStoreIfNeeded(TextureMapperLayer* layer)
@@ -359,7 +368,7 @@ void CoordinatedGraphicsScene::removeBackingStoreIfNeeded(TextureMapperLayer* la
     if (!backingStore)
         return;
 
-    layer->setBackingStore(0);
+    layer->setBackingStore(nullptr);
 }
 
 void CoordinatedGraphicsScene::resetBackingStoreSizeToLayerSize(TextureMapperLayer* layer)
@@ -412,10 +421,10 @@ void CoordinatedGraphicsScene::updateTilesIfNeeded(TextureMapperLayer* layer, co
     for (auto& tile : state.tilesToUpdate) {
         const SurfaceUpdateInfo& surfaceUpdateInfo = tile.updateInfo;
 
-        SurfaceMap::iterator surfaceIt = m_surfaces.find(surfaceUpdateInfo.atlasID);
+        auto surfaceIt = m_surfaces.find(surfaceUpdateInfo.atlasID);
         ASSERT(surfaceIt != m_surfaces.end());
 
-        backingStore->updateTile(tile.tileID, surfaceUpdateInfo.updateRect, tile.tileRect, surfaceIt->value, surfaceUpdateInfo.surfaceOffset);
+        backingStore->updateTile(tile.tileID, surfaceUpdateInfo.updateRect, tile.tileRect, surfaceIt->value.copyRef(), surfaceUpdateInfo.surfaceOffset);
         m_backingStoresWithPendingBuffers.add(backingStore);
     }
 }
@@ -423,22 +432,25 @@ void CoordinatedGraphicsScene::updateTilesIfNeeded(TextureMapperLayer* layer, co
 void CoordinatedGraphicsScene::syncUpdateAtlases(const CoordinatedGraphicsState& state)
 {
     for (auto& atlas : state.updateAtlasesToCreate)
-        createUpdateAtlas(atlas.first, atlas.second);
-
-    for (auto& atlas : state.updateAtlasesToRemove)
-        removeUpdateAtlas(atlas);
+        createUpdateAtlas(atlas.first, atlas.second.copyRef());
 }
 
-void CoordinatedGraphicsScene::createUpdateAtlas(uint32_t atlasID, PassRefPtr<CoordinatedSurface> surface)
+void CoordinatedGraphicsScene::createUpdateAtlas(uint32_t atlasID, RefPtr<CoordinatedSurface>&& surface)
 {
     ASSERT(!m_surfaces.contains(atlasID));
-    m_surfaces.add(atlasID, surface);
+    m_surfaces.add(atlasID, WTFMove(surface));
 }
 
 void CoordinatedGraphicsScene::removeUpdateAtlas(uint32_t atlasID)
 {
     ASSERT(m_surfaces.contains(atlasID));
     m_surfaces.remove(atlasID);
+}
+
+void CoordinatedGraphicsScene::releaseUpdateAtlases(const Vector<uint32_t>& atlasesToRemove)
+{
+    for (auto& atlas : atlasesToRemove)
+        removeUpdateAtlas(atlas);
 }
 
 void CoordinatedGraphicsScene::syncImageBackings(const CoordinatedGraphicsState& state)
@@ -450,7 +462,7 @@ void CoordinatedGraphicsScene::syncImageBackings(const CoordinatedGraphicsState&
         createImageBacking(image);
 
     for (auto& image : state.imagesToUpdate)
-        updateImageBacking(image.first, image.second);
+        updateImageBacking(image.first, image.second.copyRef());
 
     for (auto& image : state.imagesToClear)
         clearImageBackingContents(image);
@@ -459,14 +471,13 @@ void CoordinatedGraphicsScene::syncImageBackings(const CoordinatedGraphicsState&
 void CoordinatedGraphicsScene::createImageBacking(CoordinatedImageBackingID imageID)
 {
     ASSERT(!m_imageBackings.contains(imageID));
-    RefPtr<CoordinatedBackingStore> backingStore(CoordinatedBackingStore::create());
-    m_imageBackings.add(imageID, backingStore.release());
+    m_imageBackings.add(imageID, CoordinatedBackingStore::create());
 }
 
-void CoordinatedGraphicsScene::updateImageBacking(CoordinatedImageBackingID imageID, PassRefPtr<CoordinatedSurface> surface)
+void CoordinatedGraphicsScene::updateImageBacking(CoordinatedImageBackingID imageID, RefPtr<CoordinatedSurface>&& surface)
 {
     ASSERT(m_imageBackings.contains(imageID));
-    ImageBackingMap::iterator it = m_imageBackings.find(imageID);
+    auto it = m_imageBackings.find(imageID);
     RefPtr<CoordinatedBackingStore> backingStore = it->value;
 
     // CoordinatedImageBacking is realized to CoordinatedBackingStore with only one tile in UI Process.
@@ -475,7 +486,7 @@ void CoordinatedGraphicsScene::updateImageBacking(CoordinatedImageBackingID imag
     // See CoordinatedGraphicsLayer::shouldDirectlyCompositeImage()
     ASSERT(2000 >= std::max(rect.width(), rect.height()));
     backingStore->setSize(rect.size());
-    backingStore->updateTile(1 /* id */, rect, rect, surface, rect.location());
+    backingStore->updateTile(1 /* id */, rect, rect, WTFMove(surface), rect.location());
 
     m_backingStoresWithPendingBuffers.add(backingStore);
 }
@@ -483,7 +494,7 @@ void CoordinatedGraphicsScene::updateImageBacking(CoordinatedImageBackingID imag
 void CoordinatedGraphicsScene::clearImageBackingContents(CoordinatedImageBackingID imageID)
 {
     ASSERT(m_imageBackings.contains(imageID));
-    ImageBackingMap::iterator it = m_imageBackings.find(imageID);
+    auto it = m_imageBackings.find(imageID);
     RefPtr<CoordinatedBackingStore> backingStore = it->value;
     backingStore->removeAllTiles();
     m_backingStoresWithPendingBuffers.add(backingStore);
@@ -504,7 +515,7 @@ void CoordinatedGraphicsScene::assignImageBackingToLayer(TextureMapperLayer* lay
         return;
     }
 
-    ImageBackingMap::iterator it = m_imageBackings.find(imageID);
+    auto it = m_imageBackings.find(imageID);
     ASSERT(it != m_imageBackings.end());
     layer->setContentsLayer(it->value.get());
 }
@@ -577,8 +588,8 @@ void CoordinatedGraphicsScene::syncRemoteContent()
     // We enqueue messages and execute them during paint, as they require an active GL context.
     ensureRootLayer();
 
-    Vector<std::function<void()>> renderQueue;
-    bool calledOnMainThread = WTF::isMainThread();
+    Vector<Function<void()>> renderQueue;
+    bool calledOnMainThread = RunLoop::isMain();
     if (!calledOnMainThread)
         m_renderQueueMutex.lock();
     renderQueue = WTFMove(m_renderQueue);
@@ -631,19 +642,19 @@ void CoordinatedGraphicsScene::setLayerAnimationsIfNeeded(TextureMapperLayer* la
 
 void CoordinatedGraphicsScene::detach()
 {
-    ASSERT(isMainThread());
+    ASSERT(RunLoop::isMain());
     m_isActive = false;
     m_client = nullptr;
     LockHolder locker(m_renderQueueMutex);
     m_renderQueue.clear();
 }
 
-void CoordinatedGraphicsScene::appendUpdate(std::function<void()>&& function)
+void CoordinatedGraphicsScene::appendUpdate(Function<void()>&& function)
 {
     if (!m_isActive)
         return;
 
-    ASSERT(isMainThread());
+    ASSERT(RunLoop::isMain());
     LockHolder locker(m_renderQueueMutex);
     m_renderQueue.append(WTFMove(function));
 }

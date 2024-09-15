@@ -77,7 +77,7 @@ RealtimeMediaSourceCenterOwr::~RealtimeMediaSourceCenterOwr()
 {
 }
 
-void RealtimeMediaSourceCenterOwr::validateRequestConstraints(ValidConstraintsHandler validHandler, InvalidConstraintsHandler invalidHandler, const MediaConstraints& audioConstraints, const MediaConstraints& videoConstraints)
+void RealtimeMediaSourceCenterOwr::validateRequestConstraints(ValidConstraintsHandler&& validHandler, InvalidConstraintsHandler&& invalidHandler, const MediaConstraints& audioConstraints, const MediaConstraints& videoConstraints, String&& deviceIdentifierHashSalt)
 {
     m_validConstraintsHandler = WTFMove(validHandler);
     m_invalidConstraintsHandler = WTFMove(invalidHandler);
@@ -88,18 +88,18 @@ void RealtimeMediaSourceCenterOwr::validateRequestConstraints(ValidConstraintsHa
     // FIXME: Actually do constraints validation. The MediaConstraints
     // need to comply with the available audio/video device(s)
     // capabilities. See bug #123345.
-    if (audioConstraints.isValid())
+    if (audioConstraints.isValid)
         audioSources.append(String("audio"));
 
-    if (videoConstraints.isValid())
+    if (videoConstraints.isValid)
         videoSources.append(String("video"));
 
-    m_validConstraintsHandler(WTFMove(audioSources), WTFMove(videoSources));
+    m_validConstraintsHandler(WTFMove(audioSources), WTFMove(videoSources), WTFMove(deviceIdentifierHashSalt));
     m_validConstraintsHandler = nullptr;
     m_invalidConstraintsHandler = nullptr;
 }
 
-void RealtimeMediaSourceCenterOwr::createMediaStream(NewMediaStreamHandler completionHandler, const String& audioDeviceID, const String& videoDeviceID, const MediaConstraints*, const MediaConstraints*)
+void RealtimeMediaSourceCenterOwr::createMediaStream(NewMediaStreamHandler&& completionHandler, const String& audioDeviceID, const String& videoDeviceID, const MediaConstraints*, const MediaConstraints*)
 {
     int types = OWR_MEDIA_TYPE_UNKNOWN;
 
@@ -174,12 +174,12 @@ void RealtimeMediaSourceCenterOwr::mediaSourcesAvailable(GList* sources)
 
 }
 
-PassRefPtr<RealtimeMediaSource> RealtimeMediaSourceCenterOwr::firstSource(RealtimeMediaSource::Type type)
+RealtimeMediaSource* RealtimeMediaSourceCenterOwr::firstSource(RealtimeMediaSource::Type type)
 {
     for (auto iter = m_sourceMap.begin(); iter != m_sourceMap.end(); ++iter) {
         RefPtr<RealtimeMediaSource> source = iter->value;
         if (source->type() == type)
-            return source;
+            return source.get();
     }
 
     return nullptr;

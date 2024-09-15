@@ -103,6 +103,7 @@ public:
     const VisiblePosition& caretPosition() { return m_position; }
     void setCaretPosition(const VisiblePosition&);
     void clear() { setCaretPosition(VisiblePosition()); }
+    WEBCORE_EXPORT IntRect caretRectInRootViewCoordinates() const;
 
     void nodeWillBeRemoved(Node&);
 
@@ -151,6 +152,7 @@ public:
     void prepareForDestruction();
 
     void updateAppearanceAfterLayout();
+    void scheduleAppearanceUpdateAfterStyleChange();
     void setNeedsSelectionUpdate();
 
     bool contains(const LayoutPoint&) const;
@@ -315,6 +317,9 @@ private:
 
     void caretBlinkTimerFired();
 
+    void updateAppearanceAfterLayoutOrStyleChange();
+    void appearanceUpdateTimerFired();
+
     void setCaretVisibility(CaretVisibility);
     bool recomputeCaretRect();
     void invalidateCaretRect();
@@ -334,6 +339,7 @@ private:
     RefPtr<EditingStyle> m_typingStyle;
 
     Timer m_caretBlinkTimer;
+    Timer m_appearanceUpdateTimer;
     // The painted bounds of the caret in absolute coordinates
     IntRect m_absCaretBounds;
     bool m_caretInsidePositionFixed : 1;

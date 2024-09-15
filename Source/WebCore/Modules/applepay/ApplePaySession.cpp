@@ -43,7 +43,7 @@
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "EventNames.h"
-#include "JSDOMPromise.h"
+#include "JSDOMPromiseDeferred.h"
 #include "LinkIconCollector.h"
 #include "LinkIconType.h"
 #include "MainFrame.h"
@@ -368,6 +368,9 @@ static ExceptionOr<PaymentRequest> convertAndValidate(unsigned version, ApplePay
     }
 
     result.setApplicationData(paymentRequest.applicationData);
+
+    if (version >= 3)
+        result.setSupportedCountries(WTFMove(paymentRequest.supportedCountries));
 
     // FIXME: Merge this validation into the validation we are doing above.
     auto validatedPaymentRequest = PaymentRequestValidator::validate(result);
@@ -783,13 +786,14 @@ ExceptionOr<void> ApplePaySession::completePayment(ApplePayPaymentAuthorizationR
     if (!canCompletePayment())
         return Exception { INVALID_ACCESS_ERR };
 
-    auto convertedResult = convertAndValidate(WTFMove(result));
-    if (convertedResult.hasException())
-        return convertedResult.releaseException();
+    auto convertedResultOrException = convertAndValidate(WTFMove(result));
+    if (convertedResultOrException.hasException())
+        return convertedResultOrException.releaseException();
 
-    bool isFinalState = isFinalStateResult(convertedResult.releaseReturnValue());
+    auto&& convertedResult = convertedResultOrException.releaseReturnValue();
+    bool isFinalState = isFinalStateResult(convertedResult);
 
-    paymentCoordinator().completePaymentSession(convertedResult.releaseReturnValue());
+    paymentCoordinator().completePaymentSession(WTFMove(convertedResult));
 
     if (!isFinalState) {
         m_state = State::Active;

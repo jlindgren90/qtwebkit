@@ -203,6 +203,10 @@ void UIScriptController::keyboardAccessoryBarPrevious()
 {
 }
 
+void UIScriptController::applyAutocorrection(JSStringRef, JSStringRef, JSValueRef)
+{
+}
+
 double UIScriptController::minimumZoomScale() const
 {
     return gWebScrollView.minimumZoomScale;
@@ -221,7 +225,6 @@ std::optional<bool> UIScriptController::stableStateOverride() const
 void UIScriptController::setStableStateOverride(std::optional<bool>)
 {
 }
-
 
 JSObjectRef UIScriptController::contentVisibleRect() const
 {
@@ -306,6 +309,14 @@ void UIScriptController::retrieveSpeakSelectionContent(JSValueRef)
 JSRetainPtr<JSStringRef> UIScriptController::accessibilitySpeakSelectionContent() const
 {
     return nullptr;
+}
+
+void UIScriptController::simulateRotation(DeviceOrientation*, JSValueRef)
+{
+}
+
+void UIScriptController::simulateRotationLikeSafari(DeviceOrientation*, JSValueRef)
+{
 }
 
 void UIScriptController::removeViewFromWindow(JSValueRef)

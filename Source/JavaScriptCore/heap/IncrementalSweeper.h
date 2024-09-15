@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,7 +26,6 @@
 #pragma once
 
 #include "JSRunLoopTimer.h"
-#include <wtf/Vector.h>
 
 namespace JSC {
 
@@ -39,6 +38,7 @@ public:
     JS_EXPORT_PRIVATE explicit IncrementalSweeper(Heap*);
 
     JS_EXPORT_PRIVATE void startSweeping();
+    void freeFastMallocMemoryAfterSweeping() { m_shouldFreeFastMallocMemoryAfterSweeping = true; }
 
     JS_EXPORT_PRIVATE void doWork() override;
     bool sweepNextBlock();
@@ -49,6 +49,7 @@ private:
     void scheduleTimer();
     
     MarkedAllocator* m_currentAllocator;
+    bool m_shouldFreeFastMallocMemoryAfterSweeping { false };
 };
 
 } // namespace JSC

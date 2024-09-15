@@ -31,8 +31,6 @@
 #include "CSSParserFastPaths.h"
 
 #include "CSSFunctionValue.h"
-#include "CSSInheritedValue.h"
-#include "CSSInitialValue.h"
 #include "CSSParserIdioms.h"
 #include "CSSPrimitiveValue.h"
 #include "CSSPropertyParser.h"
@@ -42,7 +40,6 @@
 #include "RuntimeEnabledFeatures.h"
 #include "StyleColor.h"
 #include "StylePropertyShorthand.h"
-#include "StyleSheetContents.h"
 
 namespace WebCore {
 
@@ -653,8 +650,10 @@ bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId
         return (valueID >= CSSValueCapitalize && valueID <= CSSValueLowercase) || valueID == CSSValueNone;
     case CSSPropertyUnicodeBidi:
         return valueID == CSSValueNormal || valueID == CSSValueEmbed
-            || valueID == CSSValueBidiOverride || valueID == CSSValueWebkitIsolate
-            || valueID == CSSValueWebkitIsolateOverride || valueID == CSSValueWebkitPlaintext;
+            || valueID == CSSValueBidiOverride
+            || valueID == CSSValueIsolate || valueID == CSSValueWebkitIsolate
+            || valueID == CSSValueIsolateOverride || valueID == CSSValueWebkitIsolateOverride
+            || valueID == CSSValuePlaintext || valueID == CSSValueWebkitPlaintext;
     case CSSPropertyVectorEffect:
         return valueID == CSSValueNone || valueID == CSSValueNonScalingStroke;
     case CSSPropertyVisibility: // visible | hidden | collapse

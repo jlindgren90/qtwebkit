@@ -56,7 +56,7 @@ my $memoryLimited;
 
 my $buildJSC = 1;
 
-my $runTestAPI = isAppleCocoaWebKit() || isAppleWinWebKit() || isWinCairo();
+my $runTestAPI = 1;
 
 my $runJSCStress = 1;
 my $runJITStressTests = 1;
@@ -230,6 +230,7 @@ if ($runTestAPI) {
     chdir($productDir) or die "Failed to switch directory to '$productDir'\n";
     my @command = (testapiPath($productDir));
     unshift @command, ("xcrun", "-sdk", xcodeSDK(), "sim") if willUseIOSSimulatorSDK();
+    unshift @command, wrapperPrefixIfNeeded() if shouldUseJhbuild();
 
     if ($envVars ne "") {
         foreach my $var (split(/\s+/, $envVars)) {
@@ -361,6 +362,8 @@ sub runJSCStressTests
         push(@jscStressDriverCmd, "--filter");
         push(@jscStressDriverCmd, $filter);
     }
+
+    unshift @jscStressDriverCmd, wrapperPrefixIfNeeded() if shouldUseJhbuild();
 
     # End option processing, the rest of the arguments are tests
     push(@jscStressDriverCmd, "--");

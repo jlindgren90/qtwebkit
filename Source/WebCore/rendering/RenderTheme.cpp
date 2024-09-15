@@ -91,11 +91,18 @@ void RenderTheme::adjustStyle(StyleResolver& styleResolver, RenderStyle& style, 
         style.setDisplay(BLOCK);
 
     if (UAHasAppearance && isControlStyled(style, border, background, backgroundColor)) {
-        if (part == MenulistPart) {
+        switch (part) {
+        case MenulistPart:
             style.setAppearance(MenulistButtonPart);
             part = MenulistButtonPart;
-        } else
+            break;
+        case TextFieldPart:
+            adjustTextFieldStyle(styleResolver, style, element);
+            FALLTHROUGH;
+        default:
             style.setAppearance(NoControlPart);
+            break;
+        }
     }
 
     if (!style.hasAppearance())
@@ -258,6 +265,7 @@ void RenderTheme::adjustStyle(StyleResolver& styleResolver, RenderStyle& style, 
 #endif
 #if ENABLE(ATTACHMENT_ELEMENT)
     case AttachmentPart:
+    case BorderlessAttachmentPart:
         return adjustAttachmentStyle(styleResolver, style, element);
 #endif
     default:
@@ -410,6 +418,7 @@ bool RenderTheme::paint(const RenderBox& box, ControlStates& controlStates, cons
 #endif
 #if ENABLE(ATTACHMENT_ELEMENT)
     case AttachmentPart:
+    case BorderlessAttachmentPart:
         return paintAttachment(box, paintInfo, integralSnappedRect);
 #endif
     default:
@@ -1278,7 +1287,7 @@ Color RenderTheme::platformInactiveTextSearchHighlightColor() const
 #if ENABLE(TOUCH_EVENTS)
 Color RenderTheme::tapHighlightColor()
 {
-    return defaultTheme()->platformTapHighlightColor();
+    return singleton().platformTapHighlightColor();
 }
 #endif
 
@@ -1313,7 +1322,7 @@ void RenderTheme::setCustomFocusRingColor(const Color& c)
 
 Color RenderTheme::focusRingColor()
 {
-    return customFocusRingColor().isValid() ? customFocusRingColor() : defaultTheme()->platformFocusRingColor();
+    return customFocusRingColor().isValid() ? customFocusRingColor() : RenderTheme::singleton().platformFocusRingColor();
 }
 
 String RenderTheme::fileListDefaultLabel(bool multipleFilesAllowed) const

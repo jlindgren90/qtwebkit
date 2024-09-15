@@ -41,6 +41,7 @@
 #import <QuartzCore/CALayer.h>
 #import <QuartzCore/CATransaction.h>
 #import <objc_runtime.h>
+#import <wtf/Function.h>
 #import <wtf/MainThread.h>
 #import <wtf/NeverDestroyed.h>
 
@@ -325,7 +326,7 @@ CGAffineTransform MediaPlayerPrivateMediaStreamAVFObjC::videoTransformationMatri
     return m_videoTransform;
 }
 
-static void runWithoutAnimations(std::function<void()> function)
+static void runWithoutAnimations(const WTF::Function<void()>& function)
 {
     [CATransaction begin];
     [CATransaction setAnimationDuration:0];
@@ -580,21 +581,21 @@ PlatformLayer* MediaPlayerPrivateMediaStreamAVFObjC::backgroundLayer()
 
 MediaPlayerPrivateMediaStreamAVFObjC::DisplayMode MediaPlayerPrivateMediaStreamAVFObjC::currentDisplayMode() const
 {
-    if (m_ended || m_intrinsicSize.isEmpty() || !metaDataAvailable() || !m_sampleBufferDisplayLayer)
+    if (m_intrinsicSize.isEmpty() || !metaDataAvailable() || !m_sampleBufferDisplayLayer)
         return None;
 
     if (auto* track = m_mediaStreamPrivate->activeVideoTrack()) {
-        if (!track->enabled() || track->muted())
+        if (!track->enabled() || track->muted() || track->ended())
             return PaintItBlack;
     }
 
-    if (playing()) {
+    if (playing() && !m_ended) {
         if (!m_mediaStreamPrivate->isProducingData())
             return PausedImage;
         return LivePreview;
     }
 
-    if (m_playbackState == PlaybackState::None)
+    if (m_playbackState == PlaybackState::None || m_ended)
         return PaintItBlack;
 
     return PausedImage;
@@ -636,6 +637,8 @@ void MediaPlayerPrivateMediaStreamAVFObjC::play()
 
     scheduleDeferredTask([this] {
         updateReadyState();
+        if (m_player)
+            m_player->rateChanged();
     });
 }
 
@@ -654,6 +657,11 @@ void MediaPlayerPrivateMediaStreamAVFObjC::pause()
 
     updateDisplayMode();
     flushRenderers();
+
+    scheduleDeferredTask([this] {
+        if (m_player)
+            m_player->rateChanged();
+    });
 }
 
 void MediaPlayerPrivateMediaStreamAVFObjC::setVolume(float volume)
@@ -696,6 +704,16 @@ bool MediaPlayerPrivateMediaStreamAVFObjC::hasAudio() const
     return m_mediaStreamPrivate->hasAudio();
 }
 
+void MediaPlayerPrivateMediaStreamAVFObjC::setVisible(bool visible)
+{
+    if (m_visible == visible)
+        return;
+
+    m_visible = visible;
+    if (m_visible)
+        flushRenderers();
+}
+
 MediaTime MediaPlayerPrivateMediaStreamAVFObjC::durationMediaTime() const
 {
     return MediaTime::positiveInfiniteTime();
@@ -731,18 +749,17 @@ MediaPlayer::ReadyState MediaPlayerPrivateMediaStreamAVFObjC::currentReadyState(
 
     bool allTracksAreLive = true;
     for (auto& track : m_mediaStreamPrivate->tracks()) {
-        if (!track->enabled() || track->readyState() != MediaStreamTrackPrivate::ReadyState::Live) {
+        if (!track->enabled() || track->readyState() != MediaStreamTrackPrivate::ReadyState::Live)
             allTracksAreLive = false;
-            break;
-        }
 
         if (track == m_mediaStreamPrivate->activeVideoTrack() && !m_imagePainter.mediaSample) {
+            if (!m_haveSeenMetadata)
+                return MediaPlayer::ReadyState::HaveNothing;
             allTracksAreLive = false;
-            break;
         }
     }
 
-    if (!allTracksAreLive && m_previousReadyState == MediaPlayer::ReadyState::HaveNothing)
+    if (!allTracksAreLive && !m_haveSeenMetadata)
         return MediaPlayer::ReadyState::HaveMetadata;
 
     return MediaPlayer::ReadyState::HaveEnoughData;
@@ -768,8 +785,10 @@ void MediaPlayerPrivateMediaStreamAVFObjC::activeStatusChanged()
 
         if (ended != m_ended) {
             m_ended = ended;
-            if (m_player)
+            if (m_player) {
                 m_player->timeChanged();
+                m_player->characteristicChanged();
+            }
         }
     });
 }
@@ -852,15 +871,27 @@ void MediaPlayerPrivateMediaStreamAVFObjC::readyStateChanged(MediaStreamTrackPri
     });
 }
 
+bool MediaPlayerPrivateMediaStreamAVFObjC::supportsPictureInPicture() const
+{
+#if PLATFORM(IOS)
+    for (const auto& track : m_videoTrackMap.values()) {
+        if (track->streamTrack().isCaptureTrack())
+            return false;
+    }
+#endif
+    
+    return true;
+}
+
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-void MediaPlayerPrivateMediaStreamAVFObjC::setVideoFullscreenLayer(PlatformLayer* videoFullscreenLayer, std::function<void()> completionHandler)
+void MediaPlayerPrivateMediaStreamAVFObjC::setVideoFullscreenLayer(PlatformLayer* videoFullscreenLayer, WTF::Function<void()>&& completionHandler)
 {
     if (m_videoFullscreenLayerManager->videoFullscreenLayer() == videoFullscreenLayer) {
         completionHandler();
         return;
     }
 
-    m_videoFullscreenLayerManager->setVideoFullscreenLayer(videoFullscreenLayer, completionHandler);
+    m_videoFullscreenLayerManager->setVideoFullscreenLayer(videoFullscreenLayer, WTFMove(completionHandler));
 }
 
 void MediaPlayerPrivateMediaStreamAVFObjC::setVideoFullscreenFrame(FloatRect frame)
@@ -1057,7 +1088,7 @@ void MediaPlayerPrivateMediaStreamAVFObjC::acceleratedRenderingStateChanged()
 
 String MediaPlayerPrivateMediaStreamAVFObjC::engineDescription() const
 {
-    static NeverDestroyed<String> description(ASCIILiteral("AVFoundation MediaStream Engine"));
+    static NeverDestroyed<String> description(MAKE_STATIC_STRING_IMPL("AVFoundation MediaStream Engine"));
     return description;
 }
 
@@ -1066,7 +1097,8 @@ void MediaPlayerPrivateMediaStreamAVFObjC::setReadyState(MediaPlayer::ReadyState
     if (m_readyState == readyState)
         return;
 
-    m_previousReadyState = m_readyState;
+    if (readyState != MediaPlayer::ReadyState::HaveNothing)
+        m_haveSeenMetadata = true;
     m_readyState = readyState;
     characteristicsChanged();
 

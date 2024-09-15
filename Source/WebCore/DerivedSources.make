@@ -98,10 +98,17 @@ JS_BINDING_IDLS = \
 	$(WebCore)/Modules/applepay/ApplePayShippingMethodUpdate.idl \
     $(WebCore)/Modules/applepay/ApplePayValidateMerchantEvent.idl \
     $(WebCore)/Modules/credentials/BasicCredential.idl \
+    $(WebCore)/Modules/credentials/CredentialCreationOptions.idl \
     $(WebCore)/Modules/credentials/CredentialData.idl \
+    $(WebCore)/Modules/credentials/CredentialRequestOptions.idl \
+    $(WebCore)/Modules/credentials/CredentialUserData.idl \
+    $(WebCore)/Modules/credentials/CredentialsContainer.idl \
+    $(WebCore)/Modules/credentials/FederatedCredential.idl \
+    $(WebCore)/Modules/credentials/FederatedCredentialRequestOptions.idl \
+    $(WebCore)/Modules/credentials/FederatedCredentialInit.idl \
+    $(WebCore)/Modules/credentials/NavigatorCredentials.idl \
     $(WebCore)/Modules/credentials/PasswordCredential.idl \
-    $(WebCore)/Modules/credentials/SiteBoundCredential.idl \
-    $(WebCore)/Modules/credentials/SiteBoundCredentialData.idl \
+    $(WebCore)/Modules/credentials/PasswordCredentialData.idl \
     $(WebCore)/Modules/encryptedmedia/MediaKeyMessageEvent.idl \
     $(WebCore)/Modules/encryptedmedia/MediaKeySession.idl \
     $(WebCore)/Modules/encryptedmedia/MediaKeySessionType.idl \
@@ -202,11 +209,9 @@ JS_BINDING_IDLS = \
     $(WebCore)/Modules/mediastream/RTCSignalingState.idl \
     $(WebCore)/Modules/mediastream/RTCStatsReport.idl \
     $(WebCore)/Modules/mediastream/RTCTrackEvent.idl \
-    $(WebCore)/Modules/notifications/DOMWindowNotifications.idl \
     $(WebCore)/Modules/notifications/Notification.idl \
-    $(WebCore)/Modules/notifications/NotificationCenter.idl \
+    $(WebCore)/Modules/notifications/NotificationPermission.idl \
     $(WebCore)/Modules/notifications/NotificationPermissionCallback.idl \
-    $(WebCore)/Modules/notifications/WorkerGlobalScopeNotifications.idl \
     $(WebCore)/Modules/plugins/QuickTimePluginReplacement.idl \
     $(WebCore)/Modules/quota/DOMWindowQuota.idl \
     $(WebCore)/Modules/quota/NavigatorStorageQuota.idl \
@@ -225,6 +230,7 @@ JS_BINDING_IDLS = \
     $(WebCore)/Modules/streams/CountQueuingStrategy.idl \
     $(WebCore)/Modules/streams/ReadableByteStreamController.idl \
     $(WebCore)/Modules/streams/ReadableStream.idl \
+    $(WebCore)/Modules/streams/ReadableStreamBYOBReader.idl \
     $(WebCore)/Modules/streams/ReadableStreamBYOBRequest.idl \
     $(WebCore)/Modules/streams/ReadableStreamDefaultController.idl \
     $(WebCore)/Modules/streams/ReadableStreamDefaultReader.idl \
@@ -301,7 +307,7 @@ JS_BINDING_IDLS = \
     $(WebCore)/crypto/parameters/RsaHashedKeyGenParams.idl \
     $(WebCore)/crypto/parameters/RsaKeyGenParams.idl \
     $(WebCore)/crypto/parameters/RsaOaepParams.idl \
-    $(WebCore)/css/CSSFontFaceLoadEvent.idl \
+    $(WebCore)/crypto/parameters/RsaPssParams.idl \
     $(WebCore)/css/CSSFontFaceRule.idl \
     $(WebCore)/css/CSSImportRule.idl \
     $(WebCore)/css/CSSKeyframeRule.idl \
@@ -316,6 +322,9 @@ JS_BINDING_IDLS = \
     $(WebCore)/css/CSSStyleSheet.idl \
     $(WebCore)/css/CSSSupportsRule.idl \
     $(WebCore)/css/CSSUnknownRule.idl \
+    $(WebCore)/css/DOMMatrix.idl \
+    $(WebCore)/css/DOMMatrixInit.idl \
+    $(WebCore)/css/DOMMatrixReadOnly.idl \
     $(WebCore)/css/DeprecatedCSSOMCounter.idl \
 	$(WebCore)/css/DeprecatedCSSOMPrimitiveValue.idl \
 	$(WebCore)/css/DeprecatedCSSOMRGBColor.idl \
@@ -323,6 +332,7 @@ JS_BINDING_IDLS = \
 	$(WebCore)/css/DeprecatedCSSOMValue.idl \
     $(WebCore)/css/DeprecatedCSSOMValueList.idl \
     $(WebCore)/css/DOMCSSNamespace.idl \
+    $(WebCore)/css/ElementCSSInlineStyle.idl \
     $(WebCore)/css/FontFace.idl \
     $(WebCore)/css/FontFaceSet.idl \
     $(WebCore)/css/MediaList.idl \
@@ -354,8 +364,11 @@ JS_BINDING_IDLS = \
     $(WebCore)/dom/DOMPoint.idl \
     $(WebCore)/dom/DOMPointInit.idl \
     $(WebCore)/dom/DOMPointReadOnly.idl \
+    $(WebCore)/dom/DOMQuad.idl \
+    $(WebCore)/dom/DOMQuadInit.idl \
     $(WebCore)/dom/DOMRect.idl \
     $(WebCore)/dom/DOMRectInit.idl \
+    $(WebCore)/dom/DOMRectList.idl \
     $(WebCore)/dom/DOMRectReadOnly.idl \
     $(WebCore)/dom/DOMStringList.idl \
     $(WebCore)/dom/DOMStringMap.idl \
@@ -365,6 +378,7 @@ JS_BINDING_IDLS = \
     $(WebCore)/dom/DeviceMotionEvent.idl \
     $(WebCore)/dom/DeviceOrientationEvent.idl \
     $(WebCore)/dom/Document.idl \
+    $(WebCore)/dom/DocumentAndElementEventHandlers.idl \
     $(WebCore)/dom/DocumentFragment.idl \
     $(WebCore)/dom/DocumentOrShadowRoot.idl \
     $(WebCore)/dom/DocumentType.idl \
@@ -624,7 +638,6 @@ JS_BINDING_IDLS = \
     $(WebCore)/page/IntersectionObserverEntry.idl \
     $(WebCore)/page/Location.idl \
     $(WebCore)/page/Navigator.idl \
-    $(WebCore)/page/NavigatorConcurrentHardware.idl \
     $(WebCore)/page/NavigatorID.idl \
     $(WebCore)/page/NavigatorLanguage.idl \
     $(WebCore)/page/NavigatorOnLine.idl \
@@ -884,6 +897,7 @@ endif
 ifeq ($(WTF_PLATFORM_IOS), 1)
 ifeq ($(findstring ENABLE_IOS_TOUCH_EVENTS,$(FEATURE_DEFINES)), ENABLE_IOS_TOUCH_EVENTS)
 ADDITIONAL_BINDING_IDLS += \
+    DocumentTouch.idl \
     Touch.idl \
     TouchEvent.idl \
     TouchList.idl
@@ -908,6 +922,7 @@ endif # MACOS
 
 ifneq ($(WTF_PLATFORM_IOS), 1)
 JS_BINDING_IDLS += \
+    $(WebCore)/dom/DocumentTouch.idl \
     $(WebCore)/dom/Touch.idl \
     $(WebCore)/dom/TouchEvent.idl \
     $(WebCore)/dom/TouchList.idl
@@ -1093,8 +1108,8 @@ endif
 ifdef WEBCORE_SDP_PROCESSOR_SCRIPTS
 all : SDPProcessorScriptsData.h
 
-SDPProcessorScriptsData.h : Scripts/make-js-file-arrays.py $(WEBCORE_SDP_PROCESSOR_SCRIPTS)
-	PYTHONPATH=$(JavaScriptCore_SCRIPTS_DIR) $(PYTHON) $< $@ SDPProcessorScriptsData.cpp $(WEBCORE_SDP_PROCESSOR_SCRIPTS)
+SDPProcessorScriptsData.h : $(JavaScriptCore_SCRIPTS_DIR)/make-js-file-arrays.py $(WEBCORE_SDP_PROCESSOR_SCRIPTS)
+	$(PYTHON) $(JavaScriptCore_SCRIPTS_DIR)/make-js-file-arrays.py -n WebCore $@ SDPProcessorScriptsData.cpp $(WEBCORE_SDP_PROCESSOR_SCRIPTS)
 endif
 
 # --------
@@ -1148,8 +1163,8 @@ endif
 ifdef USER_AGENT_SCRIPTS
 all : UserAgentScripts.h
 
-UserAgentScripts.h : Scripts/make-js-file-arrays.py $(USER_AGENT_SCRIPTS)
-	PYTHONPATH=$(JavaScriptCore_SCRIPTS_DIR) $(PYTHON) $< $@ UserAgentScriptsData.cpp $(USER_AGENT_SCRIPTS)
+UserAgentScripts.h : $(JavaScriptCore_SCRIPTS_DIR)/make-js-file-arrays.py $(USER_AGENT_SCRIPTS)
+	$(PYTHON) $(JavaScriptCore_SCRIPTS_DIR)/make-js-file-arrays.py -n WebCore $@ UserAgentScriptsData.cpp $(USER_AGENT_SCRIPTS)
 endif
 
 # --------
@@ -1364,23 +1379,6 @@ CommandLineAPIModuleSource.h : CommandLineAPIModuleSource.js
 	$(PERL) $(JavaScriptCore_SCRIPTS_DIR)/xxd.pl CommandLineAPIModuleSource_js ./CommandLineAPIModuleSource.min.js CommandLineAPIModuleSource.h
 	$(DELETE) CommandLineAPIModuleSource.min.js
 
-# Web Replay inputs generator
-
-INPUT_GENERATOR_SCRIPTS = \
-    $(JavaScriptCore_SCRIPTS_DIR)/CodeGeneratorReplayInputs.py \
-    $(JavaScriptCore_SCRIPTS_DIR)/CodeGeneratorReplayInputsTemplates.py \
-#
-
-INPUT_GENERATOR_SPECIFICATIONS = \
-    $(WebCore)/replay/WebInputs.json \
-    $(JavaScriptCore_SCRIPTS_DIR)/JSInputs.json \
-#
-
-all : WebReplayInputs.h
-
-WebReplayInputs.h : $(INPUT_GENERATOR_SPECIFICATIONS) $(INPUT_GENERATOR_SCRIPTS)
-	$(PYTHON) $(JavaScriptCore_SCRIPTS_DIR)/CodeGeneratorReplayInputs.py --outputDir . --framework WebCore $(INPUT_GENERATOR_SPECIFICATIONS)
-
 -include $(JS_DOM_HEADERS:.h=.dep)
 
 # WebCore JS Builtins
@@ -1403,6 +1401,7 @@ WebCore_BUILTINS_SOURCES = \
     $(WebCore)/Modules/streams/ReadableStreamBYOBRequest.js \
     $(WebCore)/Modules/streams/ReadableStreamDefaultController.js \
     $(WebCore)/Modules/streams/ReadableStreamInternals.js \
+    $(WebCore)/Modules/streams/ReadableStreamBYOBReader.js \
     $(WebCore)/Modules/streams/ReadableStreamDefaultReader.js \
     $(WebCore)/Modules/streams/StreamInternals.js \
     $(WebCore)/Modules/streams/WritableStream.js \

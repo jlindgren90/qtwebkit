@@ -22,10 +22,8 @@
 
 #pragma once
 
-#include "CSSAnimationController.h"
 #include "LengthFunctions.h"
 #include "RenderObject.h"
-#include "StyleInheritedData.h"
 
 namespace WebCore {
 
@@ -133,12 +131,15 @@ public:
     // and so only should be called when the style is known not to have changed (or from setStyle).
     void setStyleInternal(RenderStyle&& style) { m_style = WTFMove(style); }
 
+    bool hasInitialAnimatedStyle() const { return m_hasInitialAnimatedStyle; }
+    void setHasInitialAnimatedStyle(bool b) { m_hasInitialAnimatedStyle = b; }
+
     // Repaint only if our old bounds and new bounds are different. The caller may pass in newBounds and newOutlineBox if they are known.
     bool repaintAfterLayoutIfNeeded(const RenderLayerModelObject* repaintContainer, const LayoutRect& oldBounds, const LayoutRect& oldOutlineBox, const LayoutRect* newBoundsPtr = nullptr, const LayoutRect* newOutlineBoxPtr = nullptr);
 
     bool borderImageIsLoadedAndCanBeRendered() const;
     bool mayCauseRepaintInsideViewport(const IntRect* visibleRect = nullptr) const;
-    bool shouldRepaintInVisibleRect(const IntRect& visibleRect) const;
+    bool isVisibleInDocumentRect(const IntRect& documentRect) const;
 
     // Returns true if this renderer requires a new stacking context.
     static bool createsGroupForStyle(const RenderStyle&);
@@ -221,6 +222,7 @@ public:
     RespectImageOrientationEnum shouldRespectImageOrientation() const;
 
     void removeFromRenderFlowThread();
+    virtual void resetFlowThreadContainingBlockAndChildInfoIncludingDescendants(RenderFlowThread*);
 
     // Called before anonymousChild.setStyle(). Override to set custom styles for
     // the child.
@@ -314,6 +316,8 @@ private:
     std::unique_ptr<RenderStyle> computeFirstLineStyle() const;
     void invalidateCachedFirstLineStyle();
 
+    bool isVisibleInViewport() const;
+    bool canDestroyDecodedData() final { return !isVisibleInViewport(); }
     VisibleInViewportState imageFrameAvailable(CachedImage&, ImageAnimatingState, const IntRect* changeRect) final;
     void didRemoveCachedImageClient(CachedImage&) final;
 
@@ -328,6 +332,7 @@ private:
     unsigned m_baseTypeFlags : 6;
     unsigned m_ancestorLineBoxDirty : 1;
     unsigned m_hasInitializedStyle : 1;
+    unsigned m_hasInitialAnimatedStyle : 1;
 
     unsigned m_renderInlineAlwaysCreatesLineBoxes : 1;
     unsigned m_renderBoxNeedsLazyRepaint : 1;

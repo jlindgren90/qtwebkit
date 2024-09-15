@@ -32,8 +32,11 @@
 #include <wtf/text/WTFString.h>
 
 #if PLATFORM(IOS)
-OBJC_CLASS NSArray;
 OBJC_CLASS NSString;
+#endif
+
+#if PLATFORM(COCOA)
+OBJC_CLASS NSArray;
 #endif
 
 #if PLATFORM(QT)
@@ -66,7 +69,7 @@ enum ShouldSerializeSelectedTextForDataTransfer { DefaultSelectedTextType, Inclu
 // For writing to the pasteboard. Generally sorted with the richest formats on top.
 
 struct PasteboardWebContent {
-#if !(PLATFORM(GTK) || PLATFORM(WIN) || PLATFORM(QT))
+#if !(PLATFORM(GTK) || PLATFORM(WIN) || PLATFORM(WPE) || PLATFORM(QT))
     WEBCORE_EXPORT PasteboardWebContent();
     WEBCORE_EXPORT ~PasteboardWebContent();
     bool canSmartCopyOrDelete;
@@ -81,6 +84,10 @@ struct PasteboardWebContent {
 #endif
 #if PLATFORM(GTK)
     bool canSmartCopyOrDelete;
+    String text;
+    String markup;
+#endif
+#if PLATFORM(WPE)
     String text;
     String markup;
 #endif
@@ -110,7 +117,10 @@ struct PasteboardImage {
 #if !(PLATFORM(GTK) || PLATFORM(WIN))
     RefPtr<SharedBuffer> resourceData;
     String resourceMIMEType;
+    Vector<String> clientTypes;
+    Vector<RefPtr<SharedBuffer>> clientData;
 #endif
+    String suggestedName;
 };
 
 // For reading from the pasteboard.
@@ -207,13 +217,14 @@ public:
 #if PLATFORM(IOS)
     explicit Pasteboard(long changeCount);
 
-    static NSArray* supportedPasteboardTypes();
+    static NSArray *supportedWebContentPasteboardTypes();
     static String resourceMIMEType(const NSString *mimeType);
 #endif
 
 #if PLATFORM(COCOA)
     explicit Pasteboard(const String& pasteboardName);
 
+    WEBCORE_EXPORT static NSArray *supportedFileUploadPasteboardTypes();
     const String& name() const { return m_pasteboardName; }
 #endif
 

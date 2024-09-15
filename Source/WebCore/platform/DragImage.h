@@ -43,7 +43,7 @@ OBJC_CLASS NSImage;
 class QPixmap;
 #elif PLATFORM(WIN)
 typedef struct HBITMAP__* HBITMAP;
-#elif PLATFORM(GTK)
+#elif USE(CAIRO)
 #include "RefPtrCairo.h"
 #endif
 
@@ -68,7 +68,7 @@ typedef RetainPtr<NSImage> DragImageRef;
 typedef QPixmap* DragImageRef;
 #elif PLATFORM(WIN)
 typedef HBITMAP DragImageRef;
-#elif PLATFORM(GTK)
+#elif USE(CAIRO)
 typedef RefPtr<cairo_surface_t> DragImageRef;
 #endif
 
@@ -96,12 +96,15 @@ DragImageRef createDragImageForImage(Frame&, Node&, IntRect& imageRect, IntRect&
 DragImageRef createDragImageForLink(Element&, URL&, const String& label, TextIndicatorData&, FontRenderingMode, float deviceScaleFactor);
 void deleteDragImage(DragImageRef);
 
+IntPoint dragOffsetForLinkDragImage(DragImageRef);
+FloatPoint anchorPointForLinkDragImage(DragImageRef);
+
 class DragImage final {
 public:
-    DragImage();
+    WEBCORE_EXPORT DragImage();
     explicit DragImage(DragImageRef);
     DragImage(DragImage&&);
-    ~DragImage();
+    WEBCORE_EXPORT ~DragImage();
 
     DragImage& operator=(DragImage&&);
 

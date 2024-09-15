@@ -31,6 +31,7 @@
 #import "APIData.h"
 #import "DataReference.h"
 #import "DownloadProxy.h"
+#import "DrawingAreaProxy.h"
 #import "InteractionInformationAtPosition.h"
 #import "NativeWebKeyboardEvent.h"
 #import "NavigationState.h"
@@ -54,6 +55,7 @@
 #import <WebCore/SharedBuffer.h>
 #import <WebCore/TextIndicator.h>
 #import <WebCore/ValidationBubble.h>
+#import <wtf/BlockPtr.h>
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_webView->_page->process().connection())
 
@@ -64,7 +66,7 @@ using namespace WebKit;
 {
     RefPtr<WebEditCommandProxy> m_command;
 }
-- (id)initWithWebEditCommandProxy:(PassRefPtr<WebEditCommandProxy>)command;
+- (id)initWithWebEditCommandProxy:(Ref<WebEditCommandProxy>&&)command;
 - (WebEditCommandProxy*)command;
 @end
 
@@ -75,13 +77,13 @@ using namespace WebKit;
 
 @implementation WKEditCommandObjC
 
-- (id)initWithWebEditCommandProxy:(PassRefPtr<WebEditCommandProxy>)command
+- (id)initWithWebEditCommandProxy:(Ref<WebEditCommandProxy>&&)command
 {
     self = [super init];
     if (!self)
         return nil;
     
-    m_command = command;
+    m_command = WTFMove(command);
     return self;
 }
 
@@ -303,11 +305,9 @@ void PageClientImpl::didChangeViewportProperties(const ViewportAttributes&)
     notImplemented();
 }
 
-void PageClientImpl::registerEditCommand(PassRefPtr<WebEditCommandProxy> prpCommand, WebPageProxy::UndoOrRedo undoOrRedo)
+void PageClientImpl::registerEditCommand(Ref<WebEditCommandProxy>&& command, WebPageProxy::UndoOrRedo undoOrRedo)
 {
-    RefPtr<WebEditCommandProxy> command = prpCommand;
-    
-    RetainPtr<WKEditCommandObjC> commandObjC = adoptNS([[WKEditCommandObjC alloc] initWithWebEditCommandProxy:command]);
+    RetainPtr<WKEditCommandObjC> commandObjC = adoptNS([[WKEditCommandObjC alloc] initWithWebEditCommandProxy:command.copyRef()]);
     String actionName = WebEditCommandProxy::nameForEditAction(command->editAction());
     
     NSUndoManager *undoManager = [m_contentView undoManager];
@@ -354,7 +354,7 @@ void PageClientImpl::positionInformationDidChange(const InteractionInformationAt
     [m_contentView _positionInformationDidChange:info];
 }
 
-void PageClientImpl::saveImageToLibrary(PassRefPtr<SharedBuffer> imageBuffer)
+void PageClientImpl::saveImageToLibrary(Ref<SharedBuffer>&& imageBuffer)
 {
     RetainPtr<NSData> imageData = imageBuffer->createNSData();
     UIImageDataWriteToSavedPhotosAlbum(imageData.get(), nil, NULL, NULL);
@@ -366,7 +366,7 @@ bool PageClientImpl::executeSavedCommandBySelector(const String&)
     return false;
 }
 
-void PageClientImpl::setDragImage(const IntPoint&, PassRefPtr<ShareableBitmap>, DragSourceAction)
+void PageClientImpl::setDragImage(const IntPoint&, Ref<ShareableBitmap>&&, DragSourceAction)
 {
     notImplemented();
 }
@@ -452,7 +452,7 @@ RefPtr<WebPopupMenuProxy> PageClientImpl::createPopupMenuProxy(WebPageProxy&)
 }
 
 #if ENABLE(CONTEXT_MENUS)
-std::unique_ptr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy&, const UserData&)
+RefPtr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy&, const UserData&)
 {
     return nullptr;
 }
@@ -494,7 +494,7 @@ LayerOrView *PageClientImpl::acceleratedCompositingRootLayer() const
     return nullptr;
 }
 
-PassRefPtr<ViewSnapshot> PageClientImpl::takeViewSnapshot()
+RefPtr<ViewSnapshot> PageClientImpl::takeViewSnapshot()
 {
     return [m_webView _takeViewSnapshot];
 }
@@ -571,6 +571,11 @@ bool PageClientImpl::isAssistingNode()
 void PageClientImpl::stopAssistingNode()
 {
     [m_contentView _stopAssistingNode];
+}
+
+bool PageClientImpl::allowsBlockSelection()
+{
+    return [m_webView _allowsBlockSelection];
 }
 
 void PageClientImpl::didUpdateBlockSelectionWithTouch(uint32_t touch, uint32_t flags, float growThreshold, float shrinkThreshold)
@@ -781,9 +786,9 @@ void PageClientImpl::didHandleStartDataInteractionRequest(bool started)
     [m_contentView _didHandleStartDataInteractionRequest:started];
 }
 
-void PageClientImpl::startDataInteractionWithImage(const IntPoint& clientPosition, const ShareableBitmap::Handle& image, std::optional<WebCore::TextIndicatorData> indicatorData, const FloatPoint& anchorPoint, uint64_t action)
+void PageClientImpl::startDrag(const DragItem& item, const ShareableBitmap::Handle& image)
 {
-    [m_contentView _startDataInteractionWithImage:ShareableBitmap::create(image)->makeCGImageCopy() withIndicatorData:indicatorData atClientPosition:CGPointMake(clientPosition.x(), clientPosition.y()) anchorPoint:anchorPoint action:action];
+    [m_contentView _startDrag:ShareableBitmap::create(image)->makeCGImageCopy() item:item];
 }
 
 void PageClientImpl::didConcludeEditDataInteraction(std::optional<TextIndicatorData> data)
@@ -803,28 +808,27 @@ void PageClientImpl::handleActiveNowPlayingSessionInfoResponse(bool hasActiveSes
 }
 
 #if USE(QUICK_LOOK)
-void PageClientImpl::requestPasswordForQuickLookDocument(const String& fileName, std::function<void(const String&)>&& completionHandler)
+void PageClientImpl::requestPasswordForQuickLookDocument(const String& fileName, WTF::Function<void(const String&)>&& completionHandler)
 {
-    auto passwordHandler = [completionHandler = WTFMove(completionHandler)](NSString *password) {
+    auto passwordHandler = BlockPtr<void (NSString *)>::fromCallable([completionHandler = WTFMove(completionHandler)](NSString *password) {
         completionHandler(password);
-    };
+    });
 
     if (WKPasswordView *passwordView = m_webView._passwordView) {
         ASSERT(fileName == String { passwordView.documentName });
         [passwordView showPasswordFailureAlert];
-        passwordView.userDidEnterPassword = passwordHandler;
+        passwordView.userDidEnterPassword = passwordHandler.get();
         return;
     }
 
-    [m_webView _showPasswordViewWithDocumentName:fileName passwordHandler:passwordHandler];
+    [m_webView _showPasswordViewWithDocumentName:fileName passwordHandler:passwordHandler.get()];
     NavigationState::fromWebPage(*m_webView->_page).didRequestPasswordForQuickLookDocument();
 }
 #endif
 
 void PageClientImpl::didChangeAvoidsUnsafeArea(bool avoidsUnsafeArea)
 {
-    [m_webView _updateScrollViewInsetAdjustmentBehavior];
-    [m_webView _scheduleVisibleContentRectUpdate];
+    [m_webView _didChangeAvoidsUnsafeArea:avoidsUnsafeArea];
 }
 
 } // namespace WebKit

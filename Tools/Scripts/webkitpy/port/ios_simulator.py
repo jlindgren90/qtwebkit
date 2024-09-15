@@ -29,11 +29,9 @@ import subprocess
 import time
 
 from webkitpy.common.memoized import memoized
-from webkitpy.port import image_diff
 from webkitpy.port.device import Device
 from webkitpy.port.ios import IOSPort
 from webkitpy.xcode.simulator import Simulator, Runtime, DeviceType
-from webkitpy.common.system.crashlogs import CrashLogs
 
 
 _log = logging.getLogger(__name__)
@@ -102,6 +100,15 @@ class IOSSimulatorPort(IOSPort):
             runtime = Runtime.from_version_string(self.host.platform.xcode_sdk_version('iphonesimulator'))
         return runtime
 
+    @memoized
+    def ios_version(self):
+        # FIXME: We should replace --runtime with something which makes sense for both Simulator and Device
+        # https://bugs.webkit.org/show_bug.cgi?id=173775
+        runtime_identifier = self.get_option('runtime')
+        if runtime_identifier:
+            return '.'.join(str(i) for i in Runtime.from_identifier(runtime_identifier).version)
+        return self.host.platform.xcode_sdk_version('iphonesimulator')
+
     def simulator_device_type(self):
         device_type_identifier = self.get_option('device_type')
         if device_type_identifier:
@@ -134,44 +141,6 @@ class IOSSimulatorPort(IOSPort):
             maximum_simulator_count_on_this_system = 1
 
         return min(maximum_simulator_count_on_this_system, best_child_process_count_for_cpu)
-
-    def _get_crash_log(self, name, pid, stdout, stderr, newer_than, time_fn=time.time, sleep_fn=time.sleep, wait_for_log=True):
-        time_fn = time_fn or time.time
-        sleep_fn = sleep_fn or time.sleep
-
-        # FIXME: We should collect the actual crash log for DumpRenderTree.app because it includes more
-        # information (e.g. exception codes) than is available in the stack trace written to standard error.
-        stderr_lines = []
-        crashed_subprocess_name_and_pid = None  # e.g. ('DumpRenderTree.app', 1234)
-        for line in (stderr or '').splitlines():
-            if not crashed_subprocess_name_and_pid:
-                match = self.SUBPROCESS_CRASH_REGEX.match(line)
-                if match:
-                    crashed_subprocess_name_and_pid = (match.group('subprocess_name'), int(match.group('subprocess_pid')))
-                    continue
-            stderr_lines.append(line)
-
-        if crashed_subprocess_name_and_pid:
-            return self._get_crash_log(crashed_subprocess_name_and_pid[0], crashed_subprocess_name_and_pid[1], stdout,
-                '\n'.join(stderr_lines), newer_than, time_fn, sleep_fn, wait_for_log)
-
-        # App crashed
-        _log.debug('looking for crash log for %s:%s' % (name, str(pid)))
-        crash_log = ''
-        crash_logs = CrashLogs(self.host)
-        now = time_fn()
-        deadline = now + 5 * int(self.get_option('child_processes', 1))
-        while not crash_log and now <= deadline:
-            crash_log = crash_logs.find_newest_log(name, pid, include_errors=True, newer_than=newer_than)
-            if not wait_for_log:
-                break
-            if not crash_log or not [line for line in crash_log.splitlines() if not line.startswith('ERROR')]:
-                sleep_fn(0.1)
-                now = time_fn()
-
-        if not crash_log:
-            return stderr, None
-        return stderr, crash_log
 
     def _build_driver_flags(self):
         archs = ['ARCHS=i386'] if self.architecture() == 'x86' else []
@@ -210,6 +179,9 @@ class IOSSimulatorPort(IOSPort):
             except:
                 _log.warning('Unable to remove Simulator' + str(i))
 
+    def use_multiple_simulator_apps(self):
+        return int(self.host.platform.xcode_version().split('.')[0]) < 9
+
     def _create_simulators(self):
         if (self.default_child_processes() < self.child_processes()):
             _log.warn('You have specified very high value({0}) for --child-processes'.format(self.child_processes()))
@@ -218,7 +190,9 @@ class IOSSimulatorPort(IOSPort):
 
         if self._using_dedicated_simulators():
             atexit.register(lambda: self._teardown_managed_simulators())
-            self._createSimulatorApps()
+
+            if self.use_multiple_simulator_apps():
+                self._createSimulatorApps()
 
             for i in xrange(self.child_processes()):
                 self._create_device(i)
@@ -251,16 +225,23 @@ class IOSSimulatorPort(IOSPort):
             _log.debug('testing device %s has udid %s', i, device_udid)
 
             # FIXME: <rdar://problem/20916140> Switch to using CoreSimulator.framework for launching and quitting iOS Simulator
-            self._executive.run_command([
-                'open', '-g', '-b', self.SIMULATOR_BUNDLE_ID + str(i),
-                '--args', '-CurrentDeviceUDID', device_udid])
+            if self.use_multiple_simulator_apps():
+                self._executive.run_command([
+                    'open', '-g', '-b', self.SIMULATOR_BUNDLE_ID + str(i),
+                    '--args', '-CurrentDeviceUDID', device_udid])
+            else:
+                self._executive.run_command(['xcrun', 'simctl', 'boot', device_udid])
 
             if mac_os_version in ['elcapitan', 'yosemite', 'mavericks']:
                 time.sleep(2.5)
 
+        if not self.use_multiple_simulator_apps():
+            self._executive.run_command(['open', '-g', '-b', self.SIMULATOR_BUNDLE_ID], return_exit_code=True)
+
         _log.info('Waiting for all iOS Simulators to finish booting.')
         for i in xrange(self.child_processes()):
             Simulator.wait_until_device_is_booted(Simulator.managed_devices[i].udid)
+        _log.info('All simulators have booted.')
 
         IOSSimulatorPort._DEVICE_MAP = {}
         for i in xrange(self.child_processes()):
@@ -276,13 +257,6 @@ class IOSSimulatorPort(IOSPort):
     def clean_up_test_run(self):
         super(IOSSimulatorPort, self).clean_up_test_run()
         _log.debug("clean_up_test_run")
-        fifos = [path for path in os.listdir('/tmp') if re.search('org.webkit.(DumpRenderTree|WebKitTestRunner).*_(IN|OUT|ERROR)', path)]
-        for fifo in fifos:
-            try:
-                os.remove(os.path.join('/tmp', fifo))
-            except OSError:
-                _log.warning('Unable to remove ' + fifo)
-                pass
 
         if not self._using_dedicated_simulators():
             return
@@ -327,18 +301,6 @@ class IOSSimulatorPort(IOSPort):
 
     def get_simulator_path(self, suffix=""):
         return os.path.join(self.SIMULATOR_DIRECTORY, "Simulator" + str(suffix) + ".app")
-
-    def diff_image(self, expected_contents, actual_contents, tolerance=None):
-        if not actual_contents and not expected_contents:
-            return (None, 0, None)
-        if not actual_contents or not expected_contents:
-            return (True, 0, None)
-        if not self._image_differ:
-            self._image_differ = image_diff.IOSSimulatorImageDiffer(self)
-        self.set_option_default('tolerance', 0.1)
-        if tolerance is None:
-            tolerance = self.get_option('tolerance')
-        return self._image_differ.diff_image(expected_contents, actual_contents, tolerance)
 
     def reset_preferences(self):
         _log.debug("reset_preferences")

@@ -49,6 +49,7 @@
 #include "WebProcessPoolMessages.h"
 #include "WebsiteData.h"
 #include "WebsiteDataFetchOption.h"
+#include "WebsiteDataStoreParameters.h"
 #include "WebsiteDataType.h"
 #include <WebCore/DNS.h>
 #include <WebCore/DiagnosticLoggingClient.h>
@@ -202,6 +203,7 @@ void NetworkProcess::lowMemoryHandler(Critical critical)
 
 void NetworkProcess::initializeNetworkProcess(NetworkProcessCreationParameters&& parameters)
 {
+    WebCore::setPresentingApplicationPID(parameters.presentingApplicationPID);
     platformInitializeNetworkProcess(parameters);
 
     WTF::Thread::setCurrentThreadIsUserInitiated();
@@ -235,7 +237,7 @@ void NetworkProcess::initializeNetworkProcess(NetworkProcessCreationParameters&&
 
     // FIXME: instead of handling this here, a message should be sent later (scales to multiple sessions)
     if (parameters.privateBrowsingEnabled)
-        RemoteNetworkingContext::ensurePrivateBrowsingSession(SessionID::legacyPrivateSessionID());
+        RemoteNetworkingContext::ensurePrivateBrowsingSession({SessionID::legacyPrivateSessionID(), { }, { }, { }});
 
     if (parameters.shouldUseTestingNetworkSession)
         NetworkStorageSession::switchToNewTestingSession();
@@ -286,9 +288,9 @@ void NetworkProcess::clearCachedCredentials()
 #endif
 }
 
-void NetworkProcess::ensurePrivateBrowsingSession(SessionID sessionID)
+void NetworkProcess::ensurePrivateBrowsingSession(WebsiteDataStoreParameters&& parameters)
 {
-    RemoteNetworkingContext::ensurePrivateBrowsingSession(sessionID);
+    RemoteNetworkingContext::ensurePrivateBrowsingSession(WTFMove(parameters));
 }
 
 void NetworkProcess::addWebsiteDataStore(WebsiteDataStoreParameters&& parameters)
@@ -317,9 +319,9 @@ void NetworkProcess::didGrantSandboxExtensionsToDatabaseProcessForBlobs(uint64_t
 }
 
 #if HAVE(CFNETWORK_STORAGE_PARTITIONING)
-void NetworkProcess::shouldPartitionCookiesForTopPrivatelyOwnedDomains(const Vector<String>& domainsToRemove, const Vector<String>& domainsToAdd,  bool clearFirst)
+void NetworkProcess::updateCookiePartitioningForTopPrivatelyOwnedDomains(const Vector<String>& domainsToRemove, const Vector<String>& domainsToAdd,  bool shouldClearFirst)
 {
-    NetworkStorageSession::defaultStorageSession().setShouldPartitionCookiesForHosts(domainsToRemove, domainsToAdd, clearFirst);
+    NetworkStorageSession::defaultStorageSession().setShouldPartitionCookiesForHosts(domainsToRemove, domainsToAdd, shouldClearFirst);
 }
 #endif
 
@@ -388,6 +390,11 @@ void NetworkProcess::fetchWebsiteData(SessionID sessionID, OptionSet<WebsiteData
             getHostnamesWithCookies(*networkStorageSession, callbackAggregator->m_websiteData.hostNamesWithCookies);
     }
 
+    if (websiteDataTypes.contains(WebsiteDataType::Credentials)) {
+        if (NetworkStorageSession::storageSession(sessionID))
+            callbackAggregator->m_websiteData.originsWithCredentials = NetworkStorageSession::storageSession(sessionID)->credentialStorage().originsWithCredentials();
+    }
+
     if (websiteDataTypes.contains(WebsiteDataType::DiskCache)) {
         fetchDiskCacheEntries(sessionID, fetchOptions, [callbackAggregator = WTFMove(callbackAggregator)](auto entries) mutable {
             callbackAggregator->m_websiteData.entries.appendVector(entries);
@@ -409,6 +416,11 @@ void NetworkProcess::deleteWebsiteData(SessionID sessionID, OptionSet<WebsiteDat
             deleteAllCookiesModifiedSince(*networkStorageSession, modifiedSince);
     }
 
+    if (websiteDataTypes.contains(WebsiteDataType::Credentials)) {
+        if (NetworkStorageSession::storageSession(sessionID))
+            NetworkStorageSession::storageSession(sessionID)->credentialStorage().clearCredentials();
+    }
+    
     auto completionHandler = [this, callbackID] {
         parentProcessConnection()->send(Messages::NetworkProcessProxy::DidDeleteWebsiteData(callbackID), 0);
     };
@@ -437,10 +449,7 @@ static void clearDiskCacheEntries(const Vector<SecurityOriginData>& origins, Fun
                 return;
             }
 
-            for (auto& key : cacheKeysToDelete)
-                NetworkCache::singleton().remove(key);
-
-            RunLoop::main().dispatch(WTFMove(completionHandler));
+            NetworkCache::singleton().remove(cacheKeysToDelete, WTFMove(completionHandler));
             return;
         });
 
@@ -631,19 +640,43 @@ void NetworkProcess::terminate()
     ChildProcess::terminate();
 }
 
-void NetworkProcess::processWillSuspendImminently(bool& handled)
+// FIXME: We can remove this one by adapting RefCounter.
+class TaskCounter : public RefCounted<TaskCounter> {
+public:
+    explicit TaskCounter(Function<void()>&& callback) : m_callback(WTFMove(callback)) { }
+    ~TaskCounter() { m_callback(); };
+
+private:
+    Function<void()> m_callback;
+};
+
+void NetworkProcess::actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend shouldAcknowledgeWhenReadyToSuspend)
 {
     lowMemoryHandler(Critical::Yes);
+
+    RefPtr<TaskCounter> delayedTaskCounter;
+    if (shouldAcknowledgeWhenReadyToSuspend == ShouldAcknowledgeWhenReadyToSuspend::Yes) {
+        delayedTaskCounter = adoptRef(new TaskCounter([this] {
+            RELEASE_LOG(ProcessSuspension, "%p - NetworkProcess::notifyProcessReadyToSuspend() Sending ProcessReadyToSuspend IPC message", this);
+            if (parentProcessConnection())
+                parentProcessConnection()->send(Messages::NetworkProcessProxy::ProcessReadyToSuspend(), 0);
+        }));
+    }
+
+    for (auto& connection : m_webProcessConnections)
+        connection->cleanupForSuspension([delayedTaskCounter] { });
+}
+
+void NetworkProcess::processWillSuspendImminently(bool& handled)
+{
+    actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend::No);
     handled = true;
 }
 
 void NetworkProcess::prepareToSuspend()
 {
     RELEASE_LOG(ProcessSuspension, "%p - NetworkProcess::prepareToSuspend()", this);
-    lowMemoryHandler(Critical::Yes);
-
-    RELEASE_LOG(ProcessSuspension, "%p - NetworkProcess::prepareToSuspend() Sending ProcessReadyToSuspend IPC message", this);
-    parentProcessConnection()->send(Messages::NetworkProcessProxy::ProcessReadyToSuspend(), 0);
+    actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend::Yes);
 }
 
 void NetworkProcess::cancelPrepareToSuspend()
@@ -653,11 +686,15 @@ void NetworkProcess::cancelPrepareToSuspend()
     // message. And NetworkProcessProxy expects to receive either a NetworkProcessProxy::ProcessReadyToSuspend-
     // or NetworkProcessProxy::DidCancelProcessSuspension- message, but not both.
     RELEASE_LOG(ProcessSuspension, "%p - NetworkProcess::cancelPrepareToSuspend()", this);
+    for (auto& connection : m_webProcessConnections)
+        connection->endSuspension();
 }
 
 void NetworkProcess::processDidResume()
 {
     RELEASE_LOG(ProcessSuspension, "%p - NetworkProcess::processDidResume()", this);
+    for (auto& connection : m_webProcessConnections)
+        connection->endSuspension();
 }
 
 void NetworkProcess::prefetchDNS(const String& hostname)

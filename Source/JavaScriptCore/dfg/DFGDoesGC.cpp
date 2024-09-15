@@ -92,10 +92,7 @@ bool doesGC(Graph& graph, Node* node)
     case ArithCeil:
     case ArithTrunc:
     case ArithFRound:
-    case ArithSin:
-    case ArithCos:
-    case ArithTan:
-    case ArithLog:
+    case ArithUnary:
     case ValueAdd:
     case TryGetById:
     case GetById:
@@ -118,7 +115,7 @@ bool doesGC(Graph& graph, Node* node)
     case CheckStructure:
     case GetExecutable:
     case GetButterfly:
-    case CheckDOM:
+    case CheckSubClass:
     case CheckArray:
     case GetScope:
     case SkipScope:
@@ -221,6 +218,7 @@ bool doesGC(Graph& graph, Node* node)
     case GetByValWithThis:
     case GetIndexedPropertyStorage:
     case GetArrayLength:
+    case GetVectorLength:
     case ArrayPush:
     case ArrayPop:
     case StringCharAt:
@@ -322,6 +320,7 @@ bool doesGC(Graph& graph, Node* node)
     case CallDOMGetter:
     case CallDOM:
     case ArraySlice:
+    case ArrayIndexOf:
     case ParseInt: // We might resolve a rope even though we don't clobber anything.
         return true;
         

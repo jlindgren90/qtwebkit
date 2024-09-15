@@ -47,7 +47,7 @@ namespace WebCore {
 Ref<RealtimeIncomingAudioSource> RealtimeIncomingAudioSource::create(rtc::scoped_refptr<webrtc::AudioTrackInterface>&& audioTrack, String&& audioTrackId)
 {
     auto source = adoptRef(*new RealtimeIncomingAudioSource(WTFMove(audioTrack), WTFMove(audioTrackId)));
-    source->startProducingData();
+    source->start();
     return source;
 }
 
@@ -55,15 +55,12 @@ RealtimeIncomingAudioSource::RealtimeIncomingAudioSource(rtc::scoped_refptr<webr
     : RealtimeMediaSource(WTFMove(audioTrackId), RealtimeMediaSource::Type::Audio, String())
     , m_audioTrack(WTFMove(audioTrack))
 {
+    notifyMutedChange(!m_audioTrack);
 }
 
 RealtimeIncomingAudioSource::~RealtimeIncomingAudioSource()
 {
-    if (m_audioSourceProvider) {
-        m_audioSourceProvider->unprepare();
-        m_audioSourceProvider = nullptr;
-    }
-    stopProducingData();
+    stop();
 }
 
 
@@ -90,42 +87,29 @@ void RealtimeIncomingAudioSource::OnData(const void* audioData, int bitsPerSampl
     m_numberOfFrames += numberOfFrames;
 
     AudioStreamBasicDescription newDescription = streamDescription(sampleRate, numberOfChannels);
-    if (newDescription != m_streamFormat) {
-        m_streamFormat = newDescription;
-        if (m_audioSourceProvider)
-            m_audioSourceProvider->prepare(&m_streamFormat);
-    }
 
     // FIXME: We should not need to do the extra memory allocation and copy.
     // Instead, we should be able to directly pass audioData pointer.
-    WebAudioBufferList audioBufferList { CAAudioStreamDescription(m_streamFormat), WTF::safeCast<uint32_t>(numberOfFrames) };
+    WebAudioBufferList audioBufferList { CAAudioStreamDescription(newDescription), WTF::safeCast<uint32_t>(numberOfFrames) };
     audioBufferList.buffer(0)->mDataByteSize = numberOfChannels * numberOfFrames * bitsPerSample / 8;
     audioBufferList.buffer(0)->mNumberChannels = numberOfChannels;
 
-    if (muted() || !enabled())
+    if (muted())
         memset(audioBufferList.buffer(0)->mData, 0, audioBufferList.buffer(0)->mDataByteSize);
     else
         memcpy(audioBufferList.buffer(0)->mData, audioData, audioBufferList.buffer(0)->mDataByteSize);
 
-    audioSamplesAvailable(mediaTime, audioBufferList, CAAudioStreamDescription(m_streamFormat), numberOfFrames);
+    audioSamplesAvailable(mediaTime, audioBufferList, CAAudioStreamDescription(newDescription), numberOfFrames);
 }
 
 void RealtimeIncomingAudioSource::startProducingData()
 {
-    if (m_isProducingData)
-        return;
-
-    m_isProducingData = true;
     if (m_audioTrack)
         m_audioTrack->AddSink(this);
 }
 
 void RealtimeIncomingAudioSource::stopProducingData()
 {
-    if (!m_isProducingData)
-        return;
-
-    m_isProducingData = false;
     if (m_audioTrack)
         m_audioTrack->RemoveSink(this);
 }
@@ -136,7 +120,8 @@ void RealtimeIncomingAudioSource::setSourceTrack(rtc::scoped_refptr<webrtc::Audi
     ASSERT(track);
 
     m_audioTrack = WTFMove(track);
-    if (m_isProducingData)
+    notifyMutedChange(!m_audioTrack);
+    if (isProducingData())
         m_audioTrack->AddSink(this);
 }
 
@@ -150,22 +135,6 @@ const RealtimeMediaSourceSettings& RealtimeIncomingAudioSource::settings() const
     return m_currentSettings;
 }
 
-RealtimeMediaSourceSupportedConstraints& RealtimeIncomingAudioSource::supportedConstraints()
-{
-    return m_supportedConstraints;
 }
-
-AudioSourceProvider* RealtimeIncomingAudioSource::audioSourceProvider()
-{
-    if (!m_audioSourceProvider) {
-        m_audioSourceProvider = WebAudioSourceProviderAVFObjC::create(*this);
-        if (m_numberOfFrames)
-            m_audioSourceProvider->prepare(&m_streamFormat);
-    }
-
-    return m_audioSourceProvider.get();
-}
-
-} // namespace WebCore
 
 #endif // USE(LIBWEBRTC)

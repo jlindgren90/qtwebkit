@@ -76,17 +76,17 @@ public:
     void queuedCreateOffer(RTCOfferOptions&&, PeerConnection::SessionDescriptionPromise&&);
     void queuedCreateAnswer(RTCAnswerOptions&&, PeerConnection::SessionDescriptionPromise&&);
 
-    void queuedSetLocalDescription(RTCSessionDescription&, DOMPromise<void>&&);
+    void queuedSetLocalDescription(RTCSessionDescription&, DOMPromiseDeferred<void>&&);
     RefPtr<RTCSessionDescription> localDescription() const;
     RefPtr<RTCSessionDescription> currentLocalDescription() const;
     RefPtr<RTCSessionDescription> pendingLocalDescription() const;
 
-    void queuedSetRemoteDescription(RTCSessionDescription&, DOMPromise<void>&&);
+    void queuedSetRemoteDescription(RTCSessionDescription&, DOMPromiseDeferred<void>&&);
     RefPtr<RTCSessionDescription> remoteDescription() const;
     RefPtr<RTCSessionDescription> currentRemoteDescription() const;
     RefPtr<RTCSessionDescription> pendingRemoteDescription() const;
 
-    void queuedAddIceCandidate(RTCIceCandidate*, DOMPromise<void>&&);
+    void queuedAddIceCandidate(RTCIceCandidate*, DOMPromiseDeferred<void>&&);
 
     RTCSignalingState signalingState() const { return m_signalingState; }
     RTCIceGatheringState iceGatheringState() const { return m_iceGatheringState; }
@@ -143,17 +143,24 @@ public:
     void disableICECandidateFiltering() { m_backend->disableICECandidateFiltering(); }
     void enableICECandidateFiltering() { m_backend->enableICECandidateFiltering(); }
 
-    void enqueueReplaceTrackTask(RTCRtpSender&, Ref<MediaStreamTrack>&&, DOMPromise<void>&&);
+    void enqueueReplaceTrackTask(RTCRtpSender&, Ref<MediaStreamTrack>&&, DOMPromiseDeferred<void>&&);
 
     void clearController() { m_controller = nullptr; }
+
+    // ActiveDOMObject.
+    bool hasPendingActivity() const final;
 
 private:
     RTCPeerConnection(ScriptExecutionContext&);
 
+    ExceptionOr<void> initializeConfiguration(RTCConfiguration&&);
     Ref<RTCRtpTransceiver> completeAddTransceiver(Ref<RTCRtpSender>&&, const RTCRtpTransceiverInit&, const String& trackId, const String& trackKind);
 
     void registerToController(RTCController&);
     void unregisterFromController();
+
+    friend class Internals;
+    void applyRotationForOutgoingVideoSources() { m_backend->applyRotationForOutgoingVideoSources(); }
 
     // EventTarget implementation.
     void refEventTarget() final { ref(); }
@@ -166,7 +173,7 @@ private:
 
     // FIXME: We might want PeerConnectionBackend to be the Backend
     // RTCRtpSender::Backend
-    void replaceTrack(RTCRtpSender&, RefPtr<MediaStreamTrack>&&, DOMPromise<void>&&) final;
+    void replaceTrack(RTCRtpSender&, RefPtr<MediaStreamTrack>&&, DOMPromiseDeferred<void>&&) final;
     RTCRtpParameters getParameters(RTCRtpSender&) const final;
 
     void updateConnectionState();

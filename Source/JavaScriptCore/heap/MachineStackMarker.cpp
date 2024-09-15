@@ -97,13 +97,49 @@ static ActiveMachineThreadsManager& activeMachineThreadsManager()
     });
     return *manager;
 }
-    
+
+#if CPU(X86_64) && OS(DARWIN)
+#define FILL_CALLEE_SAVES_FOR_CRASH_INFO(number)     \
+    asm volatile(                                    \
+        "movq $0xc0defefe000000" number ", %%rbx;" \
+        "movq $0xc0defefe000000" number ", %%r12;" \
+        "movq $0xc0defefe000000" number ", %%r13;" \
+        "movq $0xc0defefe000000" number ", %%r14;" \
+        "movq $0xc0defefe000000" number ", %%r15;" \
+        :                                            \
+        :                                            \
+        : "%rbx", "%r12", "%r13", "%r14", "%r15"     \
+    );
+
+#define FILL_CALLER_SAVES_FOR_CRASH_INFO(number)     \
+    asm volatile(                                    \
+        "movq $0xc0defefe000000" number ", %%rax;" \
+        "movq $0xc0defefe000000" number ", %%rdi;" \
+        "movq $0xc0defefe000000" number ", %%rsi;" \
+        "movq $0xc0defefe000000" number ", %%rdx;" \
+        "movq $0xc0defefe000000" number ", %%rcx;" \
+        "movq $0xc0defefe000000" number ", %%r8;"  \
+        "movq $0xc0defefe000000" number ", %%r9;"  \
+        "movq $0xc0defefe000000" number ", %%r10;" \
+        "movq $0xc0defefe000000" number ", %%r11;" \
+        :                                            \
+        :                                            \
+        : "%rax", "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9", "%r10", "%r11" \
+    );
+#else
+#define FILL_CALLEE_SAVES_FOR_CRASH_INFO(number)
+#define FILL_CALLER_SAVES_FOR_CRASH_INFO(number)
+#endif
+
 MachineThreads::MachineThreads()
     : m_registeredThreads()
     , m_threadSpecificForMachineThreads(0)
 {
+    FILL_CALLEE_SAVES_FOR_CRASH_INFO("01");
     threadSpecificKeyCreate(&m_threadSpecificForMachineThreads, removeThread);
+    FILL_CALLEE_SAVES_FOR_CRASH_INFO("02");
     activeMachineThreadsManager().add(this);
+    FILL_CALLER_SAVES_FOR_CRASH_INFO("03");
 }
 
 MachineThreads::~MachineThreads()
@@ -162,7 +198,7 @@ void THREAD_SPECIFIC_CALL MachineThreads::removeThread(void* p)
         // may not be found in this MachineThreads registry. We only need to
         // do a removal if this thread is found in it.
 
-#if PLATFORM(WIN)
+#if OS(WINDOWS)
         // On Windows the thread specific destructor is also called when the
         // main thread is exiting. This may lead to the main thread waiting
         // forever for the machine thread lock when exiting, if the sampling
@@ -311,6 +347,15 @@ void MachineThreads::tryCopyOtherThreadStack(MachineThread* thread, void* buffer
 {
     MachineThread::Registers registers;
     size_t registersSize = thread->getRegisters(registers);
+
+    // This is a workaround for <rdar://problem/27607384>. libdispatch recycles work
+    // queue threads without running pthread exit destructors. This can cause us to scan a
+    // thread during work queue initialization, when the stack pointer is null.
+    if (UNLIKELY(!registers.stackPointer())) {
+        *size = 0;
+        return;
+    }
+
     std::pair<void*, size_t> stack = thread->captureStack(registers.stackPointer());
 
     bool canCopy = *size + registersSize + stack.second <= capacity;

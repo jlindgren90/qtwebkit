@@ -63,6 +63,12 @@ struct DictationAlternative;
 struct DictionaryPopupInfo;
 }
 
+#if PLATFORM(IOS) && ENABLE(DRAG_SUPPORT)
+namespace WebCore {
+struct DragItem;
+}
+#endif
+
 class WebMediaPlaybackTargetPicker;
 class WebSelectionServiceController;
 
@@ -119,11 +125,6 @@ OBJC_CLASS NSTextAlternatives;
 - (WebCore::KeyboardUIMode)_keyboardUIMode;
 
 - (BOOL)_becomingFirstResponderFromOutside;
-
-#if ENABLE(ICONDATABASE)
-- (void)_registerForIconNotification:(BOOL)listen;
-- (void)_dispatchDidReceiveIconFromWebFrame:(WebFrame *)webFrame;
-#endif
 
 - (BOOL)_needsOneShotDrawingSynchronization;
 - (void)_setNeedsOneShotDrawingSynchronization:(BOOL)needsSynchronization;
@@ -254,10 +255,14 @@ OBJC_CLASS NSTextAlternatives;
 
 - (void)_documentScaleChanged;
 - (BOOL)_fetchCustomFixedPositionLayoutRect:(NSRect*)rect;
+#if ENABLE(ORIENTATION_EVENTS)
+- (void)_setDeviceOrientation:(NSUInteger)orientation;
+- (NSUInteger)_deviceOrientation;
+#endif
 #endif
 
 #if ENABLE(DATA_INTERACTION) && defined(__cplusplus)
-- (void)_setDataInteractionData:(CGImageRef)image textIndicator:(std::optional<WebCore::TextIndicatorData>)textIndicator atClientPosition:(CGPoint)clientPosition anchorPoint:(CGPoint)anchorPoint action:(uint64_t)action;
+- (void)_startDrag:(const WebCore::DragItem&)dragItem;
 - (void)_didConcludeEditDataInteraction;
 #endif
 
@@ -316,4 +321,7 @@ OBJC_CLASS NSTextAlternatives;
 - (void)showFormValidationMessage:(NSString *)message withAnchorRect:(NSRect)anchorRect;
 - (void)hideFormValidationMessage;
 
+#if !PLATFORM(IOS)
+- (void)_setMainFrameIcon:(NSImage *)icon;
+#endif
 @end

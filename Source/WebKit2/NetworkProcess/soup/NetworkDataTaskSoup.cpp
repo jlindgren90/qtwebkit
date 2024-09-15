@@ -844,6 +844,22 @@ void NetworkDataTaskSoup::didGetHeaders()
         m_protectionSpaceForPersistentStorage = ProtectionSpace();
         m_credentialForPersistentStorage = Credential();
     }
+
+    // Soup adds more headers to the request after starting signal is emitted, and got-headers
+    // is the first one we receive after starting, so we use it also to get information about the
+    // request headers.
+#if ENABLE(WEB_TIMING)
+    if (shouldCaptureExtraNetworkLoadMetrics()) {
+        HTTPHeaderMap requestHeaders;
+        SoupMessageHeadersIter headersIter;
+        soup_message_headers_iter_init(&headersIter, m_soupMessage->request_headers);
+        const char* headerName;
+        const char* headerValue;
+        while (soup_message_headers_iter_next(&headersIter, &headerName, &headerValue))
+            requestHeaders.set(String(headerName), String(headerValue));
+        m_networkLoadMetrics.requestHeaders = WTFMove(requestHeaders);
+    }
+#endif
 }
 
 void NetworkDataTaskSoup::wroteBodyDataCallback(SoupMessage* soupMessage, SoupBuffer* buffer, NetworkDataTaskSoup* task)
@@ -874,10 +890,8 @@ void NetworkDataTaskSoup::download()
         return;
     }
 
-    if (g_path_is_absolute(m_pendingDownloadLocation.utf8().data()))
-        m_downloadDestinationFile = adoptGRef(g_file_new_for_path(m_pendingDownloadLocation.utf8().data()));
-    else
-        m_downloadDestinationFile = adoptGRef(g_file_new_for_uri(m_pendingDownloadLocation.utf8().data()));
+    CString downloadDestinationPath = m_pendingDownloadLocation.utf8();
+    m_downloadDestinationFile = adoptGRef(g_file_new_for_path(downloadDestinationPath.data()));
     GRefPtr<GFileOutputStream> outputStream;
     GUniqueOutPtr<GError> error;
     if (m_allowOverwriteDownload)
@@ -889,10 +903,9 @@ void NetworkDataTaskSoup::download()
         return;
     }
 
-    GUniquePtr<char> downloadDestinationURI(g_file_get_uri(m_downloadDestinationFile.get()));
-    GUniquePtr<char> intermediateURI(g_strdup_printf("%s.wkdownload", downloadDestinationURI.get()));
-    m_downloadIntermediateFile = adoptGRef(g_file_new_for_uri(intermediateURI.get()));
-    outputStream = adoptGRef(g_file_replace(m_downloadIntermediateFile.get(), 0, TRUE, G_FILE_CREATE_NONE, 0, &error.outPtr()));
+    GUniquePtr<char> intermediatePath(g_strdup_printf("%s.wkdownload", downloadDestinationPath.data()));
+    m_downloadIntermediateFile = adoptGRef(g_file_new_for_path(intermediatePath.get()));
+    outputStream = adoptGRef(g_file_replace(m_downloadIntermediateFile.get(), nullptr, TRUE, G_FILE_CREATE_NONE, nullptr, &error.outPtr()));
     if (!outputStream) {
         didFailDownload(downloadDestinationError(m_response, error->message));
         return;
@@ -903,7 +916,7 @@ void NetworkDataTaskSoup::download()
     auto download = std::make_unique<Download>(downloadManager, m_pendingDownloadID, *this, m_session->sessionID(), suggestedFilename());
     auto* downloadPtr = download.get();
     downloadManager.dataTaskBecameDownloadTask(m_pendingDownloadID, WTFMove(download));
-    downloadPtr->didCreateDestination(String::fromUTF8(downloadDestinationURI.get()));
+    downloadPtr->didCreateDestination(m_pendingDownloadLocation);
 
     ASSERT(!m_client);
     read();

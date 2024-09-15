@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2016 Apple Inc.  All rights reserved.
+ * Copyright (C) 2006-2017 Apple Inc.  All rights reserved.
  * Copyright (C) 2008, 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  *
  * Redistribution and use in source and binary forms, with or without
@@ -144,7 +144,8 @@ static const TypeExtensionPair commonMediaTypes[] = {
     { "audio/x-gsm", "gsm" },
 
     // ADPCM
-    { "audio/x-wav", "wav" }
+    { "audio/x-wav", "wav" },
+    { "audio/vnd.wave", "wav" }
 };
 
 static HashSet<String, ASCIICaseInsensitiveHash>* supportedImageResourceMIMETypes;
@@ -509,6 +510,11 @@ bool MIMETypeRegistry::isSupportedImageMIMEType(const String& mimeType)
     return supportedImageMIMETypes->contains(getNormalizedMIMEType(mimeType));
 }
 
+bool MIMETypeRegistry::isSupportedImageOrSVGMIMEType(const String& mimeType)
+{
+    return isSupportedImageMIMEType(mimeType) || equalLettersIgnoringASCIICase(mimeType, "image/svg+xml");
+}
+
 bool MIMETypeRegistry::isSupportedImageResourceMIMEType(const String& mimeType)
 {
     if (mimeType.isEmpty())
@@ -536,6 +542,24 @@ bool MIMETypeRegistry::isSupportedJavaScriptMIMEType(const String& mimeType)
     if (!supportedJavaScriptMIMETypes)
         initializeMIMETypeRegistry();
     return supportedJavaScriptMIMETypes->contains(mimeType);
+}
+
+bool MIMETypeRegistry::isSupportedStyleSheetMIMEType(const String& mimeType)
+{
+    return equalLettersIgnoringASCIICase(mimeType, "text/css");
+}
+
+bool MIMETypeRegistry::isSupportedFontMIMEType(const String& mimeType)
+{
+    static const unsigned fontLen = 5;
+    if (!mimeType.startsWithIgnoringASCIICase("font/"))
+        return false;
+    String subType = mimeType.substring(fontLen);
+    return equalLettersIgnoringASCIICase(subType, "woff")
+        || equalLettersIgnoringASCIICase(subType, "woff2")
+        || equalLettersIgnoringASCIICase(subType, "otf")
+        || equalLettersIgnoringASCIICase(subType, "ttf")
+        || equalLettersIgnoringASCIICase(subType, "sfnt");
 }
 
 bool MIMETypeRegistry::isSupportedJSONMIMEType(const String& mimeType)
@@ -572,6 +596,11 @@ bool MIMETypeRegistry::isSupportedMediaMIMEType(const String& mimeType)
     if (!supportedMediaMIMETypes)
         initializeSupportedMediaMIMETypes();
     return supportedMediaMIMETypes->contains(mimeType);
+}
+
+bool MIMETypeRegistry::isSupportedTextTrackMIMEType(const String& mimeType)
+{
+    return equalLettersIgnoringASCIICase(mimeType, "text/vtt");
 }
 
 bool MIMETypeRegistry::isUnsupportedTextMIMEType(const String& mimeType)
@@ -723,7 +752,7 @@ HashSet<String, ASCIICaseInsensitiveHash>& MIMETypeRegistry::getUnsupportedTextM
 
 const String& defaultMIMEType()
 {
-    static NeverDestroyed<const String> defaultMIMEType(ASCIILiteral("application/octet-stream"));
+    static NeverDestroyed<const String> defaultMIMEType(MAKE_STATIC_STRING_IMPL("application/octet-stream"));
     return defaultMIMEType;
 }
 
@@ -771,6 +800,7 @@ static const MIMETypeAssociationMap& mimeTypeAssociationMap()
     mimeTypeMap->add(ASCIILiteral("audio/qcp"), ASCIILiteral("audio/qcelp"));
     mimeTypeMap->add(ASCIILiteral("audio/vnd.qcp"), ASCIILiteral("audio/qcelp"));
     mimeTypeMap->add(ASCIILiteral("audio/wav"), ASCIILiteral("audio/x-wav"));
+    mimeTypeMap->add(ASCIILiteral("audio/vnd.wave"), ASCIILiteral("audio/x-wav"));
     mimeTypeMap->add(ASCIILiteral("audio/mid"), ASCIILiteral("audio/midi"));
     mimeTypeMap->add(ASCIILiteral("audio/sp-midi"), ASCIILiteral("audio/midi"));
     mimeTypeMap->add(ASCIILiteral("audio/x-mid"), ASCIILiteral("audio/midi"));

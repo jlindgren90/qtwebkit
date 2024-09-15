@@ -89,6 +89,12 @@ typedef int   EGLNativeDisplayType;
 typedef void *EGLNativeWindowType;
 typedef void *EGLNativePixmapType;
 
+#elif defined(WL_EGL_PLATFORM)
+
+typedef struct wl_display    *EGLNativeDisplayType;
+typedef struct wl_egl_pixmap *EGLNativePixmapType;
+typedef struct wl_egl_window *EGLNativeWindowType;
+
 #elif defined(__ANDROID__) || defined(ANDROID)
 
 #include <android/native_window.h>
@@ -99,13 +105,15 @@ typedef struct ANativeWindow*           EGLNativeWindowType;
 typedef struct egl_native_pixmap_t*     EGLNativePixmapType;
 typedef void*                           EGLNativeDisplayType;
 
-#elif defined(USE_OZONE)
+#elif defined(USE_OZONE) || defined(USE_WPE)
 
 typedef intptr_t EGLNativeDisplayType;
 typedef intptr_t EGLNativeWindowType;
 typedef intptr_t EGLNativePixmapType;
 
 #elif defined(__unix__)
+
+#if defined(ANGLE_USE_X11) && !defined(MESA_EGL_NO_X11_HEADERS)
 
 /* X11 (tentative)  */
 #include <X11/Xlib.h>
@@ -114,6 +122,14 @@ typedef intptr_t EGLNativePixmapType;
 typedef Display *EGLNativeDisplayType;
 typedef Pixmap   EGLNativePixmapType;
 typedef Window   EGLNativeWindowType;
+
+#else
+
+typedef void             *EGLNativeDisplayType;
+typedef khronos_uintptr_t EGLNativePixmapType;
+typedef khronos_uintptr_t EGLNativeWindowType;
+
+#endif /* ANGLE_USE_X11 && !MESA_EGL_NO_X11_HEADERS */
 
 #else
 #error "Platform not recognized"

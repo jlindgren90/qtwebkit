@@ -40,6 +40,7 @@ class WebPlaybackSessionInterfaceAVKit;
     WebAVMediaSelectionOption *_currentAudioMediaSelectionOption;
     WebAVMediaSelectionOption *_currentLegibleMediaSelectionOption;
     BOOL _pictureInPictureInterrupted;
+    BOOL _muted;
 }
 
 @property (retain) AVPlayerController* playerControllerProxy;
@@ -62,13 +63,14 @@ class WebPlaybackSessionInterfaceAVKit;
 @property BOOL hasEnabledAudio;
 @property BOOL hasEnabledVideo;
 @property BOOL hasVideo;
-@property NSTimeInterval minTime;
-@property NSTimeInterval maxTime;
+@property (readonly) NSTimeInterval minTime;
+@property (readonly) NSTimeInterval maxTime;
 @property NSTimeInterval contentDurationWithinEndTimes;
 @property (retain) NSArray *loadedTimeRanges;
 @property AVPlayerControllerStatus status;
 @property (retain) AVValueTiming *timing;
 @property (retain) NSArray *seekableTimeRanges;
+@property (getter=isMuted) BOOL muted;
 
 @property (readonly) BOOL hasMediaSelectionOptions;
 @property (readonly) BOOL hasAudioMediaSelectionOptions;
@@ -86,6 +88,14 @@ class WebPlaybackSessionInterfaceAVKit;
 @property BOOL allowsExternalPlayback;
 @property (getter=isPictureInPicturePossible) BOOL pictureInPicturePossible;
 @property (getter=isPictureInPictureInterrupted) BOOL pictureInPictureInterrupted;
+
+@property NSTimeInterval seekableTimeRangesLastModifiedTime;
+@property NSTimeInterval liveUpdateInterval;
+
+@property (NS_NONATOMIC_IOSONLY, retain, readwrite) AVValueTiming *minTiming;
+@property (NS_NONATOMIC_IOSONLY, retain, readwrite) AVValueTiming *maxTiming;
+
+- (void)resetMediaState;
 @end
 
 #endif

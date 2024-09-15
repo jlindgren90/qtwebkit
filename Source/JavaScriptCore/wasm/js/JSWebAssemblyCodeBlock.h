@@ -27,6 +27,7 @@
 
 #if ENABLE(WEBASSEMBLY)
 
+#include "CallLinkInfo.h"
 #include "JSCell.h"
 #include "PromiseDeferredTimer.h"
 #include "Structure.h"
@@ -46,15 +47,21 @@ namespace Wasm {
 class Plan;
 }
 
-class JSWebAssemblyCodeBlock : public JSCell {
+class JSWebAssemblyCodeBlock final : public JSCell {
 public:
     typedef JSCell Base;
     static const unsigned StructureFlags = Base::StructureFlags | StructureIsImmortal;
 
-    static JSWebAssemblyCodeBlock* create(VM&, Ref<Wasm::CodeBlock>, const Wasm::ModuleInformation&);
+    static JSWebAssemblyCodeBlock* create(VM&, Ref<Wasm::CodeBlock>, JSWebAssemblyModule*);
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
     {
         return Structure::create(vm, globalObject, prototype, TypeInfo(CellType, StructureFlags), info());
+    }
+
+    template<typename CellType>
+    static Subspace* subspaceFor(VM& vm)
+    {
+        return &vm.webAssemblyCodeBlockSpace;
     }
 
     unsigned functionImportCount() const { return m_codeBlock->functionImportCount(); }
@@ -62,19 +69,24 @@ public:
 
     bool isSafeToRun(JSWebAssemblyMemory*) const;
 
+    void finishCreation(VM&, JSWebAssemblyModule*);
+
     // These two callee getters are only valid once the callees have been populated.
 
     Wasm::Callee& jsEntrypointCalleeFromFunctionIndexSpace(unsigned functionIndexSpace)
     {
+        ASSERT(runnable());
         return m_codeBlock->jsEntrypointCalleeFromFunctionIndexSpace(functionIndexSpace);
     }
     Wasm::WasmEntrypointLoadLocation wasmEntrypointLoadLocationFromFunctionIndexSpace(unsigned functionIndexSpace)
     {
+        ASSERT(runnable());
         return m_codeBlock->wasmEntrypointLoadLocationFromFunctionIndexSpace(functionIndexSpace);
     }
 
     Wasm::WasmEntrypointLoadLocation wasmToJsCallStubForImport(unsigned importIndex)
     {
+        ASSERT(runnable());
         return &importWasmToJSStub(importIndex);
     }
 
@@ -84,6 +96,16 @@ public:
     }
 
     Wasm::CodeBlock& codeBlock() { return m_codeBlock.get(); }
+
+    void clearJSCallICs(VM&);
+
+    bool runnable() const { return !m_errorMessage; }
+
+    String errorMessage()
+    {
+        ASSERT(!runnable());
+        return m_errorMessage;
+    }
 
 private:
     JSWebAssemblyCodeBlock(VM&, Ref<Wasm::CodeBlock>&&, const Wasm::ModuleInformation&);
@@ -116,6 +138,7 @@ private:
     Vector<MacroAssemblerCodeRef> m_wasmToJSExitStubs;
     UnconditionalFinalizer m_unconditionalFinalizer;
     Bag<CallLinkInfo> m_callLinkInfos;
+    String m_errorMessage;
 };
 
 } // namespace JSC

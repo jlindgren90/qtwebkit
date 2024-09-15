@@ -41,11 +41,11 @@
 #import <WebCore/RenderLayerBacking.h>
 #import <WebCore/RenderObject.h>
 #import <WebCore/RenderView.h>
-#import <WebCore/SoftLinking.h>
 #import <WebCore/WebCoreFullScreenWindow.h>
 #import <WebCore/WebWindowAnimation.h>
 #import <WebKitSystemInterface.h>
 #import <wtf/RetainPtr.h>
+#import <wtf/SoftLinking.h>
 
 using namespace WebCore;
 
@@ -138,9 +138,9 @@ static NSRect convertRectToScreen(NSWindow *window, NSRect rect)
     return _element.get();
 }
 
-- (void)setElement:(PassRefPtr<Element>)element
+- (void)setElement:(RefPtr<Element>&&)element
 {
-    _element = element;
+    _element = WTFMove(element);
 }
 
 - (BOOL)isFullScreen

@@ -33,9 +33,9 @@
 #import <AVFoundation/AVFoundation.h>
 #import <WebCore/GraphicsLayerCA.h>
 #import <WebCore/PlatformCALayerCocoa.h>
-#import <WebCore/SoftLinking.h>
 #import <WebCore/WebCoreCALayerExtras.h>
 #import <wtf/RetainPtr.h>
+#import <wtf/SoftLinking.h>
 
 SOFT_LINK_FRAMEWORK_OPTIONAL(AVFoundation)
 SOFT_LINK_CLASS_OPTIONAL(AVFoundation, AVPlayerLayer)
@@ -46,11 +46,10 @@ namespace WebKit {
 
 static NSString * const platformCALayerPointer = @"WKPlatformCALayer";
 
-PassRefPtr<PlatformCALayerRemote> PlatformCALayerRemoteCustom::create(PlatformLayer *platformLayer, PlatformCALayerClient* owner, RemoteLayerTreeContext& context)
+Ref<PlatformCALayerRemote> PlatformCALayerRemoteCustom::create(PlatformLayer *platformLayer, PlatformCALayerClient* owner, RemoteLayerTreeContext& context)
 {
     auto layer = adoptRef(*new PlatformCALayerRemoteCustom(PlatformCALayerCocoa::layerTypeForPlatformLayer(platformLayer), platformLayer, owner, context));
     context.layerWasCreated(layer.get(), layer->layerType());
-
     return WTFMove(layer);
 }
 
@@ -100,7 +99,7 @@ uint32_t PlatformCALayerRemoteCustom::hostingContextID()
     return m_layerHostingContext->contextID();
 }
 
-PassRefPtr<WebCore::PlatformCALayer> PlatformCALayerRemoteCustom::clone(PlatformCALayerClient* owner) const
+Ref<WebCore::PlatformCALayer> PlatformCALayerRemoteCustom::clone(PlatformCALayerClient* owner) const
 {
     RetainPtr<CALayer *> clonedLayer;
     bool copyContents = true;

@@ -185,6 +185,9 @@ void InsertParagraphSeparatorCommand::doApply()
     // Adjust the insertion position after the delete
     insertionPosition = positionAvoidingSpecialElementBoundary(insertionPosition);
     VisiblePosition visiblePos(insertionPosition, affinity);
+    if (visiblePos.isNull())
+        return;
+
     calculateStyleBeforeInsertion(insertionPosition);
 
     //---------------------------------------------------------------------
@@ -266,9 +269,8 @@ void InsertParagraphSeparatorCommand::doApply()
             // startBlock should always have children, otherwise isLastInBlock would be true and it's handled above.
             ASSERT(startBlock->firstChild());
             refNode = startBlock->firstChild();
-        }
-        else if (insertionPosition.deprecatedNode() == startBlock && nestNewBlock) {
-            refNode = startBlock->traverseToChildAt(insertionPosition.deprecatedEditingOffset());
+        } else if (insertionPosition.containerNode() == startBlock && nestNewBlock) {
+            refNode = startBlock->traverseToChildAt(insertionPosition.computeOffsetInContainerNode());
             ASSERT(refNode); // must be true or we'd be in the end of block case
         } else
             refNode = insertionPosition.deprecatedNode();
@@ -336,17 +338,17 @@ void InsertParagraphSeparatorCommand::doApply()
     if (is<Text>(leadingWhitespace.deprecatedNode())) {
         Text& textNode = downcast<Text>(*leadingWhitespace.deprecatedNode());
         ASSERT(!textNode.renderer() || textNode.renderer()->style().collapseWhiteSpace());
-        replaceTextInNodePreservingMarkers(&textNode, leadingWhitespace.deprecatedEditingOffset(), 1, nonBreakingSpaceString());
+        replaceTextInNodePreservingMarkers(textNode, leadingWhitespace.deprecatedEditingOffset(), 1, nonBreakingSpaceString());
     }
     
     // Split at pos if in the middle of a text node.
     Position positionAfterSplit;
     if (insertionPosition.anchorType() == Position::PositionIsOffsetInAnchor && is<Text>(*insertionPosition.containerNode())) {
-        RefPtr<Text> textNode = downcast<Text>(insertionPosition.containerNode());
+        Ref<Text> textNode = downcast<Text>(*insertionPosition.containerNode());
         bool atEnd = static_cast<unsigned>(insertionPosition.offsetInContainerNode()) >= textNode->length();
         if (insertionPosition.deprecatedEditingOffset() > 0 && !atEnd) {
             splitTextNode(textNode, insertionPosition.offsetInContainerNode());
-            positionAfterSplit = firstPositionInNode(textNode.get());
+            positionAfterSplit = firstPositionInNode(textNode.ptr());
             if (!textNode->previousSibling())
                 return; // Bail out if mutation events detachd the split text node.
             insertionPosition.moveToPosition(textNode->previousSibling(), insertionPosition.offsetInContainerNode());
@@ -382,7 +384,7 @@ void InsertParagraphSeparatorCommand::doApply()
             if (is<Text>(*splitTo) && insertionPosition.offsetInContainerNode() >= caretMaxOffset(*splitTo))
                 splitTo = NodeTraversal::next(*splitTo, startBlock.get());
             ASSERT(splitTo);
-            splitTreeToNode(splitTo, startBlock.get());
+            splitTreeToNode(*splitTo, *startBlock);
 
             for (n = startBlock->firstChild(); n; n = n->nextSibling()) {
                 VisiblePosition beforeNodePosition = positionBeforeNode(n);
@@ -391,7 +393,7 @@ void InsertParagraphSeparatorCommand::doApply()
             }
         }
 
-        moveRemainingSiblingsToNewParent(n, blockToInsert.get(), blockToInsert);
+        moveRemainingSiblingsToNewParent(n, blockToInsert.get(), *blockToInsert);
     }            
 
     // Handle whitespace that occurs after the split
@@ -402,7 +404,7 @@ void InsertParagraphSeparatorCommand::doApply()
             ASSERT(!positionAfterSplit.containerNode()->renderer() || positionAfterSplit.containerNode()->renderer()->style().collapseWhiteSpace());
             deleteInsignificantTextDownstream(positionAfterSplit);
             if (is<Text>(*positionAfterSplit.deprecatedNode()))
-                insertTextIntoNode(downcast<Text>(positionAfterSplit.containerNode()), 0, nonBreakingSpaceString());
+                insertTextIntoNode(downcast<Text>(*positionAfterSplit.containerNode()), 0, nonBreakingSpaceString());
         }
     }
 

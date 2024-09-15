@@ -1,3 +1,103 @@
+2017-07-10  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Link error when building WTF from WTF.proj project file.
+        https://bugs.webkit.org/show_bug.cgi?id=174316
+        <rdar://problem/33178200>
+
+        Reviewed by Brent Fulgham.
+
+        WTF_CPU_X86 cmake variable needs to be set for link libraries directories to be correct.
+
+        * WebKit.vcxproj/WebKit.proj:
+
+2017-07-05  Don Olmstead  <don.olmstead@sony.com>
+
+        [WinCairo] Consolidate CMake code related to CURL
+        https://bugs.webkit.org/show_bug.cgi?id=170860
+
+        Reviewed by Alex Christensen.
+
+        * PlatformWin.cmake:
+
+2017-06-26  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [WTF] Drop Thread::create(obsolete things) API since we can use lambda
+        https://bugs.webkit.org/show_bug.cgi?id=173825
+
+        Reviewed by Saam Barati.
+
+        * Storage/StorageThread.cpp:
+        (WebCore::StorageThread::start):
+        (WebCore::StorageThread::threadEntryPointCallback): Deleted.
+        * Storage/StorageThread.h:
+
+2017-06-16  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Visual Studio 2017 64-bit build after r218258
+        https://bugs.webkit.org/show_bug.cgi?id=173308
+
+        * PlatformWin.cmake:
+        We still need the enable_language(ASM_MASM) even if we explicitly call ml64 with VS2017.
+        Otherwise CMake complains about a missing variable CMAKE_ASM_MASM_COMPILE_OBJECT.
+
+2017-06-14  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [Win64] Fails to build Asm.lib (PaintHooks.asm) since Bug 173132
+        https://bugs.webkit.org/show_bug.cgi?id=173308
+
+        Reviewed by Alex Christensen.
+
+        Use the same method to process asm file as well as JSC does (Bug 170833).
+
+        * PlatformWin.cmake: Use add_custom_command to assemble PaintHooks.asm.
+
+2017-06-09  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win64] Build error when compiling PaintHooks.asm.
+        https://bugs.webkit.org/show_bug.cgi?id=173132
+
+        Reviewed by Brent Fulgham.
+
+        There seems to be too many include paths on the command line for ml64. According to the documentation,
+        a maximum of 10 /I options is allowed. Create a separate static library for asm files, in order to
+        avoid all the include paths.
+        
+        * PlatformWin.cmake:
+
+2017-06-06  Yoav Weiss  <yoav@yoav.ws>
+
+        [preload] Conditional support for media preloading and align media `as` values.
+        https://bugs.webkit.org/show_bug.cgi?id=172501
+
+        Reviewed by Dean Jackson.
+
+        Add media preloading preference and hook it up to runtime enabled features.
+
+        * mac/WebView/WebPreferenceKeysPrivate.h: Added a media preloading preference.
+        * mac/WebView/WebPreferences.mm:
+        (WebKit::WebPreferences::setMediaPreloadingEnabled):
+        (WebKit::WebPreferences::mediaPreloadingEnabled):
+        * mac/WebView/WebPreferencesPrivate.h:
+        (WebKit::WebPreferences::setMediaPreloadingEnabled):
+        (WebKit::WebPreferences::mediaPreloadingEnabled):
+        * mac/WebView/WebView.mm: Set runtime enabled feature based on preference.
+        * win/Interfaces/IWebPreferencesPrivate.idl: define mediaPreloadEnabled and setMediaPreloadingEnabled
+        * win/WebPreferences.cpp: Initialize media preloading as false and define setter and getter.
+        (WebKit::WebPreferences::setMediaPreloadingEnabled):
+        (WebKit::WebPreferences::mediaPreloadingEnabled):
+        * win/WebPreferences.h:
+        * win/WebPreferenceKeysPrivate.h:
+        * win/WebView.cpp: Set runtime enabled feature based on preference.
+
+2017-05-22  Don Olmstead  <don.olmstead@am.sony.com>
+
+        [Win][CMake] Move MSVC compiler options to a common location
+        https://bugs.webkit.org/show_bug.cgi?id=172230
+
+        Reviewed by Yusuke Suzuki.
+
+        * PlatformWin.cmake:
+
 2017-04-20  Konstantin Tokarev  <annulen@yandex.ru>
 
         [cmake] Define FORWARDING_HEADERS_DIR in WebKitFS and use it everywhere

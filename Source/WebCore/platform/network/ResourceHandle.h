@@ -26,10 +26,11 @@
 #pragma once
 
 #include "AuthenticationClient.h"
-#include "HTTPHeaderMap.h"
 #include "ResourceHandleTypes.h"
-#include "ResourceLoadPriority.h"
+#include <wtf/MonotonicTime.h>
 #include <wtf/RefCounted.h>
+#include <wtf/RefPtr.h>
+#include <wtf/text/AtomicString.h>
 
 #if PLATFORM(COCOA) || USE(CFURLCONNECTION)
 #include <wtf/RetainPtr.h>
@@ -65,6 +66,10 @@ typedef struct OpaqueCFHTTPCookieStorage* CFHTTPCookieStorageRef;
 
 #if PLATFORM(COCOA) || USE(CFURLCONNECTION)
 typedef const struct __CFURLStorageSession* CFURLStorageSessionRef;
+#endif
+
+#if USE(CURL)
+#include "CurlJobManager.h"
 #endif
 
 namespace WTF {
@@ -151,12 +156,12 @@ public:
     static void setClientCertificate(const String& host, CFDataRef);
 #endif
 
-#if PLATFORM(WIN) && USE(CURL)
+#if OS(WINDOWS) && USE(CURL)
     static void setHostAllowsAnyHTTPSCertificate(const String&);
     static void setClientCertificateInfo(const String&, const String&, const String&);
 #endif
 
-#if PLATFORM(WIN) && USE(CURL) && USE(CF)
+#if OS(WINDOWS) && USE(CURL) && USE(CF)
     static void setClientCertificate(const String& host, CFDataRef);
 #endif
 
@@ -178,6 +183,12 @@ public:
     size_t currentStreamPosition() const;
     void didStartRequest();
     MonotonicTime m_requestTime;
+#endif
+
+#if USE(CURL)
+    void initialize();
+    void handleDataURL();
+    void handleCurlMsg(CURLMsg*);
 #endif
 
     bool hasAuthenticationChallenge() const;
@@ -279,6 +290,15 @@ private:
 
 #if USE(SOUP)
     void timeoutFired();
+#endif
+
+#if USE(CURL)
+    void dispatchSynchronousJob();
+
+    void setupPOST();
+    void setupPUT();
+
+    void applyAuthentication();
 #endif
 
     friend class ResourceHandleInternal;

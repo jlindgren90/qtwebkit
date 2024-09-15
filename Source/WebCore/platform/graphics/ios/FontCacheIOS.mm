@@ -36,6 +36,7 @@
 #import <wtf/HashSet.h>
 #import <wtf/NeverDestroyed.h>
 #import <wtf/RetainPtr.h>
+#import <wtf/SoftLinking.h>
 #import <wtf/text/CString.h>
 
 namespace WebCore {
@@ -94,7 +95,6 @@ static RetainPtr<CTFontDescriptorRef> baseSystemFontDescriptor(FontSelectionValu
     return adoptCF(CTFontDescriptorCreateForUIType(fontType, size, nullptr));
 }
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
 static RetainPtr<NSDictionary> systemFontModificationAttributes(FontSelectionValue weight, bool italic)
 {
     RetainPtr<NSMutableDictionary> traitsDictionary = adoptNS([[NSMutableDictionary alloc] init]);
@@ -127,25 +127,19 @@ static RetainPtr<NSDictionary> systemFontModificationAttributes(FontSelectionVal
 
     return @{ static_cast<NSString *>(kCTFontTraitsAttribute) : traitsDictionary.get() };
 }
-#endif
 
 static RetainPtr<CTFontDescriptorRef> systemFontDescriptor(FontSelectionValue weight, bool bold, bool italic, float size)
 {
     RetainPtr<CTFontDescriptorRef> fontDescriptor = baseSystemFontDescriptor(weight, bold, size);
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
     RetainPtr<NSDictionary> attributes = systemFontModificationAttributes(weight, italic);
     return adoptCF(CTFontDescriptorCreateCopyWithAttributes(fontDescriptor.get(), static_cast<CFDictionaryRef>(attributes.get())));
-#else
-    if (italic)
-        return adoptCF(CTFontDescriptorCreateCopyWithSymbolicTraits(fontDescriptor.get(), kCTFontItalicTrait, kCTFontItalicTrait));
-    return fontDescriptor;
-#endif
 }
 
 RetainPtr<CTFontRef> platformFontWithFamilySpecialCase(const AtomicString& family, FontSelectionRequest request, float size)
 {
+    // FIXME: See comment in FontCascadeDescription::effectiveFamilyAt() in FontDescriptionCocoa.cpp
     if (family.startsWith("UICTFontTextStyle")) {
-        CTFontSymbolicTraits traits = (isFontWeightBold(request.weight) ? kCTFontTraitBold : 0) | (isItalic(request.slope) ? kCTFontTraitItalic : 0);
+        CTFontSymbolicTraits traits = (isFontWeightBold(request.weight) || FontCache::singleton().shouldMockBoldSystemFontForAccessibility() ? kCTFontTraitBold : 0) | (isItalic(request.slope) ? kCTFontTraitItalic : 0);
         RetainPtr<CFStringRef> familyNameStr = family.string().createCFString();
         RetainPtr<CTFontDescriptorRef> fontDescriptor = adoptCF(CTFontDescriptorCreateWithTextStyle(familyNameStr.get(), RenderThemeIOS::contentSizeCategory(), nullptr));
         if (traits)
@@ -162,6 +156,17 @@ RetainPtr<CTFontRef> platformFontWithFamilySpecialCase(const AtomicString& famil
         RetainPtr<CTFontDescriptorRef> systemFontDescriptor = adoptCF(CTFontDescriptorCreateForUIType(kCTFontUIFontSystem, size, nullptr));
         RetainPtr<CTFontDescriptorRef> monospaceFontDescriptor = adoptCF(CTFontDescriptorCreateCopyWithFeature(systemFontDescriptor.get(), (CFNumberRef)@(kNumberSpacingType), (CFNumberRef)@(kMonospacedNumbersSelector)));
         return adoptCF(CTFontCreateWithFontDescriptor(monospaceFontDescriptor.get(), size, nullptr));
+    }
+
+    if (equalLettersIgnoringASCIICase(family, "lastresort")) {
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 110000
+        static NeverDestroyed<RetainPtr<CTFontDescriptorRef>> lastResort = adoptCF(CTFontDescriptorCreateLastResort());
+        return adoptCF(CTFontCreateWithFontDescriptor(lastResort.get().get(), size, nullptr));
+#else
+        // LastResort is special, so it's important to look this exact string up, and not some case-folded version.
+        // We handle this here so any caching and case folding we do in our general text codepath is bypassed.
+        return adoptCF(CTFontCreateWithName(CFSTR("LastResort"), size, nullptr));
+#endif
     }
 
     return nullptr;

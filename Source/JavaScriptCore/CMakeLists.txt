@@ -32,7 +32,6 @@ set(JavaScriptCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/llint"
     "${JAVASCRIPTCORE_DIR}/parser"
     "${JAVASCRIPTCORE_DIR}/profiler"
-    "${JAVASCRIPTCORE_DIR}/replay"
     "${JAVASCRIPTCORE_DIR}/runtime"
     "${JAVASCRIPTCORE_DIR}/tools"
     "${JAVASCRIPTCORE_DIR}/wasm"
@@ -55,6 +54,7 @@ set(JavaScriptCore_SOURCES
     API/JSCallbackObject.cpp
     API/JSClassRef.cpp
     API/JSContextRef.cpp
+    API/JSHeapFinalizerPrivate.cpp
     API/JSMarkingConstraintPrivate.cpp
     API/JSObjectRef.cpp
     API/JSTypedArray.cpp
@@ -201,6 +201,7 @@ set(JavaScriptCore_SOURCES
     builtins/BuiltinExecutableCreator.cpp
 
     bytecode/AccessCase.cpp
+    bytecode/AccessCaseSnippetParams.cpp
     bytecode/AdaptiveInferredPropertyValueWatchpointBase.cpp
     bytecode/ArithProfile.cpp
     bytecode/ArrayAllocationProfile.cpp
@@ -223,7 +224,6 @@ set(JavaScriptCore_SOURCES
     bytecode/CodeType.cpp
     bytecode/ComplexGetStatus.cpp
     bytecode/DFGExitProfile.cpp
-    bytecode/DOMJITAccessCasePatchpointParams.cpp
     bytecode/DataFormat.cpp
     bytecode/DeferredCompilationCallback.cpp
     bytecode/DeferredSourceDump.cpp
@@ -322,7 +322,6 @@ set(JavaScriptCore_SOURCES
     dfg/DFGConstantHoistingPhase.cpp
     dfg/DFGCriticalEdgeBreakingPhase.cpp
     dfg/DFGDCEPhase.cpp
-    dfg/DFGDOMJITPatchpointParams.cpp
     dfg/DFGDesiredIdentifiers.cpp
     dfg/DFGDesiredTransitions.cpp
     dfg/DFGDesiredWatchpoints.cpp
@@ -357,7 +356,6 @@ set(JavaScriptCore_SOURCES
     dfg/DFGLazyJSValue.cpp
     dfg/DFGLazyNode.cpp
     dfg/DFGLivenessAnalysisPhase.cpp
-    dfg/DFGLongLivedState.cpp
     dfg/DFGLoopPreHeaderCreationPhase.cpp
     dfg/DFGMaximalFlushInsertionPhase.cpp
     dfg/DFGMayExit.cpp
@@ -401,6 +399,7 @@ set(JavaScriptCore_SOURCES
     dfg/DFGSSAConversionPhase.cpp
     dfg/DFGSSALoweringPhase.cpp
     dfg/DFGSafepoint.cpp
+    dfg/DFGSnippetParams.cpp
     dfg/DFGSpeculativeJIT.cpp
     dfg/DFGSpeculativeJIT32_64.cpp
     dfg/DFGSpeculativeJIT64.cpp
@@ -458,7 +457,6 @@ set(JavaScriptCore_SOURCES
     ftl/FTLCapabilities.cpp
     ftl/FTLCommonValues.cpp
     ftl/FTLCompile.cpp
-    ftl/FTLDOMJITPatchpointParams.cpp
     ftl/FTLExceptionTarget.cpp
     ftl/FTLExitArgument.cpp
     ftl/FTLExitArgumentForOperand.cpp
@@ -484,6 +482,7 @@ set(JavaScriptCore_SOURCES
     ftl/FTLSaveRestore.cpp
     ftl/FTLSlowPathCall.cpp
     ftl/FTLSlowPathCallKey.cpp
+    ftl/FTLSnippetParams.cpp
     ftl/FTLState.cpp
     ftl/FTLThunks.cpp
     ftl/FTLValueRange.cpp
@@ -502,10 +501,12 @@ set(JavaScriptCore_SOURCES
     heap/GCActivityCallback.cpp
     heap/GCConductor.cpp
     heap/GCLogging.cpp
+    heap/GCRequest.cpp
     heap/HandleSet.cpp
     heap/HandleStack.cpp
     heap/Heap.cpp
     heap/HeapCell.cpp
+    heap/HeapFinalizerCallback.cpp
     heap/HeapHelperPool.cpp
     heap/HeapProfiler.cpp
     heap/HeapSnapshot.cpp
@@ -528,6 +529,7 @@ set(JavaScriptCore_SOURCES
     heap/StopIfNecessaryTimer.cpp
     heap/Subspace.cpp
     heap/SynchronousStopTheWorldMutatorScheduler.cpp
+    heap/Synchronousness.cpp
     heap/VisitRaceKey.cpp
     heap/Weak.cpp
     heap/WeakBlock.cpp
@@ -680,7 +682,6 @@ set(JavaScriptCore_SOURCES
     runtime/ArrayBufferView.cpp
     runtime/ArrayConstructor.cpp
     runtime/ArrayConventions.cpp
-    runtime/ArrayIteratorAdaptiveWatchpoint.cpp
     runtime/ArrayIteratorPrototype.cpp
     runtime/ArrayPrototype.cpp
     runtime/AtomicsObject.cpp
@@ -692,6 +693,7 @@ set(JavaScriptCore_SOURCES
     runtime/BooleanPrototype.cpp
     runtime/CallData.cpp
     runtime/CatchScope.cpp
+    runtime/ClassInfo.cpp
     runtime/ClonedArguments.cpp
     runtime/CodeCache.cpp
     runtime/CodeSpecializationKind.cpp
@@ -750,6 +752,7 @@ set(JavaScriptCore_SOURCES
     runtime/InitializeThreading.cpp
     runtime/InspectorInstrumentationObject.cpp
     runtime/InternalFunction.cpp
+    runtime/Intrinsic.cpp
     runtime/IntlCollator.cpp
     runtime/IntlCollatorConstructor.cpp
     runtime/IntlCollatorPrototype.cpp
@@ -807,7 +810,6 @@ set(JavaScriptCore_SOURCES
     runtime/JSPromiseDeferred.cpp
     runtime/JSPromisePrototype.cpp
     runtime/JSPropertyNameEnumerator.cpp
-    runtime/JSPropertyNameIterator.cpp
     runtime/JSProxy.cpp
     runtime/JSRunLoopTimer.cpp
     runtime/JSScope.cpp
@@ -835,7 +837,6 @@ set(JavaScriptCore_SOURCES
     runtime/LazyClassStructure.cpp
     runtime/LiteralParser.cpp
     runtime/Lookup.cpp
-    runtime/MapBase.cpp
     runtime/MapConstructor.cpp
     runtime/MapIteratorPrototype.cpp
     runtime/MapPrototype.cpp
@@ -949,12 +950,14 @@ set(JavaScriptCore_SOURCES
     wasm/WasmContext.cpp
     wasm/WasmFaultSignalHandler.cpp
     wasm/WasmFormat.cpp
+    wasm/WasmIndexOrName.cpp
     wasm/WasmMachineThreads.cpp
     wasm/WasmMemory.cpp
     wasm/WasmMemoryInformation.cpp
     wasm/WasmModule.cpp
     wasm/WasmModuleInformation.cpp
     wasm/WasmModuleParser.cpp
+    wasm/WasmNameSectionParser.cpp
     wasm/WasmOMGPlan.cpp
     wasm/WasmOpcodeOrigin.cpp
     wasm/WasmPageCount.cpp
@@ -965,6 +968,7 @@ set(JavaScriptCore_SOURCES
     wasm/WasmWorklist.cpp
 
     wasm/js/JSWebAssemblyCodeBlock.cpp
+    wasm/js/JSWebAssemblyCodeBlockSubspace.cpp
     wasm/js/JSWebAssemblyCompileError.cpp
     wasm/js/JSWebAssemblyInstance.cpp
     wasm/js/JSWebAssemblyLinkError.cpp
@@ -975,6 +979,7 @@ set(JavaScriptCore_SOURCES
     wasm/js/WebAssemblyCompileErrorConstructor.cpp
     wasm/js/WebAssemblyCompileErrorPrototype.cpp
     wasm/js/WebAssemblyFunction.cpp
+    wasm/js/WebAssemblyFunctionBase.cpp
     wasm/js/WebAssemblyInstanceConstructor.cpp
     wasm/js/WebAssemblyInstancePrototype.cpp
     wasm/js/WebAssemblyLinkErrorConstructor.cpp
@@ -1200,15 +1205,20 @@ add_custom_command(
 # since it is used in the add_library() call at the end of this file.
 if (MSVC)
     enable_language(ASM_MASM)
-    list(APPEND JavaScriptCore_SOURCES
-        ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LowLevelInterpreterWin.asm
-    )
-    # Win32 needs /safeseh with assembly, but Win64 does not.
     if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set_source_files_properties(${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LowLevelInterpreterWin.asm
-            PROPERTIES COMPILE_FLAGS  "/safeseh"
-        )
+        # Win32 needs /safeseh with assembly, but Win64 does not.
+        set(MASM_EXECUTABLE ml)
+        set(LLINT_MASM_FLAGS /safeseh /c /Fo)
+    else ()
+        set(MASM_EXECUTABLE ml64)
+        set(LLINT_MASM_FLAGS /c /Fo)
     endif ()
+    add_custom_command(
+        OUTPUT ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LowLevelInterpreterWin.obj
+        DEPENDS ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LowLevelInterpreterWin.asm
+        COMMAND ${MASM_EXECUTABLE} ${LLINT_MASM_FLAGS} ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LowLevelInterpreterWin.obj ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LowLevelInterpreterWin.asm
+        VERBATIM)
+    list(APPEND JavaScriptCore_SOURCES ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LowLevelInterpreterWin.obj)
 else ()
     list(APPEND JavaScriptCore_HEADERS
         ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/LLIntAssembly.h
@@ -1217,19 +1227,19 @@ endif ()
 
 # WebAssembly generator
 
-macro(GENERATE_PYTHON _generator _input _output)
+macro(GENERATE_PYTHON _generator _additional_deps _input _output)
     add_custom_command(
         OUTPUT ${_output}
         MAIN_DEPENDENCY ${_generator}
-        DEPENDS ${_input}
+        DEPENDS ${_input} ${_additional_deps}
         COMMAND ${PYTHON_EXECUTABLE} ${_generator} ${_input} ${_output}
         VERBATIM)
     list(APPEND JavaScriptCore_HEADERS ${_output})
     ADD_SOURCE_DEPENDENCIES(${_input} ${_output})
 endmacro()
-GENERATE_PYTHON(${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasmOpsHeader.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/wasm.json ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/WasmOps.h)
-GENERATE_PYTHON(${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasmValidateInlinesHeader.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/wasm.json ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/WasmValidateInlines.h)
-GENERATE_PYTHON(${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasmB3IRGeneratorInlinesHeader.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/wasm.json ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/WasmB3IRGeneratorInlines.h)
+GENERATE_PYTHON(${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasmOpsHeader.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasm.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/wasm.json ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/WasmOps.h)
+GENERATE_PYTHON(${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasmValidateInlinesHeader.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasm.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/wasm.json ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/WasmValidateInlines.h)
+GENERATE_PYTHON(${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasmB3IRGeneratorInlinesHeader.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/generateWasm.py ${CMAKE_CURRENT_SOURCE_DIR}/wasm/wasm.json ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/WasmB3IRGeneratorInlines.h)
 
 # LUT generator
 
@@ -1269,7 +1279,6 @@ set(JavaScriptCore_FORWARDING_HEADERS_DIRECTORIES
     llint
     parser
     profiler
-    replay
     runtime
     wasm
     yarr
@@ -1339,6 +1348,7 @@ set(JavaScriptCore_INSPECTOR_PROTOCOL_SCRIPTS
 set(JavaScriptCore_INSPECTOR_DOMAINS
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/ApplicationCache.json
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/CSS.json
+    ${JAVASCRIPTCORE_DIR}/inspector/protocol/Canvas.json
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/Console.json
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/DOM.json
     ${JAVASCRIPTCORE_DIR}/inspector/protocol/DOMDebugger.json
@@ -1367,12 +1377,6 @@ endif ()
 if (ENABLE_RESOURCE_USAGE)
     list(APPEND JavaScriptCore_INSPECTOR_DOMAINS
         ${JAVASCRIPTCORE_DIR}/inspector/protocol/Memory.json
-    )
-endif ()
-
-if (ENABLE_WEB_REPLAY)
-    list(APPEND JavaScriptCore_INSPECTOR_DOMAINS
-        ${JAVASCRIPTCORE_DIR}/inspector/protocol/Replay.json
     )
 endif ()
 
@@ -1495,26 +1499,8 @@ add_custom_command(
 
 list(APPEND JavaScriptCore_HEADERS ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/InjectedScriptSource.h)
 
-# Web Replay inputs generator
-if (ENABLE_WEB_REPLAY)
-    set(JavaScript_WEB_REPLAY_INPUTS ${CMAKE_CURRENT_SOURCE_DIR}/replay/JSInputs.json)
-    add_custom_command(
-        OUTPUT ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/JSReplayInputs.h ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/JSReplayInputs.cpp
-        MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/replay/scripts/CodeGeneratorReplayInputs.py
-        DEPENDS ${JavaScript_WEB_REPLAY_INPUTS}
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/replay/scripts/CodeGeneratorReplayInputs.py --outputDir ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/ --framework JavaScriptCore ${JavaScript_WEB_REPLAY_INPUTS}
-        VERBATIM)
-
-    list(APPEND JavaScriptCore_SOURCES
-        replay/EncodedValue.cpp
-        ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/JSReplayInputs.cpp
-    )
-    list(APPEND JavaScriptCore_HEADERS ${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}/JSReplayInputs.h)
-endif ()
-
 if (WTF_CPU_ARM)
 elseif (WTF_CPU_ARM64)
-elseif (WTF_CPU_ALPHA)
 elseif (WTF_CPU_HPPA)
 elseif (WTF_CPU_PPC)
 elseif (WTF_CPU_PPC64)

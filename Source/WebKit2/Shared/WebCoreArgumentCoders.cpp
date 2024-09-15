@@ -31,13 +31,13 @@
 #include <WebCore/AuthenticationChallenge.h>
 #include <WebCore/BlobPart.h>
 #include <WebCore/CertificateInfo.h>
+#include <WebCore/CompositionUnderline.h>
 #include <WebCore/Credential.h>
 #include <WebCore/Cursor.h>
 #include <WebCore/DatabaseDetails.h>
 #include <WebCore/DictationAlternative.h>
 #include <WebCore/DictionaryPopupInfo.h>
 #include <WebCore/DragData.h>
-#include <WebCore/Editor.h>
 #include <WebCore/EventTrackingRegions.h>
 #include <WebCore/FileChooser.h>
 #include <WebCore/FilterOperation.h>
@@ -67,7 +67,6 @@
 #include <WebCore/TimingFunction.h>
 #include <WebCore/TransformationMatrix.h>
 #include <WebCore/URL.h>
-#include <WebCore/UserScript.h>
 #include <WebCore/UserStyleSheet.h>
 #include <WebCore/ViewportArguments.h>
 #include <WebCore/WindowFeatures.h>
@@ -84,10 +83,13 @@
 #if PLATFORM(IOS)
 #include <WebCore/FloatQuad.h>
 #include <WebCore/InspectorOverlay.h>
-#include <WebCore/Pasteboard.h>
 #include <WebCore/SelectionRect.h>
 #include <WebCore/SharedBuffer.h>
 #endif // PLATFORM(IOS)
+
+#if PLATFORM(IOS) || PLATFORM(WPE)
+#include <WebCore/Pasteboard.h>
+#endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 #include <WebCore/MediaPlaybackTargetContext.h>
@@ -99,7 +101,7 @@
 
 #if ENABLE(MEDIA_STREAM)
 #include <WebCore/CaptureDevice.h>
-#include <WebCore/MediaConstraintsImpl.h>
+#include <WebCore/MediaConstraints.h>
 #endif
 
 using namespace WebCore;
@@ -961,7 +963,7 @@ bool ArgumentCoder<Cursor>::decode(Decoder& decoder, Cursor& cursor)
         return false;
 
     if (!isValidImagePresent) {
-        cursor = Cursor(Image::nullImage(), IntPoint());
+        cursor = Cursor(&Image::nullImage(), IntPoint());
         return true;
     }
 
@@ -1423,6 +1425,33 @@ bool ArgumentCoder<PasteboardURL>::decode(Decoder& decoder, PasteboardURL& conte
     return true;
 }
 
+static void encodeClientTypesAndData(Encoder& encoder, const Vector<String>& types, const Vector<RefPtr<SharedBuffer>>& data)
+{
+    ASSERT(types.size() == data.size());
+    encoder << types;
+    encoder << static_cast<uint64_t>(data.size());
+    for (auto& buffer : data)
+        encodeSharedBuffer(encoder, buffer.get());
+}
+
+static bool decodeClientTypesAndData(Decoder& decoder, Vector<String>& types, Vector<RefPtr<SharedBuffer>>& data)
+{
+    if (!decoder.decode(types))
+        return false;
+
+    uint64_t dataSize;
+    if (!decoder.decode(dataSize))
+        return false;
+
+    ASSERT(dataSize == types.size());
+
+    data.resize(dataSize);
+    for (auto& buffer : data)
+        decodeSharedBuffer(decoder, buffer);
+
+    return true;
+}
+
 void ArgumentCoder<PasteboardWebContent>::encode(Encoder& encoder, const PasteboardWebContent& content)
 {
     encoder << content.canSmartCopyOrDelete;
@@ -1433,10 +1462,7 @@ void ArgumentCoder<PasteboardWebContent>::encode(Encoder& encoder, const Pastebo
     encodeSharedBuffer(encoder, content.dataInRTFFormat.get());
     encodeSharedBuffer(encoder, content.dataInAttributedStringFormat.get());
 
-    encoder << content.clientTypes;
-    encoder << static_cast<uint64_t>(content.clientData.size());
-    for (size_t i = 0; i < content.clientData.size(); i++)
-        encodeSharedBuffer(encoder, content.clientData[i].get());
+    encodeClientTypesAndData(encoder, content.clientTypes, content.clientData);
 }
 
 bool ArgumentCoder<PasteboardWebContent>::decode(Decoder& decoder, PasteboardWebContent& content)
@@ -1453,15 +1479,8 @@ bool ArgumentCoder<PasteboardWebContent>::decode(Decoder& decoder, PasteboardWeb
         return false;
     if (!decodeSharedBuffer(decoder, content.dataInAttributedStringFormat))
         return false;
-    if (!decoder.decode(content.clientTypes))
+    if (!decodeClientTypesAndData(decoder, content.clientTypes, content.clientData))
         return false;
-    uint64_t clientDataSize;
-    if (!decoder.decode(clientDataSize))
-        return false;
-    if (clientDataSize)
-        content.clientData.resize(clientDataSize);
-    for (size_t i = 0; i < clientDataSize; i++)
-        decodeSharedBuffer(decoder, content.clientData[i]);
     return true;
 }
 
@@ -1471,8 +1490,10 @@ void ArgumentCoder<PasteboardImage>::encode(Encoder& encoder, const PasteboardIm
     encoder << pasteboardImage.url.url;
     encoder << pasteboardImage.url.title;
     encoder << pasteboardImage.resourceMIMEType;
+    encoder << pasteboardImage.suggestedName;
     if (pasteboardImage.resourceData)
         encodeSharedBuffer(encoder, pasteboardImage.resourceData.get());
+    encodeClientTypesAndData(encoder, pasteboardImage.clientTypes, pasteboardImage.clientData);
 }
 
 bool ArgumentCoder<PasteboardImage>::decode(Decoder& decoder, PasteboardImage& pasteboardImage)
@@ -1485,12 +1506,33 @@ bool ArgumentCoder<PasteboardImage>::decode(Decoder& decoder, PasteboardImage& p
         return false;
     if (!decoder.decode(pasteboardImage.resourceMIMEType))
         return false;
+    if (!decoder.decode(pasteboardImage.suggestedName))
+        return false;
     if (!decodeSharedBuffer(decoder, pasteboardImage.resourceData))
+        return false;
+    if (!decodeClientTypesAndData(decoder, pasteboardImage.clientTypes, pasteboardImage.clientData))
         return false;
     return true;
 }
 
 #endif
+
+#if PLATFORM(WPE)
+void ArgumentCoder<PasteboardWebContent>::encode(Encoder& encoder, const PasteboardWebContent& content)
+{
+    encoder << content.text;
+    encoder << content.markup;
+}
+
+bool ArgumentCoder<PasteboardWebContent>::decode(Decoder& decoder, PasteboardWebContent& content)
+{
+    if (!decoder.decode(content.text))
+        return false;
+    if (!decoder.decode(content.markup))
+        return false;
+    return true;
+}
+#endif // PLATFORM(WPE)
 
 void ArgumentCoder<DictationAlternative>::encode(Encoder& encoder, const DictationAlternative& dictationAlternative)
 {
@@ -1693,46 +1735,6 @@ bool ArgumentCoder<MediaSessionMetadata>::decode(Decoder& decoder, MediaSessionM
     return true;
 }
 #endif
-
-void ArgumentCoder<UserScript>::encode(Encoder& encoder, const UserScript& userScript)
-{
-    encoder << userScript.source();
-    encoder << userScript.url();
-    encoder << userScript.whitelist();
-    encoder << userScript.blacklist();
-    encoder.encodeEnum(userScript.injectionTime());
-    encoder.encodeEnum(userScript.injectedFrames());
-}
-
-bool ArgumentCoder<UserScript>::decode(Decoder& decoder, UserScript& userScript)
-{
-    String source;
-    if (!decoder.decode(source))
-        return false;
-
-    URL url;
-    if (!decoder.decode(url))
-        return false;
-
-    Vector<String> whitelist;
-    if (!decoder.decode(whitelist))
-        return false;
-
-    Vector<String> blacklist;
-    if (!decoder.decode(blacklist))
-        return false;
-
-    UserScriptInjectionTime injectionTime;
-    if (!decoder.decodeEnum(injectionTime))
-        return false;
-
-    UserContentInjectedFrames injectedFrames;
-    if (!decoder.decodeEnum(injectedFrames))
-        return false;
-
-    userScript = UserScript(source, url, WTFMove(whitelist), WTFMove(blacklist), injectionTime, injectedFrames);
-    return true;
-}
 
 void ArgumentCoder<ScrollableAreaParameters>::encode(Encoder& encoder, const ScrollableAreaParameters& parameters)
 {
@@ -2240,39 +2242,21 @@ void ArgumentCoder<ResourceLoadStatistics>::encode(Encoder& encoder, const WebCo
 {
     encoder << statistics.highLevelDomain;
     
+    encoder << statistics.lastSeen.secondsSinceEpoch().value();
+    
     // User interaction
     encoder << statistics.hadUserInteraction;
-    encoder << statistics.mostRecentUserInteraction;
+    encoder << statistics.mostRecentUserInteractionTime.secondsSinceEpoch().value();
     encoder << statistics.grandfathered;
     
-    // Top frame stats
-    encoder << statistics.topFrameHasBeenNavigatedToBefore;
-    encoder << statistics.topFrameHasBeenRedirectedTo;
-    encoder << statistics.topFrameHasBeenRedirectedFrom;
-    encoder << statistics.topFrameInitialLoadCount;
-    encoder << statistics.topFrameHasBeenNavigatedTo;
-    encoder << statistics.topFrameHasBeenNavigatedFrom;
-    
     // Subframe stats
-    encoder << statistics.subframeHasBeenLoadedBefore;
-    encoder << statistics.subframeHasBeenRedirectedTo;
-    encoder << statistics.subframeHasBeenRedirectedFrom;
-    encoder << statistics.subframeSubResourceCount;
     encoder << statistics.subframeUnderTopFrameOrigins;
-    encoder << statistics.subframeUniqueRedirectsTo;
-    encoder << statistics.subframeHasBeenNavigatedTo;
-    encoder << statistics.subframeHasBeenNavigatedFrom;
     
     // Subresource stats
-    encoder << statistics.subresourceHasBeenRedirectedFrom;
-    encoder << statistics.subresourceHasBeenRedirectedTo;
-    encoder << statistics.subresourceHasBeenSubresourceCount;
-    encoder << statistics.subresourceHasBeenSubresourceCountDividedByTotalNumberOfOriginsVisited;
     encoder << statistics.subresourceUnderTopFrameOrigins;
     encoder << statistics.subresourceUniqueRedirectsTo;
     
     // Prevalent Resource
-    encoder << statistics.redirectedToOtherPrevalentResourceOrigins;
     encoder << statistics.isPrevalentResource;
     encoder << statistics.dataRecordsRemoved;
 }
@@ -2282,73 +2266,28 @@ bool ArgumentCoder<ResourceLoadStatistics>::decode(Decoder& decoder, WebCore::Re
     if (!decoder.decode(statistics.highLevelDomain))
         return false;
     
+    double lastSeenTimeAsDouble;
+    if (!decoder.decode(lastSeenTimeAsDouble))
+        return false;
+    statistics.lastSeen = WallTime::fromRawSeconds(lastSeenTimeAsDouble);
+    
     // User interaction
     if (!decoder.decode(statistics.hadUserInteraction))
         return false;
 
-    if (!decoder.decode(statistics.mostRecentUserInteraction))
+    double mostRecentUserInteractionTimeAsDouble;
+    if (!decoder.decode(mostRecentUserInteractionTimeAsDouble))
         return false;
+    statistics.mostRecentUserInteractionTime = WallTime::fromRawSeconds(mostRecentUserInteractionTimeAsDouble);
 
     if (!decoder.decode(statistics.grandfathered))
         return false;
     
-    // Top frame stats
-    if (!decoder.decode(statistics.topFrameHasBeenNavigatedToBefore))
-        return false;
-    
-    if (!decoder.decode(statistics.topFrameHasBeenRedirectedTo))
-        return false;
-    
-    if (!decoder.decode(statistics.topFrameHasBeenRedirectedFrom))
-        return false;
-    
-    if (!decoder.decode(statistics.topFrameInitialLoadCount))
-        return false;
-    
-    if (!decoder.decode(statistics.topFrameHasBeenNavigatedTo))
-        return false;
-    
-    if (!decoder.decode(statistics.topFrameHasBeenNavigatedFrom))
-        return false;
-    
     // Subframe stats
-    if (!decoder.decode(statistics.subframeHasBeenLoadedBefore))
-        return false;
-    
-    if (!decoder.decode(statistics.subframeHasBeenRedirectedTo))
-        return false;
-    
-    if (!decoder.decode(statistics.subframeHasBeenRedirectedFrom))
-        return false;
-    
-    if (!decoder.decode(statistics.subframeSubResourceCount))
-        return false;
-    
     if (!decoder.decode(statistics.subframeUnderTopFrameOrigins))
-        return false;
-
-    if (!decoder.decode(statistics.subframeUniqueRedirectsTo))
-        return false;
-    
-    if (!decoder.decode(statistics.subframeHasBeenNavigatedTo))
-        return false;
-    
-    if (!decoder.decode(statistics.subframeHasBeenNavigatedFrom))
         return false;
     
     // Subresource stats
-    if (!decoder.decode(statistics.subresourceHasBeenRedirectedFrom))
-        return false;
-    
-    if (!decoder.decode(statistics.subresourceHasBeenRedirectedTo))
-        return false;
-    
-    if (!decoder.decode(statistics.subresourceHasBeenSubresourceCount))
-        return false;
-    
-    if (!decoder.decode(statistics.subresourceHasBeenSubresourceCountDividedByTotalNumberOfOriginsVisited))
-        return false;
-    
     if (!decoder.decode(statistics.subresourceUnderTopFrameOrigins))
         return false;
 
@@ -2356,9 +2295,6 @@ bool ArgumentCoder<ResourceLoadStatistics>::decode(Decoder& decoder, WebCore::Re
         return false;
     
     // Prevalent Resource
-    if (!decoder.decode(statistics.redirectedToOtherPrevalentResourceOrigins))
-        return false;
-    
     if (!decoder.decode(statistics.isPrevalentResource))
         return false;
 
@@ -2369,17 +2305,19 @@ bool ArgumentCoder<ResourceLoadStatistics>::decode(Decoder& decoder, WebCore::Re
 }
 
 #if ENABLE(MEDIA_STREAM)
-void ArgumentCoder<MediaConstraintsData>::encode(Encoder& encoder, const WebCore::MediaConstraintsData& constraint)
+void ArgumentCoder<MediaConstraints>::encode(Encoder& encoder, const WebCore::MediaConstraints& constraint)
 {
     encoder << constraint.mandatoryConstraints
         << constraint.advancedConstraints
+        << constraint.deviceIDHashSalt
         << constraint.isValid;
 }
 
-bool ArgumentCoder<MediaConstraintsData>::decode(Decoder& decoder, WebCore::MediaConstraintsData& constraints)
+bool ArgumentCoder<MediaConstraints>::decode(Decoder& decoder, WebCore::MediaConstraints& constraints)
 {
     return decoder.decode(constraints.mandatoryConstraints)
         && decoder.decode(constraints.advancedConstraints)
+        && decoder.decode(constraints.deviceIDHashSalt)
         && decoder.decode(constraints.isValid);
 }
 

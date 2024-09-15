@@ -46,6 +46,7 @@
 #include <wtf/MediaTime.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/glib/GUniquePtr.h>
+#include <wtf/glib/RunLoopSourcePriority.h>
 #include <wtf/text/CString.h>
 
 #if ENABLE(VIDEO_TRACK)
@@ -110,25 +111,9 @@ void MediaPlayerPrivateGStreamer::registerMediaEngine(MediaEngineRegistrar regis
             getSupportedTypes, supportsType, nullptr, nullptr, nullptr, supportsKeySystem);
 }
 
-bool initializeGStreamerAndRegisterWebKitElements()
-{
-    if (!initializeGStreamer())
-        return false;
-
-    registerWebKitGStreamerElements();
-
-    GRefPtr<GstElementFactory> srcFactory = adoptGRef(gst_element_factory_find("webkitwebsrc"));
-    if (!srcFactory) {
-        GST_DEBUG_CATEGORY_INIT(webkit_media_player_debug, "webkitmediaplayer", 0, "WebKit media player");
-        gst_element_register(nullptr, "webkitwebsrc", GST_RANK_PRIMARY + 100, WEBKIT_TYPE_WEB_SRC);
-    }
-
-    return true;
-}
-
 bool MediaPlayerPrivateGStreamer::isAvailable()
 {
-    if (!initializeGStreamerAndRegisterWebKitElements())
+    if (!MediaPlayerPrivateGStreamerBase::initializeGStreamerAndRegisterWebKitElements())
         return false;
 
     GRefPtr<GstElementFactory> factory = adoptGRef(gst_element_factory_find("playbin"));
@@ -225,19 +210,34 @@ MediaPlayerPrivateGStreamer::~MediaPlayerPrivateGStreamer()
     }
 }
 
+static void convertToInternalProtocol(URL& url)
+{
+    if (url.protocolIsInHTTPFamily())
+        url.setProtocol("webkit+" + url.protocol());
+}
+
+void MediaPlayerPrivateGStreamer::setPlaybinURL(const URL& url)
+{
+    // Clean out everything after file:// url path.
+    String cleanURLString(url.string());
+    if (url.isLocalFile())
+        cleanURLString = cleanURLString.substring(0, url.pathEnd());
+
+    m_url = URL(URL(), cleanURLString);
+    convertToInternalProtocol(m_url);
+
+    GST_INFO("Load %s", m_url.string().utf8().data());
+    g_object_set(m_pipeline.get(), "uri", m_url.string().utf8().data(), nullptr);
+}
+
 void MediaPlayerPrivateGStreamer::load(const String& urlString)
 {
-    if (!initializeGStreamerAndRegisterWebKitElements())
+    if (!MediaPlayerPrivateGStreamerBase::initializeGStreamerAndRegisterWebKitElements())
         return;
 
     URL url(URL(), urlString);
     if (url.isBlankURL())
         return;
-
-    // Clean out everything after file:// url path.
-    String cleanURL(urlString);
-    if (url.isLocalFile())
-        cleanURL = cleanURL.substring(0, url.pathEnd());
 
     if (!m_pipeline)
         createGSTPlayBin();
@@ -247,10 +247,7 @@ void MediaPlayerPrivateGStreamer::load(const String& urlString)
 
     ASSERT(m_pipeline);
 
-    m_url = URL(URL(), cleanURL);
-    g_object_set(m_pipeline.get(), "uri", cleanURL.utf8().data(), nullptr);
-
-    GST_INFO("Load %s", cleanURL.utf8().data());
+    setPlaybinURL(url);
 
     if (m_preload == MediaPlayer::None) {
         GST_DEBUG("Delaying load.");
@@ -620,7 +617,7 @@ bool MediaPlayerPrivateGStreamer::seeking() const
 
 void MediaPlayerPrivateGStreamer::videoChangedCallback(MediaPlayerPrivateGStreamer* player)
 {
-    player->m_notifier.notify(MainThreadNotification::VideoChanged, [player] { player->notifyPlayerOfVideo(); });
+    player->m_notifier->notify(MainThreadNotification::VideoChanged, [player] { player->notifyPlayerOfVideo(); });
 }
 
 void MediaPlayerPrivateGStreamer::notifyPlayerOfVideo()
@@ -674,7 +671,7 @@ void MediaPlayerPrivateGStreamer::notifyPlayerOfVideo()
 
 void MediaPlayerPrivateGStreamer::videoSinkCapsChangedCallback(MediaPlayerPrivateGStreamer* player)
 {
-    player->m_notifier.notify(MainThreadNotification::VideoCapsChanged, [player] { player->notifyPlayerOfVideoCaps(); });
+    player->m_notifier->notify(MainThreadNotification::VideoCapsChanged, [player] { player->notifyPlayerOfVideoCaps(); });
 }
 
 void MediaPlayerPrivateGStreamer::notifyPlayerOfVideoCaps()
@@ -685,7 +682,7 @@ void MediaPlayerPrivateGStreamer::notifyPlayerOfVideoCaps()
 
 void MediaPlayerPrivateGStreamer::audioChangedCallback(MediaPlayerPrivateGStreamer* player)
 {
-    player->m_notifier.notify(MainThreadNotification::AudioChanged, [player] { player->notifyPlayerOfAudio(); });
+    player->m_notifier->notify(MainThreadNotification::AudioChanged, [player] { player->notifyPlayerOfAudio(); });
 }
 
 void MediaPlayerPrivateGStreamer::notifyPlayerOfAudio()
@@ -738,7 +735,7 @@ void MediaPlayerPrivateGStreamer::notifyPlayerOfAudio()
 #if ENABLE(VIDEO_TRACK)
 void MediaPlayerPrivateGStreamer::textChangedCallback(MediaPlayerPrivateGStreamer* player)
 {
-    player->m_notifier.notify(MainThreadNotification::TextChanged, [player] { player->notifyPlayerOfText(); });
+    player->m_notifier->notify(MainThreadNotification::TextChanged, [player] { player->notifyPlayerOfText(); });
 }
 
 void MediaPlayerPrivateGStreamer::notifyPlayerOfText()
@@ -937,9 +934,7 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
     GST_DEBUG("Message %s received from element %s", GST_MESSAGE_TYPE_NAME(message), GST_MESSAGE_SRC_NAME(message));
     switch (GST_MESSAGE_TYPE(message)) {
     case GST_MESSAGE_ERROR:
-        if (m_resetPipeline)
-            break;
-        if (m_missingPluginsCallback)
+        if (m_resetPipeline || m_missingPluginsCallback || m_errorOccured)
             break;
         gst_message_parse_error(message, &err.outPtr(), &debug.outPtr());
         GST_ERROR("Error %d: %s (url=%s)", err->code, err->message, m_url.string().utf8().data());
@@ -947,20 +942,19 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
         GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS(GST_BIN(m_pipeline.get()), GST_DEBUG_GRAPH_SHOW_ALL, "webkit-video.error");
 
         error = MediaPlayer::Empty;
-        if (err->code == GST_STREAM_ERROR_CODEC_NOT_FOUND
-            || err->code == GST_STREAM_ERROR_WRONG_TYPE
-            || err->code == GST_STREAM_ERROR_FAILED
-            || err->code == GST_CORE_ERROR_MISSING_PLUGIN
-            || err->code == GST_RESOURCE_ERROR_NOT_FOUND)
+        if (g_error_matches(err.get(), GST_STREAM_ERROR, GST_STREAM_ERROR_CODEC_NOT_FOUND)
+            || g_error_matches(err.get(), GST_STREAM_ERROR, GST_STREAM_ERROR_WRONG_TYPE)
+            || g_error_matches(err.get(), GST_STREAM_ERROR, GST_STREAM_ERROR_FAILED)
+            || g_error_matches(err.get(), GST_CORE_ERROR, GST_CORE_ERROR_MISSING_PLUGIN)
+            || g_error_matches(err.get(), GST_RESOURCE_ERROR, GST_RESOURCE_ERROR_NOT_FOUND))
             error = MediaPlayer::FormatError;
-        else if (err->domain == GST_STREAM_ERROR) {
+        else if (g_error_matches(err.get(), GST_STREAM_ERROR, GST_STREAM_ERROR_TYPE_NOT_FOUND)) {
             // Let the mediaPlayerClient handle the stream error, in
             // this case the HTMLMediaElement will emit a stalled
             // event.
-            if (err->code == GST_STREAM_ERROR_TYPE_NOT_FOUND) {
-                GST_ERROR("Decode error, let the Media element emit a stalled event.");
-                break;
-            }
+            GST_ERROR("Decode error, let the Media element emit a stalled event.");
+            break;
+        } else if (err->domain == GST_STREAM_ERROR) {
             error = MediaPlayer::DecodeError;
             attemptNextLocation = true;
         } else if (err->domain == GST_RESOURCE_ERROR)
@@ -1049,14 +1043,6 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
                 m_player->client().requestInstallMissingPlugins(String::fromUTF8(detail.get()), String::fromUTF8(description.get()), *m_missingPluginsCallback);
             }
         }
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-        else if (gst_structure_has_name(structure, "drm-key-needed")) {
-            GST_DEBUG("drm-key-needed message from %s", GST_MESSAGE_SRC_NAME(message));
-            GRefPtr<GstEvent> event;
-            gst_structure_get(structure, "event", GST_TYPE_EVENT, &event.outPtr(), nullptr);
-            handleProtectionEvent(event.get());
-        }
-#endif
 #if ENABLE(VIDEO_TRACK) && USE(GSTREAMER_MPEGTS)
         else {
             GstMpegtsSection* section = gst_message_parse_mpegts_section(message);
@@ -1180,7 +1166,7 @@ void MediaPlayerPrivateGStreamer::processTableOfContentsEntry(GstTocEntry* entry
 {
     ASSERT(entry);
 
-    RefPtr<GenericCueData> cue = GenericCueData::create();
+    auto cue = GenericCueData::create();
 
     gint64 start = -1, stop = -1;
     gst_toc_entry_get_start_stop_times(entry, &start, &stop);
@@ -1199,7 +1185,7 @@ void MediaPlayerPrivateGStreamer::processTableOfContentsEntry(GstTocEntry* entry
         }
     }
 
-    m_chaptersTrack->addGenericCue(cue.release());
+    m_chaptersTrack->addGenericCue(cue);
 
     for (GList* i = gst_toc_entry_get_sub_entries(entry); i; i = i->next)
         processTableOfContentsEntry(static_cast<GstTocEntry*>(i->data));
@@ -1686,6 +1672,7 @@ bool MediaPlayerPrivateGStreamer::loadNextLocation()
         // append the value of new-location to it.
         URL baseUrl = gst_uri_is_valid(newLocation) ? URL() : m_url;
         URL newUrl = URL(baseUrl, newLocation);
+        convertToInternalProtocol(newUrl);
 
         RefPtr<SecurityOrigin> securityOrigin = SecurityOrigin::create(m_url);
         if (securityOrigin->canRequest(newUrl)) {
@@ -1705,8 +1692,7 @@ bool MediaPlayerPrivateGStreamer::loadNextLocation()
             gst_element_get_state(m_pipeline.get(), &state, nullptr, 0);
             if (state <= GST_STATE_READY) {
                 // Set the new uri and start playing.
-                g_object_set(m_pipeline.get(), "uri", newUrl.string().utf8().data(), nullptr);
-                m_url = newUrl;
+                setPlaybinURL(newUrl);
                 changePipelineState(GST_STATE_PLAYING);
                 return true;
             }
@@ -1779,7 +1765,7 @@ static HashSet<String, ASCIICaseInsensitiveHash>& mimeTypeSet()
 {
     static NeverDestroyed<HashSet<String, ASCIICaseInsensitiveHash>> mimeTypes = []()
     {
-        initializeGStreamerAndRegisterWebKitElements();
+        MediaPlayerPrivateGStreamerBase::initializeGStreamerAndRegisterWebKitElements();
         HashSet<String, ASCIICaseInsensitiveHash> set;
 
         GList* audioDecoderFactories = gst_element_factory_list_get_elements(GST_ELEMENT_FACTORY_TYPE_DECODER | GST_ELEMENT_FACTORY_TYPE_MEDIA_AUDIO, GST_RANK_MARGINAL);
@@ -1802,7 +1788,7 @@ static HashSet<String, ASCIICaseInsensitiveHash>& mimeTypeSet()
             {AudioDecoder, "audio/x-sbc", { }},
             {AudioDecoder, "audio/x-sid", { }},
             {AudioDecoder, "audio/x-flac", {"audio/x-flac", "audio/flac"}},
-            {AudioDecoder, "audio/x-wav", {"audio/x-wav", "audio/wav"}},
+            {AudioDecoder, "audio/x-wav", {"audio/x-wav", "audio/wav", "audio/vnd.wave"}},
             {AudioDecoder, "audio/x-wavpack", {"audio/x-wavpack"}},
             {AudioDecoder, "audio/x-speex", {"audio/speex", "audio/x-speex"}},
             {AudioDecoder, "audio/x-ac3", { }},
@@ -1822,7 +1808,7 @@ static HashSet<String, ASCIICaseInsensitiveHash>& mimeTypeSet()
             {Demuxer, "audio/x-aiff", { }},
             {Demuxer, "application/x-pn-realaudio", { }},
             {Demuxer, "application/vnd.rn-realmedia", { }},
-            {Demuxer, "audio/x-wav", {"audio/x-wav", "audio/wav"}},
+            {Demuxer, "audio/x-wav", {"audio/x-wav", "audio/wav", "audio/vnd.wave"}},
             {Demuxer, "application/x-hls", {"application/vnd.apple.mpegurl", "application/x-mpegurl"}}
         };
 
@@ -1921,12 +1907,12 @@ MediaPlayer::SupportsType MediaPlayerPrivateGStreamer::supportsType(const MediaE
     if (parameters.isMediaStream)
         return result;
 
-    if (parameters.type.isNull() || parameters.type.isEmpty())
+    if (parameters.type.isEmpty())
         return result;
 
     // spec says we should not return "probably" if the codecs string is empty
-    if (mimeTypeSet().contains(parameters.type))
-        result = parameters.codecs.isEmpty() ? MediaPlayer::MayBeSupported : MediaPlayer::IsSupported;
+    if (mimeTypeSet().contains(parameters.type.containerType()))
+        result = parameters.type.codecs().isEmpty() ? MediaPlayer::MayBeSupported : MediaPlayer::IsSupported;
 
     return extendedSupportsType(parameters, result);
 }
@@ -2079,7 +2065,7 @@ void MediaPlayerPrivateGStreamer::createGSTPlayBin()
     }, this, nullptr);
 
     // Let also other listeners subscribe to (application) messages in this bus.
-    gst_bus_add_signal_watch(bus.get());
+    gst_bus_add_signal_watch_full(bus.get(), RunLoopSourcePriority::RunLoopDispatcher);
     g_signal_connect(bus.get(), "message", G_CALLBACK(busMessageCallback), this);
 
     g_object_set(m_pipeline.get(), "mute", m_player->muted(), nullptr);

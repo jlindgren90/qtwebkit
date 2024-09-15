@@ -28,6 +28,7 @@
 
 #include "SessionState.h"
 #include <WebCore/BlobData.h>
+#include <WebCore/FileSystem.h>
 #include <WebCore/FormData.h>
 #include <WebCore/HistoryItem.h>
 
@@ -122,7 +123,7 @@ PageState toPageState(const WebCore::HistoryItem& historyItem)
     return pageState;
 }
 
-static PassRefPtr<FormData> toFormData(const HTTPBody& httpBody)
+static Ref<FormData> toFormData(const HTTPBody& httpBody)
 {
     auto formData = FormData::create();
 
@@ -142,7 +143,7 @@ static PassRefPtr<FormData> toFormData(const HTTPBody& httpBody)
         }
     }
 
-    return WTFMove(formData);
+    return formData;
 }
 
 static void applyFrameState(HistoryItem& historyItem, const FrameState& frameState)

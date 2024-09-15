@@ -157,6 +157,7 @@ public:
         int treeDepth { 0 };
         bool ancestorHadChanges { false };
         bool ancestorHasTransformAnimation { false };
+        bool ancestorWithTransformAnimationIntersectsCoverageRect { false };
         bool ancestorIsViewportConstrained { false };
     };
     bool needsCommit(const CommitState&);
@@ -187,7 +188,7 @@ private:
     WEBCORE_EXPORT void platformCALayerAnimationStarted(const String& animationKey, CFTimeInterval beginTime) override;
     WEBCORE_EXPORT void platformCALayerAnimationEnded(const String& animationKey) override;
     CompositingCoordinatesOrientation platformCALayerContentsOrientation() const override { return contentsOrientation(); }
-    WEBCORE_EXPORT void platformCALayerPaintContents(PlatformCALayer*, GraphicsContext&, const FloatRect& clip) override;
+    WEBCORE_EXPORT void platformCALayerPaintContents(PlatformCALayer*, GraphicsContext&, const FloatRect& clip, GraphicsLayerPaintFlags) override;
     bool platformCALayerShowDebugBorders() const override { return isShowingDebugBorder(); }
     WEBCORE_EXPORT bool platformCALayerShowRepaintCounter(PlatformCALayer*) const override;
     int platformCALayerIncrementRepaintCount(PlatformCALayer*) override { return incrementRepaintCount(); }
@@ -201,6 +202,7 @@ private:
     WEBCORE_EXPORT bool platformCALayerShouldAggressivelyRetainTiles(PlatformCALayer*) const override;
     WEBCORE_EXPORT bool platformCALayerShouldTemporarilyRetainTileCohorts(PlatformCALayer*) const override;
     WEBCORE_EXPORT bool platformCALayerUseGiantTiles() const override;
+    WEBCORE_EXPORT void platformCALayerLogFilledVisibleFreshTile(unsigned) override;
 
     bool isCommittingChanges() const override { return m_isCommittingChanges; }
     bool isUsingDisplayListDrawing(PlatformCALayer*) const override { return m_usesDisplayListDrawing; }
@@ -219,9 +221,9 @@ private:
 
     WEBCORE_EXPORT void layerDidDisplay(PlatformCALayer*);
 
-    virtual PassRefPtr<PlatformCALayer> createPlatformCALayer(PlatformCALayer::LayerType, PlatformCALayerClient* owner);
-    virtual PassRefPtr<PlatformCALayer> createPlatformCALayer(PlatformLayer*, PlatformCALayerClient* owner);
-    virtual PassRefPtr<PlatformCAAnimation> createPlatformCAAnimation(PlatformCAAnimation::AnimationType, const String& keyPath);
+    virtual Ref<PlatformCALayer> createPlatformCALayer(PlatformCALayer::LayerType, PlatformCALayerClient* owner);
+    virtual Ref<PlatformCALayer> createPlatformCALayer(PlatformLayer*, PlatformCALayerClient* owner);
+    virtual Ref<PlatformCAAnimation> createPlatformCAAnimation(PlatformCAAnimation::AnimationType, const String& keyPath);
 
     PlatformCALayer* primaryLayer() const { return m_structuralLayer.get() ? m_structuralLayer.get() : m_layer.get(); }
     PlatformCALayer* hostLayerForSublayers() const;
@@ -240,9 +242,9 @@ private:
     bool createFilterAnimationsFromKeyframes(const KeyframeValueList&, const Animation*, const String& animationName, double timeOffset);
 
     // Return autoreleased animation (use RetainPtr?)
-    PassRefPtr<PlatformCAAnimation> createBasicAnimation(const Animation*, const String& keyPath, bool additive);
-    PassRefPtr<PlatformCAAnimation> createKeyframeAnimation(const Animation*, const String&, bool additive);
-    RefPtr<PlatformCAAnimation> createSpringAnimation(const Animation*, const String&, bool additive);
+    Ref<PlatformCAAnimation> createBasicAnimation(const Animation*, const String& keyPath, bool additive);
+    Ref<PlatformCAAnimation> createKeyframeAnimation(const Animation*, const String&, bool additive);
+    Ref<PlatformCAAnimation> createSpringAnimation(const Animation*, const String&, bool additive);
     void setupAnimation(PlatformCAAnimation*, const Animation*, bool additive);
     
     const TimingFunction& timingFunctionForAnimationValue(const AnimationValue&, const Animation&);
@@ -257,6 +259,8 @@ private:
     bool setFilterAnimationKeyframes(const KeyframeValueList&, const Animation*, PlatformCAAnimation*, int functionIndex, int internalFilterPropertyIndex, FilterOperation::OperationType);
 
     bool isRunningTransformAnimation() const;
+
+    WEBCORE_EXPORT bool backingStoreAttached() const override;
 
     bool animationIsRunning(const String& animationName) const
     {
@@ -296,12 +300,7 @@ private:
     struct VisibleAndCoverageRects {
         FloatRect visibleRect;
         FloatRect coverageRect;
-        
-        VisibleAndCoverageRects(const FloatRect& visRect, const FloatRect& covRect)
-            : visibleRect(visRect)
-            , coverageRect(covRect)
-        {
-        }
+        TransformationMatrix animatingTransform;
     };
     
     VisibleAndCoverageRects computeVisibleAndCoverageRect(TransformState&, bool accumulateTransform, ComputeVisibleRectFlags = RespectAnimatingTransforms) const;
@@ -366,13 +365,13 @@ private:
         Vector<ReplicaBranchType> m_replicaBranches;
         size_t m_replicaDepth;
     };
-    PassRefPtr<PlatformCALayer>replicatedLayerRoot(ReplicaState&);
+    RefPtr<PlatformCALayer>replicatedLayerRoot(ReplicaState&);
 
     enum CloneLevel { RootCloneLevel, IntermediateCloneLevel };
-    PassRefPtr<PlatformCALayer> fetchCloneLayers(GraphicsLayer* replicaRoot, ReplicaState&, CloneLevel);
+    RefPtr<PlatformCALayer> fetchCloneLayers(GraphicsLayer* replicaRoot, ReplicaState&, CloneLevel);
     
-    PassRefPtr<PlatformCALayer> cloneLayer(PlatformCALayer *, CloneLevel);
-    PassRefPtr<PlatformCALayer> findOrMakeClone(CloneID, PlatformCALayer *, LayerMap*, CloneLevel);
+    Ref<PlatformCALayer> cloneLayer(PlatformCALayer *, CloneLevel);
+    RefPtr<PlatformCALayer> findOrMakeClone(CloneID, PlatformCALayer *, LayerMap*, CloneLevel);
 
     void ensureCloneLayers(CloneID, RefPtr<PlatformCALayer>& primaryLayer, RefPtr<PlatformCALayer>& structuralLayer,
         RefPtr<PlatformCALayer>& contentsLayer, RefPtr<PlatformCALayer>& contentsClippingLayer, RefPtr<PlatformCALayer>& contentsShapeMaskLayer,
@@ -397,7 +396,7 @@ private:
     void updateBackfaceVisibility();
     void updateStructuralLayer();
     void updateDrawsContent();
-    void updateCoverage();
+    void updateCoverage(const CommitState&);
     void updateBackgroundColor();
     void updateUserInteractionEnabled();
 
@@ -560,8 +559,8 @@ private:
     // This represents the animation of a single property. There may be multiple transform animations for
     // a single transition or keyframe animation, so index is used to distinguish these.
     struct LayerPropertyAnimation {
-        LayerPropertyAnimation(PassRefPtr<PlatformCAAnimation> caAnimation, const String& animationName, AnimatedPropertyID property, int index, int subIndex, double timeOffset)
-            : m_animation(caAnimation)
+        LayerPropertyAnimation(Ref<PlatformCAAnimation>&& caAnimation, const String& animationName, AnimatedPropertyID property, int index, int subIndex, double timeOffset)
+            : m_animation(WTFMove(caAnimation))
             , m_name(animationName)
             , m_property(property)
             , m_index(index)

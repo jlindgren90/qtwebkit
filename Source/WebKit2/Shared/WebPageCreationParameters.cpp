@@ -65,6 +65,7 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << mayStartMediaWhenInWindow;
     encoder << minimumLayoutSize;
     encoder << autoSizingShouldExpandToViewHeight;
+    encoder << viewportSizeForCSSViewportUnits;
     encoder.encodeEnum(scrollPinningBehavior);
     encoder << scrollbarOverlayStyle;
     encoder << backgroundExtendsBeyondPage;
@@ -84,6 +85,7 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << availableScreenSize;
     encoder << textAutosizingWidth;
     encoder << ignoresViewportScaleLimits;
+    encoder << allowsBlockSelection;
 #endif
 #if PLATFORM(COCOA)
     encoder << smartInsertDeleteEnabled;
@@ -93,20 +95,16 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
     encoder.encodeEnum(userInterfaceLayoutDirection);
     encoder.encodeEnum(observedLayoutMilestones);
     encoder << overrideContentSecurityPolicy;
-    encoder << backgroundCPULimit;
+    encoder << cpuLimit;
     encoder << urlSchemeHandlers;
-#if ENABLE(WEB_RTC)
     encoder << iceCandidateFilteringEnabled;
-#if USE(LIBWEBRTC)
     encoder << enumeratingAllNetworkInterfacesEnabled;
-#endif
-#endif
     encoder << userContentWorlds;
     encoder << userScripts;
     encoder << userStyleSheets;
     encoder << messageHandlers;
 #if ENABLE(CONTENT_EXTENSIONS)
-    encoder << contentExtensions;
+    encoder << contentRuleLists;
 #endif
 }
 
@@ -176,6 +174,8 @@ bool WebPageCreationParameters::decode(IPC::Decoder& decoder, WebPageCreationPar
         return false;
     if (!decoder.decode(parameters.autoSizingShouldExpandToViewHeight))
         return false;
+    if (!decoder.decode(parameters.viewportSizeForCSSViewportUnits))
+        return false;
     if (!decoder.decodeEnum(parameters.scrollPinningBehavior))
         return false;
     if (!decoder.decode(parameters.scrollbarOverlayStyle))
@@ -210,7 +210,10 @@ bool WebPageCreationParameters::decode(IPC::Decoder& decoder, WebPageCreationPar
         return false;
     if (!decoder.decode(parameters.ignoresViewportScaleLimits))
         return false;
+    if (!decoder.decode(parameters.allowsBlockSelection))
+        return false;
 #endif
+
 #if PLATFORM(COCOA)
     if (!decoder.decode(parameters.smartInsertDeleteEnabled))
         return false;
@@ -230,20 +233,18 @@ bool WebPageCreationParameters::decode(IPC::Decoder& decoder, WebPageCreationPar
     if (!decoder.decode(parameters.overrideContentSecurityPolicy))
         return false;
 
-    if (!decoder.decode(parameters.backgroundCPULimit))
+    if (!decoder.decode(parameters.cpuLimit))
         return false;
 
     if (!decoder.decode(parameters.urlSchemeHandlers))
         return false;
 
-#if ENABLE(WEB_RTC)
     if (!decoder.decode(parameters.iceCandidateFilteringEnabled))
         return false;
-#if USE(LIBWEBRTC)
+
     if (!decoder.decode(parameters.enumeratingAllNetworkInterfacesEnabled))
         return false;
-#endif
-#endif
+
     if (!decoder.decode(parameters.userContentWorlds))
         return false;
     if (!decoder.decode(parameters.userScripts))
@@ -253,7 +254,7 @@ bool WebPageCreationParameters::decode(IPC::Decoder& decoder, WebPageCreationPar
     if (!decoder.decode(parameters.messageHandlers))
         return false;
 #if ENABLE(CONTENT_EXTENSIONS)
-    if (!decoder.decode(parameters.contentExtensions))
+    if (!decoder.decode(parameters.contentRuleLists))
         return false;
 #endif
     return true;

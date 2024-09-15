@@ -137,6 +137,9 @@ bool CompositingCoordinator::flushPendingLayerChanges()
 
         m_client.commitSceneState(m_state);
 
+        if (!m_atlasesToRemove.isEmpty())
+            m_client.releaseUpdateAtlases(WTFMove(m_atlasesToRemove));
+
         clearPendingStateChanges();
         m_shouldSyncFrame = false;
     }
@@ -154,11 +157,6 @@ double CompositingCoordinator::timestamp() const
 
 void CompositingCoordinator::syncDisplayState()
 {
-#if !USE(REQUEST_ANIMATION_FRAME_TIMER) && !USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
-    // Make sure that any previously registered animation callbacks are being executed before we flush the layers.
-    m_lastAnimationServiceTime = timestamp();
-    m_page->mainFrame().view()->serviceScriptedAnimations();
-#endif
     m_page->mainFrame().view()->updateLayoutAndStyleIfNeededRecursive();
 }
 
@@ -181,7 +179,6 @@ void CompositingCoordinator::clearPendingStateChanges()
     m_state.imagesToClear.clear();
 
     m_state.updateAtlasesToCreate.clear();
-    m_state.updateAtlasesToRemove.clear();
 }
 
 void CompositingCoordinator::initializeRootCompositingLayerIfNeeded()
@@ -212,11 +209,11 @@ void CompositingCoordinator::syncLayerState(CoordinatedLayerID id, CoordinatedGr
     m_state.layersToUpdate.append(std::make_pair(id, state));
 }
 
-Ref<CoordinatedImageBacking> CompositingCoordinator::createImageBackingIfNeeded(Image* image)
+Ref<CoordinatedImageBacking> CompositingCoordinator::createImageBackingIfNeeded(Image& image)
 {
-    CoordinatedImageBackingID imageID = CoordinatedImageBacking::getCoordinatedImageBackingID(image);
-    auto addResult = m_imageBackings.ensure(imageID, [this, image] {
-        return CoordinatedImageBacking::create(this, image);
+    CoordinatedImageBackingID imageID = CoordinatedImageBacking::getCoordinatedImageBackingID(&image);
+    auto addResult = m_imageBackings.ensure(imageID, [this, &image] {
+        return CoordinatedImageBacking::create(*this, image);
     });
     return *addResult.iterator->value;
 }
@@ -269,7 +266,7 @@ void CompositingCoordinator::notifyFlushRequired(const GraphicsLayer*)
         m_client.notifyFlushRequired();
 }
 
-void CompositingCoordinator::paintContents(const GraphicsLayer* graphicsLayer, GraphicsContext& graphicsContext, GraphicsLayerPaintingPhase, const FloatRect& clipRect)
+void CompositingCoordinator::paintContents(const GraphicsLayer* graphicsLayer, GraphicsContext& graphicsContext, GraphicsLayerPaintingPhase, const FloatRect& clipRect, GraphicsLayerPaintFlags)
 {
     m_client.paintLayerContents(graphicsLayer, graphicsContext, enclosingIntRect(clipRect));
 }
@@ -304,7 +301,7 @@ void CompositingCoordinator::removeUpdateAtlas(uint32_t atlasID)
 {
     if (m_isPurging)
         return;
-    m_state.updateAtlasesToRemove.append(atlasID);
+    m_atlasesToRemove.append(atlasID);
 }
 
 FloatRect CompositingCoordinator::visibleContentsRect() const
@@ -443,6 +440,21 @@ void CompositingCoordinator::releaseAtlases(ReleaseAtlasPolicy policy)
 
     if (m_updateAtlases.size() <= 1)
         m_releaseInactiveAtlasesTimer.stop();
+
+    if (!m_atlasesToRemove.isEmpty())
+        m_client.releaseUpdateAtlases(WTFMove(m_atlasesToRemove));
+}
+
+void CompositingCoordinator::clearUpdateAtlases()
+{
+    if (m_isPurging)
+        return;
+
+    m_releaseInactiveAtlasesTimer.stop();
+    m_updateAtlases.clear();
+
+    if (!m_atlasesToRemove.isEmpty())
+        m_client.releaseUpdateAtlases(WTFMove(m_atlasesToRemove));
 }
 
 } // namespace WebKit

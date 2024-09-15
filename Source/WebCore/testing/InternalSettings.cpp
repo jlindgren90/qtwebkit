@@ -30,12 +30,14 @@
 #include "CaptionUserPreferences.h"
 #include "Document.h"
 #include "ExceptionCode.h"
+#include "FontCache.h"
 #include "FrameView.h"
 #include "Language.h"
 #include "LocaleToScriptMapping.h"
 #include "MainFrame.h"
 #include "Page.h"
 #include "PageGroup.h"
+#include "RenderTheme.h"
 #include "RuntimeEnabledFeatures.h"
 #include "Settings.h"
 #include "Supplementable.h"
@@ -98,6 +100,7 @@ InternalSettings::Backup::Backup(Settings& settings)
     , m_forcedColorsAreInvertedAccessibilityValue(settings.forcedColorsAreInvertedAccessibilityValue())
     , m_forcedDisplayIsMonochromeAccessibilityValue(settings.forcedDisplayIsMonochromeAccessibilityValue())
     , m_forcedPrefersReducedMotionAccessibilityValue(settings.forcedPrefersReducedMotionAccessibilityValue())
+    , m_frameFlattening(settings.frameFlattening())
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
     , m_indexedDBWorkersEnabled(RuntimeEnabledFeatures::sharedFeatures().indexedDBWorkersEnabled())
 #endif
@@ -107,6 +110,10 @@ InternalSettings::Backup::Backup(Settings& settings)
 #endif
 #if ENABLE(WEBGPU)
     , m_webGPUEnabled(RuntimeEnabledFeatures::sharedFeatures().webGPUEnabled())
+#endif
+    , m_shouldMockBoldSystemFontForAccessibility(RenderTheme::singleton().shouldMockBoldSystemFontForAccessibility())
+#if USE(AUDIO_SESSION)
+    , m_shouldManageAudioSessionCategory(Settings::shouldManageAudioSessionCategory())
 #endif
 {
 }
@@ -185,6 +192,9 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
     settings.setForcedDisplayIsMonochromeAccessibilityValue(m_forcedDisplayIsMonochromeAccessibilityValue);
     settings.setForcedPrefersReducedMotionAccessibilityValue(m_forcedPrefersReducedMotionAccessibilityValue);
     Settings::setAllowsAnySSLCertificate(false);
+    RenderTheme::singleton().setShouldMockBoldSystemFontForAccessibility(m_shouldMockBoldSystemFontForAccessibility);
+    FontCache::singleton().setShouldMockBoldSystemFontForAccessibility(m_shouldMockBoldSystemFontForAccessibility);
+    settings.setFrameFlattening(m_frameFlattening);
 
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
     RuntimeEnabledFeatures::sharedFeatures().setIndexedDBWorkersEnabled(m_indexedDBWorkersEnabled);
@@ -195,6 +205,10 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
 #endif
 #if ENABLE(WEBGPU)
     RuntimeEnabledFeatures::sharedFeatures().setWebGPUEnabled(m_webGPUEnabled);
+#endif
+
+#if USE(AUDIO_SESSION)
+    Settings::setShouldManageAudioSessionCategory(m_shouldManageAudioSessionCategory);
 #endif
 }
 
@@ -252,8 +266,6 @@ void InternalSettings::resetToConsistentState()
     m_page->setPageScaleFactor(1, { 0, 0 });
     m_page->mainFrame().setPageAndTextZoomFactors(1, 1);
     m_page->setCanStartMedia(true);
-
-    settings().setShouldDispatchRequestAnimationFrameEvents(false);
 
     settings().setForcePendingWebGLPolicy(false);
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -679,6 +691,15 @@ ExceptionOr<void> InternalSettings::setInlineMediaPlaybackRequiresPlaysInlineAtt
     return { };
 }
 
+ExceptionOr<void> InternalSettings::setShouldMockBoldSystemFontForAccessibility(bool requires)
+{
+    if (!m_page)
+        return Exception { INVALID_ACCESS_ERR };
+    RenderTheme::singleton().setShouldMockBoldSystemFontForAccessibility(requires);
+    FontCache::singleton().setShouldMockBoldSystemFontForAccessibility(requires);
+    return { };
+}
+
 void InternalSettings::setIndexedDBWorkersEnabled(bool enabled)
 {
 #if ENABLE(INDEXED_DATABASE_IN_WORKERS)
@@ -709,16 +730,6 @@ void InternalSettings::setWebGPUEnabled(bool enabled)
 #else
     UNUSED_PARAM(enabled);
 #endif
-}
-
-bool InternalSettings::shouldDispatchRequestAnimationFrameEvents()
-{
-    return settings().shouldDispatchRequestAnimationFrameEvents();
-}
-
-void InternalSettings::setShouldDispatchRequestAnimationFrameEvents(bool shouldDispatchRequestAnimationFrameEvents)
-{
-    settings().setShouldDispatchRequestAnimationFrameEvents(shouldDispatchRequestAnimationFrameEvents);
 }
 
 ExceptionOr<String> InternalSettings::userInterfaceDirectionPolicy()
@@ -779,6 +790,29 @@ ExceptionOr<void> InternalSettings::setSystemLayoutDirection(const String& direc
     return Exception { INVALID_ACCESS_ERR };
 }
 
+static FrameFlattening internalSettingsToWebCoreValue(InternalSettings::FrameFlatteningValue value)
+{
+    switch (value) {
+    case InternalSettings::FrameFlatteningValue::Disabled:
+        return FrameFlatteningDisabled;
+    case InternalSettings::FrameFlatteningValue::EnabledForNonFullScreenIFrames:
+        return FrameFlatteningEnabledForNonFullScreenIFrames;
+    case InternalSettings::FrameFlatteningValue::FullyEnabled:
+        return FrameFlatteningFullyEnabled;
+    }
+
+    ASSERT_NOT_REACHED();
+    return FrameFlatteningDisabled;
+}
+
+ExceptionOr<void> InternalSettings::setFrameFlattening(const FrameFlatteningValue& frameFlattening)
+{
+    if (!m_page)
+        return Exception { INVALID_ACCESS_ERR };
+    settings().setFrameFlattening(internalSettingsToWebCoreValue(frameFlattening));
+    return { };
+}
+
 void InternalSettings::setAllowsAnySSLCertificate(bool allowsAnyCertificate)
 {
     Settings::setAllowsAnySSLCertificate(allowsAnyCertificate);
@@ -800,6 +834,17 @@ ExceptionOr<void> InternalSettings::setDeferredCSSParserEnabled(bool enabled)
         return Exception { INVALID_ACCESS_ERR };
     settings().setDeferredCSSParserEnabled(enabled);
     return { };
+}
+
+ExceptionOr<void> InternalSettings::setShouldManageAudioSessionCategory(bool should)
+{
+#if USE(AUDIO_SESSION)
+    Settings::setShouldManageAudioSessionCategory(should);
+    return { };
+#else
+    UNUSED_PARAM(should);
+    return Exception { INVALID_ACCESS_ERR };
+#endif
 }
 
 static InternalSettings::ForcedAccessibilityValue settingsToInternalSettingsValue(Settings::ForcedAccessibilityValue value)

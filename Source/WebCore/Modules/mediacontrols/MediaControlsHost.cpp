@@ -130,7 +130,7 @@ AtomicString MediaControlsHost::captionDisplayMode() const
 {
     Page* page = m_mediaElement->document().page();
     if (!page)
-        return emptyAtom;
+        return emptyAtom();
 
     switch (page->group().captionPreferences().captionDisplayMode()) {
     case CaptionUserPreferences::Automatic:
@@ -143,7 +143,7 @@ AtomicString MediaControlsHost::captionDisplayMode() const
         return manualKeyword();
     default:
         ASSERT_NOT_REACHED();
-        return emptyAtom;
+        return emptyAtom();
     }
 }
 
@@ -280,18 +280,18 @@ String MediaControlsHost::generateUUID() const
 
 String MediaControlsHost::shadowRootCSSText() const
 {
-    Page* page = m_mediaElement->document().page();
-    if (!page)
-        return emptyString();
-    return RenderTheme::themeForPage(page)->modernMediaControlsStyleSheet();
+    return RenderTheme::singleton().modernMediaControlsStyleSheet();
 }
 
 String MediaControlsHost::base64StringForIconNameAndType(const String& iconName, const String& iconType) const
 {
-    Page* page = m_mediaElement->document().page();
-    if (!page)
-        return emptyString();
-    return RenderTheme::themeForPage(page)->mediaControlsBase64StringForIconNameAndType(iconName, iconType);
+
+    return RenderTheme::singleton().mediaControlsBase64StringForIconNameAndType(iconName, iconType);
+}
+
+String MediaControlsHost::formattedStringForDuration(double durationInSeconds) const
+{
+    return RenderTheme::singleton().mediaControlsFormattedStringForDuration(durationInSeconds);
 }
 
 }

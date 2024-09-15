@@ -93,6 +93,7 @@ class IOSPort(DarwinPort):
         fallback_names = [
             '{}-{}'.format(self.port_name, wk_string),
             self.port_name,
+            '{}-{}'.format(IOSPort.port_name, self.ios_version().split('.')[0]),
             '{}-{}'.format(IOSPort.port_name, wk_string),
             IOSPort.port_name,
         ]
@@ -102,7 +103,10 @@ class IOSPort(DarwinPort):
         return map(self._webkit_baseline_path, fallback_names)
 
     def test_expectations_file_position(self):
-        return 3
+        return 4
+
+    def ios_version(self):
+        raise NotImplementedError
 
     def _create_devices(self, device_class):
         raise NotImplementedError
@@ -124,11 +128,13 @@ class IOSPort(DarwinPort):
             _log.debug('Skipping installation')
 
         for i in xrange(self.child_processes()):
-            self.target_host(i).prepare_for_testing(
+            host = self.target_host(i)
+            host.prepare_for_testing(
                 self.ports_to_forward(),
                 self.app_identifier_from_bundle(self._path_to_driver()),
                 self.layout_tests_dir(),
             )
+            self._crash_logs_to_skip_for_host[host] = host.filesystem.files_under(self.path_to_crash_logs())
 
     def clean_up_test_run(self):
         super(IOSPort, self).clean_up_test_run()

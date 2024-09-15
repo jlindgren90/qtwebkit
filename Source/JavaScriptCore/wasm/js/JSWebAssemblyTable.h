@@ -50,7 +50,7 @@ public:
 
     std::optional<uint32_t> maximum() const { return m_maximum; }
     uint32_t size() const { return m_size; }
-    bool grow(uint32_t newSize) WARN_UNUSED_RETURN;
+    bool grow(uint32_t delta) WARN_UNUSED_RETURN;
     JSObject* getFunction(uint32_t index)
     {
         RELEASE_ASSERT(index < m_size);
@@ -62,6 +62,7 @@ public:
 
     static ptrdiff_t offsetOfSize() { return OBJECT_OFFSETOF(JSWebAssemblyTable, m_size); }
     static ptrdiff_t offsetOfFunctions() { return OBJECT_OFFSETOF(JSWebAssemblyTable, m_functions); }
+    static ptrdiff_t offsetOfJSFunctions() { return OBJECT_OFFSETOF(JSWebAssemblyTable, m_jsFunctions); }
 
     static bool isValidSize(uint32_t size)
     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2008-2017 Apple Inc. All Rights Reserved.
  * Copyright (C) 2009, 2011 Google Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,6 +101,8 @@ WorkerGlobalScope::~WorkerGlobalScope()
     m_performance = nullptr;
 #endif
 
+    m_crypto = nullptr;
+
     // Notify proxy that we are going away. This can free the WorkerThread object, so do not access it after this.
     thread().workerReportingProxy().workerGlobalScopeDestroyed();
 }
@@ -118,6 +120,11 @@ void WorkerGlobalScope::removeAllEventListeners()
 #if ENABLE(WEB_TIMING)
     m_performance->removeAllEventListeners();
 #endif
+}
+
+bool WorkerGlobalScope::isSecureContext() const
+{
+    return securityOrigin() && securityOrigin()->isPotentionallyTrustworthy();
 }
 
 void WorkerGlobalScope::applyContentSecurityPolicyResponseHeaders(const ContentSecurityPolicyResponseHeaders& contentSecurityPolicyResponseHeaders)
@@ -143,6 +150,11 @@ String WorkerGlobalScope::userAgent(const URL&) const
 void WorkerGlobalScope::disableEval(const String& errorMessage)
 {
     m_script->disableEval(errorMessage);
+}
+
+void WorkerGlobalScope::disableWebAssembly(const String& errorMessage)
+{
+    m_script->disableWebAssembly(errorMessage);
 }
 
 #if ENABLE(WEB_SOCKETS)

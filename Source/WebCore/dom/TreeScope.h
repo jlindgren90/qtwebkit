@@ -45,7 +45,6 @@ class ShadowRoot;
 
 class TreeScope {
     friend class Document;
-    friend class TreeScopeAdopter;
 
 public:
     TreeScope* parentTreeScope() const { return m_parentTreeScope; }
@@ -56,6 +55,7 @@ public:
 
     WEBCORE_EXPORT Element* getElementById(const AtomicString&) const;
     WEBCORE_EXPORT Element* getElementById(const String&) const;
+    Element* getElementById(StringView) const;
     const Vector<Element*>* getAllElementsById(const AtomicString&) const;
     bool hasElementWithId(const AtomicStringImpl&) const;
     bool containsMultipleElementsWithId(const AtomicString& id) const;
@@ -96,9 +96,6 @@ public:
     // quirks mode for historical compatibility reasons.
     Element* findAnchor(const String& name);
 
-    // Used by the basic DOM mutation methods (e.g., appendChild()).
-    void adoptIfNeeded(Node&);
-
     ContainerNode& rootNode() const { return m_rootNode; }
 
     IdTargetObserverRegistry& idTargetObserverRegistry() const { return *m_idTargetObserverRegistry.get(); }
@@ -117,6 +114,7 @@ protected:
     Node* nodeFromPoint(const LayoutPoint& clientPoint, LayoutPoint* localPoint);
 
 private:
+
     ContainerNode& m_rootNode;
     std::reference_wrapper<Document> m_documentScope;
     TreeScope* m_parentTreeScope;

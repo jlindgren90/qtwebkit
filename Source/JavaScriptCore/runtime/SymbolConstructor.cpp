@@ -47,7 +47,7 @@ namespace JSC {
 
 STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(SymbolConstructor);
 
-const ClassInfo SymbolConstructor::s_info = { "Function", &Base::s_info, &symbolConstructorTable, CREATE_METHOD_TABLE(SymbolConstructor) };
+const ClassInfo SymbolConstructor::s_info = { "Function", &Base::s_info, &symbolConstructorTable, nullptr, CREATE_METHOD_TABLE(SymbolConstructor) };
 
 /* Source for SymbolConstructor.lut.h
 @begin symbolConstructorTable
@@ -123,7 +123,7 @@ EncodedJSValue JSC_HOST_CALL symbolConstructorKeyFor(ExecState* exec)
         return JSValue::encode(jsUndefined());
 
     ASSERT(uid.symbolRegistry() == &vm.symbolRegistry());
-    return JSValue::encode(jsString(exec, vm.symbolRegistry().keyForSymbol(uid)));
+    return JSValue::encode(jsString(exec, &uid));
 }
 
 } // namespace JSC

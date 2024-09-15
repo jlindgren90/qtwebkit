@@ -52,7 +52,7 @@ public:
     AudioFileReader(const void* data, size_t dataSize);
     ~AudioFileReader();
 
-    PassRefPtr<AudioBus> createBus(float sampleRate, bool mixToMono);
+    RefPtr<AudioBus> createBus(float sampleRate, bool mixToMono);
 
 private:
     WeakPtr<AudioFileReader> createWeakPtr() { return m_weakPtrFactory.createWeakPtr(); }
@@ -345,7 +345,7 @@ void AudioFileReader::decodeAudioForBusCreation()
     }
 }
 
-PassRefPtr<AudioBus> AudioFileReader::createBus(float sampleRate, bool mixToMono)
+RefPtr<AudioBus> AudioFileReader::createBus(float sampleRate, bool mixToMono)
 {
     m_sampleRate = sampleRate;
     m_channels = mixToMono ? 1 : 2;
@@ -374,7 +374,7 @@ PassRefPtr<AudioBus> AudioFileReader::createBus(float sampleRate, bool mixToMono
     return audioBus;
 }
 
-PassRefPtr<AudioBus> createBusFromAudioFile(const char* filePath, bool mixToMono, float sampleRate)
+RefPtr<AudioBus> createBusFromAudioFile(const char* filePath, bool mixToMono, float sampleRate)
 {
     RefPtr<AudioBus> returnValue;
     auto thread = Thread::create("AudioFileReader", [&returnValue, filePath, mixToMono, sampleRate] {
@@ -384,7 +384,7 @@ PassRefPtr<AudioBus> createBusFromAudioFile(const char* filePath, bool mixToMono
     return returnValue;
 }
 
-PassRefPtr<AudioBus> createBusFromInMemoryAudioFile(const void* data, size_t dataSize, bool mixToMono, float sampleRate)
+RefPtr<AudioBus> createBusFromInMemoryAudioFile(const void* data, size_t dataSize, bool mixToMono, float sampleRate)
 {
     RefPtr<AudioBus> returnValue;
     auto thread = Thread::create("AudioFileReader", [&returnValue, data, dataSize, mixToMono, sampleRate] {

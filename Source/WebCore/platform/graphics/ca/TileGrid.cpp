@@ -65,7 +65,7 @@ static String validationPolicyAsString(TileGrid::TileValidationPolicy validation
 
 TileGrid::TileGrid(TileController& controller)
     : m_controller(controller)
-    , m_containerLayer(*controller.rootLayer().createCompatibleLayer(PlatformCALayer::LayerTypeLayer, nullptr))
+    , m_containerLayer(controller.rootLayer().createCompatibleLayer(PlatformCALayer::LayerTypeLayer, nullptr))
     , m_cohortRemovalTimer(*this, &TileGrid::cohortRemovalTimerFired)
     , m_tileSize(kDefaultTileSize, kDefaultTileSize)
 {
@@ -712,7 +712,7 @@ void TileGrid::drawTileMapContents(CGContextRef context, CGRect layerBounds) con
     }
 }
 
-void TileGrid::platformCALayerPaintContents(PlatformCALayer* platformCALayer, GraphicsContext& context, const FloatRect&)
+void TileGrid::platformCALayerPaintContents(PlatformCALayer* platformCALayer, GraphicsContext& context, const FloatRect&, GraphicsLayerPaintFlags flags)
 {
 #if PLATFORM(IOS)
     if (pthread_main_np())
@@ -727,7 +727,7 @@ void TileGrid::platformCALayerPaintContents(PlatformCALayer* platformCALayer, Gr
         context.scale(m_scale);
 
         PlatformCALayer::RepaintRectList dirtyRects = PlatformCALayer::collectRectsToPaint(context.platformContext(), platformCALayer);
-        PlatformCALayer::drawLayerContents(context.platformContext(), &m_controller.rootLayer(), dirtyRects);
+        PlatformCALayer::drawLayerContents(context.platformContext(), &m_controller.rootLayer(), dirtyRects, flags);
     }
 
     int repaintCount = platformCALayerIncrementRepaintCount(platformCALayer);
@@ -739,7 +739,7 @@ void TileGrid::platformCALayerPaintContents(PlatformCALayer* platformCALayer, Gr
         visiblePart.intersect(m_controller.visibleRect());
 
         if (repaintCount == 1 && !visiblePart.isEmpty())
-            WTFLogAlways("SCROLLING: Filled visible fresh tile. Time: %f Unfilled Pixels: %u\n", WTF::monotonicallyIncreasingTime(), blankPixelCount());
+            m_controller.logFilledVisibleFreshTile(blankPixelCount());
     }
 }
 

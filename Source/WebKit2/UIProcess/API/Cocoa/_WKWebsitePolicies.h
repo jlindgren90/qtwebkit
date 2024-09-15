@@ -34,12 +34,17 @@ typedef NS_ENUM(NSInteger, _WKWebsiteAutoplayPolicy) {
     _WKWebsiteAutoplayPolicyDeny
 } WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
 
-WK_CLASS_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA))
+typedef NS_OPTIONS(NSUInteger, _WKWebsiteAutoplayQuirk) {
+    _WKWebsiteAutoplayQuirkSynthesizedPauseEvents = 1 << 0,
+    _WKWebsiteAutoplayQuirkInheritedUserGestures = 1 << 1,
+} WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
+
+WK_CLASS_AVAILABLE(macosx(10.12.3), ios(10.3))
 @interface _WKWebsitePolicies : NSObject
 
 @property (nonatomic) BOOL contentBlockersEnabled;
-@property (nonatomic) BOOL allowsAutoplayQuirks;
-@property (nonatomic) _WKWebsiteAutoplayPolicy autoplayPolicy;
+@property (nonatomic) _WKWebsiteAutoplayQuirk allowedAutoplayQuirks WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
+@property (nonatomic) _WKWebsiteAutoplayPolicy autoplayPolicy WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
 
 @end
 

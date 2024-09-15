@@ -28,12 +28,10 @@
 #include "cmakeconfig.h"
 #endif
 
-#include <wtf/Platform.h>
-
 #include <WebCore/PlatformExportMacros.h>
+#include <pal/ExportMacros.h>
 #include <runtime/JSExportMacros.h>
 #include <wtf/DisallowCType.h>
-#include <wtf/ExportMacros.h>
 
 #ifdef __cplusplus
 
@@ -75,11 +73,7 @@
 #endif
 #endif
 
-#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200) \
-    || (PLATFORM(IOS) && TARGET_OS_IOS && __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000) \
-    || (PLATFORM(APPLETV) && __TV_OS_VERSION_MIN_REQUIRED >= 100000) \
-    || (PLATFORM(WATCHOS) && __WATCH_OS_VERSION_MIN_REQUIRED >= 30000) \
-    || USE(SOUP)
+#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200) || PLATFORM(IOS) || PLATFORM(APPLETV) || PLATFORM(WATCHOS) || USE(SOUP)
 #ifndef USE_NETWORK_SESSION
 #define USE_NETWORK_SESSION 1
 #endif

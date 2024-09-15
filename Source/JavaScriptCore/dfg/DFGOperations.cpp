@@ -42,6 +42,7 @@
 #include "DirectArguments.h"
 #include "FTLForOSREntryJITCode.h"
 #include "FTLOSREntry.h"
+#include "FrameTracers.h"
 #include "HasOwnPropertyCache.h"
 #include "HostCallReturnValue.h"
 #include "Interpreter.h"
@@ -384,18 +385,6 @@ int32_t JIT_OPERATION operationArithClz32(ExecState* exec, EncodedJSValue encode
     return clz32(value);
 }
 
-double JIT_OPERATION operationArithCos(ExecState* exec, EncodedJSValue encodedOp1)
-{
-    VM* vm = &exec->vm();
-    NativeCallFrameTracer tracer(vm, exec);
-    auto scope = DECLARE_THROW_SCOPE(*vm);
-
-    JSValue op1 = JSValue::decode(encodedOp1);
-    double a = op1.toNumber(exec);
-    RETURN_IF_EXCEPTION(scope, encodedJSValue());
-    return cos(a);
-}
-
 double JIT_OPERATION operationArithFRound(ExecState* exec, EncodedJSValue encodedOp1)
 {
     VM* vm = &exec->vm();
@@ -408,29 +397,19 @@ double JIT_OPERATION operationArithFRound(ExecState* exec, EncodedJSValue encode
     return static_cast<float>(a);
 }
 
-double JIT_OPERATION operationArithLog(ExecState* exec, EncodedJSValue encodedOp1)
-{
-    VM* vm = &exec->vm();
-    NativeCallFrameTracer tracer(vm, exec);
-    auto scope = DECLARE_THROW_SCOPE(*vm);
-
-    JSValue op1 = JSValue::decode(encodedOp1);
-    double a = op1.toNumber(exec);
-    RETURN_IF_EXCEPTION(scope, PNaN);
-    return log(a);
+#define DFG_ARITH_UNARY(capitalizedName, lowerName) \
+double JIT_OPERATION operationArith##capitalizedName(ExecState* exec, EncodedJSValue encodedOp1) \
+{ \
+    VM* vm = &exec->vm(); \
+    NativeCallFrameTracer tracer(vm, exec); \
+    auto scope = DECLARE_THROW_SCOPE(*vm); \
+    JSValue op1 = JSValue::decode(encodedOp1); \
+    double result = op1.toNumber(exec); \
+    RETURN_IF_EXCEPTION(scope, PNaN); \
+    return JSC::Math::lowerName(result); \
 }
-
-double JIT_OPERATION operationArithSin(ExecState* exec, EncodedJSValue encodedOp1)
-{
-    VM* vm = &exec->vm();
-    NativeCallFrameTracer tracer(vm, exec);
-    auto scope = DECLARE_THROW_SCOPE(*vm);
-
-    JSValue op1 = JSValue::decode(encodedOp1);
-    double a = op1.toNumber(exec);
-    RETURN_IF_EXCEPTION(scope, PNaN);
-    return sin(a);
-}
+    FOR_EACH_DFG_ARITH_UNARY_OP(DFG_ARITH_UNARY)
+#undef DFG_ARITH_UNARY
 
 double JIT_OPERATION operationArithSqrt(ExecState* exec, EncodedJSValue encodedOp1)
 {
@@ -442,18 +421,6 @@ double JIT_OPERATION operationArithSqrt(ExecState* exec, EncodedJSValue encodedO
     double a = op1.toNumber(exec);
     RETURN_IF_EXCEPTION(scope, PNaN);
     return sqrt(a);
-}
-
-double JIT_OPERATION operationArithTan(ExecState* exec, EncodedJSValue encodedOp1)
-{
-    VM* vm = &exec->vm();
-    NativeCallFrameTracer tracer(vm, exec);
-    auto scope = DECLARE_THROW_SCOPE(*vm);
-
-    JSValue op1 = JSValue::decode(encodedOp1);
-    double a = op1.toNumber(exec);
-    RETURN_IF_EXCEPTION(scope, encodedJSValue());
-    return tan(a);
 }
 
 EncodedJSValue JIT_OPERATION operationArithRound(ExecState* exec, EncodedJSValue encodedArgument)
@@ -607,7 +574,7 @@ ALWAYS_INLINE EncodedJSValue getByValCellInt(ExecState* exec, JSCell* base, int3
     return JSValue::encode(JSValue(base).get(exec, static_cast<unsigned>(index)));
 }
 
-EncodedJSValue JIT_OPERATION operationGetByValArrayInt(ExecState* exec, JSArray* base, int32_t index)
+EncodedJSValue JIT_OPERATION operationGetByValObjectInt(ExecState* exec, JSObject* base, int32_t index)
 {
     return getByValCellInt(exec, base, index);
 }
@@ -875,7 +842,7 @@ EncodedJSValue JIT_OPERATION operationParseIntStringNoRadix(ExecState* exec, JSS
     NativeCallFrameTracer tracer(&vm, exec);
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    auto viewWithString = string->viewWithUnderlyingString(*exec);
+    auto viewWithString = string->viewWithUnderlyingString(exec);
     RETURN_IF_EXCEPTION(scope, { });
 
     // This version is as if radix was undefined. Hence, undefined.toNumber() === 0.
@@ -888,7 +855,7 @@ EncodedJSValue JIT_OPERATION operationParseIntString(ExecState* exec, JSString* 
     NativeCallFrameTracer tracer(&vm, exec);
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    auto viewWithString = string->viewWithUnderlyingString(*exec);
+    auto viewWithString = string->viewWithUnderlyingString(exec);
     RETURN_IF_EXCEPTION(scope, { });
 
     return parseIntResult(parseInt(viewWithString.view, radix));
@@ -1784,9 +1751,9 @@ JSCell* JIT_OPERATION operationStrCat2(ExecState* exec, EncodedJSValue a, Encode
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     JSString* str1 = JSValue::decode(a).toString(exec);
-    ASSERT(!scope.exception()); // Impossible, since we must have been given primitives.
+    scope.assertNoException(); // Impossible, since we must have been given primitives.
     JSString* str2 = JSValue::decode(b).toString(exec);
-    ASSERT(!scope.exception());
+    scope.assertNoException();
 
     scope.release();
     return jsString(exec, str1, str2);
@@ -1799,11 +1766,11 @@ JSCell* JIT_OPERATION operationStrCat3(ExecState* exec, EncodedJSValue a, Encode
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     JSString* str1 = JSValue::decode(a).toString(exec);
-    ASSERT(!scope.exception()); // Impossible, since we must have been given primitives.
+    scope.assertNoException(); // Impossible, since we must have been given primitives.
     JSString* str2 = JSValue::decode(b).toString(exec);
-    ASSERT(!scope.exception());
+    scope.assertNoException();
     JSString* str3 = JSValue::decode(c).toString(exec);
-    ASSERT(!scope.exception());
+    scope.assertNoException();
 
     scope.release();
     return jsString(exec, str1, str2, str3);
@@ -1937,6 +1904,70 @@ int32_t JIT_OPERATION operationHasOwnProperty(ExecState* exec, JSObject* thisObj
     ASSERT(hasOwnPropertyCache);
     hasOwnPropertyCache->tryAdd(vm, slot, thisObject, propertyName.impl(), result);
     return result;
+}
+
+int32_t JIT_OPERATION operationArrayIndexOfString(ExecState* exec, Butterfly* butterfly, JSString* searchElement, int32_t index)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    int32_t length = butterfly->publicLength();
+    auto data = butterfly->contiguous().data();
+    for (; index < length; ++index) {
+        JSValue value = data[index].get();
+        if (!value || !value.isString())
+            continue;
+        auto* string = asString(value);
+        if (string == searchElement)
+            return index;
+        if (string->equal(exec, searchElement))
+            return index;
+        RETURN_IF_EXCEPTION(scope, { });
+    }
+    return -1;
+}
+
+int32_t JIT_OPERATION operationArrayIndexOfValueInt32OrContiguous(ExecState* exec, Butterfly* butterfly, EncodedJSValue encodedValue, int32_t index)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSValue searchElement = JSValue::decode(encodedValue);
+
+    int32_t length = butterfly->publicLength();
+    auto data = butterfly->contiguous().data();
+    for (; index < length; ++index) {
+        JSValue value = data[index].get();
+        if (!value)
+            continue;
+        if (JSValue::strictEqual(exec, searchElement, value))
+            return index;
+        RETURN_IF_EXCEPTION(scope, { });
+    }
+    return -1;
+}
+
+int32_t JIT_OPERATION operationArrayIndexOfValueDouble(ExecState* exec, Butterfly* butterfly, EncodedJSValue encodedValue, int32_t index)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    JSValue searchElement = JSValue::decode(encodedValue);
+
+    if (!searchElement.isNumber())
+        return -1;
+    double number = searchElement.asNumber();
+
+    int32_t length = butterfly->publicLength();
+    const double* data = butterfly->contiguousDouble().data();
+    for (; index < length; ++index) {
+        // This comparison ignores NaN.
+        if (data[index] == number)
+            return index;
+    }
+    return -1;
 }
 
 void JIT_OPERATION operationLoadVarargs(ExecState* exec, int32_t firstElementDest, EncodedJSValue encodedArguments, int32_t offset, int32_t length, int32_t mandatoryMinimum)

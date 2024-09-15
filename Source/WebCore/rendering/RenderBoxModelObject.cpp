@@ -28,6 +28,7 @@
 
 #include "BitmapImage.h"
 #include "BorderEdge.h"
+#include "CachedImage.h"
 #include "FloatRoundedRect.h"
 #include "Frame.h"
 #include "FrameView.h"
@@ -301,7 +302,16 @@ bool RenderBoxModelObject::hasAutoHeightOrContainingBlockWithAutoHeight() const
 
     return false;
 }
-    
+
+DecodingMode RenderBoxModelObject::decodingModeForImageDraw(const PaintInfo& paintInfo) const
+{
+    if (document().isImageDocument())
+        return DecodingMode::Synchronous;
+    if (paintInfo.paintBehavior & PaintBehaviorAllowAsyncImageDecoding)
+        return DecodingMode::Asynchronous;
+    return DecodingMode::Synchronous;
+}
+
 LayoutSize RenderBoxModelObject::relativePositionOffset() const
 {
     // This function has been optimized to avoid calls to containingBlock() in the common case
@@ -882,7 +892,11 @@ void RenderBoxModelObject::paintFillLayerExtended(const PaintInfo& paintInfo, co
                 downcast<BitmapImage>(*image).updateFromSettings(settings());
 
             auto interpolation = chooseInterpolationQuality(context, *image, &bgLayer, geometry.tileSize());
-            context.drawTiledImage(*image, geometry.destRect(), toLayoutPoint(geometry.relativePhase()), geometry.tileSize(), geometry.spaceSize(), ImagePaintingOptions(compositeOp, bgLayer.blendMode(), DecodingMode::Asynchronous, ImageOrientationDescription(), interpolation));
+            auto drawResult = context.drawTiledImage(*image, geometry.destRect(), toLayoutPoint(geometry.relativePhase()), geometry.tileSize(), geometry.spaceSize(), ImagePaintingOptions(compositeOp, bgLayer.blendMode(), decodingModeForImageDraw(paintInfo), ImageOrientationDescription(), interpolation));
+            if (drawResult == ImageDrawResult::DidRequestDecoding) {
+                ASSERT(bgImage->isCachedImage());
+                bgImage->cachedImage()->addPendingImageDrawingClient(*this);
+            }
         }
     }
 

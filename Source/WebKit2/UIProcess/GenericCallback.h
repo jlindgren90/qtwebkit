@@ -23,20 +23,19 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GenericCallback_h
-#define GenericCallback_h
+#pragma once
 
 #include "APIError.h"
 #include "APISerializedScriptValue.h"
+#include "CallbackID.h"
 #include "ProcessThrottler.h"
 #include "ShareableBitmap.h"
 #include "WKAPICast.h"
-#include <functional>
 #include <wtf/Function.h>
 #include <wtf/HashMap.h>
-#include <wtf/PassRefPtr.h>
+#include <wtf/MainThread.h>
 #include <wtf/RefCounted.h>
-#include <wtf/RunLoop.h>
+#include <wtf/Threading.h>
 
 namespace WebKit {
 
@@ -53,7 +52,7 @@ public:
     {
     }
 
-    uint64_t callbackID() const { return m_callbackID; }
+    CallbackID callbackID() const { return m_callbackID; }
 
     template<class T>
     T* as()
@@ -72,21 +71,14 @@ protected:
 
     explicit CallbackBase(Type type, const ProcessThrottler::BackgroundActivityToken& activityToken)
         : m_type(type)
-        , m_callbackID(generateCallbackID())
+        , m_callbackID(CallbackID::generateID())
         , m_activityToken(activityToken)
     {
     }
 
 private:
-    static uint64_t generateCallbackID()
-    {
-        ASSERT(RunLoop::isMain());
-        static uint64_t uniqueCallbackID = 1;
-        return uniqueCallbackID++;
-    }
-
     Type m_type;
-    uint64_t m_callbackID;
+    CallbackID m_callbackID;
     ProcessThrottler::BackgroundActivityToken m_activityToken;
 };
 
@@ -95,18 +87,21 @@ class GenericCallback : public CallbackBase {
 public:
     typedef Function<void (T..., Error)> CallbackFunction;
 
-    static PassRefPtr<GenericCallback> create(CallbackFunction&& callback, const ProcessThrottler::BackgroundActivityToken& activityToken = nullptr)
+    static Ref<GenericCallback> create(CallbackFunction&& callback, const ProcessThrottler::BackgroundActivityToken& activityToken = nullptr)
     {
-        return adoptRef(new GenericCallback(WTFMove(callback), activityToken));
+        return adoptRef(*new GenericCallback(WTFMove(callback), activityToken));
     }
 
     virtual ~GenericCallback()
     {
+        ASSERT(currentThread() == m_originThreadID);
         ASSERT(!m_callback);
     }
 
     void performCallbackWithReturnValue(T... returnValue)
     {
+        ASSERT(currentThread() == m_originThreadID);
+
         if (!m_callback)
             return;
 
@@ -122,6 +117,8 @@ public:
 
     void invalidate(Error error = Error::Unknown) final
     {
+        ASSERT(currentThread() == m_originThreadID);
+
         if (!m_callback)
             return;
 
@@ -145,6 +142,10 @@ private:
     }
 
     std::optional<CallbackFunction> m_callback;
+
+#ifndef NDEBUG
+    ThreadIdentifier m_originThreadID { currentThread() };
+#endif
 };
 
 template<typename APIReturnValueType, typename InternalReturnValueType = typename APITypeInfo<APIReturnValueType>::ImplType*>
@@ -172,12 +173,13 @@ void invalidateCallbackMap(HashMap<uint64_t, T>& callbackMap, CallbackBase::Erro
 
 class CallbackMap {
 public:
-    uint64_t put(PassRefPtr<CallbackBase> callback)
+    CallbackID put(Ref<CallbackBase>&& callback)
     {
-        ASSERT(!m_map.contains(callback->callbackID()));
-
-        uint64_t callbackID = callback->callbackID();
-        m_map.set(callbackID, callback);
+        RELEASE_ASSERT(RunLoop::isMain());
+        auto callbackID = callback->callbackID();
+        RELEASE_ASSERT(callbackID.isValid());
+        RELEASE_ASSERT(!m_map.contains(callbackID.m_id));
+        m_map.set(callbackID.m_id, WTFMove(callback));
         return callbackID;
     }
 
@@ -192,23 +194,26 @@ public:
     };
 
     template<typename... T>
-    uint64_t put(std::function<void (T...)> function, const ProcessThrottler::BackgroundActivityToken& activityToken)
+    CallbackID put(Function<void(T...)>&& function, const ProcessThrottler::BackgroundActivityToken& activityToken)
     {
         auto callback = GenericCallbackType<sizeof...(T), T...>::type::create(WTFMove(function), activityToken);
-        return put(callback);
+        return put(WTFMove(callback));
     }
 
+    // FIXME: <webkit.org/b/174007> WebCookieManagerProxy should pass in BackgroundActivityToken
     template<typename... T>
-    uint64_t put(Function<void (T...)>&& function, const ProcessThrottler::BackgroundActivityToken& activityToken)
+    CallbackID put(Function<void(T...)>&& function)
     {
-        auto callback = GenericCallbackType<sizeof...(T), T...>::type::create(WTFMove(function), activityToken);
-        return put(callback);
+        auto callback = GenericCallbackType<sizeof...(T), T...>::type::create(WTFMove(function));
+        return put(WTFMove(callback));
     }
 
     template<class T>
-    RefPtr<T> take(uint64_t callbackID)
+    RefPtr<T> take(CallbackID callbackID)
     {
-        auto base = m_map.take(callbackID);
+        RELEASE_ASSERT(callbackID.isValid());
+        RELEASE_ASSERT(RunLoop::isMain());
+        auto base = m_map.take(callbackID.m_id);
         if (!base)
             return nullptr;
 
@@ -217,6 +222,7 @@ public:
 
     void invalidate(CallbackBase::Error error)
     {
+        RELEASE_ASSERT(RunLoop::isMain());
         invalidateCallbackMap(m_map, error);
     }
 
@@ -225,5 +231,3 @@ private:
 };
 
 } // namespace WebKit
-
-#endif // GenericCallback_h

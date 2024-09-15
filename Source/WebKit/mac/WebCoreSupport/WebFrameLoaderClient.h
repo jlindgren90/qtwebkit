@@ -48,8 +48,6 @@ class ResourceRequest;
 class SessionID;
 }
 
-typedef HashMap<RefPtr<WebCore::ResourceLoader>, RetainPtr<WebResource>> ResourceMap;
-
 class WebFrameLoaderClient : public WebCore::FrameLoaderClient {
 public:
     WebFrameLoaderClient(WebFrame* = 0);
@@ -108,7 +106,6 @@ private:
     void dispatchDidPopStateWithinPage() final;
     
     void dispatchWillClose() final;
-    void dispatchDidReceiveIcon() final;
     void dispatchDidStartProvisionalLoad() final;
     void dispatchDidReceiveTitle(const WebCore::StringWithDirection&) final;
     void dispatchDidCommitLoad(std::optional<WebCore::HasInsecureContent>) final;
@@ -121,15 +118,15 @@ private:
     WebCore::Frame* dispatchCreatePage(const WebCore::NavigationAction&) final;
     void dispatchShow() final;
 
-    void dispatchDecidePolicyForResponse(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, WebCore::FramePolicyFunction) final;
-    void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, WebCore::FormState*, const WTF::String& frameName, WebCore::FramePolicyFunction) final;
-    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, WebCore::FormState*, WebCore::FramePolicyFunction) final;
+    void dispatchDecidePolicyForResponse(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, WebCore::FramePolicyFunction&&) final;
+    void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, WebCore::FormState*, const WTF::String& frameName, WebCore::FramePolicyFunction&&) final;
+    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, WebCore::FormState*, WebCore::FramePolicyFunction&&) final;
     void cancelPolicyCheck() final;
 
     void dispatchUnableToImplementPolicy(const WebCore::ResourceError&) final;
 
     void dispatchWillSendSubmitEvent(Ref<WebCore::FormState>&&) final;
-    void dispatchWillSubmitForm(WebCore::FormState&, WebCore::FramePolicyFunction) final;
+    void dispatchWillSubmitForm(WebCore::FormState&, WebCore::FramePolicyFunction&&) final;
 
     void revertToProvisionalState(WebCore::DocumentLoader*) final;
     void setMainDocumentError(WebCore::DocumentLoader*, const WebCore::ResourceError&) final;
@@ -223,15 +220,13 @@ private:
     
     void dispatchDidClearWindowObjectInWorld(WebCore::DOMWrapperWorld&) final;
 
-    void registerForIconNotification(bool listen) final;
-
 #if PLATFORM(IOS)
     bool shouldLoadMediaElementURL(const WebCore::URL&) const final;
 #endif
 
     RemoteAXObjectRef accessibilityRemoteObject() final { return 0; }
     
-    RetainPtr<WebFramePolicyListener> setUpPolicyListener(WebCore::FramePolicyFunction, NSURL *appLinkURL = nil);
+    RetainPtr<WebFramePolicyListener> setUpPolicyListener(WebCore::FramePolicyFunction&&, NSURL *appLinkURL = nil);
 
     NSDictionary *actionDictionary(const WebCore::NavigationAction&, WebCore::FormState*) const;
     
@@ -254,6 +249,12 @@ private:
 #endif
 
     void prefetchDNS(const String&) final;
+
+    bool useIconLoadingClient() final { return true; }
+    void getLoadDecisionForIcons(const Vector<std::pair<WebCore::LinkIcon&, uint64_t>>&) final;
+    void finishedLoadingIcon(uint64_t, WebCore::SharedBuffer*) final;
+
+    uint64_t m_activeIconLoadCallbackID { 0 };
 
     RetainPtr<WebFrame> m_webFrame;
 

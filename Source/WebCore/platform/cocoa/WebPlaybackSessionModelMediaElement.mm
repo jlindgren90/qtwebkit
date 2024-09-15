@@ -39,12 +39,11 @@
 #import "MediaSelectionOption.h"
 #import "Page.h"
 #import "PageGroup.h"
-#import "SoftLinking.h"
 #import "TextTrackList.h"
 #import "TimeRanges.h"
-#import "WebVideoFullscreenInterface.h"
 #import <QuartzCore/CoreAnimation.h>
 #import <wtf/NeverDestroyed.h>
+#import <wtf/SoftLinking.h>
 
 namespace WebCore {
 
@@ -131,14 +130,19 @@ void WebPlaybackSessionModelMediaElement::updateForEventName(const WTF::AtomicSt
         || eventName == eventNames().timeupdateEvent) {
         auto currentTime = this->currentTime();
         auto anchorTime = [[NSProcessInfo processInfo] systemUptime];
+        for (auto client : m_clients)
+            client->currentTimeChanged(currentTime, anchorTime);
+    }
+
+    if (all
+        || eventName == eventNames().progressEvent) {
         auto bufferedTime = this->bufferedTime();
         auto seekableRanges = this->seekableRanges();
-
+        auto seekableTimeRangesLastModifiedTime = this->seekableTimeRangesLastModifiedTime();
+        auto liveUpdateInterval = this->liveUpdateInterval();
         for (auto client : m_clients) {
-            client->currentTimeChanged(currentTime, anchorTime);
             client->bufferedTimeChanged(bufferedTime);
-            // FIXME: 130788 - find a better event from which to update seekable ranges.
-            client->seekableRangesChanged(seekableRanges);
+            client->seekableRangesChanged(seekableRanges, seekableTimeRangesLastModifiedTime, liveUpdateInterval);
         }
     }
 
@@ -165,6 +169,12 @@ void WebPlaybackSessionModelMediaElement::updateForEventName(const WTF::AtomicSt
     // updateMediaSelectionOptions() will also update the selection indices.
     if (eventName == eventNames().changeEvent)
         updateMediaSelectionIndices();
+
+    if (all
+        || eventName == eventNames().volumechangeEvent) {
+        for (auto client : m_clients)
+            client->mutedChanged(isMuted());
+    }
 }
 void WebPlaybackSessionModelMediaElement::addClient(WebPlaybackSessionModelClient& client)
 {
@@ -269,6 +279,17 @@ void WebPlaybackSessionModelMediaElement::togglePictureInPicture()
         m_mediaElement->enterFullscreen(MediaPlayerEnums::VideoFullscreenModePictureInPicture);
 }
 
+void WebPlaybackSessionModelMediaElement::toggleMuted()
+{
+    setMuted(!isMuted());
+}
+
+void WebPlaybackSessionModelMediaElement::setMuted(bool muted)
+{
+    if (m_mediaElement)
+        m_mediaElement->setMuted(muted);
+}
+
 void WebPlaybackSessionModelMediaElement::updateMediaSelectionOptions()
 {
     if (!m_mediaElement)
@@ -329,8 +350,10 @@ const Vector<AtomicString>& WebPlaybackSessionModelMediaElement::observedEventNa
         eventNames().playEvent,
         eventNames().ratechangeEvent,
         eventNames().timeupdateEvent,
+        eventNames().progressEvent,
         eventNames().addtrackEvent,
         eventNames().removetrackEvent,
+        eventNames().volumechangeEvent,
         eventNames().webkitcurrentplaybacktargetiswirelesschangedEvent,
     });
     return names.get();
@@ -344,7 +367,9 @@ const AtomicString&  WebPlaybackSessionModelMediaElement::eventNameAll()
 
 double WebPlaybackSessionModelMediaElement::duration() const
 {
-    return m_mediaElement ? m_mediaElement->duration() : 0;
+    if (!m_mediaElement)
+        return 0;
+    return m_mediaElement->supportsSeeking() ? m_mediaElement->duration() : std::numeric_limits<double>::quiet_NaN();
 }
 
 double WebPlaybackSessionModelMediaElement::currentTime() const
@@ -372,6 +397,16 @@ Ref<TimeRanges> WebPlaybackSessionModelMediaElement::seekableRanges() const
     return m_mediaElement ? m_mediaElement->seekable() : TimeRanges::create();
 }
 
+double WebPlaybackSessionModelMediaElement::seekableTimeRangesLastModifiedTime() const
+{
+    return m_mediaElement ? m_mediaElement->seekableTimeRangesLastModifiedTime() : 0;
+}
+
+double WebPlaybackSessionModelMediaElement::liveUpdateInterval() const
+{
+    return m_mediaElement ? m_mediaElement->liveUpdateInterval() : 0;
+}
+    
 bool WebPlaybackSessionModelMediaElement::canPlayFastReverse() const
 {
     return m_mediaElement ? m_mediaElement->minFastReverseRate() < 0.0 : false;
@@ -487,6 +522,11 @@ String WebPlaybackSessionModelMediaElement::externalPlaybackLocalizedDeviceName(
 bool WebPlaybackSessionModelMediaElement::wirelessVideoPlaybackDisabled() const
 {
     return m_mediaElement && m_mediaElement->mediaSession().wirelessVideoPlaybackDisabled(*m_mediaElement);
+}
+
+bool WebPlaybackSessionModelMediaElement::isMuted() const
+{
+    return m_mediaElement ? m_mediaElement->muted() : false;
 }
 
 }

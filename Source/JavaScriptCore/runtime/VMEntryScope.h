@@ -25,10 +25,8 @@
 
 #pragma once
 
-#include <wtf/StackBounds.h>
-#include <wtf/StackStats.h>
-#include <wtf/Vector.h>
 #include <functional>
+#include <wtf/Vector.h>
 
 namespace JSC {
 

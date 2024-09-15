@@ -37,6 +37,8 @@
 #if PLATFORM(COCOA)
 #include "RemoteLayerTreeDrawingArea.h"
 #include "TiledCoreAnimationDrawingArea.h"
+#elif PLATFORM(WPE)
+#include "AcceleratedDrawingArea.h"
 #else
 #include "DrawingAreaImpl.h"
 #endif
@@ -57,7 +59,11 @@ std::unique_ptr<DrawingArea> DrawingArea::create(WebPage& webPage, const WebPage
         return std::make_unique<RemoteLayerTreeDrawingArea>(webPage, parameters);
 #else
     case DrawingAreaTypeImpl:
+#if PLATFORM(WPE)
+        return std::make_unique<AcceleratedDrawingArea>(webPage, parameters);
+#else
         return std::make_unique<DrawingAreaImpl>(webPage, parameters);
+#endif
 #endif
     }
 
@@ -76,7 +82,7 @@ DrawingArea::~DrawingArea()
     WebProcess::singleton().removeMessageReceiver(Messages::DrawingArea::messageReceiverName(), m_webPage.pageID());
 }
 
-void DrawingArea::dispatchAfterEnsuringUpdatedScrollPosition(std::function<void ()> function)
+void DrawingArea::dispatchAfterEnsuringUpdatedScrollPosition(WTF::Function<void ()>&& function)
 {
     // Scroll position updates are synchronous by default so we can just call the function right away here.
     function();

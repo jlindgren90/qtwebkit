@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2016-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@
 #if ENABLE(SAMPLING_PROFILER)
 
 #include "CallFrame.h"
+#include "CatchScope.h"
 #include "CodeBlock.h"
 #include "CodeBlockSet.h"
 #include "HeapIterationScope.h"
@@ -46,6 +47,7 @@
 #include "SlotVisitor.h"
 #include "StrongInlines.h"
 #include "VM.h"
+#include <wtf/FilePrintStream.h>
 #include <wtf/HashSet.h>
 #include <wtf/RefPtr.h>
 #include <wtf/StackTrace.h>
@@ -325,7 +327,7 @@ void SamplingProfiler::timerLoop()
         // with some system process such as a scheduled context switch.
         // http://plv.colorado.edu/papers/mytkowicz-pldi10.pdf
         double randomSignedNumber = (m_weakRandom.get() * 2.0) - 1.0; // A random number between [-1, 1).
-        std::chrono::microseconds randomFluctuation = std::chrono::microseconds(static_cast<uint64_t>(randomSignedNumber * static_cast<double>(m_timingInterval.count()) * 0.20l));
+        std::chrono::microseconds randomFluctuation = std::chrono::microseconds(static_cast<int64_t>(randomSignedNumber * static_cast<double>(m_timingInterval.count()) * 0.20l));
         std::this_thread::sleep_for(m_timingInterval - std::min(m_timingInterval, stackTraceProcessingTime) + randomFluctuation);
     }
 }
@@ -719,7 +721,7 @@ String SamplingProfiler::StackFrame::nameFromCallee(VM& vm)
         PropertySlot slot(callee, PropertySlot::InternalMethodType::VMInquiry);
         PropertyName propertyName(ident);
         bool hasProperty = callee->getPropertySlot(exec, propertyName, slot);
-        ASSERT_UNUSED(scope, !scope.exception());
+        scope.assertNoException();
         if (hasProperty) {
             if (slot.isValue()) {
                 JSValue nameValue = slot.getValue(exec, propertyName);

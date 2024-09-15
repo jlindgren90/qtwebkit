@@ -159,10 +159,7 @@ namespace JSC { namespace DFG {
     macro(ArithCeil, NodeResultNumber | NodeMustGenerate) \
     macro(ArithTrunc, NodeResultNumber | NodeMustGenerate) \
     macro(ArithSqrt, NodeResultDouble | NodeMustGenerate) \
-    macro(ArithSin, NodeResultDouble | NodeMustGenerate) \
-    macro(ArithCos, NodeResultDouble | NodeMustGenerate) \
-    macro(ArithTan, NodeResultDouble | NodeMustGenerate) \
-    macro(ArithLog, NodeResultDouble | NodeMustGenerate) \
+    macro(ArithUnary, NodeResultDouble | NodeMustGenerate) \
     \
     /* Add of values may either be arithmetic, or result in string concatenation. */\
     macro(ValueAdd, NodeResultJS | NodeMustGenerate) \
@@ -222,6 +219,7 @@ namespace JSC { namespace DFG {
     macro(PutByOffset, NodeMustGenerate) \
     macro(MultiPutByOffset, NodeMustGenerate) \
     macro(GetArrayLength, NodeResultInt32) \
+    macro(GetVectorLength, NodeResultInt32) \
     macro(GetTypedArrayByteOffset, NodeResultInt32) \
     macro(GetScope, NodeResultJS) \
     macro(SkipScope, NodeResultJS) \
@@ -245,6 +243,7 @@ namespace JSC { namespace DFG {
     macro(CheckInBounds, NodeMustGenerate) \
     macro(CheckStringIdent, NodeMustGenerate) \
     macro(CheckTypeInfoFlags, NodeMustGenerate) /* Takes an OpInfo with the flags you want to test are set */\
+    macro(CheckSubClass, NodeMustGenerate) \
     macro(ParseInt, NodeMustGenerate | NodeResultJS) \
     \
     /* Atomics object functions. */\
@@ -263,6 +262,7 @@ namespace JSC { namespace DFG {
     macro(ArrayPush, NodeResultJS | NodeMustGenerate) \
     macro(ArrayPop, NodeResultJS | NodeMustGenerate) \
     macro(ArraySlice, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
+    macro(ArrayIndexOf, NodeResultInt32 | NodeHasVarArgs) \
     \
     /* Optimizations for regular expression matching. */\
     macro(RegExpExec, NodeResultJS | NodeMustGenerate) \
@@ -429,7 +429,6 @@ namespace JSC { namespace DFG {
     \
     macro(ToLowerCase, NodeResultJS) \
     /* Nodes for DOM JIT */\
-    macro(CheckDOM, NodeMustGenerate) \
     macro(CallDOMGetter, NodeResultJS | NodeMustGenerate) \
     macro(CallDOM, NodeResultJS | NodeMustGenerate) \
 

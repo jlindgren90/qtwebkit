@@ -59,14 +59,14 @@ inline Worker::Worker(ScriptExecutionContext& context, JSC::RuntimeFlags runtime
 {
     if (!allWorkers) {
         allWorkers = new HashSet<Worker*>;
-        networkStateNotifier().addNetworkStateChangeListener(networkStateChanged);
+        networkStateNotifier().addNetworkStateChangeListener(WTF::Function<void (bool)> { networkStateChanged });
     }
 
     auto addResult = allWorkers->add(this);
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }
 
-ExceptionOr<Ref<Worker>> Worker::create(ScriptExecutionContext& context, const String& url, JSC::RuntimeFlags runtimeFlags)
+ExceptionOr<Ref<Worker>> Worker::create(ScriptExecutionContext& context, JSC::RuntimeFlags runtimeFlags, const String& url)
 {
     ASSERT(isMainThread());
 

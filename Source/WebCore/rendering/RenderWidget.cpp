@@ -31,6 +31,7 @@
 #include "RenderLayer.h"
 #include "RenderLayerBacking.h"
 #include "RenderView.h"
+#include "SecurityOrigin.h"
 #include <wtf/StackStats.h>
 #include <wtf/Ref.h>
 
@@ -216,10 +217,24 @@ void RenderWidget::styleDidChange(StyleDifference diff, const RenderStyle* oldSt
 
 void RenderWidget::paintContents(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 {
+    if (paintInfo.requireSecurityOriginAccessForWidgets) {
+        if (auto contentDocument = frameOwnerElement().contentDocument()) {
+            if (!document().securityOrigin().canAccess(contentDocument->securityOrigin()))
+                return;
+        }
+    }
+
     IntPoint contentPaintOffset = roundedIntPoint(paintOffset + location() + contentBoxRect().location());
     // Tell the widget to paint now. This is the only time the widget is allowed
     // to paint itself. That way it will composite properly with z-indexed layers.
     LayoutRect paintRect = paintInfo.rect;
+
+    PaintBehavior oldBehavior = PaintBehaviorNormal;
+    if (is<FrameView>(*m_widget) && (paintInfo.paintBehavior & PaintBehaviorAllowAsyncImageDecoding)) {
+        FrameView& frameView = downcast<FrameView>(*m_widget);
+        oldBehavior = frameView.paintBehavior();
+        frameView.setPaintBehavior(oldBehavior | PaintBehaviorAllowAsyncImageDecoding);
+    }
 
     IntPoint widgetLocation = m_widget->frameRect().location();
     IntSize widgetPaintOffset = contentPaintOffset - widgetLocation;
@@ -229,8 +244,8 @@ void RenderWidget::paintContents(PaintInfo& paintInfo, const LayoutPoint& paintO
         paintInfo.context().translate(widgetPaintOffset);
         paintRect.move(-widgetPaintOffset);
     }
-    // FIXME: Remove repaintrect encolsing/integral snapping when RenderWidget becomes device pixel snapped.
-    m_widget->paint(paintInfo.context(), snappedIntRect(paintRect));
+    // FIXME: Remove repaintrect enclosing/integral snapping when RenderWidget becomes device pixel snapped.
+    m_widget->paint(paintInfo.context(), snappedIntRect(paintRect), paintInfo.requireSecurityOriginAccessForWidgets ? Widget::SecurityOriginPaintPolicy::AccessibleOriginOnly : Widget::SecurityOriginPaintPolicy::AnyOrigin);
 
     if (!widgetPaintOffset.isZero())
         paintInfo.context().translate(-widgetPaintOffset);
@@ -242,6 +257,8 @@ void RenderWidget::paintContents(PaintInfo& paintInfo, const LayoutPoint& paintO
             ASSERT(!paintInfo.overlapTestRequests->contains(this) || (paintInfo.overlapTestRequests->get(this) == m_widget->frameRect()));
             paintInfo.overlapTestRequests->set(this, m_widget->frameRect());
         }
+        if (paintInfo.paintBehavior & PaintBehaviorAllowAsyncImageDecoding)
+            frameView.setPaintBehavior(oldBehavior);
     }
 }
 
@@ -316,7 +333,7 @@ RenderWidget::ChildWidgetState RenderWidget::updateWidgetPosition()
     if (is<FrameView>(*m_widget)) {
         FrameView& frameView = downcast<FrameView>(*m_widget);
         // Check the frame's page to make sure that the frame isn't in the process of being destroyed.
-        if ((widgetSizeChanged || frameView.needsLayout()) && frameView.frame().page())
+        if ((widgetSizeChanged || frameView.needsLayout()) && frameView.frame().page() && frameView.frame().document())
             frameView.layout();
     }
     return ChildWidgetState::Valid;

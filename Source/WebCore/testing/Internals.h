@@ -29,7 +29,8 @@
 #include "CSSComputedStyleDeclaration.h"
 #include "ContextDestructionObserver.h"
 #include "ExceptionOr.h"
-#include "JSDOMPromise.h"
+#include "JSDOMPromiseDeferred.h"
+#include "OrientationNotifier.h"
 #include "PageConsoleClient.h"
 #include "RealtimeMediaSource.h"
 #include <runtime/Float32Array.h>
@@ -43,6 +44,7 @@ namespace WebCore {
 
 class AudioContext;
 class DOMRect;
+class DOMRectList;
 class DOMURL;
 class DOMWindow;
 class Document;
@@ -60,6 +62,7 @@ class InspectorStubFrontend;
 class InternalSettings;
 class MallocStatistics;
 class MediaSession;
+class MediaStream;
 class MediaStreamTrack;
 class MemoryInfo;
 class MockCDMFactory;
@@ -76,7 +79,7 @@ class SourceBuffer;
 class StyleSheet;
 class TimeRanges;
 class TypeConversions;
-class WebGLRenderingContextBase;
+class WebGLRenderingContext;
 class XMLHttpRequest;
 
 class Internals final : public RefCounted<Internals>,  private ContextDestructionObserver
@@ -101,8 +104,6 @@ public:
     bool isPreloaded(const String& url);
     bool isLoadingFromMemoryCache(const String& url);
     String xhrResponseSource(XMLHttpRequest&);
-    Vector<String> mediaResponseSources(HTMLMediaElement&);
-    Vector<String> mediaResponseContentRanges(HTMLMediaElement&);
     bool isSharingStyleSheetContents(HTMLLinkElement&, HTMLLinkElement&);
     bool isStyleSheetLoadingSubresources(HTMLLinkElement&);
     enum class CachePolicy { UseProtocolCachePolicy, ReloadIgnoringCacheData, ReturnCacheDataElseLoad, ReturnCacheDataDontLoad };
@@ -114,6 +115,7 @@ public:
 
     void clearMemoryCache();
     void pruneMemoryCacheToSize(unsigned size);
+    void destroyDecodedDataForAllImages();
     unsigned memoryCacheSize() const;
 
     unsigned imageFrameIndex(HTMLImageElement&);
@@ -121,6 +123,7 @@ public:
     void resetImageAnimation(HTMLImageElement&);
     bool isImageAnimating(HTMLImageElement&);
     void setClearDecoderAfterAsyncFrameRequestForTesting(HTMLImageElement&, bool);
+    unsigned imageDecodeCount(HTMLImageElement&);
 
     void setGridMaxTracksLimit(unsigned);
 
@@ -148,6 +151,7 @@ public:
     ExceptionOr<bool> isTimerThrottled(int timeoutId);
     bool isRequestAnimationFrameThrottled() const;
     double requestAnimationFrameInterval() const;
+    bool scriptedAnimationsAreSuspended() const;
     bool areTimersThrottled() const;
 
     enum EventThrottlingBehavior { Responsive, Unresponsive };
@@ -182,7 +186,7 @@ public:
 
     Ref<DOMRect> boundingBox(Element&);
 
-    ExceptionOr<Vector<Ref<DOMRect>>> inspectorHighlightRects();
+    ExceptionOr<Ref<DOMRectList>> inspectorHighlightRects();
     ExceptionOr<String> inspectorHighlightObject();
 
     ExceptionOr<unsigned> markerCountForNode(Node&, const String&);
@@ -242,8 +246,8 @@ public:
     ExceptionOr<unsigned> wheelEventHandlerCount();
     ExceptionOr<unsigned> touchEventHandlerCount();
 
-    ExceptionOr<Vector<Ref<DOMRect>>> touchEventRectsForEvent(const String&);
-    ExceptionOr<Vector<Ref<DOMRect>>> passiveTouchEventListenerRects();
+    ExceptionOr<Ref<DOMRectList>> touchEventRectsForEvent(const String&);
+    ExceptionOr<Ref<DOMRectList>> passiveTouchEventListenerRects();
 
     ExceptionOr<RefPtr<NodeList>> nodesFromRect(Document&, int x, int y, unsigned topPadding, unsigned rightPadding, unsigned bottomPadding, unsigned leftPadding, bool ignoreClipping, bool allowShadowContent, bool allowChildFrameContent) const;
 
@@ -291,13 +295,14 @@ public:
         LAYER_TREE_INCLUDES_PAINTING_PHASES = 8,
         LAYER_TREE_INCLUDES_CONTENT_LAYERS = 16,
         LAYER_TREE_INCLUDES_ACCELERATES_DRAWING = 32,
+        LAYER_TREE_INCLUDES_BACKING_STORE_ATTACHED = 64,
     };
     ExceptionOr<String> layerTreeAsText(Document&, unsigned short flags) const;
     ExceptionOr<uint64_t> layerIDForElement(Element&);
     ExceptionOr<String> repaintRectsAsText() const;
     ExceptionOr<String> scrollingStateTreeAsText() const;
     ExceptionOr<String> mainThreadScrollingReasons() const;
-    ExceptionOr<Vector<Ref<DOMRect>>> nonFastScrollableRects() const;
+    ExceptionOr<Ref<DOMRectList>> nonFastScrollableRects() const;
 
     ExceptionOr<void> setElementUsesDisplayListDrawing(Element&, bool usesDisplayListDrawing);
     ExceptionOr<void> setElementTracksDisplayListReplay(Element&, bool isTrackingReplay);
@@ -320,6 +325,7 @@ public:
 
     unsigned numberOfLiveNodes() const;
     unsigned numberOfLiveDocuments() const;
+    unsigned referencingNodeCount(const Document&) const;
 
     RefPtr<DOMWindow> openDummyInspectorFrontend(const String& url);
     void closeDummyInspectorFrontend();
@@ -343,6 +349,7 @@ public:
     ExceptionOr<void> setUseFixedLayout(bool);
     ExceptionOr<void> setFixedLayoutSize(int width, int height);
     ExceptionOr<void> setViewExposedRect(float left, float top, float width, float height);
+    void setPrinting(int width, int height);
 
     void setHeaderHeight(float);
     void setFooterHeight(float);
@@ -421,17 +428,22 @@ public:
 #endif
 
 #if ENABLE(WEB_RTC)
+#if USE(OPENWEBRTC)
     void enableMockMediaEndpoint();
+#endif
     void emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection&, const String& action);
     void useMockRTCPeerConnectionFactory(const String&);
     void setICECandidateFiltering(bool);
     void setEnumeratingAllNetworkInterfacesEnabled(bool);
     void stopPeerConnection(RTCPeerConnection&);
+    void applyRotationForOutgoingVideoSources(RTCPeerConnection&);
 #endif
 
     String getImageSourceURL(Element&);
 
 #if ENABLE(VIDEO)
+    Vector<String> mediaResponseSources(HTMLMediaElement&);
+    Vector<String> mediaResponseContentRanges(HTMLMediaElement&);
     void simulateAudioInterruption(HTMLMediaElement&);
     ExceptionOr<bool> mediaElementHasCharacteristic(HTMLMediaElement&, const String&);
 #endif
@@ -450,10 +462,6 @@ public:
 
     ExceptionOr<Ref<DOMRect>> selectionBounds();
 
-#if ENABLE(VIBRATION)
-    bool isVibrating();
-#endif
-
     ExceptionOr<bool> isPluginUnavailabilityIndicatorObscured(Element&);
     bool isPluginSnapshotted(Element&);
 
@@ -467,11 +475,13 @@ public:
 #if ENABLE(VIDEO)
     ExceptionOr<void> beginMediaSessionInterruption(const String&);
     void endMediaSessionInterruption(const String&);
-    void applicationDidEnterForeground() const;
-    void applicationWillEnterBackground() const;
-    ExceptionOr<void> setMediaSessionRestrictions(const String& mediaType, const String& restrictions);
+    void applicationWillBecomeInactive();
+    void applicationDidBecomeActive();
+    void applicationWillEnterForeground(bool suspendedUnderLock) const;
+    void applicationDidEnterBackground(bool suspendedUnderLock) const;
+    ExceptionOr<void> setMediaSessionRestrictions(const String& mediaType, StringView restrictionsString);
     ExceptionOr<String> mediaSessionRestrictions(const String& mediaType) const;
-    void setMediaElementRestrictions(HTMLMediaElement&, const String& restrictions);
+    void setMediaElementRestrictions(HTMLMediaElement&, StringView restrictionsString);
     ExceptionOr<void> postRemoteControlCommand(const String&, float argument);
     bool elementIsBlockingDisplaySleep(HTMLMediaElement&) const;
 #endif
@@ -491,7 +501,7 @@ public:
 #endif
 
 #if ENABLE(WEB_AUDIO)
-    void setAudioContextRestrictions(AudioContext&, const String& restrictions);
+    void setAudioContextRestrictions(AudioContext&, StringView restrictionsString);
 #endif
 
     void simulateSystemSleep() const;
@@ -501,7 +511,7 @@ public:
     ExceptionOr<Ref<MockPageOverlay>> installMockPageOverlay(PageOverlayType);
     ExceptionOr<String> pageOverlayLayerTreeAsText(unsigned short flags) const;
 
-    void setPageMuted(const String&);
+    void setPageMuted(StringView);
     String pageMediaState();
 
     void setPageDefersLoading(bool);
@@ -528,6 +538,7 @@ public:
 
     String resourceLoadStatisticsForOrigin(const String& origin);
     void setResourceLoadStatisticsEnabled(bool);
+    void setResourceLoadStatisticsShouldThrottleObserverNotifications(bool);
 
 #if ENABLE(STREAMS_API)
     bool isReadableStreamDisturbed(JSC::ExecState&, JSC::JSValue);
@@ -558,24 +569,36 @@ public:
 
     Vector<String> accessKeyModifiers() const;
 
-#if PLATFORM(IOS)
     void setQuickLookPassword(const String&);
-#endif
 
     void setAsRunningUserScripts(Document&);
 
 #if ENABLE(WEBGL)
-    void simulateWebGLContextChanged(WebGLRenderingContextBase&);
+    void simulateWebGLContextChanged(WebGLRenderingContext&);
+    void failNextGPUStatusCheck(WebGLRenderingContext&);
+#endif
+
+    void setPageVisibility(bool isVisible);
+
+#if ENABLE(WEB_RTC)
+    void setH264HardwareEncoderAllowed(bool allowed);
 #endif
 
 #if ENABLE(MEDIA_STREAM)
+    void setCameraMediaStreamTrackOrientation(MediaStreamTrack&, int orientation);
     ExceptionOr<void> setMediaDeviceState(const String& id, const String& property, bool value);
     unsigned long trackAudioSampleCount() const { return m_trackAudioSampleCount; }
     unsigned long trackVideoSampleCount() const { return m_trackVideoSampleCount; }
     void observeMediaStreamTrack(MediaStreamTrack&);
-    using TrackFramePromise = DOMPromise<IDLInterface<ImageData>>;
+    using TrackFramePromise = DOMPromiseDeferred<IDLInterface<ImageData>>;
     void grabNextMediaStreamTrackFrame(TrackFramePromise&&);
+    void delayMediaStreamTrackSamples(MediaStreamTrack&, float);
+    void setMediaStreamTrackMuted(MediaStreamTrack&, bool);
+    void removeMediaStreamTrack(MediaStream&, MediaStreamTrack&);
+    void simulateMediaStreamTrackCaptureSourceFailure(MediaStreamTrack&);
 #endif
+
+    String audioSessionCategory() const;
 
 private:
     explicit Internals(Document&);
@@ -589,6 +612,7 @@ private:
     void videoSampleAvailable(MediaSample&) final;
     void audioSamplesAvailable(const MediaTime&, const PlatformAudioData&, const AudioStreamDescription&, size_t) final { m_trackAudioSampleCount++; }
 
+    OrientationNotifier m_orientationNotifier;
     unsigned long m_trackVideoSampleCount { 0 };
     unsigned long m_trackAudioSampleCount { 0 };
     RefPtr<MediaStreamTrack> m_track;

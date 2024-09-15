@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2009, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,14 +29,15 @@
 #include "config.h"
 #include "ExceptionHelpers.h"
 
-#include "CodeBlock.h"
 #include "CallFrame.h"
+#include "CatchScope.h"
+#include "CodeBlock.h"
 #include "ErrorHandlingScope.h"
 #include "Exception.h"
-#include "JSGlobalObjectFunctions.h"
 #include "Interpreter.h"
-#include "Nodes.h"
 #include "JSCInlines.h"
+#include "JSGlobalObjectFunctions.h"
+#include "Nodes.h"
 #include "RuntimeType.h"
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/StringView.h>
@@ -45,7 +46,7 @@ namespace JSC {
 
 STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(TerminatedExecutionError);
 
-const ClassInfo TerminatedExecutionError::s_info = { "TerminatedExecutionError", &Base::s_info, 0, CREATE_METHOD_TABLE(TerminatedExecutionError) };
+const ClassInfo TerminatedExecutionError::s_info = { "TerminatedExecutionError", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(TerminatedExecutionError) };
 
 JSValue TerminatedExecutionError::defaultValue(const JSObject*, ExecState* exec, PreferredPrimitiveType hint)
 {
@@ -69,7 +70,14 @@ bool isTerminatedExecutionException(VM& vm, Exception* exception)
 
 JSObject* createStackOverflowError(ExecState* exec)
 {
-    return createRangeError(exec, ASCIILiteral("Maximum call stack size exceeded."));
+    return createStackOverflowError(exec, exec->lexicalGlobalObject());
+}
+
+JSObject* createStackOverflowError(ExecState* exec, JSGlobalObject* globalObject)
+{
+    auto* error = createRangeError(exec, globalObject, ASCIILiteral("Maximum call stack size exceeded."));
+    jsCast<ErrorInstance*>(error)->setStackOverflowError();
+    return error;
 }
 
 JSObject* createUndefinedVariableError(ExecState* exec, const Identifier& ident)
@@ -259,7 +267,7 @@ JSObject* createError(ExecState* exec, JSValue value, const String& message, Err
     auto scope = DECLARE_CATCH_SCOPE(vm);
 
     String errorMessage = makeString(errorDescriptionForValue(exec, value)->value(exec), ' ', message);
-    ASSERT_UNUSED(scope, !scope.exception());
+    scope.assertNoException();
     JSObject* exception = createTypeError(exec, errorMessage, appender, runtimeTypeForValue(value));
     ASSERT(exception->isErrorInstance());
     return exception;

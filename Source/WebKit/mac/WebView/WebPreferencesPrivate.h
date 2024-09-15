@@ -56,6 +56,12 @@ typedef enum {
     WebKitJavaScriptRuntimeFlagsAllEnabled = 0
 } WebKitJavaScriptRuntimeFlags;
 
+typedef enum {
+    WebKitFrameFlatteningDisabled,
+    WebKitFrameFlatteningEnabledForNonFullScreenIFrames,
+    WebKitFrameFlatteningFullyEnabled
+} WebKitFrameFlattening;
+
 extern NSString *WebPreferencesChangedNotification;
 extern NSString *WebPreferencesRemovedNotification;
 extern NSString *WebPreferencesChangedInternalNotification;
@@ -156,11 +162,14 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)isFrameFlatteningEnabled;
 - (void)setFrameFlatteningEnabled:(BOOL)flag;
 
+- (WebKitFrameFlattening)frameFlattening;
+- (void)setFrameFlattening:(WebKitFrameFlattening)flag;
+
+- (BOOL)asyncFrameScrollingEnabled;
+- (void)setAsyncFrameScrollingEnabled:(BOOL)enabled;
+
 - (BOOL)isSpatialNavigationEnabled;
 - (void)setSpatialNavigationEnabled:(BOOL)flag;
-
-- (void)setSubtleCryptoEnabled:(BOOL)flag;
-- (BOOL)subtleCryptoEnabled;
 
 - (void)setMediaDevicesEnabled:(BOOL)flag;
 - (BOOL)mediaDevicesEnabled;
@@ -493,6 +502,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setGamepadsEnabled:(BOOL)flag;
 - (BOOL)gamepadsEnabled;
 
+- (void)setMediaPreloadingEnabled:(BOOL)flag;
+- (BOOL)mediaPreloadingEnabled;
+
 - (void)setMediaKeysStorageDirectory:(NSString *)directory;
 - (NSString *)mediaKeysStorageDirectory;
 
@@ -505,6 +517,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setMockCaptureDevicesEnabled:(BOOL)flag;
 - (BOOL)mockCaptureDevicesEnabled;
 
+- (void)setMockCaptureDevicesPromptEnabled:(BOOL)flag;
+- (BOOL)mockCaptureDevicesPromptEnabled;
+
 - (void)setEnumeratingAllNetworkInterfacesEnabled:(BOOL)flag;
 - (BOOL)enumeratingAllNetworkInterfacesEnabled;
 
@@ -513,9 +528,6 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 
 - (void)setMediaCaptureRequiresSecureConnection:(BOOL)flag;
 - (BOOL)mediaCaptureRequiresSecureConnection;
-
-- (void)setUseAVFoundationAudioCapture:(BOOL)flag;
-- (BOOL)useAVFoundationAudioCapture;
 
 - (void)setShadowDOMEnabled:(BOOL)flag;
 - (BOOL)shadowDOMEnabled;
@@ -547,6 +559,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setCredentialManagementEnabled:(BOOL)flag;
 - (BOOL)credentialManagementEnabled;
 
+- (void)setIsSecureContextAttributeEnabled:(BOOL)flag;
+- (BOOL)isSecureContextAttributeEnabled;
+
 @property (nonatomic) BOOL visualViewportEnabled;
 @property (nonatomic) BOOL largeImageAsyncDecodingEnabled;
 @property (nonatomic) BOOL animatedImageAsyncDecodingEnabled;
@@ -555,13 +570,21 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 @property (nonatomic) BOOL attachmentElementEnabled;
 @property (nonatomic) BOOL allowsInlineMediaPlaybackAfterFullscreen;
 @property (nonatomic) BOOL intersectionObserverEnabled;
+@property (nonatomic) BOOL displayContentsEnabled;
 @property (nonatomic) BOOL userTimingEnabled;
 @property (nonatomic) BOOL resourceTimingEnabled;
 @property (nonatomic) BOOL linkPreloadEnabled;
 @property (nonatomic) BOOL credentialManagementEnabled;
+@property (nonatomic) BOOL mediaUserGestureInheritsFromDocument;
+@property (nonatomic) BOOL isSecureContextAttributeEnabled;
+@property (nonatomic) BOOL legacyEncryptedMediaAPIEnabled;
+@property (nonatomic) BOOL viewportFitEnabled;
+@property (nonatomic) BOOL constantPropertiesEnabled;
 
 #if TARGET_OS_IPHONE
 @property (nonatomic) BOOL quickLookDocumentSavingEnabled;
 #endif
+
+@property (nonatomic) NSString *mediaContentTypesRequiringHardwareSupport;
 
 @end

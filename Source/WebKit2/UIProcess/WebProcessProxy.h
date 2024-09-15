@@ -31,44 +31,49 @@
 #include "MessageReceiverMap.h"
 #include "PluginInfoStore.h"
 #include "ProcessLauncher.h"
+#include "ProcessTerminationReason.h"
+#include "ProcessThrottler.h"
 #include "ProcessThrottlerClient.h"
 #include "ResponsivenessTimer.h"
+#include "VisibleWebPageCounter.h"
 #include "WebConnectionToWebProcess.h"
-#include "WebPageProxy.h"
 #include "WebProcessProxyMessages.h"
 #include <WebCore/LinkHash.h>
+#include <WebCore/SessionID.h>
 #include <memory>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
+#include <wtf/RefPtr.h>
 
-#if PLATFORM(IOS)
-#include "ProcessThrottler.h"
-#endif
+namespace API {
+class PageConfiguration;
+}
 
 namespace WebCore {
 class ResourceRequest;
 class URL;
 struct PluginInfo;
-};
+struct SecurityOriginData;
+}
 
 namespace WebKit {
 
-enum class SimulatedCrashReason {
-    ExceededActiveMemoryLimit,
-    ExceededInactiveMemoryLimit,
-    ExceededBackgroundCPULimit,
-};
-
 class NetworkProcessProxy;
+class ObjCObjectGraph;
+class PageClient;
 class UserMediaCaptureManagerProxy;
+class VisitedLinkStore;
 class WebBackForwardListItem;
+class WebFrameProxy;
 class WebPageGroup;
+class WebPageProxy;
 class WebProcessPool;
+class WebUserContentControllerProxy;
 class WebsiteDataStore;
 enum class WebsiteDataType;
 struct WebNavigationDataStore;
+struct WebPageCreationParameters;
 struct WebsiteData;
 
 class WebProcessProxy : public ChildProcessProxy, public ResponsivenessTimer::Client, private ProcessThrottlerClient {
@@ -133,16 +138,21 @@ public:
     void didSaveToPageCache();
     void releasePageCache();
 
-    void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, Function<void(WebsiteData)> completionHandler);
-    void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::chrono::system_clock::time_point modifiedSince, Function<void()> completionHandler);
-    void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType>, const Vector<WebCore::SecurityOriginData>&, Function<void()> completionHandler);
-    static void deleteWebsiteDataForTopPrivatelyControlledDomainsInAllPersistentDataStores(OptionSet<WebsiteDataType>, Vector<String>&& topPrivatelyControlledDomains, bool shouldNotifyPages, std::function<void(Vector<String>)> completionHandler);
+    void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, Function<void(WebsiteData)>&& completionHandler);
+    void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::chrono::system_clock::time_point modifiedSince, Function<void()>&& completionHandler);
+    void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType>, const Vector<WebCore::SecurityOriginData>&, Function<void()>&& completionHandler);
+    static void deleteWebsiteDataForTopPrivatelyControlledDomainsInAllPersistentDataStores(OptionSet<WebsiteDataType>, Vector<String>&& topPrivatelyControlledDomains, bool shouldNotifyPages, Function<void (const HashSet<String>&)>&& completionHandler);
+    static void topPrivatelyControlledDomainsWithWebsiteData(OptionSet<WebsiteDataType> dataTypes, bool shouldNotifyPage, Function<void(HashSet<String>&&)>&& completionHandler);
+    static void notifyPageStatisticsAndDataRecordsProcessed();
+    static void notifyPageStatisticsTelemetryFinished(API::Object* messageBody);
 
     void enableSuddenTermination();
     void disableSuddenTermination();
     bool isSuddenTerminationEnabled() { return !m_numberOfTimesSuddenTerminationWasDisabled; }
 
-    void requestTermination();
+    void requestTermination(ProcessTerminationReason);
+
+    void stopResponsivenessTimer();
 
     RefPtr<API::Object> transformHandlesToObjects(API::Object*);
     static RefPtr<API::Object> transformObjectsToHandles(API::Object*);
@@ -163,16 +173,17 @@ public:
 
     void reinstateNetworkProcessAssertionState(NetworkProcessProxy&);
 
-    void isResponsive(std::function<void(bool isWebProcessResponsive)>);
+    void isResponsive(WTF::Function<void(bool isWebProcessResponsive)>&&);
     void didReceiveMainThreadPing();
     void didReceiveBackgroundResponsivenessPing();
 
     void memoryPressureStatusChanged(bool isUnderMemoryPressure) { m_isUnderMemoryPressure = isUnderMemoryPressure; }
     bool isUnderMemoryPressure() const { return m_isUnderMemoryPressure; }
+    void didExceedInactiveMemoryLimitWhileActive();
 
     void processTerminated();
 
-    void didExceedBackgroundCPULimit();
+    void didExceedCPULimit();
     void didExceedActiveMemoryLimit();
     void didExceedInactiveMemoryLimit();
 
@@ -247,7 +258,7 @@ private:
 
     bool canTerminateChildProcess();
 
-    void simulateProcessCrash(SimulatedCrashReason);
+    void logDiagnosticMessageForResourceLimitTermination(const String& limitKey);
 
     ResponsivenessTimer m_responsivenessTimer;
     BackgroundProcessResponsivenessTimer m_backgroundResponsivenessTimer;
@@ -277,7 +288,7 @@ private:
     HashMap<String, uint64_t> m_pageURLRetainCountMap;
 
     enum class NoOrMaybe { No, Maybe } m_isResponsive;
-    Vector<std::function<void(bool webProcessIsResponsive)>> m_isResponsiveCallbacks;
+    Vector<WTF::Function<void(bool webProcessIsResponsive)>> m_isResponsiveCallbacks;
 
     VisibleWebPageCounter m_visiblePageCounter;
 

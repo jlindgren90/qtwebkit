@@ -199,7 +199,7 @@ void DatabaseProcess::fetchWebsiteData(SessionID sessionID, OptionSet<WebsiteDat
 
     if (websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
         // FIXME: Pick the right database store based on the session ID.
-        postDatabaseTask(CrossThreadTask([this, websiteDataTypes, completionHandler = WTFMove(completionHandler), path = WTFMove(path)]() mutable {
+        postDatabaseTask(CrossThreadTask([this, completionHandler = WTFMove(completionHandler), path = WTFMove(path)]() mutable {
             RunLoop::main().dispatch([completionHandler = WTFMove(completionHandler), securityOrigins = indexedDatabaseOrigins(path)] {
                 WebsiteData websiteData;
                 for (const auto& securityOrigin : securityOrigins)
@@ -219,13 +219,12 @@ void DatabaseProcess::deleteWebsiteData(WebCore::SessionID sessionID, OptionSet<
         parentProcessConnection()->send(Messages::DatabaseProcessProxy::DidDeleteWebsiteData(callbackID), 0);
     };
 
-    auto* server = m_idbServers.get(sessionID);
-    if (!server || !websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
+    if (!websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
         completionHandler();
         return;
     }
 
-    server->closeAndDeleteDatabasesModifiedSince(modifiedSince, WTFMove(completionHandler));
+    idbServer(sessionID).closeAndDeleteDatabasesModifiedSince(modifiedSince, WTFMove(completionHandler));
 #endif
 }
 
@@ -236,13 +235,12 @@ void DatabaseProcess::deleteWebsiteDataForOrigins(WebCore::SessionID sessionID, 
         parentProcessConnection()->send(Messages::DatabaseProcessProxy::DidDeleteWebsiteDataForOrigins(callbackID), 0);
     };
 
-    auto* server = m_idbServers.get(sessionID);
-    if (!server || !websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
+    if (!websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
         completionHandler();
         return;
     }
 
-    server->closeAndDeleteDatabasesForOrigins(securityOriginDatas, WTFMove(completionHandler));
+    idbServer(sessionID).closeAndDeleteDatabasesForOrigins(securityOriginDatas, WTFMove(completionHandler));
 #endif
 }
 
@@ -295,12 +293,12 @@ Vector<WebCore::SecurityOriginData> DatabaseProcess::indexedDatabaseOrigins(cons
 #endif
 
 #if ENABLE(SANDBOX_EXTENSIONS)
-void DatabaseProcess::getSandboxExtensionsForBlobFiles(const Vector<String>& filenames, std::function<void (SandboxExtension::HandleArray&&)> completionHandler)
+void DatabaseProcess::getSandboxExtensionsForBlobFiles(const Vector<String>& filenames, WTF::Function<void (SandboxExtension::HandleArray&&)>&& completionHandler)
 {
     static uint64_t lastRequestID;
 
     uint64_t requestID = ++lastRequestID;
-    m_sandboxExtensionForBlobsCompletionHandlers.set(requestID, completionHandler);
+    m_sandboxExtensionForBlobsCompletionHandlers.set(requestID, WTFMove(completionHandler));
     parentProcessConnection()->send(Messages::DatabaseProcessProxy::GetSandboxExtensionsForBlobFiles(requestID, filenames), 0);
 }
 

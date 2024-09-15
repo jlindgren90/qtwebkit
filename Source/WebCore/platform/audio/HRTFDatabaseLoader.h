@@ -31,10 +31,9 @@
 
 #include "HRTFDatabase.h"
 #include <memory>
-#include <wtf/HashMap.h>
 #include <wtf/Lock.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
+#include <wtf/RefPtr.h>
 #include <wtf/Threading.h>
 
 namespace WebCore {
@@ -47,7 +46,7 @@ public:
     // and starts loading asynchronously (when created the first time).
     // Returns the HRTFDatabaseLoader.
     // Must be called from the main thread.
-    static PassRefPtr<HRTFDatabaseLoader> createAndLoadAsynchronouslyIfNecessary(float sampleRate);
+    static Ref<HRTFDatabaseLoader> createAndLoadAsynchronouslyIfNecessary(float sampleRate);
 
     // Both constructor and destructor must be called from the main thread.
     ~HRTFDatabaseLoader();
@@ -62,9 +61,6 @@ public:
 
     float databaseSampleRate() const { return m_databaseSampleRate; }
     
-    // Called in asynchronous loading thread.
-    void load();
-
 private:
     // Both constructor and destructor must be called from the main thread.
     explicit HRTFDatabaseLoader(float sampleRate);
@@ -72,6 +68,9 @@ private:
     // If it hasn't already been loaded, creates a new thread and initiates asynchronous loading of the default database.
     // This must be called from the main thread.
     void loadAsynchronously();
+
+    // Called in asynchronous loading thread.
+    void load();
 
     std::unique_ptr<HRTFDatabase> m_hrtfDatabase;
 

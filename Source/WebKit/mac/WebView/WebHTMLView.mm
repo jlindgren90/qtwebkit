@@ -684,9 +684,14 @@ extern NSString *NSTextInputReplacementRangeAttributeName;
 @interface NSView (WebNSViewDetails)
 - (void)_recursiveDisplayRectIfNeededIgnoringOpacity:(NSRect)rect isVisibleRect:(BOOL)isVisibleRect rectIsVisibleRectForView:(NSView *)visibleView topView:(BOOL)topView;
 - (void)_recursiveDisplayAllDirtyWithLockFocus:(BOOL)needsLockFocus visRect:(NSRect)visRect;
-#if !PLATFORM(IOS)
+#if PLATFORM(MAC)
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+- (void)_recursive:(BOOL)recurse displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)context shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor;
+- (void)_recursive:(BOOL)recurseX displayRectIgnoringOpacity:(NSRect)displayRect inGraphicsContext:(NSGraphicsContext *)graphicsContext CGContext:(CGContextRef)ctx shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor;
+#else
 - (void)_recursive:(BOOL)recurse displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)context topView:(BOOL)topView;
 - (void)_recursive:(BOOL)recurseX displayRectIgnoringOpacity:(NSRect)displayRect inGraphicsContext:(NSGraphicsContext *)graphicsContext CGContext:(CGContextRef)ctx topView:(BOOL)isTopView shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor;
+#endif
 #endif
 - (NSRect)_dirtyRect;
 - (void)_setDrawsOwnDescendants:(BOOL)drawsOwnDescendants;
@@ -926,6 +931,7 @@ struct WebHTMLViewInterpretKeyEventsParameters {
 
     NSView *layerHostingView;
     BOOL drawingIntoLayer;
+    BOOL drawingIntoAcceleratedLayer;
 
 #if !PLATFORM(IOS)
     NSEvent *mouseDownEvent; // Kept after handling the event.
@@ -1836,15 +1842,27 @@ static NSURL* uniqueURLWithRelativePart(NSString *relativePart)
 }
 
 // Don't let AppKit even draw subviews. We take care of that.
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+- (void)_recursive:(BOOL)recurse displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)context shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor
+#else
 - (void)_recursive:(BOOL)recurse displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)context topView:(BOOL)topView
+#endif
 {
     [self _setAsideSubviews];
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+    [super _recursive:recurse displayRectIgnoringOpacity:displayRect inContext:context shouldChangeFontReferenceColor:shouldChangeFontReferenceColor];
+#else
     [super _recursive:recurse displayRectIgnoringOpacity:displayRect inContext:context topView:topView];
+#endif
     [self _restoreSubviews];
 }
 
 // Don't let AppKit even draw subviews. We take care of that.
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+- (void)_recursive:(BOOL)recurseX displayRectIgnoringOpacity:(NSRect)displayRect inGraphicsContext:(NSGraphicsContext *)graphicsContext CGContext:(CGContextRef)ctx shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor
+#else
 - (void)_recursive:(BOOL)recurseX displayRectIgnoringOpacity:(NSRect)displayRect inGraphicsContext:(NSGraphicsContext *)graphicsContext CGContext:(CGContextRef)ctx topView:(BOOL)isTopView shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor
+#endif
 {
     BOOL didSetAsideSubviews = NO;
 
@@ -1853,7 +1871,11 @@ static NSURL* uniqueURLWithRelativePart(NSString *relativePart)
         didSetAsideSubviews = YES;
     }
     
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+    [super _recursive:recurseX displayRectIgnoringOpacity:displayRect inGraphicsContext:graphicsContext CGContext:ctx shouldChangeFontReferenceColor:shouldChangeFontReferenceColor];
+#else
     [super _recursive:recurseX displayRectIgnoringOpacity:displayRect inGraphicsContext:graphicsContext CGContext:ctx topView:isTopView shouldChangeFontReferenceColor:shouldChangeFontReferenceColor];
+#endif
 
     if (didSetAsideSubviews)
         [self _restoreSubviews];
@@ -1902,21 +1924,7 @@ static BOOL isQuickLookEvent(NSEvent *event)
     if (_private->closed)
         return nil;
 
-#if PLATFORM(IOS)
-    // Preserve <rdar://problem/7992472> behavior for third party applications. See <rdar://problem/8463725>.
-    if (!WebKitLinkedOnOrAfter(WEBKIT_FIRST_VERSION_WITHOUT_MULTIPLE_IFRAME_TOUCH_EVENT_DISPATCH)) {
-        WebEvent *event = [WAKWindow currentEvent];
-        if (event != NULL && event.type == WebEventMouseDown && [self mouse:point inRect:[self frame]])
-            return self;
-        NSView *view = [super hitTest:point];
-        
-        // Find the clicked document view
-        while (view && ![view conformsToProtocol:@protocol(WebDocumentView)])
-            view = [view superview];
-            
-        return view;
-    }
-#else
+#if !PLATFORM(IOS)
     BOOL captureHitsOnSubviews;
     if (forceNSViewHitTest)
         captureHitsOnSubviews = NO;
@@ -4826,12 +4834,12 @@ static BOOL isInPasswordField(Frame* coreFrame)
 }
 #endif
 
-static PassRefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
+static RefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
 {
 #if !PLATFORM(IOS)
     NSEvent *event = [NSApp currentEvent];
     if (!event)
-        return 0;
+        return nullptr;
 
     switch ([event type]) {
     case NSEventTypeKeyDown: {
@@ -4842,18 +4850,18 @@ static PassRefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
     case NSEventTypeKeyUp:
         return KeyboardEvent::create(PlatformEventFactory::createPlatformKeyboardEvent(event), coreFrame->document()->defaultView());
     default:
-        return 0;
+        return nullptr;
     }
 #else
     WebEvent *event = [WAKWindow currentEvent];
     if (!event)
-        return 0;
+        return nullptr;
     WebEventType type = event.type;
     if (type == WebEventKeyDown || type == WebEventKeyUp) {
         Document* document = coreFrame->document();
         return KeyboardEvent::create(PlatformEventFactory::createPlatformKeyboardEvent(event), document ? document->defaultView() : 0);
     }
-    return 0;
+    return nullptr;
 #endif
 }
 
@@ -6672,12 +6680,15 @@ static BOOL writingDirectionKeyBindingsEnabled()
     if (_private) {
         ASSERT(!_private->drawingIntoLayer);
         _private->drawingIntoLayer = YES;
+        _private->drawingIntoAcceleratedLayer = [layer drawsAsynchronously];
     }
 
     [super drawLayer:layer inContext:ctx];
 
-    if (_private)
+    if (_private) {
         _private->drawingIntoLayer = NO;
+        _private->drawingIntoAcceleratedLayer = NO;
+    }
 }
 #endif
 
@@ -6688,6 +6699,11 @@ static BOOL writingDirectionKeyBindingsEnabled()
 #else
     return _private->drawingIntoLayer;
 #endif
+}
+
+- (BOOL)_web_isDrawingIntoAcceleratedLayer
+{
+    return _private->drawingIntoAcceleratedLayer;
 }
 
 #if PLATFORM(MAC)
@@ -7297,8 +7313,8 @@ static CGImageRef imageFromRect(Frame* frame, CGRect rect)
     WebHTMLView *view = (WebHTMLView *)documentView;
     
     PaintBehavior oldPaintBehavior = frame->view()->paintBehavior();
-    frame->view()->setPaintBehavior(oldPaintBehavior | PaintBehaviorFlattenCompositingLayers);
-    
+    frame->view()->setPaintBehavior((oldPaintBehavior & ~PaintBehaviorAllowAsyncImageDecoding) | PaintBehaviorFlattenCompositingLayers);
+
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
     
     CGRect bounds = [view bounds];

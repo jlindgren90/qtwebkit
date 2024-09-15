@@ -105,12 +105,12 @@ static void registerUserDefaultsIfNeeded()
     didRegister = true;
     NSMutableDictionary *registrationDictionary = [NSMutableDictionary dictionary];
     
-    [registrationDictionary setObject:[NSNumber numberWithBool:YES] forKey:WebKitJSCJITEnabledDefaultsKey];
-    [registrationDictionary setObject:[NSNumber numberWithBool:YES] forKey:WebKitJSCFTLJITEnabledDefaultsKey];
+    [registrationDictionary setObject:@YES forKey:WebKitJSCJITEnabledDefaultsKey];
+    [registrationDictionary setObject:@YES forKey:WebKitJSCFTLJITEnabledDefaultsKey];
 
 #if ENABLE(NETWORK_CACHE)
-    [registrationDictionary setObject:[NSNumber numberWithBool:YES] forKey:WebKitNetworkCacheEnabledDefaultsKey];
-    [registrationDictionary setObject:[NSNumber numberWithBool:NO] forKey:WebKitNetworkCacheEfficacyLoggingEnabledDefaultsKey];
+    [registrationDictionary setObject:@YES forKey:WebKitNetworkCacheEnabledDefaultsKey];
+    [registrationDictionary setObject:@NO forKey:WebKitNetworkCacheEfficacyLoggingEnabledDefaultsKey];
 #endif
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:registrationDictionary];
@@ -148,8 +148,6 @@ void WebProcessPool::platformInitialize()
 #endif
 
     setLegacyCustomProtocolManagerClient(std::make_unique<LegacyCustomProtocolManagerClient>());
-
-    m_websiteDataStore->websiteDataStore().registerSharedResourceLoadObserver();
 }
 
 #if PLATFORM(IOS)
@@ -178,8 +176,6 @@ void WebProcessPool::platformResolvePathsForSandboxExtensions()
 
 void WebProcessPool::platformInitializeWebProcess(WebProcessCreationParameters& parameters)
 {
-    parameters.presenterApplicationPid = getpid();
-
 #if PLATFORM(MAC)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -238,11 +234,9 @@ void WebProcessPool::platformInitializeWebProcess(WebProcessCreationParameters& 
             [(NSData *)data release];
         }, data.leakRef());
     }
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
     parameters.networkATSContext = adoptCF(_CFNetworkCopyATSContext());
-#endif
 
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     RetainPtr<CFDataRef> cookieStorageData = adoptCF(CFHTTPCookieStorageCreateIdentifyingData(kCFAllocatorDefault, [[NSHTTPCookieStorage sharedHTTPCookieStorage] _cookieStorage]));
     ASSERT(parameters.uiProcessCookieStorageIdentifier.isEmpty());
     parameters.uiProcessCookieStorageIdentifier.append(CFDataGetBytePtr(cookieStorageData.get()), CFDataGetLength(cookieStorageData.get()));
@@ -253,9 +247,18 @@ void WebProcessPool::platformInitializeWebProcess(WebProcessCreationParameters& 
     bool webRTCEnabled = m_defaultPageGroup->preferences().peerConnectionEnabled();
     if ([defaults objectForKey:@"ExperimentalPeerConnectionEnabled"])
         webRTCEnabled = [defaults boolForKey:@"ExperimentalPeerConnectionEnabled"];
-    
+
+    bool isSafari = false;
+#if PLATFORM(IOS)
+    if (WebCore::IOSApplication::isMobileSafari())
+        isSafari = true;
+#elif PLATFORM(MAC)
+    if (WebCore::MacApplication::isSafari())
+        isSafari = true;
+#endif
+
     // FIXME: Remove this and related parameter when <rdar://problem/29448368> is fixed.
-    if (!parameters.shouldCaptureAudioInUIProcess && (mediaDevicesEnabled || webRTCEnabled))
+    if (isSafari && !parameters.shouldCaptureAudioInUIProcess && mediaDevicesEnabled)
         SandboxExtension::createHandleForGenericExtension("com.apple.webkit.microphone", parameters.audioCaptureExtensionHandle);
 #endif
 }
@@ -273,9 +276,7 @@ void WebProcessPool::platformInitializeNetworkProcess(NetworkProcessCreationPara
 
     parameters.httpProxy = [defaults stringForKey:WebKit2HTTPProxyDefaultsKey];
     parameters.httpsProxy = [defaults stringForKey:WebKit2HTTPSProxyDefaultsKey];
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
     parameters.networkATSContext = adoptCF(_CFNetworkCopyATSContext());
-#endif
 
 #if ENABLE(NETWORK_CACHE)
     parameters.shouldEnableNetworkCache = isNetworkCacheEnabled();
@@ -291,7 +292,7 @@ void WebProcessPool::platformInitializeNetworkProcess(NetworkProcessCreationPara
     parameters.shouldSuppressMemoryPressureHandler = [defaults boolForKey:WebKitSuppressMemoryPressureHandlerDefaultsKey];
     parameters.loadThrottleLatency = Seconds { [defaults integerForKey:WebKitNetworkLoadThrottleLatencyMillisecondsDefaultsKey] / 1000. };
 
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     RetainPtr<CFDataRef> cookieStorageData = adoptCF(CFHTTPCookieStorageCreateIdentifyingData(kCFAllocatorDefault, [[NSHTTPCookieStorage sharedHTTPCookieStorage] _cookieStorage]));
     ASSERT(parameters.uiProcessCookieStorageIdentifier.isEmpty());
     parameters.uiProcessCookieStorageIdentifier.append(CFDataGetBytePtr(cookieStorageData.get()), CFDataGetLength(cookieStorageData.get()));
@@ -304,14 +305,6 @@ void WebProcessPool::platformInitializeNetworkProcess(NetworkProcessCreationPara
     parameters.recordReplayCacheLocation = [defaults stringForKey:WebKitRecordReplayCacheLocationDefaultsKey];
     if (parameters.recordReplayCacheLocation.isEmpty())
         parameters.recordReplayCacheLocation = parameters.diskCacheDirectory;
-#endif
-#if ENABLE(WEB_RTC)
-    bool webRTCEnabled = m_defaultPageGroup->preferences().peerConnectionEnabled();
-    if ([defaults objectForKey:@"ExperimentalPeerConnectionEnabled"])
-        webRTCEnabled = [defaults boolForKey:@"ExperimentalPeerConnectionEnabled"];
-
-    if (webRTCEnabled)
-        SandboxExtension::createHandleForGenericExtension("com.apple.webkit.webrtc", parameters.webRTCNetworkingHandle);
 #endif
 }
 
@@ -600,9 +593,7 @@ void WebProcessPool::resetHSTSHostsAddedAfterDate(double startDateIntervalSince1
 {
     NSDate *startDate = [NSDate dateWithTimeIntervalSince1970:startDateIntervalSince1970];
     _CFNetworkResetHSTSHostsSinceDate(nullptr, (__bridge CFDateRef)startDate);
-#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
     _CFNetworkResetHSTSHostsSinceDate(privateBrowsingSession(), (__bridge CFDateRef)startDate);
-#endif
 }
 
 void WebProcessPool::setCookieStoragePartitioningEnabled(bool enabled)

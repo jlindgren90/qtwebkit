@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <wtf/CurrentTime.h>
 #include <wtf/MainThread.h>
+#include <wtf/MemoryFootprint.h>
 #include <wtf/linux/CurrentProcessMemoryStatus.h>
 #include <wtf/text/WTFString.h>
 
@@ -98,7 +99,7 @@ static GSourceFuncs eventFDSourceFunctions = {
 };
 #endif
 
-MemoryPressureHandler::EventFDPoller::EventFDPoller(int fd, std::function<void ()>&& notifyHandler)
+MemoryPressureHandler::EventFDPoller::EventFDPoller(int fd, WTF::Function<void ()>&& notifyHandler)
     : m_fd(fd)
     , m_notifyHandler(WTFMove(notifyHandler))
 {
@@ -311,7 +312,11 @@ void MemoryPressureHandler::platformReleaseMemory(Critical)
 
 std::optional<MemoryPressureHandler::ReliefLogger::MemoryUsage> MemoryPressureHandler::ReliefLogger::platformMemoryUsage()
 {
-    return MemoryUsage {processMemoryUsage(), 0};
+    size_t physical = 0;
+    auto footprint = memoryFootprint();
+    if (footprint)
+        physical = footprint.value();
+    return MemoryUsage {processMemoryUsage(), physical};
 }
 
 void MemoryPressureHandler::setMemoryPressureMonitorHandle(int fd)

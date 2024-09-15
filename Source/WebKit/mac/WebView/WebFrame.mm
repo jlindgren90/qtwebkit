@@ -120,6 +120,7 @@
 #import <WebCore/RenderLayer.h>
 #import <WebCore/TextResourceDecoder.h>
 #import <WebCore/WAKScrollView.h>
+#import <WebCore/WAKWindow.h>
 #import <WebCore/WKGraphics.h>
 #import <WebCore/WebCoreThreadRun.h>
 #endif
@@ -364,10 +365,10 @@ static NSURL *createUniqueWebDataURL();
 {
     ScriptController& scriptController = _private->coreFrame->script();
 
-    // Calling ScriptController::globalObject() would create a window shell, and dispatch corresponding callbacks, which may be premature
+    // Calling ScriptController::globalObject() would create a window proxy, and dispatch corresponding callbacks, which may be premature
     // if the script debugger is attached before a document is created.  These calls use the debuggerWorld(), we will need to pass a world
     // to be able to debug isolated worlds.
-    if (!scriptController.existingWindowShell(debuggerWorld()))
+    if (!scriptController.existingWindowProxy(debuggerWorld()))
         return;
 
     JSGlobalObject* globalObject = scriptController.globalObject(debuggerWorld());
@@ -413,6 +414,12 @@ static NSURL *createUniqueWebDataURL();
 - (void)_clearCoreFrame
 {
     _private->coreFrame = 0;
+}
+
+- (WebHTMLView *)_webHTMLDocumentView
+{
+    id documentView = [_private->webFrameView documentView];    
+    return [documentView isKindOfClass:[WebHTMLView class]] ? (WebHTMLView *)documentView : nil;
 }
 
 - (void)_updateBackgroundAndUpdatesWhileOffscreen
@@ -582,24 +589,29 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     return plainText(core(range), TextIteratorDefaultBehavior, true);
 }
 
-- (BOOL)_shouldFlattenCompositingLayers:(CGContextRef)context
+- (PaintBehavior)_paintBehaviorForDestinationContext:(CGContextRef)context
 {
 #if !PLATFORM(IOS)
     // -currentContextDrawingToScreen returns YES for bitmap contexts.
     BOOL isPrinting = ![NSGraphicsContext currentContextDrawingToScreen];
     if (isPrinting)
-        return YES;
+        return PaintBehaviorFlattenCompositingLayers;
 #endif
 
     if (!WKCGContextIsBitmapContext(context))
-        return NO;
+        return PaintBehaviorAllowAsyncImageDecoding;
 
     // If we're drawing into a bitmap, we might be snapshotting, or drawing into a layer-backed view.
-    id documentView = [_private->webFrameView documentView];
-    if ([documentView isKindOfClass:[WebHTMLView class]] && [(WebHTMLView *)documentView _web_isDrawingIntoLayer])
-        return NO;
-
-    return [getWebView(self) _includesFlattenedCompositingLayersWhenDrawingToBitmap];
+    if (WebHTMLView *htmlDocumentView = [self _webHTMLDocumentView]) {
+#if PLATFORM(IOS)
+        if ([[htmlDocumentView window] isInSnapshottingPaint])
+            return 0;
+#endif
+        if ([htmlDocumentView _web_isDrawingIntoLayer])
+            return PaintBehaviorAllowAsyncImageDecoding;
+    }
+    
+    return PaintBehaviorFlattenCompositingLayers;
 }
 
 - (void)_drawRect:(NSRect)rect contentsOnly:(BOOL)contentsOnly
@@ -614,36 +626,39 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     GraphicsContext context(ctx);
 
 #if PLATFORM(IOS)
-    // FIXME: when <rdar://problem/9034977> is fixed there will be no need to do this here.
     WebCore::Frame *frame = core(self);
     if (WebCore::Page* page = frame->page())
         context.setIsAcceleratedContext(page->settings().acceleratedDrawingEnabled());
+#elif PLATFORM(MAC)
+    if (WebHTMLView *htmlDocumentView = [self _webHTMLDocumentView])
+        context.setIsAcceleratedContext([htmlDocumentView _web_isDrawingIntoAcceleratedLayer]);
 #endif
 
     FrameView* view = _private->coreFrame->view();
     
-    bool shouldFlatten = false;
+    PaintBehavior oldBehavior = view->paintBehavior();
+    PaintBehavior paintBehavior = oldBehavior;
+    
     if (Frame* parentFrame = _private->coreFrame->tree().parent()) {
         // For subframes, we need to inherit the paint behavior from our parent
-        FrameView* parentView = parentFrame ? parentFrame->view() : 0;
-        if (parentView)
-            shouldFlatten = parentView->paintBehavior() & PaintBehaviorFlattenCompositingLayers;
+        if (FrameView* parentView = parentFrame ? parentFrame->view() : nullptr) {
+            if (parentView->paintBehavior() & PaintBehaviorFlattenCompositingLayers)
+                paintBehavior |= PaintBehaviorFlattenCompositingLayers;
+                
+            if (parentView->paintBehavior() & PaintBehaviorAllowAsyncImageDecoding)
+                paintBehavior |= PaintBehaviorAllowAsyncImageDecoding;
+        }
     } else
-        shouldFlatten = [self _shouldFlattenCompositingLayers:ctx];
+        paintBehavior |= [self _paintBehaviorForDestinationContext:ctx];
+        
+    view->setPaintBehavior(paintBehavior);
 
-    PaintBehavior oldBehavior = PaintBehaviorNormal;
-    if (shouldFlatten) {
-        oldBehavior = view->paintBehavior();
-        view->setPaintBehavior(oldBehavior | PaintBehaviorFlattenCompositingLayers);
-    }
-    
     if (contentsOnly)
         view->paintContents(context, enclosingIntRect(rect));
     else
         view->paint(context, enclosingIntRect(rect));
 
-    if (shouldFlatten)
-        view->setPaintBehavior(oldBehavior);
+    view->setPaintBehavior(oldBehavior);
 }
 
 - (BOOL)_getVisibleRect:(NSRect*)rect
@@ -792,15 +807,15 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     return NSMakeRange(location, length);
 }
 
-- (PassRefPtr<Range>)_convertToDOMRange:(NSRange)nsrange
+- (RefPtr<Range>)_convertToDOMRange:(NSRange)nsrange
 {
     return [self _convertToDOMRange:nsrange rangeIsRelativeTo:WebRangeIsRelativeTo::EditableRoot];
 }
 
-- (PassRefPtr<Range>)_convertToDOMRange:(NSRange)nsrange rangeIsRelativeTo:(WebRangeIsRelativeTo)rangeIsRelativeTo
+- (RefPtr<Range>)_convertToDOMRange:(NSRange)nsrange rangeIsRelativeTo:(WebRangeIsRelativeTo)rangeIsRelativeTo
 {
     if (nsrange.location > INT_MAX)
-        return 0;
+        return nullptr;
     if (nsrange.length > INT_MAX || nsrange.location + nsrange.length > INT_MAX)
         nsrange.length = INT_MAX - nsrange.location;
 
@@ -822,11 +837,11 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     const VisibleSelection& selection = _private->coreFrame->selection().selection();
     RefPtr<Range> selectedRange = selection.toNormalizedRange();
     if (!selectedRange)
-        return 0;
+        return nullptr;
 
     RefPtr<Range> paragraphRange = makeRange(startOfParagraph(selection.visibleStart()), selection.visibleEnd());
     if (!paragraphRange)
-        return 0;
+        return nullptr;
 
     ContainerNode& rootNode = paragraphRange.get()->startContainer().treeScope().rootNode();
     int paragraphStartIndex = TextIterator::rangeLength(Range::create(rootNode.document(), &rootNode, 0, &paragraphRange->startContainer(), paragraphRange->startOffset()).ptr());
@@ -921,7 +936,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     RefPtr<MutableStyleProperties> typingStyle = _private->coreFrame->selection().copyTypingStyle();
     if (!typingStyle)
         return nil;
-    return kit(typingStyle->ensureCSSStyleDeclaration());
+    return kit(&typingStyle->ensureCSSStyleDeclaration());
 }
 
 - (void)_setTypingStyle:(DOMCSSStyleDeclaration *)style withUndoAction:(EditAction)undoAction
@@ -1179,8 +1194,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 
 - (void)setTimeoutsPaused:(BOOL)flag
 {
-    id documentView = [_private->webFrameView documentView];    
-    if ([documentView isKindOfClass:[WebHTMLView class]]) {
+    if ([self _webHTMLDocumentView]) {
         if (Frame* coreFrame = _private->coreFrame)
             coreFrame->setTimersPaused(flag);
     }
@@ -1200,8 +1214,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 
 - (void)prepareForPause
 {
-    id documentView = [_private->webFrameView documentView];    
-    if ([documentView isKindOfClass:[WebHTMLView class]]) {
+    if ([self _webHTMLDocumentView]) {
         if (Frame* coreFrame = _private->coreFrame)
             coreFrame->dispatchPageHideEventBeforePause();
     }
@@ -1209,8 +1222,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 
 - (void)resumeFromPause
 {
-    id documentView = [_private->webFrameView documentView];    
-    if ([documentView isKindOfClass:[WebHTMLView class]]) {
+    if ([self _webHTMLDocumentView]) {
         if (Frame* coreFrame = _private->coreFrame)
             coreFrame->dispatchPageShowEventBeforeResume();
     }
@@ -1277,6 +1289,10 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 - (void)deviceOrientationChanged
 {
     WebThreadRun(^{
+#if ENABLE(ORIENTATION_EVENTS)
+        WebView *webView = getWebView(self);
+        [webView _setDeviceOrientation:[[webView _UIKitDelegateForwarder] deviceOrientation]];
+#endif
         if (WebCore::Frame* frame = core(self))
             frame->orientationChanged();
     });
@@ -1884,8 +1900,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 #if ENABLE(TEXT_AUTOSIZING)
 - (void)resetTextAutosizingBeforeLayout
 {
-    id documentView = [_private->webFrameView documentView];    
-    if (![documentView isKindOfClass:[WebHTMLView class]])
+    if (![self _webHTMLDocumentView])
         return;
     
     Frame* coreFrame = core(self);
@@ -2065,11 +2080,11 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     // Start off with some guess at a frame and a global object, we'll try to do better...!
     JSDOMWindow* anyWorldGlobalObject = _private->coreFrame->script().globalObject(mainThreadNormalWorld());
 
-    // The global object is probably a shell object? - if so, we know how to use this!
+    // The global object is probably a proxy object? - if so, we know how to use this!
     JSC::JSObject* globalObjectObj = toJS(globalObjectRef);
     JSC::VM& vm = *globalObjectObj->vm();
-    if (!strcmp(globalObjectObj->classInfo(vm)->className, "JSDOMWindowShell"))
-        anyWorldGlobalObject = static_cast<JSDOMWindowShell*>(globalObjectObj)->window();
+    if (!strcmp(globalObjectObj->classInfo(vm)->className, "JSDOMWindowProxy"))
+        anyWorldGlobalObject = static_cast<JSDOMWindowProxy*>(globalObjectObj)->window();
 
     // Get the frame frome the global object we've settled on.
     Frame* frame = anyWorldGlobalObject->wrapped().frame();
@@ -2459,7 +2474,7 @@ static bool needsMicrosoftMessengerDOMDocumentWorkaround()
     if (!resourceRequest.url().isValid() && !resourceRequest.url().isEmpty())
         resourceRequest.setURL([NSURL URLWithString:[@"file:" stringByAppendingString:[[request URL] absoluteString]]]);
 
-    coreFrame->loader().load(FrameLoadRequest(coreFrame, resourceRequest, ShouldOpenExternalURLsPolicy::ShouldNotAllow));
+    coreFrame->loader().load(FrameLoadRequest(*coreFrame, resourceRequest, ShouldOpenExternalURLsPolicy::ShouldNotAllow));
 }
 
 static NSURL *createUniqueWebDataURL()
@@ -2491,7 +2506,7 @@ static NSURL *createUniqueWebDataURL()
     if (shouldUseQuickLookForMIMEType(MIMEType)) {
         NSURL *quickLookURL = responseURL ? responseURL : baseURL;
         if (auto request = registerQLPreviewConverterIfNeeded(quickLookURL, MIMEType, data)) {
-            _private->coreFrame->loader().load(FrameLoadRequest(_private->coreFrame, request.get(), ShouldOpenExternalURLsPolicy::ShouldNotAllow));
+            _private->coreFrame->loader().load(FrameLoadRequest(*_private->coreFrame, request.get(), ShouldOpenExternalURLsPolicy::ShouldNotAllow));
             return;
         }
     }
@@ -2502,7 +2517,7 @@ static NSURL *createUniqueWebDataURL()
     ResourceResponse response(responseURL, MIMEType, [data length], encodingName);
     SubstituteData substituteData(WebCore::SharedBuffer::create(data), [unreachableURL absoluteURL], response, SubstituteData::SessionHistoryVisibility::Hidden);
 
-    _private->coreFrame->loader().load(FrameLoadRequest(_private->coreFrame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow, substituteData));
+    _private->coreFrame->loader().load(FrameLoadRequest(*_private->coreFrame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow, substituteData));
 }
 
 - (void)loadData:(NSData *)data MIMEType:(NSString *)MIMEType textEncodingName:(NSString *)encodingName baseURL:(NSURL *)baseURL

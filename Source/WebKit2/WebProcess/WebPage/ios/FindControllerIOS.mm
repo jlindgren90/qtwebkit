@@ -33,6 +33,7 @@
 #import "WebCoreArgumentCoders.h"
 #import "WebPage.h"
 #import "WebPageProxyMessages.h"
+#import <WebCore/Editor.h>
 #import <WebCore/FocusController.h>
 #import <WebCore/FrameView.h>
 #import <WebCore/GraphicsContext.h>
@@ -92,8 +93,11 @@ bool FindController::updateFindIndicator(Frame& selectedFrame, bool isShowingOve
         m_webPage->mainFrame()->pageOverlayController().uninstallPageOverlay(*m_findIndicatorOverlay, PageOverlay::FadeMode::DoNotFade);
 
     RefPtr<TextIndicator> textIndicator = TextIndicator::createWithSelectionInFrame(selectedFrame, findTextIndicatorOptions, TextIndicatorPresentationTransition::None, FloatSize(totalHorizontalMargin, totalVerticalMargin));
-    if (!textIndicator)
+    if (!textIndicator) {
+        m_findIndicatorOverlay = nullptr;
+        m_isShowingFindIndicator = false;
         return false;
+    }
 
     m_findIndicatorOverlayClient = std::make_unique<FindIndicatorOverlayClientIOS>(selectedFrame, textIndicator.get());
     m_findIndicatorOverlay = PageOverlay::create(*m_findIndicatorOverlayClient, PageOverlay::OverlayType::Document);

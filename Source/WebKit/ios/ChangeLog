@@ -1,3 +1,148 @@
+2017-07-12  Daniel Bates  <dabates@apple.com>
+
+        Rename NavigationInitiatedByMainFrame to InitiatedByMainFrame
+        https://bugs.webkit.org/show_bug.cgi?id=174427
+
+        Rubber-stamped by Brady Eidson.
+
+        * WebView/WebPDFViewPlaceholder.mm:
+        (-[WebPDFViewPlaceholder simulateClickOnLinkToURL:]):
+
+2017-07-09  Brady Eidson  <beidson@apple.com>
+
+        Remove some obsolete WebKitVersionChecks.
+        https://bugs.webkit.org/show_bug.cgi?id=174294
+
+        Reviewed by Dan Bernstein.
+
+        * WebView/WebPDFViewIOS.mm:
+        (-[WebPDFView drawPage:]):
+
+2017-07-05  Don Olmstead  <don.olmstead@sony.com>
+
+        [WTF] Move SoftLinking.h into WTF
+        https://bugs.webkit.org/show_bug.cgi?id=174000
+
+        Reviewed by Alex Christensen.
+
+        * Misc/WebGeolocationCoreLocationProvider.mm:
+        * WebView/WebPDFViewPlaceholder.mm:
+
+2017-07-05  Brady Eidson  <beidson@apple.com>
+
+        Allow navigations in subframes to get a ShouldOpenExternalURLsPolicy of "ShouldAllow".
+        <rdar://problem/22485589> and https://bugs.webkit.org/show_bug.cgi?id=174178
+
+        Reviewed by Alex Christensen.
+
+        Adopt to the new constructor for FrameLoadRequest.
+
+        * WebView/WebPDFViewPlaceholder.mm:
+        (-[WebPDFViewPlaceholder simulateClickOnLinkToURL:]):
+
+2017-07-01  Tim Horton  <timothy_horton@apple.com>
+
+        Expose viewport-fit value to UIKit via viewport arguments dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=174071
+        <rdar://problem/33096620>
+
+        Reviewed by Wenson Hsieh.
+
+        * WebCoreSupport/WebChromeClientIOS.mm:
+        (nameForViewportFitValue):
+        (dictionaryForViewportArguments):
+        Make use of the named constants we already have for these; the code
+        that reads this dictionary uses them, so we might as well!
+
+        Add viewport-fit -> { auto, contain, cover } to the dictionary.
+
+        * WebKit.iOS.exp:
+
+2017-06-30  Daniel Bates  <dabates@apple.com>
+
+        API::FrameInfo should know the web page that contains the frame; add API property webView to WKFrameInfo
+        https://bugs.webkit.org/show_bug.cgi?id=165160
+        <rdar://problem/29451999>
+
+        Reviewed by Brady Eidson.
+
+        Pass the document that is requesting the load to the loader.
+
+        * WebView/WebPDFViewPlaceholder.mm:
+        (-[WebPDFViewPlaceholder simulateClickOnLinkToURL:]):
+
+2017-06-22  Daniel Bates  <dabates@apple.com>
+
+        Make FrameLoadRequest a move-only type
+        https://bugs.webkit.org/show_bug.cgi?id=173682
+
+        Reviewed by Alex Christensen and Darin Adler.
+
+        A FrameLoadRequest groups together the information to perform a load into a single object
+        that is more manageable to pass around than its constituent parts. Code that receives a
+        FrameLoadRequest is expected to extract out the information it needs to complete its task.
+        And it does not make sense to re-use the same FrameLoadRequest object for more than one
+        load. Therefore, it is sufficient to make FrameLoadRequest a move-only type.
+
+        * WebView/WebPDFViewPlaceholder.mm:
+        (-[WebPDFViewPlaceholder simulateClickOnLinkToURL:]):
+
+2017-06-21  Daniel Bates  <dabates@apple.com>
+
+        Cleanup FrameLoadRequest
+        https://bugs.webkit.org/show_bug.cgi?id=173564
+        <rdar://problem/32903570>
+
+        Reviewed by Brent Fulgham.
+
+        Move FrameLoadRequest instantiation into a local variable and use C++11 brace initialization
+        syntax to make it easier to identify the arguments passed to FrameLoader::loadFrameRequest().
+
+        * WebView/WebPDFViewPlaceholder.mm:
+        (-[WebPDFViewPlaceholder simulateClickOnLinkToURL:]):
+
+2017-06-09  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        [iOS DnD] Add a hook to perform two-step drops in editable content
+        https://bugs.webkit.org/show_bug.cgi?id=172992
+        <rdar://problem/32590174>
+
+        Reviewed by Tim Horton.
+
+        Add an empty implementation of performTwoStepDrop for WebDefaultUIKitDelegate. See WebCore ChangeLogs.
+
+        * DefaultDelegates/WebDefaultUIKitDelegate.m:
+        (-[WebDefaultUIKitDelegate performTwoStepDrop:atDestination:isMove:]):
+        * WebView/WebUIKitDelegate.h:
+
+2017-06-07  Zalan Bujtas  <zalan@apple.com>
+
+        [iOS WK1 WebThread] Do not call out to the main thread for device orientation.
+        https://bugs.webkit.org/show_bug.cgi?id=173044
+        <rdar://problem/32449338>
+
+        Reviewed by Tim Horton.
+
+        On iOS WK1 we could end up with an inconsistent state, where the web thread is inside
+        the Document's constructor waiting on a delegate callback on the main thread
+        while the main thread executes a pending task that assumes a valid Document.
+        This patch ensures that we don't call out to the main thread from the Document's constructor.
+ 
+        * WebCoreSupport/WebChromeClientIOS.mm:
+        (WebChromeClientIOS::deviceOrientation): Caches deviceOrientation on the WebView so that we
+        don't have to lift the WebThread lock. 
+
+2017-05-12  Chris Dumez  <cdumez@apple.com>
+
+        Drop uses of PassRefPtr in WebKit/mac
+        https://bugs.webkit.org/show_bug.cgi?id=172066
+
+        Reviewed by Sam Weinig.
+
+        Build fix.
+
+        * Misc/WebGeolocationProviderIOS.mm:
+
 2017-05-01  Chris Dumez  <cdumez@apple.com>
 
         Remove some usage of PassRefPtr in editing code

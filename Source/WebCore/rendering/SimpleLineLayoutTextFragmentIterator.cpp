@@ -26,6 +26,7 @@
 #include "config.h"
 #include "SimpleLineLayoutTextFragmentIterator.h"
 
+#include "FontCascade.h"
 #include "Hyphenation.h"
 #include "RenderBlockFlow.h"
 #include "RenderChildIterator.h"
@@ -45,7 +46,6 @@ TextFragmentIterator::Style::Style(const RenderStyle& style, bool useSimplifiedT
     , breakFirstWordOnOverflow(breakAnyWordOnOverflow || (style.breakWords() && (wrapLines || preserveNewline)))
     , breakNBSP(wrapLines && style.nbspMode() == SPACE)
     , keepAllWordsForCJK(style.wordBreak() == KeepAllWordBreak)
-    , spaceWidth(useSimplifiedTextMeasuring ? font.widthForSimpleText(StringView(&space, 1)) : font.width(TextRun(StringView(&space, 1))))
     , wordSpacing(font.wordSpacing())
     , tabWidth(collapseWhitespace ? 0 : style.tabSize())
     , shouldHyphenate(style.hyphens() == HyphensAuto && canHyphenate(style.locale()))
@@ -228,7 +228,7 @@ unsigned TextFragmentIterator::skipToNextPosition(PositionType positionType, uns
     if (measureText)
         width = this->textWidth(currentPosition, nextPosition, xPosition);
     else if (startPosition < nextPosition)
-        width = m_style.spaceWidth + m_style.wordSpacing;
+        width = m_style.font.spaceWidth() + m_style.wordSpacing;
     return nextPosition;
 }
 
@@ -259,7 +259,7 @@ float TextFragmentIterator::textWidth(unsigned from, unsigned to, float xPositio
         width = m_style.font.width(run);
     }
     if (measureWithEndSpace)
-        width -= (m_style.spaceWidth + m_style.wordSpacing);
+        width -= (m_style.font.spaceWidth() + m_style.wordSpacing);
     return std::max<float>(0, width);
 }
 

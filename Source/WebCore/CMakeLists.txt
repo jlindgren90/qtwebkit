@@ -3,6 +3,10 @@ include(WebKitCommon)
 set_property(DIRECTORY . PROPERTY FOLDER "WebCore")
 add_subdirectory(PAL/pal)
 
+if (PAL_LIBRARY_TYPE MATCHES STATIC)
+    add_definitions(-DSTATICALLY_LINKED_WITH_PAL=1)
+endif ()
+
 set(WebCore_INCLUDE_DIRECTORIES
     "${CMAKE_BINARY_DIR}"
     "${WEBCORE_DIR}"
@@ -28,7 +32,6 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/quota"
     "${WEBCORE_DIR}/Modules/speech"
     "${WEBCORE_DIR}/Modules/streams"
-    "${WEBCORE_DIR}/Modules/vibration"
     "${WEBCORE_DIR}/Modules/webaudio"
     "${WEBCORE_DIR}/Modules/webdatabase"
     "${WEBCORE_DIR}/Modules/webdriver"
@@ -116,6 +119,7 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/xml"
     "${WEBCORE_DIR}/xml/parser"
     "${DERIVED_SOURCES_WEBCORE_DIR}"
+    "${PAL_DIR}"
     "${CMAKE_SOURCE_DIR}/Source"
 )
 
@@ -150,7 +154,6 @@ set(WebCore_IDL_INCLUDES
     Modules/quota
     Modules/speech
     Modules/streams
-    Modules/vibration
     Modules/webaudio
     Modules/webdatabase
     Modules/websockets
@@ -168,10 +171,17 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/airplay/WebKitPlaybackTargetAvailabilityEvent.idl
 
     Modules/credentials/BasicCredential.idl
+    Modules/credentials/CredentialCreationOptions.idl
     Modules/credentials/CredentialData.idl
+    Modules/credentials/CredentialRequestOptions.idl
+    Modules/credentials/CredentialUserData.idl
+    Modules/credentials/CredentialsContainer.idl
+    Modules/credentials/FederatedCredential.idl
+    Modules/credentials/FederatedCredentialInit.idl
+    Modules/credentials/FederatedCredentialRequestOptions.idl
+    Modules/credentials/NavigatorCredentials.idl
     Modules/credentials/PasswordCredential.idl
-    Modules/credentials/SiteBoundCredential.idl
-    Modules/credentials/SiteBoundCredentialData.idl
+    Modules/credentials/PasswordCredentialData.idl
 
     Modules/fetch/DOMWindowFetch.idl
     Modules/fetch/FetchBody.idl
@@ -261,11 +271,9 @@ set(WebCore_NON_SVG_IDL_FILES
 
     Modules/navigatorcontentutils/NavigatorContentUtils.idl
 
-    Modules/notifications/DOMWindowNotifications.idl
     Modules/notifications/Notification.idl
-    Modules/notifications/NotificationCenter.idl
+    Modules/notifications/NotificationPermission.idl
     Modules/notifications/NotificationPermissionCallback.idl
-    Modules/notifications/WorkerGlobalScopeNotifications.idl
 
     Modules/proximity/DeviceProximityEvent.idl
 
@@ -279,13 +287,12 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/streams/CountQueuingStrategy.idl
     Modules/streams/ReadableByteStreamController.idl
     Modules/streams/ReadableStream.idl
+    Modules/streams/ReadableStreamBYOBReader.idl
     Modules/streams/ReadableStreamBYOBRequest.idl
     Modules/streams/ReadableStreamDefaultController.idl
     Modules/streams/ReadableStreamDefaultReader.idl
     Modules/streams/ReadableStreamSource.idl
     Modules/streams/WritableStream.idl
-
-    Modules/vibration/NavigatorVibration.idl
 
     Modules/webaudio/AnalyserNode.idl
     Modules/webaudio/AudioBuffer.idl
@@ -364,8 +371,8 @@ set(WebCore_NON_SVG_IDL_FILES
     crypto/parameters/RsaHashedKeyGenParams.idl
     crypto/parameters/RsaKeyGenParams.idl
     crypto/parameters/RsaOaepParams.idl
+    crypto/parameters/RsaPssParams.idl
 
-    css/CSSFontFaceLoadEvent.idl
     css/CSSFontFaceRule.idl
     css/CSSImportRule.idl
     css/CSSKeyframeRule.idl
@@ -380,6 +387,9 @@ set(WebCore_NON_SVG_IDL_FILES
     css/CSSStyleSheet.idl
     css/CSSSupportsRule.idl
     css/CSSUnknownRule.idl
+    css/DOMMatrix.idl
+    css/DOMMatrixInit.idl
+    css/DOMMatrixReadOnly.idl
     css/DeprecatedCSSOMCounter.idl
     css/DeprecatedCSSOMPrimitiveValue.idl
     css/DeprecatedCSSOMRGBColor.idl
@@ -387,6 +397,7 @@ set(WebCore_NON_SVG_IDL_FILES
     css/DeprecatedCSSOMValue.idl
     css/DeprecatedCSSOMValueList.idl
     css/DOMCSSNamespace.idl
+    css/ElementCSSInlineStyle.idl
     css/FontFace.idl
     css/FontFaceSet.idl
     css/MediaList.idl
@@ -418,8 +429,11 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/DOMPoint.idl
     dom/DOMPointInit.idl
     dom/DOMPointReadOnly.idl
+    dom/DOMQuad.idl
+    dom/DOMQuadInit.idl
     dom/DOMRect.idl
     dom/DOMRectInit.idl
+    dom/DOMRectList.idl
     dom/DOMRectReadOnly.idl
     dom/DOMStringList.idl
     dom/DOMStringMap.idl
@@ -429,8 +443,10 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/DeviceMotionEvent.idl
     dom/DeviceOrientationEvent.idl
     dom/Document.idl
+    dom/DocumentAndElementEventHandlers.idl
     dom/DocumentFragment.idl
     dom/DocumentOrShadowRoot.idl
+    dom/DocumentTouch.idl
     dom/DocumentType.idl
     dom/Element.idl
     dom/ErrorEvent.idl
@@ -640,7 +656,6 @@ set(WebCore_NON_SVG_IDL_FILES
     page/IntersectionObserverEntry.idl
     page/Location.idl
     page/Navigator.idl
-    page/NavigatorConcurrentHardware.idl
     page/NavigatorID.idl
     page/NavigatorLanguage.idl
     page/NavigatorOnLine.idl
@@ -849,8 +864,10 @@ set(WebCore_SOURCES
     Modules/airplay/WebKitPlaybackTargetAvailabilityEvent.cpp
 
     Modules/credentials/BasicCredential.cpp
+    Modules/credentials/CredentialsContainer.cpp
+    Modules/credentials/FederatedCredential.cpp
+    Modules/credentials/NavigatorCredentials.cpp
     Modules/credentials/PasswordCredential.cpp
-    Modules/credentials/SiteBoundCredential.cpp
 
     Modules/fetch/DOMWindowFetch.cpp
     Modules/fetch/FetchBody.cpp
@@ -948,7 +965,6 @@ set(WebCore_SOURCES
     Modules/mediasource/VideoPlaybackQuality.cpp
 
     Modules/mediastream/CanvasCaptureMediaStreamTrack.cpp
-    Modules/mediastream/MediaConstraintsImpl.cpp
     Modules/mediastream/MediaDeviceInfo.cpp
     Modules/mediastream/MediaDevices.cpp
     Modules/mediastream/MediaDevicesEnumerationRequest.cpp
@@ -982,11 +998,8 @@ set(WebCore_SOURCES
 
     Modules/navigatorcontentutils/NavigatorContentUtils.cpp
 
-    Modules/notifications/DOMWindowNotifications.cpp
     Modules/notifications/Notification.cpp
-    Modules/notifications/NotificationCenter.cpp
     Modules/notifications/NotificationController.cpp
-    Modules/notifications/WorkerGlobalScopeNotifications.cpp
 
     Modules/proximity/DeviceProximityController.cpp
     Modules/proximity/DeviceProximityEvent.cpp
@@ -996,9 +1009,6 @@ set(WebCore_SOURCES
     Modules/speech/SpeechSynthesisEvent.cpp
     Modules/speech/SpeechSynthesisUtterance.cpp
     Modules/speech/SpeechSynthesisVoice.cpp
-
-    Modules/vibration/NavigatorVibration.cpp
-    Modules/vibration/Vibration.cpp
 
     Modules/webaudio/AnalyserNode.cpp
     Modules/webaudio/AsyncAudioDecoder.cpp
@@ -1136,6 +1146,7 @@ set(WebCore_SOURCES
     bindings/js/JSDOMConvertDate.cpp
     bindings/js/JSDOMConvertNumbers.cpp
     bindings/js/JSDOMConvertStrings.cpp
+    bindings/js/JSDOMConvertWebGL.cpp
     bindings/js/JSDOMIterator.cpp
     bindings/js/JSFontFaceCustom.cpp
     bindings/js/JSFontFaceSetCustom.cpp
@@ -1145,7 +1156,6 @@ set(WebCore_SOURCES
     bindings/js/JSCommandLineAPIHostCustom.cpp
     bindings/js/JSCryptoAlgorithmBuilder.cpp
     bindings/js/JSCryptoAlgorithmDictionary.cpp
-    bindings/js/JSCryptoCustom.cpp
     bindings/js/JSCryptoKeyCustom.cpp
     bindings/js/JSCryptoKeySerializationJWK.cpp
     bindings/js/JSCryptoOperationData.cpp
@@ -1157,17 +1167,17 @@ set(WebCore_SOURCES
     bindings/js/JSDOMBuiltinConstructorBase.cpp
     bindings/js/JSDOMConstructorBase.cpp
     bindings/js/JSDOMConstructorWithDocument.cpp
+    bindings/js/JSDOMQuadCustom.cpp
     bindings/js/JSDOMExceptionHandling.cpp
     bindings/js/JSDOMGlobalObject.cpp
     bindings/js/JSDOMGlobalObjectTask.cpp
     bindings/js/JSDOMGuardedObject.cpp
     bindings/js/JSDOMMapLike.cpp
-    bindings/js/JSDOMPromise.cpp
-    bindings/js/JSDOMStringMapCustom.cpp
+    bindings/js/JSDOMPromiseDeferred.cpp
     bindings/js/JSDOMWindowBase.cpp
     bindings/js/JSDOMWindowCustom.cpp
     bindings/js/JSDOMWindowProperties.cpp
-    bindings/js/JSDOMWindowShell.cpp
+    bindings/js/JSDOMWindowProxy.cpp
     bindings/js/JSDOMWrapper.cpp
     bindings/js/JSDOMWrapperCache.cpp
     bindings/js/JSDocumentCustom.cpp
@@ -1178,18 +1188,10 @@ set(WebCore_SOURCES
     bindings/js/JSEventListener.cpp
     bindings/js/JSEventTargetCustom.cpp
     bindings/js/JSExceptionBase.cpp
-    bindings/js/JSHTMLAllCollectionCustom.cpp
-    bindings/js/JSHTMLAppletElementCustom.cpp
     bindings/js/JSHTMLCanvasElementCustom.cpp
     bindings/js/JSHTMLCollectionCustom.cpp
     bindings/js/JSHTMLDocumentCustom.cpp
     bindings/js/JSHTMLElementCustom.cpp
-    bindings/js/JSHTMLEmbedElementCustom.cpp
-    bindings/js/JSHTMLFormControlsCollectionCustom.cpp
-    bindings/js/JSHTMLFrameSetElementCustom.cpp
-    bindings/js/JSHTMLObjectElementCustom.cpp
-    bindings/js/JSHTMLOptionsCollectionCustom.cpp
-    bindings/js/JSHTMLSelectElementCustom.cpp
     bindings/js/JSHTMLTemplateElementCustom.cpp
     bindings/js/JSHistoryCustom.cpp
     bindings/js/JSIDBCursorCustom.cpp
@@ -1210,7 +1212,6 @@ set(WebCore_SOURCES
     bindings/js/JSMutationCallback.cpp
     bindings/js/JSMutationObserverCustom.cpp
     bindings/js/JSNodeCustom.cpp
-    bindings/js/JSNodeFilterCustom.cpp
     bindings/js/JSNodeIteratorCustom.cpp
     bindings/js/JSNodeListCustom.cpp
     bindings/js/JSPerformanceEntryCustom.cpp
@@ -1218,7 +1219,6 @@ set(WebCore_SOURCES
     bindings/js/JSPopStateEventCustom.cpp
     bindings/js/JSReadableStreamPrivateConstructors.cpp
     bindings/js/JSReadableStreamSourceCustom.cpp
-    bindings/js/JSSQLStatementErrorCallbackCustom.cpp
     bindings/js/JSSVGPathSegCustom.cpp
     bindings/js/JSStorageCustom.cpp
     bindings/js/JSStyleSheetCustom.cpp
@@ -1232,13 +1232,11 @@ set(WebCore_SOURCES
     bindings/js/JSVideoTrackCustom.cpp
     bindings/js/JSVideoTrackListCustom.cpp
     bindings/js/JSWebGL2RenderingContextCustom.cpp
-    bindings/js/JSWebGLRenderingContextBaseCustom.cpp
     bindings/js/JSWebGLRenderingContextCustom.cpp
     bindings/js/JSWebGPUCommandBufferCustom.cpp
     bindings/js/JSWebGPURenderPassAttachmentDescriptorCustom.cpp
     bindings/js/JSWebGPURenderingContextCustom.cpp
     bindings/js/JSWebKitSubtleCryptoCustom.cpp
-    bindings/js/JSWorkerCustom.cpp
     bindings/js/JSWorkerGlobalScopeBase.cpp
     bindings/js/JSWorkerGlobalScopeCustom.cpp
     bindings/js/JSXMLDocumentCustom.cpp
@@ -1313,7 +1311,6 @@ set(WebCore_SOURCES
     css/FontFace.cpp
     css/CSSFontFace.cpp
     css/CSSFontFaceSet.cpp
-    css/CSSFontFaceLoadEvent.cpp
     css/CSSFontFaceRule.cpp
     css/CSSFontFaceSource.cpp
     css/CSSFontFaceSrcValue.cpp
@@ -1369,6 +1366,8 @@ set(WebCore_SOURCES
     css/CSSVariableData.cpp
     css/CSSVariableReferenceValue.cpp
     css/DOMCSSNamespace.cpp
+    css/DOMMatrix.cpp
+    css/DOMMatrixReadOnly.cpp
     css/DeprecatedCSSOMPrimitiveValue.cpp
     css/DeprecatedCSSOMValue.cpp
     css/DeprecatedCSSOMValueList.cpp
@@ -1393,7 +1392,6 @@ set(WebCore_SOURCES
     css/SelectorChecker.cpp
     css/SelectorFilter.cpp
     css/StyleColor.cpp
-    css/StyleInvalidationAnalysis.cpp
     css/StyleMedia.cpp
     css/StyleProperties.cpp
     css/StylePropertyShorthand.cpp
@@ -1461,7 +1459,9 @@ set(WebCore_SOURCES
     dom/DOMError.cpp
     dom/DOMImplementation.cpp
     dom/DOMNamedFlowCollection.cpp
-    dom/DOMRect.cpp
+    dom/DOMPointReadOnly.cpp
+    dom/DOMQuad.cpp
+    dom/DOMRectList.cpp
     dom/DOMStringList.cpp
     dom/DataTransfer.cpp
     dom/DataTransferItem.cpp
@@ -1480,6 +1480,7 @@ set(WebCore_SOURCES
     dom/DocumentOrderedMap.cpp
     dom/DocumentParser.cpp
     dom/DocumentSharedObjectPool.cpp
+    dom/DocumentTouch.cpp
     dom/DocumentType.cpp
     dom/Element.cpp
     dom/ElementData.cpp
@@ -1537,6 +1538,7 @@ set(WebCore_SOURCES
     dom/PromiseRejectionEvent.cpp
     dom/PseudoElement.cpp
     dom/QualifiedName.cpp
+    dom/QualifiedNameCache.cpp
     dom/RadioButtonGroups.cpp
     dom/Range.cpp
     dom/RejectedPromiseTracker.cpp
@@ -1571,7 +1573,6 @@ set(WebCore_SOURCES
     dom/TransitionEvent.cpp
     dom/Traversal.cpp
     dom/TreeScope.cpp
-    dom/TreeScopeAdopter.cpp
     dom/TreeWalker.cpp
     dom/UIEvent.cpp
     dom/UIEventWithKeyState.cpp
@@ -1589,6 +1590,9 @@ set(WebCore_SOURCES
 
     domjit/DOMJITHelpers.cpp
     domjit/JSDocumentDOMJIT.cpp
+    domjit/JSDocumentFragmentDOMJIT.cpp
+    domjit/JSElementDOMJIT.cpp
+    domjit/JSEventDOMJIT.cpp
     domjit/JSNodeDOMJIT.cpp
 
     editing/AlternativeTextController.cpp
@@ -1621,7 +1625,6 @@ set(WebCore_SOURCES
     editing/MergeIdenticalElementsCommand.cpp
     editing/ModifySelectionListLevel.cpp
     editing/MoveSelectionCommand.cpp
-    editing/RemoveCSSPropertyCommand.cpp
     editing/RemoveFormatCommand.cpp
     editing/RemoveNodeCommand.cpp
     editing/RemoveNodePreservingChildrenCommand.cpp
@@ -1893,6 +1896,7 @@ set(WebCore_SOURCES
     inspector/DOMPatchSupport.cpp
     inspector/InspectorApplicationCacheAgent.cpp
     inspector/InspectorCSSAgent.cpp
+    inspector/InspectorCanvasAgent.cpp
     inspector/InspectorClient.cpp
     inspector/InspectorController.cpp
     inspector/InspectorDOMAgent.cpp
@@ -1969,12 +1973,12 @@ set(WebCore_SOURCES
     loader/ResourceLoadNotifier.cpp
     loader/ResourceLoadObserver.cpp
     loader/ResourceLoadStatistics.cpp
-    loader/ResourceLoadStatisticsStore.cpp
     loader/ResourceLoader.cpp
     loader/ResourceTiming.cpp
     loader/ResourceTimingInformation.cpp
     loader/SinkDocument.cpp
     loader/SubframeLoader.cpp
+    loader/SubresourceIntegrity.cpp
     loader/SubresourceLoader.cpp
     loader/TextResourceDecoder.cpp
     loader/TextTrackLoader.cpp
@@ -2084,6 +2088,7 @@ set(WebCore_SOURCES
     page/Performance.cpp
     page/PerformanceEntry.cpp
     page/PerformanceLogging.cpp
+    page/PerformanceLoggingClient.cpp
     page/PerformanceMonitor.cpp
     page/PerformanceNavigation.cpp
     page/PerformanceObserver.cpp
@@ -2162,12 +2167,12 @@ set(WebCore_SOURCES
     platform/Cursor.cpp
     platform/DateComponents.cpp
     platform/Decimal.cpp
-    platform/DisplaySleepDisabler.cpp
     platform/DragData.cpp
     platform/DragImage.cpp
     platform/EventTrackingRegions.cpp
     platform/FileChooser.cpp
     platform/FileHandle.cpp
+    platform/FileMonitor.cpp
     platform/FileStream.cpp
     platform/FileSystem.cpp
     platform/GenericTaskQueue.cpp
@@ -2189,6 +2194,7 @@ set(WebCore_SOURCES
     platform/PlatformSpeechSynthesizer.cpp
     platform/PlatformStrategies.cpp
     platform/RemoteCommandListener.cpp
+    platform/RuntimeApplicationChecks.cpp
     platform/SchemeRegistry.cpp
     platform/ScrollAnimator.cpp
     platform/ScrollView.cpp
@@ -2198,6 +2204,7 @@ set(WebCore_SOURCES
     platform/ScrollbarThemeComposite.cpp
     platform/SharedBuffer.cpp
     platform/SharedBufferChunkReader.cpp
+    platform/SleepDisabler.cpp
     platform/StaticPasteboard.cpp
     platform/SystemSleepListener.cpp
     platform/Theme.cpp
@@ -2273,6 +2280,7 @@ set(WebCore_SOURCES
     platform/graphics/FontCascade.cpp
     platform/graphics/FontCascadeFonts.cpp
     platform/graphics/FontDescription.cpp
+    platform/graphics/FontFamilySpecificationNull.cpp
     platform/graphics/FontSelectionAlgorithm.cpp
     platform/graphics/FontTaggedSettings.cpp
     platform/graphics/FontGenericFamilies.cpp
@@ -2386,6 +2394,7 @@ set(WebCore_SOURCES
     platform/graphics/transforms/TransformationMatrix.cpp
     platform/graphics/transforms/TranslateTransformOperation.cpp
 
+    platform/mediastream/CaptureDeviceManager.cpp
     platform/mediastream/MediaConstraints.cpp
     platform/mediastream/MediaEndpointConfiguration.cpp
     platform/mediastream/MediaStreamPrivate.cpp
@@ -2419,6 +2428,7 @@ set(WebCore_SOURCES
     platform/network/BlobRegistryImpl.cpp
     platform/network/BlobResourceHandle.cpp
     platform/network/CacheValidation.cpp
+    platform/network/Cookie.cpp
     platform/network/CredentialBase.cpp
     platform/network/CredentialStorage.cpp
     platform/network/DNSResolveQueue.cpp
@@ -2501,6 +2511,7 @@ set(WebCore_SOURCES
     rendering/InlineFlowBox.cpp
     rendering/InlineIterator.cpp
     rendering/InlineTextBox.cpp
+    rendering/LayoutDisallowedScope.cpp
     rendering/LayoutRepainter.cpp
     rendering/LayoutState.cpp
     rendering/OrderIterator.cpp
@@ -2735,6 +2746,7 @@ set(WebCore_SOURCES
     style/RenderTreeUpdater.cpp
     style/StyleChange.cpp
     style/StyleFontSizeFunctions.cpp
+    style/StyleInvalidator.cpp
     style/StylePendingResources.cpp
     style/StyleRelations.cpp
     style/StyleResolveForDocument.cpp
@@ -3159,7 +3171,6 @@ if (ENABLE_WEBGL)
         html/canvas/OESTextureHalfFloatLinear.cpp
         html/canvas/OESVertexArrayObject.cpp
         html/canvas/WebGL2RenderingContext.cpp
-        html/canvas/WebGLAny.cpp
         html/canvas/WebGLBuffer.cpp
         html/canvas/WebGLCompressedTextureATC.cpp
         html/canvas/WebGLCompressedTexturePVRTC.cpp
@@ -3314,7 +3325,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
     # For platforms that want to use system-provided OpenGL (ES) / EGL headers,
     # these include directories, libraries or definitions need to be
     # added before the ANGLE directories.
-    if (USE_OPENGL)
+    if (USE_OPENGL AND NOT USE_LIBEPOXY)
         list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
             ${OPENGL_INCLUDE_DIRS}
         )
@@ -3322,7 +3333,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
             ${OPENGL_LIBRARIES}
         )
         add_definitions(${OPENGL_DEFINITIONS})
-    elseif (USE_OPENGL_ES_2)
+    elseif (USE_OPENGL_ES_2 AND NOT USE_LIBEPOXY)
         list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
             ${OPENGLES2_INCLUDE_DIRS}
         )
@@ -3332,7 +3343,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         add_definitions(${OPENGLES2_DEFINITIONS})
     endif ()
 
-    if (USE_EGL)
+    if (USE_EGL AND NOT USE_LIBEPOXY)
         list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
             ${EGL_INCLUDE_DIRS}
         )
@@ -3340,6 +3351,15 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
             ${EGL_LIBRARIES}
         )
         add_definitions(${EGL_DEFINITIONS})
+    endif ()
+
+    if (USE_LIBEPOXY)
+        list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
+            ${LIBEPOXY_INCLUDE_DIRS}
+        )
+        list(APPEND WebCore_LIBRARIES
+            ${LIBEPOXY_LIBRARIES}
+        )
     endif ()
 
     list(APPEND WebCore_INCLUDE_DIRECTORIES
@@ -3471,36 +3491,6 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
     )
 endif ()
 
-if (ENABLE_WEB_REPLAY)
-    set(WebCore_WEB_REPLAY_INPUTS ${CMAKE_CURRENT_SOURCE_DIR}/replay/WebInputs.json ${JAVASCRIPTCORE_DIR}/replay/JSInputs.json)
-    add_custom_command(
-        OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/WebReplayInputs.h ${DERIVED_SOURCES_WEBCORE_DIR}/WebReplayInputs.cpp
-        MAIN_DEPENDENCY ${JAVASCRIPTCORE_DIR}/replay/scripts/CodeGeneratorReplayInputs.py
-        DEPENDS ${WebCore_WEB_REPLAY_INPUTS}
-        COMMAND ${PYTHON_EXECUTABLE} ${JAVASCRIPTCORE_DIR}/replay/scripts/CodeGeneratorReplayInputs.py --outputDir ${DERIVED_SOURCES_WEBCORE_DIR}/ --framework WebCore ${WebCore_WEB_REPLAY_INPUTS}
-        VERBATIM)
-
-    list(APPEND WebCore_SOURCES
-        inspector/InspectorReplayAgent.cpp
-
-        replay/CapturingInputCursor.cpp
-        replay/EventLoopInput.cpp
-        replay/EventLoopInputDispatcher.cpp
-        replay/MemoizedDOMResult.cpp
-        replay/ReplayController.cpp
-        replay/ReplayInputCreationMethods.cpp
-        replay/ReplayInputDispatchMethods.cpp
-        replay/ReplaySession.cpp
-        replay/ReplaySessionSegment.cpp
-        replay/ReplayingInputCursor.cpp
-        replay/SegmentedInputStorage.cpp
-        replay/SerializationMethods.cpp
-        replay/UserInputBridge.cpp
-
-        ${DERIVED_SOURCES_WEBCORE_DIR}/WebReplayInputs.cpp
-    )
-endif ()
-
 if (ENABLE_USER_MESSAGE_HANDLERS)
     list(APPEND WebCore_IDL_FILES
         page/UserMessageHandler.idl
@@ -3508,8 +3498,6 @@ if (ENABLE_USER_MESSAGE_HANDLERS)
         page/WebKitNamespace.idl
     )
     list(APPEND WebCore_SOURCES
-        bindings/js/JSUserMessageHandlersNamespaceCustom.cpp
-
         page/UserMessageHandler.cpp
         page/UserMessageHandlerDescriptor.cpp
         page/UserMessageHandlersNamespace.cpp
@@ -3820,6 +3808,7 @@ set(WebCore_BUILTINS_SOURCES
     ${WEBCORE_DIR}/Modules/streams/ReadableByteStreamController.js
     ${WEBCORE_DIR}/Modules/streams/ReadableByteStreamInternals.js
     ${WEBCORE_DIR}/Modules/streams/ReadableStream.js
+    ${WEBCORE_DIR}/Modules/streams/ReadableStreamBYOBReader.js
     ${WEBCORE_DIR}/Modules/streams/ReadableStreamBYOBRequest.js
     ${WEBCORE_DIR}/Modules/streams/ReadableStreamDefaultController.js
     ${WEBCORE_DIR}/Modules/streams/ReadableStreamInternals.js
@@ -3998,7 +3987,8 @@ if (ENABLE_GRAPHICS_CONTEXT_3D AND NOT WIN32)
     set_property(TARGET ANGLESupport
         PROPERTY COMPILE_DEFINITIONS
         ANGLE_ENABLE_ESSL
-        ANGLE_ENABLE_GLSL)
+        ANGLE_ENABLE_GLSL
+        ${ANGLE_PLATFORM_DEFINITIONS})
 
     target_include_directories(ANGLESupport PRIVATE
         "${THIRDPARTY_DIR}/ANGLE"
@@ -4016,12 +4006,6 @@ target_link_libraries(WebCore ${WebCore_LIBRARIES})
 if (SHARED_CORE)
     set_target_properties(WebCore PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
     install(TARGETS WebCore DESTINATION "${LIB_INSTALL_DIR}")
-endif ()
-
-# [ARM] Build SVGPathElement.cpp with -O2 due to a GCC bug
-# https://bugs.webkit.org/show_bug.cgi?id=145377
-if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") AND WTF_CPU_ARM AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "4.9") AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.3"))
-    set_source_files_properties(svg/SVGPathElement.cpp PROPERTIES COMPILE_FLAGS "-O2")
 endif ()
 
 if (MSVC)

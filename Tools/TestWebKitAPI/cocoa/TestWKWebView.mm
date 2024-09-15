@@ -44,7 +44,7 @@
 #endif
 
 #if PLATFORM(IOS)
-#import <WebCore/SoftLinking.h>
+#import <wtf/SoftLinking.h>
 SOFT_LINK_FRAMEWORK(UIKit)
 SOFT_LINK_CLASS(UIKit, UIWindow)
 #endif
@@ -191,6 +191,7 @@ NSEventMask __simulated_forceClickAssociatedEventsMask(id self, SEL _cmd)
     _hostWindow = adoptNS([[TestWKWebViewHostWindow alloc] initWithContentRect:frame styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:NO]);
     [_hostWindow setFrameOrigin:NSMakePoint(0, 0)];
     [_hostWindow setIsVisible:YES];
+    [_hostWindow contentView].wantsLayer = YES;
     [[_hostWindow contentView] addSubview:self];
     [_hostWindow makeKeyAndOrderFront:self];
 #else
@@ -232,7 +233,7 @@ NSEventMask __simulated_forceClickAssociatedEventsMask(id self, SEL _cmd)
 {
     __block bool isWaitingForJavaScript = false;
     __block NSString *evalResult = nil;
-    [self evaluateJavaScript:script completionHandler:^(id result, NSError *error)
+    [self _evaluateJavaScriptWithoutUserGesture:script completionHandler:^(id result, NSError *error)
     {
         evalResult = [[NSString alloc] initWithFormat:@"%@", result];
         isWaitingForJavaScript = true;

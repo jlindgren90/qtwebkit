@@ -132,47 +132,6 @@ let assertPropDescriptor = (restObj, prop) => {
     assertPropDescriptor(rest, 'b');
 })();
 
-// Nested base case
-(() => {
-    let obj = {a: 1, b: 2, c: 3, d: 4, e: 5};
-
-    let {a, b, ...{c, e}} = obj;
-
-    assert(a === 1);
-    assert(b === 2);
-    assert(c === 3);
-    assert(e === 5);
-})();
-
-// Nested rest case
-(() => {
-    let obj = {a: 1, b: 2, c: 3, d: 4, e: 5};
-
-    let {a, b, ...{c, ...rest}} = obj;
-
-    assert(a === 1);
-    assert(b === 2);
-    assert(c === 3);
-
-    assert(rest.d === 4);
-    assert(rest.e === 5);
-})();
-
-// Destructuring Only Own Properties
-(() => {
-    var o = Object.create({ x: 1, y: 2 });
-    o.z = 3;
-
-    var x, y, z;
-
-    // Destructuring assignment allows nested objects
-    ({ x, ...{y , z} } = o);
-
-    assert(x === 1);
-    assert(y === undefined);
-    assert(z === 3);
-})();
-
 // Destructuring function parameter
 
 (() => {
@@ -221,7 +180,7 @@ let assertPropDescriptor = (restObj, prop) => {
     
     let settedValue;
     let src = {
-        get y() { throw Error("The property should not be accessed"); }, 
+        get y() { throw Error("The property should not be accessed"); },
         set y(v) {
             settedValue = v;
         }
@@ -232,15 +191,26 @@ let assertPropDescriptor = (restObj, prop) => {
     assert(settedValue.y === 2);
 })();
 
-// Destructuring yield
+// Destructuring computed property
 (() => {
 
-    var o = { x: 1, y: 2, w: 3, z: 4 };
+    var a = "foo";
     
-    let gen = (function * (o) {
-        ({...{ x = yield }} = o);
-    })(o);
-    
-    assert(gen.next().value === undefined);
+    var {[a]: b, ...r} = {foo: 1, bar: 2, baz: 3};
+    assert(b === 1);
+    assert(r.bar === 2);
+    assert(r.baz === 3);
+})();
+
+// Catch case
+
+(() => {
+    try {
+        throw {foo: 1, bar: 2, baz: 3};
+    } catch({foo, ...rest}) {
+        assert(foo === 1);
+        assert(rest.bar === 2);
+        assert(rest.baz === 3);
+    }
 })();
 

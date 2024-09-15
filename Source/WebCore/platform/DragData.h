@@ -58,7 +58,7 @@ namespace WebCore {
 class SelectionData;
 }
 typedef WebCore::SelectionData* DragDataRef;
-#elif PLATFORM(IOS)
+#elif PLATFORM(IOS) || PLATFORM(WPE)
 typedef void* DragDataRef;
 #endif
 
@@ -118,9 +118,6 @@ public:
     const String& pasteboardName() const { return m_pasteboardName; }
     bool containsURLTypeIdentifier() const;
     bool containsPromise() const;
-#endif
-#if ENABLE(DATA_INTERACTION)
-    void updatePreferredTypeIdentifiers(const Vector<String>& supportedTypes) const;
 #endif
 
 #if PLATFORM(QT) || PLATFORM(GTK)

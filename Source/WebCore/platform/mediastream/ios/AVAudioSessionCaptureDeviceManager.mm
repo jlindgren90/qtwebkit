@@ -29,8 +29,8 @@
 #if ENABLE(MEDIA_STREAM) && PLATFORM(IOS)
 
 #include "AVAudioSessionCaptureDevice.h"
-#include "SoftLinking.h"
 #include <AVFoundation/AVAudioSession.h>
+#include <wtf/SoftLinking.h>
 #include <wtf/Vector.h>
 
 SOFT_LINK_FRAMEWORK(AVFoundation)
@@ -40,18 +40,18 @@ SOFT_LINK_CLASS(AVFoundation, AVAudioSession)
 void* AvailableInputsContext = &AvailableInputsContext;
 
 @interface WebAVAudioSessionAvailableInputsListener : NSObject {
-    std::function<void()> _callback;
+    WTF::Function<void()> _callback;
 }
 @end
 
 @implementation WebAVAudioSessionAvailableInputsListener
-- (id)initWithCallback:(std::function<void()>)callback
+- (id)initWithCallback:(WTF::Function<void()>&&)callback
 {
     self = [super init];
     if (!self)
         return nil;
 
-    _callback = callback;
+    _callback = WTFMove(callback);
     return self;
 }
 
@@ -116,7 +116,7 @@ void AVAudioSessionCaptureDeviceManager::refreshAudioCaptureDevices()
         m_listener = adoptNS([[WebAVAudioSessionAvailableInputsListener alloc] initWithCallback:[this] {
             refreshAudioCaptureDevices();
         }]);
-        [[AVAudioSession sharedSession] addObserver:m_listener.get() forKeyPath:@"availableInputs" options:0 context:AvailableInputsContext];
+        [[AVAudioSession sharedInstance] addObserver:m_listener.get() forKeyPath:@"availableInputs" options:0 context:AvailableInputsContext];
     }
 
     Vector<AVAudioSessionCaptureDevice> newAudioDevices;
@@ -124,7 +124,7 @@ void AVAudioSessionCaptureDeviceManager::refreshAudioCaptureDevices()
 
     for (AVAudioSessionPortDescription *portDescription in [AVAudioSession sharedInstance].availableInputs) {
         auto audioDevice = AVAudioSessionCaptureDevice::create(portDescription);
-        newDevices.append({ audioDevice.persistentId(), audioDevice.type(), audioDevice.label(), audioDevice.groupId() });
+        newDevices.append(audioDevice);
         newAudioDevices.append(WTFMove(audioDevice));
     }
 

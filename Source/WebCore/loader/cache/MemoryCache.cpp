@@ -263,7 +263,7 @@ void MemoryCache::pruneLiveResources(bool shouldDestroyDecodedDataForAllLiveReso
     pruneLiveResourcesToSize(targetSize, shouldDestroyDecodedDataForAllLiveResources);
 }
 
-void MemoryCache::forEachResource(const std::function<void(CachedResource&)>& function)
+void MemoryCache::forEachResource(const WTF::Function<void(CachedResource&)>& function)
 {
     for (auto& unprotectedLRUList : m_allResources) {
         Vector<CachedResourceHandle<CachedResource>> lruList;
@@ -273,7 +273,7 @@ void MemoryCache::forEachResource(const std::function<void(CachedResource&)>& fu
     }
 }
 
-void MemoryCache::forEachSessionResource(SessionID sessionID, const std::function<void (CachedResource&)>& function)
+void MemoryCache::forEachSessionResource(SessionID sessionID, const WTF::Function<void (CachedResource&)>& function)
 {
     auto it = m_sessionResources.find(sessionID);
     if (it == m_sessionResources.end())
@@ -289,8 +289,11 @@ void MemoryCache::forEachSessionResource(SessionID sessionID, const std::functio
 void MemoryCache::destroyDecodedDataForAllImages()
 {
     MemoryCache::singleton().forEachResource([](CachedResource& resource) {
-        if (resource.isImage())
-            resource.destroyDecodedData();
+        if (!resource.isImage())
+            return;
+
+        if (auto image = downcast<CachedImage>(resource).image())
+            image->destroyDecodedData();
     });
 }
 

@@ -45,14 +45,14 @@ class WorkQueuePool {
 public:
     static WorkQueuePool& singleton()
     {
-        ASSERT(isMainThread());
+        ASSERT(RunLoop::isMain());
         static NeverDestroyed<WorkQueuePool> workQueuePool;
         return workQueuePool;
     }
 
     void dispatch(void* context, Function<void ()>&& function)
     {
-        ASSERT(isMainThread());
+        ASSERT(RunLoop::isMain());
         getOrCreateWorkQueueForContext(context).dispatch(WTFMove(function));
     }
 
@@ -75,11 +75,8 @@ public:
 private:
     WorkQueuePool()
     {
-#if PLATFORM(GTK)
+        // FIXME: This is a sane default limit, but it should be configurable somehow.
         m_threadCountLimit = 1;
-#else
-        m_threadCountLimit = std::numeric_limits<unsigned>::max();
-#endif
     }
 
     WorkQueue& getOrCreateWorkQueueForContext(void* context)
@@ -108,7 +105,7 @@ private:
     unsigned m_threadCountLimit;
 };
 
-CompositingRunLoop::CompositingRunLoop(std::function<void ()>&& updateFunction)
+CompositingRunLoop::CompositingRunLoop(Function<void ()>&& updateFunction)
     : m_updateTimer(WorkQueuePool::singleton().runLoop(this), this, &CompositingRunLoop::updateTimerFired)
     , m_updateFunction(WTFMove(updateFunction))
 {
@@ -116,12 +113,13 @@ CompositingRunLoop::CompositingRunLoop(std::function<void ()>&& updateFunction)
 
 #if USE(GLIB_EVENT_LOOP)
     m_updateTimer.setPriority(RunLoopSourcePriority::CompositingThreadUpdateTimer);
+    m_updateTimer.setName("[WebKit] CompositingRunLoop");
 #endif
 }
 
 CompositingRunLoop::~CompositingRunLoop()
 {
-    ASSERT(isMainThread());
+    ASSERT(RunLoop::isMain());
     // Make sure the WorkQueue is deleted after the CompositingRunLoop, because m_updateTimer has a reference
     // of the WorkQueue run loop. Passing this is not a problem because the pointer will only be used as a
     // HashMap key by WorkQueuePool.
@@ -130,13 +128,13 @@ CompositingRunLoop::~CompositingRunLoop()
 
 void CompositingRunLoop::performTask(Function<void ()>&& function)
 {
-    ASSERT(isMainThread());
+    ASSERT(RunLoop::isMain());
     WorkQueuePool::singleton().dispatch(this, WTFMove(function));
 }
 
 void CompositingRunLoop::performTaskSync(Function<void ()>&& function)
 {
-    ASSERT(isMainThread());
+    ASSERT(RunLoop::isMain());
     LockHolder locker(m_dispatchSyncConditionMutex);
     WorkQueuePool::singleton().dispatch(this, [this, function = WTFMove(function)] {
         function();

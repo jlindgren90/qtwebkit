@@ -31,7 +31,6 @@
 #include "Frame.h"
 #include "LayoutRect.h"
 #include "Page.h"
-#include "PaintPhase.h"
 #include "RenderObjectEnums.h"
 #include "RenderStyle.h"
 #include "ScrollAlignment.h"
@@ -206,9 +205,9 @@ public:
     void showRenderTreeForThis() const;
     void showLineTreeForThis() const;
 
-    void showRenderObject(bool mark, int depth) const;
-    void showRenderSubTreeAndMark(const RenderObject* markedObject, int depth) const;
-    void showRegionsInformation() const;
+    void outputRenderObject(TextStream&, bool mark, int depth) const;
+    void outputRenderSubTreeAndMark(TextStream&, const RenderObject* markedObject, int depth) const;
+    void outputRegionsInformation(TextStream&) const;
 #endif
 
     bool isPseudoElement() const { return node() && node()->isPseudoElement(); }
@@ -266,6 +265,7 @@ public:
     virtual bool isTextControl() const { return false; }
     virtual bool isTextArea() const { return false; }
     virtual bool isTextField() const { return false; }
+    virtual bool isSearchField() const { return false; }
     virtual bool isTextControlInnerBlock() const { return false; }
     virtual bool isVideo() const { return false; }
     virtual bool isWidget() const { return false; }

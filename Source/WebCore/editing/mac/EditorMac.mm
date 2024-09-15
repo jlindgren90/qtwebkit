@@ -39,6 +39,7 @@
 #import "File.h"
 #import "FontCascade.h"
 #import "Frame.h"
+#import "FrameLoader.h"
 #import "FrameLoaderClient.h"
 #import "FrameView.h"
 #import "HTMLAnchorElement.h"
@@ -59,12 +60,12 @@
 #import "RenderImage.h"
 #import "RuntimeApplicationChecks.h"
 #import "Settings.h"
-#import "Sound.h"
 #import "StyleProperties.h"
 #import "Text.h"
 #import "TypingCommand.h"
 #import "WebNSAttributedStringExtras.h"
 #import "markup.h"
+#import <pal/system/Sound.h>
 
 namespace WebCore {
 
@@ -98,7 +99,7 @@ void Editor::pasteWithPasteboard(Pasteboard* pasteboard, bool allowPlainText, Ma
     bool chosePlainText;
     RefPtr<DocumentFragment> fragment = webContentFromPasteboard(*pasteboard, *range, allowPlainText, chosePlainText);
 
-    if (fragment && shouldInsertFragment(fragment, range, EditorInsertAction::Pasted))
+    if (fragment && shouldInsertFragment(*fragment, range.get(), EditorInsertAction::Pasted))
         pasteAsFragment(fragment.releaseNonNull(), canSmartReplaceWithPasteboard(*pasteboard), false, mailBlockquoteHandling);
 
     client()->setInsertionPasteboard(String());
@@ -113,7 +114,7 @@ bool Editor::canCopyExcludingStandaloneImages()
 void Editor::takeFindStringFromSelection()
 {
     if (!canCopyExcludingStandaloneImages()) {
-        systemBeep();
+        PAL::systemBeep();
         return;
     }
 
@@ -186,7 +187,7 @@ void Editor::replaceNodeFromPasteboard(Node* node, const String& pasteboardName)
     bool chosePlainText;
     if (RefPtr<DocumentFragment> fragment = webContentFromPasteboard(pasteboard, *range, true, chosePlainText)) {
         maybeCopyNodeAttributesToFragment(*node, *fragment);
-        if (shouldInsertFragment(fragment, range, EditorInsertAction::Pasted))
+        if (shouldInsertFragment(*fragment, range.get(), EditorInsertAction::Pasted))
             pasteAsFragment(fragment.releaseNonNull(), canSmartReplaceWithPasteboard(pasteboard), false, MailBlockquoteHandling::IgnoreBlockquote);
     }
 

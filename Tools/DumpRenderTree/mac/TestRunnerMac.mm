@@ -79,8 +79,8 @@
 #import <wtf/RetainPtr.h>
 
 #if !PLATFORM(IOS)
-#import <WebCore/SoftLinking.h>
 #import <WebKit/WebIconDatabasePrivate.h>
+#import <wtf/SoftLinking.h>
 #endif
 
 #if PLATFORM(IOS)
@@ -253,6 +253,11 @@ JSStringRef TestRunner::copyEncodedHostName(JSStringRef name)
 void TestRunner::display()
 {
     displayWebView();
+}
+
+void TestRunner::displayAndTrackRepaints()
+{
+    displayAndTrackRepaintsWebView();
 }
 
 void TestRunner::keepWebHistory()
@@ -460,18 +465,7 @@ void TestRunner::setGeolocationPermission(bool allow)
 
 void TestRunner::setIconDatabaseEnabled(bool iconDatabaseEnabled)
 {
-#if ENABLE(ICONDATABASE)
-    // FIXME: Workaround <rdar://problem/6480108>
-    static WebIconDatabase *sharedWebIconDatabase = NULL;
-    if (!sharedWebIconDatabase) {
-        if (!iconDatabaseEnabled)
-            return;
-        sharedWebIconDatabase = [WebIconDatabase sharedIconDatabase];
-        if ([sharedWebIconDatabase isEnabled] == iconDatabaseEnabled)
-            return;
-    }
-    [sharedWebIconDatabase setEnabled:iconDatabaseEnabled];
-#endif
+    [WebView _setIconLoadingEnabled:iconDatabaseEnabled];
 }
 
 void TestRunner::setMainFrameIsFirstResponder(bool flag)

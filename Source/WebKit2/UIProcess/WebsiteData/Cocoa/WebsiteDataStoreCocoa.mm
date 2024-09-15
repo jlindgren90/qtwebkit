@@ -51,8 +51,9 @@ static Vector<WebsiteDataStore*>& dataStoresWithStorageManagers()
 
 WebsiteDataStoreParameters WebsiteDataStore::parameters()
 {
-    WebsiteDataStoreParameters parameters;
+    resolveDirectoriesIfNecessary();
 
+    WebsiteDataStoreParameters parameters;
     parameters.sessionID = m_sessionID;
 
     auto cookieFile = resolvedCookieStorageFile();
@@ -69,6 +70,8 @@ WebsiteDataStoreParameters WebsiteDataStore::parameters()
 
     parameters.uiProcessCookieStorageIdentifier = m_uiProcessCookieStorageIdentifier;
 #endif
+
+    copyToVector(m_pendingCookies, parameters.pendingCookies);
 
     if (!cookieFile.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(WebCore::directoryName(cookieFile), parameters.cookieStoragePathExtensionHandle);
@@ -100,8 +103,6 @@ void WebsiteDataStore::platformInitialize()
 
     ASSERT(!dataStoresWithStorageManagers().contains(this));
     dataStoresWithStorageManagers().append(this);
-    if (m_resourceLoadStatistics)
-        m_resourceLoadStatistics->readDataFromDiskIfNeeded();
 }
 
 void WebsiteDataStore::platformDestroy()

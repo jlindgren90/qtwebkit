@@ -241,7 +241,7 @@ class Driver(object):
             crashed_pid=self._crashed_pid, crash_log=crash_log, pid=pid)
 
     def _get_crash_log(self, stdout, stderr, newer_than):
-        return self._port._get_crash_log(self._crashed_process_name, self._crashed_pid, stdout, stderr, newer_than)
+        return self._port._get_crash_log(self._crashed_process_name, self._crashed_pid, stdout, stderr, newer_than, target_host=self._target_host)
 
     def _command_wrapper(self):
         # Hook for injecting valgrind or other runtime instrumentation, used by e.g. tools/valgrind/valgrind_tests.py.
@@ -254,9 +254,14 @@ class Driver(object):
 
     HTTP_DIR = "http/tests/"
     HTTP_LOCAL_DIR = "http/tests/local/"
+    WEBKIT_SPECIFIC_WEB_PLATFORM_TEST_SUBDIR = "http/wpt/"
+    WEBKIT_WEB_PLATFORM_TEST_SERVER_ROUTE = "WebKit/"
 
     def is_http_test(self, test_name):
         return test_name.startswith(self.HTTP_DIR) and not test_name.startswith(self.HTTP_LOCAL_DIR)
+
+    def is_webkit_specific_web_platform_test(self, test_name):
+        return test_name.startswith(self.WEBKIT_SPECIFIC_WEB_PLATFORM_TEST_SUBDIR)
 
     def is_web_platform_test(self, test_name):
         return test_name.startswith(self.web_platform_test_server_doc_root)
@@ -265,6 +270,8 @@ class Driver(object):
         """Convert a test name to a URI."""
         if self.is_web_platform_test(test_name):
             return self.web_platform_test_server_base_url + test_name[len(self.web_platform_test_server_doc_root):]
+        if self.is_webkit_specific_web_platform_test(test_name):
+            return self.web_platform_test_server_base_url + self.WEBKIT_WEB_PLATFORM_TEST_SERVER_ROUTE + test_name[len(self.WEBKIT_SPECIFIC_WEB_PLATFORM_TEST_SUBDIR):]
 
         if not self.is_http_test(test_name):
             return path.abspath_to_uri(self._port.host.platform, self._port.abspath_for_test(test_name))
@@ -289,6 +296,8 @@ class Driver(object):
             if not prefix.endswith('/'):
                 prefix += '/'
             return uri[len(prefix):]
+        if uri.startswith(self.web_platform_test_server_base_url + self.WEBKIT_WEB_PLATFORM_TEST_SERVER_ROUTE):
+            return uri.replace(self.web_platform_test_server_base_url + self.WEBKIT_WEB_PLATFORM_TEST_SERVER_ROUTE, self.WEBKIT_SPECIFIC_WEB_PLATFORM_TEST_SUBDIR)
         if uri.startswith(self.web_platform_test_server_base_url):
             return uri.replace(self.web_platform_test_server_base_url, self.web_platform_test_server_doc_root)
         if uri.startswith("http://"):
@@ -303,7 +312,7 @@ class Driver(object):
         if self._crashed_process_name:
             return True
         if self._server_process.has_crashed():
-            self._crashed_process_name = self._server_process.name()
+            self._crashed_process_name = self._server_process.process_name()
             self._crashed_pid = self._server_process.pid()
             return True
         return False
@@ -344,8 +353,6 @@ class Driver(object):
         environment['LOCAL_RESOURCE_ROOT'] = str(self._port.layout_tests_dir())
         environment['ASAN_OPTIONS'] = "allocator_may_return_null=1"
         environment['__XPC_ASAN_OPTIONS'] = environment['ASAN_OPTIONS']
-        if 'WEBKIT_OUTPUTDIR' in os.environ:
-            environment['WEBKIT_OUTPUTDIR'] = os.environ['WEBKIT_OUTPUTDIR']
         if self._profiler:
             environment = self._profiler.adjusted_environment(environment)
         return environment
@@ -444,7 +451,7 @@ class Driver(object):
     def _check_for_driver_crash_or_unresponsiveness(self, error_line):
         crashed_check = error_line.rstrip('\r\n')
         if crashed_check == "#CRASHED":
-            self._crashed_process_name = self._server_process.name()
+            self._crashed_process_name = self._server_process.process_name()
             self._crashed_pid = self._server_process.pid()
             return True
         elif error_line.startswith("#CRASHED - "):
@@ -472,7 +479,7 @@ class Driver(object):
         # FIXME: performance tests pass in full URLs instead of test names.
         if driver_input.test_name.startswith('http://') or driver_input.test_name.startswith('https://')  or driver_input.test_name == ('about:blank'):
             command = driver_input.test_name
-        elif self.is_web_platform_test(driver_input.test_name) or (self.is_http_test(driver_input.test_name) and (self._port.get_option('webkit_test_runner') or sys.platform == "cygwin")):
+        elif self.is_web_platform_test(driver_input.test_name) or self.is_webkit_specific_web_platform_test(driver_input.test_name) or (self.is_http_test(driver_input.test_name) and (self._port.get_option('webkit_test_runner') or sys.platform == "cygwin")):
             command = self.test_to_uri(driver_input.test_name)
             command += "'--absolutePath'"
             command += self._port.abspath_for_test(driver_input.test_name, self._target_host)
@@ -543,7 +550,7 @@ class Driver(object):
         out_seen_eof = False
         asan_violation_detected = False
 
-        while not self.has_crashed():
+        while True:
             if out_seen_eof and (self.err_seen_eof or not wait_for_stderr_eof):
                 break
 
@@ -556,7 +563,8 @@ class Driver(object):
             else:
                 out_line, err_line = self._server_process.read_either_stdout_or_stderr_line(deadline)
 
-            if self._server_process.timed_out or self.has_crashed():
+            # ServerProcess returns None for time outs and crashes.
+            if out_line is None and err_line is None:
                 break
 
             if out_line:
@@ -598,7 +606,7 @@ class Driver(object):
                     self.error_from_test += err_line
 
         if asan_violation_detected and not self._crashed_process_name:
-            self._crashed_process_name = self._server_process.name()
+            self._crashed_process_name = self._server_process.process_name()
             self._crashed_pid = self._server_process.pid()
 
         block.decode_content()
@@ -651,6 +659,12 @@ class DriverProxy(object):
     # FIXME: this should be a @classmethod (or implemented on Port instead).
     def is_http_test(self, test_name):
         return self._driver.is_http_test(test_name)
+
+    def is_web_platform_test(self, test_name):
+        return self._driver.is_web_platform_test(test_name)
+
+    def is_webkit_specific_web_platform_test(self, test_name):
+        return self._driver.is_webkit_specific_web_platform_test(test_name)
 
     # FIXME: this should be a @classmethod (or implemented on Port instead).
     def test_to_uri(self, test_name):

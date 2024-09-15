@@ -94,9 +94,6 @@ inline CapabilityLevel canCompile(Node* node)
     case ArithMin:
     case ArithMax:
     case ArithAbs:
-    case ArithSin:
-    case ArithCos:
-    case ArithTan:
     case ArithPow:
     case ArithRandom:
     case ArithRound:
@@ -104,9 +101,9 @@ inline CapabilityLevel canCompile(Node* node)
     case ArithCeil:
     case ArithTrunc:
     case ArithSqrt:
-    case ArithLog:
     case ArithFRound:
     case ArithNegate:
+    case ArithUnary:
     case UInt32ToNumber:
     case Jump:
     case ForceOSRExit:
@@ -281,10 +278,11 @@ inline CapabilityLevel canCompile(Node* node)
     case DefineAccessorProperty:
     case ToLowerCase:
     case NumberToStringWithRadix:
-    case CheckDOM:
+    case CheckSubClass:
     case CallDOM:
     case CallDOMGetter:
     case ArraySlice:
+    case ArrayIndexOf:
     case ParseInt:
     case AtomicsAdd:
     case AtomicsAnd:
@@ -345,6 +343,15 @@ inline CapabilityLevel canCompile(Node* node)
             return CannotCompile;
         }
         break;
+    case GetVectorLength:
+        switch (node->arrayMode().type()) {
+        case Array::ArrayStorage:
+        case Array::SlowPutArrayStorage:
+            break;
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
+        }
+        break;
     case HasIndexedProperty:
         switch (node->arrayMode().type()) {
         case Array::ForceExit:
@@ -367,6 +374,8 @@ inline CapabilityLevel canCompile(Node* node)
         case Array::Undecided:
         case Array::DirectArguments:
         case Array::ScopedArguments:
+        case Array::ArrayStorage:
+        case Array::SlowPutArrayStorage:
             break;
         default:
             if (isTypedView(node->arrayMode().typedArrayType()))

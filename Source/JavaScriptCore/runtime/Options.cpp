@@ -29,6 +29,7 @@
 #include "AssemblerCommon.h"
 #include "LLIntCommon.h"
 #include "LLIntData.h"
+#include "MinimumReservedZoneSize.h"
 #include "SigillCrashAnalyzer.h"
 #include <algorithm>
 #include <limits>
@@ -43,6 +44,7 @@
 #include <wtf/StdLibExtras.h>
 #include <wtf/StringExtras.h>
 #include <wtf/text/StringBuilder.h>
+#include <wtf/threads/Signals.h>
 
 #if PLATFORM(COCOA)
 #include <crt_externs.h>
@@ -344,6 +346,10 @@ static void overrideDefaults()
     }
 
 #if PLATFORM(IOS)
+    // On iOS, we control heap growth using process memory footprint. Therefore these values can be agressive.
+    Options::smallHeapRAMFraction() = 0.8;
+    Options::mediumHeapRAMFraction() = 0.9;
+
     Options::useSigillCrashAnalyzer() = true;
 #endif
 
@@ -353,6 +359,10 @@ static void overrideDefaults()
 
 #if !ENABLE(WEBASSEMBLY_FAST_MEMORY)
     Options::useWebAssemblyFastMemory() = false;
+#endif
+
+#if !HAVE(MACH_EXCEPTIONS)
+    Options::useMachForExceptions() = false;
 #endif
 }
 
@@ -422,6 +432,7 @@ static void recomputeDependentOptions()
         || Options::reportFTLCompileTimes()
         || Options::reportDFGPhaseTimes()
         || Options::verboseCFA()
+        || Options::verboseDFGFailure()
         || Options::verboseFTLFailure())
         Options::alwaysComputeHash() = true;
     
@@ -447,7 +458,7 @@ static void recomputeDependentOptions()
         Options::useOSREntryToFTL() = false;
     }
     
-#if PLATFORM(IOS) && !PLATFORM(IOS_SIMULATOR) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+#if PLATFORM(IOS) && !PLATFORM(IOS_SIMULATOR)
     // Override globally for now. Longer term we'll just make the default
     // be to have this option enabled, and have platforms that don't support
     // it just silently use a single mapping.
@@ -486,6 +497,11 @@ static void recomputeDependentOptions()
 
     if (Options::useSigillCrashAnalyzer())
         enableSigillCrashAnalyzer();
+
+    if (Options::reservedZoneSize() < minimumReservedZoneSize)
+        Options::reservedZoneSize() = minimumReservedZoneSize;
+    if (Options::softReservedZoneSize() < Options::reservedZoneSize() + minimumReservedZoneSize)
+        Options::softReservedZoneSize() = Options::reservedZoneSize() + minimumReservedZoneSize;
 }
 
 void Options::initialize()
@@ -542,9 +558,15 @@ void Options::initialize()
             ASSERT(Options::thresholdForOptimizeAfterLongWarmUp() >= Options::thresholdForOptimizeAfterWarmUp());
             ASSERT(Options::thresholdForOptimizeAfterWarmUp() >= Options::thresholdForOptimizeSoon());
             ASSERT(Options::thresholdForOptimizeAfterWarmUp() >= 0);
+            ASSERT(Options::criticalGCMemoryThreshold() > 0.0 && Options::criticalGCMemoryThreshold() < 1.0);
 
             dumpOptionsIfNeeded();
             ensureOptionsAreCoherent();
+
+#if HAVE(MACH_EXCEPTIONS)
+            if (Options::useMachForExceptions())
+                handleSignalsWithMach();
+#endif
         });
 }
 

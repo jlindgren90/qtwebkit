@@ -162,6 +162,15 @@
          "WebkitBugTracker@adobe.com"
       ]
    },
+   "Adrian Perez de Castro" : {
+      "emails" : [
+         "aperez@igalia.com"
+      ],
+      "nicks" : [
+         "aperezdc"
+      ],
+      "status" : "committer"
+   },
    "Adrienne Walker" : {
       "emails" : [
          "enne@google.com",
@@ -1008,6 +1017,15 @@
       ],
       "status" : "committer"
    },
+   "Caio Araujo Neponoceno de Lima" : {
+      "emails" : [
+         "ticaiolima@gmail.com"
+      ],
+      "nicks" : [
+         "caiolima"
+      ],
+      "status" : "committer"
+   },
    "Caio Marcelo de Oliveira Filho" : {
       "emails" : [
          "cmarcelo@webkit.org",
@@ -1118,6 +1136,14 @@
          "creis"
       ],
       "status" : "committer"
+   },
+   "Charlie Turner" : {
+      "emails" : [
+         "cturner@igalia.com"
+      ],
+      "nicks" : [
+         "cturner"
+      ]
    },
    "Chelsea Pugh" : {
       "emails" : [
@@ -1541,10 +1567,12 @@
    },
    "Devin Rousso" : {
       "emails" : [
+         "drousso@apple.com",
          "webkit@devinrousso.com"
       ],
       "expertise" : "Web Inspector",
       "nicks" : [
+         "drousso",
          "dcrousso"
       ],
       "status" : "reviewer"
@@ -1701,6 +1729,16 @@
          "gramps"
       ],
       "status" : "reviewer"
+   },
+   "Don Olmstead" : {
+      "emails" : [
+         "don.olmstead@sony.com",
+         "don.olmstead@am.sony.com"
+      ],
+      "nicks" : [
+         "dolmstead"
+      ],
+      "status" : "committer"
    },
    "Dongseong Hwang" : {
       "emails" : [
@@ -2186,6 +2224,16 @@
       ],
       "status" : "committer"
    },
+   "Guillaume Emont" : {
+      "emails" : [
+         "guijemont@igalia.com"
+      ],
+      "expertise" : "JavaScriptCore",
+      "nicks" : [
+         "guijemont"
+      ],
+      "status" : "committer"
+   },
    "Gurpreet Kaur" : {
       "emails" : [
          "gur.trio@gmail.com",
@@ -2225,6 +2273,7 @@
    "Gyuyoung Kim" : {
       "emails" : [
          "gyuyoung.kim@webkit.org",
+         "gyuyoung@igalia.com",
          "gyuyoung.kim@navercorp.com",
          "gyuyoung@gmail.com",
          "gyuyoung.kim@samsung.com"
@@ -2760,10 +2809,11 @@
       "emails" : [
          "jiewen_tan@apple.com"
       ],
+      "expertise" : "WebCrypto API",
       "nicks" : [
          "Jiewen"
       ],
-      "status" : "committer"
+      "status" : "reviewer"
    },
    "Jing Zhao" : {
       "emails" : [
@@ -3430,10 +3480,11 @@
          "annulen@yandex.ru",
          "ktokarev@smartlabs.tv"
       ],
+      "expertise" : "CMake build system, Perl scripts",
       "nicks" : [
          "annulen"
       ],
-      "status" : "committer"
+      "status" : "reviewer"
    },
    "Kristof Kosztyo" : {
       "emails" : [
@@ -3846,6 +3897,15 @@
       ],
       "nicks" : [
          "matthanson"
+      ],
+      "status" : "committer"
+   },
+   "Matt Lewis" : {
+      "emails" : [
+         "jlewis3@apple.com"
+      ],
+      "nicks" : [
+         "mattlewis"
       ],
       "status" : "committer"
    },

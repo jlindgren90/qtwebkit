@@ -34,6 +34,7 @@
 #include <WebCore/IndexedDB.h>
 #include <WebCore/MediaSelectionOption.h>
 #include <WebCore/NetworkLoadMetrics.h>
+#include <WebCore/NotificationDirection.h>
 #include <WebCore/PaymentHeaders.h>
 #include <WebCore/RealtimeMediaSource.h>
 #include <WebCore/ScrollSnapOffsetsInfo.h>
@@ -84,7 +85,6 @@ class StickyPositionViewportConstraints;
 class TextCheckingRequestData;
 class TransformationMatrix;
 class UserStyleSheet;
-class UserScript;
 class URL;
 struct CompositionUnderline;
 struct DictationAlternative;
@@ -135,6 +135,12 @@ struct SoupNetworkProxySettings;
 }
 #endif
 
+#if PLATFORM(WPE)
+namespace WebCore {
+struct PasteboardWebContents;
+}
+#endif
+
 #if ENABLE(CONTENT_FILTERING)
 namespace WebCore {
 class ContentFilterUnblockHandler;
@@ -156,7 +162,7 @@ class MediaSessionMetadata;
 #if ENABLE(MEDIA_STREAM)
 namespace WebCore {
 class CaptureDevice;
-struct MediaConstraintsData;
+struct MediaConstraints;
 }
 #endif
 
@@ -417,6 +423,13 @@ template<> struct ArgumentCoder<WebCore::SoupNetworkProxySettings> {
 };
 #endif
 
+#if PLATFORM(WPE)
+template<> struct ArgumentCoder<WebCore::PasteboardWebContent> {
+    static void encode(Encoder&, const WebCore::PasteboardWebContent&);
+    static bool decode(Decoder&, WebCore::PasteboardWebContent&);
+};
+#endif
+
 template<> struct ArgumentCoder<WebCore::CompositionUnderline> {
     static void encode(Encoder&, const WebCore::CompositionUnderline&);
     static bool decode(Decoder&, WebCore::CompositionUnderline&);
@@ -460,11 +473,6 @@ template<> struct ArgumentCoder<WebCore::URL> {
 template<> struct ArgumentCoder<WebCore::UserStyleSheet> {
     static void encode(Encoder&, const WebCore::UserStyleSheet&);
     static bool decode(Decoder&, WebCore::UserStyleSheet&);
-};
-
-template<> struct ArgumentCoder<WebCore::UserScript> {
-    static void encode(Encoder&, const WebCore::UserScript&);
-    static bool decode(Decoder&, WebCore::UserScript&);
 };
 
 template<> struct ArgumentCoder<WebCore::ScrollableAreaParameters> {
@@ -627,9 +635,9 @@ template<> struct ArgumentCoder<WebCore::ShippingMethodUpdate> {
 #endif
 
 #if ENABLE(MEDIA_STREAM)
-template<> struct ArgumentCoder<WebCore::MediaConstraintsData> {
-    static void encode(Encoder&, const WebCore::MediaConstraintsData&);
-    static bool decode(Decoder&, WebCore::MediaConstraintsData&);
+template<> struct ArgumentCoder<WebCore::MediaConstraints> {
+    static void encode(Encoder&, const WebCore::MediaConstraints&);
+    static bool decode(Decoder&, WebCore::MediaConstraints&);
 };
 
 template<> struct ArgumentCoder<WebCore::CaptureDevice> {
@@ -688,9 +696,8 @@ template<> struct EnumTraits<WebCore::AutoplayEvent> {
         WebCore::AutoplayEvent,
         WebCore::AutoplayEvent::DidPreventMediaFromPlaying,
         WebCore::AutoplayEvent::DidPlayMediaPreventedFromPlaying,
-        WebCore::AutoplayEvent::DidEndMediaPlaybackWithoutUserInterference,
-        WebCore::AutoplayEvent::UserDidInterfereWithPlayback,
-        WebCore::AutoplayEvent::UserNeverPlayedMediaPreventedFromPlaying
+        WebCore::AutoplayEvent::DidAutoplayMediaPastThresholdWithoutUserInterference,
+        WebCore::AutoplayEvent::UserDidInterfereWithPlayback
     >;
 };
 
@@ -708,6 +715,15 @@ template<> struct EnumTraits<WebCore::NetworkLoadPriority> {
         WebCore::NetworkLoadPriority::Low,
         WebCore::NetworkLoadPriority::Medium,
         WebCore::NetworkLoadPriority::High
+    >;
+};
+
+template<> struct EnumTraits<WebCore::NotificationDirection> {
+    using values = EnumValues<
+        WebCore::NotificationDirection,
+        WebCore::NotificationDirection::Auto,
+        WebCore::NotificationDirection::Ltr,
+        WebCore::NotificationDirection::Rtl
     >;
 };
 

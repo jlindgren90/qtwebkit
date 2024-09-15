@@ -88,7 +88,7 @@ WTF_EXTERN_C_END
 
 #else
 
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101300
 #import <IOSurface/IOSurfaceTypes.h>
 #else
 enum {
@@ -113,6 +113,10 @@ WTF_EXTERN_C_END
 #import <IOSurfaceAccelerator/IOSurfaceAccelerator.h>
 
 #else
+
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 110000
+typedef uint32_t IOSurfaceID;
+#endif
 
 typedef struct __IOSurfaceAccelerator *IOSurfaceAcceleratorRef;
 

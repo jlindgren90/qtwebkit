@@ -27,6 +27,10 @@
 #include "HTMLDocument.h"
 #include "HTMLFrameOwnerElement.h"
 #include "JSDOMBindingSecurity.h"
+#include "JSDOMConvertNullable.h"
+#include "JSDOMConvertNumbers.h"
+#include "JSDOMConvertStrings.h"
+#include "JSDOMWindowProxy.h"
 #include "JSEvent.h"
 #include "JSEventListener.h"
 #include "JSHTMLAudioElement.h"
@@ -327,35 +331,8 @@ void JSDOMWindow::getPropertyNames(JSObject* object, ExecState* exec, PropertyNa
     Base::getPropertyNames(thisObject, exec, propertyNames, mode);
 }
 
-static bool inScope(Frame& frame, TreeScope& scope)
-{
-    auto* document = frame.document();
-    if (!document)
-        return false;
-    auto* owner = document->ownerElement();
-    return owner && &owner->treeScope() == &scope;
-}
-
-static void addScopedChildrenNames(ExecState& state, DOMWindow& window, PropertyNameArray& propertyNames)
-{
-    auto* document = window.document();
-    if (!document)
-        return;
-
-    auto* frame = document->frame();
-    if (!frame)
-        return;
-
-    for (auto* child = frame->tree().firstChild(); child; child = child->tree().nextSibling()) {
-        if (!inScope(*child, *document))
-            continue;
-        if (!child->tree().name().isEmpty())
-            propertyNames.add(Identifier::fromString(&state, child->tree().name()));
-    }
-}
-
 // https://html.spec.whatwg.org/#crossoriginproperties-(-o-)
-static void addCrossOriginPropertyNames(ExecState& state, DOMWindow& window, PropertyNameArray& propertyNames)
+static void addCrossOriginWindowPropertyNames(ExecState& state, PropertyNameArray& propertyNames)
 {
     static const Identifier* const properties[] = {
         &state.propertyNames().blur, &state.propertyNames().close, &state.propertyNames().closed,
@@ -366,8 +343,6 @@ static void addCrossOriginPropertyNames(ExecState& state, DOMWindow& window, Pro
     };
     for (auto* property : properties)
         propertyNames.add(*property);
-
-    addScopedChildrenNames(state, window, propertyNames);
 }
 
 static void addScopedChildrenIndexes(ExecState& state, DOMWindow& window, PropertyNameArray& propertyNames)
@@ -386,9 +361,9 @@ static void addScopedChildrenIndexes(ExecState& state, DOMWindow& window, Proper
 }
 
 // https://html.spec.whatwg.org/#crossoriginownpropertykeys-(-o-)
-static void addCrossOriginOwnPropertyNames(ExecState& state, DOMWindow& window, PropertyNameArray& propertyNames)
+static void addCrossOriginWindowOwnPropertyNames(ExecState& state, PropertyNameArray& propertyNames)
 {
-    addCrossOriginPropertyNames(state, window, propertyNames);
+    addCrossOriginWindowPropertyNames(state, propertyNames);
 
     propertyNames.add(state.propertyNames().toStringTagSymbol);
     propertyNames.add(state.propertyNames().hasInstanceSymbol);
@@ -405,7 +380,7 @@ void JSDOMWindow::getOwnPropertyNames(JSObject* object, ExecState* exec, Propert
 
     if (!BindingSecurity::shouldAllowAccessToDOMWindow(exec, thisObject->wrapped(), DoNotReportSecurityError)) {
         if (mode.includeDontEnumProperties())
-            addCrossOriginOwnPropertyNames(*exec, thisObject->wrapped(), propertyNames);
+            addCrossOriginWindowOwnPropertyNames(*exec, propertyNames);
         return;
     }
     Base::getOwnPropertyNames(thisObject, exec, propertyNames, mode);
@@ -452,30 +427,6 @@ String JSDOMWindow::toStringName(const JSObject* object, ExecState* exec)
 
 // Custom Attributes
 
-void JSDOMWindow::setLocation(ExecState& state, JSValue value)
-{
-    VM& vm = state.vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
-
-#if ENABLE(DASHBOARD_SUPPORT)
-    // To avoid breaking old widgets, make "var location =" in a top-level frame create
-    // a property named "location" instead of performing a navigation (<rdar://problem/5688039>).
-    if (Frame* activeFrame = activeDOMWindow(&state).frame()) {
-        if (activeFrame->settings().usesDashboardBackwardCompatibilityMode() && !activeFrame->tree().parent()) {
-            if (BindingSecurity::shouldAllowAccessToDOMWindow(&state, wrapped()))
-                putDirect(state.vm(), Identifier::fromString(&state, "location"), value);
-            return;
-        }
-    }
-#endif
-
-    String locationString = value.toWTFString(&state);
-    RETURN_IF_EXCEPTION(scope, void());
-
-    if (Location* location = wrapped().location())
-        location->setHref(activeDOMWindow(&state), firstDOMWindow(&state), locationString);
-}
-
 JSValue JSDOMWindow::event(ExecState& state) const
 {
     Event* event = currentEvent();
@@ -485,25 +436,6 @@ JSValue JSDOMWindow::event(ExecState& state) const
 }
 
 // Custom functions
-
-JSValue JSDOMWindow::open(ExecState& state)
-{
-    VM& vm = state.vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
-
-    String urlString = convert<IDLNullable<IDLUSVString>>(state, state.argument(0));
-    RETURN_IF_EXCEPTION(scope, JSValue());
-    JSValue targetValue = state.argument(1);
-    AtomicString target = targetValue.isUndefinedOrNull() ? AtomicString("_blank", AtomicString::ConstructFromLiteral) : targetValue.toString(&state)->toAtomicString(&state);
-    RETURN_IF_EXCEPTION(scope, JSValue());
-    String windowFeaturesString = convert<IDLNullable<IDLDOMString>>(state, state.argument(2));
-    RETURN_IF_EXCEPTION(scope, JSValue());
-
-    RefPtr<DOMWindow> openedWindow = wrapped().open(urlString, target, windowFeaturesString, activeDOMWindow(&state), firstDOMWindow(&state));
-    if (!openedWindow)
-        return jsNull();
-    return toJS(&state, openedWindow.get());
-}
 
 class DialogHandler {
 public:
@@ -558,7 +490,7 @@ JSValue JSDOMWindow::showModalDialog(ExecState& state)
 
     DialogHandler handler(state);
 
-    wrapped().showModalDialog(urlString, dialogFeaturesString, activeDOMWindow(&state), firstDOMWindow(&state), [&handler](DOMWindow& dialog) {
+    wrapped().showModalDialog(urlString, dialogFeaturesString, activeDOMWindow(state), firstDOMWindow(state), [&handler](DOMWindow& dialog) {
         handler.dialogCreated(dialog);
     });
 
@@ -608,8 +540,8 @@ DOMWindow* JSDOMWindow::toWrapped(VM& vm, JSValue value)
     JSObject* object = asObject(value);
     if (object->inherits(vm, JSDOMWindow::info()))
         return &jsCast<JSDOMWindow*>(object)->wrapped();
-    if (object->inherits(vm, JSDOMWindowShell::info()))
-        return &jsCast<JSDOMWindowShell*>(object)->wrapped();
+    if (object->inherits(vm, JSDOMWindowProxy::info()))
+        return &jsCast<JSDOMWindowProxy*>(object)->wrapped();
     return nullptr;
 }
 

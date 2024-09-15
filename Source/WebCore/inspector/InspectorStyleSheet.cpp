@@ -518,17 +518,16 @@ static void fillMediaListChain(CSSRule* rule, Array<Inspector::Protocol::CSS::CS
     }
 }
 
-Ref<InspectorStyle> InspectorStyle::create(const InspectorCSSId& styleId, RefPtr<CSSStyleDeclaration>&& style, InspectorStyleSheet* parentStyleSheet)
+Ref<InspectorStyle> InspectorStyle::create(const InspectorCSSId& styleId, Ref<CSSStyleDeclaration>&& style, InspectorStyleSheet* parentStyleSheet)
 {
     return adoptRef(*new InspectorStyle(styleId, WTFMove(style), parentStyleSheet));
 }
 
-InspectorStyle::InspectorStyle(const InspectorCSSId& styleId, RefPtr<CSSStyleDeclaration>&& style, InspectorStyleSheet* parentStyleSheet)
+InspectorStyle::InspectorStyle(const InspectorCSSId& styleId, Ref<CSSStyleDeclaration>&& style, InspectorStyleSheet* parentStyleSheet)
     : m_styleId(styleId)
-    , m_style(style)
+    , m_style(WTFMove(style))
     , m_parentStyleSheet(parentStyleSheet)
 {
-    ASSERT(m_style);
 }
 
 InspectorStyle::~InspectorStyle()
@@ -745,12 +744,12 @@ RefPtr<CSSRuleSourceData> InspectorStyle::extractSourceData() const
 {
     if (!m_parentStyleSheet || !m_parentStyleSheet->ensureParsedDataReady())
         return nullptr;
-    return m_parentStyleSheet->ruleSourceDataFor(m_style.get());
+    return m_parentStyleSheet->ruleSourceDataFor(m_style.ptr());
 }
 
 ExceptionOr<void> InspectorStyle::setText(const String& text)
 {
-    return m_parentStyleSheet->setStyleText(m_style.get(), text);
+    return m_parentStyleSheet->setStyleText(m_style.ptr(), text);
 }
 
 String InspectorStyle::shorthandValue(const String& shorthandProperty) const
@@ -930,12 +929,28 @@ ExceptionOr<CSSStyleRule*> InspectorStyleSheet::addRule(const String& selector)
     if (text.hasException())
         return text.releaseException();
 
-    StringBuilder styleSheetText;
-    styleSheetText.append(text.releaseReturnValue());
-
     auto addRuleResult = m_pageStyleSheet->addRule(selector, emptyString(), std::nullopt);
     if (addRuleResult.hasException())
         return addRuleResult.releaseException();
+
+    StringBuilder styleSheetText;
+    styleSheetText.append(text.releaseReturnValue());
+
+    if (!styleSheetText.isEmpty())
+        styleSheetText.append('\n');
+
+    styleSheetText.append(selector);
+    styleSheetText.appendLiteral(" {}");
+
+    // Using setText() as this operation changes the stylesheet rule set.
+    setText(styleSheetText.toString());
+
+    // Inspector Style Sheets are always treated as though their parsed data is ready.
+    if (m_origin == Inspector::Protocol::CSS::StyleSheetOrigin::Inspector)
+        fireStyleSheetChanged();
+    else
+        reparseStyleSheet(styleSheetText.toString());
+
     ASSERT(m_pageStyleSheet->length());
     unsigned lastRuleIndex = m_pageStyleSheet->length() - 1;
     CSSRule* rule = m_pageStyleSheet->item(lastRuleIndex);
@@ -948,16 +963,6 @@ ExceptionOr<CSSStyleRule*> InspectorStyleSheet::addRule(const String& selector)
         m_pageStyleSheet->deleteRule(lastRuleIndex);
         return Exception { SYNTAX_ERR };
     }
-
-    if (!styleSheetText.isEmpty())
-        styleSheetText.append('\n');
-
-    styleSheetText.append(selector);
-    styleSheetText.appendLiteral(" {}");
-    // Using setText() as this operation changes the stylesheet rule set.
-    setText(styleSheetText.toString());
-
-    fireStyleSheetChanged();
 
     return styleRule;
 }
@@ -1257,7 +1262,7 @@ RefPtr<InspectorStyle> InspectorStyleSheet::inspectorStyleForId(const InspectorC
     if (!style)
         return nullptr;
 
-    return InspectorStyle::create(id, style, this);
+    return InspectorStyle::create(id, *style, this);
 }
 
 InspectorCSSId InspectorStyleSheet::ruleOrStyleId(CSSStyleDeclaration* style) const
@@ -1472,26 +1477,25 @@ void InspectorStyleSheet::collectFlatRules(RefPtr<CSSRuleList>&& ruleList, CSSSt
     }
 }
 
-Ref<InspectorStyleSheetForInlineStyle> InspectorStyleSheetForInlineStyle::create(InspectorPageAgent* pageAgent, const String& id, RefPtr<Element>&& element, Inspector::Protocol::CSS::StyleSheetOrigin origin, Listener* listener)
+Ref<InspectorStyleSheetForInlineStyle> InspectorStyleSheetForInlineStyle::create(InspectorPageAgent* pageAgent, const String& id, Ref<StyledElement>&& element, Inspector::Protocol::CSS::StyleSheetOrigin origin, Listener* listener)
 {
     return adoptRef(*new InspectorStyleSheetForInlineStyle(pageAgent, id, WTFMove(element), origin, listener));
 }
 
-InspectorStyleSheetForInlineStyle::InspectorStyleSheetForInlineStyle(InspectorPageAgent* pageAgent, const String& id, RefPtr<Element>&& element, Inspector::Protocol::CSS::StyleSheetOrigin origin, Listener* listener)
+InspectorStyleSheetForInlineStyle::InspectorStyleSheetForInlineStyle(InspectorPageAgent* pageAgent, const String& id, Ref<StyledElement>&& element, Inspector::Protocol::CSS::StyleSheetOrigin origin, Listener* listener)
     : InspectorStyleSheet(pageAgent, id, nullptr, origin, String(), listener)
     , m_element(WTFMove(element))
     , m_ruleSourceData(nullptr)
     , m_isStyleTextValid(false)
 {
-    ASSERT(m_element);
     m_inspectorStyle = InspectorStyle::create(InspectorCSSId(id, 0), inlineStyle(), this);
-    m_styleText = m_element->isStyledElement() ? m_element->getAttribute("style").string() : String();
+    m_styleText = m_element->getAttribute("style").string();
 }
 
 void InspectorStyleSheetForInlineStyle::didModifyElementAttribute()
 {
     m_isStyleTextValid = false;
-    if (m_element->isStyledElement() && m_element->cssomStyle() != m_inspectorStyle->cssStyle())
+    if (&m_element->cssomStyle() != &m_inspectorStyle->cssStyle())
         m_inspectorStyle = InspectorStyle::create(InspectorCSSId(id(), 0), inlineStyle(), this);
     m_ruleSourceData = nullptr;
 }
@@ -1507,7 +1511,7 @@ ExceptionOr<String> InspectorStyleSheetForInlineStyle::text() const
 
 ExceptionOr<void> InspectorStyleSheetForInlineStyle::setStyleText(CSSStyleDeclaration* style, const String& text)
 {
-    ASSERT_UNUSED(style, style == inlineStyle());
+    ASSERT_UNUSED(style, style == &inlineStyle());
 
     {
         InspectorCSSAgent::InlineStyleOverrideScope overrideScope(m_element->document());
@@ -1544,9 +1548,6 @@ bool InspectorStyleSheetForInlineStyle::ensureParsedDataReady()
     if (m_ruleSourceData)
         return true;
 
-    if (!m_element->isStyledElement())
-        return false;
-
     m_ruleSourceData = ruleSourceData();
     return true;
 }
@@ -1557,7 +1558,7 @@ RefPtr<InspectorStyle> InspectorStyleSheetForInlineStyle::inspectorStyleForId(co
     return m_inspectorStyle.copyRef();
 }
 
-CSSStyleDeclaration* InspectorStyleSheetForInlineStyle::inlineStyle() const
+CSSStyleDeclaration& InspectorStyleSheetForInlineStyle::inlineStyle() const
 {
     return m_element->cssomStyle();
 }

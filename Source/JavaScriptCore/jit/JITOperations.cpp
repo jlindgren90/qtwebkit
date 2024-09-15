@@ -42,6 +42,7 @@
 #include "ErrorHandlingScope.h"
 #include "EvalCodeBlock.h"
 #include "ExceptionFuzz.h"
+#include "FrameTracers.h"
 #include "FunctionCodeBlock.h"
 #include "GetterSetter.h"
 #include "HostCallReturnValue.h"
@@ -68,6 +69,7 @@
 #include "StructureStubInfo.h"
 #include "SuperSampler.h"
 #include "TestRunnerUtils.h"
+#include "ThunkGenerators.h"
 #include "TypeProfilerLog.h"
 #include "VMInlines.h"
 #include <wtf/InlineASM.h>
@@ -584,15 +586,20 @@ static void directPutByVal(CallFrame* callFrame, JSObject* baseObject, JSValue s
         byValInfo->tookSlowPath = true;
         uint32_t index = subscript.asUInt32();
         ASSERT(isIndex(index));
-        if (baseObject->canSetIndexQuicklyForPutDirect(index)) {
-            baseObject->setIndexQuickly(callFrame->vm(), index, value);
-            return;
+
+        switch (baseObject->indexingType()) {
+        case ALL_INT32_INDEXING_TYPES:
+        case ALL_DOUBLE_INDEXING_TYPES:
+        case ALL_CONTIGUOUS_INDEXING_TYPES:
+        case ALL_ARRAY_STORAGE_INDEXING_TYPES:
+            if (index < baseObject->butterfly()->vectorLength())
+                break;
+            FALLTHROUGH;
+        default:
+            byValInfo->arrayProfile->setOutOfBounds();
+            break;
         }
 
-        // FIXME: This will make us think that in-bounds typed array accesses are actually
-        // out-of-bounds.
-        // https://bugs.webkit.org/show_bug.cgi?id=149886
-        byValInfo->arrayProfile->setOutOfBounds();
         baseObject->putDirectIndex(callFrame, index, value, 0, isStrictMode ? PutDirectIndexShouldThrow : PutDirectIndexShouldNotThrow);
         return;
     }
@@ -732,7 +739,7 @@ static OptimizationResult tryDirectPutByValOptimize(ExecState* exec, JSObject* o
         if (hasOptimizableIndexing(structure)) {
             // Attempt to optimize.
             JITArrayMode arrayMode = jitArrayModeForStructure(structure);
-            if (jitArrayModePermitsPut(arrayMode) && arrayMode != byValInfo->arrayMode) {
+            if (jitArrayModePermitsPutDirect(arrayMode) && arrayMode != byValInfo->arrayMode) {
                 CodeBlock* codeBlock = exec->codeBlock();
                 ConcurrentJSLocker locker(codeBlock->m_lock);
                 byValInfo->arrayProfile->computeUpdatedPrediction(locker, codeBlock, structure);

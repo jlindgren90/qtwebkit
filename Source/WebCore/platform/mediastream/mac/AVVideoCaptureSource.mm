@@ -110,14 +110,27 @@ const OSType videoCaptureFormat = kCVPixelFormatType_420YpCbCr8Planar;
 const OSType videoCaptureFormat = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange;
 #endif
 
-class AVVideoCaptureSourceFactory : public RealtimeMediaSource::VideoCaptureFactory {
+class AVVideoCaptureSourceFactory : public RealtimeMediaSource::VideoCaptureFactory
+#if PLATFORM(IOS)
+    , public RealtimeMediaSource::SingleSourceFactory<AVVideoCaptureSource>
+#endif
+{
 public:
     CaptureSourceOrError createVideoCaptureSource(const String& deviceID, const MediaConstraints* constraints) final {
         AVCaptureDeviceTypedef *device = [getAVCaptureDeviceClass() deviceWithUniqueID:deviceID];
         if (!device)
             return { };
-        return AVVideoCaptureSource::create(device, emptyString(), constraints);
+        return AVVideoCaptureSource::create(device, deviceID, constraints);
     }
+
+#if PLATFORM(IOS)
+private:
+    void setVideoCapturePageState(bool interrupted, bool pageMuted)
+    {
+        if (activeSource())
+            activeSource()->setInterrupted(interrupted, pageMuted);
+    }
+#endif
 };
 
 CaptureSourceOrError AVVideoCaptureSource::create(AVCaptureDeviceTypedef* device, const AtomicString& id, const MediaConstraints* constraints)
@@ -132,10 +145,15 @@ CaptureSourceOrError AVVideoCaptureSource::create(AVCaptureDeviceTypedef* device
     return CaptureSourceOrError(WTFMove(source));
 }
 
-RealtimeMediaSource::VideoCaptureFactory& AVVideoCaptureSource::factory()
+static AVVideoCaptureSourceFactory& avVideoCaptureSourceFactory()
 {
     static NeverDestroyed<AVVideoCaptureSourceFactory> factory;
     return factory.get();
+}
+
+RealtimeMediaSource::VideoCaptureFactory& AVVideoCaptureSource::factory()
+{
+    return avVideoCaptureSourceFactory();
 }
 
 AVVideoCaptureSource::AVVideoCaptureSource(AVCaptureDeviceTypedef* device, const AtomicString& id)
@@ -145,6 +163,9 @@ AVVideoCaptureSource::AVVideoCaptureSource(AVCaptureDeviceTypedef* device, const
 
 AVVideoCaptureSource::~AVVideoCaptureSource()
 {
+#if PLATFORM(IOS)
+    avVideoCaptureSourceFactory().unsetActiveSource(*this);
+#endif
 }
 
 static void updateSizeMinMax(int& min, int& max, int value)
@@ -236,8 +257,10 @@ void AVVideoCaptureSource::updateSettings(RealtimeMediaSourceSettings& settings)
         settings.setFacingMode(RealtimeMediaSourceSettings::Environment);
     else
         settings.setFacingMode(RealtimeMediaSourceSettings::Unknown);
-    
-    settings.setFrameRate(m_frameRate);
+
+    // FIXME: Observe frame rate changes.
+    auto maxFrameDuration = [device() activeVideoMaxFrameDuration];
+    settings.setFrameRate(maxFrameDuration.timescale / maxFrameDuration.value);
     settings.setWidth(m_width);
     settings.setHeight(m_height);
     settings.setAspectRatio(static_cast<float>(m_width) / m_height);
@@ -305,15 +328,16 @@ bool AVVideoCaptureSource::setPreset(NSString *preset)
 
 bool AVVideoCaptureSource::applyFrameRate(double rate)
 {
+    double epsilon = 0.00001;
     AVFrameRateRangeType *bestFrameRateRange = nil;
     for (AVFrameRateRangeType *frameRateRange in [[device() activeFormat] videoSupportedFrameRateRanges]) {
-        if (rate >= [frameRateRange minFrameRate] && rate <= [frameRateRange maxFrameRate]) {
+        if (rate + epsilon >= [frameRateRange minFrameRate] && rate - epsilon <= [frameRateRange maxFrameRate]) {
             if (!bestFrameRateRange || CMTIME_COMPARE_INLINE([frameRateRange minFrameDuration], >, [bestFrameRateRange minFrameDuration]))
                 bestFrameRateRange = frameRateRange;
         }
     }
 
-    if (!bestFrameRateRange) {
+    if (!bestFrameRateRange || !isFrameRateSupported(rate)) {
         LOG(Media, "AVVideoCaptureSource::applyFrameRate(%p), frame rate %f not supported by video device", this, rate);
         return false;
     }
@@ -321,7 +345,13 @@ bool AVVideoCaptureSource::applyFrameRate(double rate)
     NSError *error = nil;
     @try {
         if ([device() lockForConfiguration:&error]) {
-            [device() setActiveVideoMinFrameDuration:[bestFrameRateRange minFrameDuration]];
+            if (bestFrameRateRange.minFrameRate == bestFrameRateRange.maxFrameRate) {
+                [device() setActiveVideoMinFrameDuration:[bestFrameRateRange minFrameDuration]];
+                [device() setActiveVideoMaxFrameDuration:[bestFrameRateRange maxFrameDuration]];
+            } else {
+                [device() setActiveVideoMinFrameDuration: CMTimeMake(1, rate)];
+                [device() setActiveVideoMaxFrameDuration: CMTimeMake(1, rate)];
+            }
             [device() unlockForConfiguration];
         }
     } @catch(NSException *exception) {
@@ -340,7 +370,8 @@ bool AVVideoCaptureSource::applyFrameRate(double rate)
 
 void AVVideoCaptureSource::applySizeAndFrameRate(std::optional<int> width, std::optional<int> height, std::optional<double> frameRate)
 {
-    setPreset(bestSessionPresetForVideoDimensions(WTFMove(width), WTFMove(height)));
+    if (width || height)
+        setPreset(bestSessionPresetForVideoDimensions(WTFMove(width), WTFMove(height)));
 
     if (frameRate)
         applyFrameRate(frameRate.value());
@@ -379,18 +410,22 @@ static inline int sensorOrientationFromVideoOutput(AVCaptureVideoDataOutputType*
     return connection ? sensorOrientation([connection videoOrientation]) : 0;
 }
 
-void AVVideoCaptureSource::setupCaptureSession()
+bool AVVideoCaptureSource::setupCaptureSession()
 {
+#if PLATFORM(IOS)
+    avVideoCaptureSourceFactory().setActiveSource(*this);
+#endif
+
     NSError *error = nil;
     RetainPtr<AVCaptureDeviceInputType> videoIn = adoptNS([allocAVCaptureDeviceInputInstance() initWithDevice:device() error:&error]);
     if (error) {
         LOG(Media, "AVVideoCaptureSource::setupCaptureSession(%p), failed to allocate AVCaptureDeviceInput: %s", this, [[error localizedDescription] UTF8String]);
-        return;
+        return false;
     }
 
     if (![session() canAddInput:videoIn.get()]) {
         LOG(Media, "AVVideoCaptureSource::setupCaptureSession(%p), unable to add video input device", this);
-        return;
+        return false;
     }
     [session() addInput:videoIn.get()];
 
@@ -410,7 +445,7 @@ void AVVideoCaptureSource::setupCaptureSession()
 
     if (![session() canAddOutput:m_videoOutput.get()]) {
         LOG(Media, "AVVideoCaptureSource::setupCaptureSession(%p), unable to add video sample buffer output delegate", this);
-        return;
+        return false;
     }
     [session() addOutput:m_videoOutput.get()];
 
@@ -420,36 +455,15 @@ void AVVideoCaptureSource::setupCaptureSession()
 
     m_sensorOrientation = sensorOrientationFromVideoOutput(m_videoOutput.get());
     computeSampleRotation();
+
+    return true;
 }
 
 void AVVideoCaptureSource::shutdownCaptureSession()
 {
     m_buffer = nullptr;
-    m_lastImage = nullptr;
-    m_videoFrameTimeStamps.clear();
-    m_frameRate = 0;
     m_width = 0;
     m_height = 0;
-}
-
-bool AVVideoCaptureSource::updateFramerate(CMSampleBufferRef sampleBuffer)
-{
-    CMTime sampleTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
-    if (!CMTIME_IS_NUMERIC(sampleTime))
-        return false;
-
-    Float64 frameTime = CMTimeGetSeconds(sampleTime);
-    Float64 oneSecondAgo = frameTime - 1;
-    
-    m_videoFrameTimeStamps.append(frameTime);
-    
-    while (m_videoFrameTimeStamps[0] < oneSecondAgo)
-        m_videoFrameTimeStamps.remove(0);
-
-    Float64 frameRate = m_frameRate;
-    m_frameRate = (m_frameRate + m_videoFrameTimeStamps.size()) / 2;
-
-    return frameRate != m_frameRate;
 }
 
 void AVVideoCaptureSource::monitorOrientation(OrientationNotifier& notifier)
@@ -471,6 +485,7 @@ void AVVideoCaptureSource::orientationChanged(int orientation)
 
 void AVVideoCaptureSource::computeSampleRotation()
 {
+    bool frontCamera = [device() position] == AVCaptureDevicePositionFront;
     switch (m_sensorOrientation - m_deviceOrientation) {
     case 0:
         m_sampleRotation = MediaSample::VideoRotation::None;
@@ -480,11 +495,11 @@ void AVVideoCaptureSource::computeSampleRotation()
         m_sampleRotation = MediaSample::VideoRotation::UpsideDown;
         break;
     case 90:
-        m_sampleRotation = MediaSample::VideoRotation::Left;
+        m_sampleRotation = frontCamera ? MediaSample::VideoRotation::Left : MediaSample::VideoRotation::Right;
         break;
     case -90:
     case -270:
-        m_sampleRotation = MediaSample::VideoRotation::Right;
+        m_sampleRotation = frontCamera ? MediaSample::VideoRotation::Right : MediaSample::VideoRotation::Left;
         break;
     default:
         ASSERT_NOT_REACHED();
@@ -494,19 +509,14 @@ void AVVideoCaptureSource::computeSampleRotation()
 
 void AVVideoCaptureSource::processNewFrame(RetainPtr<CMSampleBufferRef> sampleBuffer, RetainPtr<AVCaptureConnectionType> connection)
 {
-    // Ignore frames delivered when the session is not running, we want to hang onto the last image
-    // delivered before it stopped.
-    if (m_lastImage && (!isProducingData() || muted()))
+    if (!isProducingData() || muted())
         return;
 
     CMFormatDescriptionRef formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer.get());
     if (!formatDescription)
         return;
 
-    updateFramerate(sampleBuffer.get());
     m_buffer = sampleBuffer;
-    m_lastImage = nullptr;
-
     CMVideoDimensions dimensions = CMVideoFormatDescriptionGetDimensions(formatDescription);
     if (m_sampleRotation == MediaSample::VideoRotation::Left || m_sampleRotation == MediaSample::VideoRotation::Right)
         std::swap(dimensions.width, dimensions.height);
@@ -555,6 +565,16 @@ NSString* AVVideoCaptureSource::bestSessionPresetForVideoDimensions(std::optiona
     return nil;
 }
 
+bool AVVideoCaptureSource::isFrameRateSupported(double frameRate)
+{
+    double epsilon = 0.001;
+    for (AVFrameRateRangeType *range in [[device() activeFormat] videoSupportedFrameRateRanges]) {
+        if (frameRate + epsilon >= range.minFrameRate && frameRate - epsilon <= range.maxFrameRate)
+            return true;
+    }
+    return false;
+}
+
 bool AVVideoCaptureSource::supportsSizeAndFrameRate(std::optional<int> width, std::optional<int> height, std::optional<double> frameRate)
 {
     if (!height && !width && !frameRate)
@@ -566,13 +586,7 @@ bool AVVideoCaptureSource::supportsSizeAndFrameRate(std::optional<int> width, st
     if (!frameRate)
         return true;
 
-    int rate = static_cast<int>(frameRate.value());
-    for (AVFrameRateRangeType *range in [[device() activeFormat] videoSupportedFrameRateRanges]) {
-        if (rate >= static_cast<int>(range.minFrameRate) && rate <= static_cast<int>(range.maxFrameRate))
-            return true;
-    }
-
-    return false;
+    return isFrameRateSupported(frameRate.value());
 }
 
 } // namespace WebCore

@@ -25,10 +25,9 @@
 
 #pragma once
 
-#include "CSSFontFaceRule.h"
-#include "FontSelectionAlgorithm.h"
 #include "FontSelectionValueInlines.h"
 #include "FontTaggedSettings.h"
+#include "StyleRule.h"
 #include "TextFlags.h"
 #include "Timer.h"
 #include <memory>
@@ -53,6 +52,7 @@ class Document;
 class FontDescription;
 class Font;
 class FontFace;
+enum class ExternalResourceDownloadPolicy;
 
 class CSSFontFace final : public RefCounted<CSSFontFace> {
 public:
@@ -108,7 +108,8 @@ public:
     void fontLoaded(CSSFontFaceSource&);
 
     void load();
-    RefPtr<Font> font(const FontDescription&, bool syntheticBold, bool syntheticItalic);
+
+    RefPtr<Font> font(const FontDescription&, bool syntheticBold, bool syntheticItalic, ExternalResourceDownloadPolicy);
 
     static void appendSources(CSSFontFace&, CSSValueList&, Document*, bool isInitiatingElementInUserAgentShadowTree);
 
@@ -158,7 +159,7 @@ public:
 private:
     CSSFontFace(CSSFontSelector*, StyleRuleFontFace*, FontFace*, bool isLocalFallback);
 
-    size_t pump();
+    size_t pump(ExternalResourceDownloadPolicy);
     void setStatus(Status);
     void notifyClientsOfFontPropertyChange();
 

@@ -118,6 +118,10 @@ extern NSString *WebQuickLookFileNameKey;
 extern NSString *WebQuickLookUTIKey;
 #endif
 
+#if TARGET_OS_IPHONE && __IPHONE_OS_VERSION_MIN_REQUIRED >= 110000
+@protocol UIDropSession;
+#endif
+
 extern NSString * const WebViewWillCloseNotification;
 
 #if ENABLE_DASHBOARD_SUPPORT
@@ -316,6 +320,9 @@ typedef enum {
 
 @interface WebView (WebPrivate)
 
++ (void)_setIconLoadingEnabled:(BOOL)enabled;
++ (BOOL)_isIconLoadingEnabled;
+
 - (WebInspector *)inspector;
 
 #if ENABLE_REMOTE_INSPECTOR
@@ -464,21 +471,25 @@ Could be worth adding to the API.
 + (void)_releaseMemoryNow;
 
 - (void)_replaceCurrentHistoryItem:(WebHistoryItem *)item;
-#endif // TARGET_OS_IPHONE
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 110000
 - (BOOL)_requestStartDataInteraction:(CGPoint)clientPosition globalPosition:(CGPoint)globalPosition;
 - (WebUITextIndicatorData *)_getDataInteractionData;
 @property (nonatomic, readonly, strong, getter=_dataOperationTextIndicator) WebUITextIndicatorData *dataOperationTextIndicator;
-- (uint64_t)_enteredDataInteraction:(id)dataInteraction client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
-- (uint64_t)_updatedDataInteraction:(id)dataInteraction client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
-- (void)_exitedDataInteraction:(id)dataInteraction client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
-- (void)_performDataInteraction:(id)dataInteraction client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
-- (BOOL)_tryToPerformDataInteraction:(id)dataInteraction client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
+@property (nonatomic, readonly) NSUInteger _dragSourceAction;
+@property (nonatomic, strong, readonly) NSString *_draggedLinkTitle;
+@property (nonatomic, strong, readonly) NSURL *_draggedLinkURL;
+@property (nonatomic, readonly) CGRect _draggedElementBounds;
+- (uint64_t)_enteredDataInteraction:(id <UIDropSession>)session client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
+- (uint64_t)_updatedDataInteraction:(id <UIDropSession>)session client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
+- (void)_exitedDataInteraction:(id <UIDropSession>)session client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
+- (void)_performDataInteraction:(id <UIDropSession>)session client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
+- (BOOL)_tryToPerformDataInteraction:(id <UIDropSession>)session client:(CGPoint)clientPosition global:(CGPoint)globalPosition operation:(uint64_t)operation;
 - (void)_endedDataInteraction:(CGPoint)clientPosition global:(CGPoint)clientPosition;
 
-#if TARGET_OS_IPHONE
 @property (nonatomic, readonly, getter=_dataInteractionCaretRect) CGRect dataInteractionCaretRect;
-- (UIImage *)_createImageWithPlatterForImage:(UIImage *)image boundingRect:(CGRect)boundingRect contentScaleFactor:(CGFloat)contentScaleFactor clippingRects:(NSArray<NSValue *> *)clippingRects;
+#endif
+
 // Deprecated. Use -[WebDataSource _quickLookContent] instead.
 - (NSDictionary *)quickLookContentForURL:(NSURL *)url;
 #endif
@@ -765,10 +776,6 @@ Could be worth adding to the API.
 
 // Returns YES if NSView -displayRectIgnoringOpacity:inContext: will produce a faithful representation of the content.
 - (BOOL)_isSoftwareRenderable;
-// When drawing into a bitmap context, we normally flatten compositing layers (and distort 3D transforms).
-// Clients who are able to capture their own copy of the compositing layers need to be able to disable this.
-- (void)_setIncludesFlattenedCompositingLayersWhenDrawingToBitmap:(BOOL)flag;
-- (BOOL)_includesFlattenedCompositingLayersWhenDrawingToBitmap;
 
 - (void)setTracksRepaints:(BOOL)flag;
 - (BOOL)isTrackingRepaints;
@@ -912,6 +919,15 @@ Could be worth adding to the API.
 - (void)showCandidates:(NSArray *)candidates forString:(NSString *)string inRect:(NSRect)rectOfTypedString forSelectedRange:(NSRange)range view:(NSView *)view completionHandler:(void (^)(NSTextCheckingResult *acceptedCandidate))completionBlock;
 - (void)forceRequestCandidatesForTesting;
 - (BOOL)shouldRequestCandidates;
+
+typedef struct WebEdgeInsets {
+    CGFloat top;
+    CGFloat left;
+    CGFloat bottom;
+    CGFloat right;
+} WebEdgeInsets;
+
+@property (nonatomic, assign, setter=_setUnobscuredSafeAreaInsets:) WebEdgeInsets _unobscuredSafeAreaInsets;
 
 @end
 

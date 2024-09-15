@@ -40,7 +40,7 @@
 #import "WebPageProxy.h"
 #import <WebCore/InspectorFrontendClientLocal.h>
 #import <WebCore/LocalizedStrings.h>
-#import <WebCore/SoftLinking.h>
+#import <wtf/SoftLinking.h>
 #import <wtf/text/Base64.h>
 
 SOFT_LINK_STAGED_FRAMEWORK(WebInspectorUI, PrivateFrameworks, A)
@@ -229,12 +229,10 @@ RetainPtr<NSWindow> WebInspectorProxy::createFrontendWindow(NSRect savedWindowFr
     [window setReleasedWhenClosed:NO];
     [window setCollectionBehavior:([window collectionBehavior] | NSWindowCollectionBehaviorFullScreenPrimary)];
 
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     CGFloat approximatelyHalfScreenSize = ([window screen].frame.size.width / 2) - 4;
     CGFloat minimumFullScreenWidth = std::max<CGFloat>(636, approximatelyHalfScreenSize);
     [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
     [window setCollectionBehavior:([window collectionBehavior] | NSWindowCollectionBehaviorFullScreenAllowsTiling)];
-#endif
 
     [window setTitlebarAppearsTransparent:YES];
 
@@ -687,9 +685,7 @@ void WebInspectorProxy::platformSetAttachedWindowWidth(unsigned width)
 
 void WebInspectorProxy::platformStartWindowDrag()
 {
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     m_inspectorView->_page->startWindowDrag();
-#endif
 }
 
 String WebInspectorProxy::inspectorPageURL()

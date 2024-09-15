@@ -28,6 +28,7 @@
 
 #include "DocumentRuleSets.h"
 #include "ElementChildIterator.h"
+#include "HTMLSlotElement.h"
 #include "ShadowRoot.h"
 #include "StyleResolver.h"
 #include "StyleScope.h"
@@ -35,15 +36,22 @@
 namespace WebCore {
 namespace Style {
 
-static bool mayBeAffectedByHostRules(const Element& element, const AtomicString& changedId)
+static bool mayBeAffectedByHostRules(const Element& element, const AtomicString& changedId, bool& mayAffectShadowTree)
 {
     auto* shadowRoot = element.shadowRoot();
     if (!shadowRoot)
         return false;
     auto& shadowRuleSets = shadowRoot->styleScope().resolver().ruleSets();
-    if (shadowRuleSets.authorStyle().hostPseudoClassRules().isEmpty())
+    auto& authorStyle = shadowRuleSets.authorStyle();
+    if (authorStyle.hostPseudoClassRules().isEmpty() && !authorStyle.hasHostPseudoClassRulesMatchingInShadowTree())
         return false;
-    return shadowRuleSets.features().idsInRules.contains(changedId);
+
+    if (!shadowRuleSets.features().idsInRules.contains(changedId))
+        return false;
+
+    if (authorStyle.hasHostPseudoClassRulesMatchingInShadowTree())
+        mayAffectShadowTree = true;
+    return true;
 }
 
 static bool mayBeAffectedBySlottedRules(const Element& element, const AtomicString& changedId)
@@ -64,15 +72,22 @@ void IdChangeInvalidation::invalidateStyle(const AtomicString& changedId)
         return;
 
     auto& ruleSets = m_element.styleResolver().ruleSets();
+    bool mayAffectShadowTree = false;
 
     bool mayAffectStyle = ruleSets.features().idsInRules.contains(changedId)
-        || mayBeAffectedByHostRules(m_element, changedId)
+        || mayBeAffectedByHostRules(m_element, changedId, mayAffectShadowTree)
         || mayBeAffectedBySlottedRules(m_element, changedId);
 
     if (!mayAffectStyle)
         return;
 
-    if (m_element.shadowRoot() && ruleSets.authorStyle().hasShadowPseudoElementRules()) {
+    if (m_element.shadowRoot() && ruleSets.authorStyle().hasShadowPseudoElementRules())
+        mayAffectShadowTree = true;
+
+    if (is<HTMLSlotElement>(m_element) && !ruleSets.authorStyle().slottedPseudoElementRules().isEmpty())
+        mayAffectShadowTree = true;
+
+    if (mayAffectShadowTree) {
         m_element.invalidateStyleForSubtree();
         return;
     }

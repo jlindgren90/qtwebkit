@@ -235,6 +235,16 @@ static _WKStorageBlockingPolicy toAPI(WebCore::SecurityOrigin::StorageBlockingPo
     _preferences->setFullScreenEnabled(fullScreenEnabled);
 }
 
+- (BOOL)_allowsPictureInPictureMediaPlayback
+{
+    return _preferences->allowsPictureInPictureMediaPlayback();
+}
+
+- (void)_setAllowsPictureInPictureMediaPlayback:(BOOL)allowed
+{
+    _preferences->setAllowsPictureInPictureMediaPlayback(allowed);
+}
+
 - (BOOL)_compositingBordersVisible
 {
     return _preferences->compositingBordersVisible();
@@ -599,12 +609,42 @@ static _WKStorageBlockingPolicy toAPI(WebCore::SecurityOrigin::StorageBlockingPo
 
 - (BOOL)_webRTCLegacyAPIEnabled
 {
-    return _preferences->webRTCLegacyAPIEnabled();
+    return !_preferences->webRTCLegacyAPIDisabled();
 }
 
 - (void)_setWebRTCLegacyAPIEnabled:(BOOL)enabled
 {
-    _preferences->setWebRTCLegacyAPIEnabled(enabled);
+    _preferences->setWebRTCLegacyAPIDisabled(!enabled);
+}
+
+- (void)_setJavaScriptCanAccessClipboard:(BOOL)javaScriptCanAccessClipboard
+{
+    _preferences->setJavaScriptCanAccessClipboard(javaScriptCanAccessClipboard);
+}
+
+- (BOOL)_javaScriptCanAccessClipboard
+{
+    return _preferences->javaScriptCanAccessClipboard();
+}
+
+- (void)_setDOMPasteAllowed:(BOOL)domPasteAllowed
+{
+    _preferences->setDOMPasteAllowed(domPasteAllowed);
+}
+
+- (BOOL)_domPasteAllowed
+{
+    return _preferences->domPasteAllowed();
+}
+
+- (void)_setMediaDocumentEntersFullscreenAutomatically:(BOOL)mediaDocumentEntersFullscreenAutomatically
+{
+    _preferences->setMediaDocumentEntersFullscreenAutomatically(mediaDocumentEntersFullscreenAutomatically);
+}
+
+- (BOOL)_mediaDocumentEntersFullscreenAutomatically
+{
+    return _preferences->mediaDocumentEntersFullscreenAutomatically();
 }
 
 @end

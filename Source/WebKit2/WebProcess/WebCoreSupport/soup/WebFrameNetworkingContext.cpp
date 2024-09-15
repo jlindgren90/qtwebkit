@@ -31,6 +31,7 @@
 #include "SessionTracker.h"
 #include "WebFrame.h"
 #include "WebPage.h"
+#include <WebCore/FrameLoader.h>
 #include <WebCore/NetworkStorageSession.h>
 #include <WebCore/SessionID.h>
 #include <WebCore/Settings.h>
@@ -42,7 +43,7 @@ namespace WebKit {
 
 void WebFrameNetworkingContext::ensurePrivateBrowsingSession(SessionID sessionID)
 {
-    ASSERT(isMainThread());
+    ASSERT(RunLoop::isMain());
     ASSERT(sessionID.isEphemeral());
 
     if (NetworkStorageSession::storageSession(sessionID))

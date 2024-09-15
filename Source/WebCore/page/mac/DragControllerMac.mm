@@ -42,6 +42,8 @@
 #import "MainFrame.h"
 #import "Page.h"
 #import "Pasteboard.h"
+#import "PasteboardStrategy.h"
+#import "PlatformStrategies.h"
 #import "Range.h"
 
 #if ENABLE(DATA_INTERACTION)
@@ -49,8 +51,6 @@
 #endif
 
 namespace WebCore {
-
-const int DragController::LinkDragBorderInset = -2;
 
 const int DragController::MaxOriginalImageArea = 1500 * 1500;
 const int DragController::DragIconRightInset = 7;
@@ -92,6 +92,7 @@ const IntSize& DragController::maxDragImageSize()
 
 void DragController::cleanupAfterSystemDrag()
 {
+#if PLATFORM(MAC)
     // Drag has ended, dragEnded *should* have been called, however it is possible
     // for the UIDelegate to take over the drag, and fail to send the appropriate
     // drag termination event.  As dragEnded just resets drag variables, we just
@@ -100,11 +101,19 @@ void DragController::cleanupAfterSystemDrag()
     // is asynchronous.
     if (m_page.mainFrame().view()->platformWidget())
         dragEnded();
+#endif
 }
 
 #if ENABLE(DATA_INTERACTION)
 
-void DragController::updatePreferredTypeIdentifiersForDragHandlingMethod(DragHandlingMethod dragHandlingMethod, const DragData& dragData) const
+DragOperation DragController::platformGenericDragOperation()
+{
+    // On iOS, UIKit skips the -performDrop invocation altogether if MOVE is forbidden.
+    // Thus, if MOVE is not allowed in the drag source operation mask, fall back to only other allowable action, COPY.
+    return DragOperationCopy;
+}
+
+void DragController::updateSupportedTypeIdentifiersForDragHandlingMethod(DragHandlingMethod dragHandlingMethod, const DragData& dragData) const
 {
     Vector<String> supportedTypes;
     switch (dragHandlingMethod) {
@@ -116,14 +125,15 @@ void DragController::updatePreferredTypeIdentifiersForDragHandlingMethod(DragHan
         supportedTypes.append(kUTTypePlainText);
         break;
     case DragHandlingMethod::EditRichText:
-        for (NSString *type in Pasteboard::supportedPasteboardTypes())
+        for (NSString *type in Pasteboard::supportedWebContentPasteboardTypes())
             supportedTypes.append(type);
         break;
     default:
-        supportedTypes.append(kUTTypeContent);
+        for (NSString *type in Pasteboard::supportedFileUploadPasteboardTypes())
+            supportedTypes.append(type);
         break;
     }
-    dragData.updatePreferredTypeIdentifiers(supportedTypes);
+    platformStrategies()->pasteboardStrategy()->updateSupportedTypeIdentifiers(supportedTypes, dragData.pasteboardName());
 }
 
 #endif

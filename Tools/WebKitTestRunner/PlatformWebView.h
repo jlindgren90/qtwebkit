@@ -50,6 +50,11 @@ typedef struct _GtkWidget GtkWidget;
 typedef WKViewRef PlatformWKView;
 typedef GtkWidget* PlatformWindow;
 typedef cairo_surface_t *PlatformImage;
+#elif PLATFORM(WPE)
+class HeadlessViewBackend;
+typedef WKViewRef PlatformWKView;
+typedef HeadlessViewBackend* PlatformWindow;
+typedef cairo_surface_t* PlatformImage;
 #endif
 
 namespace WTR {
@@ -90,7 +95,7 @@ public:
     void removeFromWindow();
     void addToWindow();
 
-    bool viewSupportsOptions(const TestOptions&) const;
+    bool viewSupportsOptions(const TestOptions& options) const { return m_options.hasSameInitializationOptions(options); }
 
     PlatformImage windowSnapshotImage();
     const TestOptions& options() const { return m_options; }

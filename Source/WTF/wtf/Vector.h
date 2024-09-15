@@ -780,6 +780,8 @@ public:
 
     void checkConsistency();
 
+    template<typename MapFunction, typename R = typename std::result_of<MapFunction(const T&)>::type> Vector<R> map(MapFunction) const;
+
 private:
     void expandCapacity(size_t newMinCapacity);
     T* expandCapacity(size_t newMinCapacity, T*);
@@ -1188,9 +1190,6 @@ void Vector<T, inlineCapacity, OverflowHandler, minCapacity>::shrinkCapacity(siz
     asanSetInitialBufferSizeTo(size());
 }
 
-// Templatizing these is better than just letting the conversion happen implicitly,
-// because for instance it allows a PassRefPtr to be appended to a RefPtr vector
-// without refcount thrash.
 template<typename T, size_t inlineCapacity, typename OverflowHandler, size_t minCapacity> template<typename U>
 void Vector<T, inlineCapacity, OverflowHandler, minCapacity>::append(const U* data, size_t dataSize)
 {
@@ -1458,6 +1457,16 @@ inline void Vector<T, inlineCapacity, OverflowHandler, minCapacity>::reverse()
 {
     for (size_t i = 0; i < m_size / 2; ++i)
         std::swap(at(i), at(m_size - 1 - i));
+}
+
+template<typename T, size_t inlineCapacity, typename OverflowHandler, size_t minCapacity> template<typename MapFunction, typename R>
+inline Vector<R> Vector<T, inlineCapacity, OverflowHandler, minCapacity>::map(MapFunction mapFunction) const
+{
+    Vector<R> result;
+    result.reserveInitialCapacity(size());
+    for (size_t i = 0; i < size(); ++i)
+        result.uncheckedAppend(mapFunction(at(i)));
+    return result;
 }
 
 template<typename T, size_t inlineCapacity, typename OverflowHandler, size_t minCapacity>

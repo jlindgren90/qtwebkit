@@ -19,11 +19,11 @@
  */
 
 [
-    CustomEnumerateProperty,
-    CustomNamedSetter,
+    CustomGetOwnPropertyNames,
+    CustomGetOwnPropertySlotAndDescriptor,
+    CustomPut,
     ExportMacro=WEBCORE_EXPORT,
     GenerateIsReachable,
-    JSCustomGetOwnPropertySlotAndDescriptor,
     JSCustomHeader,
     JSCustomMarkFunction,
     SkipVTableValidation,

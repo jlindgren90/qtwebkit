@@ -33,7 +33,6 @@
 #include "PaintInfo.h"
 #include "PopupMenuStyle.h"
 #include "ScrollTypes.h"
-#include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 
 namespace WebCore {
@@ -62,15 +61,8 @@ public:
     virtual ~RenderTheme() { }
 
     // This function is to be implemented in your platform-specific theme implementation to hand back the
-    // appropriate platform theme. When the theme is needed in non-page dependent code, a default theme is
-    // used as fallback, which is returned for a nulled page, so the platform code needs to account for this.
-    static Ref<RenderTheme> themeForPage(Page*);
-
-    // When the theme is needed in non-page dependent code, the defaultTheme() is used as fallback.
-    static inline Ref<RenderTheme> defaultTheme()
-    {
-        return themeForPage(nullptr);
-    };
+    // appropriate platform theme.
+    WEBCORE_EXPORT static RenderTheme& singleton();
 
     virtual void purgeCaches() { }
 
@@ -102,6 +94,7 @@ public:
     virtual String extraMediaControlsStyleSheet() { return String(); }
     virtual String mediaControlsScript() { return String(); }
     virtual String mediaControlsBase64StringForIconNameAndType(const String&, const String&) { return String(); }
+    virtual String mediaControlsFormattedStringForDuration(double) { return String(); }
 #endif
 #if ENABLE(FULLSCREEN_API)
     virtual String extraFullScreenStyleSheet() { return String(); }
@@ -259,6 +252,9 @@ public:
 
     enum class InnerSpinButtonLayout { Vertical, HorizontalUpLeft, HorizontalUpRight };
     virtual InnerSpinButtonLayout innerSpinButtonLayout(const RenderObject&) const { return InnerSpinButtonLayout::Vertical; }
+
+    virtual bool shouldMockBoldSystemFontForAccessibility() const { return false; }
+    virtual void setShouldMockBoldSystemFontForAccessibility(bool) { }
 
 protected:
     virtual FontCascadeDescription& cachedSystemFontDescription(CSSValueID systemFontID) const;

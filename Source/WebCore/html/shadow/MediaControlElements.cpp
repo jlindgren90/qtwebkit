@@ -47,11 +47,13 @@
 #include "LocalizedStrings.h"
 #include "Logging.h"
 #include "MediaControls.h"
+#include "MouseEvent.h"
 #include "Page.h"
 #include "PageGroup.h"
 #include "RenderLayer.h"
 #include "RenderMediaControlElements.h"
 #include "RenderSlider.h"
+#include "RenderTheme.h"
 #include "RenderVideo.h"
 #include "RenderView.h"
 #include "Settings.h"
@@ -137,7 +139,7 @@ void MediaControlPanelElement::startTimer()
     // The timer is required to set the property display:'none' on the panel,
     // such that captions are correctly displayed at the bottom of the video
     // at the end of the fadeout transition.
-    Seconds duration = document().page() ? document().page()->theme().mediaControlsFadeOutDuration() : 0_s;
+    Seconds duration = RenderTheme::singleton().mediaControlsFadeOutDuration();
     m_transitionTimer.startOneShot(duration);
 }
 
@@ -188,7 +190,7 @@ void MediaControlPanelElement::makeOpaque()
     if (m_opaque)
         return;
 
-    double duration = document().page() ? document().page()->theme().mediaControlsFadeInDuration() : 0;
+    double duration = RenderTheme::singleton().mediaControlsFadeInDuration();
 
     setInlineStyleProperty(CSSPropertyTransitionProperty, CSSPropertyOpacity);
     setInlineStyleProperty(CSSPropertyTransitionDuration, duration, CSSPrimitiveValue::CSS_S);
@@ -205,7 +207,7 @@ void MediaControlPanelElement::makeTransparent()
     if (!m_opaque)
         return;
 
-    Seconds duration = document().page() ? document().page()->theme().mediaControlsFadeOutDuration() : 0_s;
+    Seconds duration = RenderTheme::singleton().mediaControlsFadeOutDuration();
 
     setInlineStyleProperty(CSSPropertyTransitionProperty, CSSPropertyOpacity);
     setInlineStyleProperty(CSSPropertyTransitionDuration, duration.value(), CSSPrimitiveValue::CSS_S);
@@ -1252,13 +1254,13 @@ void MediaControlTextTrackContainerElement::updateTextStrokeStyle()
             break;
         }
     }
-    
+
     float strokeWidth;
     bool important;
-    
+
     // FIXME: find a way to set this property in the stylesheet like the other user style preferences, see <https://bugs.webkit.org/show_bug.cgi?id=169874>.
     if (document().page()->group().captionPreferences().captionStrokeWidthForFont(m_fontSize, language, strokeWidth, important))
-        setInlineStyleProperty(CSSPropertyStrokeWidth, strokeWidth, CSSPrimitiveValue::CSS_PT, important);
+        setInlineStyleProperty(CSSPropertyStrokeWidth, strokeWidth, CSSPrimitiveValue::CSS_PX, important);
 }
 
 void MediaControlTextTrackContainerElement::updateTimerFired()
@@ -1280,8 +1282,13 @@ void MediaControlTextTrackContainerElement::updateTextTrackRepresentation()
     if (!mediaElement)
         return;
 
-    if (!mediaElement->requiresTextTrackRepresentation())
+    if (!mediaElement->requiresTextTrackRepresentation()) {
+        if (m_textTrackRepresentation) {
+            clearTextTrackRepresentation();
+            updateSizes(true);
+        }
         return;
+    }
 
     if (!m_textTrackRepresentation) {
         m_textTrackRepresentation = TextTrackRepresentation::create(*this);

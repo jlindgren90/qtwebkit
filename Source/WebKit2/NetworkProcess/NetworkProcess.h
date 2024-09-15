@@ -113,12 +113,12 @@ public:
 
     void prefetchDNS(const String&);
 
-    void ensurePrivateBrowsingSession(WebCore::SessionID);
+    void ensurePrivateBrowsingSession(WebsiteDataStoreParameters&&);
 
     void grantSandboxExtensionsToDatabaseProcessForBlobs(const Vector<String>& filenames, Function<void ()>&& completionHandler);
 
 #if HAVE(CFNETWORK_STORAGE_PARTITIONING)
-    void shouldPartitionCookiesForTopPrivatelyOwnedDomains(const Vector<String>& domainsToRemove, const Vector<String>& domainsToAdd, bool clearFirst);
+    void updateCookiePartitioningForTopPrivatelyOwnedDomains(const Vector<String>& domainsToRemove, const Vector<String>& domainsToAdd, bool shouldClearFirst);
 #endif
 
     Seconds loadThrottleLatency() const { return m_loadThrottleLatency; }
@@ -133,6 +133,9 @@ private:
     void platformTerminate();
 
     void lowMemoryHandler(Critical);
+
+    enum class ShouldAcknowledgeWhenReadyToSuspend { No, Yes };
+    void actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend);
 
     // ChildProcess
     void initializeProcess(const ChildProcessInitializationParameters&) override;
@@ -170,7 +173,7 @@ private:
     void clearCachedCredentials();
 
     // FIXME: This should take a session ID so we can identify which disk cache to delete.
-    void clearDiskCache(std::chrono::system_clock::time_point modifiedSince, std::function<void ()> completionHandler);
+    void clearDiskCache(std::chrono::system_clock::time_point modifiedSince, Function<void ()>&& completionHandler);
 
     void downloadRequest(WebCore::SessionID, DownloadID, const WebCore::ResourceRequest&, const String& suggestedFilename);
     void resumeDownload(WebCore::SessionID, DownloadID, const IPC::DataReference& resumeData, const String& path, const SandboxExtension::Handle&);

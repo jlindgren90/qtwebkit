@@ -567,10 +567,7 @@ private:
             break;
                 
         case ArithSqrt:
-        case ArithCos:
-        case ArithSin:
-        case ArithTan:
-        case ArithLog:
+        case ArithUnary:
             if (node->child1()->shouldSpeculateNumber())
                 m_graph.voteNode(node->child1(), VoteDouble, weight);
             else
@@ -765,13 +762,15 @@ private:
             setPrediction(SpecBoolean);
             break;
 
-        case GetRestLength: {
+        case GetRestLength:
+        case ArrayIndexOf: {
             setPrediction(SpecInt32Only);
             break;
         }
 
         case GetTypedArrayByteOffset:
-        case GetArrayLength: {
+        case GetArrayLength:
+        case GetVectorLength: {
             setPrediction(SpecInt32Only);
             break;
         }
@@ -788,10 +787,7 @@ private:
         case ArithPow:
         case ArithSqrt:
         case ArithFRound:
-        case ArithSin:
-        case ArithCos:
-        case ArithTan:
-        case ArithLog: {
+        case ArithUnary: {
             setPrediction(SpecBytecodeDouble);
             break;
         }
@@ -850,7 +846,7 @@ private:
             break;
         }
 
-        case CheckDOM:
+        case CheckSubClass:
             break;
 
         case CallObjectConstructor: {

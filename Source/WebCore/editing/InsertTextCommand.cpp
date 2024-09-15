@@ -45,12 +45,12 @@ InsertTextCommand::InsertTextCommand(Document& document, const String& text, boo
 {
 }
 
-InsertTextCommand::InsertTextCommand(Document& document, const String& text, PassRefPtr<TextInsertionMarkerSupplier> markerSupplier, EditAction editingAction)
+InsertTextCommand::InsertTextCommand(Document& document, const String& text, Ref<TextInsertionMarkerSupplier>&& markerSupplier, EditAction editingAction)
     : CompositeEditCommand(document, editingAction)
     , m_text(text)
     , m_selectInsertedText(false)
     , m_rebalanceType(RebalanceLeadingAndTrailingWhitespaces)
-    , m_markerSupplier(markerSupplier)
+    , m_markerSupplier(WTFMove(markerSupplier))
 {
 }
 
@@ -120,7 +120,7 @@ bool InsertTextCommand::performOverwrite(const String& text, bool selectInserted
     if (!count)
         return false;
 
-    replaceTextInNode(textNode, start.offsetInContainerNode(), count, text);
+    replaceTextInNode(*textNode, start.offsetInContainerNode(), count, text);
 
     Position endPosition = Position(textNode.get(), start.offsetInContainerNode() + text.length());
     setEndingSelectionWithoutValidation(start, endPosition);
@@ -203,7 +203,7 @@ void InsertTextCommand::doApply()
         RefPtr<Text> textNode = startPosition.containerText();
         const unsigned offset = startPosition.offsetInContainerNode();
 
-        insertTextIntoNode(textNode, offset, m_text);
+        insertTextIntoNode(*textNode, offset, m_text);
         endPosition = Position(textNode.get(), offset + m_text.length());
         if (m_markerSupplier)
             m_markerSupplier->addMarkersToTextNode(textNode.get(), offset, m_text);
@@ -217,7 +217,7 @@ void InsertTextCommand::doApply()
         } else {
             ASSERT(m_rebalanceType == RebalanceAllWhitespaces);
             if (canRebalance(startPosition) && canRebalance(endPosition))
-                rebalanceWhitespaceOnTextSubstring(textNode, startPosition.offsetInContainerNode(), endPosition.offsetInContainerNode());
+                rebalanceWhitespaceOnTextSubstring(*textNode, startPosition.offsetInContainerNode(), endPosition.offsetInContainerNode());
         }
     }
 
@@ -245,9 +245,9 @@ Position InsertTextCommand::insertTab(const Position& pos)
 
     // keep tabs coalesced in tab span
     if (isTabSpanTextNode(node)) {
-        RefPtr<Text> textNode = downcast<Text>(node);
+        Ref<Text> textNode = downcast<Text>(*node);
         insertTextIntoNode(textNode, offset, "\t");
-        return Position(textNode.get(), offset + 1);
+        return Position(textNode.ptr(), offset + 1);
     }
     
     // create new tab span
@@ -267,7 +267,7 @@ Position InsertTextCommand::insertTab(const Position& pos)
             // second node in the split, so we need to
             // insert the span before it.
             if (offset > 0)
-                splitTextNode(textNode.ptr(), offset);
+                splitTextNode(textNode, offset);
             insertNodeBefore(WTFMove(spanNode), textNode);
         }
     }

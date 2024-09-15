@@ -66,6 +66,10 @@ void IncrementalSweeper::doSweep(MonotonicTime sweepBeginTime)
         return;
     }
 
+    if (m_shouldFreeFastMallocMemoryAfterSweeping) {
+        WTF::releaseFastMallocFreeMemory();
+        m_shouldFreeFastMallocMemoryAfterSweeping = false;
+    }
     cancelTimer();
 }
 
@@ -83,7 +87,7 @@ bool IncrementalSweeper::sweepNextBlock()
     
     if (block) {
         DeferGCForAWhile deferGC(m_vm->heap);
-        block->sweep();
+        block->sweep(nullptr);
         m_vm->heap.objectSpace().freeOrShrinkBlock(block);
         return true;
     }

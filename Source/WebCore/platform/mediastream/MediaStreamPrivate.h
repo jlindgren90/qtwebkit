@@ -95,6 +95,8 @@ public:
     void stopProducingData();
     bool isProducingData() const;
 
+    void endStream();
+
     bool hasVideo() const;
     bool hasAudio() const;
     bool muted() const;
@@ -123,6 +125,7 @@ private:
     MediaStreamPrivate(const MediaStreamTrackPrivateVector&, String&&);
 
     // MediaStreamTrackPrivate::Observer
+    void trackStarted(MediaStreamTrackPrivate&) override;
     void trackEnded(MediaStreamTrackPrivate&) override;
     void trackMutedChanged(MediaStreamTrackPrivate&) override;
     void trackSettingsChanged(MediaStreamTrackPrivate&) override;

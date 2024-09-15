@@ -28,6 +28,7 @@
 #include "config.h"
 #include "StyleScope.h"
 
+#include "CSSFontSelector.h"
 #include "CSSStyleSheet.h"
 #include "Element.h"
 #include "ElementChildIterator.h"
@@ -42,7 +43,7 @@
 #include "SVGStyleElement.h"
 #include "Settings.h"
 #include "ShadowRoot.h"
-#include "StyleInvalidationAnalysis.h"
+#include "StyleInvalidator.h"
 #include "StyleResolver.h"
 #include "StyleSheetContents.h"
 #include "StyleSheetList.h"
@@ -95,14 +96,20 @@ StyleResolver& Scope::resolver()
 
     if (!m_resolver) {
         SetForScope<bool> isUpdatingStyleResolver { m_isUpdatingStyleResolver, true };
+
         m_resolver = std::make_unique<StyleResolver>(m_document);
 
-        if (!m_shadowRoot)
+        if (!m_shadowRoot) {
+            m_document.fontSelector().buildStarted();
             m_resolver->ruleSets().initializeUserStyle();
-        else
+        } else
             m_resolver->ruleSets().setUsesSharedUserStyle(m_shadowRoot->mode() != ShadowRootMode::UserAgent);
 
+        m_resolver->addCurrentSVGFontFaceRules();
         m_resolver->appendAuthorStyleSheets(m_activeStyleSheets);
+
+        if (!m_shadowRoot)
+            m_document.fontSelector().buildCompleted();
     }
     ASSERT(!m_shadowRoot || &m_document == &m_shadowRoot->document());
     ASSERT(&m_resolver->document() == &m_document);
@@ -325,7 +332,7 @@ void Scope::collectActiveStyleSheets(Vector<RefPtr<StyleSheet>>& sheets)
                     continue;
                 }
                 if (!linkElement.sheet())
-                    title = nullAtom;
+                    title = nullAtom();
             }
             // Get the current preferred styleset. This is the
             // set of sheets that will be enabled.
@@ -403,14 +410,14 @@ Scope::StyleResolverUpdateType Scope::analyzeStyleSheetChange(const Vector<RefPt
     if (!m_document.bodyOrFrameset() || m_document.hasNodesWithNonFinalStyle() || m_document.hasNodesWithMissingStyle())
         return styleResolverUpdateType;
 
-    StyleInvalidationAnalysis invalidationAnalysis(addedSheets, styleResolver.mediaQueryEvaluator());
-    if (invalidationAnalysis.dirtiesAllStyle())
+    Invalidator invalidator(addedSheets, styleResolver.mediaQueryEvaluator());
+    if (invalidator.dirtiesAllStyle())
         return styleResolverUpdateType;
 
     if (m_shadowRoot)
-        invalidationAnalysis.invalidateStyle(*m_shadowRoot);
+        invalidator.invalidateStyle(*m_shadowRoot);
     else
-        invalidationAnalysis.invalidateStyle(m_document);
+        invalidator.invalidateStyle(m_document);
 
     requiresFullStyleRecalc = false;
 

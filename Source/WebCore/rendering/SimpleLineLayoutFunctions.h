@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include "LayoutRect.h"
 #include "RenderBlockFlow.h"
 #include "RenderText.h"
 #include <wtf/text/WTFString.h>
@@ -39,6 +38,7 @@ class RenderBlockFlow;
 struct PaintInfo;
 
 namespace SimpleLineLayout {
+class FlowContents;
 
 LayoutUnit computeFlowHeight(const RenderBlockFlow&, const Layout&);
 LayoutUnit computeFlowFirstLineBaseline(const RenderBlockFlow&, const Layout&);
@@ -64,8 +64,10 @@ Vector<FloatQuad> collectAbsoluteQuadsForRange(const RenderObject&, unsigned sta
 LayoutUnit lineHeightFromFlow(const RenderBlockFlow&);
 LayoutUnit baselineFromFlow(const RenderBlockFlow&);
 
+const RenderObject& rendererForPosition(const FlowContents&, unsigned);
+
 #if ENABLE(TREE_DEBUGGING)
-void showLineLayoutForFlow(const RenderBlockFlow&, const Layout&, int depth);
+void outputLineLayoutForFlow(TextStream&, const RenderBlockFlow&, const Layout&, int depth);
 #endif
 
 }

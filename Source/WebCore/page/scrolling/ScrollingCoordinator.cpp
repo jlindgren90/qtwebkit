@@ -49,11 +49,6 @@
 #include "ScrollingCoordinatorCoordinatedGraphics.h"
 #endif
 
-#if ENABLE(WEB_REPLAY)
-#include "ReplayController.h"
-#include <replay/InputCursor.h>
-#endif
-
 namespace WebCore {
 
 #if !PLATFORM(COCOA)
@@ -88,10 +83,14 @@ bool ScrollingCoordinator::coordinatesScrollingForFrameView(const FrameView& fra
     ASSERT(isMainThread());
     ASSERT(m_page);
 
-    if (!frameView.frame().isMainFrame() && !m_page->settings().scrollingTreeIncludesFrames())
+    if (!frameView.frame().isMainFrame() && !m_page->settings().scrollingTreeIncludesFrames()
+#if PLATFORM(MAC)
+        && !m_page->settings().asyncFrameScrollingEnabled()
+#endif
+    )
         return false;
 
-    RenderView* renderView = m_page->mainFrame().contentRenderer();
+    RenderView* renderView = frameView.frame().contentRenderer();
     if (!renderView)
         return false;
     return renderView->usesCompositing();
@@ -328,16 +327,9 @@ SynchronousScrollingReasons ScrollingCoordinator::synchronousScrollingReasons(co
 
     if (m_forceSynchronousScrollLayerPositionUpdates)
         synchronousScrollingReasons |= ForcedOnMainThread;
-#if ENABLE(WEB_REPLAY)
-    InputCursor& cursor = m_page->replayController().activeInputCursor();
-    if (cursor.isCapturing() || cursor.isReplaying())
-        synchronousScrollingReasons |= ForcedOnMainThread;
-#endif
     if (frameView.hasSlowRepaintObjects())
         synchronousScrollingReasons |= HasSlowRepaintObjects;
-    if (!supportsFixedPositionLayers() && frameView.hasViewportConstrainedObjects())
-        synchronousScrollingReasons |= HasViewportConstrainedObjectsWithoutSupportingFixedLayers;
-    if (supportsFixedPositionLayers() && hasVisibleSlowRepaintViewportConstrainedObjects(frameView))
+    if (hasVisibleSlowRepaintViewportConstrainedObjects(frameView))
         synchronousScrollingReasons |= HasNonLayerViewportConstrainedObjects;
     if (frameView.frame().mainFrame().document() && frameView.frame().document()->isImageDocument())
         synchronousScrollingReasons |= IsImageDocument;
@@ -345,14 +337,20 @@ SynchronousScrollingReasons ScrollingCoordinator::synchronousScrollingReasons(co
     return synchronousScrollingReasons;
 }
 
-void ScrollingCoordinator::updateSynchronousScrollingReasons(const FrameView& frameView)
+void ScrollingCoordinator::updateSynchronousScrollingReasons(FrameView& frameView)
 {
-    // FIXME: Once we support async scrolling of iframes, we'll have to track the synchronous scrolling
-    // reasons per frame (maybe on scrolling tree nodes).
-    if (!frameView.frame().isMainFrame())
-        return;
+    ASSERT(coordinatesScrollingForFrameView(frameView));
+    setSynchronousScrollingReasons(frameView, synchronousScrollingReasons(frameView));
+}
 
-    setSynchronousScrollingReasons(synchronousScrollingReasons(frameView));
+void ScrollingCoordinator::updateSynchronousScrollingReasonsForAllFrames()
+{
+    for (Frame* frame = &m_page->mainFrame(); frame; frame = frame->tree().traverseNext()) {
+        if (FrameView* frameView = frame->view()) {
+            if (coordinatesScrollingForFrameView(*frameView))
+                updateSynchronousScrollingReasons(*frameView);
+        }
+    }
 }
 
 void ScrollingCoordinator::setForceSynchronousScrollLayerPositionUpdates(bool forceSynchronousScrollLayerPositionUpdates)
@@ -361,8 +359,7 @@ void ScrollingCoordinator::setForceSynchronousScrollLayerPositionUpdates(bool fo
         return;
 
     m_forceSynchronousScrollLayerPositionUpdates = forceSynchronousScrollLayerPositionUpdates;
-    if (FrameView* frameView = m_page->mainFrame().view())
-        updateSynchronousScrollingReasons(*frameView);
+    updateSynchronousScrollingReasonsForAllFrames();
 }
 
 bool ScrollingCoordinator::shouldUpdateScrollLayerPositionSynchronously(const FrameView& frameView) const
@@ -373,22 +370,13 @@ bool ScrollingCoordinator::shouldUpdateScrollLayerPositionSynchronously(const Fr
     return true;
 }
 
-#if ENABLE(WEB_REPLAY)
-void ScrollingCoordinator::replaySessionStateDidChange()
-{
-    // FIXME: Once we support async scrolling of iframes, this should go through all subframes.
-    if (FrameView* frameView = m_page->mainFrame().view())
-        updateSynchronousScrollingReasons(*frameView);
-}
-#endif
-
 ScrollingNodeID ScrollingCoordinator::uniqueScrollLayerID()
 {
     static ScrollingNodeID uniqueScrollLayerID = 1;
     return uniqueScrollLayerID++;
 }
 
-String ScrollingCoordinator::scrollingStateTreeAsText() const
+String ScrollingCoordinator::scrollingStateTreeAsText(ScrollingStateTreeAsTextBehavior) const
 {
     return String();
 }
@@ -419,6 +407,20 @@ String ScrollingCoordinator::synchronousScrollingReasonsAsText() const
         return synchronousScrollingReasonsAsText(synchronousScrollingReasons(*frameView));
 
     return String();
+}
+
+TextStream& operator<<(TextStream& ts, ScrollableAreaParameters scrollableAreaParameters)
+{
+    ts.dumpProperty("horizontal scroll elasticity", scrollableAreaParameters.horizontalScrollElasticity);
+    ts.dumpProperty("vertical scroll elasticity", scrollableAreaParameters.verticalScrollElasticity);
+    ts.dumpProperty("horizontal scrollbar mode", scrollableAreaParameters.horizontalScrollbarMode);
+    ts.dumpProperty("vertical scrollbar mode", scrollableAreaParameters.verticalScrollbarMode);
+    if (scrollableAreaParameters.hasEnabledHorizontalScrollbar)
+        ts.dumpProperty("has enabled horizontal scrollbar", scrollableAreaParameters.hasEnabledHorizontalScrollbar);
+    if (scrollableAreaParameters.hasEnabledVerticalScrollbar)
+        ts.dumpProperty("has enabled vertical scrollbar", scrollableAreaParameters.hasEnabledVerticalScrollbar);
+
+    return ts;
 }
 
 TextStream& operator<<(TextStream& ts, ScrollingNodeType nodeType)

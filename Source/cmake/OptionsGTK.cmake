@@ -2,20 +2,14 @@ include(GNUInstallDirs)
 
 set(PROJECT_VERSION_MAJOR 2)
 set(PROJECT_VERSION_MINOR 17)
-set(PROJECT_VERSION_MICRO 0)
+set(PROJECT_VERSION_MICRO 4)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_MICRO})
 set(WEBKITGTK_API_VERSION 4.0)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.0")
-        message(FATAL_ERROR "GCC 4.9.0 is required to build WebKitGTK+, use a newer GCC version or clang")
-    endif ()
-endif ()
-
 # Libtool library version, not to be confused with API version.
 # See http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html
-CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(WEBKIT2 57 0 20)
-CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(JAVASCRIPTCORE 24 0 6)
+CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(WEBKIT2 60 0 23)
+CALCULATE_LIBRARY_VERSIONS_FROM_LIBTOOL_TRIPLE(JAVASCRIPTCORE 24 4 6)
 
 # These are shared variables, but we special case their definition so that we can use the
 # CMAKE_INSTALL_* variables that are populated by the GNUInstallDirs macro.
@@ -54,6 +48,7 @@ find_package(OpenGLES2)
 
 WEBKIT_OPTION_BEGIN()
 
+set(USE_CAIRO ON)
 set(USE_WOFF2 ON)
 set(USE_XDGMIME ON)
 
@@ -91,7 +86,7 @@ WEBKIT_OPTION_DEFINE(USE_LIBSECRET "Whether to enable the persistent credential 
 
 # Private options specific to the GTK+ port. Changing these options is
 # completely unsupported. They are intended for use only by WebKit developers.
-WEBKIT_OPTION_DEFINE(USE_GSTREAMER_GL "Whether to enable support for GStreamer GL" PRIVATE OFF)
+WEBKIT_OPTION_DEFINE(USE_GSTREAMER_GL "Whether to enable support for GStreamer GL" PRIVATE ON)
 WEBKIT_OPTION_DEFINE(USE_GSTREAMER_MPEGTS "Whether to enable support for MPEG-TS" PRIVATE OFF)
 WEBKIT_OPTION_DEFINE(USE_REDIRECTED_XCOMPOSITE_WINDOW "Whether to use a Redirected XComposite Window for accelerated compositing in X11." PRIVATE ON)
 
@@ -204,10 +199,7 @@ set(GDK_INCLUDE_DIRS ${GDK3_INCLUDE_DIRS})
 SET_AND_EXPOSE_TO_BUILD(HAVE_GTK_GESTURES ${GTK3_SUPPORTS_GESTURES})
 SET_AND_EXPOSE_TO_BUILD(HAVE_GTK_UNIX_PRINTING ${GTK_UNIX_PRINT_FOUND})
 
-set(glib_components gio gobject gthread gmodule)
-if (ENABLE_GAMEPAD_DEPRECATED OR ENABLE_GEOLOCATION)
-    list(APPEND glib_components gio-unix)
-endif ()
+set(glib_components gio gio-unix gobject gthread gmodule)
 find_package(GLIB 2.36 REQUIRED COMPONENTS ${glib_components})
 
 if (ENABLE_XSLT)
@@ -270,9 +262,14 @@ if (ENABLE_MEDIA_STREAM OR ENABLE_WEB_RTC)
 endif ()
 
 if (ENABLE_SUBTLE_CRYPTO)
+    find_package(Libtasn1 REQUIRED)
+    if (NOT LIBTASN1_FOUND)
+        message(FATAL_ERROR "libtasn1 is required to enable Web Crypto API support.")
+    endif ()
     if (LIBGCRYPT_VERSION VERSION_LESS 1.7.0)
         message(FATAL_ERROR "libgcrypt 1.7.0 is required to enable Web Crypto API support.")
     endif ()
+    SET_AND_EXPOSE_TO_BUILD(USE_GCRYPT TRUE)
 endif ()
 
 SET_AND_EXPOSE_TO_BUILD(USE_TEXTURE_MAPPER TRUE)
@@ -358,8 +355,13 @@ if (ENABLE_VIDEO OR ENABLE_WEB_AUDIO)
     endif ()
 
     if (USE_GSTREAMER_GL)
-        if (NOT PC_GSTREAMER_GL_FOUND)
-            message(FATAL_ERROR "GStreamerGL is needed for USE_GSTREAMER_GL.")
+        if (PC_GSTREAMER_VERSION VERSION_LESS "1.10")
+            set(USE_GSTREAMER_GL OFF)
+            message(STATUS "Disabling GSTREAMER_GL as the GStreamer version is older than 1.10.")
+        else ()
+            if (NOT PC_GSTREAMER_GL_FOUND)
+                message(FATAL_ERROR "GStreamerGL is needed for USE_GSTREAMER_GL.")
+            endif ()
         endif ()
     endif ()
 

@@ -76,6 +76,7 @@
 #import <WebCore/AuthenticationCF.h>
 #import <WebCore/AuthenticationMac.h>
 #import <WebCore/BackForwardController.h>
+#import <WebCore/BitmapImage.h>
 #import <WebCore/CachedFrame.h>
 #import <WebCore/Chrome.h>
 #import <WebCore/DNS.h>
@@ -185,9 +186,9 @@ NSString *WebPluginContainerKey = @"WebPluginContainer";
 #endif
 }
 
-- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction)policyFunction;
+- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction&&)policyFunction;
 #if HAVE(APP_LINKS)
-- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction)policyFunction appLinkURL:(NSURL *)url;
+- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction&&)policyFunction appLinkURL:(NSURL *)url;
 #endif
 
 - (void)invalidate;
@@ -516,9 +517,11 @@ void WebFrameLoaderClient::dispatchDidReceiveContentLength(DocumentLoader* loade
     }
 }
 
+#if ENABLE(DATA_DETECTION)
 void WebFrameLoaderClient::dispatchDidFinishDataDetection(NSArray *)
 {
 }
+#endif
 
 void WebFrameLoaderClient::dispatchDidFinishLoading(DocumentLoader* loader, unsigned long identifier)
 {
@@ -650,15 +653,6 @@ void WebFrameLoaderClient::dispatchWillClose()
         CallFrameLoadDelegate(implementations->willCloseFrameFunc, webView, @selector(webView:willCloseFrame:), m_webFrame.get());
 #if PLATFORM(IOS)
     [[webView _UIKitDelegateForwarder] webView:webView willCloseFrame:m_webFrame.get()];
-#endif
-}
-
-void WebFrameLoaderClient::dispatchDidReceiveIcon()
-{
-#if ENABLE(ICONDATABASE)
-    WebView *webView = getWebView(m_webFrame.get());   
-    ASSERT(m_webFrame == [webView mainFrame]);
-    [webView _dispatchDidReceiveIconFromWebFrame:m_webFrame.get()];
 #endif
 }
 
@@ -857,7 +851,7 @@ void WebFrameLoaderClient::dispatchShow()
     [[webView _UIDelegateForwarder] webViewShow:webView];
 }
 
-void WebFrameLoaderClient::dispatchDecidePolicyForResponse(const ResourceResponse& response, const ResourceRequest& request, FramePolicyFunction function)
+void WebFrameLoaderClient::dispatchDecidePolicyForResponse(const ResourceResponse& response, const ResourceRequest& request, FramePolicyFunction&& function)
 {
     WebView *webView = getWebView(m_webFrame.get());
 
@@ -888,7 +882,7 @@ static BOOL shouldTryAppLink(WebView *webView, const NavigationAction& action, F
 #endif
 }
 
-void WebFrameLoaderClient::dispatchDecidePolicyForNewWindowAction(const NavigationAction& action, const ResourceRequest& request, FormState* formState, const String& frameName, FramePolicyFunction function)
+void WebFrameLoaderClient::dispatchDecidePolicyForNewWindowAction(const NavigationAction& action, const ResourceRequest& request, FormState* formState, const String& frameName, FramePolicyFunction&& function)
 {
     WebView *webView = getWebView(m_webFrame.get());
     BOOL tryAppLink = shouldTryAppLink(webView, action, nullptr);
@@ -900,7 +894,7 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNewWindowAction(const Navigati
                           decisionListener:setUpPolicyListener(WTFMove(function), tryAppLink ? (NSURL *)request.url() : nil).get()];
 }
 
-void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const NavigationAction& action, const ResourceRequest& request, FormState* formState, FramePolicyFunction function)
+void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const NavigationAction& action, const ResourceRequest& request, FormState* formState, FramePolicyFunction&& function)
 {
     WebView *webView = getWebView(m_webFrame.get());
     BOOL tryAppLink = shouldTryAppLink(webView, action, core(m_webFrame.get()));
@@ -945,7 +939,7 @@ void WebFrameLoaderClient::dispatchWillSendSubmitEvent(Ref<WebCore::FormState>&&
     CallFormDelegate(getWebView(m_webFrame.get()), @selector(willSendSubmitEventToForm:inFrame:withValues:), formElement, m_webFrame.get(), values);
 }
 
-void WebFrameLoaderClient::dispatchWillSubmitForm(FormState& formState, FramePolicyFunction function)
+void WebFrameLoaderClient::dispatchWillSubmitForm(FormState& formState, FramePolicyFunction&& function)
 {
     id <WebFormDelegate> formDelegate = [getWebView(m_webFrame.get()) _formDelegate];
     if (!formDelegate) {
@@ -1312,6 +1306,8 @@ void WebFrameLoaderClient::didFinishLoad()
 
 void WebFrameLoaderClient::prepareForDataSourceReplacement()
 {
+    m_activeIconLoadCallbackID = 0;
+
     if (![m_webFrame.get() _dataSource]) {
         ASSERT(!core(m_webFrame.get())->tree().childCount());
         return;
@@ -1340,9 +1336,9 @@ void WebFrameLoaderClient::prepareForDataSourceReplacement()
 
 Ref<DocumentLoader> WebFrameLoaderClient::createDocumentLoader(const ResourceRequest& request, const SubstituteData& substituteData)
 {
-    Ref<WebDocumentLoaderMac> loader = WebDocumentLoaderMac::create(request, substituteData);
+    auto loader = WebDocumentLoaderMac::create(request, substituteData);
 
-    WebDataSource *dataSource = [[WebDataSource alloc] _initWithDocumentLoader:loader.ptr()];
+    WebDataSource *dataSource = [[WebDataSource alloc] _initWithDocumentLoader:loader.copyRef()];
     loader->setDataSource(dataSource, getWebView(m_webFrame.get()));
     [dataSource release];
 
@@ -1517,17 +1513,17 @@ void WebFrameLoaderClient::dispatchDidBecomeFrameset(bool)
 {
 }
 
-RetainPtr<WebFramePolicyListener> WebFrameLoaderClient::setUpPolicyListener(FramePolicyFunction function, NSURL *appLinkURL)
+RetainPtr<WebFramePolicyListener> WebFrameLoaderClient::setUpPolicyListener(FramePolicyFunction&& function, NSURL *appLinkURL)
 {
     // FIXME: <rdar://5634381> We need to support multiple active policy listeners.
     [m_policyListener invalidate];
 
 #if HAVE(APP_LINKS)
     if (appLinkURL)
-        m_policyListener = adoptNS([[WebFramePolicyListener alloc] initWithFrame:core(m_webFrame.get()) policyFunction:function appLinkURL:appLinkURL]);
+        m_policyListener = adoptNS([[WebFramePolicyListener alloc] initWithFrame:core(m_webFrame.get()) policyFunction:WTFMove(function) appLinkURL:appLinkURL]);
     else
 #endif
-        m_policyListener = adoptNS([[WebFramePolicyListener alloc] initWithFrame:core(m_webFrame.get()) policyFunction:function]);
+        m_policyListener = adoptNS([[WebFramePolicyListener alloc] initWithFrame:core(m_webFrame.get()) policyFunction:WTFMove(function)]);
 
     return m_policyListener;
 }
@@ -2200,13 +2196,6 @@ void WebFrameLoaderClient::dispatchDidClearWindowObjectInWorld(DOMWrapperWorld& 
     }
 }
 
-void WebFrameLoaderClient::registerForIconNotification(bool listen)
-{
-#if ENABLE(ICONDATABASE)
-    [[m_webFrame.get() webView] _registerForIconNotification:listen];
-#endif
-}
-
 Ref<FrameNetworkingContext> WebFrameLoaderClient::createNetworkingContext()
 {
     return WebFrameNetworkingContext::create(core(m_webFrame.get()));
@@ -2287,6 +2276,68 @@ void WebFrameLoaderClient::prefetchDNS(const String& hostname)
     WebCore::prefetchDNS(hostname);
 }
 
+void WebFrameLoaderClient::getLoadDecisionForIcons(const Vector<std::pair<WebCore::LinkIcon&, uint64_t>>& icons)
+{
+    auto* frame = core(m_webFrame.get());
+    DocumentLoader* documentLoader = frame->loader().documentLoader();
+    ASSERT(documentLoader);
+
+    bool disallowedDueToImageLoadSettings = false;
+    if (!frame->settings().loadsImagesAutomatically() && !frame->settings().loadsSiteIconsIgnoringImageLoadingSetting())
+        disallowedDueToImageLoadSettings = true;
+
+    if (disallowedDueToImageLoadSettings || !frame->isMainFrame() || !documentLoader->url().protocolIsInHTTPFamily() || ![WebView _isIconLoadingEnabled]) {
+        for (auto& icon : icons)
+            documentLoader->didGetLoadDecisionForIcon(false, icon.second, 0);
+
+        return;
+    }
+
+    ASSERT(!m_activeIconLoadCallbackID);
+
+#if !PLATFORM(IOS)
+    // WebKit 1, which only supports one icon per page URL, traditionally has preferred the last icon in case of multiple icons listed.
+    // To preserve that behavior we walk the list backwards.
+    for (auto icon = icons.rbegin(); icon != icons.rend(); ++icon) {
+        if (icon->first.type != LinkIconType::Favicon || m_activeIconLoadCallbackID) {
+            documentLoader->didGetLoadDecisionForIcon(false, icon->second, 0);
+            continue;
+        }
+
+        m_activeIconLoadCallbackID = 1;
+        documentLoader->didGetLoadDecisionForIcon(true, icon->second, m_activeIconLoadCallbackID);
+    }
+#else
+    // No WebCore icon loading on iOS
+    for (auto& icon : icons)
+        documentLoader->didGetLoadDecisionForIcon(false, icon.second, 0);
+#endif
+}
+
+void WebFrameLoaderClient::finishedLoadingIcon(uint64_t callbackID, SharedBuffer* iconData)
+{
+#if !PLATFORM(IOS)
+    ASSERT(m_activeIconLoadCallbackID);
+    ASSERT(callbackID = m_activeIconLoadCallbackID);
+    m_activeIconLoadCallbackID = 0;
+
+    WebView *webView = getWebView(m_webFrame.get());
+    if (!webView)
+        return;
+
+    auto image = BitmapImage::create();
+    if (image->setData(iconData, true) < EncodedDataStatus::SizeAvailable)
+        return;
+
+    NSImage *icon = webGetNSImage(image.ptr(), NSMakeSize(16, 16));
+    if (icon)
+        [webView _setMainFrameIcon:icon];
+#else
+    UNUSED_PARAM(callbackID);
+    UNUSED_PARAM(iconData);
+#endif
+}
+
 @implementation WebFramePolicyListener
 
 + (void)initialize
@@ -2298,7 +2349,7 @@ void WebFrameLoaderClient::prefetchDNS(const String& hostname)
 #endif
 }
 
-- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction)policyFunction
+- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction&&)policyFunction
 {
     self = [self init];
     if (!self)
@@ -2311,9 +2362,9 @@ void WebFrameLoaderClient::prefetchDNS(const String& hostname)
 }
 
 #if HAVE(APP_LINKS)
-- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction)policyFunction appLinkURL:(NSURL *)appLinkURL
+- (id)initWithFrame:(Frame*)frame policyFunction:(FramePolicyFunction&&)policyFunction appLinkURL:(NSURL *)appLinkURL
 {
-    self = [self initWithFrame:frame policyFunction:policyFunction];
+    self = [self initWithFrame:frame policyFunction:WTFMove(policyFunction)];
     if (!self)
         return nil;
 

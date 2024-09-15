@@ -56,6 +56,12 @@ struct Highlight;
 struct ViewportAttributes;
 }
 
+#if ENABLE(DRAG_SUPPORT)
+namespace WebCore {
+struct DragItem;
+}
+#endif
+
 namespace WebKit {
 
 class DrawingAreaProxy;
@@ -144,13 +150,6 @@ public:
     virtual void didFailProvisionalLoadForMainFrame() { };
     virtual void didCommitLoadForMainFrame(const String& mimeType, bool useCustomContentProvider) = 0;
 
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
-    virtual void pageDidRequestScroll(const WebCore::IntPoint&) = 0;
-    virtual void didRenderFrame(const WebCore::IntSize& contentsSize, const WebCore::IntRect& coveredRect) = 0;
-    virtual void pageTransitionViewportReady() = 0;
-    virtual void didFindZoomableArea(const WebCore::IntPoint&, const WebCore::IntRect&) = 0;
-#endif
-
     virtual void handleDownloadRequest(DownloadProxy*) = 0;
 
     virtual bool handleRunOpenPanel(WebPageProxy*, WebFrameProxy*, API::OpenPanelParameters*, WebOpenPanelResultListenerProxy*) { return false; }
@@ -165,7 +164,7 @@ public:
     virtual void setCursorHiddenUntilMouseMoves(bool) = 0;
     virtual void didChangeViewportProperties(const WebCore::ViewportAttributes&) = 0;
 
-    virtual void registerEditCommand(PassRefPtr<WebEditCommandProxy>, WebPageProxy::UndoOrRedo) = 0;
+    virtual void registerEditCommand(Ref<WebEditCommandProxy>&&, WebPageProxy::UndoOrRedo) = 0;
     virtual void clearAllEditCommands() = 0;
     virtual bool canUndoRedo(WebPageProxy::UndoOrRedo) = 0;
     virtual void executeUndoRedo(WebPageProxy::UndoOrRedo) = 0;
@@ -173,14 +172,14 @@ public:
 #if PLATFORM(COCOA)
     virtual void accessibilityWebProcessTokenReceived(const IPC::DataReference&) = 0;
     virtual bool executeSavedCommandBySelector(const String& selector) = 0;
-    virtual void setDragImage(const WebCore::IntPoint& clientPosition, PassRefPtr<ShareableBitmap> dragImage, WebCore::DragSourceAction) = 0;
+    virtual void setDragImage(const WebCore::IntPoint& clientPosition, Ref<ShareableBitmap>&& dragImage, WebCore::DragSourceAction) = 0;
     virtual void updateSecureInputState() = 0;
     virtual void resetSecureInputState() = 0;
     virtual void notifyInputContextAboutDiscardedComposition() = 0;
     virtual void makeFirstResponder() = 0;
     virtual void setAcceleratedCompositingRootLayer(LayerOrView *) = 0;
     virtual LayerOrView *acceleratedCompositingRootLayer() const = 0;
-    virtual PassRefPtr<ViewSnapshot> takeViewSnapshot() = 0;
+    virtual RefPtr<ViewSnapshot> takeViewSnapshot() = 0;
 #if ENABLE(MAC_GESTURE_EVENTS)
     virtual void gestureEventWasNotHandledByWebCore(const NativeWebGestureEvent&) = 0;
 #endif
@@ -191,12 +190,9 @@ public:
 #endif
 
 #if USE(APPKIT)
-    virtual void setPromisedDataForImage(const String& pasteboardName, PassRefPtr<WebCore::SharedBuffer> imageBuffer, const String& filename, const String& extension, const String& title,
-                                 const String& url, const String& visibleUrl, PassRefPtr<WebCore::SharedBuffer> archiveBuffer) = 0;
+    virtual void setPromisedDataForImage(const String& pasteboardName, Ref<WebCore::SharedBuffer>&& imageBuffer, const String& filename, const String& extension, const String& title, const String& url, const String& visibleUrl, RefPtr<WebCore::SharedBuffer>&& archiveBuffer) = 0;
 #if ENABLE(ATTACHMENT_ELEMENT)
-    virtual void setPromisedDataForAttachment(const String& pasteboardName, const String& filename, const String& extension, const String& title,
-                                         const String& url, const String& visibleUrl) = 0;
-
+    virtual void setPromisedDataForAttachment(const String& pasteboardName, const String& filename, const String& extension, const String& title, const String& url, const String& visibleUrl) = 0;
 #endif
 #endif
 
@@ -221,7 +217,7 @@ public:
 
     virtual RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy&) = 0;
 #if ENABLE(CONTEXT_MENUS)
-    virtual std::unique_ptr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&) = 0;
+    virtual RefPtr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&) = 0;
 #endif
 
 #if ENABLE(INPUT_TYPE_COLOR)
@@ -246,7 +242,6 @@ public:
     virtual void pluginFocusOrWindowFocusChanged(uint64_t pluginComplexTextInputIdentifier, bool pluginHasFocusAndWindowHasFocus) = 0;
     virtual void setPluginComplexTextInputState(uint64_t pluginComplexTextInputIdentifier, PluginComplexTextInputState) = 0;
     virtual void didPerformDictionaryLookup(const WebCore::DictionaryPopupInfo&) = 0;
-    virtual void dismissContentRelativeChildWindows(bool withAnimation = true) = 0;
     virtual void showCorrectionPanel(WebCore::AlternativeTextType, const WebCore::FloatRect& boundingBoxOfReplacedString, const String& replacedString, const String& replacementString, const Vector<String>& alternativeReplacementStrings) = 0;
     virtual void dismissCorrectionPanel(WebCore::ReasonForDismissingAlternativeText) = 0;
     virtual String dismissCorrectionPanelSoon(WebCore::ReasonForDismissingAlternativeText) = 0;
@@ -305,7 +300,8 @@ public:
     virtual bool isAssistingNode() = 0;
     virtual bool interpretKeyEvent(const NativeWebKeyboardEvent&, bool isCharEvent) = 0;
     virtual void positionInformationDidChange(const InteractionInformationAtPosition&) = 0;
-    virtual void saveImageToLibrary(PassRefPtr<WebCore::SharedBuffer>) = 0;
+    virtual void saveImageToLibrary(Ref<WebCore::SharedBuffer>&&) = 0;
+    virtual bool allowsBlockSelection() = 0;
     virtual void didUpdateBlockSelectionWithTouch(uint32_t touch, uint32_t flags, float growThreshold, float shrinkThreshold) = 0;
     virtual void showPlaybackTargetPicker(bool hasVideo, const WebCore::IntRect& elementRect) = 0;
     virtual void disableDoubleTapGesturesDuringTapIfNecessary(uint64_t requestID) = 0;
@@ -377,18 +373,22 @@ public:
     virtual WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection() = 0;
 
 #if USE(QUICK_LOOK)
-    virtual void requestPasswordForQuickLookDocument(const String& fileName, std::function<void(const String&)>&&) = 0;
+    virtual void requestPasswordForQuickLookDocument(const String& fileName, WTF::Function<void(const String&)>&&) = 0;
 #endif
 
 #if ENABLE(DATA_INTERACTION)
     virtual void didPerformDataInteractionControllerOperation(bool handled) = 0;
     virtual void didHandleStartDataInteractionRequest(bool started) = 0;
-    virtual void startDataInteractionWithImage(const WebCore::IntPoint& clientPosition, const ShareableBitmap::Handle& image, std::optional<WebCore::TextIndicatorData>, const WebCore::FloatPoint& anchorPoint, uint64_t action) = 0;
+    virtual void startDrag(const WebCore::DragItem&, const ShareableBitmap::Handle& image) = 0;
     virtual void didConcludeEditDataInteraction(std::optional<WebCore::TextIndicatorData>) = 0;
     virtual void didChangeDataInteractionCaretRect(const WebCore::IntRect& previousCaretRect, const WebCore::IntRect& caretRect) = 0;
 #endif
 
     virtual void didChangeAvoidsUnsafeArea(bool avoidsUnsafeArea) = 0;
+
+#if PLATFORM(GTK) || PLATFORM(WPE)
+    virtual JSGlobalContextRef javascriptGlobalContext() { return nullptr; }
+#endif
 };
 
 } // namespace WebKit

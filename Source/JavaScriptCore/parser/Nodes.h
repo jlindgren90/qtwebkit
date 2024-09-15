@@ -25,11 +25,10 @@
 
 #pragma once
 
-#include "BuiltinNames.h"
-#include "Error.h"
-#include "Interpreter.h"
+#include "BytecodeIntrinsicRegistry.h"
 #include "JITCode.h"
 #include "ParserArena.h"
+#include "ParserModes.h"
 #include "ParserTokens.h"
 #include "ResultType.h"
 #include "SourceCode.h"
@@ -2142,17 +2141,22 @@ namespace JSC {
         };
         void appendEntry(const JSTokenLocation&, const Identifier& identifier, bool wasString, DestructuringPatternNode* pattern, ExpressionNode* defaultValue, BindingType bindingType)
         {
-            m_targetPatterns.append(Entry{ identifier, nullptr, wasString, pattern, defaultValue, bindingType });
+            m_targetPatterns.append(Entry{ identifier, nullptr, wasString, pattern, defaultValue, bindingType });  
         }
 
-        void appendEntry(const JSTokenLocation&, ExpressionNode* propertyExpression, DestructuringPatternNode* pattern, ExpressionNode* defaultValue, BindingType bindingType)
+        void appendEntry(VM& vm, const JSTokenLocation&, ExpressionNode* propertyExpression, DestructuringPatternNode* pattern, ExpressionNode* defaultValue, BindingType bindingType)
         {
-            m_targetPatterns.append(Entry{ Identifier(), propertyExpression, false, pattern, defaultValue, bindingType });
+            m_targetPatterns.append(Entry{ vm.propertyNames->nullIdentifier, propertyExpression, false, pattern, defaultValue, bindingType });
         }
         
         void setContainsRestElement(bool containsRestElement)
         {
             m_containsRestElement = containsRestElement;
+        }
+        
+        void setContainsComputedProperty(bool containsComputedProperty)
+        {
+            m_containsComputedProperty = containsComputedProperty;
         }
 
     private:
@@ -2168,6 +2172,7 @@ namespace JSC {
             BindingType bindingType;
         };
         bool m_containsRestElement { false };
+        bool m_containsComputedProperty { false };
         Vector<Entry> m_targetPatterns;
     };
 

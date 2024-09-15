@@ -23,19 +23,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import "config.h"
-#import "CaptureDeviceManager.h"
+#include "config.h"
+#include "CaptureDeviceManager.h"
 
 #if ENABLE(MEDIA_STREAM)
 
-#import "Logging.h"
-#import "MediaConstraints.h"
-#import "RealtimeMediaSource.h"
-#import "RealtimeMediaSourceCenter.h"
-#import "RealtimeMediaSourceSettings.h"
-#import <wtf/MainThread.h>
-#import <wtf/NeverDestroyed.h>
-#import <wtf/text/StringHash.h>
+#include "Logging.h"
+#include "MediaConstraints.h"
+#include "RealtimeMediaSource.h"
+#include "RealtimeMediaSourceCenter.h"
+#include "RealtimeMediaSourceSettings.h"
+#include <wtf/MainThread.h>
+#include <wtf/NeverDestroyed.h>
+#include <wtf/text/StringHash.h>
 
 using namespace WebCore;
 
@@ -113,7 +113,7 @@ static CaptureDeviceManager::ObserverToken nextObserverToken()
     return ++nextToken;
 }
 
-CaptureDeviceManager::ObserverToken CaptureDeviceManager::addCaptureDeviceChangedObserver(CaptureDeviceChangedCallback observer)
+CaptureDeviceManager::ObserverToken CaptureDeviceManager::addCaptureDeviceChangedObserver(CaptureDeviceChangedCallback&& observer)
 {
     auto token = nextObserverToken();
     m_observers.set(token, WTFMove(observer));

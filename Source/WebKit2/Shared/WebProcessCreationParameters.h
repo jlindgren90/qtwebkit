@@ -78,7 +78,7 @@ struct WebProcessCreationParameters {
     SandboxExtension::Handle mediaCacheDirectoryExtensionHandle;
     String javaScriptConfigurationDirectory;
     SandboxExtension::Handle javaScriptConfigurationDirectoryExtensionHandle;
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+#if PLATFORM(MAC)
     Vector<uint8_t> uiProcessCookieStorageIdentifier;
 #endif
 #if PLATFORM(IOS)
@@ -135,9 +135,9 @@ struct WebProcessCreationParameters {
     String uiProcessBundleIdentifier;
 #endif
 
-#if PLATFORM(COCOA)
-    pid_t presenterApplicationPid { 0 };
+    pid_t presentingApplicationPID { 0 };
 
+#if PLATFORM(COCOA)
     WebCore::MachSendRight acceleratedCompositingPort;
 
     String uiProcessBundleResourcePath;
@@ -150,7 +150,7 @@ struct WebProcessCreationParameters {
     RefPtr<API::Data> bundleParameterData;
 #endif // PLATFORM(COCOA)
 
-#if ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
+#if ENABLE(NOTIFICATIONS)
     HashMap<String, bool> notificationPermissions;
 #endif
 
@@ -161,7 +161,7 @@ struct WebProcessCreationParameters {
     HashMap<String, HashMap<String, HashMap<String, uint8_t>>> pluginLoadClientPolicies;
 #endif
 
-#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#if PLATFORM(COCOA)
     RetainPtr<CFDataRef> networkATSContext;
 #endif
 

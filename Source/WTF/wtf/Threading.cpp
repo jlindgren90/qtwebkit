@@ -32,9 +32,11 @@
 #include <cmath>
 #include <cstring>
 #include <wtf/DateMath.h>
+#include <wtf/PrintStream.h>
 #include <wtf/RandomNumberSeed.h>
 #include <wtf/ThreadHolder.h>
 #include <wtf/ThreadMessage.h>
+#include <wtf/ThreadingPrimitives.h>
 #include <wtf/WTFThreadData.h>
 #include <wtf/text/StringView.h>
 
@@ -48,7 +50,7 @@ struct NewThreadContext {
     WTF_MAKE_FAST_ALLOCATED;
 public:
     const char* name;
-    std::function<void()> entryPoint;
+    Function<void()> entryPoint;
     Mutex creationMutex;
 };
 
@@ -99,7 +101,7 @@ static void threadEntryPoint(void* contextData)
     entryPoint();
 }
 
-RefPtr<Thread> Thread::create(const char* name, std::function<void()> entryPoint)
+RefPtr<Thread> Thread::create(const char* name, Function<void()>&& entryPoint)
 {
     NewThreadContext* context = new NewThreadContext { name, WTFMove(entryPoint), { } };
 
@@ -109,16 +111,9 @@ RefPtr<Thread> Thread::create(const char* name, std::function<void()> entryPoint
     return Thread::createInternal(threadEntryPoint, context, name);
 }
 
-RefPtr<Thread> Thread::create(ThreadFunction entryPoint, void* data, const char* name)
-{
-    return Thread::create(name, [entryPoint, data] {
-        entryPoint(data);
-    });
-}
-
 void Thread::didExit()
 {
-    std::unique_lock<std::mutex> locker(m_mutex);
+    std::lock_guard<std::mutex> locker(m_mutex);
     m_didExit = true;
 }
 
@@ -170,7 +165,6 @@ void initializeThreading()
 {
     static std::once_flag initializeKey;
     std::call_once(initializeKey, [] {
-        WTF::double_conversion::initialize();
         ThreadHolder::initializeOnce();
         // StringImpl::empty() does not construct its static string in a threadsafe fashion,
         // so ensure it has been initialized from here.
@@ -179,9 +173,6 @@ void initializeThreading()
         wtfThreadData();
         initializeDates();
         Thread::initializePlatformThreading();
-#if USE(PTHREADS)
-        initializeThreadMessages();
-#endif
     });
 }
 

@@ -29,7 +29,6 @@
 #include "MediaProducer.h"
 #include "PageVisibilityState.h"
 #include "Pagination.h"
-#include "PlatformScreen.h"
 #include "RTCController.h"
 #include "Region.h"
 #include "ScrollTypes.h"
@@ -41,11 +40,10 @@
 #include "WheelEventTestTrigger.h"
 #include <memory>
 #include <wtf/Forward.h>
-#include <wtf/HashMap.h>
+#include <wtf/Function.h>
 #include <wtf/HashSet.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/Ref.h>
-#include <wtf/RefCounted.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/text/WTFString.h>
 
@@ -85,6 +83,7 @@ class Color;
 class ContextMenuClient;
 class ContextMenuController;
 class DOMRect;
+class DOMRectList;
 class DatabaseProvider;
 class DiagnosticLoggingClient;
 class DragCaretController;
@@ -108,6 +107,7 @@ class PageConfiguration;
 class PageConsoleClient;
 class PageDebuggable;
 class PageGroup;
+class PerformanceLoggingClient;
 class PerformanceMonitor;
 class PlugInClient;
 class PluginData;
@@ -119,7 +119,6 @@ class ProgressTrackerClient;
 class Range;
 class RenderObject;
 class RenderTheme;
-class ReplayController;
 class ResourceUsageOverlay;
 class VisibleSelection;
 class ScrollableArea;
@@ -166,8 +165,6 @@ public:
 
     void setNeedsRecalcStyleInAllFrames();
 
-    RenderTheme& theme() const { return *m_theme; }
-
     WEBCORE_EXPORT ViewportArguments viewportArguments() const;
 
     static void refreshPlugins(bool reload);
@@ -193,7 +190,7 @@ public:
 
     PageGroup& group();
 
-    static void forEachPage(std::function<void(Page&)>);
+    static void forEachPage(const WTF::Function<void(Page&)>&);
 
     void incrementSubframeCount() { ++m_subframeCount; }
     void decrementSubframeCount() { ASSERT(m_subframeCount); --m_subframeCount; }
@@ -202,7 +199,7 @@ public:
     void incrementNestedRunLoopCount();
     void decrementNestedRunLoopCount();
     bool insideNestedRunLoop() const { return m_nestedRunLoopCount > 0; }
-    WEBCORE_EXPORT void whenUnnested(std::function<void()>);
+    WEBCORE_EXPORT void whenUnnested(WTF::Function<void()>&&);
 
 #if ENABLE(REMOTE_INSPECTOR)
     WEBCORE_EXPORT bool remoteInspectionAllowed() const;
@@ -222,15 +219,18 @@ public:
     ContextMenuController& contextMenuController() const { return *m_contextMenuController; }
 #endif
     UserInputBridge& userInputBridge() const { return *m_userInputBridge; }
-#if ENABLE(WEB_REPLAY)
-    ReplayController& replayController() const { return *m_replayController; }
-#endif
     InspectorController& inspectorController() const { return *m_inspectorController; }
 #if ENABLE(POINTER_LOCK)
     PointerLockController& pointerLockController() const { return *m_pointerLockController; }
 #endif
     LibWebRTCProvider& libWebRTCProvider() { return m_libWebRTCProvider.get(); }
     RTCController& rtcController() { return m_rtcController; }
+    WEBCORE_EXPORT void disableICECandidateFiltering();
+    WEBCORE_EXPORT void enableICECandidateFiltering();
+    bool shouldEnableICECandidateFilteringByDefault() const { return m_shouldEnableICECandidateFilteringByDefault; }
+
+    void didChangeMainDocument();
+
     PerformanceMonitor* performanceMonitor() { return m_performanceMonitor.get(); }
 
     ValidationMessageClient* validationMessageClient() const { return m_validationMessageClient.get(); }
@@ -240,10 +240,10 @@ public:
 
     WEBCORE_EXPORT String scrollingStateTreeAsText();
     WEBCORE_EXPORT String synchronousScrollingReasonsAsText();
-    WEBCORE_EXPORT Vector<Ref<DOMRect>> nonFastScrollableRects();
+    WEBCORE_EXPORT Ref<DOMRectList> nonFastScrollableRects();
 
-    WEBCORE_EXPORT Vector<Ref<DOMRect>> touchEventRectsForEvent(const String& eventName);
-    WEBCORE_EXPORT Vector<Ref<DOMRect>> passiveTouchEventListenerRects();
+    WEBCORE_EXPORT Ref<DOMRectList> touchEventRectsForEvent(const String& eventName);
+    WEBCORE_EXPORT Ref<DOMRectList> passiveTouchEventListenerRects();
 
     Settings& settings() const { return *m_settings; }
     ProgressTracker& progress() const { return *m_progress; }
@@ -313,6 +313,8 @@ public:
     UserInterfaceLayoutDirection userInterfaceLayoutDirection() const { return m_userInterfaceLayoutDirection; }
     WEBCORE_EXPORT void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection);
 
+    WEBCORE_EXPORT void updateMediaElementRateChangeRestrictions();
+
     void didStartProvisionalLoad();
     void didFinishLoad(); // Called when the load has been committed in the main frame.
 
@@ -370,6 +372,8 @@ public:
     WEBCORE_EXPORT unsigned pageCount() const;
 
     WEBCORE_EXPORT DiagnosticLoggingClient& diagnosticLoggingClient() const;
+
+    PerformanceLoggingClient* performanceLoggingClient() const { return m_performanceLoggingClient.get(); }
 
     // Notifications when the Page starts and stops being presented via a native window.
     WEBCORE_EXPORT void setActivityState(ActivityState::Flags);
@@ -530,6 +534,7 @@ public:
     bool isAudioMuted() const { return m_mutedState & MediaProducer::AudioIsMuted; }
     bool isMediaCaptureMuted() const { return m_mutedState & MediaProducer::CaptureDevicesAreMuted; };
     WEBCORE_EXPORT void setMuted(MediaProducer::MutedStateFlags);
+    WEBCORE_EXPORT void stopMediaCapture();
 
 #if ENABLE(MEDIA_SESSION)
     WEBCORE_EXPORT void handleMediaEvent(MediaEventType);
@@ -648,9 +653,6 @@ private:
     const std::unique_ptr<ContextMenuController> m_contextMenuController;
 #endif
     const std::unique_ptr<UserInputBridge> m_userInputBridge;
-#if ENABLE(WEB_REPLAY)
-    const std::unique_ptr<ReplayController> m_replayController;
-#endif
     const std::unique_ptr<InspectorController> m_inspectorController;
 #if ENABLE(POINTER_LOCK)
     const std::unique_ptr<PointerLockController> m_pointerLockController;
@@ -665,19 +667,19 @@ private:
 
     RefPtr<PluginData> m_pluginData;
 
-    RefPtr<RenderTheme> m_theme;
-
     UniqueRef<EditorClient> m_editorClient;
     PlugInClient* m_plugInClient;
     std::unique_ptr<ValidationMessageClient> m_validationMessageClient;
     std::unique_ptr<DiagnosticLoggingClient> m_diagnosticLoggingClient;
+    std::unique_ptr<PerformanceLoggingClient> m_performanceLoggingClient;
+    
     std::unique_ptr<WebGLStateTracker> m_webGLStateTracker;
 
     UniqueRef<LibWebRTCProvider> m_libWebRTCProvider;
     RTCController m_rtcController;
 
     int m_nestedRunLoopCount { 0 };
-    std::function<void()> m_unnestCallback;
+    WTF::Function<void()> m_unnestCallback;
 
     int m_subframeCount { 0 };
     String m_groupName;
@@ -820,6 +822,7 @@ private:
     std::optional<Navigation> m_navigationToLogWhenVisible;
 
     bool m_isRunningUserScripts { false };
+    bool m_shouldEnableICECandidateFilteringByDefault { true };
 };
 
 inline PageGroup& Page::group()

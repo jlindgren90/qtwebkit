@@ -29,6 +29,7 @@
 #include "SessionID.h"
 #include "Timer.h"
 #include <wtf/Forward.h>
+#include <wtf/Function.h>
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
 #include <wtf/ListHashSet.h>
@@ -102,9 +103,9 @@ public:
     void revalidationSucceeded(CachedResource& revalidatingResource, const ResourceResponse&);
     void revalidationFailed(CachedResource& revalidatingResource);
 
-    void forEachResource(const std::function<void(CachedResource&)>&);
-    void forEachSessionResource(SessionID, const std::function<void(CachedResource&)>&);
-    void destroyDecodedDataForAllImages();
+    void forEachResource(const WTF::Function<void(CachedResource&)>&);
+    void forEachSessionResource(SessionID, const WTF::Function<void(CachedResource&)>&);
+    WEBCORE_EXPORT void destroyDecodedDataForAllImages();
 
     // Sets the cache's memory capacities, in bytes. These will hold only approximately,
     // since the decoded cost of resources like scripts and stylesheets is not known.

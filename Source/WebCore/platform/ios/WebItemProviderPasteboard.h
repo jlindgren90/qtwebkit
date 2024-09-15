@@ -30,6 +30,8 @@
 @class UIItemProvider;
 @protocol UIItemProviderWriting;
 
+struct CGSize;
+
 NS_ASSUME_NONNULL_BEGIN
 
 /*! A WebItemProviderRegistrationInfo represents a single call to register something to an item provider.
@@ -47,15 +49,19 @@ WEBCORE_EXPORT @interface WebItemProviderRegistrationInfo : NSObject
 @end
 
 /*! A WebItemProviderRegistrationInfoList represents a series of registration calls used to set up a
- @discussion single item provider. The order of items specified in the list (lowest indices first) is
- the order in which objects or data are registered to the item provider, and therefore indicates the
- relative fidelity of each item. Private UTI types, such as those vended through the injected editing
- bundle SPI, are considered to be higher fidelity than the other default types.
+ single item provider.
+ @discussion The order of items specified in the list (lowest indices first) is the order in which
+ objects or data are registered to the item provider, and therefore indicates the relative fidelity
+ of each item. Private UTI types, such as those vended through the injected editing bundle SPI, are
+ considered to be higher fidelity than the other default types.
  */
 WEBCORE_EXPORT @interface WebItemProviderRegistrationInfoList : NSObject
 
 - (void)addRepresentingObject:(id <UIItemProviderWriting>)object;
 - (void)addData:(NSData *)data forType:(NSString *)typeIdentifier;
+
+@property (nonatomic) CGSize estimatedDisplayedSize;
+@property (nonatomic, strong) NSString *suggestedName;
 
 - (NSUInteger)numberOfItems;
 - (nullable WebItemProviderRegistrationInfo *)itemAtIndex:(NSUInteger)index;
@@ -73,7 +79,7 @@ WEBCORE_EXPORT @interface WebItemProviderPasteboard : NSObject<AbstractPasteboar
 - (WebItemProviderRegistrationInfoList *)registrationInfoAtIndex:(NSUInteger)index;
 - (UIItemProvider *)itemProviderAtIndex:(NSUInteger)index;
 
-@property (copy, nonatomic, nullable) NSArray<UIItemProvider *> *itemProviders;
+@property (copy, nonatomic, nullable) NSArray<__kindof NSItemProvider *> *itemProviders;
 @property (readonly, nonatomic) NSInteger numberOfItems;
 @property (readonly, nonatomic) NSInteger changeCount;
 
@@ -88,6 +94,7 @@ WEBCORE_EXPORT @interface WebItemProviderPasteboard : NSObject<AbstractPasteboar
 
 // The given completion block is always dispatched on the main thread.
 - (void)doAfterLoadingProvidedContentIntoFileURLs:(WebItemProviderFileLoadBlock)action;
+- (void)doAfterLoadingProvidedContentIntoFileURLs:(WebItemProviderFileLoadBlock)action synchronousTimeout:(NSTimeInterval)synchronousTimeout;
 
 @end
 

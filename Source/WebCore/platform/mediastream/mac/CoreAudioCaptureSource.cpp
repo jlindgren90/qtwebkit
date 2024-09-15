@@ -35,8 +35,11 @@
 #include "AudioSession.h"
 #include "CoreAudioCaptureDevice.h"
 #include "CoreAudioCaptureDeviceManager.h"
+#include "CoreAudioCaptureSourceIOS.h"
+#include "CoreAudioSPI.h"
 #include "Logging.h"
 #include "MediaTimeAVFoundation.h"
+#include "WebAudioSourceProviderAVFObjC.h"
 #include <AudioToolbox/AudioConverter.h>
 #include <AudioUnit/AudioUnit.h>
 #include <CoreMedia/CMSync.h>
@@ -46,113 +49,288 @@
 #include <wtf/NeverDestroyed.h>
 #include "CoreMediaSoftLink.h"
 
+
 namespace WebCore {
 
-class CoreAudioCaptureSourceFactory : public RealtimeMediaSource::AudioCaptureFactory {
+class CoreAudioCaptureSourceFactory : public RealtimeMediaSource::AudioCaptureFactory
+#if PLATFORM(IOS)
+    , public RealtimeMediaSource::SingleSourceFactory<CoreAudioCaptureSource>
+#endif
+{
 public:
     CaptureSourceOrError createAudioCaptureSource(const String& deviceID, const MediaConstraints* constraints) final {
         return CoreAudioCaptureSource::create(deviceID, constraints);
     }
 };
 
-const UInt32 outputBus = 0;
-const UInt32 inputBus = 1;
-
-CaptureSourceOrError CoreAudioCaptureSource::create(const String& deviceID, const MediaConstraints* constraints)
-{
-    String label;
-    uint32_t persistentID = 0;
-#if PLATFORM(MAC)
-    auto device = CoreAudioCaptureDeviceManager::singleton().coreAudioDeviceWithUID(deviceID);
-    if (!device)
-        return { };
-
-    label = device->label();
-    persistentID = device->deviceID();
-#elif PLATFORM(IOS)
-    auto device = AVAudioSessionCaptureDeviceManager::singleton().audioSessionDeviceWithUID(deviceID);
-    if (!device)
-        return { };
-
-    label = device->label();
-#endif
-    auto source = adoptRef(*new CoreAudioCaptureSource(deviceID, label, persistentID));
-
-    if (constraints) {
-        auto result = source->applyConstraints(*constraints);
-        if (result)
-            return WTFMove(result.value().first);
-    }
-    return CaptureSourceOrError(WTFMove(source));
-}
-
-RealtimeMediaSource::AudioCaptureFactory& CoreAudioCaptureSource::factory()
+static CoreAudioCaptureSourceFactory& coreAudioCaptureSourceFactory()
 {
     static NeverDestroyed<CoreAudioCaptureSourceFactory> factory;
     return factory.get();
 }
 
-CoreAudioCaptureSource::CoreAudioCaptureSource(const String& deviceID, const String& label, uint32_t persistentID)
-    : RealtimeMediaSource(deviceID, RealtimeMediaSource::Type::Audio, label)
-    , m_captureDeviceID(persistentID)
-{
-    m_muted = true;
+const UInt32 outputBus = 0;
+const UInt32 inputBus = 1;
 
-    setVolume(1.0);
-    setSampleRate(preferredSampleRate());
-    setEchoCancellation(true);
+class CoreAudioSharedUnit {
+public:
+    static CoreAudioSharedUnit& singleton();
+    CoreAudioSharedUnit();
 
-    mach_timebase_info_data_t timebaseInfo;
-    mach_timebase_info(&timebaseInfo);
-    m_DTSConversionRatio = 1e-9 * static_cast<double>(timebaseInfo.numer) / static_cast<double>(timebaseInfo.denom);
-}
+    void addClient(CoreAudioCaptureSource&);
+    void removeClient(CoreAudioCaptureSource&);
 
-CoreAudioCaptureSource::~CoreAudioCaptureSource()
-{
-    suspend();
-    cleanupAudioUnits();
+    void startProducingData();
+    void stopProducingData();
+    bool isProducingData() { return m_ioUnitStarted; }
 
-    m_activeSources.clear();
-    m_pendingSources.clear();
+    OSStatus suspend();
+    OSStatus resume();
+
+    bool isSuspended() const { return m_suspended; }
+
+    OSStatus setupAudioUnit();
+    void cleanupAudioUnit();
+    OSStatus reconfigureAudioUnit();
+
+    void addEchoCancellationSource(AudioSampleDataSource&);
+    void removeEchoCancellationSource(AudioSampleDataSource&);
+
+    static size_t preferredIOBufferSize();
+
+    const CAAudioStreamDescription& microphoneFormat() const { return m_microphoneProcFormat; }
+
+    double volume() const { return m_volume; }
+    int sampleRate() const { return m_sampleRate; }
+    bool enableEchoCancellation() const { return m_enableEchoCancellation; }
+
+    void setVolume(double volume) { m_volume = volume; }
+    void setSampleRate(int sampleRate) { m_sampleRate = sampleRate; }
+    void setEnableEchoCancellation(bool enableEchoCancellation) { m_enableEchoCancellation = enableEchoCancellation; }
+
+    bool hasAudioUnit() const { return m_ioUnit; }
+
+private:
+    OSStatus configureSpeakerProc();
+    OSStatus configureMicrophoneProc();
+    OSStatus defaultOutputDevice(uint32_t*);
+    OSStatus defaultInputDevice(uint32_t*);
+
+    static OSStatus microphoneCallback(void*, AudioUnitRenderActionFlags*, const AudioTimeStamp*, UInt32, UInt32, AudioBufferList*);
+    OSStatus processMicrophoneSamples(AudioUnitRenderActionFlags&, const AudioTimeStamp&, UInt32, UInt32, AudioBufferList*);
+
+    static OSStatus speakerCallback(void*, AudioUnitRenderActionFlags*, const AudioTimeStamp*, UInt32, UInt32, AudioBufferList*);
+    OSStatus provideSpeakerData(AudioUnitRenderActionFlags&, const AudioTimeStamp&, UInt32, UInt32, AudioBufferList*);
+
+    void startInternal();
+    void stopInternal();
+
+    Vector<std::reference_wrapper<CoreAudioCaptureSource>> m_clients;
+
+    AudioUnit m_ioUnit { nullptr };
+
+    // Only read/modified from the IO thread.
+    Vector<Ref<AudioSampleDataSource>> m_activeSources;
+
+    enum QueueAction { Add, Remove };
+    Vector<std::pair<QueueAction, Ref<AudioSampleDataSource>>> m_pendingSources;
+
+#if PLATFORM(MAC)
+    uint32_t m_captureDeviceID { 0 };
+#endif
+
+    CAAudioStreamDescription m_microphoneProcFormat;
+    RefPtr<AudioSampleBufferList> m_microphoneSampleBuffer;
+    uint64_t m_latestMicTimeStamp { 0 };
+
+    CAAudioStreamDescription m_speakerProcFormat;
+    RefPtr<AudioSampleBufferList> m_speakerSampleBuffer;
+
+    double m_DTSConversionRatio { 0 };
+
+    bool m_ioUnitInitialized { false };
+    bool m_ioUnitStarted { false };
+
+    Lock m_pendingSourceQueueLock;
+    Lock m_internalStateLock;
+
+    int32_t m_producingCount { 0 };
+
+    mutable std::unique_ptr<RealtimeMediaSourceCapabilities> m_capabilities;
+    mutable std::optional<RealtimeMediaSourceSettings> m_currentSettings;
 
 #if !LOG_DISABLED
-    m_speakerProcsCalled = 0;
-    m_microphoneProcsCalled  = 0;
+    void checkTimestamps(const AudioTimeStamp&, uint64_t, double);
+
+    String m_ioUnitName;
+    uint64_t m_speakerProcsCalled { 0 };
+    uint64_t m_microphoneProcsCalled { 0 };
 #endif
-}
 
-double CoreAudioCaptureSource::preferredSampleRate()
+    bool m_enableEchoCancellation { true };
+    double m_volume { 1 };
+    int m_sampleRate;
+
+    bool m_suspended { false };
+};
+
+CoreAudioSharedUnit& CoreAudioSharedUnit::singleton()
 {
-    return AudioSession::sharedSession().sampleRate();
+    static NeverDestroyed<CoreAudioSharedUnit> singleton;
+    return singleton;
 }
 
-size_t CoreAudioCaptureSource::preferredIOBufferSize()
+CoreAudioSharedUnit::CoreAudioSharedUnit()
+{
+    m_sampleRate = AudioSession::sharedSession().sampleRate();
+}
+
+void CoreAudioSharedUnit::addClient(CoreAudioCaptureSource& client)
+{
+    m_clients.append(client);
+}
+
+void CoreAudioSharedUnit::removeClient(CoreAudioCaptureSource& client)
+{
+    m_clients.removeAllMatching([&](const auto& item) {
+        return &client == &item.get();
+    });
+}
+
+void CoreAudioSharedUnit::addEchoCancellationSource(AudioSampleDataSource& source)
+{
+    if (!source.setOutputFormat(m_speakerProcFormat)) {
+        LOG(Media, "CoreAudioSharedUnit::addEchoCancellationSource: source %p configureOutput failed", &source);
+        return;
+    }
+
+    std::lock_guard<Lock> lock(m_pendingSourceQueueLock);
+    m_pendingSources.append({ QueueAction::Add, source });
+}
+
+void CoreAudioSharedUnit::removeEchoCancellationSource(AudioSampleDataSource& source)
+{
+    std::lock_guard<Lock> lock(m_pendingSourceQueueLock);
+    m_pendingSources.append({ QueueAction::Remove, source });
+}
+
+size_t CoreAudioSharedUnit::preferredIOBufferSize()
 {
     return AudioSession::sharedSession().bufferSize();
 }
 
-OSStatus CoreAudioCaptureSource::configureMicrophoneProc()
+OSStatus CoreAudioSharedUnit::setupAudioUnit()
+{
+    if (m_ioUnit)
+        return 0;
+
+    ASSERT(!m_clients.isEmpty());
+
+    mach_timebase_info_data_t timebaseInfo;
+    mach_timebase_info(&timebaseInfo);
+    m_DTSConversionRatio = 1e-9 * static_cast<double>(timebaseInfo.numer) / static_cast<double>(timebaseInfo.denom);
+
+    AudioComponentDescription ioUnitDescription = { kAudioUnitType_Output, kAudioUnitSubType_VoiceProcessingIO, kAudioUnitManufacturer_Apple, 0, 0 };
+    AudioComponent ioComponent = AudioComponentFindNext(nullptr, &ioUnitDescription);
+    ASSERT(ioComponent);
+    if (!ioComponent) {
+        LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) unable to find vpio unit component", this);
+        return -1;
+    }
+
+#if !LOG_DISABLED
+    CFStringRef name = nullptr;
+    AudioComponentCopyName(ioComponent, &name);
+    if (name) {
+        m_ioUnitName = name;
+        CFRelease(name);
+        LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) created \"%s\" component", this, m_ioUnitName.utf8().data());
+    }
+#endif
+
+    auto err = AudioComponentInstanceNew(ioComponent, &m_ioUnit);
+    if (err) {
+        LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) unable to open vpio unit, error %d (%.4s)", this, (int)err, (char*)&err);
+        return err;
+    }
+
+    if (!m_enableEchoCancellation) {
+        uint32_t param = 0;
+        err = AudioUnitSetProperty(m_ioUnit, kAUVoiceIOProperty_VoiceProcessingEnableAGC, kAudioUnitScope_Global, inputBus, &param, sizeof(param));
+        if (err) {
+            LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) unable to set vpio automatic gain control, error %d (%.4s)", this, (int)err, (char*)&err);
+            return err;
+        }
+        param = 1;
+        err = AudioUnitSetProperty(m_ioUnit, kAUVoiceIOProperty_BypassVoiceProcessing, kAudioUnitScope_Global, inputBus, &param, sizeof(param));
+        if (err) {
+            LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) unable to set vpio unit echo cancellation, error %d (%.4s)", this, (int)err, (char*)&err);
+            return err;
+        }
+    }
+
+#if PLATFORM(IOS)
+    uint32_t param = 1;
+    err = AudioUnitSetProperty(m_ioUnit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, inputBus, &param, sizeof(param));
+    if (err) {
+        LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) unable to enable vpio unit input, error %d (%.4s)", this, (int)err, (char*)&err);
+        return err;
+    }
+#else
+    if (!m_captureDeviceID) {
+        err = defaultInputDevice(&m_captureDeviceID);
+        if (err)
+            return err;
+    }
+
+    err = AudioUnitSetProperty(m_ioUnit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, inputBus, &m_captureDeviceID, sizeof(m_captureDeviceID));
+    if (err) {
+        LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) unable to set vpio unit capture device ID, error %d (%.4s)", this, (int)err, (char*)&err);
+        return err;
+    }
+#endif
+
+    err = configureMicrophoneProc();
+    if (err)
+        return err;
+
+    err = configureSpeakerProc();
+    if (err)
+        return err;
+
+    err = AudioUnitInitialize(m_ioUnit);
+    if (err) {
+        LOG(Media, "CoreAudioCaptureSource::setupAudioUnit(%p) AudioUnitInitialize() failed, error %d (%.4s)", this, (int)err, (char*)&err);
+        return err;
+    }
+    m_ioUnitInitialized = true;
+    m_suspended = false;
+
+    return err;
+}
+
+OSStatus CoreAudioSharedUnit::configureMicrophoneProc()
 {
     AURenderCallbackStruct callback = { microphoneCallback, this };
     auto err = AudioUnitSetProperty(m_ioUnit, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, inputBus, &callback, sizeof(callback));
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::configureMicrophoneProc(%p) unable to set vpio unit mic proc, error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::configureMicrophoneProc(%p) unable to set vpio unit mic proc, error %d (%.4s)", this, (int)err, (char*)&err);
         return err;
     }
 
     AudioStreamBasicDescription microphoneProcFormat = { };
 
     UInt32 size = sizeof(microphoneProcFormat);
-    err = AudioUnitGetProperty(m_ioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, inputBus, &microphoneProcFormat, &size);
+    err = AudioUnitGetProperty(m_ioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, inputBus, &microphoneProcFormat, &size);
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::configureMicrophoneProc(%p) unable to get output stream format, error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::configureMicrophoneProc(%p) unable to get output stream format, error %d (%.4s)", this, (int)err, (char*)&err);
         return err;
     }
 
-    microphoneProcFormat.mSampleRate = sampleRate();
+    microphoneProcFormat.mSampleRate = m_sampleRate;
     err = AudioUnitSetProperty(m_ioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, inputBus, &microphoneProcFormat, size);
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::configureMicrophoneProc(%p) unable to set output stream format, error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::configureMicrophoneProc(%p) unable to set output stream format, error %d (%.4s)", this, (int)err, (char*)&err);
         return err;
     }
 
@@ -162,12 +340,12 @@ OSStatus CoreAudioCaptureSource::configureMicrophoneProc()
     return err;
 }
 
-OSStatus CoreAudioCaptureSource::configureSpeakerProc()
+OSStatus CoreAudioSharedUnit::configureSpeakerProc()
 {
     AURenderCallbackStruct callback = { speakerCallback, this };
     auto err = AudioUnitSetProperty(m_ioUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, outputBus, &callback, sizeof(callback));
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::configureSpeakerProc(%p) unable to set vpio unit speaker proc, error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::configureSpeakerProc(%p) unable to set vpio unit speaker proc, error %d (%.4s)", this, (int)err, (char*)&err);
         return err;
     }
 
@@ -176,14 +354,14 @@ OSStatus CoreAudioCaptureSource::configureSpeakerProc()
     UInt32 size = sizeof(speakerProcFormat);
     err = AudioUnitGetProperty(m_ioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, outputBus, &speakerProcFormat, &size);
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::configureSpeakerProc(%p) unable to get input stream format, error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::configureSpeakerProc(%p) unable to get input stream format, error %d (%.4s)", this, (int)err, (char*)&err);
         return err;
     }
 
-    speakerProcFormat.mSampleRate = sampleRate();
+    speakerProcFormat.mSampleRate = m_sampleRate;
     err = AudioUnitSetProperty(m_ioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, outputBus, &speakerProcFormat, size);
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::configureSpeakerProc(%p) unable to get input stream format, error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::configureSpeakerProc(%p) unable to get input stream format, error %d (%.4s)", this, (int)err, (char*)&err);
         return err;
     }
 
@@ -193,32 +371,15 @@ OSStatus CoreAudioCaptureSource::configureSpeakerProc()
     return err;
 }
 
-void CoreAudioCaptureSource::addEchoCancellationSource(AudioSampleDataSource& source)
-{
-    if (!source.setOutputFormat(m_speakerProcFormat)) {
-        LOG(Media, "CoreAudioCaptureSource::addEchoCancellationSource: source %p configureOutput failed", &source);
-        return;
-    }
-
-    std::lock_guard<Lock> lock(m_pendingSourceQueueLock);
-    m_pendingSources.append({ QueueAction::Add, source });
-}
-
-void CoreAudioCaptureSource::removeEchoCancellationSource(AudioSampleDataSource& source)
-{
-    std::lock_guard<Lock> lock(m_pendingSourceQueueLock);
-    m_pendingSources.append({ QueueAction::Remove, source });
-}
-
 #if !LOG_DISABLED
-void CoreAudioCaptureSource::checkTimestamps(const AudioTimeStamp& timeStamp, uint64_t sampleTime, double hostTime)
+void CoreAudioSharedUnit::checkTimestamps(const AudioTimeStamp& timeStamp, uint64_t sampleTime, double hostTime)
 {
     if (!timeStamp.mSampleTime || sampleTime == m_latestMicTimeStamp || !hostTime)
-        LOG(Media, "CoreAudioCaptureSource::checkTimestamps: unusual timestamps, sample time = %lld, previous sample time = %lld, hostTime %f", sampleTime, m_latestMicTimeStamp, hostTime);
+        LOG(Media, "CoreAudioSharedUnit::checkTimestamps: unusual timestamps, sample time = %lld, previous sample time = %lld, hostTime %f", sampleTime, m_latestMicTimeStamp, hostTime);
 }
 #endif
 
-OSStatus CoreAudioCaptureSource::provideSpeakerData(AudioUnitRenderActionFlags& /*ioActionFlags*/, const AudioTimeStamp& timeStamp, UInt32 /*inBusNumber*/, UInt32 inNumberFrames, AudioBufferList* ioData)
+OSStatus CoreAudioSharedUnit::provideSpeakerData(AudioUnitRenderActionFlags& /*ioActionFlags*/, const AudioTimeStamp& timeStamp, UInt32 /*inBusNumber*/, UInt32 inNumberFrames, AudioBufferList* ioData)
 {
     // Called when the audio unit needs data to play through the speakers.
 #if !LOG_DISABLED
@@ -226,7 +387,7 @@ OSStatus CoreAudioCaptureSource::provideSpeakerData(AudioUnitRenderActionFlags& 
 #endif
 
     if (m_speakerSampleBuffer->sampleCapacity() < inNumberFrames) {
-        LOG(Media, "CoreAudioCaptureSource::provideSpeakerData: speaker sample buffer size (%d) too small for amount of sample data requested (%d)!", m_speakerSampleBuffer->sampleCapacity(), (int)inNumberFrames);
+        LOG(Media, "CoreAudioSharedUnit::provideSpeakerData: speaker sample buffer size (%d) too small for amount of sample data requested (%d)!", m_speakerSampleBuffer->sampleCapacity(), (int)inNumberFrames);
         return kAudio_ParamError;
     }
 
@@ -272,15 +433,15 @@ OSStatus CoreAudioCaptureSource::provideSpeakerData(AudioUnitRenderActionFlags& 
     return noErr;
 }
 
-OSStatus CoreAudioCaptureSource::speakerCallback(void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* ioData)
+OSStatus CoreAudioSharedUnit::speakerCallback(void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* ioData)
 {
     ASSERT(ioActionFlags);
     ASSERT(inTimeStamp);
-    auto dataSource = static_cast<CoreAudioCaptureSource*>(inRefCon);
+    auto dataSource = static_cast<CoreAudioSharedUnit*>(inRefCon);
     return dataSource->provideSpeakerData(*ioActionFlags, *inTimeStamp, inBusNumber, inNumberFrames, ioData);
 }
 
-OSStatus CoreAudioCaptureSource::processMicrophoneSamples(AudioUnitRenderActionFlags& ioActionFlags, const AudioTimeStamp& timeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* /*ioData*/)
+OSStatus CoreAudioSharedUnit::processMicrophoneSamples(AudioUnitRenderActionFlags& ioActionFlags, const AudioTimeStamp& timeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* /*ioData*/)
 {
 #if !LOG_DISABLED
     ++m_microphoneProcsCalled;
@@ -291,7 +452,7 @@ OSStatus CoreAudioCaptureSource::processMicrophoneSamples(AudioUnitRenderActionF
     AudioBufferList& bufferList = m_microphoneSampleBuffer->bufferList();
     auto err = AudioUnitRender(m_ioUnit, &ioActionFlags, &timeStamp, inBusNumber, inNumberFrames, &bufferList);
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::processMicrophoneSamples(%p) AudioUnitRender failed with error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::processMicrophoneSamples(%p) AudioUnitRender failed with error %d (%.4s)", this, (int)err, (char*)&err);
         return err;
     }
 
@@ -303,27 +464,31 @@ OSStatus CoreAudioCaptureSource::processMicrophoneSamples(AudioUnitRenderActionF
     m_latestMicTimeStamp = sampleTime;
     m_microphoneSampleBuffer->setTimes(adjustedHostTime, sampleTime);
 
+    if (m_volume != 1.0)
+        m_microphoneSampleBuffer->applyGain(m_volume);
 
-    audioSamplesAvailable(MediaTime(sampleTime, m_microphoneProcFormat.sampleRate()), m_microphoneSampleBuffer->bufferList(), m_microphoneProcFormat, inNumberFrames);
-
+    for (CoreAudioCaptureSource& client : m_clients) {
+        if (client.isProducingData())
+            client.audioSamplesAvailable(MediaTime(sampleTime, m_microphoneProcFormat.sampleRate()), m_microphoneSampleBuffer->bufferList(), m_microphoneProcFormat, inNumberFrames);
+    }
     return noErr;
 }
 
-OSStatus CoreAudioCaptureSource::microphoneCallback(void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* ioData)
+OSStatus CoreAudioSharedUnit::microphoneCallback(void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* ioData)
 {
     ASSERT(ioActionFlags);
     ASSERT(inTimeStamp);
-    CoreAudioCaptureSource* dataSource = static_cast<CoreAudioCaptureSource*>(inRefCon);
+    CoreAudioSharedUnit* dataSource = static_cast<CoreAudioSharedUnit*>(inRefCon);
     return dataSource->processMicrophoneSamples(*ioActionFlags, *inTimeStamp, inBusNumber, inNumberFrames, ioData);
 }
 
-void CoreAudioCaptureSource::cleanupAudioUnits()
+void CoreAudioSharedUnit::cleanupAudioUnit()
 {
     if (m_ioUnitInitialized) {
         ASSERT(m_ioUnit);
         auto err = AudioUnitUninitialize(m_ioUnit);
         if (err)
-            LOG(Media, "CoreAudioCaptureSource::cleanupAudioUnits(%p) AudioUnitUninitialize failed with error %d (%.4s)", this, (int)err, (char*)&err);
+            LOG(Media, "CoreAudioSharedUnit::cleanupAudioUnit(%p) AudioUnitUninitialize failed with error %d (%.4s)", this, (int)err, (char*)&err);
         m_ioUnitInitialized = false;
     }
 
@@ -339,197 +504,257 @@ void CoreAudioCaptureSource::cleanupAudioUnits()
 #endif
 }
 
-OSStatus CoreAudioCaptureSource::defaultInputDevice(uint32_t* deviceID)
+OSStatus CoreAudioSharedUnit::reconfigureAudioUnit()
 {
-    ASSERT(m_ioUnit);
-
-    UInt32 propertySize = sizeof(*deviceID);
-    auto err = AudioUnitGetProperty(m_ioUnit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, inputBus, deviceID, &propertySize);
-    if (err)
-        LOG(Media, "CoreAudioCaptureSource::defaultInputDevice(%p) unable to get default input device ID, error %d (%.4s)", this, (int)err, (char*)&err);
-
-    return err;
-}
-
-OSStatus CoreAudioCaptureSource::setupAudioUnits()
-{
-    if (m_ioUnit)
+    OSStatus err;
+    if (!hasAudioUnit())
         return 0;
 
-    AudioComponentDescription ioUnitDescription = { kAudioUnitType_Output, kAudioUnitSubType_VoiceProcessingIO, kAudioUnitManufacturer_Apple, 0, 0 };
-    AudioComponent ioComponent = AudioComponentFindNext(nullptr, &ioUnitDescription);
-    ASSERT(ioComponent);
-    if (!ioComponent) {
-        LOG(Media, "CoreAudioCaptureSource::setupAudioUnits(%p) unable to find vpio unit component", this);
-        return -1;
-    }
-
-#if !LOG_DISABLED
-    CFStringRef name = nullptr;
-    AudioComponentCopyName(ioComponent, &name);
-    if (name) {
-        m_ioUnitName = name;
-        CFRelease(name);
-        LOG(Media, "CoreAudioCaptureSource::setupAudioUnits(%p) created \"%s\" component", this, m_ioUnitName.utf8().data());
-    }
-#endif
-
-    auto err = AudioComponentInstanceNew(ioComponent, &m_ioUnit);
-    if (err) {
-        LOG(Media, "CoreAudioCaptureSource::setupAudioUnits(%p) unable to open vpio unit, error %d (%.4s)", this, (int)err, (char*)&err);
-        return err;
-    }
-
-    uint32_t param = echoCancellation();
-    err = AudioUnitSetProperty(m_ioUnit, kAUVoiceIOProperty_VoiceProcessingEnableAGC, kAudioUnitScope_Global, inputBus, &param, sizeof(param));
-    if (err) {
-        LOG(Media, "CoreAudioCaptureSource::setupAudioUnits(%p) unable to set vpio unit echo cancellation, error %d (%.4s)", this, (int)err, (char*)&err);
-        return err;
-    }
-
-#if PLATFORM(IOS)
-    param = 1;
-    err = AudioUnitSetProperty(m_ioUnit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, inputBus, &param, sizeof(param));
-    if (err) {
-        LOG(Media, "CoreAudioCaptureSource::setupAudioUnits(%p) unable to enable vpio unit input, error %d (%.4s)", this, (int)err, (char*)&err);
-        return err;
-    }
-#else
-    if (!m_captureDeviceID) {
-        err = defaultInputDevice(&m_captureDeviceID);
-        if (err)
+    if (m_ioUnitStarted) {
+        err = AudioOutputUnitStop(m_ioUnit);
+        if (err) {
+            LOG(Media, "CoreAudioSharedUnit::reconfigureAudioUnit(%p) AudioOutputUnitStop failed with error %d (%.4s)", this, (int)err, (char*)&err);
             return err;
+        }
     }
 
-    err = AudioUnitSetProperty(m_ioUnit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, inputBus, &m_captureDeviceID, sizeof(m_captureDeviceID));
-    if (err) {
-        LOG(Media, "CoreAudioCaptureSource::setupAudioUnits(%p) unable to set vpio unit capture device ID, error %d (%.4s)", this, (int)err, (char*)&err);
-        return err;
-    }
-#endif
-
-    err = configureMicrophoneProc();
+    cleanupAudioUnit();
+    err = setupAudioUnit();
     if (err)
         return err;
 
-    err = AudioUnitInitialize(m_ioUnit);
-    if (err) {
-        LOG(Media, "CoreAudioCaptureSource::setupAudioUnits(%p) AudioUnitInitialize() failed, error %d (%.4s)", this, (int)err, (char*)&err);
-        return err;
+    if (m_ioUnitStarted) {
+        err = AudioOutputUnitStart(m_ioUnit);
+        if (err) {
+            LOG(Media, "CoreAudioSharedUnit::reconfigureAudioUnit(%p) AudioOutputUnitStart failed with error %d (%.4s)", this, (int)err, (char*)&err);
+            return err;
+        }
     }
-    m_ioUnitInitialized = true;
-
-    err = configureSpeakerProc();
-    if (err)
-        return err;
-
     return err;
 }
 
-void CoreAudioCaptureSource::startProducingData()
+void CoreAudioSharedUnit::startProducingData()
 {
     ASSERT(isMainThread());
+
+    if (++m_producingCount != 1)
+        return;
 
     if (m_ioUnitStarted)
         return;
 
+    if (m_ioUnit) {
+        cleanupAudioUnit();
+        ASSERT(!m_ioUnit);
+    }
+
+    startInternal();
+}
+
+OSStatus CoreAudioSharedUnit::resume()
+{
+    ASSERT(isMainThread());
+    ASSERT(m_suspended);
+    ASSERT(!m_ioUnitStarted);
+
+    m_suspended = false;
+
+    if (!m_ioUnit)
+        return 0;
+
+    startInternal();
+
+    return 0;
+}
+
+void CoreAudioSharedUnit::startInternal()
+{
     OSStatus err;
     if (!m_ioUnit) {
-        err = setupAudioUnits();
+        err = setupAudioUnit();
         if (err) {
-            cleanupAudioUnits();
+            cleanupAudioUnit();
             ASSERT(!m_ioUnit);
             return;
         }
         ASSERT(m_ioUnit);
     }
 
+    uint32_t outputDevice;
+    if (!defaultOutputDevice(&outputDevice))
+        AudioDeviceDuck(outputDevice, 1.0, nullptr, 0);
+
     err = AudioOutputUnitStart(m_ioUnit);
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::start(%p) AudioOutputUnitStart failed with error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::start(%p) AudioOutputUnitStart failed with error %d (%.4s)", this, (int)err, (char*)&err);
         return;
     }
 
     m_ioUnitStarted = true;
-    m_muted = false;
 }
 
-void CoreAudioCaptureSource::stopProducingData()
+void CoreAudioSharedUnit::stopProducingData()
+{
+    ASSERT(isMainThread());
+    ASSERT(m_producingCount);
+
+    if (m_producingCount && --m_producingCount)
+        return;
+
+    stopInternal();
+}
+
+OSStatus CoreAudioSharedUnit::suspend()
 {
     ASSERT(isMainThread());
 
+    m_suspended = true;
+    stopInternal();
+
+    return 0;
+}
+
+void CoreAudioSharedUnit::stopInternal()
+{
     if (!m_ioUnit || !m_ioUnitStarted)
         return;
 
     auto err = AudioOutputUnitStop(m_ioUnit);
     if (err) {
-        LOG(Media, "CoreAudioCaptureSource::stop(%p) AudioOutputUnitStop failed with error %d (%.4s)", this, (int)err, (char*)&err);
+        LOG(Media, "CoreAudioSharedUnit::stop(%p) AudioOutputUnitStop failed with error %d (%.4s)", this, (int)err, (char*)&err);
         return;
     }
 
     m_ioUnitStarted = false;
-    m_muted = true;
 }
 
-OSStatus CoreAudioCaptureSource::suspend()
+OSStatus CoreAudioSharedUnit::defaultInputDevice(uint32_t* deviceID)
 {
-    ASSERT(isMainThread());
-
-    if (m_ioUnitStarted) {
-        ASSERT(m_ioUnit);
-        auto err = AudioOutputUnitStop(m_ioUnit);
-        if (err) {
-            LOG(Media, "CoreAudioCaptureSource::resume(%p) AudioOutputUnitStop failed with error %d (%.4s)", this, (int)err, (char*)&err);
-            return err;
-        }
-        m_ioUnitStarted = false;
-    }
-
-    if (m_ioUnitInitialized) {
-        ASSERT(m_ioUnit);
-        auto err = AudioUnitUninitialize(m_ioUnit);
-        if (err) {
-            LOG(Media, "CoreAudioCaptureSource::resume(%p) AudioUnitUninitialize failed with error %d (%.4s)", this, (int)err, (char*)&err);
-            return err;
-        }
-        m_ioUnitInitialized = false;
-    }
-
-    return 0;
-}
-
-OSStatus CoreAudioCaptureSource::resume()
-{
-    ASSERT(isMainThread());
     ASSERT(m_ioUnit);
-    ASSERT(!m_ioUnitStarted);
 
-    auto err = AudioOutputUnitStart(m_ioUnit);
-    if (err) {
-        LOG(Media, "CoreAudioCaptureSource::resume(%p) AudioOutputUnitStart failed with error %d (%.4s)", this, (int)err, (char*)&err);
-        return err;
-    }
-    m_ioUnitStarted = false;
+    UInt32 propertySize = sizeof(*deviceID);
+    auto err = AudioUnitGetProperty(m_ioUnit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, inputBus, deviceID, &propertySize);
+    if (err)
+        LOG(Media, "CoreAudioSharedUnit::defaultInputDevice(%p) unable to get default input device ID, error %d (%.4s)", this, (int)err, (char*)&err);
 
     return err;
 }
 
+OSStatus CoreAudioSharedUnit::defaultOutputDevice(uint32_t* deviceID)
+{
+    OSErr err = -1;
+#if PLATFORM(MAC)
+    AudioObjectPropertyAddress address = { kAudioHardwarePropertyDefaultOutputDevice, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMaster };
+
+    if (AudioObjectHasProperty(kAudioObjectSystemObject, &address)) {
+        UInt32 propertySize = sizeof(AudioDeviceID);
+        err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &address, 0, nullptr, &propertySize, deviceID);
+    }
+#else
+    UNUSED_PARAM(deviceID);
+#endif
+    return err;
+}
+
+CaptureSourceOrError CoreAudioCaptureSource::create(const String& deviceID, const MediaConstraints* constraints)
+{
+#if PLATFORM(MAC)
+    auto device = CoreAudioCaptureDeviceManager::singleton().coreAudioDeviceWithUID(deviceID);
+    if (!device)
+        return { };
+
+    auto source = adoptRef(*new CoreAudioCaptureSource(deviceID, device->label(), device->deviceID()));
+#elif PLATFORM(IOS)
+    auto device = AVAudioSessionCaptureDeviceManager::singleton().audioSessionDeviceWithUID(deviceID);
+    if (!device)
+        return { };
+
+    auto source = adoptRef(*new CoreAudioCaptureSourceIOS(deviceID, device->label()));
+#endif
+
+    if (constraints) {
+        auto result = source->applyConstraints(*constraints);
+        if (result)
+            return WTFMove(result.value().first);
+    }
+    return CaptureSourceOrError(WTFMove(source));
+}
+
+RealtimeMediaSource::AudioCaptureFactory& CoreAudioCaptureSource::factory()
+{
+    return coreAudioCaptureSourceFactory();
+}
+
+CoreAudioCaptureSource::CoreAudioCaptureSource(const String& deviceID, const String& label, uint32_t persistentID)
+    : RealtimeMediaSource(deviceID, RealtimeMediaSource::Type::Audio, label)
+    , m_captureDeviceID(persistentID)
+{
+    auto& unit = CoreAudioSharedUnit::singleton();
+
+    initializeEchoCancellation(unit.enableEchoCancellation());
+    initializeSampleRate(unit.sampleRate());
+    initializeVolume(unit.volume());
+
+    unit.addClient(*this);
+}
+
+CoreAudioCaptureSource::~CoreAudioCaptureSource()
+{
+#if PLATFORM(IOS)
+    coreAudioCaptureSourceFactory().unsetActiveSource(*this);
+#endif
+
+    CoreAudioSharedUnit::singleton().removeClient(*this);
+}
+
+void CoreAudioCaptureSource::addEchoCancellationSource(AudioSampleDataSource& source)
+{
+    CoreAudioSharedUnit::singleton().addEchoCancellationSource(source);
+}
+
+void CoreAudioCaptureSource::removeEchoCancellationSource(AudioSampleDataSource& source)
+{
+    CoreAudioSharedUnit::singleton().removeEchoCancellationSource(source);
+}
+
+void CoreAudioCaptureSource::startProducingData()
+{
+#if PLATFORM(IOS)
+    coreAudioCaptureSourceFactory().setActiveSource(*this);
+#endif
+
+    auto& unit = CoreAudioSharedUnit::singleton();
+    if (unit.isSuspended()) {
+        m_suspendType = SuspensionType::WhilePlaying;
+        return;
+    }
+
+    unit.startProducingData();
+}
+
+void CoreAudioCaptureSource::stopProducingData()
+{
+    auto& unit = CoreAudioSharedUnit::singleton();
+
+    if (unit.isSuspended()) {
+        m_suspendType = SuspensionType::WhilePaused;
+        return;
+    }
+
+    unit.stopProducingData();
+}
+
 const RealtimeMediaSourceCapabilities& CoreAudioCaptureSource::capabilities() const
 {
-    if (m_capabilities)
-        return *m_capabilities;
-
-    m_supportedConstraints.setSupportsDeviceId(true);
-    m_supportedConstraints.setSupportsEchoCancellation(true);
-    m_supportedConstraints.setSupportsVolume(true);
-
-    // FIXME: finish this.
-    m_capabilities = std::make_unique<RealtimeMediaSourceCapabilities>(m_supportedConstraints);
-    m_capabilities->setDeviceId(id());
-    m_capabilities->setEchoCancellation(RealtimeMediaSourceCapabilities::EchoCancellation::ReadWrite);
-    m_capabilities->setVolume(CapabilityValueOrRange(0.0, 1.0));
-
-    return *m_capabilities;
+    if (!m_capabilities) {
+        RealtimeMediaSourceCapabilities capabilities(settings().supportedConstraints());
+        capabilities.setDeviceId(id());
+        capabilities.setEchoCancellation(RealtimeMediaSourceCapabilities::EchoCancellation::ReadWrite);
+        capabilities.setVolume(CapabilityValueOrRange(0.0, 1.0));
+        capabilities.setSampleRate(CapabilityValueOrRange(8000, 96000));
+        m_capabilities = WTFMove(capabilities);
+    }
+    return m_capabilities.value();
 }
 
 const RealtimeMediaSourceSettings& CoreAudioCaptureSource::settings() const
@@ -541,8 +766,14 @@ const RealtimeMediaSourceSettings& CoreAudioCaptureSource::settings() const
         settings.setDeviceId(id());
         settings.setEchoCancellation(echoCancellation());
 
-        m_currentSettings = WTFMove(settings);
+        RealtimeMediaSourceSupportedConstraints supportedConstraints;
+        supportedConstraints.setSupportsDeviceId(true);
+        supportedConstraints.setSupportsEchoCancellation(true);
+        supportedConstraints.setSupportsVolume(true);
+        supportedConstraints.setSupportsSampleRate(true);
+        settings.setSupportedConstraints(supportedConstraints);
 
+        m_currentSettings = WTFMove(settings);
     }
     return m_currentSettings.value();
 }
@@ -551,6 +782,134 @@ void CoreAudioCaptureSource::settingsDidChange()
 {
     m_currentSettings = std::nullopt;
     RealtimeMediaSource::settingsDidChange();
+}
+
+bool CoreAudioCaptureSource::applySampleRate(int sampleRate)
+{
+    // FIXME: We should be able to describe sample rate as a discreet range constraint so that we only enter here with values that can be applied.
+    switch (sampleRate) {
+    case 8000:
+    case 16000:
+    case 32000:
+    case 44100:
+    case 48000:
+    case 96000:
+        break;
+    default:
+        return false;
+    }
+
+    CoreAudioSharedUnit::singleton().setSampleRate(sampleRate);
+
+    scheduleReconfiguration();
+    return true;
+}
+
+bool CoreAudioCaptureSource::applyEchoCancellation(bool enableEchoCancellation)
+{
+    CoreAudioSharedUnit::singleton().setEnableEchoCancellation(enableEchoCancellation);
+
+    scheduleReconfiguration();
+    return true;
+}
+
+void CoreAudioCaptureSource::scheduleReconfiguration()
+{
+    if (!isMainThread()) {
+        callOnMainThread([weakThis = createWeakPtr(), this] {
+            if (!weakThis)
+                return;
+
+            scheduleReconfiguration();
+        });
+
+        return;
+    }
+
+    ASSERT(isMainThread());
+    auto& unit = CoreAudioSharedUnit::singleton();
+    if (!unit.hasAudioUnit() || m_reconfigurationState != ReconfigurationState::None)
+        return;
+
+    m_reconfigurationState = ReconfigurationState::Ongoing;
+    scheduleDeferredTask([this, &unit] {
+        if (unit.isSuspended()) {
+            m_reconfigurationState = ReconfigurationState::Required;
+            return;
+        }
+
+        unit.reconfigureAudioUnit();
+        m_reconfigurationState = ReconfigurationState::None;
+    });
+}
+
+void CoreAudioCaptureSource::beginInterruption()
+{
+    if (!isMainThread()) {
+        callOnMainThread([weakThis = createWeakPtr(), this] {
+            if (!weakThis)
+                return;
+
+            beginInterruption();
+        });
+
+        return;
+    }
+
+    ASSERT(isMainThread());
+    auto& unit = CoreAudioSharedUnit::singleton();
+    if (!unit.hasAudioUnit() || unit.isSuspended() || m_suspendPending)
+        return;
+
+    m_suspendPending = true;
+    scheduleDeferredTask([this, &unit] {
+        m_suspendType = unit.isProducingData() ? SuspensionType::WhilePlaying : SuspensionType::WhilePaused;
+        unit.suspend();
+        m_suspendPending = false;
+    });
+}
+
+void CoreAudioCaptureSource::endInterruption()
+{
+    if (!isMainThread()) {
+        callOnMainThread([weakThis = createWeakPtr(), this] {
+            if (!weakThis)
+                return;
+
+            endInterruption();
+        });
+
+        return;
+    }
+
+    ASSERT(isMainThread());
+    auto& unit = CoreAudioSharedUnit::singleton();
+    if (!unit.hasAudioUnit() || !unit.isSuspended() || m_resumePending)
+        return;
+
+    auto type = m_suspendType;
+    m_suspendType = SuspensionType::None;
+    if (type != SuspensionType::WhilePlaying && m_reconfigurationState != ReconfigurationState::Required)
+        return;
+
+    m_resumePending = true;
+    scheduleDeferredTask([this, type, &unit] {
+        if (m_reconfigurationState == ReconfigurationState::Required)
+            unit.reconfigureAudioUnit();
+        if (type == SuspensionType::WhilePlaying)
+            unit.resume();
+        m_reconfigurationState = ReconfigurationState::None;
+        m_resumePending = false;
+    });
+}
+
+bool CoreAudioCaptureSource::interrupted() const
+{
+    auto& unit = CoreAudioSharedUnit::singleton();
+    if (unit.isSuspended())
+        return true;
+
+    return RealtimeMediaSource::interrupted();
 }
 
 } // namespace WebCore

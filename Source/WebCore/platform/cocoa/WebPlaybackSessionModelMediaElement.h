@@ -70,6 +70,8 @@ public:
     WEBCORE_EXPORT void selectAudioMediaOption(uint64_t index) final;
     WEBCORE_EXPORT void selectLegibleMediaOption(uint64_t index) final;
     WEBCORE_EXPORT void togglePictureInPicture() final;
+    WEBCORE_EXPORT void toggleMuted() final;
+    WEBCORE_EXPORT void setMuted(bool) final;
 
     double duration() const final;
     double currentTime() const final;
@@ -78,6 +80,8 @@ public:
     bool isScrubbing() const final { return false; }
     float playbackRate() const final;
     Ref<TimeRanges> seekableRanges() const final;
+    double seekableTimeRangesLastModifiedTime() const final;
+    double liveUpdateInterval() const final;
     bool canPlayFastReverse() const final;
     Vector<MediaSelectionOption> audioMediaSelectionOptions() const final;
     uint64_t audioMediaSelectedIndex() const final;
@@ -87,11 +91,13 @@ public:
     ExternalPlaybackTargetType externalPlaybackTargetType() const final;
     String externalPlaybackLocalizedDeviceName() const final;
     bool wirelessVideoPlaybackDisabled() const final;
+    bool isMuted() const final;
 
 protected:
     WEBCORE_EXPORT WebPlaybackSessionModelMediaElement();
 
 private:
+    void progressEventTimerFired();
     static const Vector<WTF::AtomicString>& observedEventNames();
     const WTF::AtomicString& eventNameAll();
 
@@ -100,7 +106,7 @@ private:
     HashSet<WebPlaybackSessionModelClient*> m_clients;
     Vector<RefPtr<TextTrack>> m_legibleTracksForMenu;
     Vector<RefPtr<AudioTrack>> m_audioTracksForMenu;
-    
+
     double playbackStartedTime() const;
     void updateMediaSelectionOptions();
     void updateMediaSelectionIndices();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007, 2008, 2009, 2011 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2017 Apple Inc. All rights reserved.
  * Copyright (C) 2007 Justin Haygood (jhaygood@reaktix.com)
  *
  * Redistribution and use in source and binary forms, with or without
@@ -141,7 +141,9 @@ bool IconDatabase::open(const String& directory, const String& filename)
     // Lock here as well as first thing in the thread so the thread doesn't actually commence until the createThread() call 
     // completes and m_syncThreadRunning is properly set
     m_syncLock.lock();
-    m_syncThread = Thread::create(IconDatabase::iconDatabaseSyncThreadStart, this, "WebCore: IconDatabase");
+    m_syncThread = Thread::create("WebCore: IconDatabase", [this] {
+        iconDatabaseSyncThread();
+    });
     m_syncThreadRunning = m_syncThread;
     m_syncLock.unlock();
     if (!m_syncThread)
@@ -880,7 +882,7 @@ String IconDatabase::databasePath() const
 
 String IconDatabase::defaultDatabaseFilename()
 {
-    static NeverDestroyed<String> defaultDatabaseFilename(ASCIILiteral("WebpageIcons.db"));
+    static NeverDestroyed<String> defaultDatabaseFilename(MAKE_STATIC_STRING_IMPL("WebpageIcons.db"));
     return defaultDatabaseFilename.get().isolatedCopy();
 }
 
@@ -940,13 +942,6 @@ bool IconDatabase::shouldStopThreadActivity() const
     ASSERT_ICON_SYNC_THREAD();
     
     return m_threadTerminationRequested || m_removeIconsRequested;
-}
-
-void IconDatabase::iconDatabaseSyncThreadStart(void* vIconDatabase)
-{    
-    IconDatabase* iconDB = static_cast<IconDatabase*>(vIconDatabase);
-    
-    iconDB->iconDatabaseSyncThread();
 }
 
 void IconDatabase::iconDatabaseSyncThread()

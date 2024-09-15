@@ -43,7 +43,7 @@ static bool done;
 
 TEST(WebKit2, AdditionalReadAccessAllowedURLs)
 {
-    RetainPtr<WKWebViewConfiguration> configuration = retainPtr([WKWebViewConfiguration testwebkitapi_configurationWithTestPlugInClassName:@"AdditionalReadAccessAllowedURLsPlugIn"]);
+    RetainPtr<WKWebViewConfiguration> configuration = retainPtr([WKWebViewConfiguration _test_configurationWithTestPlugInClassName:@"AdditionalReadAccessAllowedURLsPlugIn"]);
 
     _WKProcessPoolConfiguration *processPoolConfiguration = [configuration processPool]._configuration;
 
@@ -55,6 +55,10 @@ TEST(WebKit2, AdditionalReadAccessAllowedURLs)
         exceptionRaised = true;
     }
     EXPECT_TRUE(exceptionRaised);
+
+    NSURL *fileURLWithNonLatin1Path = [NSURL fileURLWithPath:@"/这是中文"];
+    processPoolConfiguration.additionalReadAccessAllowedURLs = @[ fileURLWithNonLatin1Path ];
+    EXPECT_TRUE([processPoolConfiguration.additionalReadAccessAllowedURLs.firstObject isEqual:fileURLWithNonLatin1Path]);
 
     char temporaryDirectory[PATH_MAX];
     confstr(_CS_DARWIN_USER_TEMP_DIR, temporaryDirectory, sizeof(temporaryDirectory));

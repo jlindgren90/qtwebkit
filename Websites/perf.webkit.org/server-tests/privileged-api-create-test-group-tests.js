@@ -103,10 +103,13 @@ function addTriggerableAndCreateTask(name)
             {test: MockData.someTestId(), platform: MockData.otherPlatformId()},
         ],
         'repositoryGroups': [
-            {name: 'webkit-only', repositories: [
-                {repository: MockData.webkitRepositoryId(), acceptsPatch: true}
+            {name: 'os-only', acceptsRoot: true, repositories: [
+                {repository: MockData.macosRepositoryId(), acceptsPatch: false},
             ]},
-            {name: 'system-and-webkit', repositories: [
+            {name: 'webkit-only', acceptsRoot: true, repositories: [
+                {repository: MockData.webkitRepositoryId(), acceptsPatch: true},
+            ]},
+            {name: 'system-and-webkit', acceptsRoot: true, repositories: [
                 {repository: MockData.macosRepositoryId(), acceptsPatch: false},
                 {repository: MockData.webkitRepositoryId(), acceptsPatch: true}
             ]},
@@ -323,7 +326,7 @@ describe('/privileged-api/create-test-group', function () {
             let insertedGroupId;
             return PrivilegedAPI.sendRequest('create-test-group', {name: 'test', task: taskId, commitSets: {'macOS': ['15A284', '15A284'], 'WebKit': ['191622', '191623']}}).then((content) => {
                 insertedGroupId = content['testGroupId'];
-                return TestGroup.fetchByTask(taskId);
+                return TestGroup.fetchForTask(taskId, true);
             }).then((testGroups) => {
                 assert.equal(testGroups.length, 1);
                 const group = testGroups[0];
@@ -361,7 +364,7 @@ describe('/privileged-api/create-test-group', function () {
             let insertedGroupId;
             return PrivilegedAPI.sendRequest('create-test-group', params).then((content) => {
                 insertedGroupId = content['testGroupId'];
-                return TestGroup.fetchByTask(taskId);
+                return TestGroup.fetchForTask(taskId, true);
             }).then((testGroups) => {
                 assert.equal(testGroups.length, 1);
                 const group = testGroups[0];
@@ -392,7 +395,7 @@ describe('/privileged-api/create-test-group', function () {
             return PrivilegedAPI.sendRequest('create-test-group', {name: 'test', task: taskId, repetitionCount: 2,
                 commitSets: {'WebKit': ['191622', '191623'], 'macOS': ['15A284', '15A284']}}).then((content) => {
                 insertedGroupId = content['testGroupId'];
-                return TestGroup.fetchByTask(taskId);
+                return TestGroup.fetchForTask(taskId, true);
             }).then((testGroups) => {
                 assert.equal(testGroups.length, 1);
                 const group = testGroups[0];
@@ -438,7 +441,7 @@ describe('/privileged-api/create-test-group', function () {
             let insertedGroupId;
             return PrivilegedAPI.sendRequest('create-test-group', params).then((content) => {
                 insertedGroupId = content['testGroupId'];
-                return TestGroup.fetchByTask(taskId);
+                return TestGroup.fetchForTask(taskId, true);
             }).then((testGroups) => {
                 assert.equal(testGroups.length, 1);
                 const group = testGroups[0];
@@ -485,7 +488,7 @@ describe('/privileged-api/create-test-group', function () {
                     {[webkit.id()]: {revision: '191622'}, [macos.id()]: {revision: '15A284'}, 'customRoots': [uploadedFile['id']]}];
                 return PrivilegedAPI.sendRequest('create-test-group', {name: 'test', task: taskId, repetitionCount: 2, revisionSets}).then((content) => {
                     insertedGroupId = content['testGroupId'];
-                    return TestGroup.fetchByTask(taskId);
+                    return TestGroup.fetchForTask(taskId, true);
                 });
             }).then((testGroups) => {
                 assert.equal(testGroups.length, 1);
@@ -534,7 +537,7 @@ describe('/privileged-api/create-test-group', function () {
             return PrivilegedAPI.sendRequest('create-test-group', {name: 'test', task: taskId, repetitionCount: 2, revisionSets});
         }).then((content) => {
             insertedGroupId = content['testGroupId'];
-            return TestGroup.fetchByTask(taskId);
+            return TestGroup.fetchForTask(taskId, true);
         }).then((testGroups) => {
             assert.equal(testGroups.length, 1);
             const group = testGroups[0];
@@ -583,6 +586,70 @@ describe('/privileged-api/create-test-group', function () {
         });
     });
 
+    it('should not create a build request to build a patch when the commit set does not have a patch', () => {
+        let taskId;
+        let webkit;
+        let macos;
+        let insertedGroupId;
+        let uploadedFile;
+        return addTriggerableAndCreateTask('some task').then((id) => taskId = id).then(() => {
+            webkit = Repository.all().filter((repository) => repository.name() == 'WebKit')[0];
+            macos = Repository.all().filter((repository) => repository.name() == 'macOS')[0];
+            return TemporaryFile.makeTemporaryFile('some.dat', 'some content');
+        }).then((stream) => {
+            return PrivilegedAPI.sendRequest('upload-file', {newFile: stream}, {useFormData: true});
+        }).then((response) => {
+            const rawFile = response['uploadedFile'];
+            uploadedFile = UploadedFile.ensureSingleton(rawFile.id, rawFile);
+            const revisionSets = [{[macos.id()]: {revision: '15A284'}},
+                {[webkit.id()]: {revision: '191622', patch: uploadedFile.id()}, [macos.id()]: {revision: '15A284'}}];
+            return PrivilegedAPI.sendRequest('create-test-group', {name: 'test', task: taskId, repetitionCount: 2, revisionSets});
+        }).then((content) => {
+            insertedGroupId = content['testGroupId'];
+            return TestGroup.fetchForTask(taskId, true);
+        }).then((testGroups) => {
+            assert.equal(testGroups.length, 1);
+            const group = testGroups[0];
+            assert.equal(group.id(), insertedGroupId);
+            assert.equal(group.repetitionCount(), 2);
+            assert.equal(group.test(), Test.findById(MockData.someTestId()));
+            assert.equal(group.platform(), Platform.findById(MockData.somePlatformId()));
+            const requests = group.buildRequests();
+            assert.equal(requests.length, 5);
+
+            assert.equal(requests[0].isBuild(), true);
+            assert.equal(requests[1].isBuild(), false);
+            assert.equal(requests[2].isBuild(), false);
+            assert.equal(requests[3].isBuild(), false);
+            assert.equal(requests[4].isBuild(), false);
+
+            assert.equal(requests[0].isTest(), false);
+            assert.equal(requests[1].isTest(), true);
+            assert.equal(requests[2].isTest(), true);
+            assert.equal(requests[3].isTest(), true);
+            assert.equal(requests[4].isTest(), true);
+
+            const set0 = requests[0].commitSet();
+            const set1 = requests[1].commitSet();
+            assert.equal(requests[2].commitSet(), set0);
+            assert.equal(requests[3].commitSet(), set1);
+            assert.equal(requests[4].commitSet(), set0);
+            assert.deepEqual(Repository.sortByNamePreferringOnesWithURL(set0.repositories()), [webkit, macos]);
+            assert.deepEqual(set0.customRoots(), []);
+            assert.deepEqual(Repository.sortByNamePreferringOnesWithURL(set1.repositories()), [macos]);
+            assert.deepEqual(set1.customRoots(), []);
+            assert.equal(set0.revisionForRepository(webkit), '191622');
+            assert.equal(set1.revisionForRepository(webkit), null);
+            assert.equal(set0.patchForRepository(webkit), uploadedFile);
+            assert.equal(set0.revisionForRepository(macos), '15A284');
+            assert.equal(set0.revisionForRepository(macos), set1.revisionForRepository(macos));
+            assert.equal(set0.commitForRepository(macos), set1.commitForRepository(macos));
+            assert.equal(set0.patchForRepository(macos), null);
+            assert.equal(set1.patchForRepository(macos), null);
+            assert(!set0.equals(set1));
+        });
+    });
+
     it('should return "PatchNotAccepted" when a patch is specified for a repository that does not accept a patch', () => {
         let taskId;
         let webkit;
@@ -618,7 +685,7 @@ describe('/privileged-api/create-test-group', function () {
                 {name: 'test', taskName: 'other task', platform: MockData.somePlatformId(), test: MockData.someTestId(), revisionSets});
         }).then((result) => {
             insertedGroupId = result['testGroupId'];
-            return Promise.all([AnalysisTask.fetchById(result['taskId']), TestGroup.fetchByTask(result['taskId'])]);
+            return Promise.all([AnalysisTask.fetchById(result['taskId']), TestGroup.fetchForTask(result['taskId'], true)]);
         }).then((result) => {
             const [analysisTask, testGroups] = result;
 
@@ -660,7 +727,7 @@ describe('/privileged-api/create-test-group', function () {
         }).then((result) => {
             secondResult = result;
             assert.equal(firstResult['taskId'], secondResult['taskId']);
-            return Promise.all([AnalysisTask.fetchById(result['taskId']), TestGroup.fetchByTask(result['taskId'])]);
+            return Promise.all([AnalysisTask.fetchById(result['taskId']), TestGroup.fetchForTask(result['taskId'], true)]);
         }).then((result) => {
             const [analysisTask, testGroups] = result;
 

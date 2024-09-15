@@ -406,7 +406,7 @@ private:
     RemoteScrollingCoordinatorProxy* scrollingCoordinator = _page->scrollingCoordinatorProxy();
 
     CGRect unobscuredContentRectRespectingInputViewBounds = [self _computeUnobscuredContentRectRespectingInputViewBounds:unobscuredContentRect inputViewBounds:inputViewBounds];
-    FloatRect fixedPositionRectForLayout = _page->computeCustomFixedPositionRect(unobscuredContentRect, unobscuredContentRectRespectingInputViewBounds, _page->customFixedPositionRect(), zoomScale, WebPageProxy::UnobscuredRectConstraint::ConstrainedToDocumentRect, scrollingCoordinator->visualViewportEnabled());
+    FloatRect fixedPositionRectForLayout = _page->computeCustomFixedPositionRect(unobscuredContentRect, unobscuredContentRectRespectingInputViewBounds, _page->customFixedPositionRect(), zoomScale, FrameView::LayoutViewportConstraint::ConstrainedToDocumentRect, scrollingCoordinator->visualViewportEnabled());
 
     VisibleContentRectUpdateInfo visibleContentRectUpdateInfo(
         visibleContentRect,
@@ -435,7 +435,7 @@ private:
 
     _sizeChangedSinceLastVisibleContentRectUpdate = NO;
 
-    FloatRect fixedPositionRect = _page->computeCustomFixedPositionRect(_page->unobscuredContentRect(), _page->unobscuredContentRectRespectingInputViewBounds(), _page->customFixedPositionRect(), zoomScale, WebPageProxy::UnobscuredRectConstraint::Unconstrained, scrollingCoordinator->visualViewportEnabled());
+    FloatRect fixedPositionRect = _page->computeCustomFixedPositionRect(_page->unobscuredContentRect(), _page->unobscuredContentRectRespectingInputViewBounds(), _page->customFixedPositionRect(), zoomScale, FrameView::LayoutViewportConstraint::Unconstrained, scrollingCoordinator->visualViewportEnabled());
     scrollingCoordinator->viewportChangedViaDelegatedScrolling(scrollingCoordinator->rootScrollingNodeID(), fixedPositionRect, zoomScale);
 
     drawingArea->updateDebugIndicator();
@@ -558,6 +558,8 @@ static void storeAccessibilityRemoteConnectionInformation(id element, pid_t pid,
     CGSize contentsSize = layerTreeTransaction.contentsSize();
     CGPoint scrollOrigin = -layerTreeTransaction.scrollOrigin();
     CGRect contentBounds = { scrollOrigin, contentsSize };
+
+    LOG_WITH_STREAM(VisibleRects, stream << "-[WKContentView _didCommitLayerTree:] transactionID " <<  layerTreeTransaction.transactionID() << " contentBounds " << FloatRect(contentBounds));
 
     BOOL boundsChanged = !CGRectEqualToRect([self bounds], contentBounds);
     if (boundsChanged)
@@ -701,7 +703,8 @@ static void storeAccessibilityRemoteConnectionInformation(id element, pid_t pid,
     printInfo.snapshotFirstPage = printFormatter.snapshotFirstPage;
     if (printInfo.snapshotFirstPage) {
         static const CGFloat maximumPDFHeight = 200 * 72; // maximum PDF height for a single page is 200 inches
-        printingRect = (CGRect) { CGPointZero, { self.bounds.size.width, std::min(_webView.scrollView.contentSize.height, maximumPDFHeight) } };
+        CGSize contentSize = self.bounds.size;
+        printingRect = (CGRect) { CGPointZero, { contentSize.width, std::min(contentSize.height, maximumPDFHeight) } };
         [printFormatter _setSnapshotPaperRect:printingRect];
     }
     printInfo.availablePaperWidth = CGRectGetWidth(printingRect);

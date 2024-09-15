@@ -42,7 +42,7 @@ class CompositingRunLoop {
     WTF_MAKE_NONCOPYABLE(CompositingRunLoop);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    CompositingRunLoop(std::function<void ()>&&);
+    CompositingRunLoop(Function<void ()>&&);
     ~CompositingRunLoop();
 
     void performTask(Function<void ()>&&);
@@ -54,10 +54,6 @@ public:
 
     void updateCompleted();
 
-#ifndef NDEBUG
-    bool isCurrent();
-#endif
-
 private:
     enum class UpdateState {
         Completed,
@@ -68,7 +64,7 @@ private:
     void updateTimerFired();
 
     RunLoop::Timer<CompositingRunLoop> m_updateTimer;
-    std::function<void ()> m_updateFunction;
+    Function<void ()> m_updateFunction;
     Atomic<UpdateState> m_updateState;
     Lock m_dispatchSyncConditionMutex;
     Condition m_dispatchSyncCondition;

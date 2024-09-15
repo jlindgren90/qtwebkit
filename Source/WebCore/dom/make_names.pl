@@ -806,11 +806,11 @@ sub printNamesCppFile
     print F StaticString::GenerateStringAsserts(\%allStrings);
 
     if (keys %allTags) {
-        my $tagsNamespace = $parameters{tagsNullNamespace} ? "nullAtom" : "${lowercaseNamespacePrefix}NS";
+        my $tagsNamespace = $parameters{tagsNullNamespace} ? "nullAtom()" : "${lowercaseNamespacePrefix}NS";
         printDefinitions($F, \%allTags, "tags", $tagsNamespace);
     }
     if (keys %allAttrs) {
-        my $attrsNamespace = $parameters{attrsNullNamespace} ? "nullAtom" : "${lowercaseNamespacePrefix}NS";
+        my $attrsNamespace = $parameters{attrsNullNamespace} ? "nullAtom()" : "${lowercaseNamespacePrefix}NS";
         printDefinitions($F, \%allAttrs, "attributes", $attrsNamespace);
     }
 
@@ -918,13 +918,13 @@ END
 print F <<END
     };
 
-    for (unsigned i = 0; i < WTF_ARRAY_LENGTH(${type}Table); ++i)
+    for (auto& entry : ${type}Table)
 END
 ;
-    if ($namespaceURI eq "nullAtom") {
-        print F "        createQualifiedName(${type}Table[i].targetAddress, &${type}Table[i].name);\n";
+    if ($namespaceURI eq "nullAtom()") {
+        print F "        createQualifiedName(entry.targetAddress, &entry.name);\n";
     } else {
-        print F "        createQualifiedName(${type}Table[i].targetAddress, &${type}Table[i].name, $namespaceURI);\n";
+        print F "        createQualifiedName(entry.targetAddress, &entry.name, $namespaceURI);\n";
     }
 }
 
@@ -1024,10 +1024,9 @@ END
     print F <<END
     };
 
-    for (unsigned i = 0; i < WTF_ARRAY_LENGTH(table); ++i)
-        map.add(table[i].name.localName().impl(), ConstructorFunctionMapEntry(table[i].function, table[i].name));
+    for (auto& entry : table)
+        map.add(entry.name.localName().impl(), ConstructorFunctionMapEntry(entry.function, entry.name));
 }
-
 
 static ConstructorFunctionMapEntry find$parameters{namespace}ElementConstructorFunction(const AtomicString& localName)
 {
@@ -1064,7 +1063,7 @@ Ref<$parameters{namespace}Element> $parameters{namespace}ElementFactory::createE
         const auto& name = *entry.qualifiedName;
         return entry.function($argumentList);
     }
-    return $parameters{fallbackInterfaceName}::create(QualifiedName(nullAtom, localName, ${lowercaseNamespacePrefix}NamespaceURI), document);
+    return $parameters{fallbackInterfaceName}::create(QualifiedName(nullAtom(), localName, ${lowercaseNamespacePrefix}NamespaceURI), document);
 }
 
 Ref<$parameters{namespace}Element> $parameters{namespace}ElementFactory::createElement(const QualifiedName& name, Document& document$formElementArgumentForDefinition, bool createdByParser)
@@ -1306,8 +1305,8 @@ END
     print F <<END
     };
 
-    for (unsigned i = 0; i < WTF_ARRAY_LENGTH(table); ++i)
-        map.add(table[i].name.localName().impl(), table[i].function);
+    for (auto& entry : table)
+        map.add(entry.name.localName().impl(), entry.function);
 }
 
 JSDOMObject* createJS$parameters{namespace}Wrapper(JSDOMGlobalObject* globalObject, Ref<$parameters{namespace}Element>&& element)

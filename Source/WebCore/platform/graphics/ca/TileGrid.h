@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TileGrid_h
-#define TileGrid_h
+#pragma once
 
 #include "IntPointHash.h"
 #include "IntRect.h"
@@ -144,7 +143,7 @@ private:
     void removeTiles(Vector<TileGrid::TileIndex>& toRemove);
 
     // PlatformCALayerClient
-    void platformCALayerPaintContents(PlatformCALayer*, GraphicsContext&, const FloatRect&) override;
+    void platformCALayerPaintContents(PlatformCALayer*, GraphicsContext&, const FloatRect&, GraphicsLayerPaintFlags) override;
     bool platformCALayerShowDebugBorders() const override;
     bool platformCALayerShowRepaintCounter(PlatformCALayer*) const override;
     int platformCALayerIncrementRepaintCount(PlatformCALayer*) override;
@@ -178,4 +177,4 @@ private:
 };
 
 }
-#endif
+

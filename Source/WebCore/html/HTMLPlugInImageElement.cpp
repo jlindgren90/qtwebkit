@@ -28,12 +28,16 @@
 #include "EventNames.h"
 #include "FrameLoaderClient.h"
 #include "HTMLImageLoader.h"
+#include "JSDOMConvertBoolean.h"
+#include "JSDOMConvertInterface.h"
+#include "JSDOMConvertStrings.h"
 #include "JSShadowRoot.h"
 #include "LocalizedStrings.h"
 #include "Logging.h"
 #include "MainFrame.h"
 #include "MouseEvent.h"
 #include "Page.h"
+#include "PlatformMouseEvent.h"
 #include "PlugInClient.h"
 #include "PluginViewBase.h"
 #include "RenderImage.h"
@@ -47,6 +51,7 @@
 #include "StyleTreeResolver.h"
 #include "SubframeLoader.h"
 #include "TypedElementDescendantIterator.h"
+#include <runtime/CatchScope.h>
 
 namespace WebCore {
 
@@ -266,17 +271,18 @@ void HTMLPlugInImageElement::finishParsingChildren()
         invalidateStyleForSubtree();
 }
 
-void HTMLPlugInImageElement::didMoveToNewDocument(Document& oldDocument)
+void HTMLPlugInImageElement::didMoveToNewDocument(Document& oldDocument, Document& newDocument)
 {
+    ASSERT_WITH_SECURITY_IMPLICATION(&document() == &newDocument);
     if (m_needsDocumentActivationCallbacks) {
         oldDocument.unregisterForDocumentSuspensionCallbacks(this);
-        document().registerForDocumentSuspensionCallbacks(this);
+        newDocument.registerForDocumentSuspensionCallbacks(this);
     }
 
     if (m_imageLoader)
         m_imageLoader->elementDidMoveToNewDocument();
 
-    HTMLPlugInElement::didMoveToNewDocument(oldDocument);
+    HTMLPlugInElement::didMoveToNewDocument(oldDocument, newDocument);
 }
 
 void HTMLPlugInImageElement::prepareForDocumentSuspension()
@@ -366,8 +372,8 @@ void HTMLPlugInImageElement::didAddUserAgentShadowRoot(ShadowRoot* root)
 
     // It is expected the JS file provides a createOverlay(shadowRoot, title, subtitle) function.
     auto* overlay = globalObject.get(&state, JSC::Identifier::fromString(&state, "createOverlay")).toObject(&state);
+    ASSERT(!overlay == !!scope.exception());
     if (!overlay) {
-        ASSERT(scope.exception());
         scope.clearException();
         return;
     }

@@ -102,7 +102,7 @@ private:
     }
 
     virtual ~ImageDocumentElement();
-    void didMoveToNewDocument(Document& oldDocument) override;
+    void didMoveToNewDocument(Document& oldDocument, Document& newDocument) override;
 
     ImageDocument* m_imageDocument;
 };
@@ -223,7 +223,7 @@ void ImageDocument::createDocumentStructure()
     auto body = HTMLBodyElement::create(*this);
     body->setAttribute(styleAttr, "margin: 0px");
     if (MIMETypeRegistry::isPDFMIMEType(document().loader()->responseMIMEType()))
-        body->setInlineStyleProperty(CSSPropertyBackgroundColor, "white", CSSPrimitiveValue::CSS_IDENT);
+        body->setInlineStyleProperty(CSSPropertyBackgroundColor, "white");
     rootElement->appendChild(body);
     
     auto imageElement = ImageDocumentElement::create(*this);
@@ -426,13 +426,13 @@ ImageDocumentElement::~ImageDocumentElement()
         m_imageDocument->disconnectImageElement();
 }
 
-void ImageDocumentElement::didMoveToNewDocument(Document& oldDocument)
+void ImageDocumentElement::didMoveToNewDocument(Document& oldDocument, Document& newDocument)
 {
     if (m_imageDocument) {
         m_imageDocument->disconnectImageElement();
         m_imageDocument = nullptr;
     }
-    HTMLImageElement::didMoveToNewDocument(oldDocument);
+    HTMLImageElement::didMoveToNewDocument(oldDocument, newDocument);
 }
 
 }

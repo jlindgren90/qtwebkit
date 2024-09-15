@@ -31,7 +31,9 @@
 #include "Interpreter.h"
 
 #include "BatchedTransitionOptimizer.h"
+#include "Bytecodes.h"
 #include "CallFrameClosure.h"
+#include "CatchScope.h"
 #include "CodeBlock.h"
 #include "DirectArguments.h"
 #include "Heap.h"
@@ -42,7 +44,9 @@
 #include "EvalCodeBlock.h"
 #include "Exception.h"
 #include "ExceptionHelpers.h"
+#include "FrameTracers.h"
 #include "FunctionCodeBlock.h"
+#include "InterpreterInlines.h"
 #include "JSArrayInlines.h"
 #include "JSBoundFunction.h"
 #include "JSCInlines.h"
@@ -52,7 +56,6 @@
 #include "JSString.h"
 #include "JSWithScope.h"
 #include "LLIntCLoop.h"
-#include "LLIntData.h"
 #include "LLIntThunks.h"
 #include "LiteralParser.h"
 #include "ModuleProgramCodeBlock.h"
@@ -75,6 +78,7 @@
 
 #include <limits.h>
 #include <stdio.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/StackStats.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/StringPrintStream.h>
@@ -152,7 +156,7 @@ JSValue eval(CallFrame* callFrame)
         }
         
         // If the literal parser bailed, it should not have thrown exceptions.
-        ASSERT(!scope.exception());
+        scope.assertNoException();
 
         VariableEnvironment variablesUnderTDZ;
         JSScope::collectClosureVariablesUnderTDZ(callerScopeChain, variablesUnderTDZ);
@@ -202,7 +206,7 @@ unsigned sizeOfVarargs(CallFrame* callFrame, JSValue arguments, uint32_t firstVa
         
     default:
         RELEASE_ASSERT(arguments.isObject());
-        length = getLength(callFrame, jsCast<JSObject*>(cell));
+        length = toLength(callFrame, jsCast<JSObject*>(cell));
         break;
     }
     RETURN_IF_EXCEPTION(scope, 0);
@@ -315,28 +319,39 @@ Interpreter::Interpreter(VM& vm)
 #if !ENABLE(JIT)
     , m_cloopStack(vm)
 #endif
-#if !ASSERT_DISABLED
-    , m_initialized(false)
-#endif
 {
+#if !ASSERT_DISABLED
+    static std::once_flag assertOnceKey;
+    std::call_once(assertOnceKey, [this] {
+        for (unsigned i = 0; i < NUMBER_OF_BYTECODE_IDS; ++i) {
+            OpcodeID opcodeID = static_cast<OpcodeID>(i);
+            RELEASE_ASSERT(getOpcodeID(getOpcode(opcodeID)) == opcodeID);
+        }
+    });
+#endif // USE(LLINT_EMBEDDED_OPCODE_ID)
 }
 
 Interpreter::~Interpreter()
 {
 }
 
-void Interpreter::initialize()
-{
 #if ENABLE(COMPUTED_GOTO_OPCODES)
-    m_opcodeTable = LLInt::opcodeMap();
-    for (int i = 0; i < numOpcodeIDs; ++i)
-        m_opcodeIDTable.add(m_opcodeTable[i], static_cast<OpcodeID>(i));
-#endif
+#if !USE(LLINT_EMBEDDED_OPCODE_ID) || !ASSERT_DISABLED
+HashMap<Opcode, OpcodeID>& Interpreter::opcodeIDTable()
+{
+    static NeverDestroyed<HashMap<Opcode, OpcodeID>> opcodeIDTable;
 
-#if !ASSERT_DISABLED
-    m_initialized = true;
-#endif
+    static std::once_flag initializeKey;
+    std::call_once(initializeKey, [&] {
+        const Opcode* opcodeTable = LLInt::opcodeMap();
+        for (unsigned i = 0; i < NUMBER_OF_BYTECODE_IDS; ++i)
+            opcodeIDTable.get().add(opcodeTable[i], static_cast<OpcodeID>(i));
+    });
+
+    return opcodeIDTable;
 }
+#endif // !USE(LLINT_EMBEDDED_OPCODE_ID) || !ASSERT_DISABLED
+#endif // ENABLE(COMPUTED_GOTO_OPCODES)
 
 #ifdef NDEBUG
 
@@ -352,9 +367,9 @@ void Interpreter::dumpCallFrame(CallFrame* callFrame)
     dumpRegisters(callFrame);
 }
 
-class DumpRegisterFunctor {
+class DumpReturnVirtualPCFunctor {
 public:
-    DumpRegisterFunctor(const Register*& it)
+    DumpReturnVirtualPCFunctor(const Register*& it)
         : m_hasSkippedFirstFrame(false)
         , m_it(it)
     {
@@ -416,7 +431,7 @@ void Interpreter::dumpRegisters(CallFrame* callFrame)
         dataLogF("[ReturnJITPC]              | %10p | %p \n", it, pc.jitReturnAddress().value());
 #endif
 
-    DumpRegisterFunctor functor(it);
+    DumpReturnVirtualPCFunctor functor(it);
     callFrame->iterate(functor);
 
     dataLogF("[CodeBlock]                | %10p | %p \n", it, callFrame->codeBlock());
@@ -449,16 +464,18 @@ void Interpreter::dumpRegisters(CallFrame* callFrame)
 
 #endif
 
+#if !ASSERT_DISABLED
 bool Interpreter::isOpcode(Opcode opcode)
 {
 #if ENABLE(COMPUTED_GOTO_OPCODES)
     return opcode != HashTraits<Opcode>::emptyValue()
         && !HashTraits<Opcode>::isDeletedValue(opcode)
-        && m_opcodeIDTable.contains(opcode);
+        && opcodeIDTable().contains(opcode);
 #else
     return opcode >= 0 && opcode <= op_end;
 #endif
 }
+#endif // !ASSERT_DISABLED
 
 class GetStackTraceFunctor {
 public:
@@ -480,8 +497,7 @@ public:
 
         if (m_remainingCapacityForFrameCapture) {
             if (visitor->isWasmFrame()) {
-                std::optional<unsigned> wasmFunctionIndex = visitor->wasmFunctionIndex();
-                m_results.append(StackFrame::wasm(wasmFunctionIndex ? *wasmFunctionIndex : StackFrame::invalidWasmIndex));
+                m_results.append(StackFrame::wasm(visitor->wasmFunctionIndexOrName()));
             } else if (!!visitor->codeBlock() && !visitor->codeBlock()->unlinkedCodeBlock()->isBuiltinFunction()) {
                 m_results.append(
                     StackFrame(m_vm, visitor->callee().asCell(), visitor->codeBlock(), visitor->bytecodeOffset()));
@@ -593,7 +609,7 @@ ALWAYS_INLINE static void notifyDebuggerOfUnwinding(VM& vm, CallFrame* callFrame
             debugger->unwindEvent(callFrame);
         else
             debugger->didExecuteProgram(callFrame);
-        ASSERT_UNUSED(catchScope, !catchScope.exception());
+        catchScope.assertNoException();
     }
 }
 
@@ -751,7 +767,7 @@ JSValue Interpreter::executeProgram(const SourceCode& source, CallFrame* callFra
     ASSERT(throwScope.exception() || program);
     RETURN_IF_EXCEPTION(throwScope, { });
 
-    ASSERT(!throwScope.exception());
+    throwScope.assertNoException();
     ASSERT(!vm.isCollectorBusyOnCurrentThread());
     RELEASE_ASSERT(vm.currentThreadIsHoldingAPILock());
     if (vm.isCollectorBusyOnCurrentThread())
@@ -902,7 +918,7 @@ JSValue Interpreter::executeCall(CallFrame* callFrame, JSObject* function, CallT
     VM& vm = callFrame->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
 
-    ASSERT(!throwScope.exception());
+    throwScope.assertNoException();
     ASSERT(!vm.isCollectorBusyOnCurrentThread());
     if (vm.isCollectorBusyOnCurrentThread())
         return jsNull();
@@ -967,7 +983,7 @@ JSObject* Interpreter::executeConstruct(CallFrame* callFrame, JSObject* construc
     VM& vm = callFrame->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
 
-    ASSERT(!throwScope.exception());
+    throwScope.assertNoException();
     ASSERT(!vm.isCollectorBusyOnCurrentThread());
     // We throw in this case because we have to return something "valid" but we're
     // already in an invalid state.
@@ -1036,7 +1052,7 @@ CallFrameClosure Interpreter::prepareForRepeatCall(FunctionExecutable* functionE
 {
     VM& vm = *scope->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    ASSERT_UNUSED(throwScope, !throwScope.exception());
+    throwScope.assertNoException();
     
     if (vm.isCollectorBusyOnCurrentThread())
         return CallFrameClosure();
@@ -1088,7 +1104,7 @@ JSValue Interpreter::execute(EvalExecutable* eval, CallFrame* callFrame, JSValue
     auto throwScope = DECLARE_THROW_SCOPE(vm);
 
     ASSERT(scope->vm() == &callFrame->vm());
-    ASSERT(!throwScope.exception());
+    throwScope.assertNoException();
     ASSERT(!vm.isCollectorBusyOnCurrentThread());
     RELEASE_ASSERT(vm.currentThreadIsHoldingAPILock());
     if (vm.isCollectorBusyOnCurrentThread())
@@ -1225,13 +1241,13 @@ JSValue Interpreter::execute(EvalExecutable* eval, CallFrame* callFrame, JSValue
     return checkedReturn(result);
 }
 
-JSValue Interpreter::execute(ModuleProgramExecutable* executable, CallFrame* callFrame, JSModuleEnvironment* scope)
+JSValue Interpreter::executeModuleProgram(ModuleProgramExecutable* executable, CallFrame* callFrame, JSModuleEnvironment* scope)
 {
     VM& vm = *scope->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
 
     ASSERT(scope->vm() == &callFrame->vm());
-    ASSERT(!throwScope.exception());
+    throwScope.assertNoException();
     ASSERT(!vm.isCollectorBusyOnCurrentThread());
     RELEASE_ASSERT(vm.currentThreadIsHoldingAPILock());
     if (vm.isCollectorBusyOnCurrentThread())
@@ -1284,7 +1300,7 @@ NEVER_INLINE void Interpreter::debug(CallFrame* callFrame, DebugHookType debugHo
         return;
 
     ASSERT(callFrame->codeBlock()->hasDebuggerRequests());
-    ASSERT_UNUSED(scope, !scope.exception());
+    scope.assertNoException();
 
     switch (debugHookType) {
         case DidEnterCallFrame:
@@ -1309,7 +1325,7 @@ NEVER_INLINE void Interpreter::debug(CallFrame* callFrame, DebugHookType debugHo
             debugger->didReachBreakpoint(callFrame);
             break;
     }
-    ASSERT(!scope.exception());
+    scope.assertNoException();
 }
 
 } // namespace JSC

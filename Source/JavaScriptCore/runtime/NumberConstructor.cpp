@@ -42,7 +42,7 @@ namespace JSC {
 
 STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(NumberConstructor);
 
-const ClassInfo NumberConstructor::s_info = { "Function", &InternalFunction::s_info, &numberConstructorTable, CREATE_METHOD_TABLE(NumberConstructor) };
+const ClassInfo NumberConstructor::s_info = { "Function", &InternalFunction::s_info, &numberConstructorTable, nullptr, CREATE_METHOD_TABLE(NumberConstructor) };
 
 /* Source for NumberConstructor.lut.h
 @begin numberConstructorTable
@@ -139,7 +139,7 @@ static EncodedJSValue JSC_HOST_CALL numberConstructorFuncIsSafeInteger(ExecState
         isInteger = false;
     else {
         double number = argument.asDouble();
-        isInteger = trunc(number) == number && std::abs(number) <= 9007199254740991.0;
+        isInteger = trunc(number) == number && std::abs(number) <= maxSafeInteger();
     }
     return JSValue::encode(jsBoolean(isInteger));
 }

@@ -56,6 +56,8 @@ public:
     virtual void selectAudioMediaOption(uint64_t index) = 0;
     virtual void selectLegibleMediaOption(uint64_t index) = 0;
     virtual void togglePictureInPicture() = 0;
+    virtual void toggleMuted() = 0;
+    virtual void setMuted(bool) = 0;
 
     enum ExternalPlaybackTargetType { TargetTypeNone, TargetTypeAirPlay, TargetTypeTVOut };
 
@@ -67,6 +69,8 @@ public:
     virtual bool isScrubbing() const = 0;
     virtual float playbackRate() const = 0;
     virtual Ref<TimeRanges> seekableRanges() const = 0;
+    virtual double seekableTimeRangesLastModifiedTime() const = 0;
+    virtual double liveUpdateInterval() const = 0;
     virtual bool canPlayFastReverse() const = 0;
     virtual Vector<MediaSelectionOption> audioMediaSelectionOptions() const = 0;
     virtual uint64_t audioMediaSelectedIndex() const = 0;
@@ -76,6 +80,7 @@ public:
     virtual ExternalPlaybackTargetType externalPlaybackTargetType() const = 0;
     virtual String externalPlaybackLocalizedDeviceName() const = 0;
     virtual bool wirelessVideoPlaybackDisabled() const = 0;
+    virtual bool isMuted() const = 0;
 };
 
 class WebPlaybackSessionModelClient {
@@ -86,7 +91,7 @@ public:
     virtual void bufferedTimeChanged(double) { }
     virtual void playbackStartedTimeChanged(double /* playbackStartedTime */) { }
     virtual void rateChanged(bool /* isPlaying */, float /* playbackRate */) { }
-    virtual void seekableRangesChanged(const TimeRanges&) { }
+    virtual void seekableRangesChanged(const TimeRanges&, double /* lastModified */, double /* liveInterval */) { }
     virtual void canPlayFastReverseChanged(bool) { }
     virtual void audioMediaSelectionOptionsChanged(const Vector<MediaSelectionOption>& /* options */, uint64_t /* selectedIndex */) { }
     virtual void legibleMediaSelectionOptionsChanged(const Vector<MediaSelectionOption>& /* options */, uint64_t /* selectedIndex */) { }
@@ -94,6 +99,7 @@ public:
     virtual void legibleMediaSelectionIndexChanged(uint64_t) { }
     virtual void externalPlaybackChanged(bool /* enabled */, WebPlaybackSessionModel::ExternalPlaybackTargetType, const String& /* localizedDeviceName */) { }
     virtual void wirelessVideoPlaybackDisabledChanged(bool) { }
+    virtual void mutedChanged(bool) { }
 };
 
 }

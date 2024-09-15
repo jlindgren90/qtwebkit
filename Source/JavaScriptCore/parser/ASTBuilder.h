@@ -959,20 +959,25 @@ public:
         tryInferNameInPattern(pattern, defaultValue);
     }
 
-    void appendObjectPatternEntry(ObjectPattern node, const JSTokenLocation& location, ExpressionNode* propertyExpression, DestructuringPattern pattern, ExpressionNode* defaultValue)
+    void appendObjectPatternEntry(VM& vm, ObjectPattern node, const JSTokenLocation& location, ExpressionNode* propertyExpression, DestructuringPattern pattern, ExpressionNode* defaultValue)
     {
-        node->appendEntry(location, propertyExpression, pattern, defaultValue, ObjectPatternNode::BindingType::Element);
+        node->appendEntry(vm, location, propertyExpression, pattern, defaultValue, ObjectPatternNode::BindingType::Element);
         tryInferNameInPattern(pattern, defaultValue);
     }
     
-    void appendObjectPatternRestEntry(ObjectPattern node, const JSTokenLocation& location, DestructuringPattern pattern)
+    void appendObjectPatternRestEntry(VM& vm, ObjectPattern node, const JSTokenLocation& location, DestructuringPattern pattern)
     {
-        node->appendEntry(location, nullptr, pattern, nullptr, ObjectPatternNode::BindingType::RestElement);
+        node->appendEntry(vm, location, nullptr, pattern, nullptr, ObjectPatternNode::BindingType::RestElement);
     }
 
     void setContainsObjectRestElement(ObjectPattern node, bool containsRestElement)
     {
         node->setContainsRestElement(containsRestElement);
+    }
+    
+    void setContainsComputedProperty(ObjectPattern node, bool containsComputedProperty)
+    {
+        node->setContainsComputedProperty(containsComputedProperty);
     }
 
     BindingPattern createBindingLocation(const JSTokenLocation&, const Identifier& boundProperty, const JSTextPosition& start, const JSTextPosition& end, AssignmentContext context)

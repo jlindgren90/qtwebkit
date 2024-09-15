@@ -37,8 +37,8 @@
 #include "MediaControllerInterface.h"
 #include "MediaElementSession.h"
 #include "MediaProducer.h"
-#include "UserInterfaceLayoutDirection.h"
 #include "VisibilityChangeClient.h"
+#include <wtf/Function.h>
 #include <wtf/WeakPtr.h>
 
 #if ENABLE(VIDEO_TRACK)
@@ -67,7 +67,7 @@ class AudioTrackPrivate;
 class Blob;
 class DOMError;
 class DeferredPromise;
-class DisplaySleepDisabler;
+class SleepDisabler;
 class Event;
 class HTMLSourceElement;
 class HTMLTrackElement;
@@ -93,7 +93,7 @@ class VideoTrackList;
 class VideoTrackPrivate;
 class WebKitMediaKeys;
 
-template<typename> class DOMPromise;
+template<typename> class DOMPromiseDeferred;
 
 #if ENABLE(VIDEO_TRACK)
 using CueIntervalTree = PODIntervalTree<MediaTime, TextTrackCue*>;
@@ -130,6 +130,7 @@ class HTMLMediaElement
 #endif
 {
 public:
+    WeakPtr<HTMLMediaElement> createWeakPtr() { return m_weakFactory.createWeakPtr(); }
     MediaPlayer* player() const { return m_player.get(); }
 
     virtual bool isVideo() const { return false; }
@@ -156,9 +157,9 @@ public:
     PlatformLayer* platformLayer() const;
     bool isVideoLayerInline();
     void setPreparedToReturnVideoLayerToInline(bool);
-    void waitForPreparedForInlineThen(std::function<void()> completionHandler = [] { });
+    void waitForPreparedForInlineThen(WTF::Function<void()>&& completionHandler = [] { });
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-    void setVideoFullscreenLayer(PlatformLayer*, std::function<void()> completionHandler = [] { });
+    void setVideoFullscreenLayer(PlatformLayer*, WTF::Function<void()>&& completionHandler = [] { });
     PlatformLayer* videoFullscreenLayer() const { return m_videoFullscreenLayer.get(); }
     void setVideoFullscreenFrame(FloatRect);
     void setVideoFullscreenGravity(MediaPlayerEnums::VideoGravity);
@@ -183,7 +184,6 @@ public:
 // error state
     WEBCORE_EXPORT MediaError* error() const;
 
-    void setSrc(const String&);
     const URL& currentSrc() const { return m_currentSrc; }
 
     const MediaProvider& srcObject() const { return m_mediaProvider; }
@@ -232,13 +232,15 @@ public:
     WEBCORE_EXPORT void setWebkitPreservesPitch(bool);
     Ref<TimeRanges> played() override;
     Ref<TimeRanges> seekable() const override;
+    double seekableTimeRangesLastModifiedTime() const;
+    double liveUpdateInterval() const;
     WEBCORE_EXPORT bool ended() const;
     bool autoplay() const;
     bool isAutoplaying() const { return m_autoplaying; }
     bool loop() const;
     void setLoop(bool b);
 
-    void play(DOMPromise<void>&&);
+    void play(DOMPromiseDeferred<void>&&);
 
     WEBCORE_EXPORT void play() override;
     WEBCORE_EXPORT void pause() override;
@@ -410,8 +412,8 @@ public:
 
     MediaControls* mediaControls() const;
 
-    void sourceWasRemoved(HTMLSourceElement*);
-    void sourceWasAdded(HTMLSourceElement*);
+    void sourceWasRemoved(HTMLSourceElement&);
+    void sourceWasAdded(HTMLSourceElement&);
 
     void privateBrowsingStateDidChange() override;
 
@@ -510,12 +512,16 @@ public:
     bool isTemporarilyAllowingInlinePlaybackAfterFullscreen() const {return m_temporarilyAllowingInlinePlaybackAfterFullscreen; }
 
     void isVisibleInViewportChanged();
+    void updateRateChangeRestrictions();
 
     WEBCORE_EXPORT const MediaResourceLoader* lastMediaResourceLoaderForTesting() const;
 
 #if ENABLE(MEDIA_STREAM)
+    void mediaStreamCaptureStarted() { resumeAutoplaying(); }
     bool hasMediaStreamSrcObject() const { return !!m_mediaStreamSrcObject; }
 #endif
+
+    bool supportsSeeking() const override;
 
 protected:
     HTMLMediaElement(const QualifiedName&, Document&, bool createdByParser);
@@ -529,7 +535,7 @@ protected:
     void willDetachRenderers() override;
     void didDetachRenderers() override;
 
-    void didMoveToNewDocument(Document& oldDocument) override;
+    void didMoveToNewDocument(Document& oldDocument, Document& newDocument) override;
 
     enum DisplayMode { Unknown, None, Poster, PosterWaitingForVideo, Video };
     DisplayMode displayMode() const { return m_displayMode; }
@@ -677,7 +683,8 @@ private:
 
     double mediaPlayerRequestedPlaybackRate() const final;
     VideoFullscreenMode mediaPlayerFullscreenMode() const final { return fullscreenMode(); }
-    bool mediaPlayerShouldDisableSleep() const final { return shouldDisableSleep(); }
+    bool mediaPlayerShouldDisableSleep() const final { return shouldDisableSleep() == SleepType::Display; }
+    const Vector<ContentType>& mediaContentTypesRequiringHardwareSupport() const final;
 
 #if USE(GSTREAMER)
     void requestInstallMissingPlugins(const String& details, const String& description, MediaPlayerRequestInstallMissingPluginsCallback&) final;
@@ -789,7 +796,12 @@ private:
     bool isLiveStream() const override { return movieLoadType() == MediaPlayerEnums::LiveStream; }
 
     void updateSleepDisabling();
-    bool shouldDisableSleep() const;
+    enum class SleepType {
+        None,
+        Display,
+        System,
+    };
+    SleepType shouldDisableSleep() const;
 
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
     void didAddUserAgentShadowRoot(ShadowRoot*) override;
@@ -810,10 +822,11 @@ private:
     double mediaSessionCurrentTime() const override { return currentTime(); }
     bool canReceiveRemoteControlCommands() const override { return true; }
     void didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType, const PlatformMediaSession::RemoteCommandArgument*) override;
-    bool supportsSeeking() const override;
     bool shouldOverrideBackgroundPlaybackRestriction(PlatformMediaSession::InterruptionType) const override;
     bool shouldOverrideBackgroundLoadingRestriction() const override;
     bool canProduceAudio() const final;
+    bool processingUserGestureForMedia() const final;
+    bool isSuspended() const final;
 
     void pageMutedStateDidChange() override;
 
@@ -855,6 +868,7 @@ private:
     void handleSeekToPlaybackPosition(double);
     void seekToPlaybackPositionEndedTimerFired();
 
+    WeakPtrFactory<HTMLMediaElement> m_weakFactory;
     Timer m_pendingActionTimer;
     Timer m_progressEventTimer;
     Timer m_playbackProgressTimer;
@@ -871,7 +885,7 @@ private:
     RefPtr<TimeRanges> m_playedTimeRanges;
     GenericEventQueue m_asyncEventQueue;
 
-    Vector<DOMPromise<void>> m_pendingPlayPromises;
+    Vector<DOMPromiseDeferred<void>> m_pendingPlayPromises;
 
     double m_requestedPlaybackRate { 1 };
     double m_reportedPlaybackRate { 1 };
@@ -921,7 +935,7 @@ private:
 
     VideoFullscreenMode m_videoFullscreenMode { VideoFullscreenModeNone };
     bool m_preparedForInline;
-    std::function<void()> m_preparedForInlineCompletionHandler;
+    WTF::Function<void()> m_preparedForInlineCompletionHandler;
 
     bool m_temporarilyAllowingInlinePlaybackAfterFullscreen { false };
 
@@ -982,6 +996,7 @@ private:
     bool m_initiallyMuted : 1;
     bool m_paused : 1;
     bool m_seeking : 1;
+    bool m_seekRequested : 1;
 
     // data has not been loaded since sending a "stalled" event
     bool m_sentStalledEvent : 1;
@@ -990,10 +1005,6 @@ private:
     bool m_sentEndEvent : 1;
 
     bool m_pausedInternal : 1;
-
-    // Not all media engines provide enough information about a file to be able to
-    // support progress events so setting m_sendProgressEvents disables them 
-    bool m_sendProgressEvents : 1;
 
     bool m_closedCaptionsVisible : 1;
     bool m_webkitLegacyClosedCaptionOverride : 1;
@@ -1020,7 +1031,7 @@ private:
     bool m_haveVisibleTextTrack : 1;
     bool m_processingPreferenceChange : 1;
 
-    PlaybackWithoutUserGesture m_playbackWithoutUserGesture;
+    PlaybackWithoutUserGesture m_playbackWithoutUserGesture { PlaybackWithoutUserGesture::None };
     std::optional<MediaTime> m_playbackWithoutUserGestureStartedTime;
 
     String m_subtitleTrackLanguage;
@@ -1052,7 +1063,7 @@ private:
     friend class MediaController;
     RefPtr<MediaController> m_mediaController;
 
-    std::unique_ptr<DisplaySleepDisabler> m_sleepDisabler;
+    std::unique_ptr<SleepDisabler> m_sleepDisabler;
 
     WeakPtr<const MediaResourceLoader> m_lastMediaResourceLoaderForTesting;
 

@@ -41,8 +41,9 @@ static bool isGoogle(const URL& url)
     // Our Google UA is *very* complicated to get right. Read
     // https://webkit.org/b/142074 carefully before changing. Test that Earth
     // view is available in Google Maps. Test Google Calendar. Test downloading
-    // the Hangouts browser plugin. Change platformVersionForUAString() to
-    // return "FreeBSD amd64" and test Maps and Calendar again.
+    // the Hangouts browser plugin. Test logging out and logging in to a Google
+    // account. Change platformVersionForUAString() to return "FreeBSD amd64"
+    // and test everything again.
     if (baseDomain.startsWith("google."))
         return true;
     if (baseDomain == "gstatic.com")
@@ -66,20 +67,7 @@ static bool urlRequiresChromeBrowser(const URL& url)
     if (baseDomain == "typekit.net" || baseDomain == "typekit.com")
         return true;
 
-    // Needed for YouTube 360 with WebKitGTK+ and WPE (requires ENABLE_MEDIA_SOURCE).
-    if (baseDomain == "youtube.com")
-        return true;
-
-    // Slack completely blocks users with WebKitGTK+'s standard user agent.
-    if (baseDomain == "slack.com")
-        return true;
-
     return false;
-}
-
-static bool urlRequiresFirefoxBrowser(const URL& url)
-{
-    return isGoogle(url);
 }
 
 static bool urlRequiresMacintoshPlatform(const URL& url)
@@ -114,8 +102,6 @@ UserAgentQuirks UserAgentQuirks::quirksForURL(const URL& url)
 
     if (urlRequiresChromeBrowser(url))
         quirks.add(UserAgentQuirks::NeedsChromeBrowser);
-    else if (urlRequiresFirefoxBrowser(url))
-        quirks.add(UserAgentQuirks::NeedsFirefoxBrowser);
 
     if (urlRequiresMacintoshPlatform(url))
         quirks.add(UserAgentQuirks::NeedsMacintoshPlatform);
@@ -130,10 +116,7 @@ String UserAgentQuirks::stringForQuirk(UserAgentQuirk quirk)
     switch (quirk) {
     case NeedsChromeBrowser:
         // Get versions from https://chromium.googlesource.com/chromium/src.git
-        return ASCIILiteral("Chrome/56.0.2891.4");
-    case NeedsFirefoxBrowser:
-        // Gecko version never changes. Firefox version must be updated below.
-        return ASCIILiteral("Gecko/20100101 Firefox/50.0");
+        return ASCIILiteral("Chrome/58.0.3029.81");
     case NeedsMacintoshPlatform:
         return ASCIILiteral("Macintosh; Intel Mac OS X 10_12");
     case NeedsLinuxDesktopPlatform:
@@ -143,11 +126,6 @@ String UserAgentQuirks::stringForQuirk(UserAgentQuirk quirk)
         ASSERT_NOT_REACHED();
     }
     return ASCIILiteral("");
-}
-
-String UserAgentQuirks::firefoxRevisionString()
-{
-    return ASCIILiteral("rv:50.0");
 }
 
 }

@@ -1149,11 +1149,13 @@ webkit_context_menu_get_type
 WebKitContextMenuItem
 WebKitContextMenuAction
 webkit_context_menu_item_new
+webkit_context_menu_item_new_from_gaction
 webkit_context_menu_item_new_from_stock_action
 webkit_context_menu_item_new_from_stock_action_with_label
 webkit_context_menu_item_new_with_submenu
 webkit_context_menu_item_new_separator
 webkit_context_menu_item_get_action
+webkit_context_menu_item_get_gaction
 webkit_context_menu_item_get_stock_action
 webkit_context_menu_item_is_separator
 webkit_context_menu_item_set_submenu
@@ -1171,6 +1173,48 @@ WEBKIT_CONTEXT_MENU_ITEM_GET_CLASS
 <SUBSECTION Private>
 WebKitContextMenuItemPrivate
 webkit_context_menu_item_get_type
+</SECTION>
+
+<SECTION>
+<FILE>WebKitOptionMenu</FILE>
+WebKitOptionMenu
+webkit_option_menu_get_n_items
+webkit_option_menu_get_item
+webkit_option_menu_select_item
+webkit_option_menu_activate_item
+webkit_option_menu_close
+
+<SUBSECTION Standard>
+WebKitOptionMenuClass
+WEBKIT_TYPE_OPTION_MENU
+WEBKIT_OPTION_MENU
+WEBKIT_IS_OPTION_MENU
+WEBKIT_OPTION_MENU_CLASS
+WEBKIT_IS_OPTION_MENU_CLASS
+WEBKIT_OPTION_MENU_GET_CLASS
+
+<SUBSECTION Private>
+WebKitOptionMenuPrivate
+webkit_option_menu_get_type
+</SECTION>
+
+<SECTION>
+<FILE>WebKitOptionMenuItem</FILE>
+WebKitOptionMenuItem
+webkit_option_menu_item_copy
+webkit_option_menu_item_free
+webkit_option_menu_item_get_label
+webkit_option_menu_item_get_tooltip
+webkit_option_menu_item_is_group_label
+webkit_option_menu_item_is_group_child
+webkit_option_menu_item_is_enabled
+webkit_option_menu_item_is_selected
+
+<SUBSECTION Standard>
+WEBKIT_TYPE_OPTION_MENU_ITEM
+
+<SUBSECTION Private>
+webkit_option_menu_item_get_type
 </SECTION>
 
 <SECTION>

@@ -36,7 +36,6 @@
 #include <WebCore/AVKitSPI.h>
 #include <WebCore/TextIndicatorWindow.h>
 #include <WebCore/UserInterfaceLayoutDirection.h>
-#include <functional>
 #include <wtf/BlockPtr.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/WeakPtr.h>
@@ -247,7 +246,7 @@ public:
     void setWindowOcclusionDetectionEnabled(bool enabled) { m_windowOcclusionDetectionEnabled = enabled; }
     bool windowOcclusionDetectionEnabled() const { return m_windowOcclusionDetectionEnabled; }
 
-    void prepareForMoveToWindow(NSWindow *targetWindow, std::function<void()> completionHandler);
+    void prepareForMoveToWindow(NSWindow *targetWindow, WTF::Function<void()>&& completionHandler);
     NSWindow *targetWindowForMovePreparation() const { return m_targetWindowForMovePreparation; }
 
     void updateSecureInputState();
@@ -280,14 +279,14 @@ public:
     bool isEditable() const;
     bool executeSavedCommandBySelector(SEL);
     void executeEditCommandForSelector(SEL, const String& argument = String());
-    void registerEditCommand(RefPtr<WebEditCommandProxy>, WebPageProxy::UndoOrRedo);
+    void registerEditCommand(Ref<WebEditCommandProxy>&&, WebPageProxy::UndoOrRedo);
     void clearAllEditCommands();
     bool writeSelectionToPasteboard(NSPasteboard *, NSArray *types);
     bool readSelectionFromPasteboard(NSPasteboard *);
     id validRequestorForSendAndReturnTypes(NSString *sendType, NSString *returnType);
     void centerSelectionInVisibleArea();
     void selectionDidChange();
-    void startObservingFontPanel();
+    void didBecomeEditable();
     void updateFontPanelIfNeeded();
     void changeFontFromFontPanel();
     bool validateUserInterfaceItem(id <NSValidatedUserInterfaceItem>);
@@ -332,7 +331,6 @@ public:
     void setTextIndicator(WebCore::TextIndicator&, WebCore::TextIndicatorWindowLifetime = WebCore::TextIndicatorWindowLifetime::Permanent);
     void clearTextIndicatorWithAnimation(WebCore::TextIndicatorWindowDismissalAnimation);
     void setTextIndicatorAnimationProgress(float);
-    void dismissContentRelativeChildWindows();
     void dismissContentRelativeChildWindowsFromViewOnly();
     void dismissContentRelativeChildWindowsWithAnimation(bool);
     void dismissContentRelativeChildWindowsWithAnimationFromViewOnly(bool);
@@ -404,9 +402,7 @@ public:
     void registerDraggedTypes();
 #endif
 
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     void startWindowDrag();
-#endif
 
     void dragImageForView(NSView *, NSImage *, CGPoint clientPoint, bool linkDrag);
     void setFileAndURLTypes(NSString *filename, NSString *extension, NSString *title, NSString *url, NSString *visibleURL, NSPasteboard *);
@@ -517,7 +513,11 @@ public:
     NSTouchBar *currentTouchBar() const { return m_currentTouchBar.get(); }
     NSCandidateListTouchBarItem *candidateListTouchBarItem() const;
 #if ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
     AVTouchBarScrubber *mediaPlaybackControlsView() const;
+#else
+    AVFunctionBarScrubber *mediaPlaybackControlsView() const;
+#endif
 #endif
     NSTouchBar *textTouchBar() const;
     void dismissTextTouchBarPopoverItemWithIdentifier(NSString *);
@@ -556,8 +556,13 @@ private:
     RetainPtr<NSCustomTouchBarItem> m_exitFullScreenButton;
 
 #if ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
     RetainPtr<AVTouchBarPlaybackControlsProvider> m_mediaTouchBarProvider;
     RetainPtr<AVTouchBarScrubber> m_mediaPlaybackControlsView;
+#else
+    RetainPtr<AVFunctionBarPlaybackControlsProvider> m_mediaTouchBarProvider;
+    RetainPtr<AVFunctionBarScrubber> m_mediaPlaybackControlsView;
+#endif
 #endif // ENABLE(WEB_PLAYBACK_CONTROLS_MANAGER)
 #endif // HAVE(TOUCH_BAR)
 

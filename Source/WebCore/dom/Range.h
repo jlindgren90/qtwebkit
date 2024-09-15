@@ -25,7 +25,6 @@
 #pragma once
 
 #include "FloatRect.h"
-#include "FragmentScriptingPermission.h"
 #include "IntRect.h"
 #include "RangeBoundaryPoint.h"
 #include <wtf/Forward.h>
@@ -34,8 +33,9 @@
 
 namespace WebCore {
 
-class DOMRect;
 class ContainerNode;
+class DOMRect;
+class DOMRectList;
 class Document;
 class DocumentFragment;
 class FloatQuad;
@@ -141,7 +141,7 @@ public:
     // for details.
     WEBCORE_EXPORT ExceptionOr<void> expand(const String&);
 
-    Vector<Ref<DOMRect>> getClientRects() const;
+    Ref<DOMRectList> getClientRects() const;
     Ref<DOMRect> getBoundingClientRect() const;
 
 #if ENABLE(TREE_DEBUGGING)
@@ -179,6 +179,9 @@ inline bool documentOrderComparator(const Node* a, const Node* b)
 {
     return Range::compareBoundaryPoints(const_cast<Node*>(a), 0, const_cast<Node*>(b), 0).releaseReturnValue() < 0;
 }
+    
+TextStream& operator<<(TextStream&, const RangeBoundaryPoint&);
+TextStream& operator<<(TextStream&, const Range&);
 
 } // namespace
 

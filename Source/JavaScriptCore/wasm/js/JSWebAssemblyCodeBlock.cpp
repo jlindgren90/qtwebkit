@@ -39,12 +39,13 @@
 
 namespace JSC {
 
-const ClassInfo JSWebAssemblyCodeBlock::s_info = { "WebAssemblyCodeBlock", nullptr, 0, CREATE_METHOD_TABLE(JSWebAssemblyCodeBlock) };
+const ClassInfo JSWebAssemblyCodeBlock::s_info = { "WebAssemblyCodeBlock", nullptr, nullptr, nullptr, CREATE_METHOD_TABLE(JSWebAssemblyCodeBlock) };
 
-JSWebAssemblyCodeBlock* JSWebAssemblyCodeBlock::create(VM& vm, Ref<Wasm::CodeBlock> codeBlock, const Wasm::ModuleInformation& moduleInformation)
+JSWebAssemblyCodeBlock* JSWebAssemblyCodeBlock::create(VM& vm, Ref<Wasm::CodeBlock> codeBlock, JSWebAssemblyModule* module)
 {
+    const Wasm::ModuleInformation& moduleInformation = module->module().moduleInformation();
     auto* result = new (NotNull, allocateCell<JSWebAssemblyCodeBlock>(vm.heap, allocationSize(moduleInformation.importFunctionCount()))) JSWebAssemblyCodeBlock(vm, WTFMove(codeBlock), moduleInformation);
-    result->finishCreation(vm);
+    result->finishCreation(vm, module);
     return result;
 }
 
@@ -57,9 +58,24 @@ JSWebAssemblyCodeBlock::JSWebAssemblyCodeBlock(VM& vm, Ref<Wasm::CodeBlock>&& co
     m_wasmToJSExitStubs.reserveCapacity(m_codeBlock->functionImportCount());
     for (unsigned importIndex = 0; importIndex < m_codeBlock->functionImportCount(); ++importIndex) {
         Wasm::SignatureIndex signatureIndex = moduleInformation.importFunctionSignatureIndices.at(importIndex);
-        m_wasmToJSExitStubs.uncheckedAppend(Wasm::wasmToJs(&vm, m_callLinkInfos, signatureIndex, importIndex));
+        auto binding = Wasm::wasmToJs(&vm, m_callLinkInfos, signatureIndex, importIndex);
+        if (UNLIKELY(!binding)) {
+            switch (binding.error()) {
+            case Wasm::BindingFailure::OutOfMemory:
+                m_errorMessage = ASCIILiteral("Out of executable memory");
+                return;
+            }
+            RELEASE_ASSERT_NOT_REACHED();
+        }
+        m_wasmToJSExitStubs.uncheckedAppend(binding.value());
         importWasmToJSStub(importIndex) = m_wasmToJSExitStubs[importIndex].code().executableAddress();
     }
+}
+
+void JSWebAssemblyCodeBlock::finishCreation(VM& vm, JSWebAssemblyModule* module)
+{
+    Base::finishCreation(vm);
+    m_module.set(vm, this, module);
 }
 
 void JSWebAssemblyCodeBlock::destroy(JSCell* cell)
@@ -70,6 +86,12 @@ void JSWebAssemblyCodeBlock::destroy(JSCell* cell)
 bool JSWebAssemblyCodeBlock::isSafeToRun(JSWebAssemblyMemory* memory) const
 {
     return m_codeBlock->isSafeToRun(memory->memory().mode());
+}
+
+void JSWebAssemblyCodeBlock::clearJSCallICs(VM& vm)
+{
+    for (auto iter = m_callLinkInfos.begin(); !!iter; ++iter)
+        (*iter)->unlink(vm);
 }
 
 void JSWebAssemblyCodeBlock::visitChildren(JSCell* cell, SlotVisitor& visitor)

@@ -35,7 +35,6 @@
 #include "CSSFunctionValue.h"
 #include "CSSGridAutoRepeatValue.h"
 #include "CSSGridLineNamesValue.h"
-#include "CSSGridTemplateAreasValue.h"
 #include "CSSImageGeneratorValue.h"
 #include "CSSImageSetValue.h"
 #include "CSSImageValue.h"
@@ -44,7 +43,7 @@
 #include "CSSReflectValue.h"
 #include "FontSelectionValueInlines.h"
 #include "Frame.h"
-#include "LayoutUnit.h"
+#include "GridPositionsResolver.h"
 #include "Length.h"
 #include "Pair.h"
 #include "QuotesData.h"
@@ -458,14 +457,14 @@ inline String StyleBuilderConverter::convertString(StyleResolver&, const CSSValu
 inline String StyleBuilderConverter::convertStringOrAuto(StyleResolver& styleResolver, const CSSValue& value)
 {
     if (downcast<CSSPrimitiveValue>(value).valueID() == CSSValueAuto)
-        return nullAtom;
+        return nullAtom();
     return convertString(styleResolver, value);
 }
 
 inline String StyleBuilderConverter::convertStringOrNone(StyleResolver& styleResolver, const CSSValue& value)
 {
     if (downcast<CSSPrimitiveValue>(value).valueID() == CSSValueNone)
-        return nullAtom;
+        return nullAtom();
     return convertString(styleResolver, value);
 }
 
@@ -1236,11 +1235,6 @@ inline FontSelectionValue StyleBuilderConverter::convertFontWeight(StyleResolver
 inline FontSelectionValue StyleBuilderConverter::convertFontStretch(StyleResolver&, const CSSValue& value)
 {
     return convertFontStretchFromValue(value);
-}
-
-inline FontSelectionValue StyleBuilderConverter::convertFontStyle(StyleResolver&, const CSSValue& value)
-{
-    return convertFontStyleFromValue(value);
 }
 
 #if ENABLE(VARIATION_FONTS)

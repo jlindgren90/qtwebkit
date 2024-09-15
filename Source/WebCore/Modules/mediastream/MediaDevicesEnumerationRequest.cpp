@@ -65,16 +65,14 @@ SecurityOrigin* MediaDevicesEnumerationRequest::topLevelDocumentOrigin() const
     if (!scriptExecutionContext())
         return nullptr;
 
-    if (Frame* frame = downcast<Document>(*scriptExecutionContext()).frame()) {
-        if (frame->isMainFrame())
-            return nullptr;
-    }
-
     return &scriptExecutionContext()->topOrigin();
 }
 
 void MediaDevicesEnumerationRequest::contextDestroyed()
 {
+    // Calling cancel() may destroy ourselves.
+    Ref<MediaDevicesEnumerationRequest> protectedThis(*this);
+
     cancel();
     ContextDestructionObserver::contextDestroyed();
 }

@@ -749,16 +749,8 @@ LayoutUnit GridTrackSizingAlgorithmStrategy::minContentForChild(RenderBox& child
 
         // FIXME: It's unclear if we should return the intrinsic width or the preferred width.
         // See http://lists.w3.org/Archives/Public/www-style/2013Jan/0245.html
-        return child.minPreferredLogicalWidth() + marginIntrinsicLogicalWidthForChild(renderGrid(), child);
-    }
-
-    // All orthogonal flow boxes were already laid out during an early layout phase performed in FrameView::performLayout.
-    // It's true that grid track sizing was not completed at that time and it may afffect the final height of a
-    // grid item, but since it's forbidden to perform a layout during intrinsic width computation, we have to use
-    // that computed height for now.
-    if (direction() == ForColumns && m_algorithm.m_sizingOperation == IntrinsicSizeComputation) {
-        ASSERT(renderGrid()->isOrthogonalChild(child));
-        return child.logicalHeight() + child.marginLogicalHeight();
+        LayoutUnit marginLogicalWidth = child.needsLayout() ? computeMarginLogicalSizeForChild(childInlineDirection, *renderGrid(), child) : child.marginLogicalWidth();
+        return child.minPreferredLogicalWidth() + marginLogicalWidth;
     }
 
     if (updateOverrideContainingBlockContentSizeForChild(child, childInlineDirection))
@@ -777,17 +769,8 @@ LayoutUnit GridTrackSizingAlgorithmStrategy::maxContentForChild(RenderBox& child
 
         // FIXME: It's unclear if we should return the intrinsic width or the preferred width.
         // See http://lists.w3.org/Archives/Public/www-style/2013Jan/0245.html
-        return child.maxPreferredLogicalWidth() + marginIntrinsicLogicalWidthForChild(renderGrid(), child);
-        return child.maxPreferredLogicalWidth();
-    }
-
-    // All orthogonal flow boxes were already laid out during an early layout phase performed in
-    // FrameView::performLayout. It's true that grid track sizing was not completed at that time
-    // and it may afffect the final height of a grid item, but since it's forbidden to perform a
-    // layout during intrinsic width computation, we have to use that computed height for now.
-    if (direction() == ForColumns && m_algorithm.m_sizingOperation == IntrinsicSizeComputation) {
-        ASSERT(renderGrid()->isOrthogonalChild(child));
-        return child.logicalHeight() + child.marginLogicalHeight();
+        LayoutUnit marginLogicalWidth = child.needsLayout() ? computeMarginLogicalSizeForChild(childInlineDirection, *renderGrid(), child) : child.marginLogicalWidth();
+        return child.maxPreferredLogicalWidth() + marginLogicalWidth;
     }
 
     if (updateOverrideContainingBlockContentSizeForChild(child, childInlineDirection))

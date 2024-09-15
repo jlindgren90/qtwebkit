@@ -101,7 +101,7 @@
 namespace JSC {
 
 const ClassInfo CodeBlock::s_info = {
-    "CodeBlock", 0, 0,
+    "CodeBlock", nullptr, nullptr, nullptr,
     CREATE_METHOD_TABLE(CodeBlock)
 };
 
@@ -407,8 +407,10 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
 
     if (!setConstantRegisters(unlinkedCodeBlock->constantRegisters(), unlinkedCodeBlock->constantsSourceCodeRepresentation()))
         return false;
+
     if (!setConstantIdentifierSetRegisters(vm, unlinkedCodeBlock->constantIdentifierSets()))
         return false;
+
     if (unlinkedCodeBlock->usesGlobalObject())
         m_constantRegisters[unlinkedCodeBlock->globalObjectRegister().toConstantIndex()].set(*m_vm, this, m_globalObject.get());
 
@@ -531,7 +533,7 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
 
         unsigned opLength = opcodeLength(pc[0].u.opcode);
 
-        instructions[i] = vm.interpreter->getOpcode(pc[0].u.opcode);
+        instructions[i] = Interpreter::getOpcode(pc[0].u.opcode);
         for (size_t j = 1; j < opLength; ++j) {
             if (sizeof(int32_t) != sizeof(intptr_t))
                 instructions[i + j].u.pointer = 0;
@@ -880,13 +882,15 @@ bool CodeBlock::setConstantIdentifierSetRegisters(VM& vm, const Vector<ConstantI
         RETURN_IF_EXCEPTION(scope, false);
 
         const IdentifierSet& set = entry.first;
-        for (auto& setEntry : set) {
-            JSString* jsString = jsOwnedString(&vm, setEntry.get());
-            jsSet->add(exec, JSValue(jsString));
+        for (auto setEntry : set) {
+            JSString* jsString = jsOwnedString(&vm, setEntry.get()); 
+            jsSet->add(exec, jsString);
             RETURN_IF_EXCEPTION(scope, false);
         }
-        m_constantRegisters[entry.second].set(vm, this, JSValue(jsSet));
+        m_constantRegisters[entry.second].set(vm, this, jsSet);
     }
+    
+    scope.release();
     return true;
 }
 
@@ -1148,12 +1152,11 @@ void CodeBlock::propagateTransitions(const ConcurrentJSLocker&, SlotVisitor& vis
 
     bool allAreMarkedSoFar = true;
         
-    Interpreter* interpreter = m_vm->interpreter;
     if (jitType() == JITCode::InterpreterThunk) {
         const Vector<unsigned>& propertyAccessInstructions = m_unlinkedCode->propertyAccessInstructions();
         for (size_t i = 0; i < propertyAccessInstructions.size(); ++i) {
             Instruction* instruction = &instructions()[propertyAccessInstructions[i]];
-            switch (interpreter->getOpcodeID(instruction[0])) {
+            switch (Interpreter::getOpcodeID(instruction[0])) {
             case op_put_by_id: {
                 StructureID oldStructureID = instruction[4].u.structureID;
                 StructureID newStructureID = instruction[6].u.structureID;
@@ -1283,11 +1286,10 @@ void CodeBlock::clearLLIntGetByIdCache(Instruction* instruction)
 
 void CodeBlock::finalizeLLIntInlineCaches()
 {
-    Interpreter* interpreter = m_vm->interpreter;
     const Vector<unsigned>& propertyAccessInstructions = m_unlinkedCode->propertyAccessInstructions();
     for (size_t size = propertyAccessInstructions.size(), i = 0; i < size; ++i) {
         Instruction* curInstruction = &instructions()[propertyAccessInstructions[i]];
-        switch (interpreter->getOpcodeID(curInstruction[0])) {
+        switch (Interpreter::getOpcodeID(curInstruction[0])) {
         case op_get_by_id:
         case op_get_by_id_proto_load:
         case op_get_by_id_unset: {
@@ -1369,7 +1371,7 @@ void CodeBlock::finalizeLLIntInlineCaches()
             break;
         }
         default:
-            OpcodeID opcodeID = interpreter->getOpcodeID(curInstruction[0]);
+            OpcodeID opcodeID = Interpreter::getOpcodeID(curInstruction[0]);
             ASSERT_WITH_MESSAGE_UNUSED(opcodeID, false, "Unhandled opcode in CodeBlock::finalizeUnconditionally, %s(%d) at bc %u", opcodeNames[opcodeID], opcodeID, propertyAccessInstructions[i]);
         }
     }
@@ -1747,11 +1749,10 @@ void CodeBlock::expressionRangeForBytecodeOffset(unsigned bytecodeOffset, int& d
 
 bool CodeBlock::hasOpDebugForLineAndColumn(unsigned line, unsigned column)
 {
-    Interpreter* interpreter = vm()->interpreter;
     const Instruction* begin = instructions().begin();
     const Instruction* end = instructions().end();
     for (const Instruction* it = begin; it != end;) {
-        OpcodeID opcodeID = interpreter->getOpcodeID(*it);
+        OpcodeID opcodeID = Interpreter::getOpcodeID(*it);
         if (opcodeID == op_debug) {
             unsigned bytecodeOffset = it - begin;
             int unused;
@@ -2693,12 +2694,11 @@ size_t CodeBlock::predictedMachineCodeSize()
 
 bool CodeBlock::usesOpcode(OpcodeID opcodeID)
 {
-    Interpreter* interpreter = vm()->interpreter;
     Instruction* instructionsBegin = instructions().begin();
     unsigned instructionCount = instructions().size();
     
     for (unsigned bytecodeOffset = 0; bytecodeOffset < instructionCount; ) {
-        switch (interpreter->getOpcodeID(instructionsBegin[bytecodeOffset])) {
+        switch (Interpreter::getOpcodeID(instructionsBegin[bytecodeOffset])) {
 #define DEFINE_OP(curOpcode, length)        \
         case curOpcode:                     \
             if (curOpcode == opcodeID)      \
@@ -2743,7 +2743,7 @@ String CodeBlock::nameForRegister(VirtualRegister virtualRegister)
 
 ValueProfile* CodeBlock::valueProfileForBytecodeOffset(int bytecodeOffset)
 {
-    OpcodeID opcodeID = m_vm->interpreter->getOpcodeID(instructions()[bytecodeOffset]);
+    OpcodeID opcodeID = Interpreter::getOpcodeID(instructions()[bytecodeOffset]);
     unsigned length = opcodeLength(opcodeID);
     return instructions()[bytecodeOffset + length - 1].u.profile;
 }
@@ -2832,7 +2832,7 @@ ArithProfile* CodeBlock::arithProfileForBytecodeOffset(int bytecodeOffset)
 
 ArithProfile* CodeBlock::arithProfileForPC(Instruction* pc)
 {
-    auto opcodeID = vm()->interpreter->getOpcodeID(pc[0]);
+    auto opcodeID = Interpreter::getOpcodeID(pc[0]);
     switch (opcodeID) {
     case op_negate:
         return bitwise_cast<ArithProfile*>(&pc[3].u.operand);
@@ -2879,12 +2879,12 @@ void CodeBlock::insertBasicBlockBoundariesForControlFlowProfiler(RefCountedArray
         // Because op_profile_control_flow is emitted at the beginning of every basic block, finding 
         // the next op_profile_control_flow will give us the text range of a single basic block.
         size_t startIdx = bytecodeOffsets[i];
-        RELEASE_ASSERT(vm()->interpreter->getOpcodeID(instructions[startIdx]) == op_profile_control_flow);
+        RELEASE_ASSERT(Interpreter::getOpcodeID(instructions[startIdx]) == op_profile_control_flow);
         int basicBlockStartOffset = instructions[startIdx + 1].u.operand;
         int basicBlockEndOffset;
         if (i + 1 < offsetsLength) {
             size_t endIdx = bytecodeOffsets[i + 1];
-            RELEASE_ASSERT(vm()->interpreter->getOpcodeID(instructions[endIdx]) == op_profile_control_flow);
+            RELEASE_ASSERT(Interpreter::getOpcodeID(instructions[endIdx]) == op_profile_control_flow);
             basicBlockEndOffset = instructions[endIdx + 1].u.operand - 1;
         } else {
             basicBlockEndOffset = m_sourceOffset + ownerScriptExecutable()->source().length() - 1; // Offset before the closing brace.
@@ -3036,9 +3036,10 @@ bool CodeBlock::installVMTrapBreakpoints()
     // we should not perturb the refCount of m_jitCode.
     if (!JITCode::isOptimizingJIT(jitType()))
         return false;
-    m_jitCode->dfgCommon()->installVMTrapBreakpoints();
+    m_jitCode->dfgCommon()->installVMTrapBreakpoints(this);
     return true;
 #else
+    UNREACHABLE_FOR_PLATFORM();
     return false;
 #endif
 }

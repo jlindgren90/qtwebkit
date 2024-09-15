@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ThreadedCompositor_h
-#define ThreadedCompositor_h
+#pragma once
 
 #if USE(COORDINATED_GRAPHICS_THREADED)
 
@@ -51,6 +50,7 @@ namespace WebKit {
 class CoordinatedGraphicsScene;
 class CoordinatedGraphicsSceneClient;
 class ThreadedDisplayRefreshMonitor;
+class WebPage;
 
 class ThreadedCompositor : public CoordinatedGraphicsSceneClient, public ThreadSafeRefCounted<ThreadedCompositor> {
     WTF_MAKE_NONCOPYABLE(ThreadedCompositor);
@@ -60,11 +60,17 @@ public:
     public:
         virtual void renderNextFrame() = 0;
         virtual void commitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset) = 0;
+
+        virtual uint64_t nativeSurfaceHandleForCompositing() = 0;
+        virtual void didDestroyGLContext() = 0;
+
+        virtual void willRenderFrame() = 0;
+        virtual void didRenderFrame() = 0;
     };
 
     enum class ShouldDoFrameSync { No, Yes };
 
-    static Ref<ThreadedCompositor> create(Client&, const WebCore::IntSize&, float scaleFactor, uint64_t nativeSurfaceHandle = 0, ShouldDoFrameSync = ShouldDoFrameSync::Yes, WebCore::TextureMapper::PaintFlags = 0);
+    static Ref<ThreadedCompositor> create(Client&, WebPage&, const WebCore::IntSize&, float scaleFactor, ShouldDoFrameSync = ShouldDoFrameSync::Yes, WebCore::TextureMapper::PaintFlags = 0);
     virtual ~ThreadedCompositor();
 
     void setNativeSurfaceHandleForCompositing(uint64_t);
@@ -74,6 +80,7 @@ public:
     void setDrawsBackground(bool);
 
     void updateSceneState(const WebCore::CoordinatedGraphicsState&);
+    void releaseUpdateAtlases(Vector<uint32_t>&&);
 
     void invalidate();
 
@@ -86,8 +93,10 @@ public:
     void coordinateUpdateCompletionWithClient();
 #endif
 
+    void frameComplete();
+
 private:
-    ThreadedCompositor(Client&, const WebCore::IntSize&, float scaleFactor, uint64_t nativeSurfaceHandle, ShouldDoFrameSync, WebCore::TextureMapper::PaintFlags);
+    ThreadedCompositor(Client&, WebPage&, const WebCore::IntSize&, float scaleFactor, ShouldDoFrameSync, WebCore::TextureMapper::PaintFlags);
 
     // CoordinatedGraphicsSceneClient
     void renderNextFrame() override;
@@ -103,16 +112,21 @@ private:
     RefPtr<CoordinatedGraphicsScene> m_scene;
     std::unique_ptr<WebCore::GLContext> m_context;
 
-    WebCore::IntSize m_viewportSize;
-    WebCore::IntPoint m_scrollPosition;
-    float m_scaleFactor { 1 };
-    bool m_drawsBackground { true };
     uint64_t m_nativeSurfaceHandle;
     ShouldDoFrameSync m_doFrameSync;
     WebCore::TextureMapper::PaintFlags m_paintFlags { 0 };
-    bool m_needsResize { false };
+    bool m_inForceRepaint { false };
 
     std::unique_ptr<CompositingRunLoop> m_compositingRunLoop;
+
+    struct {
+        Lock lock;
+        WebCore::IntSize viewportSize;
+        WebCore::IntPoint scrollPosition;
+        float scaleFactor { 1 };
+        bool drawsBackground { true };
+        bool needsResize { false };
+    } m_attributes;
 
 #if USE(REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR)
     Ref<ThreadedDisplayRefreshMonitor> m_displayRefreshMonitor;
@@ -124,6 +138,5 @@ private:
 
 } // namespace WebKit
 
-#endif
+#endif // USE(COORDINATED_GRAPHICS_THREADED)
 
-#endif // ThreadedCompositor_h

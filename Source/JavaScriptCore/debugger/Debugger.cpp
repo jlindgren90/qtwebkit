@@ -741,7 +741,7 @@ void Debugger::pauseIfNeeded(CallFrame* callFrame)
     {
         PauseReasonDeclaration reason(*this, didHitBreakpoint ? PausedForBreakpoint : m_reasonForPause);
         handlePause(vmEntryGlobalObject, m_reasonForPause);
-        RELEASE_ASSERT(!scope.exception());
+        scope.releaseAssertNoException();
     }
 
     m_pausingBreakpointID = noBreakpointID;
@@ -756,6 +756,16 @@ void Debugger::exception(CallFrame* callFrame, JSValue exception, bool hasCatchH
 {
     if (m_isPaused)
         return;
+
+    if (JSObject* object = jsDynamicCast<JSObject*>(m_vm, exception)) {
+        if (object->isErrorInstance()) {
+            ErrorInstance* error = static_cast<ErrorInstance*>(object);
+            // FIXME: <https://webkit.org/b/173625> Web Inspector: Should be able to pause and debug a StackOverflow Exception
+            // FIXME: <https://webkit.org/b/173627> Web Inspector: Should be able to pause and debug an OutOfMemory Exception
+            if (error->isStackOverflowError() || error->isOutOfMemoryError())
+                return;
+        }
+    }
 
     PauseReasonDeclaration reason(*this, PausedForException);
     if (m_pauseOnExceptionsState == PauseOnAllExceptions || (m_pauseOnExceptionsState == PauseOnUncaughtExceptions && !hasCatchHandler)) {

@@ -60,7 +60,7 @@
 #if PLATFORM(IOS)
 #define DEFAULT_ALLOWS_PICTURE_IN_PICTURE_MEDIA_PLAYBACK true
 #define DEFAULT_BACKSPACE_KEY_NAVIGATION_ENABLED false
-#define DEFAULT_FRAME_FLATTENING_ENABLED true
+#define DEFAULT_FRAME_FLATTENING FrameFlatteningFullyEnabled
 #define DEFAULT_SHOULD_PRINT_BACKGROUNDS true
 #define DEFAULT_TEXT_AREAS_ARE_RESIZABLE false
 #define DEFAULT_JAVASCRIPT_CAN_OPEN_WINDOWS_AUTOMATICALLY false
@@ -74,10 +74,11 @@
 #define DEFAULT_MEDIA_CONTROLS_SCALE_WITH_PAGE_ZOOM false
 #define DEFAULT_TEMPORARY_TILE_COHORT_RETENTION_ENABLED false
 #define DEFAULT_REQUIRES_USER_GESTURE_FOR_AUDIO_PLAYBACK true
+#define DEFAULT_LEGACY_ENCRYPTED_MEDIA_API_ENABLED false
 #else
 #define DEFAULT_ALLOWS_PICTURE_IN_PICTURE_MEDIA_PLAYBACK false
 #define DEFAULT_BACKSPACE_KEY_NAVIGATION_ENABLED true
-#define DEFAULT_FRAME_FLATTENING_ENABLED false
+#define DEFAULT_FRAME_FLATTENING FrameFlatteningDisabled
 #define DEFAULT_SHOULD_PRINT_BACKGROUNDS false
 #define DEFAULT_TEXT_AREAS_ARE_RESIZABLE true
 #define DEFAULT_JAVASCRIPT_CAN_OPEN_WINDOWS_AUTOMATICALLY true
@@ -91,6 +92,7 @@
 #define DEFAULT_MEDIA_CONTROLS_SCALE_WITH_PAGE_ZOOM true
 #define DEFAULT_TEMPORARY_TILE_COHORT_RETENTION_ENABLED true
 #define DEFAULT_REQUIRES_USER_GESTURE_FOR_AUDIO_PLAYBACK false
+#define DEFAULT_LEGACY_ENCRYPTED_MEDIA_API_ENABLED true
 #endif
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
@@ -113,6 +115,19 @@
 #define DEFAULT_SHOULD_CAPTURE_AUDIO_IN_UIPROCESS false
 #endif
 
+#if PLATFORM(COCOA)
+#define DEFAULT_MODERN_MEDIA_CONTROLS_ENABLED true
+#else
+#define DEFAULT_MODERN_MEDIA_CONTROLS_ENABLED false
+#endif
+
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
+// <https://webkit.org/b/168415> El Capitan NetworkLoadTiming values are sometimes jumbled
+#define DEFAULT_RESOURCE_TIMING_ENABLED false
+#else
+#define DEFAULT_RESOURCE_TIMING_ENABLED true
+#endif
+
 // macro(KeyUpper, KeyLower, TypeNameUpper, TypeName, DefaultValue, HumanReadableName, HumanReadableDescription)
 
 #define FOR_EACH_WEBKIT_BOOL_PREFERENCE(macro) \
@@ -127,7 +142,6 @@
     macro(LocalStorageEnabled, localStorageEnabled, Bool, bool, true, "", "") \
     macro(DatabasesEnabled, databasesEnabled, Bool, bool, true, "", "") \
     macro(XSSAuditorEnabled, xssAuditorEnabled, Bool, bool, true, "", "") \
-    macro(FrameFlatteningEnabled, frameFlatteningEnabled, Bool, bool, DEFAULT_FRAME_FLATTENING_ENABLED, "", "") \
     macro(PrivateBrowsingEnabled, privateBrowsingEnabled, Bool, bool, false, "", "") \
     macro(TextAreasAreResizable, textAreasAreResizable, Bool, bool, DEFAULT_TEXT_AREAS_ARE_RESIZABLE, "", "") \
     macro(JavaScriptCanOpenWindowsAutomatically, javaScriptCanOpenWindowsAutomatically, Bool, bool, DEFAULT_JAVASCRIPT_CAN_OPEN_WINDOWS_AUTOMATICALLY, "", "") \
@@ -166,6 +180,7 @@
     macro(RequiresUserGestureForAudioPlayback, requiresUserGestureForAudioPlayback, Bool, bool, DEFAULT_REQUIRES_USER_GESTURE_FOR_AUDIO_PLAYBACK, "", "") \
     macro(RequiresUserGestureToLoadVideo, requiresUserGestureToLoadVideo, Bool, bool, false, "", "") \
     macro(MainContentUserGestureOverrideEnabled, mainContentUserGestureOverrideEnabled, Bool, bool, false, "", "") \
+    macro(MediaUserGestureInheritsFromDocument, mediaUserGestureInheritsFromDocument, Bool, bool, false, "", "") \
     macro(AllowsInlineMediaPlayback, allowsInlineMediaPlayback, Bool, bool, DEFAULT_ALLOWS_INLINE_MEDIA_PLAYBACK, "", "") \
     macro(AllowsInlineMediaPlaybackAfterFullscreen, allowsInlineMediaPlaybackAfterFullscreen, Bool, bool, DEFAULT_ALLOWS_INLINE_MEDIA_PLAYBACK_AFTER_FULLSCREEN, "", "") \
     macro(InlineMediaPlaybackRequiresPlaysInlineAttribute, inlineMediaPlaybackRequiresPlaysInlineAttribute, Bool, bool, DEFAULT_INLINE_MEDIA_PLAYBACK_REQUIRES_PLAYS_INLINE_ATTRIBUTE, "", "") \
@@ -174,6 +189,7 @@
     macro(AllowsPictureInPictureMediaPlayback, allowsPictureInPictureMediaPlayback, Bool, bool, DEFAULT_ALLOWS_PICTURE_IN_PICTURE_MEDIA_PLAYBACK, "", "") \
     macro(AllowsAirPlayForMediaPlayback, allowsAirPlayForMediaPlayback, Bool, bool, true, "", "") \
     macro(MediaControlsScaleWithPageZoom, mediaControlsScaleWithPageZoom, Bool, bool, DEFAULT_MEDIA_CONTROLS_SCALE_WITH_PAGE_ZOOM, "", "") \
+    macro(MediaDocumentEntersFullscreenAutomatically, mediaDocumentEntersFullscreenAutomatically, Bool, bool, false, "", "") \
     macro(InspectorStartsAttached, inspectorStartsAttached, Bool, bool, true, "", "") \
     macro(ShowsToolTipOverTruncatedText, showsToolTipOverTruncatedText, Bool, bool, false, "", "") \
     macro(MockScrollbarsEnabled, mockScrollbarsEnabled, Bool, bool, false, "", "") \
@@ -241,10 +257,9 @@
     macro(DeferredCSSParserEnabled, deferredCSSParserEnabled, Bool, bool, false, "", "") \
     macro(HTTPEquivEnabled, httpEquivEnabled, Bool, bool, true, "", "") \
     macro(MockCaptureDevicesEnabled, mockCaptureDevicesEnabled, Bool, bool, false, "", "") \
+    macro(MockCaptureDevicesPromptEnabled, mockCaptureDevicesPromptEnabled, Bool, bool, true, "", "") \
     macro(MediaCaptureRequiresSecureConnection, mediaCaptureRequiresSecureConnection, Bool, bool, true, "", "") \
-    macro(UseAVFoundationAudioCapture, useAVFoundationAudioCapture, Bool, bool, false, "", "") \
     macro(EnumeratingAllNetworkInterfacesEnabled, enumeratingAllNetworkInterfacesEnabled, Bool, bool, false, "", "") \
-    macro(WebRTCLegacyAPIEnabled, webRTCLegacyAPIEnabled, Bool, bool, true, "", "") \
     macro(ICECandidateFilteringEnabled, iceCandidateFilteringEnabled, Bool, bool, true, "", "") \
     macro(ShadowDOMEnabled, shadowDOMEnabled, Bool, bool, true, "Shadow DOM", "HTML Shadow DOM prototype") \
     macro(FetchAPIEnabled, fetchAPIEnabled, Bool, bool, true, "", "") \
@@ -258,6 +273,7 @@
     macro(AnimatedImageAsyncDecodingEnabled, animatedImageAsyncDecodingEnabled, Bool, bool, true, "", "") \
     macro(CustomElementsEnabled, customElementsEnabled, Bool, bool, true, "", "") \
     macro(EncryptedMediaAPIEnabled, encryptedMediaAPIEnabled, Bool, bool, false, "", "") \
+    macro(MediaPreloadingEnabled, mediaPreloadingEnabled, Bool, bool, false, "", "") \
     macro(IntersectionObserverEnabled, intersectionObserverEnabled, Bool, bool, false, "Intersection Observer", "Enable Intersection Observer support") \
     macro(InteractiveFormValidationEnabled, interactiveFormValidationEnabled, Bool, bool, DEFAULT_HTML_INTERACTIVE_FORM_VALIDATION_ENABLED, "HTML Interactive Form Validation", "HTML interactive form validation") \
     macro(ShouldSuppressKeyboardInputDuringProvisionalNavigation, shouldSuppressKeyboardInputDuringProvisionalNavigation, Bool, bool, false, "", "") \
@@ -265,6 +281,10 @@
     macro(GamepadsEnabled, gamepadsEnabled, Bool, bool, true, "Gamepads", "Web Gamepad API support") \
     macro(InputEventsEnabled, inputEventsEnabled, Bool, bool, true, "Input Events", "Enable InputEvents support") \
     macro(CredentialManagementEnabled, credentialManagementEnabled, Bool, bool, false, "Credential Management", "Enable Credential Management support") \
+    macro(ModernMediaControlsEnabled, modernMediaControlsEnabled, Bool, bool, DEFAULT_MODERN_MEDIA_CONTROLS_ENABLED, "Modern Media Controls", "Use modern media controls look") \
+    macro(ResourceTimingEnabled, resourceTimingEnabled, Bool, bool, DEFAULT_RESOURCE_TIMING_ENABLED, "Resource Timing", "Enable ResourceTiming API") \
+    macro(UserTimingEnabled, userTimingEnabled, Bool, bool, true, "User Timing", "Enable UserTiming API") \
+    macro(LegacyEncryptedMediaAPIEnabled, legacyEncryptedMediaAPIEnabled, Bool, bool, DEFAULT_LEGACY_ENCRYPTED_MEDIA_API_ENABLED, "Enable Legacy EME API", "Enable legacy EME API") \
     \
 
 #define FOR_EACH_WEBKIT_DOUBLE_PREFERENCE(macro) \
@@ -277,7 +297,11 @@
     macro(LayoutInterval, layoutInterval, Double, double, -1, "", "") \
     macro(MaxParseDuration, maxParseDuration, Double, double, -1, "", "") \
     macro(PasswordEchoDuration, passwordEchoDuration, Double, double, 2, "", "") \
-    \
+    macro(ResourceLoadStatisticsTimeToLiveUserInteraction, resourceLoadStatisticsTimeToLiveUserInteraction, Double, double, 2592000, "", "") \
+    macro(ResourceLoadStatisticsTimeToLiveCookiePartitionFree, resourceLoadStatisticsTimeToLiveCookiePartitionFree, Double, double, 86400, "", "") \
+    macro(ResourceLoadStatisticsReducedTimestampResolution, resourceLoadStatisticsReducedTimestampResolution, Double, double, 3600, "", "") \
+    macro(ResourceLoadStatisticsGrandfatheringTime, resourceLoadStatisticsGrandfatheringTime, Double, double, 3600, "", "") \
+\
 
 #define FOR_EACH_WEBKIT_UINT32_PREFERENCE(macro) \
     macro(FontSmoothingLevel, fontSmoothingLevel, UInt32, uint32_t, FontSmoothingLevelMedium, "", "") \
@@ -293,6 +317,7 @@
     macro(DataDetectorTypes, dataDetectorTypes, UInt32, uint32_t, 0, "", "") \
     macro(UserInterfaceDirectionPolicy, userInterfaceDirectionPolicy, UInt32, uint32_t, 0, "", "") \
     macro(SystemLayoutDirection, systemLayoutDirection, UInt32, uint32_t, 0, "", "") \
+    macro(FrameFlattening, frameFlattening, UInt32, uint32_t, DEFAULT_FRAME_FLATTENING, "", "") \
     \
 
 #define FOR_EACH_WEBKIT_DEBUG_BOOL_PREFERENCE(macro) \
@@ -321,38 +346,28 @@
 #define DEFAULT_EXPERIMENTAL_FEATURES_ENABLED false
 #endif
 
-#if PLATFORM(COCOA)
-#define DEFAULT_MODERN_MEDIA_CONTROLS_ENABLED true
-#else
-#define DEFAULT_MODERN_MEDIA_CONTROLS_ENABLED false
-#endif
-
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
-// <https://webkit.org/b/168415> El Capitan NetworkLoadTiming values are sometimes jumbled
-#define DEFAULT_RESOURCE_TIMING_ENABLED false
-#else
-#define DEFAULT_RESOURCE_TIMING_ENABLED DEFAULT_EXPERIMENTAL_FEATURES_ENABLED
-#endif
-
 // For experimental features:
 // - The type should be boolean.
 // - You must provide the last two parameters for all experimental features. They
 //   are the text exposed to the user from the WebKit client.
 // - They should be alphabetically ordered by the human readable text (the first string).
 // - The default value may be either false (for unstable features) or
-//   DEFAULT_EXPERIMENTAL_FEATURE_ENABLED (for features that are ready for
+//   DEFAULT_EXPERIMENTAL_FEATURES_ENABLED (for features that are ready for
 //   wider testing).
 
 #define FOR_EACH_WEBKIT_EXPERIMENTAL_FEATURE_PREFERENCE(macro) \
+    macro(ConstantPropertiesEnabled, constantPropertiesEnabled, Bool, bool, true, "Constant Properties", "Enable CSS constant() properties") \
+    macro(DisplayContentsEnabled, displayContentsEnabled, Bool, bool, false, "CSS display: contents", "Enable CSS display: contents support") \
     macro(SpringTimingFunctionEnabled, springTimingFunctionEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "CSS Spring Animations", "CSS Spring Animation prototype") \
     macro(LinkPreloadEnabled, linkPreloadEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "Link Preload", "Link preload support") \
-    macro(ModernMediaControlsEnabled, modernMediaControlsEnabled, Bool, bool, DEFAULT_MODERN_MEDIA_CONTROLS_ENABLED, "Modern Media Controls", "Use modern media controls look") \
-    macro(ResourceTimingEnabled, resourceTimingEnabled, Bool, bool, DEFAULT_RESOURCE_TIMING_ENABLED, "Resource Timing", "Enable ResourceTiming API") \
-    macro(SubtleCryptoEnabled, subtleCryptoEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "SubtleCrypto", "Enable SubtleCrypto support") \
-    macro(UserTimingEnabled, userTimingEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "User Timing", "Enable UserTiming API") \
+    macro(WebRTCLegacyAPIDisabled, webRTCLegacyAPIDisabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "Remove Legacy WebRTC API", "Remove Legacy WebRTC API") \
+    macro(IsSecureContextAttributeEnabled, isSecureContextAttributeEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "Secure Contexts API", "Enable Secure Contexts API") \
+    macro(SubresourceIntegrityEnabled, subresourceIntegrityEnabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "SubresourceIntegrity", "Enable SubresourceIntegrity") \
+    macro(ViewportFitEnabled, viewportFitEnabled, Bool, bool, true, "Viewport Fit", "Enable viewport-fit viewport parameter") \
     macro(WebAnimationsEnabled, webAnimationsEnabled, Bool, bool, false, "Web Animations", "Web Animations prototype") \
-    macro(WebGL2Enabled, webGL2Enabled, Bool, bool, DEFAULT_EXPERIMENTAL_FEATURES_ENABLED, "WebGL 2.0", "WebGL 2 prototype") \
+    macro(WebGL2Enabled, webGL2Enabled, Bool, bool, false, "WebGL 2.0", "WebGL 2 prototype") \
     macro(WebGPUEnabled, webGPUEnabled, Bool, bool, false, "WebGPU", "WebGPU prototype") \
+    macro(AsyncFrameScrollingEnabled, asyncFrameScrollingEnabled, Bool, bool, false, "Async Frame Scrolling", "Perform frame scrolling in a dedicated thread or process") \
     \
 
 #if PLATFORM(COCOA)
@@ -376,7 +391,7 @@
     macro(PictographFontFamily, pictographFontFamily, String, String, "Apple Color Emoji", "", "") \
     \
 
-#elif PLATFORM(GTK)
+#elif PLATFORM(GTK) || PLATFORM(WPE)
 
 #define FOR_EACH_WEBKIT_FONT_FAMILY_PREFERENCE(macro) \
     macro(StandardFontFamily, standardFontFamily, String, String, "Times", "", "") \
@@ -394,6 +409,7 @@
     FOR_EACH_WEBKIT_FONT_FAMILY_PREFERENCE(macro) \
     macro(DefaultTextEncodingName, defaultTextEncodingName, String, String, defaultTextEncodingNameForSystemLanguage(), "", "") \
     macro(FTPDirectoryTemplatePath, ftpDirectoryTemplatePath, String, String, "", "", "") \
+    macro(MediaContentTypesRequiringHardwareSupport, mediaContentTypesRequiringHardwareSupport, String, String, WebCore::Settings::defaultMediaContentTypesRequiringHardwareSupport(), "", "") \
     \
 
 #define FOR_EACH_WEBKIT_STRING_PREFERENCE_NOT_IN_WEBCORE(macro) \

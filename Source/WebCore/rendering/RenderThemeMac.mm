@@ -195,10 +195,10 @@ enum {
     leftPadding
 };
 
-Ref<RenderTheme> RenderTheme::themeForPage(Page*)
+RenderTheme& RenderTheme::singleton()
 {
-    static RenderTheme& rt = RenderThemeMac::create().leakRef();
-    return rt;
+    static NeverDestroyed<Ref<RenderTheme>> theme(RenderThemeMac::create());
+    return theme.get();
 }
 
 Ref<RenderTheme> RenderThemeMac::create()
@@ -270,7 +270,7 @@ String RenderThemeMac::mediaControlsScript()
             NSBundle *bundle = [NSBundle bundleForClass:[WebCoreRenderThemeBundle class]];
 
             StringBuilder scriptBuilder;
-            scriptBuilder.append([NSString stringWithContentsOfFile:[bundle pathForResource:@"modern-media-controls-localized-strings.js" ofType:@"js"] encoding:NSUTF8StringEncoding error:nil]);
+            scriptBuilder.append([NSString stringWithContentsOfFile:[bundle pathForResource:@"modern-media-controls-localized-strings" ofType:@"js"] encoding:NSUTF8StringEncoding error:nil]);
             scriptBuilder.append([NSString stringWithContentsOfFile:[bundle pathForResource:@"modern-media-controls" ofType:@"js" inDirectory:@"modern-media-controls"] encoding:NSUTF8StringEncoding error:nil]);
             m_mediaControlsScript = scriptBuilder.toString();
         }
@@ -1074,11 +1074,10 @@ NSLevelIndicatorCell* RenderThemeMac::levelIndicatorFor(const RenderMeter& rende
     }
 
     [cell setLevelIndicatorStyle:levelIndicatorStyleFor(style.appearance())];
-    [cell setBaseWritingDirection:style.isLeftToRightDirection() ? NSWritingDirectionLeftToRight : NSWritingDirectionRightToLeft];
+    [cell setUserInterfaceLayoutDirection:style.isLeftToRightDirection() ? NSUserInterfaceLayoutDirectionLeftToRight : NSUserInterfaceLayoutDirectionRightToLeft];
     [cell setMinValue:element->min()];
     [cell setMaxValue:element->max()];
-    RetainPtr<NSNumber> valueObject = [NSNumber numberWithDouble:value];
-    [cell setObjectValue:valueObject.get()];
+    [cell setObjectValue:@(value)];
 
     return cell;
 }
@@ -2346,8 +2345,7 @@ void AttachmentLayout::layOutTitle(const RenderAttachment& attachment)
 
 void AttachmentLayout::layOutSubtitle(const RenderAttachment& attachment)
 {
-    String subtitleText = attachment.attachmentElement().attributeWithoutSynchronization(subtitleAttr);
-
+    auto& subtitleText = attachment.attachmentElement().attributeWithoutSynchronization(subtitleAttr);
     if (subtitleText.isEmpty())
         return;
 
@@ -2595,7 +2593,7 @@ bool RenderThemeMac::paintAttachment(const RenderObject& renderer, const PaintIn
 
     AttachmentLayout layout(attachment);
 
-    String progressString = attachment.attachmentElement().attributeWithoutSynchronization(progressAttr);
+    auto& progressString = attachment.attachmentElement().attributeWithoutSynchronization(progressAttr);
     bool validProgress = false;
     float progress = 0;
     if (!progressString.isEmpty())

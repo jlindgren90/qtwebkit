@@ -84,10 +84,6 @@
 #include "WebContextMenuItem.h"
 #endif
 
-#if ENABLE(VIBRATION)
-#include "WebVibrationProxy.h"
-#endif
-
 #if ENABLE(MEDIA_SESSION)
 #include "WebMediaSessionMetadata.h"
 #include <WebCore/MediaSessionEvents.h>
@@ -106,7 +102,7 @@ template<> struct ClientTraits<WKPageLoaderClientBase> {
 };
 
 template<> struct ClientTraits<WKPageNavigationClientBase> {
-    typedef std::tuple<WKPageNavigationClientV0> Versions;
+    typedef std::tuple<WKPageNavigationClientV0, WKPageNavigationClientV1> Versions;
 };
 
 template<> struct ClientTraits<WKPagePolicyClientBase> {
@@ -114,7 +110,7 @@ template<> struct ClientTraits<WKPagePolicyClientBase> {
 };
 
 template<> struct ClientTraits<WKPageUIClientBase> {
-    typedef std::tuple<WKPageUIClientV0, WKPageUIClientV1, WKPageUIClientV2, WKPageUIClientV3, WKPageUIClientV4, WKPageUIClientV5, WKPageUIClientV6, WKPageUIClientV7, WKPageUIClientV8, WKPageUIClientV9> Versions;
+    typedef std::tuple<WKPageUIClientV0, WKPageUIClientV1, WKPageUIClientV2, WKPageUIClientV3, WKPageUIClientV4, WKPageUIClientV5, WKPageUIClientV6, WKPageUIClientV7, WKPageUIClientV8, WKPageUIClientV9, WKPageUIClientV10> Versions;
 };
 
 #if ENABLE(CONTEXT_MENUS)
@@ -360,16 +356,6 @@ WKInspectorRef WKPageGetInspector(WKPageRef pageRef)
     return toAPI(toImpl(pageRef)->inspector());
 }
 
-WKVibrationRef WKPageGetVibration(WKPageRef page)
-{
-#if ENABLE(VIBRATION)
-    return toAPI(toImpl(page)->vibration());
-#else
-    UNUSED_PARAM(page);
-    return 0;
-#endif
-}
-
 double WKPageGetEstimatedProgress(WKPageRef pageRef)
 {
     return toImpl(pageRef)->estimatedProgress();
@@ -422,7 +408,7 @@ void WKPageSetCustomTextEncodingName(WKPageRef pageRef, WKStringRef encodingName
 
 void WKPageTerminate(WKPageRef pageRef)
 {
-    toImpl(pageRef)->terminateProcess();
+    toImpl(pageRef)->process().requestTermination(ProcessTerminationReason::RequestedByClient);
 }
 
 WKStringRef WKPageGetSessionHistoryURLValueType()
@@ -1418,140 +1404,6 @@ void WKPageSetPagePolicyClient(WKPageRef pageRef, const WKPagePolicyClientBase* 
     toImpl(pageRef)->setPolicyClient(std::make_unique<PolicyClient>(wkClient));
 }
 
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
-static void fixUpBotchedPageUIClient(WKPageRef pageRef, const WKPageUIClientBase& wkClient)
-{
-    struct BotchedWKPageUIClientV4 {
-        WKPageUIClientBase                                                  base;
-
-        // Version 0.
-        WKPageCreateNewPageCallback_deprecatedForUseWithV0                  createNewPage_deprecatedForUseWithV0;
-        WKPageUIClientCallback                                              showPage;
-        WKPageUIClientCallback                                              close;
-        WKPageTakeFocusCallback                                             takeFocus;
-        WKPageFocusCallback                                                 focus;
-        WKPageUnfocusCallback                                               unfocus;
-        WKPageRunJavaScriptAlertCallback_deprecatedForUseWithV0             runJavaScriptAlert_deprecatedForUseWithV0;
-        WKPageRunJavaScriptConfirmCallback_deprecatedForUseWithV0           runJavaScriptConfirm_deprecatedForUseWithV0;
-        WKPageRunJavaScriptPromptCallback_deprecatedForUseWithV0            runJavaScriptPrompt_deprecatedForUseWithV0;
-        WKPageSetStatusTextCallback                                         setStatusText;
-        WKPageMouseDidMoveOverElementCallback_deprecatedForUseWithV0        mouseDidMoveOverElement_deprecatedForUseWithV0;
-        WKPageMissingPluginButtonClickedCallback_deprecatedForUseWithV0     missingPluginButtonClicked_deprecatedForUseWithV0;
-        WKPageDidNotHandleKeyEventCallback                                  didNotHandleKeyEvent;
-        WKPageDidNotHandleWheelEventCallback                                didNotHandleWheelEvent;
-        WKPageGetToolbarsAreVisibleCallback                                 toolbarsAreVisible;
-        WKPageSetToolbarsAreVisibleCallback                                 setToolbarsAreVisible;
-        WKPageGetMenuBarIsVisibleCallback                                   menuBarIsVisible;
-        WKPageSetMenuBarIsVisibleCallback                                   setMenuBarIsVisible;
-        WKPageGetStatusBarIsVisibleCallback                                 statusBarIsVisible;
-        WKPageSetStatusBarIsVisibleCallback                                 setStatusBarIsVisible;
-        WKPageGetIsResizableCallback                                        isResizable;
-        WKPageSetIsResizableCallback                                        setIsResizable;
-        WKPageGetWindowFrameCallback                                        getWindowFrame;
-        WKPageSetWindowFrameCallback                                        setWindowFrame;
-        WKPageRunBeforeUnloadConfirmPanelCallback_deprecatedForUseWithV6    runBeforeUnloadConfirmPanel;
-        WKPageUIClientCallback                                              didDraw;
-        WKPageUIClientCallback                                              pageDidScroll;
-        WKPageExceededDatabaseQuotaCallback                                 exceededDatabaseQuota;
-        WKPageRunOpenPanelCallback                                          runOpenPanel;
-        WKPageDecidePolicyForGeolocationPermissionRequestCallback           decidePolicyForGeolocationPermissionRequest;
-        WKPageHeaderHeightCallback                                          headerHeight;
-        WKPageFooterHeightCallback                                          footerHeight;
-        WKPageDrawHeaderCallback                                            drawHeader;
-        WKPageDrawFooterCallback                                            drawFooter;
-        WKPagePrintFrameCallback                                            printFrame;
-        WKPageUIClientCallback                                              runModal;
-        void*                                                               unused1; // Used to be didCompleteRubberBandForMainFrame
-        WKPageSaveDataToFileInDownloadsFolderCallback                       saveDataToFileInDownloadsFolder;
-        void*                                                               shouldInterruptJavaScript_unavailable;
-
-        // Version 1.
-        WKPageCreateNewPageCallback_deprecatedForUseWithV1                  createNewPage;
-        WKPageMouseDidMoveOverElementCallback                               mouseDidMoveOverElement;
-        WKPageDecidePolicyForNotificationPermissionRequestCallback          decidePolicyForNotificationPermissionRequest;
-        WKPageUnavailablePluginButtonClickedCallback_deprecatedForUseWithV1 unavailablePluginButtonClicked_deprecatedForUseWithV1;
-
-        // Version 2.
-        WKPageShowColorPickerCallback                                       showColorPicker;
-        WKPageHideColorPickerCallback                                       hideColorPicker;
-        WKPageUnavailablePluginButtonClickedCallback                        unavailablePluginButtonClicked;
-
-        // Version 3.
-        WKPagePinnedStateDidChangeCallback                                  pinnedStateDidChange;
-
-        // Version 4.
-        WKPageRunJavaScriptAlertCallback_deprecatedForUseWithV5             runJavaScriptAlert;
-        WKPageRunJavaScriptConfirmCallback_deprecatedForUseWithV5           runJavaScriptConfirm;
-        WKPageRunJavaScriptPromptCallback_deprecatedForUseWithV5            runJavaScriptPrompt;
-    };
-
-    const auto& botchedPageUIClient = reinterpret_cast<const BotchedWKPageUIClientV4&>(wkClient);
-
-    WKPageUIClientV5 fixedPageUIClient = {
-        { 5, botchedPageUIClient.base.clientInfo },
-        botchedPageUIClient.createNewPage_deprecatedForUseWithV0,
-        botchedPageUIClient.showPage,
-        botchedPageUIClient.close,
-        botchedPageUIClient.takeFocus,
-        botchedPageUIClient.focus,
-        botchedPageUIClient.unfocus,
-        botchedPageUIClient.runJavaScriptAlert_deprecatedForUseWithV0,
-        botchedPageUIClient.runJavaScriptConfirm_deprecatedForUseWithV0,
-        botchedPageUIClient.runJavaScriptPrompt_deprecatedForUseWithV0,
-        botchedPageUIClient.setStatusText,
-        botchedPageUIClient.mouseDidMoveOverElement_deprecatedForUseWithV0,
-        botchedPageUIClient.missingPluginButtonClicked_deprecatedForUseWithV0,
-        botchedPageUIClient.didNotHandleKeyEvent,
-        botchedPageUIClient.didNotHandleWheelEvent,
-        botchedPageUIClient.toolbarsAreVisible,
-        botchedPageUIClient.setToolbarsAreVisible,
-        botchedPageUIClient.menuBarIsVisible,
-        botchedPageUIClient.setMenuBarIsVisible,
-        botchedPageUIClient.statusBarIsVisible,
-        botchedPageUIClient.setStatusBarIsVisible,
-        botchedPageUIClient.isResizable,
-        botchedPageUIClient.setIsResizable,
-        botchedPageUIClient.getWindowFrame,
-        botchedPageUIClient.setWindowFrame,
-        botchedPageUIClient.runBeforeUnloadConfirmPanel,
-        botchedPageUIClient.didDraw,
-        botchedPageUIClient.pageDidScroll,
-        botchedPageUIClient.exceededDatabaseQuota,
-        botchedPageUIClient.runOpenPanel,
-        botchedPageUIClient.decidePolicyForGeolocationPermissionRequest,
-        botchedPageUIClient.headerHeight,
-        botchedPageUIClient.footerHeight,
-        botchedPageUIClient.drawHeader,
-        botchedPageUIClient.drawFooter,
-        botchedPageUIClient.printFrame,
-        botchedPageUIClient.runModal,
-        botchedPageUIClient.unused1,
-        botchedPageUIClient.saveDataToFileInDownloadsFolder,
-        botchedPageUIClient.shouldInterruptJavaScript_unavailable,
-        botchedPageUIClient.createNewPage,
-        botchedPageUIClient.mouseDidMoveOverElement,
-        botchedPageUIClient.decidePolicyForNotificationPermissionRequest,
-        botchedPageUIClient.unavailablePluginButtonClicked_deprecatedForUseWithV1,
-        botchedPageUIClient.showColorPicker,
-        botchedPageUIClient.hideColorPicker,
-        botchedPageUIClient.unavailablePluginButtonClicked,
-        botchedPageUIClient.pinnedStateDidChange,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        botchedPageUIClient.runJavaScriptAlert,
-        botchedPageUIClient.runJavaScriptConfirm,
-        botchedPageUIClient.runJavaScriptPrompt,
-        nullptr,
-    };
-
-    WKPageSetPageUIClient(pageRef, &fixedPageUIClient.base);
-}
-#endif
-
 namespace WebKit {
 
 class RunBeforeUnloadConfirmPanelResultListener : public API::ObjectImpl<API::Object::Type::RunBeforeUnloadConfirmPanelResultListener> {
@@ -1703,13 +1555,6 @@ void WKPageRunJavaScriptPromptResultListenerCall(WKPageRunJavaScriptPromptResult
 
 void WKPageSetPageUIClient(WKPageRef pageRef, const WKPageUIClientBase* wkClient)
 {
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
-    if (wkClient && wkClient->version == 4) {
-        fixUpBotchedPageUIClient(pageRef, *wkClient);
-        return;
-    }
-#endif
-
     class UIClient : public API::Client<WKPageUIClientBase>, public API::UIClient {
     public:
         explicit UIClient(const WKPageUIClientBase* client)
@@ -1718,17 +1563,15 @@ void WKPageSetPageUIClient(WKPageRef pageRef, const WKPageUIClientBase* wkClient
         }
 
     private:
-        RefPtr<WebPageProxy> createNewPage(WebPageProxy* page, WebFrameProxy* initiatingFrame, const SecurityOriginData& securityOriginData, const ResourceRequest& resourceRequest, const WindowFeatures& windowFeatures, const NavigationActionData& navigationActionData) override
+        RefPtr<WebPageProxy> createNewPage(WebPageProxy* page, API::FrameInfo& sourceFrameInfo, const ResourceRequest& resourceRequest, const WindowFeatures& windowFeatures, const NavigationActionData& navigationActionData) override
         {
             if (m_client.createNewPage) {
                 auto configuration = page->configuration().copy();
                 configuration->setRelatedPage(page);
 
-                auto sourceFrameInfo = API::FrameInfo::create(*initiatingFrame, securityOriginData.securityOrigin());
-
                 auto userInitiatedActivity = page->process().userInitiatedActivity(navigationActionData.userGestureTokenIdentifier);
-                bool shouldOpenAppLinks = !hostsAreEqual(WebCore::URL(WebCore::ParsedURLString, initiatingFrame->url()), resourceRequest.url());
-                auto apiNavigationAction = API::NavigationAction::create(navigationActionData, sourceFrameInfo.ptr(), nullptr, resourceRequest, WebCore::URL(), shouldOpenAppLinks, userInitiatedActivity);
+                bool shouldOpenAppLinks = !hostsAreEqual(sourceFrameInfo.request().url(), resourceRequest.url());
+                auto apiNavigationAction = API::NavigationAction::create(navigationActionData, &sourceFrameInfo, nullptr, resourceRequest, WebCore::URL(), shouldOpenAppLinks, userInitiatedActivity);
 
                 auto apiWindowFeatures = API::WindowFeatures::create(windowFeatures);
 
@@ -1781,6 +1624,22 @@ void WKPageSetPageUIClient(WKPageRef pageRef, const WKPageUIClientBase* wkClient
                 return;
 
             m_client.fullscreenMayReturnToInline(toAPI(page), m_client.base.clientInfo);
+        }
+        
+        void hasVideoInPictureInPictureDidChange(WebPageProxy* page, bool hasVideoInPictureInPicture) override
+        {
+            if (!m_client.hasVideoInPictureInPictureDidChange)
+                return;
+            
+            m_client.hasVideoInPictureInPictureDidChange(toAPI(page), hasVideoInPictureInPicture, m_client.base.clientInfo);
+        }
+
+        void didExceedBackgroundResourceLimitWhileInForeground(WebPageProxy& page, WKResourceLimit limit) override
+        {
+            if (!m_client.didExceedBackgroundResourceLimitWhileInForeground)
+                return;
+
+            m_client.didExceedBackgroundResourceLimitWhileInForeground(toAPI(&page), limit, m_client.base.clientInfo);
         }
 
         void close(WebPageProxy* page) override
@@ -2058,7 +1917,7 @@ void WKPageSetPageUIClient(WKPageRef pageRef, const WKPageUIClientBase* wkClient
             return m_client.runBeforeUnloadConfirmPanel_deprecatedForUseWithV6 || m_client.runBeforeUnloadConfirmPanel;
         }
 
-        void runBeforeUnloadConfirmPanel(WebKit::WebPageProxy* page, const WTF::String& message, WebKit::WebFrameProxy* frame, Function<void (bool)>&& completionHandler) override
+        void runBeforeUnloadConfirmPanel(WebKit::WebPageProxy* page, const WTF::String& message, WebKit::WebFrameProxy* frame, const SecurityOriginData&, Function<void (bool)>&& completionHandler) override
         {
             if (m_client.runBeforeUnloadConfirmPanel) {
                 RefPtr<RunBeforeUnloadConfirmPanelResultListener> listener = RunBeforeUnloadConfirmPanelResultListener::create(WTFMove(completionHandler));
@@ -2263,17 +2122,17 @@ void WKPageSetPageUIClient(WKPageRef pageRef, const WKPageUIClientBase* wkClient
         static WKAutoplayEvent toWKAutoplayEvent(WebCore::AutoplayEvent event)
         {
             switch (event) {
-            case WebCore::AutoplayEvent::DidEndMediaPlaybackWithoutUserInterference:
-                return kWKAutoplayEventDidEndMediaPlaybackWithoutUserInterference;
+            case WebCore::AutoplayEvent::DidAutoplayMediaPastThresholdWithoutUserInterference:
+                return kWKAutoplayEventDidAutoplayMediaPastThresholdWithoutUserInterference;
             case WebCore::AutoplayEvent::DidPlayMediaPreventedFromPlaying:
                 return kWKAutoplayEventDidPlayMediaPreventedFromAutoplaying;
             case WebCore::AutoplayEvent::DidPreventMediaFromPlaying:
                 return kWKAutoplayEventDidPreventFromAutoplaying;
             case WebCore::AutoplayEvent::UserDidInterfereWithPlayback:
                 return kWKAutoplayEventUserDidInterfereWithPlayback;
-            case WebCore::AutoplayEvent::UserNeverPlayedMediaPreventedFromPlaying:
-                return kWKAutoplayEventUserNeverPlayedMediaPreventedFromPlaying;
             }
+
+            RELEASE_ASSERT_NOT_REACHED();
         }
 
         void handleAutoplayEvent(WebPageProxy& page, WebCore::AutoplayEvent event, OptionSet<WebCore::AutoplayEventFlags> flags) override
@@ -2400,11 +2259,15 @@ void WKPageSetPageNavigationClient(WKPageRef pageRef, const WKPageNavigationClie
             m_client.didReceiveAuthenticationChallenge(toAPI(&page), toAPI(authenticationChallenge), m_client.base.clientInfo);
         }
 
-        void processDidCrash(WebPageProxy& page) override
+        void processDidTerminate(WebPageProxy& page, WebKit::ProcessTerminationReason reason) override
         {
-            if (!m_client.webProcessDidCrash)
+            if (m_client.webProcessDidTerminate) {
+                m_client.webProcessDidTerminate(toAPI(&page), toAPI(reason), m_client.base.clientInfo);
                 return;
-            m_client.webProcessDidCrash(toAPI(&page), m_client.base.clientInfo);
+            }
+
+            if (m_client.webProcessDidCrash && reason != WebKit::ProcessTerminationReason::RequestedByClient)
+                m_client.webProcessDidCrash(toAPI(&page), m_client.base.clientInfo);
         }
 
         RefPtr<API::Data> webCryptoMasterKey(WebPageProxy& page) override
@@ -2476,7 +2339,7 @@ void WKPageSetPageNavigationClient(WKPageRef pageRef, const WKPageNavigationClie
 
 void WKPageRunJavaScriptInMainFrame(WKPageRef pageRef, WKStringRef scriptRef, void* context, WKPageRunJavaScriptFunction callback)
 {
-    toImpl(pageRef)->runJavaScriptInMainFrame(toImpl(scriptRef)->string(), [context, callback](API::SerializedScriptValue* returnValue, bool, const WebCore::ExceptionDetails&, CallbackBase::Error error) {
+    toImpl(pageRef)->runJavaScriptInMainFrame(toImpl(scriptRef)->string(), true, [context, callback](API::SerializedScriptValue* returnValue, bool, const WebCore::ExceptionDetails&, CallbackBase::Error error) {
         callback(toAPI(returnValue), (error != CallbackBase::Error::None) ? toAPI(API::Error::create().ptr()) : 0, context);
     });
 }
@@ -2495,7 +2358,7 @@ void WKPageRunJavaScriptInMainFrame_b(WKPageRef pageRef, WKStringRef scriptRef, 
 }
 #endif
 
-static std::function<void (const String&, WebKit::CallbackBase::Error)> toGenericCallbackFunction(void* context, void (*callback)(WKStringRef, WKErrorRef, void*))
+static WTF::Function<void (const String&, WebKit::CallbackBase::Error)> toGenericCallbackFunction(void* context, void (*callback)(WKStringRef, WKErrorRef, void*))
 {
     return [context, callback](const String& returnValue, WebKit::CallbackBase::Error error) {
         callback(toAPI(API::String::create(returnValue).ptr()), error != WebKit::CallbackBase::Error::None ? toAPI(API::Error::create().ptr()) : 0, context);
@@ -2673,6 +2536,16 @@ void WKPageSetMediaVolume(WKPageRef page, float volume)
 void WKPageSetMuted(WKPageRef page, WKMediaMutedState muted)
 {
     toImpl(page)->setMuted(muted);
+}
+
+void WKPageSetMediaCaptureEnabled(WKPageRef page, bool enabled)
+{
+    toImpl(page)->setMediaCaptureEnabled(enabled);
+}
+
+bool WKPageGetMediaCaptureEnabled(WKPageRef page)
+{
+    return toImpl(page)->mediaCaptureEnabled();
 }
 
 void WKPageDidAllowPointerLock(WKPageRef page)

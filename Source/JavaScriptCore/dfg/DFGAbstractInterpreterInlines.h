@@ -131,7 +131,7 @@ void AbstractInterpreter<AbstractStateType>::verifyEdge(Node* node, Edge edge)
     if (!(forNode(edge).m_type & ~typeFilterFor(edge.useKind())))
         return;
     
-    DFG_CRASH(m_graph, node, toCString("Edge verification error: ", node, "->", edge, " was expected to have type ", SpeculationDump(typeFilterFor(edge.useKind())), " but has type ", SpeculationDump(forNode(edge).m_type), " (", forNode(edge).m_type, ")").data());
+    DFG_CRASH(m_graph, node, toCString("Edge verification error: ", node, "->", edge, " was expected to have type ", SpeculationDump(typeFilterFor(edge.useKind())), " but has type ", SpeculationDump(forNode(edge).m_type), " (", forNode(edge).m_type, ")").data(), AbstractInterpreterInvalidType, node->op(), edge->op(), edge.useKind(), forNode(edge).m_type);
 }
 
 template<typename AbstractStateType>
@@ -566,6 +566,45 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     }
 
     case MakeRope: {
+        unsigned numberOfChildren = 0;
+        unsigned numberOfRemovedChildren = 0;
+        std::optional<unsigned> nonEmptyIndex;
+        for (unsigned i = 0; i < AdjacencyList::Size; ++i) {
+            Edge& edge = node->children.child(i);
+            if (!edge)
+                break;
+            ++numberOfChildren;
+
+            JSValue childConstant = m_state.forNode(edge).value();
+            if (!childConstant) {
+                nonEmptyIndex = i;
+                continue;
+            }
+            if (!childConstant.isString()) {
+                nonEmptyIndex = i;
+                continue;
+            }
+            if (asString(childConstant)->length()) {
+                nonEmptyIndex = i;
+                continue;
+            }
+
+            ++numberOfRemovedChildren;
+        }
+
+        if (numberOfRemovedChildren) {
+            m_state.setFoundConstants(true);
+            if (numberOfRemovedChildren == numberOfChildren) {
+                // Propagate the last child. This is the way taken in the constant folding phase.
+                forNode(node) = forNode(node->children.child(numberOfChildren - 1));
+                break;
+            }
+            if ((numberOfRemovedChildren + 1) == numberOfChildren) {
+                ASSERT(nonEmptyIndex);
+                forNode(node) = forNode(node->children.child(nonEmptyIndex.value()));
+                break;
+            }
+        }
         forNode(node).set(m_graph, m_vm.stringStructure.get());
         break;
     }
@@ -969,20 +1008,8 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         executeDoubleUnaryOpEffects(node, [](double value) -> double { return static_cast<float>(value); });
         break;
         
-    case ArithSin:
-        executeDoubleUnaryOpEffects(node, sin);
-        break;
-    
-    case ArithCos:
-        executeDoubleUnaryOpEffects(node, cos);
-        break;
-
-    case ArithTan:
-        executeDoubleUnaryOpEffects(node, tan);
-        break;
-
-    case ArithLog:
-        executeDoubleUnaryOpEffects(node, log);
+    case ArithUnary:
+        executeDoubleUnaryOpEffects(node, arithUnaryFunction(node->arithUnaryType()));
         break;
             
     case LogicalNot: {
@@ -1681,6 +1708,11 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         forNode(node).set(m_graph, structureSet);
         break;
     }
+
+    case ArrayIndexOf: {
+        forNode(node).setType(SpecInt32Only);
+        break;
+    }
             
     case ArrayPop:
         clobberWorld(node->origin.semantic, clobberLimit);
@@ -2252,6 +2284,11 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         break;
     }
 
+    case GetVectorLength: {
+        forNode(node).setType(SpecInt32Only);
+        break;
+    }
+
     case DeleteById:
     case DeleteByVal: {
         // FIXME: This could decide if the delete will be successful based on the set of structures that
@@ -2354,7 +2391,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         // nobody would currently benefit from having that information. But it's a bug nonetheless.
         forNode(node).clear(); // The result is not a JS value.
         break;
-    case CheckDOM: {
+    case CheckSubClass: {
         JSValue constant = forNode(node->child1()).value();
         if (constant) {
             if (constant.isCell() && constant.asCell()->inherits(m_vm, node->classInfo())) {
@@ -2374,8 +2411,8 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     }
     case CallDOMGetter: {
         CallDOMGetterData* callDOMGetterData = node->callDOMGetterData();
-        DOMJIT::CallDOMGetterPatchpoint* patchpoint = callDOMGetterData->patchpoint;
-        if (patchpoint->effect.writes)
+        DOMJIT::CallDOMGetterSnippet* snippet = callDOMGetterData->snippet;
+        if (snippet->effect.writes)
             clobberWorld(node->origin.semantic, clobberLimit);
         forNode(node).setType(m_graph, callDOMGetterData->domJIT->resultType());
         break;

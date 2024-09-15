@@ -29,6 +29,7 @@
 #include "GObjectEventListener.h"
 #include <WebCore/HTMLNames.h>
 #include <WebCore/JSMainThreadExecState.h>
+#include <WebCore/StyledElement.h>
 #include "WebKitDOMAttrPrivate.h"
 #include "WebKitDOMCSSStyleDeclarationPrivate.h"
 #include "WebKitDOMClientRectListPrivate.h"
@@ -1049,9 +1050,10 @@ WebKitDOMCSSStyleDeclaration* webkit_dom_element_get_style(WebKitDOMElement* sel
 {
     WebCore::JSMainThreadNullState state;
     g_return_val_if_fail(WEBKIT_DOM_IS_ELEMENT(self), 0);
-    WebCore::Element* item = WebKit::core(self);
-    RefPtr<WebCore::CSSStyleDeclaration> gobjectResult = WTF::getPtr(item->cssomStyle());
-    return WebKit::kit(gobjectResult.get());
+    auto& item = *WebKit::core(self);
+    if (!is<WebCore::StyledElement>(item))
+        return nullptr;
+    return WebKit::kit(&downcast<WebCore::StyledElement>(item).cssomStyle());
 }
 
 gchar* webkit_dom_element_get_id(WebKitDOMElement* self)
@@ -1237,7 +1239,7 @@ WebKitDOMClientRectList* webkit_dom_element_get_client_rects(WebKitDOMElement* s
     WebCore::JSMainThreadNullState state;
     g_return_val_if_fail(WEBKIT_DOM_IS_ELEMENT(self), nullptr);
     WebCore::Element* item = WebKit::core(self);
-    return WebKit::kit(item->getClientRects());
+    return WebKit::kit(item->getClientRects().ptr());
 }
 
 WebKitDOMElement* webkit_dom_element_get_offset_parent(WebKitDOMElement* self)

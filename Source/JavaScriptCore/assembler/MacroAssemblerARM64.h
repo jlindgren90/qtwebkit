@@ -34,13 +34,13 @@
 
 namespace JSC {
 
-class MacroAssemblerARM64 : public AbstractMacroAssembler<ARM64Assembler, MacroAssemblerARM64> {
+class MacroAssemblerARM64 : public AbstractMacroAssembler<ARM64Assembler> {
 public:
     static const unsigned numGPRs = 32;
     static const unsigned numFPRs = 32;
     
-    static const RegisterID dataTempRegister = ARM64Registers::ip0;
-    static const RegisterID memoryTempRegister = ARM64Registers::ip1;
+    static constexpr RegisterID dataTempRegister = ARM64Registers::ip0;
+    static constexpr RegisterID memoryTempRegister = ARM64Registers::ip1;
 
     RegisterID scratchRegister()
     {
@@ -909,6 +909,12 @@ public:
         xor32(dest, src, dest);
     }
 
+    void xor32(Address src, RegisterID dest)
+    {
+        load32(src, getCachedDataTempRegisterIDAndInvalidate());
+        xor32(dataTempRegister, dest);
+    }
+
     void xor32(RegisterID op1, RegisterID op2, RegisterID dest)
     {
         m_assembler.eor<32>(dest, op1, op2);
@@ -990,6 +996,12 @@ public:
             signExtend32ToPtr(imm, getCachedDataTempRegisterIDAndInvalidate());
             m_assembler.eor<64>(dest, src, dataTempRegister);
         }
+    }
+    
+    void xor64(Address src, RegisterID dest)
+    {
+        load64(src, getCachedDataTempRegisterIDAndInvalidate());
+        xor64(dataTempRegister, dest);
     }
 
     void not32(RegisterID src, RegisterID dest)
@@ -2549,10 +2561,15 @@ public:
         return branch64(cond, memoryTempRegister, right);
     }
 
-    Jump branchPtr(RelationalCondition cond, BaseIndex left, RegisterID right)
+    Jump branch64(RelationalCondition cond, BaseIndex left, RegisterID right)
     {
         load64(left, getCachedMemoryTempRegisterIDAndInvalidate());
         return branch64(cond, memoryTempRegister, right);
+    }
+
+    Jump branchPtr(RelationalCondition cond, BaseIndex left, RegisterID right)
+    {
+        return branch64(cond, left, right);
     }
 
     Jump branch8(RelationalCondition cond, Address left, TrustedImm32 right)
@@ -3696,9 +3713,9 @@ public:
         return FunctionPtr(reinterpret_cast<void(*)()>(ARM64Assembler::readCallTarget(call.dataLocation())));
     }
 
-    static void replaceWithBreakpoint(CodeLocationLabel instructionStart)
+    static void replaceWithVMHalt(CodeLocationLabel instructionStart)
     {
-        ARM64Assembler::replaceWithBkpt(instructionStart.executableAddress());
+        ARM64Assembler::replaceWithVMHalt(instructionStart.executableAddress());
     }
 
     static void replaceWithJump(CodeLocationLabel instructionStart, CodeLocationLabel destination)
@@ -3767,10 +3784,6 @@ public:
     {
         ARM64Assembler::repatchPointer(call.dataLabelPtrAtOffset(REPATCH_OFFSET_CALL_TO_POINTER).dataLocation(), destination.executableAddress());
     }
-
-#if ENABLE(MASM_PROBE)
-    void probe(ProbeFunction, void* arg);
-#endif // ENABLE(MASM_PROBE)
 
 protected:
     ALWAYS_INLINE Jump makeBranch(ARM64Assembler::Condition cond)

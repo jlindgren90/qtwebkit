@@ -56,7 +56,7 @@ STATIC_ASSERT_IS_TRIVIALLY_DESTRUCTIBLE(AtomicsObject);
 FOR_EACH_ATOMICS_FUNC(DECLARE_FUNC_PROTO)
 #undef DECLARE_FUNC_PROTO
 
-const ClassInfo AtomicsObject::s_info = { "Atomics", &Base::s_info, 0, CREATE_METHOD_TABLE(AtomicsObject) };
+const ClassInfo AtomicsObject::s_info = { "Atomics", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(AtomicsObject) };
 
 AtomicsObject::AtomicsObject(VM& vm, Structure* structure)
     : JSNonFinalObject(vm, structure)
@@ -242,7 +242,7 @@ struct LoadFunc {
     template<typename T>
     JSValue operator()(T* ptr, const double*) const
     {
-        return jsNumber(WTF::atomicLoad(ptr));
+        return jsNumber(WTF::atomicLoadFullyFenced(ptr));
     }
 };
 
@@ -264,7 +264,7 @@ struct StoreFunc {
     {
         double valueAsInt = args[0];
         T valueAsT = static_cast<T>(toInt32(valueAsInt));
-        WTF::atomicStore(ptr, valueAsT);
+        WTF::atomicStoreFullyFenced(ptr, valueAsT);
         return jsNumber(valueAsInt);
     }
 };

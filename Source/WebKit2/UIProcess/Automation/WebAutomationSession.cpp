@@ -63,7 +63,7 @@ WebAutomationSession::~WebAutomationSession()
         m_processPool->removeMessageReceiver(Messages::WebAutomationSession::messageReceiverName());
 }
 
-void WebAutomationSession::setClient(std::unique_ptr<API::AutomationSessionClient> client)
+void WebAutomationSession::setClient(std::unique_ptr<API::AutomationSessionClient>&& client)
 {
     m_client = WTFMove(client);
 }
@@ -91,9 +91,10 @@ void WebAutomationSession::dispatchMessageFromRemote(const String& message)
     m_backendDispatcher->dispatch(message);
 }
 
-void WebAutomationSession::connect(Inspector::FrontendChannel* channel, bool isAutomaticConnection)
+void WebAutomationSession::connect(Inspector::FrontendChannel* channel, bool isAutomaticConnection, bool immediatelyPause)
 {
     UNUSED_PARAM(isAutomaticConnection);
+    UNUSED_PARAM(immediatelyPause);
 
     m_remoteChannel = channel;
     m_frontendRouter->connectFrontend(channel);
@@ -320,12 +321,14 @@ void WebAutomationSession::resizeWindowOfBrowsingContext(Inspector::ErrorString&
 
     page->setWindowFrame(newFrame);
 
+#if !PLATFORM(GTK)
     // If nothing changed at all, it's probably fair to report that something went wrong.
     // (We can't assume that the requested frame size will be honored exactly, however.)
     WebCore::FloatRect updatedFrame;
     page->getWindowFrame(updatedFrame);
     if (originalFrame == updatedFrame)
         FAIL_WITH_PREDEFINED_ERROR_AND_DETAILS(InternalError, "The window size was expected to have changed, but did not.");
+#endif
 #endif
 }
 
@@ -361,12 +364,14 @@ void WebAutomationSession::moveWindowOfBrowsingContext(Inspector::ErrorString& e
 
     page->setWindowFrame(newFrame);
 
+#if !PLATFORM(GTK)
     // If nothing changed at all, it's probably fair to report that something went wrong.
     // (We can't assume that the requested frame size will be honored exactly, however.)
     WebCore::FloatRect updatedFrame;
     page->getWindowFrame(updatedFrame);
     if (originalFrame == updatedFrame)
         FAIL_WITH_PREDEFINED_ERROR_AND_DETAILS(InternalError, "The window position was expected to have changed, but did not.");
+#endif
 #endif
 }
 
@@ -815,9 +820,12 @@ void WebAutomationSession::addSingleCookie(ErrorString& errorString, const Strin
 
     // FIXME: Using activeURL here twice is basically saying "this is always in the context of the main document"
     // which probably isn't accurate.
-    cookieManager->setCookies(WebCore::SessionID::defaultSessionID(), { cookie }, activeURL, activeURL, [](CallbackBase::Error){});
-
-    callback->sendSuccess();
+    cookieManager->setCookies(page->websiteDataStore().sessionID(), { cookie }, activeURL, activeURL, [callback = callback.copyRef()](CallbackBase::Error error) {
+        if (error == CallbackBase::Error::None)
+            callback->sendSuccess();
+        else
+            callback->sendFailure(STRING_FOR_PREDEFINED_ERROR_NAME(InternalError));
+    });
 }
 
 void WebAutomationSession::deleteAllCookies(ErrorString& errorString, const String& browsingContextHandle)
@@ -830,10 +838,10 @@ void WebAutomationSession::deleteAllCookies(ErrorString& errorString, const Stri
     ASSERT(activeURL.isValid());
 
     WebCookieManagerProxy* cookieManager = m_processPool->supplement<WebCookieManagerProxy>();
-    cookieManager->deleteCookiesForHostname(WebCore::SessionID::defaultSessionID(), activeURL.host());
+    cookieManager->deleteCookiesForHostname(page->websiteDataStore().sessionID(), activeURL.host());
 }
 
-#if USE(APPKIT)
+#if USE(APPKIT) || PLATFORM(GTK)
 static WebEvent::Modifiers protocolModifierToWebEventModifier(Inspector::Protocol::Automation::KeyModifier modifier)
 {
     switch (modifier) {
@@ -848,12 +856,14 @@ static WebEvent::Modifiers protocolModifierToWebEventModifier(Inspector::Protoco
     case Inspector::Protocol::Automation::KeyModifier::CapsLock:
         return WebEvent::CapsLockKey;
     }
+
+    RELEASE_ASSERT_NOT_REACHED();
 }
 #endif // USE(APPKIT)
 
 void WebAutomationSession::performMouseInteraction(Inspector::ErrorString& errorString, const String& handle, const Inspector::InspectorObject& requestedPositionObject, const String& mouseButtonString, const String& mouseInteractionString, const Inspector::InspectorArray& keyModifierStrings, RefPtr<Inspector::Protocol::Automation::Point>& updatedPositionObject)
 {
-#if !USE(APPKIT)
+#if !USE(APPKIT) && !PLATFORM(GTK)
     FAIL_WITH_PREDEFINED_ERROR(NotImplemented);
 #else
     WebPageProxy* page = webPageProxyForHandle(handle);
@@ -908,7 +918,7 @@ void WebAutomationSession::performMouseInteraction(Inspector::ErrorString& error
 
 void WebAutomationSession::performKeyboardInteractions(ErrorString& errorString, const String& handle, const Inspector::InspectorArray& interactions, Ref<PerformKeyboardInteractionsCallback>&& callback)
 {
-#if !PLATFORM(COCOA)
+#if !PLATFORM(COCOA) && !PLATFORM(GTK)
     FAIL_WITH_PREDEFINED_ERROR(NotImplemented);
 #else
     WebPageProxy* page = webPageProxyForHandle(handle);
@@ -919,7 +929,7 @@ void WebAutomationSession::performKeyboardInteractions(ErrorString& errorString,
         FAIL_WITH_PREDEFINED_ERROR_AND_DETAILS(InvalidParameter, "The parameter 'interactions' was not found or empty.");
 
     // Validate all of the parameters before performing any interactions with the browsing context under test.
-    Vector<std::function<void()>> actionsToPerform;
+    Vector<WTF::Function<void()>> actionsToPerform;
     actionsToPerform.reserveCapacity(interactions.length());
 
     for (auto interaction : interactions) {
@@ -1015,13 +1025,13 @@ void WebAutomationSession::didTakeScreenshot(uint64_t callbackID, const Shareabl
 
 // Platform-dependent Implementation Stubs.
 
-#if !PLATFORM(MAC)
+#if !PLATFORM(MAC) && !PLATFORM(GTK)
 void WebAutomationSession::platformSimulateMouseInteraction(WebKit::WebPageProxy&, const WebCore::IntPoint&, Inspector::Protocol::Automation::MouseInteraction, Inspector::Protocol::Automation::MouseButton, WebEvent::Modifiers)
 {
 }
 #endif // !PLATFORM(MAC)
 
-#if !PLATFORM(COCOA)
+#if !PLATFORM(COCOA) && !PLATFORM(GTK)
 void WebAutomationSession::platformSimulateKeyStroke(WebPageProxy&, Inspector::Protocol::Automation::KeyboardInteractionType, Inspector::Protocol::Automation::VirtualKey)
 {
 }

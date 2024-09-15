@@ -65,6 +65,8 @@ public:
 
     WEBCORE_EXPORT void setCrossOrigin(const AtomicString&);
     WEBCORE_EXPORT String crossOrigin() const;
+    WEBCORE_EXPORT void setAs(const AtomicString&);
+    WEBCORE_EXPORT String as() const;
 
     void dispatchPendingEvent(LinkEventSender*);
     static void dispatchPendingLoadEvents();
@@ -80,6 +82,7 @@ private:
     void clearSheet();
 
     InsertionNotificationRequest insertedInto(ContainerNode&) final;
+    void finishedInsertingSubtree() final;
     void removedFrom(ContainerNode&) final;
 
     void initializeStyleSheet(Ref<StyleSheetContents>&&, const CachedCSSStyleSheet&);
@@ -135,8 +138,9 @@ private:
     bool m_isHandlingBeforeLoad { false };
 
     PendingSheetType m_pendingSheetType;
+    String m_integrityMetadataForPendingSheetRequest;
 
     std::unique_ptr<DOMTokenList> m_relList;
 };
 
-} //namespace
+}

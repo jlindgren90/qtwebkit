@@ -31,6 +31,7 @@
 #include "APIWebsiteDataStore.h"
 #include "DownloadProxyMap.h"
 #include "GenericCallback.h"
+#include "HiddenPageThrottlingAutoIncreasesCounter.h"
 #include "MessageReceiver.h"
 #include "MessageReceiverMap.h"
 #include "NetworkProcessProxy.h"
@@ -41,14 +42,12 @@
 #include "VisitedLinkStore.h"
 #include "WebContextClient.h"
 #include "WebContextConnectionClient.h"
-#include "WebContextInjectedBundleClient.h"
 #include "WebProcessProxy.h"
 #include <WebCore/LinkHash.h>
 #include <WebCore/SessionID.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefCounter.h>
 #include <wtf/RefPtr.h>
 #include <wtf/text/StringHash.h>
@@ -77,6 +76,7 @@ class AutomationClient;
 class CustomProtocolManagerClient;
 class DownloadClient;
 class HTTPCookieStore;
+class InjectedBundleClient;
 class LegacyContextHistoryClient;
 class PageConfiguration;
 }
@@ -140,11 +140,11 @@ public:
     bool dispatchSyncMessage(IPC::Connection&, IPC::Decoder&, std::unique_ptr<IPC::Encoder>&);
 
     void initializeClient(const WKContextClientBase*);
-    void initializeInjectedBundleClient(const WKContextInjectedBundleClientBase*);
+    void setInjectedBundleClient(std::unique_ptr<API::InjectedBundleClient>&&);
     void initializeConnectionClient(const WKContextConnectionClientBase*);
-    void setHistoryClient(std::unique_ptr<API::LegacyContextHistoryClient>);
-    void setDownloadClient(std::unique_ptr<API::DownloadClient>);
-    void setAutomationClient(std::unique_ptr<API::AutomationClient>);
+    void setHistoryClient(std::unique_ptr<API::LegacyContextHistoryClient>&&);
+    void setDownloadClient(std::unique_ptr<API::DownloadClient>&&);
+    void setAutomationClient(std::unique_ptr<API::AutomationClient>&&);
     void setLegacyCustomProtocolManagerClient(std::unique_ptr<API::CustomProtocolManagerClient>&&);
 
     void setMaximumNumberOfProcesses(unsigned); // Can only be called when there are no processes running.
@@ -184,7 +184,7 @@ public:
     DownloadProxy* download(WebPageProxy* initiatingPage, const WebCore::ResourceRequest&, const String& suggestedFilename = { });
     DownloadProxy* resumeDownload(const API::Data* resumeData, const String& path);
 
-    void setInjectedBundleInitializationUserData(PassRefPtr<API::Object> userData) { m_injectedBundleInitializationUserData = userData; }
+    void setInjectedBundleInitializationUserData(RefPtr<API::Object>&& userData) { m_injectedBundleInitializationUserData = WTFMove(userData); }
 
     void postMessageToInjectedBundle(const String&, API::Object*);
 
@@ -197,7 +197,9 @@ public:
     PluginInfoStore& pluginInfoStore() { return m_pluginInfoStore; }
 
     void setPluginLoadClientPolicy(WebCore::PluginLoadClientPolicy, const String& host, const String& bundleIdentifier, const String& versionString);
+    void resetPluginLoadClientPolicies(HashMap<String, HashMap<String, HashMap<String, uint8_t>>>&&);
     void clearPluginClientPolicies();
+    const HashMap<String, HashMap<String, HashMap<String, uint8_t>>>& pluginLoadClientPolicies() const { return m_pluginLoadClientPolicies; }
 #endif
 
     pid_t networkProcessIdentifier();
@@ -305,20 +307,21 @@ public:
 
     void textCheckerStateChanged();
 
-    PassRefPtr<API::Dictionary> plugInAutoStartOriginHashes() const;
+    Ref<API::Dictionary> plugInAutoStartOriginHashes() const;
     void setPlugInAutoStartOriginHashes(API::Dictionary&);
     void setPlugInAutoStartOrigins(API::Array&);
     void setPlugInAutoStartOriginsFilteringOutEntriesAddedAfterTime(API::Dictionary&, double time);
 
     // Network Process Management
-    NetworkProcessProxy& ensureNetworkProcess();
+    NetworkProcessProxy& ensureNetworkProcess(WebsiteDataStore* withWebsiteDataStore = nullptr);
     NetworkProcessProxy* networkProcess() { return m_networkProcess.get(); }
-    void networkProcessCrashed(NetworkProcessProxy*);
+    void networkProcessCrashed(NetworkProcessProxy&, Vector<Ref<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply>>&&);
+    void networkProcessFailedToLaunch(NetworkProcessProxy&);
 
     void getNetworkProcessConnection(Ref<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply>&&);
 
 #if ENABLE(DATABASE_PROCESS)
-    void ensureDatabaseProcess();
+    void ensureDatabaseProcessAndWebsiteDataStore(WebsiteDataStore* relevantDataStore);
     DatabaseProcessProxy* databaseProcess() { return m_databaseProcess.get(); }
     void getDatabaseProcessConnection(Ref<Messages::WebProcessProxy::GetDatabaseProcessConnection::DelayedReply>&&);
     void databaseProcessCrashed(DatabaseProcessProxy*);
@@ -394,7 +397,7 @@ public:
     static bool isNetworkCacheEnabled();
 
     bool resourceLoadStatisticsEnabled() { return m_resourceLoadStatisticsEnabled; }
-    void setResourceLoadStatisticsEnabled(bool enabled) { m_resourceLoadStatisticsEnabled = enabled; }
+    void setResourceLoadStatisticsEnabled(bool);
 
     bool alwaysRunsAtBackgroundPriority() const { return m_alwaysRunsAtBackgroundPriority; }
     bool shouldTakeUIBackgroundAssertion() const { return m_shouldTakeUIBackgroundAssertion; }
@@ -485,7 +488,7 @@ private:
     Ref<WebPageGroup> m_defaultPageGroup;
 
     RefPtr<API::Object> m_injectedBundleInitializationUserData;
-    WebContextInjectedBundleClient m_injectedBundleClient;
+    std::unique_ptr<API::InjectedBundleClient> m_injectedBundleClient;
 
     WebContextClient m_client;
     WebContextConnectionClient m_connectionClient;
@@ -645,7 +648,7 @@ template<typename T>
 void WebProcessPool::sendToDatabaseProcessRelaunchingIfNecessary(T&& message)
 {
 #if ENABLE(DATABASE_PROCESS)
-    ensureDatabaseProcess();
+    ensureDatabaseProcessAndWebsiteDataStore(nullptr);
     m_databaseProcess->send(std::forward<T>(message), 0);
 #else
     sendToAllProcessesRelaunchingThemIfNecessary(std::forward<T>(message));

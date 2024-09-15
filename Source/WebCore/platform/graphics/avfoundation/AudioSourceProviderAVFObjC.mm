@@ -93,7 +93,7 @@ AudioSourceProviderAVFObjC::~AudioSourceProviderAVFObjC()
 {
     setClient(nullptr);
     if (m_tapStorage) {
-        std::unique_lock<Lock> lock(m_tapStorage->mutex);
+        std::lock_guard<Lock> lock(m_tapStorage->mutex);
         m_tapStorage->_this = nullptr;
         m_tapStorage = nullptr;
     }
@@ -237,6 +237,7 @@ void AudioSourceProviderAVFObjC::createMix()
 
 void AudioSourceProviderAVFObjC::initCallback(MTAudioProcessingTapRef tap, void* clientInfo, void** tapStorageOut)
 {
+    ASSERT(tap);
     AudioSourceProviderAVFObjC* _this = static_cast<AudioSourceProviderAVFObjC*>(clientInfo);
     _this->m_tap = tap;
     _this->m_tapStorage = new TapStorage(_this);
@@ -286,7 +287,7 @@ void AudioSourceProviderAVFObjC::processCallback(MTAudioProcessingTapRef tap, CM
     std::lock_guard<Lock> lock(tapStorage->mutex);
 
     if (tapStorage->_this)
-        tapStorage->_this->process(numberFrames, flags, bufferListInOut, numberFramesOut, flagsOut);
+        tapStorage->_this->process(tap, numberFrames, flags, bufferListInOut, numberFramesOut, flagsOut);
 }
 
 void AudioSourceProviderAVFObjC::init(void* clientInfo, void** tapStorageOut)
@@ -356,13 +357,13 @@ void AudioSourceProviderAVFObjC::unprepare()
     m_list = nullptr;
 }
 
-void AudioSourceProviderAVFObjC::process(CMItemCount numberOfFrames, MTAudioProcessingTapFlags flags, AudioBufferList* bufferListInOut, CMItemCount* numberFramesOut, MTAudioProcessingTapFlags* flagsOut)
+void AudioSourceProviderAVFObjC::process(MTAudioProcessingTapRef tap, CMItemCount numberOfFrames, MTAudioProcessingTapFlags flags, AudioBufferList* bufferListInOut, CMItemCount* numberFramesOut, MTAudioProcessingTapFlags* flagsOut)
 {
     UNUSED_PARAM(flags);
-
+    
     CMItemCount itemCount = 0;
     CMTimeRange rangeOut;
-    OSStatus status = MTAudioProcessingTapGetSourceAudio(m_tap.get(), numberOfFrames, bufferListInOut, flagsOut, &rangeOut, &itemCount);
+    OSStatus status = MTAudioProcessingTapGetSourceAudio(tap, numberOfFrames, bufferListInOut, flagsOut, &rangeOut, &itemCount);
     if (status != noErr || !itemCount)
         return;
 

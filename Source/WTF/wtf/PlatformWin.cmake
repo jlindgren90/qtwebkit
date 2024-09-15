@@ -10,13 +10,10 @@ list(APPEND WTF_SOURCES
 
     win/CPUTimeWin.cpp
     win/MainThreadWin.cpp
+    win/MemoryFootprintWin.cpp
     win/MemoryPressureHandlerWin.cpp
     win/RunLoopWin.cpp
     win/WorkQueueWin.cpp
-)
-
-list(APPEND WTF_LIBRARIES
-    winmm
 )
 
 if (${WTF_PLATFORM_WIN_CAIRO})

@@ -35,6 +35,7 @@
 #include "DocumentFragment.h"
 #include "DocumentType.h"
 #include "Frame.h"
+#include "FrameLoader.h"
 #include "HTMLEntityParser.h"
 #include "HTMLHtmlElement.h"
 #include "HTMLTemplateElement.h"
@@ -46,6 +47,7 @@
 #include "ScriptElement.h"
 #include "ScriptSourceCode.h"
 #include "Settings.h"
+#include "SharedBuffer.h"
 #include "StyleScope.h"
 #include "TransformSource.h"
 #include "XMLNSNames.h"
@@ -598,9 +600,9 @@ XMLDocumentParser::XMLDocumentParser(DocumentFragment& fragment, Element* parent
         Element* element = elemStack.last();
         if (element->hasAttributes()) {
             for (const Attribute& attribute : element->attributesIterator()) {
-                if (attribute.localName() == xmlnsAtom)
+                if (attribute.localName() == xmlnsAtom())
                     m_defaultNamespaceURI = attribute.value();
-                else if (attribute.prefix() == xmlnsAtom)
+                else if (attribute.prefix() == xmlnsAtom())
                     m_prefixToNamespaceMap.set(attribute.localName(), attribute.value());
             }
         }
@@ -693,7 +695,7 @@ static inline bool handleNamespaceAttributes(Vector<Attribute>& prefixedAttribut
 {
     xmlSAX2Namespace* namespaces = reinterpret_cast<xmlSAX2Namespace*>(libxmlNamespaces);
     for (int i = 0; i < numNamespaces; i++) {
-        AtomicString namespaceQName = xmlnsAtom;
+        AtomicString namespaceQName = xmlnsAtom();
         AtomicString namespaceURI = toAtomicString(namespaces[i].uri);
         if (namespaces[i].prefix)
             namespaceQName = "xmlns:" + toString(namespaces[i].prefix);
@@ -723,7 +725,7 @@ static inline bool handleElementAttributes(Vector<Attribute>& prefixedAttributes
         int valueLength = static_cast<int>(attributes[i].end - attributes[i].value);
         AtomicString attrValue = toAtomicString(attributes[i].value, valueLength);
         String attrPrefix = toString(attributes[i].prefix);
-        AtomicString attrURI = attrPrefix.isEmpty() ? nullAtom : toAtomicString(attributes[i].uri);
+        AtomicString attrURI = attrPrefix.isEmpty() ? nullAtom() : toAtomicString(attributes[i].uri);
         AtomicString attrQName = attrPrefix.isEmpty() ? toAtomicString(attributes[i].localname) : attrPrefix + ":" + toString(attributes[i].localname);
 
         auto result = Element::parseAttributeName(attrURI, attrQName);
@@ -1327,7 +1329,7 @@ void XMLDocumentParser::doEnd()
         XMLTreeViewer xmlTreeViewer(*document());
         xmlTreeViewer.transformDocumentToTreeView();
     } else if (m_sawXSLTransform) {
-        void* doc = xmlDocPtrForString(document()->cachedResourceLoader(), m_originalSourceForTransform.toString(), document()->url().string());
+        xmlDocPtr doc = xmlDocPtrForString(document()->cachedResourceLoader(), m_originalSourceForTransform.toString(), document()->url().string());
         document()->setTransformSource(std::make_unique<TransformSource>(doc));
 
         document()->setParsing(false); // Make the document think it's done, so it will apply XSL stylesheets.
@@ -1352,7 +1354,7 @@ static inline const char* nativeEndianUTF16Encoding()
     return BOMHighByte == 0xFF ? "UTF-16LE" : "UTF-16BE";
 }
 
-void* xmlDocPtrForString(CachedResourceLoader& cachedResourceLoader, const String& source, const String& url)
+xmlDocPtr xmlDocPtrForString(CachedResourceLoader& cachedResourceLoader, const String& source, const String& url)
 {
     if (source.isEmpty())
         return nullptr;

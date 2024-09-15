@@ -117,6 +117,7 @@ list(APPEND WebKit2_SOURCES
     Shared/Cocoa/WKNSURLRequest.mm
     Shared/Cocoa/WKObject.mm
     Shared/Cocoa/WebErrorsCocoa.mm
+    Shared/Cocoa/WebKit2InitializeCocoa.mm
 
     Shared/Plugins/Netscape/mac/NetscapePluginModuleMac.mm
     Shared/Plugins/Netscape/mac/PluginInformationMac.mm
@@ -164,8 +165,8 @@ list(APPEND WebKit2_SOURCES
     UIProcess/HighPerformanceGraphicsUsageSampler.cpp
     UIProcess/PerActivityStateCPUUsageSampler.cpp
     UIProcess/WebContextMenuListenerProxy.cpp
-    UIProcess/WebResourceLoadStatisticsManager.cpp
     UIProcess/WebResourceLoadStatisticsStore.cpp
+    UIProcess/WebResourceLoadStatisticsTelemetry.cpp
 
     UIProcess/Automation/WebAutomationSession.cpp
 
@@ -177,13 +178,11 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/APIUserStyleSheet.cpp
     UIProcess/API/APIWebsiteDataRecord.cpp
 
-    UIProcess/API/C/WKResourceLoadStatisticsManager.cpp
-
     UIProcess/API/C/mac/WKContextPrivateMac.mm
     UIProcess/API/C/mac/WKPagePrivateMac.mm
 
+    UIProcess/API/Cocoa/APIContentRuleListStoreCocoa.mm
     UIProcess/API/Cocoa/APISerializedScriptValueCocoa.mm
-    UIProcess/API/Cocoa/APIUserContentExtensionStoreCocoa.mm
     UIProcess/API/Cocoa/APIWebsiteDataStoreCocoa.mm
     UIProcess/API/Cocoa/LegacyBundleForClass.mm
     UIProcess/API/Cocoa/WKBackForwardList.mm
@@ -191,8 +190,8 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/WKBrowsingContextController.mm
     UIProcess/API/Cocoa/WKBrowsingContextGroup.mm
     UIProcess/API/Cocoa/WKConnection.mm
-    UIProcess/API/Cocoa/WKContentExtension.mm
-    UIProcess/API/Cocoa/WKContentExtensionStore.mm
+    UIProcess/API/Cocoa/WKContentRuleList.mm
+    UIProcess/API/Cocoa/WKContentRuleListStore.mm
     UIProcess/API/Cocoa/WKError.mm
     UIProcess/API/Cocoa/WKFrameInfo.mm
     UIProcess/API/Cocoa/WKHTTPCookieStore.mm
@@ -212,7 +211,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/WKScriptMessage.mm
     UIProcess/API/Cocoa/WKSecurityOrigin.mm
     UIProcess/API/Cocoa/WKTypeRefWrapper.mm
-    UIProcess/API/Cocoa/WKURLSchemeHandlerTask.mm
+    UIProcess/API/Cocoa/WKURLSchemeTask.mm
     UIProcess/API/Cocoa/WKUserContentController.mm
     UIProcess/API/Cocoa/WKUserScript.mm
     UIProcess/API/Cocoa/WKWebView.mm
@@ -265,6 +264,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/Cocoa/WebPasteboardProxyCocoa.mm
     UIProcess/Cocoa/WebProcessPoolCocoa.mm
     UIProcess/Cocoa/WebProcessProxyCocoa.mm
+    UIProcess/Cocoa/WebResourceLoadStatisticsManagerCocoa.mm
     UIProcess/Cocoa/WebResourceLoadStatisticsStoreCocoa.mm
     UIProcess/Cocoa/WebURLSchemeHandlerCocoa.mm
     UIProcess/Cocoa/WebViewImpl.mm
@@ -388,6 +388,7 @@ list(APPEND WebKit2_SOURCES
 file(MAKE_DIRECTORY ${DERIVED_SOURCES_WEBKIT2_DIR})
 
 list(APPEND WebKit2_INCLUDE_DIRECTORIES
+    "${PAL_DIR}"
     "${WEBKIT2_DIR}/NetworkProcess/cocoa"
     "${WEBKIT2_DIR}/NetworkProcess/mac"
     "${WEBKIT2_DIR}/PluginProcess/mac"

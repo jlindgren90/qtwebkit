@@ -41,6 +41,8 @@
 #include <WebCore/FileSystem.h>
 #include <WebCore/FontCascade.h>
 #include <WebCore/LocalizedStrings.h>
+#include <WebCore/NetworkStorageSession.h>
+#include <WebCore/PlatformCookieJar.h>
 #include <limits>
 #include <shlobj.h>
 #include <wchar.h>
@@ -312,6 +314,10 @@ void WebPreferences::initializeDefaultSettings()
 
     CFDictionaryAddValue(defaults, CFSTR(WebKitLinkPreloadEnabledPreferenceKey), kCFBooleanFalse);
 
+    CFDictionaryAddValue(defaults, CFSTR(WebKitMediaPreloadingEnabledPreferenceKey), kCFBooleanFalse);
+
+    CFDictionaryAddValue(defaults, CFSTR(WebKitIsSecureContextAttributeEnabledPreferenceKey), kCFBooleanFalse);
+
     defaultSettings = defaults;
 }
 
@@ -557,6 +563,8 @@ HRESULT WebPreferences::QueryInterface(_In_ REFIID riid, _COM_Outptr_ void** ppv
         *ppvObject = static_cast<IWebPreferencesPrivate3*>(this);
     else if (IsEqualGUID(riid, IID_IWebPreferencesPrivate4))
         *ppvObject = static_cast<IWebPreferencesPrivate4*>(this);
+    else if (IsEqualGUID(riid, IID_IWebPreferencesPrivate5))
+        *ppvObject = static_cast<IWebPreferencesPrivate5*>(this);
     else if (IsEqualGUID(riid, CLSID_WebPreferences))
         *ppvObject = this;
     else
@@ -2008,6 +2016,46 @@ HRESULT WebPreferences::linkPreloadEnabled(_Out_ BOOL* enabled)
     if (!enabled)
         return E_POINTER;
     *enabled = boolValueForKey(WebKitLinkPreloadEnabledPreferenceKey);
+    return S_OK;
+}
+
+HRESULT WebPreferences::setMediaPreloadingEnabled(BOOL enabled)
+{
+    setBoolValue(WebKitMediaPreloadingEnabledPreferenceKey, enabled);
+    return S_OK;
+}
+
+HRESULT WebPreferences::mediaPreloadingEnabled(_Out_ BOOL* enabled)
+{
+    if (!enabled)
+        return E_POINTER;
+    *enabled = boolValueForKey(WebKitMediaPreloadingEnabledPreferenceKey);
+    return S_OK;
+}
+
+HRESULT WebPreferences::clearNetworkLoaderSession()
+{
+    WebCore::deleteAllCookies(NetworkStorageSession::defaultStorageSession());
+    return S_OK;
+}
+
+HRESULT WebPreferences::switchNetworkLoaderToNewTestingSession()
+{
+    NetworkStorageSession::switchToNewTestingSession();
+    return S_OK;
+}
+
+HRESULT WebPreferences::setIsSecureContextAttributeEnabled(BOOL enabled)
+{
+    setBoolValue(WebKitIsSecureContextAttributeEnabledPreferenceKey, enabled);
+    return S_OK;
+}
+
+HRESULT WebPreferences::isSecureContextAttributeEnabled(_Out_ BOOL* enabled)
+{
+    if (!enabled)
+        return E_POINTER;
+    *enabled = boolValueForKey(WebKitIsSecureContextAttributeEnabledPreferenceKey);
     return S_OK;
 }
 

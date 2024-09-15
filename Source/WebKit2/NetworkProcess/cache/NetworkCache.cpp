@@ -50,12 +50,14 @@
 #include <notify.h>
 #endif
 
+using namespace std::literals::chrono_literals;
+
 namespace WebKit {
 namespace NetworkCache {
 
 static const AtomicString& resourceType()
 {
-    ASSERT(WTF::isMainThread());
+    ASSERT(WTF::RunLoop::isMain());
     static NeverDestroyed<const AtomicString> resource("Resource", AtomicString::ConstructFromLiteral);
     return resource;
 }
@@ -80,7 +82,7 @@ bool Cache::initialize(const String& cachePath, OptionSet<Option> options)
 #if ENABLE(NETWORK_CACHE_SPECULATIVE_REVALIDATION)
     if (options.contains(Option::SpeculativeRevalidation)) {
         m_lowPowerModeNotifier = std::make_unique<WebCore::LowPowerModeNotifier>([this](bool isLowPowerModeEnabled) {
-            ASSERT(WTF::isMainThread());
+            ASSERT(WTF::RunLoop::isMain());
             if (isLowPowerModeEnabled)
                 m_speculativeLoadManager = nullptr;
             else {
@@ -382,6 +384,8 @@ void Cache::retrieve(const WebCore::ResourceRequest& request, const GlobalFrameI
 #if !LOG_DISABLED
         auto elapsedMS = static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTime).count());
         LOG(NetworkCache, "(NetworkProcess) retrieve complete useDecision=%d priority=%d time=%" PRIi64 "ms", static_cast<int>(useDecision), static_cast<int>(request.priority()), elapsedMS);
+#else
+        UNUSED_PARAM(startTime);
 #endif
         completionHandler(WTFMove(entry));
 
@@ -499,6 +503,13 @@ void Cache::remove(const Key& key)
 void Cache::remove(const WebCore::ResourceRequest& request)
 {
     remove(makeCacheKey(request));
+}
+
+void Cache::remove(const Vector<Key>& keys, Function<void ()>&& completionHandler)
+{
+    ASSERT(isEnabled());
+
+    m_storage->remove(keys, WTFMove(completionHandler));
 }
 
 void Cache::traverse(Function<void (const TraversalEntry*)>&& traverseHandler)

@@ -135,6 +135,7 @@ GraphicsLayer::GraphicsLayer(Type type, GraphicsLayerClient& client)
     , m_isMaskLayer(false)
     , m_isTrackingDisplayListReplay(false)
     , m_userInteractionEnabled(true)
+    , m_canDetachBackingStore(true)
     , m_paintingPhase(GraphicsLayerPaintAllWithOverflowClip)
     , m_contentsOrientation(CompositingCoordinatesTopDown)
     , m_parent(nullptr)
@@ -418,7 +419,7 @@ void GraphicsLayer::setBackgroundColor(const Color& color)
     m_backgroundColor = color;
 }
 
-void GraphicsLayer::paintGraphicsLayerContents(GraphicsContext& context, const FloatRect& clip)
+void GraphicsLayer::paintGraphicsLayerContents(GraphicsContext& context, const FloatRect& clip, GraphicsLayerPaintFlags flags)
 {
     FloatSize offset = offsetFromRenderer();
     context.translate(-offset);
@@ -426,7 +427,7 @@ void GraphicsLayer::paintGraphicsLayerContents(GraphicsContext& context, const F
     FloatRect clipRect(clip);
     clipRect.move(offset);
 
-    m_client.paintContents(this, context, m_paintingPhase, clipRect);
+    m_client.paintContents(this, context, m_paintingPhase, clipRect, flags);
 }
 
 String GraphicsLayer::animationNameForTransition(AnimatedPropertyID property)
@@ -672,7 +673,7 @@ void GraphicsLayer::addRepaintRect(const FloatRect& repaintRect)
     }
 }
 
-void GraphicsLayer::traverse(GraphicsLayer& layer, std::function<void (GraphicsLayer&)> traversalFunc)
+void GraphicsLayer::traverse(GraphicsLayer& layer, const WTF::Function<void (GraphicsLayer&)>& traversalFunc)
 {
     traversalFunc(layer);
 
@@ -809,6 +810,11 @@ void GraphicsLayer::dumpProperties(TextStream& ts, int indent, LayerTreeAsTextBe
     if (behavior & LayerTreeAsTextIncludeAcceleratesDrawing && m_acceleratesDrawing) {
         writeIndent(ts, indent + 1);
         ts << "(acceleratesDrawing " << m_acceleratesDrawing << ")\n";
+    }
+
+    if (behavior & LayerTreeAsTextIncludeBackingStoreAttached) {
+        writeIndent(ts, indent + 1);
+        ts << "(backingStoreAttached " << backingStoreAttached() << ")\n";
     }
 
     if (!m_transform.isIdentity()) {

@@ -64,6 +64,7 @@ WebInspector.CSSStyleDeclarationSection = class CSSStyleDeclarationSection exten
         if (this.selectorEditable) {
             this._selectorInput = this._headerElement.createChild("textarea");
             this._selectorInput.spellcheck = false;
+            this._selectorInput.dir = "ltr";
             this._selectorInput.tabIndex = -1;
             this._selectorInput.addEventListener("mouseover", this._handleMouseOver.bind(this));
             this._selectorInput.addEventListener("mousemove", this._handleMouseMove.bind(this));
@@ -247,11 +248,16 @@ WebInspector.CSSStyleDeclarationSection = class CSSStyleDeclarationSection exten
                 appendSelectorTextKnownToMatch.call(this, this._style.ownerRule.selectorText);
 
             if (this._style.ownerRule.sourceCodeLocation) {
-                const options = {
+                let options = {
                     dontFloat: true,
                     ignoreNetworkTab: true,
                     ignoreSearchTab: true,
                 };
+                if (this._style.ownerStyleSheet.isInspectorStyleSheet()) {
+                    options.nameStyle = WebInspector.SourceCodeLocation.NameStyle.None;
+                    options.prefix = WebInspector.UIString("Inspector Style Sheet") + ":";
+                }
+
                 let sourceCodeLink = WebInspector.createSourceCodeLocationLink(this._style.ownerRule.sourceCodeLocation, options);
                 this._originElement.appendChild(sourceCodeLink);
             } else {
@@ -295,6 +301,11 @@ WebInspector.CSSStyleDeclarationSection = class CSSStyleDeclarationSection exten
         this._updateSelectorIcon();
         if (this._selectorInput)
             this._selectorInput.value = this._selectorElement.textContent;
+    }
+
+    refreshEditor()
+    {
+        this._propertiesTextEditor.refresh();
     }
 
     highlightProperty(property)
