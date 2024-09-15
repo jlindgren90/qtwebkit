@@ -288,8 +288,10 @@ void ImageFrameCache::startAsyncDecodingQueue()
             NativeImagePtr nativeImage = protectedDecoder->createFrameImageAtIndex(frameRequest.index, frameRequest.subsamplingLevel, frameRequest.decodingOptions);
             if (nativeImage)
                 LOG(Images, "ImageFrameCache::%s - %p - url: %s [frame %ld has been decoded]", __FUNCTION__, this, sourceURL().string().utf8().data(), frameRequest.index);
-            else
+            else {
                 LOG(Images, "ImageFrameCache::%s - %p - url: %s [decoding for frame %ld has failed]", __FUNCTION__, this, sourceURL().string().utf8().data(), frameRequest.index);
+                continue;
+            }
 
             // Update the cached frames on the main thread to avoid updating the MemoryCache from a different thread.
             callOnMainThread([this, protectedQueue = protectedQueue.copyRef(), nativeImage, frameRequest] () mutable {
