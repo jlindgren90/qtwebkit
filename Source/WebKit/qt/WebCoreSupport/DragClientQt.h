@@ -39,7 +39,7 @@ public:
     void dragControllerDestroyed() override;
     DragSourceAction dragSourceActionMaskForPoint(const IntPoint&) override;
     void willPerformDragSourceAction(DragSourceAction, const IntPoint&, DataTransfer&) override;
-    void startDrag(DragImage, const IntPoint& dragImageOrigin, const IntPoint& eventPos, const FloatPoint&, DataTransfer&, Frame&, DragSourceAction) override;
+    void startDrag(DragItem, DataTransfer&, Frame&) override;
 private:
     ChromeClient* m_chromeClient;
 };

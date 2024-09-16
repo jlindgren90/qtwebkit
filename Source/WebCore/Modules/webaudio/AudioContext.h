@@ -30,6 +30,7 @@
 #include "AudioBus.h"
 #include "AudioDestinationNode.h"
 #include "EventTarget.h"
+#include "Float32Array.h"
 #include "JSDOMPromiseDeferred.h"
 #include "MediaCanStartListener.h"
 #include "MediaProducer.h"

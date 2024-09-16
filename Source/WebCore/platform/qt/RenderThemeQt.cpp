@@ -144,12 +144,10 @@ static Ref<RenderTheme> createTheme(Page* page)
     return RenderThemeQtMobile::create(page);
 }
 
-Ref<RenderTheme> RenderTheme::themeForPage(Page* page)
+RenderTheme& RenderTheme::singleton()
 {
-    if (page)
-        return createTheme(page);
     static Ref<RenderTheme> fallback = createTheme(0);
-    return fallback.copyRef();
+    return fallback.get();
 }
 
 // Remove this when SearchFieldPart is style-able in RenderTheme::isControlStyled()
@@ -516,9 +514,9 @@ bool RenderThemeQt::paintSearchFieldCancelButton(const RenderBox& box, const Pai
     FloatPoint paintingPos = convertToPaintingPosition(inputBox, box, cancelButtonRect.location(), r.location());
     cancelButtonRect.setLocation(paintingPos);
 
-    static Image* cancelImage = Image::loadPlatformResource("searchCancelButton").leakRef();
-    static Image* cancelPressedImage = Image::loadPlatformResource("searchCancelButtonPressed").leakRef();
-    pi.context().drawImage(isPressed(box) ? *cancelPressedImage : *cancelImage, cancelButtonRect);
+    static Ref<Image> cancelImage = Image::loadPlatformResource("searchCancelButton");
+    static Ref<Image> cancelPressedImage = Image::loadPlatformResource("searchCancelButtonPressed");
+    pi.context().drawImage(isPressed(box) ? cancelPressedImage.get() : cancelImage.get(), cancelButtonRect);
     return false;
 }
 

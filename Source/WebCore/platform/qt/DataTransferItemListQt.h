@@ -40,18 +40,18 @@ class ScriptExecutionContext;
 
 class DataTransferItemListQt : public DataTransferItemList {
 public:
-    static PassRefPtr<DataTransferItemListQt> create(PassRefPtr<Clipboard>, ScriptExecutionContext*);
+    static RefPtr<DataTransferItemListQt> create(RefPtr<Clipboard>, ScriptExecutionContext*);
 
     virtual size_t length() const;
-    virtual PassRefPtr<DataTransferItem> item(unsigned long index);
+    virtual RefPtr<DataTransferItem> item(unsigned long index);
     virtual void deleteItem(unsigned long index, ExceptionCode&);
     virtual void clear();
     virtual void add(const String& data, const String& type, ExceptionCode&);
-    virtual void add(PassRefPtr<File>);
+    virtual void add(RefPtr<File>);
 
 
 private:
-    DataTransferItemListQt(PassRefPtr<Clipboard>, ScriptExecutionContext*);
+    DataTransferItemListQt(RefPtr<Clipboard>, ScriptExecutionContext*);
 
     virtual void addPasteboardItem(const String& type);
 

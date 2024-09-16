@@ -39,16 +39,16 @@ class ScriptExecutionContext;
 
 class DataTransferItemQt : public DataTransferItem {
 public:
-    static PassRefPtr<DataTransferItemQt> create(PassRefPtr<Clipboard> owner, ScriptExecutionContext*, const String& data, const String& type);
-    static PassRefPtr<DataTransferItemQt> create(PassRefPtr<Clipboard> owner, ScriptExecutionContext*, PassRefPtr<File>);
-    static PassRefPtr<DataTransferItemQt> createFromPasteboard(PassRefPtr<Clipboard> owner,
-                                                               ScriptExecutionContext*,
-                                                               const String&);
+    static RefPtr<DataTransferItemQt> create(RefPtr<Clipboard> owner, ScriptExecutionContext*, const String& data, const String& type);
+    static RefPtr<DataTransferItemQt> create(RefPtr<Clipboard> owner, ScriptExecutionContext*, RefPtr<File>);
+    static RefPtr<DataTransferItemQt> createFromPasteboard(RefPtr<Clipboard> owner,
+                                                           ScriptExecutionContext*,
+                                                           const String&);
 
     virtual String kind() const { return m_kind; }
     virtual String type() const { return m_type; }
-    virtual void getAsString(PassRefPtr<StringCallback>) const;
-    virtual PassRefPtr<Blob> getAsFile() const;
+    virtual void getAsString(RefPtr<StringCallback>) const;
+    virtual RefPtr<Blob> getAsFile() const;
 
 private:
     friend class DataTransferItemListQt;
@@ -58,14 +58,14 @@ private:
         InternalSource
     };
 
-    DataTransferItemQt(PassRefPtr<Clipboard> owner,
+    DataTransferItemQt(RefPtr<Clipboard> owner,
                        ScriptExecutionContext*,
                        DataSource,
                        const String&, const String&, const String&);
-    DataTransferItemQt(PassRefPtr<Clipboard> owner,
+    DataTransferItemQt(RefPtr<Clipboard> owner,
                        ScriptExecutionContext*,
                        DataSource,
-                       PassRefPtr<File>);
+                       RefPtr<File>);
 
     const RefPtr<Clipboard> m_owner;
     ScriptExecutionContext* m_context;

@@ -23,6 +23,7 @@
 
 #include "Document.h"
 #include "HTMLFormElement.h"
+#include "FrameLoader.h"
 #include "FrameLoaderClientQt.h"
 #include "MainFrame.h"
 #include "Page.h"

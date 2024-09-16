@@ -112,6 +112,7 @@ public:
     void discardedComposition(Frame *) override;
     void canceledComposition() override;
     void overflowScrollPositionChanged() override;
+    bool performTwoStepDrop(DocumentFragment&, Range&, bool) override;
 
     bool isEditing() const;
 

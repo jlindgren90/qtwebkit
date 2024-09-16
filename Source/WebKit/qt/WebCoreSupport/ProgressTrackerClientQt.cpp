@@ -29,6 +29,7 @@
 #include "Document.h"
 #include "EventHandler.h"
 #include "Frame.h"
+#include "FrameLoader.h"
 #include "FrameLoaderClientQt.h"
 #include "HTMLFormElement.h"
 #include "Page.h"

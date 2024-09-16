@@ -51,9 +51,9 @@ class QtRuntimeObject : public RuntimeObject {
 public:
     typedef RuntimeObject Base;
 
-    static QtRuntimeObject* create(VM& vm, Structure* structure, PassRefPtr<Instance> instance)
+    static QtRuntimeObject* create(VM& vm, Structure* structure, RefPtr<Instance>&& instance)
     {
-        QtRuntimeObject* object = new (allocateCell<QtRuntimeObject>(vm.heap)) QtRuntimeObject(vm, structure, instance);
+        QtRuntimeObject* object = new (allocateCell<QtRuntimeObject>(vm.heap)) QtRuntimeObject(vm, structure, std::move(instance));
         object->finishCreation(vm);
         return object;
     }
@@ -70,19 +70,19 @@ protected:
     // static const unsigned StructureFlags = RuntimeObject::StructureFlags | OverridesVisitChildren;
 
 private:
-    QtRuntimeObject(VM&, Structure*, PassRefPtr<Instance>);
+    QtRuntimeObject(VM&, Structure*, RefPtr<Instance>&&);
 };
 
-const ClassInfo QtRuntimeObject::s_info = { "QtRuntimeObject", &RuntimeObject::s_info, 0, CREATE_METHOD_TABLE(QtRuntimeObject) };
+const ClassInfo QtRuntimeObject::s_info = { "QtRuntimeObject", &RuntimeObject::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(QtRuntimeObject) };
 
-QtRuntimeObject::QtRuntimeObject(VM& vm, Structure* structure, PassRefPtr<Instance> instance)
-    : RuntimeObject(vm, structure, instance)
+QtRuntimeObject::QtRuntimeObject(VM& vm, Structure* structure, RefPtr<Instance>&& instance)
+    : RuntimeObject(vm, structure, std::move(instance))
 {
 }
 
 // QtInstance
-QtInstance::QtInstance(QObject* o, PassRefPtr<RootObject> rootObject, ValueOwnership ownership)
-    : Instance(rootObject)
+QtInstance::QtInstance(QObject* o, RefPtr<RootObject>&& rootObject, ValueOwnership ownership)
+    : Instance(std::move(rootObject))
     , m_class(0)
     , m_object(o)
     , m_hashkey(o)
@@ -117,7 +117,7 @@ QtInstance::~QtInstance()
     }
 }
 
-PassRefPtr<QtInstance> QtInstance::getQtInstance(QObject* o, PassRefPtr<RootObject> rootObject, ValueOwnership ownership)
+RefPtr<QtInstance> QtInstance::getQtInstance(QObject* o, RootObject* rootObject, ValueOwnership ownership)
 {
     JSLockHolder lock(WebCore::commonVM());
 
@@ -136,7 +136,7 @@ PassRefPtr<QtInstance> QtInstance::getQtInstance(QObject* o, PassRefPtr<RootObje
     RefPtr<QtInstance> ret = QtInstance::create(o, rootObject, ownership);
     cachedInstances.insert(o, ret.get());
 
-    return ret.release();
+    return ret;
 }
 
 bool QtInstance::getOwnPropertySlot(JSObject* object, ExecState* exec, PropertyName propertyName, PropertySlot& slot)

@@ -37,7 +37,7 @@
 #include "RenderProgress.h"
 #include "StyleResolver.h"
 
-#include <wtf/PassRefPtr.h>
+#include <wtf/RefPtr.h>
 
 #include <QColor>
 #include <QFile>

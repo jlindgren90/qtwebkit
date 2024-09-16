@@ -41,24 +41,24 @@
 
 namespace WebCore {
 
-PassRefPtr<DataTransferItemQt> DataTransferItemQt::create(PassRefPtr<Clipboard> owner,
-                                                          ScriptExecutionContext* context,
-                                                          const String& data,
-                                                          const String& type)
+RefPtr<DataTransferItemQt> DataTransferItemQt::create(RefPtr<Clipboard> owner,
+                                                      ScriptExecutionContext* context,
+                                                      const String& data,
+                                                      const String& type)
 {
     return adoptRef(new DataTransferItemQt(owner, context, DataTransferItemQt::InternalSource, kindString, type, data));
 }
 
-PassRefPtr<DataTransferItemQt> DataTransferItemQt::create(PassRefPtr<Clipboard> owner,
-                                                          ScriptExecutionContext* context,
-                                                          PassRefPtr<File> file)
+RefPtr<DataTransferItemQt> DataTransferItemQt::create(RefPtr<Clipboard> owner,
+                                                      ScriptExecutionContext* context,
+                                                      RefPtr<File> file)
 {
     return adoptRef(new DataTransferItemQt(owner, context, DataTransferItemQt::InternalSource, file));
 }
 
-PassRefPtr<DataTransferItemQt> DataTransferItemQt::createFromPasteboard(PassRefPtr<Clipboard> owner,
-                                                                        ScriptExecutionContext* context,
-                                                                        const String& type)
+RefPtr<DataTransferItemQt> DataTransferItemQt::createFromPasteboard(RefPtr<Clipboard> owner,
+                                                                    ScriptExecutionContext* context,
+                                                                    const String& type)
 {
     if (type == "text/plain" || type == "text/html")
         return adoptRef(new DataTransferItemQt(owner, context, PasteboardSource, DataTransferItem::kindString, type, ""));
@@ -66,7 +66,7 @@ PassRefPtr<DataTransferItemQt> DataTransferItemQt::createFromPasteboard(PassRefP
     return adoptRef(new DataTransferItemQt(owner, context, PasteboardSource, DataTransferItem::kindFile, type, ""));
 }
 
-DataTransferItemQt::DataTransferItemQt(PassRefPtr<Clipboard> owner,
+DataTransferItemQt::DataTransferItemQt(RefPtr<Clipboard> owner,
                                        ScriptExecutionContext* context,
                                        DataSource source,
                                        const String& kind, const String& type,
@@ -80,10 +80,10 @@ DataTransferItemQt::DataTransferItemQt(PassRefPtr<Clipboard> owner,
 {
 }
 
-DataTransferItemQt::DataTransferItemQt(PassRefPtr<Clipboard> owner,
+DataTransferItemQt::DataTransferItemQt(RefPtr<Clipboard> owner,
                                        ScriptExecutionContext* context,
                                        DataSource source,
-                                       PassRefPtr<File> file)
+                                       RefPtr<File> file)
     : m_owner(owner)
     , m_context(context)
     , m_kind(kindFile)
@@ -93,7 +93,7 @@ DataTransferItemQt::DataTransferItemQt(PassRefPtr<Clipboard> owner,
 {
 }
 
-void DataTransferItemQt::getAsString(PassRefPtr<StringCallback> callback) const
+void DataTransferItemQt::getAsString(RefPtr<StringCallback> callback) const
 {
     if (!owner()->policy()->canReadData() || kind() != kindString)
         return;
@@ -120,7 +120,7 @@ void DataTransferItemQt::getAsString(PassRefPtr<StringCallback> callback) const
     callback->scheduleCallback(m_context, data);
 }
 
-PassRefPtr<Blob> DataTransferItemQt::getAsFile() const
+RefPtr<Blob> DataTransferItemQt::getAsFile() const
 {
     if (kind() == kindFile && m_dataSource == InternalSource)
         return m_file;

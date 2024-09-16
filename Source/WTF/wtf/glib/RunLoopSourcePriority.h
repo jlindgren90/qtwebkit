@@ -23,7 +23,7 @@
 
 namespace WTF {
 
-#if PLATFORM(GTK)
+#if PLATFORM(GTK) || PLATFORM(QT)
 
 // This is a global enum to define priorities used by GLib run loop sources.
 // In GLib, priorities are represented by an integer where lower values mean

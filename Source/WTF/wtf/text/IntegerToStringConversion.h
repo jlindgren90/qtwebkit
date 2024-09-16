@@ -22,6 +22,8 @@
 #ifndef IntegerToStringConversion_h
 #define IntegerToStringConversion_h
 
+#include <iterator>
+
 namespace WTF {
 
 enum PositiveOrNegativeNumber {

@@ -117,7 +117,7 @@ const QUrl NotificationWrapper::iconUrl() const
 #if ENABLE(NOTIFICATIONS)
     Notification* notification = NotificationPresenterClientQt::notificationPresenter()->notificationForWrapper(this);
     if (notification)
-        return notification->iconURL();
+        return notification->icon();
 #endif
     return QUrl();
 }
@@ -298,10 +298,10 @@ void NotificationPresenterClientQt::requestPermission(ScriptExecutionContext* co
     if (dumpNotification)
         printf("DESKTOP NOTIFICATION PERMISSION REQUESTED: %s\n", QString(context->securityOrigin()->toString()).toUtf8().constData());
 
-    NotificationClient::Permission permission = checkPermission(context);
-    if (permission != NotificationClient::PermissionNotAllowed) {
+    NotificationPermission permission = checkPermission(context);
+    if (permission != NotificationPermission::Denied) {
         if (callback)
-            callback->handleEvent(Notification::permissionString(permission));
+            callback->handleEvent(permission);
         return;
     }
 
@@ -326,9 +326,9 @@ bool NotificationPresenterClientQt::hasPendingPermissionRequests(ScriptExecution
     return m_pendingPermissionRequests.contains(context);
 }
 
-NotificationClient::Permission NotificationPresenterClientQt::checkPermission(ScriptExecutionContext* context)
+NotificationPermission NotificationPresenterClientQt::checkPermission(ScriptExecutionContext* context)
 {
-    return m_cachedPermissions.value(context, NotificationClient::PermissionNotAllowed);
+    return m_cachedPermissions.value(context, NotificationPermission::Denied);
 }
 
 void NotificationPresenterClientQt::cancelRequestsForPermission(ScriptExecutionContext* context)
@@ -360,7 +360,7 @@ void NotificationPresenterClientQt::setNotificationsAllowedForFrame(Frame* frame
     if (!frame->document())
         return;
 
-    NotificationClient::Permission permission = allowed ? NotificationClient::PermissionAllowed : NotificationClient::PermissionDenied;
+    NotificationPermission permission = allowed ? NotificationPermission::Granted : NotificationPermission::Denied;
     m_cachedPermissions.insert(frame->document(), permission);
 
     QHash<ScriptExecutionContext*,  CallbacksInfo>::iterator iter = m_pendingPermissionRequests.begin();
@@ -375,7 +375,7 @@ void NotificationPresenterClientQt::setNotificationsAllowedForFrame(Frame* frame
     QList<RefPtr<NotificationPermissionCallback> >& callbacks = iter.value().m_callbacks;
     Q_FOREACH(const RefPtr<NotificationPermissionCallback>& callback, callbacks) {
         if (callback)
-            callback->handleEvent(Notification::permissionString(permission));
+            callback->handleEvent(permission);
     }
     m_pendingPermissionRequests.remove(iter.key());
 }
@@ -438,8 +438,8 @@ void NotificationPresenterClientQt::dumpReplacedIdText(Notification* notificatio
 void NotificationPresenterClientQt::dumpShowText(Notification* notification)
 {
     printf("DESKTOP NOTIFICATION:%s icon %s, title %s, text %s\n",
-        notification->dir() == "rtl" ? "(RTL)" : "",
-        QString(notification->iconURL().string()).toUtf8().constData(), QString(notification->title()).toUtf8().constData(),
+        notification->dir() == NotificationDirection::Rtl ? "(RTL)" : "",
+        QString(notification->icon().string()).toUtf8().constData(), QString(notification->title()).toUtf8().constData(),
         QString(notification->body()).toUtf8().constData());
 }
 

@@ -41,9 +41,5 @@ QString JSStringCopyQString(JSStringRef string)
 JSRetainPtr<JSStringRef> JSStringCreateWithQString(const QString& qString)
 {
     RefPtr<OpaqueJSString> jsString = OpaqueJSString::create(qString);
-
-    if (jsString)
-        return JSRetainPtr<JSStringRef>(Adopt, jsString.release().leakRef());
-
-    return JSRetainPtr<JSStringRef>(Adopt, &OpaqueJSString::create().leakRef());
+    return JSRetainPtr<JSStringRef>(Adopt, jsString.leakRef());
 }

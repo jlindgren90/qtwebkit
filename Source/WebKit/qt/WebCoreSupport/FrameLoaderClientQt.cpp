@@ -39,6 +39,7 @@
 #include "EventHandler.h"
 #include "FormState.h"
 #include "FrameLoadRequest.h"
+#include "FrameLoader.h"
 #include "FrameNetworkingContextQt.h"
 #include "FrameTree.h"
 #include "FrameView.h"
@@ -242,11 +243,6 @@ void FrameLoaderClientQt::setFrame(QWebFrameAdapter* webFrame, Frame* frame)
 
     connect(this, SIGNAL(titleChanged(QString)),
         m_webFrame->handle(), SIGNAL(titleChanged(QString)));
-}
-
-void FrameLoaderClientQt::callPolicyFunction(FramePolicyFunction function, PolicyAction action)
-{
-    function(action);
 }
 
 bool FrameLoaderClientQt::hasWebView() const
@@ -530,11 +526,11 @@ void FrameLoaderClientQt::cancelPolicyCheck()
 }
 
 
-void FrameLoaderClientQt::dispatchWillSubmitForm(FormState&, FramePolicyFunction function)
+void FrameLoaderClientQt::dispatchWillSubmitForm(FormState&, FramePolicyFunction&& function)
 {
     notImplemented();
     // FIXME: This is surely too simple.
-    callPolicyFunction(function, PolicyUse);
+    function(PolicyUse);
 }
 
 void FrameLoaderClientQt::setMainFrameDocumentReady(bool)
@@ -678,13 +674,14 @@ void FrameLoaderClientQt::dispatchDidClearWindowObjectInWorld(DOMWrapperWorld &w
     }
 }
 
-void FrameLoaderClientQt::registerForIconNotification(bool shouldRegister)
+void FrameLoaderClientQt::registerForIconNotification()
 {
 #if ENABLE(ICONDATABASE)
-    if (shouldRegister)
+    // FIXME: false case still needed?
+    // if (shouldRegister)
         connect(IconDatabaseClientQt::instance(), SIGNAL(iconLoadedForPageURL(QString)), this, SLOT(onIconLoadedForPageURL(QString)), Qt::UniqueConnection);
-    else
-        disconnect(IconDatabaseClientQt::instance(), SIGNAL(iconLoadedForPageURL(QString)), this, SLOT(onIconLoadedForPageURL(QString)));
+    // else
+    //     disconnect(IconDatabaseClientQt::instance(), SIGNAL(iconLoadedForPageURL(QString)), this, SLOT(onIconLoadedForPageURL(QString)));
 #endif
 }
 
@@ -1064,7 +1061,7 @@ bool FrameLoaderClientQt::callErrorPageExtension(const WebCore::ResourceError& e
     WebCore::ResourceResponse response(failingUrl, output.contentType, buffer->size(), output.encoding);
     // FIXME: visibility?
     WebCore::SubstituteData substituteData(std::move(buffer), failingUrl, response, SubstituteData::SessionHistoryVisibility::Hidden);
-    m_frame->loader().load(WebCore::FrameLoadRequest(m_frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
+    m_frame->loader().load(WebCore::FrameLoadRequest(*m_frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
 
     m_shouldSuppressLoadStarted = false;
 
@@ -1107,7 +1104,7 @@ WebCore::Frame* FrameLoaderClientQt::dispatchCreatePage(const WebCore::Navigatio
     return newPage->mainFrameAdapter().frame;
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::ResourceResponse& response, const WebCore::ResourceRequest&, FramePolicyFunction function)
+void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::ResourceResponse& response, const WebCore::ResourceRequest&, FramePolicyFunction&& function)
 {
     // We need to call directly here.
     switch (response.httpStatusCode()) {
@@ -1115,19 +1112,19 @@ void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::Resourc
         // FIXME: a 205 response requires that the requester reset the document view.
         // Fallthrough
     case HTTPNoContent:
-        callPolicyFunction(function, PolicyIgnore);
+        function(PolicyIgnore);
         return;
     }
 
     if (WebCore::contentDispositionType(response.httpHeaderField(HTTPHeaderName::ContentDisposition)) == WebCore::ContentDispositionAttachment)
-        callPolicyFunction(function, PolicyDownload);
+        function(PolicyDownload);
     else if (canShowMIMEType(response.mimeType()))
-        callPolicyFunction(function, PolicyUse);
+        function(PolicyUse);
     else
-        callPolicyFunction(function, PolicyDownload);
+        function(PolicyDownload);
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, const WTF::String&, FramePolicyFunction function)
+void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, const WTF::String&, FramePolicyFunction&& function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
@@ -1141,13 +1138,13 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::
             m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(emptyRequest);
         }
 
-        callPolicyFunction(function, PolicyIgnore);
+        function(PolicyIgnore);
         return;
     }
-    callPolicyFunction(function, PolicyUse);
+    function(PolicyUse);
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, FramePolicyFunction function)
+void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, FramePolicyFunction&& function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
@@ -1174,7 +1171,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore:
             result = PolicyIgnore;
 
         m_webFrame->pageAdapter->acceptNavigationRequest(m_webFrame, r, (int)action.type());
-        callPolicyFunction(function, result);
+        function(result);
         return;
     }
 
@@ -1187,10 +1184,10 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore:
             m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(emptyRequest);
         }
 
-        callPolicyFunction(function, PolicyIgnore);
+        function(PolicyIgnore);
         return;
     }
-    callPolicyFunction(function, PolicyUse);
+    function(PolicyUse);
 }
 
 void FrameLoaderClientQt::dispatchUnableToImplementPolicy(const WebCore::ResourceError&)
@@ -1224,7 +1221,6 @@ RefPtr<Frame> FrameLoaderClientQt::createFrame(const URL& url, const String& nam
     // The creation of the frame may have run arbitrary JavaScript that removed it from the page already.
     if (!childWebFrame->frame->page()) {
         QPointer<QObject> qWebFrame = childWebFrame->handle();
-        frameData.frame.release();
         ASSERT_UNUSED(qWebFrame, !qWebFrame);
         return 0;
     }

@@ -145,9 +145,6 @@ enum ContextMenuAction {
     ContextMenuItemTagMediaPlayPause,
     ContextMenuItemTagMediaMute,
     ContextMenuItemTagDictationAlternative,
-#if PLATFORM(QT)
-    ContextMenuItemTagOpenLinkInThisWindow,
-#endif
     ContextMenuItemTagToggleVideoFullscreen,
     ContextMenuItemTagShareMenu,
     ContextMenuItemTagToggleVideoEnhancedFullscreen,

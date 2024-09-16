@@ -169,16 +169,19 @@ static inline QWebPageAdapter::VisibilityState webCoreVisibilityStateToWebPageVi
 
 static WebCore::FrameLoadRequest frameLoadRequest(const QUrl &url, WebCore::Frame *frame)
 {
-    return WebCore::FrameLoadRequest(frame->document()->securityOrigin(),
+    return WebCore::FrameLoadRequest(
+        *frame->document(),
+        frame->document()->securityOrigin(),
         WebCore::ResourceRequest(url, frame->loader().outgoingReferrer()),
+        String(), // FIXME: frameName
         LockHistory::No,
         LockBackForwardList::No,
         MaybeSendReferrer,
         // FIXME: Are these arguments right for all call sites?
         AllowNavigationToInvalidURL::Yes,
         NewFrameOpenerPolicy::Allow,
-        ShouldOpenExternalURLsPolicy::ShouldAllow
-        );
+        ShouldOpenExternalURLsPolicy::ShouldAllow,
+        InitiatedByMainFrame::Unknown);
 }
 
 // FIXME: Find a better place
@@ -1017,9 +1020,11 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
     case OpenLinkInNewWindow:
         openNewWindow(hitTestResult->linkUrl, &frame);
         break;
+#if 0 // FIXME
     case OpenLinkInThisWindow:
         frame.loader().loadFrameRequest(frameLoadRequest(hitTestResult->linkUrl, &frame), /*event*/ 0, /*FormState*/ 0);
         break;
+#endif
     case OpenFrameInNewWindow: {
         URL url = frame.loader().documentLoader()->unreachableURL();
         if (url.isEmpty())
@@ -1127,8 +1132,10 @@ QString QWebPageAdapter::contextMenuItemTagForAction(QWebPageAdapter::MenuAction
         return contextMenuItemTagOpenLinkInNewWindow();
     case OpenFrameInNewWindow:
         return contextMenuItemTagOpenFrameInNewWindow();
+#if 0 // FIXME
     case OpenLinkInThisWindow:
         return contextMenuItemTagOpenLinkInThisWindow();
+#endif
 
     case DownloadLinkToDisk:
         return contextMenuItemTagDownloadLinkToDisk();
@@ -1496,7 +1503,7 @@ void QWebPageAdapter::openNewWindow(const QUrl& url, Frame* frame)
         NavigationAction action;
         FrameLoadRequest request = frameLoadRequest(url, frame);
         if (Page* newPage = oldPage->chrome().createWindow(*frame, request, features, action)) {
-            newPage->mainFrame().loader().loadFrameRequest(request, /*event*/ 0, /*FormState*/ 0);
+            newPage->mainFrame().loader().loadFrameRequest(std::move(request), /*event*/ 0, /*FormState*/ 0);
             newPage->chrome().show();
         }
     }

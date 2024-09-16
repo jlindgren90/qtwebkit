@@ -86,7 +86,7 @@ void DragClientQt::willPerformDragSourceAction(DragSourceAction, const IntPoint&
 {
 }
 
-void DragClientQt::startDrag(DragImage dragImage, const IntPoint& dragImageOrigin, const IntPoint& eventPos, const FloatPoint&, DataTransfer& dataTransfer, Frame& frame, DragSourceAction)
+void DragClientQt::startDrag(DragItem dragItem, DataTransfer& dataTransfer, Frame& frame)
 {
 #if ENABLE(DRAG_SUPPORT)
     QMimeData* clipboardData = dataTransfer.pasteboard().clipboardData();
@@ -95,9 +95,10 @@ void DragClientQt::startDrag(DragImage dragImage, const IntPoint& dragImageOrigi
     QObject* view = pageClient ? pageClient->ownerWidget() : 0;
     if (view) {
         QDrag* drag = new QDrag(view);
-        if (dragImage) {
-            drag->setPixmap(*dragImage.get());
-            drag->setHotSpot(toQPoint(IntPoint(eventPos - dragImageOrigin)));
+        if (dragItem.image) {
+            drag->setPixmap(*dragItem.image.get());
+            drag->setHotSpot(toQPoint(IntPoint(dragItem.eventPositionInContentCoordinates -
+                                               dragItem.dragLocationInContentCoordinates)));
         } else if (clipboardData && clipboardData->hasImage())
             drag->setPixmap(qvariant_cast<QPixmap>(clipboardData->imageData()));
         DragOperation dragOperationMask = dataTransfer.sourceOperation();

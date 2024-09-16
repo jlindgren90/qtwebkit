@@ -661,6 +661,12 @@ void EditorClientQt::overflowScrollPositionChanged()
 {
 }
 
+bool EditorClientQt::performTwoStepDrop(DocumentFragment&, Range&, bool)
+{
+    notImplemented();
+    return false;
+}
+
 }
 
 // vim: ts=4 sw=4 et

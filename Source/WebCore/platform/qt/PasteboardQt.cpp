@@ -188,7 +188,7 @@ RefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& conte
         if (!html.isEmpty()) {
             RefPtr<DocumentFragment> fragment = createFragmentFromMarkup(*frame.document(), html, "", DisallowScriptingAndPluginContent);
             if (fragment)
-                return fragment.release();
+                return fragment;
         }
     }
 
@@ -202,7 +202,7 @@ RefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& conte
                 QString html = QStringLiteral("<img src=\"") + urls.first().toString(QUrl::FullyEncoded) + QStringLiteral("\"") + title + QStringLiteral(">");
                 RefPtr<DocumentFragment> fragment = createFragmentFromMarkup(*frame.document(), html, "", DisallowScriptingAndPluginContent);
                 if (fragment)
-                    return fragment.release();
+                    return fragment;
             }
         }
         // FIXME: We could fallback to a raw encoded data URL.
@@ -212,7 +212,7 @@ RefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& conte
         chosePlainText = true;
         RefPtr<DocumentFragment> fragment = createFragmentFromText(context, mimeData->text());
         if (fragment)
-            return fragment.release();
+            return fragment;
     }
     return nullptr;
 }

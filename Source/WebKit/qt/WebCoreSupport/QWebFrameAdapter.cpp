@@ -151,7 +151,7 @@ void QWebFrameAdapter::load(const QNetworkRequest& req, QNetworkAccessManager::O
     if (!body.isEmpty())
         request.setHTTPBody(WebCore::FormData::create(body.constData(), body.size()));
 
-    frame->loader().load(WebCore::FrameLoadRequest(frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/));
+    frame->loader().load(WebCore::FrameLoadRequest(*frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/));
 
     if (frame->tree().parent())
         pageAdapter->insideOpenCall = false;
@@ -241,7 +241,7 @@ void QWebFrameAdapter::setContent(const QByteArray &data, const QString &mimeTyp
     WebCore::ResourceResponse response(URL(), WTF::String(actualMimeType), buffer->size(), encoding);
     // FIXME: visibility?
     WebCore::SubstituteData substituteData(std::move(buffer), URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
-    frame->loader().load(WebCore::FrameLoadRequest(frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
+    frame->loader().load(WebCore::FrameLoadRequest(*frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
 }
 
 void QWebFrameAdapter::setHtml(const QString &html, const QUrl &baseUrl)
@@ -253,7 +253,7 @@ void QWebFrameAdapter::setHtml(const QString &html, const QUrl &baseUrl)
     WebCore::ResourceResponse response(URL(), ASCIILiteral("text/html"), data->size(), ASCIILiteral("utf-8"));
     // FIXME: visibility?
     WebCore::SubstituteData substituteData(std::move(data), URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
-    frame->loader().load(WebCore::FrameLoadRequest(frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
+    frame->loader().load(WebCore::FrameLoadRequest(*frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
 }
 
 QMultiMap<QString, QString> QWebFrameAdapter::metaData() const

@@ -105,7 +105,7 @@ static QPixmap loadResourcePixmap(const char* name)
 
 namespace WebCore {
 
-PassRefPtr<Image> Image::loadPlatformResource(const char* name)
+Ref<Image> Image::loadPlatformResource(const char* name)
 {
     // FIXME
     // return StillImage::create(loadResourcePixmap(name));

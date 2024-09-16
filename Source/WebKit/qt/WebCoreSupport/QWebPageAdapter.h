@@ -74,7 +74,6 @@ public:
 #define FOR_EACH_MAPPED_MENU_ACTION(F, SEPARATOR) \
     F(OpenLink, WebCore::ContextMenuItemTagOpenLink) SEPARATOR \
     F(OpenLinkInNewWindow, WebCore::ContextMenuItemTagOpenLinkInNewWindow) SEPARATOR \
-    F(OpenLinkInThisWindow, WebCore::ContextMenuItemTagOpenLinkInThisWindow) SEPARATOR \
     F(DownloadLinkToDisk, WebCore::ContextMenuItemTagDownloadLinkToDisk) SEPARATOR \
     F(CopyLinkToClipboard, WebCore::ContextMenuItemTagCopyLinkToClipboard) SEPARATOR \
     F(OpenImageInNewWindow, WebCore::ContextMenuItemTagOpenImageInNewWindow) SEPARATOR \

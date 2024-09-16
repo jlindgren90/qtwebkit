@@ -218,7 +218,8 @@ void QWebSettingsPrivate::apply()
 
         value = attributes.value(QWebSettings::FrameFlatteningEnabled,
                                       global->attributes.value(QWebSettings::FrameFlatteningEnabled));
-        settings->setFrameFlatteningEnabled(value);
+        settings->setFrameFlattening(value ? WebCore::FrameFlatteningFullyEnabled
+                                           : WebCore::FrameFlatteningDisabled);
 
         QUrl location = !userStyleSheetLocation.isEmpty() ? userStyleSheetLocation : global->userStyleSheetLocation;
         settings->setUserStyleSheetLocation(WebCore::URL(location));

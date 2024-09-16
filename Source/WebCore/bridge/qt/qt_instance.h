@@ -86,7 +86,7 @@ public:
     QObject* getObject() const { return m_object.data(); }
     QObject* hashKey() const { return m_hashkey; }
 
-    static PassRefPtr<QtInstance> getQtInstance(QObject*, PassRefPtr<RootObject>, ValueOwnership);
+    static RefPtr<QtInstance> getQtInstance(QObject*, RootObject*, ValueOwnership);
 
     bool getOwnPropertySlot(JSObject*, ExecState*, PropertyName, PropertySlot&) final;
     bool put(JSObject*, ExecState*, PropertyName, JSValue, PutPropertySlot&) final;
@@ -94,15 +94,15 @@ public:
     static QtInstance* getInstance(JSObject*);
 
 private:
-    static PassRefPtr<QtInstance> create(QObject *instance, PassRefPtr<RootObject> rootObject, ValueOwnership ownership)
+    static RefPtr<QtInstance> create(QObject *instance, RefPtr<RootObject>&& rootObject, ValueOwnership ownership)
     {
-        return adoptRef(new QtInstance(instance, rootObject, ownership));
+        return adoptRef(new QtInstance(instance, std::move(rootObject), ownership));
     }
 
     friend class QtClass;
     friend class QtField;
     friend class QtRuntimeMethod;
-    QtInstance(QObject*, PassRefPtr<RootObject>, ValueOwnership); // Factory produced only..
+    QtInstance(QObject*, RefPtr<RootObject>&&, ValueOwnership); // Factory produced only..
     mutable QtClass* m_class;
     QPointer<QObject> m_object;
     QObject* m_hashkey;

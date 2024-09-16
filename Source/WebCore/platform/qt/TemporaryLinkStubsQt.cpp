@@ -58,16 +58,6 @@ void setCookieStoragePrivateBrowsingEnabled(bool)
     notImplemented();
 }
 
-void startObservingCookieChanges(const NetworkStorageSession&, std::function<void ()>&&)
-{
-    notImplemented();
-}
-
-void stopObservingCookieChanges(const NetworkStorageSession&)
-{
-    notImplemented();
-}
-
 }
 
 // vim: ts=4 sw=4 et

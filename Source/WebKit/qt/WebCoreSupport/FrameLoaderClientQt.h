@@ -60,7 +60,6 @@ class FrameLoaderClientQt : public QObject, public FrameLoaderClient {
     Q_OBJECT
 
     friend class ::QWebFrameAdapter;
-    void callPolicyFunction(FramePolicyFunction, PolicyAction);
     bool callErrorPageExtension(const ResourceError&);
 
 Q_SIGNALS:
@@ -118,15 +117,15 @@ public:
     WebCore::Frame* dispatchCreatePage(const WebCore::NavigationAction&) override;
     void dispatchShow() override;
 
-    void dispatchDecidePolicyForResponse(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, FramePolicyFunction) override;
-    void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, const WTF::String&, FramePolicyFunction) override;
-    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, FramePolicyFunction) override;
+    void dispatchDecidePolicyForResponse(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, FramePolicyFunction&&) override;
+    void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, const WTF::String&, FramePolicyFunction&&) override;
+    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, FramePolicyFunction&&) override;
     void cancelPolicyCheck() override;
 
     void dispatchUnableToImplementPolicy(const WebCore::ResourceError&) override;
 
     void dispatchWillSendSubmitEvent(Ref<FormState>&&) override { }
-    void dispatchWillSubmitForm(FormState&, FramePolicyFunction) override;
+    void dispatchWillSubmitForm(FormState&, FramePolicyFunction&&) override;
 
     void revertToProvisionalState(DocumentLoader*) override { }
     void setMainDocumentError(DocumentLoader*, const ResourceError&) override;
@@ -201,7 +200,7 @@ public:
 
     void dispatchDidClearWindowObjectInWorld(DOMWrapperWorld&) override;
 
-    void registerForIconNotification(bool) override;
+    void registerForIconNotification() override;
 
     void willReplaceMultipartContent() override;
     void didReplaceMultipartContent() override;
