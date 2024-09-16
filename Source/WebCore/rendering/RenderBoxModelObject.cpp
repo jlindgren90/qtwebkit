@@ -305,11 +305,15 @@ bool RenderBoxModelObject::hasAutoHeightOrContainingBlockWithAutoHeight() const
 
 DecodingMode RenderBoxModelObject::decodingModeForImageDraw(const PaintInfo& paintInfo) const
 {
+#if 0 // FIXME: partially loaded images
     if (document().isImageDocument())
         return DecodingMode::Synchronous;
     if (paintInfo.paintBehavior & PaintBehaviorAllowAsyncImageDecoding)
         return DecodingMode::Asynchronous;
     return DecodingMode::Synchronous;
+#else
+    return DecodingMode::Asynchronous;
+#endif
 }
 
 LayoutSize RenderBoxModelObject::relativePositionOffset() const
