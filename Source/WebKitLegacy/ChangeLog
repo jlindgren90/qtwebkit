@@ -1,3 +1,34 @@
+2017-07-13  Dan Bernstein  <mitz@apple.com>
+
+        Removed empty project directories left behind after the rename
+
+        * WebKit.vcxproj: Removed.
+        * WebKit.xcodeproj: Removed.
+
+2017-07-05  Matthew Hanson  <matthew_hanson@apple.com>
+
+        Update the Visual Studio project name from WebKit to WebKitLegacy.
+        https://bugs.webkit.org/show_bug.cgi?id=174162
+        rdar://problem/33137594
+
+        Reviewed by Dan Bernstein.
+
+        Rename WebKit to WebKitLegacy.
+
+        * WebKitLegacy.vcxproj/WebKitLegacy.proj: Renamed from Source/WebKitLegacy/WebKit.vcxproj/WebKit.proj.
+
+2017-07-05  Matthew Hanson  <matthew_hanson@apple.com>
+
+        Update the Xcode project name from WebKit to WebKitLegacy.
+        https://bugs.webkit.org/show_bug.cgi?id=174162
+        rdar://problem/33137594
+
+        Reviewed by Dan Bernstein.
+
+        Rename WebKit to WebKitLegacy.
+
+        * WebKitLegacy.xcodeproj/project.pbxproj: Renamed from Source/WebKitLegacy/WebKit.xcodeproj/project.pbxproj.
+
 2017-07-10  Per Arne Vollan  <pvollan@apple.com>
 
         [Win] Link error when building WTF from WTF.proj project file.
