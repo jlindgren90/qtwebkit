@@ -410,9 +410,7 @@ endif ()
 
 list(APPEND WebKit_Private_PRI_ARGUMENTS MODULE_CONFIG "internal_module no_link")
 
-if (TRUE)
-    set(WebKit_OUTPUT_NAME Qt5WebKit)
-endif ()
+set(WebKit_OUTPUT_NAME Qt5WebKit)
 
 ecm_generate_pri_file(
     BASE_NAME webkit
@@ -445,9 +443,7 @@ install(
     COMPONENT Data
 )
 
-if (TRUE)
-    set(WebKit_LIBRARY_TYPE SHARED)
-endif ()
+set(WebKit_LIBRARY_TYPE SHARED)
 
 
 ############     WebKitWidgets     ############
@@ -600,9 +596,7 @@ endif ()
 
 list(APPEND WebKitWidgets_Private_PRI_ARGUMENTS MODULE_CONFIG "internal_module no_link")
 
-if (TRUE)
-    set(WebKitWidgets_OUTPUT_NAME Qt5WebKitWidgets)
-endif ()
+set(WebKitWidgets_OUTPUT_NAME Qt5WebKitWidgets)
 
 ecm_generate_pri_file(
     BASE_NAME webkitwidgets
@@ -634,9 +628,7 @@ install(
     COMPONENT Data
 )
 
-if (TRUE)
-    set(WebKitWidgets_LIBRARY_TYPE SHARED)
-endif ()
+set(WebKitWidgets_LIBRARY_TYPE SHARED)
 
 set(WebKitWidgets_PRIVATE_HEADERS_LOCATION Headers/${PROJECT_VERSION}/QtWebKitWidgets/private)
 
@@ -647,11 +639,6 @@ install(TARGETS WebKitWidgets EXPORT Qt5WebKitWidgetsTargets
         DESTINATION "${LIB_INSTALL_DIR}"
         RUNTIME DESTINATION "${BIN_INSTALL_DIR}"
 )
-
-if (SEPARATE_DEBUG_INFO)
-    QTWEBKIT_SEPARATE_DEBUG_INFO(WebKitWidgets WebKitWidgets_DEBUG_INFO)
-    install(FILES ${WebKitWidgets_DEBUG_INFO} DESTINATION "${LIB_INSTALL_DIR}" OPTIONAL)
-endif ()
 
 if (USE_LINKER_VERSION_SCRIPT)
     set(VERSION_SCRIPT "${CMAKE_BINARY_DIR}/QtWebKitWidgets.version")

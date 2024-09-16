@@ -61,6 +61,8 @@ if (COMPILER_IS_GCC_OR_CLANG)
     else ()
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-exceptions")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -fno-exceptions -fno-rtti")
+        # FIXME: reduce noisy warnings
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++20-compat -Wno-class-memaccess")
 
         if (WIN32)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mno-ms-bitfields -Wno-unknown-pragmas")

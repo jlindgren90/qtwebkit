@@ -11,47 +11,6 @@ set(PROJECT_VERSION_PATCH 0)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
 set(PROJECT_VERSION_STRING "${PROJECT_VERSION}")
 
-set(STATIC_DEPENDENCIES_CMAKE_FILE "${CMAKE_BINARY_DIR}/QtStaticDependencies.cmake")
-if (EXISTS ${STATIC_DEPENDENCIES_CMAKE_FILE})
-    file(REMOVE ${STATIC_DEPENDENCIES_CMAKE_FILE})
-endif ()
-
-macro(CONVERT_PRL_LIBS_TO_CMAKE _qt_component)
-    if (TARGET Qt5::${_qt_component})
-        get_target_property(_lib_location Qt5::${_qt_component} LOCATION)
-        execute_process(COMMAND ${PERL_EXECUTABLE} ${TOOLS_DIR}/qt/convert-prl-libs-to-cmake.pl
-            --lib ${_lib_location}
-            --out ${STATIC_DEPENDENCIES_CMAKE_FILE}
-            --component ${_qt_component}
-            --compiler ${CMAKE_CXX_COMPILER_ID}
-        )
-    endif ()
-endmacro()
-
-macro(CHECK_QT5_PRIVATE_INCLUDE_DIRS _qt_component _header)
-    set(INCLUDE_TEST_SOURCE
-    "
-        #include <${_header}>
-        int main() { return 0; }
-    "
-    )
-    set(CMAKE_REQUIRED_INCLUDES ${Qt5${_qt_component}_PRIVATE_INCLUDE_DIRS})
-    set(CMAKE_REQUIRED_LIBRARIES Qt5::${_qt_component})
-
-    # Avoid check_include_file_cxx() because it performs linking but doesn't support CMAKE_REQUIRED_LIBRARIES (doh!)
-    check_cxx_source_compiles("${INCLUDE_TEST_SOURCE}" Qt5${_qt_component}_PRIVATE_HEADER_FOUND)
-
-    unset(INCLUDE_TEST_SOURCE)
-    unset(CMAKE_REQUIRED_INCLUDES)
-    unset(CMAKE_REQUIRED_LIBRARIES)
-
-    if (NOT Qt5${_qt_component}_PRIVATE_HEADER_FOUND)
-        message(FATAL_ERROR "Header ${_header} is not found. Please make sure that:
-    1. Private headers of Qt5${_qt_component} are installed
-    2. Qt5${_qt_component}_PRIVATE_INCLUDE_DIRS is correctly defined in Qt5${_qt_component}Config.cmake")
-    endif ()
-endmacro()
-
 macro(QTWEBKIT_SKIP_AUTOMOC _target)
     foreach (_src ${${_target}_SOURCES})
         set_property(SOURCE ${_src} PROPERTY SKIP_AUTOMOC ON)
@@ -98,29 +57,6 @@ macro(QTWEBKIT_GENERATE_MOC_FILES_H _target)
     endforeach ()
 endmacro()
 
-macro(QTWEBKIT_SEPARATE_DEBUG_INFO _target _target_debug)
-    if (MINGW OR UNIX AND NOT APPLE) # Not using COMPILER_IS_GCC_OR_CLANG because other ELF compilers may work as well
-        if (NOT CMAKE_OBJCOPY)
-            message(WARNING "CMAKE_OBJCOPY is not defined - debug information will not be split")
-        else ()
-            set(_target_file "$<TARGET_FILE:${_target}>")
-            set(${_target_debug} "${_target_file}.debug")
-
-            if (TRUE)
-                set(EXTRACT_DEBUG_INFO_COMMAND COMMAND ${CMAKE_OBJCOPY} --only-keep-debug ${_target_file} ${${_target_debug}})
-            endif ()
-
-            add_custom_command(TARGET ${_target} POST_BUILD
-                ${EXTRACT_DEBUG_INFO_COMMAND}
-                COMMAND ${CMAKE_OBJCOPY} --strip-debug ${_target_file}
-                COMMAND ${CMAKE_OBJCOPY} --add-gnu-debuglink=${${_target_debug}} ${_target_file}
-                VERBATIM
-            )
-            unset(_target_file)
-        endif ()
-    endif ()
-endmacro()
-
 add_definitions(-DBUILDING_QT__=1)
 add_definitions(-DQT_NO_EXCEPTIONS)
 add_definitions(-DQT_USE_QSTRINGBUILDER)
@@ -134,17 +70,7 @@ endif ()
 
 WEBKIT_OPTION_BEGIN()
 
-set(USE_WOFF2 ON)
-
-# FIXME: Move Qt handling here
-set(REQUIRED_QT_VERSION 5.15.0)
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui QUIET)
-
-if (TARGET Qt5::QXcbIntegrationPlugin)
-    set(ENABLE_X11_TARGET_DEFAULT ON)
-else ()
-    set(ENABLE_X11_TARGET_DEFAULT OFF)
-endif ()
+find_package(Qt5 5.15.0 REQUIRED COMPONENTS Core Gui Network Widgets)
 
 # Public options specific to the Qt port. Do not add any options here unless
 # there is a strong reason we should support changing the value of the option,
@@ -153,7 +79,6 @@ WEBKIT_OPTION_DEFINE(USE_GSTREAMER "Use GStreamer implementation of MediaPlayer"
 WEBKIT_OPTION_DEFINE(USE_LIBHYPHEN "Use automatic hyphenation with LibHyphen" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_INSPECTOR_UI "Include Inspector UI into resources" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_WEBKIT2 "Enable WebKit2 (QML API)" PUBLIC OFF) # WebKit2 disabled
-WEBKIT_OPTION_DEFINE(ENABLE_X11_TARGET "Whether to enable support for the X11 windowing target." PUBLIC ${ENABLE_X11_TARGET_DEFAULT})
 
 option(GENERATE_DOCUMENTATION "Generate HTML and QCH documentation" OFF)
 
@@ -215,73 +140,33 @@ WEBKIT_OPTION_DEPEND(ENABLE_MEDIA_SOURCE USE_GSTREAMER)
 WEBKIT_OPTION_END()
 
 set(ENABLE_WEBKIT ON)
-set(WTF_USE_UDIS86 1)
 
-if (TRUE)
-    set(JavaScriptCore_LIBRARY_TYPE STATIC)
-    set(WebCoreTestSupport_LIBRARY_TYPE STATIC)
-endif ()
+set(JavaScriptCore_LIBRARY_TYPE STATIC)
+set(WebCoreTestSupport_LIBRARY_TYPE STATIC)
+
+find_package(ICU REQUIRED)
+find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(GLIB 2.40.0 REQUIRED COMPONENTS gio gio-unix gobject gthread gmodule)
 
 find_package(Cairo 1.10.2 REQUIRED)
 find_package(Fontconfig 2.8.0 REQUIRED)
 find_package(Freetype2 2.4.2 REQUIRED)
-find_package(GLIB 2.36 REQUIRED COMPONENTS gio gobject gthread gmodule)
-find_package(HarfBuzz 0.9.2 REQUIRED)
+find_package(HarfBuzz 0.9.18 REQUIRED)
+find_package(JPEG REQUIRED)
 find_package(LibGcrypt 1.6.0 REQUIRED)
 find_package(LibSoup 2.42.0 REQUIRED)
+find_package(LibXml2 2.8.0 REQUIRED)
+find_package(LibXslt 1.1.7 REQUIRED)
+find_package(PNG REQUIRED)
 find_package(Sqlite REQUIRED)
-find_package(Threads REQUIRED)
+find_package(WebP REQUIRED)
 
-if (TRUE)
-    # Additional names of libjpeg to search (fixed in CMake 3.12.0)
-    set(JPEG_NAMES jpeg-static libjpeg-static)
-    find_package(JPEG REQUIRED)
-    find_package(PNG REQUIRED)
-    find_package(ZLIB REQUIRED)
-    find_package(ICU REQUIRED)
-    find_package(LibXml2 2.8.0 REQUIRED)
-    if (ENABLE_XSLT)
-        find_package(LibXslt 1.1.7 REQUIRED)
-    endif ()
-endif ()
+set(USE_CAIRO ON)
+set(USE_WEBP ON)
+set(USE_WOFF2 ON)
 
-find_package(WebP)
-
-if (WEBP_FOUND)
-    SET_AND_EXPOSE_TO_BUILD(USE_WEBP 1)
-endif ()
-
-set(QT_REQUIRED_COMPONENTS Core Gui Network)
-
-# FIXME: Allow building w/o these components
-list(APPEND QT_REQUIRED_COMPONENTS
-    Widgets
-)
-
-if (TRUE)
-    SET_AND_EXPOSE_TO_BUILD(USE_UNIX_DOMAIN_SOCKETS 1)
-endif ()
-
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS ${QT_REQUIRED_COMPONENTS})
-
-CHECK_QT5_PRIVATE_INCLUDE_DIRS(Gui private/qhexstring_p.h)
-if (TRUE)
-    CHECK_QT5_PRIVATE_INCLUDE_DIRS(Network private/http2protocol_p.h)
-endif ()
-
-foreach (qt_module ${QT_OPTIONAL_COMPONENTS})
-    find_package("Qt5${qt_module}" ${REQUIRED_QT_VERSION} PATHS ${_qt5_install_prefix} NO_DEFAULT_PATH)
-endforeach ()
-
-if (COMPILER_IS_GCC_OR_CLANG)
-    if (TRUE)
-        set(USE_LINKER_VERSION_SCRIPT_DEFAULT ON)
-    endif ()
-else ()
-    set(USE_LINKER_VERSION_SCRIPT_DEFAULT OFF)
-endif ()
-
-option(USE_LINKER_VERSION_SCRIPT "Use linker script for ABI compatibility with Qt libraries" ${USE_LINKER_VERSION_SCRIPT_DEFAULT})
+option(USE_LINKER_VERSION_SCRIPT "Use linker script for ABI compatibility with Qt libraries" ON)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -300,100 +185,27 @@ if (COMPILER_IS_GCC_OR_CLANG)
     endif ()
 endif ()
 
-# See also FORCE_DEBUG_INFO in Source/PlatformQt.cmake
-if (FORCE_DEBUG_INFO)
-    if (COMPILER_IS_GCC_OR_CLANG)
-        # Enable debug info in Release builds
-        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
-    endif ()
-    if (USE_LD_GOLD)
-       set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gdb-index")
-       set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gdb-index")
-    endif ()
-endif ()
-
 if (ENABLE_MATHML)
     SET_AND_EXPOSE_TO_BUILD(ENABLE_OPENTYPE_MATH 1)
 endif ()
 
-SET_AND_EXPOSE_TO_BUILD(WTF_PLATFORM_X11 ${ENABLE_X11_TARGET})
-
-if (ENABLE_X11_TARGET)
-    find_package(X11 REQUIRED)
-    if (NOT X11_Xcomposite_FOUND)
-        message(FATAL_ERROR "libXcomposite is required for ENABLE_X11_TARGET")
-    elseif (NOT X11_Xrender_FOUND)
-        message(FATAL_ERROR "libXrender is required for ENABLE_X11_TARGET")
-    endif ()
-endif ()
-
-if (NOT ENABLE_VIDEO)
-    if (NOT ENABLE_WEB_AUDIO)
-        set(USE_GSTREAMER OFF) # TODO: What about MEDIA_STREAM?
-    endif ()
-endif ()
-
-# From OptionsGTK.cmake
-# FIXME: Refactor to avoid duplication
 if (USE_GSTREAMER)
-    set(GSTREAMER_COMPONENTS app pbutils)
+    set(GSTREAMER_COMPONENTS app audio pbutils)
 
     if (ENABLE_VIDEO)
-        list(APPEND GSTREAMER_COMPONENTS video mpegts tag gl)
+        list(APPEND GSTREAMER_COMPONENTS video tag)
     endif ()
 
     if (ENABLE_WEB_AUDIO)
-        list(APPEND GSTREAMER_COMPONENTS audio fft)
+        list(APPEND GSTREAMER_COMPONENTS fft)
+        SET_AND_EXPOSE_TO_BUILD(USE_WEBAUDIO_GSTREAMER TRUE)
     endif ()
 
-    find_package(GStreamer 1.0.3 REQUIRED COMPONENTS ${GSTREAMER_COMPONENTS})
-
-    if (ENABLE_WEB_AUDIO)
-        if (NOT PC_GSTREAMER_AUDIO_FOUND OR NOT PC_GSTREAMER_FFT_FOUND)
-            message(FATAL_ERROR "WebAudio requires the audio and fft GStreamer libraries. Please check your gst-plugins-base installation.")
-        else ()
-            SET_AND_EXPOSE_TO_BUILD(USE_WEBAUDIO_GSTREAMER TRUE)
-        endif ()
-    endif ()
-
-    if (ENABLE_VIDEO)
-        if (NOT PC_GSTREAMER_APP_FOUND OR NOT PC_GSTREAMER_PBUTILS_FOUND OR NOT PC_GSTREAMER_TAG_FOUND OR NOT PC_GSTREAMER_VIDEO_FOUND)
-            message(FATAL_ERROR "Video playback requires the following GStreamer libraries: app, pbutils, tag, video. Please check your gst-plugins-base installation.")
-        endif ()
-    endif ()
-
-    if (USE_GSTREAMER_MPEGTS)
-        if (NOT PC_GSTREAMER_MPEGTS_FOUND)
-            message(FATAL_ERROR "GStreamer MPEG-TS is needed for USE_GSTREAMER_MPEGTS.")
-        endif ()
-    endif ()
-
-    if (USE_GSTREAMER_GL)
-        if (NOT PC_GSTREAMER_GL_FOUND)
-            message(FATAL_ERROR "GStreamerGL is needed for USE_GSTREAMER_GL.")
-        endif ()
-    endif ()
+    find_package(GStreamer 1.2.3 REQUIRED COMPONENTS ${GSTREAMER_COMPONENTS})
 endif ()
 
 if (USE_LIBHYPHEN)
     find_package(Hyphen REQUIRED)
-    if (NOT HYPHEN_FOUND)
-       message(FATAL_ERROR "libhyphen is needed for USE_LIBHYPHEN.")
-    endif ()
-endif ()
-
-# You can build JavaScriptCore as a static library if you specify it as STATIC
-# set(JavaScriptCore_LIBRARY_TYPE STATIC)
-
-if (NOT RUBY_FOUND AND RUBY_EXECUTABLE AND NOT RUBY_VERSION VERSION_LESS 1.9)
-    get_property(_packages_found GLOBAL PROPERTY PACKAGES_FOUND)
-    list(APPEND _packages_found Ruby)
-    set_property(GLOBAL PROPERTY PACKAGES_FOUND ${_packages_found})
-
-    get_property(_packages_not_found GLOBAL PROPERTY PACKAGES_NOT_FOUND)
-    list(REMOVE_ITEM _packages_not_found Ruby)
-    set_property(GLOBAL PROPERTY PACKAGES_NOT_FOUND ${_packages_not_found})
 endif ()
 
 set_package_properties(Ruby PROPERTIES TYPE REQUIRED)

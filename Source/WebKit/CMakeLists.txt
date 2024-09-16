@@ -38,13 +38,9 @@ set(WebKit_LIBRARIES
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
 if (MSVC)
-    if (NOT ${PORT} STREQUAL "Qt")
-        ADD_PRECOMPILED_HEADER("WebKitPrefix.h" "win/WebKitPrefix.cpp" WebKit_SOURCES)
-        list(APPEND WebKit_SOURCES win/WebKit.resources/WebKit.rc)
-        add_definitions(/DWEBKIT_EXPORTS /DFRAMEWORK_NAME=WebKit)
-    else ()
-        ADD_PRECOMPILED_HEADER("WebKitPrefix.h" "qt/WebKitPrefix.cpp" WebKit_SOURCES)
-    endif ()
+    ADD_PRECOMPILED_HEADER("WebKitPrefix.h" "win/WebKitPrefix.cpp" WebKit_SOURCES)
+    list(APPEND WebKit_SOURCES win/WebKit.resources/WebKit.rc)
+    add_definitions(/DWEBKIT_EXPORTS /DFRAMEWORK_NAME=WebKit)
 endif ()
 
 set(WebKit_PRIVATE_HEADERS_LOCATION Headers/${PROJECT_VERSION}/QtWebKit/private)
@@ -57,26 +53,8 @@ if (${PORT} STREQUAL "Qt")
             DESTINATION "${LIB_INSTALL_DIR}"
             RUNTIME DESTINATION "${BIN_INSTALL_DIR}"
     )
-    if (MSVC AND NOT QT_STATIC_BUILD)
-        install(FILES $<TARGET_PDB_FILE:WebKit> DESTINATION "${BIN_INSTALL_DIR}" OPTIONAL)
-    endif ()
 
-    if (SEPARATE_DEBUG_INFO)
-        QTWEBKIT_SEPARATE_DEBUG_INFO(WebKit WebKit_DEBUG_INFO)
-        install(FILES ${WebKit_DEBUG_INFO} DESTINATION "${LIB_INSTALL_DIR}" OPTIONAL)
-    endif ()
-
-    if (NOT MSVC)
-        ADD_PREFIX_HEADER(WebKit "${WEBKIT_DIR}/qt/WebKitPrefix.h")
-    endif ()
-
-    if (MACOS_BUILD_FRAMEWORKS)
-        set_target_properties(WebKit PROPERTIES
-            FRAMEWORK_VERSION ${PROJECT_VERSION_MAJOR}
-            SOVERSION ${MACOS_COMPATIBILITY_VERSION}
-            MACOSX_FRAMEWORK_IDENTIFIER org.qt-project.QtWebKit
-        )
-    endif ()
+    ADD_PREFIX_HEADER(WebKit "${WEBKIT_DIR}/qt/WebKitPrefix.h")
 
     if (USE_LINKER_VERSION_SCRIPT)
         set(VERSION_SCRIPT "${CMAKE_BINARY_DIR}/QtWebKit.version")
@@ -85,10 +63,6 @@ if (${PORT} STREQUAL "Qt")
             VERBATIM
         )
         set_target_properties(WebKit PROPERTIES LINK_FLAGS -Wl,--version-script,${VERSION_SCRIPT})
-    endif ()
-
-    if (ENABLE_WEBKIT2)
-        add_dependencies(WebKit WebKit2)
     endif ()
 endif ()
 

@@ -34,24 +34,6 @@ if (USE_MINIMAL_DEBUG_INFO AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif ()
 endif ()
 
-if (FORCE_DEBUG_INFO)
-    if (COMPILER_IS_GCC_OR_CLANG)
-        if (NOT APPLE)
-            target_compile_options(WebKit        PRIVATE -fdebug-types-section)
-        endif ()
-    endif ()
-endif ()
-
-# GTest
-
-if (TARGET gtest)
-    set(GTEST_DEFINITIONS QT_NO_KEYWORDS)
-    if (COMPILER_IS_GCC_OR_CLANG)
-        list(APPEND GTEST_DEFINITIONS "GTEST_API_=__attribute__((visibility(\"default\")))")
-    endif ()
-    set_target_properties(gtest PROPERTIES COMPILE_DEFINITIONS "${GTEST_DEFINITIONS}")
-endif ()
-
 # Installation
 
 target_compile_definitions(WebKit INTERFACE QT_WEBKIT_LIB)
@@ -208,9 +190,7 @@ else ()
     set(DOC_INSTALL_DIR "doc")
 endif ()
 
-if (TRUE)
-    set(EXPORT_VAR export)
-endif ()
+set(EXPORT_VAR export)
 
 if (GENERATE_DOCUMENTATION)
     set(NEED_ALL "ALL")
