@@ -29,10 +29,13 @@
 
 import logging
 import os
-import time
 import re
 
+from webkitpy.common.memoized import memoized
 from webkitpy.common.system.executive import ScriptError
+from webkitpy.common.version import Version
+from webkitpy.common.version_name_map import VersionNameMap
+from webkitpy.port.config import apple_additions
 from webkitpy.port.darwin import DarwinPort
 
 _log = logging.getLogger(__name__)
@@ -41,7 +44,9 @@ _log = logging.getLogger(__name__)
 class MacPort(DarwinPort):
     port_name = "mac"
 
-    VERSION_FALLBACK_ORDER = ['mac-snowleopard', 'mac-lion', 'mac-mountainlion', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac-highsierra']
+    VERSION_MIN = Version(10, 6)
+    VERSION_MAX = Version(10, 14)
+
     SDK = 'macosx'
 
     ARCHITECTURES = ['x86_64', 'x86']
@@ -50,29 +55,66 @@ class MacPort(DarwinPort):
 
     def __init__(self, host, port_name, **kwargs):
         DarwinPort.__init__(self, host, port_name, **kwargs)
+        version_name_map = VersionNameMap.map(host.platform)
+        if port_name.split('-') > 1:
+            self._os_version = version_name_map.from_name(port_name.split('-')[1])[1]
+        elif self.host.platform.is_mac():
+            self._os_version = self.host.platform.os_version
+        else:
+            sorted_versions = sorted(version_name_map.mapping_for_platform(platform=self.port_name).values())
+            self._os_version = sorted_versions[sorted_versions.index(self.VERSION_MAX) - 1]
 
     def _build_driver_flags(self):
         return ['ARCHS=i386'] if self.architecture() == 'x86' else []
 
+    @memoized
     def default_baseline_search_path(self):
-        name = self._name.replace('-wk2', '')
-        wk_version = [] if self.get_option('webkit_test_runner') else ['mac-wk1']
-        if name.endswith(self.FUTURE_VERSION):
-            fallback_names = wk_version + [self.port_name]
+        version_name_map = VersionNameMap.map(self.host.platform)
+        if self._os_version < self.VERSION_MIN or self._os_version >= self.VERSION_MAX:
+            version_fallback = [self._os_version]
         else:
-            fallback_names = self.VERSION_FALLBACK_ORDER[self.VERSION_FALLBACK_ORDER.index(name):-1] + wk_version + [self.port_name]
-        # FIXME: mac-wk2 should appear at the same place as mac-wk1.
+            sorted_versions = sorted(version_name_map.mapping_for_platform(platform=self.port_name).values())
+            version_fallback = sorted_versions[sorted_versions.index(self._os_version):-1]
+        wk_string = 'wk1'
         if self.get_option('webkit_test_runner'):
-            fallback_names = [self._wk2_port_name(), 'wk2'] + fallback_names
-        return map(self._webkit_baseline_path, fallback_names)
+            wk_string = 'wk2'
 
+        expectations = []
+        for version in version_fallback:
+            version_name = version_name_map.to_name(version, platform=self.port_name).lower().replace(' ', '')
+            if apple_additions():
+                apple_name = version_name_map.to_name(version, platform=self.port_name, table='internal')
+            else:
+                apple_name = None
+            if apple_name:
+                expectations.append(self._apple_baseline_path('mac-{}-{}'.format(apple_name.lower().replace(' ', ''), wk_string)))
+            expectations.append(self._webkit_baseline_path('mac-{}-{}'.format(version_name, wk_string)))
+            if apple_name:
+                expectations.append(self._apple_baseline_path('mac-{}'.format(apple_name.lower().replace(' ', ''))))
+            expectations.append(self._webkit_baseline_path('mac-{}'.format(version_name)))
+
+        if apple_additions():
+            expectations.append(self._apple_baseline_path('{}-{}'.format(self.port_name, wk_string)))
+        expectations.append(self._webkit_baseline_path('{}-{}'.format(self.port_name, wk_string)))
+        if apple_additions():
+            expectations.append(self._apple_baseline_path('{}'.format(self.port_name)))
+        expectations.append(self._webkit_baseline_path(self.port_name))
+
+        if self.get_option('webkit_test_runner'):
+            expectations.append(self._webkit_baseline_path('wk2'))
+        return expectations
+
+    @memoized
     def configuration_specifier_macros(self):
-        return {
-            "highsierra+": ["highsierra", "future"],
-            "sierra+": ["sierra", "highsierra", "future"],
-            "elcapitan+": ["elcapitan", "sierra", "highsierra", "future"],
-            "yosemite+": ["yosemite", "elcapitan", "sierra", "highsierra", "future"],
-        }
+        map = {}
+        version_name_map = VersionNameMap.map(self.host.platform)
+        sorted_versions = sorted(version_name_map.mapping_for_platform(platform=self.port_name).values())
+        for version in sorted_versions:
+            list = []
+            for newer in sorted_versions[sorted_versions.index(version):]:
+                list.append(version_name_map.to_name(newer, platform=self.port_name).lower().replace(' ', ''))
+            map[version_name_map.to_name(version, platform=self.port_name).lower().replace(' ', '') + '+'] = list
+        return map
 
     def setup_environ_for_server(self, server_name=None):
         env = super(MacPort, self).setup_environ_for_server(server_name)
@@ -182,7 +224,7 @@ class MacPort(DarwinPort):
         for domain in ["DumpRenderTree", "WebKitTestRunner"]:
             try:
                 self._executive.run_command(["defaults", "delete", domain])
-            except ScriptError, e:
+            except ScriptError as e:
                 # 'defaults' returns 1 if the domain did not exist
                 if e.exit_code != 1:
                     raise e
@@ -194,7 +236,7 @@ class MacPort(DarwinPort):
                 self._helper.stdin.write("x\n")
                 self._helper.stdin.close()
                 self._helper.wait()
-            except IOError, e:
+            except IOError as e:
                 _log.debug("IOError raised while stopping helper: %s" % str(e))
             self._helper = None
 

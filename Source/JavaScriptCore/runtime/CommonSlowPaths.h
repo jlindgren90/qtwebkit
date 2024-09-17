@@ -45,29 +45,42 @@ namespace JSC {
 
 namespace CommonSlowPaths {
 
-struct ArityCheckData {
-    unsigned paddedStackSpace;
-    void* thunkToCall;
-};
+ALWAYS_INLINE int numberOfExtraSlots(int argumentCountIncludingThis)
+{
+    int frameSize = argumentCountIncludingThis + CallFrame::headerSizeInRegisters;
+    int alignedFrameSize = WTF::roundUpToMultipleOf(stackAlignmentRegisters(), frameSize);
+    return alignedFrameSize - frameSize;
+}
+
+ALWAYS_INLINE int numberOfStackPaddingSlots(CodeBlock* codeBlock, int argumentCountIncludingThis)
+{
+    if (argumentCountIncludingThis >= codeBlock->numParameters())
+        return 0;
+    int alignedFrameSize = WTF::roundUpToMultipleOf(stackAlignmentRegisters(), argumentCountIncludingThis + CallFrame::headerSizeInRegisters);
+    int alignedFrameSizeForParameters = WTF::roundUpToMultipleOf(stackAlignmentRegisters(), codeBlock->numParameters() + CallFrame::headerSizeInRegisters);
+    return alignedFrameSizeForParameters - alignedFrameSize;
+}
+
+ALWAYS_INLINE int numberOfStackPaddingSlotsWithExtraSlots(CodeBlock* codeBlock, int argumentCountIncludingThis)
+{
+    if (argumentCountIncludingThis >= codeBlock->numParameters())
+        return 0;
+    return numberOfStackPaddingSlots(codeBlock, argumentCountIncludingThis) + numberOfExtraSlots(argumentCountIncludingThis);
+}
 
 ALWAYS_INLINE int arityCheckFor(ExecState* exec, VM& vm, CodeSpecializationKind kind)
 {
     JSFunction* callee = jsCast<JSFunction*>(exec->jsCallee());
     ASSERT(!callee->isHostFunction());
     CodeBlock* newCodeBlock = callee->jsExecutable()->codeBlockFor(kind);
-    int argumentCountIncludingThis = exec->argumentCountIncludingThis();
+    ASSERT(exec->argumentCountIncludingThis() < static_cast<unsigned>(newCodeBlock->numParameters()));
+    int padding = numberOfStackPaddingSlotsWithExtraSlots(newCodeBlock, exec->argumentCountIncludingThis());
     
-    ASSERT(argumentCountIncludingThis < newCodeBlock->numParameters());
-    int frameSize = argumentCountIncludingThis + CallFrame::headerSizeInRegisters;
-    int alignedFrameSizeForParameters = WTF::roundUpToMultipleOf(stackAlignmentRegisters(),
-        newCodeBlock->numParameters() + CallFrame::headerSizeInRegisters);
-    int paddedStackSpace = alignedFrameSizeForParameters - frameSize;
-    
-    Register* newStack = exec->registers() - WTF::roundUpToMultipleOf(stackAlignmentRegisters(), paddedStackSpace);
+    Register* newStack = exec->registers() - WTF::roundUpToMultipleOf(stackAlignmentRegisters(), padding);
 
     if (UNLIKELY(!vm.ensureStackCapacityFor(newStack)))
         return -1;
-    return paddedStackSpace;
+    return padding;
 }
 
 inline bool opIn(ExecState* exec, JSValue baseVal, JSValue propName, ArrayProfile* arrayProfile = nullptr)
@@ -136,10 +149,11 @@ inline void tryCachePutToScopeGlobal(
             return;
         }
         
-        scope->structure()->didCachePropertyReplacement(exec->vm(), slot.cachedOffset());
+        VM& vm = exec->vm();
+        scope->structure()->didCachePropertyReplacement(vm, slot.cachedOffset());
 
         ConcurrentJSLocker locker(codeBlock->m_lock);
-        pc[5].u.structure.set(exec->vm(), codeBlock, scope->structure());
+        pc[5].u.structure.set(vm, codeBlock, scope->structure());
         pc[6].u.operand = slot.cachedOffset();
     }
 }
@@ -175,7 +189,7 @@ inline void tryCacheGetFromScopeGlobal(
             Structure* structure = scope->structure(vm);
             {
                 ConcurrentJSLocker locker(codeBlock->m_lock);
-                pc[5].u.structure.set(exec->vm(), codeBlock, structure);
+                pc[5].u.structure.set(vm, codeBlock, structure);
                 pc[6].u.operand = slot.cachedOffset();
             }
             structure->startWatchingPropertyForReplacements(vm, slot.cachedOffset());
@@ -206,6 +220,7 @@ SLOW_PATH_HIDDEN_DECL(slow_path_enter);
 SLOW_PATH_HIDDEN_DECL(slow_path_get_callee);
 SLOW_PATH_HIDDEN_DECL(slow_path_to_this);
 SLOW_PATH_HIDDEN_DECL(slow_path_throw_tdz_error);
+SLOW_PATH_HIDDEN_DECL(slow_path_check_tdz);
 SLOW_PATH_HIDDEN_DECL(slow_path_throw_strict_mode_readonly_property_write_error);
 SLOW_PATH_HIDDEN_DECL(slow_path_not);
 SLOW_PATH_HIDDEN_DECL(slow_path_eq);
@@ -220,6 +235,7 @@ SLOW_PATH_HIDDEN_DECL(slow_path_inc);
 SLOW_PATH_HIDDEN_DECL(slow_path_dec);
 SLOW_PATH_HIDDEN_DECL(slow_path_to_number);
 SLOW_PATH_HIDDEN_DECL(slow_path_to_string);
+SLOW_PATH_HIDDEN_DECL(slow_path_to_object);
 SLOW_PATH_HIDDEN_DECL(slow_path_negate);
 SLOW_PATH_HIDDEN_DECL(slow_path_add);
 SLOW_PATH_HIDDEN_DECL(slow_path_mul);
@@ -252,7 +268,6 @@ SLOW_PATH_HIDDEN_DECL(slow_path_next_structure_enumerator_pname);
 SLOW_PATH_HIDDEN_DECL(slow_path_next_generic_enumerator_pname);
 SLOW_PATH_HIDDEN_DECL(slow_path_to_index_string);
 SLOW_PATH_HIDDEN_DECL(slow_path_profile_type_clear_log);
-SLOW_PATH_HIDDEN_DECL(slow_path_assert);
 SLOW_PATH_HIDDEN_DECL(slow_path_unreachable);
 SLOW_PATH_HIDDEN_DECL(slow_path_create_lexical_environment);
 SLOW_PATH_HIDDEN_DECL(slow_path_push_with_scope);
@@ -268,6 +283,9 @@ SLOW_PATH_HIDDEN_DECL(slow_path_define_data_property);
 SLOW_PATH_HIDDEN_DECL(slow_path_define_accessor_property);
 SLOW_PATH_HIDDEN_DECL(slow_path_throw_static_error);
 SLOW_PATH_HIDDEN_DECL(slow_path_new_array_with_spread);
+SLOW_PATH_HIDDEN_DECL(slow_path_new_array_buffer);
 SLOW_PATH_HIDDEN_DECL(slow_path_spread);
+
+using SlowPathFunction = SlowPathReturnType(SLOW_PATH *)(ExecState*, Instruction*);
 
 } // namespace JSC

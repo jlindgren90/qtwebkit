@@ -36,30 +36,29 @@
 #include "CoreAudioCaptureDevice.h"
 #include "CoreAudioCaptureDeviceManager.h"
 #include "CoreAudioCaptureSourceIOS.h"
-#include "CoreAudioSPI.h"
 #include "Logging.h"
-#include "MediaTimeAVFoundation.h"
+#include "Timer.h"
 #include "WebAudioSourceProviderAVFObjC.h"
 #include <AudioToolbox/AudioConverter.h>
 #include <AudioUnit/AudioUnit.h>
 #include <CoreMedia/CMSync.h>
 #include <mach/mach_time.h>
+#include <pal/avfoundation/MediaTimeAVFoundation.h>
+#include <pal/spi/cf/CoreAudioSPI.h>
 #include <sys/time.h>
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
-#include "CoreMediaSoftLink.h"
-
+#include <pal/cf/CoreMediaSoftLink.h>
 
 namespace WebCore {
+using namespace PAL;
 
 class CoreAudioCaptureSourceFactory : public RealtimeMediaSource::AudioCaptureFactory
-#if PLATFORM(IOS)
-    , public RealtimeMediaSource::SingleSourceFactory<CoreAudioCaptureSource>
-#endif
 {
 public:
-    CaptureSourceOrError createAudioCaptureSource(const String& deviceID, const MediaConstraints* constraints) final {
-        return CoreAudioCaptureSource::create(deviceID, constraints);
+    CaptureSourceOrError createAudioCaptureSource(const CaptureDevice& device, const MediaConstraints* constraints) final
+    {
+        return CoreAudioCaptureSource::create(device.persistentId(), constraints);
     }
 };
 
@@ -125,6 +124,8 @@ private:
     void startInternal();
     void stopInternal();
 
+    void verifyIsCapturing();
+
     Vector<std::reference_wrapper<CoreAudioCaptureSource>> m_clients;
 
     AudioUnit m_ioUnit { nullptr };
@@ -164,8 +165,11 @@ private:
 
     String m_ioUnitName;
     uint64_t m_speakerProcsCalled { 0 };
-    uint64_t m_microphoneProcsCalled { 0 };
 #endif
+
+    uint64_t m_microphoneProcsCalled { 0 };
+    uint64_t m_microphoneProcsCalledLastTime { 0 };
+    Timer m_verifyCapturingTimer;
 
     bool m_enableEchoCancellation { true };
     double m_volume { 1 };
@@ -181,6 +185,7 @@ CoreAudioSharedUnit& CoreAudioSharedUnit::singleton()
 }
 
 CoreAudioSharedUnit::CoreAudioSharedUnit()
+    : m_verifyCapturingTimer(*this, &CoreAudioSharedUnit::verifyIsCapturing)
 {
     m_sampleRate = AudioSession::sharedSession().sampleRate();
 }
@@ -294,9 +299,7 @@ OSStatus CoreAudioSharedUnit::setupAudioUnit()
     if (err)
         return err;
 
-    err = configureSpeakerProc();
-    if (err)
-        return err;
+    // For the moment we do not need to configure speaker proc as we are not providing any reference data.
 
     err = AudioUnitInitialize(m_ioUnit);
     if (err) {
@@ -443,9 +446,7 @@ OSStatus CoreAudioSharedUnit::speakerCallback(void *inRefCon, AudioUnitRenderAct
 
 OSStatus CoreAudioSharedUnit::processMicrophoneSamples(AudioUnitRenderActionFlags& ioActionFlags, const AudioTimeStamp& timeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* /*ioData*/)
 {
-#if !LOG_DISABLED
     ++m_microphoneProcsCalled;
-#endif
 
     // Pull through the vpio unit to our mic buffer.
     m_microphoneSampleBuffer->reset();
@@ -591,6 +592,31 @@ void CoreAudioSharedUnit::startInternal()
     }
 
     m_ioUnitStarted = true;
+
+    m_verifyCapturingTimer.startRepeating(10_s);
+    m_microphoneProcsCalled = 0;
+    m_microphoneProcsCalledLastTime = 0;
+}
+
+void CoreAudioSharedUnit::verifyIsCapturing()
+{
+    if (m_microphoneProcsCalledLastTime != m_microphoneProcsCalled) {
+        m_microphoneProcsCalledLastTime = m_microphoneProcsCalled;
+        if (m_verifyCapturingTimer.repeatInterval() == 10_s)
+            m_verifyCapturingTimer.startRepeating(2_s);
+        return;
+    }
+
+#if !RELEASE_LOG_DISABLED
+    RELEASE_LOG(Media, "CoreAudioSharedUnit::verifyIsCapturing - capture failed\n");
+#endif
+    for (CoreAudioCaptureSource& client : m_clients)
+        client.captureFailed();
+
+    m_producingCount = 0;
+    m_clients.clear();
+    stopInternal();
+    cleanupAudioUnit();
 }
 
 void CoreAudioSharedUnit::stopProducingData()
@@ -616,6 +642,8 @@ OSStatus CoreAudioSharedUnit::suspend()
 
 void CoreAudioSharedUnit::stopInternal()
 {
+    m_verifyCapturingTimer.stop();
+
     if (!m_ioUnit || !m_ioUnitStarted)
         return;
 
@@ -764,6 +792,7 @@ const RealtimeMediaSourceSettings& CoreAudioCaptureSource::settings() const
         settings.setVolume(volume());
         settings.setSampleRate(sampleRate());
         settings.setDeviceId(id());
+        settings.setLabel(name());
         settings.setEchoCancellation(echoCancellation());
 
         RealtimeMediaSourceSupportedConstraints supportedConstraints;

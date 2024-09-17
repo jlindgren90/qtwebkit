@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005, 2006, 2007, 2008, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2005-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,7 +99,6 @@
 #import <WebCore/ThreadCheck.h>
 #import <WebCore/VisibleUnits.h>
 #import <WebCore/markup.h>
-#import <WebKitSystemInterface.h>
 #import <bindings/ScriptValue.h>
 #import <runtime/JSCJSValue.h>
 #import <runtime/JSLock.h>
@@ -446,7 +445,10 @@ static NSURL *createUniqueWebDataURL();
         if (FrameView* view = frame->view()) {
             view->setTransparent(!drawsBackground);
 #if !PLATFORM(IOS)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
             Color color = colorFromNSColor([backgroundColor colorUsingColorSpaceName:NSDeviceRGBColorSpace]);
+#pragma clang diagnostic pop
 #else
             Color color = Color(backgroundColor);
 #endif
@@ -559,6 +561,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 }
 
 #if PLATFORM(IOS)
+
 - (BOOL)_isCommitting
 {
     return _private->isCommitting;
@@ -568,6 +571,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 {
     _private->isCommitting = value;
 }
+
 #endif
 
 - (NSArray *)_nodesFromList:(Vector<Node*> *)nodesVector
@@ -591,27 +595,28 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 
 - (PaintBehavior)_paintBehaviorForDestinationContext:(CGContextRef)context
 {
-#if !PLATFORM(IOS)
+#if PLATFORM(MAC)
     // -currentContextDrawingToScreen returns YES for bitmap contexts.
     BOOL isPrinting = ![NSGraphicsContext currentContextDrawingToScreen];
     if (isPrinting)
-        return PaintBehaviorFlattenCompositingLayers;
+        return PaintBehaviorFlattenCompositingLayers | PaintBehaviorSnapshotting;
 #endif
 
-    if (!WKCGContextIsBitmapContext(context))
-        return PaintBehaviorAllowAsyncImageDecoding;
+    if (CGContextGetType(context) != kCGContextTypeBitmap)
+        return PaintBehaviorNormal;
 
-    // If we're drawing into a bitmap, we might be snapshotting, or drawing into a layer-backed view.
-    if (WebHTMLView *htmlDocumentView = [self _webHTMLDocumentView]) {
+    // If we're drawing into a bitmap, we could be snapshotting or drawing into a layer-backed view.
+    if (WebHTMLView *documentView = [self _webHTMLDocumentView]) {
 #if PLATFORM(IOS)
-        if ([[htmlDocumentView window] isInSnapshottingPaint])
-            return 0;
+        return [[documentView window] isInSnapshottingPaint] ? PaintBehaviorSnapshotting : PaintBehaviorNormal;
 #endif
-        if ([htmlDocumentView _web_isDrawingIntoLayer])
-            return PaintBehaviorAllowAsyncImageDecoding;
+#if PLATFORM(MAC)
+        if ([documentView _web_isDrawingIntoLayer])
+            return PaintBehaviorNormal;
+#endif
     }
     
-    return PaintBehaviorFlattenCompositingLayers;
+    return PaintBehaviorFlattenCompositingLayers | PaintBehaviorSnapshotting;
 }
 
 - (void)_drawRect:(NSRect)rect contentsOnly:(BOOL)contentsOnly
@@ -619,7 +624,10 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 #if !PLATFORM(IOS)
     ASSERT([[NSGraphicsContext currentContext] isFlipped]);
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     CGContextRef ctx = static_cast<CGContextRef>([[NSGraphicsContext currentContext] graphicsPort]);
+#pragma clang diagnostic pop
 #else
     CGContextRef ctx = WKGetCurrentGraphicsContext();
 #endif
@@ -644,9 +652,12 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
         if (FrameView* parentView = parentFrame ? parentFrame->view() : nullptr) {
             if (parentView->paintBehavior() & PaintBehaviorFlattenCompositingLayers)
                 paintBehavior |= PaintBehaviorFlattenCompositingLayers;
-                
-            if (parentView->paintBehavior() & PaintBehaviorAllowAsyncImageDecoding)
-                paintBehavior |= PaintBehaviorAllowAsyncImageDecoding;
+            
+            if (parentView->paintBehavior() & PaintBehaviorSnapshotting)
+                paintBehavior |= PaintBehaviorSnapshotting;
+            
+            if (parentView->paintBehavior() & PaintBehaviorTileFirstPaint)
+                paintBehavior |= PaintBehaviorTileFirstPaint;
         }
     } else
         paintBehavior |= [self _paintBehaviorForDestinationContext:ctx];
@@ -958,7 +969,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
         return;
     // FIXME: These are fake modifier keys here, but they should be real ones instead.
     PlatformMouseEvent event(IntPoint(windowLoc), IntPoint(globalPoint(windowLoc, [view->platformWidget() window])),
-                             LeftButton, PlatformEvent::MouseMoved, 0, false, false, false, false, currentTime(), WebCore::ForceAtClick, WebCore::NoTap);
+                             LeftButton, PlatformEvent::MouseMoved, 0, false, false, false, false, WallTime::now(), WebCore::ForceAtClick, WebCore::NoTap);
     _private->coreFrame->eventHandler().dragSourceEndedAt(event, (DragOperation)operation);
 }
 #endif // ENABLE(DRAG_SUPPORT) && PLATFORM(MAC)
@@ -1436,7 +1447,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     WebCore::Frame *frame = core(self);
     if (!frame || !frame->view())
         return 0;
-    return frame->view()->layoutCount();
+    return frame->view()->layoutContext().layoutCount();
 }
 
 - (BOOL)isTelephoneNumberParsingAllowed
@@ -2289,7 +2300,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 - (DOMDocumentFragment *)_documentFragmentForImageData:(NSData *)data withRelativeURLPart:(NSString *)relativeURLPart andMIMEType:(NSString *)mimeType
 {
     WebResource *resource = [[WebResource alloc] initWithData:data
-                                                          URL:[NSURL uniqueURLWithRelativePart:relativeURLPart]
+                                                          URL:URL::fakeURLWithRelativePart(relativeURLPart)
                                                      MIMEType:mimeType
                                              textEncodingName:nil
                                                     frameName:nil];

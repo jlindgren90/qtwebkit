@@ -30,6 +30,7 @@
 #import "GraphicsLayerCA.h"
 #import "PlatformCALayer.h"
 #import <QuartzCore/QuartzCore.h>
+#import <pal/spi/cocoa/QuartzCoreSPI.h>
 #import <wtf/SetForScope.h>
 
 #if PLATFORM(IOS)
@@ -37,10 +38,6 @@
 #import "WAKWindow.h"
 #import "WebCoreThread.h"
 #endif
-
-@interface CALayer(WebCoreCALayerPrivate)
-- (void)reloadValueForKeyPath:(NSString *)keyPath;
-@end
 
 using namespace WebCore;
 
@@ -57,7 +54,7 @@ using namespace WebCore;
     PlatformCALayer* layer = PlatformCALayer::platformCALayer(self);
     if (layer) {
         PlatformCALayer::RepaintRectList rectsToPaint = PlatformCALayer::collectRectsToPaint(context, layer);
-        PlatformCALayer::drawLayerContents(context, layer, rectsToPaint, self.isRenderingInContext ? GraphicsLayerPaintFlags::None : GraphicsLayerPaintFlags::AllowAsyncImageDecoding);
+        PlatformCALayer::drawLayerContents(context, layer, rectsToPaint, self.isRenderingInContext ? GraphicsLayerPaintSnapshotting : GraphicsLayerPaintNormal);
     }
 }
 
@@ -137,7 +134,7 @@ using namespace WebCore;
         graphicsContext.setIsAcceleratedContext(layer->acceleratesDrawing());
 
         FloatRect clipBounds = CGContextGetClipBoundingBox(context);
-        layer->owner()->platformCALayerPaintContents(layer, graphicsContext, clipBounds, self.isRenderingInContext ? GraphicsLayerPaintFlags::None : GraphicsLayerPaintFlags::AllowAsyncImageDecoding);
+        layer->owner()->platformCALayerPaintContents(layer, graphicsContext, clipBounds, self.isRenderingInContext ? GraphicsLayerPaintSnapshotting : GraphicsLayerPaintNormal);
     }
 }
 

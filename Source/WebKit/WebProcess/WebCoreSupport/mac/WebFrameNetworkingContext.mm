@@ -26,13 +26,13 @@
 #include "config.h"
 #include "WebFrameNetworkingContext.h"
 
+#include "CookieStorageUtilsCF.h"
 #include "NetworkSession.h"
 #include "SessionTracker.h"
 #include "WebCookieManager.h"
 #include "WebPage.h"
 #include "WebProcess.h"
 #include "WebsiteDataStoreParameters.h"
-#include <WebCore/CFNetworkSPI.h>
 #include <WebCore/Frame.h>
 #include <WebCore/FrameLoader.h>
 #include <WebCore/FrameLoaderClient.h>
@@ -40,35 +40,16 @@
 #include <WebCore/Page.h>
 #include <WebCore/ResourceError.h>
 #include <WebCore/Settings.h>
-#include <WebKitSystemInterface.h>
+#include <pal/spi/cf/CFNetworkSPI.h>
 
 using namespace WebCore;
 
 namespace WebKit {
-    
-void WebFrameNetworkingContext::ensurePrivateBrowsingSession(SessionID sessionID)
-{
-    ASSERT(sessionID.isEphemeral());
-
-    if (WebCore::NetworkStorageSession::storageSession(sessionID))
-        return;
-
-    String base;
-    if (SessionTracker::getIdentifierBase().isNull())
-        base = [[NSBundle mainBundle] bundleIdentifier];
-    else
-        base = SessionTracker::getIdentifierBase();
-
-    NetworkStorageSession::ensurePrivateBrowsingSession(sessionID, base + '.' + String::number(sessionID.sessionID()));
-#if USE(NETWORK_SESSION)
-    auto networkSession = NetworkSession::create(sessionID);
-    SessionTracker::setSession(sessionID, WTFMove(networkSession));
-#endif
-}
 
 void WebFrameNetworkingContext::ensureWebsiteDataStoreSession(WebsiteDataStoreParameters&& parameters)
 {
-    if (NetworkStorageSession::storageSession(parameters.sessionID))
+    auto sessionID = parameters.networkSessionParameters.sessionID;
+    if (NetworkStorageSession::storageSession(sessionID))
         return;
 
     String base;
@@ -77,17 +58,14 @@ void WebFrameNetworkingContext::ensureWebsiteDataStoreSession(WebsiteDataStorePa
     else
         base = SessionTracker::getIdentifierBase();
 
-    SandboxExtension::consumePermanently(parameters.cookieStoragePathExtensionHandle);
+    if (!sessionID.isEphemeral())
+        SandboxExtension::consumePermanently(parameters.cookieStoragePathExtensionHandle);
 
-    RetainPtr<CFDataRef> cookieStorageData = adoptCF(CFDataCreate(kCFAllocatorDefault, parameters.uiProcessCookieStorageIdentifier.data(), parameters.uiProcessCookieStorageIdentifier.size()));
-    auto uiProcessCookieStorage = adoptCF(CFHTTPCookieStorageCreateFromIdentifyingData(kCFAllocatorDefault, cookieStorageData.get()));
+    RetainPtr<CFHTTPCookieStorageRef> uiProcessCookieStorage;
+    if (!sessionID.isEphemeral() && !parameters.uiProcessCookieStorageIdentifier.isEmpty())
+        uiProcessCookieStorage = cookieStorageFromIdentifyingData(parameters.uiProcessCookieStorageIdentifier);
 
-    NetworkStorageSession::ensureSession(parameters.sessionID, base + '.' + String::number(parameters.sessionID.sessionID()), WTFMove(uiProcessCookieStorage));
-
-#if USE(NETWORK_SESSION)
-    auto networkSession = NetworkSession::create(parameters.sessionID);
-    SessionTracker::setSession(parameters.sessionID, WTFMove(networkSession));
-#endif
+    NetworkStorageSession::ensureSession(sessionID, base + '.' + String::number(sessionID.sessionID()), WTFMove(uiProcessCookieStorage));
 }
 
 void WebFrameNetworkingContext::setCookieAcceptPolicyForAllContexts(HTTPCookieAcceptPolicy policy)

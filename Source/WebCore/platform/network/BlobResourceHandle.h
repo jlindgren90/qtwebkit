@@ -75,7 +75,6 @@ private:
 
     // ResourceHandle methods.
     void cancel() override;
-    void continueDidReceiveResponse() override;
     void platformContinueSynchronousDidReceiveResponse() override;
 
     void doStart();

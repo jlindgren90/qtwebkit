@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef APIContextConfiguration_h
-#define APIContextConfiguration_h
+#pragma once
 
 #include "APIObject.h"
 #include "CacheModel.h"
@@ -77,6 +76,9 @@ public:
     const WTF::String& indexedDBDatabaseDirectory() const { return m_indexedDBDatabaseDirectory; }
     void setIndexedDBDatabaseDirectory(const WTF::String& indexedDBDatabaseDirectory) { m_indexedDBDatabaseDirectory = indexedDBDatabaseDirectory; }
 
+    const WTF::String& serviceWorkerRegistrationDirectory() const { return m_serviceWorkerRegistrationDirectory; }
+    void setServiceWorkerRegistrationDirectory(const WTF::String& directory) { m_serviceWorkerRegistrationDirectory = directory; }
+    
     const WTF::String& injectedBundlePath() const { return m_injectedBundlePath; }
     void setInjectedBundlePath(const WTF::String& injectedBundlePath) { m_injectedBundlePath = injectedBundlePath; }
 
@@ -118,9 +120,6 @@ public:
 
     const WTF::String& sourceApplicationSecondaryIdentifier() const { return m_sourceApplicationSecondaryIdentifier; }
     void setSourceApplicationSecondaryIdentifier(const WTF::String& sourceApplicationSecondaryIdentifier) { m_sourceApplicationSecondaryIdentifier = sourceApplicationSecondaryIdentifier; }
-
-    bool allowsCellularAccess() const { return m_allowsCellularAccess; }
-    void setAllowsCellularAccess(bool allowsCellularAccess) { m_allowsCellularAccess = allowsCellularAccess; }
     
     bool alwaysRunsAtBackgroundPriority() const { return m_alwaysRunsAtBackgroundPriority; }
     void setAlwaysRunsAtBackgroundPriority(bool alwaysRunsAtBackgroundPriority) { m_alwaysRunsAtBackgroundPriority = alwaysRunsAtBackgroundPriority; }
@@ -136,8 +135,8 @@ public:
     void setCTDataConnectionServiceType(const WTF::String& ctDataConnectionServiceType) { m_ctDataConnectionServiceType = ctDataConnectionServiceType; }
 #endif
 
-    pid_t presentingApplicationPID() const { return m_presentingApplicationPID; }
-    void setPresentingApplicationPID(pid_t pid) { m_presentingApplicationPID = pid; }
+    ProcessID presentingApplicationPID() const { return m_presentingApplicationPID; }
+    void setPresentingApplicationPID(ProcessID pid) { m_presentingApplicationPID = pid; }
 
 private:
     bool m_shouldHaveLegacyDataStore { false };
@@ -152,6 +151,7 @@ private:
     WTF::String m_diskCacheDirectory;
     WTF::String m_mediaCacheDirectory;
     WTF::String m_indexedDBDatabaseDirectory;
+    WTF::String m_serviceWorkerRegistrationDirectory;
     WTF::String m_injectedBundlePath;
     WTF::String m_localStorageDirectory;
     WTF::String m_webSQLDatabaseDirectory;
@@ -166,16 +166,13 @@ private:
     Vector<WTF::String> m_overrideLanguages;
     WTF::String m_sourceApplicationBundleIdentifier;
     WTF::String m_sourceApplicationSecondaryIdentifier;
-    bool m_allowsCellularAccess { true };
     bool m_alwaysRunsAtBackgroundPriority { false };
     bool m_shouldTakeUIBackgroundAssertion { true };
     bool m_shouldCaptureAudioInUIProcess { false };
-    pid_t m_presentingApplicationPID { getCurrentProcessID() };
+    ProcessID m_presentingApplicationPID { getCurrentProcessID() };
 #if PLATFORM(IOS)
     WTF::String m_ctDataConnectionServiceType;
 #endif
 };
 
 } // namespace API
-
-#endif // APIContextConfiguration_h

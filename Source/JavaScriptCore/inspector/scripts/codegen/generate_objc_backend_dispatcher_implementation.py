@@ -60,7 +60,7 @@ class ObjCBackendDispatcherImplementationGenerator(ObjCGenerator):
         secondary_headers = [
             '"%sInternal.h"' % self.protocol_name(),
             '"%sTypeConversions.h"' % self.protocol_name(),
-            '<JavaScriptCore/InspectorValues.h>',
+            '<wtf/JSONValues.h>',
         ]
 
         header_args = {
@@ -119,7 +119,7 @@ class ObjCBackendDispatcherImplementationGenerator(ObjCGenerator):
             lines.append('    id successCallback = ^{')
 
         if command.return_parameters:
-            lines.append('        Ref<InspectorObject> resultObject = InspectorObject::create();')
+            lines.append('        Ref<JSON::Object> resultObject = JSON::Object::create();')
 
             required_pointer_parameters = [parameter for parameter in command.return_parameters if not parameter.is_optional and ObjCGenerator.is_type_objc_pointer_type(parameter.type)]
             for parameter in required_pointer_parameters:
@@ -147,9 +147,9 @@ class ObjCBackendDispatcherImplementationGenerator(ObjCGenerator):
                 else:
                     lines.append('        if (%s)' % var_name)
                     lines.append('            resultObject->%s(ASCIILiteral("%s"), %s);' % (keyed_set_method, parameter.parameter_name, export_expression))
-            lines.append('        backendDispatcher()->sendResponse(requestId, WTFMove(resultObject));')
+            lines.append('        backendDispatcher()->sendResponse(requestId, WTFMove(resultObject), false);')
         else:
-            lines.append('        backendDispatcher()->sendResponse(requestId, InspectorObject::create());')
+            lines.append('        backendDispatcher()->sendResponse(requestId, JSON::Object::create(), false);')
 
         lines.append('    };')
         return '\n'.join(lines)

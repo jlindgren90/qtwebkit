@@ -63,6 +63,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <glib/gi18n-lib.h>
 #include <memory>
+#include <pal/system/SleepDisabler.h>
+#include <wtf/Compiler.h>
 #include <wtf/HashMap.h>
 #include <wtf/glib/GRefPtr.h>
 #include <wtf/glib/WTFGType.h>
@@ -190,9 +192,7 @@ struct _WebKitWebViewBasePrivate {
 
 #if ENABLE(FULLSCREEN_API)
     bool fullScreenModeActive { false };
-    GRefPtr<GDBusProxy> screenSaverProxy;
-    GRefPtr<GCancellable> screenSaverInhibitCancellable;
-    unsigned screenSaverCookie { 0 };
+    std::unique_ptr<PAL::SleepDisabler> sleepDisabler;
 #endif
 
     std::unique_ptr<AcceleratedBackingStore> acceleratedBackingStore;
@@ -475,9 +475,7 @@ static void webkitWebViewBaseContainerForall(GtkContainer* container, gboolean i
     WebKitWebViewBase* webView = WEBKIT_WEB_VIEW_BASE(container);
     WebKitWebViewBasePrivate* priv = webView->priv;
 
-    Vector<GtkWidget*> children;
-    copyKeysToVector(priv->children, children);
-    for (const auto& child : children) {
+    for (const auto& child : copyToVector(priv->children.keys())) {
         if (priv->children.contains(child))
             (*callback)(child, callbackData);
     }
@@ -502,10 +500,10 @@ void webkitWebViewBaseChildMoveResize(WebKitWebViewBase* webView, GtkWidget* chi
 static void webkitWebViewBaseDispose(GObject* gobject)
 {
     WebKitWebViewBase* webView = WEBKIT_WEB_VIEW_BASE(gobject);
-    g_cancellable_cancel(webView->priv->screenSaverInhibitCancellable.get());
     webkitWebViewBaseSetToplevelOnScreenWindow(webView, nullptr);
     webView->priv->pageProxy->close();
     webView->priv->acceleratedBackingStore = nullptr;
+    webView->priv->sleepDisabler = nullptr;
     G_OBJECT_CLASS(webkit_web_view_base_parent_class)->dispose(gobject);
 }
 
@@ -604,7 +602,7 @@ static void webkitWebViewBaseSizeAllocate(GtkWidget* widget, GtkAllocation* allo
     }
 
     if (DrawingAreaProxyImpl* drawingArea = static_cast<DrawingAreaProxyImpl*>(priv->pageProxy->drawingArea()))
-        drawingArea->setSize(viewRect.size(), IntSize(), IntSize());
+        drawingArea->setSize(viewRect.size());
 }
 
 static void webkitWebViewBaseGetPreferredWidth(GtkWidget* widget, gint* minimumSize, gint* naturalSize)
@@ -684,7 +682,7 @@ static gboolean webkitWebViewBaseKeyPressEvent(GtkWidget* widget, GdkEventKey* k
         auto& preferences = priv->pageProxy->preferences();
         preferences.setResourceUsageOverlayVisible(!preferences.resourceUsageOverlayVisible());
         priv->shouldForwardNextKeyEvent = FALSE;
-        return TRUE;
+        return GDK_EVENT_STOP;
     }
 #endif
 
@@ -698,7 +696,7 @@ static gboolean webkitWebViewBaseKeyPressEvent(GtkWidget* widget, GdkEventKey* k
         case GDK_KEY_f:
         case GDK_KEY_F:
             priv->pageProxy->fullScreenManager()->requestExitFullScreen();
-            return TRUE;
+            return GDK_EVENT_STOP;
         default:
             break;
         }
@@ -721,7 +719,7 @@ static gboolean webkitWebViewBaseKeyPressEvent(GtkWidget* widget, GdkEventKey* k
             !compositionResults.compositionUpdated() ? priv->keyBindingTranslator.commandsForKeyEvent(&event->key) : Vector<String>()));
     });
 
-    return TRUE;
+    return GDK_EVENT_STOP;
 }
 
 static gboolean webkitWebViewBaseKeyReleaseEvent(GtkWidget* widget, GdkEventKey* keyEvent)
@@ -740,7 +738,7 @@ static gboolean webkitWebViewBaseKeyReleaseEvent(GtkWidget* widget, GdkEventKey*
         priv->pageProxy->handleKeyboardEvent(NativeWebKeyboardEvent(event.get(), compositionResults, faked, { }));
     });
 
-    return TRUE;
+    return GDK_EVENT_STOP;
 }
 
 static gboolean webkitWebViewBaseButtonPressEvent(GtkWidget* widget, GdkEventButton* buttonEvent)
@@ -749,7 +747,7 @@ static gboolean webkitWebViewBaseButtonPressEvent(GtkWidget* widget, GdkEventBut
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
 
     if (priv->authenticationDialog)
-        return TRUE;
+        return GDK_EVENT_STOP;
 
     gtk_widget_grab_focus(widget);
 
@@ -762,7 +760,7 @@ static gboolean webkitWebViewBaseButtonPressEvent(GtkWidget* widget, GdkEventBut
     // are generated.
     GUniquePtr<GdkEvent> nextEvent(gdk_event_peek());
     if (nextEvent && (nextEvent->any.type == GDK_2BUTTON_PRESS || nextEvent->any.type == GDK_3BUTTON_PRESS))
-        return TRUE;
+        return GDK_EVENT_STOP;
 
     // If it's a right click event save it as a possible context menu event.
     if (buttonEvent->button == 3)
@@ -770,7 +768,7 @@ static gboolean webkitWebViewBaseButtonPressEvent(GtkWidget* widget, GdkEventBut
 
     priv->pageProxy->handleMouseEvent(NativeWebMouseEvent(reinterpret_cast<GdkEvent*>(buttonEvent),
         priv->clickCounter.currentClickCountForGdkButtonEvent(buttonEvent)));
-    return TRUE;
+    return GDK_EVENT_STOP;
 }
 
 static gboolean webkitWebViewBaseButtonReleaseEvent(GtkWidget* widget, GdkEventButton* event)
@@ -779,12 +777,12 @@ static gboolean webkitWebViewBaseButtonReleaseEvent(GtkWidget* widget, GdkEventB
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
 
     if (priv->authenticationDialog)
-        return TRUE;
+        return GDK_EVENT_STOP;
 
     gtk_widget_grab_focus(widget);
     priv->pageProxy->handleMouseEvent(NativeWebMouseEvent(reinterpret_cast<GdkEvent*>(event), 0 /* currentClickCount */));
 
-    return TRUE;
+    return GDK_EVENT_STOP;
 }
 
 static gboolean webkitWebViewBaseScrollEvent(GtkWidget* widget, GdkEventScroll* event)
@@ -793,14 +791,14 @@ static gboolean webkitWebViewBaseScrollEvent(GtkWidget* widget, GdkEventScroll* 
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
 
     if (std::exchange(priv->shouldForwardNextWheelEvent, false))
-        return FALSE;
+        return GDK_EVENT_PROPAGATE;
 
     if (priv->authenticationDialog)
-        return FALSE;
+        return GDK_EVENT_PROPAGATE;
 
     priv->pageProxy->handleWheelEvent(NativeWebWheelEvent(reinterpret_cast<GdkEvent*>(event)));
 
-    return TRUE;
+    return GDK_EVENT_STOP;
 }
 
 static gboolean webkitWebViewBasePopupMenu(GtkWidget* widget)
@@ -824,12 +822,12 @@ static gboolean webkitWebViewBaseMotionNotifyEvent(GtkWidget* widget, GdkEventMo
 
     if (priv->authenticationDialog) {
         auto* widgetClass = GTK_WIDGET_CLASS(webkit_web_view_base_parent_class);
-        return widgetClass->motion_notify_event ? widgetClass->motion_notify_event(widget, event) : FALSE;
+        return widgetClass->motion_notify_event ? widgetClass->motion_notify_event(widget, event) : GDK_EVENT_PROPAGATE;
     }
 
     priv->pageProxy->handleMouseEvent(NativeWebMouseEvent(reinterpret_cast<GdkEvent*>(event), 0 /* currentClickCount */));
 
-    return FALSE;
+    return GDK_EVENT_PROPAGATE;
 }
 
 static gboolean webkitWebViewBaseCrossingNotifyEvent(GtkWidget* widget, GdkEventCrossing* crosssingEvent)
@@ -838,7 +836,7 @@ static gboolean webkitWebViewBaseCrossingNotifyEvent(GtkWidget* widget, GdkEvent
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
 
     if (priv->authenticationDialog)
-        return FALSE;
+        return GDK_EVENT_PROPAGATE;
 
     // In the case of crossing events, it's very important the actual coordinates the WebProcess receives, because once the mouse leaves
     // the web view, the WebProcess won't receive more events until the mouse enters again in the web view. So, if the coordinates of the leave
@@ -870,7 +868,7 @@ static gboolean webkitWebViewBaseCrossingNotifyEvent(GtkWidget* widget, GdkEvent
 
     priv->pageProxy->handleMouseEvent(NativeWebMouseEvent(copiedEvent ? copiedEvent.get() : event, 0 /* currentClickCount */));
 
-    return FALSE;
+    return GDK_EVENT_PROPAGATE;
 }
 
 #if ENABLE(TOUCH_EVENTS)
@@ -898,6 +896,8 @@ static inline WebPlatformTouchPoint::TouchPointState touchPointStateForEvents(co
         return WebPlatformTouchPoint::TouchPressed;
     case GDK_TOUCH_END:
         return WebPlatformTouchPoint::TouchReleased;
+    case GDK_TOUCH_CANCEL:
+        return WebPlatformTouchPoint::TouchCancelled;
     default:
         return WebPlatformTouchPoint::TouchStationary;
     }
@@ -906,13 +906,14 @@ static inline WebPlatformTouchPoint::TouchPointState touchPointStateForEvents(co
 static void webkitWebViewBaseGetTouchPointsForEvent(WebKitWebViewBase* webViewBase, GdkEvent* event, Vector<WebPlatformTouchPoint>& touchPoints)
 {
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
-    touchPoints.reserveInitialCapacity(event->type == GDK_TOUCH_END ? priv->touchEvents.size() + 1 : priv->touchEvents.size());
+    bool touchEnd = (event->type == GDK_TOUCH_END) || (event->type == GDK_TOUCH_CANCEL);
+    touchPoints.reserveInitialCapacity(touchEnd ? priv->touchEvents.size() + 1 : priv->touchEvents.size());
 
     for (const auto& it : priv->touchEvents)
         appendTouchEvent(touchPoints, it.value.get(), touchPointStateForEvents(it.value.get(), event));
 
     // Touch was already removed from the TouchEventsMap, add it here.
-    if (event->type == GDK_TOUCH_END)
+    if (touchEnd)
         appendTouchEvent(touchPoints, event, WebPlatformTouchPoint::TouchReleased);
 }
 
@@ -922,24 +923,10 @@ static gboolean webkitWebViewBaseTouchEvent(GtkWidget* widget, GdkEventTouch* ev
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
 
     if (priv->authenticationDialog)
-        return TRUE;
+        return GDK_EVENT_STOP;
 
     GdkEvent* touchEvent = reinterpret_cast<GdkEvent*>(event);
     uint32_t sequence = GPOINTER_TO_UINT(gdk_event_get_event_sequence(touchEvent));
-
-#if HAVE(GTK_GESTURES)
-    GestureController& gestureController = webkitWebViewBaseGestureController(webViewBase);
-    if (gestureController.isProcessingGestures()) {
-        // If we are already processing gestures is because the WebProcess didn't handle the
-        // BEGIN touch event, so pass subsequent events to the GestureController.
-        gestureController.handleEvent(touchEvent);
-        // Remove the gesture event sequence from the handled touch events
-        // list to avoid the gesure sequence and a touch sequence of same
-        // ID to conflict.
-        priv->touchEvents.remove(sequence);
-        return TRUE;
-    }
-#endif
 
     switch (touchEvent->type) {
     case GDK_TOUCH_BEGIN: {
@@ -954,6 +941,8 @@ static gboolean webkitWebViewBaseTouchEvent(GtkWidget* widget, GdkEventTouch* ev
         it->value.reset(gdk_event_copy(touchEvent));
         break;
     }
+    case GDK_TOUCH_CANCEL:
+        FALLTHROUGH;
     case GDK_TOUCH_END:
         ASSERT(priv->touchEvents.contains(sequence));
         priv->touchEvents.remove(sequence);
@@ -966,7 +955,7 @@ static gboolean webkitWebViewBaseTouchEvent(GtkWidget* widget, GdkEventTouch* ev
     webkitWebViewBaseGetTouchPointsForEvent(webViewBase, touchEvent, touchPoints);
     priv->pageProxy->handleTouchEvent(NativeWebTouchEvent(reinterpret_cast<GdkEvent*>(event), WTFMove(touchPoints)));
 
-    return TRUE;
+    return GDK_EVENT_STOP;
 }
 #endif // ENABLE(TOUCH_EVENTS)
 
@@ -1247,80 +1236,11 @@ void webkitWebViewBaseForwardNextWheelEvent(WebKitWebViewBase* webkitWebViewBase
     webkitWebViewBase->priv->shouldForwardNextWheelEvent = true;
 }
 
-#if ENABLE(FULLSCREEN_API)
-static void screenSaverInhibitedCallback(GDBusProxy* screenSaverProxy, GAsyncResult* result, WebKitWebViewBase* webViewBase)
-{
-    GRefPtr<GVariant> returnValue = adoptGRef(g_dbus_proxy_call_finish(screenSaverProxy, result, nullptr));
-    if (returnValue)
-        g_variant_get(returnValue.get(), "(u)", &webViewBase->priv->screenSaverCookie);
-    webViewBase->priv->screenSaverInhibitCancellable = nullptr;
-}
-
-static void webkitWebViewBaseSendInhibitMessageToScreenSaver(WebKitWebViewBase* webViewBase)
-{
-    WebKitWebViewBasePrivate* priv = webViewBase->priv;
-    ASSERT(priv->screenSaverProxy);
-    priv->screenSaverCookie = 0;
-    if (!priv->screenSaverInhibitCancellable)
-        priv->screenSaverInhibitCancellable = adoptGRef(g_cancellable_new());
-    g_dbus_proxy_call(priv->screenSaverProxy.get(), "Inhibit", g_variant_new("(ss)", g_get_prgname(), _("Website running in fullscreen mode")),
-        G_DBUS_CALL_FLAGS_NONE, -1, priv->screenSaverInhibitCancellable.get(), reinterpret_cast<GAsyncReadyCallback>(screenSaverInhibitedCallback), webViewBase);
-}
-
-static void screenSaverProxyCreatedCallback(GObject*, GAsyncResult* result, WebKitWebViewBase* webViewBase)
-{
-    // WebKitWebViewBase cancels the proxy creation on dispose, which means this could be called
-    // after the web view has been destroyed and g_dbus_proxy_new_for_bus_finish will return nullptr.
-    // So, make sure we don't use the web view unless we have a valid proxy.
-    // See https://bugs.webkit.org/show_bug.cgi?id=151653.
-    GRefPtr<GDBusProxy> proxy = adoptGRef(g_dbus_proxy_new_for_bus_finish(result, nullptr));
-    if (!proxy)
-        return;
-
-    webViewBase->priv->screenSaverProxy = proxy;
-    webkitWebViewBaseSendInhibitMessageToScreenSaver(webViewBase);
-}
-
-static void webkitWebViewBaseInhibitScreenSaver(WebKitWebViewBase* webViewBase)
-{
-    WebKitWebViewBasePrivate* priv = webViewBase->priv;
-    if (priv->screenSaverCookie) {
-        // Already inhibited.
-        return;
-    }
-
-    if (priv->screenSaverProxy) {
-        webkitWebViewBaseSendInhibitMessageToScreenSaver(webViewBase);
-        return;
-    }
-
-    priv->screenSaverInhibitCancellable = adoptGRef(g_cancellable_new());
-    g_dbus_proxy_new_for_bus(G_BUS_TYPE_SESSION, static_cast<GDBusProxyFlags>(G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES | G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS),
-        nullptr, "org.freedesktop.ScreenSaver", "/ScreenSaver", "org.freedesktop.ScreenSaver", priv->screenSaverInhibitCancellable.get(),
-        reinterpret_cast<GAsyncReadyCallback>(screenSaverProxyCreatedCallback), webViewBase);
-}
-
-static void webkitWebViewBaseUninhibitScreenSaver(WebKitWebViewBase* webViewBase)
-{
-    WebKitWebViewBasePrivate* priv = webViewBase->priv;
-    if (!priv->screenSaverCookie) {
-        // Not inhibited or it's being inhibited.
-        g_cancellable_cancel(priv->screenSaverInhibitCancellable.get());
-        return;
-    }
-
-    // If we have a cookie we should have a proxy.
-    ASSERT(priv->screenSaverProxy);
-    g_dbus_proxy_call(priv->screenSaverProxy.get(), "UnInhibit", g_variant_new("(u)", priv->screenSaverCookie), G_DBUS_CALL_FLAGS_NONE, -1, nullptr, nullptr, nullptr);
-    priv->screenSaverCookie = 0;
-}
-#endif
-
 void webkitWebViewBaseEnterFullScreen(WebKitWebViewBase* webkitWebViewBase)
 {
 #if ENABLE(FULLSCREEN_API)
     WebKitWebViewBasePrivate* priv = webkitWebViewBase->priv;
-    ASSERT(priv->fullScreenModeActive);
+    ASSERT(!priv->fullScreenModeActive);
 
     WebFullScreenManagerProxy* fullScreenManagerProxy = priv->pageProxy->fullScreenManager();
     fullScreenManagerProxy->willEnterFullScreen();
@@ -1330,7 +1250,7 @@ void webkitWebViewBaseEnterFullScreen(WebKitWebViewBase* webkitWebViewBase)
         gtk_window_fullscreen(GTK_WINDOW(topLevelWindow));
     fullScreenManagerProxy->didEnterFullScreen();
     priv->fullScreenModeActive = true;
-    webkitWebViewBaseInhibitScreenSaver(webkitWebViewBase);
+    priv->sleepDisabler = PAL::SleepDisabler::create(_("Website running in fullscreen mode"), PAL::SleepDisabler::Type::Display);
 #endif
 }
 
@@ -1338,7 +1258,7 @@ void webkitWebViewBaseExitFullScreen(WebKitWebViewBase* webkitWebViewBase)
 {
 #if ENABLE(FULLSCREEN_API)
     WebKitWebViewBasePrivate* priv = webkitWebViewBase->priv;
-    ASSERT(!priv->fullScreenModeActive);
+    ASSERT(priv->fullScreenModeActive);
 
     WebFullScreenManagerProxy* fullScreenManagerProxy = priv->pageProxy->fullScreenManager();
     fullScreenManagerProxy->willExitFullScreen();
@@ -1348,7 +1268,7 @@ void webkitWebViewBaseExitFullScreen(WebKitWebViewBase* webkitWebViewBase)
         gtk_window_unfullscreen(GTK_WINDOW(topLevelWindow));
     fullScreenManagerProxy->didExitFullScreen();
     priv->fullScreenModeActive = false;
-    webkitWebViewBaseUninhibitScreenSaver(webkitWebViewBase);
+    priv->sleepDisabler = nullptr;
 #endif
 }
 

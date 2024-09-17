@@ -28,6 +28,7 @@
 #include "config.h"
 #include "SVGImage.h"
 
+#include "CacheStorageProvider.h"
 #include "Chrome.h"
 #include "CommonVM.h"
 #include "DOMWindow.h"
@@ -52,11 +53,12 @@
 #include "SVGImageClients.h"
 #include "SVGImageElement.h"
 #include "SVGSVGElement.h"
+#include "ScriptDisallowedScope.h"
 #include "Settings.h"
 #include "SocketProvider.h"
-#include "TextStream.h"
 #include <runtime/JSCInlines.h>
 #include <runtime/JSLock.h>
+#include <wtf/text/TextStream.h>
 
 #if USE(DIRECT2D)
 #include "COMPtr.h"
@@ -65,9 +67,8 @@
 
 namespace WebCore {
 
-SVGImage::SVGImage(ImageObserver& observer, const URL& url)
+SVGImage::SVGImage(ImageObserver& observer)
     : Image(&observer)
-    , m_url(url)
 {
 }
 
@@ -83,7 +84,7 @@ SVGImage::~SVGImage()
     ASSERT(!m_chromeClient || !m_chromeClient->image());
 }
 
-inline SVGSVGElement* SVGImage::rootElement() const
+inline RefPtr<SVGSVGElement> SVGImage::rootElement() const
 {
     if (!m_page)
         return nullptr;
@@ -92,7 +93,7 @@ inline SVGSVGElement* SVGImage::rootElement() const
 
 bool SVGImage::hasSingleSecurityOrigin() const
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return true;
 
@@ -121,14 +122,14 @@ void SVGImage::setContainerSize(const FloatSize& size)
     if (!usesContainerSize())
         return;
 
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return;
     auto* renderer = downcast<RenderSVGRoot>(rootElement->renderer());
     if (!renderer)
         return;
 
-    FrameView* view = frameView();
+    auto view = makeRefPtr(frameView());
     view->resize(this->containerSize());
 
     renderer->setContainerSize(IntSize(size));
@@ -136,7 +137,7 @@ void SVGImage::setContainerSize(const FloatSize& size)
 
 IntSize SVGImage::containerSize() const
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return IntSize();
 
@@ -165,7 +166,7 @@ IntSize SVGImage::containerSize() const
     return IntSize(300, 150);
 }
 
-ImageDrawResult SVGImage::drawForContainer(GraphicsContext& context, const FloatSize containerSize, float zoom, const FloatRect& dstRect,
+ImageDrawResult SVGImage::drawForContainer(GraphicsContext& context, const FloatSize containerSize, float containerZoom, const URL& initialFragmentURL, const FloatRect& dstRect,
     const FloatRect& srcRect, CompositeOperator compositeOp, BlendMode blendMode)
 {
     if (!m_page)
@@ -181,12 +182,14 @@ ImageDrawResult SVGImage::drawForContainer(GraphicsContext& context, const Float
     setContainerSize(roundedContainerSize);
 
     FloatRect scaledSrc = srcRect;
-    scaledSrc.scale(1 / zoom);
+    scaledSrc.scale(1 / containerZoom);
 
     // Compensate for the container size rounding by adjusting the source rect.
     FloatSize adjustedSrcSize = scaledSrc.size();
     adjustedSrcSize.scale(roundedContainerSize.width() / containerSize.width(), roundedContainerSize.height() / containerSize.height());
     scaledSrc.setSize(adjustedSrcSize);
+
+    frameView()->scrollToFragment(initialFragmentURL);
 
     ImageDrawResult result = draw(context, dstRect, scaledSrc, compositeOp, blendMode, DecodingMode::Synchronous, ImageOrientationDescription());
 
@@ -241,11 +244,11 @@ NativeImagePtr SVGImage::nativeImage(const GraphicsContext* targetContext)
 }
 #endif
 
-void SVGImage::drawPatternForContainer(GraphicsContext& context, const FloatSize& containerSize, float zoom, const FloatRect& srcRect,
+void SVGImage::drawPatternForContainer(GraphicsContext& context, const FloatSize& containerSize, float containerZoom, const URL& initialFragmentURL, const FloatRect& srcRect,
     const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, CompositeOperator compositeOp, const FloatRect& dstRect, BlendMode blendMode)
 {
     FloatRect zoomedContainerRect = FloatRect(FloatPoint(), containerSize);
-    zoomedContainerRect.scale(zoom);
+    zoomedContainerRect.scale(containerZoom);
 
     // The ImageBuffer size needs to be scaled to match the final resolution.
     AffineTransform transform = context.getCTM();
@@ -259,11 +262,11 @@ void SVGImage::drawPatternForContainer(GraphicsContext& context, const FloatSize
     std::unique_ptr<ImageBuffer> buffer = ImageBuffer::createCompatibleBuffer(expandedIntSize(imageBufferSize.size()), 1, ColorSpaceSRGB, context);
     if (!buffer) // Failed to allocate buffer.
         return;
-    drawForContainer(buffer->context(), containerSize, zoom, imageBufferSize, zoomedContainerRect, CompositeSourceOver, BlendModeNormal);
+    drawForContainer(buffer->context(), containerSize, containerZoom, initialFragmentURL, imageBufferSize, zoomedContainerRect, CompositeSourceOver, BlendModeNormal);
     if (context.drawLuminanceMask())
         buffer->convertToLuminanceMask();
 
-    RefPtr<Image> image = ImageBuffer::sinkIntoImage(WTFMove(buffer), Unscaled);
+    RefPtr<Image> image = ImageBuffer::sinkIntoImage(WTFMove(buffer), PreserveResolution::Yes);
     if (!image)
         return;
 
@@ -282,7 +285,7 @@ ImageDrawResult SVGImage::draw(GraphicsContext& context, const FloatRect& dstRec
     if (!m_page)
         return ImageDrawResult::DidNothing;
 
-    FrameView* view = frameView();
+    auto view = makeRefPtr(frameView());
     ASSERT(view);
 
     GraphicsContextStateSaver stateSaver(context);
@@ -296,23 +299,23 @@ ImageDrawResult SVGImage::draw(GraphicsContext& context, const FloatRect& dstRec
         context.setCompositeOperation(CompositeSourceOver, BlendModeNormal);
     }
 
-    FloatSize scale(dstRect.width() / srcRect.width(), dstRect.height() / srcRect.height());
+    FloatSize scale(dstRect.size() / srcRect.size());
     
     // We can only draw the entire frame, clipped to the rect we want. So compute where the top left
     // of the image would be if we were drawing without clipping, and translate accordingly.
     FloatSize topLeftOffset(srcRect.location().x() * scale.width(), srcRect.location().y() * scale.height());
     FloatPoint destOffset = dstRect.location() - topLeftOffset;
 
-    context.translate(destOffset.x(), destOffset.y());
+    context.translate(destOffset);
     context.scale(scale);
 
     view->resize(containerSize());
 
-    if (!m_url.isEmpty())
-        view->scrollToFragment(m_url);
-    
-    if (view->needsLayout())
-        view->layout();
+    {
+        ScriptDisallowedScope::DisableAssertionsInScope disabledScope;
+        if (view->needsLayout())
+            view->layoutContext().layout();
+    }
 
     view->paint(context, intersection(context.clipBounds(), enclosingIntRect(srcRect)));
 
@@ -329,7 +332,7 @@ ImageDrawResult SVGImage::draw(GraphicsContext& context, const FloatRect& dstRec
 
 RenderBox* SVGImage::embeddedContentBox() const
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return nullptr;
     return downcast<RenderBox>(rootElement->renderer());
@@ -344,7 +347,7 @@ FrameView* SVGImage::frameView() const
 
 bool SVGImage::hasRelativeWidth() const
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return false;
     return rootElement->intrinsicWidth().isPercentOrCalculated();
@@ -352,7 +355,7 @@ bool SVGImage::hasRelativeWidth() const
 
 bool SVGImage::hasRelativeHeight() const
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return false;
     return rootElement->intrinsicHeight().isPercentOrCalculated();
@@ -360,7 +363,7 @@ bool SVGImage::hasRelativeHeight() const
 
 void SVGImage::computeIntrinsicDimensions(Length& intrinsicWidth, Length& intrinsicHeight, FloatSize& intrinsicRatio)
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return;
 
@@ -376,7 +379,7 @@ void SVGImage::computeIntrinsicDimensions(Length& intrinsicWidth, Length& intrin
 
 void SVGImage::startAnimation()
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement || !rootElement->animationsPaused())
         return;
     rootElement->unpauseAnimations();
@@ -385,7 +388,7 @@ void SVGImage::startAnimation()
 
 void SVGImage::stopAnimation()
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return;
     rootElement->pauseAnimations();
@@ -398,7 +401,7 @@ void SVGImage::resetAnimation()
 
 bool SVGImage::isAnimating() const
 {
-    SVGSVGElement* rootElement = this->rootElement();
+    auto rootElement = this->rootElement();
     if (!rootElement)
         return false;
     return rootElement->hasActiveAnimation();
@@ -406,10 +409,10 @@ bool SVGImage::isAnimating() const
 
 void SVGImage::reportApproximateMemoryCost() const
 {
-    Document* document = m_page->mainFrame().document();
+    auto document = makeRefPtr(m_page->mainFrame().document());
     size_t decodedImageMemoryCost = 0;
 
-    for (Node* node = document; node; node = NodeTraversal::next(*node))
+    for (RefPtr<Node> node = document; node; node = NodeTraversal::next(*node))
         decodedImageMemoryCost += node->approximateMemoryCost();
 
     JSC::VM& vm = commonVM();
@@ -429,7 +432,8 @@ EncodedDataStatus SVGImage::dataChanged(bool allDataReceived)
         PageConfiguration pageConfiguration(
             createEmptyEditorClient(),
             SocketProvider::create(),
-            makeUniqueRef<LibWebRTCProvider>()
+            LibWebRTCProvider::create(),
+            CacheStorageProvider::create()
         );
         fillWithEmptyClients(pageConfiguration);
         m_chromeClient = std::make_unique<SVGImageChromeClient>(this);
@@ -487,12 +491,5 @@ bool isInSVGImage(const Element* element)
 
     return page->chrome().client().isSVGImageChromeClient();
 }
-
-void SVGImage::dump(TextStream& ts) const
-{
-    Image::dump(ts);
-    ts.dumpProperty("url", m_url.string());
-}
-
 
 }

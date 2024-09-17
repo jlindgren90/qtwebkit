@@ -31,10 +31,9 @@
 
 #include <wtf/ExportMacros.h>
 
-// See note in wtf/Platform.h for more info on EXPORT_MACROS.
 #if USE(EXPORT_MACROS)
 
-#if !OS(WINDOWS)
+#if !PLATFORM(WIN)
 #define WEBCORE_EXPORT WTF_EXPORT
 #define WEBCORE_TESTSUPPORT_EXPORT WTF_EXPORT
 #else

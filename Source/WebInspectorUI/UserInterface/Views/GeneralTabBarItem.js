@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2015 Apple Inc. All rights reserved.
- * Copyright (C) 2016 Devin Rousso <dcrousso+webkit@gmail.com>. All rights reserved.
+ * Copyright (C) 2016 Devin Rousso <webkit@devinrousso.com>. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,21 +24,37 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-WebInspector.GeneralTabBarItem = class GeneralTabBarItem extends WebInspector.TabBarItem
+WI.GeneralTabBarItem = class GeneralTabBarItem extends WI.TabBarItem
 {
-    constructor(image, title, representedObject)
+    constructor(image, title, isEphemeral)
     {
-        super(image, title, representedObject);
+        super(image, title);
 
-        let closeButtonElement = document.createElement("div");
-        closeButtonElement.classList.add(WebInspector.TabBarItem.CloseButtonStyleClassName);
-        closeButtonElement.title = WebInspector.UIString("Click to close this tab; Option-click to close all tabs except this one");
-        this.element.insertBefore(closeButtonElement, this.element.firstChild);
+        if (isEphemeral) {
+            this.element.classList.add("ephemeral");
 
-        this.element.addEventListener("contextmenu", this._handleContextMenuEvent.bind(this));
+            let closeButtonElement = document.createElement("div");
+            closeButtonElement.classList.add(WI.TabBarItem.CloseButtonStyleClassName);
+            closeButtonElement.title = WI.UIString("Click to close this tab");
+
+            this.element.insertBefore(closeButtonElement, this.element.firstChild);
+            this.element.addEventListener("contextmenu", this._handleContextMenuEvent.bind(this));
+        }
+    }
+
+    static fromTabContentViewConstructor(constructor)
+    {
+        let {image, title} = constructor.tabInfo();
+        let isEphemeral = constructor.isEphemeral();
+        return new WI.GeneralTabBarItem(image, title, isEphemeral);
     }
 
     // Public
+
+    get title()
+    {
+        return super.title;
+    }
 
     set title(title)
     {
@@ -51,7 +67,7 @@ WebInspector.GeneralTabBarItem = class GeneralTabBarItem extends WebInspector.Ta
             titleContentElement.textContent = title;
             this._titleElement.appendChild(titleContentElement);
 
-            this.element.insertBefore(this._titleElement, this.element.lastChild);
+            this.element.appendChild(this._titleElement);
         } else {
             if (this._titleElement)
                 this._titleElement.remove();
@@ -69,23 +85,10 @@ WebInspector.GeneralTabBarItem = class GeneralTabBarItem extends WebInspector.Ta
         if (!this._parentTabBar)
             return;
 
-        let closeTab = () => {
+        let contextMenu = WI.ContextMenu.createFromEvent(event);
+        contextMenu.appendItem(WI.UIString("Close Tab"), () => {
             this._parentTabBar.removeTabBarItem(this);
-        };
-
-        let closeOtherTabs = () => {
-            let tabBarItems = this._parentTabBar.tabBarItems;
-            for (let i = tabBarItems.length - 1; i >= 0; --i) {
-                let item = tabBarItems[i];
-                if (item === this || item instanceof WebInspector.PinnedTabBarItem)
-                    continue;
-                this._parentTabBar.removeTabBarItem(item);
-            }
-        };
-
-        let hasOtherNonPinnedTabs = this._parentTabBar.tabBarItems.some((item) => item !== this && !(item instanceof WebInspector.PinnedTabBarItem));
-        let contextMenu = WebInspector.ContextMenu.createFromEvent(event);
-        contextMenu.appendItem(WebInspector.UIString("Close Tab"), closeTab, this.isDefaultTab);
-        contextMenu.appendItem(WebInspector.UIString("Close Other Tabs"), closeOtherTabs, !hasOtherNonPinnedTabs);
+        }, this.isDefaultTab);
+        contextMenu.appendSeparator();
     }
 };

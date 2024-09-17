@@ -64,8 +64,10 @@ class BuildbotSyncer {
         this._configurations = [];
         this._repositoryGroups = commonConfigurations.repositoryGroups;
         this._slavePropertyName = commonConfigurations.slaveArgument;
+        this._platformPropertyName = commonConfigurations.platformArgument;
         this._buildRequestPropertyName = commonConfigurations.buildRequestArgument;
         this._builderName = object.builder;
+        this._builderID = object.builderID;
         this._slaveList = object.slaveList;
         this._entryList = null;
         this._slavesWithNewRequests = new Set;
@@ -109,6 +111,9 @@ class BuildbotSyncer {
         assert.equal(!this._slavePropertyName, !slaveName);
         if (this._slavePropertyName)
             properties[this._slavePropertyName] = slaveName;
+
+        if (this._platformPropertyName)
+            properties[this._platformPropertyName] = newRequest.platform().name();
 
         this._slavesWithNewRequests.add(slaveName);
         return this._remote.postFormUrlencodedData(this.pathForForceBuild(), properties);
@@ -260,10 +265,32 @@ class BuildbotSyncer {
                     continue;
                 value = JSON.stringify(rootFiles.map((file) => ({url: file.url()})));
                 break;
+            case 'ownedRevisions':
+                const ownedRepositories = commitSet.ownedRepositoriesForOwnerRepository(value.ownerRepository);
+                if (!ownedRepositories)
+                    continue;
+
+                const revisionInfo = {};
+                revisionInfo[value.ownerRepository.name()] = ownedRepositories.map((ownedRepository) => {
+                    return {
+                        'revision': commitSet.revisionForRepository(ownedRepository),
+                        'repository': ownedRepository.name(),
+                        'ownerRevision': commitSet.ownerRevisionForRepository(ownedRepository)
+                    };
+                });
+                value = JSON.stringify(revisionInfo);
+                break;
             case 'conditional':
                 switch (value.condition) {
                 case 'built':
-                    if (!requestsInGroup.some((otherRequest) => otherRequest.isBuild() && otherRequest.commitSet() == buildRequest.commitSet()))
+                    const repositoryRequirement = value.repositoryRequirement;
+                    const meetRepositoryRequirement = !repositoryRequirement.length || repositoryRequirement.some((repository) => commitSet.requiresBuildForRepository(repository));
+                    if (!meetRepositoryRequirement || !requestsInGroup.some((otherRequest) => otherRequest.isBuild() && otherRequest.commitSet() == buildRequest.commitSet()))
+                        continue;
+                    break;
+                case 'requiresBuild':
+                    const requiresBuild = value.repositoriesToCheck.some((repository) => commitSet.requiresBuildForRepository(repository));
+                    if (!requiresBuild)
                         continue;
                     break;
                 }
@@ -293,8 +320,9 @@ class BuildbotSyncer {
         return revisionSet;
     }
 
-    static _loadConfig(remote, config)
+    static _loadConfig(remote, config, builderNameToIDMap)
     {
+        assert(builderNameToIDMap);
         const types = config['types'] || {};
         const builders = config['builders'] || {};
 
@@ -310,6 +338,7 @@ class BuildbotSyncer {
             repositoryGroups,
             slaveArgument: config.slaveArgument,
             buildRequestArgument: config.buildRequestArgument,
+            platformArgument: config.platformArgument,
         };
 
         const syncerByBuilder = new Map;
@@ -323,7 +352,7 @@ class BuildbotSyncer {
         }
 
         assert(Array.isArray(config['testConfigurations']), `The test configuration must be an array`);
-        this._resolveBuildersWithPlatforms('test', config['testConfigurations'], builders).forEach((entry, configurationIndex) => {
+        this._resolveBuildersWithPlatforms('test', config['testConfigurations'], builders, builderNameToIDMap).forEach((entry, configurationIndex) => {
             assert(Array.isArray(entry['types']), `The test configuration ${configurationIndex} does not specify "types" as an array`);
             for (const type of entry['types']) {
                 const typeConfig = this._validateAndMergeConfig({}, entry.builderConfig);
@@ -341,7 +370,7 @@ class BuildbotSyncer {
         const buildConfigurations = config['buildConfigurations'];
         if (buildConfigurations) {
             assert(Array.isArray(buildConfigurations), `The test configuration must be an array`);
-            this._resolveBuildersWithPlatforms('test', buildConfigurations, builders).forEach((entry, configurationIndex) => {
+            this._resolveBuildersWithPlatforms('test', buildConfigurations, builders, builderNameToIDMap).forEach((entry, configurationIndex) => {
                 const syncer = ensureBuildbotSyncer(entry.builderConfig);
                 assert(!syncer.isTester(), `The build configuration ${configurationIndex} uses a tester: ${syncer.builderName()}`);
                 syncer.addBuildConfiguration(entry.platform, entry.builderConfig.properties);
@@ -351,7 +380,7 @@ class BuildbotSyncer {
         return Array.from(syncerByBuilder.values());
     }
 
-    static _resolveBuildersWithPlatforms(configurationType, configurationList, builders)
+    static _resolveBuildersWithPlatforms(configurationType, configurationList, builders, builderNameToIDMap)
     {
         const resolvedConfigurations = [];
         let configurationIndex = 0;
@@ -363,6 +392,8 @@ class BuildbotSyncer {
                 const matchingBuilder = builders[builderKey];
                 assert(matchingBuilder, `"${builderKey}" is not a valid builder in the configuration`);
                 assert('builder' in matchingBuilder, `Builder ${builderKey} does not specify a buildbot builder name`);
+                assert(matchingBuilder.builder in builderNameToIDMap, `Builder ${matchingBuilder.builder} not found in Buildbot configuration.`);
+                matchingBuilder['builderID'] = builderNameToIDMap[matchingBuilder.builder];
                 const builderConfig = this._validateAndMergeConfig({}, matchingBuilder);
                 for (const platformName of entry['platforms']) {
                     const platform = Platform.findByName(platformName);
@@ -411,7 +442,7 @@ class BuildbotSyncer {
 
         const testRepositories = new Set;
         let specifiesRoots = false;
-        const testPropertiesTemplate = this._parseRepositoryGroupPropertyTemplate('test', name, group.testProperties, (type, value) => {
+        const testPropertiesTemplate = this._parseRepositoryGroupPropertyTemplate('test', name, group.testProperties, (type, value, condition) => {
             assert(type != 'patch', `Repository group "${name}" specifies a patch for "${value}" in the properties for testing`);
             switch (type) {
             case 'revision':
@@ -423,7 +454,8 @@ class BuildbotSyncer {
                 specifiesRoots = true;
                 return {type};
             case 'ifBuilt':
-                return {type: 'conditional', condition: 'built', value};
+                assert('condition', 'condition must set if type is "ifBuilt"');
+                return {type: 'conditional', condition: 'built', value, repositoryRequirement: condition.map(resolveRepository)};
             }
             return null;
         });
@@ -438,17 +470,24 @@ class BuildbotSyncer {
             assert(group.acceptsRoots, `Repository group "${name}" specifies the properties for building but does not accept roots in testing`);
             const revisionRepositories = new Set;
             const patchRepositories = new Set;
-            buildPropertiesTemplate = this._parseRepositoryGroupPropertyTemplate('build', name, group.buildProperties, (type, value) => {
+            buildPropertiesTemplate = this._parseRepositoryGroupPropertyTemplate('build', name, group.buildProperties, (type, value, condition) => {
                 assert(type != 'roots', `Repository group "${name}" specifies roots in the properties for building`);
-                const repository = resolveRepository(value);
+                let repository = null;
                 switch (type) {
                 case 'patch':
+                    repository = resolveRepository(value);
                     assert(patchAcceptingRepositoryList.has(repository), `Repository group "${name}" specifies a patch for "${value}" but it does not accept a patch`);
                     patchRepositories.add(repository);
                     return {type, repository};
                 case 'revision':
+                    repository = resolveRepository(value);
                     revisionRepositories.add(repository);
                     return {type, repository};
+                case 'ownedRevisions':
+                    return {type, ownerRepository: resolveRepository(value)};
+                case 'ifRepositorySet':
+                    assert(condition, 'condition must set if type is "ifRepositorySet"');
+                    return {type: 'conditional', condition: 'requiresBuild', value, repositoriesToCheck: condition.map(resolveRepository)};
                 }
                 return null;
             });
@@ -483,10 +522,22 @@ class BuildbotSyncer {
             }
 
             const keys = Object.keys(value);
-            assert.equal(keys.length, 1,
-                `Repository group "${groupName}" specifies more than one type in property "${propertyName}": "${keys.join('", "')}"`);
-            const type = keys[0];
-            const option = makeOption(type, value[type]);
+            assert(keys.length == 1 || keys.length == 2,
+                `Repository group "${groupName}" specifies more than two types in property "${propertyName}": "${keys.join('", "')}"`);
+            let type;
+            let condition = null;
+            let optionValue;
+            if (keys.length == 2) {
+                assert(keys.includes('value'), `Repository group "${groupName}" with two types in property "${propertyName}": "${keys.join('", "')}" should contains 'value' as one type`);
+                type = keys.find((key) => key != 'value');
+                optionValue = value.value;
+                condition = value[type];
+            }
+            else {
+                type = keys[0];
+                optionValue = value[type];
+            }
+            const option = makeOption(type, optionValue, condition);
             assert(option, `Repository group "${groupName}" specifies an invalid type "${type}" in property "${propertyName}"`);
             propertiesTemplate[propertyName] = option;
         }
@@ -519,6 +570,10 @@ class BuildbotSyncer {
                 break;
             case 'builder': // Fallthrough
                 assert.equal(typeof(value), 'string', `${name} should be of string type`);
+                config[name] = value;
+                break;
+            case 'builderID':
+                assert(value, 'builderID should not be undefined.');
                 config[name] = value;
                 break;
             default:

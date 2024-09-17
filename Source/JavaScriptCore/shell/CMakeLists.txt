@@ -44,7 +44,7 @@ if (JSC_OUTPUT_NAME)
 endif ()
 
 if (JSC_LINK_FLAGS)
-    ADD_TARGET_PROPERTIES(jsc LINK_FLAGS "${JSC_LINK_FLAGS}")
+    WEBKIT_ADD_TARGET_PROPERTIES(jsc LINK_FLAGS "${JSC_LINK_FLAGS}")
 endif ()
 
 if (SHOULD_INSTALL_JS_SHELL)
@@ -55,14 +55,21 @@ if (TARGET jscLib)
     add_dependencies(jsc jscLib)
 endif ()
 
-if (NOT WIN32)
-    set(TESTB3_SOURCES
-        ../b3/testb3.cpp
-    )
+set(TESTMASM_SOURCES
+    ../assembler/testmasm.cpp
+)
 
-    set(TESTAIR_SOURCES
-        ../b3/air/testair.cpp
-    )
+set(TESTB3_SOURCES
+    ../b3/testb3.cpp
+)
+
+set(TESTAIR_SOURCES
+    ../b3/air/testair.cpp
+)
+
+if (DEVELOPER_MODE AND NOT WIN32)
+    add_executable(testmasm ${TESTMASM_SOURCES})
+    target_link_libraries(testmasm ${JSC_LIBRARIES})
 
     add_executable(testb3 ${TESTB3_SOURCES})
     target_link_libraries(testb3 ${JSC_LIBRARIES})

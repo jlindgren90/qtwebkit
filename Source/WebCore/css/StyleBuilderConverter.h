@@ -143,15 +143,15 @@ public:
     static BreakInside convertPageBreakInside(StyleResolver&, const CSSValue&);
     static BreakBetween convertColumnBreakBetween(StyleResolver&, const CSSValue&);
     static BreakInside convertColumnBreakInside(StyleResolver&, const CSSValue&);
-#if ENABLE(CSS_REGIONS)
-    static BreakBetween convertRegionBreakBetween(StyleResolver&, const CSSValue&);
-    static BreakInside convertRegionBreakInside(StyleResolver&, const CSSValue&);
-#endif
-    
+
     static HangingPunctuation convertHangingPunctuation(StyleResolver&, const CSSValue&);
+
+    static ESpeakAs convertSpeakAs(StyleResolver&, const CSSValue&);
 
     static Length convertPositionComponentX(StyleResolver&, const CSSValue&);
     static Length convertPositionComponentY(StyleResolver&, const CSSValue&);
+
+    static GapLength convertGapLength(StyleResolver&, const CSSValue&);
     
 private:
     friend class StyleBuilderCustom;
@@ -322,9 +322,11 @@ inline Length StyleBuilderConverter::convertTo100PercentMinusLength(const Length
         return Length(100 - length.value(), Percent);
     
     // Turn this into a calc expression: calc(100% - length)
-    auto lhs = std::make_unique<CalcExpressionLength>(Length(100, Percent));
-    auto rhs = std::make_unique<CalcExpressionLength>(length);
-    auto op = std::make_unique<CalcExpressionBinaryOperation>(WTFMove(lhs), WTFMove(rhs), CalcSubtract);
+    Vector<std::unique_ptr<CalcExpressionNode>> lengths;
+    lengths.reserveInitialCapacity(2);
+    lengths.uncheckedAppend(std::make_unique<CalcExpressionLength>(Length(100, Percent)));
+    lengths.uncheckedAppend(std::make_unique<CalcExpressionLength>(length));
+    auto op = std::make_unique<CalcExpressionOperation>(WTFMove(lengths), CalcSubtract);
     return Length(CalculationValue::create(WTFMove(op), ValueRangeAll));
 }
 
@@ -911,7 +913,7 @@ inline bool StyleBuilderConverter::createGridTrackList(const CSSValue& value, Tr
 
     unsigned currentNamedGridLine = 0;
     for (auto& currentValue : downcast<CSSValueList>(value)) {
-        if (is<CSSGridLineNamesValue>(currentValue.get())) {
+        if (is<CSSGridLineNamesValue>(currentValue)) {
             createGridLineNamesList(currentValue.get(), currentNamedGridLine, tracksData.m_namedGridLines, tracksData.m_orderedNamedGridLines);
             continue;
         }
@@ -923,7 +925,7 @@ inline bool StyleBuilderConverter::createGridTrackList(const CSSValue& value, Tr
             ASSERT(autoRepeatID == CSSValueAutoFill || autoRepeatID == CSSValueAutoFit);
             tracksData.m_autoRepeatType = autoRepeatID == CSSValueAutoFill ? AutoFill : AutoFit;
             for (auto& autoRepeatValue : downcast<CSSValueList>(currentValue.get())) {
-                if (is<CSSGridLineNamesValue>(autoRepeatValue.get())) {
+                if (is<CSSGridLineNamesValue>(autoRepeatValue)) {
                     createGridLineNamesList(autoRepeatValue.get(), autoRepeatIndex, tracksData.m_autoRepeatNamedGridLines, tracksData.m_autoRepeatOrderedNamedGridLines);
                     continue;
                 }
@@ -1360,8 +1362,8 @@ inline StyleSelfAlignmentData StyleBuilderConverter::convertSelfOrDefaultAlignme
         } else if (pairValue->first()->valueID() == CSSValueLast) {
             alignmentData.setPosition(ItemPositionLastBaseline);
         } else {
-            alignmentData.setPosition(*pairValue->first());
-            alignmentData.setOverflow(*pairValue->second());
+            alignmentData.setOverflow(*pairValue->first());
+            alignmentData.setPosition(*pairValue->second());
         }
     } else
         alignmentData.setPosition(primitiveValue);
@@ -1434,14 +1436,22 @@ inline std::optional<Length> StyleBuilderConverter::convertLineHeight(StyleResol
             length = Length(length.value() * multiplier, Fixed);
         return length;
     }
+
+    // Line-height percentages need to inherit as if they were Fixed pixel values. In the example:
+    // <div style="font-size: 10px; line-height: 150%;"><div style="font-size: 100px;"></div></div>
+    // the inner element should have line-height of 15px. However, in this example:
+    // <div style="font-size: 10px; line-height: 1.5;"><div style="font-size: 100px;"></div></div>
+    // the inner element should have a line-height of 150px. Therefore, we map percentages to Fixed
+    // values and raw numbers to percentages.
     if (primitiveValue.isPercentage()) {
         // FIXME: percentage should not be restricted to an integer here.
         return Length((styleResolver.style()->computedFontSize() * primitiveValue.intValue()) / 100, Fixed);
     }
-    if (primitiveValue.isNumber()) {
-        // FIXME: number and percentage values should produce the same type of Length (ie. Fixed or Percent).
-        return Length(primitiveValue.doubleValue() * multiplier * 100.0, Percent);
-    }
+    if (primitiveValue.isNumber())
+        return Length(primitiveValue.doubleValue() * 100.0, Percent);
+
+    // FIXME: The parser should only emit the above types, so this should never be reached. We should change the
+    // type of this function to return just a Length (and not an Optional).
     return std::nullopt;
 }
 
@@ -1509,26 +1519,16 @@ inline BreakInside StyleBuilderConverter::convertColumnBreakInside(StyleResolver
         return AvoidColumnBreakInside;
     return primitiveValue;
 }
-
-#if ENABLE(CSS_REGIONS)
-inline BreakBetween StyleBuilderConverter::convertRegionBreakBetween(StyleResolver&, const CSSValue& value)
+    
+inline ESpeakAs StyleBuilderConverter::convertSpeakAs(StyleResolver&, const CSSValue& value)
 {
-    auto& primitiveValue = downcast<CSSPrimitiveValue>(value);
-    if (primitiveValue.valueID() == CSSValueAlways)
-        return RegionBreakBetween;
-    if (primitiveValue.valueID() == CSSValueAvoid)
-        return AvoidRegionBreakBetween;
-    return primitiveValue;
+    ESpeakAs result = RenderStyle::initialSpeakAs();
+    if (is<CSSValueList>(value)) {
+        for (auto& currentValue : downcast<CSSValueList>(value))
+            result |= downcast<CSSPrimitiveValue>(currentValue.get());
+    }
+    return result;
 }
-
-inline BreakInside StyleBuilderConverter::convertRegionBreakInside(StyleResolver&, const CSSValue& value)
-{
-    auto& primitiveValue = downcast<CSSPrimitiveValue>(value);
-    if (primitiveValue.valueID() == CSSValueAvoid)
-        return AvoidRegionBreakInside;
-    return primitiveValue;
-}
-#endif
 
 inline HangingPunctuation StyleBuilderConverter::convertHangingPunctuation(StyleResolver&, const CSSValue& value)
 {
@@ -1538,6 +1538,11 @@ inline HangingPunctuation StyleBuilderConverter::convertHangingPunctuation(Style
             result |= downcast<CSSPrimitiveValue>(currentValue.get());
     }
     return result;
+}
+
+inline GapLength StyleBuilderConverter::convertGapLength(StyleResolver& styleResolver, const CSSValue& value)
+{
+    return (downcast<CSSPrimitiveValue>(value).valueID() == CSSValueNormal) ? GapLength() : GapLength(convertLength(styleResolver, value));
 }
 
 } // namespace WebCore

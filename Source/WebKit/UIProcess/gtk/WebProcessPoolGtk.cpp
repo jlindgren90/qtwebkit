@@ -106,10 +106,9 @@ String WebProcessPool::legacyPlatformDefaultIndexedDBDatabaseDirectory()
     return API::WebsiteDataStore::defaultIndexedDBDatabaseDirectory();
 }
 
-String WebProcessPool::platformDefaultIconDatabasePath() const
+String WebProcessPool::legacyPlatformDefaultServiceWorkerRegistrationDirectory()
 {
-    GUniquePtr<gchar> databaseDirectory(g_build_filename(g_get_user_cache_dir(), "webkitgtk", "icondatabase", nullptr));
-    return WebCore::stringFromFileSystemRepresentation(databaseDirectory.get());
+    return API::WebsiteDataStore::defaultServiceWorkerRegistrationDirectory();
 }
 
 String WebProcessPool::legacyPlatformDefaultLocalStorageDirectory()
@@ -130,7 +129,7 @@ String WebProcessPool::legacyPlatformDefaultNetworkCacheDirectory()
 String WebProcessPool::legacyPlatformDefaultJavaScriptConfigurationDirectory()
 {
     GUniquePtr<gchar> javaScriptCoreConfigDirectory(g_build_filename(g_get_user_data_dir(), "webkitgtk", "JavaScriptCoreDebug", nullptr));
-    return WebCore::stringFromFileSystemRepresentation(javaScriptCoreConfigDirectory.get());
+    return WebCore::FileSystem::stringFromFileSystemRepresentation(javaScriptCoreConfigDirectory.get());
 }
 
 void WebProcessPool::platformResolvePathsForSandboxExtensions()

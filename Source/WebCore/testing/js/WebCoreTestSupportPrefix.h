@@ -100,7 +100,6 @@
 #endif
 
 #if PLATFORM(WIN_CAIRO)
-#include <ConditionalMacros.h>
 #include <windows.h>
 #else
 

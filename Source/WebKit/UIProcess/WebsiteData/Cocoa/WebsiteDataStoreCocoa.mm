@@ -26,12 +26,13 @@
 #import "config.h"
 #import "WebsiteDataStore.h"
 
+#import "CookieStorageUtilsCF.h"
 #import "StorageManager.h"
 #import "WebResourceLoadStatisticsStore.h"
 #import "WebsiteDataStoreParameters.h"
-#import <WebCore/CFNetworkSPI.h>
 #import <WebCore/FileSystem.h>
 #import <WebCore/SearchPopupMenuCocoa.h>
+#import <pal/spi/cf/CFNetworkSPI.h>
 #import <wtf/NeverDestroyed.h>
 
 #if PLATFORM(IOS)
@@ -54,7 +55,7 @@ WebsiteDataStoreParameters WebsiteDataStore::parameters()
     resolveDirectoriesIfNecessary();
 
     WebsiteDataStoreParameters parameters;
-    parameters.sessionID = m_sessionID;
+    parameters.networkSessionParameters = { m_sessionID, nullptr, m_boundInterfaceIdentifier, m_allowsCellularAccess };
 
     auto cookieFile = resolvedCookieStorageFile();
 
@@ -63,18 +64,21 @@ WebsiteDataStoreParameters WebsiteDataStore::parameters()
         auto utf8File = cookieFile.utf8();
         auto url = adoptCF(CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault, (const UInt8 *)utf8File.data(), (CFIndex)utf8File.length(), true));
         m_cfCookieStorage = adoptCF(CFHTTPCookieStorageCreateFromFile(kCFAllocatorDefault, url.get(), nullptr));
-        auto cfData = adoptCF(CFHTTPCookieStorageCreateIdentifyingData(kCFAllocatorDefault, m_cfCookieStorage.get()));
-
-        m_uiProcessCookieStorageIdentifier.append(CFDataGetBytePtr(cfData.get()), CFDataGetLength(cfData.get()));
+        m_uiProcessCookieStorageIdentifier = identifyingDataFromCookieStorage(m_cfCookieStorage.get());
     }
 
     parameters.uiProcessCookieStorageIdentifier = m_uiProcessCookieStorageIdentifier;
 #endif
 
-    copyToVector(m_pendingCookies, parameters.pendingCookies);
+    parameters.pendingCookies = copyToVector(m_pendingCookies);
 
     if (!cookieFile.isEmpty())
-        SandboxExtension::createHandleForReadWriteDirectory(WebCore::directoryName(cookieFile), parameters.cookieStoragePathExtensionHandle);
+        SandboxExtension::createHandleForReadWriteDirectory(WebCore::FileSystem::directoryName(cookieFile), parameters.cookieStoragePathExtensionHandle);
+
+    if (!m_configuration.cacheStorageDirectory.isNull()) {
+        parameters.cacheStorageDirectory = m_configuration.cacheStorageDirectory;
+        SandboxExtension::createHandleForReadWriteDirectory(parameters.cacheStorageDirectory, parameters.cacheStorageDirectoryExtensionHandle);
+    }
 
     return parameters;
 }
@@ -125,7 +129,7 @@ void WebsiteDataStore::platformDestroy()
     }
 }
 
-void WebsiteDataStore::platformRemoveRecentSearches(std::chrono::system_clock::time_point oldestTimeToRemove)
+void WebsiteDataStore::platformRemoveRecentSearches(WallTime oldestTimeToRemove)
 {
     WebCore::removeRecentlyModifiedRecentSearches(oldestTimeToRemove);
 }

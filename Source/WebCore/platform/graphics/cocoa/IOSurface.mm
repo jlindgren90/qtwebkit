@@ -28,17 +28,17 @@
 
 #if USE(IOSURFACE)
 
-#import "CoreGraphicsSPI.h"
 #import "GraphicsContextCG.h"
 #import "IOSurfacePool.h"
-#import "IOSurfaceSPI.h"
 #import "ImageBuffer.h"
 #import "ImageBufferDataCG.h"
 #import "Logging.h"
 #import "MachSendRight.h"
-#import "TextStream.h"
+#import <pal/spi/cg/CoreGraphicsSPI.h>
+#import <pal/spi/cocoa/IOSurfaceSPI.h>
 #import <wtf/Assertions.h>
 #import <wtf/MathExtras.h>
+#import <wtf/text/TextStream.h>
 
 #if PLATFORM(IOS)
 // Move this into the SPI header once it's possible to put inside the APPLE_INTERNAL_SDK block.
@@ -365,11 +365,16 @@ IOSurface::Format IOSurface::format() const
 
 IOSurfaceID IOSurface::surfaceID() const
 {
-#if PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED < 110000
+#if PLATFORM(IOS) && (!USE(APPLE_INTERNAL_SDK) || __IPHONE_OS_VERSION_MIN_REQUIRED < 110000)
     return 0;
 #else
     return IOSurfaceGetID(m_surface.get());
 #endif
+}
+
+size_t IOSurface::bytesPerRow() const
+{
+    return IOSurfaceGetBytesPerRow(m_surface.get());
 }
 
 bool IOSurface::isInUse() const
@@ -431,6 +436,12 @@ void IOSurface::convertToFormat(std::unique_ptr<IOSurface>&& inSurface, Format f
     ASSERT_UNUSED(ret, ret == kIOReturnSuccess);
 }
 #endif // PLATFORM(IOS)
+
+void IOSurface::migrateColorSpaceToProperties()
+{
+    auto colorSpaceProperties = adoptCF(CGColorSpaceCopyPropertyList(m_colorSpace.get()));
+    IOSurfaceSetValue(m_surface.get(), kIOSurfaceColorSpace, colorSpaceProperties.get());
+}
 
 static TextStream& operator<<(TextStream& ts, IOSurface::Format format)
 {

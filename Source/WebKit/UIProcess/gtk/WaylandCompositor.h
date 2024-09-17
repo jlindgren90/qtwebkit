@@ -30,6 +30,7 @@
 #include "WebPageProxy.h"
 #include <WebCore/RefPtrCairo.h>
 #include <WebCore/WlUniquePtr.h>
+#include <gtk/gtk.h>
 #include <wtf/HashMap.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/Noncopyable.h>
@@ -65,7 +66,7 @@ public:
         EGLImageKHR createImage() const;
         WebCore::IntSize size() const;
 
-        WeakPtr<Buffer> createWeakPtr() { return m_weakPtrFactory.createWeakPtr(); }
+        WeakPtr<Buffer> createWeakPtr() { return m_weakPtrFactory.createWeakPtr(*this); }
 
     private:
         Buffer(struct wl_resource*);
@@ -87,10 +88,12 @@ public:
         void requestFrame(struct wl_resource*);
         void commit();
 
-        void setWebPage(WebPageProxy* webPage) { m_webPage = webPage; }
+        void setWebPage(WebPageProxy*);
         bool prepareTextureForPainting(unsigned&, WebCore::IntSize&);
 
     private:
+        void flushFrameCallbacks();
+        void flushPendingFrameCallbacks();
         void makePendingBufferCurrent();
 
         WeakPtr<Buffer> m_buffer;
@@ -98,8 +101,10 @@ public:
         unsigned m_texture;
         EGLImageKHR m_image;
         WebCore::IntSize m_imageSize;
+        Vector<wl_resource*> m_pendingFrameCallbackList;
         Vector<wl_resource*> m_frameCallbackList;
         WebPageProxy* m_webPage { nullptr };
+        unsigned m_tickCallbackID { 0 };
     };
 
     bool isRunning() const { return !!m_display; }

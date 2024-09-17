@@ -26,8 +26,11 @@
 #include "config.h"
 #include "ResourceLoadObserver.h"
 
+#include "DeprecatedGlobalSettings.h"
 #include "Document.h"
 #include "Frame.h"
+#include "FrameLoader.h"
+#include "HTMLFrameOwnerElement.h"
 #include "Logging.h"
 #include "MainFrame.h"
 #include "Page.h"
@@ -54,17 +57,49 @@ ResourceLoadObserver& ResourceLoadObserver::shared()
     return resourceLoadObserver;
 }
 
-void ResourceLoadObserver::setShouldThrottleObserverNotifications(bool shouldThrottle)
+static bool shouldEnableSiteSpecificQuirks(Page* page)
 {
-    m_shouldThrottleNotifications = shouldThrottle;
+#if PLATFORM(IOS)
+    UNUSED_PARAM(page);
 
-    if (!m_notificationTimer.isActive())
-        return;
+    // There is currently no way to toggle the needsSiteSpecificQuirks setting on iOS so we always enable
+    // the site-specific quirks on iOS.
+    return true;
+#else
+    return page && page->settings().needsSiteSpecificQuirks();
+#endif
+}
 
-    // If we change the notification state, we need to restart any notifications
-    // so they will be on the right schedule.
-    m_notificationTimer.stop();
-    scheduleNotificationIfNeeded();
+// FIXME: Temporary fix for <rdar://problem/32343256> until content can be updated.
+static bool areDomainsAssociated(Page* page, const String& firstDomain, const String& secondDomain)
+{
+    static NeverDestroyed<HashMap<String, unsigned>> metaDomainIdentifiers = [] {
+        HashMap<String, unsigned> map;
+
+        // Domains owned by Dow Jones & Company, Inc.
+        const unsigned dowJonesIdentifier = 1;
+        map.add(ASCIILiteral("dowjones.com"), dowJonesIdentifier);
+        map.add(ASCIILiteral("wsj.com"), dowJonesIdentifier);
+        map.add(ASCIILiteral("barrons.com"), dowJonesIdentifier);
+        map.add(ASCIILiteral("marketwatch.com"), dowJonesIdentifier);
+        map.add(ASCIILiteral("wsjplus.com"), dowJonesIdentifier);
+
+        return map;
+    }();
+
+    if (firstDomain == secondDomain)
+        return true;
+
+    ASSERT(!equalIgnoringASCIICase(firstDomain, secondDomain));
+
+    if (!shouldEnableSiteSpecificQuirks(page))
+        return false;
+
+    unsigned firstMetaDomainIdentifier = metaDomainIdentifiers.get().get(firstDomain);
+    if (!firstMetaDomainIdentifier)
+        return false;
+
+    return firstMetaDomainIdentifier == metaDomainIdentifiers.get().get(secondDomain);
 }
 
 void ResourceLoadObserver::setNotificationCallback(WTF::Function<void (Vector<ResourceLoadStatistics>&&)>&& notificationCallback)
@@ -74,7 +109,7 @@ void ResourceLoadObserver::setNotificationCallback(WTF::Function<void (Vector<Re
 }
 
 ResourceLoadObserver::ResourceLoadObserver()
-    : m_notificationTimer(*this, &ResourceLoadObserver::notificationTimerFired)
+    : m_notificationTimer(*this, &ResourceLoadObserver::notifyObserver)
 {
 }
 
@@ -89,7 +124,7 @@ bool ResourceLoadObserver::shouldLog(Page* page) const
     if (!page)
         return false;
 
-    return Settings::resourceLoadStatisticsEnabled() && !page->usesEphemeralSession() && m_notificationCallback;
+    return DeprecatedGlobalSettings::resourceLoadStatisticsEnabled() && !page->usesEphemeralSession() && m_notificationCallback;
 }
 
 static WallTime reduceToHourlyTimeResolution(WallTime time)
@@ -97,7 +132,7 @@ static WallTime reduceToHourlyTimeResolution(WallTime time)
     return WallTime::fromRawSeconds(std::floor(time.secondsSinceEpoch() / timestampResolution) * timestampResolution.seconds());
 }
 
-void ResourceLoadObserver::logFrameNavigation(const Frame& frame, const Frame& topFrame, const ResourceRequest& newRequest)
+void ResourceLoadObserver::logFrameNavigation(const Frame& frame, const Frame& topFrame, const ResourceRequest& newRequest, const URL& redirectUrl)
 {
     ASSERT(frame.document());
     ASSERT(topFrame.document());
@@ -106,10 +141,15 @@ void ResourceLoadObserver::logFrameNavigation(const Frame& frame, const Frame& t
     if (frame.isMainFrame())
         return;
     
-    if (!shouldLog(topFrame.page()))
+    auto* page = topFrame.page();
+    if (!shouldLog(page))
         return;
 
-    auto& sourceURL = frame.document()->url();
+    auto sourceURL = redirectUrl;
+    bool isRedirect = !redirectUrl.isNull();
+    if (!isRedirect)
+        sourceURL = nonNullOwnerURL(*frame.document());
+
     auto& targetURL = newRequest.url();
     auto& mainFrameURL = topFrame.document()->url();
     
@@ -119,28 +159,48 @@ void ResourceLoadObserver::logFrameNavigation(const Frame& frame, const Frame& t
     auto targetHost = targetURL.host();
     auto mainFrameHost = mainFrameURL.host();
 
-    if (targetHost.isEmpty() || mainFrameHost.isEmpty() || targetHost == mainFrameHost || targetHost == sourceURL.host())
+    if (targetHost.isEmpty() || mainFrameHost.isEmpty() || targetHost == sourceURL.host())
         return;
 
     auto targetPrimaryDomain = primaryDomain(targetURL);
     auto mainFramePrimaryDomain = primaryDomain(mainFrameURL);
     auto sourcePrimaryDomain = primaryDomain(sourceURL);
-    
-    if (targetPrimaryDomain == mainFramePrimaryDomain || targetPrimaryDomain == sourcePrimaryDomain)
-        return;
+    bool shouldCallNotificationCallback = false;
 
-    auto& targetStatistics = ensureResourceStatisticsForPrimaryDomain(targetPrimaryDomain);
-    targetStatistics.lastSeen = reduceToHourlyTimeResolution(WallTime::now());
-    auto subframeUnderTopFrameOriginsResult = targetStatistics.subframeUnderTopFrameOrigins.add(mainFramePrimaryDomain);
-    if (subframeUnderTopFrameOriginsResult.isNewEntry)
+    if (targetHost != mainFrameHost
+        && !(areDomainsAssociated(page, targetPrimaryDomain, mainFramePrimaryDomain) || areDomainsAssociated(page, targetPrimaryDomain, sourcePrimaryDomain))) {
+        auto& targetStatistics = ensureResourceStatisticsForPrimaryDomain(targetPrimaryDomain);
+        targetStatistics.lastSeen = reduceToHourlyTimeResolution(WallTime::now());
+        if (targetStatistics.subframeUnderTopFrameOrigins.add(mainFramePrimaryDomain).isNewEntry)
+            shouldCallNotificationCallback = true;
+    }
+
+    if (isRedirect
+        && !areDomainsAssociated(page, sourcePrimaryDomain, targetPrimaryDomain)) {
+        auto& redirectingOriginStatistics = ensureResourceStatisticsForPrimaryDomain(sourcePrimaryDomain);
+        if (redirectingOriginStatistics.subresourceUniqueRedirectsTo.add(targetPrimaryDomain).isNewEntry)
+            shouldCallNotificationCallback = true;
+    }
+
+    if (shouldCallNotificationCallback)
         scheduleNotificationIfNeeded();
 }
-    
+
+// FIXME: This quirk was added to address <rdar://problem/33325881> and should be removed once content is fixed.
+static bool resourceNeedsSSOQuirk(Page* page, const URL& url)
+{
+    if (!shouldEnableSiteSpecificQuirks(page))
+        return false;
+
+    return equalIgnoringASCIICase(url.host(), "sp.auth.adobe.com");
+}
+
 void ResourceLoadObserver::logSubresourceLoading(const Frame* frame, const ResourceRequest& newRequest, const ResourceResponse& redirectResponse)
 {
     ASSERT(frame->page());
 
-    if (!shouldLog(frame->page()))
+    auto* page = frame->page();
+    if (!shouldLog(page))
         return;
 
     bool isRedirect = is3xxRedirect(redirectResponse);
@@ -158,7 +218,10 @@ void ResourceLoadObserver::logSubresourceLoading(const Frame* frame, const Resou
     auto mainFramePrimaryDomain = primaryDomain(mainFrameURL);
     auto sourcePrimaryDomain = primaryDomain(sourceURL);
     
-    if (targetPrimaryDomain == mainFramePrimaryDomain || (isRedirect && targetPrimaryDomain == sourcePrimaryDomain))
+    if (areDomainsAssociated(page, targetPrimaryDomain, mainFramePrimaryDomain) || (isRedirect && areDomainsAssociated(page, targetPrimaryDomain, sourcePrimaryDomain)))
+        return;
+
+    if (resourceNeedsSSOQuirk(page, targetURL))
         return;
 
     bool shouldCallNotificationCallback = false;
@@ -186,7 +249,8 @@ void ResourceLoadObserver::logWebSocketLoading(const Frame* frame, const URL& ta
     if (!frame)
         return;
 
-    if (!shouldLog(frame->page()))
+    auto* page = frame->page();
+    if (!shouldLog(page))
         return;
 
     auto& mainFrameURL = frame->mainFrame().document()->url();
@@ -200,7 +264,7 @@ void ResourceLoadObserver::logWebSocketLoading(const Frame* frame, const URL& ta
     auto targetPrimaryDomain = primaryDomain(targetURL);
     auto mainFramePrimaryDomain = primaryDomain(mainFrameURL);
     
-    if (targetPrimaryDomain == mainFramePrimaryDomain)
+    if (areDomainsAssociated(page, targetPrimaryDomain, mainFramePrimaryDomain))
         return;
 
     auto& targetStatistics = ensureResourceStatisticsForPrimaryDomain(targetPrimaryDomain);
@@ -211,25 +275,51 @@ void ResourceLoadObserver::logWebSocketLoading(const Frame* frame, const URL& ta
 
 void ResourceLoadObserver::logUserInteractionWithReducedTimeResolution(const Document& document)
 {
-    ASSERT(document.page());
-
     if (!shouldLog(document.page()))
         return;
+
+    ASSERT(document.page());
 
     auto& url = document.url();
     if (url.isBlankURL() || url.isEmpty())
         return;
 
-    auto& statistics = ensureResourceStatisticsForPrimaryDomain(primaryDomain(url));
+    auto domain = primaryDomain(url);
     auto newTime = reduceToHourlyTimeResolution(WallTime::now());
-    if (newTime == statistics.mostRecentUserInteractionTime)
+    auto lastReportedUserInteraction = m_lastReportedUserInteractionMap.get(domain);
+    if (newTime == lastReportedUserInteraction)
         return;
 
+    m_lastReportedUserInteractionMap.set(domain, newTime);
+
+    auto& statistics = ensureResourceStatisticsForPrimaryDomain(domain);
     statistics.hadUserInteraction = true;
     statistics.lastSeen = newTime;
     statistics.mostRecentUserInteractionTime = newTime;
 
-    scheduleNotificationIfNeeded();
+    m_notificationTimer.stop();
+    notifyObserver();
+
+#if HAVE(CFNETWORK_STORAGE_PARTITIONING) && !RELEASE_LOG_DISABLED
+    if (shouldLogUserInteraction()) {
+        auto counter = ++m_loggingCounter;
+#define LOCAL_LOG(str, ...) \
+        RELEASE_LOG(ResourceLoadStatistics, "ResourceLoadObserver::logUserInteraction: counter = %" PRIu64 ": " str, counter, ##__VA_ARGS__)
+
+        auto escapeForJSON = [](String s) {
+            s.replace('\\', "\\\\").replace('"', "\\\"");
+            return s;
+        };
+        auto escapedURL = escapeForJSON(url.string());
+        auto escapedDomain = escapeForJSON(domain);
+
+        LOCAL_LOG(R"({ "url": "%{public}s",)", escapedURL.utf8().data());
+        LOCAL_LOG(R"(  "domain" : "%{public}s",)", escapedDomain.utf8().data());
+        LOCAL_LOG(R"(  "until" : %f })", newTime.secondsSinceEpoch().seconds());
+
+#undef LOCAL_LOG
+    }
+#endif
 }
 
 ResourceLoadStatistics& ResourceLoadObserver::ensureResourceStatisticsForPrimaryDomain(const String& primaryDomain)
@@ -249,12 +339,13 @@ void ResourceLoadObserver::scheduleNotificationIfNeeded()
     }
 
     if (!m_notificationTimer.isActive())
-        m_notificationTimer.startOneShot(m_shouldThrottleNotifications ? minimumNotificationInterval : 0_s);
+        m_notificationTimer.startOneShot(minimumNotificationInterval);
 }
 
-void ResourceLoadObserver::notificationTimerFired()
+void ResourceLoadObserver::notifyObserver()
 {
     ASSERT(m_notificationCallback);
+    m_notificationTimer.stop();
     m_notificationCallback(takeStatistics());
 }
 
@@ -277,6 +368,33 @@ Vector<ResourceLoadStatistics> ResourceLoadObserver::takeStatistics()
     m_resourceStatisticsMap.clear();
 
     return statistics;
+}
+
+void ResourceLoadObserver::clearState()
+{
+    m_notificationTimer.stop();
+    m_resourceStatisticsMap.clear();
+    m_lastReportedUserInteractionMap.clear();
+}
+
+URL ResourceLoadObserver::nonNullOwnerURL(const Document& document) const
+{
+    auto url = document.url();
+    auto* frame = document.frame();
+    auto host = document.url().host();
+
+    while ((host.isNull() || host.isEmpty()) && frame && !frame->isMainFrame()) {
+        auto* ownerElement = frame->ownerElement();
+
+        ASSERT(ownerElement != nullptr);
+        
+        auto& doc = ownerElement->document();
+        frame = doc.frame();
+        url = doc.url();
+        host = url.host();
+    }
+
+    return url;
 }
 
 } // namespace WebCore

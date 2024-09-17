@@ -27,9 +27,11 @@
 
 #include <initializer_list>
 
-namespace WebCore {
-
+namespace WTF {
 class TextStream;
+}
+
+namespace WebCore {
 
 static const size_t PrintColorAdjustBits = 1;
 enum PrintColorAdjust {
@@ -77,7 +79,7 @@ enum StyleDifferenceContextSensitiveProperty {
 // Static pseudo styles. Dynamic ones are produced on the fly.
 enum PseudoId : unsigned char {
     // The order must be NOP ID, public IDs, and then internal IDs.
-    NOPSEUDO, FIRST_LINE, FIRST_LETTER, BEFORE, AFTER, SELECTION, SCROLLBAR,
+    NOPSEUDO, FIRST_LINE, FIRST_LETTER, MARKER, BEFORE, AFTER, SELECTION, SCROLLBAR,
     // Internal IDs follow:
     SCROLLBAR_THUMB, SCROLLBAR_BUTTON, SCROLLBAR_TRACK, SCROLLBAR_TRACK_PIECE, SCROLLBAR_CORNER, RESIZER,
     AFTER_LAST_INTERNAL_PSEUDOID,
@@ -237,8 +239,19 @@ enum EMaskSourceType { MaskAlpha, MaskLuminance };
 
 // CSS3 Marquee Properties
 
-enum EMarqueeBehavior { MNONE, MSCROLL, MSLIDE, MALTERNATE };
-enum EMarqueeDirection { MAUTO = 0, MLEFT = 1, MRIGHT = -1, MUP = 2, MDOWN = -2, MFORWARD = 3, MBACKWARD = -3 };
+enum class MarqueeBehavior {
+    None, Scroll, Slide, Alternate
+};
+
+enum class MarqueeDirection {
+    Auto,
+    Left,
+    Right,
+    Up,
+    Down,
+    Forward,
+    Backward
+};
 
 // Deprecated Flexible Box Properties
 
@@ -475,12 +488,12 @@ enum TextZoom {
 };
 
 enum BreakBetween {
-    AutoBreakBetween, AvoidBreakBetween, AvoidColumnBreakBetween, AvoidPageBreakBetween, AvoidRegionBreakBetween, ColumnBreakBetween, RegionBreakBetween, PageBreakBetween, LeftPageBreakBetween, RightPageBreakBetween, RectoPageBreakBetween, VersoPageBreakBetween
+    AutoBreakBetween, AvoidBreakBetween, AvoidColumnBreakBetween, AvoidPageBreakBetween, ColumnBreakBetween, PageBreakBetween, LeftPageBreakBetween, RightPageBreakBetween, RectoPageBreakBetween, VersoPageBreakBetween
 };
 bool alwaysPageBreak(BreakBetween);
     
 enum BreakInside {
-    AutoBreakInside, AvoidBreakInside, AvoidColumnBreakInside, AvoidPageBreakInside, AvoidRegionBreakInside
+    AutoBreakInside, AvoidBreakInside, AvoidColumnBreakInside, AvoidPageBreakInside
 };
 
 enum HangingPunctuation {
@@ -594,7 +607,15 @@ enum ELineClampType { LineClampLineCount, LineClampPercentage };
 
 enum Hyphens { HyphensNone, HyphensManual, HyphensAuto };
 
-enum ESpeak { SpeakNone, SpeakNormal, SpeakSpellOut, SpeakDigits, SpeakLiteralPunctuation, SpeakNoPunctuation };
+enum ESpeakAs {
+    SpeakNormal = 0,
+    SpeakSpellOut = 1 << 0,
+    SpeakDigits = 1 << 1,
+    SpeakLiteralPunctuation = 1 << 2,
+    SpeakNoPunctuation = 1 << 3
+};
+inline ESpeakAs operator| (ESpeakAs a, ESpeakAs b) { return ESpeakAs(int(a) | int(b)); }
+inline ESpeakAs& operator|= (ESpeakAs& a, ESpeakAs b) { return a = a | b; }
 
 enum TextEmphasisFill { TextEmphasisFillFilled, TextEmphasisFillOpen };
 
@@ -625,8 +646,6 @@ enum ImageResolutionSource { ImageResolutionSpecified = 0, ImageResolutionFromIm
 enum ImageResolutionSnap { ImageResolutionNoSnap = 0, ImageResolutionSnapPixels };
 
 enum Order { LogicalOrder = 0, VisualOrder };
-
-enum RegionFragment { AutoRegionFragment, BreakRegionFragment };
 
 enum ColumnAxis { HorizontalColumnAxis, VerticalColumnAxis, AutoColumnAxis };
 
@@ -727,12 +746,12 @@ enum class ApplePayButtonType {
 };
 #endif
 
-TextStream& operator<<(TextStream&, EFillSizeType);
-TextStream& operator<<(TextStream&, EFillAttachment);
-TextStream& operator<<(TextStream&, EFillBox);
-TextStream& operator<<(TextStream&, EFillRepeat);
-TextStream& operator<<(TextStream&, EMaskSourceType);
-TextStream& operator<<(TextStream&, Edge);
+WTF::TextStream& operator<<(WTF::TextStream&, EFillSizeType);
+WTF::TextStream& operator<<(WTF::TextStream&, EFillAttachment);
+WTF::TextStream& operator<<(WTF::TextStream&, EFillBox);
+WTF::TextStream& operator<<(WTF::TextStream&, EFillRepeat);
+WTF::TextStream& operator<<(WTF::TextStream&, EMaskSourceType);
+WTF::TextStream& operator<<(WTF::TextStream&, Edge);
 
 // These are all minimized combinations of paint-order.
 enum class PaintOrder {
@@ -749,6 +768,10 @@ enum class PaintType {
     Fill,
     Stroke,
     Markers
+};
+
+enum class FontLoadingBehavior {
+    Auto, Block, Swap, Fallback, Optional
 };
 
 extern const float defaultMiterLimit;

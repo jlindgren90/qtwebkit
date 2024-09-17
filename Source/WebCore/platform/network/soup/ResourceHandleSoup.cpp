@@ -56,6 +56,7 @@
 #if !COMPILER(MSVC)
 #include <unistd.h>
 #endif
+#include <wtf/CompletionHandler.h>
 #include <wtf/CurrentTime.h>
 #include <wtf/MainThread.h>
 #include <wtf/glib/GRefPtr.h>
@@ -77,9 +78,7 @@ static void sendRequestCallback(GObject*, GAsyncResult*, gpointer);
 static void readCallback(GObject*, GAsyncResult*, gpointer);
 static void continueAfterDidReceiveResponse(ResourceHandle*);
 
-ResourceHandleInternal::~ResourceHandleInternal()
-{
-}
+ResourceHandleInternal::~ResourceHandleInternal() = default;
 
 static SoupSession* sessionFromContext(NetworkingContext* context)
 {
@@ -98,9 +97,9 @@ SoupSession* ResourceHandleInternal::soupSession()
     return m_session ? m_session->soupSession() : sessionFromContext(m_context.get());
 }
 
-RefPtr<ResourceHandle> ResourceHandle::create(SoupNetworkSession& session, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff)
+RefPtr<ResourceHandle> ResourceHandle::create(SoupNetworkSession& session, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff)
 {
-    auto newHandle = adoptRef(*new ResourceHandle(session, request, client, defersLoading, shouldContentSniff));
+    auto newHandle = adoptRef(*new ResourceHandle(session, request, client, defersLoading, shouldContentSniff, shouldContentEncodingSniff));
 
     if (newHandle->d->m_scheduledFailureType != NoFailure)
         return WTFMove(newHandle);
@@ -111,8 +110,8 @@ RefPtr<ResourceHandle> ResourceHandle::create(SoupNetworkSession& session, const
     return nullptr;
 }
 
-ResourceHandle::ResourceHandle(SoupNetworkSession& session, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff)
-    : d(std::make_unique<ResourceHandleInternal>(this, nullptr, request, client, defersLoading, shouldContentSniff && shouldContentSniffURL(request.url())))
+ResourceHandle::ResourceHandle(SoupNetworkSession& session, const ResourceRequest& request, ResourceHandleClient* client, bool defersLoading, bool shouldContentSniff, bool shouldContentEncodingSniff)
+    : d(std::make_unique<ResourceHandleInternal>(this, nullptr, request, client, defersLoading, shouldContentSniff && shouldContentSniffURL(request.url()), shouldContentEncodingSniff))
 {
     if (!request.url().isValid()) {
         scheduleFailure(InvalidURLFailure);
@@ -142,15 +141,9 @@ void ResourceHandle::ensureReadBuffer()
     if (d->m_soupBuffer)
         return;
 
-    // Non-NetworkProcess clients are able to give a buffer to the ResourceHandle to avoid expensive copies. If
-    // we do get a buffer from the client, we want the client to free it, so we create the soup buffer with
-    // SOUP_MEMORY_TEMPORARY.
-    size_t bufferSize;
-    char* bufferFromClient = client()->getOrCreateReadBuffer(gDefaultReadBufferSize, bufferSize);
-    if (bufferFromClient)
-        d->m_soupBuffer.reset(soup_buffer_new(SOUP_MEMORY_TEMPORARY, bufferFromClient, bufferSize));
-    else
-        d->m_soupBuffer.reset(soup_buffer_new(SOUP_MEMORY_TAKE, static_cast<char*>(g_malloc(gDefaultReadBufferSize)), gDefaultReadBufferSize));
+
+    auto* buffer = static_cast<uint8_t*>(fastMalloc(gDefaultReadBufferSize));
+    d->m_soupBuffer.reset(soup_buffer_new_with_owner(buffer, gDefaultReadBufferSize, buffer, fastFree));
 
     ASSERT(d->m_soupBuffer);
 }
@@ -242,7 +235,6 @@ static void applyAuthenticationToRequest(ResourceHandle* handle, ResourceRequest
     request.setURL(urlWithCredentials);
 }
 
-#if ENABLE(WEB_TIMING)
 // Called each time the message is going to be sent again except the first time.
 // This happens when libsoup handles HTTP authentication.
 static void restartedCallback(SoupMessage*, gpointer data)
@@ -253,7 +245,6 @@ static void restartedCallback(SoupMessage*, gpointer data)
 
     handle->m_requestTime = MonotonicTime::now();
 }
-#endif
 
 static bool shouldRedirect(ResourceHandle* handle)
 {
@@ -361,13 +352,9 @@ static void doRedirect(ResourceHandle* handle)
     cleanupSoupRequestOperation(handle);
 
     ResourceResponse responseCopy = d->m_response;
-    if (d->client()->usesAsyncCallbacks())
-        d->client()->willSendRequestAsync(handle, WTFMove(newRequest), WTFMove(responseCopy));
-    else {
-        auto request = d->client()->willSendRequest(handle, WTFMove(newRequest), WTFMove(responseCopy));
-        continueAfterWillSendRequest(handle, WTFMove(request));
-    }
-
+    d->client()->willSendRequestAsync(handle, WTFMove(newRequest), WTFMove(responseCopy), [handle = makeRef(*handle)] (ResourceRequest&& request) {
+        continueAfterWillSendRequest(handle.ptr(), WTFMove(request));
+    });
 }
 
 static void redirectSkipCallback(GObject*, GAsyncResult* asyncResult, gpointer data)
@@ -482,7 +469,9 @@ static void nextMultipartResponsePartCallback(GObject* /*source*/, GAsyncResult*
 
     d->m_previousPosition = 0;
 
-    handle->didReceiveResponse(ResourceResponse(d->m_response));
+    handle->didReceiveResponse(ResourceResponse(d->m_response), [handle = makeRef(*handle)] {
+        continueAfterDidReceiveResponse(handle.ptr());
+    });
 }
 
 static void sendRequestCallback(GObject*, GAsyncResult* result, gpointer data)
@@ -532,16 +521,16 @@ static void sendRequestCallback(GObject*, GAsyncResult* result, gpointer data)
         d->m_response.setExpectedContentLength(soup_request_get_content_length(d->m_soupRequest.get()));
     }
 
-#if ENABLE(WEB_TIMING)
     d->m_response.deprecatedNetworkLoadMetrics().responseStart = MonotonicTime::now() - handle->m_requestTime;
-#endif
 
     if (soupMessage && d->m_response.isMultipart())
         d->m_multipartInputStream = adoptGRef(soup_multipart_input_stream_new(soupMessage, inputStream.get()));
     else
         d->m_inputStream = inputStream;
 
-    handle->didReceiveResponse(ResourceResponse(d->m_response));
+    handle->didReceiveResponse(ResourceResponse(d->m_response), [handle = makeRef(*handle)] {
+        continueAfterDidReceiveResponse(handle.ptr());
+    });
 }
 
 void ResourceHandle::platformContinueSynchronousDidReceiveResponse()
@@ -569,7 +558,6 @@ static void continueAfterDidReceiveResponse(ResourceHandle* handle)
         RunLoopSourcePriority::AsyncIONetwork, d->m_cancellable.get(), readCallback, handle);
 }
 
-#if ENABLE(WEB_TIMING)
 void ResourceHandle::didStartRequest()
 {
     getInternal()->m_response.deprecatedNetworkLoadMetrics().requestStart = MonotonicTime::now() - m_requestTime;
@@ -633,7 +621,6 @@ static void networkEventCallback(SoupMessage*, GSocketClientEvent event, GIOStre
         break;
     }
 }
-#endif
 
 static bool createSoupMessageForHandleAndRequest(ResourceHandle* handle, const ResourceRequest& request)
 {
@@ -675,13 +662,11 @@ static bool createSoupMessageForHandleAndRequest(ResourceHandle* handle, const R
     unsigned flags = SOUP_MESSAGE_NO_REDIRECT;
     soup_message_set_flags(d->m_soupMessage.get(), static_cast<SoupMessageFlags>(soup_message_get_flags(d->m_soupMessage.get()) | flags));
 
-#if ENABLE(WEB_TIMING)
 #if SOUP_CHECK_VERSION(2, 49, 91)
     g_signal_connect(d->m_soupMessage.get(), "starting", G_CALLBACK(startingCallback), handle);
 #endif
     g_signal_connect(d->m_soupMessage.get(), "network-event", G_CALLBACK(networkEventCallback), handle);
     g_signal_connect(d->m_soupMessage.get(), "restarted", G_CALLBACK(restartedCallback), handle);
-#endif
 
 #if SOUP_CHECK_VERSION(2, 43, 1)
     soup_message_set_priority(d->m_soupMessage.get(), toSoupMessagePriority(request.priority()));
@@ -771,7 +756,7 @@ bool ResourceHandle::start()
 RefPtr<ResourceHandle> ResourceHandle::releaseForDownload(ResourceHandleClient* downloadClient)
 {
     // We don't adopt the ref, as it will be released by cleanupSoupRequestOperation, which should always run.
-    ResourceHandle* newHandle = new ResourceHandle(d->m_context.get(), firstRequest(), nullptr, d->m_defersLoading, d->m_shouldContentSniff);
+    ResourceHandle* newHandle = new ResourceHandle(d->m_context.get(), firstRequest(), nullptr, d->m_defersLoading, d->m_shouldContentSniff, d->m_shouldContentEncodingSniff);
     newHandle->relaxAdoptionRequirement();
     std::swap(d, newHandle->d);
 
@@ -792,9 +777,7 @@ void ResourceHandle::timeoutFired()
 
 void ResourceHandle::sendPendingRequest()
 {
-#if ENABLE(WEB_TIMING)
     m_requestTime = MonotonicTime::now();
-#endif
 
     if (d->m_firstRequest.timeoutInterval() > 0)
         d->m_timeoutSource.startOneShot(1_s * d->m_firstRequest.timeoutInterval());
@@ -997,7 +980,7 @@ void ResourceHandle::platformSetDefersLoading(bool defersLoading)
     }
 }
 
-void ResourceHandle::platformLoadResourceSynchronously(NetworkingContext*, const ResourceRequest&, StoredCredentials, ResourceError&, ResourceResponse&, Vector<char>&)
+void ResourceHandle::platformLoadResourceSynchronously(NetworkingContext*, const ResourceRequest&, StoredCredentialsPolicy, ResourceError&, ResourceResponse&, Vector<char>&)
 {
     ASSERT_NOT_REACHED();
 }
@@ -1063,18 +1046,6 @@ static void readCallback(GObject*, GAsyncResult* asyncResult, gpointer data)
     handle->ensureReadBuffer();
     g_input_stream_read_async(d->m_inputStream.get(), const_cast<char*>(d->m_soupBuffer->data), d->m_soupBuffer->length, RunLoopSourcePriority::AsyncIONetwork,
         d->m_cancellable.get(), readCallback, handle.get());
-}
-
-void ResourceHandle::continueWillSendRequest(ResourceRequest&& request)
-{
-    ASSERT(!client() || client()->usesAsyncCallbacks());
-    continueAfterWillSendRequest(this, WTFMove(request));
-}
-
-void ResourceHandle::continueDidReceiveResponse()
-{
-    ASSERT(!client() || client()->usesAsyncCallbacks());
-    continueAfterDidReceiveResponse(this);
 }
 
 }

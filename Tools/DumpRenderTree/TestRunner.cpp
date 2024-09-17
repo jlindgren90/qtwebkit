@@ -1019,8 +1019,15 @@ static JSValueRef setMockGeolocationPositionCallback(JSContextRef context, JSObj
         speed = JSValueToNumber(context, arguments[6], 0);
     }
 
+    bool canProvideFloorLevel = false;
+    double floorLevel = 0.;
+    if (argumentCount > 7 && !JSValueIsUndefined(context, arguments[7])) {
+        canProvideFloorLevel = true;
+        floorLevel = JSValueToNumber(context, arguments[7], 0);
+    }
+
     TestRunner* controller = reinterpret_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
-    controller->setMockGeolocationPosition(latitude, longitude, accuracy, canProvideAltitude, altitude, canProvideAltitudeAccuracy, altitudeAccuracy, canProvideHeading, heading, canProvideSpeed, speed);
+    controller->setMockGeolocationPosition(latitude, longitude, accuracy, canProvideAltitude, altitude, canProvideAltitudeAccuracy, altitudeAccuracy, canProvideHeading, heading, canProvideSpeed, speed, canProvideFloorLevel, floorLevel);
 
     return JSValueMakeUndefined(context);
 }
@@ -1326,21 +1333,6 @@ static JSValueRef setValueForUserCallback(JSContextRef context, JSObjectRef func
 
     TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
     controller->setValueForUser(context, arguments[0], value.get());
-
-    return JSValueMakeUndefined(context);
-}
-
-static JSValueRef setViewModeMediaFeatureCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
-{
-    // Has mac implementation
-    if (argumentCount < 1)
-        return JSValueMakeUndefined(context);
-
-    JSRetainPtr<JSStringRef> mode(Adopt, JSValueToStringCopy(context, arguments[0], exception));
-    ASSERT(!*exception);
-
-    TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
-    controller->setViewModeMediaFeature(mode.get());
 
     return JSValueMakeUndefined(context);
 }
@@ -2209,7 +2201,6 @@ JSStaticFunction* TestRunner::staticFunctions()
         { "setUserStyleSheetEnabled", setUserStyleSheetEnabledCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setUserStyleSheetLocation", setUserStyleSheetLocationCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setValueForUser", setValueForUserCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
-        { "setViewModeMediaFeature", setViewModeMediaFeatureCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setWebViewEditable", setWebViewEditableCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setWillSendRequestClearHeader", setWillSendRequestClearHeaderCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setWillSendRequestReturnsNull", setWillSendRequestReturnsNullCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },

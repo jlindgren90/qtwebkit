@@ -42,13 +42,17 @@
 
 namespace WebCore {
 
+class AnimationTimeline;
 class AudioContext;
+class CacheStorageConnection;
 class DOMRect;
 class DOMRectList;
 class DOMURL;
 class DOMWindow;
 class Document;
 class Element;
+class ExtendableEvent;
+class FetchResponse;
 class File;
 class Frame;
 class GCObservation;
@@ -68,21 +72,28 @@ class MemoryInfo;
 class MockCDMFactory;
 class MockContentFilterSettings;
 class MockPageOverlay;
+class MockPaymentCoordinator;
 class NodeList;
 class Page;
+class RTCPeerConnection;
 class Range;
 class RenderedDocumentMarker;
-class RTCPeerConnection;
 class SVGSVGElement;
 class SerializedScriptValue;
 class SourceBuffer;
+class StringCallback;
 class StyleSheet;
 class TimeRanges;
 class TypeConversions;
+class VoidCallback;
 class WebGLRenderingContext;
 class XMLHttpRequest;
 
-class Internals final : public RefCounted<Internals>,  private ContextDestructionObserver
+#if ENABLE(SERVICE_WORKER)
+class ServiceWorker;
+#endif
+
+class Internals final : public RefCounted<Internals>, private ContextDestructionObserver
 #if ENABLE(MEDIA_STREAM)
     , private RealtimeMediaSource::Observer
 #endif
@@ -96,6 +107,9 @@ public:
     ExceptionOr<String> elementRenderTreeAsText(Element&);
     bool hasPausedImageAnimations(Element&);
 
+    bool isPaintingFrequently(Element&);
+    void incrementFrequentPaintCounter(Element&);
+
     String address(Node&);
     bool nodeNeedsStyleRecalc(Node&);
     String styleChangeType(Node&);
@@ -103,6 +117,7 @@ public:
 
     bool isPreloaded(const String& url);
     bool isLoadingFromMemoryCache(const String& url);
+    String fetchResponseSource(FetchResponse&);
     String xhrResponseSource(XMLHttpRequest&);
     bool isSharingStyleSheetContents(HTMLLinkElement&, HTMLLinkElement&);
     bool isStyleSheetLoadingSubresources(HTMLLinkElement&);
@@ -122,8 +137,10 @@ public:
     void setImageFrameDecodingDuration(HTMLImageElement&, float duration);
     void resetImageAnimation(HTMLImageElement&);
     bool isImageAnimating(HTMLImageElement&);
-    void setClearDecoderAfterAsyncFrameRequestForTesting(HTMLImageElement&, bool);
+    void setClearDecoderAfterAsyncFrameRequestForTesting(HTMLImageElement&, bool enabled);
     unsigned imageDecodeCount(HTMLImageElement&);
+    unsigned pdfDocumentCachingCount(HTMLImageElement&);
+    void setLargeImageAsyncDecodingEnabledForTesting(HTMLImageElement&, bool enabled);
 
     void setGridMaxTracksLimit(unsigned);
 
@@ -202,6 +219,7 @@ public:
     ExceptionOr<void> setLowPowerModeEnabled(bool);
 
     ExceptionOr<void> setScrollViewPosition(int x, int y);
+    ExceptionOr<void> unconstrainedScrollTo(Element&, double x, double y);
 
     ExceptionOr<Ref<DOMRect>> layoutViewportRect();
     ExceptionOr<Ref<DOMRect>> visualViewportRect();
@@ -216,8 +234,10 @@ public:
     bool elementShouldAutoComplete(HTMLInputElement&);
     void setEditingValue(HTMLInputElement&, const String&);
     void setAutofilled(HTMLInputElement&, bool enabled);
-    enum class AutoFillButtonType { AutoFillButtonTypeNone, AutoFillButtonTypeContacts, AutoFillButtonTypeCredentials };
+    enum class AutoFillButtonType { None, Contacts, Credentials, StrongPassword, StrongConfirmationPassword };
     void setShowAutoFillButton(HTMLInputElement&, AutoFillButtonType);
+    AutoFillButtonType autoFillButtonType(const HTMLInputElement&);
+    AutoFillButtonType lastAutoFillButtonType(const HTMLInputElement&);
     ExceptionOr<void> scrollElementToRect(Element&, int x, int y, int w, int h);
 
     ExceptionOr<String> autofillFieldName(Element&);
@@ -249,7 +269,7 @@ public:
     ExceptionOr<Ref<DOMRectList>> touchEventRectsForEvent(const String&);
     ExceptionOr<Ref<DOMRectList>> passiveTouchEventListenerRects();
 
-    ExceptionOr<RefPtr<NodeList>> nodesFromRect(Document&, int x, int y, unsigned topPadding, unsigned rightPadding, unsigned bottomPadding, unsigned leftPadding, bool ignoreClipping, bool allowShadowContent, bool allowChildFrameContent) const;
+    ExceptionOr<RefPtr<NodeList>> nodesFromRect(Document&, int x, int y, unsigned topPadding, unsigned rightPadding, unsigned bottomPadding, unsigned leftPadding, bool ignoreClipping, bool allowUserAgentShadowContent, bool allowChildFrameContent) const;
 
     String parserMetaData(JSC::JSValue = JSC::JSValue::JSUndefined);
 
@@ -284,8 +304,6 @@ public:
     unsigned workerThreadCount() const;
     ExceptionOr<bool> areSVGAnimationsPaused() const;
     ExceptionOr<double> svgAnimationsInterval(SVGSVGElement&) const;
-
-    ExceptionOr<void> setDeviceProximity(const String& eventType, double value, double min, double max);
 
     enum {
         // Values need to be kept in sync with Internals.idl.
@@ -428,9 +446,6 @@ public:
 #endif
 
 #if ENABLE(WEB_RTC)
-#if USE(OPENWEBRTC)
-    void enableMockMediaEndpoint();
-#endif
     void emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection&, const String& action);
     void useMockRTCPeerConnectionFactory(const String&);
     void setICECandidateFiltering(bool);
@@ -515,6 +530,7 @@ public:
     String pageMediaState();
 
     void setPageDefersLoading(bool);
+    ExceptionOr<bool> pageDefersLoading();
 
     RefPtr<File> createFile(const String&);
     void queueMicroTask(int);
@@ -538,7 +554,7 @@ public:
 
     String resourceLoadStatisticsForOrigin(const String& origin);
     void setResourceLoadStatisticsEnabled(bool);
-    void setResourceLoadStatisticsShouldThrottleObserverNotifications(bool);
+    void setUserGrantsStorageAccess(bool);
 
 #if ENABLE(STREAMS_API)
     bool isReadableStreamDisturbed(JSC::ExecState&, JSC::JSValue);
@@ -549,6 +565,8 @@ public:
 
     bool isProcessingUserGesture();
     double lastHandledUserGestureTimestamp();
+
+    void withUserGesture(RefPtr<VoidCallback>&&);
 
     RefPtr<GCObservation> observeGC(JSC::JSValue);
 
@@ -600,6 +618,30 @@ public:
 
     String audioSessionCategory() const;
 
+    void clearCacheStorageMemoryRepresentation(DOMPromiseDeferred<void>&&);
+    void cacheStorageEngineRepresentation(DOMPromiseDeferred<IDLDOMString>&&);
+    void setResponseSizeWithPadding(FetchResponse&, uint64_t size);
+    uint64_t responseSizeWithPadding(FetchResponse&) const;
+
+    void setConsoleMessageListener(RefPtr<StringCallback>&&);
+
+#if ENABLE(SERVICE_WORKER)
+    using HasRegistrationPromise = DOMPromiseDeferred<IDLBoolean>;
+    void hasServiceWorkerRegistration(const String& clientURL, HasRegistrationPromise&&);
+    void terminateServiceWorker(ServiceWorker&);
+    bool hasServiceWorkerConnection();
+#endif
+
+#if ENABLE(APPLE_PAY)
+    MockPaymentCoordinator& mockPaymentCoordinator() const;
+#endif
+
+    String timelineDescription(AnimationTimeline&);
+    void pauseTimeline(AnimationTimeline&);
+    void setTimelineCurrentTime(AnimationTimeline&, double);
+
+    void testIncomingSyncIPCMessageWhileWaitingForSyncReply();
+
 private:
     explicit Internals(Document&);
     Document* contextDocument() const;
@@ -620,6 +662,11 @@ private:
 #endif
 
     std::unique_ptr<InspectorStubFrontend> m_inspectorFrontend;
+    RefPtr<CacheStorageConnection> m_cacheStorageConnection;
+
+#if ENABLE(APPLE_PAY)
+    MockPaymentCoordinator* m_mockPaymentCoordinator { nullptr };
+#endif
 };
 
 } // namespace WebCore

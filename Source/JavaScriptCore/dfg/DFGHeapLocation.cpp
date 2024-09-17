@@ -147,6 +147,10 @@ void printInternal(PrintStream& out, LocationKind kind)
     case TypedArrayByteOffsetLoc:
         out.print("TypedArrayByteOffsetLoc");
         return;
+
+    case PrototypeLoc:
+        out.print("PrototypeLoc");
+        return;
         
     case StructureLoc:
         out.print("StructureLoc");
@@ -155,15 +159,31 @@ void printInternal(PrintStream& out, LocationKind kind)
     case RegExpObjectLastIndexLoc:
         out.print("RegExpObjectLastIndexLoc");
         return;
+
     case MapBucketLoc:
         out.print("MapBucketLoc");
         return;
-    case JSMapGetLoc:
-        out.print("JSMapGetLoc");
+
+    case MapBucketHeadLoc:
+        out.print("MapBucketHeadLoc");
         return;
-    case MapHasLoc:
-        out.print("MapHasLoc");
+
+    case MapBucketKeyLoc:
+        out.print("MapBucketKeyLoc");
         return;
+
+    case MapBucketValueLoc:
+        out.print("MapBucketValueLoc");
+        return;
+
+    case MapBucketNextLoc:
+        out.print("MapBucketNextLoc");
+        return;
+
+    case WeakMapGetLoc:
+        out.print("WeakMapGetLoc");
+        return;
+
     case DOMStateLoc:
         out.print("DOMStateLoc");
         return;

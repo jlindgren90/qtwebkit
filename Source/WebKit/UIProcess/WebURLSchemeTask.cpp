@@ -35,16 +35,17 @@ using namespace WebCore;
 
 namespace WebKit {
 
-Ref<WebURLSchemeTask> WebURLSchemeTask::create(WebURLSchemeHandler& handler, WebPageProxy& page, uint64_t resourceIdentifier, const ResourceRequest& request)
+Ref<WebURLSchemeTask> WebURLSchemeTask::create(WebURLSchemeHandler& handler, WebPageProxy& page, uint64_t resourceIdentifier, ResourceRequest&& request)
 {
-    return adoptRef(*new WebURLSchemeTask(handler, page, resourceIdentifier, request));
+    return adoptRef(*new WebURLSchemeTask(handler, page, resourceIdentifier, WTFMove(request)));
 }
 
-WebURLSchemeTask::WebURLSchemeTask(WebURLSchemeHandler& handler, WebPageProxy& page, uint64_t resourceIdentifier, const ResourceRequest& request)
+WebURLSchemeTask::WebURLSchemeTask(WebURLSchemeHandler& handler, WebPageProxy& page, uint64_t resourceIdentifier, ResourceRequest&& request)
     : m_urlSchemeHandler(handler)
     , m_page(&page)
     , m_identifier(resourceIdentifier)
-    , m_request(request)
+    , m_pageIdentifier(page.pageID())
+    , m_request(WTFMove(request))
 {
 }
 
@@ -115,6 +116,8 @@ auto WebURLSchemeTask::didComplete(const ResourceError& error) -> ExceptionType
 
     m_completed = true;
     m_page->send(Messages::WebPage::URLSchemeTaskDidComplete(m_urlSchemeHandler->identifier(), m_identifier, error));
+    m_urlSchemeHandler->taskCompleted(*this);
+
     return ExceptionType::None;
 }
 

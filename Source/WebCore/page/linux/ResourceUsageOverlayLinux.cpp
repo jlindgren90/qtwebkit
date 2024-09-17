@@ -80,12 +80,10 @@ public:
         m_textFont.update(nullptr);
     }
 
-    ~ResourceUsageOverlayPainter()
-    {
-    }
+    ~ResourceUsageOverlayPainter() = default;
 
 private:
-    void paintContents(const GraphicsLayer*, GraphicsContext& context, GraphicsLayerPaintingPhase, const FloatRect& clip, GraphicsLayerPaintFlags) override
+    void paintContents(const GraphicsLayer*, GraphicsContext& context, GraphicsLayerPaintingPhase, const FloatRect& clip, GraphicsLayerPaintBehavior) override
     {
         GraphicsContextStateSaver stateSaver(context);
         context.fillRect(clip, Color(0.0f, 0.0f, 0.0f, 0.8f));

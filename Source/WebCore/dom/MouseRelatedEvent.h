@@ -55,6 +55,7 @@ public:
     WEBCORE_EXPORT int offsetX();
     WEBCORE_EXPORT int offsetY();
     bool isSimulated() const { return m_isSimulated; }
+    void setIsSimulated(bool value) { m_isSimulated = value; }
     int pageX() const final;
     int pageY() const final;
     WEBCORE_EXPORT FloatPoint locationInRootViewCoordinates() const;
@@ -65,10 +66,15 @@ public:
     // Page point in "absolute" coordinates (i.e. post-zoomed, page-relative coords,
     // usable with RenderObject::absoluteToLocal).
     const LayoutPoint& absoluteLocation() const { return m_absoluteLocation; }
+    
+    static FrameView* frameViewFromDOMWindow(DOMWindow*);
+
+    static LayoutPoint pagePointToClientPoint(LayoutPoint pagePoint, FrameView*);
+    static LayoutPoint pagePointToAbsolutePoint(LayoutPoint pagePoint, FrameView*);
 
 protected:
     MouseRelatedEvent() = default;
-    MouseRelatedEvent(const AtomicString& type, bool canBubble, bool cancelable, double timestamp, DOMWindow*,
+    MouseRelatedEvent(const AtomicString& type, bool canBubble, bool cancelable, MonotonicTime timestamp, DOMWindow*,
         int detail, const IntPoint& screenLocation, const IntPoint& windowLocation,
 #if ENABLE(POINTER_LOCK)
         const IntPoint& movementDelta,
@@ -84,7 +90,6 @@ protected:
     void computeRelativePosition();
 
     float documentToAbsoluteScaleFactor() const;
-    FrameView* frameView() const;
 
     // Expose these so MouseEvent::initMouseEvent can set them.
     IntPoint m_screenLocation;

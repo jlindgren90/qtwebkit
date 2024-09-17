@@ -79,7 +79,7 @@ using PlatformCursor = NSCursor *;
 using PlatformCursor = GRefPtr<GdkCursor>;
 #elif PLATFORM(QT)
 using PlatformCursor = QCursor*;
-#elif PLATFORM(WPE)
+#else
 using PlatformCursor = void*;
 #endif
 

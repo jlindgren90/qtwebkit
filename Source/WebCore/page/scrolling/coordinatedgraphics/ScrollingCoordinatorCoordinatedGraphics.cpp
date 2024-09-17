@@ -24,10 +24,9 @@
  */
 
 #include "config.h"
+#include "ScrollingCoordinatorCoordinatedGraphics.h"
 
 #if USE(COORDINATED_GRAPHICS)
-
-#include "ScrollingCoordinatorCoordinatedGraphics.h"
 
 #include "CoordinatedGraphicsLayer.h"
 #include "FrameView.h"
@@ -49,9 +48,7 @@ ScrollingCoordinatorCoordinatedGraphics::ScrollingCoordinatorCoordinatedGraphics
 {
 }
 
-ScrollingCoordinatorCoordinatedGraphics::~ScrollingCoordinatorCoordinatedGraphics()
-{
-}
+ScrollingCoordinatorCoordinatedGraphics::~ScrollingCoordinatorCoordinatedGraphics() = default;
 
 ScrollingNodeID ScrollingCoordinatorCoordinatedGraphics::attachToStateTree(ScrollingNodeType nodeType, ScrollingNodeID newNodeID, ScrollingNodeID parentID)
 {
@@ -60,7 +57,7 @@ ScrollingNodeID ScrollingCoordinatorCoordinatedGraphics::attachToStateTree(Scrol
 
 void ScrollingCoordinatorCoordinatedGraphics::detachFromStateTree(ScrollingNodeID nodeID)
 {
-    ScrollingStateNode* node = m_scrollingStateTree->stateNodeForID(nodeID);
+    auto* node = m_scrollingStateTree->stateNodeForID(nodeID);
     if (node && node->nodeType() == FixedNode)
         downcast<CoordinatedGraphicsLayer>(*static_cast<GraphicsLayer*>(node->layer())).setFixedToViewport(false);
 
@@ -72,16 +69,26 @@ void ScrollingCoordinatorCoordinatedGraphics::clearStateTree()
     m_scrollingStateTree->clear();
 }
 
-void ScrollingCoordinatorCoordinatedGraphics::updateViewportConstrainedNode(ScrollingNodeID nodeID, const ViewportConstraints& constraints, GraphicsLayer* graphicsLayer)
+void ScrollingCoordinatorCoordinatedGraphics::updateNodeLayer(ScrollingNodeID nodeID, GraphicsLayer* graphicsLayer)
 {
-    ScrollingStateNode* node = m_scrollingStateTree->stateNodeForID(nodeID);
+    auto* node = m_scrollingStateTree->stateNodeForID(nodeID);
+    if (!node)
+        return;
+
+    node->setLayer(graphicsLayer);
+}
+
+void ScrollingCoordinatorCoordinatedGraphics::updateNodeViewportConstraints(ScrollingNodeID nodeID, const ViewportConstraints& constraints)
+{
+    auto* node = m_scrollingStateTree->stateNodeForID(nodeID);
     if (!node)
         return;
 
     switch (constraints.constraintType()) {
     case ViewportConstraints::FixedPositionConstraint: {
-        downcast<CoordinatedGraphicsLayer>(*graphicsLayer).setFixedToViewport(true);
-        downcast<ScrollingStateFixedNode>(*node).setLayer(graphicsLayer);
+        auto& layer = node->layer();
+        if (layer.representsGraphicsLayer())
+            downcast<CoordinatedGraphicsLayer>(static_cast<GraphicsLayer*>(layer))->setFixedToViewport(true);
         break;
     }
     case ViewportConstraints::StickyPositionConstraint:
@@ -93,7 +100,7 @@ void ScrollingCoordinatorCoordinatedGraphics::updateViewportConstrainedNode(Scro
 
 void ScrollingCoordinatorCoordinatedGraphics::scrollableAreaScrollLayerDidChange(ScrollableArea& scrollableArea)
 {
-    CoordinatedGraphicsLayer* layer = downcast<CoordinatedGraphicsLayer>(scrollLayerForScrollableArea(scrollableArea));
+    auto* layer = downcast<CoordinatedGraphicsLayer>(scrollLayerForScrollableArea(scrollableArea));
     if (!layer)
         return;
 
@@ -102,7 +109,7 @@ void ScrollingCoordinatorCoordinatedGraphics::scrollableAreaScrollLayerDidChange
 
 void ScrollingCoordinatorCoordinatedGraphics::willDestroyScrollableArea(ScrollableArea& scrollableArea)
 {
-    CoordinatedGraphicsLayer* layer = downcast<CoordinatedGraphicsLayer>(scrollLayerForScrollableArea(scrollableArea));
+    auto* layer = downcast<CoordinatedGraphicsLayer>(scrollLayerForScrollableArea(scrollableArea));
     if (!layer)
         return;
 

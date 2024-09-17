@@ -75,7 +75,7 @@ public:
     typedef HashMap<String, String> ParameterMap;
 
 private:
-    XSLTProcessor() { }
+    XSLTProcessor() = default;
 
     RefPtr<XSLStyleSheet> m_stylesheet;
     RefPtr<Node> m_stylesheetRootNode;

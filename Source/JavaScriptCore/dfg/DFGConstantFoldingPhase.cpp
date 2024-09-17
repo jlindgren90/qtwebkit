@@ -135,21 +135,53 @@ private:
             }
 
             case CompareEq: {
-                if (!m_interpreter.needsTypeCheck(node->child1(), SpecOther))
-                    node->child1().setUseKind(OtherUse);
-                if (!m_interpreter.needsTypeCheck(node->child2(), SpecOther))
-                    node->child2().setUseKind(OtherUse);
+                // FIXME: We should add back the broken folding phase here for comparisions where we prove at least one side has type SpecOther.
+                // See: https://bugs.webkit.org/show_bug.cgi?id=174844
                 break;
             }
-                
+
+            case CompareStrictEq: {
+                if (node->isBinaryUseKind(UntypedUse)) {
+                    JSValue child1Constant = m_state.forNode(node->child1().node()).value();
+                    JSValue child2Constant = m_state.forNode(node->child2().node()).value();
+
+                    // FIXME: Revisit this condition when introducing BigInt to JSC.
+                    auto isNonStringCellConstant = [] (JSValue value) {
+                        return value && value.isCell() && !value.isString();
+                    };
+
+                    if (isNonStringCellConstant(child1Constant)) {
+                        node->convertToCompareEqPtr(m_graph.freezeStrong(child1Constant.asCell()), node->child2());
+                        changed = true;
+                    } else if (isNonStringCellConstant(child2Constant)) {
+                        node->convertToCompareEqPtr(m_graph.freezeStrong(child2Constant.asCell()), node->child1());
+                        changed = true;
+                    }
+                }
+                break;
+            }
+
+            case CheckStructureOrEmpty: {
+                const AbstractValue& value = m_state.forNode(node->child1());
+                if (value.m_type & SpecEmpty)
+                    break;
+                node->convertCheckStructureOrEmptyToCheckStructure();
+                changed = true;
+                FALLTHROUGH;
+            }
             case CheckStructure:
             case ArrayifyToStructure: {
                 AbstractValue& value = m_state.forNode(node->child1());
                 RegisteredStructureSet set;
                 if (node->op() == ArrayifyToStructure)
                     set = node->structure();
-                else
+                else {
                     set = node->structureSet();
+                    if ((SpecCellCheck & SpecEmpty) && node->child1().useKind() == CellUse && m_state.forNode(node->child1()).m_type & SpecEmpty) {
+                        m_insertionSet.insertNode(
+                            indexInBlock, SpecNone, AssertNotEmpty, node->origin, Edge(node->child1().node(), UntypedUse));
+                    }
+                }
                 if (value.m_structure.isSubsetOf(set)) {
                     m_interpreter.execute(indexInBlock); // Catch the fact that we may filter on cell.
                     node->remove();
@@ -266,6 +298,7 @@ private:
                 break;
             }
 
+            case AssertNotEmpty:
             case CheckNotEmpty: {
                 if (m_state.forNode(node->child1()).m_type & SpecEmpty)
                     break;
@@ -315,11 +348,15 @@ private:
             case GetMyArgumentByVal:
             case GetMyArgumentByValOutOfBounds: {
                 JSValue indexValue = m_state.forNode(node->child2()).value();
-                if (!indexValue || !indexValue.isInt32())
+                if (!indexValue || !indexValue.isUInt32())
                     break;
 
-                unsigned index = indexValue.asUInt32() + node->numberOfArgumentsToSkip();
+                Checked<unsigned, RecordOverflow> checkedIndex = indexValue.asUInt32();
+                checkedIndex += node->numberOfArgumentsToSkip();
+                if (checkedIndex.hasOverflowed())
+                    break;
                 
+                unsigned index = checkedIndex.unsafeGet();
                 Node* arguments = node->child1().node();
                 InlineCallFrame* inlineCallFrame = arguments->origin.semantic.inlineCallFrame;
                 
@@ -337,7 +374,7 @@ private:
                 // GetMyArgumentByVal in such statically-out-of-bounds accesses; we just lose CFA unless
                 // GCSE removes the access entirely.
                 if (inlineCallFrame) {
-                    if (index >= inlineCallFrame->arguments.size() - 1)
+                    if (index >= inlineCallFrame->argumentCountIncludingThis - 1)
                         break;
                 } else {
                     if (index >= m_state.variables().numberOfArguments() - 1)
@@ -358,7 +395,7 @@ private:
                         virtualRegisterForArgument(index + 1), FlushedJSValue);
                 }
                 
-                if (inlineCallFrame && !inlineCallFrame->isVarargs() && index < inlineCallFrame->arguments.size() - 1) {
+                if (inlineCallFrame && !inlineCallFrame->isVarargs() && index < inlineCallFrame->argumentCountIncludingThis - 1) {
                     node->convertToGetStack(data);
                     eliminated = true;
                     break;
@@ -585,7 +622,22 @@ private:
             }
 
             case ToThis: {
-                if (!isToThisAnIdentity(m_graph.executableFor(node->origin.semantic)->isStrictMode(), m_state.forNode(node->child1())))
+                ToThisResult result = isToThisAnIdentity(m_graph.m_vm, m_graph.executableFor(node->origin.semantic)->isStrictMode(), m_state.forNode(node->child1()));
+                if (result == ToThisResult::Identity) {
+                    node->convertToIdentity();
+                    changed = true;
+                    break;
+                }
+                if (result == ToThisResult::GlobalThis) {
+                    node->convertToGetGlobalThis();
+                    changed = true;
+                    break;
+                }
+                break;
+            }
+
+            case ToNumber: {
+                if (m_state.forNode(node->child1()).m_type & ~SpecBytecodeNumber)
                     break;
 
                 node->convertToIdentity();
@@ -593,8 +645,9 @@ private:
                 break;
             }
 
-            case ToNumber: {
-                if (m_state.forNode(node->child1()).m_type & ~SpecBytecodeNumber)
+            case NormalizeMapKey: {
+                SpeculatedType typeMaybeNormalized = (SpecFullNumber & ~SpecInt32Only);
+                if (m_state.forNode(node->child1()).m_type & typeMaybeNormalized)
                     break;
 
                 node->convertToIdentity();
@@ -622,6 +675,23 @@ private:
                     changed = true;
                 }
 
+                break;
+            }
+
+            case NumberToStringWithRadix: {
+                JSValue radixValue = m_state.forNode(node->child2()).m_value;
+                if (radixValue && radixValue.isInt32()) {
+                    int32_t radix = radixValue.asInt32();
+                    if (2 <= radix && radix <= 36) {
+                        if (radix == 10) {
+                            node->setOpAndDefaultFlags(ToString);
+                            node->child2() = Edge();
+                        } else
+                            node->convertToNumberToStringWithValidRadixConstant(radix);
+                        changed = true;
+                        break;
+                    }
+                }
                 break;
             }
 

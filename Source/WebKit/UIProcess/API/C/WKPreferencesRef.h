@@ -300,6 +300,13 @@ WK_EXPORT void WKPreferencesSetApplePayCapabilityDisclosureAllowed(WKPreferences
 WK_EXPORT bool WKPreferencesGetLegacyEncryptedMediaAPIEnabled(WKPreferencesRef preferencesRef);
 WK_EXPORT void WKPreferencesSetLegacyEncryptedMediaAPIEnabled(WKPreferencesRef preferencesRef, bool enabled);
 
+// Defaults to true.
+WK_EXPORT bool WKPreferencesGetAllowMediaContentTypesRequiringHardwareSupportAsFallback(WKPreferencesRef preferencesRef);
+WK_EXPORT void WKPreferencesSetAllowMediaContentTypesRequiringHardwareSupportAsFallback(WKPreferencesRef preferencesRef, bool allow);
+
+WK_EXPORT bool WKPreferencesGetMediaCapabilitiesEnabled(WKPreferencesRef preferencesRef);
+WK_EXPORT void WKPreferencesSetMediaCapabilitiesEnabled(WKPreferencesRef preferencesRef, bool enabled);
+
 #ifdef __cplusplus
 }
 #endif

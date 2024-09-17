@@ -174,7 +174,7 @@ public:
             // We explicitly specify the superclass encodedDataStatus() because we
             // merely want to check if we've managed to set the size, not
             // (recursively) trigger additional decoding if we haven't.
-            if (sizeOnly ? decoder->ImageDecoder::encodedDataStatus() >= EncodedDataStatus::SizeAvailable : decoder->isCompleteAtIndex(haltAtFrame))
+            if (sizeOnly ? decoder->ScalableImageDecoder::encodedDataStatus() >= EncodedDataStatus::SizeAvailable : decoder->isCompleteAtIndex(haltAtFrame))
                 return true;
         }
         return false;
@@ -203,7 +203,7 @@ private:
 };
 
 PNGImageDecoder::PNGImageDecoder(AlphaOption alphaOption, GammaAndColorProfileOption gammaAndColorProfileOption)
-    : ImageDecoder(alphaOption, gammaAndColorProfileOption)
+    : ScalableImageDecoder(alphaOption, gammaAndColorProfileOption)
     , m_doNothingOnFailure(false)
     , m_currentFrame(0)
 #if ENABLE(APNG)
@@ -232,9 +232,7 @@ PNGImageDecoder::PNGImageDecoder(AlphaOption alphaOption, GammaAndColorProfileOp
 {
 }
 
-PNGImageDecoder::~PNGImageDecoder()
-{
-}
+PNGImageDecoder::~PNGImageDecoder() = default;
 
 #if ENABLE(APNG)
 RepetitionCount PNGImageDecoder::repetitionCount() const
@@ -250,7 +248,7 @@ RepetitionCount PNGImageDecoder::repetitionCount() const
 
 bool PNGImageDecoder::setSize(const IntSize& size)
 {
-    if (!ImageDecoder::setSize(size))
+    if (!ScalableImageDecoder::setSize(size))
         return false;
 
     prepareScaleDataIfNecessary();
@@ -260,7 +258,7 @@ bool PNGImageDecoder::setSize(const IntSize& size)
 ImageFrame* PNGImageDecoder::frameBufferAtIndex(size_t index)
 {
 #if ENABLE(APNG)
-    if (ImageDecoder::encodedDataStatus() < EncodedDataStatus::SizeAvailable)
+    if (ScalableImageDecoder::encodedDataStatus() < EncodedDataStatus::SizeAvailable)
         return nullptr;
 
     if (index >= frameCount())
@@ -271,7 +269,7 @@ ImageFrame* PNGImageDecoder::frameBufferAtIndex(size_t index)
 #endif
 
     if (m_frameBufferCache.isEmpty())
-        m_frameBufferCache.resize(1);
+        m_frameBufferCache.grow(1);
 
     ImageFrame& frame = m_frameBufferCache[index];
     if (!frame.isComplete())
@@ -284,7 +282,7 @@ bool PNGImageDecoder::setFailed()
     if (m_doNothingOnFailure)
         return false;
     m_reader = nullptr;
-    return ImageDecoder::setFailed();
+    return ScalableImageDecoder::setFailed();
 }
 
 void PNGImageDecoder::headerAvailable()
@@ -451,7 +449,7 @@ void PNGImageDecoder::rowAvailable(unsigned char* rowBuffer, unsigned rowIndex, 
             }
         }
 
-        buffer.setDecodingStatus(ImageFrame::DecodingStatus::Partial);
+        buffer.setDecodingStatus(DecodingStatus::Partial);
         buffer.setHasAlpha(false);
 
 #if ENABLE(APNG)
@@ -520,28 +518,16 @@ void PNGImageDecoder::rowAvailable(unsigned char* rowBuffer, unsigned rowIndex, 
     int width = scaledSize().width();
     unsigned char nonTrivialAlphaMask = 0;
 
-#if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
-    if (m_scaled) {
-        for (int x = 0; x < width; ++x, ++address) {
-            png_bytep pixel = row + m_scaledColumns[x] * colorChannels;
-            unsigned alpha = hasAlpha ? pixel[3] : 255;
+    png_bytep pixel = row;
+    if (hasAlpha) {
+        for (int x = 0; x < width; ++x, pixel += 4, ++address) {
+            unsigned alpha = pixel[3];
             buffer.backingStore()->setPixel(address, pixel[0], pixel[1], pixel[2], alpha);
             nonTrivialAlphaMask |= (255 - alpha);
         }
-    } else
-#endif
-    {
-        png_bytep pixel = row;
-        if (hasAlpha) {
-            for (int x = 0; x < width; ++x, pixel += 4, ++address) {
-                unsigned alpha = pixel[3];
-                buffer.backingStore()->setPixel(address, pixel[0], pixel[1], pixel[2], alpha);
-                nonTrivialAlphaMask |= (255 - alpha);
-            }
-        } else {
-            for (int x = 0; x < width; ++x, pixel += 3, ++address)
-                *address = makeRGB(pixel[0], pixel[1], pixel[2]);
-        }
+    } else {
+        for (int x = 0; x < width; ++x, pixel += 3, ++address)
+            *address = makeRGB(pixel[0], pixel[1], pixel[2]);
     }
 
     if (nonTrivialAlphaMask && !buffer.hasAlpha())
@@ -559,7 +545,7 @@ void PNGImageDecoder::pngComplete()
     }
 #endif
     if (!m_frameBufferCache.isEmpty())
-        m_frameBufferCache.first().setDecodingStatus(ImageFrame::DecodingStatus::Complete);
+        m_frameBufferCache.first().setDecodingStatus(DecodingStatus::Complete);
 }
 
 void PNGImageDecoder::decode(bool onlySize, unsigned haltAtFrame, bool allDataReceived)
@@ -645,15 +631,15 @@ void PNGImageDecoder::readChunks(png_unknown_chunkp chunk)
         }
 
         if (m_frameBufferCache.isEmpty())
-            m_frameBufferCache.resize(1);
+            m_frameBufferCache.grow(1);
 
         if (m_currentFrame < m_frameBufferCache.size()) {
             ImageFrame& buffer = m_frameBufferCache[m_currentFrame];
 
             if (!m_delayDenominator)
-                buffer.setDuration(m_delayNumerator * 10);
+                buffer.setDuration(Seconds::fromMilliseconds(m_delayNumerator * 10));
             else
-                buffer.setDuration(m_delayNumerator * 1000 / m_delayDenominator);
+                buffer.setDuration(Seconds::fromMilliseconds(m_delayNumerator * 1000 / m_delayDenominator));
 
             if (m_dispose == 2)
                 buffer.setDisposalMethod(ImageFrame::DisposalMethod::RestoreToPrevious);
@@ -826,7 +812,7 @@ void PNGImageDecoder::frameComplete()
         return;
 
     ImageFrame& buffer = m_frameBufferCache[m_currentFrame];
-    buffer.setDecodingStatus(ImageFrame::DecodingStatus::Complete);
+    buffer.setDecodingStatus(DecodingStatus::Complete);
 
     png_bytep interlaceBuffer = m_reader->interlaceBuffer();
 
@@ -838,21 +824,6 @@ void PNGImageDecoder::frameComplete()
         if (m_blend && !hasAlpha)
             m_blend = 0;
 
-#if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
-        for (int y = 0; y < rect.maxY() - rect.y(); ++y) {
-            png_bytep row = interlaceBuffer + (m_scaled ? m_scaledRows[y] : y) * colorChannels * size().width();
-            RGBA32* address = buffer.backingStore()->pixelAt(rect.x(), y + rect.y());
-            for (int x = 0; x < rect.maxX() - rect.x(); ++x) {
-                png_bytep pixel = row + (m_scaled ? m_scaledColumns[x] : x) * colorChannels;
-                unsigned alpha = hasAlpha ? pixel[3] : 255;
-                nonTrivialAlpha |= alpha < 255;
-                if (!m_blend)
-                    buffer.backingStore()->setPixel(address++, pixel[0], pixel[1], pixel[2], alpha);
-                else
-                    buffer.backingStore()->blendPixel(address++, pixel[0], pixel[1], pixel[2], alpha);
-            }
-        }
-#else
         ASSERT(!m_scaled);
         png_bytep row = interlaceBuffer;
         for (int y = rect.y(); y < rect.maxY(); ++y, row += colorChannels * size().width()) {
@@ -867,7 +838,6 @@ void PNGImageDecoder::frameComplete()
                     buffer.backingStore()->blendPixel(address++, pixel[0], pixel[1], pixel[2], alpha);
             }
         }
-#endif
 
         if (!nonTrivialAlpha) {
             IntRect rect = buffer.backingStore()->frameRect();

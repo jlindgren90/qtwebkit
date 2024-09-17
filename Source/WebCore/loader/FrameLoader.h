@@ -36,11 +36,12 @@
 #include "FrameLoaderTypes.h"
 #include "LayoutMilestones.h"
 #include "MixedContentChecker.h"
-#include "ResourceHandleTypes.h"
+#include "ReferrerPolicy.h"
 #include "ResourceLoadNotifier.h"
 #include "ResourceLoaderOptions.h"
 #include "ResourceRequestBase.h"
 #include "SecurityContext.h"
+#include "StoredCredentialsPolicy.h"
 #include "Timer.h"
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
@@ -66,7 +67,6 @@ class FrameLoaderClient;
 class FrameNetworkingContext;
 class HistoryController;
 class HistoryItem;
-class IconController;
 class NavigationAction;
 class NetworkingContext;
 class Page;
@@ -84,6 +84,8 @@ struct WindowFeatures;
 WEBCORE_EXPORT bool isBackForwardLoadType(FrameLoadType);
 WEBCORE_EXPORT bool isReload(FrameLoadType);
 
+using ContentPolicyDecisionFunction = WTF::Function<void(PolicyAction)>;
+
 class FrameLoader {
     WTF_MAKE_NONCOPYABLE(FrameLoader);
 public:
@@ -91,9 +93,7 @@ public:
     ~FrameLoader();
 
     WEBCORE_EXPORT void init();
-#if PLATFORM(IOS)
     void initForSynthesizedDocument(const URL&);
-#endif
 
     Frame& frame() const { return m_frame; }
 
@@ -101,7 +101,6 @@ public:
     HistoryController& history() const { return *m_history; }
     ResourceLoadNotifier& notifier() const { return m_notifier; }
     SubframeLoader& subframeLoader() const { return *m_subframeLoader; }
-    IconController& icon() const { return *m_icon; }
     MixedContentChecker& mixedContentChecker() const { return m_mixedContentChecker; }
 
     void setupForReplace();
@@ -115,7 +114,7 @@ public:
 #if ENABLE(WEB_ARCHIVE) || ENABLE(MHTML)
     WEBCORE_EXPORT void loadArchive(Ref<Archive>&&);
 #endif
-    unsigned long loadResourceSynchronously(const ResourceRequest&, StoredCredentials, ClientCredentialPolicy, ResourceError&, ResourceResponse&, RefPtr<SharedBuffer>& data);
+    unsigned long loadResourceSynchronously(const ResourceRequest&, StoredCredentialsPolicy, ClientCredentialPolicy, ResourceError&, ResourceResponse&, RefPtr<SharedBuffer>& data);
 
     void changeLocation(FrameLoadRequest&&);
     WEBCORE_EXPORT void urlSelected(const URL&, const String& target, Event*, LockHistory, LockBackForwardList, ShouldSendReferrer, ShouldOpenExternalURLsPolicy, std::optional<NewFrameOpenerPolicy> = std::nullopt, const AtomicString& downloadAttribute = nullAtom());
@@ -147,6 +146,8 @@ public:
     WEBCORE_EXPORT bool frameHasLoaded() const;
 
     WEBCORE_EXPORT int numPendingOrLoadingRequests(bool recurse) const;
+
+    ReferrerPolicy effectiveReferrerPolicy() const;
     String referrer() const;
     WEBCORE_EXPORT String outgoingReferrer() const;
     String outgoingOrigin() const;
@@ -157,6 +158,9 @@ public:
     DocumentLoader* provisionalDocumentLoader() const { return m_provisionalDocumentLoader.get(); }
     FrameState state() const { return m_state; }
 
+    void setShouldReportResourceTimingToParentFrame(bool value) { m_shouldReportResourceTimingToParentFrame = value; }
+    bool shouldReportResourceTimingToParentFrame() { return m_shouldReportResourceTimingToParentFrame; };
+    
 #if PLATFORM(IOS)
     RetainPtr<CFDictionaryRef> connectionProperties(ResourceLoader*);
 #endif
@@ -192,7 +196,7 @@ public:
     void didReachLayoutMilestone(LayoutMilestones);
     void didFirstLayout();
 
-    void loadedResourceFromMemoryCache(CachedResource*, ResourceRequest& newRequest);
+    void loadedResourceFromMemoryCache(CachedResource&, ResourceRequest& newRequest, ResourceError&);
     void tellClientAboutPastMemoryCacheLoads();
 
     void checkLoadComplete();
@@ -208,6 +212,8 @@ public:
     FrameLoaderClient& client() const { return m_client; }
 
     void setDefersLoading(bool);
+
+    void checkContentPolicy(const ResourceResponse&, ContentPolicyDecisionFunction&&);
 
     void didExplicitOpen();
 
@@ -255,7 +261,7 @@ public:
 
     WEBCORE_EXPORT Frame* findFrameForNavigation(const AtomicString& name, Document* activeDocument = nullptr);
 
-    void applyUserAgent(ResourceRequest&);
+    void applyUserAgentIfNeeded(ResourceRequest&);
 
     bool shouldInterruptLoadForXFrameOptions(const String&, const URL&, unsigned long requestIdentifier);
 
@@ -263,11 +269,6 @@ public:
     bool allAncestorsAreComplete() const; // including this
     void clientRedirected(const URL&, double delay, double fireDate, LockBackForwardList);
     void clientRedirectCancelledOrFinished(bool cancelWithLoadInProgress);
-
-    // FIXME: This is public because this asynchronous callback from the FrameLoaderClient
-    // uses the policy machinery (and therefore is called via the PolicyChecker).  Once we
-    // introduce a proper callback type for this function, we should make it private again.
-    void continueLoadAfterWillSubmitForm();
 
     WEBCORE_EXPORT void setOriginalURLForDownloadRequest(ResourceRequest&);
 
@@ -299,7 +300,8 @@ public:
     void setProvisionalLoadErrorBeingHandledURL(const URL& url) { m_provisionalLoadErrorBeingHandledURL = url; }
 
     bool isAlwaysOnLoggingAllowed() const;
-    bool shouldSuppressKeyboardInput() const;
+    bool shouldSuppressTextInputFromEditing() const;
+    bool isReloadingFromOrigin() const { return m_loadType == FrameLoadType::ReloadFromOrigin; }
 
 private:
     enum FormSubmissionCacheLoadPolicy {
@@ -396,7 +398,6 @@ private:
     mutable ResourceLoadNotifier m_notifier;
     const std::unique_ptr<SubframeLoader> m_subframeLoader;
     mutable FrameLoaderStateMachine m_stateMachine;
-    const std::unique_ptr<IconController> m_icon;
     mutable MixedContentChecker m_mixedContentChecker;
 
     class FrameProgressTracker;
@@ -418,6 +419,7 @@ private:
     bool m_quickRedirectComing;
     bool m_sentRedirectNotification;
     bool m_inStopAllLoaders;
+    bool m_shouldReportResourceTimingToParentFrame { true };
 
     String m_outgoingReferrer;
 

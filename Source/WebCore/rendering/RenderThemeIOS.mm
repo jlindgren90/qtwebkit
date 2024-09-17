@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005, 2006, 2007, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2005-2017 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,6 +24,7 @@
  */
 
 #import "config.h"
+#import "RenderThemeIOS.h"
 
 #if PLATFORM(IOS)
 
@@ -31,7 +32,6 @@
 #import "CSSPrimitiveValue.h"
 #import "CSSToLengthConversionData.h"
 #import "CSSValueKeywords.h"
-#import "CoreTextSPI.h"
 #import "DateComponents.h"
 #import "Document.h"
 #import "File.h"
@@ -60,16 +60,16 @@
 #import "RenderObject.h"
 #import "RenderProgress.h"
 #import "RenderStyle.h"
-#import "RenderThemeIOS.h"
 #import "RenderView.h"
 #import "RuntimeEnabledFeatures.h"
-#import "UIKitSPI.h"
 #import "UTIUtilities.h"
 #import "UserAgentScripts.h"
 #import "UserAgentStyleSheets.h"
 #import "WebCoreThreadRun.h"
 #import <CoreGraphics/CoreGraphics.h>
 #import <objc/runtime.h>
+#import <pal/spi/cocoa/CoreTextSPI.h>
+#import <pal/spi/ios/UIKitSPI.h>
 #import <wtf/NeverDestroyed.h>
 #import <wtf/RefPtr.h>
 #import <wtf/SoftLinking.h>
@@ -297,13 +297,8 @@ RenderThemeIOS::RenderThemeIOS()
 
 RenderTheme& RenderTheme::singleton()
 {
-    static NeverDestroyed<Ref<RenderTheme>> theme(RenderThemeIOS::create());
-    return theme.get();
-}
-
-Ref<RenderTheme> RenderThemeIOS::create()
-{
-    return adoptRef(*new RenderThemeIOS);
+    static NeverDestroyed<RenderThemeIOS> theme;
+    return theme;
 }
 
 static String& _contentSizeCategory()
@@ -357,7 +352,7 @@ void RenderThemeIOS::adjustCheckboxStyle(StyleResolver&, RenderStyle& style, con
     if (!style.width().isIntrinsicOrAuto() && !style.height().isAuto())
         return;
 
-    int size = std::max(style.fontSize(), 10);
+    int size = std::max(style.computedFontPixelSize(), 10U);
     style.setWidth({ size, Fixed });
     style.setHeight({ size, Fixed });
 }
@@ -460,7 +455,7 @@ void RenderThemeIOS::adjustRadioStyle(StyleResolver&, RenderStyle& style, const 
     if (!style.width().isIntrinsicOrAuto() && !style.height().isAuto())
         return;
 
-    int size = std::max(style.fontSize(), 10);
+    int size = std::max(style.computedFontPixelSize(), 10U);
     style.setWidth({ size, Fixed });
     style.setHeight({ size, Fixed });
     style.setBorderRadius({ size / 2, size / 2 });
@@ -902,7 +897,7 @@ bool RenderThemeIOS::paintProgressBar(const RenderObject& renderer, const PaintI
     context.setStrokeStyle(SolidStroke);
 
     const float verticalRenderingPosition = rect.y() + verticalOffset;
-    RefPtr<Gradient> strokeGradient = Gradient::create(FloatPoint(rect.x(), verticalRenderingPosition), FloatPoint(rect.x(), verticalRenderingPosition + progressBarHeight - 1));
+    RefPtr<Gradient> strokeGradient = Gradient::create(Gradient::LinearData { FloatPoint(rect.x(), verticalRenderingPosition), FloatPoint(rect.x(), verticalRenderingPosition + progressBarHeight - 1) });
     strokeGradient->addColorStop(0.0, Color(0x8d, 0x8d, 0x8d));
     strokeGradient->addColorStop(0.45, Color(0xee, 0xee, 0xee));
     strokeGradient->addColorStop(0.55, Color(0xee, 0xee, 0xee));
@@ -922,7 +917,7 @@ bool RenderThemeIOS::paintProgressBar(const RenderObject& renderer, const PaintI
     paintInfo.context().clipRoundedRect(FloatRoundedRect(border, roundedCornerRadius, roundedCornerRadius, roundedCornerRadius, roundedCornerRadius));
 
     float upperGradientHeight = progressBarHeight / 2.;
-    RefPtr<Gradient> upperGradient = Gradient::create(FloatPoint(rect.x(), verticalRenderingPosition + 0.5), FloatPoint(rect.x(), verticalRenderingPosition + upperGradientHeight - 1.5));
+    RefPtr<Gradient> upperGradient = Gradient::create(Gradient::LinearData { FloatPoint(rect.x(), verticalRenderingPosition + 0.5), FloatPoint(rect.x(), verticalRenderingPosition + upperGradientHeight - 1.5) });
     upperGradient->addColorStop(0.0, Color(133, 133, 133, 188));
     upperGradient->addColorStop(1.0, Color(18, 18, 18, 51));
     context.setFillGradient(upperGradient.releaseNonNull());
@@ -934,7 +929,7 @@ bool RenderThemeIOS::paintProgressBar(const RenderObject& renderer, const PaintI
         // 2) Draw the progress bar.
         double position = clampTo(renderProgress.position(), 0.0, 1.0);
         double barWidth = position * rect.width();
-        RefPtr<Gradient> barGradient = Gradient::create(FloatPoint(rect.x(), verticalRenderingPosition + 0.5), FloatPoint(rect.x(), verticalRenderingPosition + progressBarHeight - 1));
+        RefPtr<Gradient> barGradient = Gradient::create(Gradient::LinearData { FloatPoint(rect.x(), verticalRenderingPosition + 0.5), FloatPoint(rect.x(), verticalRenderingPosition + progressBarHeight - 1) });
         barGradient->addColorStop(0.0, Color(195, 217, 247));
         barGradient->addColorStop(0.45, Color(118, 164, 228));
         barGradient->addColorStop(0.49, Color(118, 164, 228));
@@ -943,7 +938,7 @@ bool RenderThemeIOS::paintProgressBar(const RenderObject& renderer, const PaintI
         barGradient->addColorStop(1.0, Color(57, 142, 244));
         context.setFillGradient(barGradient.releaseNonNull());
 
-        RefPtr<Gradient> barStrokeGradient = Gradient::create(FloatPoint(rect.x(), verticalRenderingPosition), FloatPoint(rect.x(), verticalRenderingPosition + progressBarHeight - 1));
+        RefPtr<Gradient> barStrokeGradient = Gradient::create(Gradient::LinearData { FloatPoint(rect.x(), verticalRenderingPosition), FloatPoint(rect.x(), verticalRenderingPosition + progressBarHeight - 1) });
         barStrokeGradient->addColorStop(0.0, Color(95, 107, 183));
         barStrokeGradient->addColorStop(0.5, Color(66, 106, 174, 240));
         barStrokeGradient->addColorStop(1.0, Color(38, 104, 166));
@@ -1490,8 +1485,8 @@ static UIColor *attachmentTitleColor() { return [getUIColorClass() systemGrayCol
 static RetainPtr<CTFontRef> attachmentSubtitleFont() { return attachmentTitleFont(); }
 static UIColor *attachmentSubtitleColor() { return [getUIColorClass() systemGrayColor]; }
 
-struct AttachmentInfo {
-    explicit AttachmentInfo(const RenderAttachment&);
+struct RenderAttachmentInfo {
+    explicit RenderAttachmentInfo(const RenderAttachment&);
 
     FloatRect iconRect;
     FloatRect attachmentRect;
@@ -1519,7 +1514,7 @@ private:
     void addLine(CTLineRef);
 };
 
-void AttachmentInfo::addLine(CTLineRef line)
+void RenderAttachmentInfo::addLine(CTLineRef line)
 {
     CGRect lineBounds = CTLineGetBoundsWithOptions(line, kCTLineBoundsExcludeTypographicLeading);
     CGFloat trailingWhitespaceWidth = CTLineGetTrailingWhitespaceWidth(line);
@@ -1534,7 +1529,7 @@ void AttachmentInfo::addLine(CTLineRef line)
     lines.append(labelLine);
 }
 
-void AttachmentInfo::buildWrappedLines(const String& text, CTFontRef font, UIColor *color, unsigned maximumLineCount)
+void RenderAttachmentInfo::buildWrappedLines(const String& text, CTFontRef font, UIColor *color, unsigned maximumLineCount)
 {
     if (text.isEmpty())
         return;
@@ -1583,7 +1578,7 @@ void AttachmentInfo::buildWrappedLines(const String& text, CTFontRef font, UICol
     addLine(truncatedLine.get());
 }
 
-void AttachmentInfo::buildSingleLine(const String& text, CTFontRef font, UIColor *color)
+void RenderAttachmentInfo::buildSingleLine(const String& text, CTFontRef font, UIColor *color)
 {
     if (text.isEmpty())
         return;
@@ -1621,14 +1616,13 @@ static RetainPtr<UIImage> iconForAttachment(const RenderAttachment& attachment, 
 
     String attachmentType = attachment.attachmentElement().attachmentType();
     if (!attachmentType.isEmpty()) {
-        auto attachmentTypeCF = attachmentType.createCFString();
-        RetainPtr<CFStringRef> UTI;
-        if (isDeclaredUTI(attachmentTypeCF.get()))
-            UTI = attachmentTypeCF;
+        String UTI;
+        if (isDeclaredUTI(attachmentType))
+            UTI = attachmentType;
         else
-            UTI = UTIFromMIMEType(attachmentTypeCF.get());
+            UTI = UTIFromMIMEType(attachmentType);
 
-        [documentInteractionController setUTI:static_cast<NSString *>(UTI.get())];
+        [documentInteractionController setUTI:static_cast<NSString *>(UTI)];
     }
 
     NSArray *icons = [documentInteractionController icons];
@@ -1659,7 +1653,7 @@ static RetainPtr<UIImage> iconForAttachment(const RenderAttachment& attachment, 
     return result;
 }
 
-AttachmentInfo::AttachmentInfo(const RenderAttachment& attachment)
+RenderAttachmentInfo::RenderAttachmentInfo(const RenderAttachment& attachment)
 {
     attachmentRect = FloatRect(0, 0, attachment.width().toFloat(), attachment.height().toFloat());
 
@@ -1709,11 +1703,11 @@ LayoutSize RenderThemeIOS::attachmentIntrinsicSize(const RenderAttachment&) cons
 
 int RenderThemeIOS::attachmentBaseline(const RenderAttachment& attachment) const
 {
-    AttachmentInfo info(attachment);
+    RenderAttachmentInfo info(attachment);
     return info.baseline;
 }
 
-static void paintAttachmentIcon(GraphicsContext& context, AttachmentInfo& info)
+static void paintAttachmentIcon(GraphicsContext& context, RenderAttachmentInfo& info)
 {
     if (!info.icon)
         return;
@@ -1725,7 +1719,7 @@ static void paintAttachmentIcon(GraphicsContext& context, AttachmentInfo& info)
     context.drawImage(*iconImage, info.iconRect);
 }
 
-static void paintAttachmentText(GraphicsContext& context, AttachmentInfo& info)
+static void paintAttachmentText(GraphicsContext& context, RenderAttachmentInfo& info)
 {
     for (const auto& line : info.lines) {
         GraphicsContextStateSaver saver(context);
@@ -1738,7 +1732,7 @@ static void paintAttachmentText(GraphicsContext& context, AttachmentInfo& info)
     }
 }
 
-static void paintAttachmentProgress(GraphicsContext& context, AttachmentInfo& info)
+static void paintAttachmentProgress(GraphicsContext& context, RenderAttachmentInfo& info)
 {
     GraphicsContextStateSaver saver(context);
 
@@ -1757,7 +1751,7 @@ static void paintAttachmentProgress(GraphicsContext& context, AttachmentInfo& in
     context.fillPath(progressPath);
 }
 
-static Path attachmentBorderPath(AttachmentInfo& info)
+static Path attachmentBorderPath(RenderAttachmentInfo& info)
 {
     Path borderPath;
     borderPath.addRoundedRect(info.attachmentRect, FloatSize(attachmentBorderRadius, attachmentBorderRadius));
@@ -1778,7 +1772,7 @@ bool RenderThemeIOS::paintAttachment(const RenderObject& renderer, const PaintIn
 
     const RenderAttachment& attachment = downcast<RenderAttachment>(renderer);
 
-    AttachmentInfo info(attachment);
+    RenderAttachmentInfo info(attachment);
 
     GraphicsContext& context = paintInfo.context();
     GraphicsContextStateSaver saver(context);

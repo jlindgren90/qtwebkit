@@ -27,37 +27,24 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import time
-
 from webkitpy.port.mac import MacPort
 from webkitpy.port import darwin_testcase
-from webkitpy.common.system.filesystem_mock import MockFileSystem
+from webkitpy.port import port_testcase
 from webkitpy.common.system.outputcapture import OutputCapture
 from webkitpy.tool.mocktool import MockOptions
-from webkitpy.common.system.executive_mock import MockExecutive, MockExecutive2, MockProcess, ScriptError
-from webkitpy.common.system.systemhost_mock import MockSystemHost
+from webkitpy.common.system.executive_mock import MockExecutive, MockExecutive2, ScriptError
+from webkitpy.common.version import Version
 
 
 class MacTest(darwin_testcase.DarwinTest):
     os_name = 'mac'
-    os_version = 'lion'
+    os_version = Version.from_name('Lion')
     port_name = 'mac-lion'
     port_maker = MacPort
 
-    def test_tests_for_other_platforms(self):
-        platforms = ['mac', 'mac-snowleopard']
-        port = self.make_port(port_name='mac-snowleopard')
-        platform_dir_paths = map(port._webkit_baseline_path, platforms)
-        # Replace our empty mock file system with one which has our expected platform directories.
-        port._filesystem = MockFileSystem(dirs=platform_dir_paths)
-
-        dirs_to_skip = port._tests_for_other_platforms()
-        self.assertNotIn('platform/mac', dirs_to_skip)
-        self.assertNotIn('platform/mac-snowleopard', dirs_to_skip)
-
     def test_version(self):
         port = self.make_port()
-        self.assertTrue(port.version())
+        self.assertIsNotNone(port.version_name())
 
     def test_versions(self):
         # Note: these tests don't need to be exhaustive as long as we get path coverage.
@@ -91,33 +78,6 @@ class MacTest(darwin_testcase.DarwinTest):
         self.assertEqual(env['MallocStackLogging'], '1')
         self.assertEqual(env['MallocScribble'], '1')
         self.assertEqual(env['DYLD_INSERT_LIBRARIES'], '/usr/lib/libgmalloc.dylib:/mock-build/libWebCoreTestShim.dylib')
-
-    def _assert_search_path(self, port_name, baseline_path, search_paths, use_webkit2=False):
-        port = self.make_port(port_name=port_name, options=MockOptions(webkit_test_runner=use_webkit2))
-        absolute_search_paths = map(port._webkit_baseline_path, search_paths)
-        self.assertEqual(port.baseline_path(), port._webkit_baseline_path(baseline_path))
-        self.assertEqual(port.baseline_search_path(), absolute_search_paths)
-
-    def test_baseline_search_path(self):
-        # Note that we don't need total coverage here, just path coverage, since this is all data driven.
-        self._assert_search_path('mac-snowleopard', 'mac-snowleopard', ['mac-snowleopard', 'mac-lion', 'mac-mountainlion', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac-wk1', 'mac'])
-        self._assert_search_path('mac-lion', 'mac-lion', ['mac-lion', 'mac-mountainlion', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac-wk1', 'mac'])
-        self._assert_search_path('mac-mountainlion', 'mac-mountainlion', ['mac-mountainlion', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac-wk1', 'mac'])
-        self._assert_search_path('mac-mavericks', 'mac-mavericks', ['mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac-wk1', 'mac'])
-        self._assert_search_path('mac-yosemite', 'mac-yosemite', ['mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac-wk1', 'mac'])
-        self._assert_search_path('mac-elcapitan', 'mac-elcapitan', ['mac-elcapitan', 'mac-sierra', 'mac-wk1', 'mac'])
-        self._assert_search_path('mac-sierra', 'mac-sierra', ['mac-sierra', 'mac-wk1', 'mac'])
-        self._assert_search_path('mac-highsierra', 'mac-wk1', ['mac-wk1', 'mac'])
-        self._assert_search_path('mac-future', 'mac-wk1', ['mac-wk1', 'mac'])
-        self._assert_search_path('mac-snowleopard', 'mac-wk2', ['mac-wk2', 'wk2', 'mac-snowleopard', 'mac-lion', 'mac-mountainlion', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-lion', 'mac-wk2', ['mac-wk2', 'wk2', 'mac-lion', 'mac-mountainlion', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-mountainlion', 'mac-wk2', ['mac-wk2', 'wk2', 'mac-mountainlion', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-mavericks', 'mac-wk2', ['mac-wk2', 'wk2', 'mac-mavericks', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-yosemite', 'mac-wk2', ['mac-wk2', 'wk2', 'mac-yosemite', 'mac-elcapitan', 'mac-sierra', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-elcapitan', 'mac-wk2', ['mac-wk2', 'wk2', 'mac-elcapitan', 'mac-sierra', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-sierra', 'mac-wk2', ['mac-wk2', 'wk2', 'mac-sierra', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-highsierra', 'mac-wk2', ['mac-wk2', 'wk2', 'mac'], use_webkit2=True)
-        self._assert_search_path('mac-future', 'mac-wk2', ['mac-wk2', 'wk2', 'mac'], use_webkit2=True)
 
     def test_show_results_html_file(self):
         port = self.make_port()
@@ -175,10 +135,20 @@ class MacTest(darwin_testcase.DarwinTest):
 
     def test_xcrun(self):
         def throwing_run_command(args):
-            print args
+            print(args)
             raise ScriptError("MOCK script error")
 
         port = self.make_port()
         port._executive = MockExecutive2(run_command_fn=throwing_run_command)
         expected_stdout = "['xcrun', '--sdk', 'macosx', '-find', 'test']\n"
         OutputCapture().assert_outputs(self, port.xcrun_find, args=['test', 'falling'], expected_stdout=expected_stdout)
+
+    def test_layout_test_searchpath_with_apple_additions(self):
+        with port_testcase.bind_mock_apple_additions():
+            search_path = self.make_port().default_baseline_search_path()
+        self.assertEqual(search_path[0], '/additional_testing_path/mac-add-lion-wk1')
+        self.assertEqual(search_path[1], '/mock-checkout/LayoutTests/platform/mac-lion-wk1')
+        self.assertEqual(search_path[2], '/additional_testing_path/mac-add-lion')
+        self.assertEqual(search_path[3], '/mock-checkout/LayoutTests/platform/mac-lion')
+        self.assertEqual(search_path[4], '/additional_testing_path/mac-add-mountainlion-wk1')
+        self.assertEqual(search_path[5], '/mock-checkout/LayoutTests/platform/mac-mountainlion-wk1')

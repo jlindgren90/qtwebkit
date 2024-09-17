@@ -30,9 +30,9 @@
 #include <runtime/JSString.h>
 #include <wtf/NeverDestroyed.h>
 
-using namespace JSC;
 
 namespace WebCore {
+using namespace JSC;
 
 #if ENABLE(Condition1)
 
@@ -67,16 +67,21 @@ template<> DictionaryImplName convertDictionary<DictionaryImplName>(ExecState& s
 
 #endif
 
-template<> JSString* convertEnumerationToJS(ExecState& state, TestStandaloneDictionary::EnumInStandaloneDictionaryFile enumerationValue)
+String convertEnumerationToString(TestStandaloneDictionary::EnumInStandaloneDictionaryFile enumerationValue)
 {
-    static NeverDestroyed<const String> values[] = {
+    static const NeverDestroyed<String> values[] = {
         MAKE_STATIC_STRING_IMPL("enumValue1"),
         MAKE_STATIC_STRING_IMPL("enumValue2"),
     };
     static_assert(static_cast<size_t>(TestStandaloneDictionary::EnumInStandaloneDictionaryFile::EnumValue1) == 0, "TestStandaloneDictionary::EnumInStandaloneDictionaryFile::EnumValue1 is not 0 as expected");
     static_assert(static_cast<size_t>(TestStandaloneDictionary::EnumInStandaloneDictionaryFile::EnumValue2) == 1, "TestStandaloneDictionary::EnumInStandaloneDictionaryFile::EnumValue2 is not 1 as expected");
     ASSERT(static_cast<size_t>(enumerationValue) < WTF_ARRAY_LENGTH(values));
-    return jsStringWithCache(&state, values[static_cast<size_t>(enumerationValue)]);
+    return values[static_cast<size_t>(enumerationValue)];
+}
+
+template<> JSString* convertEnumerationToJS(ExecState& state, TestStandaloneDictionary::EnumInStandaloneDictionaryFile enumerationValue)
+{
+    return jsStringWithCache(&state, convertEnumerationToString(enumerationValue));
 }
 
 template<> std::optional<TestStandaloneDictionary::EnumInStandaloneDictionaryFile> parseEnumeration<TestStandaloneDictionary::EnumInStandaloneDictionaryFile>(ExecState& state, JSValue value)

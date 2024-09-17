@@ -77,7 +77,7 @@ void ImageFrame::setDecodingStatus(DecodingStatus decodingStatus)
     m_decodingStatus = decodingStatus;
 }
 
-ImageFrame::DecodingStatus ImageFrame::decodingStatus() const
+DecodingStatus ImageFrame::decodingStatus() const
 {
     ASSERT(m_decodingStatus != DecodingStatus::Decoding);
     return m_decodingStatus;
@@ -97,7 +97,7 @@ unsigned ImageFrame::clearImage()
 
     clearNativeImageSubimages(m_nativeImage);
     m_nativeImage = nullptr;
-    m_decodingOptions = { };
+    m_decodingOptions = DecodingOptions();
 
     return frameBytes;
 }

@@ -32,14 +32,14 @@
 #include "ImageTypes.h"
 #include "IntSize.h"
 #include "NativeImage.h"
+#include <wtf/Seconds.h>
 
 namespace WebCore {
 
 class ImageFrame {
-    friend class ImageFrameCache;
+    friend class ImageSource;
 public:
     enum class Caching { Metadata, MetadataAndImage };
-    enum class DecodingStatus { Invalid, Partial, Complete, Decoding };
 
     ImageFrame();
     ImageFrame(const ImageFrame& other) { operator=(other); }
@@ -81,8 +81,8 @@ public:
     void setOrientation(ImageOrientation orientation) { m_orientation = orientation; };
     ImageOrientation orientation() const { return m_orientation; }
 
-    void setDuration(float duration) { m_duration = duration; }
-    float duration() const { return m_duration; }
+    void setDuration(const Seconds& duration) { m_duration = duration; }
+    Seconds duration() const { return m_duration; }
 
     void setHasAlpha(bool hasAlpha) { m_hasAlpha = hasAlpha; }
     bool hasAlpha() const { return !hasMetadata() || m_hasAlpha; }
@@ -113,7 +113,7 @@ private:
     DecodingOptions m_decodingOptions;
 
     ImageOrientation m_orientation { DefaultImageOrientation };
-    float m_duration { 0 };
+    Seconds m_duration;
     bool m_hasAlpha { true };
 };
 

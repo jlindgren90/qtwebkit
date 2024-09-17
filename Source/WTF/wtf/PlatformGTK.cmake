@@ -1,4 +1,3 @@
-set(WTF_LIBRARY_TYPE STATIC)
 set(WTF_OUTPUT_NAME WTFGTK)
 
 list(APPEND WTF_SOURCES
@@ -13,8 +12,8 @@ list(APPEND WTF_SOURCES
     linux/MemoryPressureHandlerLinux.cpp
 
     unix/CPUTimeUnix.cpp
+    unix/LanguageUnix.cpp
 
-    PlatformUserPreferredLanguagesUnix.cpp
     UniStdExtras.cpp
 
     text/unix/TextBreakIteratorInternalICUUnix.cpp

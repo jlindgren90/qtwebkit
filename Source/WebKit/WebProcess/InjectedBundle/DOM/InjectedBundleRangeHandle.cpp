@@ -130,7 +130,7 @@ RefPtr<WebImage> InjectedBundleRangeHandle::renderedImage(SnapshotOptions option
     IntSize backingStoreSize = paintRect.size();
     backingStoreSize.scale(scaleFactor);
 
-    RefPtr<ShareableBitmap> backingStore = ShareableBitmap::createShareable(backingStoreSize, ShareableBitmap::SupportsAlpha);
+    RefPtr<ShareableBitmap> backingStore = ShareableBitmap::createShareable(backingStoreSize, { });
     if (!backingStore)
         return nullptr;
 
@@ -140,10 +140,10 @@ RefPtr<WebImage> InjectedBundleRangeHandle::renderedImage(SnapshotOptions option
     paintRect.move(frameView->frameRect().x(), frameView->frameRect().y());
     paintRect.moveBy(-frameView->scrollPosition());
 
-    graphicsContext->translate(-paintRect.x(), -paintRect.y());
+    graphicsContext->translate(-paintRect.location());
 
     PaintBehavior oldPaintBehavior = frameView->paintBehavior();
-    PaintBehavior paintBehavior = (oldPaintBehavior & ~PaintBehaviorAllowAsyncImageDecoding) | PaintBehaviorSelectionOnly | PaintBehaviorFlattenCompositingLayers;
+    PaintBehavior paintBehavior = oldPaintBehavior | PaintBehaviorSelectionOnly | PaintBehaviorFlattenCompositingLayers | PaintBehaviorSnapshotting;
     if (options & SnapshotOptionsForceBlackText)
         paintBehavior |= PaintBehaviorForceBlackText;
     if (options & SnapshotOptionsForceWhiteText)

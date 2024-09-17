@@ -163,13 +163,13 @@ static RefPtr<WebImage> imageForRect(FrameView* frameView, const IntRect& painti
     graphicsContext->clearRect(IntRect(IntPoint(), bitmapSize));
     graphicsContext->applyDeviceScaleFactor(deviceScaleFactor);
     graphicsContext->scale(bitmapScaleFactor);
-    graphicsContext->translate(-paintingRect.x(), -paintingRect.y());
+    graphicsContext->translate(-paintingRect.location());
 
     FrameView::SelectionInSnapshot shouldPaintSelection = FrameView::IncludeSelection;
     if (options & SnapshotOptionsExcludeSelectionHighlighting)
         shouldPaintSelection = FrameView::ExcludeSelection;
 
-    PaintBehavior paintBehavior = (frameView->paintBehavior() & ~PaintBehaviorAllowAsyncImageDecoding) | PaintBehaviorFlattenCompositingLayers;
+    PaintBehavior paintBehavior = frameView->paintBehavior() | (PaintBehaviorFlattenCompositingLayers | PaintBehaviorSnapshotting);
     if (options & SnapshotOptionsForceBlackText)
         paintBehavior |= PaintBehaviorForceBlackText;
     if (options & SnapshotOptionsForceWhiteText)
@@ -269,6 +269,36 @@ void InjectedBundleNodeHandle::setHTMLInputElementAutoFillButtonEnabled(AutoFill
         return;
 
     downcast<HTMLInputElement>(m_node.get()).setShowAutoFillButton(autoFillButtonType);
+}
+
+AutoFillButtonType InjectedBundleNodeHandle::htmlInputElementAutoFillButtonType() const
+{
+    if (!is<HTMLInputElement>(m_node))
+        return AutoFillButtonType::None;
+    return downcast<HTMLInputElement>(m_node.get()).autoFillButtonType();
+}
+
+AutoFillButtonType InjectedBundleNodeHandle::htmlInputElementLastAutoFillButtonType() const
+{
+    if (!is<HTMLInputElement>(m_node))
+        return AutoFillButtonType::None;
+    return downcast<HTMLInputElement>(m_node.get()).lastAutoFillButtonType();
+}
+
+bool InjectedBundleNodeHandle::isAutoFillAvailable() const
+{
+    if (!is<HTMLInputElement>(m_node))
+        return false;
+
+    return downcast<HTMLInputElement>(m_node.get()).isAutoFillAvailable();
+}
+
+void InjectedBundleNodeHandle::setAutoFillAvailable(bool autoFillAvailable)
+{
+    if (!is<HTMLInputElement>(m_node))
+        return;
+
+    downcast<HTMLInputElement>(m_node.get()).setAutoFillAvailable(autoFillAvailable);
 }
 
 IntRect InjectedBundleNodeHandle::htmlInputElementAutoFillButtonBounds()

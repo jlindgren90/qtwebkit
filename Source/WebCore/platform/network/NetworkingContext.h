@@ -51,7 +51,7 @@ class ResourceRequest;
 
 class NetworkingContext : public RefCounted<NetworkingContext> {
 public:
-    virtual ~NetworkingContext() { }
+    virtual ~NetworkingContext() = default;
 
     virtual bool isValid() const { return true; }
 
@@ -73,7 +73,7 @@ public:
 #endif
 
 protected:
-    NetworkingContext() { }
+    NetworkingContext() = default;
 };
 
 }

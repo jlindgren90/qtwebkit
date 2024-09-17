@@ -61,15 +61,10 @@
 
 namespace WebCore {
 
-Ref<RenderTheme> RenderThemeGtk::create()
-{
-    return adoptRef(*new RenderThemeGtk());
-}
-
 RenderTheme& RenderTheme::singleton()
 {
-    static NeverDestroyed<Ref<RenderTheme>> theme(RenderThemeGtk::create());
-    return theme.get();
+    static NeverDestroyed<RenderThemeGtk> theme;
+    return theme;
 }
 
 static double getScreenDPI()
@@ -317,9 +312,7 @@ static bool nodeHasClass(Node* node, const char* className)
     return element.classNames().contains(className);
 }
 
-RenderThemeGtk::~RenderThemeGtk()
-{
-}
+RenderThemeGtk::~RenderThemeGtk() = default;
 
 static bool supportsFocus(ControlPart appearance)
 {
@@ -1027,7 +1020,7 @@ static void adjustSearchFieldIconStyle(RenderThemePart themePart, RenderStyle& s
 
     // Get the icon size based on the font size.
     auto& icon = static_cast<RenderThemeIconGadget&>(themePart == EntryIconLeft ? searchEntryWidget.leftIcon() : searchEntryWidget.rightIcon());
-    icon.setIconSize(style.fontSize());
+    icon.setIconSize(style.computedFontPixelSize());
     IntSize preferredSize = icon.preferredSize();
     GtkBorder contentsBox = searchEntryWidget.entry().contentsBox();
     if (themePart == EntryIconLeft)
@@ -1074,7 +1067,7 @@ static void adjustSearchFieldIconStyle(RenderThemePart themePart, RenderStyle& s
     gtk_style_context_get_padding(context.get(), gtk_style_context_get_state(context.get()), &padding);
 
     // Get the icon size based on the font size.
-    int fontSize = style.fontSize();
+    int fontSize = style.computedFontPixelSize();
     if (fontSize < gtkIconSizeMenu) {
         style.setWidth(Length(fontSize + (padding.left + padding.right), Fixed));
         style.setHeight(Length(fontSize + (padding.top + padding.bottom), Fixed));
@@ -1120,7 +1113,7 @@ static bool paintSearchFieldIcon(RenderThemeGtk* theme, RenderThemePart themePar
     searchEntryWidget.entry().setState(themePartStateFlags(*theme, Entry, renderObject));
     auto& icon = static_cast<RenderThemeIconGadget&>(themePart == EntryIconLeft ? searchEntryWidget.leftIcon() : searchEntryWidget.rightIcon());
     icon.setState(themePartStateFlags(*theme, themePart, renderObject));
-    icon.setIconSize(renderObject.style().fontSize());
+    icon.setIconSize(renderObject.style().computedFontPixelSize());
     GtkBorder contentsBox = searchEntryWidget.entry().contentsBox();
     IntRect iconRect = rect;
     if (themePart == EntryIconLeft) {
@@ -1876,7 +1869,7 @@ static FloatRoundedRect::Radii borderRadiiFromStyle(const RenderStyle& style)
 
 bool RenderThemeGtk::paintMediaSliderTrack(const RenderObject& o, const PaintInfo& paintInfo, const IntRect& r)
 {
-    HTMLMediaElement* mediaElement = parentMediaElement(o);
+    auto mediaElement = parentMediaElement(o);
     if (!mediaElement)
         return true;
 
@@ -1916,7 +1909,7 @@ bool RenderThemeGtk::paintMediaSliderThumb(const RenderObject& o, const PaintInf
 
 bool RenderThemeGtk::paintMediaVolumeSliderTrack(const RenderObject& renderObject, const PaintInfo& paintInfo, const IntRect& rect)
 {
-    HTMLMediaElement* mediaElement = parentMediaElement(renderObject);
+    auto mediaElement = parentMediaElement(renderObject);
     if (!mediaElement)
         return true;
 
@@ -2016,7 +2009,7 @@ String RenderThemeGtk::fileListNameForWidth(const FileList* fileList, const Font
 
     String string;
     if (fileList->length())
-        string = pathGetFileName(fileList->item(0)->path());
+        string = FileSystem::pathGetFileName(fileList->item(0)->path());
     else if (multipleFilesAllowed)
         string = fileButtonNoFilesSelectedLabel();
     else

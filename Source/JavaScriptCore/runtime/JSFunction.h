@@ -70,15 +70,14 @@ public:
         return sizeof(JSFunction);
     }
 
+    static Structure* selectStructureForNewFuncExp(JSGlobalObject*, FunctionExecutable*);
+
     JS_EXPORT_PRIVATE static JSFunction* create(VM&, JSGlobalObject*, int length, const String& name, NativeFunction, Intrinsic = NoIntrinsic, NativeFunction nativeConstructor = callHostFunctionAsConstructor, const DOMJIT::Signature* = nullptr);
     
     static JSFunction* createWithInvalidatedReallocationWatchpoint(VM&, FunctionExecutable*, JSScope*);
 
-    static JSFunction* create(VM&, FunctionExecutable*, JSScope*);
+    JS_EXPORT_PRIVATE static JSFunction* create(VM&, FunctionExecutable*, JSScope*);
     static JSFunction* create(VM&, FunctionExecutable*, JSScope*, Structure*);
-
-    JS_EXPORT_PRIVATE static JSFunction* createBuiltinFunction(VM&, FunctionExecutable*, JSGlobalObject*);
-    static JSFunction* createBuiltinFunction(VM&, FunctionExecutable*, JSGlobalObject*, const String& name);
 
     JS_EXPORT_PRIVATE String name(VM&);
     JS_EXPORT_PRIVATE String displayName(VM&);
@@ -151,12 +150,15 @@ public:
 
     void setFunctionName(ExecState*, JSValue name);
 
+    // Returns the __proto__ for the |this| value if this JSFunction were to be constructed.
+    JSObject* prototypeForConstruction(VM&, ExecState*);
+
 protected:
     JS_EXPORT_PRIVATE JSFunction(VM&, JSGlobalObject*, Structure*);
     JSFunction(VM&, FunctionExecutable*, JSScope*, Structure*);
 
     void finishCreation(VM&, NativeExecutable*, int length, const String& name);
-    using Base::finishCreation;
+    void finishCreation(VM&);
 
     FunctionRareData* allocateRareData(VM&);
     FunctionRareData* allocateAndInitializeRareData(ExecState*, size_t inlineCapacity);
@@ -172,6 +174,7 @@ protected:
 
     static void visitChildren(JSCell*, SlotVisitor&);
 
+    static PropertyReificationResult reifyPropertyNameIfNeeded(JSCell*, ExecState*, PropertyName&);
 
 private:
     static JSFunction* createImpl(VM& vm, FunctionExecutable* executable, JSScope* scope, Structure* structure)
@@ -188,9 +191,19 @@ private:
     void reifyName(VM&, ExecState*);
     void reifyName(VM&, ExecState*, String name);
 
-    enum class LazyPropertyType { NotLazyProperty, IsLazyProperty };
-    LazyPropertyType reifyLazyPropertyIfNeeded(VM&, ExecState*, PropertyName);
-    LazyPropertyType reifyBoundNameIfNeeded(VM&, ExecState*, PropertyName);
+    enum class PropertyStatus {
+        Eager,
+        Lazy,
+        Reified,
+    };
+    static bool isLazy(PropertyStatus property) { return property == PropertyStatus::Lazy || property == PropertyStatus::Reified; }
+    static bool isReified(PropertyStatus property) { return property == PropertyStatus::Reified; }
+
+    PropertyStatus reifyLazyPropertyIfNeeded(VM&, ExecState*, PropertyName);
+    PropertyStatus reifyLazyPropertyForHostOrBuiltinIfNeeded(VM&, ExecState*, PropertyName);
+    PropertyStatus reifyLazyLengthIfNeeded(VM&, ExecState*, PropertyName);
+    PropertyStatus reifyLazyNameIfNeeded(VM&, ExecState*, PropertyName);
+    PropertyStatus reifyLazyBoundNameIfNeeded(VM&, ExecState*, PropertyName);
 
     friend class LLIntOffsetsExtractor;
 

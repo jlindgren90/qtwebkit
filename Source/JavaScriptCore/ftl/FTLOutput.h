@@ -151,6 +151,8 @@ public:
     void addIncomingToPhi(LValue phi, ValueFromBlock);
     template<typename... Params>
     void addIncomingToPhi(LValue phi, ValueFromBlock, Params... theRest);
+    
+    LValue opaque(LValue);
 
     LValue add(LValue, LValue);
     LValue sub(LValue, LValue);
@@ -301,9 +303,9 @@ public:
     {
         return TypedPointer(heap, baseIndex(base, index, scale, offset));
     }
-    TypedPointer baseIndex(IndexedAbstractHeap& heap, LValue base, LValue index, JSValue indexAsConstant = JSValue(), ptrdiff_t offset = 0)
+    TypedPointer baseIndex(IndexedAbstractHeap& heap, LValue base, LValue index, JSValue indexAsConstant = JSValue(), ptrdiff_t offset = 0, LValue mask = nullptr)
     {
-        return heap.baseIndex(*this, base, index, indexAsConstant, offset);
+        return heap.baseIndex(*this, base, index, indexAsConstant, offset, mask);
     }
 
     TypedPointer absolute(const void* address);
@@ -426,6 +428,8 @@ public:
             switchValue->appendCase(B3::SwitchCase(value, target));
         }
     }
+
+    void entrySwitch(const Vector<LBasicBlock>&);
 
     void ret(LValue);
 
