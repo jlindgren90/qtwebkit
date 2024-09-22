@@ -42,7 +42,7 @@ namespace WebCore {
 
 ScrollbarThemeQStyle::ScrollbarThemeQStyle()
 {
-    m_qStyle = std::unique_ptr<QStyleFacade>(RenderThemeQStyle::styleFactory()(/*page*/ 0));
+    m_qStyle = std::unique_ptr<QStyleFacade>(RenderThemeQStyle::styleFactory()());
 }
 
 ScrollbarThemeQStyle::~ScrollbarThemeQStyle()
@@ -251,5 +251,12 @@ void ScrollbarThemeQStyle::paintScrollCorner(ScrollView*, GraphicsContext& conte
     p.paintScrollCorner(toQRect(rect));
 }
 
+ScrollbarTheme& ScrollbarTheme::nativeTheme()
+{
+    // fall back to base ScrollbarTheme if no style factory is set
+    static ScrollbarTheme* theme = RenderThemeQStyle::styleFactory() ?
+        new ScrollbarThemeQStyle : new ScrollbarTheme;
+    return *theme;
 }
 
+}

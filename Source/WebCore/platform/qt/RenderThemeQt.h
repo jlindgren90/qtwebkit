@@ -43,17 +43,10 @@ class HTMLMediaElement;
 class StylePainter;
 class ScrollbarTheme;
 
-typedef RenderTheme* (*QtThemeFactoryFunction)(Page* page);
-
 class RenderThemeQt : public RenderTheme {
 
 public:
-    RenderThemeQt(Page*);
-
-    static void setCustomTheme(QtThemeFactoryFunction, ScrollbarTheme* customScrollbarTheme);
-    static ScrollbarTheme* customScrollbarTheme();
-
-    String extraDefaultStyleSheet() override;
+    RenderThemeQt();
 
     bool supportsHover(const RenderStyle&) const override;
     bool supportsFocusRing(const RenderStyle&) const override;
@@ -91,9 +84,6 @@ public:
 
     bool isControlStyled(const RenderStyle&, const BorderData&, const FillLayer&, const Color&) const override;
 
-#if 0 //ENABLE(VIDEO)
-    virtual String extraMediaControlsStyleSheet();
-#endif
 #if ENABLE(VIDEO)
     String mediaControlsStyleSheet() override;
     String mediaControlsScript() override;
@@ -143,25 +133,6 @@ protected:
     void adjustInnerSpinButtonStyle(StyleResolver&, RenderStyle&, const Element*) const override;
 #endif
 
-#if 0 //ENABLE(VIDEO)
-    virtual bool paintMediaFullscreenButton(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaPlayButton(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaMuteButton(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaSeekBackButton(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaSeekForwardButton(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaSliderTrack(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaSliderThumb(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaCurrentTime(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaVolumeSliderTrack(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual bool paintMediaVolumeSliderThumb(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual String formatMediaControlsCurrentTime(float currentTime, float duration) const override;
-    virtual String formatMediaControlsRemainingTime(float currentTime, float duration) const override;
-    virtual bool hasOwnDisabledStateHandlingFor(ControlPart) const { return true; }
-
-    void paintMediaBackground(QPainter*, const IntRect&) const;
-    double mediaControlsBaselineOpacity() const;
-    QColor getMediaControlForegroundColor(const RenderObject& = 0) const;
-#endif
     virtual void computeSizeBasedOnStyle(RenderStyle&) const = 0;
 
     String fileListNameForWidth(const FileList*, const FontCascade&, int width, bool multipleFilesAllowed) const override;
@@ -177,14 +148,9 @@ protected:
 
     bool supportsFocus(ControlPart) const;
 
-//    IntRect convertToPaintingRect(const RenderObject& inputRenderer, const RenderObject& partRenderer, IntRect partRect, const IntRect& localOffset) const;
-
     virtual QPalette colorPalette() const;
 
-    Page* m_page;
-
     QString m_buttonFontFamily;
-
 };
 
 class StylePainter {

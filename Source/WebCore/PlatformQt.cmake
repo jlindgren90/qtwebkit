@@ -96,10 +96,8 @@ list(APPEND WebCore_SOURCES
     platform/qt/PlatformScreenQt.cpp
     platform/qt/RenderThemeQStyle.cpp
     platform/qt/RenderThemeQt.cpp
-    platform/qt/RenderThemeQtMobile.cpp
     platform/qt/ScrollViewQt.cpp
     platform/qt/ScrollbarThemeQStyle.cpp
-    platform/qt/ScrollbarThemeQt.cpp
     platform/qt/TemporaryLinkStubsQt.cpp
     platform/qt/URLQt.cpp
     platform/qt/UserAgentQt.cpp
@@ -112,8 +110,6 @@ list(APPEND WebCore_SOURCES
 )
 
 list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
-    ${WEBCORE_DIR}/css/mobileThemeQt.css
-    ${WEBCORE_DIR}/css/themeQtNoListboxes.css
     ${WEBCORE_DIR}/Modules/mediacontrols/mediaControlsBase.css
 )
 

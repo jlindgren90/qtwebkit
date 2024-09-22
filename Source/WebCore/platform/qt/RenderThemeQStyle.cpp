@@ -121,9 +121,8 @@ QtStyleFactoryFunction RenderThemeQStyle::styleFactory()
     return styleFactoryFunction;
 }
 
-RenderThemeQStyle::RenderThemeQStyle(Page* page)
-    : RenderThemeQt(page)
-    , m_qStyle(styleFactoryFunction(page))
+RenderThemeQStyle::RenderThemeQStyle()
+    : m_qStyle(styleFactoryFunction())
 {
     int buttonPixelSize = 0;
     m_qStyle->getButtonMetrics(&m_buttonFontFamily, &buttonPixelSize);
@@ -134,17 +133,6 @@ RenderThemeQStyle::RenderThemeQStyle(Page* page)
 
 RenderThemeQStyle::~RenderThemeQStyle()
 {
-}
-
-void RenderThemeQStyle::setPaletteFromPageClientIfExists(QPalette& palette) const
-{
-    if (!m_page)
-        return;
-
-#if 0 // FIXME: using a fixed palette to avoid visual issues
-    if (QWebPageClient* pageClient = m_page->chrome().client().platformPageClient())
-        palette = pageClient->palette();
-#endif
 }
 
 QRect RenderThemeQStyle::indicatorRect(QStyleFacade::ButtonType part, const QRect& originalRect) const
@@ -411,13 +399,6 @@ void RenderThemeQStyle::setPopupPadding(RenderStyle& style) const
 
     style.setPaddingTop(Length(2, Fixed));
     style.setPaddingBottom(Length(2, Fixed));
-}
-
-QPalette RenderThemeQStyle::colorPalette() const
-{
-    QPalette palette = RenderThemeQt::colorPalette();
-    setPaletteFromPageClientIfExists(palette);
-    return palette;
 }
 
 bool RenderThemeQStyle::paintMenuList(const RenderObject& o, const PaintInfo& i, const FloatRect& r)

@@ -209,9 +209,9 @@ public:
     virtual LayoutUnit sliderTickSnappingThreshold() const;
     // Returns size of one slider tick mark for a horizontal track.
     // For vertical tracks we rotate it and use it. i.e. Width is always length along the track.
-    virtual IntSize sliderTickSize() const = 0;
+    virtual IntSize sliderTickSize() const { return IntSize(); }
     // Returns the distance of slider tick origin from the slider track center.
-    virtual int sliderTickOffsetFromTrackCenter() const = 0;
+    virtual int sliderTickOffsetFromTrackCenter() const { return 0; }
     void paintSliderTicks(const RenderObject&, const PaintInfo&, const IntRect&);
 #endif
 
@@ -247,7 +247,7 @@ public:
 
 protected:
     virtual FontCascadeDescription& cachedSystemFontDescription(CSSValueID systemFontID) const;
-    virtual void updateCachedSystemFontDescription(CSSValueID systemFontID, FontCascadeDescription&) const = 0;
+    virtual void updateCachedSystemFontDescription(CSSValueID systemFontID, FontCascadeDescription&) const { }
 
     // The platform selection color.
     virtual Color platformActiveSelectionBackgroundColor() const;

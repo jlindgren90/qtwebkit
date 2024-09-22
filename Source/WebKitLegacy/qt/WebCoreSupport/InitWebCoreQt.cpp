@@ -58,23 +58,12 @@ Q_DECL_EXPORT void setWebKitWidgetsInitCallback(QtStyleFacadeFactoryFunction cal
     initCallback = callback;
 }
 
-static WebCore::QStyleFacade* createStyleForPage(WebCore::Page* page)
-{
-    QWebPageAdapter* pageAdapter = 0;
-    if (page)
-        pageAdapter = static_cast<WebCore::ChromeClientQt&>(page->chrome().client()).m_webPage;
-    return initCallback(pageAdapter);
-}
-
-// Called also from WebKit2's WebProcess
 Q_DECL_EXPORT void initializeWebKitQt()
 {
     if (initCallback) {
-        WebCore::RenderThemeQStyle::setStyleFactoryFunction(createStyleForPage);
-        WebCore::RenderThemeQt::setCustomTheme(
-            [](WebCore::Page* page) -> WebCore::RenderTheme*
-                { return new WebCore::RenderThemeQStyle(page); },
-            new WebCore::ScrollbarThemeQStyle);
+        WebCore::RenderThemeQStyle::setStyleFactoryFunction([]() {
+            return initCallback(nullptr);
+        });
     }
 }
 
