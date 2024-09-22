@@ -28,6 +28,7 @@
 
 #include <WebCore/NativeImage.h>
 #include <WebCore/SQLiteDatabase.h>
+#include <WebCore/SharedBuffer.h>
 #include <wtf/Condition.h>
 #include <wtf/HashCountedSet.h>
 #include <wtf/HashMap.h>
@@ -387,3 +388,15 @@ private:
 };
 
 } // namespace WebKit
+
+#if PLATFORM(QT)
+namespace WebCore {
+
+using WebKit::IconDatabase;
+using WebKit::IconDatabaseClient;
+
+// FIXME: re-added
+IconDatabase& iconDatabase();
+
+} // namespace WebCore
+#endif // PLATFORM(QT)

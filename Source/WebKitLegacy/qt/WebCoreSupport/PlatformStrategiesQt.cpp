@@ -77,35 +77,36 @@ PasteboardStrategy* PlatformStrategiesQt::createPasteboardStrategy()
     return 0;
 }
 
-String PlatformStrategiesQt::cookiesForDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
+std::pair<String, bool> PlatformStrategiesQt::cookiesForDOM(const WebCore::NetworkStorageSession& session, const WebCore::URL& firstParty, const WebCore::URL& url, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, WebCore::IncludeSecureCookies includeSecureCookies)
 {
-    return WebCore::cookiesForDOM(session, firstParty, url);
+    return WebCore::cookiesForDOM(session, firstParty, url, frameID, pageID, includeSecureCookies);
 }
 
-void PlatformStrategiesQt::setCookiesFromDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url, const String& cookieString)
+void PlatformStrategiesQt::setCookiesFromDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, const String& cookieString)
 {
-    WebCore::setCookiesFromDOM(session, firstParty, url, cookieString);
+    WebCore::setCookiesFromDOM(session, firstParty, url, frameID, pageID, cookieString);
 }
 
-bool PlatformStrategiesQt::cookiesEnabled(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
+bool PlatformStrategiesQt::cookiesEnabled(const NetworkStorageSession& session)
 {
-    return WebCore::cookiesEnabled(session, firstParty, url);
+    return WebCore::cookiesEnabled(session);
 }
 
-String PlatformStrategiesQt::cookieRequestHeaderFieldValue(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
+std::pair<String, bool> PlatformStrategiesQt::cookieRequestHeaderFieldValue(const NetworkStorageSession& session, const URL& firstParty, const URL& url, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, WebCore::IncludeSecureCookies includeSecureCookies)
 {
-    return WebCore::cookieRequestHeaderFieldValue(session, firstParty, url);
+    return WebCore::cookieRequestHeaderFieldValue(session, firstParty, url, frameID, pageID, includeSecureCookies);
 }
 
-String PlatformStrategiesQt::cookieRequestHeaderFieldValue(SessionID sessionID, const URL& firstParty, const URL& url)
+std::pair<String, bool> PlatformStrategiesQt::cookieRequestHeaderFieldValue(PAL::SessionID sessionID, const URL& firstParty, const URL& url, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, WebCore::IncludeSecureCookies includeSecureCookies)
 {
     // FIXME: okay to always use default?
-    return WebCore::cookieRequestHeaderFieldValue(NetworkStorageSession::defaultStorageSession(), firstParty, url);
+    auto& session = NetworkStorageSession::defaultStorageSession();
+    return WebCore::cookieRequestHeaderFieldValue(session, firstParty, url, frameID, pageID, includeSecureCookies);
 }
 
-bool PlatformStrategiesQt::getRawCookies(const NetworkStorageSession& session, const URL& firstParty, const URL& url, Vector<Cookie>& rawCookies)
+bool PlatformStrategiesQt::getRawCookies(const NetworkStorageSession& session, const URL& firstParty, const URL& url, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, Vector<Cookie>& rawCookies)
 {
-    return WebCore::getRawCookies(session, firstParty, url, rawCookies);
+    return WebCore::getRawCookies(session, firstParty, url, frameID, pageID, rawCookies);
 }
 
 void PlatformStrategiesQt::deleteCookie(const NetworkStorageSession& session, const URL& url, const String& cookieName)

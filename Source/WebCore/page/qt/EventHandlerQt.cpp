@@ -54,11 +54,7 @@
 namespace WebCore {
 
 #if ENABLE(DRAG_SUPPORT)
-#if defined(Q_OS_MACOS)
-const double EventHandler::TextDragDelay = 0.15;
-#else
-const double EventHandler::TextDragDelay = 0.0;
-#endif
+const WTF::Seconds EventHandler::TextDragDelay = WTF::Seconds(0.0);
 #endif
 
 bool EventHandler::tabsToAllFormControls(KeyboardEvent& event) const
@@ -95,13 +91,6 @@ bool EventHandler::widgetDidHandleWheelEvent(const PlatformWheelEvent& event, Wi
 
     return downcast<FrameView>(widget).frame().eventHandler().handleWheelEvent(event);
 }
-
-#if ENABLE(DRAG_SUPPORT)
-Ref<DataTransfer> EventHandler::createDraggingDataTransfer() const
-{
-    return DataTransfer::createForDrag();
-}
-#endif
 
 bool EventHandler::passMousePressEventToSubframe(MouseEventWithHitTestResults& mev, Frame* subframe)
 {

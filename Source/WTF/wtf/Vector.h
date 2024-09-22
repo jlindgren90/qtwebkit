@@ -22,6 +22,7 @@
 #define WTF_Vector_h
 
 #include <initializer_list>
+#include <iterator>
 #include <limits>
 #include <string.h>
 #include <type_traits>

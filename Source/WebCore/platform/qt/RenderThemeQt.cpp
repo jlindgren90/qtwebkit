@@ -137,17 +137,17 @@ ScrollbarTheme* RenderThemeQt::customScrollbarTheme()
     return scrollbarTheme;
 }
 
-static Ref<RenderTheme> createTheme(Page* page)
+static RenderTheme* createTheme(Page* page)
 {
     if (themeFactory)
         return themeFactory(page);
-    return RenderThemeQtMobile::create(page);
+    return new RenderThemeQtMobile(page);
 }
 
 RenderTheme& RenderTheme::singleton()
 {
-    static Ref<RenderTheme> fallback = createTheme(0);
-    return fallback.get();
+    static RenderTheme* fallback = createTheme(0);
+    return *fallback;
 }
 
 // Remove this when SearchFieldPart is style-able in RenderTheme::isControlStyled()
@@ -462,7 +462,7 @@ void RenderThemeQt::adjustSearchFieldCancelButtonStyle(StyleResolver&, RenderSty
 {
     // Logic taken from RenderThemeChromium.cpp.
     // Scale the button size based on the font size.
-    float fontScale = style.fontSize() / defaultControlFontPixelSize;
+    float fontScale = style.computedFontPixelSize() / defaultControlFontPixelSize;
     int cancelButtonSize = lroundf(qMin(qMax(minCancelButtonSize, defaultCancelButtonSize * fontScale), maxCancelButtonSize));
     style.setWidth(Length(cancelButtonSize, Fixed));
     style.setHeight(Length(cancelButtonSize, Fixed));

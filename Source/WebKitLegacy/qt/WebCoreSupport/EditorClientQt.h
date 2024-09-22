@@ -73,6 +73,7 @@ public:
     void willWriteSelectionToPasteboard(Range*) override;
     void didWriteSelectionToPasteboard() override;
     void getClientPasteboardDataForRange(Range*, Vector<String>& pasteboardTypes, Vector<RefPtr<WebCore::SharedBuffer> >& pasteboardData) override;
+    String replacementURLForResource(Ref<SharedBuffer>&& resourceData, const String& mimeType) override;
     
     void registerUndoStep(UndoStep&) override;
     void registerRedoStep(UndoStep&) override;
@@ -107,10 +108,11 @@ public:
     bool supportsGlobalSelection() override;
 
     void didApplyStyle() override;
-    void didChangeSelectionAndUpdateLayout() override;
+    void didEndUserTriggeredSelectionChanges() override;
     void updateEditorStateAfterLayoutIfEditabilityChanged() override;
     void discardedComposition(Frame *) override;
     void canceledComposition() override;
+    void didUpdateComposition() override;
     void overflowScrollPositionChanged() override;
     bool performTwoStepDrop(DocumentFragment&, Range&, bool) override;
 

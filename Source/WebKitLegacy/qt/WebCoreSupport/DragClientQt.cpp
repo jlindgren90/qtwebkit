@@ -108,7 +108,7 @@ void DragClientQt::startDrag(DragItem dragItem, DataTransfer& dataTransfer, Fram
         // Send dragEnd event
         PlatformMouseEvent me(m_chromeClient->screenToRootView(fromQPoint(QCursor::pos())),
             fromQPoint(QCursor::pos()), LeftButton, PlatformEvent::MouseMoved,
-            0, false, false, false, false, 0, ForceAtClick, NoTap);
+            0, false, false, false, false, WallTime::now(), ForceAtClick, NoTap);
         frame.eventHandler().dragSourceEndedAt(me, dropActionToDragOperation(actualDropAction));
     }
     frame.page()->dragController().dragEnded();

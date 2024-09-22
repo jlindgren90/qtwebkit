@@ -1950,3 +1950,15 @@ void IconDatabase::dispatchDidFinishURLImportOnMainThread()
 }
 
 } // namespace WebKit
+
+#if PLATFORM(QT)
+namespace WebCore {
+
+IconDatabase& iconDatabase()
+{
+    static IconDatabase db;
+    return db;
+}
+
+} // namespace WebCore
+#endif // PLATFORM(QT)

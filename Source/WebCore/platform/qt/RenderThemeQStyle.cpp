@@ -109,11 +109,6 @@ void StylePainterQStyle::setupStyleOption()
     }
 }
 
-Ref<RenderTheme> RenderThemeQStyle::create(Page* page)
-{
-    return adoptRef(*new RenderThemeQStyle(page));
-}
-
 static QtStyleFactoryFunction styleFactoryFunction;
 
 void RenderThemeQStyle::setStyleFactoryFunction(QtStyleFactoryFunction function)
@@ -307,8 +302,8 @@ void RenderThemeQStyle::adjustButtonStyle(StyleResolver& styleResolver, RenderSt
     fontDescription.setSpecifiedSize(m_buttonFontPixelSize);
     fontDescription.setComputedSize(m_buttonFontPixelSize);
 #else
-    fontDescription.setSpecifiedSize(style.fontSize());
-    fontDescription.setComputedSize(style.fontSize());
+    fontDescription.setSpecifiedSize(style.computedFontPixelSize());
+    fontDescription.setComputedSize(style.computedFontPixelSize());
 #endif
 
     Vector<AtomicString> families;

@@ -38,12 +38,9 @@ typedef QPixmapCache::Key CacheKey;
 namespace WebCore {
 
 class RenderThemeQtMobile final : public RenderThemeQt {
-private:
+public:
     RenderThemeQtMobile(Page*);
     ~RenderThemeQtMobile();
-
-public:
-    static Ref<RenderTheme> create(Page*);
 
     void adjustSliderThumbSize(RenderStyle&, const Element*) const final;
 

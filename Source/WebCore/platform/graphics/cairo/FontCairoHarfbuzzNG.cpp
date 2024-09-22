@@ -30,7 +30,7 @@
 #if USE(CAIRO)
 
 #include "SurrogatePairAwareTextIterator.h"
-#include <unicode/normlzr.h>
+#include <unicode/unorm.h>
 
 namespace WebCore {
 

@@ -631,12 +631,6 @@ void StylePainterMobile::drawSliderThumb(const QRect & rect, bool pressed) const
     painter->drawPixmap(rect, result);
 }
 
-
-Ref<RenderTheme> RenderThemeQtMobile::create(Page* page)
-{
-    return adoptRef(*new RenderThemeQtMobile(page));
-}
-
 RenderThemeQtMobile::RenderThemeQtMobile(Page* page)
     : RenderThemeQt(page)
 {
@@ -724,8 +718,8 @@ void RenderThemeQtMobile::adjustButtonStyle(StyleResolver&, RenderStyle& style, 
     FontCascadeDescription fontDescription = style.fontDescription();
     fontDescription.setIsAbsoluteSize(true);
 
-    fontDescription.setSpecifiedSize(style.fontSize());
-    fontDescription.setComputedSize(style.fontSize());
+    fontDescription.setSpecifiedSize(style.computedFontPixelSize());
+    fontDescription.setComputedSize(style.computedFontPixelSize());
 
     style.setLineHeight(RenderStyle::initialLineHeight());
     setButtonSize(style);

@@ -723,7 +723,7 @@ bool ResourceHandle::start()
             RefPtr<ResourceHandle> me(this);
             callOnMainThread([me, url, data, mimeType] {
                 ResourceResponse response(url, mimeType, data.size(), String());
-                me->client()->didReceiveResponse(me.get(), std::move(response));
+                me->client()->didReceiveResponseAsync(me.get(), std::move(response), []() { });
                 me->client()->didReceiveData(me.get(), data.data(), data.size(), data.size());
                 me->client()->didFinishLoading(me.get());
             });

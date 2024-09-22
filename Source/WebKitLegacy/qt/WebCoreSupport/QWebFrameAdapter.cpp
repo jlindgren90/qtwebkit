@@ -31,6 +31,7 @@
 #include "FrameLoadRequest.h"
 #include "FrameLoaderClientQt.h"
 #include "FrameView.h"
+#include "GraphicsContextImplCairo.h"
 #include "HTMLCollection.h"
 #include "HTMLFormElement.h"
 #include "HTMLMetaElement.h"
@@ -216,8 +217,8 @@ QString QWebFrameAdapter::toHtml() const
 
 QString QWebFrameAdapter::toPlainText() const
 {
-    if (frame->view() && frame->view()->layoutPending())
-        frame->view()->layout();
+    if (frame->view() && frame->view()->layoutContext().isLayoutPending())
+        frame->view()->layoutContext().layout();
 
     Element* documentElement = frame->document()->documentElement();
     if (documentElement)
@@ -461,7 +462,7 @@ void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const
     std::unique_ptr<cairo_t, decltype(&cairo_destroy)> cr
         { cairo_create(frameBuffer.get()), cairo_destroy };
 
-    GraphicsContext context(cr.get());
+    GraphicsContext context(GraphicsContextImplCairo::createFactory(cr.get()));
     if (context.paintingDisabled() && !context.updatingControlTints())
         return;
 
@@ -903,7 +904,7 @@ void QWebFrameAdapter::setCustomLayoutSize(const QSize& size)
     } else if (view->useFixedLayout())
         view->setUseFixedLayout(false);
 
-    view->layout();
+    view->layoutContext().layout();
 }
 
 void QWebFrameAdapter::setFixedVisibleContentRect(const QRect& rect)
@@ -921,7 +922,7 @@ void QWebFrameAdapter::setViewportSize(const QSize& size)
     ASSERT(view);
     view->resize(fromQSize(size));
     if (view->needsLayout())
-        view->layout();
+        view->layoutContext().layout();
     view->adjustViewSize();
 }
 

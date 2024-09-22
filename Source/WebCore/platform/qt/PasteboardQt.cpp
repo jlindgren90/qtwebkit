@@ -89,11 +89,6 @@ std::unique_ptr<Pasteboard> Pasteboard::createForGlobalSelection()
     return pasteboard;
 }
 
-std::unique_ptr<Pasteboard> Pasteboard::createPrivate()
-{
-    return create(0, true /* Not really for drag-and-drop, but shouldn't actively update the system pasteboard */);
-}
-
 #if ENABLE(DRAG_SUPPORT)
 std::unique_ptr<Pasteboard> Pasteboard::createForDragAndDrop()
 {
@@ -174,6 +169,11 @@ void Pasteboard::read(PasteboardWebContentReader&)
     // TODO
 }
 
+void Pasteboard::read(PasteboardFileReader&)
+{
+    // TODO
+}
+
 RefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& context,
                                                       bool allowPlainText, bool& chosePlainText)
 {
@@ -228,6 +228,11 @@ void Pasteboard::writePlainText(const String& text, SmartReplaceOption smartRepl
         m_writableData->setData(QLatin1String("application/vnd.qtwebkit.smartpaste"), QByteArray());
     if (isForCopyAndPaste())
         updateSystemPasteboard();
+}
+
+void Pasteboard::writeCustomData(const PasteboardCustomData&)
+{
+    // TODO
 }
 
 void Pasteboard::write(const PasteboardURL& pasteboardURL)
@@ -297,6 +302,11 @@ void Pasteboard::writeImage(Element& node, const URL& url, const String& title)
         updateSystemPasteboard();
 }
 
+bool Pasteboard::containsFiles()
+{
+    return false; // TODO
+}
+
 const QMimeData* Pasteboard::readData() const
 {
     if (m_readableData)
@@ -362,6 +372,11 @@ String Pasteboard::readString(const String& type)
     return stringData;
 }
 
+String Pasteboard::readStringInCustomData(const String&)
+{
+    return String(); // FIXME
+}
+
 void Pasteboard::writeString(const String& type, const String& data)
 {
     if (!m_writableData)
@@ -380,7 +395,12 @@ void Pasteboard::writeString(const String& type, const String& data)
     }
 }
 
-Vector<String> Pasteboard::types()
+Vector<String> Pasteboard::typesSafeForBindings(const String&)
+{
+    return { }; // TODO
+}
+
+Vector<String> Pasteboard::typesForLegacyUnsafeBindings()
 {
     const QMimeData* data = readData();
     if (!data)
@@ -390,11 +410,15 @@ Vector<String> Pasteboard::types()
     QStringList formats = data->formats();
     for (int i = 0; i < formats.count(); ++i)
         result.add(formats.at(i));
-    Vector<String> vector;
-    copyToVector(result, vector);
-    return vector;
+    return copyToVector(result);
 }
 
+String Pasteboard::readOrigin()
+{
+    return String(); // TODO
+}
+
+#if 0 // FIXME
 Vector<String> Pasteboard::readFilenames()
 {
     const QMimeData* data = readData();
@@ -413,6 +437,7 @@ Vector<String> Pasteboard::readFilenames()
 
     return fileList;
 }
+#endif
 
 #if ENABLE(DRAG_SUPPORT)
 void Pasteboard::setDragImage(DragImage, const IntPoint&)
@@ -430,6 +455,7 @@ void Pasteboard::updateSystemPasteboard()
 #endif
 }
 
+#if 0 // FIXME
 void Pasteboard::writePasteboard(const Pasteboard& sourcePasteboard)
 {
     ASSERT(isForCopyAndPaste());
@@ -438,5 +464,6 @@ void Pasteboard::writePasteboard(const Pasteboard& sourcePasteboard)
     sourcePasteboard.invalidateWritableData();
 #endif
 }
+#endif
 
 }

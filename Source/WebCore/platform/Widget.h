@@ -59,15 +59,11 @@ typedef HWND PlatformWidget;
 typedef struct _GtkWidget GtkWidget;
 typedef struct _GtkContainer GtkContainer;
 typedef GtkWidget* PlatformWidget;
+#elif PLATFORM(QT)
+class QObject;
+typedef QObject* PlatformWidget;
 #else
 typedef void* PlatformWidget;
-#endif
-
-#if PLATFORM(QT)
-QT_BEGIN_NAMESPACE
-class QObject;
-QT_END_NAMESPACE
-typedef QObject* PlatformWidget;
 #endif
 
 #if PLATFORM(QT)

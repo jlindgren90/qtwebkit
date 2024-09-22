@@ -229,6 +229,11 @@ void EditorClientQt::getClientPasteboardDataForRange(Range*, Vector<String>&, Ve
 {
 }
 
+String EditorClientQt::replacementURLForResource(Ref<SharedBuffer>&& resourceData, const String& mimeType)
+{
+    return String();
+}
+
 void EditorClientQt::registerUndoStep(WebCore::UndoStep& step)
 {
 #ifndef QT_NO_UNDOSTACK
@@ -641,7 +646,7 @@ void EditorClientQt::didApplyStyle()
 {
 }
 
-void EditorClientQt::didChangeSelectionAndUpdateLayout()
+void EditorClientQt::didEndUserTriggeredSelectionChanges()
 {
 }
 
@@ -654,6 +659,10 @@ void EditorClientQt::discardedComposition(Frame *)
 }
 
 void EditorClientQt::canceledComposition()
+{
+}
+
+void EditorClientQt::didUpdateComposition()
 {
 }
 

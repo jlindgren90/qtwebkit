@@ -23,7 +23,7 @@
 
 #include "Frame.h"
 #include "HistorySerialization.h"
-#include "IconDatabaseBase.h"
+#include "IconDatabase.h"
 #include "Image.h"
 #include "IntSize.h"
 #include "KeyedDecoderQt.h"
@@ -163,8 +163,8 @@ QIcon QWebHistoryItem::icon() const
     if (!d->item)
         return QIcon();
 
-    return WebCore::toQPixmap(WebCore::iconDatabase().synchronousNativeIconForPageURL(
-        d->item->url(), WebCore::IntSize(16, 16)));
+    return WebCore::toQPixmap(WebCore::iconDatabase().synchronousIconForPageURL(
+        d->item->url(), WebCore::IntSize(16, 16)).first);
 }
 
 /*!

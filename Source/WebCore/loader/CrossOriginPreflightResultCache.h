@@ -30,6 +30,7 @@
 #include "URLHash.h"
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
+#include <wtf/MonotonicTime.h>
 #include <wtf/text/StringHash.h>
 
 namespace WebCore {
@@ -54,7 +55,7 @@ private:
     // FIXME: A better solution to holding onto the absolute expiration time might be
     // to start a timer for the expiration delta that removes this from the cache when
     // it fires.
-    MonotonicTime m_absoluteExpiryTime;
+    WTF::MonotonicTime m_absoluteExpiryTime;
     StoredCredentialsPolicy m_storedCredentialsPolicy;
     HashSet<String> m_methods;
     HashSet<String, ASCIICaseInsensitiveHash> m_headers;

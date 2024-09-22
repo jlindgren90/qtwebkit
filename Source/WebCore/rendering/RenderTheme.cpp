@@ -1000,7 +1000,7 @@ void RenderTheme::paintSliderTicks(const RenderObject& o, const PaintInfo& paint
         return;
 
     auto& input = downcast<HTMLInputElement>(*o.node());
-    auto* dataList = downcast<HTMLDataListElement>(input.list());
+    auto* dataList = downcast<HTMLDataListElement>(input.list().get());
     if (!dataList)
         return;
 

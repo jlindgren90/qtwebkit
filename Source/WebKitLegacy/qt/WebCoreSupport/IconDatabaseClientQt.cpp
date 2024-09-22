@@ -30,7 +30,6 @@
 
 #include "FrameLoaderClientQt.h"
 #include "HTMLFormElement.h"
-#include "IconDatabaseBase.h"
 #include <wtf/text/CString.h>
 
 namespace WebCore {
@@ -40,7 +39,8 @@ IconDatabaseClientQt* IconDatabaseClientQt::instance()
     static IconDatabaseClientQt* client = 0;
     if (!client) {
         client = new IconDatabaseClientQt;
-        iconDatabase().setClient(client);
+        // FIXME: transferring ownership but keeping pointer to client
+        iconDatabase().setClient(std::unique_ptr<IconDatabaseClient>(client));
     }
     return client;
 }
@@ -50,10 +50,6 @@ IconDatabaseClientQt::IconDatabaseClientQt()
 }
 
 IconDatabaseClientQt::~IconDatabaseClientQt()
-{
-}
-
-void IconDatabaseClientQt::didRemoveAllIcons()
 {
 }
 

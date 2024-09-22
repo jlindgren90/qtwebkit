@@ -201,7 +201,7 @@ void QWebSettingsPrivate::apply()
 
         value = attributes.value(QWebSettings::PrivateBrowsingEnabled,
                                       global->attributes.value(QWebSettings::PrivateBrowsingEnabled));
-        page->setSessionID(value ? WebCore::SessionID::legacyPrivateSessionID() : WebCore::SessionID::defaultSessionID());
+        page->setSessionID(value ? PAL::SessionID::legacyPrivateSessionID() : PAL::SessionID::defaultSessionID());
 
         value = attributes.value(QWebSettings::SpatialNavigationEnabled,
                                       global->attributes.value(QWebSettings::SpatialNavigationEnabled));
@@ -218,8 +218,8 @@ void QWebSettingsPrivate::apply()
 
         value = attributes.value(QWebSettings::FrameFlatteningEnabled,
                                       global->attributes.value(QWebSettings::FrameFlatteningEnabled));
-        settings->setFrameFlattening(value ? WebCore::FrameFlatteningFullyEnabled
-                                           : WebCore::FrameFlatteningDisabled);
+        settings->setFrameFlattening(value ? WebCore::FrameFlattening::FullyEnabled
+                                           : WebCore::FrameFlattening::Disabled);
 
         QUrl location = !userStyleSheetLocation.isEmpty() ? userStyleSheetLocation : global->userStyleSheetLocation;
         settings->setUserStyleSheetLocation(WebCore::URL(location));
@@ -723,7 +723,7 @@ void QWebSettings::setIconDatabasePath(const QString& path)
 
     WebCore::IconDatabase::delayDatabaseCleanup();
 
-    WebCore::IconDatabaseBase& db = WebCore::iconDatabase();
+    WebCore::IconDatabase& db = WebCore::iconDatabase();
 
     if (!path.isEmpty()) {
         db.setEnabled(true);
@@ -776,8 +776,8 @@ void QWebSettings::clearIconDatabase()
 QIcon QWebSettings::iconForUrl(const QUrl& url)
 {
     WebCore::initializeWebCoreQt();
-    return WebCore::toQPixmap(WebCore::iconDatabase().synchronousNativeIconForPageURL(
-        WebCore::URL(url).string(), WebCore::IntSize(16, 16)));
+    return WebCore::toQPixmap(WebCore::iconDatabase().synchronousIconForPageURL(
+        WebCore::URL(url).string(), WebCore::IntSize(16, 16)).first);
 }
 
 /*!
@@ -1252,16 +1252,16 @@ void QWebSettings::enablePersistentStorage(const QString& path)
 
         storagePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
         if (storagePath.isEmpty())
-            storagePath = WebCore::pathByAppendingComponent(QDir::homePath(), QCoreApplication::applicationName());
+            storagePath = WebCore::FileSystem::pathByAppendingComponent(QDir::homePath(), QCoreApplication::applicationName());
     } else
         storagePath = path;
 
-    WebCore::makeAllDirectories(storagePath);
+    WebCore::FileSystem::makeAllDirectories(storagePath);
 
     QWebSettings::setIconDatabasePath(storagePath);
     QWebSettings::setOfflineWebApplicationCachePath(storagePath);
-    QWebSettings::setOfflineStoragePath(WebCore::pathByAppendingComponent(storagePath, "Databases"));
-    QWebSettings::globalSettings()->setLocalStoragePath(WebCore::pathByAppendingComponent(storagePath, "LocalStorage"));
+    QWebSettings::setOfflineStoragePath(WebCore::FileSystem::pathByAppendingComponent(storagePath, "Databases"));
+    QWebSettings::globalSettings()->setLocalStoragePath(WebCore::FileSystem::pathByAppendingComponent(storagePath, "LocalStorage"));
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::OfflineStorageDatabaseEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::OfflineWebApplicationCacheEnabled, true);
@@ -1270,7 +1270,7 @@ void QWebSettings::enablePersistentStorage(const QString& path)
     // All applications can share the common QtWebkit cache file(s).
     // Path is not configurable and uses QDesktopServices::CacheLocation by default.
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-    WebCore::makeAllDirectories(cachePath);
+    WebCore::FileSystem::makeAllDirectories(cachePath);
 
     QFileInfo info(cachePath);
     if (info.isDir() && info.isWritable()) {

@@ -249,7 +249,7 @@ HTMLDataListElement* HTMLOptionElement::ownerDataListElement() const
 {
     for (RefPtr<ContainerNode> parent = parentNode(); parent ; parent = parent->parentNode()) {
         if (is<HTMLDataListElement>(*parent))
-            return downcast<HTMLDataListElement>(parent);
+            return &downcast<HTMLDataListElement>(*parent);
     }
     return nullptr;
 }

@@ -86,7 +86,7 @@ String MIMETypeRegistry::getMIMETypeForExtension(const String &ext)
 String MIMETypeRegistry::getMIMETypeForPath(const String& path)
 {
     for (auto& entry : extensionMap) {
-        if (path.endsWith(entry.dotExtension, /* caseSensitive */ false))
+        if (path.endsWithIgnoringASCIICase(entry.dotExtension))
             return entry.mimeType;
     }
 
@@ -132,8 +132,8 @@ String MIMETypeRegistry::getNormalizedMIMEType(const String& mimeTypeName)
 
 bool MIMETypeRegistry::isApplicationPluginMIMEType(const String& mimeType)
 {
-    return mimeType.startsWith("application/x-qt-plugin", false)
-        || mimeType.startsWith("application/x-qt-styled-widget", false);
+    return mimeType.startsWithIgnoringASCIICase("application/x-qt-plugin")
+        || mimeType.startsWithIgnoringASCIICase("application/x-qt-styled-widget");
 }
 
 }

@@ -127,7 +127,6 @@ public:
     PlatformPageClient platformPageClient() const final;
     void contentsSizeChanged(Frame&, const IntSize&) const final;
 
-    void scrollbarsModeDidChange() const final { }
     void mouseDidMoveOverElement(const HitTestResult&, unsigned modifierFlags) final;
 
     void setToolTip(const String&, TextDirection) final;
@@ -183,7 +182,6 @@ public:
 
     bool selectItemWritingDirectionIsNatural() final;
     bool selectItemAlignmentFollowsMenuWritingDirection() final;
-    bool hasOpenedPopup() const final;
     RefPtr<PopupMenu> createPopupMenu(PopupMenuClient&) const final;
     RefPtr<SearchPopupMenu> createSearchPopupMenu(PopupMenuClient&) const final;
 

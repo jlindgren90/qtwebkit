@@ -38,8 +38,9 @@ void VisitedLinkStoreQt::removeAllVisitedLinks()
     m_visitedLinkHashes.clear();
 }
 
-bool VisitedLinkStoreQt::isLinkVisited(WebCore::Page&, WebCore::LinkHash linkHash, const WebCore::URL& baseURL, const WTF::AtomicString& attributeURL)
+bool VisitedLinkStoreQt::isLinkVisited(WebCore::Page&, WebCore::SharedStringHash linkHash, const WebCore::URL& baseURL, const WTF::AtomicString& attributeURL)
 {
+#if 0 // FIXME: still needed?
     // If the Qt4.4 interface for the history is used, we will have to fallback
     // to the old global history.
     // See https://bugs.webkit.org/show_bug.cgi?id=20952
@@ -49,11 +50,12 @@ bool VisitedLinkStoreQt::isLinkVisited(WebCore::Page&, WebCore::LinkHash linkHas
         visitedURL(baseURL, attributeURL, url);
         return iface->historyContains(QString(reinterpret_cast<QChar*>(url.data()), url.size()));
     }
+#endif
 
     return m_visitedLinkHashes.contains(linkHash);
 }
 
-void VisitedLinkStoreQt::addVisitedLink(WebCore::Page&, WebCore::LinkHash linkHash)
+void VisitedLinkStoreQt::addVisitedLink(WebCore::Page&, WebCore::SharedStringHash linkHash)
 {
     m_visitedLinkHashes.add(linkHash);
     invalidateStylesForLink(linkHash);

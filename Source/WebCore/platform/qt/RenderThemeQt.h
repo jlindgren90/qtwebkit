@@ -43,7 +43,7 @@ class HTMLMediaElement;
 class StylePainter;
 class ScrollbarTheme;
 
-typedef Ref<RenderTheme> (*QtThemeFactoryFunction)(Page* page);
+typedef RenderTheme* (*QtThemeFactoryFunction)(Page* page);
 
 class RenderThemeQt : public RenderTheme {
 

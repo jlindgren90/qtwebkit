@@ -113,8 +113,10 @@ static QString drtDescriptionSuitableForTestResult(WebCore::Frame* webCoreFrame)
 
 static QString drtPrintFrameUserGestureStatus(WebCore::Frame* frame)
 {
+#if 0 // FIXME
     if (WebCore::ScriptController::processingUserGesture())
         return QString::fromLatin1("Frame with user gesture \"%1\"").arg(QLatin1String("true"));
+#endif
     return QString::fromLatin1("Frame with user gesture \"%1\"").arg(QLatin1String("false"));
 }
 
@@ -526,11 +528,9 @@ void FrameLoaderClientQt::cancelPolicyCheck()
 }
 
 
-void FrameLoaderClientQt::dispatchWillSubmitForm(FormState&, FramePolicyFunction&& function)
+void FrameLoaderClientQt::dispatchWillSubmitForm(FormState&, WTF::Function<void(void)>&& function)
 {
-    notImplemented();
-    // FIXME: This is surely too simple.
-    function(PolicyUse);
+    function(); // FIXME: check this
 }
 
 void FrameLoaderClientQt::setMainFrameDocumentReady(bool)
@@ -880,7 +880,7 @@ Ref<WebCore::DocumentLoader> FrameLoaderClientQt::createDocumentLoader(const Web
     return loader;
 }
 
-void FrameLoaderClientQt::convertMainResourceLoadToDownload(DocumentLoader* documentLoader, SessionID, const ResourceRequest& request, const ResourceResponse&)
+void FrameLoaderClientQt::convertMainResourceLoadToDownload(DocumentLoader* documentLoader, PAL::SessionID, const ResourceRequest& request, const ResourceResponse&)
 {
 #if 0 // FIXME
     if (!m_webFrame)
@@ -1112,16 +1112,16 @@ void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::Resourc
         // FIXME: a 205 response requires that the requester reset the document view.
         // Fallthrough
     case HTTPNoContent:
-        function(PolicyIgnore);
+        function(PolicyAction::Ignore);
         return;
     }
 
     if (WebCore::contentDispositionType(response.httpHeaderField(HTTPHeaderName::ContentDisposition)) == WebCore::ContentDispositionAttachment)
-        function(PolicyDownload);
+        function(PolicyAction::Download);
     else if (canShowMIMEType(response.mimeType()))
-        function(PolicyUse);
+        function(PolicyAction::Use);
     else
-        function(PolicyDownload);
+        function(PolicyAction::Download);
 }
 
 void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, const WTF::String&, FramePolicyFunction&& function)
@@ -1134,17 +1134,16 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::
             m_frame->loader().resetMultipleFormSubmissionProtection();
 
         if (action.type() == NavigationType::LinkClicked && r.url().hasFragment()) {
-            ResourceRequest emptyRequest;
-            m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(emptyRequest);
+            m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(ResourceRequest());
         }
 
-        function(PolicyIgnore);
+        function(PolicyAction::Ignore);
         return;
     }
-    function(PolicyUse);
+    function(PolicyAction::Use);
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, FramePolicyFunction&& function)
+void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, bool, WebCore::FormState*, FramePolicyFunction&& function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
@@ -1166,9 +1165,9 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore:
             (node) ? qPrintable(QString::fromLatin1(" originating from ") + drtDescriptionSuitableForTestResult(node, 0)) : "");
 
         if (policyDelegatePermissive)
-            result = PolicyUse;
+            result = PolicyAction::Use;
         else
-            result = PolicyIgnore;
+            result = PolicyAction::Ignore;
 
         m_webFrame->pageAdapter->acceptNavigationRequest(m_webFrame, r, (int)action.type());
         function(result);
@@ -1180,14 +1179,13 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore:
             m_frame->loader().resetMultipleFormSubmissionProtection();
 
         if (action.type() == NavigationType::LinkClicked && r.url().hasFragment()) {
-            ResourceRequest emptyRequest;
-            m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(emptyRequest);
+            m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(ResourceRequest());
         }
 
-        function(PolicyIgnore);
+        function(PolicyAction::Ignore);
         return;
     }
-    function(PolicyUse);
+    function(PolicyAction::Use);
 }
 
 void FrameLoaderClientQt::dispatchUnableToImplementPolicy(const WebCore::ResourceError&)

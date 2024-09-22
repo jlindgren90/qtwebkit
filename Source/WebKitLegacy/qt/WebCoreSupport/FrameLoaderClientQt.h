@@ -76,6 +76,12 @@ public:
     bool hasWebView() const override; // mainly for assertions
 
     void makeRepresentation(DocumentLoader*) override { }
+
+    // FIXME: check these
+    std::optional<uint64_t> pageID() const override { return std::nullopt; }
+    std::optional<uint64_t> frameID() const override { return std::nullopt; }
+    PAL::SessionID sessionID() const override { return PAL::SessionID::defaultSessionID(); }
+
     void forceLayoutForNonHTML() override;
 
     void setCopiesOnScroll() override;
@@ -119,13 +125,14 @@ public:
 
     void dispatchDecidePolicyForResponse(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, FramePolicyFunction&&) override;
     void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, const WTF::String&, FramePolicyFunction&&) override;
-    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&, const WebCore::ResourceRequest&, FormState*, FramePolicyFunction&&) override;
+    void dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction&,
+        const WebCore::ResourceRequest&, bool, FormState*, FramePolicyFunction&&) override;
     void cancelPolicyCheck() override;
 
     void dispatchUnableToImplementPolicy(const WebCore::ResourceError&) override;
 
     void dispatchWillSendSubmitEvent(Ref<FormState>&&) override { }
-    void dispatchWillSubmitForm(FormState&, FramePolicyFunction&&) override;
+    void dispatchWillSubmitForm(FormState&, WTF::Function<void(void)>&&) override;
 
     void revertToProvisionalState(DocumentLoader*) override { }
     void setMainDocumentError(DocumentLoader*, const ResourceError&) override;
@@ -186,7 +193,8 @@ public:
     void dispatchDidBecomeFrameset(bool) override;
 
     bool canCachePage() const override;
-    void convertMainResourceLoadToDownload(DocumentLoader*,SessionID, const ResourceRequest&, const WebCore::ResourceResponse&) override;
+    void convertMainResourceLoadToDownload(DocumentLoader*, PAL::SessionID,
+        const ResourceRequest&, const WebCore::ResourceResponse&) override;
 
     RefPtr<Frame> createFrame(const URL&, const String& name, HTMLFrameOwnerElement&, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight) override;
     RefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement&, const URL&, const Vector<String>&, const Vector<String>&, const String&, bool) override;

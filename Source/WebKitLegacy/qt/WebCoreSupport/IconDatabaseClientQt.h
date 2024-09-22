@@ -28,7 +28,7 @@
 #ifndef IconDatabaseClientQt_h
 #define IconDatabaseClientQt_h
 
-#include "IconDatabaseClient.h"
+#include "IconDatabase.h"
 #include <QtCore/QObject>
 
 namespace WebCore {
@@ -38,7 +38,6 @@ class IconDatabaseClientQt final : public QObject, public IconDatabaseClient {
 public:
     static IconDatabaseClientQt* instance();
 
-    void didRemoveAllIcons() final;
     void didImportIconURLForPageURL(const String&) final;
     void didImportIconDataForPageURL(const String&) final;
     void didChangeIconForPageURL(const String&) final;

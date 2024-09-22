@@ -904,7 +904,7 @@ PlatformKeyboardEvent::PlatformKeyboardEvent(QKeyEvent* event, bool useNativeVir
         m_windowsVirtualKeyCode = windowsKeyCodeForKeyEvent(event->key(), m_isKeypad);
 
     m_qtEvent = event;
-    m_timestamp = WTF::currentTime();
+    m_timestamp = WTF::WallTime::now();
 }
 
 void PlatformKeyboardEvent::disambiguateKeyDownEvent(Type type, bool)

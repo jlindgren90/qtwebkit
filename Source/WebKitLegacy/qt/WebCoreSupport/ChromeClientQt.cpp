@@ -752,12 +752,6 @@ bool ChromeClientQt::selectItemAlignmentFollowsMenuWritingDirection()
     return false;
 }
 
-bool ChromeClientQt::hasOpenedPopup() const
-{
-    notImplemented();
-    return false;
-}
-
 RefPtr<PopupMenu> ChromeClientQt::createPopupMenu(PopupMenuClient& client) const
 {
     return adoptRef(new PopupMenuQt(&client, this));

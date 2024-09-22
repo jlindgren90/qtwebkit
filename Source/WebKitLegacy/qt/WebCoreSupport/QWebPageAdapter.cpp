@@ -25,6 +25,7 @@
 #include "BackForwardController.h"
 #include "CSSComputedStyleDeclaration.h"
 #include "CSSParser.h"
+#include "CacheStorageProvider.h"
 #include "Chrome.h"
 #include "ChromeClientQt.h"
 #include "ContextMenu.h"
@@ -152,14 +153,14 @@ static inline Qt::DropAction dragOpToDropAction(unsigned actions)
     return result;
 }
 
-static inline QWebPageAdapter::VisibilityState webCoreVisibilityStateToWebPageVisibilityState(WebCore::PageVisibilityState state)
+static inline QWebPageAdapter::VisibilityState webCoreVisibilityStateToWebPageVisibilityState(WebCore::VisibilityState state)
 {
     switch (state) {
-    case WebCore::PageVisibilityState::Prerender:
+    case WebCore::VisibilityState::Prerender:
         return QWebPageAdapter::VisibilityStatePrerender;
-    case WebCore::PageVisibilityState::Visible:
+    case WebCore::VisibilityState::Visible:
         return QWebPageAdapter::VisibilityStateVisible;
-    case WebCore::PageVisibilityState::Hidden:
+    case WebCore::VisibilityState::Hidden:
         return QWebPageAdapter::VisibilityStateHidden;
     default:
         ASSERT(false);
@@ -211,9 +212,12 @@ QWebPageAdapter::QWebPageAdapter()
 
 void QWebPageAdapter::initializeWebCorePage()
 {
-    PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
-                                        SocketProvider::create(),
-                                        WTF::makeUniqueRef<LibWebRTCProvider>());
+    PageConfiguration pageConfiguration(
+        WTF::makeUniqueRef<EditorClientQt>(this),
+        SocketProvider::create(),
+        WTF::makeUniqueRef<LibWebRTCProvider>(),
+        CacheStorageProvider::create()
+    );
     pageConfiguration.backForwardClient = BackForwardList::create();
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
@@ -365,7 +369,7 @@ void QWebPageAdapter::setContentEditable(bool editable)
 
 bool QWebPageAdapter::findText(const QString& subString, FindFlag options)
 {
-    ::WebCore::FindOptions webCoreFindOptions = 0;
+    WebCore::FindOptions webCoreFindOptions = { };
 
     if (!(options & FindCaseSensitively))
         webCoreFindOptions |= WebCore::CaseInsensitive;
@@ -599,7 +603,13 @@ void QWebPageAdapter::inputMethodEvent(QInputMethodEvent *ev)
         case QInputMethodEvent::TextFormat: {
             QTextCharFormat textCharFormat = a.value.value<QTextFormat>().toCharFormat();
             QColor qcolor = textCharFormat.underlineColor();
-            underlines.append(CompositionUnderline(qMin(a.start, (a.start + a.length)), qMax(a.start, (a.start + a.length)), Color(makeRGBA(qcolor.red(), qcolor.green(), qcolor.blue(), qcolor.alpha())), false));
+            underlines.append(CompositionUnderline(
+                qMin(a.start, (a.start + a.length)),
+                qMax(a.start, (a.start + a.length)),
+                CompositionUnderlineColor::GivenColor,
+                fromQColor(qcolor),
+                false
+            ));
             break;
         }
         case QInputMethodEvent::Cursor: {
@@ -748,13 +758,9 @@ typedef struct {
 
 void QWebPageAdapter::dynamicPropertyChangeEvent(QObject* obj, QDynamicPropertyChangeEvent* event)
 {
+#if 0 // FIXME
     if (event->propertyName() == "_q_viewMode") {
         page->setViewMode(Page::stringToViewMode(obj->property("_q_viewMode").toString()));
-// FIXME:
-//  CustomHTMLTokenizerChunkSize -> private setting defaultParserChunkSize
-//  CustomHTMLTokenizerTimeDelay -> Settings::maxParseDuration
-//  RepaintThrottling -> "Nowadays we throttle layer flushes" (r162837)
-#if 0
     } else if (event->propertyName() == "_q_HTMLTokenizerChunkSize") {
         int chunkSize = obj->property("_q_HTMLTokenizerChunkSize").toInt();
         page->setCustomHTMLTokenizerChunkSize(chunkSize);
@@ -792,8 +798,9 @@ void QWebPageAdapter::dynamicPropertyChangeEvent(QObject* obj, QDynamicPropertyC
                 break;
             }
         }
+    } else
 #endif
-    } else if (event->propertyName() == "_q_webInspectorServerPort") {
+    if (event->propertyName() == "_q_webInspectorServerPort") {
         QVariant port = obj->property("_q_webInspectorServerPort");
         if (port.isValid()) {
             InspectorServerQt* inspectorServer = InspectorServerQt::server();

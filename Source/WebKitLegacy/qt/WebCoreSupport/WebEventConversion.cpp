@@ -88,7 +88,7 @@ public:
 
 WebKitPlatformMouseEvent::WebKitPlatformMouseEvent(QInputEvent* event, int clickCount)
 {
-    m_timestamp = WTF::currentTime();
+    m_timestamp = WTF::WallTime::now();
 
     bool isContextMenuEvent = false;
 #ifndef QT_NO_CONTEXTMENU
@@ -149,7 +149,7 @@ void WebKitPlatformWheelEvent::applyDelta(int delta, Qt::Orientation orientation
 
 WebKitPlatformWheelEvent::WebKitPlatformWheelEvent(QWheelEvent* e, int wheelScrollLines)
 {
-    m_timestamp = WTF::currentTime();
+    m_timestamp = WTF::WallTime::now();
     mouseEventModifiersFromQtKeyboardModifiers(e->modifiers(), m_modifiers);
     m_position = fromQPoint(e->pos());
     m_globalPosition = fromQPoint(e->globalPos());
@@ -217,7 +217,7 @@ WebKitPlatformTouchEvent::WebKitPlatformTouchEvent(QTouchEvent* event)
 
     mouseEventModifiersFromQtKeyboardModifiers(event->modifiers(), m_modifiers);
 
-    m_timestamp = WTF::currentTime();
+    m_timestamp = WTF::WallTime::now();
 }
 
 WebKitPlatformTouchPoint::WebKitPlatformTouchPoint(const QTouchEvent::TouchPoint& point, State state)
