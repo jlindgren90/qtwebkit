@@ -73,7 +73,7 @@ all : \
 
 BUILTINS_GENERATOR_SCRIPTS = \
     $(JavaScriptCore_SCRIPTS_DIR)/builtins/__init__.py \
-    $(JavaScriptCore_SCRIPTS_DIR)/builtins/builtins.py \
+    $(JavaScriptCore_SCRIPTS_DIR)/builtins/wkbuiltins.py \
     $(JavaScriptCore_SCRIPTS_DIR)/builtins/builtins_generator.py \
     $(JavaScriptCore_SCRIPTS_DIR)/builtins/builtins_model.py \
     $(JavaScriptCore_SCRIPTS_DIR)/builtins/builtins_templates.py \

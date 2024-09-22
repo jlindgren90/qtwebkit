@@ -1,5 +1,4 @@
 list(APPEND WTF_SOURCES
-    PlatformUserPreferredLanguagesUnix.cpp
     UniStdExtras.cpp
 
     generic/MainThreadGeneric.cpp
@@ -18,6 +17,7 @@ list(APPEND WTF_SOURCES
     text/unix/TextBreakIteratorInternalICUUnix.cpp
 
     unix/CPUTimeUnix.cpp
+    unix/LanguageUnix.cpp
 )
 
 list(APPEND WTF_LIBRARIES
@@ -33,5 +33,3 @@ list(APPEND WTF_INCLUDE_DIRECTORIES
     ${GLIB_INCLUDE_DIRS}
     ${Qt5Core_INCLUDE_DIRS}
 )
-
-set(WTF_LIBRARY_TYPE STATIC)

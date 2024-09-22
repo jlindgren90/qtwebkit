@@ -2,7 +2,10 @@ include(platform/Cairo.cmake)
 include(platform/FreeType.cmake)
 include(platform/GStreamer.cmake)
 include(platform/ImageDecoders.cmake)
-include(platform/Linux.cmake)
+
+list(APPEND WebCore_UNIFIED_SOURCE_LIST_FILES
+    "platform/SourcesSoup.txt"
+)
 
 list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}"
@@ -44,9 +47,6 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
 )
 
 list(APPEND WebCore_SOURCES
-    PAL/pal/system/SoundNone.cpp
-    PAL/pal/text/KillRingNone.cpp
-
     accessibility/qt/AccessibilityObjectQt.cpp
 
     bindings/js/ScriptControllerQt.cpp
@@ -56,9 +56,6 @@ list(APPEND WebCore_SOURCES
     bridge/qt/qt_runtime.cpp
 
     editing/qt/EditorQt.cpp
-
-    loader/soup/CachedRawResourceSoup.cpp
-    loader/soup/SubresourceLoaderSoup.cpp
 
     page/qt/DragControllerQt.cpp
     page/qt/EventHandlerQt.cpp
@@ -82,23 +79,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/x11/PlatformDisplayX11.cpp
     platform/graphics/x11/XUniqueResource.cpp
 
-    platform/network/soup/AuthenticationChallengeSoup.cpp
-    platform/network/soup/CertificateInfo.cpp
-    platform/network/soup/CookieJarSoup.cpp
-    platform/network/soup/CookieStorageSoup.cpp
-    platform/network/soup/CredentialStorageSoup.cpp
-    platform/network/soup/DNSSoup.cpp
-    platform/network/soup/GRefPtrSoup.cpp
-    platform/network/soup/NetworkStorageSessionSoup.cpp
-    platform/network/soup/ProxyServerSoup.cpp
-    platform/network/soup/ResourceErrorSoup.cpp
-    platform/network/soup/ResourceHandleSoup.cpp
-    platform/network/soup/ResourceRequestSoup.cpp
-    platform/network/soup/ResourceResponseSoup.cpp
-    platform/network/soup/SocketStreamHandleImplSoup.cpp
-    platform/network/soup/SoupNetworkSession.cpp
-    platform/network/soup/SynchronousLoaderClientSoup.cpp
-    platform/network/soup/WebKitSoupRequestGeneric.cpp
+    platform/network/glib/NetworkStateNotifierGLib.cpp
 
     platform/qt/CursorQt.cpp
     platform/qt/DataTransferItemListQt.cpp
@@ -107,7 +88,6 @@ list(APPEND WebCore_SOURCES
     platform/qt/DragImageQt.cpp
     platform/qt/KeyedDecoderQt.cpp
     platform/qt/KeyedEncoderQt.cpp
-    platform/qt/LanguageQt.cpp
     platform/qt/LocalizedStringsQt.cpp
     platform/qt/LoggingQt.cpp
     platform/qt/MIMETypeRegistryQt.cpp
@@ -124,10 +104,6 @@ list(APPEND WebCore_SOURCES
     platform/qt/URLQt.cpp
     platform/qt/UserAgentQt.cpp
     platform/qt/WidgetQt.cpp
-
-    platform/soup/PublicSuffixSoup.cpp
-    platform/soup/SharedBufferSoup.cpp
-    platform/soup/URLSoup.cpp
 
     platform/text/Hyphenation.cpp
     platform/text/LocaleICU.cpp
@@ -217,8 +193,8 @@ list(APPEND WebCoreTestSupport_LIBRARIES
 # From PlatformEfl.cmake
 add_custom_command(
     OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/WebKitVersion.h
-    MAIN_DEPENDENCY ${WEBKIT_DIR}/scripts/generate-webkitversion.pl
-    DEPENDS ${WEBKIT_DIR}/mac/Configurations/Version.xcconfig
-    COMMAND ${PERL_EXECUTABLE} ${WEBKIT_DIR}/scripts/generate-webkitversion.pl --config ${WEBKIT_DIR}/mac/Configurations/Version.xcconfig --outputDir ${DERIVED_SOURCES_WEBCORE_DIR}
+    MAIN_DEPENDENCY ${WEBKITLEGACY_DIR}/scripts/generate-webkitversion.pl
+    DEPENDS ${WEBKITLEGACY_DIR}/mac/Configurations/Version.xcconfig
+    COMMAND ${PERL_EXECUTABLE} ${WEBKITLEGACY_DIR}/scripts/generate-webkitversion.pl --config ${WEBKITLEGACY_DIR}/mac/Configurations/Version.xcconfig --outputDir ${DERIVED_SOURCES_WEBCORE_DIR}
     VERBATIM)
 list(APPEND WebCore_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/WebKitVersion.h)

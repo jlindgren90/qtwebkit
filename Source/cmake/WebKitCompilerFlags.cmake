@@ -114,7 +114,6 @@ if (COMPILER_IS_GCC_OR_CLANG)
 
     # Warnings to be enabled
     WEBKIT_PREPEND_GLOBAL_COMPILER_FLAGS(-Wall
-                                         -Wextra
                                          -Wcast-align
                                          -Wformat-security
                                          -Wmissing-format-attribute
@@ -128,6 +127,9 @@ if (COMPILER_IS_GCC_OR_CLANG)
                                          -Wno-maybe-uninitialized
                                          -Wno-noexcept-type
                                          -Wno-parentheses-equality)
+
+    WEBKIT_PREPEND_GLOBAL_CXX_FLAGS(-Wno-c++20-compat
+                                    -Wno-class-memaccess)
 
     # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80947
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "8.0" AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")

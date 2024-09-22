@@ -43,26 +43,26 @@ if (MSVC)
     add_definitions(/DWEBKIT_EXPORTS /DFRAMEWORK_NAME=WebKitLegacy)
 endif ()
 
-set(WebKit_PRIVATE_HEADERS_LOCATION Headers/${PROJECT_VERSION}/QtWebKit/private)
+set(WebKitLegacy_PRIVATE_HEADERS_LOCATION Headers/${PROJECT_VERSION}/QtWebKit/private)
 
 WEBKIT_FRAMEWORK(WebKitLegacy)
 
 if (${PORT} STREQUAL "Qt")
-    set_target_properties(WebKit PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
-    install(TARGETS WebKit EXPORT WebKitTargets
+    set_target_properties(WebKitLegacy PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+    install(TARGETS WebKitLegacy EXPORT Qt5WebKitTargets
             DESTINATION "${LIB_INSTALL_DIR}"
             RUNTIME DESTINATION "${BIN_INSTALL_DIR}"
     )
 
-    ADD_PREFIX_HEADER(WebKit "${WEBKIT_DIR}/qt/WebKitPrefix.h")
+    ADD_PREFIX_HEADER(WebKitLegacy "${WEBKITLEGACY_DIR}/qt/WebKitPrefix.h")
 
     if (USE_LINKER_VERSION_SCRIPT)
         set(VERSION_SCRIPT "${CMAKE_BINARY_DIR}/QtWebKit.version")
-        add_custom_command(TARGET WebKit PRE_LINK
+        add_custom_command(TARGET WebKitLegacy PRE_LINK
             COMMAND ${PERL_EXECUTABLE} ${TOOLS_DIR}/qt/generate-version-script.pl ${Qt5_VERSION} > ${VERSION_SCRIPT}
             VERBATIM
         )
-        set_target_properties(WebKit PROPERTIES LINK_FLAGS -Wl,--version-script,${VERSION_SCRIPT})
+        set_target_properties(WebKitLegacy PROPERTIES LINK_FLAGS -Wl,--version-script,${VERSION_SCRIPT})
     endif ()
 endif ()
 

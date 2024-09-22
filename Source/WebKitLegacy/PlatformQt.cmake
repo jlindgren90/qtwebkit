@@ -30,9 +30,9 @@ if (${JavaScriptCore_LIBRARY_TYPE} MATCHES STATIC)
     add_definitions(-DSTATICALLY_LINKED_WITH_WTF -DSTATICALLY_LINKED_WITH_JavaScriptCore)
 endif ()
 
-QTWEBKIT_SKIP_AUTOMOC(WebKit)
+QTWEBKIT_SKIP_AUTOMOC(WebKitLegacy)
 
-list(APPEND WebKit_INCLUDE_DIRECTORIES
+list(APPEND WebKitLegacy_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}"
     "${WEBCORE_DIR}/PAL"
     "${DERIVED_SOURCES_DIR}"
@@ -175,21 +175,23 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/rendering"
     "${WEBCORE_DIR}/rendering/style"
 
-    "${WEBKIT_DIR}/.."
-    "${WEBKIT_DIR}/Storage"
-    "${WEBKIT_DIR}/qt"
-    "${WEBKIT_DIR}/qt/Api"
-    "${WEBKIT_DIR}/qt/WebCoreSupport"
+    "${WEBKITLEGACY_DIR}/.."
+    "${WEBKITLEGACY_DIR}/Storage"
+    "${WEBKITLEGACY_DIR}/qt"
+    "${WEBKITLEGACY_DIR}/qt/Api"
+    "${WEBKITLEGACY_DIR}/qt/WebCoreSupport"
+
+    "${WEBKIT_DIR}/UIProcess/API/glib" # for IconDatabase.h
 
     "${WTF_DIR}"
 )
 
 # This files are not really port-independent
-list(REMOVE_ITEM WebKit_SOURCES
+list(REMOVE_ITEM WebKitLegacy_SOURCES
     WebCoreSupport/WebViewGroup.cpp
 )
 
-list(APPEND WebKit_SOURCES
+list(APPEND WebKitLegacy_SOURCES
     qt/Api/qhttpheader.cpp
     qt/Api/qwebdatabase.cpp
     qt/Api/qwebelement.cpp
@@ -232,18 +234,12 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/WebEventConversion.cpp
 
     win/BackForwardList.cpp
+
+    ../WebKit/UIProcess/API/glib/IconDatabase.cpp
 )
 
-if (COMPILER_IS_GCC_OR_CLANG)
-    set_source_files_properties(
-        qt/WebCoreSupport/InitWebCoreQt.cpp
-    PROPERTIES
-        COMPILE_FLAGS "-fexceptions" # for std::bad_alloc symbol
-    )
-endif ()
-
 # Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
-list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
+list(APPEND WebKitLegacy_SYSTEM_INCLUDE_DIRECTORIES
     ${CAIRO_INCLUDE_DIRS}
     ${FREETYPE2_INCLUDE_DIRS}
     ${GIO_UNIX_INCLUDE_DIRS}
@@ -256,9 +252,9 @@ list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
     ${SQLITE_INCLUDE_DIR}
 )
 # Build the include path with duplicates removed
-list(REMOVE_DUPLICATES WebKit_SYSTEM_INCLUDE_DIRECTORIES)
+list(REMOVE_DUPLICATES WebKitLegacy_SYSTEM_INCLUDE_DIRECTORIES)
 
-list(APPEND WebKit_LIBRARIES
+list(APPEND WebKitLegacy_LIBRARIES
     PRIVATE
         ${ICU_LIBRARIES}
         ${X11_X11_LIB}
@@ -273,13 +269,13 @@ list(APPEND WebKit_LIBRARIES
 # Resources have to be included directly in the final binary.
 # The linker won't pick them from a static library since they aren't referenced.
 if (TRUE)
-    qt5_add_resources(WebKit_SOURCES
+    qt5_add_resources(WebKitLegacy_SOURCES
         "${WEBCORE_DIR}/WebCore.qrc"
     )
 
     if (ENABLE_INSPECTOR_UI)
         include("${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/PlatformQt.cmake")
-        list(APPEND WebKit_SOURCES
+        list(APPEND WebKitLegacy_SOURCES
             "${DERIVED_SOURCES_WEBINSPECTORUI_DIR}/qrc_WebInspector.cpp"
         )
         set_property(SOURCE "${DERIVED_SOURCES_WEBINSPECTORUI_DIR}/qrc_WebInspector.cpp" PROPERTY SKIP_AUTOMOC ON)
@@ -316,23 +312,23 @@ ecm_generate_headers(
         QtWebKit_HEADERS
 )
 
-set(WebKit_PUBLIC_HEADERS
+set(WebKitLegacy_PUBLIC_HEADERS
     qt/Api/qwebkitglobal.h
     ${QtWebKit_HEADERS}
     ${QtWebKit_FORWARDING_HEADERS}
 )
 
 generate_version_header("${FORWARDING_HEADERS_DIR}/QtWebKit/qtwebkitversion.h"
-    WebKit_PUBLIC_HEADERS
+    WebKitLegacy_PUBLIC_HEADERS
     QTWEBKIT
 )
 
 generate_header("${FORWARDING_HEADERS_DIR}/QtWebKit/QtWebKitVersion"
-    WebKit_PUBLIC_HEADERS
+    WebKitLegacy_PUBLIC_HEADERS
     "#include \"qtwebkitversion.h\"")
 
 generate_header("${FORWARDING_HEADERS_DIR}/QtWebKit/QtWebKitDepends"
-    WebKit_PUBLIC_HEADERS
+    WebKitLegacy_PUBLIC_HEADERS
     "#ifdef __cplusplus /* create empty PCH in C mode */
 #include <QtCore/QtCore>
 #include <QtGui/QtGui>
@@ -342,16 +338,16 @@ generate_header("${FORWARDING_HEADERS_DIR}/QtWebKit/QtWebKitDepends"
 
 install(
     FILES
-        ${WebKit_PUBLIC_HEADERS}
+        ${WebKitLegacy_PUBLIC_HEADERS}
     DESTINATION
         ${KDE_INSTALL_INCLUDEDIR}/QtWebKit
     COMPONENT Data
 )
 
-file(GLOB WebKit_PRIVATE_HEADERS qt/Api/*_p.h)
+file(GLOB WebKitLegacy_PRIVATE_HEADERS qt/Api/*_p.h)
 install(
     FILES
-        ${WebKit_PRIVATE_HEADERS}
+        ${WebKitLegacy_PRIVATE_HEADERS}
     DESTINATION
         ${KDE_INSTALL_INCLUDEDIR}/QtWebKit/${PROJECT_VERSION}/QtWebKit/private
     COMPONENT Data
@@ -411,12 +407,12 @@ endif ()
 
 list(APPEND WebKit_Private_PRI_ARGUMENTS MODULE_CONFIG "internal_module no_link")
 
-set(WebKit_OUTPUT_NAME Qt5WebKit)
+set(WebKitLegacy_OUTPUT_NAME Qt5WebKit)
 
 ecm_generate_pri_file(
     BASE_NAME webkit
     NAME QtWebKit
-    LIB_NAME ${WebKit_OUTPUT_NAME}
+    LIB_NAME ${WebKitLegacy_OUTPUT_NAME}
     INCLUDE_INSTALL_DIR "${KDE_INSTALL_INCLUDEDIR}/QtWebKit"
     DEPS "${WEBKIT_PRI_DEPS}"
     RUNTIME_DEPS "${WEBKIT_PRI_RUNTIME_DEPS}"
@@ -444,14 +440,13 @@ install(
     COMPONENT Data
 )
 
-set(WebKit_LIBRARY_TYPE SHARED)
-
-
 ############     WebKitWidgets     ############
 
+WEBKIT_FRAMEWORK_DECLARE(WebKitWidgets)
+
 set(WebKitWidgets_INCLUDE_DIRECTORIES
-    "${WEBKIT_DIR}/qt/WidgetApi"
-    "${WEBKIT_DIR}/qt/WidgetSupport"
+    "${WEBKITLEGACY_DIR}/qt/WidgetApi"
+    "${WEBKITLEGACY_DIR}/qt/WidgetSupport"
 )
 
 set(WebKitWidgets_SOURCES
@@ -483,7 +478,7 @@ set(WebKitWidgets_SYSTEM_INCLUDE_DIRECTORIES
 set(WebKitWidgets_LIBRARIES
     PUBLIC
         ${Qt5Widgets_LIBRARIES}
-        WebKit
+        WebKitLegacy
 )
 
 WEBKIT_CREATE_FORWARDING_HEADERS(QtWebKitWidgets DIRECTORIES qt/WidgetApi)
@@ -629,12 +624,10 @@ install(
     COMPONENT Data
 )
 
-set(WebKitWidgets_LIBRARY_TYPE SHARED)
-
 set(WebKitWidgets_PRIVATE_HEADERS_LOCATION Headers/${PROJECT_VERSION}/QtWebKitWidgets/private)
 
 WEBKIT_FRAMEWORK(WebKitWidgets)
-add_dependencies(WebKitWidgets WebKit)
+add_dependencies(WebKitWidgets WebKitLegacy)
 set_target_properties(WebKitWidgets PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 install(TARGETS WebKitWidgets EXPORT Qt5WebKitWidgetsTargets
         DESTINATION "${LIB_INSTALL_DIR}"

@@ -40,12 +40,12 @@ use Config;
 use Getopt::Long;
 use File::Path;
 
-my $usage = "generate-webkitversion --config WebKit/mac/Configurations/Version.xcconfig --outputDir <outputdir>";
+my $usage = "generate-webkitversion --config WebKitLegacy/mac/Configurations/Version.xcconfig --outputDir <outputdir>";
 
 my $major_version = "";
 my $minor_version = "";
-# The appropriate Apple-maintained Version.xcconfig file for WebKit version information is in WebKit/mac/Configurations/.
-my $configFile = "./Source/WebKit/mac/Configurations/Version.xcconfig";
+# The appropriate Apple-maintained Version.xcconfig file for WebKit version information is in WebKitLegacy/mac/Configurations/.
+my $configFile = "./Source/WebKitLegacy/mac/Configurations/Version.xcconfig";
 my $outputDir = "";
 
 GetOptions('config=s' => \$configFile,
@@ -54,7 +54,7 @@ GetOptions('config=s' => \$configFile,
 die "You must specify a --config <file> " unless (length($configFile));
 die "You must specify a --outputDir <outputdir> " unless (length($outputDir));
 
-die "./Source/WebKit/mac/Configurations/Version.xcconfig does not exist: use --config <file> to specify its correct location." unless (-e $configFile);
+die "$configFile does not exist: use --config <file> to specify its correct location." unless (-e $configFile);
 die "$outputDir/ does not exist: use --outputDir <directory> to specify the location of an output directory that exists" unless (-e "$outputDir");
 
 unless (open INPUT, "<", $configFile) { print STDERR "File does not exist: $configFile\n";}

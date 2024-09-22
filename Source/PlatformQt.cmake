@@ -1,7 +1,7 @@
 # Automoc
 
 set(TARGETS_WITH_AUTOMOC
-    WebKit
+    WebKitLegacy
     WebKitWidgets
 )
 set_property(TARGET ${TARGETS_WITH_AUTOMOC} PROPERTY AUTOMOC ON)
@@ -28,16 +28,16 @@ if (USE_MINIMAL_DEBUG_INFO AND CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_options(gtest          PRIVATE -g0 -O1)
     endif ()
 
-    target_compile_options(WebKit            PRIVATE -g1 -O1)
+    target_compile_options(WebKitLegacy       PRIVATE -g1 -O1)
     if (TRUE)
-        target_compile_options(WebKit        PRIVATE -fdebug-types-section)
+        target_compile_options(WebKitLegacy   PRIVATE -fdebug-types-section)
     endif ()
 endif ()
 
 # Installation
 
-target_compile_definitions(WebKit INTERFACE QT_WEBKIT_LIB)
-target_include_directories(WebKit INTERFACE
+target_compile_definitions(WebKitLegacy INTERFACE QT_WEBKIT_LIB)
+target_include_directories(WebKitLegacy INTERFACE
     $<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR}>
     $<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR}/QtWebKit>
 )
@@ -49,7 +49,7 @@ target_include_directories(WebKitWidgets INTERFACE
 )
 
 if (QT_ORIGIN_RPATH)
-    set(WEBKIT_SHARED_LIBRARY_TARGETS WebKit)
+    set(WEBKIT_SHARED_LIBRARY_TARGETS WebKitLegacy)
 
     if (TARGET WebKitWidgets)
         list(APPEND WEBKIT_SHARED_LIBRARY_TARGETS WebKitWidgets)
@@ -146,8 +146,8 @@ install(FILES
 )
 
 # We need to install separate config files for debug and release, so use "Code" component
-install(EXPORT WebKitTargets
-    FILE WebKitTargets.cmake
+install(EXPORT Qt5WebKitTargets
+    FILE Qt5WebKitTargets.cmake
     NAMESPACE Qt5::
     DESTINATION "${KDE_INSTALL_CMAKEPACKAGEDIR}/Qt5WebKit"
     COMPONENT Code
