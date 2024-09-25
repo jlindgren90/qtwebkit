@@ -110,11 +110,11 @@ QT_END_NAMESPACE
 
 using namespace WebCore;
 
-class EmptyPluginInfoProvider : public PluginInfoProvider {
-public:
-    void refreshPlugins() override { }
-    void getPluginInfo(Page&, Vector<PluginInfo>&) override { }
-    void getWebVisiblePluginInfo(Page&, Vector<PluginInfo>&) override { }
+// from EmptyClients.cpp
+class EmptyPluginInfoProvider final : public PluginInfoProvider {
+    void refreshPlugins() final { };
+    void getPluginInfo(Page&, Vector<PluginInfo>&, std::optional<SupportedPluginNames>&) final { }
+    void getWebVisiblePluginInfo(Page&, Vector<PluginInfo>&) final { }
 };
 
 bool QWebPageAdapter::drtRun = false;

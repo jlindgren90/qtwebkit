@@ -103,7 +103,7 @@ public:
     void dispatchDidDispatchOnloadEvents() override;
     void dispatchDidReceiveServerRedirectForProvisionalLoad() override;
     void dispatchDidCancelClientRedirect() override;
-    void dispatchWillPerformClientRedirect(const URL&, double interval, double fireDate) override;
+    void dispatchWillPerformClientRedirect(const URL&, double interval, WTF::WallTime fireDate) override;
     void dispatchDidNavigateWithinPage() override;
     void dispatchDidChangeLocationWithinPage() override;
     void dispatchDidPushStateWithinPage() override;

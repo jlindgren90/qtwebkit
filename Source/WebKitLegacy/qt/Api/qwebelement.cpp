@@ -43,7 +43,7 @@
 #include "JSObject.h"
 #include "PropertyNameArray.h"
 #include <QWebFrameAdapter.h>
-#include <parser/SourceCode.h>
+#include "SourceCode.h"
 #include "qt_runtime.h"
 #include "NodeList.h"
 #include "RenderImage.h"
@@ -747,7 +747,8 @@ QVariant QWebElement::evaluateJavaScript(const QString& scriptSource)
     JSC::JSLockHolder lock(state);
     RefPtr<Element> protect = m_element;
 
-    JSC::JSValue thisValue = toJS(state, toJSDOMGlobalObject(&m_element->document(), state), m_element);
+    JSC::JSValue thisValue = toJS(state, toJSDOMWindow(
+        m_element->document().frame(), currentWorld(*state)), m_element);
     if (!thisValue)
         return QVariant();
 

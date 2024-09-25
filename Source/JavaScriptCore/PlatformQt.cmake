@@ -20,3 +20,7 @@ list(APPEND JavaScriptCore_LIBRARIES
     ${GLIB_LIBRARIES}
     ${Qt5Core_LIBRARIES}
 )
+
+list(APPEND JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
+    runtime/JSDateMath.h
+)

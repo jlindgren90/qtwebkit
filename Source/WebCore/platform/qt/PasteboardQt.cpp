@@ -164,16 +164,6 @@ void Pasteboard::read(PasteboardPlainText& text)
         text.text =  data->text();
 }
 
-void Pasteboard::read(PasteboardWebContentReader&)
-{
-    // TODO
-}
-
-void Pasteboard::read(PasteboardFileReader&)
-{
-    // TODO
-}
-
 RefPtr<DocumentFragment> Pasteboard::documentFragment(Frame& frame, Range& context,
                                                       bool allowPlainText, bool& chosePlainText)
 {
@@ -230,11 +220,6 @@ void Pasteboard::writePlainText(const String& text, SmartReplaceOption smartRepl
         updateSystemPasteboard();
 }
 
-void Pasteboard::writeCustomData(const PasteboardCustomData&)
-{
-    // TODO
-}
-
 void Pasteboard::write(const PasteboardURL& pasteboardURL)
 {
     ASSERT(!pasteboardURL.url.isEmpty());
@@ -251,26 +236,6 @@ void Pasteboard::write(const PasteboardURL& pasteboardURL)
     m_writableData->setUrls(QList<QUrl>() << pasteboardURL.url);
     if (isForCopyAndPaste())
         updateSystemPasteboard();
-}
-
-void Pasteboard::writeTrustworthyWebURLsPboardType(const PasteboardURL&)
-{
-    // TODO
-}
-
-void Pasteboard::write(const PasteboardImage& pasteboardImage)
-{
-    // TODO
-}
-
-void Pasteboard::write(const PasteboardWebContent& pasteboardContent)
-{
-    // TODO
-}
-
-void Pasteboard::writeMarkup(const String&)
-{
-    // TODO
 }
 
 void Pasteboard::writeImage(Element& node, const URL& url, const String& title)
@@ -372,11 +337,6 @@ String Pasteboard::readString(const String& type)
     return stringData;
 }
 
-String Pasteboard::readStringInCustomData(const String&)
-{
-    return String(); // FIXME
-}
-
 void Pasteboard::writeString(const String& type, const String& data)
 {
     if (!m_writableData)
@@ -465,5 +425,20 @@ void Pasteboard::writePasteboard(const Pasteboard& sourcePasteboard)
 #endif
 }
 #endif
+
+// TODO: implement these
+
+String Pasteboard::readStringInCustomData(const String& type) { return String(); }
+
+void Pasteboard::read(PasteboardWebContentReader&, WebContentReadingPolicy) { }
+void Pasteboard::read(PasteboardFileReader&) { }
+
+void Pasteboard::writeTrustworthyWebURLsPboardType(const PasteboardURL&) { }
+void Pasteboard::write(const PasteboardImage&) { }
+void Pasteboard::write(const PasteboardWebContent&) { }
+
+void Pasteboard::writeCustomData(const PasteboardCustomData&) { }
+
+void Pasteboard::writeMarkup(const String& markup) { }
 
 }

@@ -252,12 +252,17 @@ void QWebSecurityOrigin::removeLocalScheme(const QString& scheme)
 QStringList QWebSecurityOrigin::localSchemes()
 {
     QStringList list;
+#if 0 // FIXME
     const URLSchemesMap& map = SchemeRegistry::localSchemes();
     URLSchemesMap::const_iterator end = map.end();
     for (URLSchemesMap::const_iterator i = map.begin(); i != end; ++i) {
         const QString scheme = *i;
         list.append(scheme);
     }
+#else
+    list.append(QStringLiteral("file"));
+    list.append(QStringLiteral("qrc"));
+#endif
     return list;
 }
 

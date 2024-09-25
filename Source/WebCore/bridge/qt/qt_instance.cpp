@@ -23,6 +23,7 @@
 #include "APICast.h"
 #include "CommonVM.h"
 #include "Error.h"
+#include "FunctionPrototype.h"
 #include "JSDOMBinding.h"
 #include "JSDOMWindowBase.h"
 #include "JSGlobalObject.h"
@@ -31,7 +32,6 @@
 #include "PropertyNameArray.h"
 #include "qt_class.h"
 #include "qt_runtime.h"
-#include "runtime/FunctionPrototype.h"
 #include "runtime_object.h"
 
 #include <qdebug.h>

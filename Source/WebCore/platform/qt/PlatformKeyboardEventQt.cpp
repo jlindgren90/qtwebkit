@@ -33,7 +33,6 @@
 
 #include <QKeyEvent>
 #include <ctype.h>
-#include <wtf/CurrentTime.h>
 
 namespace WebCore {
 

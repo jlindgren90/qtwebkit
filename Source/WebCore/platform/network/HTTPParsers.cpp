@@ -199,10 +199,7 @@ ContentDispositionType contentDispositionType(const String& contentDisposition)
     if (contentDisposition.isEmpty())
         return ContentDispositionNone;
 
-    Vector<String> parameters;
-    contentDisposition.split(';', parameters);
-
-    String dispositionType = parameters[0];
+    String dispositionType = contentDisposition.split(';')[0];
     dispositionType.stripWhiteSpace();
 
     if (equalLettersIgnoringASCIICase(dispositionType, "inline"))

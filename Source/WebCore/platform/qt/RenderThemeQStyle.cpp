@@ -297,7 +297,7 @@ void RenderThemeQStyle::adjustButtonStyle(StyleResolver& styleResolver, RenderSt
     Vector<AtomicString> families;
     families.append(m_buttonFontFamily);
     fontDescription.setFamilies(families);
-    style.setFontDescription(fontDescription);
+    style.setFontDescription(std::move(fontDescription));
     style.fontCascade().update(&styleResolver.document().fontSelector());
     style.setLineHeight(RenderStyle::initialLineHeight());
     setButtonSize(style);
@@ -611,7 +611,7 @@ ControlPart RenderThemeQStyle::initializeCommonQStyleOptions(QStyleFacadeOption 
         option.state |= QStyleFacade::State_KeyboardFocusChange;
     }
 
-    if (style.direction() == WebCore::RTL)
+    if (style.direction() == WebCore::TextDirection::RTL)
         option.direction = Qt::RightToLeft;
 
     switch (result) {

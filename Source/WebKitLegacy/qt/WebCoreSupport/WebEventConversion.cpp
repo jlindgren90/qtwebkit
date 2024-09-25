@@ -29,7 +29,6 @@
 #include "QGraphicsUtils.h"
 #include <QTouchEvent>
 #include <QWheelEvent>
-#include <wtf/CurrentTime.h>
 
 namespace WebCore {
 

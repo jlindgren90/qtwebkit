@@ -411,7 +411,7 @@ void EditorClientQt::handleKeyboardEvent(KeyboardEvent* event)
 {
     Frame& frame = m_page->page->focusController().focusedOrMainFrame();
 
-    const PlatformKeyboardEvent* kevent = event->keyEvent();
+    const PlatformKeyboardEvent* kevent = event->underlyingPlatformEvent();
     if (!kevent || kevent->type() == PlatformEvent::KeyUp)
         return;
 

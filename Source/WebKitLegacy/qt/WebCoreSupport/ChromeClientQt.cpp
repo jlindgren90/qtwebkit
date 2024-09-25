@@ -73,8 +73,6 @@
 #include <qdebug.h>
 #include <qeventloop.h>
 #include <qwindow.h>
-#include <wtf/CurrentTime.h>
-
 
 #if ENABLE(VIDEO) && ((USE(GSTREAMER) && USE(NATIVE_FULLSCREEN_VIDEO)))
 #include "FullScreenVideoQt.h"

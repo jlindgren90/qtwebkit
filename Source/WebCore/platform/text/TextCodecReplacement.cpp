@@ -26,6 +26,7 @@
 #include "config.h"
 #include "TextCodecReplacement.h"
 
+#include <wtf/text/WTFString.h>
 #include <wtf/unicode/CharacterNames.h>
 
 namespace WebCore {

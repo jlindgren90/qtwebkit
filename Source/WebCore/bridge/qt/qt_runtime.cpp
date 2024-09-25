@@ -23,9 +23,8 @@
 #include "APICast.h"
 #include "BooleanObject.h"
 #include "DateInstance.h"
-#include "DatePrototype.h"
+#include "Error.h"
 #include "FunctionPrototype.h"
-#include "Interpreter.h"
 #include "JSArray.h"
 #include "JSContextRefPrivate.h"
 #include "JSDOMConvertBufferSource.h"
@@ -38,7 +37,6 @@
 #include "JSLock.h"
 #include "JSObject.h"
 #include "JSRetainPtr.h"
-#include "JSUint8ClampedArray.h"
 #include "ObjectPrototype.h"
 #include "PropertyNameArray.h"
 #include "qdatetime.h"
@@ -54,7 +52,6 @@
 #include <wtf/DateMath.h>
 
 #include <limits.h>
-#include <runtime/Error.h>
 #include <runtime_array.h>
 #include <runtime_object.h>
 
@@ -273,7 +270,8 @@ static void getGregorianDateTimeUTC(JSContextRef context, JSRealType type, JSVal
     JSLockHolder locker(exec);
     if (type == Date) {
         JSObject* jsObject = toJS(object);
-        DateInstance* date = asDateInstance(jsObject);
+        ASSERT(jsObject->inherits(*exec->vm(), DateInstance::info()));
+        DateInstance* date = static_cast<DateInstance*>(jsObject);
         gdt->copyFrom(*date->gregorianDateTimeUTC(exec));
     } else {
         double ms = JSValueToNumber(context, value, exception);
@@ -746,7 +744,8 @@ JSValueRef convertQVariantToValue(JSContextRef context, RootObject* root, const 
         Document* document = JSDOMWindow::toWrapped(exec->vm(), root->globalObject())->document();
         if (!document)
             return JSValueMakeUndefined(context);
-        return toRef(exec, customRuntimeConversions()->value(type).toJSValueFunc(exec, toJSDOMGlobalObject(document, exec), variant));
+        return toRef(exec, customRuntimeConversions()->value(type).toJSValueFunc(
+            exec, toJSDOMWindow(document->frame(), currentWorld(*exec)), variant));
     }
 
     if (type == QMetaType::QVariantMap) {
