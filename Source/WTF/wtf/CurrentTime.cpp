@@ -34,6 +34,7 @@
 #include "config.h"
 #include "CurrentTime.h"
 #include "MonotonicTime.h"
+#include "WallTime.h"
 
 #include "Condition.h"
 #include "Lock.h"
@@ -180,7 +181,7 @@ static bool qpcAvailable()
     return available;
 }
 
-double currentTime()
+static inline double currentTime()
 {
     // Use a combination of ftime and QueryPerformanceCounter.
     // ftime returns the information we want, but doesn't have sufficient resolution.
@@ -225,7 +226,7 @@ double currentTime()
 
 #else
 
-double currentTime()
+static inline double currentTime()
 {
     static bool init = false;
     static double lastTime;
@@ -255,7 +256,7 @@ double currentTime()
 // better accuracy compared with Windows implementation of g_get_current_time:
 // (http://www.google.com/codesearch/p?hl=en#HHnNRjks1t0/glib-2.5.2/glib/gmain.c&q=g_get_current_time).
 // Non-Windows GTK builds could use gettimeofday() directly but for the sake of consistency lets use GTK function.
-double currentTime()
+static inline double currentTime()
 {
     GTimeVal now;
     g_get_current_time(&now);
@@ -264,7 +265,7 @@ double currentTime()
 
 #else
 
-double currentTime()
+static inline double currentTime()
 {
     struct timeval now;
     gettimeofday(&now, 0);
@@ -272,6 +273,11 @@ double currentTime()
 }
 
 #endif
+
+WallTime WallTime::now()
+{
+    return fromRawSeconds(currentTime());
+}
 
 #if USE(GLIB)
 
@@ -356,7 +362,7 @@ Seconds currentCPUTime()
 #endif
 }
 
-void sleep(double value)
+void sleep(Seconds value)
 {
     // It's very challenging to find portable ways of sleeping for less than a second. On UNIX, you want to
     // use usleep() but it's hard to #include it in a portable way (you'd think it's in unistd.h, but then
@@ -366,7 +372,7 @@ void sleep(double value)
     Lock fakeLock;
     Condition fakeCondition;
     LockHolder fakeLocker(fakeLock);
-    fakeCondition.waitFor(fakeLock, Seconds(value));
+    fakeCondition.waitFor(fakeLock, value);
 }
 
 } // namespace WTF

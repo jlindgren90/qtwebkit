@@ -31,7 +31,6 @@
 
 #pragma once
 
-#include "PlatformExportMacros.h"
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
 
@@ -244,6 +243,9 @@ public:
     void setMediaCapabilitiesEnabled(bool isEnabled) { m_mediaCapabilitiesEnabled = isEnabled; }
     bool mediaCapabilitiesEnabled() const { return m_mediaCapabilitiesEnabled; }
 
+    void setResourceLoadStatisticsDebugMode(bool isEnabled) { m_resourceLoadStatisticsDebugMode = isEnabled; }
+    bool resourceLoadStatisticsDebugMode() const { return m_resourceLoadStatisticsDebugMode; }
+
     WEBCORE_EXPORT static RuntimeEnabledFeatures& sharedFeatures();
 
 private:
@@ -373,6 +375,8 @@ private:
 
     bool m_mediaCapabilitiesEnabled { false };
 
+    bool m_resourceLoadStatisticsDebugMode { false };
+    
     friend class WTF::NeverDestroyed<RuntimeEnabledFeatures>;
 };
 

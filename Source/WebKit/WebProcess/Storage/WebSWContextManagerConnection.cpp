@@ -34,10 +34,12 @@
 #include "StorageProcessMessages.h"
 #include "WebCacheStorageProvider.h"
 #include "WebCoreArgumentCoders.h"
+#include "WebDatabaseProvider.h"
 #include "WebDocumentLoader.h"
 #include "WebPreferencesKeys.h"
 #include "WebPreferencesStore.h"
 #include "WebProcess.h"
+#include "WebProcessPoolMessages.h"
 #include "WebSWServerToContextConnectionMessages.h"
 #include "WebServiceWorkerFetchTaskClient.h"
 #include "WebSocketProvider.h"
@@ -51,6 +53,8 @@
 #include <WebCore/SerializedScriptValue.h>
 #include <WebCore/ServiceWorkerClientData.h>
 #include <WebCore/ServiceWorkerClientIdentifier.h>
+#include <WebCore/ServiceWorkerClientQueryOptions.h>
+#include <WebCore/ServiceWorkerJobDataIdentifier.h>
 #include <WebCore/UserAgent.h>
 #include <pal/SessionID.h>
 
@@ -101,10 +105,15 @@ private:
     String m_userAgent;
 };
 
-WebSWContextManagerConnection::WebSWContextManagerConnection(Ref<IPC::Connection>&& connection, uint64_t pageID, const WebPreferencesStore& store)
+WebSWContextManagerConnection::WebSWContextManagerConnection(Ref<IPC::Connection>&& connection, uint64_t pageGroupID, uint64_t pageID, const WebPreferencesStore& store)
     : m_connectionToStorageProcess(WTFMove(connection))
+    , m_pageGroupID(pageGroupID)
     , m_pageID(pageID)
+#if PLATFORM(COCOA)
     , m_userAgent(standardUserAgentWithApplicationName({ }))
+#else
+    , m_userAgent(standardUserAgent())
+#endif
 {
     updatePreferencesStore(store);
 }
@@ -133,7 +142,12 @@ void WebSWContextManagerConnection::installServiceWorker(const ServiceWorkerCont
         WebCore::LibWebRTCProvider::create(),
         WebProcess::singleton().cacheStorageProvider()
     };
+
     fillWithEmptyClients(pageConfiguration);
+
+#if ENABLE(INDEXED_DATABASE)
+    pageConfiguration.databaseProvider = WebDatabaseProvider::getOrCreate(m_pageGroupID);
+#endif
 
     // FIXME: This method should be moved directly to WebCore::SWContextManager::Connection
     // If it weren't for ServiceWorkerFrameLoaderClient's dependence on WebDocumentLoader, this could already happen.
@@ -166,6 +180,23 @@ void WebSWContextManagerConnection::serviceWorkerStartedWithMessage(std::optiona
         m_connectionToStorageProcess->send(Messages::WebSWServerToContextConnection::ScriptContextFailedToStart(jobDataIdentifier, serviceWorkerIdentifier, exceptionMessage), 0);
 }
 
+static inline bool isValidFetch(const ResourceRequest& request, const FetchOptions& options, const URL& serviceWorkerURL, const String& referrer)
+{
+    // For exotic service workers, do not enforce checks.
+    if (!serviceWorkerURL.protocolIsInHTTPFamily())
+        return true;
+
+    if (options.mode == FetchOptions::Mode::Navigate)
+        return protocolHostAndPortAreEqual(request.url(), serviceWorkerURL);
+
+    String origin = request.httpOrigin();
+    URL url { URL(), origin.isEmpty() ? referrer : origin };
+    if (!url.protocolIsInHTTPFamily())
+        return true;
+
+    return protocolHostAndPortAreEqual(url, serviceWorkerURL);
+}
+
 void WebSWContextManagerConnection::startFetch(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier, ServiceWorkerIdentifier serviceWorkerIdentifier, ResourceRequest&& request, FetchOptions&& options, IPC::FormDataReference&& formData, String&& referrer)
 {
     auto* serviceWorkerThreadProxy = SWContextManager::singleton().serviceWorkerThreadProxy(serviceWorkerIdentifier);
@@ -173,6 +204,8 @@ void WebSWContextManagerConnection::startFetch(SWServerConnectionIdentifier serv
         m_connectionToStorageProcess->send(Messages::StorageProcess::DidNotHandleFetch(serverConnectionIdentifier, fetchIdentifier), 0);
         return;
     }
+
+    RELEASE_ASSERT(isValidFetch(request, options, serviceWorkerThreadProxy->scriptURL(), referrer));
 
     auto client = WebServiceWorkerFetchTaskClient::create(m_connectionToStorageProcess.copyRef(), serviceWorkerIdentifier, serverConnectionIdentifier, fetchIdentifier);
     std::optional<ServiceWorkerClientIdentifier> clientId;
@@ -212,7 +245,9 @@ void WebSWContextManagerConnection::syncTerminateWorker(ServiceWorkerIdentifier 
 
 void WebSWContextManagerConnection::postMessageToServiceWorkerClient(const ServiceWorkerClientIdentifier& destinationIdentifier, MessageWithMessagePorts&& message, ServiceWorkerIdentifier sourceIdentifier, const String& sourceOrigin)
 {
-    m_connectionToStorageProcess->send(Messages::StorageProcess::PostMessageToServiceWorkerClient(destinationIdentifier, WTFMove(message), sourceIdentifier, sourceOrigin), 0);
+    // FIXME: Temporarily pipe the SW postMessage messages via the UIProcess since this is where the MessagePort registry lives
+    // and this avoids races.
+    WebProcess::singleton().send(Messages::WebProcessPool::PostMessageToServiceWorkerClient(destinationIdentifier, WTFMove(message), sourceIdentifier, sourceOrigin), 0);
 }
 
 void WebSWContextManagerConnection::didFinishInstall(std::optional<ServiceWorkerJobDataIdentifier> jobDataIdentifier, ServiceWorkerIdentifier serviceWorkerIdentifier, bool wasSuccessful)

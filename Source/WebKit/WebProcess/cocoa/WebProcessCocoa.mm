@@ -47,6 +47,7 @@
 #import "WebProcessCreationParameters.h"
 #import "WebProcessProxyMessages.h"
 #import "WebsiteDataStoreParameters.h"
+#import <JavaScriptCore/ConfigFile.h>
 #import <JavaScriptCore/Options.h>
 #import <WebCore/AXObjectCache.h>
 #import <WebCore/CPUMonitor.h>
@@ -68,8 +69,8 @@
 #import <pal/spi/cocoa/pthreadSPI.h>
 #import <pal/spi/mac/NSAccessibilitySPI.h>
 #import <pal/spi/mac/NSApplicationSPI.h>
-#import <runtime/ConfigFile.h>
 #import <stdio.h>
+#import <wtf/CurrentTime.h>
 
 #if PLATFORM(IOS)
 #import <UIKit/UIAccessibility.h>
@@ -177,7 +178,7 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
     [NSApplication sharedApplication];
     [NSApplication _accessibilityInitialize];
 #endif
-    
+
     _CFNetworkSetATSContext(parameters.networkATSContext.get());
 
 #if TARGET_OS_IPHONE
@@ -315,7 +316,11 @@ void WebProcess::platformInitializeProcess(const ChildProcessInitializationParam
 #if USE(APPKIT)
 void WebProcess::stopRunLoop()
 {
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+    ChildProcess::stopNSRunLoop();
+#else
     ChildProcess::stopNSAppRunLoop();
+#endif
 }
 #endif
 

@@ -26,6 +26,7 @@
 #include "config.h"
 #include "StorageProcess.h"
 
+#include "ChildProcessMessages.h"
 #include "StorageProcessCreationParameters.h"
 #include "StorageProcessMessages.h"
 #include "StorageProcessProxyMessages.h"
@@ -135,6 +136,11 @@ void StorageProcess::didReceiveMessage(IPC::Connection& connection, IPC::Decoder
 
     if (decoder.messageReceiverName() == Messages::StorageProcess::messageReceiverName()) {
         didReceiveStorageProcessMessage(connection, decoder);
+        return;
+    }
+
+    if (decoder.messageReceiverName() == Messages::ChildProcess::messageReceiverName()) {
+        ChildProcess::didReceiveMessage(connection, decoder);
         return;
     }
 
@@ -254,6 +260,7 @@ void StorageProcess::createStorageToWebProcessConnection(bool isServiceWorkerPro
 
 #if ENABLE(SERVICE_WORKER)
     if (isServiceWorkerProcess && !m_storageToWebProcessConnections.isEmpty()) {
+        RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
         ASSERT(m_waitingForServerToContextProcessConnection);
         m_serverToContextConnection = WebSWServerToContextConnection::create(m_storageToWebProcessConnections.last()->connection());
         m_waitingForServerToContextProcessConnection = false;
@@ -404,6 +411,8 @@ void StorageProcess::didGetSandboxExtensionsForBlobFiles(uint64_t requestID, San
 #if ENABLE(SERVICE_WORKER)
 SWServer& StorageProcess::swServerForSession(PAL::SessionID sessionID)
 {
+    RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
+    ASSERT(sessionID.isValid());
     auto result = m_swServers.add(sessionID, nullptr);
     if (!result.isNewEntry) {
         ASSERT(result.iterator->value);
@@ -483,8 +492,15 @@ void StorageProcess::postMessageToServiceWorkerClient(const ServiceWorkerClientI
         connection->postMessageToServiceWorkerClient(destinationIdentifier.contextIdentifier, WTFMove(message), sourceIdentifier, sourceOrigin);
 }
 
+void StorageProcess::postMessageToServiceWorker(WebCore::ServiceWorkerIdentifier destination, WebCore::MessageWithMessagePorts&& message, const WebCore::ServiceWorkerOrClientIdentifier& source, SWServerConnectionIdentifier connectionIdentifier)
+{
+    if (auto* connection = m_swServerConnections.get(connectionIdentifier))
+        connection->postMessageToServiceWorker(destination, WTFMove(message), source);
+}
+
 void StorageProcess::registerSWServerConnection(WebSWServerConnection& connection)
 {
+    RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
     ASSERT(!m_swServerConnections.contains(connection.identifier()));
     m_swServerConnections.add(connection.identifier(), &connection);
     swOriginStoreForSession(connection.sessionID()).registerSWServerConnection(connection);

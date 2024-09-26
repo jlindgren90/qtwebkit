@@ -23,11 +23,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import "config.h"
+#include "config.h"
 #include "ServiceWorkerProcessProxy.h"
+
+#if ENABLE(SERVICE_WORKER)
 
 #include "AuthenticationChallengeProxy.h"
 #include "WebCredential.h"
+#include "WebPageGroup.h"
 #include "WebPreferencesStore.h"
 #include "WebProcessMessages.h"
 #include "WebProcessPool.h"
@@ -69,7 +72,7 @@ void ServiceWorkerProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions&
 
 void ServiceWorkerProcessProxy::start(const WebPreferencesStore& store, std::optional<PAL::SessionID> initialSessionID)
 {
-    send(Messages::WebProcess::EstablishWorkerContextConnectionToStorageProcess { m_serviceWorkerPageID, store, initialSessionID.value_or(PAL::SessionID::defaultSessionID()) }, 0);
+    send(Messages::WebProcess::EstablishWorkerContextConnectionToStorageProcess { processPool().defaultPageGroup().pageGroupID(), m_serviceWorkerPageID, store, initialSessionID.value_or(PAL::SessionID::defaultSessionID()) }, 0);
 }
 
 void ServiceWorkerProcessProxy::setUserAgent(const String& userAgent)
@@ -99,3 +102,5 @@ void ServiceWorkerProcessProxy::didReceiveAuthenticationChallenge(uint64_t pageI
 }
 
 } // namespace WebKit
+
+#endif // ENABLE(SERVICE_WORKER)

@@ -34,6 +34,8 @@
 #include "ServiceWorkerClientFetch.h"
 #include "StorageToWebProcessConnectionMessages.h"
 #include "WebCoreArgumentCoders.h"
+#include "WebProcess.h"
+#include "WebProcessPoolMessages.h"
 #include "WebSWOriginTable.h"
 #include "WebSWServerConnectionMessages.h"
 #include <WebCore/Document.h>
@@ -42,6 +44,7 @@
 #include <WebCore/ServiceWorkerFetchResult.h>
 #include <WebCore/ServiceWorkerJobData.h>
 #include <WebCore/ServiceWorkerRegistrationData.h>
+#include <WebCore/ServiceWorkerRegistrationKey.h>
 
 using namespace PAL;
 using namespace WebCore;
@@ -53,7 +56,8 @@ WebSWClientConnection::WebSWClientConnection(IPC::Connection& connection, Sessio
     , m_connection(connection)
     , m_swOriginTable(makeUniqueRef<WebSWOriginTable>())
 {
-    bool result = sendSync(Messages::StorageToWebProcessConnection::EstablishSWServerConnection(sessionID), Messages::StorageToWebProcessConnection::EstablishSWServerConnection::Reply(m_identifier));
+    ASSERT(sessionID.isValid());
+    bool result = sendSync(Messages::StorageToWebProcessConnection::EstablishSWServerConnection(sessionID), Messages::StorageToWebProcessConnection::EstablishSWServerConnection::Reply(m_identifier), Seconds::infinity(), IPC::SendSyncOption::DoNotProcessIncomingMessagesWhenWaitingForSyncReply);
 
     ASSERT_UNUSED(result, result);
 }
@@ -84,7 +88,9 @@ void WebSWClientConnection::removeServiceWorkerRegistrationInServer(ServiceWorke
 
 void WebSWClientConnection::postMessageToServiceWorker(ServiceWorkerIdentifier destinationIdentifier, MessageWithMessagePorts&& message, const ServiceWorkerOrClientIdentifier& sourceIdentifier)
 {
-    send(Messages::WebSWServerConnection::PostMessageToServiceWorker(destinationIdentifier, WTFMove(message), sourceIdentifier) );
+    // FIXME: Temporarily pipe the SW postMessage messages via the UIProcess since this is where the MessagePort registry lives
+    // and this avoids races.
+    WebProcess::singleton().send(Messages::WebProcessPool::PostMessageToServiceWorker(destinationIdentifier, WTFMove(message), sourceIdentifier, serverConnectionIdentifier()), 0);
 }
 
 void WebSWClientConnection::registerServiceWorkerClient(const SecurityOrigin& topOrigin, const WebCore::ServiceWorkerClientData& data, const std::optional<WebCore::ServiceWorkerIdentifier>& controllingServiceWorkerIdentifier)

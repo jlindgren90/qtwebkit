@@ -101,6 +101,8 @@ allowFileAccessFromFileURLs:
   initial: true
 allowSettingAnyXHRHeaderFromFileURLs:
   initial: false
+allowCrossOriginSubresourcesToAskForCredentials:
+  initial: false
 needsStorageAccessFromFileURLsQuirk:
   initial: true
 javaScriptCanOpenWindowsAutomatically:
@@ -202,7 +204,7 @@ javaScriptRuntimeFlags:
 # FIXME: This should really be disabled by default as it makes platforms that don't support the feature download files
 # they can't use by. Leaving enabled for now to not change existing behavior.
 downloadableBinaryFontsEnabled:
-  initial: true
+  initial: defaultDownloadableBinaryFontsEnabled()
 
 xssAuditorEnabled:
   initial: false
@@ -709,5 +711,27 @@ touchEventEmulationEnabled:
   getter: isTouchEventEmulationEnabled
   conditional: TOUCH_EVENTS
 
+oneLineTextMultiplierCoefficient:
+  type: float
+  initial: defaultOneLineTextMultiplierCoefficient()
+  conditional: TEXT_AUTOSIZING
+
+multiLineTextMultiplierCoefficient:
+  type: float
+  initial: defaultMultiLineTextMultiplierCoefficient()
+  conditional: TEXT_AUTOSIZING
+
+maxTextAutosizingScaleIncrease:
+  type: float
+  initial: defaultMaxTextAutosizingScaleIncrease()
+  conditional: TEXT_AUTOSIZING
+
 mediaCapabilitiesEnabled:
   initial: false
+
+resourceLoadStatisticsDebugMode:
+  initial: false
+
+clientCoordinatesRelativeToLayoutViewport:
+  initial: false
+  onChange: setNeedsRecalcStyleInAllFrames

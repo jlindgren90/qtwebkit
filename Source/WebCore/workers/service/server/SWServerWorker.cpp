@@ -73,7 +73,7 @@ ServiceWorkerContextData SWServerWorker::contextData() const
     auto* registration = m_server.getRegistration(m_registrationKey);
     ASSERT(registration);
 
-    return { std::nullopt, registration->data(), m_data.identifier, m_script, m_contentSecurityPolicy, m_data.scriptURL, m_data.type, false };
+    return { std::nullopt, registration->data(), m_data.identifier, m_script, m_contentSecurityPolicy, m_data.scriptURL, m_data.type, m_server.sessionID(), false };
 }
 
 void SWServerWorker::terminate()
@@ -179,7 +179,7 @@ void SWServerWorker::setState(ServiceWorkerState state)
     ASSERT(registration || state == ServiceWorkerState::Redundant);
     if (registration) {
         registration->forEachConnection([&](auto& connection) {
-            connection.updateWorkerStateInClient(identifier(), state);
+            connection.updateWorkerStateInClient(this->identifier(), state);
         });
     }
 

@@ -124,6 +124,11 @@
 #include "WebValidationMessageClient.h"
 #include "WebsiteDataStoreParameters.h"
 #include <JavaScriptCore/APICast.h>
+#include <JavaScriptCore/JSCInlines.h>
+#include <JavaScriptCore/JSCJSValue.h>
+#include <JavaScriptCore/JSLock.h>
+#include <JavaScriptCore/ProfilerDatabase.h>
+#include <JavaScriptCore/SamplingProfiler.h>
 #include <WebCore/ApplicationCacheStorage.h>
 #include <WebCore/ArchiveResource.h>
 #include <WebCore/BackForwardController.h>
@@ -186,6 +191,7 @@
 #include <WebCore/SchemeRegistry.h>
 #include <WebCore/ScriptController.h>
 #include <WebCore/SerializedScriptValue.h>
+#include <WebCore/ServiceWorkerProvider.h>
 #include <WebCore/Settings.h>
 #include <WebCore/ShadowRoot.h>
 #include <WebCore/SharedBuffer.h>
@@ -201,13 +207,7 @@
 #include <WebCore/VisibleUnits.h>
 #include <WebCore/WebGLStateTracker.h>
 #include <WebCore/markup.h>
-#include <bindings/ScriptValue.h>
 #include <pal/SessionID.h>
-#include <profiler/ProfilerDatabase.h>
-#include <runtime/JSCInlines.h>
-#include <runtime/JSCJSValue.h>
-#include <runtime/JSLock.h>
-#include <runtime/SamplingProfiler.h>
 #include <wtf/RunLoop.h>
 #include <wtf/SetForScope.h>
 #include <wtf/text/TextStream.h>
@@ -258,6 +258,11 @@
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
 #include <WebCore/MediaPlayerRequestInstallMissingPluginsCallback.h>
+#endif
+
+#if ENABLE(WEB_AUTHN)
+#include "WebCredentialsMessenger.h"
+#include <WebCore/AuthenticatorManager.h>
 #endif
 
 using namespace JSC;
@@ -370,6 +375,9 @@ WebPage::WebPage(uint64_t pageID, WebPageCreationParameters&& parameters)
     , m_userInterfaceLayoutDirection(parameters.userInterfaceLayoutDirection)
     , m_overrideContentSecurityPolicy { parameters.overrideContentSecurityPolicy }
     , m_cpuLimit(parameters.cpuLimit)
+#if ENABLE(WEB_AUTHN)
+    , m_credentialsMessenger(std::make_unique<WebCredentialsMessenger>(*this))
+#endif
 {
     ASSERT(m_pageID);
 
@@ -566,6 +574,11 @@ WebPage::WebPage(uint64_t pageID, WebPageCreationParameters&& parameters)
     setSmartInsertDeleteEnabled(parameters.smartInsertDeleteEnabled);
 #endif
 
+#if ENABLE(SERVICE_WORKER)
+    if (parameters.hasRegisteredServiceWorkers)
+        ServiceWorkerProvider::singleton().setMayHaveRegisteredServiceWorkers();
+#endif
+
 #if ENABLE(WEB_RTC)
     if (!parameters.iceCandidateFilteringEnabled)
         disableICECandidateFiltering();
@@ -573,6 +586,10 @@ WebPage::WebPage(uint64_t pageID, WebPageCreationParameters&& parameters)
     if (parameters.enumeratingAllNetworkInterfacesEnabled)
         enableEnumeratingAllNetworkInterfaces();
 #endif
+#endif
+
+#if ENABLE(WEB_AUTHN)
+    WebCore::AuthenticatorManager::singleton().setMessenger(*m_credentialsMessenger);
 #endif
 
     for (auto iterator : parameters.urlSchemeHandlers)
@@ -811,13 +828,14 @@ RefPtr<Plugin> WebPage::createPlugin(WebFrame* frame, HTMLPlugInElement* pluginE
     uint64_t pluginProcessToken;
     uint32_t pluginLoadPolicy;
     String unavailabilityDescription;
-    if (!sendSync(Messages::WebPageProxy::FindPlugin(parameters.mimeType, static_cast<uint32_t>(processType), parameters.url.string(), frameURLString, pageURLString, allowOnlyApplicationPlugins), Messages::WebPageProxy::FindPlugin::Reply(pluginProcessToken, newMIMEType, pluginLoadPolicy, unavailabilityDescription)))
+    bool isUnsupported;
+    if (!sendSync(Messages::WebPageProxy::FindPlugin(parameters.mimeType, static_cast<uint32_t>(processType), parameters.url.string(), frameURLString, pageURLString, allowOnlyApplicationPlugins), Messages::WebPageProxy::FindPlugin::Reply(pluginProcessToken, newMIMEType, pluginLoadPolicy, unavailabilityDescription, isUnsupported)))
         return nullptr;
 
     PluginModuleLoadPolicy loadPolicy = static_cast<PluginModuleLoadPolicy>(pluginLoadPolicy);
     bool isBlockedPlugin = (loadPolicy == PluginModuleBlockedForSecurity) || (loadPolicy == PluginModuleBlockedForCompatibility);
 
-    if (isBlockedPlugin || !pluginProcessToken) {
+    if (isUnsupported || isBlockedPlugin || !pluginProcessToken) {
 #if ENABLE(PDFKIT_PLUGIN)
         String path = parameters.url.path();
         if (shouldUsePDFPlugin() && (MIMETypeRegistry::isPDFOrPostScriptMIMEType(parameters.mimeType) || (parameters.mimeType.isEmpty() && (path.endsWithIgnoringASCIICase(".pdf") || path.endsWithIgnoringASCIICase(".ps")))))
@@ -825,8 +843,14 @@ RefPtr<Plugin> WebPage::createPlugin(WebFrame* frame, HTMLPlugInElement* pluginE
 #endif
     }
 
+    if (isUnsupported) {
+        pluginElement->setReplacement(RenderEmbeddedObject::UnsupportedPlugin, unavailabilityDescription);
+        return nullptr;
+    }
+
     if (isBlockedPlugin) {
-        send(Messages::WebPageProxy::DidBlockInsecurePluginVersion(parameters.mimeType, parameters.url.string(), frameURLString, pageURLString, pluginElement->isReplacementObscured(unavailabilityDescription)));
+        bool isReplacementObscured = pluginElement->setReplacement(RenderEmbeddedObject::InsecurePluginVersion, unavailabilityDescription);
+        send(Messages::WebPageProxy::DidBlockInsecurePluginVersion(parameters.mimeType, parameters.url.string(), frameURLString, pageURLString, isReplacementObscured));
         return nullptr;
     }
 
@@ -2504,6 +2528,7 @@ void WebPage::dispatchTouchEvent(const WebTouchEvent& touchEvent, bool& handled)
     m_lastInteractionLocation = touchEvent.position();
     CurrentEvent currentEvent(touchEvent);
     handled = handleTouchEvent(touchEvent, m_page.get());
+    updatePotentialTapSecurityOrigin(touchEvent, handled);
 }
 
 void WebPage::touchEventSync(const WebTouchEvent& touchEvent, bool& handled)
@@ -2513,6 +2538,39 @@ void WebPage::touchEventSync(const WebTouchEvent& touchEvent, bool& handled)
     dispatchAsynchronousTouchEvents(queuedEvents);
 
     dispatchTouchEvent(touchEvent, handled);
+}
+
+void WebPage::updatePotentialTapSecurityOrigin(const WebTouchEvent& touchEvent, bool wasHandled)
+{
+    if (wasHandled)
+        return;
+
+    if (!touchEvent.isPotentialTap())
+        return;
+
+    if (touchEvent.type() != WebEvent::TouchStart)
+        return;
+
+    auto& mainFrame = m_page->mainFrame();
+    auto document = mainFrame.document();
+    if (!document)
+        return;
+
+    if (!document->handlingTouchEvent())
+        return;
+
+    Frame* touchEventTargetFrame = &mainFrame;
+    while (auto subframe = touchEventTargetFrame->eventHandler().touchEventTargetSubframe())
+        touchEventTargetFrame = subframe;
+
+    auto& touches = touchEventTargetFrame->eventHandler().touches();
+    if (touches.isEmpty())
+        return;
+
+    ASSERT(touches.size() == 1);
+
+    if (auto targetDocument = touchEventTargetFrame->document())
+        m_potentialTapSecurityOrigin = &targetDocument->securityOrigin();
 }
 #elif ENABLE(TOUCH_EVENTS)
 void WebPage::touchEvent(const WebTouchEvent& touchEvent)
@@ -2856,7 +2914,7 @@ IntPoint WebPage::screenToRootView(const IntPoint& point)
 IntRect WebPage::rootViewToScreen(const IntRect& rect)
 {
     IntRect screenRect;
-    sendSync(Messages::WebPageProxy::RootViewToScreen(rect), Messages::WebPageProxy::RootViewToScreen::Reply(screenRect));
+    sendSync(Messages::WebPageProxy::RootViewToScreen(rect), Messages::WebPageProxy::RootViewToScreen::Reply(screenRect), Seconds::infinity(), IPC::SendSyncOption::DoNotProcessIncomingMessagesWhenWaitingForSyncReply);
     return screenRect;
 }
     
@@ -3122,6 +3180,9 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 #endif
 #endif
 
+    if (store.getBoolValueForKey(WebPreferencesKey::serviceWorkersEnabledKey()))
+        RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
+
     if (m_drawingArea)
         m_drawingArea->updatePreferences(store);
 }
@@ -3257,42 +3318,6 @@ NotificationPermissionRequestManager* WebPage::notificationPermissionRequestMana
     m_notificationPermissionRequestManager = NotificationPermissionRequestManager::create(this);
     return m_notificationPermissionRequestManager.get();
 }
-
-#if !PLATFORM(GTK) && !PLATFORM(COCOA) && !PLATFORM(WPE)
-
-bool WebPage::handleEditingKeyboardEvent(KeyboardEvent* evt)
-{
-    Frame* frame = downcast<Node>(*evt->target()).document().frame();
-    ASSERT(frame);
-
-    const PlatformKeyboardEvent* keyEvent = evt->keyEvent();
-    if (!keyEvent)
-        return false;
-
-    Editor::Command command = frame->editor().command(interpretKeyEvent(evt));
-
-    if (keyEvent->type() == PlatformEvent::RawKeyDown) {
-        // WebKit doesn't have enough information about mode to decide how commands that just insert text if executed via Editor should be treated,
-        // so we leave it upon WebCore to either handle them immediately (e.g. Tab that changes focus) or let a keypress event be generated
-        // (e.g. Tab that inserts a Tab character, or Enter).
-        return !command.isTextInsertion() && command.execute(evt);
-    }
-
-    if (command.execute(evt))
-        return true;
-
-    // Don't allow text insertion for nodes that cannot edit.
-    if (!frame->editor().canEdit())
-        return false;
-
-    // Don't insert null or control characters as they can result in unexpected behaviour
-    if (evt->charCode() < ' ')
-        return false;
-
-    return frame->editor().insertText(evt->keyEvent()->text(), evt);
-}
-
-#endif
 
 #if ENABLE(DRAG_SUPPORT)
 
@@ -4532,11 +4557,13 @@ bool WebPage::canPluginHandleResponse(const ResourceResponse& response)
     uint64_t pluginProcessToken;
     String newMIMEType;
     String unavailabilityDescription;
-    if (!sendSync(Messages::WebPageProxy::FindPlugin(response.mimeType(), PluginProcessTypeNormal, response.url().string(), response.url().string(), response.url().string(), allowOnlyApplicationPlugins), Messages::WebPageProxy::FindPlugin::Reply(pluginProcessToken, newMIMEType, pluginLoadPolicy, unavailabilityDescription)))
+    bool isUnsupported = false;
+    if (!sendSync(Messages::WebPageProxy::FindPlugin(response.mimeType(), PluginProcessTypeNormal, response.url().string(), response.url().string(), response.url().string(), allowOnlyApplicationPlugins), Messages::WebPageProxy::FindPlugin::Reply(pluginProcessToken, newMIMEType, pluginLoadPolicy, unavailabilityDescription, isUnsupported)))
         return false;
 
+    ASSERT(!isUnsupported);
     bool isBlockedPlugin = (pluginLoadPolicy == PluginModuleBlockedForSecurity) || (pluginLoadPolicy == PluginModuleBlockedForCompatibility);
-    return !isBlockedPlugin && pluginProcessToken;
+    return !isUnsupported && !isBlockedPlugin && pluginProcessToken;
 #else
     UNUSED_PARAM(response);
     return false;
@@ -4555,6 +4582,21 @@ bool WebPage::shouldUseCustomContentProviderForResponse(const ResourceResponse& 
 }
 
 #if PLATFORM(COCOA)
+
+void WebPage::setTextAsync(const String& text)
+{
+    if (is<HTMLInputElement>(m_assistedNode.get())) {
+        downcast<HTMLInputElement>(*m_assistedNode).setValueForUser(text);
+        return;
+    }
+
+    auto frame = makeRef(m_page->focusController().focusedOrMainFrame());
+    if (!frame->selection().selection().isContentEditable())
+        return;
+
+    frame->selection().selectAll();
+    frame->editor().insertText(text, nullptr, TextEventInputKeyboard);
+}
 
 void WebPage::insertTextAsync(const String& text, const EditingRange& replacementEditingRange, bool registerUndoGroup, uint32_t editingRangeIsRelativeTo, bool suppressSelectionUpdate)
 {
@@ -4867,6 +4909,7 @@ void WebPage::elementDidFocus(WebCore::Node* node)
         m_isAssistingNodeDueToUserInteraction |= m_userIsInteracting;
 
 #if PLATFORM(IOS)
+        ++m_currentAssistedNodeIdentifier;
         AssistedNodeInformation information;
         getAssistedNodeInformation(information);
         RefPtr<API::Object> userData;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -401,16 +401,6 @@ String WebProcessPool::legacyPlatformDefaultIndexedDBDatabaseDirectory()
     // We should fix this, and move WebSQL into a subdirectory (https://bugs.webkit.org/show_bug.cgi?id=124807)
     // In the meantime, an entity name prefixed with three underscores will not conflict with any WebSQL entities.
     return FileSystem::pathByAppendingComponent(legacyPlatformDefaultWebSQLDatabaseDirectory(), "___IndexedDB");
-}
-
-String WebProcessPool::legacyPlatformDefaultServiceWorkerRegistrationDirectory()
-{
-    registerUserDefaultsIfNeeded();
-
-    NSString *directory = [[NSUserDefaults standardUserDefaults] objectForKey:WebServiceWorkerRegistrationDirectoryDefaultsKey];
-    if (!directory || ![directory isKindOfClass:[NSString class]])
-        directory = @"~/Library/WebKit/ServiceWorkers";
-    return stringByResolvingSymlinksInPath([directory stringByStandardizingPath]);
 }
 
 String WebProcessPool::legacyPlatformDefaultLocalStorageDirectory()

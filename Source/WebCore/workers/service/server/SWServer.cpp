@@ -114,6 +114,11 @@ void SWServer::registrationStoreImportComplete()
     ASSERT(!m_importCompleted);
     m_importCompleted = true;
     m_originStore->importComplete();
+
+    auto clearCallbacks = WTFMove(m_clearCompletionCallbacks);
+    for (auto& callback : clearCallbacks)
+        callback();
+
     performGetOriginsWithRegistrationsCallbacks();
 }
 
@@ -182,20 +187,35 @@ Vector<ServiceWorkerRegistrationData> SWServer::getRegistrations(const SecurityO
     return matchingRegistrationDatas;
 }
 
-void SWServer::clearAll(WTF::CompletionHandler<void()>&& completionHandler)
+void SWServer::clearAll(CompletionHandler<void()>&& completionHandler)
 {
+    if (!m_importCompleted) {
+        m_clearCompletionCallbacks.append([this, completionHandler = WTFMove(completionHandler)] () mutable {
+            ASSERT(m_importCompleted);
+            clearAll(WTFMove(completionHandler));
+        });
+        return;
+    }
+
     m_jobQueues.clear();
     while (!m_registrations.isEmpty())
         m_registrations.begin()->value->clear();
     ASSERT(m_registrationsByID.isEmpty());
     m_pendingContextDatas.clear();
-    m_pendingJobs.clear();
     m_originStore->clearAll();
     m_registrationStore.clearAll(WTFMove(completionHandler));
 }
 
-void SWServer::clear(const SecurityOrigin& origin, WTF::CompletionHandler<void()>&& completionHandler)
+void SWServer::clear(const SecurityOrigin& origin, CompletionHandler<void()>&& completionHandler)
 {
+    if (!m_importCompleted) {
+        m_clearCompletionCallbacks.append([this, origin = makeRef(origin), completionHandler = WTFMove(completionHandler)] () mutable {
+            ASSERT(m_importCompleted);
+            clear(origin, WTFMove(completionHandler));
+        });
+        return;
+    }
+
     m_jobQueues.removeIf([&](auto& keyAndValue) {
         return keyAndValue.key.relatesToOrigin(origin);
     });
@@ -210,23 +230,16 @@ void SWServer::clear(const SecurityOrigin& origin, WTF::CompletionHandler<void()
         return contextData.registration.key.relatesToOrigin(origin);
     });
 
-    m_pendingJobs.removeAllMatching([&](auto& job) {
-        return job.registrationKey().relatesToOrigin(origin);
-    });
+    if (registrationsToRemove.isEmpty()) {
+        completionHandler();
+        return;
+    }
 
     // Calling SWServerRegistration::clear() takes care of updating m_registrations, m_originStore and m_registrationStore.
     for (auto* registration : registrationsToRemove)
         registration->clear();
 
     m_registrationStore.flushChanges(WTFMove(completionHandler));
-}
-
-void SWServer::Connection::scheduleJobInServer(ServiceWorkerJobData&& jobData)
-{
-    LOG(ServiceWorker, "Scheduling ServiceWorker job %s in server", jobData.identifier().loggingString().utf8().data());
-    ASSERT(identifier() == jobData.connectionIdentifier());
-
-    m_server.scheduleJob(WTFMove(jobData));
 }
 
 void SWServer::Connection::finishFetchingScriptInServer(const ServiceWorkerFetchResult& result)
@@ -268,11 +281,6 @@ SWServer::SWServer(UniqueRef<SWOriginStore>&& originStore, String&& registration
 void SWServer::scheduleJob(ServiceWorkerJobData&& jobData)
 {
     ASSERT(m_connections.contains(jobData.connectionIdentifier()));
-
-    if (!SWServerToContextConnection::globalServerToContextConnection()) {
-        m_pendingJobs.append(WTFMove(jobData));
-        return;
-    }
 
     // FIXME: Per the spec, check if this job is equivalent to the last job on the queue.
     // If it is, stack it along with that job.
@@ -319,10 +327,9 @@ void SWServer::startScriptFetch(const ServiceWorkerJobData& jobData, FetchOption
 {
     LOG(ServiceWorker, "Server issuing startScriptFetch for current job %s in client", jobData.identifier().loggingString().utf8().data());
     auto* connection = m_connections.get(jobData.connectionIdentifier());
-    if (!connection)
-        return;
-
-    connection->startScriptFetchInClient(jobData.identifier().jobIdentifier, jobData.registrationKey(), cachePolicy);
+    ASSERT_WITH_MESSAGE(connection, "If the connection was lost, this job should have been cancelled");
+    if (connection)
+        connection->startScriptFetchInClient(jobData.identifier().jobIdentifier, jobData.registrationKey(), cachePolicy);
 }
 
 void SWServer::scriptFetchFinished(Connection& connection, const ServiceWorkerFetchResult& result)
@@ -345,8 +352,13 @@ void SWServer::scriptContextFailedToStart(const std::optional<ServiceWorkerJobDa
 
     RELEASE_LOG_ERROR(ServiceWorker, "%p - SWServer::scriptContextFailedToStart: Failed to start SW for job %s, error: %s", this, jobDataIdentifier->loggingString().utf8().data(), message.utf8().data());
 
-    if (auto* jobQueue = m_jobQueues.get(worker.registrationKey()))
-        jobQueue->scriptContextFailedToStart(*jobDataIdentifier, worker.identifier(), message);
+    auto* jobQueue = m_jobQueues.get(worker.registrationKey());
+    if (!jobQueue || !jobQueue->isCurrentlyProcessingJob(*jobDataIdentifier)) {
+        // The job which started this worker has been canceled, terminate this worker.
+        terminatePreinstallationWorker(worker);
+        return;
+    }
+    jobQueue->scriptContextFailedToStart(*jobDataIdentifier, worker.identifier(), message);
 }
 
 void SWServer::scriptContextStarted(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, SWServerWorker& worker)
@@ -354,8 +366,21 @@ void SWServer::scriptContextStarted(const std::optional<ServiceWorkerJobDataIden
     if (!jobDataIdentifier)
         return;
 
-    if (auto* jobQueue = m_jobQueues.get(worker.registrationKey()))
-        jobQueue->scriptContextStarted(*jobDataIdentifier, worker.identifier());
+    auto* jobQueue = m_jobQueues.get(worker.registrationKey());
+    if (!jobQueue || !jobQueue->isCurrentlyProcessingJob(*jobDataIdentifier)) {
+        // The job which started this worker has been canceled, terminate this worker.
+        terminatePreinstallationWorker(worker);
+        return;
+    }
+    jobQueue->scriptContextStarted(*jobDataIdentifier, worker.identifier());
+}
+
+void SWServer::terminatePreinstallationWorker(SWServerWorker& worker)
+{
+    worker.terminate();
+    auto* registration = getRegistration(worker.registrationKey());
+    if (registration && registration->preInstallationWorker() == &worker)
+        registration->setPreInstallationWorker(nullptr);
 }
 
 void SWServer::didFinishInstall(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, SWServerWorker& worker, bool wasSuccessful)
@@ -376,8 +401,12 @@ void SWServer::didFinishActivation(SWServerWorker& worker)
 {
     RELEASE_LOG(ServiceWorker, "%p - SWServer::didFinishActivation: Finished activation for service worker %llu", this, worker.identifier().toUInt64());
 
-    if (auto* registration = getRegistration(worker.registrationKey()))
-        registration->didFinishActivation(worker.identifier());
+    auto* registration = getRegistration(worker.registrationKey());
+    if (!registration)
+        return;
+
+    m_registrationStore.updateRegistration(worker.contextData());
+    registration->didFinishActivation(worker.identifier());
 }
 
 // https://w3c.github.io/ServiceWorker/#clients-getall
@@ -414,17 +443,18 @@ void SWServer::claim(SWServerWorker& worker)
 {
     auto& origin = worker.origin();
     forEachClientForOrigin(origin, [&](auto& clientData) {
-        auto* registration = doRegistrationMatching(origin.topOrigin, clientData.url);
+        auto* registration = this->doRegistrationMatching(origin.topOrigin, clientData.url);
         if (!(registration && registration->key() == worker.registrationKey()))
             return;
 
         auto result = m_clientToControllingWorker.add(clientData.identifier, worker.identifier());
         if (!result.isNewEntry) {
-            if (result.iterator->value == worker.identifier())
+            auto previousIdentifier = result.iterator->value;
+            if (previousIdentifier == worker.identifier())
                 return;
-            if (auto* controllingRegistration = registrationFromServiceWorkerIdentifier(result.iterator->value))
-                controllingRegistration->removeClientUsingRegistration(clientData.identifier);
             result.iterator->value = worker.identifier();
+            if (auto* controllingRegistration = this->registrationFromServiceWorkerIdentifier(previousIdentifier))
+                controllingRegistration->removeClientUsingRegistration(clientData.identifier);
         }
         registration->controlClient(clientData.identifier);
     });
@@ -462,8 +492,7 @@ void SWServer::removeClientServiceWorkerRegistration(Connection& connection, Ser
 
 void SWServer::updateWorker(Connection&, const ServiceWorkerJobDataIdentifier& jobDataIdentifier, SWServerRegistration& registration, const URL& url, const String& script, const ContentSecurityPolicyResponseHeaders& contentSecurityPolicy, WorkerType type)
 {
-    registration.setLastUpdateTime(WallTime::now());
-    tryInstallContextData({ jobDataIdentifier, registration.data(), generateObjectIdentifier<ServiceWorkerIdentifierType>(), script, contentSecurityPolicy, url, type, false });
+    tryInstallContextData({ jobDataIdentifier, registration.data(), generateObjectIdentifier<ServiceWorkerIdentifierType>(), script, contentSecurityPolicy, url, type, sessionID(), false });
 }
 
 void SWServer::tryInstallContextData(ServiceWorkerContextData&& data)
@@ -494,17 +523,18 @@ void SWServer::serverToContextConnectionCreated()
         for (auto& callback : item.value)
             callback(success, *connection);
     }
-
-    auto pendingJobs = WTFMove(m_pendingJobs);
-    for (auto& jobData : pendingJobs)
-        scheduleJob(WTFMove(jobData));
 }
 
 void SWServer::installContextData(const ServiceWorkerContextData& data)
 {
     ASSERT_WITH_MESSAGE(!data.loadedFromDisk, "Workers we just read from disk should only be launched as needed");
 
-    m_registrationStore.updateRegistration(data);
+    if (data.jobDataIdentifier) {
+        // Abort if the job that scheduled this has been cancelled.
+        auto* jobQueue = m_jobQueues.get(data.registration.key);
+        if (!jobQueue || !jobQueue->isCurrentlyProcessingJob(*data.jobDataIdentifier))
+            return;
+    }
 
     auto* connection = SWServerToContextConnection::globalServerToContextConnection();
     ASSERT(connection);
@@ -627,6 +657,9 @@ void SWServer::workerContextTerminated(SWServerWorker& worker)
     worker.setState(SWServerWorker::State::NotRunning);
     worker.setContextConnectionIdentifier(std::nullopt);
 
+    if (auto* jobQueue = m_jobQueues.get(worker.registrationKey()))
+        jobQueue->cancelJobsFromServiceWorker(worker.identifier());
+
     // At this point if no registrations are referencing the worker then it will be destroyed,
     // removing itself from the m_workersByID map.
     auto result = m_runningOrTerminatingWorkers.take(worker.identifier());
@@ -680,6 +713,9 @@ void SWServer::unregisterConnection(Connection& connection)
 
     for (auto& registration : m_registrations.values())
         registration->unregisterServerConnection(connection.identifier());
+
+    for (auto& jobQueue : m_jobQueues.values())
+        jobQueue->cancelJobsFromConnection(connection.identifier());
 }
 
 SWServerRegistration* SWServer::doRegistrationMatching(const SecurityOriginData& topOrigin, const URL& clientURL)
@@ -788,12 +824,12 @@ void SWServer::Connection::resolveRegistrationReadyRequests(SWServerRegistration
         if (!registration.key().isMatching(request.topOrigin, request.clientURL))
             return false;
 
-        registrationReady(request.identifier, registration.data());
+        this->registrationReady(request.identifier, registration.data());
         return true;
     });
 }
 
-void SWServer::getOriginsWithRegistrations(WTF::Function<void(const HashSet<SecurityOriginData>&)> callback)
+void SWServer::getOriginsWithRegistrations(Function<void(const HashSet<SecurityOriginData>&)>&& callback)
 {
     m_getOriginsWithRegistrationsCallbacks.append(WTFMove(callback));
 

@@ -32,7 +32,6 @@
 #include "NativeWebKeyboardEvent.h"
 #include "NativeWebMouseEvent.h"
 #include "NativeWebWheelEvent.h"
-#include "NotImplemented.h"
 #include "WebColorPickerGtk.h"
 #include "WebContextMenuProxyGtk.h"
 #include "WebEventFactory.h"
@@ -46,6 +45,7 @@
 #include <WebCore/Cursor.h>
 #include <WebCore/EventNames.h>
 #include <WebCore/GtkUtilities.h>
+#include <WebCore/NotImplemented.h>
 #include <WebCore/RefPtrCairo.h>
 #include <wtf/Compiler.h>
 #include <wtf/text/CString.h>
@@ -351,7 +351,7 @@ void PageClientImpl::doneWithTouchEvent(const NativeWebTouchEvent& event, bool w
         gestureController.reset();
         return;
     }
-    wasEventHandled = gestureController.handleEvent(event.nativeEvent());
+    wasEventHandled = gestureController.handleEvent(const_cast<GdkEvent*>(event.nativeEvent()));
 #endif
 
     if (wasEventHandled)
@@ -480,6 +480,16 @@ JSGlobalContextRef PageClientImpl::javascriptGlobalContext()
         return nullptr;
 
     return webkit_web_view_get_javascript_global_context(WEBKIT_WEB_VIEW(m_viewWidget));
+}
+
+void PageClientImpl::zoom(double zoomLevel)
+{
+    if (WEBKIT_IS_WEB_VIEW(m_viewWidget)) {
+        webkit_web_view_set_zoom_level(WEBKIT_WEB_VIEW(m_viewWidget), zoomLevel);
+        return;
+    }
+
+    webkitWebViewBaseGetPage(WEBKIT_WEB_VIEW_BASE(m_viewWidget))->setPageZoomFactor(zoomLevel);
 }
 
 } // namespace WebKit

@@ -25,13 +25,15 @@
 
 #pragma once
 
-#include <runtime/ArrayBuffer.h>
-#include <wtf/ThreadSafeRefCounted.h>
+#if ENABLE(WEB_AUTHN)
+
+#include <JavaScriptCore/ArrayBuffer.h>
+#include <wtf/RefCounted.h>
 #include <wtf/TypeCasts.h>
 
 namespace WebCore {
 
-class AuthenticatorResponse : public ThreadSafeRefCounted<AuthenticatorResponse> {
+class AuthenticatorResponse : public RefCounted<AuthenticatorResponse> {
 public:
     enum class Type {
         Assertion,
@@ -55,3 +57,5 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::AuthenticatorResponse& response) { return response.type() == WebCore::Type; } \
 SPECIALIZE_TYPE_TRAITS_END()
+
+#endif // ENABLE(WEB_AUTHN)

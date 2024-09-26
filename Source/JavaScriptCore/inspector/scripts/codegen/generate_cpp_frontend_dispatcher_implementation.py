@@ -54,14 +54,9 @@ class CppFrontendDispatcherImplementationGenerator(CppGenerator):
         return [domain for domain in Generator.domains_to_generate(self) if len(self.events_for_domain(domain)) > 0]
 
     def generate_output(self):
-        secondary_headers = [
-            '<inspector/InspectorFrontendRouter.h>',
-            '<wtf/text/CString.h>',
-        ]
-
         header_args = {
             'primaryInclude': '"%sFrontendDispatchers.h"' % self.protocol_name(),
-            'secondaryIncludes': "\n".join(['#include %s' % header for header in secondary_headers]),
+            'secondaryIncludes': self._generate_secondary_header_includes(),
         }
 
         sections = []
@@ -72,6 +67,14 @@ class CppFrontendDispatcherImplementationGenerator(CppGenerator):
         return "\n\n".join(sections)
 
     # Private methods.
+
+    def _generate_secondary_header_includes(self):
+        header_includes = [
+            (["JavaScriptCore", "WebKit"], ("JavaScriptCore", "inspector/InspectorFrontendRouter.h")),
+            (["JavaScriptCore", "WebKit"], ("WTF", "wtf/text/CString.h"))
+        ]
+
+        return '\n'.join(self.generate_includes_from_entries(header_includes))
 
     def _generate_dispatcher_implementations_for_domain(self, domain):
         implementations = []

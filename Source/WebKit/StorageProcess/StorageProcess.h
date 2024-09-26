@@ -66,7 +66,7 @@ class StorageProcess : public ChildProcess
 #endif
 {
     WTF_MAKE_NONCOPYABLE(StorageProcess);
-    friend class NeverDestroyed<StorageProcess>;
+    friend NeverDestroyed<StorageProcess>;
 public:
     static StorageProcess& singleton();
     ~StorageProcess();
@@ -84,6 +84,12 @@ public:
 
 #if ENABLE(SANDBOX_EXTENSIONS)
     void getSandboxExtensionsForBlobFiles(const Vector<String>& filenames, WTF::Function<void (SandboxExtension::HandleArray&&)>&& completionHandler);
+#endif
+
+#if PLATFORM(IOS)
+    bool parentProcessHasServiceWorkerEntitlement() const;
+#else
+    bool parentProcessHasServiceWorkerEntitlement() const { return true; }
 #endif
 
 #if ENABLE(SERVICE_WORKER)
@@ -137,6 +143,8 @@ private:
     void didNotHandleFetch(WebCore::SWServerConnectionIdentifier, uint64_t fetchIdentifier);
 
     void postMessageToServiceWorkerClient(const WebCore::ServiceWorkerClientIdentifier& destinationIdentifier, WebCore::MessageWithMessagePorts&&, WebCore::ServiceWorkerIdentifier sourceIdentifier, const String& sourceOrigin);
+    void postMessageToServiceWorker(WebCore::ServiceWorkerIdentifier destination, WebCore::MessageWithMessagePorts&&, const WebCore::ServiceWorkerOrClientIdentifier& source, WebCore::SWServerConnectionIdentifier);
+
     WebSWOriginStore& swOriginStoreForSession(PAL::SessionID);
     bool needsServerToContextConnection() const;
 #endif

@@ -91,6 +91,13 @@ webkit.org/b/178337 fast/replaced/width100percent-image.html [ Skip ]
 
 # FIXME: Implement test options parsing (<!-- webkit-test-runner [ ... ] -->).
 webkit.org/b/173281 security/isSecureContext-disabled.html [ Skip ]
+webkit.org/b/173281 http/tests/media/video-auth-with-allowCrossOriginSubresourcesToAskForCredentials.html [ Skip ]
+webkit.org/b/173281 http/tests/security/credentials-iframes-allowCrossOriginSubresourcesToAskForCredentials.html [ Skip ]
+webkit.org/b/173281 http/tests/security/mixedContent/insecure-basic-auth-image-allowCrossOriginSubresourcesToAskForCredentials.https.html [ Skip ]
+webkit.org/b/173281 http/tests/security/mixedContent/insecure-image-redirects-to-basic-auth-secure-image-allowCrossOriginSubresourcesToAskForCredentials.html [ Skip ]
+webkit.org/b/173281 http/tests/security/mixedContent/secure-redirect-to-insecure-redirect-to-basic-auth-secure-image-allowCrossOriginSubresourcesToAskForCredentials.https.html [ Skip ]
+webkit.org/b/173281 http/tests/security/mixedContent/secure-redirect-to-secure-redirect-to-basic-auth-insecure-image-allowCrossOriginSubresourcesToAskForCredentials.https.html [ Skip ]
+webkit.org/b/173281 http/tests/security/mixedContent/secure-redirect-to-secure-redirect-to-basic-auth-secure-image-allowCrossOriginSubresourcesToAskForCredentials.https.html [ Skip ]
 
 # TODO HW filters not yet supported on Windows
 webkit.org/b/74716 css3/filters/effect-blur-hw.html [ Skip ]
@@ -267,18 +274,6 @@ fast/history/page-cache-webdatabase-pending-transaction.html [ Skip ]
 fast/dom/DeviceMotion/ [ Skip ]
 fast/dom/DeviceOrientation/ [ Skip ]
 fast/dom/Window/window-properties-device-orientation.html [ Skip ]
-
-# Link prefetch is disabled by default
-fast/dom/HTMLLinkElement/link-and-subresource-test.html [ Skip ]
-fast/dom/HTMLLinkElement/link-and-subresource-test-nonexistent.html [ Skip ]
-fast/dom/HTMLLinkElement/prefetch.html [ Skip ]
-fast/dom/HTMLLinkElement/prefetch-beforeload.html [ Skip ]
-fast/dom/HTMLLinkElement/prefetch-onerror.html [ Skip ]
-fast/dom/HTMLLinkElement/prefetch-onload.html [ Skip ]
-fast/dom/HTMLLinkElement/prefetch-too-many-clients.html [ Skip ]
-fast/dom/HTMLLinkElement/subresource.html [ Skip ]
-http/tests/misc/link-rel-prefetch-and-subresource.html [ Skip ]
-http/tests/misc/prefetch-purpose.html [ Skip ]
 
 # TODO Hyphenation is not implemented yet.
 webkit.org/b/140234 fast/text/hyphenate-character.html [ Failure ]
@@ -625,8 +620,11 @@ webkit.org/b/149630 css3/font-variant-all.html [ ImageOnlyFailure ]
 
 webkit.org/b/158836 imported/w3c/web-platform-tests/encrypted-media [ Skip ]
 
-# Credential Management not supported
+# Skip anything related to WebAuthN
+http/tests/webauthn/ [ Skip ]
 http/wpt/credential-management/ [ Skip ]
+http/wpt/webauthn/ [ Skip ]
+imported/w3c/web-platform-tests/credential-management/ [ Skip ]
 
 # UIScriptController::zoomToScale is not implemented on Windows.
 webkit.org/b/180424 fast/visual-viewport/resize-event-fired.html [ Skip ]
@@ -1155,6 +1153,7 @@ http/tests/security/clipboard/copy-paste-url-across-origin-sanitizes-url.html [ 
 http/tests/security/clipboard/copy-paste-html-across-origin-sanitizes-html.html [ Skip ]
 http/tests/security/clipboard/copy-paste-html-cross-origin-iframe-across-origin.html [ Skip ]
 http/tests/security/clipboard/copy-paste-html-cross-origin-iframe-in-same-origin.html [ Skip ]
+http/tests/security/clipboard/copy-paste-html-across-origin-strips-mso-list.html [ Skip ]
 
 webkit.org/b/140783 [ Release ] editing/pasteboard/copy-standalone-image.html [ Failure ImageOnlyFailure ]
 webkit.org/b/140783 [ Debug ] editing/pasteboard/copy-standalone-image.html [ Skip ] # Debug Assertion
@@ -2022,7 +2021,6 @@ css3/images/cross-fade-invalidation.html [ Pass Timeout ]
 ietestcenter/css3/bordersbackgrounds [ Pass Failure Timeout ]
 ietestcenter/css3/flexbox/flexbox-align-stretch-001.htm [ ImageOnlyFailure ]
 ietestcenter/css3/flexbox/flexbox-layout-002.htm [ ImageOnlyFailure ]
-[ Release ] ietestcenter/css3/valuesandunits/units-000.htm [ ImageOnlyFailure ]
 css3/masking/clip-path-inset.html [ ImageOnlyFailure ]
 css3/viewport-percentage-lengths/viewport-percentage-lengths-anonymous-block.html [ Skip ] #  [ Timeout ]
 css3/viewport-percentage-lengths/viewport-percentage-lengths-percent-size-child.html [ Skip ] #  [ Timeout ]
@@ -2640,7 +2638,6 @@ webkit.org/b/162668 fast/text/woff2-totalsfntsize.html [ Skip ]
 [ Debug ] http/tests/security/isolatedWorld/world-reuse.html [ Skip ] # Causes later tests to fail
 [ Debug ] http/tests/security/mixedContent/data-url-script-in-iframe.html [ Skip ]
 [ Debug ] http/tests/security/listener/xss-window-onclick-addEventListener.html [ Skip ] # Causes later tests to fail
-[ Debug ] ietestcenter/css3/valuesandunits/units-000.htm [ ImageOnlyFailure ]
 [ Debug ] platform/win/fast/events/panScroll-no-iframe-jump.html [ Skip ] # Causes later tests to fail
 [ Debug ] sputnik/Unicode/Unicode_320/S7.6_A3.1.html [ Skip ] # Debug Assertion
 [ Debug ] sputnik/Unicode/Unicode_320/S7.6_A3.2.html [ Skip ] # Debug Assertion
@@ -3834,8 +3831,6 @@ webkit.org/b/179301 http/tests/security/xss-DENIED-xsl-external-entity.xml [ Pas
 
 webkit.org/b/179613 editing/execCommand/underline-selection-containing-image.html [ Failure ]
 
-webkit.org/b/179766 accessibility/accessibility-object-model.html [ Failure ]
-
 webkit.org/b/179767 http/wpt/offscreen-canvas/getContext-webgl.html [ Failure ]
 
 # User-installed font infrastructure is ony present on certain OSes.
@@ -3854,16 +3849,6 @@ webkit.org/b/181854 svg/filters/feDiffuseLighting-bottomRightPixel.html [ ImageO
 
 webkit.org/b/181869 svg/filters/fePointLight-color.svg [ ImageOnlyFailure ]
 webkit.org/b/181869 svg/filters/feSpotLight-color.svg [ ImageOnlyFailure ]
-
-webkit.org/b/182118 http/tests/webauthn/public-key-credential-create-with-invalid-parameters.https.html [ Failure ]
-webkit.org/b/182118 http/wpt/webauthn/idl.https.html [ Failure ]
-webkit.org/b/182118 http/wpt/webauthn/public-key-credential-create-failure.https.html [ Failure ]
-webkit.org/b/182118 http/wpt/webauthn/public-key-credential-create-success.https.html [ Failure ]
-webkit.org/b/182118 http/tests/webauthn/public-key-credential-same-origin-with-ancestors-2.https.html [ Skip ]
-webkit.org/b/182118 http/tests/webauthn/public-key-credential-same-origin-with-ancestors.https.html [ Skip ]
-webkit.org/b/182118 http/tests/webauthn/public-key-credential-get-with-invalid-parameters.https.html [ Failure ]
-webkit.org/b/182118 http/wpt/webauthn/public-key-credential-get-failure.https.html [ Failure ]
-webkit.org/b/182118 http/wpt/webauthn/public-key-credential-get-success.https.html [ Failure ]
 
 webkit.org/b/182119 js/dom/random-array-gc-stress.html [ Failure ]
 
@@ -3896,3 +3881,39 @@ webkit.org/b/182159 webanimations/opacity-animation-yields-compositing.html [ Fa
 
 webkit.org/b/182239 js/dom/array-with-double-assign.html [ Failure ]
 webkit.org/b/182239 js/dom/array-with-double-push.html [ Failure ]
+
+webkit.org/b/182626 accessibility/aria-hidden-updates-alldescendants.html [ Failure ]
+
+webkit.org/b/179297 http/tests/preload/onerror_event.html [ Crash Pass ]
+
+# The following tests are failing only on ews203.
+webkit.org/b/182694 fast/text/tatechuyoko.html [ Failure ]
+webkit.org/b/182694 imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-parameters-1.html [ Failure ]
+webkit.org/b/182694 fast/css/fontloader-svg-select.svg [ Crash ]
+webkit.org/b/182694 fast/dom/crash-moving-subtree-between-documents.html [ Crash ]
+webkit.org/b/182694 fast/dom/event-handler-attributes.html [ Crash ]
+webkit.org/b/182694 fast/dom/focus-style-resolution.html [ Crash ]
+webkit.org/b/182694 fast/dom/inline-event-attributes-event-param-name.html [ Crash ]
+webkit.org/b/182694 fast/events/event-function-toString.html [ Crash ]
+webkit.org/b/182694 fast/html/marquee-reparent-check.html [ Crash ]
+webkit.org/b/182694 fast/loader/document-destruction-within-unload.html [ Crash ]
+webkit.org/b/182694 fast/scrolling/adjust-scroll-offset-on-zoom.html [ Crash ]
+webkit.org/b/182694 fast/text/invalid-positionForPoint-offset.html [ Crash ]
+webkit.org/b/182694 http/tests/security/svg-image-with-cached-remote-image.html [ Crash ]
+webkit.org/b/182694 http/tests/security/xssAuditor/iframe-onload-in-svg-tag.html [ Crash ]
+webkit.org/b/182694 imported/blink/http/tests/svg/svgload-vs-load.svg [ Crash ]
+webkit.org/b/182694 imported/blink/svg/animations/repeatn-event-1a.svg [ Crash ]
+webkit.org/b/182694 imported/blink/svg/animations/repeatn-event-1e.svg [ Crash ]
+webkit.org/b/182694 imported/blink/svg/custom/fragment-navigation-01.html [ Crash ]
+webkit.org/b/182694 imported/blink/svg/text/non-invertible-matrix-text.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/conditions-06.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/conditions-07.svg [ Crash ImageOnlyFailure ]
+webkit.org/b/182694 imported/mozilla/svg/smil/anim-class-04.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/smil/anim-feConvolveMatrix-order-01.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/smil/anim-feSpotLight-01.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/smil/motion/animateMotion-values-linear-1.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/smil/motion/animateMotion-values-paced-1a.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/smil/repeat/indefinite-repeat-1.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/smil/restart/reset-2.svg [ Crash ]
+webkit.org/b/182694 imported/mozilla/svg/smil/sort/sort-startAfter-1.svg [ Crash ]
+webkit.org/b/182694 fast/css/disabled-author-styles.html [ Timeout ]

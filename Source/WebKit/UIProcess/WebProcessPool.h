@@ -202,8 +202,13 @@ public:
     const HashMap<String, HashMap<String, HashMap<String, uint8_t>>>& pluginLoadClientPolicies() const { return m_pluginLoadClientPolicies; }
 #endif
 
+    void addSupportedPlugin(WebCore::SecurityOrigin*, String&& name, HashSet<String>&& mimeTypes, HashSet<String> extensions);
+    void clearSupportedPlugins();
+
     ProcessID networkProcessIdentifier();
     ProcessID storageProcessIdentifier();
+
+    WebPageGroup& defaultPageGroup() { return m_defaultPageGroup.get(); }
 
     void setAlwaysUsesComplexTextCodePath(bool);
     void setShouldUseFontSmoothing(bool);
@@ -309,7 +314,7 @@ public:
     Ref<API::Dictionary> plugInAutoStartOriginHashes() const;
     void setPlugInAutoStartOriginHashes(API::Dictionary&);
     void setPlugInAutoStartOrigins(API::Array&);
-    void setPlugInAutoStartOriginsFilteringOutEntriesAddedAfterTime(API::Dictionary&, double time);
+    void setPlugInAutoStartOriginsFilteringOutEntriesAddedAfterTime(API::Dictionary&, WallTime);
 
     // Network Process Management
     NetworkProcessProxy& ensureNetworkProcess(WebsiteDataStore* withWebsiteDataStore = nullptr);
@@ -330,6 +335,7 @@ public:
     void setAllowsAnySSLCertificateForServiceWorker(bool allows) { m_allowsAnySSLCertificateForServiceWorker = allows; }
     bool allowsAnySSLCertificateForServiceWorker() const { return m_allowsAnySSLCertificateForServiceWorker; }
     void updateServiceWorkerUserAgent(const String& userAgent);
+    bool mayHaveRegisteredServiceWorkers(const WebsiteDataStore&);
 #endif
 
 #if PLATFORM(COCOA)
@@ -393,7 +399,6 @@ public:
     // FIXME: Move these to API::WebsiteDataStore.
     static String legacyPlatformDefaultLocalStorageDirectory();
     static String legacyPlatformDefaultIndexedDBDatabaseDirectory();
-    static String legacyPlatformDefaultServiceWorkerRegistrationDirectory();
     static String legacyPlatformDefaultWebSQLDatabaseDirectory();
     static String legacyPlatformDefaultMediaKeysStorageDirectory();
     static String legacyPlatformDefaultMediaCacheDirectory();
@@ -421,6 +426,11 @@ public:
     void setCookieStoragePartitioningEnabled(bool);
     bool storageAccessAPIEnabled() const { return m_storageAccessAPIEnabled; }
     void setStorageAccessAPIEnabled(bool);
+#endif
+
+#if ENABLE(SERVICE_WORKER)
+    void postMessageToServiceWorkerClient(const WebCore::ServiceWorkerClientIdentifier& destinationIdentifier, WebCore::MessageWithMessagePorts&&, WebCore::ServiceWorkerIdentifier sourceIdentifier, const String& sourceOrigin);
+    void postMessageToServiceWorker(WebCore::ServiceWorkerIdentifier destination, WebCore::MessageWithMessagePorts&&, const WebCore::ServiceWorkerOrClientIdentifier& source, WebCore::SWServerConnectionIdentifier);
 #endif
 
     static uint64_t registerProcessPoolCreationListener(Function<void(WebProcessPool&)>&&);
@@ -506,6 +516,7 @@ private:
     bool m_allowsAnySSLCertificateForServiceWorker { false };
     String m_serviceWorkerUserAgent;
     std::optional<WebPreferencesStore> m_serviceWorkerPreferences;
+    HashMap<String, bool> m_mayHaveRegisteredServiceWorkers;
 #endif
 
     Ref<WebPageGroup> m_defaultPageGroup;

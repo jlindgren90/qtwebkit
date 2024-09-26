@@ -39,13 +39,12 @@ namespace WebCore {
 
 CurlRequest::CurlRequest(const ResourceRequest&request, CurlRequestClient* client, bool shouldSuspend, bool enableMultipart)
     : m_request(request.isolatedCopy())
+    , m_client(client)
     , m_shouldSuspend(shouldSuspend)
     , m_enableMultipart(enableMultipart)
     , m_formDataStream(m_request.httpBody())
 {
     ASSERT(isMainThread());
-
-    setClient(client);
 }
 
 void CurlRequest::setUserPass(const String& user, const String& password)
@@ -125,6 +124,7 @@ void CurlRequest::cancel()
 
     setRequestPaused(false);
     setCallbackPaused(false);
+    invalidateClient();
 }
 
 void CurlRequest::suspend()
@@ -142,18 +142,18 @@ void CurlRequest::resume()
 }
 
 /* `this` is protected inside this method. */
-void CurlRequest::callClient(WTF::Function<void(CurlRequestClient&)> task)
+void CurlRequest::callClient(WTF::Function<void(CurlRequest&, CurlRequestClient&)> task)
 {
     if (isMainThread()) {
         if (CurlRequestClient* client = m_client) {
             RefPtr<CurlRequestClient> protectedClient(client);
-            task(*client);
+            task(*this, *client);
         }
     } else {
-        callOnMainThread([protectedThis = makeRef(*this), task = WTFMove(task)]() mutable {
+        callOnMainThread([this, protectedThis = makeRef(*this), task = WTFMove(task)]() mutable {
             if (CurlRequestClient* client = protectedThis->m_client) {
                 RefPtr<CurlRequestClient> protectedClient(client);
-                task(*client);
+                task(*this, *client);
             }
         });
     }
@@ -200,7 +200,6 @@ CURL* CurlRequest::setupTransfer()
     m_curlHandle->setTimeout(timeoutMilliseconds);
 
     m_curlHandle->enableProxyIfExists();
-    m_curlHandle->enableCookieJarIfExists();
 
     m_curlHandle->setSslVerifyPeer(CurlHandle::VerifyPeer::Enable);
     m_curlHandle->setSslVerifyHost(CurlHandle::VerifyHost::StrictNameCheck);
@@ -260,8 +259,8 @@ size_t CurlRequest::willSendData(char* buffer, size_t blockSize, size_t numberOf
         return CURL_READFUNC_ABORT;
     }
 
-    callClient([this, totalReadSize = m_formDataStream.totalReadSize(), totalSize = m_formDataStream.totalSize()](CurlRequestClient& client) {
-        client.curlDidSendData(totalReadSize, totalSize);
+    callClient([totalReadSize = m_formDataStream.totalReadSize(), totalSize = m_formDataStream.totalSize()](CurlRequest& request, CurlRequestClient& client) {
+        client.curlDidSendData(request, totalReadSize, totalSize);
     });
 
     return *sendBytes;
@@ -362,8 +361,8 @@ size_t CurlRequest::didReceiveData(Ref<SharedBuffer>&& buffer)
         if (m_multipartHandle)
             m_multipartHandle->didReceiveData(buffer);
         else {
-            callClient([buffer = WTFMove(buffer)](CurlRequestClient& client) mutable {
-                client.curlDidReceiveBuffer(WTFMove(buffer));
+            callClient([buffer = WTFMove(buffer)](CurlRequest& request, CurlRequestClient& client) mutable {
+                client.curlDidReceiveBuffer(request, WTFMove(buffer));
             });
         }
     }
@@ -394,8 +393,8 @@ void CurlRequest::didReceiveDataFromMultipart(Ref<SharedBuffer>&& buffer)
     auto receiveBytes = buffer->size();
 
     if (receiveBytes) {
-        callClient([buffer = WTFMove(buffer)](CurlRequestClient& client) mutable {
-            client.curlDidReceiveBuffer(WTFMove(buffer));
+        callClient([buffer = WTFMove(buffer)](CurlRequest& request, CurlRequestClient& client) mutable {
+            client.curlDidReceiveBuffer(request, WTFMove(buffer));
         });
     }
 }
@@ -422,8 +421,8 @@ void CurlRequest::didCompleteTransfer(CURLcode result)
                 m_networkLoadMetrics = *metrics;
 
             finalizeTransfer();
-            callClient([](CurlRequestClient& client) {
-                client.curlDidComplete();
+            callClient([](CurlRequest& request, CurlRequestClient& client) {
+                client.curlDidComplete(request);
             });
         }
     } else {
@@ -433,8 +432,8 @@ void CurlRequest::didCompleteTransfer(CURLcode result)
             resourceError.setSslErrors(m_sslVerifier->sslErrors());
 
         finalizeTransfer();
-        callClient([error = resourceError.isolatedCopy()](CurlRequestClient& client) {
-            client.curlDidFailWithError(error);
+        callClient([error = resourceError.isolatedCopy()](CurlRequest& request, CurlRequestClient& client) {
+            client.curlDidFailWithError(request, error);
         });
     }
 }
@@ -534,8 +533,8 @@ void CurlRequest::invokeDidReceiveResponse(const CurlResponse& response, Action 
     m_didNotifyResponse = true;
     m_actionAfterInvoke = behaviorAfterInvoke;
 
-    callClient([response = response.isolatedCopy()](CurlRequestClient& client) {
-        client.curlDidReceiveResponse(response);
+    callClient([response = response.isolatedCopy()](CurlRequest& request, CurlRequestClient& client) {
+        client.curlDidReceiveResponse(request, response);
     });
 }
 

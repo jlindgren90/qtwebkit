@@ -117,7 +117,13 @@
 #import <CoreFoundation/CFSet.h>
 #import <Foundation/NSURLConnection.h>
 #import <JavaScriptCore/APICast.h>
+#import <JavaScriptCore/ArrayPrototype.h>
+#import <JavaScriptCore/CatchScope.h>
+#import <JavaScriptCore/DateInstance.h>
 #import <JavaScriptCore/Exception.h>
+#import <JavaScriptCore/InitializeThreading.h>
+#import <JavaScriptCore/JSCJSValue.h>
+#import <JavaScriptCore/JSLock.h>
 #import <JavaScriptCore/JSValueRef.h>
 #import <WebCore/AlternativeTextUIController.h>
 #import <WebCore/ApplicationCacheStorage.h>
@@ -206,7 +212,6 @@
 #import <WebKitLegacy/DOM.h>
 #import <WebKitLegacy/DOMExtensions.h>
 #import <WebKitLegacy/DOMPrivate.h>
-#import <bindings/ScriptValue.h>
 #import <mach-o/dyld.h>
 #import <objc/runtime.h>
 #import <pal/spi/cf/CFNetworkSPI.h>
@@ -216,12 +221,6 @@
 #import <pal/spi/mac/NSResponderSPI.h>
 #import <pal/spi/mac/NSSpellCheckerSPI.h>
 #import <pal/spi/mac/NSWindowSPI.h>
-#import <runtime/ArrayPrototype.h>
-#import <runtime/CatchScope.h>
-#import <runtime/DateInstance.h>
-#import <runtime/InitializeThreading.h>
-#import <runtime/JSCJSValue.h>
-#import <runtime/JSLock.h>
 #import <wtf/Assertions.h>
 #import <wtf/HashTraits.h>
 #import <wtf/MainThread.h>
@@ -245,9 +244,9 @@
 #import "WebNSPasteboardExtras.h"
 #import "WebNSPrintOperationExtras.h"
 #import "WebPDFView.h"
+#import "WebVideoFullscreenController.h"
 #import <WebCore/TextIndicator.h>
 #import <WebCore/TextIndicatorWindow.h>
-#import <WebCore/WebVideoFullscreenController.h>
 #import <pal/spi/cocoa/AVKitSPI.h>
 #import <pal/spi/mac/LookupSPI.h>
 #import <pal/spi/mac/NSImmediateActionGestureRecognizerSPI.h>
@@ -2761,6 +2760,7 @@ static bool needsSelfRetainWhileLoadingQuirk()
     settings.setWebSecurityEnabled([preferences isWebSecurityEnabled]);
     settings.setAllowUniversalAccessFromFileURLs([preferences allowUniversalAccessFromFileURLs]);
     settings.setAllowFileAccessFromFileURLs([preferences allowFileAccessFromFileURLs]);
+    settings.setAllowCrossOriginSubresourcesToAskForCredentials([preferences allowCrossOriginSubresourcesToAskForCredentials]);
     settings.setNeedsStorageAccessFromFileURLsQuirk([preferences needsStorageAccessFromFileURLsQuirk]);
     settings.setMinimumFontSize([preferences minimumFontSize]);
     settings.setMinimumLogicalFontSize([preferences minimumLogicalFontSize]);

@@ -41,9 +41,9 @@
 #include "WorkerDebuggerProxy.h"
 #include "WorkerLoaderProxy.h"
 #include "WorkerObjectProxy.h"
-#include <inspector/IdentifiersFactory.h>
+#include <JavaScriptCore/IdentifiersFactory.h>
+#include <JavaScriptCore/RuntimeFlags.h>
 #include <pal/SessionID.h>
-#include <runtime/RuntimeFlags.h>
 #include <wtf/NeverDestroyed.h>
 
 using namespace PAL;
@@ -71,7 +71,7 @@ private:
 // FIXME: Use valid runtime flags
 
 ServiceWorkerThread::ServiceWorkerThread(const ServiceWorkerContextData& data, PAL::SessionID, String&& userAgent, WorkerLoaderProxy& loaderProxy, WorkerDebuggerProxy& debuggerProxy, IDBClient::IDBConnectionProxy* idbConnectionProxy, SocketProvider* socketProvider)
-    : WorkerThread(data.scriptURL, "serviceworker:" + Inspector::IdentifiersFactory::createIdentifier(), WTFMove(userAgent), NetworkStateNotifier::singleton().onLine(), data.script, loaderProxy, debuggerProxy, DummyServiceWorkerThreadProxy::shared(), WorkerThreadStartMode::Normal, data.contentSecurityPolicy, false, SecurityOrigin::create(data.scriptURL).get(), MonotonicTime::now(), idbConnectionProxy, socketProvider, JSC::RuntimeFlags::createAllEnabled(), SessionID::defaultSessionID())
+    : WorkerThread(data.scriptURL, "serviceworker:" + Inspector::IdentifiersFactory::createIdentifier(), WTFMove(userAgent), NetworkStateNotifier::singleton().onLine(), data.script, loaderProxy, debuggerProxy, DummyServiceWorkerThreadProxy::shared(), WorkerThreadStartMode::Normal, data.contentSecurityPolicy, false, SecurityOrigin::create(data.scriptURL).get(), MonotonicTime::now(), idbConnectionProxy, socketProvider, JSC::RuntimeFlags::createAllEnabled(), data.sessionID)
     , m_data(data.isolatedCopy())
     , m_workerObjectProxy(DummyServiceWorkerThreadProxy::shared())
 {
@@ -119,10 +119,16 @@ void ServiceWorkerThread::postMessageToServiceWorker(MessageWithMessagePorts&& m
         ExtendableMessageEventSource source;
         if (WTF::holds_alternative<ServiceWorkerClientData>(sourceData)) {
             RefPtr<ServiceWorkerClient> sourceClient = ServiceWorkerClient::getOrCreate(serviceWorkerGlobalScope, WTFMove(WTF::get<ServiceWorkerClientData>(sourceData)));
+
+            RELEASE_ASSERT(!sourceClient->url().protocolIsInHTTPFamily() || !serviceWorkerGlobalScope.url().protocolIsInHTTPFamily() || protocolHostAndPortAreEqual(serviceWorkerGlobalScope.url(), sourceClient->url()));
+
             sourceOrigin = SecurityOrigin::create(sourceClient->url());
             source = WTFMove(sourceClient);
         } else {
             RefPtr<ServiceWorker> sourceWorker = ServiceWorker::getOrCreate(serviceWorkerGlobalScope, WTFMove(WTF::get<ServiceWorkerData>(sourceData)));
+
+            RELEASE_ASSERT(!sourceWorker->scriptURL().protocolIsInHTTPFamily() || !serviceWorkerGlobalScope.url().protocolIsInHTTPFamily() || protocolHostAndPortAreEqual(serviceWorkerGlobalScope.url(), sourceWorker->scriptURL()));
+
             sourceOrigin = SecurityOrigin::create(sourceWorker->scriptURL());
             source = WTFMove(sourceWorker);
         }

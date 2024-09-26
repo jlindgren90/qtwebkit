@@ -29,6 +29,7 @@
 #include "HTTPHeaderNames.h"
 #include "PublicSuffix.h"
 #include "ResourceRequest.h"
+#include "SecurityPolicy.h"
 #include <wtf/PointerComparison.h>
 
 namespace WebCore {
@@ -63,7 +64,7 @@ void ResourceRequestBase::setAsIsolatedCopy(const ResourceRequest& other)
     setPriority(other.priority());
     setRequester(other.requester());
     setInitiatorIdentifier(other.initiatorIdentifier().isolatedCopy());
-    setCachePartition(other.cachePartition());
+    setCachePartition(other.cachePartition().isolatedCopy());
 
     updateResourceRequest();
     m_httpHeaderFields = other.httpHeaderFields().isolatedCopy();
@@ -324,6 +325,14 @@ void ResourceRequestBase::setHTTPReferrer(const String& httpReferrer)
     setHTTPHeaderField(HTTPHeaderName::Referer, httpReferrer);
 }
 
+void ResourceRequestBase::setExistingHTTPReferrerToOriginString()
+{
+    if (!hasHTTPReferrer())
+        return;
+
+    setHTTPHeaderField(HTTPHeaderName::Referer, SecurityPolicy::referrerToOriginString(httpReferrer()));
+}
+    
 void ResourceRequestBase::clearHTTPReferrer()
 {
     updateResourceRequest(); 

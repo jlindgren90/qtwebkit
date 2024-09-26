@@ -1,20 +1,23 @@
 list(APPEND WTF_SOURCES
-
     generic/MainThreadGeneric.cpp
     generic/WorkQueueGeneric.cpp
 )
 
 if (WIN32)
     list(APPEND WTF_SOURCES
+        text/win/TextBreakIteratorInternalICUWin.cpp
+
         win/CPUTimeWin.cpp
         win/LanguageWin.cpp
-        text/win/TextBreakIteratorInternalICUWin.cpp
     )
 else ()
     list(APPEND WTF_SOURCES
+        UniStdExtras.cpp
+
+        text/unix/TextBreakIteratorInternalICUUnix.cpp
+
         unix/CPUTimeUnix.cpp
         unix/LanguageUnix.cpp
-        text/unix/TextBreakIteratorInternalICUUnix.cpp
     )
 endif ()
 

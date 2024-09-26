@@ -188,7 +188,8 @@ public:
     // Audio testing.
     void setAudioResult(JSContextRef, JSValueRef data);
 
-    void setBlockAllPlugins(bool shouldBlock);
+    void setBlockAllPlugins(bool);
+    void setPluginSupportedMode(JSStringRef);
 
     enum WhatToDump { RenderTree, MainFrameText, AllFramesText, Audio, DOMAsWebArchive };
     WhatToDump whatToDump() const { return m_whatToDump; }
@@ -280,7 +281,6 @@ public:
     // Cookies testing
     void setAlwaysAcceptCookies(bool);
     void setCookieStoragePartitioningEnabled(bool);
-    void setStorageAccessAPIEnabled(bool);
 
     // Custom full screen behavior.
     void setHasCustomFullScreenBehavior(bool value) { m_customFullScreenBehavior = value; }
@@ -367,8 +367,9 @@ public:
     void statisticsDidRunTelemetryCallback(unsigned totalPrevalentResources, unsigned totalPrevalentResourcesWithUserInteraction, unsigned top3SubframeUnderTopFrameOrigins);
     void statisticsNotifyObserver();
     void statisticsProcessStatisticsAndDataRecords();
-    void statisticsUpdateCookiePartitioning();
-    void statisticsSetShouldPartitionCookiesForHost(JSStringRef hostName, bool value);
+    void statisticsUpdateCookiePartitioning(JSValueRef callback);
+    void statisticsSetShouldPartitionCookiesForHost(JSStringRef hostName, bool value, JSValueRef callback);
+    void statisticsCallDidSetPartitionOrBlockCookiesForHostCallback();
     void statisticsSubmitTelemetry();
     void setStatisticsLastSeen(JSStringRef hostName, double seconds);
     void setStatisticsPrevalentResource(JSStringRef hostName, bool value);
@@ -383,6 +384,9 @@ public:
     void setStatisticsSubframeUnderTopFrameOrigin(JSStringRef hostName, JSStringRef topFrameHostName);
     void setStatisticsSubresourceUnderTopFrameOrigin(JSStringRef hostName, JSStringRef topFrameHostName);
     void setStatisticsSubresourceUniqueRedirectTo(JSStringRef hostName, JSStringRef hostNameRedirectedTo);
+    void setStatisticsSubresourceUniqueRedirectFrom(JSStringRef hostName, JSStringRef hostNameRedirectedFrom);
+    void setStatisticsTopFrameUniqueRedirectTo(JSStringRef hostName, JSStringRef hostNameRedirectedTo);
+    void setStatisticsTopFrameUniqueRedirectFrom(JSStringRef hostName, JSStringRef hostNameRedirectedFrom);
     void setStatisticsTimeToLiveUserInteraction(double seconds);
     void setStatisticsTimeToLiveCookiePartitionFree(double seconds);
     void setStatisticsNotifyPagesWhenDataRecordsWereScanned(bool);
@@ -397,6 +401,11 @@ public:
     void statisticsClearThroughWebsiteDataRemoval(JSValueRef callback);
     void statisticsCallClearThroughWebsiteDataRemovalCallback();
     void statisticsResetToConsistentState();
+
+    // Storage Access API
+    void setStorageAccessAPIEnabled(bool);
+    void getAllStorageAccessEntries(JSValueRef callback);
+    void callDidReceiveAllStorageAccessEntriesCallback(Vector<String>& domains);
 
     // Open panel
     void setOpenPanelFiles(JSValueRef);

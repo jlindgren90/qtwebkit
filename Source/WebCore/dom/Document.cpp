@@ -3,7 +3,7 @@
  *           (C) 1999 Antti Koivisto (koivisto@kde.org)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
  *           (C) 2006 Alexey Proskuryakov (ap@webkit.org)
- * Copyright (C) 2004-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2004-2018 Apple Inc. All rights reserved.
  * Copyright (C) 2008, 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  * Copyright (C) 2008, 2009, 2011, 2012 Google Inc. All rights reserved.
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
@@ -126,11 +126,11 @@
 #include "NavigationDisabler.h"
 #include "NavigationScheduler.h"
 #include "NestingLevelIncrementer.h"
-
 #include "NodeIterator.h"
 #include "NodeRareData.h"
 #include "NodeWithIndex.h"
 #include "OriginAccessEntry.h"
+#include "OriginThreadLocalCache.h"
 #include "OverflowEvent.h"
 #include "PageConsoleClient.h"
 #include "PageGroup.h"
@@ -142,6 +142,7 @@
 #include "PlugInsResources.h"
 #include "PluginDocument.h"
 #include "PointerLockController.h"
+#include "PolicyChecker.h"
 #include "PopStateEvent.h"
 #include "ProcessingInstruction.h"
 #include "PublicSuffix.h"
@@ -215,9 +216,11 @@
 #include "XPathExpression.h"
 #include "XPathNSResolver.h"
 #include "XPathResult.h"
+#include <JavaScriptCore/ConsoleMessage.h>
+#include <JavaScriptCore/RegularExpression.h>
+#include <JavaScriptCore/ScriptCallStack.h>
+#include <JavaScriptCore/VM.h>
 #include <ctime>
-#include <inspector/ConsoleMessage.h>
-#include <inspector/ScriptCallStack.h>
 #include <wtf/CurrentTime.h>
 #include <wtf/Language.h>
 #include <wtf/NeverDestroyed.h>
@@ -226,7 +229,6 @@
 #include <wtf/UUID.h>
 #include <wtf/text/StringBuffer.h>
 #include <wtf/text/TextStream.h>
-#include <yarr/RegularExpression.h>
 
 #if ENABLE(DEVICE_ORIENTATION)
 #include "DeviceMotionEvent.h"
@@ -313,6 +315,8 @@ using namespace HTMLNames;
 
 static const unsigned cMaxWriteRecursionDepth = 21;
 bool Document::hasEverCreatedAnAXObjectCache = false;
+
+unsigned ScriptDisallowedScope::LayoutAssertionDisableScope::s_layoutAssertionDisableCount = 0;
 
 // DOM Level 2 says (letters added):
 //
@@ -1936,11 +1940,13 @@ bool Document::needsStyleRecalc() const
     return false;
 }
 
-bool Document::isSafeToUpdateStyleOrLayout() const
+static bool isSafeToUpdateStyleOrLayout(const Document& document)
 {
     bool isSafeToExecuteScript = ScriptDisallowedScope::InMainThread::isScriptAllowed();
-    bool isInFrameFlattening = view() && view()->isInChildFrameWithFrameFlattening();
-    return isSafeToExecuteScript || isInFrameFlattening || !isInWebProcess();
+    auto* frameView = document.view();
+    bool isInFrameFlattening = frameView && frameView->isInChildFrameWithFrameFlattening();
+    bool isAssertionDisabled = ScriptDisallowedScope::LayoutAssertionDisableScope::shouldDisable();
+    return isSafeToExecuteScript || isInFrameFlattening || !isInWebProcess() || isAssertionDisabled;
 }
 
 bool Document::updateStyleIfNeeded()
@@ -1961,7 +1967,7 @@ bool Document::updateStyleIfNeeded()
     }
 
     // The early exit above for !needsStyleRecalc() is needed when updateWidgetPositions() is called in runOrScheduleAsynchronousTasks().
-    RELEASE_ASSERT_WITH_SECURITY_IMPLICATION(isSafeToUpdateStyleOrLayout());
+    RELEASE_ASSERT_WITH_SECURITY_IMPLICATION(isSafeToUpdateStyleOrLayout(*this));
 
     resolveStyle();
     return true;
@@ -1977,7 +1983,7 @@ void Document::updateLayout()
         ASSERT_NOT_REACHED();
         return;
     }
-    RELEASE_ASSERT_WITH_SECURITY_IMPLICATION(isSafeToUpdateStyleOrLayout());
+    RELEASE_ASSERT_WITH_SECURITY_IMPLICATION(isSafeToUpdateStyleOrLayout(*this));
 
     RenderView::RepaintRegionAccumulator repaintRegionAccumulator(renderView());
 
@@ -2310,7 +2316,13 @@ void Document::destroyRenderTree()
     unscheduleStyleRecalc();
 
     // FIXME: RenderObject::view() uses m_renderView and we can't null it before destruction is completed
-    m_renderView->destroy();
+    {
+        RenderTreeBuilder builder(*m_renderView);
+        // FIXME: This is a workaround for leftover content (see webkit.org/b/182547).
+        while (m_renderView->firstChild())
+            builder.destroy(*m_renderView->firstChild());
+        m_renderView->destroy();
+    }
     m_renderView.release();
 
     Node::setRenderer(nullptr);
@@ -2472,13 +2484,9 @@ void Document::resumeDeviceMotionAndOrientationUpdates()
 
 bool Document::shouldBypassMainWorldContentSecurityPolicy() const
 {
-    JSC::CallFrame* callFrame = commonVM().topCallFrame;
-    if (callFrame == JSC::CallFrame::noCaller())
-        return false;
-    DOMWrapperWorld& domWrapperWorld = currentWorld(callFrame);
-    if (domWrapperWorld.isNormal())
-        return false;
-    return true;
+    // Bypass this policy when the world is known, and it not the normal world.
+    auto& callFrame = *commonVM().topCallFrame;
+    return &callFrame != JSC::CallFrame::noCaller() && !currentWorld(callFrame).isNormal();
 }
 
 void Document::platformSuspendOrStopActiveDOMObjects()
@@ -2611,6 +2619,8 @@ void Document::open(Document* responsibleDocument)
             }
         }
 
+        if (m_frame->loader().policyChecker().delegateIsDecidingNavigationPolicy())
+            m_frame->loader().policyChecker().stopCheck();
         if (m_frame->loader().state() == FrameStateProvisional)
             m_frame->loader().stopAllLoaders();
     }
@@ -3964,7 +3974,7 @@ bool Document::setFocusedElement(Element* element, FocusDirection direction, Foc
     if (!focusChangeBlocked && m_focusedElement) {
         // Create the AXObject cache in a focus change because GTK relies on it.
         if (AXObjectCache* cache = axObjectCache())
-            cache->handleFocusedUIElementChanged(oldFocusedElement.get(), newFocusedElement.get());
+            cache->deferFocusedUIElementChangeIfNeeded(oldFocusedElement.get(), newFocusedElement.get());
     }
 
     if (!focusChangeBlocked && page())
@@ -4996,7 +5006,8 @@ void Document::privateBrowsingStateDidChange()
         element->privateBrowsingStateDidChange();
 
 #if ENABLE(SERVICE_WORKER)
-    if (RuntimeEnabledFeatures::sharedFeatures().serviceWorkerEnabled() && m_serviceWorkerConnection)
+    ASSERT(sessionID().isValid());
+    if (RuntimeEnabledFeatures::sharedFeatures().serviceWorkerEnabled() && m_serviceWorkerConnection && sessionID().isValid())
         setServiceWorkerConnection(&ServiceWorkerProvider::singleton().serviceWorkerConnectionForSession(sessionID()));
 #endif
 }
@@ -5544,7 +5555,7 @@ void Document::initSecurityContext()
             // Some clients want local URLs to have even tighter restrictions by default, and not be able to access other local files.
             // FIXME 81578: The naming of this is confusing. Files with restricted access to other local files
             // still can have other privileges that can be remembered, thereby not making them unique origins.
-            securityOrigin().enforceFilePathSeparation();
+            securityOrigin().setEnforcesFilePathSeparation();
         }
     }
     securityOrigin().setStorageBlockingPolicy(settings().storageBlockingPolicy());
@@ -6295,22 +6306,20 @@ void Document::webkitDidExitFullScreenForElement(Element*)
     exitingDocument.m_fullScreenChangeDelayTimer.startOneShot(0_s);
 }
 
-void Document::setFullScreenRenderer(RenderFullScreen* renderer)
+void Document::setFullScreenRenderer(RenderTreeBuilder& builder, RenderFullScreen& renderer)
 {
-    if (renderer == m_fullScreenRenderer)
+    if (&renderer == m_fullScreenRenderer)
         return;
 
-    if (renderer) {
-        if (m_savedPlaceholderRenderStyle)
-            renderer->createPlaceholder(WTFMove(m_savedPlaceholderRenderStyle), m_savedPlaceholderFrameRect);
-        else if (m_fullScreenRenderer && m_fullScreenRenderer->placeholder()) {
-            auto* placeholder = m_fullScreenRenderer->placeholder();
-            renderer->createPlaceholder(RenderStyle::clonePtr(placeholder->style()), placeholder->frameRect());
-        }
+    if (m_savedPlaceholderRenderStyle)
+        builder.createPlaceholderForFullScreen(renderer, WTFMove(m_savedPlaceholderRenderStyle), m_savedPlaceholderFrameRect);
+    else if (m_fullScreenRenderer && m_fullScreenRenderer->placeholder()) {
+        auto* placeholder = m_fullScreenRenderer->placeholder();
+        builder.createPlaceholderForFullScreen(renderer, RenderStyle::clonePtr(placeholder->style()), placeholder->frameRect());
     }
 
     if (m_fullScreenRenderer)
-        m_fullScreenRenderer->removeFromParentAndDestroy();
+        builder.destroy(*m_fullScreenRenderer);
     ASSERT(!m_fullScreenRenderer);
 
     m_fullScreenRenderer = makeWeakPtr(renderer);
@@ -7735,5 +7744,17 @@ void Document::setServiceWorkerConnection(SWClientConnection* serviceWorkerConne
     m_serviceWorkerConnection->registerServiceWorkerClient(topOrigin(), ServiceWorkerClientData::from(*this, *serviceWorkerConnection), controllingServiceWorkerIdentifier);
 }
 #endif
+
+JSC::ThreadLocalCache& Document::threadLocalCache()
+{
+    if (!m_threadLocalCache) {
+        SecurityOrigin& origin = securityOrigin();
+        if (origin.isUnique() || (origin.isLocal() && origin.enforcesFilePathSeparation()))
+            m_threadLocalCache = JSC::ThreadLocalCache::create(commonVM().heap);
+        else
+            m_threadLocalCache = OriginThreadLocalCache::create(origin);
+    }
+    return *m_threadLocalCache;
+}
 
 } // namespace WebCore

@@ -26,6 +26,8 @@
 #import "config.h"
 #import "PlatformPasteboard.h"
 
+#if PLATFORM(MAC)
+
 #import "Color.h"
 #import "LegacyNSPasteboardTypes.h"
 #import "Pasteboard.h"
@@ -197,8 +199,12 @@ Color PlatformPasteboard::color()
 {
     NSColor *color = [NSColor colorFromPasteboard:m_pasteboard.get()];
 
-    // The color may not be in an RGB colorspace. This commonly occurs when a color is
-    // dragged from the NSColorPanel grayscale picker.
+    // FIXME: If it's OK to use sRGB instead of what we do here, then change this to use colorFromNSColor.
+
+    // The color may not be in an RGB colorspace.
+    // This commonly occurs when a color is dragged from the NSColorPanel grayscale picker.
+    // FIXME: What are the pros and cons of converting to sRGB if the color is in another RGB color space?
+    // FIXME: Shouldn't we be converting to sRGB instead of to calibrated RGB?
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     if ([[color colorSpace] colorSpaceModel] != NSRGBColorSpaceModel)
@@ -310,3 +316,5 @@ long PlatformPasteboard::setStringForType(const String& string, const String& pa
 }
 
 }
+
+#endif // PLATFORM(MAC)

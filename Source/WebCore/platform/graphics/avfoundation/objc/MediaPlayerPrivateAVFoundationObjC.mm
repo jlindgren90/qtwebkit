@@ -65,18 +65,18 @@
 #import "WebCoreAVFResourceLoader.h"
 #import "WebCoreCALayerExtras.h"
 #import "WebCoreNSURLSession.h"
+#import <JavaScriptCore/DataView.h>
+#import <JavaScriptCore/JSCInlines.h>
+#import <JavaScriptCore/TypedArrayInlines.h>
+#import <JavaScriptCore/Uint16Array.h>
+#import <JavaScriptCore/Uint32Array.h>
+#import <JavaScriptCore/Uint8Array.h>
 #import <functional>
 #import <map>
 #import <objc/runtime.h>
 #import <pal/avfoundation/MediaTimeAVFoundation.h>
 #import <pal/spi/cocoa/QuartzCoreSPI.h>
 #import <pal/spi/mac/AVFoundationSPI.h>
-#import <runtime/DataView.h>
-#import <runtime/JSCInlines.h>
-#import <runtime/TypedArrayInlines.h>
-#import <runtime/Uint16Array.h>
-#import <runtime/Uint32Array.h>
-#import <runtime/Uint8Array.h>
 #import <wtf/BlockObjCExceptions.h>
 #import <wtf/CurrentTime.h>
 #import <wtf/ListHashSet.h>
@@ -486,7 +486,7 @@ void MediaPlayerPrivateAVFoundationObjC::clearMediaCacheForOrigins(const String&
 MediaPlayerPrivateAVFoundationObjC::MediaPlayerPrivateAVFoundationObjC(MediaPlayer* player)
     : MediaPlayerPrivateAVFoundation(player)
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-    , m_videoFullscreenLayerManager(VideoFullscreenLayerManager::create())
+    , m_videoFullscreenLayerManager(std::make_unique<VideoFullscreenLayerManager>())
     , m_videoFullscreenGravity(MediaPlayer::VideoGravityResizeAspect)
 #endif
     , m_objcObserver(adoptNS([[WebCoreAVFMovieObserver alloc] initWithCallback:this]))
@@ -708,7 +708,8 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayerLayer()
     m_videoFullscreenLayerManager->setVideoLayer(m_videoLayer.get(), defaultSize);
 
 #if PLATFORM(IOS)
-    [m_videoLayer setPIPModeEnabled:(player()->fullscreenMode() & MediaPlayer::VideoFullscreenModePictureInPicture)];
+    if ([m_videoLayer respondsToSelector:@selector(setPIPModeEnabled:)])
+        [m_videoLayer setPIPModeEnabled:(player()->fullscreenMode() & MediaPlayer::VideoFullscreenModePictureInPicture)];
 #endif
 #else
     [m_videoLayer setFrame:CGRectMake(0, 0, defaultSize.width(), defaultSize.height())];
@@ -1228,7 +1229,8 @@ void MediaPlayerPrivateAVFoundationObjC::setVideoFullscreenGravity(MediaPlayer::
 void MediaPlayerPrivateAVFoundationObjC::setVideoFullscreenMode(MediaPlayer::VideoFullscreenMode mode)
 {
 #if PLATFORM(IOS)
-    [m_videoLayer setPIPModeEnabled:(mode & MediaPlayer::VideoFullscreenModePictureInPicture)];
+    if ([m_videoLayer respondsToSelector:@selector(setPIPModeEnabled:)])
+        [m_videoLayer setPIPModeEnabled:(mode & MediaPlayer::VideoFullscreenModePictureInPicture)];
     updateDisableExternalPlayback();
 #else
     UNUSED_PARAM(mode);
@@ -2474,13 +2476,23 @@ std::unique_ptr<LegacyCDMSession> MediaPlayerPrivateAVFoundationObjC::createSess
     m_session = session->createWeakPtr();
     return WTFMove(session);
 }
+#endif
 
+#if ENABLE(ENCRYPTED_MEDIA) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
 void MediaPlayerPrivateAVFoundationObjC::outputObscuredDueToInsufficientExternalProtectionChanged(bool newValue)
 {
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (m_session && newValue)
         m_session->playerDidReceiveError([NSError errorWithDomain:@"com.apple.WebKit" code:'HDCP' userInfo:nil]);
-}
+#endif
 
+#if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
+    if (m_cdmInstance)
+        m_cdmInstance->outputObscuredDueToInsufficientExternalProtectionChanged(newValue);
+#elif !ENABLE(LEGACY_ENCRYPTED_MEDIA)
+    UNUSED_PARAM(newValue);
+#endif
+}
 #endif
 
 #if ENABLE(ENCRYPTED_MEDIA)
@@ -3290,7 +3302,7 @@ NSArray* playerKVOProperties()
         @"externalPlaybackActive",
         @"allowsExternalPlayback",
 #endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
         @"outputObscuredDueToInsufficientExternalProtection",
 #endif
     nil];
@@ -3408,7 +3420,7 @@ NSArray* playerKVOProperties()
         else if ([keyPath isEqualToString:@"externalPlaybackActive"] || [keyPath isEqualToString:@"allowsExternalPlayback"])
             function = std::bind(&MediaPlayerPrivateAVFoundationObjC::playbackTargetIsWirelessDidChange, m_callback);
 #endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
         else if ([keyPath isEqualToString:@"outputObscuredDueToInsufficientExternalProtection"])
             function = std::bind(&MediaPlayerPrivateAVFoundationObjC::outputObscuredDueToInsufficientExternalProtectionChanged, m_callback, [newValue boolValue]);
 #endif

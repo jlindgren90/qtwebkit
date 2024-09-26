@@ -161,11 +161,11 @@
 #include "WorkerThread.h"
 #include "WritingDirection.h"
 #include "XMLHttpRequest.h"
-#include <bytecode/CodeBlock.h>
-#include <inspector/InspectorAgentBase.h>
-#include <inspector/InspectorFrontendChannel.h>
-#include <runtime/JSCInlines.h>
-#include <runtime/JSCJSValue.h>
+#include <JavaScriptCore/CodeBlock.h>
+#include <JavaScriptCore/InspectorAgentBase.h>
+#include <JavaScriptCore/InspectorFrontendChannel.h>
+#include <JavaScriptCore/JSCInlines.h>
+#include <JavaScriptCore/JSCJSValue.h>
 #include <wtf/JSONValues.h>
 #include <wtf/Language.h>
 #include <wtf/MemoryPressureHandler.h>
@@ -257,6 +257,11 @@
 #if ENABLE(APPLE_PAY)
 #include "MockPaymentCoordinator.h"
 #include "PaymentCoordinator.h"
+#endif
+
+#if ENABLE(WEB_AUTHN)
+#include "AuthenticatorManager.h"
+#include "MockCredentialsMessenger.h"
 #endif
 
 using JSC::CallData;
@@ -526,6 +531,11 @@ Internals::Internals(Document& document)
         frame->mainFrame().setPaymentCoordinator(std::make_unique<PaymentCoordinator>(*m_mockPaymentCoordinator));
     }
 #endif
+
+#if ENABLE(WEB_AUTHN)
+    m_mockCredentialsMessenger = std::make_unique<MockCredentialsMessenger>(*this);
+    AuthenticatorManager::singleton().setMessenger(*m_mockCredentialsMessenger);
+#endif
 }
 
 Document* Internals::contextDocument() const
@@ -658,6 +668,8 @@ static String responseSourceToString(const ResourceResponse& response)
         return "Memory cache";
     case ResourceResponse::Source::MemoryCacheAfterValidation:
         return "Memory cache after validation";
+    case ResourceResponse::Source::ApplicationCache:
+        return "Application cache";
     }
     ASSERT_NOT_REACHED();
     return "Error";
@@ -835,6 +847,12 @@ void Internals::setLargeImageAsyncDecodingEnabledForTesting(HTMLImageElement& el
 {
     if (auto* bitmapImage = bitmapImageFromImageElement(element))
         bitmapImage->setLargeImageAsyncDecodingEnabledForTesting(enabled);
+}
+    
+void Internals::setForceUpdateImageDataEnabledForTesting(HTMLImageElement& element, bool enabled)
+{
+    if (auto* cachedImage = element.cachedImage())
+        cachedImage->setForceUpdateImageDataEnabledForTesting(enabled);
 }
 
 void Internals::setGridMaxTracksLimit(unsigned maxTrackLimit)
@@ -3023,8 +3041,7 @@ Ref<SerializedScriptValue> Internals::deserializeBuffer(ArrayBuffer& buffer) con
 
 bool Internals::isFromCurrentWorld(JSC::JSValue value) const
 {
-    auto& state = *contextDocument()->vm().topCallFrame;
-    return !value.isObject() || &worldForDOMObject(asObject(value)) == &currentWorld(&state);
+    return isWorldCompatible(*contextDocument()->vm().topCallFrame, value);
 }
 
 void Internals::setUsesOverlayScrollbars(bool enabled)
@@ -3141,6 +3158,18 @@ ExceptionOr<bool> Internals::mediaElementHasCharacteristic(HTMLMediaElement& ele
         return element.hasClosedCaptions();
 
     return Exception { SyntaxError };
+}
+
+void Internals::beginSimulatedHDCPError(HTMLMediaElement& element)
+{
+    if (auto player = element.player())
+        player->beginSimulatedHDCPError();
+}
+
+void Internals::endSimulatedHDCPError(HTMLMediaElement& element)
+{
+    if (auto player = element.player())
+        player->endSimulatedHDCPError();
 }
 
 #endif
@@ -3261,6 +3290,18 @@ ExceptionOr<bool> Internals::isPluginUnavailabilityIndicatorObscured(Element& el
         return Exception { InvalidAccessError };
 
     return downcast<HTMLPlugInElement>(element).isReplacementObscured();
+}
+
+ExceptionOr<String> Internals::unavailablePluginReplacementText(Element& element)
+{
+    if (!is<HTMLPlugInElement>(element))
+        return Exception { InvalidAccessError };
+
+    auto* renderer = element.renderer();
+    if (!is<RenderEmbeddedObject>(renderer))
+        return String { };
+
+    return String { downcast<RenderEmbeddedObject>(*renderer).pluginReplacementTextIfUnavailable() };
 }
 
 bool Internals::isPluginSnapshotted(Element& element)
@@ -4367,6 +4408,13 @@ void Internals::testIncomingSyncIPCMessageWhileWaitingForSyncReply()
 MockPaymentCoordinator& Internals::mockPaymentCoordinator() const
 {
     return *m_mockPaymentCoordinator;
+}
+#endif
+
+#if ENABLE(WEB_AUTHN)
+MockCredentialsMessenger& Internals::mockCredentialsMessenger() const
+{
+    return *m_mockCredentialsMessenger;
 }
 #endif
 

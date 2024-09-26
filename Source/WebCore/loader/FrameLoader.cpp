@@ -115,6 +115,7 @@
 #include "SerializedScriptValue.h"
 #include "Settings.h"
 #include "SubframeLoader.h"
+#include "SubresourceLoader.h"
 #include "TextResourceDecoder.h"
 #include "UserContentController.h"
 #include "UserGestureIndicator.h"
@@ -667,31 +668,29 @@ void FrameLoader::receivedFirstData()
     dispatchDidClearWindowObjectsInAllWorlds();
     dispatchGlobalObjectAvailableInAllWorlds();
 
-    if (m_documentLoader) {
-        auto& title = m_documentLoader->title();
-        if (!title.string.isNull())
-            m_client.dispatchDidReceiveTitle(title);
-    }
-
     if (!m_documentLoader)
         return;
+
+    auto& documentLoader = *m_documentLoader;
+    auto& title = documentLoader.title();
+    if (!title.string.isNull())
+        m_client.dispatchDidReceiveTitle(title);
 
     ASSERT(m_frame.document());
     auto& document = *m_frame.document();
 
-    ASSERT(m_frame.document());
-    LinkLoader::loadLinksFromHeader(m_documentLoader->response().httpHeaderField(HTTPHeaderName::Link), m_frame.document()->url(), *m_frame.document(), LinkLoader::MediaAttributeCheck::MediaAttributeEmpty);
+    LinkLoader::loadLinksFromHeader(documentLoader.response().httpHeaderField(HTTPHeaderName::Link), document.url(), document, LinkLoader::MediaAttributeCheck::MediaAttributeEmpty);
 
     double delay;
     String urlString;
-    if (!parseHTTPRefresh(m_documentLoader->response().httpHeaderField(HTTPHeaderName::Refresh), delay, urlString))
+    if (!parseHTTPRefresh(documentLoader.response().httpHeaderField(HTTPHeaderName::Refresh), delay, urlString))
         return;
     auto completedURL = urlString.isEmpty() ? document.url() : document.completeURL(urlString);
     if (!protocolIsJavaScript(completedURL))
         m_frame.navigationScheduler().scheduleRedirect(document, delay, completedURL);
     else {
         auto message = "Refused to refresh " + document.url().stringCenterEllipsizedToLength() + " to a javascript: URL";
-        m_frame.document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, message);
+        document.addConsoleMessage(MessageSource::Security, MessageLevel::Error, message);
     }
 }
 
@@ -1193,12 +1192,10 @@ void FrameLoader::loadFrameRequest(FrameLoadRequest&& request, Event* event, For
         referrer = String();
 
     FrameLoadType loadType;
-    if (request.resourceRequest().cachePolicy() == RefreshAnyCacheData)
+    if (request.resourceRequest().cachePolicy() == ReloadIgnoringCacheData)
         loadType = FrameLoadType::Reload;
     else if (request.lockBackForwardList() == LockBackForwardList::Yes)
         loadType = FrameLoadType::RedirectWithLockedBackForwardList;
-    else if (request.resourceRequest().cachePolicy() == ReloadIgnoringCacheData)
-        loadType = FrameLoadType::ReloadFromOrigin;
     else
         loadType = FrameLoadType::Standard;
 
@@ -1254,6 +1251,11 @@ bool FrameLoader::isNavigationAllowed() const
     return m_pageDismissalEventBeingDispatched == PageDismissalType::None && NavigationDisabler::isNavigationAllowed(m_frame);
 }
 
+bool FrameLoader::isStopLoadingAllowed() const
+{
+    return m_pageDismissalEventBeingDispatched == PageDismissalType::None;
+}
+
 struct SharedBool : public RefCounted<SharedBool> {
     bool value { false };
 };
@@ -1283,7 +1285,7 @@ void FrameLoader::loadURL(FrameLoadRequest&& frameLoadRequest, const String& ref
 
     addExtraFieldsToRequest(request, newLoadType, true);
     if (isReload(newLoadType))
-        request.setCachePolicy(RefreshAnyCacheData);
+        request.setCachePolicy(ReloadIgnoringCacheData);
 
     ASSERT(newLoadType != FrameLoadType::Same);
 
@@ -1420,7 +1422,7 @@ void FrameLoader::load(DocumentLoader* newDocumentLoader)
     FrameLoadType type;
 
     if (shouldTreatURLAsSameAsCurrent(newDocumentLoader->originalRequest().url())) {
-        r.setCachePolicy(RefreshAnyCacheData);
+        r.setCachePolicy(ReloadIgnoringCacheData);
         type = FrameLoadType::Same;
     } else if (shouldTreatURLAsSameAsCurrent(newDocumentLoader->unreachableURL()) && m_loadType == FrameLoadType::Reload)
         type = FrameLoadType::Reload;
@@ -1549,6 +1551,14 @@ void FrameLoader::reportBlockedPortFailed(Frame* frame, const String& url)
     frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, "Not allowed to use restricted network port: " + url);
 }
 
+void FrameLoader::reportAuthenticationChallengeBlocked(Frame* frame, const URL& url, const String& reason)
+{
+    if (!frame)
+        return;
+
+    frame->document()->addConsoleMessage(MessageSource::Security, MessageLevel::Error, makeString("Blocked ", url.stringCenterEllipsizedToLength(), " from asking for credentials because ", reason, '.'));
+}
+
 const ResourceRequest& FrameLoader::initialRequest() const
 {
     return activeDocumentLoader()->originalRequest();
@@ -1645,7 +1655,8 @@ void FrameLoader::reload(OptionSet<ReloadOption> options)
     
     ResourceRequest& request = loader->request();
 
-    request.setCachePolicy(RefreshAnyCacheData);
+    // FIXME: We don't have a mechanism to revalidate the main resource without reloading at the moment.
+    request.setCachePolicy(ReloadIgnoringCacheData);
 
     // If we're about to re-post, set up action so the application can warn the user.
     if (request.httpMethod() == "POST")
@@ -1667,13 +1678,16 @@ void FrameLoader::reload(OptionSet<ReloadOption> options)
 void FrameLoader::stopAllLoaders(ClearProvisionalItemPolicy clearProvisionalItemPolicy)
 {
     ASSERT(!m_frame.document() || m_frame.document()->pageCacheState() != Document::InPageCache);
-    if (!isNavigationAllowed())
+    if (!isStopLoadingAllowed())
         return;
 
     // If this method is called from within this method, infinite recursion can occur (3442218). Avoid this.
     if (m_inStopAllLoaders)
         return;
-    
+
+    // This method might dispatch events.
+    RELEASE_ASSERT_WITH_SECURITY_IMPLICATION(ScriptDisallowedScope::InMainThread::isScriptAllowed());
+
     // Calling stopLoading() on the provisional document loader can blow away
     // the frame from underneath.
     Ref<Frame> protect(m_frame);
@@ -2060,7 +2074,7 @@ void FrameLoader::clientRedirectCancelledOrFinished(bool cancelWithLoadInProgres
     m_sentRedirectNotification = false;
 }
 
-void FrameLoader::clientRedirected(const URL& url, double seconds, double fireDate, LockBackForwardList lockBackForwardList)
+void FrameLoader::clientRedirected(const URL& url, double seconds, WallTime fireDate, LockBackForwardList lockBackForwardList)
 {
     m_client.dispatchWillPerformClientRedirect(url, seconds, fireDate);
     
@@ -2617,13 +2631,13 @@ ResourceRequestCachePolicy FrameLoader::defaultRequestCachingPolicy(const Resour
 
     if (isMainResource) {
         if (isReload(loadType) || request.isConditional())
-            return loadType == FrameLoadType::ReloadFromOrigin ? ReloadIgnoringCacheData : RefreshAnyCacheData;
+            return ReloadIgnoringCacheData;
 
         return UseProtocolCachePolicy;
     }
 
     if (request.isConditional())
-        return RefreshAnyCacheData;
+        return ReloadIgnoringCacheData;
 
     if (documentLoader()->isLoadingInAPISense()) {
         // If we inherit cache policy from a main resource, we use the DocumentLoader's
@@ -3483,10 +3497,8 @@ void FrameLoader::loadDifferentDocumentItem(HistoryItem& item, FrameLoadType loa
     } else {
         switch (loadType) {
         case FrameLoadType::Reload:
-        case FrameLoadType::ReloadExpiredOnly:
-            request.setCachePolicy(RefreshAnyCacheData);
-            break;
         case FrameLoadType::ReloadFromOrigin:
+        case FrameLoadType::ReloadExpiredOnly:
             request.setCachePolicy(ReloadIgnoringCacheData);
             break;
         case FrameLoadType::Back:

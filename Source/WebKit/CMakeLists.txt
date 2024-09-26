@@ -86,6 +86,7 @@ set(WebKit_INCLUDE_DIRECTORIES
     "${WEBKIT_DIR}/WebProcess/WebStorage"
     "${DERIVED_SOURCES_WEBKIT_DIR}"
     "${DERIVED_SOURCES_WEBKIT_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/Source"
     "${CMAKE_SOURCE_DIR}/WebKitLibraries"
 )
 
@@ -286,6 +287,7 @@ set(WebKit_SOURCES
 
     StorageProcess/ServiceWorker/WebSWOriginStore.cpp
     StorageProcess/ServiceWorker/WebSWServerConnection.cpp
+    StorageProcess/ServiceWorker/WebSWServerToContextConnection.cpp
 
     UIProcess/BackgroundProcessResponsivenessTimer.cpp
     UIProcess/ChildProcessProxy.cpp
@@ -299,6 +301,7 @@ set(WebKit_SOURCES
     UIProcess/RemoteWebInspectorProxy.cpp
     UIProcess/ResourceLoadStatisticsPersistentStorage.cpp
     UIProcess/ResponsivenessTimer.cpp
+    UIProcess/ServiceWorkerProcessProxy.cpp
     UIProcess/StatisticsRequest.cpp
     UIProcess/TextCheckerCompletion.cpp
     UIProcess/UIMessagePortChannelProvider.cpp
@@ -629,6 +632,7 @@ set(WebKit_MESSAGES_IN_FILES
     StorageProcess/IndexedDB/WebIDBConnectionToClient.messages.in
 
     StorageProcess/ServiceWorker/WebSWServerConnection.messages.in
+    StorageProcess/ServiceWorker/WebSWServerToContextConnection.messages.in
 
     UIProcess/DrawingAreaProxy.messages.in
     UIProcess/RemoteWebInspectorProxy.messages.in
@@ -744,7 +748,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
                 ${OPENGL_LIBRARIES}
             )
             add_definitions(${OPENGL_DEFINITIONS})
-        elseif (USE_OPENGL_ES_2)
+        elseif (USE_OPENGL_ES)
             list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
                 ${OPENGLES2_INCLUDE_DIRS}
             )
@@ -927,6 +931,10 @@ list(APPEND WebKit_SOURCES
 
 
 list(APPEND WebKit_SOURCES ${WebKit_DERIVED_SOURCES})
+
+if ("${PORT}" STREQUAL "GTK" OR "${PORT}" STREQUAL "WPE")
+    WEBKIT_COMPUTE_SOURCES(WebKit)
+endif ()
 
 WEBKIT_FRAMEWORK(WebKit)
 add_dependencies(WebKit WebCore ${WEBKIT_EXTRA_DEPENDENCIES})

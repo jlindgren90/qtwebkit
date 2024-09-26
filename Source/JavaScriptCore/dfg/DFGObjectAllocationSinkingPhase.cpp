@@ -961,7 +961,7 @@ private:
                 PromotedHeapLocation location(NamedPropertyPLoc, allocation->identifier(), identifierNumber);
                 if (Node* value = heapResolve(location)) {
                     if (allocation->structures().isSubsetOf(validStructures))
-                        node->replaceWith(value);
+                        node->replaceWith(m_graph, value);
                     else {
                         Node* structure = heapResolve(PromotedHeapLocation(allocation->identifier(), StructurePLoc));
                         ASSERT(structure);
@@ -1071,6 +1071,7 @@ private:
             break;
 
         case Check:
+        case CheckVarargs:
             m_graph.doToChildren(
                 node,
                 [&] (Edge edge) {
@@ -1103,7 +1104,7 @@ private:
             ASSERT(writes.isEmpty());
             if (Node* value = heapResolve(PromotedHeapLocation(target->identifier(), exactRead))) {
                 ASSERT(!value->replacement());
-                node->replaceWith(value);
+                node->replaceWith(m_graph, value);
             }
             Node* identifier = target->get(exactRead);
             if (identifier)
@@ -1532,7 +1533,6 @@ private:
                 where->origin.withSemantic(
                     allocation.identifier()->origin.semantic),
                 OpInfo(executable));
-            break;
         }
 
         case Allocation::Kind::Activation: {
@@ -1553,7 +1553,6 @@ private:
                 where->origin.withSemantic(
                     allocation.identifier()->origin.semantic),
                 OpInfo(regExp));
-            break;
         }
 
         default:
@@ -1930,7 +1929,7 @@ private:
                         break;
 
                     default:
-                        node->remove();
+                        node->remove(m_graph);
                         break;
                     }
                 }
@@ -2306,7 +2305,6 @@ private:
                 OpInfo(data),
                 Edge(base, KnownCellUse),
                 value->defaultEdge());
-            break;
         }
 
         case ClosureVarPLoc: {
@@ -2316,7 +2314,6 @@ private:
                 OpInfo(location.info()),
                 Edge(base, KnownCellUse),
                 value->defaultEdge());
-            break;
         }
 
         case RegExpObjectLastIndexPLoc: {
@@ -2326,13 +2323,14 @@ private:
                 OpInfo(true),
                 Edge(base, KnownCellUse),
                 value->defaultEdge());
-            break;
         }
 
         default:
             DFG_CRASH(m_graph, base, "Bad location kind");
             break;
         }
+
+        RELEASE_ASSERT_NOT_REACHED();
     }
 
     // This is a great way of asking value->isStillValid() without having to worry about getting

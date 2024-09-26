@@ -65,7 +65,7 @@ public:
     using HasStorageAccessForFrameHandler = WTF::Function<void(const String& resourceDomain, const String& firstPartyDomain, uint64_t frameID, uint64_t pageID, WTF::Function<void(bool hasAccess)>&& callback)>;
     using GrantStorageAccessForFrameHandler = WTF::Function<void(const String& resourceDomain, const String& firstPartyDomain, uint64_t frameID, uint64_t pageID, WTF::Function<void(bool wasGranted)>&& callback)>;
     using RemovePrevalentDomainsHandler = WTF::Function<void (const Vector<String>&)>;
-    static Ref<WebResourceLoadStatisticsStore> create(const String& resourceLoadStatisticsDirectory, Function<void (const String&)>&& testingCallback, bool isEphemeral, UpdatePrevalentDomainsToPartitionOrBlockCookiesHandler&& updatePrevalentDomainsToPartitionOrBlockCookiesHandler = [](const Vector<String>&, const Vector<String>&, const Vector<String>&, ShouldClearFirst) { }, HasStorageAccessForFrameHandler&& hasStorageAccessForFrameHandler = [](const String&, const String&, uint64_t, uint64_t, WTF::Function<void(bool)>&&) { }, GrantStorageAccessForFrameHandler&& grantStorageAccessForFrameHandler = [](const String&, const String&, uint64_t, uint64_t, WTF::Function<void(bool)>&&) { }, RemovePrevalentDomainsHandler&& removeDomainsHandler = [] (const Vector<String>&) { })
+    static Ref<WebResourceLoadStatisticsStore> create(const String& resourceLoadStatisticsDirectory, Function<void (const String&)>&& testingCallback, bool isEphemeral, UpdatePrevalentDomainsToPartitionOrBlockCookiesHandler&& updatePrevalentDomainsToPartitionOrBlockCookiesHandler = [](const WTF::Vector<String>&, const WTF::Vector<String>&, const WTF::Vector<String>&, ShouldClearFirst) { }, HasStorageAccessForFrameHandler&& hasStorageAccessForFrameHandler = [](const String&, const String&, uint64_t, uint64_t, WTF::Function<void(bool)>&&) { }, GrantStorageAccessForFrameHandler&& grantStorageAccessForFrameHandler = [](const String&, const String&, uint64_t, uint64_t, WTF::Function<void(bool)>&&) { }, RemovePrevalentDomainsHandler&& removeDomainsHandler = [] (const WTF::Vector<String>&) { })
     {
         return adoptRef(*new WebResourceLoadStatisticsStore(resourceLoadStatisticsDirectory, WTFMove(testingCallback), isEphemeral, WTFMove(updatePrevalentDomainsToPartitionOrBlockCookiesHandler), WTFMove(hasStorageAccessForFrameHandler), WTFMove(grantStorageAccessForFrameHandler), WTFMove(removeDomainsHandler)));
     }
@@ -106,9 +106,12 @@ public:
     void setSubframeUnderTopFrameOrigin(const WebCore::URL& subframe, const WebCore::URL& topFrame);
     void setSubresourceUnderTopFrameOrigin(const WebCore::URL& subresource, const WebCore::URL& topFrame);
     void setSubresourceUniqueRedirectTo(const WebCore::URL& subresource, const WebCore::URL& hostNameRedirectedTo);
-    void scheduleCookiePartitioningUpdate();
-    void scheduleCookiePartitioningUpdateForDomains(const Vector<String>& domainsToPartition, const Vector<String>& domainsToBlock, const Vector<String>& domainsToNeitherPartitionNorBlock, ShouldClearFirst);
-    void scheduleClearPartitioningStateForDomains(const Vector<String>& domains);
+    void setSubresourceUniqueRedirectFrom(const WebCore::URL& subresource, const WebCore::URL& hostNameRedirectedFrom);
+    void setTopFrameUniqueRedirectTo(const WebCore::URL& topFrameHostName, const WebCore::URL& hostNameRedirectedTo);
+    void setTopFrameUniqueRedirectFrom(const WebCore::URL& topFrameHostName, const WebCore::URL& hostNameRedirectedFrom);
+    void scheduleCookiePartitioningUpdate(CompletionHandler<void()>&&);
+    void scheduleCookiePartitioningUpdateForDomains(const Vector<String>& domainsToPartition, const Vector<String>& domainsToBlock, const Vector<String>& domainsToNeitherPartitionNorBlock, ShouldClearFirst, CompletionHandler<void()>&&);
+    void scheduleClearPartitioningStateForDomains(const Vector<String>& domains, CompletionHandler<void()>&&);
     void scheduleStatisticsAndDataRecordsProcessing();
     void submitTelemetry();
     void scheduleCookiePartitioningStateReset();
@@ -139,13 +142,15 @@ public:
     void clearInMemory();
     void grandfatherExistingWebsiteData(CompletionHandler<void()>&&);
 
+    void setResourceLoadStatisticsDebugMode(bool);
+
     void setStatisticsTestingCallback(Function<void (const String&)>&& callback) { m_statisticsTestingCallback = WTFMove(callback); }
     void logTestingEvent(const String&);
 
 private:
     WebResourceLoadStatisticsStore(const String&, Function<void(const String&)>&& testingCallback, bool isEphemeral, UpdatePrevalentDomainsToPartitionOrBlockCookiesHandler&&, HasStorageAccessForFrameHandler&&, GrantStorageAccessForFrameHandler&&, RemovePrevalentDomainsHandler&&);
 
-    void removeDataRecords();
+    void removeDataRecords(CompletionHandler<void()>&&);
 
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
@@ -160,18 +165,24 @@ private:
     bool hasHadUnexpiredRecentUserInteraction(WebCore::ResourceLoadStatistics&) const;
     void includeTodayAsOperatingDateIfNecessary();
     Vector<String> topPrivatelyControlledDomainsToRemoveWebsiteDataFor();
-    void updateCookiePartitioning();
-    void updateCookiePartitioningForDomains(const Vector<String>& domainsToPartition, const Vector<String>& domainsToBlock, const Vector<String>& domainsToNeitherPartitionNorBlock, ShouldClearFirst);
-    void clearPartitioningStateForDomains(const Vector<String>& domains);
+    void updateCookiePartitioning(CompletionHandler<void()>&&);
+    void updateCookiePartitioningForDomains(const Vector<String>& domainsToPartition, const Vector<String>& domainsToBlock, const Vector<String>& domainsToNeitherPartitionNorBlock, ShouldClearFirst, CompletionHandler<void()>&&);
+    void clearPartitioningStateForDomains(const Vector<String>& domains, CompletionHandler<void()>&&);
     void mergeStatistics(Vector<WebCore::ResourceLoadStatistics>&&);
     WebCore::ResourceLoadStatistics& ensureResourceStatisticsForPrimaryDomain(const String&);
+    unsigned recursivelyGetAllDomainsThatHaveRedirectedToThisDomain(const WebCore::ResourceLoadStatistics&, HashSet<String>& domainsThatHaveRedirectedTo, unsigned numberOfRecursiveCalls);
+    void setPrevalentResource(WebCore::ResourceLoadStatistics&);
     void processStatisticsAndDataRecords();
 
     void resetCookiePartitioningState();
 
+    void setDebugLogggingEnabled(bool enabled) { m_debugLoggingEnabled  = enabled; }
+
 #if PLATFORM(COCOA)
     void registerUserDefaultsIfNeeded();
 #endif
+
+    bool wasAccessedAsFirstPartyDueToUserInteraction(const WebCore::ResourceLoadStatistics& current, const WebCore::ResourceLoadStatistics& updated);
 
     struct Parameters {
         size_t pruneEntriesDownTo { 800 };
@@ -210,6 +221,8 @@ private:
     HashSet<uint64_t> m_activePluginTokens;
 #endif
     bool m_dataRecordsBeingRemoved { false };
+
+    bool m_debugLoggingEnabled { false };
 
     Function<void (const String&)> m_statisticsTestingCallback;
 };

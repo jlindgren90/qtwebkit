@@ -56,22 +56,21 @@
 #include "WebCoreJSClientData.h"
 #include "npruntime_impl.h"
 #include "runtime_root.h"
-#include <debugger/Debugger.h>
-#include <heap/StrongInlines.h>
-#include <inspector/ScriptCallStack.h>
-#include <runtime/InitializeThreading.h>
-#include <runtime/JSFunction.h>
-#include <runtime/JSInternalPromise.h>
-#include <runtime/JSLock.h>
-#include <runtime/JSModuleRecord.h>
-#include <runtime/JSNativeStdFunction.h>
-#include <runtime/JSScriptFetchParameters.h>
-#include <runtime/JSScriptFetcher.h>
+#include <JavaScriptCore/Debugger.h>
+#include <JavaScriptCore/InitializeThreading.h>
+#include <JavaScriptCore/JSFunction.h>
+#include <JavaScriptCore/JSInternalPromise.h>
+#include <JavaScriptCore/JSLock.h>
+#include <JavaScriptCore/JSModuleRecord.h>
+#include <JavaScriptCore/JSNativeStdFunction.h>
+#include <JavaScriptCore/JSScriptFetchParameters.h>
+#include <JavaScriptCore/JSScriptFetcher.h>
+#include <JavaScriptCore/ScriptCallStack.h>
+#include <JavaScriptCore/StrongInlines.h>
 #include <wtf/MemoryPressureHandler.h>
 #include <wtf/SetForScope.h>
 #include <wtf/Threading.h>
 #include <wtf/text/TextPosition.h>
-
 
 namespace WebCore {
 using namespace JSC;
@@ -140,11 +139,11 @@ void ScriptController::destroyWindowProxy(DOMWrapperWorld& world)
 JSDOMWindowProxy& ScriptController::createWindowProxy(DOMWrapperWorld& world)
 {
     ASSERT(!m_windowProxies.contains(&world));
+    ASSERT(m_frame.document()->domWindow());
 
     VM& vm = world.vm();
 
-    auto* structure = JSDOMWindowProxy::createStructure(vm, jsNull());
-    Strong<JSDOMWindowProxy> windowProxy(vm, JSDOMWindowProxy::create(vm, m_frame.document()->domWindow(), structure, world));
+    Strong<JSDOMWindowProxy> windowProxy(vm, &JSDOMWindowProxy::create(vm, *m_frame.document()->domWindow(), world));
     Strong<JSDOMWindowProxy> windowProxy2(windowProxy);
     m_windowProxies.add(&world, windowProxy);
     world.didCreateWindowProxy(this);
@@ -318,6 +317,8 @@ void ScriptController::clearWindowProxiesNotMatchingDOMWindow(DOMWindow* newDOMW
 
 void ScriptController::setDOMWindowForWindowProxy(DOMWindow* newDOMWindow)
 {
+    ASSERT(newDOMWindow);
+
     if (m_windowProxies.isEmpty())
         return;
     
@@ -327,7 +328,7 @@ void ScriptController::setDOMWindowForWindowProxy(DOMWindow* newDOMWindow)
         if (&windowProxy->window()->wrapped() == newDOMWindow)
             continue;
         
-        windowProxy->setWindow(newDOMWindow);
+        windowProxy->setWindow(*newDOMWindow);
         
         // An m_cacheableBindingRootObject persists between page navigations
         // so needs to know about the new JSDOMWindow.

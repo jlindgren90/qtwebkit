@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2014, 2016 Apple Inc. All rights reserved.
+# Copyright (c) 2014-2018 Apple Inc. All rights reserved.
 # Copyright (c) 2014 University of Washington. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -146,7 +146,7 @@ class CppGenerator(Generator):
         if isinstance(_type, PrimitiveType):
             cpp_name = CppGenerator.cpp_name_for_primitive_type(_type)
             if parameter.is_optional:
-                return 'const %s* const' % cpp_name
+                return 'const %s*' % cpp_name
             elif _type.raw_name() in ['string']:
                 return 'const %s&' % cpp_name
             else:
@@ -169,7 +169,7 @@ class CppGenerator(Generator):
         if isinstance(_type, AliasedType):
             builder_type = CppGenerator.cpp_protocol_type_for_type(_type)
             if is_optional:
-                return 'const %s* const' % builder_type
+                return 'const %s*' % builder_type
             elif _type.aliased_type.qualified_name() in ['integer', 'number']:
                 return CppGenerator.cpp_name_for_primitive_type(_type.aliased_type)
             elif _type.aliased_type.qualified_name() in ['string']:
@@ -183,7 +183,7 @@ class CppGenerator(Generator):
             elif _type.qualified_name() in ['any']:
                 return 'RefPtr<JSON::Value>'
             elif is_optional:
-                return 'const %s* const' % cpp_name
+                return 'const %s*' % cpp_name
             elif _type.qualified_name() in ['string']:
                 return 'const %s&' % cpp_name
             else:
@@ -211,7 +211,7 @@ class CppGenerator(Generator):
         if isinstance(_type, PrimitiveType):
             cpp_name = CppGenerator.cpp_name_for_primitive_type(_type)
             if parameter.is_optional:
-                return "Inspector::Protocol::OptOutput<%s>*" % cpp_name
+                return "std::optional<%s>&" % cpp_name
             else:
                 return '%s*' % cpp_name
         if isinstance(_type, EnumType):
@@ -237,7 +237,7 @@ class CppGenerator(Generator):
         if isinstance(_type, PrimitiveType):
             cpp_name = CppGenerator.cpp_name_for_primitive_type(_type)
             if parameter.is_optional:
-                return "Inspector::Protocol::OptOutput<%s>*" % cpp_name
+                return "std::optional<%s>&" % cpp_name
             elif _type.qualified_name() in ['integer', 'number']:
                 return CppGenerator.cpp_name_for_primitive_type(_type)
             elif _type.qualified_name() in ['string']:
@@ -269,7 +269,7 @@ class CppGenerator(Generator):
             if _type.qualified_name() in ['any', 'object']:
                 return "RefPtr<%s>" % CppGenerator.cpp_name_for_primitive_type(_type)
             elif parameter.is_optional and _type.qualified_name() not in ['boolean', 'string', 'integer']:
-                return "Inspector::Protocol::OptOutput<%s>" % cpp_name
+                return "std::optional<%s>" % cpp_name
             else:
                 return cpp_name
 
@@ -281,12 +281,12 @@ class CppGenerator(Generator):
         if isinstance(_type, AliasedType):
             builder_type = CppGenerator.cpp_protocol_type_for_type(_type)
             if parameter.is_optional:
-                return "Inspector::Protocol::OptOutput<%s>" % builder_type
+                return "std::optional<%s>" % builder_type
             return '%s' % builder_type
         if isinstance(_type, PrimitiveType):
             cpp_name = CppGenerator.cpp_name_for_primitive_type(_type)
             if parameter.is_optional:
-                return "Inspector::Protocol::OptOutput<%s>" % cpp_name
+                return "std::optional<%s>" % cpp_name
             else:
                 return cpp_name
         if isinstance(_type, EnumType):

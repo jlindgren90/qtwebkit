@@ -1,3 +1,597 @@
+2018-02-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GStreamer] User current executable name instead of g_get_prgname() for gst_init
+        https://bugs.webkit.org/show_bug.cgi?id=183119
+
+        Reviewed by Philippe Normand.
+
+        Add getCurrentExecutableName() helper function to get the name of the current executable.
+
+        * wtf/glib/GLibUtilities.cpp:
+        (getCurrentExecutableName): Get the basename of getCurrentExecutablePath() falling back to g_get_prgname().
+        * wtf/glib/GLibUtilities.h:
+
+2018-02-23  John Wilander  <wilander@apple.com>
+
+        Introduce ITP debug logging as an opt-in developer feature
+        https://bugs.webkit.org/show_bug.cgi?id=183065
+        <rdar://problem/37803761>
+
+        Reviewed by Brent Fulgham.
+
+        * wtf/Assertions.h:
+            Introduces RELEASE_LOG_INFO() and RELEASE_LOG_INFO_IF().
+
+2018-02-23  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        warning: unused variable 'InitialBufferSize' in Assertions.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=183076
+
+        Reviewed by Yusuke Suzuki.
+
+        * wtf/Assertions.cpp: Moved the definition of InitialBufferSize to inside #if.
+
+2018-02-22  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Remove currentTime() / currentTimeMS()
+        https://bugs.webkit.org/show_bug.cgi?id=183052
+
+        Reviewed by Mark Lam.
+
+        This patch removes WTF::currentTime() and WTF::currentTimeMS().
+        We have fancy WallTime APIs. It has strong types like WallTime and Seconds,
+        and this reduces the chance of bugs mixing doubles which represent milliseconds
+        and seconds.
+
+        * wtf/Condition.h:
+        * wtf/CurrentTime.cpp:
+        (WTF::currentTime):
+        (WTF::WallTime::now):
+        * wtf/CurrentTime.h:
+        (WTF::currentTimeMS): Deleted.
+        * wtf/DateMath.h:
+        (WTF::jsCurrentTime):
+        * wtf/ParkingLot.cpp:
+        (WTF::ParkingLot::parkConditionallyImpl):
+        * wtf/ThreadingPrimitives.h:
+        * wtf/ThreadingPthreads.cpp:
+        (WTF::ThreadCondition::timedWait):
+        * wtf/ThreadingWin.cpp:
+        (WTF::ThreadCondition::timedWait):
+        (WTF::absoluteTimeToWaitTimeoutInterval):
+        * wtf/WallTime.cpp:
+        (WTF::WallTime::now): Deleted.
+        * wtf/WallTime.h:
+
+2018-02-22  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Remove sleep(double) and sleepMS(double) interfaces
+        https://bugs.webkit.org/show_bug.cgi?id=183038
+
+        Reviewed by Mark Lam.
+
+        This patch removes sleep(double) and sleepMS(double) interfaces.
+        We can just use sleep(Seconds) instead.
+
+        * benchmarks/LockFairnessTest.cpp:
+        * benchmarks/LockSpeedTest.cpp:
+        * wtf/CurrentTime.cpp:
+        (WTF::sleep):
+        * wtf/CurrentTime.h:
+        (WTF::sleepMS): Deleted.
+        * wtf/DebugUtilities.h:
+        * wtf/Seconds.cpp:
+        (WTF::sleep): Deleted.
+        * wtf/Seconds.h:
+        * wtf/StackShotProfiler.h:
+
+2018-02-21  Don Olmstead  <don.olmstead@sony.com>
+
+        [CMake][Win] Use cmakeconfig.h rather than config.h and Platform.h
+        https://bugs.webkit.org/show_bug.cgi?id=182883
+
+        Reviewed by Per Arne Vollan.
+
+        * wtf/Platform.h:
+
+2018-02-14  Brian Burg  <bburg@apple.com>
+
+        Web Automation: combine session commands to resize and move top-level browsing contexts
+        https://bugs.webkit.org/show_bug.cgi?id=182749
+        <rdar://problem/37515170>
+
+        Reviewed by Andy Estes.
+
+        * wtf/JSONValues.h: add a getDouble() implementation that returns a std::optional<T>
+        rather than using an out-parameter. I'd like to move more code to this style.
+
+2018-02-20  Tim Horton  <timothy_horton@apple.com>
+
+        Introduce HAVE(IOSURFACE_ACCELERATOR)
+        https://bugs.webkit.org/show_bug.cgi?id=182955
+        <rdar://problem/37699510>
+
+        Reviewed by Sam Weinig.
+
+        * wtf/Platform.h:
+
+2018-02-20  Chris Dumez  <cdumez@apple.com>
+
+        Provisional load may get committed before receiving the decidePolicyForNavigationResponse response
+        https://bugs.webkit.org/show_bug.cgi?id=182720
+        <rdar://problem/37515204>
+
+        Reviewed by Alex Christensen.
+
+        Add convenience CompletionHandlerCallingScope class which calls its CompletionHandler
+        when destroyed, and provides a release() methods to manually call the completionHandler.
+
+        * wtf/CompletionHandler.h:
+        (WTF::CompletionHandlerCallingScope::CompletionHandlerCallingScope):
+        (WTF::CompletionHandlerCallingScope::~CompletionHandlerCallingScope):
+        (WTF::CompletionHandlerCallingScope::CompletionHandler<void):
+
+2018-02-20  Tim Horton  <timothy_horton@apple.com>
+
+        Always inline soft linking functions to work around a clang bug
+        https://bugs.webkit.org/show_bug.cgi?id=182985
+        <rdar://problem/37587017>
+
+        Reviewed by Dan Bernstein.
+
+        * wtf/cocoa/SoftLinking.h:
+        In some cases, clang will emit a weak extern symbol for a re-declared
+        symbol that has availability attributes on it. To avoid this, always
+        inline to avoid emitting a second symbol.
+
+2018-02-16  Dean Jackson  <dino@apple.com>
+
+        Use OPENGL macros to be more clear about which OpenGL/ES WebGL uses on Cocoa
+        https://bugs.webkit.org/show_bug.cgi?id=182894
+
+        Reviewed by Tim Horton.
+
+        If we're on a Cocoa platform, define USE_OPENGL/USE_OPENGL_ES
+        depending on what we're actually going to use. In this case,
+        they are exclusive, but it doesn't appear that other platforms
+        use this approach. Ultimately the idea is to be more concerned
+        with the type of OpenGL we're using, rather than the platform.
+
+        * wtf/Platform.h: Define USE_OPENGL(_ES) for PLATFORM(COCOA).
+
+2018-02-16  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, roll out r228306 (custom memcpy/memset) because the bots say that it was not a
+        progression.
+
+        * WTF.xcodeproj/project.pbxproj:
+        * wtf/BitVector.cpp:
+        (WTF::BitVector::setSlow):
+        (WTF::BitVector::clearAll):
+        (WTF::BitVector::resizeOutOfLine):
+        * wtf/BitVector.h:
+        (WTF::BitVector::OutOfLineBits::numWords const):
+        (WTF::BitVector::wordCount): Deleted.
+        * wtf/CMakeLists.txt:
+        * wtf/ConcurrentBuffer.h:
+        (WTF::ConcurrentBuffer::growExact):
+        * wtf/FastBitVector.h:
+        (WTF::FastBitVectorWordOwner::operator=):
+        (WTF::FastBitVectorWordOwner::clearAll):
+        (WTF::FastBitVectorWordOwner::set):
+        * wtf/FastCopy.h: Removed.
+        * wtf/FastMalloc.cpp:
+        (WTF::fastZeroedMalloc):
+        (WTF::fastStrDup):
+        (WTF::tryFastZeroedMalloc):
+        * wtf/FastZeroFill.h: Removed.
+        * wtf/OSAllocator.h:
+        (WTF::OSAllocator::reallocateCommitted):
+        * wtf/StringPrintStream.cpp:
+        (WTF::StringPrintStream::increaseSize):
+        * wtf/Vector.h:
+        * wtf/persistence/PersistentDecoder.cpp:
+        (WTF::Persistence::Decoder::decodeFixedLengthData):
+        * wtf/persistence/PersistentEncoder.cpp:
+        (WTF::Persistence::Encoder::encodeFixedLengthData):
+        * wtf/text/CString.cpp:
+        (WTF::CString::init):
+        (WTF::CString::copyBufferIfNeeded):
+        * wtf/text/LineBreakIteratorPoolICU.h:
+        (WTF::LineBreakIteratorPool::makeLocaleWithBreakKeyword):
+        * wtf/text/StringBuilder.cpp:
+        (WTF::StringBuilder::allocateBuffer):
+        (WTF::StringBuilder::append):
+        * wtf/text/StringConcatenate.h:
+        * wtf/text/StringImpl.h:
+        (WTF::StringImpl::copyCharacters):
+        * wtf/text/icu/UTextProvider.cpp:
+        (WTF::uTextCloneImpl):
+        * wtf/text/icu/UTextProviderLatin1.cpp:
+        (WTF::uTextLatin1Clone):
+        (WTF::openLatin1UTextProvider):
+        * wtf/threads/Signals.cpp:
+
+2018-02-16  Keith Miller  <keith_miller@apple.com>
+
+        Remove unused line from Platform.h
+        https://bugs.webkit.org/show_bug.cgi?id=182871
+
+        Reviewed by Mark Lam.
+
+        * wtf/Platform.h:
+
+2018-02-14  Michael Saboff  <msaboff@apple.com>
+
+        REGRESSION(225695) : com.apple.WebKit.WebContent at com.apple.JavaScriptCore: JSC::RegExp::match + 630 :: stack overflow
+        https://bugs.webkit.org/show_bug.cgi?id=182705
+
+        Reviewed by Mark Lam.
+
+        Moved the setting of ENABLE_YARR_JIT_ALL_PARENS_EXPRESSIONS to Platform.h since more than just the YARR
+        code needs to know if that feature is enabled.
+
+        * wtf/Platform.h:
+
+2018-02-12  Mark Lam  <mark.lam@apple.com>
+
+        Add more support for pointer preparations.
+        https://bugs.webkit.org/show_bug.cgi?id=182703
+        <rdar://problem/37469451>
+
+        Reviewed by Saam Barati.
+
+        * wtf/PointerPreparations.h:
+
+2018-02-09  Ross Kirsling  <ross.kirsling@sony.com>
+
+        Use REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR on any non-Windows port.
+        https://bugs.webkit.org/show_bug.cgi?id=182623
+
+        Reviewed by Alex Christensen.
+
+        * wtf/Platform.h:
+        Simplify #if.
+
+2018-02-08  Filip Pizlo  <fpizlo@apple.com>
+
+        Experiment with alternative implementation of memcpy/memset
+        https://bugs.webkit.org/show_bug.cgi?id=182563
+
+        Reviewed by Michael Saboff and Mark Lam.
+        
+        Adds a faster x86_64-specific implementation of memcpy and memset. These versions go by
+        different names than memcpy/memset and have a different API:
+        
+        WTF::fastCopy<T>(T* dst, T* src, size_t N): copies N values of type T from src to dst.
+        WTF::fastZeroFill(T* dst, size_T N): writes N * sizeof(T) zeroes to dst.
+        
+        There are also *Bytes variants that take void* for dst and src and size_t numBytes. Those are
+        most appropriate in places where the code is already computing bytes.
+        
+        These will just call memcpy/memset on platforms where the optimized versions are not supported.
+        
+        These new functions are not known to the compiler to be memcpy/memset. This has the effect that
+        the compiler will not try to replace them with anything else. This could be good or bad:
+        
+        - It's *good* if the size is *not known* at compile time. In that case, by my benchmarks, these
+          versions are faster than either the memcpy/memset call or whatever else the compiler could
+          emit. This is because of a combination of inlining and the algorithm itself (see below).
+        
+        - It's *bad* if the size is *known* at compile time. In that case, the compiler could
+          potentially emit a fully unrolled memcpy/memset. That might not happen if the size is large
+          (even if it's known), but in this patch I avoid replacing any memcpy/memset calls when the
+          size is a constant. In particular, this totally avoids the call overhead -- if the size is
+          small, then the compiler will emit a nice inlined copy or set. If the size is large, then the
+          most optimal thing to do is emit the shortest piece of code possible, and that's a call to
+          memcpy/memset.
+        
+        It's unfortunate that you have to choose between them on your own. One way to avoid that might
+        have been to override the memcpy/memset symbols, so that the compiler can still do its
+        reasoning. But that's not quite right, since then we would lose inlining in the unknonw-size
+        case. Also, it's possible that for some unknown-size cases, the compiler could choose to emit
+        something on its own because it might think that some property of aliasing or alignment could
+        help it. I think it's a bit better to use our own copy/set implementations even in those cases.
+        Another way that I tried avoiding this is to detect inside fastCopy/fastZeroFill if the size is
+        constant. But there is no good way to do that in C++. There is a builtin for doing that inside a
+        macro, but that feels janky, so I didn't want to do it in this patch.
+        
+        The reason why these new fastCopy/fastZeroFill functions are faster is that:
+        
+        - They can be inlined. There is no function call. Only a few registers get clobbered. So, the
+          impact on the quality of the code surrounding the memcpy/memset is smaller.
+        
+        - They use type information to select the implementation. For sizes that are multiples of 2, 4,
+          or 8, the resulting code performs dramatically better on small arrays than memcpy because it
+          uses fewer cycles. The difference is greatest for 2 and 4 byte types, since memcpy usually
+          handles small arrays by tiering from a 8-byte word copy loop to a byte copy loop. So, for 2
+          or 4 byte arrays, we use an algorithm that tiers from 8-byte word down to a 2-byte or 4-byte
+          (depending on type) copy loop. So, for example, when copying a 16-bit string that has 1, 2, or
+          3 characters, this means doing 1, 2, or 3 word copies rather than 2, 4, or 6 byte copies. For
+          8-byte types, the resulting savings are mainly that there is no check to see if a tier-down to
+          the byte-copy loop is needed -- so really that means reducing code size. 1-byte types don't
+          get this inherent advantage over memcpy/memset, but they still benefit from all of the other
+          advantages of these functions. Of course, this advantage isn't inherent to our approach. The
+          compiler could also notice that the arguments to memcpy/memset have some alignment properties.
+          It could do it even more generally than we do - for example a copy over bytes where the size
+          is a multiple of 4 can use the 4-byte word algorithm. But based on my tests, the compiler does
+          not do this (even though it does other things, like turn a memset call with a zero value
+          argument into a bzero call).
+        
+        - They use a very nicely written word copy/set loop for small arrays. I spent a lot of time
+          getting the assembly just right. When we use memcpy/memset, sometimes we would optimize the
+          call by having a fast path word copy loop for small sizes. That's not necessary with this
+          implementation, since the assembly copy loop gets inlined.
+        
+        - They use `rep movs` or `rep stos` for copies of 200 bytes or more. This decision benchmarks
+          poorly on every synthetic memcpy/memset benchmark I have built, and so unsurprisingly, it's
+          not what system memcpy/memset does. Most system memcpy/memset implementations end up doing
+          some SSE for medium-sized copies,. However, I previously found that this decision is bad for
+          one of the memset calls in GC (see clearArray() and friends in ArrayConventions.h|cpp) - I was
+          able to make the overhead of that call virtually disappear by doing `rep stos` more
+          aggressively. The theory behind this change is that it's not just the GC that prefers smaller
+          `rep` threshold and no SSE. I am betting that `rep`ing more is better when the heap gets
+          chaotic and the data being copied is used in interesting ways -- hence, synthetic
+          memcpy/memset benchmarks think it's bad (they don't do enough chaotic memory accesses) while
+          it's good for real-world uses. Also, when I previously worked on JVMs, I had found that the
+          best memcpy/memset heuristics when dealing with GC'd objects in a crazy heap were different
+          than any memcpy/memset in any system library.
+        
+        This appears to be a 0.9% speed-up on PLT. I'm not sure if it's more because of the inlining or
+        the `rep`. I think it's both. I'll leave figuring out the exact tuning for future patches.
+
+        * wtf/BitVector.cpp:
+        (WTF::BitVector::setSlow):
+        (WTF::BitVector::clearAll):
+        (WTF::BitVector::resizeOutOfLine):
+        * wtf/BitVector.h:
+        (WTF::BitVector::wordCount):
+        (WTF::BitVector::OutOfLineBits::numWords const):
+        * wtf/ConcurrentBuffer.h:
+        (WTF::ConcurrentBuffer::growExact):
+        * wtf/FastBitVector.h:
+        (WTF::FastBitVectorWordOwner::operator=):
+        (WTF::FastBitVectorWordOwner::clearAll):
+        (WTF::FastBitVectorWordOwner::set):
+        * wtf/FastCopy.h: Added.
+        (WTF::fastCopy):
+        (WTF::fastCopyBytes):
+        * wtf/FastMalloc.cpp:
+        (WTF::fastZeroedMalloc):
+        (WTF::fastStrDup):
+        (WTF::tryFastZeroedMalloc):
+        * wtf/FastZeroFill.h: Added.
+        (WTF::fastZeroFill):
+        (WTF::fastZeroFillBytes):
+        * wtf/MD5.cpp:
+        * wtf/OSAllocator.h:
+        (WTF::OSAllocator::reallocateCommitted):
+        * wtf/StringPrintStream.cpp:
+        (WTF::StringPrintStream::increaseSize):
+        * wtf/Vector.h:
+        * wtf/persistence/PersistentDecoder.cpp:
+        (WTF::Persistence::Decoder::decodeFixedLengthData):
+        * wtf/persistence/PersistentEncoder.cpp:
+        (WTF::Persistence::Encoder::encodeFixedLengthData):
+        * wtf/text/CString.cpp:
+        (WTF::CString::init):
+        (WTF::CString::copyBufferIfNeeded):
+        * wtf/text/LineBreakIteratorPoolICU.h:
+        (WTF::LineBreakIteratorPool::makeLocaleWithBreakKeyword):
+        * wtf/text/StringBuilder.cpp:
+        (WTF::StringBuilder::allocateBuffer):
+        (WTF::StringBuilder::append):
+        * wtf/text/StringConcatenate.h:
+        * wtf/text/StringImpl.h:
+        (WTF::StringImpl::copyCharacters):
+        * wtf/text/icu/UTextProvider.cpp:
+        (WTF::uTextCloneImpl):
+        * wtf/text/icu/UTextProviderLatin1.cpp:
+        (WTF::uTextLatin1Clone):
+        (WTF::openLatin1UTextProvider):
+        * wtf/threads/Signals.cpp:
+
+2018-02-06  Darin Adler  <darin@apple.com>
+
+        Event improvements
+        https://bugs.webkit.org/show_bug.cgi?id=179591
+
+        Reviewed by Chris Dumez.
+
+        * wtf/text/OrdinalNumber.h: Added som missing const.
+        * wtf/text/TextPosition.h: Ditto.
+
+2018-02-06  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [GTK] fast/events/message-channel-gc-4.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=182104
+
+        Reviewed by Carlos Garcia Campos.
+
+        Revert r228001 because RunLoop::current isn't called in GC thread
+        anymore since r228152.
+
+        * wtf/RunLoop.cpp:
+        (WTF::RunLoop::current): Removed a template argument
+        CanBeGCThread::True of ThreadSpecific.
+
+2018-02-05  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Fix build with ICU configured without collation support
+        https://bugs.webkit.org/show_bug.cgi?id=182498
+
+        Reviewed by Alex Christensen.
+
+        WebKit has CollatorDefault.cpp providing necessary stubs when
+        UCONFIG_NO_COLLATION is defined, however it is not included in cmake
+        file list.
+
+        * wtf/CMakeLists.txt:
+
+2018-02-05  Alicia Boya García  <aboya@igalia.com>
+
+        Fix bug in MediaTime comparison for negative values with different scale.
+        https://bugs.webkit.org/show_bug.cgi?id=182433
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * wtf/MediaTime.cpp:
+        (WTF::MediaTime::compare const):
+
+2018-02-02  Mark Lam  <mark.lam@apple.com>
+
+        More ARM64_32 fixes.
+        https://bugs.webkit.org/show_bug.cgi?id=182441
+        <rdar://problem/37162310>
+
+        Reviewed by Dan Bernstein.
+
+        My previous speculative ARM64_32 build fix in copyLCharsFromUCharSource() was wrong.
+        I've now fixed it to choose the default implementation case instead of the ARM64
+        case if the target is ARM64_32.
+
+        * wtf/text/ASCIIFastPath.h:
+        (WTF::copyLCharsFromUCharSource):
+
+2018-02-02  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Unreviewed build fix for JSCOnly on macOS after r227845.
+        https://bugs.webkit.org/show_bug.cgi?id=182274
+
+        Reverted part of r227845 that moved CommonCryptoSPI.h
+        handling into PlatformMac, because it is needed for all
+        ports which can be built on macOS.
+
+        * wtf/CMakeLists.txt:
+        * wtf/PlatformMac.cmake:
+
+2018-02-02  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [GTK] fast/events/message-channel-gc-4.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=182104
+
+        Reviewed by Carlos Garcia Campos.
+
+        RELEASE_ASSERT of ThreadSpecific::set fails because
+        RunLoop::current is called even in GC thread since r227275.
+
+        * wtf/RunLoop.cpp:
+        (WTF::RunLoop::current):
+        Let the second template argument of ThreadSpecific CanBeGCThread::True.
+
+2018-02-01  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [WPE][GTK] Make RunLoop::TimerBase robust to its own deletion inside its source callback
+        https://bugs.webkit.org/show_bug.cgi?id=182271
+
+        Reviewed by Carlos Garcia Campos.
+
+        RunLoopTimer::fired executes the user's callback, which could delete the RunLoopTimer
+        itself. But the source callback is not prepared to handle this case. We can detect it
+        easily, because TimerBase's destructor will call g_source_destroy(), which confusingly
+        removes the GSource from its GMainContext without actually destroying the GSource. Then we
+        can check if the GSource is still attached using g_source_is_destroyed().
+
+        * wtf/glib/RunLoopGLib.cpp:
+        (WTF::RunLoop::TimerBase::TimerBase):
+
+2018-01-31  Saam Barati  <sbarati@apple.com>
+
+        Replace tryLargeMemalignVirtual with tryLargeZeroedMemalignVirtual and use it to allocate large zeroed memory in Wasm
+        https://bugs.webkit.org/show_bug.cgi?id=182064
+        <rdar://problem/36840132>
+
+        Reviewed by Geoffrey Garen.
+
+        * wtf/Gigacage.cpp:
+        (Gigacage::tryAllocateZeroedVirtualPages):
+        (Gigacage::freeVirtualPages):
+        (Gigacage::tryAllocateVirtualPages): Deleted.
+        * wtf/Gigacage.h:
+        * wtf/OSAllocator.h:
+
+2018-01-31  Mark Lam  <mark.lam@apple.com>
+
+        Fix some ARM64_32 build failures.
+        https://bugs.webkit.org/show_bug.cgi?id=182356
+        <rdar://problem/37057690>
+
+        Reviewed by Michael Saboff.
+
+        * wtf/MathExtras.h:
+        (WTF::dynamicPoison):
+        * wtf/text/ASCIIFastPath.h:
+        (WTF::copyLCharsFromUCharSource):
+
+2018-01-30  Mark Lam  <mark.lam@apple.com>
+
+        Apply poisoning to TypedArray vector pointers.
+        https://bugs.webkit.org/show_bug.cgi?id=182155
+        <rdar://problem/36286266>
+
+        Reviewed by JF Bastien.
+
+        1. Added the ability to poison a CagedPtr.
+
+        2. Prevent CagedPtr from being implicitly instantiated, and add operator= methods
+           instead.  This is because implicitly instantiated CagedPtrs with a poisoned
+           trait may silently use a wrong poison value.
+
+        * wtf/CagedPtr.h:
+        (WTF::CagedPtr::CagedPtr):
+        (WTF::CagedPtr::get const):
+        (WTF::CagedPtr::operator=):
+
+2018-01-30  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [Win] Warning fix.
+        https://bugs.webkit.org/show_bug.cgi?id=177007
+
+        Reviewed by Yusuke Suzuki.
+
+        A 32 bit integer should not be casted to a pointer directly in 64
+        bit Windows. It should be casted to a uintptr_t beforehand.
+
+        Rules for Using Pointers (Windows)
+        https://msdn.microsoft.com/library/windows/desktop/aa384242
+
+        * wtf/ThreadingWin.cpp (InvalidThread): Casted 0xbbadbeef to uintptr_t.
+
+2018-01-30  Don Olmstead  <don.olmstead@sony.com>
+
+        Unreviewed build fix for JSCOnly after r227845.
+        https://bugs.webkit.org/show_bug.cgi?id=182274
+
+        * wtf/PlatformJSCOnly.cmake:
+
+2018-01-30  Don Olmstead  <don.olmstead@sony.com>
+
+        [CMake] Make WTF headers copies
+        https://bugs.webkit.org/show_bug.cgi?id=182274
+
+        Reviewed by Alex Christensen.
+
+        * wtf/CMakeLists.txt:
+        * wtf/PlatformGTK.cmake:
+        * wtf/PlatformJSCOnly.cmake:
+        * wtf/PlatformMac.cmake:
+        * wtf/PlatformWPE.cmake:
+        * wtf/PlatformWin.cmake:
+
+2018-01-30  Mark Lam  <mark.lam@apple.com>
+
+        Move ENABLE_POISON to Platform.h.
+        https://bugs.webkit.org/show_bug.cgi?id=182298
+        <rdar://problem/37032686>
+
+        Reviewed by Michael Saboff and JF Bastien.
+
+        ENABLE_POISON belongs in Platform.h to ensure that all places that depend on
+        ENABLE(POISON) will see it properly defined.
+
+        * wtf/Platform.h:
+        * wtf/Poisoned.h:
+
 2018-01-26  Mark Lam  <mark.lam@apple.com>
 
         Add infrastructure for pointer preparation.

@@ -32,6 +32,8 @@
 #include "PluginDebug.h"
 #include "PluginPackage.h"
 #include "WebFrameLoaderClient.h"
+#include <JavaScriptCore/JSCJSValue.h>
+#include <JavaScriptCore/JSLock.h>
 #include <WebCore/BridgeJSC.h>
 #include <WebCore/Chrome.h>
 #include <WebCore/CommonVM.h>
@@ -72,9 +74,6 @@
 #include <WebCore/c_instance.h>
 #include <WebCore/npruntime_impl.h>
 #include <WebCore/runtime_root.h>
-#include <bindings/ScriptValue.h>
-#include <runtime/JSCJSValue.h>
-#include <runtime/JSLock.h>
 #include <wtf/ASCIICType.h>
 #include <wtf/text/WTFString.h>
 

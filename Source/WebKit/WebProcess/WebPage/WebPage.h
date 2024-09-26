@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -211,6 +211,7 @@ class WebUserContentController;
 class VideoFullscreenManager;
 class WebWheelEvent;
 class WebTouchEvent;
+class WebCredentialsMessenger;
 class RemoteLayerTreeTransaction;
 
 struct AssistedNodeInformation;
@@ -567,6 +568,7 @@ public:
     void inspectorNodeSearchEndedAtPosition(const WebCore::FloatPoint&);
 
     void blurAssistedNode();
+    void requestAssistedNodeInformation(CallbackID);
     void selectWithGesture(const WebCore::IntPoint&, uint32_t granularity, uint32_t gestureType, uint32_t gestureState, bool isInteractingWithAssistedNode, CallbackID);
     void updateSelectionWithTouches(const WebCore::IntPoint&, uint32_t touches, bool baseIsStart, CallbackID);
 #if __IPHONE_OS_VERSION_MAX_ALLOWED < 120000
@@ -708,6 +710,7 @@ public:
     
     void sendComplexTextInputToPlugin(uint64_t pluginComplexTextInputIdentifier, const String& textInput);
 
+    void setTextAsync(const String&);
     void insertTextAsync(const String& text, const EditingRange& replacementRange, bool registerUndoGroup = false, uint32_t editingRangeIsRelativeTo = (uint32_t)EditingRangeIsRelativeTo::EditableRoot, bool suppressSelectionUpdate = false);
     void getMarkedRangeAsync(CallbackID);
     void getSelectedRangeAsync(CallbackID);
@@ -1157,6 +1160,7 @@ private:
 
 #if ENABLE(IOS_TOUCH_EVENTS)
     void touchEventSync(const WebTouchEvent&, bool& handled);
+    void updatePotentialTapSecurityOrigin(const WebTouchEvent&, bool wasHandled);
 #elif ENABLE(TOUCH_EVENTS)
     void touchEvent(const WebTouchEvent&);
 #endif
@@ -1209,6 +1213,12 @@ private:
     void preferencesDidChange(const WebPreferencesStore&);
     void updatePreferences(const WebPreferencesStore&);
     void updatePreferencesGenerated(const WebPreferencesStore&);
+
+#if PLATFORM(IOS)
+    bool parentProcessHasServiceWorkerEntitlement() const;
+#else
+    bool parentProcessHasServiceWorkerEntitlement() const { return true; }
+#endif
 
     void didReceivePolicyDecision(uint64_t frameID, uint64_t listenerID, WebCore::PolicyAction, uint64_t navigationID, const DownloadID&, std::optional<WebsitePoliciesData>&&);
     void continueWillSubmitForm(uint64_t frameID, uint64_t listenerID);
@@ -1595,6 +1605,7 @@ private:
 
     RefPtr<WebCore::Node> m_potentialTapNode;
     WebCore::FloatPoint m_potentialTapLocation;
+    RefPtr<WebCore::SecurityOrigin> m_potentialTapSecurityOrigin;
 
     WebCore::ViewportConfiguration m_viewportConfiguration;
     bool m_hasReceivedVisibleContentRectsAfterDidCommitLoad { false };
@@ -1621,6 +1632,7 @@ private:
     RefPtr<WebCore::Node> m_pendingSyntheticClickNode;
     WebCore::FloatPoint m_pendingSyntheticClickLocation;
     WebCore::FloatRect m_previousExposedContentRect;
+    uint64_t m_currentAssistedNodeIdentifier { 0 };
 #endif
 
     WebCore::Timer m_layerVolatilityTimer;
@@ -1683,6 +1695,11 @@ private:
 #if ENABLE(APPLICATION_MANIFEST)
     HashMap<uint64_t, uint64_t> m_applicationManifestFetchCallbackMap;
 #endif
+
+#if ENABLE(WEB_AUTHN)
+    std::unique_ptr<WebCredentialsMessenger> m_credentialsMessenger;
+#endif
+
 };
 
 } // namespace WebKit

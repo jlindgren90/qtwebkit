@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@
 #include "ScopedArgumentsTable.h"
 #include "SlowPathCall.h"
 #include "StructureStubInfo.h"
+#include <wtf/ScopedLambda.h>
 #include <wtf/StringPrintStream.h>
 
 
@@ -857,12 +858,16 @@ void JIT::emit_op_get_from_scope(Instruction* currentInstruction)
         switch (resolveType) {
         case GlobalProperty:
         case GlobalPropertyWithVarInjectionChecks: {
-            emitLoadWithStructureCheck(scope, structureSlot); // Structure check covers var injection.
+            emitLoadWithStructureCheck(scope, structureSlot); // Structure check covers var injection since we don't cache structures for anything but the GlobalObject. Additionally, resolve_scope handles checking for the var injection.
             GPRReg base = regT0;
             GPRReg result = regT0;
             GPRReg offset = regT1;
             GPRReg scratch = regT2;
-            
+
+            jitAssert(scopedLambda<Jump(void)>([&] () -> Jump {
+                return branchPtr(Equal, base, TrustedImmPtr(m_codeBlock->globalObject()));
+            }));
+
             load32(operandSlot, offset);
             if (!ASSERT_DISABLED) {
                 Jump isOutOfLine = branch32(GreaterThanOrEqual, offset, TrustedImm32(firstOutOfLineOffset));
@@ -985,9 +990,13 @@ void JIT::emit_op_put_to_scope(Instruction* currentInstruction)
         switch (resolveType) {
         case GlobalProperty:
         case GlobalPropertyWithVarInjectionChecks: {
-            emitLoadWithStructureCheck(scope, structureSlot); // Structure check covers var injection.
+            emitLoadWithStructureCheck(scope, structureSlot); // Structure check covers var injection since we don't cache structures for anything but the GlobalObject. Additionally, resolve_scope handles checking for the var injection.
             emitGetVirtualRegister(value, regT2);
-            
+
+            jitAssert(scopedLambda<Jump(void)>([&] () -> Jump {
+                return branchPtr(Equal, regT0, TrustedImmPtr(m_codeBlock->globalObject()));
+            }));
+
             loadPtr(Address(regT0, JSObject::butterflyOffset()), regT0);
             loadPtr(operandSlot, regT1);
             negPtr(regT1);
@@ -1457,9 +1466,9 @@ JIT::JumpList JIT::emitScopedArgumentsGetByVal(Instruction*, PatchableJump& badT
     return slowCases;
 }
 
-JIT::JumpList JIT::emitIntTypedArrayGetByVal(Instruction*, PatchableJump& badType, TypedArrayType type)
+JIT::JumpList JIT::emitIntTypedArrayGetByVal(Instruction*, PatchableJump& badType, TypedArrayType typeArrayType)
 {
-    ASSERT(isInt(type));
+    ASSERT(isInt(typeArrayType));
     
     // The best way to test the array type is to use the classInfo. We need to do so without
     // clobbering the register that holds the indexing type, base, and property.
@@ -1480,22 +1489,26 @@ JIT::JumpList JIT::emitIntTypedArrayGetByVal(Instruction*, PatchableJump& badTyp
 #endif
     
     JumpList slowCases;
-    
+    JSType jsType = typeForTypedArrayType(typeArrayType);
+
     load8(Address(base, JSCell::typeInfoTypeOffset()), scratch);
-    badType = patchableBranch32(NotEqual, scratch, TrustedImm32(typeForTypedArrayType(type)));
+    badType = patchableBranch32(NotEqual, scratch, TrustedImm32(jsType));
     slowCases.append(branch32(AboveOrEqual, property, Address(base, JSArrayBufferView::offsetOfLength())));
-    loadPtr(Address(base, JSArrayBufferView::offsetOfVector()), scratch);
+    loadPtr(Address(base, JSArrayBufferView::offsetOfPoisonedVector()), scratch);
+#if ENABLE(POISON)
+    xorPtr(TrustedImmPtr(JSArrayBufferView::poisonFor(jsType)), scratch);
+#endif
     cageConditionally(Gigacage::Primitive, scratch, scratch2);
 
-    switch (elementSize(type)) {
+    switch (elementSize(typeArrayType)) {
     case 1:
-        if (JSC::isSigned(type))
+        if (JSC::isSigned(typeArrayType))
             load8SignedExtendTo32(BaseIndex(scratch, property, TimesOne), resultPayload);
         else
             load8(BaseIndex(scratch, property, TimesOne), resultPayload);
         break;
     case 2:
-        if (JSC::isSigned(type))
+        if (JSC::isSigned(typeArrayType))
             load16SignedExtendTo32(BaseIndex(scratch, property, TimesTwo), resultPayload);
         else
             load16(BaseIndex(scratch, property, TimesTwo), resultPayload);
@@ -1508,7 +1521,7 @@ JIT::JumpList JIT::emitIntTypedArrayGetByVal(Instruction*, PatchableJump& badTyp
     }
     
     Jump done;
-    if (type == TypeUint32) {
+    if (typeArrayType == TypeUint32) {
         Jump canBeInt = branch32(GreaterThanOrEqual, resultPayload, TrustedImm32(0));
         
         convertInt32ToDouble(resultPayload, fpRegT0);
@@ -1534,9 +1547,9 @@ JIT::JumpList JIT::emitIntTypedArrayGetByVal(Instruction*, PatchableJump& badTyp
     return slowCases;
 }
 
-JIT::JumpList JIT::emitFloatTypedArrayGetByVal(Instruction*, PatchableJump& badType, TypedArrayType type)
+JIT::JumpList JIT::emitFloatTypedArrayGetByVal(Instruction*, PatchableJump& badType, TypedArrayType typeArrayType)
 {
-    ASSERT(isFloat(type));
+    ASSERT(isFloat(typeArrayType));
     
 #if USE(JSVALUE64)
     RegisterID base = regT0;
@@ -1554,14 +1567,18 @@ JIT::JumpList JIT::emitFloatTypedArrayGetByVal(Instruction*, PatchableJump& badT
 #endif
     
     JumpList slowCases;
+    JSType jsType = typeForTypedArrayType(typeArrayType);
 
     load8(Address(base, JSCell::typeInfoTypeOffset()), scratch);
-    badType = patchableBranch32(NotEqual, scratch, TrustedImm32(typeForTypedArrayType(type)));
+    badType = patchableBranch32(NotEqual, scratch, TrustedImm32(jsType));
     slowCases.append(branch32(AboveOrEqual, property, Address(base, JSArrayBufferView::offsetOfLength())));
-    loadPtr(Address(base, JSArrayBufferView::offsetOfVector()), scratch);
+    loadPtr(Address(base, JSArrayBufferView::offsetOfPoisonedVector()), scratch);
+#if ENABLE(POISON)
+    xorPtr(TrustedImmPtr(JSArrayBufferView::poisonFor(jsType)), scratch);
+#endif
     cageConditionally(Gigacage::Primitive, scratch, scratch2);
     
-    switch (elementSize(type)) {
+    switch (elementSize(typeArrayType)) {
     case 4:
         loadFloat(BaseIndex(scratch, property, TimesFour), fpRegT0);
         convertFloatToDouble(fpRegT0, fpRegT0);
@@ -1588,10 +1605,10 @@ JIT::JumpList JIT::emitFloatTypedArrayGetByVal(Instruction*, PatchableJump& badT
     return slowCases;    
 }
 
-JIT::JumpList JIT::emitIntTypedArrayPutByVal(Instruction* currentInstruction, PatchableJump& badType, TypedArrayType type)
+JIT::JumpList JIT::emitIntTypedArrayPutByVal(Instruction* currentInstruction, PatchableJump& badType, TypedArrayType typeArrayType)
 {
     ArrayProfile* profile = currentInstruction[4].u.arrayProfile;
-    ASSERT(isInt(type));
+    ASSERT(isInt(typeArrayType));
     
     int value = currentInstruction[3].u.operand;
 
@@ -1610,9 +1627,10 @@ JIT::JumpList JIT::emitIntTypedArrayPutByVal(Instruction* currentInstruction, Pa
 #endif
     
     JumpList slowCases;
-    
+    JSType jsType = typeForTypedArrayType(typeArrayType);
+
     load8(Address(base, JSCell::typeInfoTypeOffset()), earlyScratch);
-    badType = patchableBranch32(NotEqual, earlyScratch, TrustedImm32(typeForTypedArrayType(type)));
+    badType = patchableBranch32(NotEqual, earlyScratch, TrustedImm32(jsType));
     Jump inBounds = branch32(Below, property, Address(base, JSArrayBufferView::offsetOfLength()));
     emitArrayProfileOutOfBoundsSpecialCase(profile);
     slowCases.append(jump());
@@ -1628,12 +1646,15 @@ JIT::JumpList JIT::emitIntTypedArrayPutByVal(Instruction* currentInstruction, Pa
     
     // We would be loading this into base as in get_by_val, except that the slow
     // path expects the base to be unclobbered.
-    loadPtr(Address(base, JSArrayBufferView::offsetOfVector()), lateScratch);
+    loadPtr(Address(base, JSArrayBufferView::offsetOfPoisonedVector()), lateScratch);
+#if ENABLE(POISON)
+    xorPtr(TrustedImmPtr(JSArrayBufferView::poisonFor(jsType)), lateScratch);
+#endif
     cageConditionally(Gigacage::Primitive, lateScratch, lateScratch2);
     
-    if (isClamped(type)) {
-        ASSERT(elementSize(type) == 1);
-        ASSERT(!JSC::isSigned(type));
+    if (isClamped(typeArrayType)) {
+        ASSERT(elementSize(typeArrayType) == 1);
+        ASSERT(!JSC::isSigned(typeArrayType));
         Jump inBounds = branch32(BelowOrEqual, earlyScratch, TrustedImm32(0xff));
         Jump tooBig = branch32(GreaterThan, earlyScratch, TrustedImm32(0xff));
         xor32(earlyScratch, earlyScratch);
@@ -1644,7 +1665,7 @@ JIT::JumpList JIT::emitIntTypedArrayPutByVal(Instruction* currentInstruction, Pa
         inBounds.link(this);
     }
     
-    switch (elementSize(type)) {
+    switch (elementSize(typeArrayType)) {
     case 1:
         store8(earlyScratch, BaseIndex(lateScratch, property, TimesOne));
         break;
@@ -1661,10 +1682,10 @@ JIT::JumpList JIT::emitIntTypedArrayPutByVal(Instruction* currentInstruction, Pa
     return slowCases;
 }
 
-JIT::JumpList JIT::emitFloatTypedArrayPutByVal(Instruction* currentInstruction, PatchableJump& badType, TypedArrayType type)
+JIT::JumpList JIT::emitFloatTypedArrayPutByVal(Instruction* currentInstruction, PatchableJump& badType, TypedArrayType typeArrayType)
 {
     ArrayProfile* profile = currentInstruction[4].u.arrayProfile;
-    ASSERT(isFloat(type));
+    ASSERT(isFloat(typeArrayType));
     
     int value = currentInstruction[3].u.operand;
 
@@ -1683,9 +1704,10 @@ JIT::JumpList JIT::emitFloatTypedArrayPutByVal(Instruction* currentInstruction, 
 #endif
     
     JumpList slowCases;
-    
+    JSType jsType = typeForTypedArrayType(typeArrayType);
+
     load8(Address(base, JSCell::typeInfoTypeOffset()), earlyScratch);
-    badType = patchableBranch32(NotEqual, earlyScratch, TrustedImm32(typeForTypedArrayType(type)));
+    badType = patchableBranch32(NotEqual, earlyScratch, TrustedImm32(jsType));
     Jump inBounds = branch32(Below, property, Address(base, JSArrayBufferView::offsetOfLength()));
     emitArrayProfileOutOfBoundsSpecialCase(profile);
     slowCases.append(jump());
@@ -1714,10 +1736,13 @@ JIT::JumpList JIT::emitFloatTypedArrayPutByVal(Instruction* currentInstruction, 
     
     // We would be loading this into base as in get_by_val, except that the slow
     // path expects the base to be unclobbered.
-    loadPtr(Address(base, JSArrayBufferView::offsetOfVector()), lateScratch);
+    loadPtr(Address(base, JSArrayBufferView::offsetOfPoisonedVector()), lateScratch);
+#if ENABLE(POISON)
+    xorPtr(TrustedImmPtr(JSArrayBufferView::poisonFor(jsType)), lateScratch);
+#endif
     cageConditionally(Gigacage::Primitive, lateScratch, lateScratch2);
     
-    switch (elementSize(type)) {
+    switch (elementSize(typeArrayType)) {
     case 4:
         convertDoubleToFloat(fpRegT0, fpRegT0);
         storeFloat(fpRegT0, BaseIndex(lateScratch, property, TimesFour));

@@ -41,7 +41,7 @@
 #include "ScrollingCoordinator.h"
 #include "SearchPopupMenu.h"
 #include "WebCoreKeyboardUIMode.h"
-#include <runtime/ConsoleTypes.h>
+#include <JavaScriptCore/ConsoleTypes.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
 #include <wtf/Seconds.h>
@@ -362,6 +362,7 @@ public:
     virtual void makeFirstResponder(NSResponder *) { }
     // Focuses on the containing view associated with this page.
     virtual void makeFirstResponder() { }
+    virtual void assistiveTechnologyMakeFirstResponder() { }
 #endif
 
 #if PLATFORM(IOS)

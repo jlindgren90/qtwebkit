@@ -376,15 +376,32 @@ macro checkSwitchToJITForLoop()
         end)
 end
 
-macro loadCaged(basePtr, mask, source, dest, scratch)
-    loadp source, dest
+macro uncage(basePtr, mask, ptr, scratch)
     if GIGACAGE_ENABLED and not C_LOOP
         loadp basePtr, scratch
         btpz scratch, .done
-        andp mask, dest
-        addp scratch, dest
+        andp mask, ptr
+        addp scratch, ptr
     .done:
     end
+end
+
+macro loadCaged(basePtr, mask, source, dest, scratch)
+    loadp source, dest
+    uncage(basePtr, mask, dest, scratch)
+end
+
+macro loadTypedArrayCaged(basePtr, mask, source, typeIndex, dest, scratch)
+    if POISON
+        andp TypedArrayPoisonIndexMask, typeIndex
+        leap _g_typedArrayPoisons, dest
+        loadp [dest, typeIndex, 8], dest
+        loadp source, scratch
+        xorp scratch, dest
+    else
+        loadp source, dest
+    end
+    uncage(basePtr, mask, dest, scratch)
 end
 
 macro loadVariable(operand, value)
@@ -1497,20 +1514,20 @@ _llint_op_get_by_val:
     bineq t2, ContiguousShape, .opGetByValNotContiguous
 
 .opGetByValIsContiguous:
-    biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t3], .opGetByValOutOfBounds
+    biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t3], .opGetByValSlow
     andi JSObject::m_butterflyIndexingMask[t0], t1
     loadisFromInstruction(1, t0)
     loadq [t3, t1, 8], t2
-    btqz t2, .opGetByValOutOfBounds
+    btqz t2, .opGetByValSlow
     jmp .opGetByValDone
 
 .opGetByValNotContiguous:
     bineq t2, DoubleShape, .opGetByValNotDouble
-    biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t3], .opGetByValOutOfBounds
+    biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t3], .opGetByValSlow
     andi JSObject::m_butterflyIndexingMask[t0], t1
     loadisFromInstruction(1 ,t0)
     loadd [t3, t1, 8], ft0
-    bdnequn ft0, ft0, .opGetByValOutOfBounds
+    bdnequn ft0, ft0, .opGetByValSlow
     fd2q ft0, t2
     subq tagTypeNumber, t2
     jmp .opGetByValDone
@@ -1518,21 +1535,16 @@ _llint_op_get_by_val:
 .opGetByValNotDouble:
     subi ArrayStorageShape, t2
     bia t2, SlowPutArrayStorageShape - ArrayStorageShape, .opGetByValNotIndexedStorage
-    biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.vectorLength[t3], .opGetByValOutOfBounds
+    biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.vectorLength[t3], .opGetByValSlow
     andi JSObject::m_butterflyIndexingMask[t0], t1
     loadisFromInstruction(1, t0)
     loadq ArrayStorage::m_vector[t3, t1, 8], t2
-    btqz t2, .opGetByValOutOfBounds
+    btqz t2, .opGetByValSlow
 
 .opGetByValDone:
     storeq t2, [cfr, t0, 8]
     valueProfile(t2, 5, t0)
     dispatch(constexpr op_get_by_val_length)
-
-.opGetByValOutOfBounds:
-    loadpFromInstruction(4, t0)
-    storeb 1, ArrayProfile::m_outOfBounds[t0]
-    jmp .opGetByValSlow
 
 .opGetByValNotIndexedStorage:
     # First lets check if we even have a typed array. This lets us do some boilerplate up front.
@@ -1541,9 +1553,9 @@ _llint_op_get_by_val:
     biaeq t2, NumberOfTypedArrayTypesExcludingDataView, .opGetByValSlow
     
     # Sweet, now we know that we have a typed array. Do some basic things now.
-    loadCaged(_g_gigacageBasePtrs + Gigacage::BasePtrs::primitive, constexpr PRIMITIVE_GIGACAGE_MASK, JSArrayBufferView::m_vector[t0], t3, t5)
     biaeq t1, JSArrayBufferView::m_length[t0], .opGetByValSlow
-    
+    loadTypedArrayCaged(_g_gigacageBasePtrs + Gigacage::BasePtrs::primitive, constexpr PRIMITIVE_GIGACAGE_MASK, JSArrayBufferView::m_poisonedVector[t0], t2, t3, t5)
+
     # Now bisect through the various types:
     #    Int8ArrayType,
     #    Uint8ArrayType,
@@ -2085,6 +2097,7 @@ macro nativeCallTrampoline(executableOffsetToFunction)
     move cfr, a0
     loadp Callee[cfr], t1
     loadp JSFunction::m_executable[t1], t1
+    unpoison(_g_JSFunctionPoison, t1, t2)
     checkStackPointerAlignment(t3, 0xdead0001)
     if C_LOOP
         loadp _g_NativeCodePoison, t2

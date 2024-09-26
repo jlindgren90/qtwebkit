@@ -25,13 +25,15 @@
 
 #pragma once
 
-#include <wtf/ThreadSafeRefCounted.h>
+#if ENABLE(WEB_AUTHN)
+
+#include <wtf/RefCounted.h>
 #include <wtf/TypeCasts.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-class BasicCredential : public ThreadSafeRefCounted<BasicCredential> {
+class BasicCredential : public RefCounted<BasicCredential> {
 public:
     enum class Type {
         PublicKey,
@@ -63,3 +65,5 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToClassName) \
     static bool isType(const WebCore::BasicCredential& credential) { return credential.credentialType() == WebCore::Type; } \
 SPECIALIZE_TYPE_TRAITS_END()
+
+#endif // ENABLE(WEB_AUTHN)

@@ -26,6 +26,8 @@
 #import "config.h"
 #import "PlatformPasteboard.h"
 
+#if PLATFORM(IOS)
+
 #import "Color.h"
 #import "Image.h"
 #import "Pasteboard.h"
@@ -382,6 +384,7 @@ void PlatformPasteboard::write(const PasteboardURL& url)
         if (!url.title.isEmpty())
             nsURL._title = url.title;
         [representationsToRegister addRepresentingObject:nsURL];
+        [representationsToRegister addRepresentingObject:(NSString *)url.url.string()];
     }
 
     registerItemToPasteboard(representationsToRegister.get(), m_pasteboard.get());
@@ -642,3 +645,5 @@ void PlatformPasteboard::updateSupportedTypeIdentifiers(const Vector<String>& ty
 }
 
 }
+
+#endif // PLATFORM(IOS)

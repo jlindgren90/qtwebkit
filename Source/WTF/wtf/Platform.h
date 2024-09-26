@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2006-2018 Apple Inc. All rights reserved.
  * Copyright (C) 2007-2009 Torch Mobile, Inc.
  * Copyright (C) 2010, 2011 Research In Motion Limited. All rights reserved.
  *
@@ -523,10 +523,8 @@
 /* Graphics engines */
 
 /* USE(CG) and PLATFORM(CI) */
-#if PLATFORM(COCOA) || (PLATFORM(WIN) && !USE(WINGDI) && !PLATFORM(WIN_CAIRO) && !USE(DIRECT2D))
+#if PLATFORM(COCOA)
 #define USE_CG 1
-#endif
-#if PLATFORM(COCOA) || (PLATFORM(WIN) && USE(CG) && !USE(DIRECT2D))
 #define USE_CA 1
 #endif
 
@@ -618,10 +616,6 @@
 #endif
 
 #endif /* PLATFORM(IOS) */
-
-#if PLATFORM(WIN) && !USE(WINGDI) && !PLATFORM(WIN_CAIRO)
-#define USE_CFURLCONNECTION 1
-#endif
 
 #if !defined(HAVE_ACCESSIBILITY)
 #if PLATFORM(COCOA) || PLATFORM(WIN) || PLATFORM(GTK) || PLATFORM(WPE)
@@ -746,8 +740,7 @@
 /* The JIT is enabled by default on all x86, x86-64, ARM & MIPS platforms except ARMv7k. */
 #if !defined(ENABLE_JIT) \
     && (CPU(X86) || CPU(X86_64) || CPU(ARM) || (CPU(ARM64) && !defined(__ILP32__)) || CPU(MIPS)) \
-    && !CPU(APPLE_ARMV7K) \
-    && !CPU(ARM64E)
+    && !CPU(APPLE_ARMV7K)
 #define ENABLE_JIT 1
 #endif
 
@@ -983,6 +976,13 @@
 #define ENABLE_YARR_JIT_DEBUG 0
 #endif
 
+#if ENABLE(YARR_JIT)
+#if CPU(ARM64) || (CPU(X86_64) && !OS(WINDOWS))
+/* Enable JIT'ing Regular Expressions that have nested parenthesis. */
+#define ENABLE_YARR_JIT_ALL_PARENS_EXPRESSIONS 1
+#endif
+#endif
+
 /* If either the JIT or the RegExp JIT is enabled, then the Assembler must be
    enabled as well: */
 #if ENABLE(JIT) || ENABLE(YARR_JIT)
@@ -1016,6 +1016,13 @@
 #define ENABLE_SIGNAL_BASED_VM_TRAPS 1
 #endif
 
+#define ENABLE_POISON 1
+/* Not currently supported for 32-bit or OS(WINDOWS) builds (because of missing llint support). Make sure it's disabled. */
+#if USE(JSVALUE32_64) || OS(WINDOWS)
+#undef ENABLE_POISON
+#define ENABLE_POISON 0
+#endif
+
 /* CSS Selector JIT Compiler */
 #if !defined(ENABLE_CSS_SELECTOR_JIT)
 #if (CPU(X86_64) || CPU(ARM64) || (CPU(ARM_THUMB2) && PLATFORM(IOS))) && ENABLE(JIT)
@@ -1025,24 +1032,20 @@
 #endif
 #endif
 
+#if ENABLE(WEBGL) && PLATFORM(COCOA)
+#if PLATFORM(MAC)
+#define USE_OPENGL 1
+#define USE_OPENGL_ES 0
+#else
+#define USE_OPENGL 0
+#define USE_OPENGL_ES 1
+#endif
+#endif
+
 #if ENABLE(WEBGL) && PLATFORM(WIN)
 #define USE_OPENGL 1
-#define USE_OPENGL_ES_2 1
+#define USE_OPENGL_ES 1
 #define USE_EGL 1
-#endif
-
-#if ENABLE(VIDEO) && PLATFORM(WIN_CAIRO)
-#if ENABLE(GSTREAMER_WINCAIRO)
-#define USE_MEDIA_FOUNDATION 0
-#define USE_GLIB 1
-#define USE_GSTREAMER 1
-#else
-#define USE_MEDIA_FOUNDATION 1
-#endif
-#endif
-
-#if PLATFORM(WIN_CAIRO)
-#define USE_TEXTURE_MAPPER 1
 #endif
 
 #if USE(TEXTURE_MAPPER) && ENABLE(GRAPHICS_CONTEXT_3D) && !defined(USE_TEXTURE_MAPPER_GL)
@@ -1124,7 +1127,7 @@
 #define HAVE_AVFOUNDATION_LOADER_DELEGATE 1
 #endif
 
-#if PLATFORM(COCOA) || PLATFORM(GTK) || PLATFORM(WPE)
+#if !PLATFORM(WIN)
 #define USE_REQUEST_ANIMATION_FRAME_DISPLAY_MONITOR 1
 #endif
 
@@ -1184,7 +1187,11 @@
 #endif
 
 #if PLATFORM(COCOA) && !PLATFORM(IOS_SIMULATOR)
-#define USE_IOSURFACE 1
+#define HAVE_IOSURFACE 1
+#endif
+
+#if PLATFORM(IOS) && !PLATFORM(IOS_SIMULATOR)
+#define HAVE_IOSURFACE_ACCELERATOR 1
 #endif
 
 #if PLATFORM(COCOA)

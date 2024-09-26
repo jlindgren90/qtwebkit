@@ -53,7 +53,10 @@
 #import "WebScriptWorldInternal.h"
 #import "WebViewInternal.h"
 #import <JavaScriptCore/APICast.h>
+#import <JavaScriptCore/JSCJSValue.h>
 #import <JavaScriptCore/JSContextInternal.h>
+#import <JavaScriptCore/JSLock.h>
+#import <JavaScriptCore/JSObject.h>
 #import <WebCore/AXObjectCache.h>
 #import <WebCore/AccessibilityObject.h>
 #import <WebCore/CSSAnimationController.h>
@@ -99,10 +102,6 @@
 #import <WebCore/ThreadCheck.h>
 #import <WebCore/VisibleUnits.h>
 #import <WebCore/markup.h>
-#import <bindings/ScriptValue.h>
-#import <runtime/JSCJSValue.h>
-#import <runtime/JSLock.h>
-#import <runtime/JSObject.h>
 #import <wtf/CurrentTime.h>
 
 #if PLATFORM(IOS)

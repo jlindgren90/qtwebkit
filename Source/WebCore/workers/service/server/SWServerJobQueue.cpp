@@ -81,6 +81,8 @@ void SWServerJobQueue::scriptFetchFinished(SWServer::Connection& connection, con
         return;
     }
 
+    registration->setLastUpdateTime(WallTime::now());
+
     // If newestWorker is not null, newestWorker's script url equals job's script url with the exclude fragments
     // flag set, and script's source text is a byte-for-byte match with newestWorker's script resource's source
     // text, then:
@@ -183,13 +185,14 @@ void SWServerJobQueue::didFinishInstall(const ServiceWorkerJobDataIdentifier& jo
     ASSERT(registration->installingWorker()->identifier() == identifier);
 
     if (!wasSuccessful) {
-        auto* worker = m_server.workerByID(identifier);
+        RefPtr<SWServerWorker> worker = m_server.workerByID(identifier);
         RELEASE_ASSERT(worker);
 
-        // Run the Update Worker State algorithm passing registration's installing worker and redundant as the arguments.
-        registration->updateWorkerState(*worker, ServiceWorkerState::Redundant);
+        worker->terminate();
         // Run the Update Registration State algorithm passing registration, "installing" and null as the arguments.
         registration->updateRegistrationState(ServiceWorkerRegistrationState::Installing, nullptr);
+        // Run the Update Worker State algorithm passing registration's installing worker and redundant as the arguments.
+        registration->updateWorkerState(*worker, ServiceWorkerState::Redundant);
 
         // If newestWorker is null, invoke Clear Registration algorithm passing registration as its argument.
         if (!registration->getNewestWorker())
@@ -360,6 +363,41 @@ void SWServerJobQueue::finishCurrentJob()
     m_jobQueue.removeFirst();
     if (!m_jobQueue.isEmpty())
         runNextJob();
+}
+
+void SWServerJobQueue::removeAllJobsMatching(const WTF::Function<bool(ServiceWorkerJobData&)>& matches)
+{
+    bool isFirst = true;
+    bool didRemoveFirstJob = false;
+    m_jobQueue.removeAllMatching([&](auto& job) {
+        bool shouldRemove = matches(job);
+        if (isFirst) {
+            isFirst = false;
+            if (shouldRemove)
+                didRemoveFirstJob = true;
+        }
+        return shouldRemove;
+    });
+
+    if (m_jobTimer.isActive()) {
+        if (m_jobQueue.isEmpty())
+            m_jobTimer.stop();
+    } else if (didRemoveFirstJob && !m_jobQueue.isEmpty())
+        runNextJob();
+}
+
+void SWServerJobQueue::cancelJobsFromConnection(SWServerConnectionIdentifier connectionIdentifier)
+{
+    removeAllJobsMatching([connectionIdentifier](auto& job) {
+        return job.identifier().connectionIdentifier == connectionIdentifier;
+    });
+}
+
+void SWServerJobQueue::cancelJobsFromServiceWorker(ServiceWorkerIdentifier serviceWorkerIdentifier)
+{
+    removeAllJobsMatching([serviceWorkerIdentifier](auto& job) {
+        return WTF::holds_alternative<ServiceWorkerIdentifier>(job.sourceContext) && WTF::get<ServiceWorkerIdentifier>(job.sourceContext) == serviceWorkerIdentifier;
+    });
 }
 
 } // namespace WebCore

@@ -59,6 +59,7 @@
 #include "JSSet.h"
 #include "JSWeakMap.h"
 #include "JSWeakSet.h"
+#include "NumberConstructor.h"
 #include "ObjectConstructor.h"
 #include "Operations.h"
 #include "ParseInt.h"
@@ -246,8 +247,8 @@ JSCell* JIT_OPERATION operationCreateThis(ExecState* exec, JSObject* constructor
     VM& vm = exec->vm();
     NativeCallFrameTracer tracer(&vm, exec);
     auto scope = DECLARE_THROW_SCOPE(vm);
-    if (constructor->type() == JSFunctionType) {
-        auto rareData = jsCast<JSFunction*>(constructor)->rareData(exec, inlineCapacity);
+    if (constructor->type() == JSFunctionType && jsCast<JSFunction*>(constructor)->canUseAllocationProfile()) {
+        auto rareData = jsCast<JSFunction*>(constructor)->ensureRareDataAndAllocationProfile(exec, inlineCapacity);
         RETURN_IF_EXCEPTION(scope, nullptr);
         Structure* structure = rareData->objectAllocationProfile()->structure();
         JSObject* result = constructEmptyObject(exec, structure);
@@ -2252,6 +2253,13 @@ int32_t JIT_OPERATION operationHasOwnProperty(ExecState* exec, JSObject* thisObj
     ASSERT(hasOwnPropertyCache);
     hasOwnPropertyCache->tryAdd(vm, slot, thisObject, propertyName.impl(), result);
     return result;
+}
+
+int32_t JIT_OPERATION operationNumberIsInteger(ExecState* exec, EncodedJSValue value)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+    return NumberConstructor::isIntegerImpl(JSValue::decode(value));
 }
 
 int32_t JIT_OPERATION operationArrayIndexOfString(ExecState* exec, Butterfly* butterfly, JSString* searchElement, int32_t index)

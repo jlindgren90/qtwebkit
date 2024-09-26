@@ -74,6 +74,14 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
             this._valueTextField.detached();
     }
 
+    hidden()
+    {
+        if (this._nameTextField && this._nameTextField.editing)
+            this._nameTextField.element.blur();
+        else if (this._valueTextField && this._valueTextField.editing)
+            this._valueTextField.element.blur();
+    }
+
     highlight()
     {
         this._element.classList.add("highlighted");
@@ -148,10 +156,15 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
 
     // Private
 
-    _remove()
+    _remove(replacement = "")
     {
         this.element.remove();
-        this._property.remove();
+
+        if (replacement)
+            this._property.replaceWithText(replacement);
+        else
+            this._property.remove();
+
         this.detached();
 
         if (this._delegate && typeof this._delegate.spreadsheetStylePropertyRemoved === "function")
@@ -196,6 +209,7 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
         if (this._property.editable && this._property.enabled) {
             this._nameElement.tabIndex = 0;
             this._nameElement.addEventListener("beforeinput", this._handleNameBeforeInput.bind(this));
+            this._nameElement.addEventListener("paste", this._handleNamePaste.bind(this));
 
             this._nameTextField = new WI.SpreadsheetTextField(this, this._nameElement, this._nameCompletionDataProvider.bind(this));
 
@@ -233,9 +247,9 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
     spreadsheetTextFieldDidChange(textField)
     {
         if (textField === this._valueTextField)
-            this.debounce(WI.SpreadsheetStyleProperty.CommitCoalesceDelay)._handleValueChange();
+            this._handleValueChange();
         else if (textField === this._nameTextField)
-            this.debounce(WI.SpreadsheetStyleProperty.CommitCoalesceDelay)._handleNameChange();
+            this._handleNameChange();
     }
 
     spreadsheetTextFieldDidCommit(textField, {direction})
@@ -265,9 +279,9 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
             }
         }
 
-        if (typeof this._delegate.spreadsheetCSSStyleDeclarationEditorFocusMoved === "function") {
+        if (typeof this._delegate.spreadsheetStylePropertyFocusMoved === "function") {
             // Move focus away from the current property, to the next or previous one, if exists, or to the next or previous rule, if exists.
-            this._delegate.spreadsheetCSSStyleDeclarationEditorFocusMoved({direction, willRemoveProperty, movedFromProperty: this});
+            this._delegate.spreadsheetStylePropertyFocusMoved(this, {direction, willRemoveProperty});
         }
 
         if (willRemoveProperty)
@@ -330,7 +344,7 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
             if (className) {
                 let span = document.createElement("span");
                 span.classList.add(className);
-                span.textContent = token.value.trimMiddle(maxValueLength);
+                span.textContent = token.value.truncateMiddle(maxValueLength);
                 return span;
             }
 
@@ -562,6 +576,23 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
         this._valueTextField.startEditing();
     }
 
+    _handleNamePaste(event)
+    {
+        let text = event.clipboardData.getData("text/plain");
+        if (!text || !text.includes(":"))
+            return;
+
+        event.preventDefault();
+
+        this._remove(text);
+
+        if (this._delegate.spreadsheetStylePropertyAddBlankPropertySoon) {
+            this._delegate.spreadsheetStylePropertyAddBlankPropertySoon(this, {
+                index: parseInt(this._element.dataset.propertyIndex) + 1,
+            });
+        }
+    }
+
     _nameCompletionDataProvider(prefix)
     {
         return WI.CSSCompletions.cssNameCompletions.startsWith(prefix);
@@ -635,5 +666,3 @@ WI.SpreadsheetStyleProperty = class SpreadsheetStyleProperty extends WI.Object
 };
 
 WI.SpreadsheetStyleProperty.StyleClassName = "property";
-
-WI.SpreadsheetStyleProperty.CommitCoalesceDelay = 250;

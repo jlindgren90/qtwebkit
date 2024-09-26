@@ -41,6 +41,7 @@
 #include "WebSWServerConnectionMessages.h"
 #include "WebSWServerToContextConnection.h"
 #include "WebToStorageProcessConnection.h"
+#include <WebCore/DocumentIdentifier.h>
 #include <WebCore/ExceptionData.h>
 #include <WebCore/NotImplemented.h>
 #include <WebCore/SWServerRegistration.h>
@@ -49,6 +50,7 @@
 #include <WebCore/ServiceWorkerClientIdentifier.h>
 #include <WebCore/ServiceWorkerContextData.h>
 #include <WebCore/ServiceWorkerJobData.h>
+#include <WebCore/ServiceWorkerUpdateViaCache.h>
 #include <wtf/MainThread.h>
 
 using namespace PAL;
@@ -149,13 +151,16 @@ void WebSWServerConnection::startFetch(uint64_t fetchIdentifier, ServiceWorkerRe
             return;
         }
 
+        if (!StorageProcess::singleton().globalServerToContextConnection())
+            StorageProcess::singleton().createServerToContextConnection(server().sessionID());
+
         server().runServiceWorkerIfNecessary(serviceWorkerIdentifier, [weakThis = WTFMove(weakThis), this, fetchIdentifier, serviceWorkerIdentifier, request = WTFMove(request), options = WTFMove(options), formData = WTFMove(formData), referrer = WTFMove(referrer)](bool success, auto& contextConnection) {
             if (!weakThis)
                 return;
 
             if (success) {
                 SWSERVERCONNECTION_RELEASE_LOG_IF_ALLOWED("startFetch: Starting fetch %llu via service worker %llu", fetchIdentifier, serviceWorkerIdentifier.toUInt64());
-                sendToContextProcess(contextConnection, Messages::WebSWContextManagerConnection::StartFetch { identifier(), fetchIdentifier, serviceWorkerIdentifier, request, options, formData, referrer });
+                sendToContextProcess(contextConnection, Messages::WebSWContextManagerConnection::StartFetch { this->identifier(), fetchIdentifier, serviceWorkerIdentifier, request, options, formData, referrer });
             } else {
                 SWSERVERCONNECTION_RELEASE_LOG_ERROR_IF_ALLOWED("startFetch: fetchIdentifier: %llu -> DidNotHandle because failed to run service worker", fetchIdentifier);
                 m_contentConnection->send(Messages::ServiceWorkerClientFetch::DidNotHandle { }, fetchIdentifier);
@@ -189,12 +194,27 @@ void WebSWServerConnection::postMessageToServiceWorker(ServiceWorkerIdentifier d
     if (!sourceData)
         return;
 
+    if (!StorageProcess::singleton().globalServerToContextConnection())
+        StorageProcess::singleton().createServerToContextConnection(server().sessionID());
+
     // It's possible this specific worker cannot be re-run (e.g. its registration has been removed)
     server().runServiceWorkerIfNecessary(destinationIdentifier, [destinationIdentifier, message = WTFMove(message), sourceData = WTFMove(*sourceData)](bool success, auto& contextConnection) mutable {
         if (success)
             sendToContextProcess(contextConnection, Messages::WebSWContextManagerConnection::PostMessageToServiceWorker { destinationIdentifier, WTFMove(message), WTFMove(sourceData) });
     });
 }
+
+void WebSWServerConnection::scheduleJobInServer(ServiceWorkerJobData&& jobData)
+{
+    if (!StorageProcess::singleton().globalServerToContextConnection())
+        StorageProcess::singleton().createServerToContextConnection(server().sessionID());
+
+    SWSERVERCONNECTION_RELEASE_LOG_IF_ALLOWED("Scheduling ServiceWorker job %s in server", jobData.identifier().loggingString().utf8().data());
+    ASSERT(identifier() == jobData.connectionIdentifier());
+
+    server().scheduleJob(WTFMove(jobData));
+}
+
 
 void WebSWServerConnection::didReceiveFetchResponse(uint64_t fetchIdentifier, const ResourceResponse& response)
 {

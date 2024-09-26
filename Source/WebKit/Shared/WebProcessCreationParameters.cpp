@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -94,6 +94,9 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << fontWhitelist;
     encoder << terminationTimeout;
     encoder << languages;
+#if USE(GSTREAMER)
+    encoder << gstreamerOptions;
+#endif
     encoder << textCheckerState;
     encoder << fullKeyboardAccessEnabled;
     encoder << defaultRequestTimeoutInterval;
@@ -125,10 +128,6 @@ void WebProcessCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << hasImageServices;
     encoder << hasSelectionServices;
     encoder << hasRichContentServices;
-#endif
-
-#if ENABLE(SERVICE_WORKER)
-    encoder << hasRegisteredServiceWorkers;
 #endif
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
@@ -300,6 +299,10 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
         return false;
     if (!decoder.decode(parameters.languages))
         return false;
+#if USE(GSTREAMER)
+    if (!decoder.decode(parameters.gstreamerOptions))
+        return false;
+#endif
     if (!decoder.decode(parameters.textCheckerState))
         return false;
     if (!decoder.decode(parameters.fullKeyboardAccessEnabled))
@@ -362,11 +365,6 @@ bool WebProcessCreationParameters::decode(IPC::Decoder& decoder, WebProcessCreat
     if (!decoder.decode(parameters.hasSelectionServices))
         return false;
     if (!decoder.decode(parameters.hasRichContentServices))
-        return false;
-#endif
-
-#if ENABLE(SERVICE_WORKER)
-    if (!decoder.decode(parameters.hasRegisteredServiceWorkers))
         return false;
 #endif
 

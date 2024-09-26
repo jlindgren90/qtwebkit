@@ -39,6 +39,7 @@ namespace JSC {
     v(JSAPIWrapperObject) \
     v(JSArrayBuffer) \
     v(JSCallbackObject) \
+    v(JSFunction) \
     v(JSGlobalObject) \
     v(JSScriptFetchParameters) \
     v(JSScriptFetcher) \
@@ -63,6 +64,8 @@ namespace JSC {
 
 FOR_EACH_JSC_POISON(DECLARE_POISON)
 #undef DECLARE_POISON
+
+extern "C" JS_EXPORTDATA uintptr_t g_typedArrayPoisons[];
 
 struct ClassInfo;
 

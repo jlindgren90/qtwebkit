@@ -264,6 +264,7 @@ enum EventThrottlingBehavior {
     unsigned long imageDecodeCount(HTMLImageElement element);
     unsigned long pdfDocumentCachingCount(HTMLImageElement element);
     void setLargeImageAsyncDecodingEnabledForTesting(HTMLImageElement element, boolean enabled);
+    void setForceUpdateImageDataEnabledForTesting(HTMLImageElement element, boolean enabled);
 
     void setGridMaxTracksLimit(unsigned long maxTracksLimit);
 
@@ -419,6 +420,8 @@ enum EventThrottlingBehavior {
     [Conditional=VIDEO] sequence<DOMString> mediaResponseContentRanges(HTMLMediaElement media);
     [Conditional=VIDEO] void simulateAudioInterruption(HTMLMediaElement element);
     [Conditional=VIDEO, MayThrowException] boolean mediaElementHasCharacteristic(HTMLMediaElement element, DOMString characteristic);
+    [Conditional=VIDEO] void beginSimulatedHDCPError(HTMLMediaElement media);
+    [Conditional=VIDEO] void endSimulatedHDCPError(HTMLMediaElement media);
 
     [Conditional=LEGACY_ENCRYPTED_MEDIA] void initializeMockCDM();
     [Conditional=ENCRYPTED_MEDIA] MockCDMFactory registerMockCDM();
@@ -439,6 +442,7 @@ enum EventThrottlingBehavior {
     boolean isSelectPopupVisible(HTMLSelectElement element);
 
     [MayThrowException] boolean isPluginUnavailabilityIndicatorObscured(Element element);
+    [MayThrowException] DOMString unavailablePluginReplacementText(Element element);
     boolean isPluginSnapshotted(Element element);
 
     [MayThrowException] DOMRect selectionBounds();
@@ -579,4 +583,5 @@ enum EventThrottlingBehavior {
     [EnabledAtRuntime=WebAnimations] void pauseTimeline(AnimationTimeline timeline);
     [EnabledAtRuntime=WebAnimations] void setTimelineCurrentTime(AnimationTimeline timeline, double currentTime);
     [Conditional=APPLE_PAY] readonly attribute MockPaymentCoordinator mockPaymentCoordinator;
+    [Conditional=WEB_AUTHN] readonly attribute MockCredentialsMessenger mockCredentialsMessenger;
 };

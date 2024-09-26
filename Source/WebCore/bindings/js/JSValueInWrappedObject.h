@@ -29,70 +29,54 @@
 #include <JavaScriptCore/JSCJSValue.h>
 #include <JavaScriptCore/SlotVisitor.h>
 #include <JavaScriptCore/Weak.h>
+#include <wtf/Variant.h>
 
 namespace WebCore {
 
 class JSValueInWrappedObject {
 public:
     JSValueInWrappedObject(JSC::JSValue = { });
-    JSValueInWrappedObject(const JSValueInWrappedObject&);
     operator JSC::JSValue() const;
     explicit operator bool() const;
-    JSValueInWrappedObject& operator=(const JSValueInWrappedObject& other);
-    void visit(JSC::SlotVisitor&);
-    void clear();
+    void visit(JSC::SlotVisitor&) const;
 
 private:
     // Use a weak pointer here so that if this code or client code has a visiting mistake,
     // we get null rather than a dangling pointer to a deleted object.
     using Weak = JSC::Weak<JSC::JSCell>;
-
-    JSC::JSValue m_jsValue;
-    Weak m_weakValue;
-    bool m_isWeak;
+    // FIXME: Would storing a separate JSValue alongside a Weak be better than using a Variant?
+    using Value = Variant<JSC::JSValue, Weak>;
+    static Value makeValue(JSC::JSValue);
+    Value m_value;
 };
 
-inline JSValueInWrappedObject::JSValueInWrappedObject(JSC::JSValue value)
+JSC::JSValue cachedPropertyValue(JSC::ExecState&, const JSDOMObject& owner, JSValueInWrappedObject& cacheSlot, const WTF::Function<JSC::JSValue()>&);
+
+inline auto JSValueInWrappedObject::makeValue(JSC::JSValue value) -> Value
 {
-    if (!value.isCell()) {
-        m_jsValue = value;
-        m_isWeak = false;
-    } else {
-        // FIXME: This is not quite right. It is possible that this value is being
-        // stored in a wrapped object that does not yet have a wrapper. If garbage
-        // collection occurs before the wrapped object gets a wrapper, it's possible
-        // the value object could be collected, and this will become null. A future
-        // version of this class should prevent the value from being collected in
-        // that case. Unclear if this can actually happen in practice.
-        m_weakValue = Weak { value.asCell() };
-        m_isWeak = true;
-    }
+    if (!value.isCell())
+        return value;
+    // FIXME: This is not quite right. It is possible that this value is being
+    // stored in a wrapped object that does not yet have a wrapper. If garbage
+    // collection occurs before the wrapped object gets a wrapper, it's possible
+    // the value object could be collected, and this will become null. A future
+    // version of this class should prevent the value from being collected in
+    // that case. Unclear if this can actually happen in practice.
+    return Weak { value.asCell() };
 }
 
-inline JSValueInWrappedObject::JSValueInWrappedObject(const JSValueInWrappedObject& other)
+inline JSValueInWrappedObject::JSValueInWrappedObject(JSC::JSValue value)
+    : m_value(makeValue(value))
 {
-    JSC::JSValue value = other;
-    if (!value.isCell()) {
-        m_jsValue = value;
-        m_isWeak = false;
-    } else {
-        // FIXME: This is not quite right. It is possible that this value is being
-        // stored in a wrapped object that does not yet have a wrapper. If garbage
-        // collection occurs before the wrapped object gets a wrapper, it's possible
-        // the value object could be collected, and this will become null. A future
-        // version of this class should prevent the value from being collected in
-        // that case. Unclear if this can actually happen in practice.
-        m_weakValue = Weak { value.asCell() };
-        m_isWeak = true;
-    }
 }
 
 inline JSValueInWrappedObject::operator JSC::JSValue() const
 {
-    if (!m_isWeak)
-        return m_jsValue;
-
-    return m_weakValue.get();
+    return WTF::switchOn(m_value, [] (JSC::JSValue value) {
+        return value;
+    }, [] (const Weak& value) {
+        return value.get();
+    });
 }
 
 inline JSValueInWrappedObject::operator bool() const
@@ -100,38 +84,22 @@ inline JSValueInWrappedObject::operator bool() const
     return JSC::JSValue { *this }.operator bool();
 }
 
-inline JSValueInWrappedObject& JSValueInWrappedObject::operator=(const JSValueInWrappedObject& other)
+inline void JSValueInWrappedObject::visit(JSC::SlotVisitor& visitor) const
 {
-    JSC::JSValue value = other;
-    if (!value.isCell()) {
-        m_jsValue = value;
-        m_isWeak = false;
-    } else {
-        // FIXME: This is not quite right. It is possible that this value is being
-        // stored in a wrapped object that does not yet have a wrapper. If garbage
-        // collection occurs before the wrapped object gets a wrapper, it's possible
-        // the value object could be collected, and this will become null. A future
-        // version of this class should prevent the value from being collected in
-        // that case. Unclear if this can actually happen in practice.
-        m_weakValue = Weak { value.asCell() };
-        m_isWeak = true;
-    }
-    return *this;
-}
-
-inline void JSValueInWrappedObject::visit(JSC::SlotVisitor& visitor)
-{
-    if (!m_isWeak) {
+    return WTF::switchOn(m_value, [] (JSC::JSValue) {
         // Nothing to visit.
-    } else {
-        visitor.appendUnbarrieredWeak(&m_weakValue);
-    };
+    }, [&visitor] (const Weak& value) {
+        visitor.append(value);
+    });
 }
 
-inline void JSValueInWrappedObject::clear()
+inline JSC::JSValue cachedPropertyValue(JSC::ExecState& state, const JSDOMObject& owner, JSValueInWrappedObject& cachedValue, const WTF::Function<JSC::JSValue()>& function)
 {
-    if (m_isWeak)
-        m_weakValue.clear();
+    if (cachedValue && isWorldCompatible(state, cachedValue))
+        return cachedValue;
+    cachedValue = cloneAcrossWorlds(state, owner, function());
+    ASSERT(isWorldCompatible(state, cachedValue));
+    return cachedValue;
 }
 
 } // namespace WebCore

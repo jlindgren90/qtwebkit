@@ -79,7 +79,11 @@ SettingsBase::~SettingsBase() = default;
 
 float SettingsBase::defaultMinimumZoomFontSize()
 {
+#if ENABLE(EXTRA_ZOOM_MODE)
+    return 30;
+#else
     return 15;
+#endif
 }
 
 #if !PLATFORM(IOS)
@@ -88,6 +92,42 @@ bool SettingsBase::defaultTextAutosizingEnabled()
     return false;
 }
 #endif
+
+float SettingsBase::defaultOneLineTextMultiplierCoefficient()
+{
+#if ENABLE(EXTRA_ZOOM_MODE)
+    return 2.23125f;
+#else
+    return 1.7f;
+#endif
+}
+
+float SettingsBase::defaultMultiLineTextMultiplierCoefficient()
+{
+#if ENABLE(EXTRA_ZOOM_MODE)
+    return 2.48125f;
+#else
+    return 1.95f;
+#endif
+}
+
+float SettingsBase::defaultMaxTextAutosizingScaleIncrease()
+{
+#if ENABLE(EXTRA_ZOOM_MODE)
+    return 5.0f;
+#else
+    return 1.7f;
+#endif
+}
+
+bool SettingsBase::defaultDownloadableBinaryFontsEnabled()
+{
+#if ENABLE(EXTRA_ZOOM_MODE)
+    return false;
+#else
+    return true;
+#endif
+}
 
 #if !PLATFORM(COCOA)
 const String& SettingsBase::defaultMediaContentTypesRequiringHardwareSupport()

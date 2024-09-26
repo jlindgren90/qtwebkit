@@ -33,7 +33,7 @@
 #include "OrientationNotifier.h"
 #include "PageConsoleClient.h"
 #include "RealtimeMediaSource.h"
-#include <runtime/Float32Array.h>
+#include <JavaScriptCore/Float32Array.h>
 #include <wtf/Optional.h>
 
 #if ENABLE(MEDIA_SESSION)
@@ -71,6 +71,7 @@ class MediaStreamTrack;
 class MemoryInfo;
 class MockCDMFactory;
 class MockContentFilterSettings;
+class MockCredentialsMessenger;
 class MockPageOverlay;
 class MockPaymentCoordinator;
 class NodeList;
@@ -141,6 +142,7 @@ public:
     unsigned imageDecodeCount(HTMLImageElement&);
     unsigned pdfDocumentCachingCount(HTMLImageElement&);
     void setLargeImageAsyncDecodingEnabledForTesting(HTMLImageElement&, bool enabled);
+    void setForceUpdateImageDataEnabledForTesting(HTMLImageElement&, bool enabled);
 
     void setGridMaxTracksLimit(unsigned);
 
@@ -461,6 +463,8 @@ public:
     Vector<String> mediaResponseContentRanges(HTMLMediaElement&);
     void simulateAudioInterruption(HTMLMediaElement&);
     ExceptionOr<bool> mediaElementHasCharacteristic(HTMLMediaElement&, const String&);
+    void beginSimulatedHDCPError(HTMLMediaElement&);
+    void endSimulatedHDCPError(HTMLMediaElement&);
 #endif
 
     bool isSelectPopupVisible(HTMLSelectElement&);
@@ -478,6 +482,7 @@ public:
     ExceptionOr<Ref<DOMRect>> selectionBounds();
 
     ExceptionOr<bool> isPluginUnavailabilityIndicatorObscured(Element&);
+    ExceptionOr<String> unavailablePluginReplacementText(Element&);
     bool isPluginSnapshotted(Element&);
 
 #if ENABLE(MEDIA_SOURCE)
@@ -642,6 +647,10 @@ public:
 
     void testIncomingSyncIPCMessageWhileWaitingForSyncReply();
 
+#if ENABLE(WEB_AUTHN)
+    MockCredentialsMessenger& mockCredentialsMessenger() const;
+#endif
+
 private:
     explicit Internals(Document&);
     Document* contextDocument() const;
@@ -666,6 +675,10 @@ private:
 
 #if ENABLE(APPLE_PAY)
     MockPaymentCoordinator* m_mockPaymentCoordinator { nullptr };
+#endif
+
+#if ENABLE(WEB_AUTHN)
+    std::unique_ptr<MockCredentialsMessenger> m_mockCredentialsMessenger;
 #endif
 };
 

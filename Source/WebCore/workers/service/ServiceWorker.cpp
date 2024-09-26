@@ -38,7 +38,7 @@
 #include "ServiceWorkerClientData.h"
 #include "ServiceWorkerGlobalScope.h"
 #include "ServiceWorkerProvider.h"
-#include <runtime/JSCJSValueInlines.h>
+#include <JavaScriptCore/JSCJSValueInlines.h>
 #include <wtf/NeverDestroyed.h>
 
 #define WORKER_RELEASE_LOG_IF_ALLOWED(fmt, ...) RELEASE_LOG_IF(isAlwaysOnLoggingAllowed(), ServiceWorker, "%p - ServiceWorker::" fmt, this, ##__VA_ARGS__)
@@ -95,7 +95,7 @@ void ServiceWorker::scheduleTaskToUpdateState(State state)
 
 ExceptionOr<void> ServiceWorker::postMessage(ScriptExecutionContext& context, JSC::JSValue messageValue, Vector<JSC::Strong<JSC::JSObject>>&& transfer)
 {
-    if (m_isStopped)
+    if (m_isStopped || !context.sessionID().isValid())
         return Exception { InvalidStateError };
 
     if (state() == State::Redundant)

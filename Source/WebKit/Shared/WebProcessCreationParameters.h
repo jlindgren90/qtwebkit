@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -111,6 +111,9 @@ struct WebProcessCreationParameters {
 
     Vector<String> fontWhitelist;
     Vector<String> languages;
+#if USE(GSTREAMER)
+    Vector<String> gstreamerOptions;
+#endif
 
     CacheModel cacheModel;
 
@@ -129,10 +132,6 @@ struct WebProcessCreationParameters {
     bool hasImageServices { false };
     bool hasSelectionServices { false };
     bool hasRichContentServices { false };
-#endif
-
-#if ENABLE(SERVICE_WORKER)
-    bool hasRegisteredServiceWorkers { true };
 #endif
 
     Seconds terminationTimeout;
@@ -162,7 +161,7 @@ struct WebProcessCreationParameters {
     HashMap<String, bool> notificationPermissions;
 #endif
 
-    HashMap<PAL::SessionID, HashMap<unsigned, double>> plugInAutoStartOriginHashes;
+    HashMap<PAL::SessionID, HashMap<unsigned, WallTime>> plugInAutoStartOriginHashes;
     Vector<String> plugInAutoStartOrigins;
 
 #if ENABLE(NETSCAPE_PLUGIN_API)

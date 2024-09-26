@@ -41,11 +41,11 @@
 #include "OffscreenCanvas.h"
 #include "ScriptState.h"
 #include "StringAdaptors.h"
-#include <inspector/IdentifiersFactory.h>
-#include <inspector/InjectedScript.h>
-#include <inspector/InjectedScriptManager.h>
-#include <inspector/InspectorProtocolObjects.h>
-#include <runtime/JSCInlines.h>
+#include <JavaScriptCore/IdentifiersFactory.h>
+#include <JavaScriptCore/InjectedScript.h>
+#include <JavaScriptCore/InjectedScriptManager.h>
+#include <JavaScriptCore/InspectorProtocolObjects.h>
+#include <JavaScriptCore/JSCInlines.h>
 
 #if ENABLE(WEBGL)
 #include "JSWebGLRenderingContext.h"
@@ -241,7 +241,7 @@ static JSC::JSValue contextAsScriptValue(JSC::ExecState& state, CanvasRenderingC
     return { };
 }
 
-void InspectorCanvasAgent::resolveCanvasContext(ErrorString& errorString, const String& canvasId, const String* const objectGroup, RefPtr<Inspector::Protocol::Runtime::RemoteObject>& result)
+void InspectorCanvasAgent::resolveCanvasContext(ErrorString& errorString, const String& canvasId, const String* objectGroup, RefPtr<Inspector::Protocol::Runtime::RemoteObject>& result)
 {
     auto* inspectorCanvas = assertInspectorCanvas(errorString, canvasId);
     if (!inspectorCanvas)
@@ -262,7 +262,7 @@ void InspectorCanvasAgent::resolveCanvasContext(ErrorString& errorString, const 
     result = injectedScript.wrapObject(value, objectGroupName);
 }
 
-void InspectorCanvasAgent::startRecording(ErrorString& errorString, const String& canvasId, const bool* const singleFrame, const int* const memoryLimit)
+void InspectorCanvasAgent::startRecording(ErrorString& errorString, const String& canvasId, const bool* singleFrame, const int* memoryLimit)
 {
     auto* inspectorCanvas = assertInspectorCanvas(errorString, canvasId);
     if (!inspectorCanvas)

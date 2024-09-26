@@ -1,3 +1,120 @@
+2018-02-02  Aakash Jain  <aakash_jain@apple.com>
+
+        Add support for submitting build request to Buildbot 0.9 server in BuildbotSyncer
+        https://bugs.webkit.org/show_bug.cgi?id=182218
+
+        Reviewed by Ryosuke Niwa.
+
+        * tools/js/buildbot-syncer.js:
+        (BuildbotSyncer.prototype.scheduleRequest): Added assert to ensure forcescheduler property is always defined. Builds can not
+        be scheduled on Buildbot without this property. Updated unit-tests and server-tests accordingly.
+        (BuildbotSyncer.prototype.scheduleBuildOnBuildbotDeprecated): Method to schedule build request on Buildbot 0.8 server.
+        (BuildbotSyncer.prototype.scheduleBuildOnBuildbot): Method to schedule build request on Buildbot 0.9 server.
+        (BuildbotSyncer.prototype.pathForForceBuildDeprecated): Path for scheudling build on Buildbot 0.8 server.
+        (BuildbotSyncer.prototype.pathForForceBuild): Path for scheudling build on Buildbot 0.9 server.
+        * unit-tests/buildbot-syncer-tests.js:
+        (smallConfiguration): Added test-case for scheduleBuildOnBuildbot. Also added forcescheduler property in sample data.
+        * server-tests/resources/mock-data.js: Added forcescheduler property in sample data.
+        * server-tests/tools-buildbot-triggerable-tests.js: Updated server-tests to take care of added forcescheduler property.
+
+2018-02-02  Aakash Jain  <aakash_jain@apple.com>
+
+        Add support for fetching recent builds in Buildbot 0.9 format in BuildbotSyncer
+        https://bugs.webkit.org/show_bug.cgi?id=179743
+
+        Reviewed by Ryosuke Niwa.
+
+        * tools/js/buildbot-syncer.js:
+        (BuildbotSyncer.prototype._pullRecentBuildsDeprecated): Renamed from _pullRecentBuilds. This method fetch
+        from Buildbot 0.8 server.
+        (BuildbotSyncer.prototype._pullRecentBuilds): Method to fetch recent builds from Buildbot 0.9 server.
+        (BuildbotSyncer.prototype.pathForRecentBuilds): URL for fetching recent builds from Buildbot 0.9 server.
+        (BuildbotSyncer.prototype.pathForBuildJSONDeprecated): Renamed from pathForBuildJSON.
+        * unit-tests/buildbot-syncer-tests.js:
+        (_pullRecentBuilds.it): unit-test - should not fetch recent builds when count is zero.
+        (_pullRecentBuilds.it): unit-test - should pull the right number of recent builds.
+        (_pullRecentBuilds.it): unit-test - should handle unexpected error while fetching recent builds.
+        (_pullRecentBuilds.it): unit-test - should create BuildbotBuildEntry after fetching recent builds.
+
+2018-02-01  Aakash Jain  <aakash_jain@apple.com>
+
+        Create BuildbotBuildEntry in Buildbot syncer in Buildbot 0.9 format
+        https://bugs.webkit.org/show_bug.cgi?id=182036
+
+        Reviewed by Ryosuke Niwa.
+
+        * tools/js/buildbot-syncer.js:
+        (BuildbotBuildEntry): Class for Buildbot entry in Buildbot 0.9 data format.
+        (BuildbotBuildEntryDeprecated): Renamed from BuildbotBuildEntry, sub-classed from BuildBotEntry. Handles Buildbot 0.8 data format.
+        (BuildbotBuildEntryDeprecated.prototype.url): URL in buildbot 0.8 format.
+        (BuildbotSyncer.prototype.builderID): Added.
+        (BuildbotSyncer.prototype.pathForPendingBuildsJSONDeprecated): Renamed from BuildbotSyncer.prototype.pathForPendingBuildsJSON.
+        (BuildbotSyncer.prototype.pathForPendingBuilds): Path for pending builds in Buildbot 0.9 format.
+        (BuildbotSyncer.prototype.urlForBuildNumberDeprecated): Deprecated. Renamed from urlForBuildNumber.
+        (BuildbotSyncer.prototype.urlForBuildNumber): Updated in Buildbot 0.9 format.
+        (BuildbotSyncer.prototype.urlForPendingBuild): Buildbot 0.9 has individual webpage for pending buildrequests as well. URL to that page.
+        * unit-tests/buildbot-syncer-tests.js: Renamed BuildbotBuildEntry to BuildbotBuildEntryDeprecated.
+        (sampleBuildData): Sample build data. Common method for in-progress and finished build data.
+        (samplePendingBuildData): Sample data for a pending build. Separate method so that we can easily create sample data with multiple builds.
+        (sampleInProgressBuildData): Ditto for in-progress build.
+        (sampleFinishedBuildData): Ditto for finished build.
+        (samplePendingBuild): Sample data for single pending build.
+        (sampleInProgressBuild): Ditto for in-progress build.
+        (sampleFinishedBuild): Ditto for finished build.
+        (samplePendingBuildDeprecated): Renamed from samplePendingBuild.
+        (sampleInProgressBuildDeprecated): Renamed from sampleInProgressBuild.
+        (sampleFinishedBuildDeprecated): Renamed from sampleFinishedBuild.
+        (BuildbotBuildEntry.it: Added unit-test for creating BuildbotBuildEntry for pending build.
+        (BuildbotBuildEntry.it: Added unit-test for creating BuildbotBuildEntry for in-progress build.
+        (BuildbotBuildEntry.it: Added unit-test for creating BuildbotBuildEntry for finished build.
+        (BuildbotBuildEntry.it: Added unit-test for creating BuildbotBuildEntry for mix of in-progress and finished build.
+
+2018-01-31  Dewei Zhu  <dewei_zhu@apple.com>
+
+        Should chose the best match during 'route' if there are multiple matches.
+        https://bugs.webkit.org/show_bug.cgi?id=182326
+
+        Reviewed by Ryosuke Niwa.
+
+        r227749 made a change that 'analysisCategoryPage' will be added before 'analysisTaskPage'.
+        As route names for both pages starts with 'analysis', whichever added first will be chosen.
+        For a route like 'analysis/task/1'. As a result, 'analysisCategoryPage' will be chosen and
+        this is not expected behavior. Adding the logic on the cases when route name does not extact
+        match the route name, always choose the longest mathcing route name.
+
+        Also modernized the code of 'page-router.js' to use const & let instead of var.
+
+        Added a browser test to guard against this bug.
+
+        * browser-tests/index.html: Import 'page-router-tests.js'.
+        * browser-tests/page-router-tests.js: Added unit test to guard against this bug.
+        * public/v3/pages/page-router.js:
+        (PageRouter.prototype.route): Added logic to find best matching in the case of inexact match.
+        (PageRouter.prototype.pageDidOpen):
+        (PageRouter.prototype._updateURLState):
+        (PageRouter.prototype._serializeToHash):
+        (PageRouter.prototype._deserializeFromHash):
+        (PageRouter.prototype._serializeHashQueryValue):
+        (PageRouter.prototype._deserializeHashQueryValue):
+        (PageRouter.prototype._countOccurrences):
+        (PageRouter):
+
+2018-01-29  Dewei Zhu  <dewei_zhu@apple.com>
+
+        Should fetch owner commits in build-requests-fetcher.
+        https://bugs.webkit.org/show_bug.cgi?id=182266
+
+        Reviewed by Ryosuke Niwa.
+
+        In a build request, owner commit of a commit is not always one of a commit in the commit set.
+        Build request api should contain owner commits in the 'commits' field of the return value.
+
+        * public/include/build-requests-fetcher.php: Added logic to fetch owner commits and added them into 'commits'.
+        * server-tests/api-build-requests-tests.js: Added a unit test.
+        * server-tests/resources/mock-data.js:
+        (MockData.set addTestGroupWithOwnerCommitNotInCommitSet): Added a test group with a build request, the commit set of which does
+        not contain owner commit of one commit.
+
 2018-01-29  Ryosuke Niwa  <rniwa@webkit.org>
 
         Add the support for reporting Speedometer 2.0 results to perf dashboard

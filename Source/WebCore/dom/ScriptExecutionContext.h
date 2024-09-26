@@ -31,8 +31,8 @@
 #include "DOMTimer.h"
 #include "SecurityContext.h"
 #include "ServiceWorkerTypes.h"
-#include <heap/HandleTypes.h>
-#include <runtime/ConsoleTypes.h>
+#include <JavaScriptCore/ConsoleTypes.h>
+#include <JavaScriptCore/HandleTypes.h>
 #include <wtf/CrossThreadTask.h>
 #include <wtf/Function.h>
 #include <wtf/HashSet.h>
@@ -105,7 +105,7 @@ public:
 
     virtual String resourceRequestIdentifier() const { return String(); };
 
-    bool sanitizeScriptError(String& errorMessage, int& lineNumber, int& columnNumber, String& sourceURL, JSC::Strong<JSC::Unknown>& error, CachedScript* = nullptr);
+    bool canIncludeErrorDetails(CachedScript*, const String& sourceURL);
     void reportException(const String& errorMessage, int lineNumber, int columnNumber, const String& sourceURL, JSC::Exception*, RefPtr<Inspector::ScriptCallStack>&&, CachedScript* = nullptr);
     void reportUnhandledPromiseRejection(JSC::ExecState&, JSC::JSPromise&, RefPtr<Inspector::ScriptCallStack>&&);
 

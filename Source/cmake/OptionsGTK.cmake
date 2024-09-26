@@ -81,12 +81,12 @@ WEBKIT_OPTION_DEFINE(ENABLE_WAYLAND_TARGET "Whether to enable support for the Wa
 WEBKIT_OPTION_DEFINE(USE_LIBNOTIFY "Whether to enable the default web notification implementation." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(USE_LIBHYPHEN "Whether to enable the default automatic hyphenation implementation." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(USE_LIBSECRET "Whether to enable the persistent credential storage using libsecret." PUBLIC ON)
-WEBKIT_OPTION_DEFINE(USE_UPOWER "Whether to enable the low power mode implementation." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(USE_WOFF2 "Whether to enable support for WOFF2 Web Fonts." PUBLIC ON)
 
 # Private options specific to the GTK+ port. Changing these options is
 # completely unsupported. They are intended for use only by WebKit developers.
 WEBKIT_OPTION_DEFINE(USE_REDIRECTED_XCOMPOSITE_WINDOW "Whether to use a Redirected XComposite Window for accelerated compositing in X11." PRIVATE ON)
+WEBKIT_OPTION_DEFINE(USE_OPENVR "Whether to use OpenVR as WebVR backend." PRIVATE ${ENABLE_EXPERIMENTAL_FEATURES})
 
 # FIXME: Can we use cairo-glesv2 to avoid this conflict?
 WEBKIT_OPTION_CONFLICT(ENABLE_ACCELERATED_2D_CANVAS ENABLE_GLES2)
@@ -245,7 +245,7 @@ if (ENABLE_OPENGL)
     # But USE_OPENGL is the opposite of ENABLE_GLES2.
     if (ENABLE_GLES2)
         find_package(OpenGLES2 REQUIRED)
-        SET_AND_EXPOSE_TO_BUILD(USE_OPENGL_ES_2 TRUE)
+        SET_AND_EXPOSE_TO_BUILD(USE_OPENGL_ES TRUE)
 
         if (NOT EGL_FOUND)
             message(FATAL_ERROR "EGL is needed for ENABLE_GLES2.")
@@ -340,20 +340,16 @@ if (USE_LIBHYPHEN)
     endif ()
 endif ()
 
-SET_AND_EXPOSE_TO_BUILD(USE_OPENVR TRUE)
-
-if (USE_UPOWER)
-    find_package(UPowerGLib)
-    if (NOT UPOWERGLIB_FOUND)
-       message(FATAL_ERROR "upower-glib is needed for USE_UPOWER.")
-    endif ()
-endif ()
-
 if (USE_WOFF2)
     find_package(WOFF2Dec 1.0.2)
     if (NOT WOFF2DEC_FOUND)
        message(FATAL_ERROR "libwoff2dec is needed for USE_WOFF2.")
     endif ()
+endif ()
+
+# https://bugs.webkit.org/show_bug.cgi?id=182247
+if (ENABLED_COMPILER_SANITIZERS)
+    set(ENABLE_INTROSPECTION OFF)
 endif ()
 
 # Override the cached variables, gtk-doc and gobject-introspection do not really work when cross-building.

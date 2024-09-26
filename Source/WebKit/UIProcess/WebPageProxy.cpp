@@ -195,6 +195,10 @@
 #include "PlaybackSessionManagerProxy.h"
 #endif
 
+#if ENABLE(WEB_AUTHN)
+#include "WebCredentialsMessengerProxy.h"
+#endif
+
 // This controls what strategy we use for mouse wheel coalescing.
 #define MERGE_WHEEL_EVENTS 1
 
@@ -214,7 +218,7 @@ DEFINE_DEBUG_ONLY_GLOBAL(WTF::RefCountedLeakCounter, webPageProxyCounter, ("WebP
 
 class ExceededDatabaseQuotaRecords {
     WTF_MAKE_NONCOPYABLE(ExceededDatabaseQuotaRecords); WTF_MAKE_FAST_ALLOCATED;
-    friend class NeverDestroyed<ExceededDatabaseQuotaRecords>;
+    friend NeverDestroyed<ExceededDatabaseQuotaRecords>;
 public:
     struct Record {
         uint64_t frameID;
@@ -406,6 +410,10 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
 
 #if ENABLE(APPLE_PAY)
     m_paymentCoordinator = std::make_unique<WebPaymentCoordinatorProxy>(*this);
+#endif
+
+#if ENABLE(WEB_AUTHN)
+    m_credentialsMessenger = std::make_unique<WebCredentialsMessengerProxy>(*this);
 #endif
 
     m_process->addMessageReceiver(Messages::WebPageProxy::messageReceiverName(), m_pageID, *this);
@@ -661,6 +669,10 @@ void WebPageProxy::reattachToWebProcess()
     m_paymentCoordinator = std::make_unique<WebPaymentCoordinatorProxy>(*this);
 #endif
 
+#if ENABLE(WEB_AUTHN)
+    m_credentialsMessenger = std::make_unique<WebCredentialsMessengerProxy>(*this);
+#endif
+
     initializeWebPage();
 
     m_pageClient.didRelaunchProcess();
@@ -730,7 +742,13 @@ void WebPageProxy::initializeWebPage()
     }
 #endif
 
-    process().send(Messages::WebProcess::CreateWebPage(m_pageID, creationParameters()), 0);
+    auto parameters = creationParameters();
+
+#if ENABLE(SERVICE_WORKER)
+    parameters.hasRegisteredServiceWorkers = process().processPool().mayHaveRegisteredServiceWorkers(m_websiteDataStore);
+#endif
+
+    process().send(Messages::WebProcess::CreateWebPage(m_pageID, parameters), 0);
 
     m_needsToFinishInitializingWebPageAfterProcessLaunch = true;
     finishInitializingWebPageAfterProcessLaunch();
@@ -2037,17 +2055,27 @@ WebPreferencesStore WebPageProxy::preferencesStore() const
 }
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
-void WebPageProxy::findPlugin(const String& mimeType, uint32_t processType, const String& urlString, const String& frameURLString, const String& pageURLString, bool allowOnlyApplicationPlugins, uint64_t& pluginProcessToken, String& newMimeType, uint32_t& pluginLoadPolicy, String& unavailabilityDescription)
+void WebPageProxy::findPlugin(const String& mimeType, uint32_t processType, const String& urlString, const String& frameURLString, const String& pageURLString, bool allowOnlyApplicationPlugins, uint64_t& pluginProcessToken, String& newMimeType, uint32_t& pluginLoadPolicy, String& unavailabilityDescription, bool& isUnsupported)
 {
     PageClientProtector protector(m_pageClient);
 
     MESSAGE_CHECK_URL(urlString);
 
+    URL pluginURL = URL { URL(), urlString };
     newMimeType = mimeType.convertToASCIILowercase();
-    pluginLoadPolicy = PluginModuleLoadNormally;
 
     PluginData::AllowedPluginTypes allowedPluginTypes = allowOnlyApplicationPlugins ? PluginData::OnlyApplicationPlugins : PluginData::AllPlugins;
-    PluginModuleInfo plugin = m_process->processPool().pluginInfoStore().findPlugin(newMimeType, URL(URL(), urlString), allowedPluginTypes);
+
+    URL pageURL = URL { URL(), pageURLString };
+    if (!m_process->processPool().pluginInfoStore().isSupportedPlugin(mimeType, pluginURL, frameURLString, pageURL)) {
+        isUnsupported = true;
+        pluginProcessToken = 0;
+        return;
+    }
+
+    isUnsupported = false;
+    pluginLoadPolicy = PluginModuleLoadNormally;
+    PluginModuleInfo plugin = m_process->processPool().pluginInfoStore().findPlugin(newMimeType, pluginURL, allowedPluginTypes);
     if (!plugin.path) {
         pluginProcessToken = 0;
         return;
@@ -3320,6 +3348,11 @@ void WebPageProxy::didFailProvisionalLoadForFrame(uint64_t frameID, const Securi
     WebFrameProxy* frame = m_process->webFrame(frameID);
     MESSAGE_CHECK(frame);
 
+    if (m_controlledByAutomation) {
+        if (auto* automationSession = process().processPool().automationSession())
+            automationSession->navigationOccurredForFrame(*frame);
+    }
+
     // FIXME: We should message check that navigationID is not zero here, but it's currently zero for some navigations through the page cache.
     RefPtr<API::Navigation> navigation;
     if (frame->isMainFrame() && navigationID)
@@ -4125,6 +4158,7 @@ void WebPageProxy::unavailablePluginButtonClicked(uint32_t opaquePluginUnavailab
         pluginUnavailabilityReason = kWKPluginUnavailabilityReasonPluginCrashed;
         break;
     case RenderEmbeddedObject::PluginBlockedByContentSecurityPolicy:
+    case RenderEmbeddedObject::UnsupportedPlugin:
         ASSERT_NOT_REACHED();
     }
 
@@ -5677,6 +5711,10 @@ void WebPageProxy::resetState(ResetStateReason resetStateReason)
     m_paymentCoordinator = nullptr;
 #endif
 
+#if ENABLE(WEB_AUTHN)
+    m_credentialsMessenger = nullptr;
+#endif
+
     CallbackBase::Error error;
     switch (resetStateReason) {
     case ResetStateReason::PageInvalidated:
@@ -6156,20 +6194,12 @@ void WebPageProxy::didFailToInitializePlugin(const String& mimeType, const Strin
 
 void WebPageProxy::didBlockInsecurePluginVersion(const String& mimeType, const String& pluginURLString, const String& frameURLString, const String& pageURLString, bool replacementObscured)
 {
-    RefPtr<API::Dictionary> pluginInformation;
-
-#if PLATFORM(COCOA) && ENABLE(NETSCAPE_PLUGIN_API)
     String newMimeType = mimeType;
     PluginModuleInfo plugin = m_process->processPool().pluginInfoStore().findPlugin(newMimeType, URL(URL(), pluginURLString));
-    pluginInformation = createPluginInformationDictionary(plugin, frameURLString, mimeType, pageURLString, String(), String(), replacementObscured);
-#else
-    UNUSED_PARAM(mimeType);
-    UNUSED_PARAM(pluginURLString);
-    UNUSED_PARAM(frameURLString);
-    UNUSED_PARAM(pageURLString);
-    UNUSED_PARAM(replacementObscured);
-#endif
+    auto pluginInformation = createPluginInformationDictionary(plugin, frameURLString, mimeType, pageURLString, String(), String(), replacementObscured);
 
+    if (m_navigationClient->didBlockInsecurePluginVersion(*this, pluginInformation.get()))
+        return;
     m_loaderClient->didBlockInsecurePluginVersion(*this, pluginInformation.get());
 }
 #endif // ENABLE(NETSCAPE_PLUGIN_API)
@@ -6285,6 +6315,9 @@ void WebPageProxy::drawPagesForPrinting(WebFrameProxy* frame, const PrintInfo& p
 void WebPageProxy::updateBackingStoreDiscardableState()
 {
     ASSERT(isValid());
+
+    if (!m_drawingArea)
+        return;
 
     bool isDiscardable;
 
@@ -6556,6 +6589,12 @@ void WebPageProxy::addMIMETypeWithCustomContentProvider(const String& mimeType)
 }
 
 #if PLATFORM(COCOA)
+
+void WebPageProxy::setTextAsync(const String& text)
+{
+    if (isValid())
+        process().send(Messages::WebPage::SetTextAsync(text), m_pageID);
+}
 
 void WebPageProxy::insertTextAsync(const String& text, const EditingRange& replacementRange, bool registerUndoGroup, EditingRangeIsRelativeTo editingRangeIsRelativeTo, bool suppressSelectionUpdate)
 {
@@ -7165,7 +7204,7 @@ void WebPageProxy::setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&& handl
 
 WebURLSchemeHandler* WebPageProxy::urlSchemeHandlerForScheme(const String& scheme)
 {
-    return m_urlSchemeHandlersByScheme.get(scheme);
+    return scheme.isNull() ? nullptr : m_urlSchemeHandlersByScheme.get(scheme);
 }
 
 void WebPageProxy::startURLSchemeTask(URLSchemeTaskParameters&& parameters)

@@ -139,6 +139,7 @@ public:
     void setAllowsAnySSLCertificate(bool);
 
     void setBlockAllPlugins(bool shouldBlock) { m_shouldBlockAllPlugins = shouldBlock; }
+    void setPluginSupportedMode(const String&);
 
     void setShouldLogHistoryClientCallbacks(bool shouldLog) { m_shouldLogHistoryClientCallbacks = shouldLog; }
     void setShouldLogCanAuthenticateAgainstProtectionSpace(bool shouldLog) { m_shouldLogCanAuthenticateAgainstProtectionSpace = shouldLog; }
@@ -166,6 +167,9 @@ public:
     void setStatisticsSubframeUnderTopFrameOrigin(WKStringRef hostName, WKStringRef topFrameHostName);
     void setStatisticsSubresourceUnderTopFrameOrigin(WKStringRef hostName, WKStringRef topFrameHostName);
     void setStatisticsSubresourceUniqueRedirectTo(WKStringRef hostName, WKStringRef hostNameRedirectedTo);
+    void setStatisticsSubresourceUniqueRedirectFrom(WKStringRef host, WKStringRef hostRedirectedFrom);
+    void setStatisticsTopFrameUniqueRedirectTo(WKStringRef host, WKStringRef hostRedirectedTo);
+    void setStatisticsTopFrameUniqueRedirectFrom(WKStringRef host, WKStringRef hostRedirectedFrom);
     void setStatisticsTimeToLiveUserInteraction(double seconds);
     void setStatisticsTimeToLiveCookiePartitionFree(double seconds);
     void statisticsProcessStatisticsAndDataRecords();
@@ -184,6 +188,8 @@ public:
     void statisticsClearThroughWebsiteDataRemoval();
     void statisticsResetToConsistentState();
 
+    void getAllStorageAccessEntries();
+
     WKArrayRef openPanelFileURLs() const { return m_openPanelFileURLs.get(); }
     void setOpenPanelFileURLs(WKArrayRef fileURLs) { m_openPanelFileURLs = fileURLs; }
 
@@ -191,6 +197,8 @@ public:
     void terminateServiceWorkerProcess();
 
     void removeAllSessionCredentials();
+
+    void clearServiceWorkerRegistrations();
 
     void clearDOMCache(WKStringRef origin);
     void clearDOMCaches();
@@ -334,8 +342,6 @@ private:
     static const char* libraryPathForTesting();
     static const char* platformLibraryPathForTesting();
 
-    static void statisticsClearThroughWebsiteDataRemovalCallback(void*);
-
     std::unique_ptr<TestInvocation> m_currentInvocation;
 
     bool m_verbose { false };
@@ -393,6 +399,7 @@ private:
     String m_authenticationPassword;
 
     bool m_shouldBlockAllPlugins { false };
+    String m_unsupportedPluginMode;
 
     bool m_forceComplexText { false };
     bool m_shouldUseAcceleratedDrawing { false };

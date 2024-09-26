@@ -47,6 +47,7 @@
 #include <wtf/HashSet.h>
 #include <wtf/OptionSet.h>
 #include <wtf/Optional.h>
+#include <wtf/WallTime.h>
 
 namespace WebCore {
 
@@ -131,6 +132,7 @@ public:
 
     static void reportLocalLoadFailed(Frame*, const String& url);
     static void reportBlockedPortFailed(Frame*, const String& url);
+    static void reportAuthenticationChallengeBlocked(Frame*, const URL&, const String& reason);
 
     // FIXME: These are all functions which stop loads. We have too many.
     WEBCORE_EXPORT void stopAllLoaders(ClearProvisionalItemPolicy = ShouldClearProvisionalItem);
@@ -267,7 +269,7 @@ public:
 
     void completed();
     bool allAncestorsAreComplete() const; // including this
-    void clientRedirected(const URL&, double delay, double fireDate, LockBackForwardList);
+    void clientRedirected(const URL&, double delay, WallTime fireDate, LockBackForwardList);
     void clientRedirectCancelledOrFinished(bool cancelWithLoadInProgress);
 
     WEBCORE_EXPORT void setOriginalURLForDownloadRequest(ResourceRequest&);
@@ -389,6 +391,7 @@ private:
     void dispatchGlobalObjectAvailableInAllWorlds();
 
     bool isNavigationAllowed() const;
+    bool isStopLoadingAllowed() const;
 
     Frame& m_frame;
     FrameLoaderClient& m_client;

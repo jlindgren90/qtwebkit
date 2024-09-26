@@ -280,6 +280,7 @@ void NetworkLoad::completeAuthenticationChallenge(ChallengeCompletionHandler&& c
 {
     bool isServerTrustEvaluation = m_challenge->protectionSpace().authenticationScheme() == ProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested;
     if (!isAllowedToAskUserForCredentials() && !isServerTrustEvaluation) {
+        m_client.get().didBlockAuthenticationChallenge();
         completionHandler(AuthenticationChallengeDisposition::UseCredential, { });
         return;
     }
@@ -296,7 +297,11 @@ void NetworkLoad::completeAuthenticationChallenge(ChallengeCompletionHandler&& c
 #if USE(PROTECTION_SPACE_AUTH_CALLBACK)
 void NetworkLoad::continueCanAuthenticateAgainstProtectionSpace(bool result)
 {
-    ASSERT(m_challengeCompletionHandler);
+    if (!m_challengeCompletionHandler) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
+
     auto completionHandler = std::exchange(m_challengeCompletionHandler, nullptr);
     if (!result) {
         if (NetworkSession::allowsSpecificHTTPSCertificateForHost(*m_challenge))

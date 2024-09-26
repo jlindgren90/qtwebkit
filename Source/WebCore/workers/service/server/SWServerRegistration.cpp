@@ -72,7 +72,6 @@ SWServerWorker* SWServerRegistration::getNewestWorker()
 
 void SWServerRegistration::setPreInstallationWorker(SWServerWorker* worker)
 {
-    ASSERT(!m_preInstallationWorker || !worker);
     m_preInstallationWorker = worker;
 }
 
@@ -100,7 +99,7 @@ void SWServerRegistration::updateRegistrationState(ServiceWorkerRegistrationStat
         serviceWorkerData = worker->data();
 
     forEachConnection([&](auto& connection) {
-        connection.updateRegistrationStateInClient(identifier(), state, serviceWorkerData);
+        connection.updateRegistrationStateInClient(this->identifier(), state, serviceWorkerData);
     });
 }
 
@@ -115,7 +114,7 @@ void SWServerRegistration::setUpdateViaCache(ServiceWorkerUpdateViaCache updateV
 {
     m_updateViaCache = updateViaCache;
     forEachConnection([&](auto& connection) {
-        connection.setRegistrationUpdateViaCache(identifier(), updateViaCache);
+        connection.setRegistrationUpdateViaCache(this->identifier(), updateViaCache);
     });
 }
 
@@ -123,14 +122,14 @@ void SWServerRegistration::setLastUpdateTime(WallTime time)
 {
     m_lastUpdateTime = time;
     forEachConnection([&](auto& connection) {
-        connection.setRegistrationLastUpdateTime(identifier(), time);
+        connection.setRegistrationLastUpdateTime(this->identifier(), time);
     });
 }
 
 void SWServerRegistration::fireUpdateFoundEvent()
 {
     forEachConnection([&](auto& connection) {
-        connection.fireUpdateFoundEvent(identifier());
+        connection.fireUpdateFoundEvent(this->identifier());
     });
 }
 
@@ -181,6 +180,9 @@ void SWServerRegistration::removeClientUsingRegistration(const ServiceWorkerClie
 {
     auto iterator = m_clientsUsingRegistration.find(clientIdentifier.serverConnectionIdentifier);
     ASSERT(iterator != m_clientsUsingRegistration.end());
+    if (iterator == m_clientsUsingRegistration.end())
+        return;
+
     bool wasRemoved = iterator->value.remove(clientIdentifier.contextIdentifier);
     ASSERT_UNUSED(wasRemoved, wasRemoved);
 
@@ -225,17 +227,6 @@ bool SWServerRegistration::tryClear()
 }
 
 // https://w3c.github.io/ServiceWorker/#clear-registration
-static void clearRegistrationWorker(SWServerRegistration& registration, SWServerWorker* worker, ServiceWorkerRegistrationState state)
-{
-    if (!worker)
-        return;
-
-    worker->terminate();
-    registration.updateWorkerState(*worker, ServiceWorkerState::Redundant);
-    registration.updateRegistrationState(state, nullptr);
-}
-
-// https://w3c.github.io/ServiceWorker/#clear-registration
 void SWServerRegistration::clear()
 {
     if (m_preInstallationWorker) {
@@ -244,9 +235,28 @@ void SWServerRegistration::clear()
         m_preInstallationWorker = nullptr;
     }
 
-    clearRegistrationWorker(*this, installingWorker(), ServiceWorkerRegistrationState::Installing);
-    clearRegistrationWorker(*this, waitingWorker(), ServiceWorkerRegistrationState::Waiting);
-    clearRegistrationWorker(*this, activeWorker(), ServiceWorkerRegistrationState::Active);
+    RefPtr<SWServerWorker> installingWorker = this->installingWorker();
+    if (installingWorker) {
+        installingWorker->terminate();
+        updateRegistrationState(ServiceWorkerRegistrationState::Installing, nullptr);
+    }
+    RefPtr<SWServerWorker> waitingWorker = this->waitingWorker();
+    if (waitingWorker) {
+        waitingWorker->terminate();
+        updateRegistrationState(ServiceWorkerRegistrationState::Waiting, nullptr);
+    }
+    RefPtr<SWServerWorker> activeWorker = this->activeWorker();
+    if (activeWorker) {
+        activeWorker->terminate();
+        updateRegistrationState(ServiceWorkerRegistrationState::Active, nullptr);
+    }
+
+    if (installingWorker)
+        updateWorkerState(*installingWorker, ServiceWorkerState::Redundant);
+    if (waitingWorker)
+        updateWorkerState(*waitingWorker, ServiceWorkerState::Redundant);
+    if (activeWorker)
+        updateWorkerState(*activeWorker, ServiceWorkerState::Redundant);
 
     // Remove scope to registration map[scopeString].
     m_server.removeRegistration(key());

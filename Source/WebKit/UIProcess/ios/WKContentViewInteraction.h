@@ -83,8 +83,13 @@ class WebPageProxy;
 @class _UIHighlightView;
 @class _UIWebHighlightLongPressGestureRecognizer;
 
-#if ENABLE(DATA_INTERACTION)
-@class _UITextDragCaretView;
+#if ENABLE(EXTRA_ZOOM_MODE)
+@class WKDatePickerViewController;
+@class WKFocusedFormControlViewController;
+@class WKNumberPadViewController;
+@class WKSelectMenuViewController;
+@class WKTextInputViewController;
+@class WKTimePickerViewController;
 #endif
 
 typedef void (^UIWKAutocorrectionCompletionHandler)(UIWKAutocorrectionRects *rectsForInput);
@@ -171,6 +176,7 @@ struct WKAutoCorrectionData {
     RetainPtr<WKFileUploadPanel> _fileUploadPanel;
     RetainPtr<UIGestureRecognizer> _previewGestureRecognizer;
     RetainPtr<UIGestureRecognizer> _previewSecondaryGestureRecognizer;
+    Vector<bool> _focusStateStack;
 #if HAVE(LINK_PREVIEW)
     RetainPtr<UIPreviewItemController> _previewItemController;
 #endif
@@ -228,6 +234,9 @@ struct WKAutoCorrectionData {
     BOOL _becomingFirstResponder;
     BOOL _resigningFirstResponder;
     BOOL _needsDeferredEndScrollingSelectionUpdate;
+    BOOL _isChangingFocus;
+
+    BOOL _focusRequiresStrongPasswordAssistance;
 
 #if ENABLE(DATA_INTERACTION)
     WebKit::DragDropInteractionState _dragDropInteractionState;
@@ -237,6 +246,15 @@ struct WKAutoCorrectionData {
     BOOL _isAnimatingConcludeEditDrag;
     RetainPtr<UIView> _visibleContentViewSnapshot;
     RetainPtr<_UITextDragCaretView> _editDropCaretView;
+#endif
+
+#if ENABLE(EXTRA_ZOOM_MODE)
+    RetainPtr<WKDatePickerViewController> _datePickerViewController;
+    RetainPtr<WKTextInputViewController> _textInputViewController;
+    RetainPtr<WKFocusedFormControlViewController> _focusedFormControlViewController;
+    RetainPtr<WKNumberPadViewController> _numberPadViewController;
+    RetainPtr<WKSelectMenuViewController> _selectMenuViewController;
+    RetainPtr<WKTimePickerViewController> _timePickerViewController;
 #endif
 }
 
@@ -283,7 +301,7 @@ FOR_EACH_WKCONTENTVIEW_ACTION(DECLARE_WKCONTENTVIEW_ACTION_FOR_WEB_VIEW)
 
 - (BOOL)_mayDisableDoubleTapGesturesDuringSingleTap;
 - (void)_disableDoubleTapGesturesDuringTapIfNecessary:(uint64_t)requestID;
-- (void)_startAssistingNode:(const WebKit::AssistedNodeInformation&)information userIsInteracting:(BOOL)userIsInteracting blurPreviousNode:(BOOL)blurPreviousNode changingActivityState:(bool)changingActivityState userObject:(NSObject <NSSecureCoding> *)userObject;
+- (void)_startAssistingNode:(const WebKit::AssistedNodeInformation&)information userIsInteracting:(BOOL)userIsInteracting blurPreviousNode:(BOOL)blurPreviousNode changingActivityState:(BOOL)changingActivityState userObject:(NSObject <NSSecureCoding> *)userObject;
 - (void)_stopAssistingNode;
 - (void)_selectionChanged;
 - (void)_updateChangedSelection;

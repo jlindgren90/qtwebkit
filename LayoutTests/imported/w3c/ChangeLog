@@ -1,3 +1,862 @@
+2018-02-26  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Ensure setting the hold time invalidates the timing model
+        https://bugs.webkit.org/show_bug.cgi?id=183136
+
+        Reviewed by Dean Jackson.
+
+        Update test expectations with progressions.
+
+        * web-platform-tests/css/css-multicol/multicol-gap-animation-001-expected.txt:
+        * web-platform-tests/web-animations/animation-model/keyframe-effects/effect-value-iteration-composite-operation-expected.txt:
+        * web-platform-tests/web-animations/interfaces/Animation/cancel-expected.txt:
+        * web-platform-tests/web-animations/interfaces/Animation/finish-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/iterationComposite-expected.txt:
+
+2018-02-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r226745.
+        https://bugs.webkit.org/show_bug.cgi?id=183132
+
+        This is breaking some websites (Requested by youenn on
+        #webkit).
+
+        Reverted changeset:
+
+        "Use no-cache fetch mode when loading main documents with
+        location.reload()"
+        https://bugs.webkit.org/show_bug.cgi?id=181285
+        https://trac.webkit.org/changeset/226745
+
+2018-02-19  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Make KeyframeEffect target nullable and read-write
+        https://bugs.webkit.org/show_bug.cgi?id=182741
+
+        Reviewed by Dean Jackson.
+
+        Update test expectations with progressions resulting from handling null values for a keyframe effect's target
+        as well as making the KeyframeEffect target a read-write property. 
+
+        * web-platform-tests/web-animations/animation-model/animation-types/accumulation-per-property-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/addition-per-property-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/interpolation-per-property-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/idlharness-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/processing-a-keyframes-argument-001-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/target-expected.txt:
+
+2018-02-17  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Store all parsed keyframe input information in a single structure
+        https://bugs.webkit.org/show_bug.cgi?id=182903
+
+        Reviewed by Dean Jackson.
+
+        Update test expectations with progressions resulting from returning the style values as provided
+        by the keyframe input when calling getKeyframes(). 
+
+        * web-platform-tests/web-animations/interfaces/Animatable/animate-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/constructor-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/setKeyframes-expected.txt:
+
+2018-02-17  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Accept null composite modes in keyframes
+        https://bugs.webkit.org/show_bug.cgi?id=182902
+
+        Reviewed by Dean Jackson.
+
+        Update test expectations with progressions.
+
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/constructor-expected.txt:
+
+2018-02-19  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Apply automatic minimum size clamping to spanning items too
+        https://bugs.webkit.org/show_bug.cgi?id=182684
+
+        Reviewed by Javier Fernandez.
+
+        Update WPT tests related to this change.
+
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-022-expected.txt:
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-022.html:
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-023-expected.txt:
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-023.html:
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-024-expected.txt: Added.
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-024.html: Added.
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-025-expected.txt: Added.
+        * web-platform-tests/css/css-grid/grid-items/grid-minimum-size-grid-items-025.html: Added.
+        * web-platform-tests/css/css-grid/grid-items/w3c-import.log:
+
+2018-02-16  Daniel Bates  <dabates@apple.com>
+
+        Remove UTF-32 BOM parsing code
+        https://bugs.webkit.org/show_bug.cgi?id=182900
+        <rdar://problem/37238717>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Update expected results now that all sub-tests pass.
+
+        * web-platform-tests/encoding/unsupported-encodings-expected.txt:
+        * web-platform-tests/encoding/utf-32-expected.txt:
+
+2018-02-15  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Ensure that changing the timing model updates styles synchronously
+        https://bugs.webkit.org/show_bug.cgi?id=182836
+
+        Reviewed by Dean Jackson.
+
+        Update test expectations for progressions.
+
+        * web-platform-tests/css-timing-1/cubic-bezier-timing-functions-output-expected.txt:
+        * web-platform-tests/css-timing-1/frames-timing-functions-output-expected.txt:
+        * web-platform-tests/css-timing-1/step-timing-functions-output-expected.txt:
+        * web-platform-tests/css/css-multicol/multicol-gap-animation-001-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/discrete-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/visibility-expected.txt:
+        * web-platform-tests/web-animations/animation-model/keyframe-effects/effect-value-iteration-composite-operation-expected.txt:
+        * web-platform-tests/web-animations/animation-model/keyframe-effects/effect-value-transformed-distance-expected.txt:
+        * web-platform-tests/web-animations/interfaces/Animation/cancel-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/iterationComposite-expected.txt:
+
+2018-02-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r228444.
+
+        Introduced API and Layout test failures.
+
+        Reverted changeset:
+
+        "[WebAuthN] Revisit the whole async model of task dispatching,
+        timeout and aborting"
+        https://bugs.webkit.org/show_bug.cgi?id=181946
+        https://trac.webkit.org/changeset/228444
+
+2018-02-13  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r228437, r228439, and r228440.
+        https://bugs.webkit.org/show_bug.cgi?id=182756
+
+        Introduced LayoutTest failures (Requested by ryanhadd_ on
+        #webkit).
+
+        Reverted changesets:
+
+        "[Web Animations] Make KeyframeEffect target nullable and
+        read-write"
+        https://bugs.webkit.org/show_bug.cgi?id=182741
+        https://trac.webkit.org/changeset/228437
+
+        "Unreviewed attempt to fix build after r228437."
+        https://trac.webkit.org/changeset/228439
+
+        "[Web Animations] Make KeyframeEffect target nullable and
+        read-write"
+        https://bugs.webkit.org/show_bug.cgi?id=182741
+        https://trac.webkit.org/changeset/228440
+
+2018-02-13  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Make KeyframeEffect target nullable and read-write
+        https://bugs.webkit.org/show_bug.cgi?id=182741
+
+        Reviewed by Dean Jackson.
+
+        Update test expectations for tests that use null KeyframeEffect targets and tests that update their target.
+
+        * web-platform-tests/web-animations/animation-model/animation-types/accumulation-per-property-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/addition-per-property-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/discrete-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/interpolation-per-property-expected.txt:
+        * web-platform-tests/web-animations/animation-model/animation-types/visibility-expected.txt:
+        * web-platform-tests/web-animations/animation-model/keyframe-effects/effect-value-iteration-composite-operation-expected.txt:
+        * web-platform-tests/web-animations/animation-model/keyframe-effects/effect-value-transformed-distance-expected.txt:
+        * web-platform-tests/web-animations/interfaces/Animatable/animate-no-browsing-context-expected.txt:
+        * web-platform-tests/web-animations/interfaces/Animation/cancel-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/idlharness-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/iterationComposite-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/processing-a-keyframes-argument-001-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/target-expected.txt:
+        * web-platform-tests/web-animations/timing-model/timelines/document-timelines-expected.txt:
+
+2018-02-12  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Support the copy constructors for KeyframeEffectReadOnly and KeyframeEffect
+        https://bugs.webkit.org/show_bug.cgi?id=182712
+
+        Reviewed by Dean Jackson.
+
+        Update test expectations for tests relevant to the copy constructors.
+
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/copy-constructor-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/idlharness-expected.txt:
+
+2018-02-08  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Refactor AnimationEffect and KeyframeEffect into AnimationEffectReadOnly, KeyframeEffectReadOnly and KeyframeEffect
+        https://bugs.webkit.org/show_bug.cgi?id=182608
+
+        Reviewed by Dean Jackson.
+
+        Update WPT expectations with progressions and updated failure points for all tests that involved
+        either AnimationEffectReadOnly or KeyframeEffectReadOnly.
+
+        * web-platform-tests/web-animations/interfaces/Animation/constructor-expected.txt:
+        * web-platform-tests/web-animations/interfaces/Animation/effect-expected.txt:
+        * web-platform-tests/web-animations/interfaces/AnimationEffectTiming/idlharness-expected.txt:
+        * web-platform-tests/web-animations/interfaces/Document/getAnimations-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/constructor-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/copy-constructor-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/idlharness-expected.txt:
+
+2018-02-09  Youenn Fablet  <youenn@apple.com>
+
+        Add support for cache storage of blob response
+        https://bugs.webkit.org/show_bug.cgi?id=182637
+
+        Reviewed by Brady Eidson.
+
+        * web-platform-tests/service-workers/cache-storage/script-tests/cache-put.js:
+        (cache_test.async):
+        * web-platform-tests/service-workers/cache-storage/serviceworker/cache-put.https-expected.txt:
+        * web-platform-tests/service-workers/cache-storage/window/cache-put.https-expected.txt:
+        * web-platform-tests/service-workers/cache-storage/worker/cache-put.https-expected.txt:
+        * web-platform-tests/service-workers/cache-storage/window/cache-put.https.html:
+
+2018-02-09  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-align] Implement the new behavior of 'legacy' for justify-items
+        https://bugs.webkit.org/show_bug.cgi?id=172712
+
+        Reviewed by Antti Koivisto.
+
+        Rebaselined Default Alignment related tests because of the new 'legacy' value.
+
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-004-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-004.html:
+        * web-platform-tests/css/css-align/default-alignment/parse-justify-items-002-expected.txt:
+        * web-platform-tests/css/css-align/default-alignment/parse-justify-items-002.html:
+        * web-platform-tests/css/css-align/default-alignment/parse-justify-items-004-expected.txt:
+        * web-platform-tests/css/css-align/default-alignment/place-items-shorthand-004-expected.txt:
+        * web-platform-tests/css/css-align/default-alignment/place-items-shorthand-004.html:
+
+2018-02-08  Antoine Quint  <graouts@apple.com>
+
+        [Web Animations] Always expose "composite" in output of getKeyframes()
+        https://bugs.webkit.org/show_bug.cgi?id=182600
+
+        Reviewed by Dean Jackson.
+
+        Update expected results to account for a number of progressions.
+
+        * web-platform-tests/web-animations/interfaces/Animatable/animate-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/composite-expected.txt:
+        * web-platform-tests/web-animations/interfaces/KeyframeEffect/setKeyframes-expected.txt:
+
+2018-02-07  Youenn Fablet  <youenn@apple.com>
+
+        Remove www1/www2 URLs from service worker tests
+        https://bugs.webkit.org/show_bug.cgi?id=182548
+
+        Reviewed by Chris Dumez.
+
+        * web-platform-tests/service-workers/service-worker/http-to-https-redirect-and-register.https-expected.txt:
+        * web-platform-tests/service-workers/service-worker/http-to-https-redirect-and-register.https.html:
+        * web-platform-tests/service-workers/service-worker/update-bytecheck.https.html:
+
+2018-02-07  Chris Dumez  <cdumez@apple.com>
+
+        IndexedDB in service workers is using a memory backed store
+        https://bugs.webkit.org/show_bug.cgi?id=182574
+        <rdar://problem/37316205>
+
+        Reviewed by Youenn Fablet.
+
+        Rebaseline WPT test that is now passing.
+
+        * web-platform-tests/service-workers/service-worker/indexeddb.https-expected.txt:
+
+2018-02-05  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, unskip fetch-event-respond-with-partial-stream.https.html as it no longer times out
+
+        * web-platform-tests/service-workers/service-worker/fetch-event-respond-with-partial-stream.https-expected.txt:
+        * web-platform-tests/service-workers/service-worker/import-scripts-redirect.https-expected.txt:
+
+2018-02-05  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Rename gutter properties to remove "grid-" prefix
+        https://bugs.webkit.org/show_bug.cgi?id=180290
+
+        Reviewed by Javier Fernandez.
+
+        Imported WPT tests from css/css-align/gaps/.
+        And also update the tests on css/css-grid/alignment/ gutter tests.
+
+        * web-platform-tests/css/css-align/gaps/column-gap-animation-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/column-gap-animation-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/column-gap-animation-002-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/column-gap-animation-002.html: Added.
+        * web-platform-tests/css/css-align/gaps/column-gap-animation-003-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/column-gap-animation-003.html: Added.
+        * web-platform-tests/css/css-align/gaps/column-gap-parsing-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/column-gap-parsing-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-002-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-002.html: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-003-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-003.html: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-004-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/gap-animation-004.html: Added.
+        * web-platform-tests/css/css-align/gaps/gap-parsing-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/gap-parsing-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/grid-column-gap-parsing-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/grid-column-gap-parsing-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/grid-gap-parsing-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/grid-gap-parsing-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/grid-row-gap-parsing-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/grid-row-gap-parsing-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-animation-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-animation-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-animation-002-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-animation-002.html: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-animation-003-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-animation-003.html: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-parsing-001-expected.txt: Added.
+        * web-platform-tests/css/css-align/gaps/row-gap-parsing-001.html: Added.
+        * web-platform-tests/css/css-align/gaps/w3c-import.log: Added.
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-001-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-002-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-003-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-004-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-005-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-006-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-007-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-008-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-009-expected.html:
+        * web-platform-tests/css/css-grid/alignment/grid-gutters-010-expected.html:
+
+2018-02-05  Ms2ger  <Ms2ger@igalia.com>
+
+        Implement createImageBitmap(HTMLVideoElement)
+        https://bugs.webkit.org/show_bug.cgi?id=182388
+
+        Reviewed by Žan Doberšek.
+
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-drawImage-expected.txt:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-drawImage.html:
+          Update from upstream to make the test pass on macOS.
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-invalid-args-expected.txt:
+
+2018-02-02  Chris Dumez  <cdumez@apple.com>
+
+        Clearing a registration should null out its workers before setting their state to "redundant"
+        https://bugs.webkit.org/show_bug.cgi?id=182418
+        <rdar://problem/37142874>
+
+        Reviewed by Youenn Fablet.
+
+        Rebaseline WPT test now that all checks are passing. I verified that this test is passing
+        in both Firefox and Chrome.
+
+        * web-platform-tests/service-workers/service-worker/activation.https-expected.txt:
+
+2018-02-02  Ms2ger  <Ms2ger@igalia.com>
+
+        Update imagebitmap tests.
+        https://bugs.webkit.org/show_bug.cgi?id=182335
+        <rdar://problem/37110684>
+
+        Unreviewed test gardening.
+
+        * web-platform-tests/2dcontext/imagebitmap/common.sub.js: Renamed from LayoutTests/imported/w3c/web-platform-tests/2dcontext/imagebitmap/common.js.
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-drawImage-expected.txt:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-drawImage.html:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-invalid-args-expected.txt:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-invalid-args.html:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-origin.sub-expected.txt: Added.
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-origin.sub.html: Added.
+        * web-platform-tests/2dcontext/imagebitmap/w3c-import.log:
+        * web-platform-tests/common/namespaces.js: Added.
+        * web-platform-tests/common/w3c-import.log:
+        * web-platform-tests/images/pattern.mp4: Added.
+        * web-platform-tests/images/pattern.svg: Added.
+        * web-platform-tests/images/w3c-import.log:
+
+2018-02-01  Chris Dumez  <cdumez@apple.com>
+
+        When SW install fails, null out registration.installing before setting worker state to "redundant"
+        https://bugs.webkit.org/show_bug.cgi?id=182416
+        <rdar://problem/37141997>
+
+        Reviewed by Youenn Fablet.
+
+        Rebaseline WPT test now that one more check is passing.
+
+        * web-platform-tests/service-workers/service-worker/register-same-scope-different-script-url.https-expected.txt:
+
+2018-02-01  Chris Dumez  <cdumez@apple.com>
+
+        Add missing RETURN_IF_EXCEPTION() after object->get() calls in convertDictionary<>()
+        https://bugs.webkit.org/show_bug.cgi?id=182392
+        <rdar://problem/37119215>
+
+        Reviewed by Geoffrey Garen.
+
+        Rebaseline WPT test now that all checks are passing.
+
+        * web-platform-tests/service-workers/service-worker/ServiceWorkerGlobalScope/extendable-message-event-constructor.https-expected.txt:
+
+2018-02-01  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rebaseline imported/w3c/web-platform-tests/service-workers/service-worker/performance-timeline.https.html
+
+        * web-platform-tests/service-workers/service-worker/performance-timeline.https-expected.txt:
+
+2018-02-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r227958 and r227972.
+        https://bugs.webkit.org/show_bug.cgi?id=182393
+
+        This caused a consistent crash on macOS. (Requested by
+        mlewis13 on #webkit).
+
+        Reverted changesets:
+
+        "Update imagebitmap tests."
+        https://bugs.webkit.org/show_bug.cgi?id=182335
+        https://trac.webkit.org/changeset/227958
+
+        "[WPE] Update test expectations for r227958"
+        https://bugs.webkit.org/show_bug.cgi?id=182391
+        https://trac.webkit.org/changeset/227972
+
+2018-02-01  Chris Dumez  <cdumez@apple.com>
+
+        Queue a microtask when a waitUntil() promise is settled
+        https://bugs.webkit.org/show_bug.cgi?id=182372
+        <rdar://problem/37101019>
+
+        Reviewed by Mark Lam.
+
+        Reaseline WPT test now that all checks are passing.
+
+        * web-platform-tests/service-workers/service-worker/extendable-event-async-waituntil.https-expected.txt:
+
+2018-02-01  Ms2ger  <Ms2ger@igalia.com>
+
+        Update imagebitmap tests.
+        https://bugs.webkit.org/show_bug.cgi?id=182335
+
+        Unreviewed test gardening.
+
+        * web-platform-tests/2dcontext/imagebitmap/common.sub.js: Renamed from LayoutTests/imported/w3c/web-platform-tests/2dcontext/imagebitmap/common.js.
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-drawImage-expected.txt:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-drawImage.html:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-invalid-args-expected.txt:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-invalid-args.html:
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-origin.sub-expected.txt: Added.
+        * web-platform-tests/2dcontext/imagebitmap/createImageBitmap-origin.sub.html: Added.
+        * web-platform-tests/2dcontext/imagebitmap/w3c-import.log:
+        * web-platform-tests/common/namespaces.js: Added.
+        * web-platform-tests/common/w3c-import.log:
+        * web-platform-tests/images/pattern.mp4: Added.
+        * web-platform-tests/images/pattern.svg: Added.
+        * web-platform-tests/images/w3c-import.log:
+
+2018-01-31  Saam Barati  <sbarati@apple.com>
+
+        JSC incorrectly interpreting script, sets Global Property instead of Global Lexical variable (LiteralParser / JSONP path)
+        https://bugs.webkit.org/show_bug.cgi?id=182074
+        <rdar://problem/36846261>
+
+        Reviewed by Mark Lam.
+
+        * web-platform-tests/service-workers/service-worker/import-scripts-updated-flag.https-expected.txt:
+
+2018-01-30  Youenn Fablet  <youenn@apple.com> and Oleksandr Skachkov  <gskachkov@gmail.com>
+
+        FetchResponse should support ConsumeData callback on chunk data is received
+        https://bugs.webkit.org/show_bug.cgi?id=181600
+        <rdar://problem/36932547>
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/service-workers/service-worker/fetch-event-respond-with-body-loaded-in-chunk.https-expected.txt: Added.
+        * web-platform-tests/service-workers/service-worker/fetch-event-respond-with-body-loaded-in-chunk.https.html: Added.
+        * web-platform-tests/service-workers/service-worker/resources/fetch-event-respond-with-body-loaded-in-chunk-worker.js: Added.
+
+2018-01-30  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-align] The 'baseline' value must be invalid for the 'justify-content' property
+        https://bugs.webkit.org/show_bug.cgi?id=181794
+
+        Reviewed by Antti Koivisto.
+
+        Adapted the test cases using <baseline-position> keywords to the new CSS syntax.
+        Imported the CSS/support folder.
+
+        * resources/import-expectations.json:
+        * web-platform-tests/css/css-align/content-distribution/parse-align-content-001-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/parse-align-content-001.html:
+        * web-platform-tests/css/css-align/content-distribution/parse-align-content-003-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/parse-align-content-003.html:
+        * web-platform-tests/css/css-align/content-distribution/parse-justify-content-001-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/parse-justify-content-001.html:
+        * web-platform-tests/css/css-align/content-distribution/parse-justify-content-003-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/parse-justify-content-003.html:
+        * web-platform-tests/css/css-align/content-distribution/parse-justify-content-004-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/parse-justify-content-004.html:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-001-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-001.html:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-002-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-002.html:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-004-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-004.html:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-006-expected.txt:
+        * web-platform-tests/css/css-align/content-distribution/place-content-shorthand-006.html:
+        * web-platform-tests/css/css-align/default-alignment/parse-align-items-001-expected.txt:
+        * web-platform-tests/css/css-align/default-alignment/parse-align-items-001.html:
+        * web-platform-tests/css/css-align/default-alignment/parse-align-items-003-expected.txt:
+        * web-platform-tests/css/css-align/default-alignment/parse-align-items-003.html:
+        * web-platform-tests/css/css-align/default-alignment/parse-justify-items-001-expected.txt:
+        * web-platform-tests/css/css-align/default-alignment/parse-justify-items-001.html:
+        * web-platform-tests/css/css-align/default-alignment/parse-justify-items-003-expected.txt:
+        * web-platform-tests/css/css-align/default-alignment/parse-justify-items-003.html:
+        * web-platform-tests/css/css-align/default-alignment/place-items-shorthand-001.html:
+        * web-platform-tests/css/css-align/default-alignment/place-items-shorthand-002.html:
+        * web-platform-tests/css/css-align/default-alignment/place-items-shorthand-004.html:
+        * web-platform-tests/css/css-align/default-alignment/place-items-shorthand-006.html:
+        * web-platform-tests/css/css-align/resources/alignment-parsing-utils.js:
+        (checkPlaceShorhand):
+        (checkPlaceShorhandLonghands):
+        * web-platform-tests/css/css-align/self-alignment/parse-align-self-001-expected.txt:
+        * web-platform-tests/css/css-align/self-alignment/parse-align-self-001.html:
+        * web-platform-tests/css/css-align/self-alignment/parse-align-self-003-expected.txt:
+        * web-platform-tests/css/css-align/self-alignment/parse-align-self-003.html:
+        * web-platform-tests/css/css-align/self-alignment/parse-justify-self-001-expected.txt:
+        * web-platform-tests/css/css-align/self-alignment/parse-justify-self-001.html:
+        * web-platform-tests/css/css-align/self-alignment/parse-justify-self-003-expected.txt:
+        * web-platform-tests/css/css-align/self-alignment/parse-justify-self-003.html:
+        * web-platform-tests/css/css-align/self-alignment/place-self-shorthand-001.html:
+        * web-platform-tests/css/css-align/self-alignment/place-self-shorthand-002.html:
+        * web-platform-tests/css/css-align/self-alignment/place-self-shorthand-004.html:
+        * web-platform-tests/css/css-align/self-alignment/place-self-shorthand-006.html:
+        * web-platform-tests/css/support/1x1-green.png: Added.
+        * web-platform-tests/css/support/1x1-lime.png: Added.
+        * web-platform-tests/css/support/1x1-maroon.png: Added.
+        * web-platform-tests/css/support/1x1-navy.png: Added.
+        * web-platform-tests/css/support/1x1-red.png: Added.
+        * web-platform-tests/css/support/1x1-white.png: Added.
+        * web-platform-tests/css/support/60x60-gg-rr.png: Added.
+        * web-platform-tests/css/support/60x60-green.png: Added.
+        * web-platform-tests/css/support/60x60-red.png: Added.
+        * web-platform-tests/css/support/OWNERS: Added.
+        * web-platform-tests/css/support/README: Added.
+        * web-platform-tests/css/support/a-green.css: Added.
+        (.a):
+        * web-platform-tests/css/support/alignment.css: Added.
+        (.alignSelfAuto):
+        (.alignSelfNormal):
+        (.alignSelfStretch):
+        (.alignSelfStart):
+        (.alignSelfEnd):
+        (.alignSelfCenter):
+        (.alignSelfRight):
+        (.alignSelfLeft):
+        (.alignSelfFlexStart):
+        (.alignSelfFlexEnd):
+        (.alignSelfSelfStart):
+        (.alignSelfSelfEnd):
+        (.alignSelfSafeCenter):
+        (.alignSelfUnsafeCenter):
+        (.alignSelfSafeEnd):
+        (.alignSelfUnsafeEnd):
+        (.alignSelfSafeSelfEnd):
+        (.alignSelfUnsafeSelfEnd):
+        (.alignSelfSafeSelfStart):
+        (.alignSelfUnsafeSelfStart):
+        (.alignSelfSafeRight):
+        (.alignSelfUnsafeRight):
+        (.alignSelfSafeLeft):
+        (.alignSelfUnsafeLeft):
+        (.alignSelfSafeFlexEnd):
+        (.alignSelfUnsafeFlexEnd):
+        (.alignSelfSafeFlexStart):
+        (.alignSelfUnsafeFlexStart):
+        (.alignSelfBaseline):
+        (.alignSelfFirstBaseline):
+        (.alignSelfLastBaseline):
+        (.alignItemsAuto):
+        (.alignItemsNormal):
+        (.alignItemsStretch):
+        (.alignItemsStart):
+        (.alignItemsCenter):
+        (.alignItemsEnd):
+        (.alignItemsLeft):
+        (.alignItemsRight):
+        (.alignItemsFlexStart):
+        (.alignItemsFlexEnd):
+        (.alignItemsSelfStart):
+        (.alignItemsSelfEnd):
+        (.alignItemsSafeCenter):
+        (.alignItemsUnsafeCenter):
+        (.alignItemsSafeEnd):
+        (.alignItemsUnsafeEnd):
+        (.alignItemsSafeSelfEnd):
+        (.alignItemsUnsafeSelfEnd):
+        (.alignItemsSafeSelfStart):
+        (.alignItemsUnsafeSelfStart):
+        (.alignItemsSafeRight):
+        (.alignItemsUnsafeRight):
+        (.alignItemsSafeLeft):
+        (.alignItemsUnsafeLeft):
+        (.alignItemsSafeFlexEnd):
+        (.alignItemsUnsafeFlexEnd):
+        (.alignItemsSafeFlexStart):
+        (.alignItemsUnsafeFlexStart):
+        (.alignItemsBaseline):
+        (.alignItemsFirstBaseline):
+        (.alignItemsLastBaseline):
+        (.alignContentBaseline):
+        (.alignContentLastBaseline):
+        (.alignContentStart):
+        (.alignContentEnd):
+        (.alignContentCenter):
+        (.alignContentLeft):
+        (.alignContentRight):
+        (.alignContentFlexStart):
+        (.alignContentFlexEnd):
+        (.alignContentSpaceBetween):
+        (.alignContentSpaceAround):
+        (.alignContentSpaceEvenly):
+        (.alignContentStretch):
+        (.alignContentSafeCenter):
+        (.alignContentUnsafeCenter):
+        (.alignContentSafeEnd):
+        (.alignContentUnsafeEnd):
+        (.alignContentSafeRight):
+        (.alignContentUnsafeRight):
+        (.alignContentSafeLeft):
+        (.alignContentUnsafeLeft):
+        (.alignContentSafeFlexEnd):
+        (.alignContentUnsafeFlexEnd):
+        (.alignContentSafeFlexStart):
+        (.alignContentUnsafeFlexStart):
+        (.alignContentFirstBaseline):
+        (.justifySelfAuto):
+        (.justifySelfNormal):
+        (.justifySelfStretch):
+        (.justifySelfStart):
+        (.justifySelfCenter):
+        (.justifySelfEnd):
+        (.justifySelfRight):
+        (.justifySelfLeft):
+        (.justifySelfFlexStart):
+        (.justifySelfFlexEnd):
+        (.justifySelfSelfStart):
+        (.justifySelfSelfEnd):
+        (.justifySelfSafeCenter):
+        (.justifySelfUnsafeCenter):
+        (.justifySelfSafeEnd):
+        (.justifySelfUnsafeEnd):
+        (.justifySelfSafeSelfEnd):
+        (.justifySelfUnsafeSelfEnd):
+        (.justifySelfSafeSelfStart):
+        (.justifySelfUnsafeSelfStart):
+        (.justifySelfSafeRight):
+        (.justifySelfUnsafeRight):
+        (.justifySelfSafeLeft):
+        (.justifySelfUnsafeLeft):
+        (.justifySelfSafeFlexEnd):
+        (.justifySelfUnsafeFlexEnd):
+        (.justifySelfSafeFlexStart):
+        (.justifySelfUnsafeFlexStart):
+        (.justifySelfBaseline):
+        (.justifySelfFirstBaseline):
+        (.justifySelfLastBaseline):
+        (.justifyItemsAuto):
+        (.justifyItemsNormal):
+        (.justifyItemsStretch):
+        (.justifyItemsStart):
+        (.justifyItemsCenter):
+        (.justifyItemsEnd):
+        (.justifyItemsLeft):
+        (.justifyItemsRight):
+        (.justifyItemsFlexStart):
+        (.justifyItemsFlexEnd):
+        (.justifyItemsSelfStart):
+        (.justifyItemsSelfEnd):
+        (.justifyItemsLegacy):
+        (.justifyItemsLegacyLeft):
+        (.justifyItemsLegacyCenter):
+        (.justifyItemsLegacyRight):
+        (.justifyItemsLeftLegacy):
+        (.justifyItemsCenterLegacy):
+        (.justifyItemsRightLegacy):
+        (.justifyItemsSafeCenter):
+        (.justifyItemsUnsafeCenter):
+        (.justifyItemsSafeEnd):
+        (.justifyItemsUnsafeEnd):
+        (.justifyItemsSafeSelfEnd):
+        (.justifyItemsUnsafeSelfEnd):
+        (.justifyItemsSafeSelfStart):
+        (.justifyItemsUnsafeSelfStart):
+        (.justifyItemsSafeRight):
+        (.justifyItemsUnsafeRight):
+        (.justifyItemsSafeLeft):
+        (.justifyItemsUnsafeLeft):
+        (.justifyItemsSafeFlexEnd):
+        (.justifyItemsUnsafeFlexEnd):
+        (.justifyItemsSafeFlexStart):
+        (.justifyItemsUnsafeFlexStart):
+        (.justifyItemsTest):
+        (.justifyItemsBaseline):
+        (.justifyItemsFirstBaseline):
+        (.justifyItemsLastBaseline):
+        (.justifyContentBaseline):
+        (.justifyContentLastBaseline):
+        (.justifyContentStart):
+        (.justifyContentEnd):
+        (.justifyContentCenter):
+        (.justifyContentLeft):
+        (.justifyContentRight):
+        (.justifyContentFlexStart):
+        (.justifyContentFlexEnd):
+        (.justifyContentSpaceBetween):
+        (.justifyContentSpaceAround):
+        (.justifyContentSpaceEvenly):
+        (.justifyContentStretch):
+        (.justifyContentSafeCenter):
+        (.justifyContentUnsafeCenter):
+        (.justifyContentSafeEnd):
+        (.justifyContentUnsafeEnd):
+        (.justifyContentSafeRight):
+        (.justifyContentUnsafeRight):
+        (.justifyContentSafeLeft):
+        (.justifyContentUnsafeLeft):
+        (.justifyContentSafeFlexEnd):
+        (.justifyContentUnsafeFlexEnd):
+        (.justifyContentSafeFlexStart):
+        (.justifyContentUnsafeFlexStart):
+        (.justifyContentFirstBaseline):
+        (.itemsNormal):
+        (.itemsStretch):
+        (.itemsStart):
+        (.itemsCenter):
+        (.itemsEnd):
+        (.itemsLeft):
+        (.itemsRight):
+        (.itemsSelfStart):
+        (.itemsSelfEnd):
+        (.itemsBaseline):
+        (.selfStretch):
+        (.selfStart):
+        (.selfEnd):
+        (.selfCenter):
+        (.selfRight):
+        (.selfLeft):
+        (.selfSelfStart):
+        (.selfSelfEnd):
+        (.selfBaseline):
+        (.contentStart):
+        (.contentCenter):
+        (.contentEnd):
+        (.contentCenterSafe):
+        (.contentCenterUnsafe):
+        (.contentEndSafe):
+        (.contentEndUnsafe):
+        (.contentSpaceBetween):
+        (.contentSpaceAround):
+        (.contentSpaceEvenly):
+        (.contentStretch):
+        * web-platform-tests/css/support/b-green.css: Added.
+        (.b):
+        * web-platform-tests/css/support/c-red.css: Added.
+        (.c):
+        * web-platform-tests/css/support/cat.png: Added.
+        * web-platform-tests/css/support/green.ico: Added.
+        * web-platform-tests/css/support/import-green.css: Added.
+        (.import):
+        * web-platform-tests/css/support/import-red.css: Added.
+        (.import):
+        * web-platform-tests/css/support/pattern-grg-rgr-grg.png: Added.
+        * web-platform-tests/css/support/pattern-grg-rrg-rgg.png: Added.
+        * web-platform-tests/css/support/pattern-rgr-grg-rgr.png: Added.
+        * web-platform-tests/css/support/pattern-tr.png: Added.
+        * web-platform-tests/css/support/red.ico: Added.
+        * web-platform-tests/css/support/ruler-h-50%.png: Added.
+        * web-platform-tests/css/support/ruler-h-50px.png: Added.
+        * web-platform-tests/css/support/ruler-v-100px.png: Added.
+        * web-platform-tests/css/support/ruler-v-50px.png: Added.
+        * web-platform-tests/css/support/square-purple.png: Added.
+        * web-platform-tests/css/support/square-teal.png: Added.
+        * web-platform-tests/css/support/square-white.png: Added.
+        * web-platform-tests/css/support/support/README: Added.
+        * web-platform-tests/css/support/support/swatch-green.png: Added.
+        * web-platform-tests/css/support/support/swatch-red.png: Added.
+        * web-platform-tests/css/support/support/w3c-import.log: Added.
+        * web-platform-tests/css/support/swatch-blue.png: Added.
+        * web-platform-tests/css/support/swatch-green.png: Added.
+        * web-platform-tests/css/support/swatch-lime.png: Added.
+        * web-platform-tests/css/support/swatch-orange.png: Added.
+        * web-platform-tests/css/support/swatch-red.png: Added.
+        * web-platform-tests/css/support/swatch-teal.png: Added.
+        * web-platform-tests/css/support/swatch-white.png: Added.
+        * web-platform-tests/css/support/swatch-yellow.png: Added.
+        * web-platform-tests/css/support/test-bl.png: Added.
+        * web-platform-tests/css/support/test-br.png: Added.
+        * web-platform-tests/css/support/test-inner-half-size.png: Added.
+        * web-platform-tests/css/support/test-outer.png: Added.
+        * web-platform-tests/css/support/test-tl.png: Added.
+        * web-platform-tests/css/support/test-tr.png: Added.
+        * web-platform-tests/css/support/w3c-import.log: Added.
+
+2018-01-30  Frederic Wang  <fwang@igalia.com>
+
+        Use document.scrollingElement to access viewport scroll properties in tests
+        https://bugs.webkit.org/show_bug.cgi?id=182241
+
+        Reviewed by Antonio Gomes.
+
+        Many tests use document.body in standard mode in order to access scroll properties of the
+        viewport. This is incorrect per the CSSOM View specification but WebKit does not follow the
+        spec at the moment (see bug 5991). This replaces several of these instances with
+        document.scrollingElement, so that tests will still work when WebKit's behavior is changed.
+        The change in that web-platform-tests test are imported from
+        https://github.com/w3c/web-platform-tests/commit/fc33ef7641427a3f1388093c54b24f292c21b34d
+
+        * web-platform-tests/html/browsers/browsing-the-web/scroll-to-fragid/003.html:
+
+2018-01-29  Youenn Fablet  <youenn@apple.com>
+
+        ServiceWorkerClientFetch should not consider responses without Location headers as redirection responses
+        https://bugs.webkit.org/show_bug.cgi?id=182134
+
+        Reviewed by Chris Dumez.
+
+        * web-platform-tests/service-workers/service-worker/navigation-redirect.https-expected.txt:
+
+2018-01-29  Oleksandr Skachkov  <gskachkov@gmail.com>
+
+        FetchResponse should support ConsumeData callback on chunk data is received: handling ReadableStream bodies
+        https://bugs.webkit.org/show_bug.cgi?id=182008
+
+        Reviewed by Youenn Fablet.
+
+        * web-platform-tests/service-workers/service-worker/fetch-event-respond-with-readable-stream-chunk.https-expected.txt: Added.
+        * web-platform-tests/service-workers/service-worker/fetch-event-respond-with-readable-stream-chunk.https.html: Added.
+        * web-platform-tests/service-workers/service-worker/resources/fetch-event-respond-with-readable-stream-chunk-iframe.html: Added.
+        * web-platform-tests/service-workers/service-worker/resources/fetch-event-respond-with-readable-stream-chunk-worker.js: Added.
+        (const.process):
+        (this.step):
+        (this.run):
+        (const.asyncSteps):
+
 2018-01-26  Antoine Quint  <graouts@apple.com>
 
         [Web Animations] Distinguish between an omitted and a null timeline argument to the Animation constructor

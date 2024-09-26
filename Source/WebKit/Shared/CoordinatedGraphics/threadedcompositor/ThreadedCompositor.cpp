@@ -36,15 +36,14 @@
 
 #if USE(LIBEPOXY)
 #include <epoxy/gl.h>
-#elif USE(OPENGL_ES_2)
+#elif USE(OPENGL_ES)
 #include <GLES2/gl2.h>
 #else
 #include <GL/gl.h>
 #endif
 
-using namespace WebCore;
-
 namespace WebKit {
+using namespace WebCore;
 
 Ref<ThreadedCompositor> ThreadedCompositor::create(Client& client, WebPage& webPage, const IntSize& viewportSize, float scaleFactor, ShouldDoFrameSync doFrameSync, TextureMapper::PaintFlags paintFlags)
 {

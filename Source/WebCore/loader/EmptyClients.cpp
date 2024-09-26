@@ -62,7 +62,7 @@
 #include "ThreadableWebSocketChannel.h"
 #include "UserContentProvider.h"
 #include "VisitedLinkStore.h"
-#include <heap/HeapInlines.h>
+#include <JavaScriptCore/HeapInlines.h>
 #include <wtf/NeverDestroyed.h>
 
 #if ENABLE(CONTENT_EXTENSIONS)
@@ -325,7 +325,7 @@ class EmptyPaymentCoordinatorClient final : public PaymentCoordinatorClient {
 
 class EmptyPluginInfoProvider final : public PluginInfoProvider {
     void refreshPlugins() final { };
-    void getPluginInfo(Page&, Vector<PluginInfo>&) final { }
+    void getPluginInfo(Page&, Vector<PluginInfo>&, std::optional<SupportedPluginNames>&) final { }
     void getWebVisiblePluginInfo(Page&, Vector<PluginInfo>&) final { }
 };
 

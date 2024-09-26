@@ -118,6 +118,7 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/sql"
     "${WEBCORE_DIR}/platform/text"
     "${WEBCORE_DIR}/platform/text/icu"
+    "${WEBCORE_DIR}/platform/vr"
     "${WEBCORE_DIR}/plugins"
     "${WEBCORE_DIR}/rendering"
     "${WEBCORE_DIR}/rendering/line"
@@ -142,8 +143,6 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/xml"
     "${WEBCORE_DIR}/xml/parser"
     "${DERIVED_SOURCES_WEBCORE_DIR}"
-    "${PAL_DIR}"
-    "${CMAKE_SOURCE_DIR}/Source"
 )
 
 set(WebCore_SYSTEM_INCLUDE_DIRECTORIES
@@ -440,12 +439,11 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/webvr/VRPose.idl
     Modules/webvr/VRStageParameters.idl
 
-    accessibility/AccessibleNode.idl
-
     animation/Animatable.idl
-    animation/AnimationEffect.idl
+    animation/AnimationEffectReadOnly.idl
     animation/AnimationEffectTiming.idl
     animation/AnimationEffectTimingProperties.idl
+    animation/AnimationEffectTimingReadOnly.idl
     animation/AnimationPlaybackEvent.idl
     animation/AnimationPlaybackEventInit.idl
     animation/AnimationTimeline.idl
@@ -457,6 +455,7 @@ set(WebCore_NON_SVG_IDL_FILES
     animation/KeyframeAnimationOptions.idl
     animation/KeyframeEffect.idl
     animation/KeyframeEffectOptions.idl
+    animation/KeyframeEffectReadOnly.idl
     animation/PlaybackDirection.idl
     animation/WebAnimation.idl
 
@@ -1343,7 +1342,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
                 ${OPENGL_LIBRARIES}
             )
             add_definitions(${OPENGL_DEFINITIONS})
-        elseif (USE_OPENGL_ES_2)
+        elseif (USE_OPENGL_ES)
             list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
                 ${OPENGLES2_INCLUDE_DIRS}
             )
@@ -1527,6 +1526,7 @@ endif ()
 
 if (USE_OPENVR)
   list(APPEND WebCore_INCLUDE_DIRECTORIES "${THIRDPARTY_DIR}/openvr/headers")
+  list(APPEND WebCore_INCLUDE_DIRECTORIES "${WEBCORE_DIR}/platform/vr/openvr")
   list(APPEND WebCore_LIBRARIES openvr_api)
 endif ()
 

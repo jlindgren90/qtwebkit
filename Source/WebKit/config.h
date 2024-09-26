@@ -28,20 +28,14 @@
 #include "cmakeconfig.h"
 #endif
 
+#include <JavaScriptCore/JSExportMacros.h>
 #include <WebCore/PlatformExportMacros.h>
 #include <pal/ExportMacros.h>
-#include <runtime/JSExportMacros.h>
 #include <wtf/DisallowCType.h>
 
 #if PLATFORM(WIN)
-
-#ifndef _WINSOCKAPI_
-#define _WINSOCKAPI_ // Prevent inclusion of winsock.h in windows.h
-#endif
-
 #undef WEBCORE_EXPORT
 #define WEBCORE_EXPORT WTF_EXPORT_DECLARATION
-
 #endif // PLATFORM(WIN)
 
 #ifdef __cplusplus

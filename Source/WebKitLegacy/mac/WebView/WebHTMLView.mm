@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2005-2018 Apple Inc. All rights reserved.
  *           (C) 2006, 2007 Graham Dennis (graham.dennis@gmail.com)
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,6 +72,7 @@
 #import "WebTypesInternal.h"
 #import "WebUIDelegatePrivate.h"
 #import "WebViewInternal.h"
+#import <JavaScriptCore/InitializeThreading.h>
 #import <QuartzCore/QuartzCore.h>
 #import <WebCore/CSSStyleDeclaration.h>
 #import <WebCore/CachedImage.h>
@@ -137,7 +138,6 @@
 #import <pal/spi/mac/NSSpellCheckerSPI.h>
 #import <pal/spi/mac/NSViewSPI.h>
 #import <pal/spi/mac/NSWindowSPI.h>
-#import <runtime/InitializeThreading.h>
 #import <wtf/BlockObjCExceptions.h>
 #import <wtf/MainThread.h>
 #import <wtf/MathExtras.h>
@@ -1427,7 +1427,8 @@ static NSControlStateValue kit(TriState state)
 {
     // Copy subviews because [self subviews] returns the view's mutable internal array,
     // and we must avoid mutating the array while enumerating it.
-    for (NSView *view in adoptNS([[self subviews] copy]).get()) {
+    auto subviewsCopy = adoptNS([self.subviews copy]);
+    for (NSView *view in subviewsCopy.get()) {
         if ([view isKindOfClass:[WebBaseNetscapePluginView class]])
             [view performSelector:selector withObject:object];
     }
@@ -6148,7 +6149,7 @@ static BOOL writingDirectionKeyBindingsEnabled()
     // We assume the IM will *not* consume hotkey sequences
     parameters.consumedByIM = savingCommands && !event->metaKey();
 
-    const PlatformKeyboardEvent* platformEvent = event->keyEvent();
+    auto* platformEvent = event->underlyingPlatformEvent();
     if (!platformEvent)
         return NO;
 
@@ -6224,7 +6225,7 @@ static BOOL writingDirectionKeyBindingsEnabled()
     // embedded as the whole view, as in Mail, and tabs should input tabs as expected
     // in a text editor.
     
-    if (const PlatformKeyboardEvent* platformEvent = wcEvent->keyEvent()) {
+    if (auto* platformEvent = wcEvent->underlyingPlatformEvent()) {
         WebEvent *event = platformEvent->event();
         if (![[self _webView] isEditable] && event.isTabKey) 
             return NO;

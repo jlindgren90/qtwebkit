@@ -34,6 +34,9 @@
 #include "ViewUpdateDispatcher.h"
 #include "WebInspectorInterruptDispatcher.h"
 #include <WebCore/ActivityState.h>
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+#include <WebCore/ScreenProperties.h>
+#endif
 #include <WebCore/Timer.h>
 #include <pal/HysteresisActivity.h>
 #include <pal/SessionID.h>
@@ -277,9 +280,9 @@ private:
     void fullKeyboardAccessModeChanged(bool fullKeyboardAccessEnabled);
 
     bool isPlugInAutoStartOriginHash(unsigned plugInOriginHash, PAL::SessionID);
-    void didAddPlugInAutoStartOriginHash(unsigned plugInOriginHash, double expirationTime, PAL::SessionID);
-    void resetPlugInAutoStartOriginDefaultHashes(const HashMap<unsigned, double>& hashes);
-    void resetPlugInAutoStartOriginHashes(const HashMap<PAL::SessionID, HashMap<unsigned, double>>& hashes);
+    void didAddPlugInAutoStartOriginHash(unsigned plugInOriginHash, WallTime expirationTime, PAL::SessionID);
+    void resetPlugInAutoStartOriginDefaultHashes(const HashMap<unsigned, WallTime>& hashes);
+    void resetPlugInAutoStartOriginHashes(const HashMap<PAL::SessionID, HashMap<unsigned, WallTime>>& hashes);
 
     void platformSetCacheModel(CacheModel);
 
@@ -311,7 +314,7 @@ private:
     void setNetworkProxySettings(const WebCore::SoupNetworkProxySettings&);
 #endif
 #if ENABLE(SERVICE_WORKER)
-    void establishWorkerContextConnectionToStorageProcess(uint64_t pageID, const WebPreferencesStore&, PAL::SessionID);
+    void establishWorkerContextConnectionToStorageProcess(uint64_t pageGroupID, uint64_t pageID, const WebPreferencesStore&, PAL::SessionID);
     void registerServiceWorkerClients(PAL::SessionID);
 #endif
 
@@ -367,6 +370,10 @@ private:
     void didReceiveWebProcessMessage(IPC::Connection&, IPC::Decoder&);
     void didReceiveSyncWebProcessMessage(IPC::Connection&, IPC::Decoder&, std::unique_ptr<IPC::Encoder>&);
 
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+    void setScreenProperties(const HashMap<uint32_t, WebCore::ScreenProperties>&);
+#endif
+
     RefPtr<WebConnectionToUIProcess> m_webConnection;
 
     HashMap<uint64_t, RefPtr<WebPage>> m_pageMap;
@@ -379,7 +386,7 @@ private:
 #endif
     RefPtr<WebInspectorInterruptDispatcher> m_webInspectorInterruptDispatcher;
 
-    HashMap<PAL::SessionID, HashMap<unsigned, double>> m_plugInAutoStartOriginHashes;
+    HashMap<PAL::SessionID, HashMap<unsigned, WallTime>> m_plugInAutoStartOriginHashes;
     HashSet<String> m_plugInAutoStartOrigins;
 
     bool m_hasSetCacheModel { false };

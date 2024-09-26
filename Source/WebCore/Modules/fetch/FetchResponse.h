@@ -30,8 +30,9 @@
 
 #include "FetchBodyOwner.h"
 #include "FetchHeaders.h"
+#include "ReadableStreamSink.h"
 #include "ResourceResponse.h"
-#include <runtime/TypedArrays.h>
+#include <JavaScriptCore/TypedArrays.h>
 
 namespace JSC {
 class ExecState;
@@ -41,6 +42,7 @@ class JSValue;
 namespace WebCore {
 
 class FetchRequest;
+struct ReadableStreamChunk;
 class ReadableStreamSource;
 
 class FetchResponse final : public FetchBodyOwner {
@@ -90,10 +92,12 @@ public:
     void setBodyData(ResponseData&&, uint64_t bodySizeWithPadding);
 
     bool isLoading() const { return !!m_bodyLoader; }
+    bool isBodyReceivedByChunk() const { return isLoading() || hasReadableStreamBody(); }
+    bool isBlobBody() const { return !isBodyNull() && body().isBlob(); }
+    bool isBlobFormData() const { return !isBodyNull() && body().isFormData(); }
 
-    using ConsumeDataCallback = WTF::Function<void(ExceptionOr<RefPtr<SharedBuffer>>&&)>;
-    void consumeBodyWhenLoaded(ConsumeDataCallback&&);
-    void consumeBodyFromReadableStream(ConsumeDataCallback&&);
+    using ConsumeDataByChunkCallback = WTF::Function<void(ExceptionOr<ReadableStreamChunk*>&&)>;
+    void consumeBodyReceivedByChunk(ConsumeDataByChunkCallback&&);
 
     WEBCORE_EXPORT ResourceResponse resourceResponse() const;
 
@@ -102,6 +106,8 @@ public:
     uint64_t opaqueLoadIdentifier() const { return m_opaqueLoadIdentifier; }
 
     void initializeOpaqueLoadIdentifierForTesting() { m_opaqueLoadIdentifier = 1; }
+
+    const std::optional<ResourceError>& loadingError() const { return m_loadingError; }
 
 private:
     FetchResponse(ScriptExecutionContext&, std::optional<FetchBody>&&, Ref<FetchHeaders>&&, ResourceResponse&&);
@@ -124,7 +130,7 @@ private:
         bool start(ScriptExecutionContext&, const FetchRequest&);
         void stop();
 
-        void setConsumeDataCallback(ConsumeDataCallback&& consumeDataCallback) { m_consumeDataCallback = WTFMove(consumeDataCallback); }
+        void consumeDataByChunk(ConsumeDataByChunkCallback&&);
 
 #if ENABLE(STREAMS_API)
         RefPtr<SharedBuffer> startStreaming();
@@ -139,7 +145,7 @@ private:
 
         FetchResponse& m_response;
         NotificationCallback m_responseCallback;
-        ConsumeDataCallback m_consumeDataCallback;
+        ConsumeDataByChunkCallback m_consumeDataCallback;
         std::unique_ptr<FetchLoader> m_loader;
     };
 
