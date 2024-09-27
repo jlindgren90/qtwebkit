@@ -432,16 +432,16 @@ bool RenderThemeQStyle::paintMenuListButtonDecorations(const RenderBox& o, const
     return false;
 }
 
-double RenderThemeQStyle::animationDurationForProgressBar(RenderProgress& renderProgress) const
+WTF::Seconds RenderThemeQStyle::animationDurationForProgressBar(RenderProgress& renderProgress) const
 {
     if (renderProgress.position() >= 0)
-        return 0;
+        return WTF::Seconds(0);
 
     QSize size = toQSize(roundedIntSize(renderProgress.size()));
     // FIXME: Until http://bugreports.qt.nokia.com/browse/QTBUG-9171 is fixed,
     // we simulate one square animating across the progress bar.
-    return (size.width() / m_qStyle->progressBarChunkWidth(size))
-        * animationRepeatIntervalForProgressBar(renderProgress).seconds();
+    return WTF::Seconds((size.width() / m_qStyle->progressBarChunkWidth(size))
+        * animationRepeatIntervalForProgressBar(renderProgress).seconds());
 }
 
 bool RenderThemeQStyle::paintProgressBar(const RenderObject& o, const PaintInfo& pi, const IntRect& r)

@@ -28,6 +28,7 @@
 #include "IntSize.h"
 #include "KeyedDecoderQt.h"
 #include "KeyedEncoderQt.h"
+#include "NavigationPolicyCheck.h"
 #include "Page.h"
 #include "PageGroup.h"
 #include "QGraphicsUtils.h"
@@ -600,7 +601,8 @@ void QWebHistoryPrivate::goToItem(WebCore::HistoryItem* item)
     if (!item)
         return;
 
-    m_page->goToItem(*item, WebCore::FrameLoadType::IndexedBackForward);
+    m_page->goToItem(*item, WebCore::FrameLoadType::IndexedBackForward,
+        WebCore::NavigationPolicyCheck::Require);
 }
 
 QWebPageAdapter* QWebHistoryPrivate::page()

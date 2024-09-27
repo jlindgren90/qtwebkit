@@ -67,9 +67,9 @@ public:
     Color platformActiveSelectionForegroundColor() const override;
     Color platformInactiveSelectionForegroundColor() const override;
 
-    Color platformFocusRingColor() const override;
+    Color platformFocusRingColor(bool) const override;
 
-    Color systemColor(CSSValueID) const override;
+    Color systemColor(CSSValueID, bool) const override;
 
     int minimumMenuListSize(const RenderStyle&) const override;
 

@@ -63,7 +63,7 @@ protected:
     void adjustMenuListButtonStyle(StyleResolver&, RenderStyle&, const Element*) const final;
 
     // Returns the duration of the animation for the progress bar.
-    double animationDurationForProgressBar(RenderProgress&) const final;
+    WTF::Seconds animationDurationForProgressBar(RenderProgress&) const final;
     bool paintProgressBar(const RenderObject&, const PaintInfo&, const IntRect&) final;
 
     bool paintSliderTrack(const RenderObject&, const PaintInfo&, const IntRect&) final;

@@ -98,7 +98,7 @@ extern "C" void objc_autoreleasePoolPop(void *context);
 #endif
 #endif // USE(FOUNDATION)
 
-#if USE(GLIB)
+#if USE(GLIB) && !PLATFORM(QT)
 #include "JSCGLibWrapperObject.h"
 #endif
 
@@ -465,7 +465,7 @@ void Heap::lastChanceToFinalize()
 
 void Heap::releaseDelayedReleasedObjects()
 {
-#if USE(FOUNDATION) || USE(GLIB)
+#if USE(FOUNDATION) || (USE(GLIB) && !PLATFORM(QT))
     // We need to guard against the case that releasing an object can create more objects due to the
     // release calling into JS. When those JS call(s) exit and all locks are being dropped we end up
     // back here and could try to recursively release objects. We guard that with a recursive entry

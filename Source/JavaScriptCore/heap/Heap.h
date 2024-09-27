@@ -649,7 +649,7 @@ private:
     Vector<RetainPtr<CFTypeRef>> m_delayedReleaseObjects;
     unsigned m_delayedReleaseRecursionCount;
 #endif
-#if USE(GLIB)
+#if USE(GLIB) && !PLATFORM(QT)
     Vector<std::unique_ptr<JSCGLibWrapperObject>> m_delayedReleaseObjects;
     unsigned m_delayedReleaseRecursionCount { 0 };
 #endif

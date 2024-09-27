@@ -262,12 +262,12 @@ Color RenderThemeQt::platformInactiveSelectionForegroundColor() const
     return fromQColor(colorPalette().brush(QPalette::Inactive, QPalette::HighlightedText).color());
 }
 
-Color RenderThemeQt::platformFocusRingColor() const
+Color RenderThemeQt::platformFocusRingColor(bool) const
 {
     return fromQColor(colorPalette().brush(QPalette::Active, QPalette::Highlight).color());
 }
 
-Color RenderThemeQt::systemColor(CSSValueID cssValueId) const
+Color RenderThemeQt::systemColor(CSSValueID cssValueId, bool useSystemAppearance) const
 {
     QPalette pal = colorPalette();
     switch (cssValueId) {
@@ -276,7 +276,7 @@ Color RenderThemeQt::systemColor(CSSValueID cssValueId) const
     case CSSValueCaptiontext:
         return fromQColor(pal.brush(QPalette::Active, QPalette::Text).color());
     default:
-        return RenderTheme::systemColor(cssValueId);
+        return RenderTheme::systemColor(cssValueId, useSystemAppearance);
     }
 }
 

@@ -267,11 +267,6 @@ void Pasteboard::writeImage(Element& node, const URL& url, const String& title)
         updateSystemPasteboard();
 }
 
-bool Pasteboard::containsFiles()
-{
-    return false; // TODO
-}
-
 const QMimeData* Pasteboard::readData() const
 {
     if (m_readableData)
@@ -438,6 +433,8 @@ void Pasteboard::write(const PasteboardImage&) { }
 void Pasteboard::write(const PasteboardWebContent&) { }
 
 void Pasteboard::writeCustomData(const PasteboardCustomData&) { }
+
+Pasteboard::FileContentState Pasteboard::fileContentState() { return FileContentState::NoFileOrImageData; }
 
 void Pasteboard::writeMarkup(const String& markup) { }
 
