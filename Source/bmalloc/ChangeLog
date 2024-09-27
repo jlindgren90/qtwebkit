@@ -1,3 +1,167 @@
+2018-03-27  Saam Barati  <sbarati@apple.com>
+
+        memoryStatus() is wrong in certain testing scenarios on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=184050
+        <rdar://problem/37959258>
+
+        Rubber-stamped by Mark Lam.
+
+        This switches us from using "phys_footprint" to using "internal + compressed"
+        when computing the dirty memory in the current process. There are iOS testing
+        scenarios where phys_footprint doesn't give us a reliable answer. In my testing,
+        "internal + compressed" tracks phys_footprint closely (when phys_footprint is
+        working). They're usually within much less than 1% of each other. We're making
+        this change to ensure testing in our iOS infrastructure is valid.
+        
+        I opened a bug to move back to phys_footprint when it's feasible:
+        https://bugs.webkit.org/show_bug.cgi?id=184050
+
+        * bmalloc/AvailableMemory.cpp:
+        (bmalloc::memoryStatus):
+
+2018-03-20  Tim Horton  <timothy_horton@apple.com>
+
+        Add and adopt WK_PLATFORM_NAME and adjust default feature defines
+        https://bugs.webkit.org/show_bug.cgi?id=183758
+        <rdar://problem/38017644>
+
+        Reviewed by Dan Bernstein.
+
+        * Configurations/Base.xcconfig:
+
+2018-03-16  Filip Pizlo  <fpizlo@apple.com>
+
+        Put the DOM in IsoHeaps
+        https://bugs.webkit.org/show_bug.cgi?id=183546
+
+        Reviewed by Simon Fraser.
+        
+        Make it easy to runtime-disable IsoHeaps.
+
+        * bmalloc/Allocator.h:
+        * bmalloc/IsoTLS.cpp:
+        (bmalloc::IsoTLS::determineMallocFallbackState):
+        * bmalloc/IsoTLS.h:
+        * bmalloc/IsoTLSInlines.h:
+        (bmalloc::IsoTLS::allocateSlow):
+        (bmalloc::IsoTLS::deallocateSlow):
+
+2018-03-16  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Improve error message when Gigacage cannot allocate virtual memory
+        https://bugs.webkit.org/show_bug.cgi?id=183329
+
+        Reviewed by Filip Pizlo.
+
+        We've discovered that Deja Dup monitor sets a virtual memory limit, breaking Gigacage. Since
+        it runs in the background on a fresh out-of-the-box install of Ubuntu, this is not good.
+        That will have to be fixed by Deja Dup, but there is concern that other applications might
+        try this, or that users will set a virtual memory limit for the entire desktop session. Of
+        particular concern is the possibility that users might have copypasted a ulimit line into
+        a session startup script without understanding it. Let's try to make it slightly easier to
+        understand what's going wrong.
+
+        * bmalloc/Gigacage.cpp:
+        (Gigacage::ensureGigacage):
+
+2018-03-13  Tim Horton  <timothy_horton@apple.com>
+
+        Add and adopt WK_ALTERNATE_FRAMEWORKS_DIR in WTF and bmalloc
+        https://bugs.webkit.org/show_bug.cgi?id=183576
+        <rdar://problem/38396766>
+
+        Reviewed by Dan Bernstein.
+
+        * Configurations/Base.xcconfig:
+        * Configurations/bmalloc.xcconfig:
+        * Configurations/mbmalloc.xcconfig:
+
+2018-03-10  Filip Pizlo  <fpizlo@apple.com>
+
+        PerProcess<> should be safe by default
+        https://bugs.webkit.org/show_bug.cgi?id=183545
+
+        Reviewed by Yusuke Suzuki.
+        
+        This makes PerProcess<> safe by default, so we don't need SafePerProcess<>.
+        
+        The new PerProcess<> design relies on a hash-consing mechanism for PerProcess<> storage based
+        on the __PRETTY_FUNCTION__ from inside PerProcess<>, which captures the instantiated type in
+        the string. Therefore, this can be used to runtime-coalesce PerProcess<> instances based on
+        type.
+        
+        I expect this to be perf-neutral. It's an important prerequisite to more bmalloc work, since I
+        don't want to have more PerProcess<> vs SafePerProcess<> bugs, and SafePerProcess<> can't be
+        used for everything (I don't see how to use it for isoheaps).
+
+        * CMakeLists.txt:
+        * bmalloc.xcodeproj/project.pbxproj:
+        * bmalloc/Heap.cpp:
+        (bmalloc::Heap::Heap):
+        * bmalloc/IsoDirectoryInlines.h:
+        (bmalloc::passedNumPages>::takeFirstEligible):
+        (bmalloc::passedNumPages>::didBecome):
+        * bmalloc/PerProcess.cpp: Added.
+        (bmalloc::stringHash):
+        (bmalloc::allocate):
+        (bmalloc::getPerProcessData):
+        * bmalloc/PerProcess.h:
+        (bmalloc::PerProcess::mutex):
+        (bmalloc::PerProcess::coalesce):
+        (bmalloc::PerProcess::getSlowCase):
+        (): Deleted.
+        * bmalloc/Scavenger.cpp:
+        * bmalloc/Scavenger.h:
+        * bmalloc/bmalloc.cpp:
+        (bmalloc::api::scavenge):
+        (bmalloc::api::setScavengerThreadQOSClass):
+
+2018-03-10  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r229436.
+        https://bugs.webkit.org/show_bug.cgi?id=183542
+
+        seems to have regressed wasm compile times by 10% (Requested
+        by pizlo-mbp on #webkit).
+
+        Reverted changeset:
+
+        "bmalloc mutex should be adaptive"
+        https://bugs.webkit.org/show_bug.cgi?id=177839
+        https://trac.webkit.org/changeset/229436
+
+2018-03-08  Filip Pizlo  <fpizlo@apple.com>
+
+        bmalloc mutex should be adaptive
+        https://bugs.webkit.org/show_bug.cgi?id=177839
+
+        Reviewed by Michael Saboff.
+        
+        This pulls the WordLock algorithm into bmalloc, mostly by copy-pasting the code. We need to
+        copy paste because sometimes we build WTF without bmalloc, so WTF cannot rely on bmalloc for
+        anything other than malloc.
+
+        Reland after failing to reproduce the WasmBench crash that caused it to get rolled out. Maybe that fixed
+        itself somehow?
+
+        * bmalloc/Algorithm.h:
+        (bmalloc::compareExchangeWeak):
+        (bmalloc::compareExchangeStrong):
+        * bmalloc/PerThread.h:
+        * bmalloc/StaticMutex.cpp:
+        (bmalloc::StaticMutex::lockSlow):
+        (bmalloc::StaticMutex::unlockSlow):
+        (bmalloc::StaticMutex::lockSlowCase): Deleted.
+        * bmalloc/StaticMutex.h:
+        (bmalloc::StaticMutex::try_lock):
+        (bmalloc::StaticMutex::isLocked const):
+        (bmalloc::StaticMutex::init):
+        (bmalloc::StaticMutex::tryLock):
+        (bmalloc::StaticMutex::lock):
+        (bmalloc::StaticMutex::unlock):
+        (bmalloc::sleep): Deleted.
+        (bmalloc::waitUntilFalse): Deleted.
+
 2018-02-16  Filip Pizlo  <fpizlo@apple.com>
 
         Unreviewed, roll out r228306 (custom memcpy/memset) because the bots say that it was not a

@@ -61,7 +61,6 @@ protected:
 
     void setVisibleContentsRect(const WebCore::FloatRect&, const WebCore::FloatPoint&);
     void renderNextFrame();
-    void commitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset);
 
     WebCore::GraphicsLayerFactory* graphicsLayerFactory() override;
 
@@ -79,7 +78,7 @@ private:
     void layerFlushTimerFired();
 
     CompositingCoordinator m_coordinator;
-    bool m_isWaitingForRenderer { true };
+    bool m_isWaitingForRenderer { false };
     bool m_scheduledWhileWaitingForRenderer { false };
     struct {
         OptionalCallbackID callbackID;

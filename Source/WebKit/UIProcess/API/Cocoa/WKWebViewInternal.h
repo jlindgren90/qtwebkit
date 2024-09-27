@@ -114,6 +114,8 @@ struct PrintInfo;
 
 - (void)_updateScrollViewBackground;
 
+- (void)_videoControlsManagerDidChange;
+
 - (void)_navigationGestureDidBegin;
 - (void)_navigationGestureDidEnd;
 - (BOOL)_isNavigationSwipeGestureRecognizer:(UIGestureRecognizer *)recognizer;
@@ -143,7 +145,7 @@ struct PrintInfo;
 @property (nonatomic, readonly) WKSelectionGranularity _selectionGranularity;
 
 @property (nonatomic, readonly) BOOL _allowsDoubleTapGestures;
-@property (nonatomic, readonly) UIEdgeInsets _computedContentInset;
+@property (nonatomic, readonly) UIEdgeInsets _computedObscuredInset;
 @property (nonatomic, readonly) UIEdgeInsets _computedUnobscuredSafeAreaInset;
 #endif
 

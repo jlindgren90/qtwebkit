@@ -146,6 +146,9 @@ WebProcessProxy::~WebProcessProxy()
 
     while (m_numberOfTimesSuddenTerminationWasDisabled-- > 0)
         WebCore::enableSuddenTermination();
+
+    for (auto& callback : m_localPortActivityCompletionHandlers.values())
+        callback(MessagePortChannelProvider::HasActivity::No);
 }
 
 void WebProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions& launchOptions)
@@ -548,7 +551,7 @@ bool WebProcessProxy::fullKeyboardAccessEnabled()
 }
 #endif
 
-void WebProcessProxy::addBackForwardItem(uint64_t itemID, uint64_t pageID, const PageState& pageState)
+void WebProcessProxy::addOrUpdateBackForwardItem(uint64_t itemID, uint64_t pageID, const PageState& pageState)
 {
     MESSAGE_CHECK_URL(pageState.mainFrameState.originalURLString);
     MESSAGE_CHECK_URL(pageState.mainFrameState.urlString);
@@ -567,7 +570,7 @@ void WebProcessProxy::addBackForwardItem(uint64_t itemID, uint64_t pageID, const
 }
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
-void WebProcessProxy::getPlugins(bool refresh, Vector<PluginInfo>& plugins, Vector<PluginInfo>& applicationPlugins, std::optional<WebCore::SupportedPluginNames>& supportedPluginNames)
+void WebProcessProxy::getPlugins(bool refresh, Vector<PluginInfo>& plugins, Vector<PluginInfo>& applicationPlugins, std::optional<Vector<WebCore::SupportedPluginName>>& supportedPluginNames)
 {
     if (refresh)
         m_processPool->pluginInfoStore().refresh();
@@ -604,7 +607,7 @@ void WebProcessProxy::getNetworkProcessConnection(Ref<Messages::WebProcessProxy:
 
 void WebProcessProxy::getStorageProcessConnection(PAL::SessionID initialSessionID, Ref<Messages::WebProcessProxy::GetStorageProcessConnection::DelayedReply>&& reply)
 {
-    m_processPool->getStorageProcessConnection(isServiceWorkerProcess(), initialSessionID, WTFMove(reply));
+    m_processPool->getStorageProcessConnection(*this, initialSessionID, WTFMove(reply));
 }
 
 #if !PLATFORM(COCOA)

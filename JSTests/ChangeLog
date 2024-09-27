@@ -1,3 +1,289 @@
+2018-03-26  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG should know that CreateThis can be effectful
+        https://bugs.webkit.org/show_bug.cgi?id=184013
+
+        Reviewed by Saam Barati.
+
+        * stress/create-this-property-change.js: Added.
+        (Foo):
+        (RealBar):
+        (get if):
+        * stress/create-this-structure-change-without-cse.js: Added.
+        (Foo):
+        (RealBar):
+        (get if):
+        * stress/create-this-structure-change.js: Added.
+        (Foo):
+        (RealBar):
+        (get if):
+
+2018-03-22  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG] Introduces fused compare and jump
+        https://bugs.webkit.org/show_bug.cgi?id=177100
+
+        Reviewed by Mark Lam.
+
+        * stress/fused-jeq-slow.js: Added.
+        (shouldBe):
+        (testJEQ):
+        (testJNEQB):
+        (testJEQB):
+        (testJNEQF):
+        (testJEQF):
+        * stress/fused-jeq.js: Added.
+        (shouldBe):
+        (testJEQ):
+        (testJNEQB):
+        (testJEQB):
+        (testJNEQF):
+        (testJEQF):
+        * stress/fused-jstricteq-slow.js: Added.
+        (shouldBe):
+        (testJSTRICTEQ):
+        (testJNSTRICTEQB):
+        (testJSTRICTEQB):
+        (testJNSTRICTEQF):
+        (testJSTRICTEQF):
+        * stress/fused-jstricteq.js: Added.
+        (shouldBe):
+        (testJSTRICTEQ):
+        (testJNSTRICTEQB):
+        (testJSTRICTEQB):
+        (testJNSTRICTEQF):
+        (testJSTRICTEQF):
+
+2018-03-22  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Clear MustGenerate for ToString(Number) converted from NumberToStringWithRadix
+        https://bugs.webkit.org/show_bug.cgi?id=183559
+
+        Reviewed by Mark Lam.
+
+        * stress/double-to-string-in-loop-removed.js: Added.
+        (test):
+        * stress/int32-to-string-in-loop-removed.js: Added.
+        (test):
+        * stress/int52-to-string-in-loop-removed.js: Added.
+        (test):
+
+2018-03-22  Michael Saboff  <msaboff@apple.com>
+
+        Race Condition in arrayProtoFuncReverse() causes wrong results or crash
+        https://bugs.webkit.org/show_bug.cgi?id=183901
+
+        Reviewed by Keith Miller.
+
+        New test.
+
+        * stress/array-reverse-doesnt-clobber.js: Added.
+        (testArrayReverse):
+        (createArrayOfArrays):
+        (createArrayStorage):
+
+2018-03-21  Filip Pizlo  <fpizlo@apple.com>
+
+        ScopedArguments should do poisoning and index masking
+        https://bugs.webkit.org/show_bug.cgi?id=183863
+
+        Reviewed by Mark Lam.
+        
+        Adds another stress test of scoped arguments.
+
+        * stress/scoped-arguments-test.js: Added.
+        (foo):
+
+2018-03-20  Saam Barati  <sbarati@apple.com>
+
+        We need to do proper bookkeeping of exitOK when inserting constants when sinking NewArrayBuffer
+        https://bugs.webkit.org/show_bug.cgi?id=183795
+        <rdar://problem/38298694>
+
+        Reviewed by JF Bastien.
+
+        * stress/sink-phantom-new-array-buffer-exit-ok.js: Added.
+        (foo):
+        (bar):
+
+2018-03-16  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG][FTL] Add vectorLengthHint for NewArray
+        https://bugs.webkit.org/show_bug.cgi?id=183694
+
+        Reviewed by Saam Barati.
+
+        * stress/vector-length-hint-array-constructor.js: Added.
+        (shouldBe):
+        (test):
+        * stress/vector-length-hint-new-array.js: Added.
+        (shouldBe):
+        (test):
+
+2018-03-13  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG][FTL] Make ArraySlice(0) code tight
+        https://bugs.webkit.org/show_bug.cgi?id=183590
+
+        Reviewed by Saam Barati.
+
+        * stress/array-slice-with-zero.js: Added.
+        (shouldBe):
+        (test):
+        (test2):
+        * stress/array-slice-zero-args.js: Added.
+        (shouldBe):
+        (test):
+
+2018-03-14  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] fix order of evaluation for ClassDefinitionEvaluation
+        https://bugs.webkit.org/show_bug.cgi?id=183523
+
+        Reviewed by Keith Miller.
+
+        Computed property names need to be evaluated in source order during class
+        definition evaluation, as it's observable (and specified to work this way).
+
+        This change improves compatibility with Chromium.
+
+        * stress/class_elements.js: Added.
+        (test):
+        (test.C.prototype.effect):
+        (test.C.effect):
+        (test.C.prototype.get effect):
+        (test.C.prototype.set effect):
+        (test.C):
+
+2018-03-11  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG] AI should convert CreateThis to NewObject if the prototype object is proved
+        https://bugs.webkit.org/show_bug.cgi?id=183310
+
+        Reviewed by Filip Pizlo.
+
+        * stress/ai-create-this-to-new-object-fire.js: Added.
+        (assert):
+        (test):
+        (func):
+        (check):
+        (test.body.A):
+        (test.body.B):
+        (test.body):
+        * stress/ai-create-this-to-new-object.js: Added.
+        (assert):
+        (test):
+        (func):
+        (check):
+        (test.body.A):
+        (test.body.B):
+        (test.body):
+
+2018-03-10  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [FTL] Drop NewRegexp for String.prototype.match with RegExp + global flag
+        https://bugs.webkit.org/show_bug.cgi?id=181848
+
+        Reviewed by Sam Weinig.
+
+        * microbenchmarks/regexp-u-global-es5.js: Added.
+        (fn):
+        * microbenchmarks/regexp-u-global-es6.js: Added.
+        (fn):
+        * stress/materialized-regexp-has-correct-last-index-set-by-match-at-osr-exit.js: Added.
+        (shouldBe):
+        (test):
+        (i.switch):
+        * stress/materialized-regexp-has-correct-last-index-set-by-match.js: Added.
+        (shouldBe):
+        (test):
+
+2018-03-07  Dominik Infuehr  <dinfuehr@igalia.com>
+
+        Disable test stress/var-injection-cache-invalidation.js on systems with limited memory
+        https://bugs.webkit.org/show_bug.cgi?id=183334
+
+        Reviewed by Žan Doberšek.
+
+        * stress/var-injection-cache-invalidation.js:
+
+2018-03-06  Dominik Infuehr  <dinfuehr@igalia.com>
+
+        [ARM] Disable tests that run out of memory
+        https://bugs.webkit.org/show_bug.cgi?id=182699
+
+        Reviewed by Žan Doberšek.
+
+        Skip tests that run of of memory. Do not run
+        modules/module-jit-reachability.js without LLInt to prevent
+        running out of executable memory.
+
+        * modules.yaml:
+        * modules/module-jit-reachability.js:
+        * stress/has-own-property-name-cache-string-keys.js:
+        * stress/has-own-property-name-cache-symbol-keys.js:
+
+2018-03-01  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        ASSERTION FAILED: matchContextualKeyword(m_vm->propertyNames->async)
+        https://bugs.webkit.org/show_bug.cgi?id=183173
+
+        Reviewed by Saam Barati.
+
+        * stress/async-arrow-function-in-class-heritage.js: Added.
+        (testSyntax):
+        (testSyntaxError):
+        (SyntaxError):
+
+2018-03-01  Saam Barati  <sbarati@apple.com>
+
+        We need to clear cached structures when having a bad time
+        https://bugs.webkit.org/show_bug.cgi?id=183256
+        <rdar://problem/36245022>
+
+        Reviewed by Mark Lam.
+
+        * stress/having-a-bad-time-with-derived-arrays.js: Added.
+        (assert):
+        (defineSetter):
+        (iterate):
+        (doSlice):
+
+2018-02-28  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        JSC crash with `import("")`
+        https://bugs.webkit.org/show_bug.cgi?id=183175
+
+        Reviewed by Saam Barati.
+
+        * stress/import-with-empty-string.js: Added.
+
+2018-02-27  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, skip FTL tests if FTL is disabled
+        https://bugs.webkit.org/show_bug.cgi?id=183071
+
+        * stress/has-indexed-property-array-storage-ftl.js:
+        * stress/has-indexed-property-slow-put-array-storage-ftl.js:
+
+2018-02-25  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [FTL] Support PutByVal(ArrayStorage/SlowPutArrayStorage)
+        https://bugs.webkit.org/show_bug.cgi?id=182965
+
+        Reviewed by Saam Barati.
+
+        * stress/put-by-val-array-storage.js: Added.
+        (shouldBe):
+        (testArrayStorageInBounds):
+        * stress/put-by-val-direct-out-of-bounds-setter.js: Added.
+        (shouldBe):
+        (testInt32.createBuiltin):
+        (set for):
+        * stress/put-by-val-slow-put-array-storage.js: Added.
+        (shouldBe):
+        (testArrayStorageInBounds):
+
 2018-02-26  Saam Barati  <sbarati@apple.com>
 
         validateStackAccess should not validate if the offset is within the stack bounds

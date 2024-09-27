@@ -87,8 +87,8 @@ class WebPageProxy;
 @class WKDatePickerViewController;
 @class WKFocusedFormControlViewController;
 @class WKNumberPadViewController;
-@class WKSelectMenuViewController;
-@class WKTextInputViewController;
+@class WKSelectMenuListViewController;
+@class WKTextInputListViewController;
 @class WKTimePickerViewController;
 #endif
 
@@ -171,7 +171,9 @@ struct WKAutoCorrectionData {
     RetainPtr<UIView> _interactionViewsContainerView;
     RetainPtr<NSString> _markedText;
     RetainPtr<WKActionSheetAssistant> _actionSheetAssistant;
+#if ENABLE(AIRPLAY_PICKER)
     RetainPtr<WKAirPlayRoutePicker> _airPlayRoutePicker;
+#endif
     RetainPtr<WKFormInputSession> _formInputSession;
     RetainPtr<WKFileUploadPanel> _fileUploadPanel;
     RetainPtr<UIGestureRecognizer> _previewGestureRecognizer;
@@ -235,6 +237,7 @@ struct WKAutoCorrectionData {
     BOOL _resigningFirstResponder;
     BOOL _needsDeferredEndScrollingSelectionUpdate;
     BOOL _isChangingFocus;
+    BOOL _isBlurringFocusedNode;
 
     BOOL _focusRequiresStrongPasswordAssistance;
 
@@ -250,11 +253,13 @@ struct WKAutoCorrectionData {
 
 #if ENABLE(EXTRA_ZOOM_MODE)
     RetainPtr<WKDatePickerViewController> _datePickerViewController;
-    RetainPtr<WKTextInputViewController> _textInputViewController;
+    RetainPtr<WKTextInputListViewController> _textInputListViewController;
     RetainPtr<WKFocusedFormControlViewController> _focusedFormControlViewController;
     RetainPtr<WKNumberPadViewController> _numberPadViewController;
-    RetainPtr<WKSelectMenuViewController> _selectMenuViewController;
+    RetainPtr<WKSelectMenuListViewController> _selectMenuListViewController;
     RetainPtr<WKTimePickerViewController> _timePickerViewController;
+
+    BOOL _shouldRestoreFirstResponderStatusAfterLosingFocus;
 #endif
 }
 
@@ -349,6 +354,8 @@ FOR_EACH_WKCONTENTVIEW_ACTION(DECLARE_WKCONTENTVIEW_ACTION_FOR_WEB_VIEW)
 - (void)_didConcludeEditDataInteraction:(std::optional<WebCore::TextIndicatorData>)data;
 - (void)_didChangeDataInteractionCaretRect:(CGRect)previousRect currentRect:(CGRect)rect;
 #endif
+
+- (void)reloadContextViewForPresentedListViewController;
 
 @end
 

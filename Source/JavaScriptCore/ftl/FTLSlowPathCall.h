@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,7 +59,7 @@ public:
 
     // NOTE: The call that this returns is already going to be linked by the JIT using addLinkTask(),
     // so there is no need for you to link it yourself.
-    SlowPathCall makeCall(VM&, void* callTarget);
+    SlowPathCall makeCall(VM&, FunctionPtr callTarget);
 
 private:
     SlowPathCallKey keyWithTarget(void* callTarget) const;
@@ -83,8 +83,8 @@ SlowPathCall callOperation(
     SlowPathCall call;
     {
         SlowPathCallContext context(usedRegisters, jit, sizeof...(ArgumentTypes) + 1, resultGPR);
-        jit.setupArgumentsWithExecState(arguments...);
-        call = context.makeCall(vm, function.value());
+        jit.setupArguments<void(ExecState*, ArgumentTypes...)>(arguments...);
+        call = context.makeCall(vm, function);
     }
     if (exceptionTarget)
         exceptionTarget->append(jit.emitExceptionCheck(vm));

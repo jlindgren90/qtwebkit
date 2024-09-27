@@ -355,11 +355,11 @@ private:
     void finishedLoading();
     void mainReceivedError(const ResourceError&);
     WEBCORE_EXPORT void redirectReceived(CachedResource&, ResourceRequest&&, const ResourceResponse&, CompletionHandler<void(ResourceRequest&&)>&&) override;
-    WEBCORE_EXPORT void responseReceived(CachedResource&, const ResourceResponse&) override;
+    WEBCORE_EXPORT void responseReceived(CachedResource&, const ResourceResponse&, CompletionHandler<void()>&&) override;
     WEBCORE_EXPORT void dataReceived(CachedResource&, const char* data, int length) override;
     WEBCORE_EXPORT void notifyFinished(CachedResource&) override;
 
-    void responseReceived(const ResourceResponse&);
+    void responseReceived(const ResourceResponse&, CompletionHandler<void()>&&);
     void dataReceived(const char* data, int length);
 
     bool maybeLoadEmpty();
@@ -367,7 +367,11 @@ private:
     bool isMultipartReplacingLoad() const;
     bool isPostOrRedirectAfterPost(const ResourceRequest&, const ResourceResponse&);
 
-    void continueAfterNavigationPolicy(const ResourceRequest&, bool shouldContinue);
+    bool tryLoadingRequestFromApplicationCache();
+    bool tryLoadingRedirectRequestFromApplicationCache(const ResourceRequest&);
+#if ENABLE(SERVICE_WORKER)
+    void restartLoadingDueToServiceWorkerRegistrationChange(ResourceRequest&&, std::optional<ServiceWorkerRegistrationData>&&);
+#endif
     void continueAfterContentPolicy(PolicyAction);
 
     void stopLoadingForPolicyChange();

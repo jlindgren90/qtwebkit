@@ -49,6 +49,9 @@ public:
     void setLinkPreloadEnabled(bool isEnabled) { m_isLinkPreloadEnabled = isEnabled; }
     bool linkPreloadEnabled() const { return m_isLinkPreloadEnabled; }
 
+    void setLinkPrefetchEnabled(bool isEnabled) { m_isLinkPrefetchEnabled = isEnabled; }
+    bool linkPrefetchEnabled() const { return m_isLinkPrefetchEnabled; }
+
     void setMediaPreloadingEnabled(bool isEnabled) { m_isMediaPreloadingEnabled = isEnabled; }
     bool mediaPreloadingEnabled() const { return m_isMediaPreloadingEnabled; }
 
@@ -168,6 +171,9 @@ public:
     void setWebAnimationsEnabled(bool areEnabled) { m_areWebAnimationsEnabled = areEnabled; }
     bool webAnimationsEnabled() const { return m_areWebAnimationsEnabled; }
 
+    void setCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled(bool areEnabled) { m_areCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled = areEnabled; }
+    bool cssAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled() const { return m_areCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled; }
+
 #if ENABLE(WEBGL2)
     void setWebGL2Enabled(bool isEnabled) { m_isWebGL2Enabled = isEnabled; }
     bool webGL2Enabled() const { return m_isWebGL2Enabled; }
@@ -199,9 +205,6 @@ public:
     bool downloadAttributeEnabled() const { return m_isDownloadAttributeEnabled; }
 #endif
 
-    void setCSSGridLayoutEnabled(bool isEnabled) { m_cssGridLayoutEnabled = isEnabled; }
-    bool isCSSGridLayoutEnabled() const { return m_cssGridLayoutEnabled; }
-
 #if ENABLE(INTERSECTION_OBSERVER)
     void setIntersectionObserverEnabled(bool isEnabled) { m_intersectionObserverEnabled = isEnabled; }
     bool intersectionObserverEnabled() const { return m_intersectionObserverEnabled; }
@@ -227,10 +230,6 @@ public:
 
     bool spectreGadgetsEnabled() const;
 
-#if ENABLE(VIDEO)
-    bool audioEnabled() const;
-#endif
-
     void setInspectorAdditionsEnabled(bool isEnabled) { m_inspectorAdditionsEnabled = isEnabled; }
     bool inspectorAdditionsEnabled() const { return m_inspectorAdditionsEnabled; }
 
@@ -254,6 +253,7 @@ private:
 
     bool m_areModernMediaControlsEnabled { false };
     bool m_isLinkPreloadEnabled { true };
+    bool m_isLinkPrefetchEnabled { false };
     bool m_isMediaPreloadingEnabled { false };
     bool m_isResourceTimingEnabled { false };
     bool m_isUserTimingEnabled { false };
@@ -331,6 +331,7 @@ private:
 #endif
 
     bool m_areWebAnimationsEnabled { false };
+    bool m_areCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled { false };
 
 #if ENABLE(WEBGL2)
     bool m_isWebGL2Enabled { false };
@@ -348,8 +349,6 @@ private:
 #if ENABLE(DOWNLOAD_ATTRIBUTE)
     bool m_isDownloadAttributeEnabled { false };
 #endif
-
-    bool m_cssGridLayoutEnabled { true };
 
 #if ENABLE(ENCRYPTED_MEDIA)
     bool m_encryptedMediaAPIEnabled { false };

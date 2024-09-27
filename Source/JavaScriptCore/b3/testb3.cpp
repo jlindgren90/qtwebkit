@@ -67,12 +67,12 @@
 #include "LinkBuffer.h"
 #include "PureNaN.h"
 #include <cmath>
-#include <list>
 #include <string>
 #include <wtf/FastTLS.h>
 #include <wtf/ListDump.h>
 #include <wtf/Lock.h>
 #include <wtf/NumberOfCores.h>
+#include <wtf/StdList.h>
 #include <wtf/Threading.h>
 
 // We don't have a NO_RETURN_DUE_TO_EXIT, nor should we. That's ridiculous.
@@ -127,7 +127,8 @@ std::unique_ptr<Compilation> compileProc(Procedure& procedure, unsigned optLevel
 template<typename T, typename... Arguments>
 T invoke(MacroAssemblerCodePtr ptr, Arguments... arguments)
 {
-    T (*function)(Arguments...) = bitwise_cast<T(*)(Arguments...)>(ptr.executableAddress());
+    void* executableAddress = untagCFunctionPtr(ptr.executableAddress(), JITCodePtrTag);
+    T (*function)(Arguments...) = bitwise_cast<T(*)(Arguments...)>(executableAddress);
     return function(arguments...);
 }
 
@@ -247,6 +248,10 @@ static Vector<Int64Operand> int64Operands()
     operands.append({ "int64-min", std::numeric_limits<int64_t>::min() });
     operands.append({ "int32-max", std::numeric_limits<int32_t>::max() });
     operands.append({ "int32-min", std::numeric_limits<int32_t>::min() });
+    operands.append({ "uint64-max", static_cast<int64_t>(std::numeric_limits<uint64_t>::max()) });
+    operands.append({ "uint64-min", static_cast<int64_t>(std::numeric_limits<uint64_t>::min()) });
+    operands.append({ "uint32-max", static_cast<int64_t>(std::numeric_limits<uint32_t>::max()) });
+    operands.append({ "uint32-min", static_cast<int64_t>(std::numeric_limits<uint32_t>::min()) });
 
     return operands;
 }
@@ -260,7 +265,9 @@ static Vector<Int32Operand> int32Operands()
         { "42", 42 },
         { "-42", -42 },
         { "int32-max", std::numeric_limits<int32_t>::max() },
-        { "int32-min", std::numeric_limits<int32_t>::min() }
+        { "int32-min", std::numeric_limits<int32_t>::min() },
+        { "uint32-max", static_cast<int32_t>(std::numeric_limits<uint32_t>::max()) },
+        { "uint32-min", static_cast<int32_t>(std::numeric_limits<uint32_t>::min()) }
     });
     return operands;
 }
@@ -13036,12 +13043,12 @@ void testInterpreter()
             jit.move(CCallHelpers::TrustedImm64(JITCodePoison::key()), poisonScratch);
             jit.load64(CCallHelpers::BaseIndex(scratch, params[0].gpr(), CCallHelpers::timesPtr()), scratch);
             jit.xor64(poisonScratch, scratch);
-            jit.jump(scratch);
+            jit.jump(scratch, NoPtrTag);
 
             jit.addLinkTask(
                 [&, jumpTable, labels] (LinkBuffer& linkBuffer) {
                     for (unsigned i = labels.size(); i--;)
-                        jumpTable[i] = linkBuffer.locationOf(*labels[i]);
+                        jumpTable[i] = linkBuffer.locationOf(*labels[i], NoPtrTag);
                 });
         });
     
@@ -13290,12 +13297,12 @@ void testEntrySwitchSimple()
     CCallHelpers jit;
     generate(proc, jit);
     LinkBuffer linkBuffer(jit, nullptr);
-    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0));
-    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1));
-    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2));
-    
-    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, ("testb3 compilation"));
-    
+    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0), JITCodePtrTag);
+    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1), JITCodePtrTag);
+    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2), JITCodePtrTag);
+
+    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, JITCodePtrTag, "testb3 compilation");
+
     CHECK(invoke<int>(labelOne, 1, 2) == 3);
     CHECK(invoke<int>(labelTwo, 1, 2) == -1);
     CHECK(invoke<int>(labelThree, 1, 2) == 2);
@@ -13323,12 +13330,12 @@ void testEntrySwitchNoEntrySwitch()
     CCallHelpers jit;
     generate(proc, jit);
     LinkBuffer linkBuffer(jit, nullptr);
-    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0));
-    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1));
-    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2));
-    
-    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, ("testb3 compilation"));
-    
+    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0), JITCodePtrTag);
+    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1), JITCodePtrTag);
+    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2), JITCodePtrTag);
+
+    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, JITCodePtrTag, "testb3 compilation");
+
     CHECK_EQ(invoke<int>(labelOne, 1, 2), 3);
     CHECK_EQ(invoke<int>(labelTwo, 1, 2), 3);
     CHECK_EQ(invoke<int>(labelThree, 1, 2), 3);
@@ -13410,12 +13417,12 @@ void testEntrySwitchWithCommonPaths()
     CCallHelpers jit;
     generate(proc, jit);
     LinkBuffer linkBuffer(jit, nullptr);
-    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0));
-    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1));
-    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2));
-    
-    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, ("testb3 compilation"));
-    
+    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0), JITCodePtrTag);
+    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1), JITCodePtrTag);
+    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2), JITCodePtrTag);
+
+    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, JITCodePtrTag, "testb3 compilation");
+
     CHECK_EQ(invoke<int>(labelOne, 1, 2, 10), 3);
     CHECK_EQ(invoke<int>(labelTwo, 1, 2, 10), -1);
     CHECK_EQ(invoke<int>(labelThree, 1, 2, 10), 2);
@@ -13527,12 +13534,12 @@ void testEntrySwitchWithCommonPathsAndNonTrivialEntrypoint()
     CCallHelpers jit;
     generate(proc, jit);
     LinkBuffer linkBuffer(jit, nullptr);
-    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0));
-    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1));
-    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2));
-    
-    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, ("testb3 compilation"));
-    
+    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0), JITCodePtrTag);
+    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1), JITCodePtrTag);
+    CodeLocationLabel labelThree = linkBuffer.locationOf(proc.entrypointLabel(2), JITCodePtrTag);
+
+    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, JITCodePtrTag, "testb3 compilation");
+
     CHECK_EQ(invoke<int>(labelOne, 1, 2, 10, false), 3);
     CHECK_EQ(invoke<int>(labelTwo, 1, 2, 10, false), -1);
     CHECK_EQ(invoke<int>(labelThree, 1, 2, 10, false), 2);
@@ -13605,10 +13612,10 @@ void testEntrySwitchLoop()
     CCallHelpers jit;
     generate(proc, jit);
     LinkBuffer linkBuffer(jit, nullptr);
-    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0));
-    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1));
-    
-    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, ("testb3 compilation"));
+    CodeLocationLabel labelOne = linkBuffer.locationOf(proc.entrypointLabel(0), JITCodePtrTag);
+    CodeLocationLabel labelTwo = linkBuffer.locationOf(proc.entrypointLabel(1), JITCodePtrTag);
+
+    MacroAssemblerCodeRef codeRef = FINALIZE_CODE(linkBuffer, JITCodePtrTag, "testb3 compilation");
 
     CHECK(invoke<int>(labelOne, 0) == 1);
     CHECK(invoke<int>(labelOne, 42) == 43);
@@ -16015,7 +16022,7 @@ NEVER_INLINE bool doubleLte(double a, double b) { return a <= b; }
 void testDoubleLiteralComparison(double a, double b)
 {
     using Test = std::tuple<B3::Opcode, bool (*)(double, double)>;
-    std::list<Test> tests = {
+    StdList<Test> tests = {
         Test { NotEqual, doubleNeq },
         Test { Equal, doubleEq },
         Test { EqualOrUnordered, doubleEq },
@@ -16069,7 +16076,7 @@ void testFloatEqualOrUnorderedFolding()
 
 void testFloatEqualOrUnorderedFoldingNaN()
 {
-    std::list<float> nans = {
+    StdList<float> nans = {
         bitwise_cast<float>(0xfffffffd),
         bitwise_cast<float>(0xfffffffe),
         bitwise_cast<float>(0xfffffff0),

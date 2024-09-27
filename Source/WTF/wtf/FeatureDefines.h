@@ -54,6 +54,12 @@
 /* --------- Apple IOS (but not MAC) port --------- */
 #if PLATFORM(IOS)
 
+#if !defined(ENABLE_AIRPLAY_PICKER)
+#if !ENABLE(MINIMAL_SIMULATOR)
+#define ENABLE_AIRPLAY_PICKER 1
+#endif
+#endif
+
 #if !defined(ENABLE_ASYNC_SCROLLING)
 #define ENABLE_ASYNC_SCROLLING 1
 #endif
@@ -160,6 +166,12 @@ the public iOS SDK. See <https://webkit.org/b/179167>. */
 #define ENABLE_DOWNLOAD_ATTRIBUTE 0
 #endif
 
+#if !defined(ENABLE_WKPDFVIEW)
+#if !PLATFORM(WATCHOS) && !PLATFORM(APPLETV) && !ENABLE(MINIMAL_SIMULATOR)
+#define ENABLE_WKPDFVIEW 1
+#endif
+#endif
+
 #endif /* PLATFORM(IOS) */
 
 /* --------- Apple MAC port (not IOS) --------- */
@@ -223,12 +235,12 @@ the public iOS SDK. See <https://webkit.org/b/179167>. */
 
 #if PLATFORM(COCOA)
 
-#if !defined(ENABLE_DATA_DETECTION)
-#define ENABLE_DATA_DETECTION 0
-#endif
-
 #if !defined(ENABLE_LEGACY_ENCRYPTED_MEDIA)
+#if ENABLE(MINIMAL_SIMULATOR)
+#define ENABLE_LEGACY_ENCRYPTED_MEDIA 0
+#else
 #define ENABLE_LEGACY_ENCRYPTED_MEDIA 1
+#endif
 #endif
 
 #if !defined(ENABLE_FILE_REPLACEMENT)
@@ -484,10 +496,6 @@ the public iOS SDK. See <https://webkit.org/b/179167>. */
 
 #if !defined(ENABLE_LETTERPRESS)
 #define ENABLE_LETTERPRESS 0
-#endif
-
-#if !defined(ENABLE_LINK_PREFETCH)
-#define ENABLE_LINK_PREFETCH 0
 #endif
 
 #if !defined(ENABLE_MATHML)

@@ -41,7 +41,7 @@ public:
     virtual ~AnimationEffectReadOnly();
 
     bool isKeyframeEffect() const { return m_classType == KeyframeEffectClass; }
-    bool isKeyframeEffectReadOnly() const { return m_classType == KeyframeEffectReadOnlyClass; }
+    bool isKeyframeEffectReadOnly() const { return isKeyframeEffect() || m_classType == KeyframeEffectReadOnlyClass; }
     AnimationEffectTimingReadOnly* timing() const { return m_timing.get(); }
     ComputedTimingProperties getComputedTiming();
     virtual void apply(RenderStyle&) = 0;
@@ -53,6 +53,7 @@ public:
     std::optional<Seconds> localTime() const;
     std::optional<Seconds> activeTime() const;
     std::optional<double> iterationProgress() const;
+    std::optional<double> currentIteration() const;
 
     enum class Phase { Before, Active, After, Idle };
     Phase phase() const;
@@ -76,7 +77,6 @@ private:
 
     std::optional<double> overallProgress() const;
     std::optional<double> simpleIterationProgress() const;
-    std::optional<double> currentIteration() const;
     AnimationEffectReadOnly::ComputedDirection currentDirection() const;
     std::optional<double> directedProgress() const;
     std::optional<double> transformedProgress() const;

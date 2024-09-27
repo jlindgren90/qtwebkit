@@ -91,6 +91,7 @@
 #import <WebCore/MainFrame.h>
 #import <WebCore/MediaSessionManagerIOS.h>
 #import <WebCore/Node.h>
+#import <WebCore/NodeList.h>
 #import <WebCore/NotImplemented.h>
 #import <WebCore/Page.h>
 #import <WebCore/Pasteboard.h>
@@ -2690,11 +2691,6 @@ static inline Element* nextAssistableElement(Node* startNode, Page& page, bool i
     return nextElement;
 }
 
-static inline bool hasAssistableElement(Node* startNode, Page& page, bool isForward)
-{
-    return nextAssistableElement(startNode, page, isForward);
-}
-
 void WebPage::focusNextAssistedNode(bool isForward, CallbackID callbackID)
 {
     Element* nextElement = nextAssistableElement(m_assistedNode.get(), *m_page, isForward);
@@ -2703,6 +2699,19 @@ void WebPage::focusNextAssistedNode(bool isForward, CallbackID callbackID)
         nextElement->focus();
     m_userIsInteracting = false;
     send(Messages::WebPageProxy::VoidCallback(callbackID));
+}
+
+static IntRect elementRectInRootViewCoordinates(const Node& node, const Frame& frame)
+{
+    auto* view = frame.view();
+    if (!view)
+        return { };
+
+    auto* renderer = node.renderer();
+    if (!renderer)
+        return { };
+
+    return view->contentsToRootView(renderer->absoluteBoundingBoxRect());
 }
 
 void WebPage::getAssistedNodeInformation(AssistedNodeInformation& information)
@@ -2715,7 +2724,7 @@ void WebPage::getAssistedNodeInformation(AssistedNodeInformation& information)
 
     if (RenderObject* renderer = m_assistedNode->renderer()) {
         Frame& elementFrame = m_page->focusController().focusedOrMainFrame();
-        information.elementRect = elementFrame.view()->contentsToRootView(renderer->absoluteBoundingBoxRect());
+        information.elementRect = elementRectInRootViewCoordinates(*m_assistedNode, elementFrame);
         information.nodeFontSize = renderer->style().fontDescription().computedSize();
 
         bool inFixed = false;
@@ -2745,9 +2754,33 @@ void WebPage::getAssistedNodeInformation(AssistedNodeInformation& information)
     information.maximumScaleFactorIgnoringAlwaysScalable = maximumPageScaleFactorIgnoringAlwaysScalable();
     information.allowsUserScaling = m_viewportConfiguration.allowsUserScaling();
     information.allowsUserScalingIgnoringAlwaysScalable = m_viewportConfiguration.allowsUserScalingIgnoringAlwaysScalable();
-    information.hasNextNode = hasAssistableElement(m_assistedNode.get(), *m_page, true);
-    information.hasPreviousNode = hasAssistableElement(m_assistedNode.get(), *m_page, false);
+    if (auto* nextElement = nextAssistableElement(m_assistedNode.get(), *m_page, true)) {
+        if (auto* frame = nextElement->document().frame())
+            information.nextNodeRect = elementRectInRootViewCoordinates(*nextElement, *frame);
+        information.hasNextNode = true;
+    }
+    if (auto* previousElement = nextAssistableElement(m_assistedNode.get(), *m_page, false)) {
+        if (auto* frame = previousElement->document().frame())
+            information.previousNodeRect = elementRectInRootViewCoordinates(*previousElement, *frame);
+        information.hasPreviousNode = true;
+    }
     information.assistedNodeIdentifier = m_currentAssistedNodeIdentifier;
+
+    if (is<LabelableElement>(*m_assistedNode)) {
+        auto labels = downcast<LabelableElement>(*m_assistedNode).labels();
+        Vector<Ref<Element>> associatedLabels;
+        for (unsigned index = 0; index < labels->length(); ++index) {
+            if (is<Element>(labels->item(index)) && labels->item(index)->renderer())
+                associatedLabels.append(downcast<Element>(*labels->item(index)));
+        }
+        for (auto& labelElement : associatedLabels) {
+            auto text = labelElement->innerText();
+            if (!text.isEmpty()) {
+                information.label = WTFMove(text);
+                break;
+            }
+        }
+    }
 
     if (is<HTMLSelectElement>(*m_assistedNode)) {
         HTMLSelectElement& element = downcast<HTMLSelectElement>(*m_assistedNode);
@@ -2779,6 +2812,7 @@ void WebPage::getAssistedNodeInformation(AssistedNodeInformation& information)
         information.isReadOnly = element.isReadOnly();
         information.value = element.value();
         information.autofillFieldName = WebCore::toAutofillFieldName(element.autofillData().fieldName);
+        information.placeholder = element.attributeWithoutSynchronization(HTMLNames::placeholderAttr);
     } else if (is<HTMLInputElement>(*m_assistedNode)) {
         HTMLInputElement& element = downcast<HTMLInputElement>(*m_assistedNode);
         HTMLFormElement* form = element.form();
@@ -2788,6 +2822,7 @@ void WebPage::getAssistedNodeInformation(AssistedNodeInformation& information)
         information.representingPageURL = element.document().urlForBindings();
         information.autocapitalizeType = element.autocapitalizeType();
         information.isAutocorrect = element.shouldAutocorrect();
+        information.placeholder = element.attributeWithoutSynchronization(HTMLNames::placeholderAttr);
         if (element.isPasswordField())
             information.elementType = InputType::Password;
         else if (element.isSearchField())
@@ -2851,10 +2886,10 @@ void WebPage::autofillLoginCredentials(const String& username, const String& pas
     }
 }
 
-void WebPage::setViewportConfigurationMinimumLayoutSize(const FloatSize& size)
+void WebPage::setViewportConfigurationMinimumLayoutSize(const FloatSize& size, const FloatSize& viewSize)
 {
-    LOG_WITH_STREAM(VisibleRects, stream << "WebPage " << m_pageID << " setViewportConfigurationMinimumLayoutSize " << size);
-    if (m_viewportConfiguration.setMinimumLayoutSize(size))
+    LOG_WITH_STREAM(VisibleRects, stream << "WebPage " << m_pageID << " setViewportConfigurationMinimumLayoutSize " << size << " viewSize " << viewSize);
+    if (m_viewportConfiguration.setMinimumLayoutSize(size, viewSize))
         viewportConfigurationChanged();
 }
 
@@ -2889,12 +2924,12 @@ void WebPage::resetTextAutosizing()
     }
 }
 
-void WebPage::dynamicViewportSizeUpdate(const FloatSize& minimumLayoutSize, const WebCore::FloatSize& maximumUnobscuredSize, const FloatRect& targetExposedContentRect, const FloatRect& targetUnobscuredRect, const WebCore::FloatRect& targetUnobscuredRectInScrollViewCoordinates, const WebCore::FloatBoxExtent& targetUnobscuredSafeAreaInsets, double targetScale, int32_t deviceOrientation, uint64_t dynamicViewportSizeUpdateID)
+void WebPage::dynamicViewportSizeUpdate(const FloatSize& minimumLayoutSize, const FloatSize& viewSize, const WebCore::FloatSize& maximumUnobscuredSize, const FloatRect& targetExposedContentRect, const FloatRect& targetUnobscuredRect, const WebCore::FloatRect& targetUnobscuredRectInScrollViewCoordinates, const WebCore::FloatBoxExtent& targetUnobscuredSafeAreaInsets, double targetScale, int32_t deviceOrientation, uint64_t dynamicViewportSizeUpdateID)
 {
     SetForScope<bool> dynamicSizeUpdateGuard(m_inDynamicSizeUpdate, true);
     // FIXME: this does not handle the cases where the content would change the content size or scroll position from JavaScript.
     // To handle those cases, we would need to redo this computation on every change until the next visible content rect update.
-    LOG_WITH_STREAM(VisibleRects, stream << "\nWebPage::dynamicViewportSizeUpdate - minimumLayoutSize " << minimumLayoutSize << " targetUnobscuredRect " << targetUnobscuredRect << " targetExposedContentRect " << targetExposedContentRect << " targetScale " << targetScale);
+    LOG_WITH_STREAM(VisibleRects, stream << "\nWebPage::dynamicViewportSizeUpdate - minimumLayoutSize " << minimumLayoutSize << " viewSize " << viewSize << " targetUnobscuredRect " << targetUnobscuredRect << " targetExposedContentRect " << targetExposedContentRect << " targetScale " << targetScale);
 
     FrameView& frameView = *m_page->mainFrame().view();
     IntSize oldContentSize = frameView.contentsSize();
@@ -2927,7 +2962,7 @@ void WebPage::dynamicViewportSizeUpdate(const FloatSize& minimumLayoutSize, cons
     }
 
     LOG_WITH_STREAM(VisibleRects, stream << "WebPage::dynamicViewportSizeUpdate setting minimum layout size to " << minimumLayoutSize);
-    m_viewportConfiguration.setMinimumLayoutSize(minimumLayoutSize);
+    m_viewportConfiguration.setMinimumLayoutSize(minimumLayoutSize, viewSize);
     IntSize newLayoutSize = m_viewportConfiguration.layoutSize();
 
     if (setFixedLayoutSize(newLayoutSize))
@@ -3307,7 +3342,9 @@ void WebPage::updateVisibleContentRects(const VisibleContentRectUpdateInfo& visi
     if (scrollPosition != frameView.scrollPosition())
         m_dynamicSizeUpdateHistory.clear();
 
-    if (m_viewportConfiguration.setCanIgnoreScalingConstraints(m_ignoreViewportScalingConstraints && visibleContentRectUpdateInfo.allowShrinkToFit()))
+    bool didUpdateForceHorizontalShrinkToFit = m_viewportConfiguration.setForceHorizontalShrinkToFit(visibleContentRectUpdateInfo.forceHorizontalShrinkToFit());
+    bool didUpdateCanIgnoreViewportScalingConstraints = m_viewportConfiguration.setCanIgnoreScalingConstraints(m_ignoreViewportScalingConstraints && visibleContentRectUpdateInfo.allowShrinkToFit());
+    if (didUpdateForceHorizontalShrinkToFit || didUpdateCanIgnoreViewportScalingConstraints)
         viewportConfigurationChanged();
 
     frameView.setUnobscuredContentSize(visibleContentRectUpdateInfo.unobscuredContentRect().size());

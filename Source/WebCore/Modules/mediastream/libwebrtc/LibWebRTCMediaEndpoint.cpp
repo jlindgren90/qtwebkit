@@ -47,11 +47,10 @@
 #include "RealtimeIncomingAudioSource.h"
 #include "RealtimeIncomingVideoSource.h"
 #include "RuntimeEnabledFeatures.h"
-#include <webrtc/base/physicalsocketserver.h>
+#include <webrtc/rtc_base/physicalsocketserver.h>
 #include <webrtc/p2p/base/basicpacketsocketfactory.h>
 #include <webrtc/p2p/client/basicportallocator.h>
 #include <webrtc/pc/peerconnectionfactory.h>
-#include <wtf/CurrentTime.h>
 #include <wtf/MainThread.h>
 
 namespace WebCore {
@@ -977,22 +976,6 @@ static inline RTCRtpParameters::EncodingParameters fillEncodingParameters(const 
         }
     }
     parameters.active = rtcParameters.active;
-    if (rtcParameters.priority) {
-        switch (*rtcParameters.priority) {
-        case webrtc::PriorityType::VERY_LOW:
-            parameters.priority = RTCRtpParameters::PriorityType::VeryLow;
-            break;
-        case webrtc::PriorityType::LOW:
-            parameters.priority = RTCRtpParameters::PriorityType::Low;
-            break;
-        case webrtc::PriorityType::MEDIUM:
-            parameters.priority = RTCRtpParameters::PriorityType::Medium;
-            break;
-        case webrtc::PriorityType::HIGH:
-            parameters.priority = RTCRtpParameters::PriorityType::High;
-            break;
-        }
-    }
     if (rtcParameters.max_bitrate_bps)
         parameters.maxBitrate = *rtcParameters.max_bitrate_bps;
     if (rtcParameters.max_framerate)

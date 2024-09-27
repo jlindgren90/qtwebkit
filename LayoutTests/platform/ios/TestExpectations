@@ -105,6 +105,16 @@ editing/spelling/spelling-markers-in-overlapping-lines-large-font.html [ WontFix
 fast/writing-mode/english-bt-text-with-spelling-marker.html [ WontFix ]
 fast/writing-mode/english-rl-text-with-spelling-marker.html [ WontFix ]
 
+# UIKit draws selection on iOS
+fast/selectors/input-with-selection-pseudo-element.html [ WontFix ]
+fast/selectors/selection-window-inactive.html [ WontFix ]
+fast/selectors/selection-window-inactive-stroke-color.html  [ WontFix ]
+fast/selectors/selection-window-inactive-text-shadow.html  [ WontFix ]
+fast/selectors/text-field-selection-stroke-color.html  [ WontFix ]
+fast/selectors/text-field-selection-text-shadow.html  [ WontFix ]
+fast/selectors/text-field-selection-window-inactive-stroke-color.html  [ WontFix ]
+fast/selectors/text-field-selection-window-inactive-text-shadow.html  [ WontFix ]
+
 # Plugins are not supported on iOS
 plugins
 compositing/plugins
@@ -1044,7 +1054,6 @@ fast/mediastream/RTCPeerConnection-addTransceiver.html [ Pass ]
 fast/mediastream/RTCPeerConnection-createAnswer.html [ Pass ]
 fast/mediastream/RTCPeerConnection-createOffer.html [ Pass ]
 fast/mediastream/RTCPeerConnection-datachannel.html [ Pass ]
-fast/mediastream/RTCPeerConnection-getConfiguration.html [ Pass ]
 fast/mediastream/RTCPeerConnection-have-local-offer.html [ Pass ]
 fast/mediastream/RTCPeerConnection-have-local-pranswer.html [ Pass ]
 fast/mediastream/RTCPeerConnection-have-remote-offer.html [ Pass ]
@@ -1062,7 +1071,6 @@ fast/mediastream/RTCPeerConnection-setLocalDescription-offer.html [ Pass ]
 fast/mediastream/RTCPeerConnection-setRemoteDescription-offer.html [ Pass ]
 fast/mediastream/RTCPeerConnection-stable.html [ Pass ]
 fast/mediastream/RTCPeerConnection-statsSelector.html [ Pass ]
-fast/mediastream/RTCPeerConnection.html [ Pass ]
 fast/mediastream/RTCSessionDescription.html [ Pass ]
 fast/mediastream/RTCTrackEvent-constructor.html [ Pass ]
 
@@ -1360,22 +1368,13 @@ pageoverlay/overlay-large-document.html [ Failure ]
 webkit.org/b/153337 pageoverlay/overlay-installation.html [ Pass Failure ]
 
 # These tests require an OpenType MATH font on the Apple bots.
-mathml/opentype/vertical.html [ Skip ]
-mathml/opentype/large-operators.html [ Skip ]
-mathml/opentype/horizontal.html [ Skip ]
-mathml/opentype/horizontal-munderover.html [ Skip ]
+webkit.org/b/160161 mathml/opentype/vertical.html [ Skip ]
+webkit.org/b/160161 mathml/opentype/large-operators.html [ Skip ]
+webkit.org/b/160161 mathml/opentype/horizontal.html [ Skip ]
+webkit.org/b/160161 mathml/opentype/horizontal-munderover.html [ Skip ]
 
-# These tests require the Latin Modern Math font.
-mathml/opentype/fraction-line.html [ Skip ]
-mathml/presentation/fractions-linethickness.html [ Skip ]
-mathml/opentype/large-operators-italic-correction.html [ Skip ]
-mathml/presentation/bug159513.html [ Skip ]
-
-# These reftests require a font with Mathematical Alphanumeric Symbols.
-mathml/presentation/attributes-mathvariant.html [ Skip ]
-mathml/presentation/tokenElements-mathvariant.html [ Skip ]
-mathml/presentation/mathvariant-inheritance.html [ Skip ]
-mathml/presentation/mathvariant-tokens.html [ Skip ]
+# This test requires the Latin Modern Math font.
+webkit.org/b/160161 mathml/presentation/bug159513.html [ Skip ]
 
 # This test fails because the USE_TYPO_METRICS flag is ignored for non-math font
 webkit.org/b/150394 imported/w3c/web-platform-tests/mathml/relations/text-and-math/use-typo-metrics-1.html [ ImageOnlyFailure ]
@@ -1940,9 +1939,7 @@ fast/ruby/ruby-inline-style-not-updated-with-before-after-content.html [ Failure
 fast/ruby/ruby-inline-style-not-updated.html [ Failure ]
 fast/ruby/ruby-justification.html [ ImageOnlyFailure ]
 fast/ruby/ruby-line-height.html [ Failure ]
-fast/selectors/input-with-selection-pseudo-element.html [ ImageOnlyFailure ]
 fast/selectors/read-only-read-write-input-basics.html [ Failure ]
-fast/selectors/selection-window-inactive.html [ ImageOnlyFailure ]
 fast/shapes/shape-outside-floats/shape-outside-floats-shape-margin-percent.html [ ImageOnlyFailure ]
 fast/spatial-navigation/snav-1st-stop.html [ Failure ]
 fast/spatial-navigation/snav-clipped-overflowed-content.html [ Failure ]
@@ -2869,9 +2866,6 @@ webkit.org/b/166736 fast/scrolling/page-cache-back-overflow-scroll-restore.html 
 # Requires changes to QuickLook.framework tracked by rdar://problem/28544527
 quicklook/password-protected.html [ Skip ]
 
-webkit.org/b/167376 imported/w3c/web-platform-tests/html/browsers/history/the-location-interface/location-protocol-setter-non-broken.html [ Pass Failure ]
-webkit.org/b/167211 imported/w3c/web-platform-tests/html/browsers/history/the-location-interface/location-protocol-setter-non-broken-weird.html [ Pass Failure ]
-
 webkit.org/b/167619 css3/filters/backdrop/dynamic-with-clip-path.html [ ImageOnlyFailure ]
 
 webkit.org/b/168215 imported/w3c/web-platform-tests/html/semantics/text-level-semantics/the-a-element/a-download-click.html [ Skip ]
@@ -3001,15 +2995,17 @@ http/tests/resourceLoadStatistics/partitioned-and-unpartitioned-cookie-with-part
 http/tests/resourceLoadStatistics/partitioned-cookies-with-and-without-user-interaction.html [ Pass ]
 http/tests/resourceLoadStatistics/third-party-cookie-with-and-without-user-interaction.html [ Pass ]
 http/tests/resourceLoadStatistics/non-prevalent-resources-can-access-cookies-in-a-third-party-context.html [ Pass ]
-http/tests/resourceLoadStatistics/add-partitioning-to-redirect.html [ Pass ]
-http/tests/resourceLoadStatistics/add-blocking-to-redirect.html [ Pass ]
-http/tests/resourceLoadStatistics/remove-partitioning-in-redirect.html [ Pass ]
+webkit.org/b/183216 [ Release ] http/tests/resourceLoadStatistics/add-partitioning-to-redirect.html [ Pass ]
+webkit.org/b/183216 [ Release ] http/tests/resourceLoadStatistics/add-blocking-to-redirect.html [ Pass ]
+webkit.org/b/183216 [ Release ] http/tests/resourceLoadStatistics/remove-partitioning-in-redirect.html [ Pass ]
 http/tests/resourceLoadStatistics/remove-blocking-in-redirect.html [ Pass ]
 http/tests/resourceLoadStatistics/grandfathering.html [ Pass ]
 http/tests/resourceLoadStatistics/clear-in-memory-and-persistent-store.html [ Pass ]
 http/tests/resourceLoadStatistics/clear-in-memory-and-persistent-store-one-hour.html [ Pass ]
 http/tests/resourceLoadStatistics/strip-referrer-to-origin-for-prevalent-subresource-redirects.html [ Pass ]
 http/tests/resourceLoadStatistics/strip-referrer-to-origin-for-prevalent-subresource-requests.html [ Pass ]
+http/tests/storageAccess/deny-storage-access-under-opener.html [ Pass ]
+http/tests/storageAccess/grant-storage-access-under-opener.html [ Pass ]
 
 # Skipped in general expectations since they only work on iOS and Mac, WK2.
 http/tests/security/strip-referrer-to-origin-for-third-party-redirects-in-private-mode.html [ Pass ]
@@ -3060,11 +3056,7 @@ fast/events/ios/before-input-events-prevent-candidate-insertion.html [ Timeout ]
 # <rdar://problem/32542300> REGRESSION (iOS 11): LayoutTest fast/events/ios/contenteditable-autocapitalize.html is failing
 fast/events/ios/contenteditable-autocapitalize.html [ Failure ]
 
-# <rdar://problem/32627945> PROGRESSION? (iOS 11): 4 mathml tests are failing
-mathml/presentation/mo-stretch.html [ ImageOnlyFailure ]
-mathml/presentation/multiscripts-equivalence.html [ ImageOnlyFailure ]
-mathml/presentation/roots.xhtml [ ImageOnlyFailure ]
-mathml/radical-fallback.html [ Failure ]
+webkit.org/b/183441 mathml/presentation/multiscripts-equivalence.html [ ImageOnlyFailure ]
 
 # <rdar://problem/32632415> REGRESSION (ImageIO-1666): LayoutTests fast/images are failing together.
 canvas/philip/tests/2d.drawImage.animated.gif.html [ Failure ]
@@ -3272,9 +3264,9 @@ webkit.org/b/182592 webgl/webgl-texture-image-buffer-reuse.html [ Skip ]
 
 webkit.org/b/181612 [ Debug ] webanimations/animation-opacity-animation-crash.html [ Pass Failure ]
 
-webkit.org/b/182853 imported/w3c/web-platform-tests/service-workers/service-worker/register-closed-window.https.html [ Pass Failure ]
-
 webkit.org/b/182850 [ Release ] editing/pasteboard/data-transfer-set-data-sanitizes-html-when-copying-in-null-origin.html [ Skip ]
 
 webkit.org/b/182833 imported/w3c/web-platform-tests/2dcontext/imagebitmap/createImageBitmap-drawImage.html [ Pass Failure ]
 webkit.org/b/182833 imported/w3c/web-platform-tests/2dcontext/imagebitmap/createImageBitmap-invalid-args.html [ Pass Failure ]
+
+webkit.org/b/183219 [ Release ] editing/pasteboard/data-transfer-get-data-on-pasting-html-uses-blob-url.html [ Skip ]

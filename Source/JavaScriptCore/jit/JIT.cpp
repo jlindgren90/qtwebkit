@@ -57,6 +57,9 @@
 using namespace std;
 
 namespace JSC {
+namespace JITInternal {
+static constexpr const bool verbose = false;
+}
 
 Seconds totalBaselineCompileTime;
 Seconds totalDFGCompileTime;
@@ -109,7 +112,7 @@ void JIT::emitEnterOptimizationCheck()
     callOperation(operationOptimize, m_bytecodeOffset);
     skipOptimize.append(branchTestPtr(Zero, returnValueGPR));
     move(returnValueGPR2, stackPointerRegister);
-    jump(returnValueGPR);
+    jump(returnValueGPR, NoPtrTag);
     skipOptimize.link(this);
 }
 #endif
@@ -183,7 +186,7 @@ void JIT::emitSlowCaseCall(Instruction* currentInstruction, Vector<SlowCaseEntry
 
 void JIT::privateCompileMainPass()
 {
-    if (false)
+    if (JITInternal::verbose)
         dataLog("Compiling ", *m_codeBlock, "\n");
     
     jitAssertTagsInPlace();
@@ -196,7 +199,7 @@ void JIT::privateCompileMainPass()
 
     VM& vm = *m_codeBlock->vm();
     unsigned startBytecodeOffset = 0;
-    if (m_loopOSREntryBytecodeOffset && (m_codeBlock->inherits(vm, ProgramCodeBlock::info()) || m_codeBlock->inherits(vm, ModuleProgramCodeBlock::info()))) {
+    if (m_loopOSREntryBytecodeOffset && (m_codeBlock->inherits<ProgramCodeBlock>(vm) || m_codeBlock->inherits<ModuleProgramCodeBlock>(vm))) {
         // We can only do this optimization because we execute ProgramCodeBlock's exactly once.
         // This optimization would be invalid otherwise. When the LLInt determines it wants to
         // do OSR entry into the baseline JIT in a loop, it will pass in the bytecode offset it
@@ -245,10 +248,9 @@ void JIT::privateCompileMainPass()
 
         m_labels[m_bytecodeOffset] = label();
 
-#if ENABLE(JIT_VERBOSE)
-        dataLogF("Old JIT emitting code for bc#%u at offset 0x%lx.\n", m_bytecodeOffset, (long)debugOffset());
-#endif
-        
+        if (JITInternal::verbose)
+            dataLogF("Old JIT emitting code for bc#%u at offset 0x%lx.\n", m_bytecodeOffset, (long)debugOffset());
+
         OpcodeID opcodeID = Interpreter::getOpcodeID(currentInstruction->u.opcode);
 
         if (UNLIKELY(m_compilation)) {
@@ -356,6 +358,10 @@ void JIT::privateCompileMainPass()
         DEFINE_OP(op_jnlesseq)
         DEFINE_OP(op_jngreater)
         DEFINE_OP(op_jngreatereq)
+        DEFINE_OP(op_jeq)
+        DEFINE_OP(op_jneq)
+        DEFINE_OP(op_jstricteq)
+        DEFINE_OP(op_jnstricteq)
         DEFINE_OP(op_jbelow)
         DEFINE_OP(op_jbeloweq)
         DEFINE_OP(op_jtrue)
@@ -391,7 +397,6 @@ void JIT::privateCompileMainPass()
         DEFINE_OP(op_profile_control_flow)
         DEFINE_OP(op_get_parent_scope)
         DEFINE_OP(op_put_by_id)
-        DEFINE_OP(op_put_by_index)
         case op_put_by_val_direct:
         DEFINE_OP(op_put_by_val)
         DEFINE_OP(op_put_getter_by_id)
@@ -434,7 +439,7 @@ void JIT::privateCompileMainPass()
             RELEASE_ASSERT_NOT_REACHED();
         }
 
-        if (false)
+        if (JITInternal::verbose)
             dataLog("At ", bytecodeOffset, ": ", m_slowCases.size(), "\n");
     }
 
@@ -485,10 +490,9 @@ void JIT::privateCompileSlowCases()
         if (shouldEmitProfiling())
             rareCaseProfile = m_codeBlock->addRareCaseProfile(m_bytecodeOffset);
 
-#if ENABLE(JIT_VERBOSE)
-        dataLogF("Old JIT emitting slow code for bc#%u at offset 0x%lx.\n", m_bytecodeOffset, (long)debugOffset());
-#endif
-        
+        if (JITInternal::verbose)
+            dataLogF("Old JIT emitting slow code for bc#%u at offset 0x%lx.\n", m_bytecodeOffset, (long)debugOffset());
+
         if (m_disassembler)
             m_disassembler->setForBytecodeSlowPath(m_bytecodeOffset, label());
 
@@ -520,6 +524,10 @@ void JIT::privateCompileSlowCases()
         DEFINE_SLOWCASE_OP(op_jnlesseq)
         DEFINE_SLOWCASE_OP(op_jngreater)
         DEFINE_SLOWCASE_OP(op_jngreatereq)
+        DEFINE_SLOWCASE_OP(op_jeq)
+        DEFINE_SLOWCASE_OP(op_jneq)
+        DEFINE_SLOWCASE_OP(op_jstricteq)
+        DEFINE_SLOWCASE_OP(op_jnstricteq)
         DEFINE_SLOWCASE_OP(op_loop_hint)
         DEFINE_SLOWCASE_OP(op_check_traps)
         DEFINE_SLOWCASE_OP(op_mod)
@@ -563,7 +571,7 @@ void JIT::privateCompileSlowCases()
             RELEASE_ASSERT_NOT_REACHED();
         }
 
-        if (false)
+        if (JITInternal::verbose)
             dataLog("At ", firstTo, " slow: ", iter - m_slowCases.begin(), "\n");
 
         RELEASE_ASSERT_WITH_MESSAGE(iter == m_slowCases.end() || firstTo != iter->to, "Not enough jumps linked in slow case codegen.");
@@ -688,6 +696,8 @@ void JIT::compileWithoutLinking(JITCompilationEffort effort)
 
     move(regT1, stackPointerRegister);
     checkStackPointerAlignment();
+    if (Options::zeroStackFrame())
+        clearStackFrame(callFrameRegister, stackPointerRegister, regT0, maxFrameSize);
 
     emitSaveCalleeSaves();
     emitMaterializeTagCheckRegisters();
@@ -774,32 +784,36 @@ CompilationResult JIT::link()
             ASSERT(record.type == SwitchRecord::Immediate || record.type == SwitchRecord::Character); 
             ASSERT(record.jumpTable.simpleJumpTable->branchOffsets.size() == record.jumpTable.simpleJumpTable->ctiOffsets.size());
 
-            record.jumpTable.simpleJumpTable->ctiDefault = patchBuffer.locationOf(m_labels[bytecodeOffset + record.defaultOffset]);
+            record.jumpTable.simpleJumpTable->ctiDefault = patchBuffer.locationOf(m_labels[bytecodeOffset + record.defaultOffset], NoPtrTag);
 
             for (unsigned j = 0; j < record.jumpTable.simpleJumpTable->branchOffsets.size(); ++j) {
                 unsigned offset = record.jumpTable.simpleJumpTable->branchOffsets[j];
-                record.jumpTable.simpleJumpTable->ctiOffsets[j] = offset ? patchBuffer.locationOf(m_labels[bytecodeOffset + offset]) : record.jumpTable.simpleJumpTable->ctiDefault;
+                record.jumpTable.simpleJumpTable->ctiOffsets[j] = offset ? patchBuffer.locationOf(m_labels[bytecodeOffset + offset], NoPtrTag) : record.jumpTable.simpleJumpTable->ctiDefault;
             }
         } else {
             ASSERT(record.type == SwitchRecord::String);
 
-            record.jumpTable.stringJumpTable->ctiDefault = patchBuffer.locationOf(m_labels[bytecodeOffset + record.defaultOffset]);
+            auto* stringJumpTable = record.jumpTable.stringJumpTable;
+            stringJumpTable->ctiDefault =
+                patchBuffer.locationOf(m_labels[bytecodeOffset + record.defaultOffset], NoPtrTag);
 
-            for (auto& location : record.jumpTable.stringJumpTable->offsetTable.values()) {
+            for (auto& location : stringJumpTable->offsetTable.values()) {
                 unsigned offset = location.branchOffset;
-                location.ctiOffset = offset ? patchBuffer.locationOf(m_labels[bytecodeOffset + offset]) : record.jumpTable.stringJumpTable->ctiDefault;
+                location.ctiOffset = offset
+                    ? patchBuffer.locationOf(m_labels[bytecodeOffset + offset], NoPtrTag)
+                    : stringJumpTable->ctiDefault;
             }
         }
     }
 
     for (size_t i = 0; i < m_codeBlock->numberOfExceptionHandlers(); ++i) {
         HandlerInfo& handler = m_codeBlock->exceptionHandler(i);
-        handler.nativeCode = patchBuffer.locationOf(m_labels[handler.target]);
+        handler.nativeCode = patchBuffer.locationOf(m_labels[handler.target], ExceptionHandlerPtrTag);
     }
 
     for (auto& record : m_calls) {
-        if (record.to)
-            patchBuffer.link(record.from, FunctionPtr(record.to));
+        if (record.callee)
+            patchBuffer.link(record.from, record.callee);
     }
 
     for (unsigned i = m_getByIds.size(); i--;)
@@ -810,7 +824,7 @@ CompilationResult JIT::link()
         m_putByIds[i].finalize(patchBuffer);
 
     if (m_byValCompilationInfo.size()) {
-        CodeLocationLabel exceptionHandler = patchBuffer.locationOf(m_exceptionHandler);
+        CodeLocationLabel exceptionHandler = patchBuffer.locationOf(m_exceptionHandler, ExceptionHandlerPtrTag);
 
         for (const auto& byValCompilationInfo : m_byValCompilationInfo) {
             PatchableJump patchableNotIndexJump = byValCompilationInfo.notIndexJump;
@@ -818,9 +832,9 @@ CompilationResult JIT::link()
             if (Jump(patchableNotIndexJump).isSet())
                 notIndexJump = CodeLocationJump(patchBuffer.locationOf(patchableNotIndexJump));
             CodeLocationJump badTypeJump = CodeLocationJump(patchBuffer.locationOf(byValCompilationInfo.badTypeJump));
-            CodeLocationLabel doneTarget = patchBuffer.locationOf(byValCompilationInfo.doneTarget);
-            CodeLocationLabel nextHotPathTarget = patchBuffer.locationOf(byValCompilationInfo.nextHotPathTarget);
-            CodeLocationLabel slowPathTarget = patchBuffer.locationOf(byValCompilationInfo.slowPathTarget);
+            CodeLocationLabel doneTarget = patchBuffer.locationOf(byValCompilationInfo.doneTarget, NoPtrTag);
+            CodeLocationLabel nextHotPathTarget = patchBuffer.locationOf(byValCompilationInfo.nextHotPathTarget, NoPtrTag);
+            CodeLocationLabel slowPathTarget = patchBuffer.locationOf(byValCompilationInfo.slowPathTarget, NoPtrTag);
             CodeLocationCall returnAddress = patchBuffer.locationOf(byValCompilationInfo.returnAddress);
 
             *byValCompilationInfo.byValInfo = ByValInfo(
@@ -853,7 +867,7 @@ CompilationResult JIT::link()
 
     MacroAssemblerCodePtr withArityCheck;
     if (m_codeBlock->codeType() == FunctionCode)
-        withArityCheck = patchBuffer.locationOf(m_arityCheck);
+        withArityCheck = patchBuffer.locationOf(m_arityCheck, CodeEntryWithArityCheckPtrTag);
 
     if (Options::dumpDisassembly()) {
         m_disassembler->dump(patchBuffer);
@@ -869,8 +883,8 @@ CompilationResult JIT::link()
         m_codeBlock->setPCToCodeOriginMap(std::make_unique<PCToCodeOriginMap>(WTFMove(m_pcToCodeOriginMapBuilder), patchBuffer));
     
     CodeRef result = FINALIZE_CODE(
-        patchBuffer,
-        ("Baseline JIT code for %s", toCString(CodeBlockWithJITType(m_codeBlock, JITCode::BaselineJIT)).data()));
+        patchBuffer, CodeEntryPtrTag,
+        "Baseline JIT code for %s", toCString(CodeBlockWithJITType(m_codeBlock, JITCode::BaselineJIT)).data());
     
     m_vm->machineCodeBytesPerBytecodeWordForBaselineJIT->add(
         static_cast<double>(result.size()) /
@@ -880,10 +894,9 @@ CompilationResult JIT::link()
     m_codeBlock->setJITCode(
         adoptRef(*new DirectJITCode(result, withArityCheck, JITCode::BaselineJIT)));
 
-#if ENABLE(JIT_VERBOSE)
-    dataLogF("JIT generated code for %p at [%p, %p).\n", m_codeBlock, result.executableMemory()->start(), result.executableMemory()->end());
-#endif
-    
+    if (JITInternal::verbose)
+        dataLogF("JIT generated code for %p at [%p, %p).\n", m_codeBlock, result.executableMemory()->start(), result.executableMemory()->end());
+
     return CompilationSuccessful;
 }
 
@@ -911,7 +924,8 @@ void JIT::privateCompileExceptionHandlers()
         poke(GPRInfo::argumentGPR0);
         poke(GPRInfo::argumentGPR1, 1);
 #endif
-        m_calls.append(CallRecord(call(), std::numeric_limits<unsigned>::max(), FunctionPtr(lookupExceptionHandlerFromCallerFrame).value()));
+        PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
+        m_calls.append(CallRecord(call(tag), std::numeric_limits<unsigned>::max(), FunctionPtr(lookupExceptionHandlerFromCallerFrame, tag)));
         jumpToExceptionHandler(*vm());
     }
 
@@ -930,7 +944,8 @@ void JIT::privateCompileExceptionHandlers()
         poke(GPRInfo::argumentGPR0);
         poke(GPRInfo::argumentGPR1, 1);
 #endif
-        m_calls.append(CallRecord(call(), std::numeric_limits<unsigned>::max(), FunctionPtr(lookupExceptionHandler).value()));
+        PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
+        m_calls.append(CallRecord(call(tag), std::numeric_limits<unsigned>::max(), FunctionPtr(lookupExceptionHandler, tag)));
         jumpToExceptionHandler(*vm());
     }
 }

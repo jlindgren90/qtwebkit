@@ -28,6 +28,7 @@ messages -> WebProcess LegacyReceiver {
 
     # Global preferences.
     SetCacheModel(uint32_t cacheModel)
+
     RegisterURLSchemeAsEmptyDocument(String scheme)
     RegisterURLSchemeAsSecure(String scheme)
     RegisterURLSchemeAsBypassingContentSecurityPolicy(String scheme)
@@ -37,6 +38,8 @@ messages -> WebProcess LegacyReceiver {
     RegisterURLSchemeAsDisplayIsolated(String scheme)
     RegisterURLSchemeAsCORSEnabled(String scheme)
     RegisterURLSchemeAsCachePartitioned(String scheme)
+    RegisterURLSchemeAsCanDisplayOnlyIfCanRequest(String scheme)
+
     SetDefaultRequestTimeoutInterval(double timeoutInterval)
     SetAlwaysUsesComplexTextCodePath(bool alwaysUseComplexText)
     SetShouldUseFontSmoothing(bool useFontSmoothing)
@@ -117,7 +120,7 @@ messages -> WebProcess LegacyReceiver {
 
 #if ENABLE(SERVICE_WORKER)
     EstablishWorkerContextConnectionToStorageProcess(uint64_t pageGroupID, uint64_t pageID, struct WebKit::WebPreferencesStore store, PAL::SessionID initialSessionID)
-    RegisterServiceWorkerClients(PAL::SessionID sessionID)
+    RegisterServiceWorkerClients()
 #endif
 
     DidTakeAllMessagesForPort(Vector<WebCore::MessageWithMessagePorts> messages, uint64_t messageCallbackIdentifier, uint64_t messageBatchIdentifier)
@@ -126,6 +129,7 @@ messages -> WebProcess LegacyReceiver {
     MessagesAvailableForPort(struct WebCore::MessagePortIdentifier port)
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
-    SetScreenProperties(HashMap<uint32_t, WebCore::ScreenProperties> screenProperties);
+    SetScreenProperties(HashMap<uint32_t, WebCore::ScreenProperties> screenProperties)
+    ScrollerStylePreferenceChanged(bool useOvelayScrollbars)
 #endif
 }

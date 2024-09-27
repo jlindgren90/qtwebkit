@@ -6,17 +6,24 @@
 #//////////////////////////////////////////////////////////////////////////////////////////
 
 fast/forms/attributed-strings.html [ Pass ]
-editing/pasteboard/drag-drop-href-as-url.html [ Pass ]
 editing/pasteboard/data-transfer-get-data-on-drop-custom.html [ Pass ]
 editing/pasteboard/data-transfer-get-data-on-drop-plain-text.html [ Pass ]
 editing/pasteboard/data-transfer-get-data-on-drop-rich-text.html [ Pass ]
 editing/pasteboard/data-transfer-get-data-on-drop-url.html [ Pass ]
 editing/pasteboard/data-transfer-is-unique-for-dragenter-and-dragleave.html [ Pass ]
+editing/pasteboard/data-transfer-items-drag-drop-file-promise.html [ Pass ]
+editing/pasteboard/data-transfer-items-drop-file.html [ Pass ]
+editing/pasteboard/data-transfer-items-drop-file-promise.html [ Pass ]
 editing/pasteboard/data-transfer-set-data-sanitize-html-when-dragging-in-null-origin.html [ Pass ]
 editing/pasteboard/data-transfer-set-data-sanitize-url-when-dragging-in-null-origin.html [ Pass ]
-editing/pasteboard/drag-end-crash-accessing-item-list.html [ Pass ]
 editing/pasteboard/data-transfer-item-list-add-file-on-drag.html [ Pass ]
-editing/pasteboard/data-transfer-items-drop-file.html [ Pass ]
+editing/pasteboard/datatransfer-items-drop-plaintext-file-promise.html [ Pass ]
+editing/pasteboard/datatransfer-types-dropping-text-file-promise.html [ Pass ]
+editing/pasteboard/drag-drop-href-as-url.html [ Pass ]
+editing/pasteboard/drag-end-crash-accessing-item-list.html [ Pass ]
+editing/pasteboard/drag-file-promises-to-editable-element-as-URLs.html [ Pass ]
+editing/pasteboard/drag-file-promises-to-editable-element-as-attachment.html [ Pass ]
+editing/pasteboard/file-input-files-access-promise.html [ Pass ]
 http/tests/security/clipboard/drag-drop-html-cross-origin-iframe-in-same-origin.html [ Pass ]
 
 #//////////////////////////////////////////////////////////////////////////////////////////
@@ -132,6 +139,7 @@ http/wpt/service-workers [ Skip ]
 http/wpt/cache-storage [ Skip ]
 http/tests/cache-storage [ Skip ]
 imported/w3c/web-platform-tests/streams/readable-byte-streams/detached-buffers.serviceworker.https.html [ Skip ]
+http/tests/appcache/main-resource-redirect-with-sw.html [ Skip ]
 
 # Skip WebRTC for now in WK1
 imported/w3c/web-platform-tests/webrtc [ Skip ]
@@ -302,6 +310,7 @@ imported/w3c/web-platform-tests/html/browsers/history/the-history-interface/hist
 
 # testRunner.setShouldDownloadUndisplayableMIMETypes() is not supported on WK1.
 fast/dom/HTMLAnchorElement/anchor-file-blob-convert-to-download.html [ Skip ]
+fast/dom/HTMLAnchorElement/anchor-file-blob-convert-to-download-async-delegate.html [ Skip ]
 
 webkit.org/b/156629 imported/w3c/web-platform-tests/html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html [ Pass Failure ]
 
@@ -485,6 +494,8 @@ webkit.org/b/179775 imported/w3c/web-platform-tests/XMLHttpRequest/firing-events
 webkit.org/b/172044 [ Debug ] imported/w3c/web-platform-tests/IndexedDB/open-request-queue.html [ Pass Timeout ]
 
 webkit.org/b/180898 accessibility/mac/AOM-events.html [ Skip ]
+webkit.org/b/183023 accessibility/mac/AOM-events-all.html [ Skip ]
+webkit.org/b/183352 accessibility/ios-simulator/AOM-dismiss-event.html [ Skip ]
 
 webkit.org/b/182752 accessibility/mac/accessibility-make-first-responder.html [ Skip ]
 
@@ -510,3 +521,5 @@ webkit.org/b/182554 transitions/transition-display-property.html [ Pass ImageOnl
 webkit.org/b/181834 [ Debug ] fast/block/positioning/fixed-container-with-relative-parent.html [ Pass ImageOnlyFailure ]
 
 webkit.org/b/182932 media/track/track-css-matching-default.html [ Pass Timeout ]
+
+webkit.org/b/183220 media/track/track-css-matching-timestamps.html [ Pass Timeout ]

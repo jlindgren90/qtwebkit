@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@ static FunctionPtr readCallTarget(CodeBlock* codeBlock, CodeLocationCall call)
     if (codeBlock->jitType() == JITCode::FTLJIT) {
         return FunctionPtr(codeBlock->vm()->ftlThunks->keyForSlowPathCallThunk(
             MacroAssemblerCodePtr::createFromExecutableAddress(
-                result.executableAddress())).callTarget());
+                result.executableAddress())).callTarget(), CodeEntryPtrTag);
     }
 #else
     UNUSED_PARAM(codeBlock);
@@ -179,18 +179,19 @@ static InlineCacheAction tryCacheGetByID(ExecState* exec, JSValue baseValue, con
         // FIXME: Cache property access for immediates.
         if (!baseValue.isCell())
             return GiveUpOnCache;
+        JSCell* baseCell = baseValue.asCell();
 
         CodeBlock* codeBlock = exec->codeBlock();
 
         std::unique_ptr<AccessCase> newCase;
 
         if (propertyName == vm.propertyNames->length) {
-            if (isJSArray(baseValue)) {
+            if (isJSArray(baseCell)) {
                 if (stubInfo.cacheType == CacheType::Unset
-                    && slot.slotBase() == baseValue
-                    && InlineAccess::isCacheableArrayLength(stubInfo, jsCast<JSArray*>(baseValue))) {
+                    && slot.slotBase() == baseCell
+                    && InlineAccess::isCacheableArrayLength(stubInfo, jsCast<JSArray*>(baseCell))) {
 
-                    bool generatedCodeInline = InlineAccess::generateArrayLength(stubInfo, jsCast<JSArray*>(baseValue));
+                    bool generatedCodeInline = InlineAccess::generateArrayLength(stubInfo, jsCast<JSArray*>(baseCell));
                     if (generatedCodeInline) {
                         ftlThunkAwareRepatchCall(codeBlock, stubInfo.slowPathCallLocation(), appropriateOptimizingGetByIdFunction(kind));
                         stubInfo.initArrayLength();
@@ -199,23 +200,23 @@ static InlineCacheAction tryCacheGetByID(ExecState* exec, JSValue baseValue, con
                 }
 
                 newCase = AccessCase::create(vm, codeBlock, AccessCase::ArrayLength);
-            } else if (isJSString(baseValue))
+            } else if (isJSString(baseCell))
                 newCase = AccessCase::create(vm, codeBlock, AccessCase::StringLength);
-            else if (DirectArguments* arguments = jsDynamicCast<DirectArguments*>(vm, baseValue)) {
+            else if (DirectArguments* arguments = jsDynamicCast<DirectArguments*>(vm, baseCell)) {
                 // If there were overrides, then we can handle this as a normal property load! Guarding
                 // this with such a check enables us to add an IC case for that load if needed.
                 if (!arguments->overrodeThings())
                     newCase = AccessCase::create(vm, codeBlock, AccessCase::DirectArgumentsLength);
-            } else if (ScopedArguments* arguments = jsDynamicCast<ScopedArguments*>(vm, baseValue)) {
+            } else if (ScopedArguments* arguments = jsDynamicCast<ScopedArguments*>(vm, baseCell)) {
                 // Ditto.
                 if (!arguments->overrodeThings())
                     newCase = AccessCase::create(vm, codeBlock, AccessCase::ScopedArgumentsLength);
             }
         }
 
-        if (!propertyName.isSymbol() && isJSModuleNamespaceObject(baseValue) && !slot.isUnset()) {
+        if (!propertyName.isSymbol() && baseCell->inherits<JSModuleNamespaceObject>(vm) && !slot.isUnset()) {
             if (auto moduleNamespaceSlot = slot.moduleNamespaceSlot())
-                newCase = ModuleNamespaceAccessCase::create(vm, codeBlock, jsCast<JSModuleNamespaceObject*>(baseValue), moduleNamespaceSlot->environment, ScopeOffset(moduleNamespaceSlot->scopeOffset));
+                newCase = ModuleNamespaceAccessCase::create(vm, codeBlock, jsCast<JSModuleNamespaceObject*>(baseCell), moduleNamespaceSlot->environment, ScopeOffset(moduleNamespaceSlot->scopeOffset));
         }
         
         if (!newCase) {
@@ -223,7 +224,6 @@ static InlineCacheAction tryCacheGetByID(ExecState* exec, JSValue baseValue, con
                 return GiveUpOnCache;
 
             ObjectPropertyConditionSet conditionSet;
-            JSCell* baseCell = baseValue.asCell();
             Structure* structure = baseCell->structure(vm);
 
             bool loadTargetFromProxy = false;
@@ -386,14 +386,17 @@ static V_JITOperation_ESsiJJI appropriateGenericPutByIdFunction(const PutPropert
 
 static V_JITOperation_ESsiJJI appropriateOptimizingPutByIdFunction(const PutPropertySlot &slot, PutKind putKind)
 {
-    if (slot.isStrictMode()) {
+    auto pickSlowPath = [&] () -> V_JITOperation_ESsiJJI {
+        if (slot.isStrictMode()) {
+            if (putKind == Direct)
+                return operationPutByIdDirectStrictOptimize;
+            return operationPutByIdStrictOptimize;
+        }
         if (putKind == Direct)
-            return operationPutByIdDirectStrictOptimize;
-        return operationPutByIdStrictOptimize;
-    }
-    if (putKind == Direct)
-        return operationPutByIdDirectNonStrictOptimize;
-    return operationPutByIdNonStrictOptimize;
+            return operationPutByIdDirectNonStrictOptimize;
+        return operationPutByIdNonStrictOptimize;
+    };
+    return tagCFunctionPtr(pickSlowPath(), SlowPathPtrTag);
 }
 
 static InlineCacheAction tryCachePutByID(ExecState* exec, JSValue baseValue, Structure* structure, const Identifier& ident, const PutPropertySlot& slot, StructureStubInfo& stubInfo, PutKind putKind)
@@ -944,10 +947,10 @@ void linkPolymorphicCall(
     
     Vector<int64_t> caseValues(callCases.size());
     Vector<CallToCodePtr> calls(callCases.size());
-    std::unique_ptr<uint32_t[]> fastCounts;
+    UniqueArray<uint32_t> fastCounts;
     
     if (!isWebAssembly && callerCodeBlock->jitType() != JITCode::topTierJIT())
-        fastCounts = std::make_unique<uint32_t[]>(callCases.size());
+        fastCounts = makeUniqueArray<uint32_t>(callCases.size());
     
     for (size_t i = 0; i < callCases.size(); ++i) {
         if (fastCounts)
@@ -1064,11 +1067,15 @@ void linkPolymorphicCall(
     
     RELEASE_ASSERT(callCases.size() == calls.size());
     for (CallToCodePtr callToCodePtr : calls) {
+#if CPU(ARM_THUMB2)
         // Tail call special-casing ensures proper linking on ARM Thumb2, where a tail call jumps to an address
         // with a non-decorated bottom bit but a normal call calls an address with a decorated bottom bit.
         bool isTailCall = callToCodePtr.call.isFlagSet(CCallHelpers::Call::Tail);
-        patchBuffer.link(
-            callToCodePtr.call, FunctionPtr(isTailCall ? callToCodePtr.codePtr.dataLocation() : callToCodePtr.codePtr.executableAddress()));
+        void* target = isTailCall ? callToCodePtr.codePtr.dataLocation() : callToCodePtr.codePtr.executableAddress();
+        patchBuffer.link(callToCodePtr.call, FunctionPtr(MacroAssemblerCodePtr::createFromExecutableAddress(target)));
+#else
+        patchBuffer.link(callToCodePtr.call, FunctionPtr(callToCodePtr.codePtr.retagged(CodeEntryPtrTag, NearCallPtrTag)));
+#endif
     }
     if (isWebAssembly || JITCode::isOptimizingJIT(callerCodeBlock->jitType()))
         patchBuffer.link(done, callLinkInfo.callReturnLocation().labelAtOffset(0));
@@ -1078,10 +1085,10 @@ void linkPolymorphicCall(
     
     auto stubRoutine = adoptRef(*new PolymorphicCallStubRoutine(
         FINALIZE_CODE_FOR(
-            callerCodeBlock, patchBuffer,
-            ("Polymorphic call stub for %s, return point %p, targets %s",
+            callerCodeBlock, patchBuffer, NoPtrTag,
+            "Polymorphic call stub for %s, return point %p, targets %s",
                 isWebAssembly ? "WebAssembly" : toCString(*callerCodeBlock).data(), callLinkInfo.callReturnLocation().labelAtOffset(0).executableAddress(),
-                toCString(listDump(callCases)).data())),
+                toCString(listDump(callCases)).data()),
         vm, owner, exec->callerFrame(), callLinkInfo, callCases,
         WTFMove(fastCounts)));
     
@@ -1124,7 +1131,7 @@ void resetPutByID(CodeBlock* codeBlock, StructureStubInfo& stubInfo)
         optimizedFunction = operationPutByIdDirectNonStrictOptimize;
     }
 
-    ftlThunkAwareRepatchCall(codeBlock, stubInfo.slowPathCallLocation(), optimizedFunction);
+    ftlThunkAwareRepatchCall(codeBlock, stubInfo.slowPathCallLocation(), tagCFunctionPtr(optimizedFunction, SlowPathPtrTag));
     InlineAccess::rewireStubAsJump(stubInfo, stubInfo.slowPathStartLocation());
 }
 

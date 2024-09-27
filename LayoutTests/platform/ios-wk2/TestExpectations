@@ -13,7 +13,7 @@ fast/viewport/ios [ Pass ]
 fast/visual-viewport/ios/ [ Pass ]
 scrollingcoordinator/ios [ Pass ]
 tiled-drawing/ios [ Pass ]
-editing/selection/character-granularity-rect.html [ Pass ]
+editing/selection/character-granularity-rect.html [ Failure ]
 
 accessibility/smart-invert.html [ Pass ]
 accessibility/smart-invert-reference.html [ Pass ]
@@ -1129,6 +1129,7 @@ webkit.org/b/155948 transitions/cancel-transition.html [ Pass Failure ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-download-unset.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-download.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-file-blob-convert-to-download.html [ Skip ]
+webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-file-blob-convert-to-download-async-delegate.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-file-blob-download.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-file-blob-download-includes-backslash.html [ Skip ]
 webkit.org/b/156067 fast/dom/HTMLAnchorElement/anchor-file-blob-download-includes-doublequote.html [ Skip ]
@@ -1317,3 +1318,5 @@ webkit.org/b/181821 fast/visual-viewport/ios/caret-after-focus-in-fixed.html [ P
 webkit.org/b/182144 [ Debug ] webgl/1.0.3/conformance/rendering/many-draw-calls.html [ Skip ]
 
 webkit.org/b/182849 imported/w3c/web-platform-tests/XMLHttpRequest/event-upload-progress-crossorigin.htm [ Pass Failure ]
+
+webkit.org/b/183714 [ Debug ] http/tests/storageAccess/grant-storage-access-under-opener.html [ Skip ]

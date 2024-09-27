@@ -870,9 +870,9 @@ Seconds RenderThemeIOS::animationRepeatIntervalForProgressBar(RenderProgress&) c
     return 0_s;
 }
 
-double RenderThemeIOS::animationDurationForProgressBar(RenderProgress&) const
+Seconds RenderThemeIOS::animationDurationForProgressBar(RenderProgress&) const
 {
-    return 0;
+    return 0_s;
 }
 
 bool RenderThemeIOS::paintProgressBar(const RenderObject& renderer, const PaintInfo& paintInfo, const IntRect& rect)
@@ -1397,7 +1397,7 @@ String RenderThemeIOS::mediaControlsBase64StringForIconNameAndType(const String&
 
 #endif // ENABLE(VIDEO)
 
-Color RenderThemeIOS::systemColor(CSSValueID cssValueID) const
+Color RenderThemeIOS::systemColor(CSSValueID cssValueID, bool) const
 {
     auto addResult = m_systemColorCache.add(cssValueID, Color());
     if (!addResult.isNewEntry)
@@ -1434,7 +1434,7 @@ Color RenderThemeIOS::systemColor(CSSValueID cssValueID) const
     }
 
     if (!color.isValid())
-        color = RenderTheme::systemColor(cssValueID);
+        color = RenderTheme::systemColor(cssValueID, false);
 
     addResult.iterator->value = color;
 
@@ -1798,6 +1798,15 @@ bool RenderThemeIOS::paintAttachment(const RenderObject& renderer, const PaintIn
 }
 
 #endif // ENABLE(ATTACHMENT_ELEMENT)
+
+#if ENABLE(EXTRA_ZOOM_MODE)
+
+String RenderThemeIOS::extraDefaultStyleSheet()
+{
+    return ASCIILiteral("* { -webkit-text-size-adjust: auto !important; -webkit-hyphens: auto !important; }");
+}
+
+#endif
 
 } // namespace WebCore
 

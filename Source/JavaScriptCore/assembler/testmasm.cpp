@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,6 +32,7 @@
 #include "InitializeThreading.h"
 #include "LinkBuffer.h"
 #include "ProbeContext.h"
+#include "StackAlignment.h"
 #include <limits>
 #include <wtf/Compiler.h>
 #include <wtf/DataLog.h>
@@ -148,13 +149,14 @@ MacroAssemblerCodeRef compile(Generator&& generate)
     CCallHelpers jit;
     generate(jit);
     LinkBuffer linkBuffer(jit, nullptr);
-    return FINALIZE_CODE(linkBuffer, ("testmasm compilation"));
+    return FINALIZE_CODE(linkBuffer, JITCodePtrTag, "testmasm compilation");
 }
 
 template<typename T, typename... Arguments>
 T invoke(MacroAssemblerCodeRef code, Arguments... arguments)
 {
-    T (*function)(Arguments...) = bitwise_cast<T(*)(Arguments...)>(code.code().executableAddress());
+    void* executableAddress = untagCFunctionPtr(code.code().executableAddress(), JITCodePtrTag);
+    T (*function)(Arguments...) = bitwise_cast<T(*)(Arguments...)>(executableAddress);
     return function(arguments...);
 }
 
@@ -198,7 +200,7 @@ void testBranchTruncateDoubleToInt32(double val, int32_t expected)
 #endif
     CHECK_EQ(compileAndRun<int>([&] (CCallHelpers& jit) {
         jit.emitFunctionPrologue();
-        jit.subPtr(CCallHelpers::TrustedImm32(8), MacroAssembler::stackPointerRegister);
+        jit.subPtr(CCallHelpers::TrustedImm32(stackAlignmentBytes()), MacroAssembler::stackPointerRegister);
         if (isBigEndian) {
             jit.store32(CCallHelpers::TrustedImm32(valAsUInt >> 32),
                 MacroAssembler::stackPointerRegister);
@@ -218,7 +220,7 @@ void testBranchTruncateDoubleToInt32(double val, int32_t expected)
         jit.move(CCallHelpers::TrustedImm32(0), GPRInfo::returnValueGPR);
 
         done.link(&jit);
-        jit.addPtr(CCallHelpers::TrustedImm32(8), MacroAssembler::stackPointerRegister);
+        jit.addPtr(CCallHelpers::TrustedImm32(stackAlignmentBytes()), MacroAssembler::stackPointerRegister);
         jit.emitFunctionEpilogue();
         jit.ret();
     }), expected);

@@ -336,7 +336,7 @@ void SamplingProfiler::takeSample(const AbstractLocker&, Seconds& stackTraceProc
 {
     ASSERT(m_lock.isLocked());
     if (m_vm.entryScope) {
-        double nowTime = m_stopwatch->elapsedTime();
+        Seconds nowTime = m_stopwatch->elapsedTime();
 
         auto machineThreadsLocker = holdLock(m_vm.heap.machineThreads().getLock());
         LockHolder codeBlockSetLocker(m_vm.heap.codeBlockSet().getLock());
@@ -435,10 +435,9 @@ static ALWAYS_INLINE unsigned tryGetBytecodeIndex(unsigned llintPC, CodeBlock* c
     return 0;
 #else
     Instruction* instruction = bitwise_cast<Instruction*>(llintPC);
-    if (instruction >= codeBlock->instructions().begin() && instruction < codeBlock->instructions().begin() + codeBlock->instructionCount()) {
+    if (instruction >= codeBlock->instructions().begin() && instruction < codeBlock->instructions().end()) {
         isValid = true;
-        unsigned bytecodeIndex = instruction - codeBlock->instructions().begin();
-        return bytecodeIndex;
+        return codeBlock->bytecodeOffset(instruction);
     }
     isValid = false;
     return 0;

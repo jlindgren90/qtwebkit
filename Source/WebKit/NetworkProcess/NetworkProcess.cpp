@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2018 Apple Inc. All rights reserved.
  * Copyright (C) 2018 Sony Interactive Entertainment Inc.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,7 @@
 #include <WebCore/DiagnosticLoggingClient.h>
 #include <WebCore/LogInitialization.h>
 #include <WebCore/MIMETypeRegistry.h>
+#include <WebCore/NetworkStateNotifier.h>
 #include <WebCore/NetworkStorageSession.h>
 #include <WebCore/PlatformCookieJar.h>
 #include <WebCore/ResourceRequest.h>
@@ -73,6 +74,7 @@
 #include <pal/SessionID.h>
 #include <wtf/CallbackAggregator.h>
 #include <wtf/OptionSet.h>
+#include <wtf/ProcessPrivilege.h>
 #include <wtf/RunLoop.h>
 #include <wtf/text/AtomicString.h>
 #include <wtf/text/CString.h>
@@ -121,6 +123,12 @@ NetworkProcess::NetworkProcess()
 #if ENABLE(LEGACY_CUSTOM_PROTOCOL_MANAGER)
     addSupplement<LegacyCustomProtocolManager>();
 #endif
+
+    NetworkStateNotifier::singleton().addListener([this](bool isOnLine) {
+        auto webProcessConnections = m_webProcessConnections;
+        for (auto& webProcessConnection : webProcessConnections)
+            webProcessConnection->setOnLineState(isOnLine);
+    });
 }
 
 NetworkProcess::~NetworkProcess()
@@ -209,6 +217,8 @@ void NetworkProcess::lowMemoryHandler(Critical critical)
 
 void NetworkProcess::initializeNetworkProcess(NetworkProcessCreationParameters&& parameters)
 {
+    WTF::setProcessPrivileges({ ProcessPrivilege::CanAccessRawCookies, ProcessPrivilege::CanAccessCredentials });
+    WebCore::NetworkStorageSession::permitProcessToUseCookieAPI(true);
     WebCore::setPresentingApplicationPID(parameters.presentingApplicationPID);
     platformInitializeNetworkProcess(parameters);
 
@@ -306,6 +316,9 @@ void NetworkProcess::createNetworkConnectionToWebProcess()
 #else
     notImplemented();
 #endif
+
+    if (!m_webProcessConnections.isEmpty())
+        m_webProcessConnections.last()->setOnLineState(NetworkStateNotifier::singleton().onLine());
 }
 
 void NetworkProcess::clearCachedCredentials()
@@ -325,6 +338,7 @@ void NetworkProcess::addWebsiteDataStore(WebsiteDataStoreParameters&& parameters
 void NetworkProcess::destroySession(PAL::SessionID sessionID)
 {
     SessionTracker::destroySession(sessionID);
+    m_sessionsControlledByAutomation.remove(sessionID);
 }
 
 void NetworkProcess::grantSandboxExtensionsToStorageProcessForBlobs(const Vector<String>& filenames, Function<void ()>&& completionHandler)
@@ -367,7 +381,7 @@ void NetworkProcess::updatePrevalentDomainsToPartitionOrBlockCookies(PAL::Sessio
 void NetworkProcess::hasStorageAccessForFrame(PAL::SessionID sessionID, const String& resourceDomain, const String& firstPartyDomain, uint64_t frameID, uint64_t pageID, uint64_t contextId)
 {
     if (auto* networkStorageSession = NetworkStorageSession::storageSession(sessionID))
-        parentProcessConnection()->send(Messages::NetworkProcessProxy::StorageAccessRequestResult(networkStorageSession->hasStorageAccessForFrame(resourceDomain, firstPartyDomain, frameID, pageID), contextId), 0);
+        parentProcessConnection()->send(Messages::NetworkProcessProxy::StorageAccessRequestResult(networkStorageSession->hasStorageAccess(resourceDomain, firstPartyDomain, frameID, pageID), contextId), 0);
     else
         ASSERT_NOT_REACHED();
 }
@@ -380,17 +394,25 @@ void NetworkProcess::getAllStorageAccessEntries(PAL::SessionID sessionID, uint64
         ASSERT_NOT_REACHED();
 }
 
-void NetworkProcess::grantStorageAccessForFrame(PAL::SessionID sessionID, const String& resourceDomain, const String& firstPartyDomain, uint64_t frameID, uint64_t pageID, uint64_t contextId)
+void NetworkProcess::grantStorageAccess(PAL::SessionID sessionID, const String& resourceDomain, const String& firstPartyDomain, std::optional<uint64_t> frameID, uint64_t pageID, uint64_t contextId)
 {
     bool isStorageGranted = false;
     if (auto* networkStorageSession = NetworkStorageSession::storageSession(sessionID)) {
-        networkStorageSession->grantStorageAccessForFrame(resourceDomain, firstPartyDomain, frameID, pageID);
-        ASSERT(networkStorageSession->hasStorageAccessForFrame(resourceDomain, firstPartyDomain, frameID, pageID));
+        networkStorageSession->grantStorageAccess(resourceDomain, firstPartyDomain, frameID, pageID);
+        ASSERT(networkStorageSession->hasStorageAccess(resourceDomain, firstPartyDomain, frameID, pageID));
         isStorageGranted = true;
     } else
         ASSERT_NOT_REACHED();
 
     parentProcessConnection()->send(Messages::NetworkProcessProxy::StorageAccessRequestResult(isStorageGranted, contextId), 0);
+}
+
+void NetworkProcess::removeAllStorageAccess(PAL::SessionID sessionID)
+{
+    if (auto* networkStorageSession = NetworkStorageSession::storageSession(sessionID))
+        networkStorageSession->removeAllStorageAccess();
+    else
+        ASSERT_NOT_REACHED();
 }
 
 void NetworkProcess::removePrevalentDomains(PAL::SessionID sessionID, const Vector<String>& domains)
@@ -399,6 +421,19 @@ void NetworkProcess::removePrevalentDomains(PAL::SessionID sessionID, const Vect
         networkStorageSession->removePrevalentDomains(domains);
 }
 #endif
+
+bool NetworkProcess::sessionIsControlledByAutomation(PAL::SessionID sessionID) const
+{
+    return m_sessionsControlledByAutomation.contains(sessionID);
+}
+
+void NetworkProcess::setSessionIsControlledByAutomation(PAL::SessionID sessionID, bool controlled)
+{
+    if (controlled)
+        m_sessionsControlledByAutomation.add(sessionID);
+    else
+        m_sessionsControlledByAutomation.remove(sessionID);
+}
 
 static void fetchDiskCacheEntries(PAL::SessionID sessionID, OptionSet<WebsiteDataFetchOption> fetchOptions, Function<void (Vector<WebsiteData::Entry>)>&& completionHandler)
 {

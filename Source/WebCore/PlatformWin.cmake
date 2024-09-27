@@ -1,6 +1,7 @@
 add_definitions(/bigobj -D__STDC_CONSTANT_MACROS)
 
 list(APPEND WebCore_INCLUDE_DIRECTORIES
+    "${DERIVED_SOURCES_DIR}/ForwardingHeaders"
     "${CMAKE_BINARY_DIR}/../include/private"
     "${CMAKE_BINARY_DIR}/../include/private/JavaScriptCore"
     "${WEBCORE_DIR}/accessibility/win"
@@ -167,6 +168,7 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 
     css/parser
 
+    html/canvas
     html/forms
     html/parser
     html/shadow

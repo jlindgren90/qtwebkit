@@ -145,6 +145,7 @@ enum class EventThrottlingBehavior {
 
 enum class CanWrap : bool;
 enum class DidWrap : bool;
+enum class NavigationPolicyCheck;
 
 class Page : public Supplementable<Page> {
     WTF_MAKE_NONCOPYABLE(Page);
@@ -160,7 +161,7 @@ public:
 
     WEBCORE_EXPORT uint64_t renderTreeSize() const;
 
-    void setNeedsRecalcStyleInAllFrames();
+    WEBCORE_EXPORT void setNeedsRecalcStyleInAllFrames();
 
     WEBCORE_EXPORT ViewportArguments viewportArguments() const;
 
@@ -180,7 +181,7 @@ public:
     bool openedByDOM() const;
     void setOpenedByDOM();
 
-    WEBCORE_EXPORT void goToItem(HistoryItem&, FrameLoadType);
+    WEBCORE_EXPORT void goToItem(HistoryItem&, FrameLoadType, NavigationPolicyCheck);
 
     WEBCORE_EXPORT void setGroupName(const String&);
     WEBCORE_EXPORT const String& groupName() const;
@@ -324,11 +325,20 @@ public:
     bool enclosedInScrollableAncestorView() const { return m_enclosedInScrollableAncestorView; }
     void setEnclosedInScrollableAncestorView(bool f) { m_enclosedInScrollableAncestorView = f; }
 #endif
+    
+    bool useSystemAppearance() const { return m_useSystemAppearance; }
+    void setUseSystemAppearance(bool a) { m_useSystemAppearance = a; }
+    
+    bool defaultAppearance() const { return m_defaultAppearance; }
+    void setDefaultAppearance(bool a) { m_defaultAppearance = a; }
 
 #if ENABLE(TEXT_AUTOSIZING)
     float textAutosizingWidth() const { return m_textAutosizingWidth; }
     void setTextAutosizingWidth(float textAutosizingWidth) { m_textAutosizingWidth = textAutosizingWidth; }
 #endif
+
+    WEBCORE_EXPORT void setFullscreenInsetTop(double);
+    WEBCORE_EXPORT void setFullscreenAutoHideDelay(double);
     
     bool shouldSuppressScrollbarAnimations() const { return m_suppressScrollbarAnimations; }
     WEBCORE_EXPORT void setShouldSuppressScrollbarAnimations(bool suppressAnimations);
@@ -699,6 +709,9 @@ private:
 #if PLATFORM(IOS)
     bool m_enclosedInScrollableAncestorView { false };
 #endif
+    
+    bool m_useSystemAppearance { false };
+    bool m_defaultAppearance { true };
 
 #if ENABLE(TEXT_AUTOSIZING)
     float m_textAutosizingWidth { 0 };

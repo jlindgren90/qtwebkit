@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,9 +30,11 @@
 #include "AssemblerCommon.h"
 #include "CPU.h"
 #include "CodeLocation.h"
+#include "JSCJSValue.h"
 #include "MacroAssemblerCodeRef.h"
 #include "MacroAssemblerHelpers.h"
 #include "Options.h"
+#include "PtrTag.h"
 #include <wtf/CryptographicallyRandomNumber.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/SharedTask.h>
@@ -240,25 +242,33 @@ public:
         const void* m_ptr;
     };
 
+    // TrustedImm:
+    //
+    // An empty super class of each of the TrustedImm types. This class is used for template overloads
+    // on a TrustedImm type via std::is_base_of.
+    struct TrustedImm { };
+
     // TrustedImmPtr:
     //
     // A pointer sized immediate operand to an instruction - this is wrapped
     // in a class requiring explicit construction in order to differentiate
     // from pointers used as absolute addresses to memory operations
-    struct TrustedImmPtr {
+    struct TrustedImmPtr : public TrustedImm {
         TrustedImmPtr() { }
         
         explicit TrustedImmPtr(const void* value)
             : m_value(value)
         {
         }
-        
-        // This is only here so that TrustedImmPtr(0) does not confuse the C++
-        // overload handling rules.
-        explicit TrustedImmPtr(int value)
-            : m_value(0)
+
+        template<typename ReturnType, typename... Arguments>
+        explicit TrustedImmPtr(ReturnType(*value)(Arguments...))
+            : m_value(reinterpret_cast<void*>(value))
         {
-            ASSERT_UNUSED(value, !value);
+        }
+
+        explicit TrustedImmPtr(std::nullptr_t)
+        {
         }
 
         explicit TrustedImmPtr(size_t value)
@@ -271,7 +281,12 @@ public:
             return reinterpret_cast<intptr_t>(m_value);
         }
 
-        const void* m_value;
+        void* asPtr()
+        {
+            return const_cast<void*>(m_value);
+        }
+
+        const void* m_value { 0 };
     };
 
     struct ImmPtr : private TrustedImmPtr
@@ -290,7 +305,7 @@ public:
     // class requiring explicit construction in order to prevent RegisterIDs
     // (which are implemented as an enum) from accidentally being passed as
     // immediate values.
-    struct TrustedImm32 {
+    struct TrustedImm32 : public TrustedImm {
         TrustedImm32() { }
         
         explicit TrustedImm32(int32_t value)
@@ -330,7 +345,7 @@ public:
     // class requiring explicit construction in order to prevent RegisterIDs
     // (which are implemented as an enum) from accidentally being passed as
     // immediate values.
-    struct TrustedImm64 {
+    struct TrustedImm64 : TrustedImm {
         TrustedImm64() { }
         
         explicit TrustedImm64(int64_t value)
@@ -857,9 +872,10 @@ public:
         AssemblerType::linkPointer(code, label, value.executableAddress());
     }
 
-    static void* getLinkerAddress(void* code, AssemblerLabel label)
+    // FIXME: remove the default PtrTag value once we've tagged all the clients.
+    static void* getLinkerAddress(void* code, AssemblerLabel label, PtrTag tag = NoPtrTag)
     {
-        return AssemblerType::getRelocatedAddress(code, label);
+        return tagCodePtr(AssemblerType::getRelocatedAddress(code, label), tag);
     }
 
     static unsigned getLinkerCallReturnOffset(Call call)
@@ -879,6 +895,7 @@ public:
 
     static void repatchNearCall(CodeLocationNearCall nearCall, CodeLocationLabel destination)
     {
+        assertIsTaggedWith(destination.executableAddress(), NearCallPtrTag);
         switch (nearCall.callMode()) {
         case NearCallMode::Tail:
             AssemblerType::relinkJump(nearCall.dataLocation(), destination.dataLocation());
@@ -936,6 +953,15 @@ public:
         AssemblerType::fillNops(static_cast<char*>(buffer.data()) + startCodeSize, memoryToFillWithNopsInBytes, isCopyingToExecutableMemory);
         buffer.setCodeSize(targetCodeSize);
     }
+
+    ALWAYS_INLINE void tagReturnAddress() { }
+    ALWAYS_INLINE void untagReturnAddress() { }
+
+    ALWAYS_INLINE void tagPtr(RegisterID, PtrTag) { }
+    ALWAYS_INLINE void tagPtr(RegisterID, RegisterID) { }
+    ALWAYS_INLINE void untagPtr(RegisterID, PtrTag) { }
+    ALWAYS_INLINE void untagPtr(RegisterID, RegisterID) { }
+    ALWAYS_INLINE void removePtrTag(RegisterID) { }
 
 protected:
     AbstractMacroAssembler()

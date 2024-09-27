@@ -63,13 +63,26 @@ std::unique_ptr<LayerHostingContext> LayerHostingContext::createForExternalHosti
     layerHostingContext->m_context = [CAContext remoteContextWithOptions:@{
         kCAContextIgnoresHitTest : @YES,
         kCAContextDisplayId : @10000 }];
+#elif __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+    [CAContext setAllowsCGSConnections:NO];
+    layerHostingContext->m_context = [CAContext remoteContextWithOptions:@{kCAContextCIFilterBehavior :  @"ignore"}];
 #else
     layerHostingContext->m_context = [CAContext contextWithCGSConnection:CGSMainConnectionID() options:@{ kCAContextCIFilterBehavior : @"ignore" }];
 #endif
     
     return layerHostingContext;
 }
+
+#if PLATFORM(MAC)
+std::unique_ptr<LayerHostingContext> LayerHostingContext::createForExternalPluginHostingProcess()
+{
+    auto layerHostingContext = std::make_unique<LayerHostingContext>();
+    layerHostingContext->m_layerHostingMode = LayerHostingMode::OutOfProcess;
+    layerHostingContext->m_context = [CAContext contextWithCGSConnection:CGSMainConnectionID() options:@{ kCAContextCIFilterBehavior : @"ignore" }];
+    return layerHostingContext;
+}
 #endif
+#endif // HAVE(OUT_OF_PROCESS_LAYER_HOSTING)
 
 LayerHostingContext::LayerHostingContext()
 {

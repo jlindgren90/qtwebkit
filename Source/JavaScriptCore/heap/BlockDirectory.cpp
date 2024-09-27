@@ -35,7 +35,6 @@
 #include "SuperSampler.h"
 #include "ThreadLocalCacheInlines.h"
 #include "VM.h"
-#include <wtf/CurrentTime.h>
 
 namespace JSC {
 
@@ -191,6 +190,7 @@ void BlockDirectory::prepareForAllocation()
         });
     
     m_unsweptCursor = 0;
+    m_emptyCursor = 0;
     
     m_eden.clearAll();
 

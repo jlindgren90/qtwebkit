@@ -53,8 +53,11 @@
 
 using namespace WebCore;
 
-#if PLATFORM(IOS)
+#if HAVE(AUDIO_TOOLBOX_AUDIO_SESSION)
 #import <AudioToolbox/AudioSession.h>
+#endif
+
+#if PLATFORM(IOS)
 #import <WebCore/Device.h>
 #import <WebCore/GraphicsContext.h>
 #import <WebCore/WebCoreThreadMessage.h>
@@ -622,6 +625,8 @@ public:
         [NSNumber numberWithBool:YES], WebKitDataTransferItemsEnabledPreferenceKey,
         [NSNumber numberWithBool:NO], WebKitCustomPasteboardDataEnabledPreferenceKey,
         [NSNumber numberWithBool:YES], WebKitModernMediaControlsEnabledPreferenceKey,
+        [NSNumber numberWithBool:NO], WebKitCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabledPreferenceKey,
+
 #if ENABLE(WEBGL2)
         [NSNumber numberWithBool:NO], WebKitWebGL2EnabledPreferenceKey,
 #endif
@@ -639,7 +644,6 @@ public:
         [NSNumber numberWithBool:NO], WebKitDownloadAttributeEnabledPreferenceKey,
 #endif
         [NSNumber numberWithBool:NO], WebKitDirectoryUploadEnabledPreferenceKey,
-        [NSNumber numberWithBool:YES], WebKitCSSGridLayoutEnabledPreferenceKey,
         [NSNumber numberWithBool:NO], WebKitWebAnimationsEnabledPreferenceKey,
 
 #if PLATFORM(IOS)
@@ -2321,6 +2325,7 @@ static NSString *classIBCreatorID = nil;
 
 - (void)setAudioSessionCategoryOverride:(unsigned)override
 {
+#if HAVE(AUDIO_TOOLBOX_AUDIO_SESSION)
     if (override > AudioSession::AudioProcessing) {
         // Clients are passing us OSTypes values from AudioToolbox/AudioSession.h,
         // which need to be translated into AudioSession::CategoryType:
@@ -2348,6 +2353,7 @@ static NSString *classIBCreatorID = nil;
             break;
         }
     }
+#endif
 
     [self _setUnsignedIntValue:override forKey:WebKitAudioSessionCategoryOverride];
 }
@@ -3056,16 +3062,6 @@ static NSString *classIBCreatorID = nil;
     return [self _boolValueForKey:WebKitDirectoryUploadEnabledPreferenceKey];
 }
 
-- (BOOL)isCSSGridLayoutEnabled
-{
-    return [self _boolValueForKey:WebKitCSSGridLayoutEnabledPreferenceKey];
-}
-
-- (void)setCSSGridLayoutEnabled:(BOOL)flag
-{
-    [self _setBoolValue:flag forKey:WebKitCSSGridLayoutEnabledPreferenceKey];
-}
-
 - (BOOL)visualViewportEnabled
 {
     return [self _boolValueForKey:WebKitVisualViewportEnabledPreferenceKey];
@@ -3113,6 +3109,16 @@ static NSString *classIBCreatorID = nil;
 - (void)setModernMediaControlsEnabled:(BOOL)flag
 {
     [self _setBoolValue:flag forKey:WebKitModernMediaControlsEnabledPreferenceKey];
+}
+
+- (BOOL)cssAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled
+{
+    return [self _boolValueForKey:WebKitCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabledPreferenceKey];
+}
+
+- (void)setCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled:(BOOL)flag
+{
+    [self _setBoolValue:flag forKey:WebKitCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabledPreferenceKey];
 }
 
 - (BOOL)intersectionObserverEnabled

@@ -283,7 +283,8 @@ void DocumentThreadableLoader::redirectReceived(CachedResource& resource, Resour
     if (m_options.credentials != FetchOptions::Credentials::SameOrigin && m_simpleRequest && isSimpleCrossOriginAccessRequest(request.httpMethod(), *m_originalHeaders))
         return completionHandler(WTFMove(request));
 
-    m_options.storedCredentialsPolicy = StoredCredentialsPolicy::DoNotUse;
+    if (m_options.credentials == FetchOptions::Credentials::SameOrigin)
+        m_options.storedCredentialsPolicy = StoredCredentialsPolicy::DoNotUse;
 
     clearResource();
 
@@ -308,10 +309,13 @@ void DocumentThreadableLoader::dataSent(CachedResource& resource, unsigned long 
     m_client->didSendData(bytesSent, totalBytesToBeSent);
 }
 
-void DocumentThreadableLoader::responseReceived(CachedResource& resource, const ResourceResponse& response)
+void DocumentThreadableLoader::responseReceived(CachedResource& resource, const ResourceResponse& response, CompletionHandler<void()>&& completionHandler)
 {
     ASSERT_UNUSED(resource, &resource == m_resource);
     didReceiveResponse(m_resource->identifier(), response);
+
+    if (completionHandler)
+        completionHandler();
 }
 
 void DocumentThreadableLoader::didReceiveResponse(unsigned long identifier, const ResourceResponse& response)

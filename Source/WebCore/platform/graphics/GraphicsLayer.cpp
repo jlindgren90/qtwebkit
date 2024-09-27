@@ -445,7 +445,7 @@ String GraphicsLayer::animationNameForTransition(AnimatedPropertyID property)
     return id.toString();
 }
 
-void GraphicsLayer::suspendAnimations(double)
+void GraphicsLayer::suspendAnimations(MonotonicTime)
 {
 }
 

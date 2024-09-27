@@ -149,6 +149,10 @@ class TextCheckingRequest;
 class URL;
 class VisiblePosition;
 
+enum SyntheticClickType : int8_t;
+enum class NavigationPolicyCheck;
+enum class TextIndicatorPresentationTransition : uint8_t;
+
 struct CompositionUnderline;
 struct DictationAlternative;
 struct Highlight;
@@ -157,9 +161,7 @@ struct PromisedBlobInfo;
 struct TextCheckingResult;
 struct ViewportArguments;
 
-enum SyntheticClickType : int8_t;
 
-enum class TextIndicatorPresentationTransition : uint8_t;
 
 #if ENABLE(ATTACHMENT_ELEMENT)
 class HTMLAttachmentElement;
@@ -214,6 +216,9 @@ class WebTouchEvent;
 class WebCredentialsMessenger;
 class RemoteLayerTreeTransaction;
 
+enum FindOptions : uint16_t;
+enum class DragControllerAction;
+
 struct AssistedNodeInformation;
 struct AttributedString;
 struct BackForwardListItemState;
@@ -226,9 +231,6 @@ struct WebPageCreationParameters;
 struct WebPreferencesStore;
 struct WebSelectionData;
 struct WebsitePoliciesData;
-
-enum class DragControllerAction;
-enum FindOptions : uint16_t;
 
 using SnapshotOptions = uint32_t;
 using WKEventModifiers = uint32_t;
@@ -304,6 +306,8 @@ public:
     // -- Called from WebCore clients.
     bool handleEditingKeyboardEvent(WebCore::KeyboardEvent*);
 
+    void didStartNavigationPolicyCheck();
+    void didCompleteNavigationPolicyCheck();
     void didStartPageTransition();
     void didCompletePageTransition();
     void didCommitLoad(WebFrame*);
@@ -488,6 +492,9 @@ public:
 #if PLATFORM(MAC)
     void setTopOverhangImage(WebImage*);
     void setBottomOverhangImage(WebImage*);
+    
+    void setUseSystemAppearance(bool);
+    void setDefaultAppearance(bool);
 #endif
 
     bool windowIsFocused() const;
@@ -867,10 +874,10 @@ public:
     void updateVisibilityState(bool isInitialState = false);
 
 #if PLATFORM(IOS)
-    void setViewportConfigurationMinimumLayoutSize(const WebCore::FloatSize&);
+    void setViewportConfigurationMinimumLayoutSize(const WebCore::FloatSize&, const WebCore::FloatSize& viewSize);
     void setMaximumUnobscuredSize(const WebCore::FloatSize&);
     void setDeviceOrientation(int32_t);
-    void dynamicViewportSizeUpdate(const WebCore::FloatSize& minimumLayoutSize, const WebCore::FloatSize& maximumUnobscuredSize, const WebCore::FloatRect& targetExposedContentRect, const WebCore::FloatRect& targetUnobscuredRect, const WebCore::FloatRect& targetUnobscuredRectInScrollViewCoordinates, const WebCore::FloatBoxExtent& targetUnobscuredSafeAreaInsets, double scale, int32_t deviceOrientation, uint64_t dynamicViewportSizeUpdateID);
+    void dynamicViewportSizeUpdate(const WebCore::FloatSize& minimumLayoutSize, const WebCore::FloatSize& viewSize, const WebCore::FloatSize& maximumUnobscuredSize, const WebCore::FloatRect& targetExposedContentRect, const WebCore::FloatRect& targetUnobscuredRect, const WebCore::FloatRect& targetUnobscuredRectInScrollViewCoordinates, const WebCore::FloatBoxExtent& targetUnobscuredSafeAreaInsets, double scale, int32_t deviceOrientation, uint64_t dynamicViewportSizeUpdateID);
     void synchronizeDynamicViewportUpdate(double& newTargetScale, WebCore::FloatPoint& newScrollPosition, uint64_t& nextValidLayerTreeTransactionID);
     std::optional<float> scaleFromUIProcess(const VisibleContentRectUpdateInfo&) const;
     void updateVisibleContentRects(const VisibleContentRectUpdateInfo&, MonotonicTime oldestTimestamp);
@@ -1143,9 +1150,7 @@ private:
     void loadAlternateHTMLString(const LoadParameters&);
     void navigateToPDFLinkWithSimulatedClick(const String& url, WebCore::IntPoint documentPoint, WebCore::IntPoint screenPoint);
     void reload(uint64_t navigationID, uint32_t reloadOptions, SandboxExtension::Handle&&);
-    void goForward(uint64_t navigationID, uint64_t);
-    void goBack(uint64_t navigationID, uint64_t);
-    void goToBackForwardItem(uint64_t navigationID, uint64_t);
+    void goToBackForwardItem(uint64_t navigationID, uint64_t, WebCore::FrameLoadType, WebCore::NavigationPolicyCheck);
     void tryRestoreScrollPosition();
     void setInitialFocus(bool forward, bool isKeyboardEventValid, const WebKeyboardEvent&, CallbackID);
     void updateIsInWindow(bool isInitialState = false);

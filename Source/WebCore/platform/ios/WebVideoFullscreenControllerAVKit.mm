@@ -197,6 +197,7 @@ private:
     bool hasVideo() const override;
     FloatSize videoDimensions() const override;
     bool isMuted() const override;
+    bool isPictureInPictureActive() const override;
 
     HashSet<PlaybackSessionModelClient*> m_playbackClients;
     HashSet<VideoFullscreenModelClient*> m_fullscreenClients;
@@ -588,6 +589,12 @@ bool VideoFullscreenControllerContext::isMuted() const
     return m_playbackModel ? m_playbackModel->isMuted() : false;
 }
 
+bool VideoFullscreenControllerContext::isPictureInPictureActive() const
+{
+    ASSERT(isUIThread());
+    return m_playbackModel ? m_playbackModel->isPictureInPictureActive() : false;
+}
+
 FloatSize VideoFullscreenControllerContext::videoDimensions() const
 {
     ASSERT(isUIThread());
@@ -871,7 +878,7 @@ void VideoFullscreenControllerContext::setUpFullscreen(HTMLVideoElement& videoEl
         m_interface->setVideoFullscreenChangeObserver(this);
 
         m_videoFullscreenView = adoptNS([allocUIViewInstance() init]);
-        
+
         m_interface->setupFullscreen(*m_videoFullscreenView.get(), videoElementClientRect, viewRef.get(), mode, allowsPictureInPicture, false);
     });
 }

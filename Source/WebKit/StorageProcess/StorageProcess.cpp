@@ -27,6 +27,7 @@
 #include "StorageProcess.h"
 
 #include "ChildProcessMessages.h"
+#include "Logging.h"
 #include "StorageProcessCreationParameters.h"
 #include "StorageProcessMessages.h"
 #include "StorageProcessProxyMessages.h"
@@ -44,6 +45,7 @@
 #include <WebCore/ServiceWorkerClientIdentifier.h>
 #include <WebCore/TextEncoding.h>
 #include <pal/SessionID.h>
+#include <wtf/Algorithms.h>
 #include <wtf/CallbackAggregator.h>
 #include <wtf/CrossThreadTask.h>
 #include <wtf/MainThread.h>
@@ -84,11 +86,22 @@ bool StorageProcess::shouldTerminate()
     return true;
 }
 
+#if ENABLE(SERVICE_WORKER)
+WebSWServerToContextConnection* StorageProcess::connectionToContextProcessFromIPCConnection(IPC::Connection& connection)
+{
+    for (auto& serverToContextConnection : m_serverToContextConnections.values()) {
+        if (serverToContextConnection->ipcConnection() == &connection)
+            return serverToContextConnection.get();
+    }
+    return nullptr;
+}
+#endif
+
 void StorageProcess::didClose(IPC::Connection& connection)
 {
 #if ENABLE(SERVICE_WORKER)
-    if (m_serverToContextConnection && m_serverToContextConnection->ipcConnection() == &connection) {
-        connectionToContextProcessWasClosed();
+    if (RefPtr<WebSWServerToContextConnection> serverToContextConnection = connectionToContextProcessFromIPCConnection(connection)) {
+        connectionToContextProcessWasClosed(serverToContextConnection.releaseNonNull());
         return;
     }
 #else
@@ -98,34 +111,27 @@ void StorageProcess::didClose(IPC::Connection& connection)
 }
 
 #if ENABLE(SERVICE_WORKER)
-void StorageProcess::connectionToContextProcessWasClosed()
+void StorageProcess::connectionToContextProcessWasClosed(Ref<WebSWServerToContextConnection>&& serverToContextConnection)
 {
-    if (!m_serverToContextConnection)
-        return;
+    auto& securityOrigin = serverToContextConnection->securityOrigin();
 
-    bool shouldRelaunch = needsServerToContextConnection();
-
-    m_serverToContextConnection->connectionClosed();
-    m_serverToContextConnection = nullptr;
+    serverToContextConnection->connectionClosed();
+    m_serverToContextConnections.remove(securityOrigin);
 
     for (auto& swServer : m_swServers.values())
-        swServer->markAllWorkersAsTerminated();
+        swServer->markAllWorkersForOriginAsTerminated(securityOrigin);
 
-    if (shouldRelaunch)
-        createServerToContextConnection(std::nullopt);
+    if (needsServerToContextConnectionForOrigin(securityOrigin)) {
+        RELEASE_LOG(ServiceWorker, "Connection to service worker process was closed but is still needed, relaunching it");
+        createServerToContextConnection(securityOrigin, std::nullopt);
+    }
 }
 
-// The rule is that we need a context process (and a connection to it) as long as we have SWServerConnections to regular WebProcesses.
-bool StorageProcess::needsServerToContextConnection() const
+bool StorageProcess::needsServerToContextConnectionForOrigin(const SecurityOriginData& securityOrigin) const
 {
-    if (m_swServerConnections.isEmpty())
-        return false;
-
-    // If the last SWServerConnection is to the context process, then we no longer need the context connection.
-    if (m_swServerConnections.size() == 1 && m_serverToContextConnection && &m_swServerConnections.begin()->value->ipcConnection() == m_serverToContextConnection->ipcConnection())
-        return false;
-
-    return true;
+    return WTF::anyOf(m_swServers.values(), [&](auto& swServer) {
+        return swServer->needsServerToContextConnectionForOrigin(securityOrigin);
+    });
 }
 #endif
 
@@ -146,10 +152,12 @@ void StorageProcess::didReceiveMessage(IPC::Connection& connection, IPC::Decoder
 
 #if ENABLE(SERVICE_WORKER)
     if (decoder.messageReceiverName() == Messages::WebSWServerToContextConnection::messageReceiverName()) {
-        if (auto* swConnection = SWServerToContextConnection::globalServerToContextConnection()) {
-            auto* webSWConnection = static_cast<WebSWServerToContextConnection*>(swConnection);
+        ASSERT(parentProcessHasServiceWorkerEntitlement());
+        if (!parentProcessHasServiceWorkerEntitlement())
+            return;
+        if (auto* webSWConnection = connectionToContextProcessFromIPCConnection(connection)) {
             webSWConnection->didReceiveMessage(connection, decoder);
-            return;        
+            return;
         }
     }
 #endif
@@ -190,6 +198,9 @@ void StorageProcess::initializeWebsiteDataStore(const StorageProcessCreationPara
     }
 #endif
 #if ENABLE(SERVICE_WORKER)
+    if (!parentProcessHasServiceWorkerEntitlement())
+        return;
+
     addResult = m_swDatabasePaths.ensure(parameters.sessionID, [path = parameters.serviceWorkerRegistrationDirectory] {
         return path;
     });
@@ -200,6 +211,8 @@ void StorageProcess::initializeWebsiteDataStore(const StorageProcessCreationPara
 
     for (auto& scheme : parameters.urlSchemesServiceWorkersCanHandle)
         registerURLSchemeServiceWorkersCanHandle(scheme);
+
+    m_shouldDisableServiceWorkerProcessTerminationDelay = parameters.shouldDisableServiceWorkerProcessTerminationDelay;
 #endif
 }
 
@@ -238,7 +251,7 @@ void StorageProcess::performNextStorageTask()
     task.performTask();
 }
 
-void StorageProcess::createStorageToWebProcessConnection(bool isServiceWorkerProcess)
+void StorageProcess::createStorageToWebProcessConnection(bool isServiceWorkerProcess, WebCore::SecurityOriginData&& securityOrigin)
 {
 #if USE(UNIX_DOMAIN_SOCKETS)
     IPC::Connection::SocketPair socketPair = IPC::Connection::createPlatformConnection();
@@ -260,13 +273,16 @@ void StorageProcess::createStorageToWebProcessConnection(bool isServiceWorkerPro
 
 #if ENABLE(SERVICE_WORKER)
     if (isServiceWorkerProcess && !m_storageToWebProcessConnections.isEmpty()) {
-        RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
+        ASSERT(parentProcessHasServiceWorkerEntitlement());
         ASSERT(m_waitingForServerToContextProcessConnection);
-        m_serverToContextConnection = WebSWServerToContextConnection::create(m_storageToWebProcessConnections.last()->connection());
+        auto contextConnection = WebSWServerToContextConnection::create(securityOrigin, m_storageToWebProcessConnections.last()->connection());
+        auto addResult = m_serverToContextConnections.add(WTFMove(securityOrigin), contextConnection.copyRef());
+        ASSERT_UNUSED(addResult, addResult.isNewEntry);
+
         m_waitingForServerToContextProcessConnection = false;
 
-        for (auto& connection : m_storageToWebProcessConnections)
-            connection->workerContextProcessConnectionCreated();
+        for (auto* server : SWServer::allServers())
+            server->serverToContextConnectionCreated(contextConnection);
     }
 #else
     UNUSED_PARAM(isServiceWorkerProcess);
@@ -323,7 +339,7 @@ void StorageProcess::deleteWebsiteData(PAL::SessionID sessionID, OptionSet<Websi
 #endif
 }
 
-void StorageProcess::deleteWebsiteDataForOrigins(PAL::SessionID sessionID, OptionSet<WebsiteDataType> websiteDataTypes, const Vector<SecurityOriginData>& securityOriginDatas, uint64_t callbackID)
+void StorageProcess::deleteWebsiteDataForOrigins(PAL::SessionID sessionID, OptionSet<WebsiteDataType> websiteDataTypes, const Vector<SecurityOriginData>& securityOrigins, uint64_t callbackID)
 {
     auto callbackAggregator = CallbackAggregator::create([this, callbackID]() {
         parentProcessConnection()->send(Messages::StorageProcessProxy::DidDeleteWebsiteDataForOrigins(callbackID), 0);
@@ -332,14 +348,14 @@ void StorageProcess::deleteWebsiteDataForOrigins(PAL::SessionID sessionID, Optio
 #if ENABLE(SERVICE_WORKER)
     if (websiteDataTypes.contains(WebsiteDataType::ServiceWorkerRegistrations)) {
         auto& server = swServerForSession(sessionID);
-        for (auto& originData : securityOriginDatas)
-            server.clear(originData.securityOrigin(), [callbackAggregator = callbackAggregator.copyRef()] { });
+        for (auto& securityOrigin : securityOrigins)
+            server.clear(securityOrigin, [callbackAggregator = callbackAggregator.copyRef()] { });
     }
 #endif
 
 #if ENABLE(INDEXED_DATABASE)
     if (!websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases))
-        idbServer(sessionID).closeAndDeleteDatabasesForOrigins(securityOriginDatas, [callbackAggregator = WTFMove(callbackAggregator)] { });
+        idbServer(sessionID).closeAndDeleteDatabasesForOrigins(securityOrigins, [callbackAggregator = WTFMove(callbackAggregator)] { });
 #endif
 }
 
@@ -411,8 +427,12 @@ void StorageProcess::didGetSandboxExtensionsForBlobFiles(uint64_t requestID, San
 #if ENABLE(SERVICE_WORKER)
 SWServer& StorageProcess::swServerForSession(PAL::SessionID sessionID)
 {
-    RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
     ASSERT(sessionID.isValid());
+
+    // Use the same SWServer for all ephemeral sessions.
+    if (sessionID.isEphemeral())
+        sessionID = PAL::SessionID::legacyPrivateSessionID();
+
     auto result = m_swServers.add(sessionID, nullptr);
     if (!result.isNewEntry) {
         ASSERT(result.iterator->value);
@@ -425,6 +445,8 @@ SWServer& StorageProcess::swServerForSession(PAL::SessionID sessionID)
     ASSERT(sessionID.isEphemeral() || !path.isEmpty());
 
     result.iterator->value = std::make_unique<SWServer>(makeUniqueRef<WebSWOriginStore>(), WTFMove(path), sessionID);
+    if (m_shouldDisableServiceWorkerProcessTerminationDelay)
+        result.iterator->value->disableServiceWorkerProcessTerminationDelay();
     return *result.iterator->value;
 }
 
@@ -433,21 +455,21 @@ WebSWOriginStore& StorageProcess::swOriginStoreForSession(PAL::SessionID session
     return static_cast<WebSWOriginStore&>(swServerForSession(sessionID).originStore());
 }
 
-WebSWServerToContextConnection* StorageProcess::globalServerToContextConnection()
+WebSWServerToContextConnection* StorageProcess::serverToContextConnectionForOrigin(const SecurityOriginData& securityOrigin)
 {
-    return m_serverToContextConnection.get();
+    return m_serverToContextConnections.get(securityOrigin);
 }
 
-void StorageProcess::createServerToContextConnection(std::optional<PAL::SessionID> sessionID)
+void StorageProcess::createServerToContextConnection(const SecurityOriginData& securityOrigin, std::optional<PAL::SessionID> sessionID)
 {
     if (m_waitingForServerToContextProcessConnection)
         return;
     
     m_waitingForServerToContextProcessConnection = true;
     if (sessionID)
-        parentProcessConnection()->send(Messages::StorageProcessProxy::EstablishWorkerContextConnectionToStorageProcessForExplicitSession(*sessionID), 0);
+        parentProcessConnection()->send(Messages::StorageProcessProxy::EstablishWorkerContextConnectionToStorageProcessForExplicitSession(securityOrigin, *sessionID), 0);
     else
-        parentProcessConnection()->send(Messages::StorageProcessProxy::EstablishWorkerContextConnectionToStorageProcess(), 0);
+        parentProcessConnection()->send(Messages::StorageProcessProxy::EstablishWorkerContextConnectionToStorageProcess(securityOrigin), 0);
 }
 
 void StorageProcess::didFailFetch(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier)
@@ -500,7 +522,7 @@ void StorageProcess::postMessageToServiceWorker(WebCore::ServiceWorkerIdentifier
 
 void StorageProcess::registerSWServerConnection(WebSWServerConnection& connection)
 {
-    RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
+    ASSERT(parentProcessHasServiceWorkerEntitlement());
     ASSERT(!m_swServerConnections.contains(connection.identifier()));
     m_swServerConnections.add(connection.identifier(), &connection);
     swOriginStoreForSession(connection.sessionID()).registerSWServerConnection(connection);
@@ -511,6 +533,29 @@ void StorageProcess::unregisterSWServerConnection(WebSWServerConnection& connect
     ASSERT(m_swServerConnections.get(connection.identifier()) == &connection);
     m_swServerConnections.remove(connection.identifier());
     swOriginStoreForSession(connection.sessionID()).unregisterSWServerConnection(connection);
+}
+
+void StorageProcess::swContextConnectionMayNoLongerBeNeeded(WebSWServerToContextConnection& serverToContextConnection)
+{
+    auto& securityOrigin = serverToContextConnection.securityOrigin();
+    if (needsServerToContextConnectionForOrigin(securityOrigin))
+        return;
+
+    RELEASE_LOG(ServiceWorker, "Service worker process is no longer needed, terminating it");
+    serverToContextConnection.terminate();
+
+    serverToContextConnection.connectionClosed();
+    m_serverToContextConnections.remove(securityOrigin);
+}
+
+void StorageProcess::disableServiceWorkerProcessTerminationDelay()
+{
+    if (m_shouldDisableServiceWorkerProcessTerminationDelay)
+        return;
+
+    m_shouldDisableServiceWorkerProcessTerminationDelay = true;
+    for (auto& swServer : m_swServers.values())
+        swServer->disableServiceWorkerProcessTerminationDelay();
 }
 #endif
 

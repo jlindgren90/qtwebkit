@@ -261,6 +261,7 @@ private:
     void clearCachedCredentials();
 
     void platformTerminate();
+
     void registerURLSchemeAsEmptyDocument(const String&);
     void registerURLSchemeAsSecure(const String&) const;
     void registerURLSchemeAsBypassingContentSecurityPolicy(const String&) const;
@@ -271,6 +272,8 @@ private:
     void registerURLSchemeAsCORSEnabled(const String&) const;
     void registerURLSchemeAsAlwaysRevalidated(const String&) const;
     void registerURLSchemeAsCachePartitioned(const String&) const;
+    void registerURLSchemeAsCanDisplayOnlyIfCanRequest(const String&) const;
+
     void setDefaultRequestTimeoutInterval(double);
     void setAlwaysUsesComplexTextCodePath(bool);
     void setShouldUseFontSmoothing(bool);
@@ -315,7 +318,7 @@ private:
 #endif
 #if ENABLE(SERVICE_WORKER)
     void establishWorkerContextConnectionToStorageProcess(uint64_t pageGroupID, uint64_t pageID, const WebPreferencesStore&, PAL::SessionID);
-    void registerServiceWorkerClients(PAL::SessionID);
+    void registerServiceWorkerClients();
 #endif
 
     void releasePageCache();
@@ -372,6 +375,7 @@ private:
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
     void setScreenProperties(const HashMap<uint32_t, WebCore::ScreenProperties>&);
+    void scrollerStylePreferenceChanged(bool useOverlayScrollbars);
 #endif
 
     RefPtr<WebConnectionToUIProcess> m_webConnection;

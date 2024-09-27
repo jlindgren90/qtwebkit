@@ -46,6 +46,7 @@ class KeyframeEffectReadOnly : public AnimationEffectReadOnly
 public:
     static ExceptionOr<Ref<KeyframeEffectReadOnly>> create(JSC::ExecState&, Element*, JSC::Strong<JSC::JSObject>&&, std::optional<Variant<double, KeyframeEffectOptions>>&&);
     static ExceptionOr<Ref<KeyframeEffectReadOnly>> create(JSC::ExecState&, Ref<KeyframeEffectReadOnly>&&);
+    static Ref<KeyframeEffectReadOnly> create(const Element&);
     ~KeyframeEffectReadOnly() { }
 
     struct BasePropertyIndexedKeyframe {
@@ -109,6 +110,11 @@ public:
     bool backdropFilterFunctionListsMatch() const override { return false; }
 #endif
 
+    void computeCSSAnimationBlendingKeyframes();
+    void computeCSSTransitionBlendingKeyframes(const RenderStyle* oldStyle, const RenderStyle& newStyle);
+    bool stylesWouldYieldNewCSSTransitionsBlendingKeyframes(const RenderStyle& oldStyle, const RenderStyle& newStyle) const;
+    bool hasBlendingKeyframes() const { return m_blendingKeyframes.size(); }
+
 protected:
     void copyPropertiesFromSource(Ref<KeyframeEffectReadOnly>&&);
     ExceptionOr<void> processKeyframes(JSC::ExecState&, JSC::Strong<JSC::JSObject>&&);
@@ -120,6 +126,7 @@ protected:
 
 private:
     void setAnimatedPropertiesInStyle(RenderStyle&, double);
+    TimingFunction* timingFunctionForKeyframeAtIndex(size_t);
     void computeStackingContextImpact();
     void updateBlendingKeyframes();
     bool shouldRunAccelerated();

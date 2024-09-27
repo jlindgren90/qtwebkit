@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -90,6 +90,7 @@
 #include <WebCore/Widget.h>
 #include <WebCore/WindowFeatures.h>
 #include <wtf/NeverDestroyed.h>
+#include <wtf/ProcessPrivilege.h>
 
 using namespace WebCore;
 
@@ -748,19 +749,9 @@ void WebFrameLoaderClient::dispatchDecidePolicyForResponse(const ResourceRespons
 
     Ref<WebFrame> protector(*m_frame);
     uint64_t listenerID = m_frame->setUpPolicyListener(WTFMove(function), WebFrame::ForNavigationAction::No);
-    bool receivedPolicyAction;
-    PolicyAction policyAction;
-    DownloadID downloadID;
-
     auto navigationID = static_cast<WebDocumentLoader&>(*policyDocumentLoader).navigationID();
-    if (!webPage->sendSync(Messages::WebPageProxy::DecidePolicyForResponseSync(m_frame->frameID(), SecurityOriginData::fromFrame(coreFrame), navigationID, response, request, canShowMIMEType, listenerID, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get())), Messages::WebPageProxy::DecidePolicyForResponseSync::Reply(receivedPolicyAction, policyAction, downloadID), Seconds::infinity(), IPC::SendSyncOption::InformPlatformProcessWillSuspend)) {
+    if (!webPage->send(Messages::WebPageProxy::DecidePolicyForResponse(m_frame->frameID(), SecurityOriginData::fromFrame(coreFrame), navigationID, response, request, canShowMIMEType, listenerID, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get()))))
         m_frame->didReceivePolicyDecision(listenerID, PolicyAction::Ignore, 0, { }, { });
-        return;
-    }
-
-    // We call this synchronously because CFNetwork can only convert a loading connection to a download from its didReceiveResponse callback.
-    if (receivedPolicyAction)
-        m_frame->didReceivePolicyDecision(listenerID, policyAction, 0, downloadID, { });
 }
 
 void WebFrameLoaderClient::dispatchDecidePolicyForNewWindowAction(const NavigationAction& navigationAction, const ResourceRequest& request, FormState* formState, const String& frameName, FramePolicyFunction&& function)
@@ -825,6 +816,10 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
         return;
     }
 
+    m_isDecidingNavigationPolicyDecision = true;
+    if (m_frame->isMainFrame())
+        webPage->didStartNavigationPolicyCheck();
+
     // Always ignore requests with empty URLs. 
     if (request.isEmpty()) {
         function(PolicyAction::Ignore);
@@ -843,10 +838,6 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
     }
     
     uint64_t listenerID = m_frame->setUpPolicyListener(WTFMove(function), WebFrame::ForNavigationAction::Yes);
-    bool receivedPolicyAction;
-    uint64_t newNavigationID;
-    PolicyAction policyAction;
-    DownloadID downloadID;
 
     ASSERT(navigationAction.sourceDocument());
     const Document& sourceDocument = *navigationAction.sourceDocument();
@@ -855,7 +846,7 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
     FrameInfoData originatingFrameInfoData;
     originatingFrameInfoData.isMainFrame = navigationAction.initiatedByMainFrame() == InitiatedByMainFrame::Yes;
     originatingFrameInfoData.request = ResourceRequest(sourceDocument.url());
-    originatingFrameInfoData.securityOrigin = SecurityOriginData::fromSecurityOrigin(sourceDocument.securityOrigin());
+    originatingFrameInfoData.securityOrigin = sourceDocument.securityOrigin().data();
     if (originatingFrame)
         originatingFrameInfoData.frameID = originatingFrame->frameID();
 
@@ -885,19 +876,29 @@ void WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction(const Navigat
 
     // Notify the UIProcess.
     Ref<WebFrame> protect(*m_frame);
-    std::optional<WebsitePoliciesData> websitePolicies;
-    if (!webPage->sendSync(Messages::WebPageProxy::DecidePolicyForNavigationAction(m_frame->frameID(), SecurityOriginData::fromFrame(coreFrame), documentLoader->navigationID(), navigationActionData, originatingFrameInfoData, originatingFrame && originatingFrame->page() ? originatingFrame->page()->pageID() : 0, navigationAction.resourceRequest(), request, listenerID, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get())), Messages::WebPageProxy::DecidePolicyForNavigationAction::Reply(receivedPolicyAction, newNavigationID, policyAction, downloadID, websitePolicies))) {
+    if (!webPage->send(Messages::WebPageProxy::DecidePolicyForNavigationAction(m_frame->frameID(), SecurityOriginData::fromFrame(coreFrame), documentLoader->navigationID(), navigationActionData, originatingFrameInfoData, originatingFrame && originatingFrame->page() ? originatingFrame->page()->pageID() : 0, navigationAction.resourceRequest(), request, listenerID, UserData(WebProcess::singleton().transformObjectsToHandles(userData.get()).get()))))
         m_frame->didReceivePolicyDecision(listenerID, PolicyAction::Ignore, 0, { }, { });
-        return;
-    }
+}
 
-    // We call this synchronously because WebCore cannot gracefully handle a frame load without a synchronous navigation policy reply.
-    if (receivedPolicyAction)
-        m_frame->didReceivePolicyDecision(listenerID, policyAction, newNavigationID, downloadID, WTFMove(websitePolicies));
+void WebFrameLoaderClient::didDecidePolicyForNavigationAction()
+{
+    if (!m_isDecidingNavigationPolicyDecision)
+        return;
+
+    m_isDecidingNavigationPolicyDecision = false;
+
+    if (!m_frame || !m_frame->isMainFrame())
+        return;
+
+    if (auto* webPage = m_frame->page())
+        webPage->didCompleteNavigationPolicyCheck();
 }
 
 void WebFrameLoaderClient::cancelPolicyCheck()
 {
+    if (m_isDecidingNavigationPolicyDecision)
+        didDecidePolicyForNavigationAction();
+
     m_frame->invalidatePolicyListener();
 }
 
@@ -939,7 +940,9 @@ void WebFrameLoaderClient::dispatchWillSubmitForm(FormState& formState, WTF::Fun
 
     auto& form = formState.form();
 
-    auto* sourceFrame = WebFrame::fromCoreFrame(*formState.sourceDocument().frame());
+    auto* sourceCoreFrame = formState.sourceDocument().frame();
+    RELEASE_ASSERT(sourceCoreFrame);
+    auto* sourceFrame = WebFrame::fromCoreFrame(*sourceCoreFrame);
     ASSERT(sourceFrame);
 
     auto& values = formState.textFieldValues();
@@ -1308,6 +1311,8 @@ void WebFrameLoaderClient::provisionalLoadStarted()
     WebPage* webPage = m_frame->page();
     if (!webPage)
         return;
+
+    ASSERT(!m_isDecidingNavigationPolicyDecision);
 
     if (m_frame->isMainFrame()) {
         webPage->didStartPageTransition();
@@ -1734,13 +1739,13 @@ RemoteAXObjectRef WebFrameLoaderClient::accessibilityRemoteObject()
     return webPage->accessibilityRemoteObject();
 }
     
-NSCachedURLResponse *WebFrameLoaderClient::willCacheResponse(DocumentLoader*, unsigned long identifier, NSCachedURLResponse* response) const
+void WebFrameLoaderClient::willCacheResponse(DocumentLoader*, unsigned long identifier, NSCachedURLResponse* response, CompletionHandler<void(NSCachedURLResponse *)>&& completionHandler) const
 {
     WebPage* webPage = m_frame->page();
     if (!webPage)
-        return response;
+        return completionHandler(response);
 
-    return webPage->injectedBundleResourceLoadClient().shouldCacheResponse(*webPage, *m_frame, identifier) ? response : nil;
+    return completionHandler(webPage->injectedBundleResourceLoadClient().shouldCacheResponse(*webPage, *m_frame, identifier) ? response : nil);
 }
 
 NSDictionary *WebFrameLoaderClient::dataDetectionContext()
@@ -1789,6 +1794,7 @@ bool WebFrameLoaderClient::shouldForceUniversalAccessFromLocalURL(const WebCore:
 
 Ref<FrameNetworkingContext> WebFrameLoaderClient::createNetworkingContext()
 {
+    ASSERT(!hasProcessPrivilege(ProcessPrivilege::CanAccessRawCookies));
     return WebFrameNetworkingContext::create(m_frame);
 }
 

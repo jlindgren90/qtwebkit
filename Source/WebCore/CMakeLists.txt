@@ -439,6 +439,8 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/webvr/VRPose.idl
     Modules/webvr/VRStageParameters.idl
 
+    accessibility/AccessibleSetValueEvent.idl
+
     animation/Animatable.idl
     animation/AnimationEffectReadOnly.idl
     animation/AnimationEffectTiming.idl
@@ -447,6 +449,8 @@ set(WebCore_NON_SVG_IDL_FILES
     animation/AnimationPlaybackEvent.idl
     animation/AnimationPlaybackEventInit.idl
     animation/AnimationTimeline.idl
+    animation/CSSAnimation.idl
+    animation/CSSTransition.idl
     animation/CompositeOperation.idl
     animation/ComputedTimingProperties.idl
     animation/DocumentTimeline.idl

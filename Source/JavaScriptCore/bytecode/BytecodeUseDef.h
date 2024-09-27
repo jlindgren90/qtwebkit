@@ -85,6 +85,10 @@ void computeUsesForBytecodeOffset(Block* codeBlock, OpcodeID opcodeID, Instructi
     case op_jngreater:
     case op_jngreatereq:
     case op_jless:
+    case op_jeq:
+    case op_jneq:
+    case op_jstricteq:
+    case op_jnstricteq:
     case op_jbelow:
     case op_jbeloweq:
     case op_set_function_name:
@@ -102,7 +106,6 @@ void computeUsesForBytecodeOffset(Block* codeBlock, OpcodeID opcodeID, Instructi
         functor(codeBlock, instruction, opcodeID, instruction[3].u.operand);
         return;
     }
-    case op_put_by_index:
     case op_put_by_id:
     case op_put_to_scope:
     case op_put_to_arguments: {
@@ -348,6 +351,10 @@ void computeDefsForBytecodeOffset(Block* codeBlock, OpcodeID opcodeID, Instructi
     case op_jnlesseq:
     case op_jngreater:
     case op_jngreatereq:
+    case op_jeq:
+    case op_jneq:
+    case op_jstricteq:
+    case op_jnstricteq:
     case op_jbelow:
     case op_jbeloweq:
     case op_loop_hint:
@@ -364,7 +371,6 @@ void computeDefsForBytecodeOffset(Block* codeBlock, OpcodeID opcodeID, Instructi
     case op_put_setter_by_val:
     case op_put_by_val:
     case op_put_by_val_direct:
-    case op_put_by_index:
     case op_define_data_property:
     case op_define_accessor_property:
     case op_profile_type:

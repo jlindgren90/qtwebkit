@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2013, 2015-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,15 +47,13 @@ JITThunks::~JITThunks()
 
 MacroAssemblerCodePtr JITThunks::ctiNativeCall(VM* vm)
 {
-    if (!VM::canUseJIT())
-        return MacroAssemblerCodePtr::createLLIntCodePtr(llint_native_call_trampoline);
+    ASSERT(VM::canUseJIT());
     return ctiStub(vm, nativeCallGenerator).code();
 }
 
 MacroAssemblerCodePtr JITThunks::ctiNativeConstruct(VM* vm)
 {
-    if (!VM::canUseJIT())
-        return MacroAssemblerCodePtr::createLLIntCodePtr(llint_native_construct_trampoline);
+    ASSERT(VM::canUseJIT());
     return ctiStub(vm, nativeConstructGenerator).code();
 }
 
@@ -73,15 +71,13 @@ MacroAssemblerCodePtr JITThunks::ctiNativeTailCallWithoutSavedTags(VM* vm)
 
 MacroAssemblerCodePtr JITThunks::ctiInternalFunctionCall(VM* vm)
 {
-    if (!VM::canUseJIT())
-        return MacroAssemblerCodePtr::createLLIntCodePtr(llint_internal_function_call_trampoline);
+    ASSERT(VM::canUseJIT());
     return ctiStub(vm, internalFunctionCallGenerator).code();
 }
 
 MacroAssemblerCodePtr JITThunks::ctiInternalFunctionConstruct(VM* vm)
 {
-    if (!VM::canUseJIT())
-        return MacroAssemblerCodePtr::createLLIntCodePtr(llint_internal_function_construct_trampoline);
+    ASSERT(VM::canUseJIT());
     return ctiStub(vm, internalFunctionConstructGenerator).code();
 }
 
@@ -112,12 +108,12 @@ void JITThunks::finalize(Handle<Unknown> handle, void*)
     weakRemove(*m_hostFunctionStubMap, std::make_tuple(nativeExecutable->function(), nativeExecutable->constructor(), nativeExecutable->name()), nativeExecutable);
 }
 
-NativeExecutable* JITThunks::hostFunctionStub(VM* vm, NativeFunction function, NativeFunction constructor, const String& name)
+NativeExecutable* JITThunks::hostFunctionStub(VM* vm, TaggedNativeFunction function, TaggedNativeFunction constructor, const String& name)
 {
     return hostFunctionStub(vm, function, constructor, nullptr, NoIntrinsic, nullptr, name);
 }
 
-NativeExecutable* JITThunks::hostFunctionStub(VM* vm, NativeFunction function, NativeFunction constructor, ThunkGenerator generator, Intrinsic intrinsic, const DOMJIT::Signature* signature, const String& name)
+NativeExecutable* JITThunks::hostFunctionStub(VM* vm, TaggedNativeFunction function, TaggedNativeFunction constructor, ThunkGenerator generator, Intrinsic intrinsic, const DOMJIT::Signature* signature, const String& name)
 {
     ASSERT(!isCompilationThread());    
     ASSERT(VM::canUseJIT());
@@ -139,7 +135,7 @@ NativeExecutable* JITThunks::hostFunctionStub(VM* vm, NativeFunction function, N
     return nativeExecutable;
 }
 
-NativeExecutable* JITThunks::hostFunctionStub(VM* vm, NativeFunction function, ThunkGenerator generator, Intrinsic intrinsic, const String& name)
+NativeExecutable* JITThunks::hostFunctionStub(VM* vm, TaggedNativeFunction function, ThunkGenerator generator, Intrinsic intrinsic, const String& name)
 {
     return hostFunctionStub(vm, function, callHostFunctionAsConstructor, generator, intrinsic, nullptr, name);
 }

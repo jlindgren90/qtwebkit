@@ -45,6 +45,7 @@
 #import "Image.h"
 #import "ImageBuffer.h"
 #import "LocalCurrentGraphicsContext.h"
+#import "LocalDefaultSystemAppearance.h"
 #import "LocalizedStrings.h"
 #import "MediaControlElements.h"
 #import "Page.h"
@@ -201,7 +202,7 @@ RenderThemeMac::RenderThemeMac()
 NSView *RenderThemeMac::documentViewFor(const RenderObject& o) const
 {
     ControlStates states(extractControlStatesForRenderer(o));
-    return ThemeMac::ensuredView(&o.view().frameView(), states);
+    return ThemeMac::ensuredView(&o.view().frameView(), states, o.page().useSystemAppearance());
 }
 
 #if ENABLE(VIDEO)
@@ -326,16 +327,17 @@ Color RenderThemeMac::platformInactiveListBoxSelectionForegroundColor() const
     return Color::black;
 }
 
-Color RenderThemeMac::platformFocusRingColor() const
+Color RenderThemeMac::platformFocusRingColor(bool useSystemAppearance) const
 {
     if (usesTestModeFocusRingColor())
         return oldAquaFocusRingColor();
 
-    return systemColor(CSSValueWebkitFocusRingColor);
+    return systemColor(CSSValueWebkitFocusRingColor, useSystemAppearance);
 }
 
-Color RenderThemeMac::platformInactiveListBoxSelectionBackgroundColor() const
+Color RenderThemeMac::platformInactiveListBoxSelectionBackgroundColor(bool useSystemAppearance) const
 {
+    LocalDefaultSystemAppearance localAppearance(useSystemAppearance);
     return platformInactiveSelectionBackgroundColor();
 }
 
@@ -492,9 +494,10 @@ void RenderThemeMac::platformColorsDidChange()
     RenderTheme::platformColorsDidChange();
 }
 
-Color RenderThemeMac::systemColor(CSSValueID cssValueID) const
+Color RenderThemeMac::systemColor(CSSValueID cssValueID, bool useSystemAppearance) const
 {
-    return m_systemColorCache.ensure(cssValueID, [this, cssValueID] () -> Color {
+    LocalDefaultSystemAppearance localAppearance(useSystemAppearance);
+    return m_systemColorCache.ensure(cssValueID, [this, cssValueID, useSystemAppearance] () -> Color {
         auto selectCocoaColor = [cssValueID] () -> SEL {
             switch (cssValueID) {
             case CSSValueActiveborder:
@@ -547,6 +550,22 @@ Color RenderThemeMac::systemColor(CSSValueID cssValueID) const
                 return @selector(windowFrameColor);
             case CSSValueWindowtext:
                 return @selector(windowFrameTextColor);
+            case CSSValueAppleSystemHeaderText:
+                return @selector(headerTextColor);
+            case CSSValueAppleSystemTextBackground:
+                return @selector(textBackgroundColor);
+            case CSSValueAppleSystemAlternateSelectedText:
+                return @selector(alternateSelectedControlTextColor);
+            case CSSValueAppleSystemLabel:
+                return @selector(labelColor);
+            case CSSValueAppleSystemSecondaryLabel:
+                return @selector(secondaryLabelColor);
+            case CSSValueAppleSystemTertiaryLabel:
+                return @selector(tertiaryLabelColor);
+            case CSSValueAppleSystemQuaternaryLabel:
+                return @selector(quaternaryLabelColor);
+            case CSSValueAppleSystemGrid:
+                return @selector(gridColor);
             case CSSValueAppleWirelessPlaybackTargetActive:
                 return @selector(systemBlueColor);
             case CSSValueAppleSystemBlue:
@@ -593,7 +612,7 @@ Color RenderThemeMac::systemColor(CSSValueID cssValueID) const
             // Use platform-independent value returned by base class.
             FALLTHROUGH;
         default:
-            return RenderTheme::systemColor(cssValueID);
+            return RenderTheme::systemColor(cssValueID, useSystemAppearance);
         }
     }).iterator->value;
 }
@@ -1078,9 +1097,9 @@ Seconds RenderThemeMac::animationRepeatIntervalForProgressBar(RenderProgress&) c
     return progressAnimationFrameRate;
 }
 
-double RenderThemeMac::animationDurationForProgressBar(RenderProgress&) const
+Seconds RenderThemeMac::animationDurationForProgressBar(RenderProgress&) const
 {
-    return progressAnimationNumFrames * progressAnimationFrameRate.value();
+    return progressAnimationFrameRate * progressAnimationNumFrames;
 }
 
 void RenderThemeMac::adjustProgressBarStyle(StyleResolver&, RenderStyle&, const Element*) const
@@ -1342,8 +1361,12 @@ void RenderThemeMac::adjustMenuListStyle(StyleResolver& styleResolver, RenderSty
     style.setWhiteSpace(PRE);
 
     // Set the foreground color to black or gray when we have the aqua look.
-    // Cast to RGB32 is to work around a compiler bug.
-    style.setColor(e && !e->isDisabledFormControl() ? static_cast<RGBA32>(Color::black) : Color::darkGray);
+    Color c = Color::darkGray;
+    if (e) {
+        bool useSystemAppearance = e->document().page()->useSystemAppearance();
+        c = !e->isDisabledFormControl() ? systemColor(CSSValueButtontext, useSystemAppearance) : systemColor(CSSValueGraytext, useSystemAppearance);
+    }
+    style.setColor(c);
 
     // Set the button's vertical size.
     setSizeFromFont(style, menuListButtonSizes());
@@ -1430,7 +1453,7 @@ void RenderThemeMac::paintCellAndSetFocusedElementNeedsRepaintIfNecessary(NSCell
     bool shouldDrawFocusRing = isFocused(renderer) && renderer.style().outlineStyleIsAuto();
     bool shouldUseImageBuffer = renderer.style().effectiveZoom() != 1 || renderer.page().pageScaleFactor() != 1;
     bool shouldDrawCell = true;
-    if (ThemeMac::drawCellOrFocusRingWithViewIntoContext(cell, paintInfo.context(), rect, documentViewFor(renderer), shouldDrawCell, shouldDrawFocusRing, shouldUseImageBuffer, renderer.page().deviceScaleFactor()))
+    if (ThemeMac::drawCellOrFocusRingWithViewIntoContext(cell, paintInfo.context(), rect, documentViewFor(renderer), shouldDrawCell, shouldDrawFocusRing, shouldUseImageBuffer, renderer.page().deviceScaleFactor(), renderer.page().useSystemAppearance()))
         renderer.page().focusController().setFocusedElementNeedsRepaint();
 }
 
@@ -1559,7 +1582,7 @@ bool RenderThemeMac::paintSliderThumb(const RenderObject& o, const PaintInfo& pa
     bool shouldDrawFocusRing = false;
     float deviceScaleFactor = o.page().deviceScaleFactor();
     bool shouldUseImageBuffer = deviceScaleFactor != 1 || zoomLevel != 1;
-    ThemeMac::drawCellOrFocusRingWithViewIntoContext(sliderThumbCell, paintInfo.context(), unzoomedRect, view, shouldDrawCell, shouldDrawFocusRing, shouldUseImageBuffer, deviceScaleFactor);
+    ThemeMac::drawCellOrFocusRingWithViewIntoContext(sliderThumbCell, paintInfo.context(), unzoomedRect, view, shouldDrawCell, shouldDrawFocusRing, shouldUseImageBuffer, deviceScaleFactor, o.page().useSystemAppearance());
     [sliderThumbCell setControlView:nil];
 
     return false;

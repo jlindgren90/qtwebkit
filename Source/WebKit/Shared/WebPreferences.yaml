@@ -99,6 +99,11 @@ CSSAnimationTriggersEnabled:
   webcoreName: animationTriggersEnabled
   condition: ENABLE(CSS_ANIMATIONS_LEVEL_2)
 
+CSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled:
+  type: bool
+  defaultValue: false
+  webcoreBinding: RuntimeEnabledFeatures
+
 ForceFTPDirectoryListings:
   type: bool
   defaultValue: false
@@ -162,6 +167,10 @@ FullScreenEnabled:
   type: bool
   defaultValue: false
   condition: ENABLE(FULLSCREEN_API)
+  visibleCondition: PLATFORM(IOS)
+  humanReadableName: "Fullscreen API"
+  humanReadableDescription: "Fullscreen API"
+  category: experimental
 
 AsynchronousSpellCheckingEnabled:
   type: bool
@@ -189,7 +198,7 @@ AllowCrossOriginSubresourcesToAskForCredentials:
 
 AVFoundationEnabled:
   type: bool
-  defaultValue: true
+  defaultValue: DEFAULT_AVFOUNDATION_ENABLED
   getter: isAVFoundationEnabled
   webcoreBinding: DeprecatedGlobalSettings
   condition: USE(AVFOUNDATION)
@@ -681,14 +690,6 @@ ShouldSuppressTextInputFromEditingDuringProvisionalNavigation:
   type: bool
   defaultValue: false
 
-CSSGridLayoutEnabled:
-  type: bool
-  defaultValue: true
-  humanReadableName: "CSS Grid"
-  humanReadableDescription: "CSS Grid Layout Module support"
-  binding: RuntimeEnabledFeatures
-  webcoreBinding: RuntimeEnabledFeatures
-
 GamepadsEnabled:
   type: bool
   defaultValue: true
@@ -949,7 +950,7 @@ InspectorWindowFrame:
 
 InactiveMediaCaptureSteamRepromptIntervalInMinutes:
   type: double
-  defaultValue: DEFAULT_INTERACTIVE_MNEDIA_CAPTURE_STREAM_REPROMPT_INTERVAL_IN_MINUTES
+  defaultValue: DEFAULT_INTERACTIVE_MEDIA_CAPTURE_STREAM_REPROMPT_INTERVAL_IN_MINUTES
   webcoreBinding: none
 
 LongRunningMediaCaptureStreamRepromptIntervalInHours:
@@ -1206,3 +1207,4 @@ ResourceLoadStatisticsDebugMode:
   humanReadableDescription: "Intelligent Tracking Prevention Debug Mode"
   category: experimental
   webcoreBinding: RuntimeEnabledFeatures
+

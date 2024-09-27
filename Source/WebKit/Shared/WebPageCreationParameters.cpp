@@ -81,6 +81,8 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
 #endif
 #if PLATFORM(MAC)
     encoder << colorSpace;
+    encoder << useSystemAppearance;
+    encoder << defaultAppearance;
 #endif
 #if PLATFORM(IOS)
     encoder << screenSize;
@@ -88,6 +90,7 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << textAutosizingWidth;
     encoder << ignoresViewportScaleLimits;
     encoder << viewportConfigurationMinimumLayoutSize;
+    encoder << viewportConfigurationViewSize;
     encoder << maximumUnobscuredSize;
 #endif
 #if PLATFORM(COCOA)
@@ -231,6 +234,10 @@ std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::
 #if PLATFORM(MAC)
     if (!decoder.decode(parameters.colorSpace))
         return std::nullopt;
+    if (!decoder.decode(parameters.useSystemAppearance))
+        return std::nullopt;
+    if (!decoder.decode(parameters.defaultAppearance))
+        return std::nullopt;
 #endif
 
 #if PLATFORM(IOS)
@@ -243,6 +250,8 @@ std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::
     if (!decoder.decode(parameters.ignoresViewportScaleLimits))
         return std::nullopt;
     if (!decoder.decode(parameters.viewportConfigurationMinimumLayoutSize))
+        return std::nullopt;
+    if (!decoder.decode(parameters.viewportConfigurationViewSize))
         return std::nullopt;
     if (!decoder.decode(parameters.maximumUnobscuredSize))
         return std::nullopt;

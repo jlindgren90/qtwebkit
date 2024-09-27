@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -2004,6 +2004,11 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         ASSERT(node->child3().useKind() == StringUse);
         forNode(node).setType(m_graph, SpecOther | SpecArray);
         break;
+
+    case RegExpMatchFastGlobal:
+        ASSERT(node->child2().useKind() == StringUse);
+        forNode(node).setType(m_graph, SpecOther | SpecArray);
+        break;
             
     case StringReplace:
     case StringReplaceRegExp:
@@ -2252,7 +2257,24 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     }
 
     case CreateThis: {
-        // FIXME: We can fold this to NewObject if the incoming callee is a constant.
+        if (JSValue base = forNode(node->child1()).m_value) {
+            if (auto* function = jsDynamicCast<JSFunction*>(m_vm, base)) {
+                if (FunctionRareData* rareData = function->rareData()) {
+                    if (Structure* structure = rareData->objectAllocationStructure()) {
+                        // FIXME: we should be able to allocate a poly proto object here:
+                        // https://bugs.webkit.org/show_bug.cgi?id=177517
+                        if (structure->hasMonoProto()) {
+                            m_graph.freeze(rareData);
+                            m_graph.watchpoints().addLazily(rareData->allocationProfileWatchpointSet());
+                            m_state.setFoundConstants(true);
+                            forNode(node).set(m_graph, structure);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        clobberWorld(node->origin.semantic, clobberLimit);
         forNode(node).setType(m_graph, SpecFinalObject);
         break;
     }

@@ -45,6 +45,7 @@
 #include <wtf/Seconds.h>
 #include <wtf/StreamBuffer.h>
 #include <wtf/Threading.h>
+#include <wtf/UniqueArray.h>
 
 namespace WebCore {
 
@@ -76,7 +77,7 @@ private:
     void didOpenSocket();
 
     struct SocketData {
-        SocketData(std::unique_ptr<char[]>&& source, size_t length)
+        SocketData(UniqueArray<char>&& source, size_t length)
         {
             data = WTFMove(source);
             size = length;
@@ -89,7 +90,7 @@ private:
             other.size = 0;
         }
 
-        std::unique_ptr<char[]> data;
+        UniqueArray<char> data;
         size_t size { 0 };
     };
 
@@ -99,6 +100,7 @@ private:
     Lock m_mutexReceive;
     Deque<SocketData> m_sendData;
     Deque<SocketData> m_receiveData;
+    bool m_closed { false };
 
     StreamBuffer<char, 1024 * 1024> m_buffer;
     static const unsigned maxBufferSize = 100 * 1024 * 1024;

@@ -642,7 +642,7 @@ String AXAutoFillStrongConfirmationPasswordLabel()
 
 String autoFillStrongPasswordLabel()
 {
-    return WEB_UI_STRING("strong password", "Label for strong password.");
+    return WEB_UI_STRING("Strong Password", "Label for strong password.");
 }
 
 String missingPluginText()
@@ -1043,7 +1043,7 @@ String webCryptoMasterKeyKeychainComment()
 
 String formControlDoneButtonTitle()
 {
-    return WEB_UI_STRING("Done (extra zoomed form controls)", "Title of the Done button for zoomed form controls.");
+    return WEB_UI_STRING("Done", "Title of the Done button for zoomed form controls.");
 }
 
 String formControlCancelButtonTitle()
@@ -1066,29 +1066,19 @@ String formControlSearchButtonTitle()
     return WEB_UI_STRING("Search", "Title of the Search button for zoomed form controls.");
 }
 
-String textInputModeWriteButtonTitle()
-{
-    return WEB_UI_STRING("Write", "Title of the writing button for zoomed form controls.");
-}
-
-String textInputModeSpeechButtonTitle()
-{
-    return WEB_UI_STRING("Speak", "Title of the dictation button for zoomed form controls.");
-}
-
 String datePickerDayLabelTitle()
 {
-    return WEB_UI_STRING("Day label in date picker", "Day label in date picker");
+    return WEB_UI_STRING_KEY("Day", "Day (Date picker for extra zoom mode)", "Day label in date picker");
 }
 
 String datePickerMonthLabelTitle()
 {
-    return WEB_UI_STRING("Month label in date picker", "Month label in date picker");
+    return WEB_UI_STRING_KEY("Month", "Month (Date picker for extra zoom mode)", "Month label in date picker");
 }
 
 String datePickerYearLabelTitle()
 {
-    return WEB_UI_STRING("Year label in date picker", "Year label in date picker");
+    return WEB_UI_STRING_KEY("Year", "Year (Date picker for extra zoom mode)", "Year label in date picker");
 }
 
 #endif

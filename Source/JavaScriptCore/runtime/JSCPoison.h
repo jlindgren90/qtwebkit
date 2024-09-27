@@ -34,6 +34,7 @@ namespace JSC {
     v(ArrayPrototype) \
     v(CodeBlock) \
     v(DateInstance) \
+    v(DirectArguments) \
     v(GlobalData) \
     v(JITCode) \
     v(JSAPIWrapperObject) \
@@ -49,6 +50,7 @@ namespace JSC {
     v(JSWebAssemblyModule) \
     v(JSWebAssemblyTable) \
     v(NativeCode) \
+    v(ScopedArguments) \
     v(StructureTransitionTable) \
     v(UnlinkedSourceCode) \
     v(WebAssemblyFunctionBase) \

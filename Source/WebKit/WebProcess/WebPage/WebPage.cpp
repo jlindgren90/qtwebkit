@@ -183,6 +183,7 @@
 #include <WebCore/PromisedBlobInfo.h>
 #include <WebCore/Range.h>
 #include <WebCore/RenderLayer.h>
+#include <WebCore/RenderTheme.h>
 #include <WebCore/RenderTreeAsText.h>
 #include <WebCore/RenderView.h>
 #include <WebCore/ResourceRequest.h>
@@ -492,7 +493,10 @@ WebPage::WebPage(uint64_t pageID, WebPageCreationParameters&& parameters)
     setPageLength(parameters.pageLength);
     setGapBetweenPages(parameters.gapBetweenPages);
     setPaginationLineGridEnabled(parameters.paginationLineGridEnabled);
-    
+#if PLATFORM(MAC)
+    setUseSystemAppearance(parameters.useSystemAppearance);
+    setDefaultAppearance(parameters.defaultAppearance);
+#endif
     // If the page is created off-screen, its visibilityState should be prerender.
     m_page->setActivityState(m_activityState);
     if (!isVisible())
@@ -604,7 +608,7 @@ WebPage::WebPage(uint64_t pageID, WebPageCreationParameters&& parameters)
 #endif
 
 #if PLATFORM(IOS)
-    setViewportConfigurationMinimumLayoutSize(parameters.viewportConfigurationMinimumLayoutSize);
+    setViewportConfigurationMinimumLayoutSize(parameters.viewportConfigurationMinimumLayoutSize, parameters.viewportConfigurationViewSize);
     setMaximumUnobscuredSize(parameters.maximumUnobscuredSize);
 #endif
 }
@@ -1257,6 +1261,7 @@ void WebPage::loadRequest(LoadParameters&& loadParameters)
     FrameLoadRequest frameLoadRequest { *m_mainFrame->coreFrame(), loadParameters.request, ShouldOpenExternalURLsPolicy::ShouldNotAllow };
     ShouldOpenExternalURLsPolicy externalURLsPolicy = static_cast<ShouldOpenExternalURLsPolicy>(loadParameters.shouldOpenExternalURLsPolicy);
     frameLoadRequest.setShouldOpenExternalURLsPolicy(externalURLsPolicy);
+    frameLoadRequest.setShouldCheckNavigationPolicy(loadParameters.shouldCheckNavigationPolicy);
 
     corePage()->userInputBridge().loadRequest(WTFMove(frameLoadRequest));
 
@@ -1375,49 +1380,23 @@ void WebPage::reload(uint64_t navigationID, uint32_t reloadOptions, SandboxExten
     corePage()->userInputBridge().reloadFrame(m_mainFrame->coreFrame(), OptionSet<ReloadOption>::fromRaw(reloadOptions));
 }
 
-void WebPage::goForward(uint64_t navigationID, uint64_t backForwardItemID)
+void WebPage::goToBackForwardItem(uint64_t navigationID, uint64_t backForwardItemID, FrameLoadType backForwardType, NavigationPolicyCheck navigationPolicyCheck)
 {
     SendStopResponsivenessTimer stopper;
+
+    ASSERT(isBackForwardLoadType(backForwardType));
 
     HistoryItem* item = WebBackForwardListProxy::itemForID(backForwardItemID);
     ASSERT(item);
     if (!item)
         return;
 
-    ASSERT(!m_pendingNavigationID);
-    m_pendingNavigationID = navigationID;
-
-    m_page->goToItem(*item, FrameLoadType::Forward);
-}
-
-void WebPage::goBack(uint64_t navigationID, uint64_t backForwardItemID)
-{
-    SendStopResponsivenessTimer stopper;
-
-    HistoryItem* item = WebBackForwardListProxy::itemForID(backForwardItemID);
-    ASSERT(item);
-    if (!item)
-        return;
+    LOG(Loading, "In WebProcess, WebPage %" PRIu64 " is navigating to back/forward URL %s", m_pageID, item->url().string().utf8().data());
 
     ASSERT(!m_pendingNavigationID);
     m_pendingNavigationID = navigationID;
 
-    m_page->goToItem(*item, FrameLoadType::Back);
-}
-
-void WebPage::goToBackForwardItem(uint64_t navigationID, uint64_t backForwardItemID)
-{
-    SendStopResponsivenessTimer stopper;
-
-    HistoryItem* item = WebBackForwardListProxy::itemForID(backForwardItemID);
-    ASSERT(item);
-    if (!item)
-        return;
-
-    ASSERT(!m_pendingNavigationID);
-    m_pendingNavigationID = navigationID;
-
-    m_page->goToItem(*item, FrameLoadType::IndexedBackForward);
+    m_page->goToItem(*item, backForwardType, navigationPolicyCheck);
 }
 
 void WebPage::tryRestoreScrollPosition()
@@ -2836,6 +2815,16 @@ void WebPage::continueWillSubmitForm(uint64_t frameID, uint64_t listenerID)
     frame->continueWillSubmitForm(listenerID);
 }
 
+void WebPage::didStartNavigationPolicyCheck()
+{
+    m_drawingArea->setLayerTreeStateIsFrozen(true);
+}
+
+void WebPage::didCompleteNavigationPolicyCheck()
+{
+    m_drawingArea->setLayerTreeStateIsFrozen(false);
+}
+
 void WebPage::didStartPageTransition()
 {
     m_drawingArea->setLayerTreeStateIsFrozen(true);
@@ -3180,8 +3169,13 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 #endif
 #endif
 
-    if (store.getBoolValueForKey(WebPreferencesKey::serviceWorkersEnabledKey()))
-        RELEASE_ASSERT(parentProcessHasServiceWorkerEntitlement());
+#if ENABLE(SERVICE_WORKER)
+    if (store.getBoolValueForKey(WebPreferencesKey::serviceWorkersEnabledKey())) {
+        ASSERT(parentProcessHasServiceWorkerEntitlement());
+        if (!parentProcessHasServiceWorkerEntitlement())
+            RuntimeEnabledFeatures::sharedFeatures().setServiceWorkerEnabled(false);
+    }
+#endif
 
     if (m_drawingArea)
         m_drawingArea->updatePreferences(store);
@@ -4114,6 +4108,17 @@ RetainPtr<PDFDocument> WebPage::pdfDocumentForPrintingFrame(Frame* coreFrame)
     return pluginView->pdfDocumentForPrinting();
 }
 
+void WebPage::setUseSystemAppearance(bool useSystemAppearance)
+{
+    corePage()->setUseSystemAppearance(useSystemAppearance);
+}
+    
+void WebPage::setDefaultAppearance(bool defaultAppearance)
+{
+    corePage()->setDefaultAppearance(defaultAppearance);
+    RenderTheme::singleton().platformColorsDidChange();
+    corePage()->setNeedsRecalcStyleInAllFrames();
+}
 #endif
 
 void WebPage::beginPrinting(uint64_t frameID, const PrintInfo& printInfo)
