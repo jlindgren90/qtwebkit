@@ -27,10 +27,10 @@
 
 #if ENABLE(DATALIST_ELEMENT)
 
-#import "DataListSuggestionInformation.h"
-#import "IntRect.h"
+#include "DataListSuggestionInformation.h"
+#include "IntRect.h"
 
-#import <wtf/text/WTFString.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 

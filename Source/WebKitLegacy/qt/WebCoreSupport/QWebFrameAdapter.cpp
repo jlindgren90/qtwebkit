@@ -39,7 +39,6 @@
 #include "HitTestResult.h"
 #include "InspectorController.h"
 #include "JSDOMWindowBase.h"
-#include "MainFrame.h"
 #include "NavigationScheduler.h"
 #include "NetworkingContext.h"
 #include "NodeList.h"
@@ -73,15 +72,15 @@ static inline ResourceRequestCachePolicy cacheLoadControlToCachePolicy(uint cach
 {
     switch (cacheLoadControl) {
     case QNetworkRequest::AlwaysNetwork:
-        return WebCore::ReloadIgnoringCacheData;
+        return WebCore::ResourceRequestCachePolicy::ReloadIgnoringCacheData;
     case QNetworkRequest::PreferCache:
-        return WebCore::ReturnCacheDataElseLoad;
+        return WebCore::ResourceRequestCachePolicy::ReturnCacheDataElseLoad;
     case QNetworkRequest::AlwaysCache:
-        return WebCore::ReturnCacheDataDontLoad;
+        return WebCore::ResourceRequestCachePolicy::ReturnCacheDataDontLoad;
     default:
         break;
     }
-    return WebCore::UseProtocolCachePolicy;
+    return WebCore::ResourceRequestCachePolicy::UseProtocolCachePolicy;
 }
 
 QWebFrameAdapter::QWebFrameAdapter()
@@ -205,7 +204,8 @@ void QWebFrameAdapter::addToJavaScriptWindowObject(const QString& name, QObject*
     JSC::JSObject* runtimeObject = JSC::Bindings::QtInstance::getQtInstance(object, root, valueOwnership)->createRuntimeObject(exec);
 
     JSC::PutPropertySlot slot(window);
-    window->methodTable()->put(window, exec, JSC::Identifier::fromString(&exec->vm(), reinterpret_cast_ptr<const UChar*>(name.constData()), name.length()), runtimeObject, slot);
+    window->methodTable(exec->vm())->put(window, exec, JSC::Identifier::fromString(
+        &exec->vm(), (const UChar*)name.constData(), name.length()), runtimeObject, slot);
 }
 
 QString QWebFrameAdapter::toHtml() const
@@ -251,7 +251,9 @@ void QWebFrameAdapter::setHtml(const QString &html, const QUrl &baseUrl)
     WebCore::ResourceRequest request(kurl);
     const QByteArray utf8 = html.toUtf8();
     WTF::RefPtr<WebCore::SharedBuffer> data = WebCore::SharedBuffer::create(utf8.constData(), utf8.length());
-    WebCore::ResourceResponse response(URL(), ASCIILiteral("text/html"), data->size(), ASCIILiteral("utf-8"));
+    WebCore::ResourceResponse response(URL(),
+        ASCIILiteral::fromLiteralUnsafe("text/html"), data->size(),
+        ASCIILiteral::fromLiteralUnsafe("utf-8"));
     // FIXME: visibility?
     WebCore::SubstituteData substituteData(std::move(data), URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
     frame->loader().load(WebCore::FrameLoadRequest(*frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
@@ -463,7 +465,7 @@ void QWebFrameAdapter::renderRelativeCoords(QPainter* painter, int layers, const
         { cairo_create(frameBuffer.get()), cairo_destroy };
 
     GraphicsContext context(GraphicsContextImplCairo::createFactory(cr.get()));
-    if (context.paintingDisabled() && !context.updatingControlTints())
+    if (context.paintingDisabled() && !context.invalidatingControlTints())
         return;
 
     view->updateLayoutAndStyleIfNeededRecursive();

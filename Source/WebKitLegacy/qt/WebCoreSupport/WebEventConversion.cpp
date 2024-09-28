@@ -36,13 +36,13 @@ static void mouseEventModifiersFromQtKeyboardModifiers(Qt::KeyboardModifiers key
 {
     modifiers = { };
     if (keyboardModifiers & Qt::ShiftModifier)
-        modifiers |= PlatformEvent::Modifier::ShiftKey;
+        modifiers.add(PlatformEvent::Modifier::ShiftKey);
     if (keyboardModifiers & Qt::ControlModifier)
-        modifiers |= PlatformEvent::Modifier::CtrlKey;
+        modifiers.add(PlatformEvent::Modifier::CtrlKey);
     if (keyboardModifiers & Qt::AltModifier)
-        modifiers |= PlatformEvent::Modifier::AltKey;
+        modifiers.add(PlatformEvent::Modifier::AltKey);
     if (keyboardModifiers & Qt::MetaModifier)
-        modifiers |= PlatformEvent::Modifier::MetaKey;
+        modifiers.add(PlatformEvent::Modifier::MetaKey);
 }
 
 static void mouseEventTypeAndMouseButtonFromQEvent(const QEvent* event, PlatformEvent::Type& mouseEventType, MouseButton& mouseButton)

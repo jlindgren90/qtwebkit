@@ -30,6 +30,7 @@
 #define ChromeClientQt_h
 
 #include "ChromeClient.h"
+#include "DataListSuggestionPicker.h"
 #include "FloatRect.h"
 #include "MediaProducer.h"
 #include "QtPlatformPlugin.h"
@@ -165,6 +166,10 @@ public:
 
 #if ENABLE(INPUT_TYPE_COLOR)
     std::unique_ptr<ColorChooser> createColorChooser(ColorChooserClient&, const Color&) final;
+#endif
+
+#if ENABLE(DATALIST_ELEMENT)
+    std::unique_ptr<DataListSuggestionPicker> createDataListSuggestionPicker(DataListSuggestionsClient&) final { return nullptr; }
 #endif
 
     void runOpenPanel(Frame&, FileChooser&) final;

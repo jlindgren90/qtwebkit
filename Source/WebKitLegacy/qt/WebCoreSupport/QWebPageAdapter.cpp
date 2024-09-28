@@ -55,7 +55,6 @@
 #include "LibWebRTCProvider.h"
 #include "LocalizedStrings.h"
 #include "MIMETypeRegistry.h"
-#include "MainFrame.h"
 #include "MemoryCache.h"
 #include "NetworkingContext.h"
 #include "NodeList.h"
@@ -113,8 +112,8 @@ using namespace WebCore;
 // from EmptyClients.cpp
 class EmptyPluginInfoProvider final : public PluginInfoProvider {
     void refreshPlugins() final { };
-    void getPluginInfo(Page&, Vector<PluginInfo>&, std::optional<Vector<SupportedPluginName>>&) final { }
-    void getWebVisiblePluginInfo(Page&, Vector<PluginInfo>&) final { }
+    Vector<PluginInfo> pluginInfo(Page&, std::optional<Vector<SupportedPluginIdentifier>>&) final { return { }; }
+    Vector<PluginInfo> webVisiblePluginInfo(Page&, const URL&) final { return { }; }
 };
 
 bool QWebPageAdapter::drtRun = false;
@@ -372,25 +371,25 @@ bool QWebPageAdapter::findText(const QString& subString, FindFlag options)
     WebCore::FindOptions webCoreFindOptions = { };
 
     if (!(options & FindCaseSensitively))
-        webCoreFindOptions |= WebCore::CaseInsensitive;
+        webCoreFindOptions.add(WebCore::CaseInsensitive);
 
     if (options & FindBackward)
-        webCoreFindOptions |= WebCore::Backwards;
+        webCoreFindOptions.add(WebCore::Backwards);
 
     if (options & FindWrapsAroundDocument)
-        webCoreFindOptions |= WebCore::WrapAround;
+        webCoreFindOptions.add(WebCore::WrapAround);
 
     if (options & FindAtWordBeginningsOnly)
-        webCoreFindOptions |= WebCore::AtWordStarts;
+        webCoreFindOptions.add(WebCore::AtWordStarts);
 
     if (options & TreatMedialCapitalAsWordBeginning)
-        webCoreFindOptions |= WebCore::TreatMedialCapitalAsWordStart;
+        webCoreFindOptions.add(WebCore::TreatMedialCapitalAsWordStart);
 
     if (options & FindBeginsInSelection)
-        webCoreFindOptions |= WebCore::StartInSelection;
+        webCoreFindOptions.add(WebCore::StartInSelection);
 
     if (options & FindAtWordEndingsOnly)
-        webCoreFindOptions |= WebCore::AtWordEnds;
+        webCoreFindOptions.add(WebCore::AtWordEnds);
 
     if (options & HighlightAllOccurrences) {
         if (subString.isEmpty()) {

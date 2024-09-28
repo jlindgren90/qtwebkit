@@ -41,71 +41,71 @@ String keyIdentifierForQtKeyCode(int keyCode)
     // Based on http://www.w3.org/TR/DOM-Level-3-Events/#key-values-list
     switch (keyCode) {
     case Qt::Key_unknown:
-        return ASCIILiteral("Unidentified");
+        return ASCIILiteral::fromLiteralUnsafe("Unidentified");
     case Qt::Key_Alt:
-        return ASCIILiteral("Alt");
+        return ASCIILiteral::fromLiteralUnsafe("Alt");
     case Qt::Key_AltGr:
-        return ASCIILiteral("AltGraph");
+        return ASCIILiteral::fromLiteralUnsafe("AltGraph");
     case Qt::Key_Control:
-        return ASCIILiteral("Control");
+        return ASCIILiteral::fromLiteralUnsafe("Control");
     case Qt::Key_Meta:
-        return ASCIILiteral("Meta");
+        return ASCIILiteral::fromLiteralUnsafe("Meta");
     case Qt::Key_Shift:
-        return ASCIILiteral("Shift");
+        return ASCIILiteral::fromLiteralUnsafe("Shift");
     case Qt::Key_Multi_key:
-        return ASCIILiteral("Compose");
+        return ASCIILiteral::fromLiteralUnsafe("Compose");
     case Qt::Key_F1:
-        return ASCIILiteral("F1");
+        return ASCIILiteral::fromLiteralUnsafe("F1");
     case Qt::Key_F2:
-        return ASCIILiteral("F2");
+        return ASCIILiteral::fromLiteralUnsafe("F2");
     case Qt::Key_F3:
-        return ASCIILiteral("F3");
+        return ASCIILiteral::fromLiteralUnsafe("F3");
     case Qt::Key_F4:
-        return ASCIILiteral("F4");
+        return ASCIILiteral::fromLiteralUnsafe("F4");
     case Qt::Key_F5:
-        return ASCIILiteral("F5");
+        return ASCIILiteral::fromLiteralUnsafe("F5");
     case Qt::Key_F6:
-        return ASCIILiteral("F6");
+        return ASCIILiteral::fromLiteralUnsafe("F6");
     case Qt::Key_F7:
-        return ASCIILiteral("F7");
+        return ASCIILiteral::fromLiteralUnsafe("F7");
     case Qt::Key_F8:
-        return ASCIILiteral("F8");
+        return ASCIILiteral::fromLiteralUnsafe("F8");
     case Qt::Key_F9:
-        return ASCIILiteral("F9");
+        return ASCIILiteral::fromLiteralUnsafe("F9");
     case Qt::Key_F10:
-        return ASCIILiteral("F10");
+        return ASCIILiteral::fromLiteralUnsafe("F10");
     case Qt::Key_F11:
-        return ASCIILiteral("F11");
+        return ASCIILiteral::fromLiteralUnsafe("F11");
     case Qt::Key_F12:
-        return ASCIILiteral("F12");
+        return ASCIILiteral::fromLiteralUnsafe("F12");
     case Qt::Key_F13:
-        return ASCIILiteral("F13");
+        return ASCIILiteral::fromLiteralUnsafe("F13");
     case Qt::Key_F14:
-        return ASCIILiteral("F14");
+        return ASCIILiteral::fromLiteralUnsafe("F14");
     case Qt::Key_F15:
-        return ASCIILiteral("F15");
+        return ASCIILiteral::fromLiteralUnsafe("F15");
     case Qt::Key_F16:
-        return ASCIILiteral("F16");
+        return ASCIILiteral::fromLiteralUnsafe("F16");
     case Qt::Key_F17:
-        return ASCIILiteral("F17");
+        return ASCIILiteral::fromLiteralUnsafe("F17");
     case Qt::Key_F18:
-        return ASCIILiteral("F18");
+        return ASCIILiteral::fromLiteralUnsafe("F18");
     case Qt::Key_F19:
-        return ASCIILiteral("F19");
+        return ASCIILiteral::fromLiteralUnsafe("F19");
     case Qt::Key_F20:
-        return ASCIILiteral("F20");
+        return ASCIILiteral::fromLiteralUnsafe("F20");
     case Qt::Key_F21:
-        return ASCIILiteral("F21");
+        return ASCIILiteral::fromLiteralUnsafe("F21");
     case Qt::Key_F22:
-        return ASCIILiteral("F22");
+        return ASCIILiteral::fromLiteralUnsafe("F22");
     case Qt::Key_F23:
-        return ASCIILiteral("F23");
+        return ASCIILiteral::fromLiteralUnsafe("F23");
     case Qt::Key_F24:
-        return ASCIILiteral("F24");
+        return ASCIILiteral::fromLiteralUnsafe("F24");
     // 'LaunchApplication1'
     // 'LaunchApplication2'
     case Qt::Key_LaunchMail:
-        return ASCIILiteral("LaunchMail");
+        return ASCIILiteral::fromLiteralUnsafe("LaunchMail");
     // 'List'
     // 'Props'
     // 'Soft1'
@@ -113,235 +113,235 @@ String keyIdentifierForQtKeyCode(int keyCode)
     // 'Soft3'
     // 'Soft4'
     case Qt::Key_Yes:
-        return ASCIILiteral("Accept");
+        return ASCIILiteral::fromLiteralUnsafe("Accept");
     // 'Again'
     case Qt::Key_Return:
     case Qt::Key_Enter:
-        return ASCIILiteral("Enter");
+        return ASCIILiteral::fromLiteralUnsafe("Enter");
     case Qt::Key_Help:
-        return ASCIILiteral("Help");
+        return ASCIILiteral::fromLiteralUnsafe("Help");
     case Qt::Key_Menu:
     case Qt::Key_MenuKB:
-        return ASCIILiteral("Menu");
+        return ASCIILiteral::fromLiteralUnsafe("Menu");
     case Qt::Key_Pause:
-        return ASCIILiteral("Pause");
+        return ASCIILiteral::fromLiteralUnsafe("Pause");
     case Qt::Key_Play:
-        return ASCIILiteral("Play");
+        return ASCIILiteral::fromLiteralUnsafe("Play");
     case Qt::Key_Execute:
-        return ASCIILiteral("Execute");
+        return ASCIILiteral::fromLiteralUnsafe("Execute");
     case Qt::Key_Cancel:
-        return ASCIILiteral("Cancel");
+        return ASCIILiteral::fromLiteralUnsafe("Cancel");
     case Qt::Key_Escape:
-        return ASCIILiteral("Esc");
+        return ASCIILiteral::fromLiteralUnsafe("Esc");
     case Qt::Key_Zoom:
-        return ASCIILiteral("Zoom");
+        return ASCIILiteral::fromLiteralUnsafe("Zoom");
     case Qt::Key_Comma:
-        return ASCIILiteral("Separator");
+        return ASCIILiteral::fromLiteralUnsafe("Separator");
     case Qt::Key_Plus:
-        return ASCIILiteral("Add");
+        return ASCIILiteral::fromLiteralUnsafe("Add");
     case Qt::Key_Minus:
-        return ASCIILiteral("Subtract");
+        return ASCIILiteral::fromLiteralUnsafe("Subtract");
     case Qt::Key_Asterisk:
-        return ASCIILiteral("Multiply");
+        return ASCIILiteral::fromLiteralUnsafe("Multiply");
     case Qt::Key_Slash:
-        return ASCIILiteral("Divide");
+        return ASCIILiteral::fromLiteralUnsafe("Divide");
     case Qt::Key_Equal:
-        return ASCIILiteral("Equals");
+        return ASCIILiteral::fromLiteralUnsafe("Equals");
     case Qt::Key_Period:
-        return ASCIILiteral("Decimal");
+        return ASCIILiteral::fromLiteralUnsafe("Decimal");
     case Qt::Key_MonBrightnessDown:
-        return ASCIILiteral("BrightnessDown");
+        return ASCIILiteral::fromLiteralUnsafe("BrightnessDown");
     case Qt::Key_MonBrightnessUp:
-        return ASCIILiteral("BrightnessUp");
+        return ASCIILiteral::fromLiteralUnsafe("BrightnessUp");
     case Qt::Key_Camera:
-        return ASCIILiteral("Camera");
+        return ASCIILiteral::fromLiteralUnsafe("Camera");
     case Qt::Key_Eject:
-        return ASCIILiteral("Eject");
+        return ASCIILiteral::fromLiteralUnsafe("Eject");
     case Qt::Key_PowerDown:
     case Qt::Key_PowerOff:
-        return ASCIILiteral("Power");
+        return ASCIILiteral::fromLiteralUnsafe("Power");
     case Qt::Key_Print:
-        return ASCIILiteral("PrintScreen");
+        return ASCIILiteral::fromLiteralUnsafe("PrintScreen");
     case Qt::Key_Favorites:
-        return ASCIILiteral("BrowserFavorites");
+        return ASCIILiteral::fromLiteralUnsafe("BrowserFavorites");
     case Qt::Key_HomePage:
-        return ASCIILiteral("BrowserHome");
+        return ASCIILiteral::fromLiteralUnsafe("BrowserHome");
     case Qt::Key_Refresh:
-        return ASCIILiteral("BrowserRefresh");
+        return ASCIILiteral::fromLiteralUnsafe("BrowserRefresh");
     case Qt::Key_Search:
-        return ASCIILiteral("BrowserSearch");
+        return ASCIILiteral::fromLiteralUnsafe("BrowserSearch");
     case Qt::Key_Stop:
-        return ASCIILiteral("BrowserStop");
+        return ASCIILiteral::fromLiteralUnsafe("BrowserStop");
     case Qt::Key_Back:
-        return ASCIILiteral("BrowserBack");
+        return ASCIILiteral::fromLiteralUnsafe("BrowserBack");
     case Qt::Key_Forward:
-        return ASCIILiteral("BrowserForward");
+        return ASCIILiteral::fromLiteralUnsafe("BrowserForward");
     case Qt::Key_Left:
-        return ASCIILiteral("Left");
+        return ASCIILiteral::fromLiteralUnsafe("Left");
     case Qt::Key_PageDown:
-        return ASCIILiteral("PageDown");
+        return ASCIILiteral::fromLiteralUnsafe("PageDown");
     case Qt::Key_PageUp:
-        return ASCIILiteral("PageUp");
+        return ASCIILiteral::fromLiteralUnsafe("PageUp");
     case Qt::Key_Right:
-        return ASCIILiteral("Right");
+        return ASCIILiteral::fromLiteralUnsafe("Right");
     case Qt::Key_Up:
-        return ASCIILiteral("Up");
+        return ASCIILiteral::fromLiteralUnsafe("Up");
     // 'UpLeft'
     // 'UpRight'
     case Qt::Key_Down:
-        return ASCIILiteral("Down");
+        return ASCIILiteral::fromLiteralUnsafe("Down");
     // 'DownLeft'
     // 'DownRight'
     case Qt::Key_Home:
-        return ASCIILiteral("Home");
+        return ASCIILiteral::fromLiteralUnsafe("Home");
     case Qt::Key_End:
-        return ASCIILiteral("End");
+        return ASCIILiteral::fromLiteralUnsafe("End");
     case Qt::Key_Select:
-        return ASCIILiteral("Select");
+        return ASCIILiteral::fromLiteralUnsafe("Select");
     case Qt::Key_Clear:
-        return ASCIILiteral("Clear");
+        return ASCIILiteral::fromLiteralUnsafe("Clear");
     case Qt::Key_Copy:
-        return ASCIILiteral("Copy");
+        return ASCIILiteral::fromLiteralUnsafe("Copy");
     case Qt::Key_Cut:
-        return ASCIILiteral("Cut");
+        return ASCIILiteral::fromLiteralUnsafe("Cut");
     // 'EraseEof'
     case Qt::Key_Insert:
-        return ASCIILiteral("Insert");
+        return ASCIILiteral::fromLiteralUnsafe("Insert");
     case Qt::Key_Paste:
-        return ASCIILiteral("Paste");
+        return ASCIILiteral::fromLiteralUnsafe("Paste");
     case Qt::Key_Dead_Grave:
-        return ASCIILiteral("DeadGrave");
+        return ASCIILiteral::fromLiteralUnsafe("DeadGrave");
     case Qt::Key_Dead_Acute:
-        return ASCIILiteral("DeadAcute");
+        return ASCIILiteral::fromLiteralUnsafe("DeadAcute");
     case Qt::Key_Dead_Circumflex:
-        return ASCIILiteral("DeadCircumflex");
+        return ASCIILiteral::fromLiteralUnsafe("DeadCircumflex");
     case Qt::Key_Dead_Tilde:
-        return ASCIILiteral("DeadTilde");
+        return ASCIILiteral::fromLiteralUnsafe("DeadTilde");
     case Qt::Key_Dead_Macron:
-        return ASCIILiteral("DeadMacron");
+        return ASCIILiteral::fromLiteralUnsafe("DeadMacron");
     case Qt::Key_Dead_Breve:
-        return ASCIILiteral("DeadBreve");
+        return ASCIILiteral::fromLiteralUnsafe("DeadBreve");
     case Qt::Key_Dead_Abovedot:
-        return ASCIILiteral("DeadAboveDot");
+        return ASCIILiteral::fromLiteralUnsafe("DeadAboveDot");
     case Qt::Key_Dead_Diaeresis:
-        return ASCIILiteral("DeadUmlaut");
+        return ASCIILiteral::fromLiteralUnsafe("DeadUmlaut");
     case Qt::Key_Dead_Abovering:
-        return ASCIILiteral("DeadAboveRing");
+        return ASCIILiteral::fromLiteralUnsafe("DeadAboveRing");
     case Qt::Key_Dead_Doubleacute:
-        return ASCIILiteral("DeadDoubleAcute");
+        return ASCIILiteral::fromLiteralUnsafe("DeadDoubleAcute");
     case Qt::Key_Dead_Caron:
-        return ASCIILiteral("DeadCaron");
+        return ASCIILiteral::fromLiteralUnsafe("DeadCaron");
     case Qt::Key_Dead_Cedilla:
-        return ASCIILiteral("DeadCedilla");
+        return ASCIILiteral::fromLiteralUnsafe("DeadCedilla");
     case Qt::Key_Dead_Ogonek:
-        return ASCIILiteral("DeadOgonek");
+        return ASCIILiteral::fromLiteralUnsafe("DeadOgonek");
     case Qt::Key_Dead_Iota:
-        return ASCIILiteral("DeadIota");
+        return ASCIILiteral::fromLiteralUnsafe("DeadIota");
     case Qt::Key_Dead_Voiced_Sound:
-        return ASCIILiteral("DeadVoicedSound");
+        return ASCIILiteral::fromLiteralUnsafe("DeadVoicedSound");
     case Qt::Key_Dead_Semivoiced_Sound:
-        return ASCIILiteral("DeadSemivoicedSound");
+        return ASCIILiteral::fromLiteralUnsafe("DeadSemivoicedSound");
 
     case Qt::Key_MultipleCandidate:
-        return ASCIILiteral("AllCandidate");
+        return ASCIILiteral::fromLiteralUnsafe("AllCandidate");
     case Qt::Key_SingleCandidate:
-        return ASCIILiteral("NextCandidate");
+        return ASCIILiteral::fromLiteralUnsafe("NextCandidate");
     case Qt::Key_PreviousCandidate:
-        return ASCIILiteral("PreviousCandidate");
+        return ASCIILiteral::fromLiteralUnsafe("PreviousCandidate");
     case Qt::Key_Codeinput:
-        return ASCIILiteral("CodeInput");
+        return ASCIILiteral::fromLiteralUnsafe("CodeInput");
 
     case Qt::Key_Mode_switch:
-        return ASCIILiteral("ModeChange");
+        return ASCIILiteral::fromLiteralUnsafe("ModeChange");
     case Qt::Key_Hangul:
-        return ASCIILiteral("HangulMode");
+        return ASCIILiteral::fromLiteralUnsafe("HangulMode");
     case Qt::Key_Hangul_Hanja:
-        return ASCIILiteral("HanjaMode");
+        return ASCIILiteral::fromLiteralUnsafe("HanjaMode");
     case Qt::Key_Hiragana:
-        return ASCIILiteral("Hiragana");
+        return ASCIILiteral::fromLiteralUnsafe("Hiragana");
     case Qt::Key_Kana_Lock:
     case Qt::Key_Kana_Shift:
-        return ASCIILiteral("KanaMode");
+        return ASCIILiteral::fromLiteralUnsafe("KanaMode");
     case Qt::Key_Kanji:
-        return ASCIILiteral("KanjiMode");
+        return ASCIILiteral::fromLiteralUnsafe("KanjiMode");
     case Qt::Key_Katakana:
-        return ASCIILiteral("Katakana");
+        return ASCIILiteral::fromLiteralUnsafe("Katakana");
 
     // 'AudioFaderFront'
     // 'AudioFaderRear'
     // 'AudioBalanceLeft'
     // 'AudioBalanceRight'
     case Qt::Key_BassDown:
-        return ASCIILiteral("AudioBassBoostDown");
+        return ASCIILiteral::fromLiteralUnsafe("AudioBassBoostDown");
     case Qt::Key_BassUp:
-        return ASCIILiteral("AudioBassBoostUp");
+        return ASCIILiteral::fromLiteralUnsafe("AudioBassBoostUp");
     case Qt::Key_VolumeMute:
-        return ASCIILiteral("VolumeMute");
+        return ASCIILiteral::fromLiteralUnsafe("VolumeMute");
     case Qt::Key_VolumeDown:
-        return ASCIILiteral("VolumeDown");
+        return ASCIILiteral::fromLiteralUnsafe("VolumeDown");
     case Qt::Key_VolumeUp:
-        return ASCIILiteral("VolumeUp");
+        return ASCIILiteral::fromLiteralUnsafe("VolumeUp");
     case Qt::Key_MediaPause:
-        return ASCIILiteral("MediaPause");
+        return ASCIILiteral::fromLiteralUnsafe("MediaPause");
     case Qt::Key_MediaPlay:
-        return ASCIILiteral("MediaPlay");
+        return ASCIILiteral::fromLiteralUnsafe("MediaPlay");
     // 'MediaTrackEnd'
     case Qt::Key_MediaNext:
-        return ASCIILiteral("MediaNextTrack");
+        return ASCIILiteral::fromLiteralUnsafe("MediaNextTrack");
     case Qt::Key_MediaTogglePlayPause:
-        return ASCIILiteral("MediaPlayPause");
+        return ASCIILiteral::fromLiteralUnsafe("MediaPlayPause");
     case Qt::Key_MediaPrevious:
-        return ASCIILiteral("MediaPreviousTrack");
+        return ASCIILiteral::fromLiteralUnsafe("MediaPreviousTrack");
     // 'MediaTrackSkip'
     // 'MediaTrackStart'
     case Qt::Key_MediaStop:
-        return ASCIILiteral("MediaStop");
+        return ASCIILiteral::fromLiteralUnsafe("MediaStop");
     case Qt::Key_LaunchMedia:
-        return ASCIILiteral("SelectMedia");
+        return ASCIILiteral::fromLiteralUnsafe("SelectMedia");
 
     case Qt::Key_AudioForward:
-        return ASCIILiteral("FastFwd");
+        return ASCIILiteral::fromLiteralUnsafe("FastFwd");
     case Qt::Key_MediaRecord:
-        return ASCIILiteral("MediaRecord");
+        return ASCIILiteral::fromLiteralUnsafe("MediaRecord");
     case Qt::Key_AudioRewind:
-        return ASCIILiteral("MediaRewind");
+        return ASCIILiteral::fromLiteralUnsafe("MediaRewind");
     case Qt::Key_Subtitle:
-        return ASCIILiteral("Subtitle");
+        return ASCIILiteral::fromLiteralUnsafe("Subtitle");
     case Qt::Key_Blue:
-        return ASCIILiteral("Blue");
+        return ASCIILiteral::fromLiteralUnsafe("Blue");
     case Qt::Key_ChannelDown:
-        return ASCIILiteral("ChannelDown");
+        return ASCIILiteral::fromLiteralUnsafe("ChannelDown");
     case Qt::Key_ChannelUp:
-        return ASCIILiteral("ChannelUp");
+        return ASCIILiteral::fromLiteralUnsafe("ChannelUp");
     case Qt::Key_Green:
-        return ASCIILiteral("Green");
+        return ASCIILiteral::fromLiteralUnsafe("Green");
     case Qt::Key_Red:
-        return ASCIILiteral("Red");
+        return ASCIILiteral::fromLiteralUnsafe("Red");
     case Qt::Key_Yellow:
-        return ASCIILiteral("Yellow");
+        return ASCIILiteral::fromLiteralUnsafe("Yellow");
 #if QT_VERSION >= QT_VERSION_CHECK(5,4,0)
     case Qt::Key_Find:
-        return ASCIILiteral("Find");
+        return ASCIILiteral::fromLiteralUnsafe("Find");
     case Qt::Key_Info:
-        return ASCIILiteral("Info");
+        return ASCIILiteral::fromLiteralUnsafe("Info");
     case Qt::Key_Exit:
-        return ASCIILiteral("Exit");
+        return ASCIILiteral::fromLiteralUnsafe("Exit");
     case Qt::Key_Undo:
-        return ASCIILiteral("Undo");
+        return ASCIILiteral::fromLiteralUnsafe("Undo");
     case Qt::Key_Guide:
-        return ASCIILiteral("Guide");
+        return ASCIILiteral::fromLiteralUnsafe("Guide");
     case Qt::Key_Settings:
-        return ASCIILiteral("Settings");
+        return ASCIILiteral::fromLiteralUnsafe("Settings");
 #endif
     // Keys we have returned U+charcode for in the past.
     // FIXME: Change them to correct standard values if others do.
     case Qt::Key_Tab:
     case Qt::Key_Backtab:
-        return ASCIILiteral("U+0009"); // return ASCIILiteral("Tab");
+        return ASCIILiteral::fromLiteralUnsafe("U+0009"); // return ASCIILiteral::fromLiteralUnsafe("Tab");
     case Qt::Key_Backspace:
-        return ASCIILiteral("U+0008"); // return ASCIILiteral("Backspace");
+        return ASCIILiteral::fromLiteralUnsafe("U+0008"); // return ASCIILiteral::fromLiteralUnsafe("Backspace");
     case Qt::Key_Delete:
-        return ASCIILiteral("U+007F"); // return ASCIILiteral("Del");
+        return ASCIILiteral::fromLiteralUnsafe("U+007F"); // return ASCIILiteral::fromLiteralUnsafe("Del");
     default:
         if (keyCode < 128)
             return String::format("U+%04X", toASCIIUpper(keyCode));
@@ -814,19 +814,19 @@ static String keyTextForKeyEvent(const QKeyEvent* event)
     case Qt::Key_Tab:
     case Qt::Key_Backtab:
         if (event->text().isNull())
-            return ASCIILiteral("\t");
+            return ASCIILiteral::fromLiteralUnsafe("\t");
         break;
     case Qt::Key_Return:
     case Qt::Key_Enter:
         if (event->text().isNull())
-            return ASCIILiteral("\r");
+            return ASCIILiteral::fromLiteralUnsafe("\r");
         break;
 
 // Workaround for broken accesskey when QKeyEvent has modifier, see QTBUG-64891
 #define MAKE_TEXT_FOR_KEY(QtKey, Character) \
     case Qt::Key_##QtKey: \
         if (unmodified && event->text().isNull()) \
-            return ASCIILiteral(#Character); \
+            return ASCIILiteral::fromLiteralUnsafe(#Character); \
         break;
 
     MAKE_TEXT_FOR_KEY(0, 0);
@@ -878,13 +878,13 @@ PlatformKeyboardEvent::PlatformKeyboardEvent(QKeyEvent* event, bool useNativeVir
 
     m_modifiers = { };
     if ((state & Qt::ShiftModifier) || event->key() == Qt::Key_Backtab) // Simulate Shift+Tab with Key_Backtab
-        m_modifiers |= Modifier::ShiftKey;
+        m_modifiers.add(Modifier::ShiftKey);
     if (state & Qt::ControlModifier)
-        m_modifiers |= Modifier::CtrlKey;
+        m_modifiers.add(Modifier::CtrlKey);
     if (state & Qt::AltModifier)
-        m_modifiers |= Modifier::AltKey;
+        m_modifiers.add(Modifier::AltKey);
     if (state & Qt::MetaModifier)
-        m_modifiers |= Modifier::MetaKey;
+        m_modifiers.add(Modifier::MetaKey);
 
     m_useNativeVirtualKeyAsDOMKey = useNativeVirtualKeyAsDOMKey;
     m_text = keyTextForKeyEvent<false>(event);

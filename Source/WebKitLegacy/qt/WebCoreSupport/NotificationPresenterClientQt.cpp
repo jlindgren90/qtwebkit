@@ -35,7 +35,7 @@
 #include "Document.h"
 #include "Event.h"
 #include "EventNames.h"
-#include "MainFrame.h"
+#include "Frame.h"
 #include "Notification.h"
 #include "NotificationPermissionCallback.h"
 #include "Page.h"
@@ -390,7 +390,7 @@ void NotificationPresenterClientQt::sendDisplayEvent(NotificationWrapper* wrappe
 void NotificationPresenterClientQt::sendEvent(Notification* notification, const AtomicString& eventName)
 {
     if (notification->scriptExecutionContext())
-        notification->dispatchEvent(Event::create(eventName, false, true));
+        notification->dispatchEvent(Event::create(eventName, Event::CanBubble::No, Event::IsCancelable::Yes));
 }
 
 void NotificationPresenterClientQt::clearCachedPermissions()

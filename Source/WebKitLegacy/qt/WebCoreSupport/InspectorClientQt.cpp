@@ -31,10 +31,10 @@
 #include "config.h"
 #include "InspectorClientQt.h"
 
+#include "Frame.h"
 #include "FrameView.h"
 #include "InspectorController.h"
 #include "InspectorServerQt.h"
-#include "MainFrame.h"
 #include "NotImplemented.h"
 #include "Page.h"
 #include "QGraphicsUtils.h"
@@ -290,7 +290,7 @@ void InspectorFrontendClientQt::frontendLoaded()
 
 String InspectorFrontendClientQt::localizedStringsURL()
 {
-    return ASCIILiteral("qrc:/webkit/inspector/Localizations/en.lproj/localizedStrings.js");
+    return ASCIILiteral::fromLiteralUnsafe("qrc:/webkit/inspector/Localizations/en.lproj/localizedStrings.js");
 }
 
 void InspectorFrontendClientQt::bringToFront()

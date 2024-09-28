@@ -38,6 +38,8 @@ list(APPEND WebCore_SOURCES
 
     editing/qt/EditorQt.cpp
 
+    html/shadow/DataListButtonElement.cpp
+
     page/qt/DragControllerQt.cpp
 
     platform/audio/qt/AudioBusQt.cpp

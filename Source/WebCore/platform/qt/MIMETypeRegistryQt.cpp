@@ -83,21 +83,6 @@ String MIMETypeRegistry::getMIMETypeForExtension(const String &ext)
     return String();
 }
 
-String MIMETypeRegistry::getMIMETypeForPath(const String& path)
-{
-    for (auto& entry : extensionMap) {
-        if (path.endsWithIgnoringASCIICase(entry.dotExtension))
-            return entry.mimeType;
-    }
-
-    // FIXME: See comment in getMIMETypeForExtension.
-    QMimeType type = QMimeDatabase().mimeTypeForFile(path, QMimeDatabase::MatchExtension);
-    if (type.isValid() && !type.isDefault())
-        return type.name();
-
-    return defaultMIMEType();
-}
-
 Vector<String> MIMETypeRegistry::getExtensionsForMIMEType(const String& mimeTypeName)
 {
     Vector<String> extensions;
@@ -118,16 +103,6 @@ String MIMETypeRegistry::getPreferredExtensionForMIMEType(const String& mimeType
         return mimeType.preferredSuffix();
 
     return String();
-}
-
-String MIMETypeRegistry::getNormalizedMIMEType(const String& mimeTypeName)
-{
-    // This looks up the mime type object by preferred name or alias, and returns the preferred name.
-    QMimeType mimeType = QMimeDatabase().mimeTypeForName(mimeTypeName);
-    if (mimeType.isValid() && !mimeType.isDefault())
-        return mimeType.name();
-
-    return mimeTypeName;
 }
 
 bool MIMETypeRegistry::isApplicationPluginMIMEType(const String& mimeType)

@@ -52,7 +52,6 @@
 #include "HitTestResult.h"
 #include "JSDOMWindowBase.h"
 #include "MIMETypeRegistry.h"
-#include "MainFrame.h"
 #include "MouseEvent.h"
 #include "NotImplemented.h"
 #include "Page.h"
@@ -528,9 +527,9 @@ void FrameLoaderClientQt::cancelPolicyCheck()
 }
 
 
-void FrameLoaderClientQt::dispatchWillSubmitForm(FormState&, WTF::Function<void(void)>&& function)
+void FrameLoaderClientQt::dispatchWillSubmitForm(FormState&, CompletionHandler<void()>&& handler)
 {
-    function(); // FIXME: check this
+    handler(); // FIXME: check this
 }
 
 void FrameLoaderClientQt::setMainFrameDocumentReady(bool)
@@ -1143,7 +1142,9 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::
     function(PolicyAction::Use);
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, bool, WebCore::FormState*, FramePolicyFunction&& function)
+void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const NavigationAction& action,
+    const ResourceRequest& request, const ResourceResponse&, FormState*, PolicyDecisionMode,
+    ShouldSkipSafeBrowsingCheck, FramePolicyFunction&& function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
@@ -1151,6 +1152,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore:
 
     // Currently, this is only enabled by DRT.
     if (policyDelegateEnabled) {
+#if 0 // FIXME
         RefPtr<Node> node;
         for (const Event* event = action.event(); event; event = event->underlyingEvent()) {
             if (event->isMouseEvent()) {
@@ -1163,6 +1165,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const WebCore:
         printf("Policy delegate: attempt to load %s with navigation type '%s'%s\n",
             qPrintable(drtDescriptionSuitableForTestResult(request.url())), navigationTypeToString(action.type()),
             (node) ? qPrintable(QString::fromLatin1(" originating from ") + drtDescriptionSuitableForTestResult(node, 0)) : "");
+#endif
 
         if (policyDelegatePermissive)
             result = PolicyAction::Use;

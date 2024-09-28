@@ -23,9 +23,9 @@
 
 #include "Document.h"
 #include "HTMLFormElement.h"
+#include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClientQt.h"
-#include "MainFrame.h"
 #include "Page.h"
 
 using namespace WebCore;

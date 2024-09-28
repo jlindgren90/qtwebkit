@@ -242,32 +242,32 @@ void RenderThemeQt::adjustRepaintRect(const RenderObject& o, FloatRect& rect)
     }
 }
 
-Color RenderThemeQt::platformActiveSelectionBackgroundColor() const
+Color RenderThemeQt::platformActiveSelectionBackgroundColor(OptionSet<StyleColor::Options>) const
 {
     return fromQColor(colorPalette().brush(QPalette::Active, QPalette::Highlight).color());
 }
 
-Color RenderThemeQt::platformInactiveSelectionBackgroundColor() const
+Color RenderThemeQt::platformInactiveSelectionBackgroundColor(OptionSet<StyleColor::Options>) const
 {
     return fromQColor(colorPalette().brush(QPalette::Inactive, QPalette::Highlight).color());
 }
 
-Color RenderThemeQt::platformActiveSelectionForegroundColor() const
+Color RenderThemeQt::platformActiveSelectionForegroundColor(OptionSet<StyleColor::Options>) const
 {
     return fromQColor(colorPalette().brush(QPalette::Active, QPalette::HighlightedText).color());
 }
 
-Color RenderThemeQt::platformInactiveSelectionForegroundColor() const
+Color RenderThemeQt::platformInactiveSelectionForegroundColor(OptionSet<StyleColor::Options>) const
 {
     return fromQColor(colorPalette().brush(QPalette::Inactive, QPalette::HighlightedText).color());
 }
 
-Color RenderThemeQt::platformFocusRingColor(bool) const
+Color RenderThemeQt::platformFocusRingColor(OptionSet<StyleColor::Options>) const
 {
     return fromQColor(colorPalette().brush(QPalette::Active, QPalette::Highlight).color());
 }
 
-Color RenderThemeQt::systemColor(CSSValueID cssValueId, bool useSystemAppearance) const
+Color RenderThemeQt::systemColor(CSSValueID cssValueId, OptionSet<StyleColor::Options> options) const
 {
     QPalette pal = colorPalette();
     switch (cssValueId) {
@@ -276,7 +276,7 @@ Color RenderThemeQt::systemColor(CSSValueID cssValueId, bool useSystemAppearance
     case CSSValueCaptiontext:
         return fromQColor(pal.brush(QPalette::Active, QPalette::Text).color());
     default:
-        return RenderTheme::systemColor(cssValueId, useSystemAppearance);
+        return RenderTheme::systemColor(cssValueId, options);
     }
 }
 
@@ -342,7 +342,7 @@ void RenderThemeQt::adjustMenuListStyle(StyleResolver&, RenderStyle& style, cons
     style.setHeight(Length(Auto));
 
     // White-space is locked to pre
-    style.setWhiteSpace(PRE);
+    style.setWhiteSpace(WhiteSpace::Pre);
 
     computeSizeBasedOnStyle(style);
 
@@ -356,7 +356,7 @@ void RenderThemeQt::adjustMenuListButtonStyle(StyleResolver&, RenderStyle& style
     style.setHeight(Length(Auto));
 
     // White-space is locked to pre
-    style.setWhiteSpace(PRE);
+    style.setWhiteSpace(WhiteSpace::Pre);
 
     computeSizeBasedOnStyle(style);
 

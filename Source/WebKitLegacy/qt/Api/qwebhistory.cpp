@@ -28,10 +28,10 @@
 #include "IntSize.h"
 #include "KeyedDecoderQt.h"
 #include "KeyedEncoderQt.h"
-#include "NavigationPolicyCheck.h"
 #include "Page.h"
 #include "PageGroup.h"
 #include "QGraphicsUtils.h"
+#include "ShouldTreatAsContinuingLoad.h"
 #include "URL.h"
 #include "VisitedLinkStoreQt.h"
 #include <QWebPageAdapter.h>
@@ -602,7 +602,7 @@ void QWebHistoryPrivate::goToItem(WebCore::HistoryItem* item)
         return;
 
     m_page->goToItem(*item, WebCore::FrameLoadType::IndexedBackForward,
-        WebCore::NavigationPolicyCheck::Require);
+        WebCore::ShouldTreatAsContinuingLoad::No);
 }
 
 QWebPageAdapter* QWebHistoryPrivate::page()

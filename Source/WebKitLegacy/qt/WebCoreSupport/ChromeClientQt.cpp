@@ -46,7 +46,6 @@
 #include "HTMLFormElement.h"
 #include "HitTestResult.h"
 #include "Icon.h"
-#include "MainFrame.h"
 #include "NavigationAction.h"
 #include "NetworkingContext.h"
 #include "NotImplemented.h"

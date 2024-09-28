@@ -65,9 +65,9 @@ static String normalizeMimeType(const String& type)
     String qType = type.convertToASCIILowercase();
 
     if (qType == "text")
-        qType = ASCIILiteral("text/plain");
+        qType = ASCIILiteral::fromLiteralUnsafe("text/plain");
     else if (qType == "url")
-        qType = ASCIILiteral("text/uri-list");
+        qType = ASCIILiteral::fromLiteralUnsafe("text/uri-list");
 
     return qType;
 }
@@ -428,6 +428,7 @@ String Pasteboard::readStringInCustomData(const String& type) { return String();
 void Pasteboard::read(PasteboardWebContentReader&, WebContentReadingPolicy) { }
 void Pasteboard::read(PasteboardFileReader&) { }
 
+void Pasteboard::write(const Color&) { }
 void Pasteboard::writeTrustworthyWebURLsPboardType(const PasteboardURL&) { }
 void Pasteboard::write(const PasteboardImage&) { }
 void Pasteboard::write(const PasteboardWebContent&) { }

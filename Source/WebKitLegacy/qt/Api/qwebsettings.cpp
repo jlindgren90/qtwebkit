@@ -187,9 +187,11 @@ void QWebSettingsPrivate::apply()
                                       global->attributes.value(QWebSettings::JavascriptCanOpenWindows));
         settings->setJavaScriptCanOpenWindowsAutomatically(value);
 
+#if 0
         value = attributes.value(QWebSettings::JavascriptCanCloseWindows,
                                       global->attributes.value(QWebSettings::JavascriptCanCloseWindows));
         settings->setAllowScriptsToCloseWindows(value);
+#endif
 
         value = attributes.value(QWebSettings::JavaEnabled,
                                       global->attributes.value(QWebSettings::JavaEnabled));
@@ -877,7 +879,7 @@ void QWebSettings::clearMemoryCaches()
     WebCore::FontCache::singleton().invalidate();
 
     // Empty the Cross-Origin Preflight cache
-    WebCore::CrossOriginPreflightResultCache::singleton().empty();
+    WebCore::CrossOriginPreflightResultCache::singleton().clear();
 
     // Drop JIT compiled code from ExecutableAllocator.
     WebCore::GCController::singleton().deleteAllCode(JSC::PreventCollectionAndDeleteAllCode);
