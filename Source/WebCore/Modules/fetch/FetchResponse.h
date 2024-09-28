@@ -127,6 +127,7 @@ private:
     void addAbortSteps(Ref<AbortSignal>&&);
 
     class BodyLoader final : public FetchLoaderClient {
+        WTF_MAKE_FAST_ALLOCATED;
     public:
         BodyLoader(FetchResponse&, NotificationCallback&&);
         ~BodyLoader();
@@ -156,7 +157,7 @@ private:
 
     mutable Optional<ResourceResponse> m_filteredResponse;
     ResourceResponse m_internalResponse;
-    Optional<BodyLoader> m_bodyLoader;
+    std::unique_ptr<BodyLoader> m_bodyLoader;
     mutable String m_responseURL;
     // Opaque responses will padd their body size when used with Cache API.
     uint64_t m_bodySizeWithPadding { 0 };
