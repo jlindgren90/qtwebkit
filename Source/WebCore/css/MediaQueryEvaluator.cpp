@@ -33,9 +33,9 @@
 #include "CSSPrimitiveValue.h"
 #include "CSSToLengthConversionData.h"
 #include "CSSValueKeywords.h"
+#include "Frame.h"
 #include "FrameView.h"
 #include "Logging.h"
-#include "MainFrame.h"
 #include "MediaFeatureNames.h"
 #include "MediaList.h"
 #include "MediaQuery.h"
@@ -110,7 +110,7 @@ MediaQueryEvaluator::MediaQueryEvaluator(const String& acceptedMediaType, bool m
 
 MediaQueryEvaluator::MediaQueryEvaluator(const String& acceptedMediaType, const Document& document, const RenderStyle* style)
     : m_mediaType(acceptedMediaType)
-    , m_document(const_cast<Document&>(document).createWeakPtr())
+    , m_document(makeWeakPtr(document))
     , m_style(style)
 {
 }
@@ -335,20 +335,22 @@ static bool orientationEvaluate(CSSValue* value, const CSSToLengthConversionData
     if (!view)
         return false;
 
-    auto viewSize = view->layoutSizeForMediaQuery();
+    auto width = view->layoutWidth();
+    auto height = view->layoutHeight();
+
     if (!is<CSSPrimitiveValue>(value)) {
         // Expression (orientation) evaluates to true if width and height >= 0.
-        return viewSize.height() >= 0 && viewSize.width() >= 0;
+        return height >= 0 && width >= 0;
     }
 
     auto keyword = downcast<CSSPrimitiveValue>(*value).valueID();
     bool result;
-    if (viewSize.width() > viewSize.height()) // Square viewport is portrait.
+    if (width > height) // Square viewport is portrait.
         result = keyword == CSSValueLandscape;
     else
         result = keyword == CSSValuePortrait;
 
-    LOG_WITH_STREAM(MediaQueries, stream << "  orientationEvaluate: view size " << viewSize.width() << "x" << viewSize.height() << " is " << value->cssText() << ": " << result);
+    LOG_WITH_STREAM(MediaQueries, stream << "  orientationEvaluate: view size " << width << "x" << height << " is " << value->cssText() << ": " << result);
     return result;
 }
 
@@ -361,9 +363,8 @@ static bool aspectRatioEvaluate(CSSValue* value, const CSSToLengthConversionData
     FrameView* view = frame.view();
     if (!view)
         return true;
-    auto viewSize = view->layoutSizeForMediaQuery();
-    bool result = compareAspectRatioValue(value, viewSize.width(), viewSize.height(), op);
-    LOG_WITH_STREAM(MediaQueries, stream << "  aspectRatioEvaluate: " << op << " " << aspectRatioValueAsString(value) << " actual view size " << viewSize << ": " << result);
+    bool result = compareAspectRatioValue(value, view->layoutWidth(), view->layoutHeight(), op);
+    LOG_WITH_STREAM(MediaQueries, stream << "  aspectRatioEvaluate: " << op << " " << aspectRatioValueAsString(value) << " actual view size " << view->layoutWidth() << "x" << view->layoutHeight() << " : " << result);
     return result;
 }
 
@@ -495,7 +496,7 @@ static bool heightEvaluate(CSSValue* value, const CSSToLengthConversionData& con
     FrameView* view = frame.view();
     if (!view)
         return false;
-    int height = view->layoutSizeForMediaQuery().height();
+    int height = view->layoutHeight();
     if (!value)
         return height;
     if (auto* renderView = frame.document()->renderView())
@@ -515,7 +516,7 @@ static bool widthEvaluate(CSSValue* value, const CSSToLengthConversionData& conv
     FrameView* view = frame.view();
     if (!view)
         return false;
-    int width = view->layoutSizeForMediaQuery().width();
+    int width = view->layoutWidth();
     if (!value)
         return width;
     if (auto* renderView = frame.document()->renderView())
@@ -712,17 +713,17 @@ static bool anyPointerEvaluate(CSSValue* value, const CSSToLengthConversionData&
     return pointerEvaluate(value, cssToLengthConversionData, frame, prefix);
 }
     
-static bool defaultAppearanceEvaluate(CSSValue* value, const CSSToLengthConversionData&, Frame& frame, MediaFeaturePrefix)
+static bool prefersDarkInterfaceEvaluate(CSSValue* value, const CSSToLengthConversionData&, Frame& frame, MediaFeaturePrefix)
 {
-    bool defaultAppearance = false;
-    
-    if (!frame.page()->defaultAppearance())
-        defaultAppearance = true;
-    
+    bool prefersDarkInterface = false;
+
+    if (frame.page()->useSystemAppearance() && frame.page()->useDarkAppearance())
+        prefersDarkInterface = true;
+
     if (!value)
-        return defaultAppearance;
-    
-    return downcast<CSSPrimitiveValue>(*value).valueID() == (defaultAppearance ? CSSValuePrefers : CSSValueNoPreference);
+        return prefersDarkInterface;
+
+    return downcast<CSSPrimitiveValue>(*value).valueID() == (prefersDarkInterface ? CSSValuePrefers : CSSValueNoPreference);
 }
 
 static bool prefersReducedMotionEvaluate(CSSValue* value, const CSSToLengthConversionData&, Frame& frame, MediaFeaturePrefix)
@@ -756,7 +757,7 @@ static bool displayModeEvaluate(CSSValue* value, const CSSToLengthConversionData
 
     auto keyword = downcast<CSSPrimitiveValue>(*value).valueID();
 
-    auto manifest = frame.mainFrame().applicationManifest();
+    auto manifest = frame.page() ? frame.page()->applicationManifest() : std::nullopt;
     if (!manifest)
         return keyword == CSSValueBrowser;
 
@@ -786,7 +787,7 @@ bool MediaQueryEvaluator::evaluate(const MediaQueryExpression& expression) const
     if (!m_document)
         return m_fallbackResult;
 
-    Document& document = *m_document;
+    auto& document = *m_document;
     auto* frame = document.frame();
     if (!frame || !frame->view() || !m_style)
         return m_fallbackResult;

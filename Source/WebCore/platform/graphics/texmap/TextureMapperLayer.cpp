@@ -48,13 +48,6 @@ TextureMapperLayer::~TextureMapperLayer()
         child->m_parent = nullptr;
 
     removeFromParent();
-
-    if (m_effectTarget) {
-        if (m_effectTarget->m_state.maskLayer == this)
-            m_effectTarget->m_state.maskLayer = nullptr;
-        if (m_effectTarget->m_state.replicaLayer == this)
-            m_effectTarget->m_state.replicaLayer = nullptr;
-    }
 }
 
 void TextureMapperLayer::computeTransformsRecursive()
@@ -63,17 +56,34 @@ void TextureMapperLayer::computeTransformsRecursive()
         return;
 
     // Compute transforms recursively on the way down to leafs.
-    TransformationMatrix parentTransform;
-    if (m_parent)
-        parentTransform = m_parent->m_currentTransform.combinedForChildren();
-    else if (m_effectTarget)
-        parentTransform = m_effectTarget->m_currentTransform.combined();
-    m_currentTransform.combineTransforms(parentTransform);
+    {
+        TransformationMatrix parentTransform;
+        if (m_parent)
+            parentTransform = m_parent->m_layerTransforms.combinedForChildren;
+        else if (m_effectTarget)
+            parentTransform = m_effectTarget->m_layerTransforms.combined;
 
-    m_state.visible = m_state.backfaceVisibility || !m_currentTransform.combined().isBackFaceVisible();
+        const float originX = m_state.anchorPoint.x() * m_state.size.width();
+        const float originY = m_state.anchorPoint.y() * m_state.size.height();
+
+        m_layerTransforms.combined = parentTransform;
+        m_layerTransforms.combined
+            .translate3d(originX + m_state.pos.x(), originY + m_state.pos.y(), m_state.anchorPoint.z())
+            .multiply(m_layerTransforms.localTransform);
+
+        m_layerTransforms.combinedForChildren = m_layerTransforms.combined;
+        m_layerTransforms.combined.translate3d(-originX, -originY, -m_state.anchorPoint.z());
+
+        if (!m_state.preserves3D)
+            m_layerTransforms.combinedForChildren = m_layerTransforms.combinedForChildren.to2dTransform();
+        m_layerTransforms.combinedForChildren.multiply(m_state.childrenTransform);
+        m_layerTransforms.combinedForChildren.translate3d(-originX, -originY, -m_state.anchorPoint.z());
+    }
+
+    m_state.visible = m_state.backfaceVisibility || !m_layerTransforms.combined.isBackFaceVisible();
 
     if (m_parent && m_parent->m_state.preserves3D)
-        m_centerZ = m_currentTransform.combined().mapPoint(FloatPoint3D(m_state.size.width() / 2, m_state.size.height() / 2, 0)).z();
+        m_centerZ = m_layerTransforms.combined.mapPoint(FloatPoint3D(m_state.size.width() / 2, m_state.size.height() / 2, 0)).z();
 
     if (m_state.maskLayer)
         m_state.maskLayer->computeTransformsRecursive();
@@ -117,7 +127,7 @@ void TextureMapperLayer::paintSelf(const TextureMapperPaintOptions& options)
     TransformationMatrix transform;
     transform.translate(options.offset.width(), options.offset.height());
     transform.multiply(options.transform);
-    transform.multiply(m_currentTransform.combined());
+    transform.multiply(m_layerTransforms.combined);
 
     if (m_state.solidColor.isValid() && !m_state.contentsRect.isEmpty() && m_state.solidColor.isVisible()) {
         options.textureMapper.drawSolidColor(m_state.contentsRect, transform, blendWithOpacity(m_state.solidColor, options.opacity));
@@ -177,7 +187,7 @@ void TextureMapperLayer::paintSelfAndChildren(const TextureMapperPaintOptions& o
         TransformationMatrix clipTransform;
         clipTransform.translate(options.offset.width(), options.offset.height());
         clipTransform.multiply(options.transform);
-        clipTransform.multiply(m_currentTransform.combined());
+        clipTransform.multiply(m_layerTransforms.combined);
         options.textureMapper.beginClip(clipTransform, layerRect());
 
         // If as a result of beginClip(), the clipping area is empty, it means that the intersection of the previous
@@ -225,8 +235,8 @@ void TextureMapperLayer::paintSelfAndChildrenWithReplica(const TextureMapperPain
     if (m_state.replicaLayer) {
         TextureMapperPaintOptions replicaOptions(options);
         replicaOptions.transform
-            .multiply(m_state.replicaLayer->m_currentTransform.combined())
-            .multiply(m_currentTransform.combined().inverse().value_or(TransformationMatrix()));
+            .multiply(m_state.replicaLayer->m_layerTransforms.combined)
+            .multiply(m_layerTransforms.combined.inverse().value_or(TransformationMatrix()));
         paintSelfAndChildren(replicaOptions);
     }
 
@@ -235,7 +245,8 @@ void TextureMapperLayer::paintSelfAndChildrenWithReplica(const TextureMapperPain
 
 TransformationMatrix TextureMapperLayer::replicaTransform()
 {
-    return TransformationMatrix(m_state.replicaLayer->m_currentTransform.combined()).multiply(m_currentTransform.combined().inverse().value_or(TransformationMatrix()));
+    return TransformationMatrix(m_state.replicaLayer->m_layerTransforms.combined)
+        .multiply(m_layerTransforms.combined.inverse().value_or(TransformationMatrix()));
 }
 
 static void resolveOverlaps(Region& newRegion, Region& overlapRegion, Region& nonOverlapRegion)
@@ -273,7 +284,7 @@ void TextureMapperLayer::computeOverlapRegions(Region& overlapRegion, Region& no
         boundingRect.unite(replicaMatrix.mapRect(boundingRect));
     }
 
-    boundingRect = m_currentTransform.combined().mapRect(boundingRect);
+    boundingRect = m_layerTransforms.combined.mapRect(boundingRect);
 
     // Count all masks and filters as overlap layers.
     if (hasFilters() || m_state.maskLayer || (m_state.replicaLayer && m_state.replicaLayer->m_state.maskLayer)) {
@@ -483,52 +494,50 @@ void TextureMapperLayer::removeAllChildren()
 
 void TextureMapperLayer::setMaskLayer(TextureMapperLayer* maskLayer)
 {
-    if (maskLayer)
-        maskLayer->m_effectTarget = this;
-    m_state.maskLayer = maskLayer;
+    if (maskLayer) {
+        maskLayer->m_effectTarget = makeWeakPtr(*this);
+        m_state.maskLayer = makeWeakPtr(*maskLayer);
+    } else
+        m_state.maskLayer = nullptr;
 }
 
 void TextureMapperLayer::setReplicaLayer(TextureMapperLayer* replicaLayer)
 {
-    if (replicaLayer)
-        replicaLayer->m_effectTarget = this;
-    m_state.replicaLayer = replicaLayer;
+    if (replicaLayer) {
+        replicaLayer->m_effectTarget = makeWeakPtr(*this);
+        m_state.replicaLayer = makeWeakPtr(*replicaLayer);
+    } else
+        m_state.replicaLayer = nullptr;
 }
 
 void TextureMapperLayer::setPosition(const FloatPoint& position)
 {
     m_state.pos = position;
-    m_currentTransform.setPosition(adjustedPosition());
 }
 
 void TextureMapperLayer::setSize(const FloatSize& size)
 {
     m_state.size = size;
-    m_currentTransform.setSize(size);
 }
 
 void TextureMapperLayer::setAnchorPoint(const FloatPoint3D& anchorPoint)
 {
     m_state.anchorPoint = anchorPoint;
-    m_currentTransform.setAnchorPoint(anchorPoint);
 }
 
 void TextureMapperLayer::setPreserves3D(bool preserves3D)
 {
     m_state.preserves3D = preserves3D;
-    m_currentTransform.setFlattening(!preserves3D);
 }
 
 void TextureMapperLayer::setTransform(const TransformationMatrix& transform)
 {
     m_state.transform = transform;
-    m_currentTransform.setLocalTransform(transform);
 }
 
 void TextureMapperLayer::setChildrenTransform(const TransformationMatrix& childrenTransform)
 {
     m_state.childrenTransform = childrenTransform;
-    m_currentTransform.setChildrenTransform(childrenTransform);
 }
 
 void TextureMapperLayer::setContentsRect(const FloatRect& contentsRect)
@@ -586,16 +595,16 @@ void TextureMapperLayer::setFilters(const FilterOperations& filters)
     m_state.filters = filters;
 }
 
-void TextureMapperLayer::setDebugVisuals(bool showDebugBorders, const Color& debugBorderColor, float debugBorderWidth, bool showRepaintCounter)
+void TextureMapperLayer::setDebugVisuals(bool showDebugBorders, const Color& debugBorderColor, float debugBorderWidth)
 {
     m_state.showDebugBorders = showDebugBorders;
     m_state.debugBorderColor = debugBorderColor;
     m_state.debugBorderWidth = debugBorderWidth;
-    m_state.showRepaintCounter = showRepaintCounter;
 }
 
-void TextureMapperLayer::setRepaintCount(int repaintCount)
+void TextureMapperLayer::setRepaintCounter(bool showRepaintCounter, int repaintCount)
 {
+    m_state.showRepaintCounter = showRepaintCounter;
     m_state.repaintCount = repaintCount;
 }
 
@@ -609,14 +618,9 @@ void TextureMapperLayer::setAnimations(const TextureMapperAnimations& animations
     m_animations = animations;
 }
 
-void TextureMapperLayer::setFixedToViewport(bool fixedToViewport)
+void TextureMapperLayer::setBackingStore(TextureMapperBackingStore* backingStore)
 {
-    m_fixedToViewport = fixedToViewport;
-}
-
-void TextureMapperLayer::setBackingStore(RefPtr<TextureMapperBackingStore>&& backingStore)
-{
-    m_backingStore = WTFMove(backingStore);
+    m_backingStore = backingStore;
 }
 
 bool TextureMapperLayer::descendantsOrSelfHaveRunningAnimations() const
@@ -643,34 +647,11 @@ bool TextureMapperLayer::syncAnimations(MonotonicTime time)
     TextureMapperAnimation::ApplicationResult applicationResults;
     m_animations.apply(applicationResults, time);
 
-    m_currentTransform.setLocalTransform(applicationResults.transform.value_or(m_state.transform));
+    m_layerTransforms.localTransform = applicationResults.transform.value_or(m_state.transform);
     m_currentOpacity = applicationResults.opacity.value_or(m_state.opacity);
     m_currentFilters = applicationResults.filters.value_or(m_state.filters);
 
     return applicationResults.hasRunningAnimations;
-}
-
-bool TextureMapperLayer::isAncestorFixedToViewport() const
-{
-    for (TextureMapperLayer* parent = m_parent; parent; parent = parent->m_parent) {
-        if (parent->m_fixedToViewport)
-            return true;
-    }
-
-    return false;
-}
-
-void TextureMapperLayer::setScrollPositionDeltaIfNeeded(const FloatSize& delta)
-{
-    // delta is the difference between the scroll offset in the ui process and the scroll offset
-    // in the web process. We add this delta to the position of fixed layers, to make
-    // sure that they do not move while scrolling. We need to reset this delta to fixed layers
-    // that have an ancestor which is also a fixed layer, because the delta will be added to the ancestor.
-    if (isAncestorFixedToViewport())
-        m_scrollPositionDelta = FloatSize();
-    else
-        m_scrollPositionDelta = delta;
-    m_currentTransform.setPosition(adjustedPosition());
 }
 
 }

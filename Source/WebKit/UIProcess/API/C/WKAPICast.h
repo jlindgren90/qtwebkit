@@ -364,6 +364,8 @@ inline WKProtectionSpaceAuthenticationScheme toAPI(WebCore::ProtectionSpaceAuthe
         return kWKProtectionSpaceAuthenticationSchemeClientCertificateRequested;
     case WebCore::ProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested:
         return kWKProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested;
+    case WebCore::ProtectionSpaceAuthenticationSchemeOAuth:
+        return kWKProtectionSpaceAuthenticationSchemeOAuth;
     default:
         return kWKProtectionSpaceAuthenticationSchemeUnknown;
     }
@@ -570,6 +572,10 @@ inline WKWebGLLoadPolicy toAPI(WebCore::WebGLLoadPolicy webGLLoadPolicy)
 
 #if defined(BUILDING_WPE__)
 #include "WKAPICastWPE.h"
+#endif
+
+#if defined(WIN32) || defined(_WIN32)
+#include "WKAPICastWin.h"
 #endif
 
 #endif // WKAPICast_h

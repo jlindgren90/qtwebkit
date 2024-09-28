@@ -35,8 +35,6 @@
 #import <pal/spi/cocoa/QuartzCoreSPI.h>
 #endif
 
-using namespace WebCore;
-
 #if PLATFORM(IOS)
 static const size_t maximumSnapshotCacheSize = 50 * (1024 * 1024);
 #else
@@ -44,6 +42,7 @@ static const size_t maximumSnapshotCacheSize = 400 * (1024 * 1024);
 #endif
 
 namespace WebKit {
+using namespace WebCore;
 
 ViewSnapshotStore::ViewSnapshotStore()
 {
@@ -60,7 +59,7 @@ ViewSnapshotStore& ViewSnapshotStore::singleton()
     return store;
 }
 
-#if !HAVE(IOSURFACE)
+#if !HAVE(IOSURFACE) && HAVE(CORE_ANIMATION_RENDER_SERVER)
 CAContext *ViewSnapshotStore::snapshottingContext()
 {
     static CAContext *context;
@@ -195,7 +194,9 @@ void ViewSnapshot::clearImage()
 #if HAVE(IOSURFACE)
     m_surface = nullptr;
 #else
+#if HAVE(CORE_ANIMATION_RENDER_SERVER)
     [ViewSnapshotStore::snapshottingContext() deleteSlot:m_slotID];
+#endif
     m_slotID = 0;
     m_imageSizeInBytes = 0;
 #endif

@@ -144,6 +144,7 @@ http_equiv
 id
 incremental
 indeterminate
+inputmode
 integrity
 is
 ismap
@@ -190,6 +191,15 @@ novalidate
 nowrap
 object
 onabort
+onaccessiblecontextmenu
+onaccessibleclick
+onaccessibledecrement
+onaccessibledismiss
+onaccessiblefocus
+onaccessibleincrement
+onaccessiblescrollintoview
+onaccessiblesetvalue
+onaccessibleselect
 onanimationstart
 onanimationiteration
 onanimationend

@@ -42,7 +42,6 @@
 #include <WebCore/FontCascade.h>
 #include <WebCore/LocalizedStrings.h>
 #include <WebCore/NetworkStorageSession.h>
-#include <WebCore/PlatformCookieJar.h>
 #include <limits>
 #include <shlobj.h>
 #include <wchar.h>
@@ -249,6 +248,7 @@ void WebPreferences::initializeDefaultSettings()
     CFDictionaryAddValue(defaults, CFSTR(WebKitShouldDisplaySubtitlesPreferenceKey), kCFBooleanFalse);
     CFDictionaryAddValue(defaults, CFSTR(WebKitShouldDisplayCaptionsPreferenceKey), kCFBooleanFalse);
     CFDictionaryAddValue(defaults, CFSTR(WebKitShouldDisplayTextDescriptionsPreferenceKey), kCFBooleanFalse);
+    CFDictionaryAddValue(defaults, CFSTR(WebKitCrossOriginWindowPolicySupportEnabledPreferenceKey), kCFBooleanFalse);
 
     RetainPtr<CFStringRef> linkBehaviorStringRef = adoptCF(CFStringCreateWithFormat(0, 0, CFSTR("%d"), WebKitEditableLinkDefaultBehavior));
     CFDictionaryAddValue(defaults, CFSTR(WebKitEditableLinkBehaviorPreferenceKey), linkBehaviorStringRef.get());
@@ -310,6 +310,8 @@ void WebPreferences::initializeDefaultSettings()
 
     CFDictionaryAddValue(defaults, CFSTR(WebKitWebAnimationsEnabledPreferenceKey), kCFBooleanFalse);
 
+    CFDictionaryAddValue(defaults, CFSTR(WebKitWebAnimationsCSSIntegrationEnabledPreferenceKey), kCFBooleanFalse);
+
     CFDictionaryAddValue(defaults, CFSTR(WebKitUserTimingEnabledPreferenceKey), kCFBooleanFalse);
 
     CFDictionaryAddValue(defaults, CFSTR(WebKitResourceTimingEnabledPreferenceKey), kCFBooleanFalse);
@@ -325,6 +327,8 @@ void WebPreferences::initializeDefaultSettings()
     CFDictionaryAddValue(defaults, CFSTR(WebKitInspectorAdditionsEnabledPreferenceKey), kCFBooleanFalse);
 
     CFDictionaryAddValue(defaults, CFSTR(WebKitVisualViewportAPIEnabledPreferenceKey), kCFBooleanFalse);
+
+    CFDictionaryAddValue(defaults, CFSTR(WebKitCSSOMViewScrollingAPIEnabledPreferenceKey), kCFBooleanFalse);
 
     defaultSettings = defaults;
 }
@@ -575,6 +579,8 @@ HRESULT WebPreferences::QueryInterface(_In_ REFIID riid, _COM_Outptr_ void** ppv
         *ppvObject = static_cast<IWebPreferencesPrivate5*>(this);
     else if (IsEqualGUID(riid, IID_IWebPreferencesPrivate6))
         *ppvObject = static_cast<IWebPreferencesPrivate6*>(this);
+    else if (IsEqualGUID(riid, IID_IWebPreferencesPrivate7))
+        *ppvObject = static_cast<IWebPreferencesPrivate7*>(this);
     else if (IsEqualGUID(riid, CLSID_WebPreferences))
         *ppvObject = this;
     else
@@ -2029,6 +2035,20 @@ HRESULT WebPreferences::setMenuItemElementEnabled(BOOL enabled)
     return S_OK;
 }
 
+HRESULT WebPreferences::crossOriginWindowPolicySupportEnabled(_Out_ BOOL* enabled)
+{
+    if (!enabled)
+        return E_POINTER;
+    *enabled = boolValueForKey(WebKitCrossOriginWindowPolicySupportEnabledPreferenceKey);
+    return S_OK;
+}
+
+HRESULT WebPreferences::setCrossOriginWindowPolicySupportEnabled(BOOL enabled)
+{
+    setBoolValue(WebKitCrossOriginWindowPolicySupportEnabledPreferenceKey, enabled);
+    return S_OK;
+}
+
 HRESULT WebPreferences::setModernMediaControlsEnabled(BOOL enabled)
 {
     setBoolValue(WebKitModernMediaControlsEnabledPreferenceKey, enabled);
@@ -2043,17 +2063,17 @@ HRESULT WebPreferences::modernMediaControlsEnabled(_Out_ BOOL* enabled)
     return S_OK;
 }
 
-HRESULT WebPreferences::cssAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled(_Out_ BOOL* enabled)
+HRESULT WebPreferences::webAnimationsCSSIntegrationEnabled(_Out_ BOOL* enabled)
 {
     if (!enabled)
         return E_POINTER;
-    *enabled = boolValueForKey(WebKitCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabledPreferenceKey);
+    *enabled = boolValueForKey(WebKitWebAnimationsCSSIntegrationEnabledPreferenceKey);
     return S_OK;
 }
 
-HRESULT WebPreferences::setCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled(BOOL enabled)
+HRESULT WebPreferences::setWebAnimationsCSSIntegrationEnabled(BOOL enabled)
 {
-    setBoolValue(WebKitCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabledPreferenceKey, enabled);
+    setBoolValue(WebKitWebAnimationsCSSIntegrationEnabledPreferenceKey, enabled);
     return S_OK;
 }
 
@@ -2101,7 +2121,7 @@ HRESULT WebPreferences::mediaPreloadingEnabled(_Out_ BOOL* enabled)
 
 HRESULT WebPreferences::clearNetworkLoaderSession()
 {
-    WebCore::deleteAllCookies(NetworkStorageSession::defaultStorageSession());
+    NetworkStorageSession::defaultStorageSession().deleteAllCookies();
     return S_OK;
 }
 
@@ -2167,6 +2187,20 @@ HRESULT WebPreferences::setVisualViewportAPIEnabled(BOOL enabled)
     return S_OK;
 }
 
+HRESULT WebPreferences::CSSOMViewScrollingAPIEnabled(_Out_ BOOL* enabled)
+{
+    if (!enabled)
+        return E_POINTER;
+    *enabled = boolValueForKey(WebKitCSSOMViewScrollingAPIEnabledPreferenceKey);
+    return S_OK;
+}
+
+HRESULT WebPreferences::setCSSOMViewScrollingAPIEnabled(BOOL enabled)
+{
+    setBoolValue(WebKitCSSOMViewScrollingAPIEnabledPreferenceKey, enabled);
+    return S_OK;
+}
+
 HRESULT WebPreferences::setApplicationId(BSTR applicationId)
 {
     m_applicationId = String(applicationId).createCFString();
@@ -2212,5 +2246,19 @@ HRESULT WebPreferences::resourceTimingEnabled(_Out_ BOOL* enabled)
     if (!enabled)
         return E_POINTER;
     *enabled = boolValueForKey(WebKitResourceTimingEnabledPreferenceKey);
+    return S_OK;
+}
+
+HRESULT WebPreferences::serverTimingEnabled(_Out_ BOOL* enabled)
+{
+    if (!enabled)
+        return E_POINTER;
+    *enabled = boolValueForKey(WebKitServerTimingEnabledPreferenceKey);
+    return S_OK;
+}
+
+HRESULT WebPreferences::setServerTimingEnabled(BOOL enabled)
+{
+    setBoolValue(WebKitServerTimingEnabledPreferenceKey, enabled);
     return S_OK;
 }

@@ -23,6 +23,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+namespace Layout {
+class Text {
+public:
+    const String& content();
+    LayoutUnit length();
+};
+}
+*/
 class Text {
     constructor(node, id, inlineBox) {
         this.m_node = node;
@@ -35,7 +44,7 @@ class Text {
     }
 
     content() {
-        return this.m_node.wholeText;
+        return this.m_node.textContent;
     }
 
     length() {

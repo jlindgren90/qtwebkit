@@ -66,7 +66,6 @@ struct RTCRtpTransceiverInit {
 
 class RTCPeerConnection final
     : public RefCounted<RTCPeerConnection>
-    , public RTCRtpSender::Backend
     , public EventTargetWithInlineData
     , public ActiveDOMObject
 #if !RELEASE_LOG_DISABLED
@@ -107,6 +106,9 @@ public:
     void close();
 
     bool isClosed() const { return m_connectionState == RTCPeerConnectionState::Closed; }
+    bool isStopped() const { return m_isStopped; }
+
+    void addInternalTransceiver(Ref<RTCRtpTransceiver>&& transceiver) { m_transceiverSet->append(WTFMove(transceiver)); }
 
     // 5.1 RTCPeerConnection extensions
     const Vector<std::reference_wrapper<RTCRtpSender>>& getSenders() const { return m_transceiverSet->senders(); }
@@ -124,9 +126,6 @@ public:
 
     // 8.2 Statistics API
     void getStats(MediaStreamTrack*, Ref<DeferredPromise>&&);
-
-    // Legacy MediaStream-based API, mostly implemented as JS built-ins
-    Vector<RefPtr<MediaStream>> getRemoteStreams() const { return m_backend->getRemoteStreams(); }
 
     // EventTarget
     EventTargetInterface eventTargetInterface() const final { return RTCPeerConnectionEventTargetInterfaceType; }
@@ -146,13 +145,10 @@ public:
 
     void scheduleNegotiationNeededEvent();
 
-    RTCRtpSender::Backend& senderBackend() { return *this; }
     void fireEvent(Event&);
 
     void disableICECandidateFiltering() { m_backend->disableICECandidateFiltering(); }
     void enableICECandidateFiltering() { m_backend->enableICECandidateFiltering(); }
-
-    void enqueueReplaceTrackTask(RTCRtpSender&, Ref<MediaStreamTrack>&&, DOMPromiseDeferred<void>&&);
 
     void clearController() { m_controller = nullptr; }
 
@@ -187,11 +183,6 @@ private:
     WEBCORE_EXPORT void stop() final;
     const char* activeDOMObjectName() const final;
     bool canSuspendForDocumentSuspension() const final;
-
-    // FIXME: We might want PeerConnectionBackend to be the Backend
-    // RTCRtpSender::Backend
-    void replaceTrack(RTCRtpSender&, RefPtr<MediaStreamTrack>&&, DOMPromiseDeferred<void>&&) final;
-    RTCRtpParameters getParameters(RTCRtpSender&) const final;
 
     void updateConnectionState();
     bool doClose();

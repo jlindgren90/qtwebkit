@@ -25,6 +25,12 @@
 
 #include "AvailableMemory.h"
 
+#include "Environment.h"
+#if BPLATFORM(IOS)
+#include "MemoryStatusSPI.h"
+#endif
+#include "PerProcess.h"
+#include "Scavenger.h"
 #include "Sizes.h"
 #include <mutex>
 #if BOS(DARWIN)
@@ -44,12 +50,14 @@ namespace bmalloc {
 
 static const size_t availableMemoryGuess = 512 * bmalloc::MB;
 
-static size_t computeAvailableMemory()
+#if BOS(DARWIN)
+static size_t memorySizeAccordingToKernel()
 {
 #if BPLATFORM(IOS_SIMULATOR)
-    // Pretend we have 512MB of memory to make cache sizes behave like on device.
-    return availableMemoryGuess;
-#elif BOS(DARWIN)
+    BUNUSED_PARAM(availableMemoryGuess);
+    // Pretend we have 1024MB of memory to make cache sizes behave like on device.
+    return 1024 * bmalloc::MB;
+#else
     host_basic_info_data_t hostInfo;
 
     mach_port_t host = mach_host_self();
@@ -58,13 +66,34 @@ static size_t computeAvailableMemory()
     mach_port_deallocate(mach_task_self(), host);
     if (r != KERN_SUCCESS)
         return availableMemoryGuess;
-    
+
     if (hostInfo.max_mem > std::numeric_limits<size_t>::max())
         return std::numeric_limits<size_t>::max();
 
-    size_t sizeAccordingToKernel = static_cast<size_t>(hostInfo.max_mem);
+    return static_cast<size_t>(hostInfo.max_mem);
+#endif
+}
+#endif
+
 #if BPLATFORM(IOS)
-    sizeAccordingToKernel = std::min(sizeAccordingToKernel, 840 * bmalloc::MB);
+static size_t jetsamLimit()
+{
+    memorystatus_memlimit_properties_t properties;
+    pid_t pid = getpid();
+    if (memorystatus_control(MEMORYSTATUS_CMD_GET_MEMLIMIT_PROPERTIES, pid, 0, &properties, sizeof(properties)))
+        return 840 * bmalloc::MB;
+    if (properties.memlimit_active < 0)
+        return std::numeric_limits<size_t>::max();
+    return static_cast<size_t>(properties.memlimit_active) * bmalloc::MB;
+}
+#endif
+
+static size_t computeAvailableMemory()
+{
+#if BOS(DARWIN)
+    size_t sizeAccordingToKernel = memorySizeAccordingToKernel();
+#if BPLATFORM(IOS)
+    sizeAccordingToKernel = std::min(sizeAccordingToKernel, jetsamLimit());
 #endif
     size_t multiple = 128 * bmalloc::MB;
 
@@ -99,12 +128,8 @@ MemoryStatus memoryStatus()
     mach_msg_type_number_t vmSize = TASK_VM_INFO_COUNT;
     
     size_t memoryFootprint = 0;
-    if (KERN_SUCCESS == task_info(mach_task_self(), TASK_VM_INFO, (task_info_t)(&vmInfo), &vmSize)) {
-        // FIXME: Move back to phys_footprint when it works in all of our
-        // iOS testing infrastructure:
-        // https://bugs.webkit.org/show_bug.cgi?id=184050
-        memoryFootprint = static_cast<size_t>(vmInfo.internal) + static_cast<size_t>(vmInfo.compressed);
-    }
+    if (KERN_SUCCESS == task_info(mach_task_self(), TASK_VM_INFO, (task_info_t)(&vmInfo), &vmSize))
+        memoryFootprint = static_cast<size_t>(vmInfo.phys_footprint);
 
     double percentInUse = static_cast<double>(memoryFootprint) / static_cast<double>(availableMemory());
     double percentAvailableMemoryInUse = std::min(percentInUse, 1.0);

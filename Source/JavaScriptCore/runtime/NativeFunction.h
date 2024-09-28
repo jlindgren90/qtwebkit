@@ -26,7 +26,7 @@
 #pragma once
 
 #include "JSCJSValue.h"
-#include "PtrTag.h"
+#include "JSCPtrTag.h"
 
 namespace JSC {
 
@@ -70,10 +70,10 @@ public:
     explicit TaggedNativeFunction(intptr_t bits) : m_ptr(bitwise_cast<void*>(bits)) { }
 
     TaggedNativeFunction(NativeFunction func)
-        : m_ptr(tagCFunctionPtr<void*>(func.m_ptr, NativeCodePtrTag))
+        : m_ptr(tagCFunctionPtr<void*, JSEntryPtrTag>(func.m_ptr))
     { }
     TaggedNativeFunction(RawNativeFunction func)
-        : m_ptr(tagCFunctionPtr<void*>(func, NativeCodePtrTag))
+        : m_ptr(tagCFunctionPtr<void*, JSEntryPtrTag>(func))
     { }
 
     explicit operator bool() const { return !!m_ptr; }
@@ -86,7 +86,7 @@ public:
     explicit operator NativeFunction()
     {
         ASSERT(m_ptr);
-        return untagCFunctionPtr<NativeFunction>(m_ptr, NativeCodePtrTag);
+        return untagCFunctionPtr<NativeFunction, JSEntryPtrTag>(m_ptr);
     }
 
     void* rawPointer() const { return m_ptr; }

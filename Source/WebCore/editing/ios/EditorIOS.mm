@@ -92,37 +92,36 @@ void Editor::setTextAlignmentForChangedBaseWritingDirection(WritingDirection dir
         return;
         
     const char *newValue = nullptr;
-    ETextAlign textAlign = *value;
+    TextAlignMode textAlign = *value;
     switch (textAlign) {
-        case TASTART:
-        case TAEND:
-        {
-            switch (direction) {
-                case NaturalWritingDirection:
-                    // no-op
-                    break;
-                case LeftToRightWritingDirection:
-                    newValue = "left";
-                    break;
-                case RightToLeftWritingDirection:
-                    newValue = "right";
-                    break;
-            }
-            break;
-        }
-        case LEFT:
-        case WEBKIT_LEFT:
-            newValue = "right";
-            break;
-        case RIGHT:
-        case WEBKIT_RIGHT:
-            newValue = "left";
-            break;
-        case CENTER:
-        case WEBKIT_CENTER:
-        case JUSTIFY:
+    case TextAlignMode::Start:
+    case TextAlignMode::End: {
+        switch (direction) {
+        case NaturalWritingDirection:
             // no-op
             break;
+        case LeftToRightWritingDirection:
+            newValue = "left";
+            break;
+        case RightToLeftWritingDirection:
+            newValue = "right";
+            break;
+        }
+        break;
+    }
+    case TextAlignMode::Left:
+    case TextAlignMode::WebKitLeft:
+        newValue = "right";
+        break;
+    case TextAlignMode::Right:
+    case TextAlignMode::WebKitRight:
+        newValue = "left";
+        break;
+    case TextAlignMode::Center:
+    case TextAlignMode::WebKitCenter:
+    case TextAlignMode::Justify:
+        // no-op
+        break;
     }
 
     if (!newValue)
@@ -164,8 +163,8 @@ void Editor::removeUnchangeableStyles()
     defaultStyle->removeProperty(CSSPropertyTextDecoration);
     defaultStyle->removeProperty(CSSPropertyWebkitTextDecorationsInEffect); // implements underline
 
-    // FIXME add EditActionMatchStlye <rdar://problem/9156507> Undo rich text's paste & match style should say "Undo Match Style"
-    applyStyleToSelection(defaultStyle.get(), EditActionChangeAttributes);
+    // FIXME add EditAction::MatchStlye <rdar://problem/9156507> Undo rich text's paste & match style should say "Undo Match Style"
+    applyStyleToSelection(defaultStyle.get(), EditAction::ChangeAttributes);
 }
 
 static void getImage(Element& imageElement, RefPtr<Image>& image, CachedImage*& cachedImage)
@@ -190,7 +189,7 @@ void Editor::writeImageToPasteboard(Pasteboard& pasteboard, Element& imageElemen
     PasteboardImage pasteboardImage;
 
     RefPtr<Image> image;
-    CachedImage* cachedImage;
+    CachedImage* cachedImage = nullptr;
     getImage(imageElement, image, cachedImage);
     if (!image)
         return;

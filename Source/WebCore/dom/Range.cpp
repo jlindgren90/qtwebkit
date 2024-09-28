@@ -1310,7 +1310,7 @@ int Range::collectSelectionRectsWithoutUnionInteriorLines(Vector<SelectionRect>&
     for (Node* node = firstNode(); node && node != stopNode; node = NodeTraversal::next(*node)) {
         RenderObject* renderer = node->renderer();
         // Only ask leaf render objects for their line box rects.
-        if (renderer && !renderer->firstChildSlow() && renderer->style().userSelect() != SELECT_NONE) {
+        if (renderer && !renderer->firstChildSlow() && renderer->style().userSelect() != UserSelect::None) {
             bool isStartNode = renderer->node() == &startContainer;
             bool isEndNode = renderer->node() == &endContainer;
             if (hasFlippedWritingMode != renderer->style().isFlippedBlocksWritingMode())
@@ -1431,7 +1431,7 @@ int Range::collectSelectionRectsWithoutUnionInteriorLines(Vector<SelectionRect>&
         if (rects[j].lineNumber() != rects[j - 1].lineNumber())
             continue;
         SelectionRect& previousRect = rects[j - 1];
-        bool previousRectMayNotReachRightEdge = (previousRect.direction() == LTR && previousRect.containsEnd()) || (previousRect.direction() == RTL && previousRect.containsStart());
+        bool previousRectMayNotReachRightEdge = (previousRect.direction() == TextDirection::LTR && previousRect.containsEnd()) || (previousRect.direction() == TextDirection::RTL && previousRect.containsStart());
         if (previousRectMayNotReachRightEdge)
             continue;
         int adjustedWidth = rects[j].logicalLeft() - previousRect.logicalLeft();
@@ -1446,10 +1446,10 @@ int Range::collectSelectionRectsWithoutUnionInteriorLines(Vector<SelectionRect>&
         SelectionRect& selectionRect = rects[i];
         if (!selectionRect.isLineBreak() && selectionRect.lineNumber() >= maxLineNumber)
             continue;
-        if (selectionRect.direction() == RTL && selectionRect.isFirstOnLine()) {
+        if (selectionRect.direction() == TextDirection::RTL && selectionRect.isFirstOnLine()) {
             selectionRect.setLogicalWidth(selectionRect.logicalWidth() + selectionRect.logicalLeft() - selectionRect.minX());
             selectionRect.setLogicalLeft(selectionRect.minX());
-        } else if (selectionRect.direction() == LTR && selectionRect.isLastOnLine())
+        } else if (selectionRect.direction() == TextDirection::LTR && selectionRect.isLastOnLine())
             selectionRect.setLogicalWidth(selectionRect.maxX() - selectionRect.logicalLeft());
     }
     

@@ -59,8 +59,8 @@ void CCallHelpers::ensureShadowChickenPacket(VM& vm, GPRReg shadowPacket, GPRReg
     loadPtr(Address(scratch1NonArgGPR), shadowPacket);
     Jump ok = branchPtr(Below, shadowPacket, TrustedImmPtr(vm.shadowChicken().logEnd()));
     setupArguments<decltype(operationProcessShadowChickenLog)>();
-    move(TrustedImmPtr(tagCFunctionPtr(operationProcessShadowChickenLog, SlowPathPtrTag)), scratch1NonArgGPR);
-    call(scratch1NonArgGPR, SlowPathPtrTag);
+    move(TrustedImmPtr(tagCFunctionPtr<OperationPtrTag>(operationProcessShadowChickenLog)), scratch1NonArgGPR);
+    call(scratch1NonArgGPR, OperationPtrTag);
     move(TrustedImmPtr(vm.shadowChicken().addressOfLogCursor()), scratch1NonArgGPR);
     loadPtr(Address(scratch1NonArgGPR), shadowPacket);
     ok.link(this);

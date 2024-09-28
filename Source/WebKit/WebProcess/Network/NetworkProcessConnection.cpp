@@ -34,6 +34,9 @@
 #include "WebCacheStorageProvider.h"
 #include "WebCoreArgumentCoders.h"
 #include "WebLoaderStrategy.h"
+#include "WebMDNSRegisterMessages.h"
+#include "WebPage.h"
+#include "WebPageMessages.h"
 #include "WebProcess.h"
 #include "WebRTCMonitor.h"
 #include "WebRTCMonitorMessages.h"
@@ -47,9 +50,8 @@
 #include <WebCore/SharedBuffer.h>
 #include <pal/SessionID.h>
 
-using namespace WebCore;
-
 namespace WebKit {
+using namespace WebCore;
 
 NetworkProcessConnection::NetworkProcessConnection(IPC::Connection::Identifier connectionIdentifier)
     : m_connection(IPC::Connection::createClientConnection(connectionIdentifier, *this))
@@ -74,6 +76,11 @@ void NetworkProcessConnection::didReceiveMessage(IPC::Connection& connection, IP
             stream->didReceiveMessage(connection, decoder);
         return;
     }
+    if (decoder.messageReceiverName() == Messages::WebPage::messageReceiverName()) {
+        if (auto* webPage = WebProcess::singleton().webPage(decoder.destinationID()))
+            webPage->didReceiveWebPageMessage(connection, decoder);
+        return;
+    }
 
 #if USE(LIBWEBRTC)
     if (decoder.messageReceiverName() == Messages::WebRTCSocket::messageReceiverName()) {
@@ -86,6 +93,12 @@ void NetworkProcessConnection::didReceiveMessage(IPC::Connection& connection, IP
     }
     if (decoder.messageReceiverName() == Messages::WebRTCResolver::messageReceiverName()) {
         WebProcess::singleton().libWebRTCNetwork().resolver(decoder.destinationID()).didReceiveMessage(connection, decoder);
+        return;
+    }
+#endif
+#if ENABLE(WEB_RTC)
+    if (decoder.messageReceiverName() == Messages::WebMDNSRegister::messageReceiverName()) {
+        WebProcess::singleton().libWebRTCNetwork().mdnsRegister().didReceiveMessage(connection, decoder);
         return;
     }
 #endif

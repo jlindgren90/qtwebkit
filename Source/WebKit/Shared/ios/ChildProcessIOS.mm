@@ -25,7 +25,7 @@
 
 #import "config.h"
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS) && !PLATFORM(IOSMAC)
 
 #import "ChildProcess.h"
 
@@ -43,8 +43,6 @@
 #if ENABLE(MANUAL_SANDBOXING)
 #import <wtf/spi/darwin/SandboxSPI.h>
 #endif
-
-using namespace WebCore;
 
 namespace WebKit {
 
@@ -70,8 +68,10 @@ void ChildProcess::initializeSandbox(const ChildProcessInitializationParameters&
         sandboxParameters.setUserDirectorySuffix(defaultUserDirectorySuffix);
     }
 
+#if !PLATFORM(IOSMAC)
     String sandboxImportPath = "/usr/local/share/sandbox/imports";
     sandboxParameters.addPathParameter("IMPORT_DIR", FileSystem::fileSystemRepresentation(sandboxImportPath).data());
+#endif
 
     switch (sandboxParameters.mode()) {
     case SandboxInitializationParameters::UseDefaultSandboxProfilePath:

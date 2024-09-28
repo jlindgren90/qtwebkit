@@ -39,8 +39,6 @@
 #include <wtf/NeverDestroyed.h>
 #include <wtf/StdLibExtras.h>
 
-using namespace WebCore;
-
 namespace WebCore {
 
 WTF_MAKE_ISO_ALLOCATED_IMPL(HTMLKeygenElement);
@@ -116,7 +114,7 @@ void HTMLKeygenElement::setKeytype(const AtomicString& value)
 
 String HTMLKeygenElement::keytype() const
 {
-    return isKeytypeRSA() ? ASCIILiteral("rsa") : emptyString();
+    return isKeytypeRSA() ? "rsa"_s : emptyString();
 }
 
 bool HTMLKeygenElement::appendFormData(DOMFormData& formData, bool)
@@ -124,7 +122,7 @@ bool HTMLKeygenElement::appendFormData(DOMFormData& formData, bool)
     // Only RSA is supported at this time.
     if (!isKeytypeRSA())
         return false;
-    auto value = signedPublicKeyAndChallengeString(shadowSelect()->selectedIndex(), attributeWithoutSynchronization(challengeAttr), document().baseURL());
+    auto value = document().signedPublicKeyAndChallengeString(shadowSelect()->selectedIndex(), attributeWithoutSynchronization(challengeAttr), document().baseURL());
     if (value.isNull())
         return false;
     formData.append(name(), value);

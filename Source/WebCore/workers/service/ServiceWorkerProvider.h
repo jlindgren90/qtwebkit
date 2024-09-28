@@ -34,17 +34,17 @@ class SessionID;
 namespace WebCore {
 
 class SWClientConnection;
-class SecurityOrigin;
+struct SecurityOriginData;
 class ServiceWorkerJob;
 
 class WEBCORE_EXPORT ServiceWorkerProvider {
 public:
-    virtual ~ServiceWorkerProvider() = default;
+    virtual ~ServiceWorkerProvider();
 
     WEBCORE_EXPORT static ServiceWorkerProvider& singleton();
     WEBCORE_EXPORT static void setSharedProvider(ServiceWorkerProvider&);
 
-    bool mayHaveServiceWorkerRegisteredForOrigin(PAL::SessionID, const WebCore::SecurityOrigin&);
+    bool mayHaveServiceWorkerRegisteredForOrigin(PAL::SessionID, const SecurityOriginData&);
     virtual SWClientConnection* existingServiceWorkerConnectionForSession(PAL::SessionID) = 0;
     virtual SWClientConnection& serviceWorkerConnectionForSession(PAL::SessionID) = 0;
 

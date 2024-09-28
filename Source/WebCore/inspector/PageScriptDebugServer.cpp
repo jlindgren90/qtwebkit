@@ -30,12 +30,12 @@
 #include "CommonVM.h"
 #include "Document.h"
 #include "EventLoop.h"
+#include "Frame.h"
 #include "FrameView.h"
 #include "InspectorController.h"
 #include "InspectorFrontendClient.h"
 #include "JSDOMExceptionHandling.h"
 #include "JSDOMWindowCustom.h"
-#include "MainFrame.h"
 #include "Page.h"
 #include "PageGroup.h"
 #include "PluginViewBase.h"
@@ -163,9 +163,9 @@ void PageScriptDebugServer::setJavaScriptPaused(Frame& frame, bool paused)
     auto& document = *frame.document();
     if (paused) {
         document.suspendScriptedAnimationControllerCallbacks();
-        document.suspendActiveDOMObjects(ActiveDOMObject::JavaScriptDebuggerPaused);
+        document.suspendActiveDOMObjects(ReasonForSuspension::JavaScriptDebuggerPaused);
     } else {
-        document.resumeActiveDOMObjects(ActiveDOMObject::JavaScriptDebuggerPaused);
+        document.resumeActiveDOMObjects(ReasonForSuspension::JavaScriptDebuggerPaused);
         document.resumeScriptedAnimationControllerCallbacks();
     }
 

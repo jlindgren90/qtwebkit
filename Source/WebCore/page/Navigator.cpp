@@ -23,6 +23,7 @@
 #include "config.h"
 #include "Navigator.h"
 
+#include "Chrome.h"
 #include "CookieJar.h"
 #include "DOMMimeTypeArray.h"
 #include "DOMPluginArray.h"
@@ -31,6 +32,7 @@
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
 #include "Geolocation.h"
+#include "JSDOMPromiseDeferred.h"
 #include "LoaderStrategy.h"
 #include "Page.h"
 #include "PlatformStrategies.h"
@@ -40,6 +42,7 @@
 #include "Settings.h"
 #include <wtf/Language.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/WeakPtr.h>
 
 
 namespace WebCore {
@@ -77,22 +80,58 @@ String Navigator::appVersion() const
     return appVersion;
 }
 
-String Navigator::userAgent() const
+const String& Navigator::userAgent() const
 {
-    if (!m_frame)
-        return String();
+    if (m_userAgent.isNull() && m_frame && m_frame->page())
+        m_userAgent = m_frame->loader().userAgent(m_frame->document()->url());
+    return m_userAgent;
+}
 
-    // If the frame is already detached, FrameLoader::userAgent may malfunction, because it calls a client method
-    // that uses frame's WebView (at least, in Mac WebKit).
-    if (!m_frame->page())
-        return String();
-
-    return m_frame->loader().userAgent(m_frame->document()->url());
+void Navigator::userAgentChanged()
+{
+    m_userAgent = String();
 }
 
 bool Navigator::onLine() const
 {
     return platformStrategies()->loaderStrategy()->isOnLine();
+}
+
+void Navigator::share(ScriptExecutionContext& context, ShareData data, Ref<DeferredPromise>&& promise)
+{
+    if (!m_frame || !m_frame->page()) {
+        promise->reject(TypeError);
+        return;
+    }
+    
+    if (data.title.isEmpty() && data.url.isEmpty() && data.text.isEmpty()) {
+        promise->reject(TypeError);
+        return;
+    }
+    
+    URL url = context.completeURL(data.url);
+    if (!url.isValid()) {
+        promise->reject(TypeError);
+        return;
+    }
+    
+    if (!UserGestureIndicator::processingUserGesture()) {
+        promise->reject(NotAllowedError);
+        return;
+    }
+    
+    ShareDataWithParsedURL shareData = {
+        data,
+        url,
+    };
+
+    m_frame->page()->chrome().showShareSheet(shareData, [promise = WTFMove(promise)] (bool completed) {
+        if (completed) {
+            promise->resolve();
+            return;
+        }
+        promise->reject(Exception { AbortError, "Abort due to cancellation of share."_s });
+    });
 }
 
 DOMPluginArray& Navigator::plugins()

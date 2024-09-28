@@ -96,7 +96,7 @@ macro callSlowPath(slowPath)
     move r0, PC
 end
 
-macro doVMEntry(makeCall, unused1, unused2)
+macro doVMEntry(makeCall)
     functionPrologue()
     pushCalleeSaves()
 
@@ -127,6 +127,8 @@ macro doVMEntry(makeCall, unused1, unused2)
     storep t4, VMEntryRecord::m_prevTopCallFrame[sp]
     loadp VM::topEntryFrame[vm], t4
     storep t4, VMEntryRecord::m_prevTopEntryFrame[sp]
+    loadp ProtoCallFrame::calleeValue[protoCallFrame], t4
+    storep t4, VMEntryRecord::m_callee[sp]
 
     # Align stack pointer
     if X86_WIN or MIPS
@@ -155,11 +157,6 @@ macro doVMEntry(makeCall, unused1, unused2)
     # before we start copying the args from the protoCallFrame below.
     if C_LOOP
         bpaeq t3, VM::m_cloopStackLimit[vm], .stackHeightOK
-    else
-        bpaeq t3, VM::m_softStackLimit[vm], .stackHeightOK
-    end
-
-    if C_LOOP
         move entry, t4
         move vm, t5
         cloopCallSlowPath _llint_stack_check_at_vm_entry, vm, t3
@@ -171,37 +168,10 @@ macro doVMEntry(makeCall, unused1, unused2)
 .stackCheckFailed:
         move t4, entry
         move t5, vm
-    end
-
-.throwStackOverflow:
-    subp 8, sp # Align stack for cCall2() to make a call.
-    move vm, a0
-    move protoCallFrame, a1
-    cCall2(_llint_throw_stack_overflow_error)
-
-    if ARMv7
-        vmEntryRecord(cfr, t3)
-        move t3, sp
+        jmp .throwStackOverflow
     else
-        vmEntryRecord(cfr, sp)
+        bpb t3, VM::m_softStackLimit[vm], .throwStackOverflow
     end
-
-    loadp VMEntryRecord::m_vm[sp], t5
-    loadp VMEntryRecord::m_prevTopCallFrame[sp], t4
-    storep t4, VM::topCallFrame[t5]
-    loadp VMEntryRecord::m_prevTopEntryFrame[sp], t4
-    storep t4, VM::topEntryFrame[t5]
-
-    if ARMv7
-        subp cfr, CalleeRegisterSaveSize, t5
-        move t5, sp
-    else
-        subp cfr, CalleeRegisterSaveSize, sp
-    end
-
-    popCalleeSaves()
-    functionEpilogue()
-    ret
 
 .stackHeightOK:
     move t3, sp
@@ -268,6 +238,36 @@ macro doVMEntry(makeCall, unused1, unused2)
     popCalleeSaves()
     functionEpilogue()
     ret
+
+.throwStackOverflow:
+    subp 8, sp # Align stack for cCall2() to make a call.
+    move vm, a0
+    move protoCallFrame, a1
+    cCall2(_llint_throw_stack_overflow_error)
+
+    if ARMv7
+        vmEntryRecord(cfr, t3)
+        move t3, sp
+    else
+        vmEntryRecord(cfr, sp)
+    end
+
+    loadp VMEntryRecord::m_vm[sp], t5
+    loadp VMEntryRecord::m_prevTopCallFrame[sp], t4
+    storep t4, VM::topCallFrame[t5]
+    loadp VMEntryRecord::m_prevTopEntryFrame[sp], t4
+    storep t4, VM::topEntryFrame[t5]
+
+    if ARMv7
+        subp cfr, CalleeRegisterSaveSize, t5
+        move t5, sp
+    else
+        subp cfr, CalleeRegisterSaveSize, sp
+    end
+
+    popCalleeSaves()
+    functionEpilogue()
+    ret
 end
 
 macro makeJavaScriptCall(entry, temp, unused)
@@ -309,11 +309,9 @@ _handleUncaughtException:
     andp MarkedBlockMask, t3
     loadp MarkedBlockFooterOffset + MarkedBlock::Footer::m_vm[t3], t3
     restoreCalleeSavesFromVMEntryFrameCalleeSavesBuffer(t3, t0)
-    loadp VM::callFrameForCatch[t3], cfr
     storep 0, VM::callFrameForCatch[t3]
 
-    loadp CallerFrame[cfr], cfr
-
+    loadp VM::topEntryFrame[t3], cfr
     if ARMv7
         vmEntryRecord(cfr, t3)
         move t3, sp
@@ -575,6 +573,12 @@ macro functionArityCheck(doneLabel, slowPath)
     move PC, a1
     cCall2(slowPath)   # This slowPath has a simple protocol: t0 = 0 => no error, t0 != 0 => error
     btiz r0, .noError
+
+    # We're throwing before the frame is fully set up. This frame will be
+    # ignored by the unwinder. So, let's restore the callee saves before we
+    # start unwinding. We need to do this before we change the cfr.
+    restoreCalleeSavesUsedByLLInt()
+
     move r1, cfr   # r1 contains caller frame
     jmp _llint_throw_from_slow_path_trampoline
 
@@ -1390,6 +1394,25 @@ end
 # convert opcode into a get_by_id_proto_load/get_by_id_unset, respectively, after an
 # execution counter hits zero.
 
+_llint_op_get_by_id_direct:
+    traceExecution()
+    loadi 8[PC], t0
+    loadi 16[PC], t1
+    loadConstantOrVariablePayload(t0, CellTag, t3, .opGetByIdDirectSlow)
+    loadi 20[PC], t2
+    bineq JSCell::m_structureID[t3], t1, .opGetByIdDirectSlow
+    loadPropertyAtVariableOffset(t2, t3, t0, t1)
+    loadi 4[PC], t2
+    storei t0, TagOffset[cfr, t2, 8]
+    storei t1, PayloadOffset[cfr, t2, 8]
+    valueProfile(t0, t1, 24, t2)
+    dispatch(constexpr op_get_by_id_direct_length)
+
+.opGetByIdDirectSlow:
+    callSlowPath(_llint_slow_path_get_by_id_direct)
+    dispatch(constexpr op_get_by_id_direct_length)
+
+
 _llint_op_get_by_id:
     traceExecution()
     loadi 8[PC], t0
@@ -1622,7 +1645,6 @@ _llint_op_get_by_val:
 
 .opGetByValIsContiguous:
     biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t3], .opGetByValSlow
-    andi JSObject::m_butterflyIndexingMask[t0], t1
     loadi TagOffset[t3, t1, 8], t2
     loadi PayloadOffset[t3, t1, 8], t1
     jmp .opGetByValDone
@@ -1630,7 +1652,6 @@ _llint_op_get_by_val:
 .opGetByValNotContiguous:
     bineq t2, DoubleShape, .opGetByValNotDouble
     biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.publicLength[t3], .opGetByValSlow
-    andi JSObject::m_butterflyIndexingMask[t0], t1
     loadd [t3, t1, 8], ft0
     bdnequn ft0, ft0, .opGetByValSlow
     # FIXME: This could be massively optimized.
@@ -1642,7 +1663,6 @@ _llint_op_get_by_val:
     subi ArrayStorageShape, t2
     bia t2, SlowPutArrayStorageShape - ArrayStorageShape, .opGetByValSlow
     biaeq t1, -sizeof IndexingHeader + IndexingHeader::u.lengths.vectorLength[t3], .opGetByValSlow
-    andi JSObject::m_butterflyIndexingMask[t0], t1
     loadi ArrayStorage::m_vector + TagOffset[t3, t1, 8], t2
     loadi ArrayStorage::m_vector + PayloadOffset[t3, t1, 8], t1
 
@@ -1687,6 +1707,7 @@ macro putByVal(slowPath)
     loadi 8[PC], t0
     loadConstantOrVariablePayload(t0, Int32Tag, t3, .opPutByValSlow)
     loadp JSObject::m_butterfly[t1], t0
+    btinz t2, CopyOnWrite, .opPutByValSlow
     andi IndexingShapeMask, t2
     bineq t2, Int32Shape, .opPutByValNotInt32
     contiguousPutByVal(
@@ -1995,8 +2016,8 @@ macro doCall(slowPath, prepareCall)
     storei t2, ArgumentCount + PayloadOffset[t3]
     storei CellTag, Callee + TagOffset[t3]
     move t3, sp
-    prepareCall(LLIntCallLinkInfo::machineCodeTarget[t1], t2, t3, t4, macro (callPtrTag) end)
-    callTargetFunction(LLIntCallLinkInfo::machineCodeTarget[t1], NoPtrTag)
+    prepareCall(LLIntCallLinkInfo::machineCodeTarget[t1], t2, t3, t4, JSEntryPtrTag)
+    callTargetFunction(LLIntCallLinkInfo::machineCodeTarget[t1], JSEntryPtrTag)
 
 .opCallSlow:
     slowPathForCall(slowPath, prepareCall)
@@ -2534,9 +2555,8 @@ _llint_op_get_from_arguments:
     loadisFromInstruction(2, t0)
     loadi PayloadOffset[cfr, t0, 8], t0
     loadi 12[PC], t1
-    loadp DirectArguments::m_storage[t0], t0
-    loadi TagOffset[t0, t1, 8], t2
-    loadi PayloadOffset[t0, t1, 8], t3
+    loadi DirectArguments_storage + TagOffset[t0, t1, 8], t2
+    loadi DirectArguments_storage + PayloadOffset[t0, t1, 8], t3
     loadisFromInstruction(1, t1)
     valueProfile(t2, t3, 16, t0)
     storei t2, TagOffset[cfr, t1, 8]
@@ -2551,10 +2571,9 @@ _llint_op_put_to_arguments:
     loadi PayloadOffset[cfr, t0, 8], t0
     loadisFromInstruction(3, t1)
     loadConstantOrVariable(t1, t2, t3)
-    loadp DirectArguments::m_storage[t0], t0
     loadi 8[PC], t1
-    storei t2, TagOffset[t0, t1, 8]
-    storei t3, PayloadOffset[t0, t1, 8]
+    storei t2, DirectArguments_storage + TagOffset[t0, t1, 8]
+    storei t3, DirectArguments_storage + PayloadOffset[t0, t1, 8]
     dispatch(4)
 
 

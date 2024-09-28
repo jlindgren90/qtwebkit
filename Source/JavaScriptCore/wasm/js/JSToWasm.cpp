@@ -31,6 +31,7 @@
 #include "CCallHelpers.h"
 #include "JSWebAssemblyInstance.h"
 #include "WasmCallingConvention.h"
+#include "WasmSignatureInlines.h"
 
 namespace JSC { namespace Wasm {
 
@@ -45,9 +46,9 @@ std::unique_ptr<InternalFunction> createJSToWasmWrapper(CompilationContext& comp
     jit.store64(CCallHelpers::TrustedImm64(0), CCallHelpers::Address(GPRInfo::callFrameRegister, CallFrameSlot::codeBlock * static_cast<int>(sizeof(Register))));
     MacroAssembler::DataLabelPtr calleeMoveLocation = jit.moveWithPatch(MacroAssembler::TrustedImmPtr(nullptr), GPRInfo::nonPreservedNonReturnGPR);
     jit.storePtr(GPRInfo::nonPreservedNonReturnGPR, CCallHelpers::Address(GPRInfo::callFrameRegister, CallFrameSlot::callee * static_cast<int>(sizeof(Register))));
-    CodeLocationDataLabelPtr* linkedCalleeMove = &result->calleeMoveLocation;
+    CodeLocationDataLabelPtr<WasmEntryPtrTag>* linkedCalleeMove = &result->calleeMoveLocation;
     jit.addLinkTask([=] (LinkBuffer& linkBuffer) {
-        *linkedCalleeMove = linkBuffer.locationOf(calleeMoveLocation);
+        *linkedCalleeMove = linkBuffer.locationOf<WasmEntryPtrTag>(calleeMoveLocation);
     });
 
     const PinnedRegisterInfo& pinnedRegs = PinnedRegisterInfo::get();
@@ -180,7 +181,6 @@ std::unique_ptr<InternalFunction> createJSToWasmWrapper(CompilationContext& comp
 
         GPRReg currentInstanceGPR = Context::useFastTLS() ? baseMemory : wasmContextInstanceGPR;
         if (mode != MemoryMode::Signaling) {
-            jit.loadPtr(CCallHelpers::Address(currentInstanceGPR, Wasm::Instance::offsetOfCachedIndexingMask()), pinnedRegs.indexingMask);
             const auto& sizeRegs = pinnedRegs.sizeRegisters;
             ASSERT(sizeRegs.size() >= 1);
             ASSERT(!sizeRegs[0].sizeOffset); // The following code assumes we start at 0, and calculates subsequent size registers relative to 0.
@@ -196,7 +196,7 @@ std::unique_ptr<InternalFunction> createJSToWasmWrapper(CompilationContext& comp
     unsigned functionIndexSpace = functionIndex + info.importFunctionCount();
     ASSERT(functionIndexSpace < info.functionIndexSpaceSize());
     jit.addLinkTask([unlinkedWasmToWasmCalls, call, functionIndexSpace] (LinkBuffer& linkBuffer) {
-        unlinkedWasmToWasmCalls->append({ linkBuffer.locationOfNearCall(call), functionIndexSpace });
+        unlinkedWasmToWasmCalls->append({ linkBuffer.locationOfNearCall<WasmEntryPtrTag>(call), functionIndexSpace });
     });
 
 

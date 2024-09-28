@@ -33,6 +33,7 @@
 #include "RenderRuby.h"
 #include "RenderRubyRun.h"
 #include "RenderTextControl.h"
+#include "RenderTreeBuilderMultiColumn.h"
 
 namespace WebCore {
 
@@ -134,9 +135,9 @@ void RenderTreeBuilder::Block::insertChildToContinuation(RenderBlock& parent, Re
         return;
     }
 
-    bool childIsNormal = child->isInline() || !child->style().columnSpan();
-    bool bcpIsNormal = beforeChildParent->isInline() || !beforeChildParent->style().columnSpan();
-    bool flowIsNormal = flow->isInline() || !flow->style().columnSpan();
+    bool childIsNormal = child->isInline() || child->style().columnSpan() == ColumnSpan::None;
+    bool bcpIsNormal = beforeChildParent->isInline() || beforeChildParent->style().columnSpan() == ColumnSpan::None;
+    bool flowIsNormal = flow->isInline() || flow->style().columnSpan() == ColumnSpan::None;
 
     if (flow == beforeChildParent) {
         m_builder.attachIgnoringContinuation(*flow, WTFMove(child), beforeChild);
@@ -280,9 +281,14 @@ RenderPtr<RenderObject> RenderTreeBuilder::Block::detach(RenderBlock& parent, Re
 
     // If this child is a block, and if our previous and next siblings are both anonymous blocks
     // with inline content, then we can fold the inline content back together.
-    RenderObject* prev = oldChild.previousSibling();
-    RenderObject* next = oldChild.nextSibling();
-    bool canMergeAnonymousBlocks = canMergeContiguousAnonymousBlocks(oldChild, prev, next);
+    auto prev = makeWeakPtr(oldChild.previousSibling());
+    auto next = makeWeakPtr(oldChild.nextSibling());
+    bool canMergeAnonymousBlocks = canMergeContiguousAnonymousBlocks(oldChild, prev.get(), next.get());
+
+    parent.invalidateLineLayoutPath();
+
+    auto takenChild = m_builder.detachFromRenderElement(parent, oldChild);
+
     if (canMergeAnonymousBlocks && prev && next) {
         prev->setNeedsLayoutAndPrefWidthsRecalc();
         RenderBlock& nextBlock = downcast<RenderBlock>(*next);
@@ -298,7 +304,7 @@ RenderPtr<RenderObject> RenderTreeBuilder::Block::detach(RenderBlock& parent, Re
             // column span flag if it is set.
             ASSERT(!inlineChildrenBlock.continuation());
             // Cache this value as it might get changed in setStyle() call.
-            inlineChildrenBlock.setStyle(RenderStyle::createAnonymousStyleWithDisplay(parent.style(), BLOCK));
+            inlineChildrenBlock.setStyle(RenderStyle::createAnonymousStyleWithDisplay(parent.style(), DisplayType::Block));
             auto blockToMove = m_builder.detachFromRenderElement(parent, inlineChildrenBlock);
 
             // Now just put the inlineChildrenBlock inside the blockChildrenBlock.
@@ -320,15 +326,10 @@ RenderPtr<RenderObject> RenderTreeBuilder::Block::detach(RenderBlock& parent, Re
             // Delete the now-empty block's lines and nuke it.
             nextBlock.deleteLines();
             m_builder.destroy(nextBlock);
-            next = nullptr;
         }
     }
 
-    parent.invalidateLineLayoutPath();
-
-    auto takenChild = m_builder.detachFromRenderElement(parent, oldChild);
-
-    RenderObject* child = prev ? prev : next;
+    RenderObject* child = prev ? prev.get() : next.get();
     if (canMergeAnonymousBlocks && child && !child->previousSibling() && !child->nextSibling() && parent.canDropAnonymousBlockChild()) {
         // The removal has knocked us down to containing only a single anonymous
         // box. We can pull the content right back up into our box.

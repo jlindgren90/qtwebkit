@@ -46,7 +46,6 @@ class DocumentLoader;
 class Frame;
 class InspectorClient;
 class InspectorOverlay;
-class MainFrame;
 class Page;
 class RenderObject;
 class SharedBuffer;
@@ -98,6 +97,7 @@ public:
     void getResourceContent(ErrorString&, const String& frameId, const String& url, String* content, bool* base64Encoded) final;
     void searchInResource(ErrorString&, const String& frameId, const String& url, const String& query, const bool* optionalCaseSensitive, const bool* optionalIsRegex, const String* optionalRequestId, RefPtr<JSON::ArrayOf<Inspector::Protocol::GenericTypes::SearchMatch>>&) final;
     void searchInResources(ErrorString&, const String&, const bool* caseSensitive, const bool* isRegex, RefPtr<JSON::ArrayOf<Inspector::Protocol::Page::SearchResult>>&) final;
+    void setShowRulers(ErrorString&, bool) final;
     void setShowPaintRects(ErrorString&, bool show) final;
     void setEmulatedMedia(ErrorString&, const String&) final;
     void getCompositingBordersVisible(ErrorString&, bool* out_param) final;
@@ -128,7 +128,7 @@ public:
 
     // Cross-agents API
     Page& page() { return m_page; }
-    MainFrame& mainFrame();
+    Frame& mainFrame();
     Frame* frameForId(const String& frameId);
     WEBCORE_EXPORT String frameId(Frame*);
     bool hasIdForFrame(Frame*) const;

@@ -29,6 +29,7 @@
 #if WK_API_ENABLED
 
 #import "APIArray.h"
+#import "PluginProcessManager.h"
 #import "WKNSArray.h"
 #import "WebPreferences.h"
 #import "_WKExperimentalFeature.h"
@@ -96,7 +97,7 @@
 
 - (id)copyWithZone:(NSZone *)zone
 {
-    return wrapper(_preferences->copy().leakRef());
+    return [wrapper(_preferences->copy()) retain];
 }
 
 - (CGFloat)minimumFontSize
@@ -127,6 +128,16 @@
 - (void)setJavaScriptCanOpenWindowsAutomatically:(BOOL)javaScriptCanOpenWindowsAutomatically
 {
     _preferences->setJavaScriptCanOpenWindowsAutomatically(javaScriptCanOpenWindowsAutomatically);
+}
+
+- (BOOL)_storageAccessPromptsEnabled
+{
+    return _preferences->storageAccessPromptsEnabled();
+}
+
+- (void)_setStorageAccessPromptsEnabled:(BOOL)enabled
+{
+    _preferences->setStorageAccessPromptsEnabled(enabled);
 }
 
 #pragma mark OS X-specific methods
@@ -519,7 +530,7 @@ static _WKStorageBlockingPolicy toAPI(WebCore::SecurityOrigin::StorageBlockingPo
 + (NSArray<_WKExperimentalFeature *> *)_experimentalFeatures
 {
     auto features = WebKit::WebPreferences::experimentalFeatures();
-    return [wrapper(API::Array::create(WTFMove(features)).leakRef()) autorelease];
+    return wrapper(API::Array::create(WTFMove(features)));
 }
 
 - (BOOL)_isEnabledForFeature:(_WKExperimentalFeature *)feature
@@ -660,12 +671,11 @@ static _WKStorageBlockingPolicy toAPI(WebCore::SecurityOrigin::StorageBlockingPo
 
 - (BOOL)_webRTCLegacyAPIEnabled
 {
-    return _preferences->webRTCLegacyAPIEnabled();
+    return NO;
 }
 
 - (void)_setWebRTCLegacyAPIEnabled:(BOOL)enabled
 {
-    _preferences->setWebRTCLegacyAPIEnabled(enabled);
 }
 
 - (void)_setJavaScriptCanAccessClipboard:(BOOL)javaScriptCanAccessClipboard
@@ -739,6 +749,36 @@ static WebCore::EditableLinkBehavior toEditableLinkBehavior(_WKEditableLinkBehav
 - (BOOL)_avFoundationEnabled
 {
     return _preferences->isAVFoundationEnabled();
+}
+
+- (void)_setColorFilterEnabled:(BOOL)enabled
+{
+    _preferences->setColorFilterEnabled(enabled);
+}
+
+- (BOOL)_colorFilterEnabled
+{
+    return _preferences->colorFilterEnabled();
+}
+
+- (void)_setPunchOutWhiteBackgroundsInDarkMode:(BOOL)punches
+{
+    _preferences->setPunchOutWhiteBackgroundsInDarkMode(punches);
+}
+
+- (BOOL)_punchOutWhiteBackgroundsInDarkMode
+{
+    return _preferences->punchOutWhiteBackgroundsInDarkMode();
+}
+
+- (void)_setLowPowerVideoAudioBufferSizeEnabled:(BOOL)enabled
+{
+    _preferences->setLowPowerVideoAudioBufferSizeEnabled(enabled);
+}
+
+- (BOOL)_lowPowerVideoAudioBufferSizeEnabled
+{
+    return _preferences->lowPowerVideoAudioBufferSizeEnabled();
 }
 
 #if PLATFORM(MAC)
@@ -912,6 +952,19 @@ static WebCore::EditableLinkBehavior toEditableLinkBehavior(_WKEditableLinkBehav
     return _preferences->artificialPluginInitializationDelayEnabled();
 }
 
+- (void)_setExperimentalPlugInSandboxProfilesEnabled:(BOOL)enabled
+{
+#if ENABLE(NETSCAPE_PLUGIN_API)
+    WebKit::PluginProcessManager::singleton().setExperimentalPlugInSandboxProfilesEnabled(enabled);
+#endif
+    _preferences->setExperimentalPlugInSandboxProfilesEnabled(enabled);
+}
+
+- (BOOL)_experimentalPlugInSandboxProfilesEnabled
+{
+    return _preferences->experimentalPlugInSandboxProfilesEnabled();
+}
+
 - (void)_setCookieEnabled:(BOOL)enabled
 {
     _preferences->setCookieEnabled(enabled);
@@ -972,14 +1025,14 @@ static WebCore::EditableLinkBehavior toEditableLinkBehavior(_WKEditableLinkBehav
     return _preferences->cssAnimationTriggersEnabled();
 }
 
-- (void)_setCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled:(BOOL)enabled
+- (void)_setWebAnimationsCSSIntegrationEnabled:(BOOL)enabled
 {
-    _preferences->setCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled(enabled);
+    _preferences->setWebAnimationsCSSIntegrationEnabled(enabled);
 }
 
-- (BOOL)_cssAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled
+- (BOOL)_webAnimationsCSSIntegrationEnabled
 {
-    return _preferences->cssAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled();
+    return _preferences->webAnimationsCSSIntegrationEnabled();
 }
 
 - (void)_setStandardFontFamily:(NSString *)family
@@ -1227,6 +1280,22 @@ static WebCore::EditableLinkBehavior toEditableLinkBehavior(_WKEditableLinkBehav
 - (BOOL)_domPasteAllowed
 {
     return _preferences->domPasteAllowed();
+}
+
+- (void)_setShouldEnableTextAutosizingBoost:(BOOL)shouldEnableTextAutosizingBoost
+{
+#if ENABLE(TEXT_AUTOSIZING)
+    _preferences->setShouldEnableTextAutosizingBoost(shouldEnableTextAutosizingBoost);
+#endif
+}
+
+- (BOOL)_shouldEnableTextAutosizingBoost
+{
+#if ENABLE(TEXT_AUTOSIZING)
+    return _preferences->shouldEnableTextAutosizingBoost();
+#else
+    return NO;
+#endif
 }
 
 @end

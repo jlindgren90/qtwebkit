@@ -32,13 +32,17 @@
 #import "COSEConstants.h"
 #import "ExceptionData.h"
 #import "PublicKeyCredentialCreationOptions.h"
+#import "PublicKeyCredentialRequestOptions.h"
 #import <Security/SecItem.h>
 #import <pal/crypto/CryptoDigest.h>
 #import <pal/spi/cocoa/DeviceIdentitySPI.h>
 #import <wtf/BlockPtr.h>
+#import <wtf/HashSet.h>
 #import <wtf/MainThread.h>
+#import <wtf/ProcessPrivilege.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/Vector.h>
+#import <wtf/text/StringHash.h>
 
 #import "LocalAuthenticationSoftLink.h"
 
@@ -46,14 +50,70 @@ namespace WebCore {
 
 namespace LocalAuthenticatorInternal {
 
-// UP, UV and AT are set. See https://www.w3.org/TR/webauthn/#flags.
-const uint8_t authenticatorDataFlags = 69;
+// See https://www.w3.org/TR/webauthn/#flags.
+const uint8_t makeCredentialFlags = 0b01000101; // UP, UV and AT are set.
+const uint8_t getAssertionFlags = 0b00000101; // UP and UV are set.
 // FIXME(rdar://problem/38320512): Define Apple AAGUID.
 const uint8_t AAGUID[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // 16 bytes
-const size_t maxCredentialIdLength = 0xffff; // 2 bytes
+// Credential ID is currently SHA-1 of the corresponding public key.
+// FIXME(183534): Assume little endian here.
+const union {
+    uint16_t integer;
+    uint8_t bytes[2];
+} credentialIdLength = {0x0014};
 const size_t ES256KeySizeInBytes = 32;
+const size_t authDataPrefixFixedSize = 37; // hash(32) + flags(1) + counter(4)
+
+#if PLATFORM(IOS)
+// https://www.w3.org/TR/webauthn/#sec-authenticator-data
+static Vector<uint8_t> buildAuthData(const String& rpId, const uint8_t flags, const uint32_t counter, const Vector<uint8_t>& optionalAttestedCredentialData)
+{
+    Vector<uint8_t> authData;
+    authData.reserveCapacity(authDataPrefixFixedSize + optionalAttestedCredentialData.size());
+
+    // RP ID hash
+    auto crypto = PAL::CryptoDigest::create(PAL::CryptoDigest::Algorithm::SHA_256);
+    // FIXME(183534): Test IDN.
+    ASSERT(rpId.isAllASCII());
+    auto asciiRpId = rpId.ascii();
+    crypto->addBytes(asciiRpId.data(), asciiRpId.length());
+    authData = crypto->computeHash();
+
+    // FLAGS
+    authData.append(flags);
+
+    // COUNTER
+    // FIXME(183534): Assume little endian here.
+    union {
+        uint32_t integer;
+        uint8_t bytes[4];
+    } counterUnion;
+    counterUnion.integer = counter;
+    authData.append(counterUnion.bytes, sizeof(counterUnion.bytes));
+
+    // ATTESTED CRED. DATA
+    authData.appendVector(optionalAttestedCredentialData);
+
+    return authData;
+}
+
+inline HashSet<String> produceHashSet(const Vector<PublicKeyCredentialDescriptor>& credentialDescriptors)
+{
+    HashSet<String> result;
+    for (auto& credentialDescriptor : credentialDescriptors) {
+        if (credentialDescriptor.transports.isEmpty() && credentialDescriptor.type == PublicKeyCredentialType::PublicKey && credentialDescriptor.idVector.size() == credentialIdLength.integer)
+            result.add(String(reinterpret_cast<const char*>(credentialDescriptor.idVector.data()), credentialDescriptor.idVector.size()));
+    }
+    return result;
+}
+#endif // !PLATFORM(IOS)
 
 } // LocalAuthenticatorInternal
+
+LocalAuthenticator::LocalAuthenticator()
+{
+    RELEASE_ASSERT(hasProcessPrivilege(ProcessPrivilege::CanAccessCredentials));
+}
 
 void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const PublicKeyCredentialCreationOptions& options, CreationCallback&& callback, ExceptionCallback&& exceptionCallback)
 {
@@ -62,9 +122,9 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
 #if !PLATFORM(IOS)
     // FIXME(182772)
     ASSERT_UNUSED(hash, hash == hash);
-    ASSERT_UNUSED(options, options.rp.name.isEmpty());
+    ASSERT_UNUSED(options, !options.rp.id.isEmpty());
     ASSERT_UNUSED(callback, callback);
-    exceptionCallback({ NotAllowedError, ASCIILiteral("No avaliable authenticators.") });
+    exceptionCallback({ NotAllowedError, "No avaliable authenticators."_s });
 #else
     // The following implements https://www.w3.org/TR/webauthn/#op-make-cred as of 5 December 2017.
     // Skip Step 4-5 as requireResidentKey and requireUserVerification are enforced.
@@ -79,28 +139,34 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
         }
     }
     if (!canFullfillPubKeyCredParams) {
-        exceptionCallback({ NotSupportedError, ASCIILiteral("The platform attached authenticator doesn't support any provided PublicKeyCredentialParameters.") });
+        exceptionCallback({ NotSupportedError, "The platform attached authenticator doesn't support any provided PublicKeyCredentialParameters."_s });
         return;
     }
 
     // Step 3.
-    for (auto& excludeCredential : options.excludeCredentials) {
-        if (excludeCredential.type == PublicKeyCredentialType::PublicKey && excludeCredential.transports.isEmpty()) {
-            // Search Keychain for the Credential ID and RP ID, which is stored in the kSecAttrApplicationLabel and kSecAttrLabel attribute respectively.
-            NSDictionary *query = @{
-                (id)kSecClass: (id)kSecClassKey,
-                (id)kSecAttrKeyClass: (id)kSecAttrKeyClassPrivate,
-                (id)kSecAttrApplicationLabel: [NSData dataWithBytes:excludeCredential.idVector.data() length:excludeCredential.idVector.size()],
-                (id)kSecAttrLabel: options.rp.id
-            };
-            OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, NULL);
-            if (!status) {
-                exceptionCallback({ NotAllowedError, ASCIILiteral("At least one credential matches an entry of the excludeCredentials list in the platform attached authenticator.") });
-                return;
-            }
-            if (status != errSecItemNotFound) {
-                LOG_ERROR("Couldn't query Keychain: %d", status);
-                exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+    HashSet<String> excludeCredentialIds = produceHashSet(options.excludeCredentials);
+    if (!excludeCredentialIds.isEmpty()) {
+        // Search Keychain for the RP ID.
+        NSDictionary *query = @{
+            (id)kSecClass: (id)kSecClassKey,
+            (id)kSecAttrKeyClass: (id)kSecAttrKeyClassPrivate,
+            (id)kSecAttrLabel: options.rp.id,
+            (id)kSecReturnAttributes: @YES,
+            (id)kSecMatchLimit: (id)kSecMatchLimitAll,
+        };
+        CFTypeRef attributesArrayRef = nullptr;
+        OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, &attributesArrayRef);
+        if (status && status != errSecItemNotFound) {
+            LOG_ERROR("Couldn't query Keychain: %d", status);
+            exceptionCallback({ UnknownError, "Unknown internal error."_s });
+            return;
+        }
+        auto retainAttributesArray = adoptCF(attributesArrayRef);
+
+        for (NSDictionary *nsAttributes in (NSArray *)attributesArrayRef) {
+            NSData *nsCredentialId = nsAttributes[(id)kSecAttrApplicationLabel];
+            if (excludeCredentialIds.contains(String(reinterpret_cast<const char*>(nsCredentialId.bytes), nsCredentialId.length))) {
+                exceptionCallback({ NotAllowedError, "At least one credential matches an entry of the excludeCredentials list in the platform attached authenticator."_s });
                 return;
             }
         }
@@ -111,20 +177,20 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
     // Get user consent.
     auto context = adoptNS([allocLAContextInstance() init]);
     NSError *error = nil;
-    NSString *reason = [NSString stringWithFormat:@"Allow %@ to create a public key credential for %@", (id)options.rp.id, (id)options.user.name];
     if (![context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
         LOG_ERROR("Couldn't evaluate authentication with biometrics policy: %@", error);
         // FIXME(182767)
-        exceptionCallback({ NotAllowedError, ASCIILiteral("No avaliable authenticators.") });
+        exceptionCallback({ NotAllowedError, "No avaliable authenticators."_s });
         return;
     }
 
+    NSString *reason = [NSString stringWithFormat:@"Allow %@ to create a public key credential for %@", (id)options.rp.id, (id)options.user.name];
     // FIXME(183534): Optimize the following nested callbacks and threading.
-    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:reason reply:BlockPtr<void(BOOL, NSError *)>::fromCallable([weakThis = m_weakFactory.createWeakPtr(*this), callback = WTFMove(callback), exceptionCallback = WTFMove(exceptionCallback), options = crossThreadCopy(options), hash] (BOOL success, NSError *error) mutable {
+    [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics localizedReason:reason reply:BlockPtr<void(BOOL, NSError *)>::fromCallable([weakThis = makeWeakPtr(*this), callback = WTFMove(callback), exceptionCallback = WTFMove(exceptionCallback), options = crossThreadCopy(options), hash] (BOOL success, NSError *error) mutable {
         ASSERT(!isMainThread());
         if (!success || error) {
             LOG_ERROR("Couldn't authenticate with biometrics: %@", error);
-            exceptionCallback({ NotAllowedError, ASCIILiteral("Couldn't get user consent.") });
+            exceptionCallback({ NotAllowedError, "Couldn't get user consent."_s });
             return;
         }
 
@@ -139,7 +205,7 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
         OSStatus status = SecItemDelete((__bridge CFDictionaryRef)deleteQuery);
         if (status && status != errSecItemNotFound) {
             LOG_ERROR("Couldn't detele older credential: %d", status);
-            exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+            exceptionCallback({ UnknownError, "Unknown internal error."_s });
             return;
         }
 
@@ -151,13 +217,13 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
             ASSERT(!isMainThread());
             if (error) {
                 LOG_ERROR("Couldn't attest: %@", error);
-                exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+                exceptionCallback({ UnknownError, "Unknown internal error."_s });
                 return;
             }
             // Attestation Certificate and Attestation Issuing CA
             ASSERT(certificates && ([certificates count] == 2));
 
-            // Step 7.2 - 7.4.
+            // Step 7.2-7.4.
             // FIXME(183533): A single kSecClassKey item couldn't store all meta data. The following schema is a tentative solution
             // to accommodate the most important meta data, i.e. RP ID, Credential ID, and userhandle.
             // kSecAttrLabel: RP ID
@@ -180,18 +246,18 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
                     (id)kSecAttrLabel: label,
                     (id)kSecReturnAttributes: @YES
                 };
-                CFTypeRef attributesRef = NULL;
+                CFTypeRef attributesRef = nullptr;
                 OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)credentialIdQuery, &attributesRef);
                 if (status) {
                     LOG_ERROR("Couldn't get Credential ID: %d", status);
-                    exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+                    exceptionCallback({ UnknownError, "Unknown internal error."_s });
                     return;
                 }
                 auto retainAttributes = adoptCF(attributesRef);
 
                 NSDictionary *nsAttributes = (NSDictionary *)attributesRef;
                 NSData *nsCredentialId = nsAttributes[(id)kSecAttrApplicationLabel];
-                credentialId.append(static_cast<const uint8_t*>(nsCredentialId.bytes), nsCredentialId.length);
+                credentialId.append(reinterpret_cast<const uint8_t*>(nsCredentialId.bytes), nsCredentialId.length);
 
                 NSDictionary *updateQuery = @{
                     (id)kSecClass: (id)kSecClassKey,
@@ -205,77 +271,51 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
                 status = SecItemUpdate((__bridge CFDictionaryRef)updateQuery, (__bridge CFDictionaryRef)updateParams);
                 if (status) {
                     LOG_ERROR("Couldn't update the Keychain item: %d", status);
-                    exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+                    exceptionCallback({ UnknownError, "Unknown internal error."_s });
                     return;
                 }
             }
 
-            // Step 12.
-            // Apple Attestation Cont'
-            // Assemble the attestation object:
-            // https://www.w3.org/TR/webauthn/#attestation-object
-            // FIXME(183534): authData could throttle.
-            Vector<uint8_t> authData;
+            // Step 10.
+            // FIXME(183533): store the counter.
+            uint32_t counter = 0;
+
+            // FIXME(183534): attestedCredentialData could throttle.
+            // Step 11. https://www.w3.org/TR/webauthn/#attested-credential-data
+            Vector<uint8_t> attestedCredentialData;
             {
-                // RP ID hash
-                auto crypto = PAL::CryptoDigest::create(PAL::CryptoDigest::Algorithm::SHA_256);
-                // FIXME(183534): Test IDN.
-                ASSERT(options.rp.id.isAllASCII());
-                auto asciiRpId = options.rp.id.ascii();
-                crypto->addBytes(asciiRpId.data(), asciiRpId.length());
-                authData = crypto->computeHash();
+                // aaguid
+                attestedCredentialData.append(AAGUID, sizeof(AAGUID));
 
-                // FLAGS
-                authData.append(authenticatorDataFlags);
+                // credentialIdLength
+                ASSERT(credentialId.size() == credentialIdLength.integer);
+                // FIXME(183534): Assume little endian here.
+                attestedCredentialData.append(credentialIdLength.bytes, sizeof(uint16_t));
 
-                // Step. 10.
-                // COUNTER
-                // FIXME(183533): store the counter.
-                union {
-                    uint32_t integer;
-                    uint8_t bytes[4];
-                } counter = {0x00000000};
-                authData.append(counter.bytes, sizeof(counter.bytes));
+                // credentialId
+                attestedCredentialData.appendVector(credentialId);
 
-                // Step 11.
-                // AAGUID
-                authData.append(AAGUID, sizeof(AAGUID));
-
-                // L
-                ASSERT(credentialId.size() <= maxCredentialIdLength);
-                // Assume little endian here.
-                union {
-                    uint16_t integer;
-                    uint8_t bytes[2];
-                } credentialIdLength;
-                credentialIdLength.integer = static_cast<uint16_t>(credentialId.size());
-                authData.append(credentialIdLength.bytes, sizeof(uint16_t));
-
-                // CREDENTIAL ID
-                authData.appendVector(credentialId);
-
-                // CREDENTIAL PUBLIC KEY
-                CFDataRef publicKeyDataRef = NULL;
+                // credentialPublicKey
+                RetainPtr<CFDataRef> publicKeyDataRef;
                 {
                     auto publicKey = adoptCF(SecKeyCopyPublicKey(privateKey));
-                    CFErrorRef errorRef = NULL;
-                    publicKeyDataRef = SecKeyCopyExternalRepresentation(publicKey.get(), &errorRef);
+                    CFErrorRef errorRef = nullptr;
+                    publicKeyDataRef = adoptCF(SecKeyCopyExternalRepresentation(publicKey.get(), &errorRef));
                     auto retainError = adoptCF(errorRef);
                     if (errorRef) {
                         LOG_ERROR("Couldn't export the public key: %@", (NSError*)errorRef);
-                        exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+                        exceptionCallback({ UnknownError, "Unknown internal error."_s });
                         return;
                     }
-                    ASSERT(((NSData *)publicKeyDataRef).length == (1 + 2*ES256KeySizeInBytes)); // 04 | X | Y
+                    ASSERT(((NSData *)publicKeyDataRef.get()).length == (1 + 2 * ES256KeySizeInBytes)); // 04 | X | Y
                 }
-                auto retainPublicKeyData = adoptCF(publicKeyDataRef);
 
                 // COSE Encoding
                 // FIXME(183535): Improve CBOR encoder to work with bytes directly.
                 Vector<uint8_t> x(ES256KeySizeInBytes);
-                [(NSData *)publicKeyDataRef getBytes: x.data() range:NSMakeRange(1, ES256KeySizeInBytes)];
+                [(NSData *)publicKeyDataRef.get() getBytes: x.data() range:NSMakeRange(1, ES256KeySizeInBytes)];
                 Vector<uint8_t> y(ES256KeySizeInBytes);
-                [(NSData *)publicKeyDataRef getBytes: y.data() range:NSMakeRange(1 + ES256KeySizeInBytes, ES256KeySizeInBytes)];
+                [(NSData *)publicKeyDataRef.get() getBytes: y.data() range:NSMakeRange(1 + ES256KeySizeInBytes, ES256KeySizeInBytes)];
                 cbor::CBORValue::MapValue publicKeyMap;
                 publicKeyMap[cbor::CBORValue(COSE::kty)] = cbor::CBORValue(COSE::EC2);
                 publicKeyMap[cbor::CBORValue(COSE::alg)] = cbor::CBORValue(COSE::ES256);
@@ -285,28 +325,33 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
                 auto cosePublicKey = cbor::CBORWriter::write(cbor::CBORValue(WTFMove(publicKeyMap)));
                 if (!cosePublicKey) {
                     LOG_ERROR("Couldn't encode the public key into COSE binaries.");
-                    exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+                    exceptionCallback({ UnknownError, "Unknown internal error."_s });
                     return;
                 }
-                authData.appendVector(cosePublicKey.value());
+                attestedCredentialData.appendVector(cosePublicKey.value());
             }
 
+            // Step 12.
+            auto authData = buildAuthData(options.rp.id, makeCredentialFlags, counter, attestedCredentialData);
+
+            // Step 13. Apple Attestation Cont'
+            // Assemble the attestation object:
+            // https://www.w3.org/TR/webauthn/#attestation-object
             cbor::CBORValue::MapValue attestationStatementMap;
             {
                 Vector<uint8_t> signature;
                 {
-                    CFErrorRef errorRef = NULL;
+                    CFErrorRef errorRef = nullptr;
                     // FIXME(183652): Reduce prompt for biometrics
-                    CFDataRef signatureRef = SecKeyCreateSignature(privateKey, kSecKeyAlgorithmECDSASignatureMessageX962SHA256, (__bridge CFDataRef)[NSData dataWithBytes:authData.data() length:authData.size()], &errorRef);
+                    auto signatureRef = adoptCF(SecKeyCreateSignature(privateKey, kSecKeyAlgorithmECDSASignatureMessageX962SHA256, (__bridge CFDataRef)[NSData dataWithBytes:authData.data() length:authData.size()], &errorRef));
                     auto retainError = adoptCF(errorRef);
                     if (errorRef) {
-                        LOG_ERROR("Couldn't export the public key: %@", (NSError*)errorRef);
-                        exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+                        LOG_ERROR("Couldn't generate the signature: %@", (NSError*)errorRef);
+                        exceptionCallback({ UnknownError, "Unknown internal error."_s });
                         return;
                     }
-                    auto retainSignature = adoptCF(signatureRef);
-                    NSData *nsSignature = (NSData *)signatureRef;
-                    signature.append(static_cast<const uint8_t*>(nsSignature.bytes), nsSignature.length);
+                    auto nsSignature = (NSData *)signatureRef.get();
+                    signature.append(reinterpret_cast<const uint8_t*>(nsSignature.bytes), nsSignature.length);
                 }
                 attestationStatementMap[cbor::CBORValue("alg")] = cbor::CBORValue(COSE::ES256);
                 attestationStatementMap[cbor::CBORValue("sig")] = cbor::CBORValue(signature);
@@ -316,7 +361,7 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
                     auto retainData = adoptCF(dataRef);
                     NSData *nsData = (NSData *)dataRef;
                     Vector<uint8_t> data;
-                    data.append(static_cast<const uint8_t*>(nsData.bytes), nsData.length);
+                    data.append(reinterpret_cast<const uint8_t*>(nsData.bytes), nsData.length);
                     cborArray.append(cbor::CBORValue(WTFMove(data)));
                 }
                 attestationStatementMap[cbor::CBORValue("x5c")] = cbor::CBORValue(WTFMove(cborArray));
@@ -329,13 +374,150 @@ void LocalAuthenticator::makeCredential(const Vector<uint8_t>& hash, const Publi
             auto attestationObject = cbor::CBORWriter::write(cbor::CBORValue(WTFMove(attestationObjectMap)));
             if (!attestationObject) {
                 LOG_ERROR("Couldn't encode the attestation object.");
-                exceptionCallback({ UnknownError, ASCIILiteral("Unknown internal error.") });
+                exceptionCallback({ UnknownError, "Unknown internal error."_s });
                 return;
             }
 
             callback(credentialId, attestationObject.value());
         }).get());
     }).get()];
+#endif // !PLATFORM(IOS)
+}
+
+void LocalAuthenticator::getAssertion(const Vector<uint8_t>& hash, const PublicKeyCredentialRequestOptions& options, RequestCallback&& callback, ExceptionCallback&& exceptionCallback)
+{
+    using namespace LocalAuthenticatorInternal;
+
+#if !PLATFORM(IOS)
+    // FIXME(182772)
+    ASSERT_UNUSED(hash, hash == hash);
+    ASSERT_UNUSED(options, !options.rpId.isEmpty());
+    ASSERT_UNUSED(callback, callback);
+    exceptionCallback({ NotAllowedError, "No avaliable authenticators."_s });
+#else
+    // The following implements https://www.w3.org/TR/webauthn/#op-get-assertion as of 5 December 2017.
+    // Skip Step 2 as requireUserVerification is enforced.
+    // Skip Step 8 as extensions are not supported yet.
+    // Step 12 is implicitly captured by all UnknownError exception callbacks.
+    // Step 3-5. Unlike the spec, if an allow list is provided and there is no intersection between existing ones and the allow list, we always return NotAllowedError.
+    HashSet<String> allowCredentialIds = produceHashSet(options.allowCredentials);
+    if (!options.allowCredentials.isEmpty() && allowCredentialIds.isEmpty()) {
+        exceptionCallback({ NotAllowedError, "No matched credentials are found in the platform attached authenticator."_s });
+        return;
+    }
+
+    // Search Keychain for the RP ID.
+    NSDictionary *query = @{
+        (id)kSecClass: (id)kSecClassKey,
+        (id)kSecAttrKeyClass: (id)kSecAttrKeyClassPrivate,
+        (id)kSecAttrLabel: options.rpId,
+        (id)kSecReturnAttributes: @YES,
+        (id)kSecMatchLimit: (id)kSecMatchLimitAll,
+    };
+    CFTypeRef attributesArrayRef = nullptr;
+    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, &attributesArrayRef);
+    if (status && status != errSecItemNotFound) {
+        LOG_ERROR("Couldn't query Keychain: %d", status);
+        exceptionCallback({ UnknownError, "Unknown internal error."_s });
+        return;
+    }
+    auto retainAttributesArray = adoptCF(attributesArrayRef);
+
+    NSArray *intersectedCredentialsAttributes = nil;
+    if (options.allowCredentials.isEmpty())
+        intersectedCredentialsAttributes = (NSArray *)attributesArrayRef;
+    else {
+        NSMutableArray *result = [NSMutableArray arrayWithCapacity:allowCredentialIds.size()];
+        for (NSDictionary *nsAttributes in (NSArray *)attributesArrayRef) {
+            NSData *nsCredentialId = nsAttributes[(id)kSecAttrApplicationLabel];
+            if (allowCredentialIds.contains(String(reinterpret_cast<const char*>(nsCredentialId.bytes), nsCredentialId.length)))
+                [result addObject:nsAttributes];
+        }
+        intersectedCredentialsAttributes = result;
+    }
+    if (!intersectedCredentialsAttributes.count) {
+        exceptionCallback({ NotAllowedError, "No matched credentials are found in the platform attached authenticator."_s });
+        return;
+    }
+
+    // Step 6.
+    // FIXME(rdar://problem/35900534): We don't have an UI to prompt users for selecting intersectedCredentials, and therefore we always use the first one for now.
+    NSDictionary *selectedCredentialAttributes = intersectedCredentialsAttributes[0];
+
+    // Step 7. Get user consent.
+    // FIXME(183534): The lifetime of context is managed by reply and the early return, which is a bit subtle.
+    LAContext *context = [allocLAContextInstance() init];
+    NSError *error = nil;
+    if (![context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error]) {
+        auto retainContext = adoptNS(context);
+        LOG_ERROR("Couldn't evaluate authentication with biometrics policy: %@", error);
+        // FIXME(182767)
+        exceptionCallback({ NotAllowedError, "No avaliable authenticators."_s });
+        return;
+    }
+
+    Vector<uint8_t> credentialId;
+    NSData *nsCredentialId = selectedCredentialAttributes[(id)kSecAttrApplicationLabel];
+    credentialId.append(reinterpret_cast<const uint8_t*>(nsCredentialId.bytes), nsCredentialId.length);
+    Vector<uint8_t> userhandle;
+    NSData *nsUserhandle = selectedCredentialAttributes[(id)kSecAttrApplicationTag];
+    userhandle.append(reinterpret_cast<const uint8_t*>(nsUserhandle.bytes), nsUserhandle.length);
+    auto reply = BlockPtr<void(BOOL, NSError *)>::fromCallable([callback = WTFMove(callback), exceptionCallback = WTFMove(exceptionCallback), rpId = options.rpId.isolatedCopy(), hash, credentialId = WTFMove(credentialId), userhandle = WTFMove(userhandle), context = adoptNS(context)] (BOOL success, NSError *error) mutable {
+        ASSERT(!isMainThread());
+        if (!success || error) {
+            LOG_ERROR("Couldn't authenticate with biometrics: %@", error);
+            exceptionCallback({ NotAllowedError, "Couldn't get user consent."_s });
+            return;
+        }
+
+        // Step 9-10.
+        // FIXME(183533): Due to the stated Keychain limitations, we can't save the counter value.
+        // Therefore, it is always zero.
+        uint32_t counter = 0;
+        auto authData = buildAuthData(rpId, getAssertionFlags, counter, { });
+
+        // Step 11.
+        Vector<uint8_t> signature;
+        {
+            NSDictionary *query = @{
+                (id)kSecClass: (id)kSecClassKey,
+                (id)kSecAttrKeyClass: (id)kSecAttrKeyClassPrivate,
+                (id)kSecAttrApplicationLabel: [NSData dataWithBytes:credentialId.data() length:credentialId.size()],
+                (id)kSecUseAuthenticationContext: context.get(),
+                (id)kSecReturnRef: @YES,
+            };
+            CFTypeRef privateKeyRef = nullptr;
+            OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, &privateKeyRef);
+            if (status) {
+                LOG_ERROR("Couldn't get the private key reference: %d", status);
+                exceptionCallback({ UnknownError, "Unknown internal error."_s });
+                return;
+            }
+            auto privateKey = adoptCF(privateKeyRef);
+
+            NSMutableData *dataToSign = [NSMutableData dataWithBytes:authData.data() length:authData.size()];
+            [dataToSign appendBytes:hash.data() length:hash.size()];
+
+            CFErrorRef errorRef = nullptr;
+            // FIXME: Converting CFTypeRef to SecKeyRef is quite subtle here.
+            auto signatureRef = adoptCF(SecKeyCreateSignature((__bridge SecKeyRef)((id)privateKeyRef), kSecKeyAlgorithmECDSASignatureMessageX962SHA256, (__bridge CFDataRef)dataToSign, &errorRef));
+            auto retainError = adoptCF(errorRef);
+            if (errorRef) {
+                LOG_ERROR("Couldn't generate the signature: %@", (NSError*)errorRef);
+                exceptionCallback({ UnknownError, "Unknown internal error."_s });
+                return;
+            }
+            auto nsSignature = (NSData *)signatureRef.get();
+            signature.append(reinterpret_cast<const uint8_t*>(nsSignature.bytes), nsSignature.length);
+        }
+
+        // Step 13.
+        callback(credentialId, authData, signature, userhandle);
+    });
+
+    // FIXME(183533): Use userhandle instead of username due to the stated Keychain limitations.
+    NSString *reason = [NSString stringWithFormat:@"Log into %@ with %@.", (id)options.rpId, selectedCredentialAttributes[(id)kSecAttrApplicationTag]];
+    [context evaluateAccessControl:(__bridge SecAccessControlRef)selectedCredentialAttributes[(id)kSecAttrAccessControl] operation:LAAccessControlOperationUseKeySign localizedReason:reason reply:reply.get()];
 #endif // !PLATFORM(IOS)
 }
 
@@ -369,10 +551,10 @@ void LocalAuthenticator::issueClientCertificate(const String& rpId, const String
     // Apple Attestation
     ASSERT(hash.size() <= 32);
 
-    SecAccessControlRef accessControlRef;
+    RetainPtr<SecAccessControlRef> accessControlRef;
     {
-        CFErrorRef errorRef = NULL;
-        accessControlRef = SecAccessControlCreateWithFlags(NULL, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, kSecAccessControlPrivateKeyUsage | kSecAccessControlUserPresence, &errorRef);
+        CFErrorRef errorRef = nullptr;
+        accessControlRef = adoptCF(SecAccessControlCreateWithFlags(NULL, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, kSecAccessControlPrivateKeyUsage | kSecAccessControlUserPresence, &errorRef));
         auto retainError = adoptCF(errorRef);
         if (errorRef) {
             LOG_ERROR("Couldn't create ACL: %@", (NSError *)errorRef);
@@ -380,7 +562,6 @@ void LocalAuthenticator::issueClientCertificate(const String& rpId, const String
             return;
         }
     }
-    auto retainAccessControl = adoptCF(accessControlRef);
 
     String label(username);
     label.append("@" + rpId);
@@ -393,7 +574,7 @@ void LocalAuthenticator::issueClientCertificate(const String& rpId, const String
         kMAOptionsBAAValidity: @(1440), // Last one day.
         kMAOptionsBAASCRTAttestation: @(NO),
         kMAOptionsBAANonce: [NSData dataWithBytes:hash.data() length:hash.size()],
-        kMAOptionsBAAAccessControls: (id)accessControlRef,
+        kMAOptionsBAAAccessControls: (id)accessControlRef.get(),
         kMAOptionsBAAOIDSToInclude: @[kMAOptionsBAAOIDNonce]
     };
 

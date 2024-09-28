@@ -98,10 +98,17 @@ static const bool defaultUnifiedTextCheckerEnabled = false;
 static const bool defaultSmartInsertDeleteEnabled = true;
 static const bool defaultSelectTrailingWhitespaceEnabled = false;
 
-#if ENABLE(VIDEO) && (USE(AVFOUNDATION) || USE(GSTREAMER))
+#if ENABLE(VIDEO) && (USE(AVFOUNDATION) || USE(GSTREAMER) || USE(MEDIA_FOUNDATION))
 static const bool defaultMediaEnabled = true;
 #else
 static const bool defaultMediaEnabled = false;
 #endif
+    
+#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 120000) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400) || PLATFORM(WATCHOS)
+static const bool defaultConicGradient = true;
+#else
+static const bool defaultConicGradient = false;
+#endif
+    
 
 }

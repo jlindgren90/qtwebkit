@@ -1788,6 +1788,16 @@ static JSValueRef setSpellCheckerLoggingEnabledCallback(JSContextRef context, JS
     return JSValueMakeUndefined(context);
 }
 
+static JSValueRef setSpellCheckerResultsCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    if (argumentCount < 1)
+        return JSValueMakeUndefined(context);
+
+    auto* runner = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
+    runner->setSpellCheckerResults(context, JSValueToObject(context, arguments[0], nullptr));
+    return JSValueMakeUndefined(context);
+}
+
 static JSValueRef setOpenPanelFilesCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
     if (argumentCount == 1)
@@ -2255,6 +2265,7 @@ JSStaticFunction* TestRunner::staticFunctions()
         { "runUIScript", runUIScriptCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "imageCountInGeneralPasteboard", imageCountInGeneralPasteboardCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setSpellCheckerLoggingEnabled", setSpellCheckerLoggingEnabledCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "setSpellCheckerResults", setSpellCheckerResultsCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setOpenPanelFiles", setOpenPanelFilesCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "forceImmediateCompletion", forceImmediateCompletionCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { 0, 0, 0 }
@@ -2335,9 +2346,16 @@ void TestRunner::addURLToRedirect(std::string origin, std::string destination)
     m_URLsToRedirect[origin] = destination;
 }
 
-const std::string& TestRunner::redirectionDestinationForURL(std::string origin)
+const char* TestRunner::redirectionDestinationForURL(const char* origin)
 {
-    return m_URLsToRedirect[origin];
+    if (!origin)
+        return nullptr;
+
+    auto iterator = m_URLsToRedirect.find(origin);
+    if (iterator == m_URLsToRedirect.end())
+        return nullptr;
+
+    return iterator->second.data();
 }
 
 void TestRunner::setShouldPaintBrokenImage(bool shouldPaintBrokenImage)

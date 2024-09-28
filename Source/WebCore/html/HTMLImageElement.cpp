@@ -26,11 +26,15 @@
 #include "CSSPropertyNames.h"
 #include "CSSValueKeywords.h"
 #include "CachedImage.h"
+#include "ElementIterator.h"
 #include "FrameView.h"
+#include "HTMLAnchorElement.h"
+#include "HTMLAttachmentElement.h"
 #include "HTMLDocument.h"
 #include "HTMLFormElement.h"
 #include "HTMLParserIdioms.h"
 #include "HTMLPictureElement.h"
+#include "HTMLMapElement.h"
 #include "HTMLSourceElement.h"
 #include "HTMLSrcsetParser.h"
 #include "Logging.h"
@@ -40,6 +44,7 @@
 #include "NodeTraversal.h"
 #include "RenderImage.h"
 #include "RenderView.h"
+#include "RuntimeEnabledFeatures.h"
 #include "Settings.h"
 #include "ShadowRoot.h"
 #include "SizesAttributeParser.h"
@@ -210,15 +215,15 @@ void HTMLImageElement::parseAttribute(const QualifiedName& name, const AtomicStr
         selectImageSource();
     else if (name == usemapAttr) {
         if (isConnected() && !m_parsedUsemap.isNull())
-            document().removeImageElementByUsemap(*m_parsedUsemap.impl(), *this);
+            treeScope().removeImageElementByUsemap(*m_parsedUsemap.impl(), *this);
 
         m_parsedUsemap = parseHTMLHashNameReference(value);
 
         if (isConnected() && !m_parsedUsemap.isNull())
-            document().addImageElementByUsemap(*m_parsedUsemap.impl(), *this);
+            treeScope().addImageElementByUsemap(*m_parsedUsemap.impl(), *this);
     } else if (name == compositeAttr) {
         // FIXME: images don't support blend modes in their compositing attribute.
-        BlendMode blendOp = BlendModeNormal;
+        BlendMode blendOp = BlendMode::Normal;
         if (!parseCompositeAndBlendOperator(value, m_compositeOperator, blendOp))
             m_compositeOperator = CompositeSourceOver;
 #if ENABLE(SERVICE_CONTROLS)
@@ -319,7 +324,7 @@ Node::InsertedIntoAncestorResult HTMLImageElement::insertedIntoAncestor(Insertio
     Node::InsertedIntoAncestorResult insertNotificationRequest = HTMLElement::insertedIntoAncestor(insertionType, parentOfInsertedTree);
 
     if (insertionType.connectedToDocument && !m_parsedUsemap.isNull())
-        document().addImageElementByUsemap(*m_parsedUsemap.impl(), *this);
+        treeScope().addImageElementByUsemap(*m_parsedUsemap.impl(), *this);
 
     if (is<HTMLPictureElement>(parentNode())) {
         setPictureElement(&downcast<HTMLPictureElement>(*parentNode()));
@@ -340,7 +345,7 @@ void HTMLImageElement::removedFromAncestor(RemovalType removalType, ContainerNod
         m_form->removeImgElement(this);
 
     if (removalType.disconnectedFromDocument && !m_parsedUsemap.isNull())
-        document().removeImageElementByUsemap(*m_parsedUsemap.impl(), *this);
+        oldParentOfRemovedTree.treeScope().removeImageElementByUsemap(*m_parsedUsemap.impl(), *this);
 
     if (is<HTMLPictureElement>(parentNode()))
         setPictureElement(nullptr);
@@ -369,7 +374,7 @@ void HTMLImageElement::setPictureElement(HTMLPictureElement* pictureElement)
     
     if (!gPictureOwnerMap)
         gPictureOwnerMap = new PictureOwnerMap();
-    gPictureOwnerMap->add(this, pictureElement->createWeakPtr());
+    gPictureOwnerMap->add(this, makeWeakPtr(*pictureElement));
 }
     
 unsigned HTMLImageElement::width(bool ignorePendingStylesheets)
@@ -481,6 +486,11 @@ String HTMLImageElement::completeURLsInAttributeValue(const URL& base, const Att
 bool HTMLImageElement::matchesUsemap(const AtomicStringImpl& name) const
 {
     return m_parsedUsemap.impl() == &name;
+}
+
+HTMLMapElement* HTMLImageElement::associatedMapElement() const
+{
+    return treeScope().getImageMap(m_parsedUsemap);
 }
 
 const AtomicString& HTMLImageElement::alt() const
@@ -595,6 +605,35 @@ String HTMLImageElement::crossOrigin() const
     return parseCORSSettingsAttribute(attributeWithoutSynchronization(crossoriginAttr));
 }
 
+#if ENABLE(ATTACHMENT_ELEMENT)
+
+void HTMLImageElement::setAttachmentElement(Ref<HTMLAttachmentElement>&& attachment)
+{
+    if (auto existingAttachment = attachmentElement())
+        existingAttachment->remove();
+
+    attachment->setInlineStyleProperty(CSSPropertyDisplay, CSSValueNone, true);
+    ensureUserAgentShadowRoot().appendChild(WTFMove(attachment));
+}
+
+RefPtr<HTMLAttachmentElement> HTMLImageElement::attachmentElement() const
+{
+    if (auto shadowRoot = userAgentShadowRoot())
+        return childrenOfType<HTMLAttachmentElement>(*shadowRoot).first();
+
+    return nullptr;
+}
+
+const String& HTMLImageElement::attachmentIdentifier() const
+{
+    if (auto attachment = attachmentElement())
+        return attachment->uniqueIdentifier();
+
+    return nullAtom();
+}
+
+#endif // ENABLE(ATTACHMENT_ELEMENT)
+
 #if ENABLE(SERVICE_CONTROLS)
 void HTMLImageElement::updateImageControls()
 {
@@ -673,6 +712,21 @@ bool HTMLImageElement::willRespondToMouseClickEvents()
     if (!renderer || renderer->style().touchCalloutEnabled())
         return true;
     return HTMLElement::willRespondToMouseClickEvents();
+}
+#endif
+
+#if USE(SYSTEM_PREVIEW)
+bool HTMLImageElement::isSystemPreviewImage() const
+{
+    if (!RuntimeEnabledFeatures::sharedFeatures().systemPreviewEnabled())
+        return false;
+
+    const auto* parent = parentElement();
+    if (is<HTMLAnchorElement>(parent))
+        return downcast<HTMLAnchorElement>(parent)->isSystemPreviewLink();
+    if (is<HTMLPictureElement>(parent))
+        return downcast<HTMLPictureElement>(parent)->isSystemPreviewImage();
+    return false;
 }
 #endif
 

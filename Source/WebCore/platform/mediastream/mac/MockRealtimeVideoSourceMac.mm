@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,21 +68,26 @@ MockRealtimeVideoSourceMac::MockRealtimeVideoSourceMac(const String& deviceID, c
 
 RetainPtr<CMSampleBufferRef> MockRealtimeVideoSourceMac::CMSampleBufferFromPixelBuffer(CVPixelBufferRef pixelBuffer)
 {
-        if (!pixelBuffer)
+    if (!pixelBuffer)
         return nullptr;
+    
+    if (!m_pixelBufferConformer)
+        m_pixelBufferConformer = std::make_unique<PixelBufferConformerCV>((__bridge CFDictionaryRef)@{ (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8Planar) });
+
+    auto convertedPixelBuffer = m_pixelBufferConformer->convert(pixelBuffer);
 
     CMTime sampleTime = CMTimeMake(((elapsedTime() + 100_ms) * videoSampleRate).seconds(), videoSampleRate);
     CMSampleTimingInfo timingInfo = { kCMTimeInvalid, sampleTime, sampleTime };
 
     CMVideoFormatDescriptionRef formatDescription = nullptr;
-    OSStatus status = CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, (CVImageBufferRef)pixelBuffer, &formatDescription);
+    OSStatus status = CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, (CVImageBufferRef)convertedPixelBuffer, &formatDescription);
     if (status != noErr) {
         LOG_ERROR("Failed to initialize CMVideoFormatDescription with error code: %d", status);
         return nullptr;
     }
 
     CMSampleBufferRef sampleBuffer;
-    status = CMSampleBufferCreateReadyWithImageBuffer(kCFAllocatorDefault, (CVImageBufferRef)pixelBuffer, formatDescription, &timingInfo, &sampleBuffer);
+    status = CMSampleBufferCreateReadyWithImageBuffer(kCFAllocatorDefault, (CVImageBufferRef)convertedPixelBuffer, formatDescription, &timingInfo, &sampleBuffer);
     CFRelease(formatDescription);
     if (status != noErr) {
         LOG_ERROR("Failed to initialize CMSampleBuffer with error code: %d", status);
@@ -146,15 +151,14 @@ void MockRealtimeVideoSourceMac::updateSampleBuffer()
     auto sampleBuffer = CMSampleBufferFromPixelBuffer(pixelBuffer.get());
 
     // We use m_deviceOrientation to emulate sensor orientation
-    videoSampleAvailable(MediaSampleAVFObjC::create(sampleBuffer.get(), m_deviceOrientation));
+    dispatchMediaSampleToObservers(MediaSampleAVFObjC::create(sampleBuffer.get(), m_deviceOrientation));
 }
 
-bool MockRealtimeVideoSourceMac::applySize(const IntSize& newSize)
+void MockRealtimeVideoSourceMac::settingsDidChange(OptionSet<RealtimeMediaSourceSettings::Flag> settings)
 {
-    if (size() != newSize)
+    if (settings.containsAny({ RealtimeMediaSourceSettings::Flag::Width, RealtimeMediaSourceSettings::Flag::Height }))
         m_bufferPool = nullptr;
-
-    return MockRealtimeVideoSource::applySize(newSize);
+    MockRealtimeVideoSource::settingsDidChange(settings);
 }
 
 void MockRealtimeVideoSourceMac::orientationChanged(int orientation)

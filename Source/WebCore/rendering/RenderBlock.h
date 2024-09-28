@@ -101,6 +101,8 @@ public:
     static void clearPercentHeightDescendantsFrom(RenderBox&);
     static void removePercentHeightDescendantIfNeeded(RenderBox&);
 
+    bool isContainingBlockAncestorFor(RenderObject&) const;
+
     void setHasMarginBeforeQuirk(bool b) { setRenderBlockHasMarginBeforeQuirk(b); }
     void setHasMarginAfterQuirk(bool b) { setRenderBlockHasMarginAfterQuirk(b); }
     void setShouldForceRelayoutChildren(bool b) { setRenderBlockShouldForceRelayoutChildren(b); }
@@ -186,8 +188,8 @@ public:
     void addContinuationWithOutline(RenderInline*);
     bool paintsContinuationOutline(RenderInline*);
 
-    static RenderPtr<RenderBlock> createAnonymousWithParentRendererAndDisplay(const RenderBox& parent, EDisplay = BLOCK);
-    RenderPtr<RenderBlock> createAnonymousBlock(EDisplay = BLOCK) const;
+    static RenderPtr<RenderBlock> createAnonymousWithParentRendererAndDisplay(const RenderBox& parent, DisplayType = DisplayType::Block);
+    RenderPtr<RenderBlock> createAnonymousBlock(DisplayType = DisplayType::Block) const;
 
     RenderPtr<RenderBox> createAnonymousBoxWithSameTypeAs(const RenderBox&) const override;
 
@@ -418,7 +420,7 @@ protected:
     void blockWillBeDestroyed();
 
 private:
-    static RenderPtr<RenderBlock> createAnonymousBlockWithStyleAndDisplay(Document&, const RenderStyle&, EDisplay);
+    static RenderPtr<RenderBlock> createAnonymousBlockWithStyleAndDisplay(Document&, const RenderStyle&, DisplayType);
 
     // FIXME-BLOCKFLOW: Remove virtualizaion when all callers have moved to RenderBlockFlow
     virtual LayoutUnit logicalRightFloatOffsetForLine(LayoutUnit, LayoutUnit fixedOffset, LayoutUnit) const { return fixedOffset; };
@@ -525,7 +527,7 @@ LayoutUnit blockDirectionOffset(RenderBlock& rootBlock, const LayoutSize& offset
 LayoutUnit inlineDirectionOffset(RenderBlock& rootBlock, const LayoutSize& offsetFromRootBlock);
 VisiblePosition positionForPointRespectingEditingBoundaries(RenderBlock&, RenderBox&, const LayoutPoint&);
 
-inline RenderPtr<RenderBlock> RenderBlock::createAnonymousWithParentRendererAndDisplay(const RenderBox& parent, EDisplay display)
+inline RenderPtr<RenderBlock> RenderBlock::createAnonymousWithParentRendererAndDisplay(const RenderBox& parent, DisplayType display)
 {
     return createAnonymousBlockWithStyleAndDisplay(parent.document(), parent.style(), display);
 }
@@ -535,7 +537,7 @@ inline RenderPtr<RenderBox> RenderBlock::createAnonymousBoxWithSameTypeAs(const 
     return createAnonymousBlockWithStyleAndDisplay(document(), renderer.style(), style().display());
 }
 
-inline RenderPtr<RenderBlock> RenderBlock::createAnonymousBlock(EDisplay display) const
+inline RenderPtr<RenderBlock> RenderBlock::createAnonymousBlock(DisplayType display) const
 {
     return createAnonymousBlockWithStyleAndDisplay(document(), style(), display);
 }

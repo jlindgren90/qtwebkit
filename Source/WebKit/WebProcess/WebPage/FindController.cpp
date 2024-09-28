@@ -36,10 +36,10 @@
 #include <WebCore/DocumentMarkerController.h>
 #include <WebCore/FloatQuad.h>
 #include <WebCore/FocusController.h>
+#include <WebCore/Frame.h>
 #include <WebCore/FrameSelection.h>
 #include <WebCore/FrameView.h>
 #include <WebCore/GraphicsContext.h>
-#include <WebCore/MainFrame.h>
 #include <WebCore/Page.h>
 #include <WebCore/PageOverlayController.h>
 #include <WebCore/PlatformMouseEvent.h>
@@ -49,23 +49,22 @@
 #include <WebCore/TextIndicatorWindow.h>
 #endif
 
-using namespace WebCore;
-
 namespace WebKit {
+using namespace WebCore;
 
 WebCore::FindOptions core(FindOptions options)
 {
     WebCore::FindOptions result;
     if (options & FindOptionsCaseInsensitive)
-        result |= WebCore::CaseInsensitive;
+        result.add(WebCore::CaseInsensitive);
     if (options & FindOptionsAtWordStarts)
-        result |= WebCore::AtWordStarts;
+        result.add(WebCore::AtWordStarts);
     if (options & FindOptionsTreatMedialCapitalAsWordStart)
-        result |= WebCore::TreatMedialCapitalAsWordStart;
+        result.add(WebCore::TreatMedialCapitalAsWordStart);
     if (options & FindOptionsBackwards)
-        result |= WebCore::Backwards;
+        result.add(WebCore::Backwards);
     if (options & FindOptionsWrapAround)
-        result |= WebCore::WrapAround;
+        result.add(WebCore::WrapAround);
     return result;
 }
 
@@ -184,12 +183,12 @@ void FindController::updateFindUIAfterPageScroll(bool found, const String& strin
 
     if (!shouldShowOverlay) {
         if (m_findPageOverlay)
-            m_webPage->mainFrame()->pageOverlayController().uninstallPageOverlay(*m_findPageOverlay, PageOverlay::FadeMode::Fade);
+            m_webPage->corePage()->pageOverlayController().uninstallPageOverlay(*m_findPageOverlay, PageOverlay::FadeMode::Fade);
     } else {
         if (!m_findPageOverlay) {
             auto findPageOverlay = PageOverlay::create(*this, PageOverlay::OverlayType::Document);
             m_findPageOverlay = findPageOverlay.ptr();
-            m_webPage->mainFrame()->pageOverlayController().installPageOverlay(WTFMove(findPageOverlay), PageOverlay::FadeMode::Fade);
+            m_webPage->corePage()->pageOverlayController().installPageOverlay(WTFMove(findPageOverlay), PageOverlay::FadeMode::Fade);
         }
         m_findPageOverlay->setNeedsDisplay();
     }
@@ -205,7 +204,7 @@ void FindController::findString(const String& string, FindOptions options, unsig
     // we need to avoid sending the non-painted selection change to the UI process
     // so that it does not clear the selection out from under us.
 #if PLATFORM(IOS)
-    coreOptions |= DoNotRevealSelection;
+    coreOptions.add(DoNotRevealSelection);
 #endif
 
     willFindString();
@@ -308,7 +307,7 @@ void FindController::hideFindUI()
 {
     m_findMatches.clear();
     if (m_findPageOverlay)
-        m_webPage->mainFrame()->pageOverlayController().uninstallPageOverlay(*m_findPageOverlay, PageOverlay::FadeMode::Fade);
+        m_webPage->corePage()->pageOverlayController().uninstallPageOverlay(*m_findPageOverlay, PageOverlay::FadeMode::Fade);
 
     if (auto* pluginView = WebPage::pluginViewForFrame(m_webPage->mainFrame()))
         pluginView->findString(emptyString(), { }, 0);

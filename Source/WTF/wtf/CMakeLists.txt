@@ -12,8 +12,8 @@ set(WTF_PUBLIC_HEADERS
     Bitmap.h
     BlockObjCExceptions.h
     BlockPtr.h
-    BlockStack.h
     BloomFilter.h
+    BooleanLattice.h
     Box.h
     Brigand.h
     BubbleSort.h
@@ -27,6 +27,7 @@ set(WTF_PUBLIC_HEADERS
     CheckedBoolean.h
     ClockType.h
     CommaPrinter.h
+    CompactPointerTuple.h
     CompilationThread.h
     Compiler.h
     CompletionHandler.h
@@ -49,7 +50,6 @@ set(WTF_PUBLIC_HEADERS
     DeprecatedOptional.h
     Deque.h
     DisallowCType.h
-    DispatchPtr.h
     Dominators.h
     DoublyLinkedList.h
     DumbPtrTraits.h
@@ -119,6 +119,7 @@ set(WTF_PUBLIC_HEADERS
     LoggingHashSet.h
     LoggingHashTraits.h
     MD5.h
+    MachSendRight.h
     MainThread.h
     MallocPtr.h
     MathExtras.h
@@ -128,6 +129,7 @@ set(WTF_PUBLIC_HEADERS
     MessageQueue.h
     MetaAllocator.h
     MetaAllocatorHandle.h
+    MetaAllocatorPtr.h
     MonotonicTime.h
     NakedPtr.h
     NaturalLoops.h
@@ -166,6 +168,7 @@ set(WTF_PUBLIC_HEADERS
     PriorityQueue.h
     ProcessID.h
     ProcessPrivilege.h
+    PtrTag.h
     RAMSize.h
     RandomDevice.h
     RandomNumber.h
@@ -236,6 +239,7 @@ set(WTF_PUBLIC_HEADERS
     TriState.h
     TypeCasts.h
     UUID.h
+    UnalignedAccess.h
     Unexpected.h
     UniStdExtras.h
     UnionFind.h
@@ -253,6 +257,7 @@ set(WTF_PUBLIC_HEADERS
     WindowsExtras.h
     WordLock.h
     WorkQueue.h
+    WorkerPool.h
     dtoa.h
 
     dtoa/bignum-dtoa.h
@@ -272,6 +277,7 @@ set(WTF_PUBLIC_HEADERS
     persistence/PersistentEncoder.h
 
     text/ASCIIFastPath.h
+    text/ASCIILiteral.h
     text/AtomicString.h
     text/AtomicStringHash.h
     text/AtomicStringImpl.h
@@ -293,9 +299,7 @@ set(WTF_PUBLIC_HEADERS
     text/StringHash.h
     text/StringHasher.h
     text/StringImpl.h
-    text/StringMalloc.h
     text/StringOperators.h
-    text/StringVector.h
     text/StringView.h
     text/SymbolImpl.h
     text/SymbolRegistry.h
@@ -303,6 +307,7 @@ set(WTF_PUBLIC_HEADERS
     text/TextBreakIteratorInternalICU.h
     text/TextPosition.h
     text/TextStream.h
+    text/UTF8ConversionError.h
     text/UniquedStringImpl.h
     text/ValueToString.h
     text/WTFString.h
@@ -322,7 +327,6 @@ set(WTF_PUBLIC_HEADERS
 
 set(WTF_SOURCES
     Assertions.cpp
-    Atomics.cpp
     AutomaticThread.cpp
     BitVector.cpp
     CPUTime.cpp
@@ -389,6 +393,7 @@ set(WTF_SOURCES
     WallTime.cpp
     WordLock.cpp
     WorkQueue.cpp
+    WorkerPool.cpp
     dtoa.cpp
 
     dtoa/bignum-dtoa.cc
@@ -404,6 +409,7 @@ set(WTF_SOURCES
     persistence/PersistentDecoder.cpp
     persistence/PersistentEncoder.cpp
 
+    text/ASCIILiteral.cpp
     text/AtomicString.cpp
     text/AtomicStringImpl.cpp
     text/AtomicStringTable.cpp
@@ -413,7 +419,6 @@ set(WTF_SOURCES
     text/StringBuilder.cpp
     text/StringBuilderJSON.cpp
     text/StringImpl.cpp
-    text/StringMalloc.cpp
     text/StringView.cpp
     text/SymbolImpl.cpp
     text/SymbolRegistry.cpp

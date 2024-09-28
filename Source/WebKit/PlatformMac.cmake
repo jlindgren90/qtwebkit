@@ -1,4 +1,4 @@
-add_definitions("-ObjC++ -std=c++14")
+add_definitions("-ObjC++ -std=c++17")
 find_library(APPLICATIONSERVICES_LIBRARY ApplicationServices)
 find_library(CARBON_LIBRARY Carbon)
 find_library(QUARTZ_LIBRARY Quartz)
@@ -173,7 +173,6 @@ list(APPEND WebKit_SOURCES
 
     UIProcess/Automation/mac/WebAutomationSessionMac.mm
 
-    UIProcess/API/APIAttachment.cpp
     UIProcess/API/APIUserScript.cpp
     UIProcess/API/APIUserStyleSheet.cpp
     UIProcess/API/APIWebsiteDataRecord.cpp

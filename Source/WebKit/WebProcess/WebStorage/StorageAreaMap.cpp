@@ -35,7 +35,7 @@
 #include "WebProcess.h"
 #include <WebCore/DOMWindow.h>
 #include <WebCore/Document.h>
-#include <WebCore/MainFrame.h>
+#include <WebCore/Frame.h>
 #include <WebCore/Page.h>
 #include <WebCore/PageGroup.h>
 #include <WebCore/SecurityOriginData.h>
@@ -44,9 +44,8 @@
 #include <WebCore/StorageMap.h>
 #include <WebCore/StorageType.h>
 
-using namespace WebCore;
-
 namespace WebKit {
+using namespace WebCore;
 
 static uint64_t generateStorageMapID()
 {

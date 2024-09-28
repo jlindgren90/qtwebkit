@@ -47,6 +47,11 @@
     margin: 4px 8px;
 }
 
+.content-view:not(.tab).recording > header > .slider-container > .slider-value {
+    font-family: Menlo, monospace;
+    font-family: 11px;
+}
+
 .content-view:not(.tab).recording > header > .slider-container > input[type=range] {
     flex: 1;
     width: 100%;
@@ -67,6 +72,9 @@
     flex: 1;
     justify-content: center;
     align-items: center;
+    position: relative;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
 }
 
 .content-view:not(.tab).recording :matches(img, canvas) {

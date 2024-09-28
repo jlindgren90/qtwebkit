@@ -127,7 +127,9 @@ enum {
     PROP_DEFAULT_MONOSPACE_FONT_SIZE,
     PROP_MINIMUM_FONT_SIZE,
     PROP_DEFAULT_CHARSET,
+#if PLATFORM(GTK)
     PROP_ENABLE_PRIVATE_BROWSING,
+#endif
     PROP_ENABLE_DEVELOPER_EXTRAS,
     PROP_ENABLE_RESIZABLE_TEXT_AREAS,
     PROP_ENABLE_TABS_TO_LINKS,
@@ -153,6 +155,7 @@ enum {
     PROP_ENABLE_SPATIAL_NAVIGATION,
     PROP_ENABLE_MEDIASOURCE,
     PROP_ENABLE_ENCRYPTED_MEDIA,
+    PROP_ENABLE_MEDIA_CAPABILITIES,
     PROP_ALLOW_FILE_ACCESS_FROM_FILE_URLS,
     PROP_ALLOW_UNIVERSAL_ACCESS_FROM_FILE_URLS,
 #if PLATFORM(GTK)
@@ -266,11 +269,13 @@ static void webKitSettingsSetProperty(GObject* object, guint propId, const GValu
     case PROP_DEFAULT_CHARSET:
         webkit_settings_set_default_charset(settings, g_value_get_string(value));
         break;
+#if PLATFORM(GTK)
     case PROP_ENABLE_PRIVATE_BROWSING:
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
         webkit_settings_set_enable_private_browsing(settings, g_value_get_boolean(value));
         G_GNUC_END_IGNORE_DEPRECATIONS;
         break;
+#endif
     case PROP_ENABLE_DEVELOPER_EXTRAS:
         webkit_settings_set_enable_developer_extras(settings, g_value_get_boolean(value));
         break;
@@ -351,6 +356,9 @@ static void webKitSettingsSetProperty(GObject* object, guint propId, const GValu
         break;
     case PROP_ENABLE_ENCRYPTED_MEDIA:
         webkit_settings_set_enable_encrypted_media(settings, g_value_get_boolean(value));
+        break;
+    case PROP_ENABLE_MEDIA_CAPABILITIES:
+        webkit_settings_set_enable_media_capabilities(settings, g_value_get_boolean(value));
         break;
     case PROP_ALLOW_FILE_ACCESS_FROM_FILE_URLS:
         webkit_settings_set_allow_file_access_from_file_urls(settings, g_value_get_boolean(value));
@@ -443,11 +451,13 @@ static void webKitSettingsGetProperty(GObject* object, guint propId, GValue* val
     case PROP_DEFAULT_CHARSET:
         g_value_set_string(value, webkit_settings_get_default_charset(settings));
         break;
+#if PLATFORM(GTK)
     case PROP_ENABLE_PRIVATE_BROWSING:
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
         g_value_set_boolean(value, webkit_settings_get_enable_private_browsing(settings));
         G_GNUC_END_IGNORE_DEPRECATIONS;
         break;
+#endif
     case PROP_ENABLE_DEVELOPER_EXTRAS:
         g_value_set_boolean(value, webkit_settings_get_enable_developer_extras(settings));
         break;
@@ -522,6 +532,9 @@ static void webKitSettingsGetProperty(GObject* object, guint propId, GValue* val
         break;
     case PROP_ENABLE_ENCRYPTED_MEDIA:
         g_value_set_boolean(value, webkit_settings_get_enable_encrypted_media(settings));
+        break;
+    case PROP_ENABLE_MEDIA_CAPABILITIES:
+        g_value_set_boolean(value, webkit_settings_get_enable_media_capabilities(settings));
         break;
     case PROP_ALLOW_FILE_ACCESS_FROM_FILE_URLS:
         g_value_set_boolean(value, webkit_settings_get_allow_file_access_from_file_urls(settings));
@@ -879,6 +892,7 @@ static void webkit_settings_class_init(WebKitSettingsClass* klass)
                                                         "iso-8859-1",
                                                         readWriteConstructParamFlags));
 
+#if PLATFORM(GTK)
     /**
      * WebKitSettings:enable-private-browsing:
      *
@@ -894,6 +908,7 @@ static void webkit_settings_class_init(WebKitSettingsClass* klass)
                                                          _("Whether to enable private browsing"),
                                                          FALSE,
                                                          readWriteConstructParamFlags));
+#endif
 
     /**
      * WebKitSettings:enable-developer-extras:
@@ -1308,6 +1323,28 @@ static void webkit_settings_class_init(WebKitSettingsClass* klass)
         g_param_spec_boolean("enable-encrypted-media",
             _("Enable EncryptedMedia"),
             _("Whether EncryptedMedia should be enabled."),
+            FALSE,
+            readWriteConstructParamFlags));
+
+    /**
+     * WebKitSettings:enable-media-capabilities:
+     *
+     * Enable or disable support for MediaCapabilities on pages. This
+     * specification intends to provide APIs to allow websites to make an optimal
+     * decision when picking media content for the user. The APIs will expose
+     * information about the decoding and encoding capabilities for a given format
+     * but also output capabilities to find the best match based on the device’s
+     * display.
+     *
+     * See also https://wicg.github.io/media-capabilities/
+     *
+     * Since: 2.22
+     */
+    g_object_class_install_property(gObjectClass,
+        PROP_ENABLE_MEDIA_CAPABILITIES,
+        g_param_spec_boolean("enable-media-capabilities",
+            _("Enable MediaCapabilities"),
+            _("Whether MediaCapabilities should be enabled."),
             FALSE,
             readWriteConstructParamFlags));
 
@@ -2242,6 +2279,7 @@ void webkit_settings_set_default_charset(WebKitSettings* settings, const gchar* 
     g_object_notify(G_OBJECT(settings), "default-charset");
 }
 
+#if PLATFORM(GTK)
 /**
  * webkit_settings_get_enable_private_browsing:
  * @settings: a #WebKitSettings
@@ -2280,6 +2318,7 @@ void webkit_settings_set_enable_private_browsing(WebKitSettings* settings, gbool
     priv->preferences->setPrivateBrowsingEnabled(enabled);
     g_object_notify(G_OBJECT(settings), "enable-private-browsing");
 }
+#endif
 
 /**
  * webkit_settings_get_enable_developer_extras:
@@ -3207,6 +3246,47 @@ void webkit_settings_set_enable_encrypted_media(WebKitSettings* settings, gboole
     priv->preferences->setEncryptedMediaAPIEnabled(enabled);
     g_object_notify(G_OBJECT(settings), "enable-encrypted-media");
 }
+
+/**
+ * webkit_settings_get_enable_media_capabilities:
+ * @settings: a #WebKitSettings
+ *
+ * Get the #WebKitSettings:enable-media-capabilities property.
+ *
+ * Returns: %TRUE if MediaCapabilities support is enabled or %FALSE otherwise.
+ *
+ * Since: 2.22
+ */
+gboolean webkit_settings_get_enable_media_capabilities(WebKitSettings* settings)
+{
+    g_return_val_if_fail(WEBKIT_IS_SETTINGS(settings), FALSE);
+
+    return settings->priv->preferences->mediaCapabilitiesEnabled();
+}
+
+
+/**
+ * webkit_settings_set_enable_media_capabilities:
+ * @settings: a #WebKitSettings
+ * @enabled: Value to be set
+ *
+ * Set the #WebKitSettings:enable-media-capabilities property.
+ *
+ * Since: 2.22
+ */
+void webkit_settings_set_enable_media_capabilities(WebKitSettings* settings, gboolean enabled)
+{
+    g_return_if_fail(WEBKIT_IS_SETTINGS(settings));
+
+    WebKitSettingsPrivate* priv = settings->priv;
+    bool currentValue = priv->preferences->mediaCapabilitiesEnabled();
+    if (currentValue == enabled)
+        return;
+
+    priv->preferences->setMediaCapabilitiesEnabled(enabled);
+    g_object_notify(G_OBJECT(settings), "enable-media-capabilities");
+}
+
 /**
  * webkit_settings_get_allow_file_access_from_file_urls:
  * @settings: a #WebKitSettings

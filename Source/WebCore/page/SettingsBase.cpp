@@ -35,10 +35,10 @@
 #include "Document.h"
 #include "FontCascade.h"
 #include "FontGenericFamilies.h"
+#include "Frame.h"
 #include "FrameTree.h"
 #include "FrameView.h"
 #include "HistoryItem.h"
-#include "MainFrame.h"
 #include "Page.h"
 #include "PageCache.h"
 #include "RenderWidget.h"
@@ -80,7 +80,7 @@ SettingsBase::~SettingsBase() = default;
 
 float SettingsBase::defaultMinimumZoomFontSize()
 {
-#if ENABLE(EXTRA_ZOOM_MODE)
+#if PLATFORM(WATCHOS)
     return 30;
 #else
     return 15;
@@ -94,36 +94,9 @@ bool SettingsBase::defaultTextAutosizingEnabled()
 }
 #endif
 
-float SettingsBase::defaultOneLineTextMultiplierCoefficient()
-{
-#if ENABLE(EXTRA_ZOOM_MODE)
-    return 2.23125f;
-#else
-    return 1.7f;
-#endif
-}
-
-float SettingsBase::defaultMultiLineTextMultiplierCoefficient()
-{
-#if ENABLE(EXTRA_ZOOM_MODE)
-    return 2.48125f;
-#else
-    return 1.95f;
-#endif
-}
-
-float SettingsBase::defaultMaxTextAutosizingScaleIncrease()
-{
-#if ENABLE(EXTRA_ZOOM_MODE)
-    return 5.0f;
-#else
-    return 1.7f;
-#endif
-}
-
 bool SettingsBase::defaultDownloadableBinaryFontsEnabled()
 {
-#if ENABLE(EXTRA_ZOOM_MODE)
+#if PLATFORM(WATCHOS)
     return false;
 #else
     return true;
@@ -332,6 +305,23 @@ void SettingsBase::pluginsEnabledChanged()
 {
     Page::refreshPlugins(false);
 }
+
+#if ENABLE(TEXT_AUTOSIZING)
+
+void SettingsBase::shouldEnableTextAutosizingBoostChanged()
+{
+    if (!m_page)
+        return;
+
+    bool boostAutosizing = m_page->settings().shouldEnableTextAutosizingBoost();
+    m_oneLineTextMultiplierCoefficient = boostAutosizing ? boostedOneLineTextMultiplierCoefficient : defaultOneLineTextMultiplierCoefficient;
+    m_multiLineTextMultiplierCoefficient = boostAutosizing ? boostedMultiLineTextMultiplierCoefficient : defaultMultiLineTextMultiplierCoefficient;
+    m_maxTextAutosizingScaleIncrease = boostAutosizing ? boostedMaxTextAutosizingScaleIncrease : defaultMaxTextAutosizingScaleIncrease;
+
+    setNeedsRecalcStyleInAllFrames();
+}
+
+#endif
 
 void SettingsBase::userStyleSheetLocationChanged()
 {

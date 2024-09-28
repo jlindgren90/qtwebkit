@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
 #import <mach/mach_error.h>
 #import <mach/vm_map.h>
 #import <sys/mman.h>
+#import <wtf/MachSendRight.h>
 #import <wtf/RunLoop.h>
 #import <wtf/spi/darwin/XPCSPI.h>
 
@@ -115,11 +116,21 @@ void Connection::platformInvalidate()
 {
     if (!m_isConnected) {
         if (m_sendPort) {
-            mach_port_deallocate(mach_task_self(), m_sendPort);
+            ASSERT(!m_isServer);
+            deallocateSendRightSafely(m_sendPort);
             m_sendPort = MACH_PORT_NULL;
         }
 
+        if (m_receiveSource) {
+            // For a short period of time, when m_isServer is true and open() has been called, m_receiveSource has been initialized
+            // but m_isConnected has not been set to true yet. In this case, we need to cancel m_receiveSource instead of destroying
+            // m_receivePort ourselves.
+            ASSERT(m_isServer);
+            cancelReceiveSource();
+        }
+
         if (m_receivePort) {
+            ASSERT(m_isServer);
 #if !PLATFORM(WATCHOS)
             mach_port_unguard(mach_task_self(), m_receivePort, reinterpret_cast<mach_port_context_t>(this));
 #endif
@@ -131,6 +142,7 @@ void Connection::platformInvalidate()
     }
 
     m_pendingOutgoingMachMessage = nullptr;
+    m_isInitializingSendSource = false;
     m_isConnected = false;
 
     ASSERT(m_sendPort);
@@ -142,6 +154,11 @@ void Connection::platformInvalidate()
     m_sendSource = nullptr;
     m_sendPort = MACH_PORT_NULL;
 
+    cancelReceiveSource();
+}
+
+void Connection::cancelReceiveSource()
+{
     dispatch_source_cancel(m_receiveSource);
     dispatch_release(m_receiveSource);
     m_receiveSource = nullptr;
@@ -156,6 +173,9 @@ void Connection::terminateSoon(Seconds interval)
     
 void Connection::platformInitialize(Identifier identifier)
 {
+    if (!MACH_PORT_VALID(identifier.port))
+        return;
+
     if (m_isServer) {
         m_receivePort = identifier.port;
         m_sendPort = MACH_PORT_NULL;
@@ -179,12 +199,17 @@ bool Connection::open()
     if (m_isServer) {
         ASSERT(m_receivePort);
         ASSERT(!m_sendPort);
-        
+        ASSERT(MACH_PORT_VALID(m_receivePort));
     } else {
         ASSERT(!m_receivePort);
         ASSERT(m_sendPort);
+        ASSERT(MACH_PORT_VALID(m_sendPort));
 
-        mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &m_receivePort);
+        auto kr = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &m_receivePort);
+        if (kr != KERN_SUCCESS) {
+            LOG_ERROR("Could not allocate mach port, error %x: %s", kr, mach_error_string(kr));
+            CRASH();
+        }
 #if !PLATFORM(WATCHOS)
         mach_port_guard(mach_task_self(), m_receivePort, reinterpret_cast<mach_port_context_t>(this), true);
 #endif
@@ -238,6 +263,7 @@ bool Connection::sendMessage(std::unique_ptr<MachMessage> message)
 {
     ASSERT(message);
     ASSERT(!m_pendingOutgoingMachMessage);
+    ASSERT(!m_isInitializingSendSource);
 
     // Send the message.
     kern_return_t kr = mach_msg(message->header(), MACH_SEND_MSG | MACH_SEND_TIMEOUT | MACH_SEND_NOTIFY, message->size(), 0, MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
@@ -257,19 +283,19 @@ bool Connection::sendMessage(std::unique_ptr<MachMessage> message)
         return false;
 
     default:
-        WebKit::setCrashReportApplicationSpecificInformation((CFStringRef)[NSString stringWithFormat:@"Unhandled error code %x, message '%s::%s'", kr, message->messageReceiverName().data(), message->messageName().data()]);
+        WebKit::setCrashReportApplicationSpecificInformation((__bridge CFStringRef)[NSString stringWithFormat:@"Unhandled error code %x, message '%s::%s'", kr, message->messageReceiverName().data(), message->messageName().data()]);
         CRASH();
     }
 }
 
 bool Connection::platformCanSendOutgoingMessages() const
 {
-    return !m_pendingOutgoingMachMessage;
+    return !m_pendingOutgoingMachMessage && !m_isInitializingSendSource;
 }
 
 bool Connection::sendOutgoingMessage(std::unique_ptr<Encoder> encoder)
 {
-    ASSERT(!m_pendingOutgoingMachMessage);
+    ASSERT(!m_pendingOutgoingMachMessage && !m_isInitializingSendSource);
 
     Vector<Attachment> attachments = encoder->releaseAttachments();
     
@@ -354,6 +380,7 @@ bool Connection::sendOutgoingMessage(std::unique_ptr<Encoder> encoder)
         memcpy(messageData, encoder->buffer(), encoder->bufferSize());
 
     ASSERT(m_sendPort);
+    ASSERT(MACH_PORT_VALID(m_sendPort));
 
     return sendMessage(WTFMove(message));
 }
@@ -361,8 +388,15 @@ bool Connection::sendOutgoingMessage(std::unique_ptr<Encoder> encoder)
 void Connection::initializeSendSource()
 {
     m_sendSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_MACH_SEND, m_sendPort, DISPATCH_MACH_SEND_DEAD | DISPATCH_MACH_SEND_POSSIBLE, m_connectionQueue->dispatchQueue());
+    m_isInitializingSendSource = true;
 
     RefPtr<Connection> connection(this);
+    dispatch_source_set_registration_handler(m_sendSource, [connection] {
+        if (!connection->m_sendSource)
+            return;
+        connection->m_isInitializingSendSource = false;
+        connection->resumeSendSource();
+    });
     dispatch_source_set_event_handler(m_sendSource, [connection] {
         if (!connection->m_sendSource)
             return;
@@ -376,18 +410,25 @@ void Connection::initializeSendSource()
 
         if (data & DISPATCH_MACH_SEND_POSSIBLE) {
             // FIXME: Figure out why we get spurious DISPATCH_MACH_SEND_POSSIBLE events.
-            if (connection->m_pendingOutgoingMachMessage)
-                connection->sendMessage(WTFMove(connection->m_pendingOutgoingMachMessage));
-            connection->sendOutgoingMessages();
+            connection->resumeSendSource();
             return;
         }
     });
 
+    ASSERT(MACH_PORT_VALID(m_sendPort));
     mach_port_t sendPort = m_sendPort;
     dispatch_source_set_cancel_handler(m_sendSource, ^{
         // Release our send right.
-        mach_port_deallocate(mach_task_self(), sendPort);
+        deallocateSendRightSafely(sendPort);
     });
+}
+
+void Connection::resumeSendSource()
+{
+    ASSERT(!m_isInitializingSendSource);
+    if (m_pendingOutgoingMachMessage)
+        sendMessage(WTFMove(m_pendingOutgoingMachMessage));
+    sendOutgoingMessages();
 }
 
 static std::unique_ptr<Decoder> createMessageDecoder(mach_msg_header_t* header)
@@ -446,7 +487,7 @@ static std::unique_ptr<Decoder> createMessageDecoder(mach_msg_header_t* header)
     uint8_t* messageBody = descriptorData;
     size_t messageBodySize = header->msgh_size - (descriptorData - reinterpret_cast<uint8_t*>(header));
 
-    return std::make_unique<Decoder>(messageBody, messageBodySize, nullptr, attachments);
+    return std::make_unique<Decoder>(messageBody, messageBodySize, nullptr, WTFMove(attachments));
 }
 
 // The receive buffer size should always include the maximum trailer size.
@@ -455,12 +496,14 @@ typedef Vector<char, receiveBufferSize> ReceiveBuffer;
 
 static mach_msg_header_t* readFromMachPort(mach_port_t machPort, ReceiveBuffer& buffer)
 {
+    ASSERT(MACH_PORT_VALID(machPort));
+
     buffer.resize(receiveBufferSize);
 
     mach_msg_header_t* header = reinterpret_cast<mach_msg_header_t*>(buffer.data());
     kern_return_t kr = mach_msg(header, MACH_RCV_MSG | MACH_RCV_LARGE | MACH_RCV_TIMEOUT, 0, buffer.size(), machPort, 0, MACH_PORT_NULL);
     if (kr == MACH_RCV_TIMED_OUT)
-        return 0;
+        return nullptr;
 
     if (kr == MACH_RCV_TOO_LARGE) {
         // The message was too large, resize the buffer and try again.
@@ -473,10 +516,10 @@ static mach_msg_header_t* readFromMachPort(mach_port_t machPort, ReceiveBuffer& 
 
     if (kr != MACH_MSG_SUCCESS) {
 #if !ASSERT_DISABLED
-        WebKit::setCrashReportApplicationSpecificInformation((CFStringRef)[NSString stringWithFormat:@"Unhandled error code %x from mach_msg, receive port is %x", kr, machPort]);
+        WebKit::setCrashReportApplicationSpecificInformation((__bridge CFStringRef)[NSString stringWithFormat:@"Unhandled error code %x from mach_msg, receive port is %x", kr, machPort]);
 #endif
         ASSERT_NOT_REACHED();
-        return 0;
+        return nullptr;
     }
 
     return header;
@@ -486,6 +529,7 @@ void Connection::receiveSourceEventHandler()
 {
     ReceiveBuffer buffer;
 
+    ASSERT(MACH_PORT_VALID(m_receivePort));
     mach_msg_header_t* header = readFromMachPort(m_receivePort, buffer);
     if (!header)
         return;
@@ -525,11 +569,18 @@ void Connection::receiveSourceEventHandler()
         m_sendPort = port.port();
         
         if (m_sendPort) {
-            mach_port_t previousNotificationPort;
-            mach_port_request_notification(mach_task_self(), m_receivePort, MACH_NOTIFY_NO_SENDERS, 0, MACH_PORT_NULL, MACH_MSG_TYPE_MOVE_SEND_ONCE, &previousNotificationPort);
+            ASSERT(MACH_PORT_VALID(m_receivePort));
+            mach_port_t previousNotificationPort = MACH_PORT_NULL;
+            auto kr = mach_port_request_notification(mach_task_self(), m_receivePort, MACH_NOTIFY_NO_SENDERS, 0, MACH_PORT_NULL, MACH_MSG_TYPE_MOVE_SEND_ONCE, &previousNotificationPort);
+            ASSERT(kr == KERN_SUCCESS);
+            if (kr != KERN_SUCCESS) {
+                // If mach_port_request_notification fails, 'previousNotificationPort' will be uninitialized.
+                LOG_ERROR("mach_port_request_notification failed: (%x) %s", kr, mach_error_string(kr));
+                previousNotificationPort = MACH_PORT_NULL;
+            }
 
             if (previousNotificationPort != MACH_PORT_NULL)
-                mach_port_deallocate(mach_task_self(), previousNotificationPort);
+                deallocateSendRightSafely(previousNotificationPort);
 
             initializeSendSource();
             dispatch_resume(m_sendSource);
@@ -546,7 +597,7 @@ void Connection::receiveSourceEventHandler()
 #if !PLATFORM(IOS)
     if (decoder->messageReceiverName() == "IPC" && decoder->messageName() == "SetExceptionPort") {
         if (m_isServer) {
-            // Server connections aren't supposed to have their exception ports overriden. Treat this as an invalid message.
+            // Server connections aren't supposed to have their exception ports overridden. Treat this as an invalid message.
             StringReference messageReceiverNameReference = decoder->messageReceiverName();
             String messageReceiverName(String(messageReceiverNameReference.data(), messageReceiverNameReference.size()));
             StringReference messageNameReference = decoder->messageName();
@@ -587,6 +638,7 @@ bool Connection::kill()
 {
     if (m_xpcConnection) {
         xpc_connection_kill(m_xpcConnection.get(), SIGKILL);
+        m_wasKilled = true;
         return true;
     }
 

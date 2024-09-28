@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,7 +54,13 @@ protected:
     void stopProducingData() override;
 
     Seconds elapsedTime();
-    bool applyFrameRate(double) override;
+
+    RetainPtr<CMSampleBufferRef> sampleBufferFromPixelBuffer(CVPixelBufferRef);
+#if HAVE(IOSURFACE)
+    RetainPtr<CVPixelBufferRef> pixelBufferFromIOSurface(IOSurfaceRef);
+#endif
+
+    void settingsDidChange(OptionSet<RealtimeMediaSourceSettings::Flag>) override;
 
 private:
 
@@ -62,7 +68,6 @@ private:
 
     const RealtimeMediaSourceCapabilities& capabilities() const final;
     const RealtimeMediaSourceSettings& settings() const final;
-    void settingsDidChange() final;
 
     void emitFrame();
 
@@ -73,6 +78,7 @@ private:
     MonotonicTime m_startTime { MonotonicTime::nan() };
     Seconds m_elapsedTime { 0_s };
 
+    RetainPtr<CFMutableDictionaryRef> m_bufferAttributes;
     RunLoop::Timer<DisplayCaptureSourceCocoa> m_timer;
 };
 

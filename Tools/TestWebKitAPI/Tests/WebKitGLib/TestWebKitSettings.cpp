@@ -200,11 +200,13 @@ static void testWebKitSettings(Test*, gconstpointer)
     webkit_settings_set_default_charset(settings, "utf8");
     g_assert_cmpstr(webkit_settings_get_default_charset(settings), ==, "utf8");
 
+#if PLATFORM(GTK)
     G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
     g_assert(!webkit_settings_get_enable_private_browsing(settings));
     webkit_settings_set_enable_private_browsing(settings, TRUE);
     g_assert(webkit_settings_get_enable_private_browsing(settings));
     G_GNUC_END_IGNORE_DEPRECATIONS;
+#endif
 
     g_assert(!webkit_settings_get_enable_developer_extras(settings));
     webkit_settings_set_enable_developer_extras(settings, TRUE);
@@ -321,6 +323,11 @@ static void testWebKitSettings(Test*, gconstpointer)
     g_assert(!webkit_settings_get_enable_encrypted_media(settings));
     webkit_settings_set_enable_encrypted_media(settings, TRUE);
     g_assert(webkit_settings_get_enable_encrypted_media(settings));
+
+    // MediaCapabilities is disabled by default
+    g_assert(!webkit_settings_get_enable_media_capabilities(settings));
+    webkit_settings_set_enable_media_capabilities(settings, TRUE);
+    g_assert(webkit_settings_get_enable_media_capabilities(settings));
 
     // File access from file URLs is not allowed by default.
     g_assert(!webkit_settings_get_allow_file_access_from_file_urls(settings));

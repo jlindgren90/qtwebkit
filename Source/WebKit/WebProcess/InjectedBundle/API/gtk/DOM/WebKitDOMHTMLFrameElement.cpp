@@ -26,7 +26,7 @@
 #include <WebCore/Document.h>
 #include "GObjectEventListener.h"
 #include <WebCore/HTMLNames.h>
-#include <WebCore/JSMainThreadExecState.h>
+#include <WebCore/JSExecState.h>
 #include "WebKitDOMDOMWindowPrivate.h"
 #include "WebKitDOMDocumentPrivate.h"
 #include "WebKitDOMEventPrivate.h"
@@ -492,8 +492,7 @@ WebKitDOMDOMWindow* webkit_dom_html_frame_element_get_content_window(WebKitDOMHT
     WebCore::JSMainThreadNullState state;
     g_return_val_if_fail(WEBKIT_DOM_IS_HTML_FRAME_ELEMENT(self), 0);
     WebCore::HTMLFrameElement* item = WebKit::core(self);
-    RefPtr<WebCore::DOMWindow> gobjectResult = WTF::getPtr(item->contentWindow());
-    return WebKit::kit(gobjectResult.get());
+    return WebKit::kit(item->contentWindow());
 }
 
 glong webkit_dom_html_frame_element_get_width(WebKitDOMHTMLFrameElement* self)

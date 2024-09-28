@@ -55,6 +55,12 @@ public:
         Variant<std::nullptr_t, Vector<std::optional<CompositeOperation>>, CompositeOperation> composite = Vector<std::optional<CompositeOperation>>();
     };
 
+    struct BaseKeyframe {
+        std::optional<double> offset;
+        String easing { "linear" };
+        std::optional<CompositeOperation> composite;
+    };
+
     struct PropertyAndValues {
         CSSPropertyID property;
         Vector<String> values;
@@ -98,22 +104,30 @@ public:
     void getAnimatedStyle(std::unique_ptr<RenderStyle>& animatedStyle);
     void apply(RenderStyle&) override;
     void invalidate() override;
-    void startOrStopAccelerated();
-    bool isRunningAccelerated() const { return m_startedAccelerated; }
+    void animationDidSeek() final;
+    void animationSuspensionStateDidChange(bool) final;
+    void applyPendingAcceleratedActions();
+    bool isRunningAccelerated() const { return m_lastRecordedAcceleratedAction != AcceleratedAction::Stop; }
+    bool hasPendingAcceleratedAction() const { return !m_pendingAcceleratedActions.isEmpty() && isRunningAccelerated(); }
 
     RenderElement* renderer() const override;
     const RenderStyle& currentStyle() const override;
-    bool isAccelerated() const override { return false; }
-    bool filterFunctionListsMatch() const override { return false; }
-    bool transformFunctionListsMatch() const override { return false; }
+    bool isAccelerated() const override { return m_shouldRunAccelerated; }
+    bool filterFunctionListsMatch() const override { return m_filterFunctionListsMatch; }
+    bool transformFunctionListsMatch() const override { return m_transformFunctionListsMatch; }
 #if ENABLE(FILTERS_LEVEL_2)
-    bool backdropFilterFunctionListsMatch() const override { return false; }
+    bool backdropFilterFunctionListsMatch() const override { return m_backdropFilterFunctionListsMatch; }
 #endif
+    bool colorFilterFunctionListsMatch() const override { return m_colorFilterFunctionListsMatch; }
 
-    void computeCSSAnimationBlendingKeyframes();
-    void computeCSSTransitionBlendingKeyframes(const RenderStyle* oldStyle, const RenderStyle& newStyle);
-    bool stylesWouldYieldNewCSSTransitionsBlendingKeyframes(const RenderStyle& oldStyle, const RenderStyle& newStyle) const;
+    void computeDeclarativeAnimationBlendingKeyframes(const RenderStyle* oldStyle, const RenderStyle& newStyle);
     bool hasBlendingKeyframes() const { return m_blendingKeyframes.size(); }
+    const HashSet<CSSPropertyID>& animatedProperties() const { return m_blendingKeyframes.properties(); }
+
+    bool computeExtentOfTransformAnimation(LayoutRect&) const;
+    bool computeTransformedExtentViaTransformList(const FloatRect&, const RenderStyle&, LayoutRect&) const;
+    bool computeTransformedExtentViaMatrix(const FloatRect&, const RenderStyle&, LayoutRect&) const;
+    bool forceLayoutIfNeeded();
 
 protected:
     void copyPropertiesFromSource(Ref<KeyframeEffectReadOnly>&&);
@@ -125,19 +139,44 @@ protected:
     KeyframeEffectReadOnly(ClassType, Ref<AnimationEffectTimingReadOnly>&&, Element*);
 
 private:
+    enum class AcceleratedAction { Play, Pause, Seek, Stop };
+    void addPendingAcceleratedAction(AcceleratedAction);
+    void updateAcceleratedAnimationState();
     void setAnimatedPropertiesInStyle(RenderStyle&, double);
     TimingFunction* timingFunctionForKeyframeAtIndex(size_t);
+    Ref<const Animation> backingAnimationForCompositedRenderer() const;
+    void computedNeedsForcedLayout();
     void computeStackingContextImpact();
-    void updateBlendingKeyframes();
-    bool shouldRunAccelerated();
+    void updateBlendingKeyframes(RenderStyle&);
+    void computeCSSAnimationBlendingKeyframes();
+    void computeCSSTransitionBlendingKeyframes(const RenderStyle* oldStyle, const RenderStyle& newStyle);
+    void computeShouldRunAccelerated();
+    void setBlendingKeyframes(KeyframeList&);
+    void checkForMatchingTransformFunctionLists();
+    void checkForMatchingFilterFunctionLists();
+#if ENABLE(FILTERS_LEVEL_2)
+    void checkForMatchingBackdropFilterFunctionLists();
+#endif
+    void checkForMatchingColorFilterFunctionLists();
 
+    bool checkForMatchingFilterFunctionLists(CSSPropertyID, const std::function<const FilterOperations& (const RenderStyle&)>&) const;
+
+    AcceleratedAction m_lastRecordedAcceleratedAction { AcceleratedAction::Stop };
+    bool m_shouldRunAccelerated { false };
+    bool m_needsForcedLayout { false };
     bool m_triggersStackingContext { false };
-    bool m_started { false };
-    bool m_startedAccelerated { false };
+    bool m_transformFunctionListsMatch { false };
+    bool m_filterFunctionListsMatch { false };
+#if ENABLE(FILTERS_LEVEL_2)
+    bool m_backdropFilterFunctionListsMatch { false };
+#endif
+    bool m_colorFilterFunctionListsMatch { false };
 
     RefPtr<Element> m_target;
     KeyframeList m_blendingKeyframes;
     Vector<ParsedKeyframe> m_parsedKeyframes;
+
+    Vector<AcceleratedAction> m_pendingAcceleratedActions;
 };
 
 } // namespace WebCore

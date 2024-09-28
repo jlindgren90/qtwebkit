@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2016-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -356,8 +356,13 @@ void SamplingProfiler::takeSample(const AbstractLocker&, Seconds& stackTraceProc
                 m_jscExecutionThread->getRegisters(registers);
                 machineFrame = MachineContext::framePointer(registers);
                 callFrame = static_cast<ExecState*>(machineFrame);
-                machinePC = MachineContext::instructionPointer(registers);
-                llintPC = MachineContext::llintInstructionPointer(registers);
+                auto instructionPointer = MachineContext::instructionPointer(registers);
+                if (instructionPointer)
+                    machinePC = instructionPointer->untaggedExecutableAddress();
+                else
+                    machinePC = nullptr;
+                llintPC = removeCodePtrTag(MachineContext::llintInstructionPointer(registers));
+                assertIsNotTagged(machinePC);
             }
             // FIXME: Lets have a way of detecting when we're parsing code.
             // https://bugs.webkit.org/show_bug.cgi?id=152761
@@ -503,7 +508,7 @@ void SamplingProfiler::processUnverifiedStackTraces()
                 FrameType result = FrameType::Unknown;
                 CallData callData;
                 CallType callType;
-                callType = getCallData(calleeCell, callData);
+                callType = getCallData(m_vm, calleeCell, callData);
                 if (callType == CallType::Host)
                     result = FrameType::Host;
 
@@ -715,7 +720,7 @@ String SamplingProfiler::StackFrame::nameFromCallee(VM& vm)
         return String();
 
     auto scope = DECLARE_CATCH_SCOPE(vm);
-    ExecState* exec = callee->globalObject()->globalExec();
+    ExecState* exec = callee->globalObject(vm)->globalExec();
     auto getPropertyIfPureOperation = [&] (const Identifier& ident) -> String {
         PropertySlot slot(callee, PropertySlot::InternalMethodType::VMInquiry);
         PropertyName propertyName(ident);
@@ -755,10 +760,10 @@ String SamplingProfiler::StackFrame::displayName(VM& vm)
             WTF::dataLog("couldn't get a name");
         }
 #endif
-        return ASCIILiteral("(unknown)");
+        return "(unknown)"_s;
     }
     if (frameType == FrameType::Host)
-        return ASCIILiteral("(host)");
+        return "(host)"_s;
 
     if (executable->isHostFunction())
         return static_cast<NativeExecutable*>(executable)->name();
@@ -766,9 +771,9 @@ String SamplingProfiler::StackFrame::displayName(VM& vm)
     if (executable->isFunctionExecutable())
         return static_cast<FunctionExecutable*>(executable)->inferredName().string();
     if (executable->isProgramExecutable() || executable->isEvalExecutable())
-        return ASCIILiteral("(program)");
+        return "(program)"_s;
     if (executable->isModuleProgramExecutable())
-        return ASCIILiteral("(module)");
+        return "(module)"_s;
 
     RELEASE_ASSERT_NOT_REACHED();
     return String();
@@ -783,9 +788,9 @@ String SamplingProfiler::StackFrame::displayNameForJSONTests(VM& vm)
     }
 
     if (frameType == FrameType::Unknown || frameType == FrameType::C)
-        return ASCIILiteral("(unknown)");
+        return "(unknown)"_s;
     if (frameType == FrameType::Host)
-        return ASCIILiteral("(host)");
+        return "(host)"_s;
 
     if (executable->isHostFunction())
         return static_cast<NativeExecutable*>(executable)->name();
@@ -793,15 +798,15 @@ String SamplingProfiler::StackFrame::displayNameForJSONTests(VM& vm)
     if (executable->isFunctionExecutable()) {
         String result = static_cast<FunctionExecutable*>(executable)->inferredName().string();
         if (result.isEmpty())
-            return ASCIILiteral("(anonymous function)");
+            return "(anonymous function)"_s;
         return result;
     }
     if (executable->isEvalExecutable())
-        return ASCIILiteral("(eval)");
+        return "(eval)"_s;
     if (executable->isProgramExecutable())
-        return ASCIILiteral("(program)");
+        return "(program)"_s;
     if (executable->isModuleProgramExecutable())
-        return ASCIILiteral("(module)");
+        return "(module)"_s;
 
     RELEASE_ASSERT_NOT_REACHED();
     return String();
@@ -908,7 +913,7 @@ String SamplingProfiler::stackTracesAsJSON()
 
 void SamplingProfiler::registerForReportAtExit()
 {
-    static StaticLock registrationLock;
+    static Lock registrationLock;
     static HashSet<RefPtr<SamplingProfiler>>* profilesToReport;
 
     LockHolder holder(registrationLock);

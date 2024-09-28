@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2013-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
 #include "Interpreter.h"
 #include "JSCInlines.h"
 #include "LinkBuffer.h"
+#include "OpcodeInlines.h"
 #include "ResultType.h"
 #include "SetupVarargsFrame.h"
 #include "StackAlignment.h"
@@ -103,7 +104,7 @@ void JIT::compileCallEval(Instruction* instruction)
 
     callOperation(operationCallEval, regT1);
 
-    addSlowCase(branch64(Equal, regT0, TrustedImm64(JSValue::encode(JSValue()))));
+    addSlowCase(branchIfEmpty(regT0));
 
     sampleCodeBlock(m_codeBlock);
     
@@ -165,9 +166,9 @@ void JIT::compileOpCall(OpcodeID opcodeID, Instruction* instruction, unsigned ca
 
         if (opcodeID == op_call && shouldEmitProfiling()) {
             emitGetVirtualRegister(registerOffset + CallFrame::argumentOffsetIncludingThis(0), regT0);
-            Jump done = emitJumpIfNotJSCell(regT0);
+            Jump done = branchIfNotCell(regT0);
             load32(Address(regT0, JSCell::structureIDOffset()), regT0);
-            store32(regT0, instruction[OPCODE_LENGTH(op_call) - 2].u.arrayProfile->addressOfLastSeenStructureID());
+            store32(regT0, arrayProfileFor<OpCallShape>(instruction)->addressOfLastSeenStructureID());
             done.link(this);
         }
     
@@ -250,7 +251,8 @@ void JIT::compileOpCallSlowCase(OpcodeID opcodeID, Instruction* instruction, Vec
 
     move(TrustedImmPtr(m_callCompilationInfo[callLinkInfoIndex].callLinkInfo), regT2);
 
-    m_callCompilationInfo[callLinkInfoIndex].callReturnLocation = emitNakedCall(m_vm->getCTIStub(linkCallThunkGenerator).code());
+    m_callCompilationInfo[callLinkInfoIndex].callReturnLocation =
+        emitNakedCall(m_vm->getCTIStub(linkCallThunkGenerator).retaggedCode<NoPtrTag>());
 
     if (opcodeID == op_tail_call || opcodeID == op_tail_call_varargs) {
         abortWithReason(JITDidReturnFromTailCall);

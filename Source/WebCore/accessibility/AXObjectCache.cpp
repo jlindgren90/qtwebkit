@@ -210,6 +210,7 @@ AXObjectCache::AXObjectCache(Document& document)
     , m_liveRegionChangedPostTimer(*this, &AXObjectCache::liveRegionChangedNotificationPostTimerFired)
     , m_focusModalNodeTimer(*this, &AXObjectCache::focusModalNodeTimerFired)
     , m_currentModalNode(nullptr)
+    , m_performCacheUpdateTimer(*this, &AXObjectCache::performCacheUpdateTimerFired)
 {
     findModalNodes();
 }
@@ -219,6 +220,7 @@ AXObjectCache::~AXObjectCache()
     m_notificationPostTimer.stop();
     m_liveRegionChangedPostTimer.stop();
     m_focusModalNodeTimer.stop();
+    m_performCacheUpdateTimer.stop();
 
     for (const auto& object : m_objects.values()) {
         detachWrapper(object.get(), AccessibilityDetachmentType::CacheDestroyed);
@@ -286,7 +288,7 @@ bool AXObjectCache::isNodeVisible(Node* node) const
     if (!renderer)
         return false;
     const RenderStyle& style = renderer->style();
-    if (style.display() == NONE || style.visibility() != VISIBLE)
+    if (style.display() == DisplayType::None || style.visibility() != Visibility::Visible)
         return false;
     
     // We also need to consider aria hidden status.
@@ -741,6 +743,10 @@ void AXObjectCache::remove(Node& node)
         m_deferredAttributeChange.remove(downcast<Element>(&node));
     }
     m_deferredTextChangedList.remove(&node);
+    // Remove the entry if the new focused node is being removed.
+    m_deferredFocusedNodeChange.removeAllMatching([&node](auto& entry) -> bool {
+        return entry.second == &node;
+    });
     removeNodeForUse(node);
 
     remove(m_nodeObjectMapping.take(&node));
@@ -1018,9 +1024,11 @@ void AXObjectCache::handleMenuItemSelected(Node* node)
     
 void AXObjectCache::deferFocusedUIElementChangeIfNeeded(Node* oldNode, Node* newNode)
 {
-    if (nodeAndRendererAreValid(newNode) && rendererNeedsDeferredUpdate(*newNode->renderer()))
+    if (nodeAndRendererAreValid(newNode) && rendererNeedsDeferredUpdate(*newNode->renderer())) {
         m_deferredFocusedNodeChange.append({ oldNode, newNode });
-    else
+        if (!newNode->renderer()->needsLayout() && !m_performCacheUpdateTimer.isActive())
+            m_performCacheUpdateTimer.startOneShot(0_s);
+    } else
         handleFocusedUIElementChanged(oldNode, newNode);
 }
     
@@ -1587,7 +1595,7 @@ VisiblePosition AXObjectCache::visiblePositionForTextMarkerData(TextMarkerData& 
         return VisiblePosition();
     
     AXObjectCache* cache = renderer->document().axObjectCache();
-    if (!cache->m_idsInUse.contains(textMarkerData.axID))
+    if (cache && !cache->m_idsInUse.contains(textMarkerData.axID))
         return VisiblePosition();
 
     return visiblePos;
@@ -1686,6 +1694,11 @@ CharacterOffset AXObjectCache::traverseToOffsetInRange(RefPtr<Range>range, int o
                             currentNode = shadowHost;
                             continue;
                         }
+                    } else if (previousNode && previousNode->isTextNode() && previousNode->isDescendantOf(currentNode) && currentNode->hasTagName(pTag)) {
+                        // TextIterator is emitting an extra newline after the <p> element. We should
+                        // ignore that since the extra text node is not in the DOM tree.
+                        currentNode = previousNode;
+                        continue;
                     } else if (currentNode != previousNode) {
                         // We should set the start offset and length for the current node in case this is the last iteration.
                         lastStartOffset = 1;
@@ -1961,7 +1974,9 @@ CharacterOffset AXObjectCache::startOrEndCharacterOffsetForRange(RefPtr<Range> r
 
 void AXObjectCache::startOrEndTextMarkerDataForRange(TextMarkerData& textMarkerData, RefPtr<Range> range, bool isStart)
 {
-    memset(&textMarkerData, 0, sizeof(TextMarkerData));
+    // This memory must be zero'd so instances of TextMarkerData can be tested for byte-equivalence.
+    // Warning: This is risky and bad because TextMarkerData is a nontrivial type.
+    memset(static_cast<void*>(&textMarkerData), 0, sizeof(TextMarkerData));
     
     CharacterOffset characterOffset = startOrEndCharacterOffsetForRange(range, isStart);
     if (characterOffset.isNull())
@@ -2018,7 +2033,10 @@ CharacterOffset AXObjectCache::characterOffsetForNodeAndOffset(Node& node, int o
 
 void AXObjectCache::textMarkerDataForCharacterOffset(TextMarkerData& textMarkerData, const CharacterOffset& characterOffset)
 {
-    memset(&textMarkerData, 0, sizeof(TextMarkerData));
+    // This memory must be zero'd so instances of TextMarkerData can be tested for byte-equivalence.
+    // Warning: This is risky and bad because TextMarkerData is a nontrivial type.
+    memset(static_cast<void*>(&textMarkerData), 0, sizeof(TextMarkerData));
+
     setTextMarkerDataWithCharacterOffset(textMarkerData, characterOffset);
 }
 
@@ -2195,11 +2213,14 @@ std::optional<TextMarkerData> AXObjectCache::textMarkerDataForVisiblePosition(co
 
     // find or create an accessibility object for this node
     AXObjectCache* cache = domNode->document().axObjectCache();
+    if (!cache)
+        return std::nullopt;
     RefPtr<AccessibilityObject> obj = cache->getOrCreate(domNode);
 
     // This memory must be zero'd so instances of TextMarkerData can be tested for byte-equivalence.
+    // Warning: This is risky and bad because TextMarkerData is a nontrivial type.
     TextMarkerData textMarkerData;
-    memset(&textMarkerData, 0, sizeof(TextMarkerData));
+    memset(static_cast<void*>(&textMarkerData), 0, sizeof(TextMarkerData));
     
     textMarkerData.axID = obj.get()->axObjectID();
     textMarkerData.node = domNode;
@@ -2221,13 +2242,17 @@ std::optional<TextMarkerData> AXObjectCache::textMarkerDataForFirstPositionInTex
         return std::nullopt;
 
     AXObjectCache* cache = textControl.document().axObjectCache();
+    if (!cache)
+        return std::nullopt;
+
     RefPtr<AccessibilityObject> obj = cache->getOrCreate(&textControl);
     if (!obj)
         return std::nullopt;
 
     // This memory must be zero'd so instances of TextMarkerData can be tested for byte-equivalence.
+    // Warning: This is risky and bad because TextMarkerData is a nontrivial type.
     TextMarkerData textMarkerData;
-    memset(&textMarkerData, 0, sizeof(TextMarkerData));
+    memset(static_cast<void*>(&textMarkerData), 0, sizeof(TextMarkerData));
     
     textMarkerData.axID = obj.get()->axObjectID();
     textMarkerData.node = &textControl;
@@ -2836,6 +2861,15 @@ bool AXObjectCache::nodeIsTextControl(const Node* node)
 
     const AccessibilityObject* axObject = getOrCreate(const_cast<Node*>(node));
     return axObject && axObject->isTextControl();
+}
+
+void AXObjectCache::performCacheUpdateTimerFired()
+{
+    // If there's a pending layout, let the layout trigger the AX update.
+    if (!document().view() || document().view()->needsLayout())
+        return;
+    
+    performDeferredCacheUpdate();
 }
     
 void AXObjectCache::performDeferredCacheUpdate()

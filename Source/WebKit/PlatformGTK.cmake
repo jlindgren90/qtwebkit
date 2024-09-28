@@ -18,11 +18,9 @@ add_definitions(-DBUILDING_WEBKIT)
 add_definitions(-DWEBKIT2_COMPILATION)
 add_definitions(-DWEBKIT_DOM_USE_UNSTABLE_API)
 
-add_definitions(-DLIBEXECDIR="${CMAKE_INSTALL_FULL_LIBEXECDIR}")
 add_definitions(-DPKGLIBEXECDIR="${LIBEXEC_INSTALL_DIR}")
 add_definitions(-DLOCALEDIR="${CMAKE_INSTALL_FULL_LOCALEDIR}")
 add_definitions(-DLIBDIR="${LIB_INSTALL_DIR}")
-add_definitions(-DDATADIR="${CMAKE_INSTALL_FULL_DATADIR}")
 
 if (NOT DEVELOPER_MODE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
     WEBKIT_ADD_TARGET_PROPERTIES(WebKit LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/webkitglib-symbols.map")
@@ -371,7 +369,6 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${FORWARDING_HEADERS_DIR}/JavaScriptCore/glib"
     "${WEBKIT_DIR}/PluginProcess/unix"
     "${WEBKIT_DIR}/NetworkProcess/CustomProtocols/soup"
-    "${WEBKIT_DIR}/NetworkProcess/Downloads/soup"
     "${WEBKIT_DIR}/NetworkProcess/gtk"
     "${WEBKIT_DIR}/NetworkProcess/soup"
     "${WEBKIT_DIR}/NetworkProcess/unix"
@@ -456,16 +453,25 @@ set(SharedWebKitLibraries
     ${WebKit_LIBRARIES}
 )
 
-
 list(APPEND WebKit_LIBRARIES
-    # WebCore should be specifed before and after WebCorePlatformGTK
-    WebCorePlatformGTK WebCore
-    ${GTK_UNIX_PRINT_LIBRARIES}
+    PRIVATE
+        WebCorePlatformGTK
+        ${GTK_UNIX_PRINT_LIBRARIES}
 )
+
+# WebCore should be specifed before and after WebCorePlatformGTK
+list(APPEND WebKit_LIBRARIES PRIVATE WebCore)
 
 if (LIBNOTIFY_FOUND)
 list(APPEND WebKit_LIBRARIES
-    ${LIBNOTIFY_LIBRARIES}
+    PRIVATE ${LIBNOTIFY_LIBRARIES}
+)
+endif ()
+
+if (USE_LIBWEBRTC)
+list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
+    "${THIRDPARTY_DIR}/libwebrtc/Source/"
+    "${THIRDPARTY_DIR}/libwebrtc/Source/webrtc"
 )
 endif ()
 
@@ -548,8 +554,7 @@ endif ()
 if (ENABLE_PLUGIN_PROCESS_GTK2)
     set(PluginProcessGTK2_EXECUTABLE_NAME WebKitPluginProcess2)
 
-    # FIXME: We should figure out a way to avoid compiling files that are common between the plugin
-    # process and WebKit only once instead of recompiling them for the plugin process.
+    # FIXME: We should remove WebKitPluginProcess2 in 2020, once Flash is no longer supported.
     list(APPEND PluginProcessGTK2_SOURCES
         Platform/Logging.cpp
         Platform/Module.cpp
@@ -611,11 +616,12 @@ if (ENABLE_PLUGIN_PROCESS_GTK2)
 
         Shared/cairo/ShareableBitmapCairo.cpp
 
+        Shared/glib/ProcessExecutablePathGLib.cpp
+
         Shared/gtk/NativeWebKeyboardEventGtk.cpp
         Shared/gtk/NativeWebMouseEventGtk.cpp
         Shared/gtk/NativeWebTouchEventGtk.cpp
         Shared/gtk/NativeWebWheelEventGtk.cpp
-        Shared/gtk/ProcessExecutablePathGtk.cpp
         Shared/gtk/WebEventFactory.cpp
 
         Shared/soup/WebCoreArgumentCodersSoup.cpp
@@ -667,7 +673,7 @@ if (ENABLE_PLUGIN_PROCESS_GTK2)
 
     set(WebKitPluginProcess2_LIBRARIES
         ${SharedWebKitLibraries}
-        WebCorePlatformGTK2
+        PRIVATE WebCorePlatformGTK2
     )
     ADD_WHOLE_ARCHIVE_TO_LIBRARIES(WebKitPluginProcess2_LIBRARIES)
     target_link_libraries(WebKitPluginProcess2 ${WebKitPluginProcess2_LIBRARIES})

@@ -165,7 +165,6 @@ static inline UIImage *cameraIcon()
     RetainPtr<UIPopoverController> _presentationPopover; // iPad for action sheet and Photo Library.
 #pragma clang diagnostic pop
     RetainPtr<UIDocumentMenuViewController> _documentMenuController;
-    RetainPtr<UIAlertController> _actionSheetController;
     WebCore::MediaCaptureType _mediaCaptureType;
 }
 
@@ -243,6 +242,11 @@ static inline UIImage *cameraIcon()
     _mediaCaptureType = parameters->mediaCaptureType();
 #endif
 
+    if (![self platformSupportsPickerViewController]) {
+        [self _cancel];
+        return;
+    }
+
     if ([self _shouldMediaCaptureOpenMediaDevice]) {
         [self _adjustMediaCaptureType];
 
@@ -258,7 +262,7 @@ static inline UIImage *cameraIcon()
 - (void)dismiss
 {
     // Dismiss any view controller that is being presented. This works for all types of view controllers, popovers, etc.
-    // If there is any kind of view controller presented on this view, it will be removed. 
+    // If there is any kind of view controller presented on this view, it will be removed.
     
     [[UIViewController _viewControllerForFullScreenPresentationFromView:_view] dismissViewControllerAnimated:NO completion:nil];
     
@@ -278,9 +282,12 @@ static inline UIImage *cameraIcon()
     }
 
     if (_presentationViewController) {
-        [_presentationViewController dismissViewControllerAnimated:animated completion:^{
-            _presentationViewController = nil;
-        }];
+        UIViewController *currentPresentedViewController = [_presentationViewController presentedViewController];
+        if (currentPresentedViewController == self || currentPresentedViewController == _imagePicker.get()) {
+            [currentPresentedViewController dismissViewControllerAnimated:animated completion:^{
+                _presentationViewController = nil;
+            }];
+        }
     }
 }
 
@@ -624,7 +631,7 @@ static NSArray *UTIsForMIMETypes(NSArray *mimeTypes)
         return;
     }
 
-    successBlock(adoptNS([[_WKImageFileUploadItem alloc] initWithFileURL:[NSURL fileURLWithPath:filePath]]).get());
+    successBlock(adoptNS([[_WKImageFileUploadItem alloc] initWithFileURL:[NSURL fileURLWithPath:filePath isDirectory:NO]]).get());
 }
 
 - (void)_uploadItemForJPEGRepresentationOfImage:(UIImage *)image successBlock:(void (^)(_WKFileUploadItem *))successBlock failureBlock:(void (^)(void))failureBlock
@@ -700,6 +707,15 @@ static NSArray *UTIsForMIMETypes(NSArray *mimeTypes)
 
     // Photos taken with the camera will not have an image URL. Fall back to a JPEG representation.
     [self _uploadItemForJPEGRepresentationOfImage:originalImage successBlock:successBlock failureBlock:failureBlock];
+}
+
+- (BOOL)platformSupportsPickerViewController
+{
+#if PLATFORM(WATCHOS)
+    return NO;
+#else
+    return YES;
+#endif
 }
 
 @end

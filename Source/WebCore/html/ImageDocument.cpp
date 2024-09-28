@@ -28,9 +28,11 @@
 #include "CachedImage.h"
 #include "Chrome.h"
 #include "ChromeClient.h"
+#include "DOMWindow.h"
 #include "DocumentLoader.h"
 #include "EventListener.h"
 #include "EventNames.h"
+#include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
 #include "FrameView.h"
@@ -41,7 +43,6 @@
 #include "HTMLNames.h"
 #include "LocalizedStrings.h"
 #include "MIMETypeRegistry.h"
-#include "MainFrame.h"
 #include "MouseEvent.h"
 #include "Page.h"
 #include "RawDataDocumentParser.h"
@@ -167,7 +168,7 @@ void ImageDocument::finishedParsing()
             // back on the hostname if there is no path.
             String name = decodeURLEscapeSequences(url().lastPathComponent());
             if (name.isEmpty())
-                name = url().host();
+                name = url().host().toString();
             setTitle(imageTitle(name, size));
         }
 
@@ -243,7 +244,7 @@ void ImageDocument::createDocumentStructure()
     if (m_shouldShrinkImage) {
 #if PLATFORM(IOS)
         // Set the viewport to be in device pixels (rather than the default of 980).
-        processViewport(ASCIILiteral("width=device-width"), ViewportArguments::ImageDocument);
+        processViewport("width=device-width"_s, ViewportArguments::ImageDocument);
 #else
         auto listener = ImageEventListener::create(*this);
         if (RefPtr<DOMWindow> window = this->domWindow())

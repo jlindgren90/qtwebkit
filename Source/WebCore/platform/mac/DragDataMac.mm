@@ -91,7 +91,7 @@ static inline String htmlPasteboardType()
 static inline String colorPasteboardType()
 {
 #if PLATFORM(IOS)
-    return "com.apple.uikit.color";
+    return String { UIColorPboardType };
 #else
     return String(legacyColorPasteboardType());
 #endif
@@ -173,12 +173,17 @@ unsigned DragData::numberOfFiles() const
 Vector<String> DragData::asFilenames() const
 {
 #if PLATFORM(MAC)
+    Vector<String> types;
+    platformStrategies()->pasteboardStrategy()->getTypes(types, m_pasteboardName);
+    if (types.contains(String(legacyFilesPromisePasteboardType())))
+        return fileNames();
+
     Vector<String> results;
     platformStrategies()->pasteboardStrategy()->getPathnamesForType(results, String(legacyFilenamesPasteboardType()), m_pasteboardName);
-    if (!results.isEmpty())
-        return results;
-#endif
+    return results;
+#else
     return fileNames();
+#endif
 }
 
 bool DragData::containsPlainText() const
@@ -220,6 +225,9 @@ bool DragData::containsCompatibleContent(DraggingPurpose purpose) const
 {
     if (purpose == DraggingPurpose::ForFileUpload)
         return containsFiles();
+
+    if (purpose == DraggingPurpose::ForColorControl)
+        return containsColor();
 
     if (purpose == DraggingPurpose::ForEditing && RuntimeEnabledFeatures::sharedFeatures().attachmentElementEnabled() && containsFiles())
         return true;

@@ -24,6 +24,7 @@
 
 #include "WebResourceLoadScheduler.h"
 
+#include "PingHandle.h"
 #include <WebCore/Document.h>
 #include <WebCore/DocumentLoader.h>
 #include <WebCore/FetchOptions.h>
@@ -31,7 +32,6 @@
 #include <WebCore/FrameLoader.h>
 #include <WebCore/NetscapePlugInStreamLoader.h>
 #include <WebCore/NetworkStateNotifier.h>
-#include <WebCore/PingHandle.h>
 #include <WebCore/PlatformStrategies.h>
 #include <WebCore/ResourceRequest.h>
 #include <WebCore/SubresourceLoader.h>
@@ -66,7 +66,7 @@ WebResourceLoadScheduler::HostInformation* WebResourceLoadScheduler::hostForURL(
         return m_nonHTTPProtocolHost;
 
     m_hosts.checkConsistency();
-    String hostName = url.host();
+    String hostName = url.host().toString();
     HostInformation* host = m_hosts.get(hostName);
     if (!host && createHostPolicy == CreateIfNotFound) {
         host = new HostInformation(hostName, maxRequestsInFlightPerHost);
@@ -106,9 +106,13 @@ void WebResourceLoadScheduler::loadResource(Frame& frame, CachedResource& resour
     });
 }
 
-void WebResourceLoadScheduler::loadResourceSynchronously(FrameLoader& frameLoader, unsigned long, const ResourceRequest& request, StoredCredentialsPolicy storedCredentialsPolicy, ClientCredentialPolicy, ResourceError& error, ResourceResponse& response, Vector<char>& data)
+void WebResourceLoadScheduler::loadResourceSynchronously(FrameLoader& frameLoader, unsigned long, const ResourceRequest& request, ClientCredentialPolicy, const FetchOptions& options, const HTTPHeaderMap&, ResourceError& error, ResourceResponse& response, Vector<char>& data)
 {
-    ResourceHandle::loadResourceSynchronously(frameLoader.networkingContext(), request, storedCredentialsPolicy, error, response, data);
+    ResourceHandle::loadResourceSynchronously(frameLoader.networkingContext(), request, options.credentials == FetchOptions::Credentials::Omit ? StoredCredentialsPolicy::DoNotUse : StoredCredentialsPolicy::Use, error, response, data);
+}
+
+void WebResourceLoadScheduler::pageLoadCompleted(uint64_t /*webPageID*/)
+{
 }
 
 void WebResourceLoadScheduler::schedulePluginStreamLoad(Frame& frame, NetscapePlugInStreamLoaderClient& client, ResourceRequest&& request, CompletionHandler<void(RefPtr<WebCore::NetscapePlugInStreamLoader>&&)>&& completionHandler)
@@ -195,8 +199,12 @@ void WebResourceLoadScheduler::remove(ResourceLoader* resourceLoader)
     scheduleServePendingRequests();
 }
 
-void WebResourceLoadScheduler::setDefersLoading(ResourceLoader*, bool)
+void WebResourceLoadScheduler::setDefersLoading(ResourceLoader& loader, bool defers)
 {
+    if (!defers && !loader.deferredRequest().isNull()) {
+        loader.setRequest(loader.takeDeferredRequest());
+        loader.start();
+    }
 }
 
 void WebResourceLoadScheduler::crossOriginRedirectReceived(ResourceLoader* resourceLoader, const URL& redirectURL)

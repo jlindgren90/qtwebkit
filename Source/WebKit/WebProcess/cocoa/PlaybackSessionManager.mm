@@ -43,9 +43,8 @@
 #import <WebCore/UserGestureIndicator.h>
 #import <mach/mach_port.h>
 
-using namespace WebCore;
-
 namespace WebKit {
+using namespace WebCore;
 
 static uint64_t nextContextId()
 {
@@ -155,6 +154,12 @@ void PlaybackSessionInterfaceContext::mutedChanged(bool muted)
         m_manager->mutedChanged(m_contextId, muted);
 }
 
+void PlaybackSessionInterfaceContext::volumeChanged(double volume)
+{
+    if (m_manager)
+        m_manager->volumeChanged(m_contextId, volume);
+}
+
 #pragma mark - PlaybackSessionManager
 
 Ref<PlaybackSessionManager> PlaybackSessionManager::create(WebPage& page)
@@ -256,32 +261,37 @@ void PlaybackSessionManager::setUpPlaybackControlsManager(WebCore::HTMLMediaElem
         if (m_controlsManagerContextId == contextId)
             return;
 
-        if (m_controlsManagerContextId)
-            removeClientForContext(m_controlsManagerContextId);
+        auto previousContextId = m_controlsManagerContextId;
         m_controlsManagerContextId = contextId;
+        if (previousContextId)
+            removeClientForContext(previousContextId);
     } else {
-        auto addResult = m_mediaElements.ensure(&mediaElement, [&] { return nextContextId(); });
-        auto contextId = addResult.iterator->value;
-        if (m_controlsManagerContextId)
-            removeClientForContext(m_controlsManagerContextId);
+        auto contextId = m_mediaElements.ensure(&mediaElement, [&] { return nextContextId(); }).iterator->value;
+
+        auto previousContextId = m_controlsManagerContextId;
         m_controlsManagerContextId = contextId;
+        if (previousContextId)
+            removeClientForContext(previousContextId);
+
         ensureModel(contextId).setMediaElement(&mediaElement);
     }
 
     addClientForContext(m_controlsManagerContextId);
+
+    m_page->videoControlsManagerDidChange();
     m_page->send(Messages::PlaybackSessionManagerProxy::SetUpPlaybackControlsManagerWithID(m_controlsManagerContextId), m_page->pageID());
 }
 
 void PlaybackSessionManager::clearPlaybackControlsManager()
 {
-#if PLATFORM(MAC)
     if (!m_controlsManagerContextId)
         return;
 
     removeClientForContext(m_controlsManagerContextId);
     m_controlsManagerContextId = 0;
+
+    m_page->videoControlsManagerDidChange();
     m_page->send(Messages::PlaybackSessionManagerProxy::ClearPlaybackControlsManager(), m_page->pageID());
-#endif
 }
 
 uint64_t PlaybackSessionManager::contextIdForMediaElement(WebCore::HTMLMediaElement& mediaElement)
@@ -290,6 +300,18 @@ uint64_t PlaybackSessionManager::contextIdForMediaElement(WebCore::HTMLMediaElem
     uint64_t contextId = addResult.iterator->value;
     ensureModel(contextId).setMediaElement(&mediaElement);
     return contextId;
+}
+
+WebCore::HTMLMediaElement* PlaybackSessionManager::currentPlaybackControlsElement() const
+{
+    if (!m_controlsManagerContextId)
+        return nullptr;
+
+    auto iter = m_contextMap.find(m_controlsManagerContextId);
+    if (iter == m_contextMap.end())
+        return nullptr;
+
+    return std::get<0>(iter->value)->mediaElement();
 }
 
 #pragma mark Interface to PlaybackSessionInterfaceContext:
@@ -373,6 +395,11 @@ void PlaybackSessionManager::wirelessVideoPlaybackDisabledChanged(uint64_t conte
 void PlaybackSessionManager::mutedChanged(uint64_t contextId, bool muted)
 {
     m_page->send(Messages::PlaybackSessionManagerProxy::MutedChanged(contextId, muted));
+}
+
+void PlaybackSessionManager::volumeChanged(uint64_t contextId, double volume)
+{
+    m_page->send(Messages::PlaybackSessionManagerProxy::VolumeChanged(contextId, volume));
 }
 
 #pragma mark Messages from PlaybackSessionManagerProxy:
@@ -472,6 +499,18 @@ void PlaybackSessionManager::setMuted(uint64_t contextId, bool muted)
 {
     UserGestureIndicator indicator(ProcessingUserGesture);
     ensureModel(contextId).setMuted(muted);
+}
+
+void PlaybackSessionManager::setVolume(uint64_t contextId, double volume)
+{
+    UserGestureIndicator indicator(ProcessingUserGesture);
+    ensureModel(contextId).setVolume(volume);
+}
+
+void PlaybackSessionManager::setPlayingOnSecondScreen(uint64_t contextId, bool value)
+{
+    UserGestureIndicator indicator(ProcessingUserGesture);
+    ensureModel(contextId).setPlayingOnSecondScreen(value);
 }
 
 } // namespace WebKit

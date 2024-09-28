@@ -34,14 +34,12 @@
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/StringConcatenateNumbers.h>
 
-using namespace WebCore;
-
 namespace WebCore {
 
 String SecurityOriginData::toString() const
 {
     if (protocol == "file")
-        return ASCIILiteral("file://");
+        return "file://"_s;
 
     if (!port)
         return makeString(protocol, "://", host);
@@ -75,7 +73,7 @@ String SecurityOriginData::databaseIdentifier() const
     // Now that we've fixed that bug, we still need to produce this string
     // to avoid breaking existing persistent state.
     if (equalIgnoringASCIICase(protocol, "file"))
-        return ASCIILiteral("file__0");
+        return "file__0"_s;
     
     StringBuilder stringBuilder;
     stringBuilder.append(protocol);
@@ -114,7 +112,12 @@ std::optional<SecurityOriginData> SecurityOriginData::fromDatabaseIdentifier(con
     if (port < 0 || port > std::numeric_limits<uint16_t>::max())
         return std::nullopt;
     
-    return SecurityOriginData {databaseIdentifier.substring(0, separator1), databaseIdentifier.substring(separator1 + 1, separator2 - separator1 - 1), static_cast<uint16_t>(port)};
+    auto protocol = databaseIdentifier.substring(0, separator1);
+    auto host = databaseIdentifier.substring(separator1 + 1, separator2 - separator1 - 1);
+    if (!port)
+        return SecurityOriginData { protocol, host, std::nullopt };
+
+    return SecurityOriginData { protocol, host, static_cast<uint16_t>(port) };
 }
 
 SecurityOriginData SecurityOriginData::isolatedCopy() const

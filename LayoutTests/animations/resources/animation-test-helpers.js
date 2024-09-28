@@ -430,6 +430,8 @@ function getPropertyValue(property, elementId, iframeId)
                || property == "listStyleImage"
                || property == "webkitMaskImage"
                || property == "webkitMaskBoxImage"
+               || property == "filter"
+               || property == "-apple-color-filter"
                || property == "webkitFilter"
                || property == "webkitBackdropFilter"
                || property == "webkitClipPath"
@@ -469,7 +471,7 @@ function comparePropertyValue(property, computedValue, expectedValue, tolerance)
                     break;
             }
         }
-    } else if (property == "webkitFilter" || property == "webkitBackdropFilter") {
+    } else if (property == "webkitFilter" || property == "webkitBackdropFilter" || property == "filter" || property == "-apple-color-filter") {
         var filterParameters = parseFilterFunctionList(computedValue);
         var filter2Parameters = parseFilterFunctionList(expectedValue);
         result = compareFilterFunctions(filterParameters, filter2Parameters, tolerance);
@@ -513,7 +515,7 @@ function checkExpectedValueCallback(expected, index)
 function pauseAnimationAtTimeOnElement(animationName, time, element)
 {
     // If we haven't opted into CSS Animations and CSS Transitions as Web Animations, use the internal API.
-    if ('internals' in window && !internals.settings.cssAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled())
+    if ('internals' in window && !internals.settings.webAnimationsCSSIntegrationEnabled())
         return internals.pauseAnimationAtTimeOnElement(animationName, time, element);
 
     // Otherwise, use the Web Animations API.

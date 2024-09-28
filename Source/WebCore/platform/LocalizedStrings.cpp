@@ -635,11 +635,6 @@ String AXAutoFillStrongPasswordLabel()
     return WEB_UI_STRING("strong password auto fill", "Label for the strong password auto fill button inside a text field.");
 }
 
-String AXAutoFillStrongConfirmationPasswordLabel()
-{
-    return WEB_UI_STRING("strong confirmation password auto fill", "Label for the strong confirmation password auto fill button inside a text field.");
-}
-
 String autoFillStrongPasswordLabel()
 {
     return WEB_UI_STRING("Strong Password", "Label for strong password.");
@@ -1039,7 +1034,12 @@ String webCryptoMasterKeyKeychainComment()
 
 #endif
 
-#if ENABLE(EXTRA_ZOOM_MODE)
+#if PLATFORM(WATCHOS)
+
+String numberPadOKButtonTitle()
+{
+    return WEB_UI_STRING_KEY("OK", "OK (OK button title in extra zoomed number pad)", "Title of the OK button for the number pad in zoomed form controls.");
+}
 
 String formControlDoneButtonTitle()
 {
@@ -1066,19 +1066,24 @@ String formControlSearchButtonTitle()
     return WEB_UI_STRING("Search", "Title of the Search button for zoomed form controls.");
 }
 
+String datePickerSetButtonTitle()
+{
+    return WEB_UI_STRING_KEY("Set", "Set (Button below date picker for extra zoom mode)", "Set button below date picker");
+}
+
 String datePickerDayLabelTitle()
 {
-    return WEB_UI_STRING_KEY("Day", "Day (Date picker for extra zoom mode)", "Day label in date picker");
+    return WEB_UI_STRING_KEY("DAY", "DAY (Date picker for extra zoom mode)", "Day label in date picker");
 }
 
 String datePickerMonthLabelTitle()
 {
-    return WEB_UI_STRING_KEY("Month", "Month (Date picker for extra zoom mode)", "Month label in date picker");
+    return WEB_UI_STRING_KEY("MONTH", "MONTH (Date picker for extra zoom mode)", "Month label in date picker");
 }
 
 String datePickerYearLabelTitle()
 {
-    return WEB_UI_STRING_KEY("Year", "Year (Date picker for extra zoom mode)", "Year label in date picker");
+    return WEB_UI_STRING_KEY("YEAR", "YEAR (Date picker for extra zoom mode)", "Year label in date picker");
 }
 
 #endif

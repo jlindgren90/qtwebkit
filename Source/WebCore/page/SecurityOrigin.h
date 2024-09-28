@@ -153,7 +153,7 @@ public:
     // The local SecurityOrigin is the most privileged SecurityOrigin.
     // The local SecurityOrigin can script any document, navigate to local
     // resources, and can set arbitrary headers on XMLHttpRequests.
-    WEBCORE_EXPORT bool isLocal() const;
+    bool isLocal() const { return m_isLocal; }
 
     // The origin is a globally unique identifier assigned when the Document is
     // created. http://www.whatwg.org/specs/web-apps/current-work/#sandboxOrigin
@@ -200,13 +200,14 @@ public:
     // https://html.spec.whatwg.org/multipage/browsers.html#same-origin
     WEBCORE_EXPORT bool isSameOriginAs(const SecurityOrigin&) const;
 
-    static URL urlWithUniqueSecurityOrigin();
+    bool isPotentiallyTrustworthy() const { return m_isPotentiallyTrustworthy; }
 
-    WEBCORE_EXPORT bool isPotentiallyTrustworthy() const;
-
-    static bool isLocalHostOrLoopbackIPAddress(const String& host);
+    static bool isLocalHostOrLoopbackIPAddress(StringView);
 
     const SecurityOriginData& data() const { return m_data; }
+
+    template<class Encoder> void encode(Encoder&) const;
+    template<class Decoder> static RefPtr<SecurityOrigin> decode(Decoder&);
 
 private:
     SecurityOrigin();
@@ -233,8 +234,8 @@ private:
     StorageBlockingPolicy m_storageBlockingPolicy { AllowAllStorage };
     bool m_enforcesFilePathSeparation { false };
     bool m_needsStorageAccessFromFileURLsQuirk { false };
-    enum class IsPotentiallyTrustworthy : uint8_t { No, Yes, Unknown };
-    mutable IsPotentiallyTrustworthy m_isPotentiallyTrustworthy { IsPotentiallyTrustworthy::Unknown };
+    bool m_isPotentiallyTrustworthy { false };
+    bool m_isLocal { false };
 };
 
 bool shouldTreatAsPotentiallyTrustworthy(const URL&);
@@ -242,5 +243,56 @@ bool shouldTreatAsPotentiallyTrustworthy(const URL&);
 // Returns true if the Origin header values serialized from these two origins would be the same.
 bool originsMatch(const SecurityOrigin&, const SecurityOrigin&);
 bool originsMatch(const SecurityOrigin*, const SecurityOrigin*);
+
+template<class Encoder> inline void SecurityOrigin::encode(Encoder& encoder) const
+{
+    encoder << m_data;
+    encoder << m_domain;
+    encoder << m_filePath;
+    encoder << m_isUnique;
+    encoder << m_universalAccess;
+    encoder << m_domainWasSetInDOM;
+    encoder << m_canLoadLocalResources;
+    encoder.encodeEnum(m_storageBlockingPolicy);
+    encoder << m_enforcesFilePathSeparation;
+    encoder << m_needsStorageAccessFromFileURLsQuirk;
+    encoder << m_isPotentiallyTrustworthy;
+    encoder << m_isLocal;
+}
+
+template<class Decoder> inline RefPtr<SecurityOrigin> SecurityOrigin::decode(Decoder& decoder)
+{
+    std::optional<SecurityOriginData> data;
+    decoder >> data;
+    if (!data)
+        return nullptr;
+
+    auto origin = SecurityOrigin::create(data->protocol, data->host, data->port);
+
+    if (!decoder.decode(origin->m_domain))
+        return nullptr;
+    if (!decoder.decode(origin->m_filePath))
+        return nullptr;
+    if (!decoder.decode(origin->m_isUnique))
+        return nullptr;
+    if (!decoder.decode(origin->m_universalAccess))
+        return nullptr;
+    if (!decoder.decode(origin->m_domainWasSetInDOM))
+        return nullptr;
+    if (!decoder.decode(origin->m_canLoadLocalResources))
+        return nullptr;
+    if (!decoder.decodeEnum(origin->m_storageBlockingPolicy))
+        return nullptr;
+    if (!decoder.decode(origin->m_enforcesFilePathSeparation))
+        return nullptr;
+    if (!decoder.decode(origin->m_needsStorageAccessFromFileURLsQuirk))
+        return nullptr;
+    if (!decoder.decode(origin->m_isPotentiallyTrustworthy))
+        return nullptr;
+    if (!decoder.decode(origin->m_isLocal))
+        return nullptr;
+
+    return WTFMove(origin);
+}
 
 } // namespace WebCore

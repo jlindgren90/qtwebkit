@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2004-2018 Apple Inc. All rights reserved.
  * Copyright (C) 2009 Holger Hans Peter Freyther
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
 #include "ScrollTypes.h"
 #include "Widget.h"
 #include <wtf/HashSet.h>
+#include <wtf/WeakPtr.h>
 
 #if PLATFORM(IOS)
 
@@ -73,9 +74,11 @@ public:
 
     virtual void notifyPageThatContentAreaWillPaint() const;
 
+    using Widget::weakPtrFactory;
+
     IntPoint locationOfContents() const;
 
-    // NOTE: This should only be called by the overriden setScrollOffset from ScrollableArea.
+    // NOTE: This should only be called by the overridden setScrollOffset from ScrollableArea.
     virtual void scrollTo(const ScrollPosition&);
 
     // The window thats hosts the ScrollView. The ScrollView will communicate scrolls and repaints to the

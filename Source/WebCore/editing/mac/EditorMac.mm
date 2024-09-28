@@ -263,7 +263,7 @@ void Editor::writeImageToPasteboard(Pasteboard& pasteboard, Element& imageElemen
 {
     PasteboardImage pasteboardImage;
 
-    CachedImage* cachedImage;
+    CachedImage* cachedImage = nullptr;
     getImage(imageElement, pasteboardImage.image, cachedImage);
     if (!pasteboardImage.image)
         return;
@@ -287,17 +287,6 @@ RefPtr<DocumentFragment> Editor::webContentFromPasteboard(Pasteboard& pasteboard
     pasteboard.read(reader);
     chosePlainText = reader.madeFragmentFromPlainText;
     return WTFMove(reader.fragment);
-}
-
-void Editor::applyFontStyles(const String& fontFamily, double fontSize, unsigned fontTraits)
-{
-    auto& cssValuePool = CSSValuePool::singleton();
-    Ref<MutableStyleProperties> style = MutableStyleProperties::create();
-    style->setProperty(CSSPropertyFontFamily, cssValuePool.createFontFamilyValue(fontFamily));
-    style->setProperty(CSSPropertyFontStyle, (fontTraits & NSFontItalicTrait) ? CSSValueItalic : CSSValueNormal);
-    style->setProperty(CSSPropertyFontWeight, (fontTraits & NSFontBoldTrait) ? CSSValueBold : CSSValueNormal);
-    style->setProperty(CSSPropertyFontSize, cssValuePool.createValue(fontSize, CSSPrimitiveValue::CSS_PX));
-    applyStyleToSelection(style.ptr(), EditActionSetFont);
 }
 
 } // namespace WebCore

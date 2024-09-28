@@ -123,17 +123,18 @@ public:
 
     const URL& url() const { return m_request.url(); }
     ResourceHandle* handle() const { return m_handle.get(); }
-    bool shouldSendResourceLoadCallbacks() const { return m_options.sendLoadCallbacks == SendCallbacks; }
+    bool shouldSendResourceLoadCallbacks() const { return m_options.sendLoadCallbacks == SendCallbackPolicy::SendCallbacks; }
     void setSendCallbackPolicy(SendCallbackPolicy sendLoadCallbacks) { m_options.sendLoadCallbacks = sendLoadCallbacks; }
-    bool shouldSniffContent() const { return m_options.sniffContent == SniffContent; }
+    bool shouldSniffContent() const { return m_options.sniffContent == ContentSniffingPolicy::SniffContent; }
     bool shouldSniffContentEncoding() const { return m_options.sniffContentEncoding == ContentEncodingSniffingPolicy::Sniff; }
     WEBCORE_EXPORT bool isAllowedToAskUserForCredentials() const;
-    bool shouldIncludeCertificateInfo() const { return m_options.certificateInfoPolicy == IncludeCertificateInfo; }
+    bool shouldIncludeCertificateInfo() const { return m_options.certificateInfoPolicy == CertificateInfoPolicy::IncludeCertificateInfo; }
 
     bool reachedTerminalState() const { return m_reachedTerminalState; }
 
 
     const ResourceRequest& request() const { return m_request; }
+    void setRequest(ResourceRequest&& request) { m_request = WTFMove(request); }
 
     void setDataBufferingPolicy(DataBufferingPolicy);
 
@@ -151,6 +152,9 @@ public:
 
     const ResourceLoaderOptions& options() const { return m_options; }
 
+    const ResourceRequest& deferredRequest() const { return m_deferredRequest; }
+    ResourceRequest takeDeferredRequest() { return std::exchange(m_deferredRequest, { }); }
+
 protected:
     ResourceLoader(Frame&, ResourceLoaderOptions);
 
@@ -160,6 +164,9 @@ protected:
     bool wasCancelled() const { return m_cancellationStatus >= Cancelled; }
 
     void didReceiveDataOrBuffer(const char*, unsigned, RefPtr<SharedBuffer>&&, long long encodedDataLength, DataPayloadType);
+    
+    void setReferrerPolicy(ReferrerPolicy referrerPolicy) { m_options.referrerPolicy = referrerPolicy; }
+    ReferrerPolicy referrerPolicy() const { return m_options.referrerPolicy; }
 
 #if PLATFORM(COCOA)
     void willCacheResponseAsync(ResourceHandle*, NSCachedURLResponse*, CompletionHandler<void(NSCachedURLResponse *)>&&) override;
@@ -209,6 +216,10 @@ private:
 #if USE(CFURLCONNECTION)
     // FIXME: Windows should use willCacheResponse - <https://bugs.webkit.org/show_bug.cgi?id=57257>.
     bool shouldCacheResponse(ResourceHandle*, CFCachedURLResponseRef) override;
+#endif
+
+#if USE(SOUP)
+    void loadGResource();
 #endif
 
     ResourceRequest m_request;

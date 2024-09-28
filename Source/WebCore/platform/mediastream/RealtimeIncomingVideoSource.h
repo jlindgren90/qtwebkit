@@ -34,7 +34,14 @@
 
 #include "LibWebRTCMacros.h"
 #include "RealtimeMediaSource.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #include <webrtc/api/mediastreaminterface.h>
+
+#pragma GCC diagnostic pop
+
 #include <wtf/RetainPtr.h>
 
 namespace WebCore {
@@ -44,7 +51,10 @@ class CaptureDevice;
 class RealtimeIncomingVideoSource : public RealtimeMediaSource, private rtc::VideoSinkInterface<webrtc::VideoFrame> {
 public:
     static Ref<RealtimeIncomingVideoSource> create(rtc::scoped_refptr<webrtc::VideoTrackInterface>&&, String&&);
-    ~RealtimeIncomingVideoSource() { stopProducingData(); }
+    ~RealtimeIncomingVideoSource()
+    {
+        stop();
+    }
 
     void setSourceTrack(rtc::scoped_refptr<webrtc::VideoTrackInterface>&&);
 
@@ -60,8 +70,6 @@ private:
 
     const RealtimeMediaSourceCapabilities& capabilities() const final;
     const RealtimeMediaSourceSettings& settings() const final;
-
-    bool applySize(const IntSize&) final { return true; }
 
     rtc::scoped_refptr<webrtc::VideoTrackInterface> m_videoTrack;
 };

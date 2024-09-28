@@ -20,8 +20,10 @@
 #pragma once
 
 #include "DOMWindowProperty.h"
+#include "JSDOMPromiseDeferred.h"
 #include "NavigatorBase.h"
 #include "ScriptWrappable.h"
+#include "ShareData.h"
 #include "Supplementable.h"
 
 namespace WebCore {
@@ -39,8 +41,10 @@ public:
     DOMMimeTypeArray& mimeTypes();
     bool cookieEnabled() const;
     bool javaEnabled() const;
-    String userAgent() const final;
+    const String& userAgent() const final;
+    void userAgentChanged();
     bool onLine() const final;
+    void share(ScriptExecutionContext&, ShareData, Ref<DeferredPromise>&&);
     
 #if PLATFORM(IOS)
     bool standalone() const;
@@ -53,6 +57,7 @@ private:
 
     mutable RefPtr<DOMPluginArray> m_plugins;
     mutable RefPtr<DOMMimeTypeArray> m_mimeTypes;
+    mutable String m_userAgent;
 };
 
 }

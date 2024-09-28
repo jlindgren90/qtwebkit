@@ -65,7 +65,7 @@ G_DEFINE_BOXED_TYPE(WebKitWebsiteData, webkit_website_data, webkit_website_data_
 
 static bool recordContainsSupportedDataTypes(const WebsiteDataRecord& record)
 {
-    static const OptionSet<WebsiteDataType> typesSupported = {
+    return record.types.containsAny({
         WebsiteDataType::MemoryCache,
         WebsiteDataType::DiskCache,
         WebsiteDataType::OfflineWebApplicationCache,
@@ -73,13 +73,11 @@ static bool recordContainsSupportedDataTypes(const WebsiteDataRecord& record)
         WebsiteDataType::LocalStorage,
         WebsiteDataType::WebSQLDatabases,
         WebsiteDataType::IndexedDBDatabases,
-        WebsiteDataType::ResourceLoadStatistics,
 #if ENABLE(NETSCAPE_PLUGIN_API)
         WebsiteDataType::PlugInData,
 #endif
         WebsiteDataType::Cookies
-    };
-    return record.types.contains(typesSupported);
+    });
 }
 
 static WebKitWebsiteDataTypes toWebKitWebsiteDataTypes(OptionSet<WebsiteDataType> types)
@@ -99,8 +97,6 @@ static WebKitWebsiteDataTypes toWebKitWebsiteDataTypes(OptionSet<WebsiteDataType
         returnValue |= WEBKIT_WEBSITE_DATA_WEBSQL_DATABASES;
     if (types.contains(WebsiteDataType::IndexedDBDatabases))
         returnValue |= WEBKIT_WEBSITE_DATA_INDEXEDDB_DATABASES;
-    if (types.contains(WebsiteDataType::ResourceLoadStatistics))
-        returnValue |= WEBKIT_WEBSITE_DATA_RESOURCE_LOAD_STATISTICS;
 #if ENABLE(NETSCAPE_PLUGIN_API)
     if (types.contains(WebsiteDataType::PlugInData))
         returnValue |= WEBKIT_WEBSITE_DATA_PLUGIN_DATA;

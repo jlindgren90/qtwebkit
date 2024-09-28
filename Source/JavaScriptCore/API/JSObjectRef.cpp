@@ -111,7 +111,7 @@ JSObjectRef JSObjectMakeFunctionWithCallback(JSContextRef ctx, JSStringRef name,
     ExecState* exec = toJS(ctx);
     VM& vm = exec->vm();
     JSLockHolder locker(vm);
-    return toRef(JSCallbackFunction::create(vm, exec->lexicalGlobalObject(), callAsFunction, name ? name->string() : ASCIILiteral("anonymous")));
+    return toRef(JSCallbackFunction::create(vm, exec->lexicalGlobalObject(), callAsFunction, name ? name->string() : "anonymous"_s));
 }
 
 JSObjectRef JSObjectMakeConstructor(JSContextRef ctx, JSClassRef jsClass, JSObjectCallAsConstructorCallback callAsConstructor)
@@ -364,6 +364,100 @@ void JSObjectSetProperty(JSContextRef ctx, JSObjectRef object, JSStringRef prope
         }
     }
     handleExceptionIfNeeded(scope, exec, exception);
+}
+
+bool JSObjectHasPropertyForKey(JSContextRef ctx, JSObjectRef object, JSValueRef key, JSValueRef* exception)
+{
+    if (!ctx) {
+        ASSERT_NOT_REACHED();
+        return false;
+    }
+    ExecState* exec = toJS(ctx);
+    VM& vm = exec->vm();
+    JSLockHolder locker(vm);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
+    JSObject* jsObject = toJS(object);
+    Identifier ident = toJS(exec, key).toPropertyKey(exec);
+    if (handleExceptionIfNeeded(scope, exec, exception) == ExceptionStatus::DidThrow)
+        return false;
+
+    bool result = jsObject->hasProperty(exec, ident);
+    handleExceptionIfNeeded(scope, exec, exception);
+    return result;
+}
+
+JSValueRef JSObjectGetPropertyForKey(JSContextRef ctx, JSObjectRef object, JSValueRef key, JSValueRef* exception)
+{
+    if (!ctx) {
+        ASSERT_NOT_REACHED();
+        return nullptr;
+    }
+    ExecState* exec = toJS(ctx);
+    VM& vm = exec->vm();
+    JSLockHolder locker(vm);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
+    JSObject* jsObject = toJS(object);
+    Identifier ident = toJS(exec, key).toPropertyKey(exec);
+    if (handleExceptionIfNeeded(scope, exec, exception) == ExceptionStatus::DidThrow)
+        return nullptr;
+
+    JSValue jsValue = jsObject->get(exec, ident);
+    handleExceptionIfNeeded(scope, exec, exception);
+    return toRef(exec, jsValue);
+}
+
+void JSObjectSetPropertyForKey(JSContextRef ctx, JSObjectRef object, JSValueRef key, JSValueRef value, JSPropertyAttributes attributes, JSValueRef* exception)
+{
+    if (!ctx) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
+    ExecState* exec = toJS(ctx);
+    VM& vm = exec->vm();
+    JSLockHolder locker(vm);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
+    JSObject* jsObject = toJS(object);
+    JSValue jsValue = toJS(exec, value);
+
+    Identifier ident = toJS(exec, key).toPropertyKey(exec);
+    if (handleExceptionIfNeeded(scope, exec, exception) == ExceptionStatus::DidThrow)
+        return;
+
+    bool doesNotHaveProperty = attributes && !jsObject->hasProperty(exec, ident);
+    if (LIKELY(!scope.exception())) {
+        if (doesNotHaveProperty) {
+            PropertyDescriptor desc(jsValue, attributes);
+            jsObject->methodTable(vm)->defineOwnProperty(jsObject, exec, ident, desc, false);
+        } else {
+            PutPropertySlot slot(jsObject);
+            jsObject->methodTable(vm)->put(jsObject, exec, ident, jsValue, slot);
+        }
+    }
+    handleExceptionIfNeeded(scope, exec, exception);
+}
+
+bool JSObjectDeletePropertyForKey(JSContextRef ctx, JSObjectRef object, JSValueRef key, JSValueRef* exception)
+{
+    if (!ctx) {
+        ASSERT_NOT_REACHED();
+        return false;
+    }
+    ExecState* exec = toJS(ctx);
+    VM& vm = exec->vm();
+    JSLockHolder locker(vm);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
+    JSObject* jsObject = toJS(object);
+    Identifier ident = toJS(exec, key).toPropertyKey(exec);
+    if (handleExceptionIfNeeded(scope, exec, exception) == ExceptionStatus::DidThrow)
+        return false;
+
+    bool result = jsObject->methodTable(vm)->deleteProperty(jsObject, exec, ident);
+    handleExceptionIfNeeded(scope, exec, exception);
+    return result;
 }
 
 JSValueRef JSObjectGetPropertyAtIndex(JSContextRef ctx, JSObjectRef object, unsigned propertyIndex, JSValueRef* exception)
@@ -623,13 +717,14 @@ JSValueRef JSObjectCallAsFunction(JSContextRef ctx, JSObjectRef object, JSObject
     return result;
 }
 
-bool JSObjectIsConstructor(JSContextRef, JSObjectRef object)
+bool JSObjectIsConstructor(JSContextRef ctx, JSObjectRef object)
 {
+    ExecState* exec = toJS(ctx);
+    VM& vm = exec->vm();
+    JSLockHolder locker(vm);
     if (!object)
         return false;
-    JSObject* jsObject = toJS(object);
-    ConstructData constructData;
-    return jsObject->methodTable()->getConstructData(jsObject, constructData) != ConstructType::None;
+    return toJS(object)->isConstructor(vm);
 }
 
 JSObjectRef JSObjectCallAsConstructor(JSContextRef ctx, JSObjectRef object, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)

@@ -52,7 +52,8 @@ typedef NS_ENUM(NSInteger, WKInputType) {
     WKInputTypeMonth,
     WKInputTypeWeek,
     WKInputTypeTime,
-    WKInputTypeSelect
+    WKInputTypeSelect,
+    WKInputTypeColor
 };
 
 /**
@@ -81,7 +82,7 @@ typedef NS_ENUM(NSInteger, WKInputType) {
  */
 @property (nonatomic, readonly, getter=isUserInitiated) BOOL userInitiated;
 
-@property (nonatomic, readonly) NSObject <NSSecureCoding> *userObject WK_API_AVAILABLE(macosx(WK_MAC_TBA), ios(WK_IOS_TBA));
+@property (nonatomic, readonly) NSObject <NSSecureCoding> *userObject WK_API_AVAILABLE(macosx(10.13.4), ios(11.3));
 
 @end
 

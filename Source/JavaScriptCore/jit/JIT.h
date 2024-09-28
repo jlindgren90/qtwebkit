@@ -28,9 +28,9 @@
 #if ENABLE(JIT)
 
 // We've run into some problems where changing the size of the class JIT leads to
-// performance fluctuations.  Try forcing alignment in an attempt to stabalize this.
+// performance fluctuations. Try forcing alignment in an attempt to stabilize this.
 #if COMPILER(GCC_OR_CLANG)
-#define JIT_CLASS_ALIGNMENT __attribute__ ((aligned (32)))
+#define JIT_CLASS_ALIGNMENT alignas(32)
 #else
 #define JIT_CLASS_ALIGNMENT
 #endif
@@ -70,13 +70,13 @@ namespace JSC {
     struct CallRecord {
         MacroAssembler::Call from;
         unsigned bytecodeOffset;
-        FunctionPtr callee;
+        FunctionPtr<OperationPtrTag> callee;
 
         CallRecord()
         {
         }
 
-        CallRecord(MacroAssembler::Call from, unsigned bytecodeOffset, FunctionPtr callee)
+        CallRecord(MacroAssembler::Call from, unsigned bytecodeOffset, FunctionPtr<OperationPtrTag> callee)
             : from(from)
             , bytecodeOffset(bytecodeOffset)
             , callee(callee)
@@ -174,9 +174,9 @@ namespace JSC {
         CallLinkInfo* callLinkInfo;
     };
 
-    void ctiPatchCallByReturnAddress(ReturnAddressPtr, FunctionPtr newCalleeFunction);
+    void ctiPatchCallByReturnAddress(ReturnAddressPtr, FunctionPtr<CFunctionPtrTag> newCalleeFunction);
 
-    class JIT : private JSInterfaceJIT {
+    class JIT_CLASS_ALIGNMENT JIT : private JSInterfaceJIT {
         friend class JITSlowPathCall;
         friend class JITStubCall;
 
@@ -250,6 +250,7 @@ namespace JSC {
         static int stackPointerOffsetFor(CodeBlock*);
 
         JS_EXPORT_PRIVATE static HashMap<CString, Seconds> compileTimeStats();
+        JS_EXPORT_PRIVATE static Seconds totalCompileTime();
 
     private:
         void privateCompileMainPass();
@@ -267,18 +268,18 @@ namespace JSC {
         void privateCompilePatchGetArrayLength(ReturnAddressPtr returnAddress);
 
         // Add a call out from JIT code, without an exception check.
-        Call appendCall(const FunctionPtr function, PtrTag tag)
+        Call appendCall(const FunctionPtr<CFunctionPtrTag> function)
         {
-            Call functionCall = call(tag);
-            m_calls.append(CallRecord(functionCall, m_bytecodeOffset, FunctionPtr(function, tag)));
+            Call functionCall = call(OperationPtrTag);
+            m_calls.append(CallRecord(functionCall, m_bytecodeOffset, function.retagged<OperationPtrTag>()));
             return functionCall;
         }
 
 #if OS(WINDOWS) && CPU(X86_64)
-        Call appendCallWithSlowPathReturnType(const FunctionPtr function, PtrTag tag)
+        Call appendCallWithSlowPathReturnType(const FunctionPtr<CFunctionPtrTag> function)
         {
-            Call functionCall = callWithSlowPathReturnType(tag);
-            m_calls.append(CallRecord(functionCall, m_bytecodeOffset, FunctionPtr(function, tag)));
+            Call functionCall = callWithSlowPathReturnType(OperationPtrTag);
+            m_calls.append(CallRecord(functionCall, m_bytecodeOffset, function.retagged<OperationPtrTag>()));
             return functionCall;
         }
 #endif
@@ -304,6 +305,7 @@ namespace JSC {
         void addSlowCase(const JumpList&);
         void addSlowCase();
         void addJump(Jump, int);
+        void addJump(const JumpList&, int);
         void emitJumpSlowToHot(Jump, int);
 
         void compileOpCall(OpcodeID, Instruction*, unsigned callLinkInfoIndex);
@@ -322,8 +324,6 @@ namespace JSC {
         
         void emitLoadDouble(int index, FPRegisterID value);
         void emitLoadInt32ToDouble(int index, FPRegisterID value);
-        Jump emitJumpIfCellObject(RegisterID cellReg);
-        Jump emitJumpIfCellNotObject(RegisterID cellReg);
 
         enum WriteBarrierMode { UnconditionalWriteBarrier, ShouldFilterBase, ShouldFilterValue, ShouldFilterBaseAndValue };
         // value register in write barrier is used before any scratch registers
@@ -440,20 +440,15 @@ namespace JSC {
             emitPutVirtualRegister(dst, payload);
         }
 
-        Jump emitJumpIfJSCell(RegisterID);
         Jump emitJumpIfBothJSCells(RegisterID, RegisterID, RegisterID);
         void emitJumpSlowCaseIfJSCell(RegisterID);
         void emitJumpSlowCaseIfNotJSCell(RegisterID);
         void emitJumpSlowCaseIfNotJSCell(RegisterID, int VReg);
-        Jump emitJumpIfInt(RegisterID);
-        Jump emitJumpIfNotInt(RegisterID);
         Jump emitJumpIfNotInt(RegisterID, RegisterID, RegisterID scratch);
         PatchableJump emitPatchableJumpIfNotInt(RegisterID);
         void emitJumpSlowCaseIfNotInt(RegisterID);
         void emitJumpSlowCaseIfNotNumber(RegisterID);
         void emitJumpSlowCaseIfNotInt(RegisterID, RegisterID, RegisterID scratch);
-
-        void emitTagBool(RegisterID);
 
         void compileGetByIdHotPath(int baseVReg, const Identifier*);
 
@@ -500,9 +495,11 @@ namespace JSC {
         void emit_op_try_get_by_id(Instruction*);
         void emit_op_get_by_id(Instruction*);
         void emit_op_get_by_id_with_this(Instruction*);
+        void emit_op_get_by_id_direct(Instruction*);
         void emit_op_get_arguments_length(Instruction*);
         void emit_op_get_by_val(Instruction*);
         void emit_op_get_argument_by_val(Instruction*);
+        void emit_op_in_by_id(Instruction*);
         void emit_op_init_lazy_reg(Instruction*);
         void emit_op_overrides_has_instance(Instruction*);
         void emit_op_instanceof(Instruction*);
@@ -610,9 +607,11 @@ namespace JSC {
         void emitSlow_op_try_get_by_id(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_get_by_id(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_get_by_id_with_this(Instruction*, Vector<SlowCaseEntry>::iterator&);
+        void emitSlow_op_get_by_id_direct(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_get_arguments_length(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_get_by_val(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_get_argument_by_val(Instruction*, Vector<SlowCaseEntry>::iterator&);
+        void emitSlow_op_in_by_id(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_instanceof(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_instanceof_custom(Instruction*, Vector<SlowCaseEntry>::iterator&);
         void emitSlow_op_jless(Instruction*, Vector<SlowCaseEntry>::iterator&);
@@ -714,37 +713,29 @@ namespace JSC {
             linkAllSlowCasesForBytecodeOffset(m_slowCases, iter, m_bytecodeOffset);
         }
 
-        MacroAssembler::Call appendCallWithExceptionCheck(const FunctionPtr, PtrTag);
+        MacroAssembler::Call appendCallWithExceptionCheck(const FunctionPtr<CFunctionPtrTag>);
 #if OS(WINDOWS) && CPU(X86_64)
-        MacroAssembler::Call appendCallWithExceptionCheckAndSlowPathReturnType(const FunctionPtr, PtrTag);
+        MacroAssembler::Call appendCallWithExceptionCheckAndSlowPathReturnType(const FunctionPtr<CFunctionPtrTag>);
 #endif
-        MacroAssembler::Call appendCallWithCallFrameRollbackOnException(const FunctionPtr, PtrTag);
-        MacroAssembler::Call appendCallWithExceptionCheckSetJSValueResult(const FunctionPtr, PtrTag, int);
-        MacroAssembler::Call appendCallWithExceptionCheckSetJSValueResultWithProfile(const FunctionPtr, PtrTag, int);
+        MacroAssembler::Call appendCallWithCallFrameRollbackOnException(const FunctionPtr<CFunctionPtrTag>);
+        MacroAssembler::Call appendCallWithExceptionCheckSetJSValueResult(const FunctionPtr<CFunctionPtrTag>, int);
+        MacroAssembler::Call appendCallWithExceptionCheckSetJSValueResultWithProfile(const FunctionPtr<CFunctionPtrTag>, int);
         
-        template<typename OperationType, typename... Args>
-        std::enable_if_t<FunctionTraits<OperationType>::hasResult, MacroAssembler::Call>
-        callOperation(OperationType operation, PtrTag tag, int result, Args... args)
-        {
-            setupArguments<OperationType>(args...);
-            return appendCallWithExceptionCheckSetJSValueResult(operation, tag, result);
-        }
-
         template<typename OperationType, typename... Args>
         std::enable_if_t<FunctionTraits<OperationType>::hasResult, MacroAssembler::Call>
         callOperation(OperationType operation, int result, Args... args)
         {
-            PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-            return callOperation(operation, tag, result, args...);
+            setupArguments<OperationType>(args...);
+            return appendCallWithExceptionCheckSetJSValueResult(operation, result);
         }
 
 #if OS(WINDOWS) && CPU(X86_64)
         template<typename OperationType, typename... Args>
         std::enable_if_t<std::is_same<typename FunctionTraits<OperationType>::ResultType, SlowPathReturnType>::value, MacroAssembler::Call>
-        callOperation(OperationType operation, PtrTag tag, Args... args)
+        callOperation(OperationType operation, Args... args)
         {
             setupArguments<OperationType>(args...);
-            return appendCallWithExceptionCheckAndSlowPathReturnType(operation, tag);
+            return appendCallWithExceptionCheckAndSlowPathReturnType(operation);
         }
 
         template<typename Type>
@@ -755,87 +746,51 @@ namespace JSC {
 
         template<typename OperationType, typename... Args>
         std::enable_if_t<!std::is_same<typename FunctionTraits<OperationType>::ResultType, SlowPathReturnType>::value, MacroAssembler::Call>
-        callOperation(OperationType operation, PtrTag tag, Args... args)
+        callOperation(OperationType operation, Args... args)
         {
             static_assert(is64BitType<typename FunctionTraits<OperationType>::ResultType>(), "Win64 cannot use standard call when return type is larger than 64 bits.");
             setupArguments<OperationType>(args...);
-            return appendCallWithExceptionCheck(operation, tag);
+            return appendCallWithExceptionCheck(operation);
         }
 #else // OS(WINDOWS) && CPU(X86_64)
         template<typename OperationType, typename... Args>
-        MacroAssembler::Call callOperation(OperationType operation, PtrTag tag, Args... args)
-        {
-            setupArguments<OperationType>(args...);
-            return appendCallWithExceptionCheck(operation, tag);
-        }
-#endif // OS(WINDOWS) && CPU(X86_64)
-
-        template<typename OperationType, typename... Args>
         MacroAssembler::Call callOperation(OperationType operation, Args... args)
         {
-            PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-            return callOperation(operation, tag, args...);
-        }
-
-        template<typename OperationType, typename... Args>
-        std::enable_if_t<FunctionTraits<OperationType>::hasResult, MacroAssembler::Call>
-        callOperationWithProfile(OperationType operation, PtrTag tag, int result, Args... args)
-        {
             setupArguments<OperationType>(args...);
-            return appendCallWithExceptionCheckSetJSValueResultWithProfile(operation, tag, result);
+            return appendCallWithExceptionCheck(operation);
         }
+#endif // OS(WINDOWS) && CPU(X86_64)
 
         template<typename OperationType, typename... Args>
         std::enable_if_t<FunctionTraits<OperationType>::hasResult, MacroAssembler::Call>
         callOperationWithProfile(OperationType operation, int result, Args... args)
         {
-            PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-            return callOperationWithProfile(operation, tag, result, args...);
-        }
-
-        template<typename OperationType, typename... Args>
-        MacroAssembler::Call callOperationWithResult(OperationType operation, PtrTag tag, JSValueRegs resultRegs, Args... args)
-        {
             setupArguments<OperationType>(args...);
-            auto result = appendCallWithExceptionCheck(operation, tag);
-            setupResults(resultRegs);
-            return result;
+            return appendCallWithExceptionCheckSetJSValueResultWithProfile(operation, result);
         }
 
         template<typename OperationType, typename... Args>
         MacroAssembler::Call callOperationWithResult(OperationType operation, JSValueRegs resultRegs, Args... args)
         {
-            PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-            return callOperationWithResult(operation, tag, resultRegs, args...);
-        }
-
-        template<typename OperationType, typename... Args>
-        MacroAssembler::Call callOperationNoExceptionCheck(OperationType operation, PtrTag tag, Args... args)
-        {
             setupArguments<OperationType>(args...);
-            updateTopCallFrame();
-            return appendCall(operation, tag);
+            auto result = appendCallWithExceptionCheck(operation);
+            setupResults(resultRegs);
+            return result;
         }
 
         template<typename OperationType, typename... Args>
         MacroAssembler::Call callOperationNoExceptionCheck(OperationType operation, Args... args)
         {
-            PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-            return callOperationNoExceptionCheck(operation, tag, args...);
-        }
-
-        template<typename OperationType, typename... Args>
-        MacroAssembler::Call callOperationWithCallFrameRollbackOnException(OperationType operation, PtrTag tag, Args... args)
-        {
             setupArguments<OperationType>(args...);
-            return appendCallWithCallFrameRollbackOnException(operation, tag);
+            updateTopCallFrame();
+            return appendCall(operation);
         }
 
         template<typename OperationType, typename... Args>
         MacroAssembler::Call callOperationWithCallFrameRollbackOnException(OperationType operation, Args... args)
         {
-            PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-            return callOperationWithCallFrameRollbackOnException(operation, tag, args...);
+            setupArguments<OperationType>(args...);
+            return appendCallWithCallFrameRollbackOnException(operation);
         }
 
         template<typename SnippetGenerator>
@@ -843,12 +798,10 @@ namespace JSC {
 
         void emitRightShiftFastPath(Instruction* currentInstruction, OpcodeID);
 
-        Jump checkStructure(RegisterID reg, Structure* structure);
-
         void updateTopCallFrame();
 
-        Call emitNakedCall(CodePtr function = CodePtr());
-        Call emitNakedTailCall(CodePtr function = CodePtr());
+        Call emitNakedCall(CodePtr<NoPtrTag> function = CodePtr<NoPtrTag>());
+        Call emitNakedTailCall(CodePtr<NoPtrTag> function = CodePtr<NoPtrTag>());
 
         // Loads the character value of a single character string into dst.
         void emitLoadCharacterString(RegisterID src, RegisterID dst, JumpList& failures);
@@ -911,6 +864,8 @@ namespace JSC {
         Vector<JITGetByIdGenerator> m_getByIds;
         Vector<JITGetByIdWithThisGenerator> m_getByIdsWithThis;
         Vector<JITPutByIdGenerator> m_putByIds;
+        Vector<JITInByIdGenerator> m_inByIds;
+        Vector<JITInstanceOfGenerator> m_instanceOfs;
         Vector<ByValCompilationInfo> m_byValCompilationInfo;
         Vector<CallCompilationInfo> m_callCompilationInfo;
         Vector<JumpTable> m_jmpTable;
@@ -923,18 +878,19 @@ namespace JSC {
         JumpList m_exceptionChecksWithCallFrameRollback;
         Label m_exceptionHandler;
 
-        unsigned m_getByIdIndex;
-        unsigned m_getByIdWithThisIndex;
-        unsigned m_putByIdIndex;
-        unsigned m_byValInstructionIndex;
-        unsigned m_callLinkInfoIndex;
+        unsigned m_getByIdIndex { UINT_MAX };
+        unsigned m_getByIdWithThisIndex { UINT_MAX };
+        unsigned m_putByIdIndex { UINT_MAX };
+        unsigned m_inByIdIndex { UINT_MAX };
+        unsigned m_instanceOfIndex { UINT_MAX };
+        unsigned m_byValInstructionIndex { UINT_MAX };
+        unsigned m_callLinkInfoIndex { UINT_MAX };
         
         Label m_arityCheck;
         std::unique_ptr<LinkBuffer> m_linkBuffer;
 
         std::unique_ptr<JITDisassembler> m_disassembler;
         RefPtr<Profiler::Compilation> m_compilation;
-        static CodeRef stringGetByValStubGenerator(VM*);
 
         PCToCodeOriginMapBuilder m_pcToCodeOriginMapBuilder;
 
@@ -946,7 +902,7 @@ namespace JSC {
         bool m_shouldEmitProfiling;
         bool m_shouldUseIndexMasking;
         unsigned m_loopOSREntryBytecodeOffset { 0 };
-    } JIT_CLASS_ALIGNMENT;
+    };
 
 } // namespace JSC
 

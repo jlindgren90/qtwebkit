@@ -84,6 +84,17 @@ window.UIHelper = class UIHelper {
         });
     }
 
+    static ensureVisibleContentRectUpdate()
+    {
+        if (!this.isWebKit2())
+            return Promise.resolve();
+
+        return new Promise(resolve => {
+            const visibleContentRectUpdateScript = "uiController.doAfterVisibleContentRectUpdate(() => uiController.uiScriptComplete())";
+            testRunner.runUIScript(visibleContentRectUpdateScript, resolve);
+        });
+    }
+
     static activateAndWaitForInputSessionAt(x, y)
     {
         if (!this.isWebKit2() || !this.isIOS())
@@ -96,6 +107,35 @@ window.UIHelper = class UIHelper {
                         uiController.uiScriptComplete("Done");
                     };
                     uiController.singleTapAtPoint(${x}, ${y}, function() { });
+                })()`, resolve);
+        });
+    }
+
+    static activateFormControl(element)
+    {
+        if (!this.isWebKit2() || !this.isIOS())
+            return this.activateElement(element);
+
+        const x = element.offsetLeft + element.offsetWidth / 2;
+        const y = element.offsetTop + element.offsetHeight / 2;
+
+        return new Promise(resolve => {
+            testRunner.runUIScript(`
+                (function() {
+                    uiController.didStartFormControlInteractionCallback = function() {
+                        uiController.uiScriptComplete("Done");
+                    };
+                    uiController.singleTapAtPoint(${x}, ${y}, function() { });
+                })()`, resolve);
+        });
+    }
+
+    static waitForKeyboardToHide()
+    {
+        return new Promise(resolve => {
+            testRunner.runUIScript(`
+                (function() {
+                    uiController.didHideKeyboardCallback = () => uiController.uiScriptComplete();
                 })()`, resolve);
         });
     }
@@ -132,6 +172,38 @@ window.UIHelper = class UIHelper {
         });
     }
 
+    static getSelectionStartGrabberViewRect()
+    {
+        if (!this.isWebKit2() || !this.isIOS())
+            return Promise.resolve();
+
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(function() {
+                uiController.doAfterNextStablePresentationUpdate(function() {
+                    uiController.uiScriptComplete(JSON.stringify(uiController.selectionStartGrabberViewRect));
+                });
+            })()`, jsonString => {
+                resolve(JSON.parse(jsonString));
+            });
+        });
+    }
+
+    static getSelectionEndGrabberViewRect()
+    {
+        if (!this.isWebKit2() || !this.isIOS())
+            return Promise.resolve();
+
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(function() {
+                uiController.doAfterNextStablePresentationUpdate(function() {
+                    uiController.uiScriptComplete(JSON.stringify(uiController.selectionEndGrabberViewRect));
+                });
+            })()`, jsonString => {
+                resolve(JSON.parse(jsonString));
+            });
+        });
+    }
+
     static replaceTextAtRange(text, location, length) {
         return new Promise(resolve => {
             testRunner.runUIScript(`(() => {
@@ -160,5 +232,111 @@ window.UIHelper = class UIHelper {
     static withUserGesture(callback)
     {
         internals.withUserGesture(callback);
+    }
+
+    static selectFormAccessoryPickerRow(rowIndex)
+    {
+        const selectRowScript = `(() => uiController.selectFormAccessoryPickerRow(${rowIndex}))()`;
+        return new Promise(resolve => testRunner.runUIScript(selectRowScript, resolve));
+    }
+
+    static selectFormPopoverTitle()
+    {
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(() => {
+                uiController.uiScriptComplete(uiController.selectFormPopoverTitle);
+            })()`, resolve);
+        });
+    }
+
+    static enterText(text)
+    {
+        const escapedText = text.replace(/`/g, "\\`");
+        const enterTextScript = `(() => uiController.enterText(\`${escapedText}\`))()`;
+        return new Promise(resolve => testRunner.runUIScript(enterTextScript, resolve));
+    }
+
+    static setTimePickerValue(hours, minutes)
+    {
+        const setValueScript = `(() => uiController.setTimePickerValue(${hours}, ${minutes}))()`;
+        return new Promise(resolve => testRunner.runUIScript(setValueScript, resolve));
+    }
+
+    static invokeShareSheetWithResolution(resolved)
+    {
+        const resolveShareSheet = `(() => uiController.invokeShareSheetWithResolution(${resolved}))()`;
+        return new Promise(resolve => testRunner.runUIScript(resolveShareSheet, resolve));
+    }
+
+    static textContentType()
+    {
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(() => {
+                uiController.uiScriptComplete(uiController.textContentType);
+            })()`, resolve);
+        });
+    }
+
+    static formInputLabel()
+    {
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(() => {
+                uiController.uiScriptComplete(uiController.formInputLabel);
+            })()`, resolve);
+        });
+    }
+
+    static isShowingDataListSuggestions()
+    {
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(() => {
+                uiController.uiScriptComplete(uiController.isShowingDataListSuggestions);
+            })()`, resolve);
+        });
+    }
+
+    static zoomScale()
+    {
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(() => {
+                uiController.uiScriptComplete(uiController.zoomScale);
+            })()`, resolve);
+        });
+    }
+
+    static typeCharacter(characterString)
+    {
+        if (!this.isWebKit2() || !this.isIOS()) {
+            eventSender.keyDown(key);
+            return;
+        }
+
+        const escapedString = characterString.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
+        const uiScript = `uiController.typeCharacterUsingHardwareKeyboard(\`${escapedString}\`, () => uiController.uiScriptComplete())`;
+        return new Promise(resolve => testRunner.runUIScript(uiScript, resolve));
+    }
+
+    static applyAutocorrection(newText, oldText)
+    {
+        if (!this.isWebKit2())
+            return;
+
+        const [escapedNewText, escapedOldText] = [newText.replace(/`/g, "\\`"), oldText.replace(/`/g, "\\`")];
+        const uiScript = `uiController.applyAutocorrection(\`${escapedNewText}\`, \`${escapedOldText}\`, () => uiController.uiScriptComplete())`;
+        return new Promise(resolve => testRunner.runUIScript(uiScript, resolve));
+    }
+
+    static inputViewBounds()
+    {
+        if (!this.isWebKit2() || !this.isIOS())
+            return Promise.resolve();
+
+        return new Promise(resolve => {
+            testRunner.runUIScript(`(() => {
+                uiController.uiScriptComplete(JSON.stringify(uiController.inputViewBounds));
+            })()`, jsonString => {
+                resolve(JSON.parse(jsonString));
+            });
+        });
     }
 }

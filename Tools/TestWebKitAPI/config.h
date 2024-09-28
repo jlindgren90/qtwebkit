@@ -45,7 +45,7 @@
 
 #include <stdint.h>
 
-#if !PLATFORM(IOS) && !defined(BUILDING_JSCONLY__) && (!PLATFORM(WIN) || defined(BUILDING_WIN_CAIRO_WEBKIT))
+#if !PLATFORM(IOS) && !defined(BUILDING_JSCONLY__) && (!PLATFORM(WIN) || PLATFORM(WIN_CAIRO))
 #include <WebKit/WebKit2_C.h>
 #endif
 
@@ -57,7 +57,13 @@
 
 #ifdef __cplusplus
 #include <gtest/gtest.h>
+#include <wtf/Assertions.h>
+#undef new
+#undef delete
+#include <wtf/FastMalloc.h>
 #endif
+
+#include <wtf/DisallowCType.h>
 
 #ifdef __clang__
 // Finish working around the less strict coding standards of the gtest framework.

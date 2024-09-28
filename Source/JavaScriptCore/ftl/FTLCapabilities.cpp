@@ -86,6 +86,7 @@ inline CapabilityLevel canCompile(Node* node)
     case GetGlobalVar:
     case GetGlobalLexicalVariable:
     case PutGlobalVariable:
+    case ValueNegate:
     case ValueAdd:
     case StrCat:
     case ArithAdd:
@@ -114,6 +115,7 @@ inline CapabilityLevel canCompile(Node* node)
     case Upsilon:
     case ExtractOSREntryLocal:
     case ExtractCatchLocal:
+    case ClearCatchLocals:
     case LoopHint:
     case SkipScope:
     case GetGlobalObject:
@@ -182,6 +184,7 @@ inline CapabilityLevel canCompile(Node* node)
     case GetExecutable:
     case GetScope:
     case GetCallee:
+    case SetCallee:
     case GetArgumentCountIncludingThis:
     case SetArgumentCountIncludingThis:
     case ToNumber:
@@ -189,12 +192,15 @@ inline CapabilityLevel canCompile(Node* node)
     case ToObject:
     case CallObjectConstructor:
     case CallStringConstructor:
+    case ObjectCreate:
     case MakeRope:
     case NewArrayWithSize:
     case TryGetById:
     case GetById:
     case GetByIdFlush:
     case GetByIdWithThis:
+    case GetByIdDirect:
+    case GetByIdDirectFlush:
     case ToThis:
     case MultiGetByOffset:
     case MultiPutByOffset:
@@ -202,7 +208,8 @@ inline CapabilityLevel canCompile(Node* node)
     case Throw:
     case ThrowStaticError:
     case Unreachable:
-    case In:
+    case InByVal:
+    case InById:
     case HasOwnProperty:
     case IsCellWithType:
     case MapHash:
@@ -311,8 +318,10 @@ inline CapabilityLevel canCompile(Node* node)
     case CompareBelow:
     case CompareBelowEq:
     case CompareStrictEq:
+    case SameValue:
     case DefineDataProperty:
     case DefineAccessorProperty:
+    case StringValueOf:
     case StringSlice:
     case ToLowerCase:
     case NumberToStringWithRadix:
@@ -337,7 +346,6 @@ inline CapabilityLevel canCompile(Node* node)
     case AtomicsIsLockFree:
     case InitializeEntrypointArguments:
     case CPUIntrinsic:
-    case GetArrayMask:
     case GetArrayLength:
     case GetVectorLength:
     case GetByVal:
@@ -346,6 +354,15 @@ inline CapabilityLevel canCompile(Node* node)
     case PutByValAlias:
     case PutByValDirect:
     case PutByValWithThis:
+    case MatchStructure:
+    case FilterCallLinkStatus:
+    case FilterGetByIdStatus:
+    case FilterPutByIdStatus:
+    case FilterInByIdStatus:
+    case CreateThis:
+    case DataViewGetInt:
+    case DataViewGetFloat:
+    case DataViewSet:
         // These are OK.
         break;
 
@@ -357,7 +374,6 @@ inline CapabilityLevel canCompile(Node* node)
         break;
 
     case IdentityWithProfile:
-    case CreateThis:
     case CheckTierUpInLoop:
     case CheckTierUpAndOSREnter:
     case CheckTierUpAtReturn:
@@ -428,16 +444,19 @@ CapabilityLevel canCompile(Graph& graph)
                 case StringObjectUse:
                 case StringOrStringObjectUse:
                 case SymbolUse:
+                case BigIntUse:
                 case MapObjectUse:
                 case SetObjectUse:
                 case WeakMapObjectUse:
                 case WeakSetObjectUse:
+                case DataViewObjectUse:
                 case FinalObjectUse:
                 case RegExpObjectUse:
                 case ProxyObjectUse:
                 case DerivedArrayUse:
                 case NotCellUse:
                 case OtherUse:
+                case KnownOtherUse:
                 case MiscUse:
                 case StringIdentUse:
                 case NotStringVarUse:

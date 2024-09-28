@@ -33,7 +33,6 @@
 #import "ObjCObjectGraph.h"
 #import "SandboxExtension.h"
 #import "SandboxInitializationParameters.h"
-#import "SecItemShim.h"
 #import "SessionTracker.h"
 #import "WKAPICast.h"
 #import "WKBrowsingContextHandleInternal.h"
@@ -49,6 +48,7 @@
 #import "WebsiteDataStoreParameters.h"
 #import <JavaScriptCore/ConfigFile.h>
 #import <JavaScriptCore/Options.h>
+#import <WebCore/AVFoundationMIMETypeCache.h>
 #import <WebCore/AXObjectCache.h>
 #import <WebCore/CPUMonitor.h>
 #import <WebCore/FileSystem.h>
@@ -64,6 +64,7 @@
 #import <algorithm>
 #import <dispatch/dispatch.h>
 #import <objc/runtime.h>
+#import <pal/spi/cg/CoreGraphicsSPI.h>
 #import <pal/spi/cocoa/LaunchServicesSPI.h>
 #import <pal/spi/cocoa/QuartzCoreSPI.h>
 #import <pal/spi/cocoa/pthreadSPI.h>
@@ -72,29 +73,33 @@
 #import <stdio.h>
 
 #if PLATFORM(IOS)
+#import "WKAccessibilityWebPageObjectIOS.h"
 #import <UIKit/UIAccessibility.h>
 #import <pal/spi/ios/GraphicsServicesSPI.h>
+#endif
 
-#if USE(APPLE_INTERNAL_SDK)
+#if PLATFORM(IOS) && USE(APPLE_INTERNAL_SDK)
 #import <AXRuntime/AXDefines.h>
 #import <AXRuntime/AXNotificationConstants.h>
-#else
+#endif
+
+#if PLATFORM(IOS) && !USE(APPLE_INTERNAL_SDK)
 #define kAXPidStatusChangedNotification 0
 #endif
 
-#endif
-
 #if PLATFORM(MAC)
+#import "WKAccessibilityWebPageObjectMac.h"
+#import <WebCore/GraphicsContext3DManager.h>
 #import <WebCore/ScrollbarThemeMac.h>
+#import <pal/spi/mac/NSScrollerImpSPI.h>
 #endif
 
 #if USE(OS_STATE)
 #import <os/state_private.h>
 #endif
 
-using namespace WebCore;
-
 namespace WebKit {
+using namespace WebCore;
 
 #if PLATFORM(MAC)
 static const Seconds cpuMonitoringInterval { 8_min };
@@ -123,6 +128,8 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
 #endif
 
     WebCore::setApplicationBundleIdentifier(parameters.uiProcessBundleIdentifier);
+    WebCore::setApplicationSDKVersion(parameters.uiProcessSDKVersion);
+
     SessionTracker::setIdentifierBase(parameters.uiProcessBundleIdentifier);
 
 #if ENABLE(SANDBOX_EXTENSIONS)
@@ -147,6 +154,7 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
         JSC::processConfigFile(javaScriptConfigFile.latin1().data(), "com.apple.WebKit.WebContent", parameters.uiProcessBundleIdentifier.latin1().data());
     }
 
+    // Disable NSURLCache.
     auto urlCache = adoptNS([[NSURLCache alloc] initWithMemoryCapacity:0 diskCapacity:0 diskPath:nil]);
     [NSURLCache setSharedURLCache:urlCache.get()];
 
@@ -170,7 +178,7 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
     method_setImplementation(methodToPatch, (IMP)NSApplicationAccessibilityFocusedUIElement);
 #endif
     
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+#if PLATFORM(MAC) && ENABLE(WEBPROCESS_NSRUNLOOP)
     // Need to initialize accessibility for VoiceOver to work when the WebContent process is using NSRunLoop.
     // Currently, it is also needed to allocate and initialize an NSApplication object.
     // FIXME: Remove the following line when rdar://problem/36323569 is fixed.
@@ -182,17 +190,32 @@ void WebProcess::platformInitializeWebProcess(WebProcessCreationParameters&& par
     // Priority decay on iOS 9 is impacting page load time so we fix the priority of the WebProcess' main thread (rdar://problem/22003112).
     pthread_set_fixedpriority_self();
 #endif
+
+    if (!parameters.mediaMIMETypes.isEmpty())
+        setMediaMIMETypes(parameters.mediaMIMETypes);
+    else {
+        AVFoundationMIMETypeCache::singleton().setCacheMIMETypesCallback([this](const Vector<String>& types) {
+            parentProcessConnection()->send(Messages::WebProcessProxy::CacheMediaMIMETypes(types), 0);
+        });
+    }
+
+#if PLATFORM(MAC)
+    WebCore::setScreenProperties(parameters.screenProperties);
+#if ENABLE(WEBPROCESS_WINDOWSERVER_BLOCKING)
+    scrollerStylePreferenceChanged(parameters.useOverlayScrollbars);
+#endif
+#endif
 }
 
 void WebProcess::initializeProcessName(const ChildProcessInitializationParameters& parameters)
 {
 #if !PLATFORM(IOS)
     NSString *applicationName;
-    if (parameters.extraInitializationData.get(ASCIILiteral("inspector-process")) == "1")
+    if (parameters.extraInitializationData.get("inspector-process"_s) == "1")
         applicationName = [NSString stringWithFormat:WEB_UI_STRING("%@ Web Inspector", "Visible name of Web Inspector's web process. The argument is the application name."), (NSString *)parameters.uiProcessName];
 #if ENABLE(SERVICE_WORKER)
-    else if (parameters.extraInitializationData.get(ASCIILiteral("service-worker-process")) == "1")
-        applicationName = [NSString stringWithFormat:WEB_UI_STRING("%@ Service Worker (%@)", "Visible name of Service Worker process. The argument is the application name."), (NSString *)parameters.uiProcessName, (NSString *)parameters.extraInitializationData.get(ASCIILiteral("security-origin"))];
+    else if (parameters.extraInitializationData.get("service-worker-process"_s) == "1")
+        applicationName = [NSString stringWithFormat:WEB_UI_STRING("%@ Service Worker (%@)", "Visible name of Service Worker process. The argument is the application name."), (NSString *)parameters.uiProcessName, (NSString *)parameters.extraInitializationData.get("security-origin"_s)];
 #endif
     else
         applicationName = [NSString stringWithFormat:WEB_UI_STRING("%@ Web Content", "Visible name of the web process. The argument is the application name."), (NSString *)parameters.uiProcessName];
@@ -299,21 +322,34 @@ void WebProcess::registerWithStateDumper()
 
 void WebProcess::platformInitializeProcess(const ChildProcessInitializationParameters&)
 {
+#if PLATFORM(MAC)
+#if ENABLE(WEBPROCESS_WINDOWSERVER_BLOCKING)
+    // Deny the WebContent process access to the WindowServer.
+    // This call will not succeed if there are open WindowServer connections at this point.
+    auto retval = CGSSetDenyWindowServerConnections(true);
+    RELEASE_ASSERT(retval == kCGErrorSuccess);
+    // Make sure that we close any WindowServer connections after checking in with Launch Services.
+    CGSShutdownServerConnections();
+#else
+    if (![NSApp isRunning]) {
+        // This call is needed when the WebProcess is not running the NSApplication event loop.
+        // Otherwise, calling enableSandboxStyleFileQuarantine() will fail.
+        launchServicesCheckIn();
+    }
+#endif // ENABLE(WEBPROCESS_WINDOWSERVER_BLOCKING)
+#endif // PLATFORM(MAC)
+
     registerWithAccessibility();
 
 #if USE(OS_STATE)
     registerWithStateDumper();
-#endif
-
-#if ENABLE(SEC_ITEM_SHIM)
-    initializeSecItemShim(*this);
 #endif
 }
 
 #if USE(APPKIT)
 void WebProcess::stopRunLoop()
 {
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+#if PLATFORM(MAC) && ENABLE(WEBPROCESS_NSRUNLOOP)
     ChildProcess::stopNSRunLoop();
 #else
     ChildProcess::stopNSAppRunLoop();
@@ -323,6 +359,7 @@ void WebProcess::stopRunLoop()
 
 void WebProcess::platformTerminate()
 {
+    AVFoundationMIMETypeCache::singleton().setCacheMIMETypesCallback(nullptr);
 }
 
 RetainPtr<CFDataRef> WebProcess::sourceApplicationAuditData() const
@@ -348,7 +385,7 @@ void WebProcess::initializeSandbox(const ChildProcessInitializationParameters& p
 #else
     NSBundle *webKit2Bundle = [NSBundle bundleForClass:NSClassFromString(@"WKView")];
 #endif
-#if PLATFORM(IOS)
+#if PLATFORM(IOS) && !PLATFORM(IOSMAC)
     sandboxParameters.setOverrideSandboxProfilePath([webKit2Bundle pathForResource:@"com.apple.WebKit.WebContent" ofType:@"sb"]);
 #else
     sandboxParameters.setOverrideSandboxProfilePath([webKit2Bundle pathForResource:@"com.apple.WebProcess" ofType:@"sb"]);
@@ -392,7 +429,7 @@ void WebProcess::updateActivePages()
     auto activePageURLs = adoptNS([[NSMutableArray alloc] init]);
 
     for (auto& page : m_pageMap.values()) {
-        if (page->usesEphemeralSession())
+        if (page->usesEphemeralSession() || page->isSuspended())
             continue;
 
         if (NSURL *originAsURL = origin(*page))
@@ -553,7 +590,7 @@ void WebProcess::accessibilityProcessSuspendedNotification(bool suspended)
 }
 #endif
 
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+#if PLATFORM(MAC) && ENABLE(WEBPROCESS_WINDOWSERVER_BLOCKING)
 void WebProcess::scrollerStylePreferenceChanged(bool useOverlayScrollbars)
 {
     ScrollerStyle::setUseOverlayScrollbars(useOverlayScrollbars);
@@ -563,7 +600,20 @@ void WebProcess::scrollerStylePreferenceChanged(bool useOverlayScrollbars)
         return;
 
     static_cast<ScrollbarThemeMac&>(theme).preferencesChanged();
+    
+    NSScrollerStyle style = useOverlayScrollbars ? NSScrollerStyleOverlay : NSScrollerStyleLegacy;
+    [NSScrollerImpPair _updateAllScrollerImpPairsForNewRecommendedScrollerStyle:style];
 }
-#endif    
+
+void WebProcess::displayConfigurationChanged(CGDirectDisplayID displayID, CGDisplayChangeSummaryFlags flags)
+{
+    GraphicsContext3DManager::displayWasReconfigured(displayID, flags, nullptr);
+}
+#endif
+
+void WebProcess::setMediaMIMETypes(const Vector<String> types)
+{
+    AVFoundationMIMETypeCache::singleton().setSupportedTypes(types);
+}
 
 } // namespace WebKit

@@ -72,6 +72,8 @@ public:
     WEBCORE_EXPORT void togglePictureInPicture() final;
     WEBCORE_EXPORT void toggleMuted() final;
     WEBCORE_EXPORT void setMuted(bool) final;
+    WEBCORE_EXPORT void setVolume(double) final;
+    WEBCORE_EXPORT void setPlayingOnSecondScreen(bool) final;
 
     double duration() const final;
     double currentTime() const final;
@@ -92,6 +94,7 @@ public:
     String externalPlaybackLocalizedDeviceName() const final;
     bool wirelessVideoPlaybackDisabled() const final;
     bool isMuted() const final;
+    double volume() const final;
     bool isPictureInPictureActive() const final;
 
 protected:

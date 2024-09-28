@@ -34,6 +34,7 @@
 #if ENABLE(WEB_RTC)
 
 #include "JSDOMPromiseDeferred.h"
+#include "LibWebRTCProvider.h"
 #include "RTCRtpParameters.h"
 #include "RTCSessionDescription.h"
 #include "RTCSignalingState.h"
@@ -49,6 +50,7 @@ class RTCIceCandidate;
 class RTCPeerConnection;
 class RTCRtpReceiver;
 class RTCRtpSender;
+class RTCRtpTransceiver;
 class RTCSessionDescription;
 class RTCStatsReport;
 
@@ -56,6 +58,7 @@ struct MediaEndpointConfiguration;
 struct RTCAnswerOptions;
 struct RTCDataChannelInit;
 struct RTCOfferOptions;
+struct RTCRtpTransceiverInit;
 
 namespace PeerConnection {
 using SessionDescriptionPromise = DOMPromiseDeferred<IDLDictionary<RTCSessionDescription::Init>>;
@@ -97,14 +100,11 @@ public:
 
     virtual void getStats(MediaStreamTrack*, Ref<DeferredPromise>&&) = 0;
 
-    virtual Vector<RefPtr<MediaStream>> getRemoteStreams() const = 0;
+    virtual ExceptionOr<Ref<RTCRtpSender>> addTrack(MediaStreamTrack&, Vector<String>&&);
+    virtual void removeTrack(RTCRtpSender&) { }
 
-    virtual Ref<RTCRtpReceiver> createReceiver(const String& transceiverMid, const String& trackKind, const String& trackId) = 0;
-    virtual void replaceTrack(RTCRtpSender&, Ref<MediaStreamTrack>&&, DOMPromiseDeferred<void>&&) = 0;
-    virtual void notifyAddedTrack(RTCRtpSender&) { }
-    virtual void notifyRemovedTrack(RTCRtpSender&) { }
-
-    virtual RTCRtpParameters getParameters(RTCRtpSender&) const { return { }; }
+    virtual ExceptionOr<Ref<RTCRtpTransceiver>> addTransceiver(const String&, const RTCRtpTransceiverInit&);
+    virtual ExceptionOr<Ref<RTCRtpTransceiver>> addTransceiver(Ref<MediaStreamTrack>&&, const RTCRtpTransceiverInit&);
 
     void markAsNeedingNegotiation();
     bool isNegotiationNeeded() const { return m_negotiationNeeded; };
@@ -112,7 +112,7 @@ public:
 
     virtual void emulatePlatformEvent(const String& action) = 0;
 
-    void newICECandidate(String&& sdp, String&& mid, unsigned short sdpMLineIndex);
+    void newICECandidate(String&& sdp, String&& mid, unsigned short sdpMLineIndex, String&& serverURL);
     void disableICECandidateFiltering();
     void enableICECandidateFiltering();
 
@@ -127,8 +127,10 @@ public:
 
     virtual bool isLocalDescriptionSet() const = 0;
 
+    void finishedRegisteringMDNSName(const String& ipAddress, const String& name);
+
 protected:
-    void fireICECandidateEvent(RefPtr<RTCIceCandidate>&&);
+    void fireICECandidateEvent(RefPtr<RTCIceCandidate>&&, String&& url);
     void doneGatheringCandidates();
 
     void updateSignalingState(RTCSignalingState);
@@ -159,6 +161,8 @@ private:
     virtual void endOfIceCandidates(DOMPromiseDeferred<void>&& promise) { promise.resolve(); }
     virtual void doStop() = 0;
 
+    void registerMDNSName(const String& ipAddress);
+
 protected:
     RTCPeerConnection& m_peerConnection;
 
@@ -166,6 +170,7 @@ private:
     std::optional<PeerConnection::SessionDescriptionPromise> m_offerAnswerPromise;
     std::optional<DOMPromiseDeferred<void>> m_setDescriptionPromise;
     std::optional<DOMPromiseDeferred<void>> m_addIceCandidatePromise;
+    std::optional<DOMPromiseDeferred<void>> m_endOfIceCandidatePromise;
 
     bool m_shouldFilterICECandidates { true };
     struct PendingICECandidate {
@@ -173,6 +178,7 @@ private:
         String sdp;
         String mid;
         unsigned short sdpMLineIndex;
+        String serverURL;
     };
     Vector<PendingICECandidate> m_pendingICECandidates;
 
@@ -181,6 +187,13 @@ private:
     const void* m_logIdentifier;
 #endif
     bool m_negotiationNeeded { false };
+    bool m_finishedGatheringCandidates { false };
+    uint64_t m_waitingForMDNSRegistration { 0 };
+
+    bool m_finishedReceivingCandidates { false };
+    uint64_t m_waitingForMDNSResolution { 0 };
+
+    HashMap<String, String> m_mdnsMapping;
 };
 
 } // namespace WebCore

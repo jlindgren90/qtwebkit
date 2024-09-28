@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014 Igalia S.L.
- * Copyright (C) 2016-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2016-2018 Apple Inc. All rights reserved.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,7 @@
 
 #include "APISecurityOrigin.h"
 #include "APIUIClient.h"
+#include "UserMediaPermissionRequestManager.h"
 #include "UserMediaProcessManager.h"
 #include "WebAutomationSession.h"
 #include "WebPageMessages.h"
@@ -34,9 +35,8 @@
 #include <WebCore/SecurityOriginData.h>
 #include <WebCore/UserMediaRequest.h>
 
-using namespace WebCore;
-
 namespace WebKit {
+using namespace WebCore;
 
 #if ENABLE(MEDIA_STREAM)
 static const MediaProducer::MediaStateFlags activeCaptureMask = MediaProducer::HasActiveAudioCaptureDevice | MediaProducer::HasActiveVideoCaptureDevice;
@@ -75,6 +75,15 @@ void UserMediaPermissionRequestManagerProxy::stopCapture()
 {
     invalidatePendingRequests();
     m_page.stopMediaCapture();
+}
+
+void UserMediaPermissionRequestManagerProxy::captureDevicesChanged()
+{
+#if ENABLE(MEDIA_STREAM)
+    // FIXME: a page with persistent access should always get device change notifications.
+    auto accessState = m_grantedRequests.isEmpty() ? DeviceAccessState::NoAccess : DeviceAccessState::SessionAccess;
+    m_page.process().send(Messages::WebPage::CaptureDevicesChanged(accessState), m_page.pageID());
+#endif
 }
 
 void UserMediaPermissionRequestManagerProxy::clearCachedState()
@@ -153,8 +162,9 @@ void UserMediaPermissionRequestManagerProxy::userMediaAccessWasGranted(uint64_t 
     if (!request)
         return;
 
-    grantAccess(userMediaID, WTFMove(audioDevice), WTFMove(videoDevice), request->deviceIdentifierHashSalt());
-    m_grantedRequests.append(request.releaseNonNull());
+    if (grantAccess(userMediaID, WTFMove(audioDevice), WTFMove(videoDevice), request->deviceIdentifierHashSalt()))
+        m_grantedRequests.append(request.releaseNonNull());
+
 #else
     UNUSED_PARAM(userMediaID);
     UNUSED_PARAM(audioDevice);
@@ -220,10 +230,15 @@ bool UserMediaPermissionRequestManagerProxy::wasRequestDenied(uint64_t mainFrame
     return false;
 }
 
-void UserMediaPermissionRequestManagerProxy::grantAccess(uint64_t userMediaID, const CaptureDevice audioDevice, const CaptureDevice videoDevice, const String& deviceIdentifierHashSalt)
+bool UserMediaPermissionRequestManagerProxy::grantAccess(uint64_t userMediaID, const CaptureDevice audioDevice, const CaptureDevice videoDevice, const String& deviceIdentifierHashSalt)
 {
-    UserMediaProcessManager::singleton().willCreateMediaStream(*this, !!audioDevice, !!videoDevice);
+    if (!UserMediaProcessManager::singleton().willCreateMediaStream(*this, !!audioDevice, !!videoDevice)) {
+        denyRequest(userMediaID, UserMediaPermissionRequestProxy::UserMediaAccessDenialReason::OtherFailure, "Unable to extend sandbox.");
+        return false;
+    }
+
     m_page.process().send(Messages::WebPage::UserMediaAccessWasGranted(userMediaID, audioDevice, videoDevice, deviceIdentifierHashSalt), m_page.pageID());
+    return true;
 }
 #endif
 
@@ -428,7 +443,7 @@ void UserMediaPermissionRequestManagerProxy::captureStateChanged(MediaProducer::
 #endif
 }
 
-void UserMediaPermissionRequestManagerProxy::processPregrantedRequests()
+void UserMediaPermissionRequestManagerProxy::viewIsBecomingVisible()
 {
     for (auto& request : m_pregrantedRequests)
         request->allow();

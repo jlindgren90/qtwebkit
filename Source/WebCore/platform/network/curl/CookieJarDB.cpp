@@ -31,6 +31,8 @@
 #include "SQLiteFileSystem.h"
 #include "URL.h"
 
+#include <wtf/MonotonicTime.h>
+
 namespace WebCore {
 
 #define CORRUPT_MARKER_SUFFIX "-corrupted"
@@ -107,11 +109,13 @@ bool CookieJarDB::openDatabase()
                 executeSimpleSql(DELETE_ALL_SESSION_COOKIE_SQL);
             else {
                 // delete database and try to re-create again
+                LOG_ERROR("Cookie database validity check failed, attempting to recreate the database");
                 m_database.close();
                 deleteAllDatabaseFiles();
                 existsDatabaseFile = false;
             }
         } else {
+            LOG_ERROR("Failed to open cookie database: %s, attempting to recreate the database", m_databasePath.utf8().data());
             deleteAllDatabaseFiles();
             existsDatabaseFile = false;
         }
@@ -137,9 +141,7 @@ bool CookieJarDB::openDatabase()
     if (!m_database.isOpen())
         return false;
 
-    executeSimpleSql("PRAGMA temp_store = MEMORY;");
-    executeSimpleSql("PRAGMA synchronous = NORMAL;");
-    executeSimpleSql("PRAGMA journal_mode = WAL;");
+    m_database.setSynchronous(SQLiteDatabase::SyncNormal);
 
     // create prepared statements
     createPrepareStatement(SET_COOKIE_SQL);
@@ -180,6 +182,7 @@ void CookieJarDB::flagDatabaseCorruption()
 bool CookieJarDB::checkDatabaseCorruptionAndRemoveIfNeeded()
 {
     if (!isOnMemory() && FileSystem::fileExists(getCorruptionMarkerPath())) {
+        LOG_ERROR("Detected cookie database corruption, attempting to recreate the database");
         deleteAllDatabaseFiles();
         return true;
     }
@@ -187,7 +190,7 @@ bool CookieJarDB::checkDatabaseCorruptionAndRemoveIfNeeded()
     return false;
 }
 
-bool CookieJarDB::checkSQLiteReturnCode(int actual, int expected)
+void CookieJarDB::checkSQLiteReturnCode(int actual)
 {
     if (!m_detectedDatabaseCorruption) {
         switch (actual) {
@@ -199,15 +202,41 @@ bool CookieJarDB::checkSQLiteReturnCode(int actual, int expected)
             m_detectedDatabaseCorruption = true;
         }
     }
-
-    return (actual == expected);
 }
 
 bool CookieJarDB::checkDatabaseValidity()
 {
     ASSERT(m_database.isOpen());
 
-    return m_database.tableExists("Cookie");
+    if (!m_database.tableExists("Cookie"))
+        return false;
+
+    SQLiteStatement integrity(m_database, "PRAGMA quick_check;");
+    if (integrity.prepare() != SQLITE_OK) {
+        LOG_ERROR("Failed to execute database integrity check");
+        return false;
+    }
+
+    int resultCode = integrity.step();
+    if (resultCode != SQLITE_ROW) {
+        LOG_ERROR("Integrity quick_check step returned %d", resultCode);
+        return false;
+    }
+
+    int columns = integrity.columnCount();
+    if (columns != 1) {
+        LOG_ERROR("Received %i columns performing integrity check, should be 1", columns);
+        return false;
+    }
+
+    String resultText = integrity.getColumnText(0);
+
+    if (resultText != "ok") {
+        LOG_ERROR("Cookie database integrity check failed - %s", resultText.ascii().data());
+        return false;
+    }
+
+    return true;
 }
 
 void CookieJarDB::deleteAllDatabaseFiles()
@@ -216,19 +245,10 @@ void CookieJarDB::deleteAllDatabaseFiles()
     if (isOnMemory())
         return;
 
-    int ret = 0;
-    String removePath;
-
-    // remove marker file (cookie.jar.db-corrupted)
-    ret = remove(removePath.utf8().data());
-
-    // remove shm file (cookie.jar.db-shm)
-    removePath = String(m_databasePath + "-shm");
-    ret = remove(removePath.utf8().data());
-
-    // remove wal file (cookie.jar.db-wal)
-    removePath = String(m_databasePath + "-wal");
-    ret = remove(removePath.utf8().data());
+    FileSystem::deleteFile(m_databasePath);
+    FileSystem::deleteFile(getCorruptionMarkerPath());
+    FileSystem::deleteFile(m_databasePath + "-shm");
+    FileSystem::deleteFile(m_databasePath + "-wal");
 }
 
 bool CookieJarDB::isEnabled()
@@ -245,7 +265,7 @@ bool CookieJarDB::searchCookies(const String& requestUrl, const std::optional<bo
         return false;
 
     URL requestUrlObj(ParsedURLString, requestUrl);
-    String requestHost(requestUrlObj.host().convertToASCIILowercase());
+    String requestHost(requestUrlObj.host().toString().convertToASCIILowercase());
     String requestPath(requestUrlObj.path().convertToASCIILowercase());
 
     if (requestHost.isEmpty())
@@ -316,20 +336,16 @@ bool CookieJarDB::searchCookies(const String& requestUrl, const std::optional<bo
         if (!isPathMatched)
             continue;
 
-        Cookie result(cookieName,
-            cookieValue,
-            cookieDomain,
-            cookiePath,
-            0,
-            cookieExpires,
-            cookieHttpOnly,
-            cookieSecure,
-            cookieSession,
-            String(),
-            URL(),
-            Vector<uint16_t>());
-
-        results.append(result);
+        Cookie cookie;
+        cookie.name = cookieName;
+        cookie.value = cookieValue;
+        cookie.domain = cookieDomain;
+        cookie.path = cookiePath;
+        cookie.expires = cookieExpires;
+        cookie.httpOnly = cookieHttpOnly;
+        cookie.secure = cookieSecure;
+        cookie.session = cookieSession;
+        results.append(WTFMove(cookie));
     }
     pstmt->finalize();
 
@@ -352,7 +368,7 @@ bool CookieJarDB::hasHttpOnlyCookie(const String& name, const String& domain, co
 int CookieJarDB::setCookie(const Cookie& cookie)
 {
     int ret = 0;
-    if (!cookie.session && (cookie.expires < ::time(0)))
+    if (!cookie.session && MonotonicTime::fromRawSeconds(cookie.expires) <= MonotonicTime::now())
         ret = deleteCookieInternal(cookie.name, cookie.domain, cookie.path);
     else {
         SQLiteStatement* statement = getPrepareStatement(SET_COOKIE_SQL);
@@ -364,7 +380,7 @@ int CookieJarDB::setCookie(const Cookie& cookie)
         statement->bindText(2, cookie.value);
         statement->bindText(3, cookie.domain);
         statement->bindText(4, cookie.path);
-        statement->bindInt64(5, cookie.session ? 0 : (int64_t)cookie.expires);
+        statement->bindInt64(5, cookie.session ? 0 : static_cast<int64_t>(cookie.expires));
         statement->bindInt(6, cookie.value.length());
         statement->bindInt(7, cookie.session ? 1 : 0);
         statement->bindInt(8, cookie.httpOnly ? 1 : 0);
@@ -372,7 +388,8 @@ int CookieJarDB::setCookie(const Cookie& cookie)
 
         ret = statement->step();
     }
-    ASSERT(checkSQLiteReturnCode(ret, SQLITE_DONE));
+    checkSQLiteReturnCode(ret);
+    ASSERT(ret == SQLITE_DONE);
 
     return ret;
 }
@@ -386,7 +403,7 @@ int CookieJarDB::setCookie(const String& url, const String& cookie, bool fromJav
         return -1;
 
     URL urlObj(ParsedURLString, url);
-    String host(urlObj.host());
+    String host(urlObj.host().toString());
     String path(urlObj.path());
 
     Cookie cookieObj;
@@ -397,7 +414,7 @@ int CookieJarDB::setCookie(const String& url, const String& cookie, bool fromJav
         cookieObj.domain = String(host);
 
     if (cookieObj.path.isEmpty())
-        cookieObj.path = String(path);
+        cookieObj.path = CookieUtil::defaultPathForURL(urlObj);
 
     // FIXME: Need to check that a domain doesn't a set cookie for a tld when wincairo supports PSL
 
@@ -421,10 +438,11 @@ int CookieJarDB::deleteCookie(const String& url, const String& name)
 
     URL urlObj(ParsedURLString, urlCopied);
     if (urlObj.isValid()) {
-        String hostStr(urlObj.host());
+        String hostStr(urlObj.host().toString());
         String pathStr(urlObj.path());
         int ret = deleteCookieInternal(name, hostStr, pathStr);
-        ASSERT(checkSQLiteReturnCode(ret, SQLITE_DONE));
+        checkSQLiteReturnCode(ret);
+        ASSERT(ret == SQLITE_DONE);
 
         return ret;
     }
@@ -488,10 +506,10 @@ int CookieJarDB::executeSimpleSql(const char* sql, bool ignoreError)
     int ret = statement.prepareAndStep();
     statement.finalize();
 
-    ASSERT(checkSQLiteReturnCode(ret, SQLITE_OK)
-        || checkSQLiteReturnCode(ret, SQLITE_DONE)
-        || checkSQLiteReturnCode(ret, SQLITE_ROW)
-        || ignoreError);
+    checkSQLiteReturnCode(ret);
+    if (ret != SQLITE_OK && ret != SQLITE_DONE && ret != SQLITE_ROW && !ignoreError)
+        LOG_ERROR("Failed to execute %s error: %s", sql, m_database.lastErrorMsg());
+
     return ret;
 }
 

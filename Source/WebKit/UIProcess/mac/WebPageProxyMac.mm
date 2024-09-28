@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
 #import "EditorState.h"
 #import "MenuUtilities.h"
 #import "NativeWebKeyboardEvent.h"
+#import "PDFContextMenu.h"
 #import "PageClient.h"
 #import "PageClientImplMac.h"
 #import "PluginComplexTextInputState.h"
@@ -49,6 +50,7 @@
 #import <WebCore/DictationAlternative.h>
 #import <WebCore/DictionaryLookup.h>
 #import <WebCore/DragItem.h>
+#import <WebCore/FontAttributeChanges.h>
 #import <WebCore/GraphicsLayer.h>
 #import <WebCore/LegacyNSPasteboardTypes.h>
 #import <WebCore/RuntimeApplicationChecks.h>
@@ -58,6 +60,8 @@
 #import <WebCore/ValidationBubble.h>
 #import <mach-o/dyld.h>
 #import <pal/spi/mac/NSApplicationSPI.h>
+#import <pal/spi/mac/NSMenuSPI.h>
+#import <wtf/ProcessPrivilege.h>
 #import <wtf/text/StringConcatenate.h>
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, process().connection())
@@ -70,6 +74,37 @@ using namespace WebCore;
 - (void)speakString:(NSString *)string;
 - (void)stopSpeaking:(id)sender;
 @end
+
+#if ENABLE(PDFKIT_PLUGIN)
+@interface WKPDFMenuTarget : NSObject {
+    NSMenuItem *_selectedMenuItem;
+}
+- (NSMenuItem *)selectedMenuItem;
+- (void)contextMenuAction:(NSMenuItem *)sender;
+@end
+
+@implementation WKPDFMenuTarget
+- (instancetype)init
+{
+    self = [super init];
+    if (!self)
+        return nil;
+    
+    _selectedMenuItem = nil;
+    return self;
+}
+
+- (NSMenuItem *)selectedMenuItem
+{
+    return _selectedMenuItem;
+}
+
+- (void)contextMenuAction:(NSMenuItem *)sender
+{
+    _selectedMenuItem = sender;
+}
+@end // implementation WKPDFMenuTarget
+#endif
 
 namespace WebKit {
 
@@ -99,16 +134,19 @@ String WebPageProxy::standardUserAgent(const String& applicationNameForUserAgent
 
 void WebPageProxy::getIsSpeaking(bool& isSpeaking)
 {
+    ASSERT(hasProcessPrivilege(ProcessPrivilege::CanCommunicateWithWindowServer));
     isSpeaking = [NSApp isSpeaking];
 }
 
 void WebPageProxy::speak(const String& string)
 {
+    ASSERT(hasProcessPrivilege(ProcessPrivilege::CanCommunicateWithWindowServer));
     [NSApp speakString:nsStringFromWebCoreString(string)];
 }
 
 void WebPageProxy::stopSpeaking()
 {
+    ASSERT(hasProcessPrivilege(ProcessPrivilege::CanCommunicateWithWindowServer));
     [NSApp stopSpeaking:nil];
 }
 
@@ -525,6 +563,47 @@ void WebPageProxy::openPDFFromTemporaryFolderWithNativeApplication(const String&
     [[NSWorkspace sharedWorkspace] openFile:pdfFilename];
 }
 
+#if ENABLE(PDFKIT_PLUGIN)
+void WebPageProxy::showPDFContextMenu(const WebKit::PDFContextMenu& contextMenu, std::optional<int32_t>& selectedIndex)
+{
+    if (!contextMenu.m_items.size())
+        return;
+    
+    RetainPtr<WKPDFMenuTarget> menuTarget = adoptNS([[WKPDFMenuTarget alloc] init]);
+    RetainPtr<NSMenu> nsMenu = adoptNS([[NSMenu alloc] init]);
+    [nsMenu setAllowsContextMenuPlugIns:false];
+    for (unsigned i = 0; i < contextMenu.m_items.size(); i++) {
+        auto& item = contextMenu.m_items[i];
+        
+        if (item.separator) {
+            [nsMenu insertItem:[NSMenuItem separatorItem] atIndex:i];
+            continue;
+        }
+        
+        RetainPtr<NSMenuItem> nsItem = adoptNS([[NSMenuItem alloc] init]);
+        [nsItem setTitle:item.title];
+        [nsItem setEnabled:item.enabled];
+        [nsItem setState:item.state];
+        if (item.hasAction) {
+            [nsItem setTarget:menuTarget.get()];
+            [nsItem setAction:@selector(contextMenuAction:)];
+        }
+        [nsItem setTag:item.tag];
+        [nsMenu insertItem:nsItem.get() atIndex:i];
+    }
+    NSWindow *window = m_pageClient.platformWindow();
+    auto windowNumber = [window windowNumber];
+    auto location = [window convertRectFromScreen: { contextMenu.m_point, NSZeroSize }].origin;
+    NSEvent* event = [NSEvent mouseEventWithType:NSEventTypeRightMouseDown location:location modifierFlags:0 timestamp:0 windowNumber:windowNumber context:0 eventNumber:0 clickCount:1 pressure:1];
+
+    auto view = [m_pageClient.platformWindow() contentView];
+    [NSMenu popUpContextMenu:nsMenu.get() withEvent:event forView:view];
+
+    if (auto selectedMenuItem = [menuTarget selectedMenuItem])
+        selectedIndex = [selectedMenuItem tag];
+}
+#endif
+
 #if ENABLE(TELEPHONE_NUMBER_DETECTION)
 void WebPageProxy::showTelephoneNumberMenu(const String& telephoneNumber, const WebCore::IntPoint& point)
 {
@@ -547,13 +626,21 @@ bool WebPageProxy::appleMailLinesClampEnabled()
 {
     return MacApplication::isAppleMail();
 }
-    
-void WebPageProxy::setFont(const String& fontFamily, double fontSize, uint64_t fontTraits)
+
+void WebPageProxy::changeFontAttributes(WebCore::FontAttributeChanges&& changes)
 {
     if (!isValid())
         return;
 
-    process().send(Messages::WebPage::SetFont(fontFamily, fontSize, fontTraits), m_pageID);
+    process().send(Messages::WebPage::ChangeFontAttributes(WTFMove(changes)), m_pageID);
+}
+    
+void WebPageProxy::changeFont(WebCore::FontChanges&& changes)
+{
+    if (!isValid())
+        return;
+
+    process().send(Messages::WebPage::ChangeFont(WTFMove(changes)), m_pageID);
 }
 
 void WebPageProxy::editorStateChanged(const EditorState& editorState)
@@ -605,9 +692,10 @@ _WKRemoteObjectRegistry *WebPageProxy::remoteObjectRegistry()
 }
 #endif
 
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+#if ENABLE(WEBPROCESS_WINDOWSERVER_BLOCKING)
 void WebPageProxy::startDisplayLink(unsigned observerID)
 {
+    ASSERT(hasProcessPrivilege(ProcessPrivilege::CanCommunicateWithWindowServer));
     if (!m_displayLink) {
         uint32_t displayID = [[[[platformWindow() screen] deviceDescription] objectForKey:@"NSScreenNumber"] intValue];
         m_displayLink = std::make_unique<DisplayLink>(displayID, *this);
@@ -629,3 +717,6 @@ void WebPageProxy::stopDisplayLink(unsigned observerID)
 } // namespace WebKit
 
 #endif // PLATFORM(MAC)
+
+#undef MESSAGE_CHECK
+#undef MESSAGE_CHECK_URL

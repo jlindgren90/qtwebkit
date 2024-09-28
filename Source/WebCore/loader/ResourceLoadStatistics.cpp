@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Apple Inc.  All rights reserved.
+ * Copyright (C) 2016-2018 Apple Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,10 +28,13 @@
 
 #include "KeyedCoding.h"
 #include "PublicSuffix.h"
+#include <wtf/MainThread.h>
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/StringHash.h>
 
 namespace WebCore {
+
+static Seconds timestampResolution { 5_s };
 
 typedef WTF::HashMap<String, unsigned, StringHash, HashTraits<String>, HashTraits<unsigned>>::KeyValuePairType ResourceLoadStatisticsValue;
 
@@ -262,7 +265,6 @@ String ResourceLoadStatistics::toString() const
     builder.append('\n');
 
     // In-memory only
-    appendBoolean(builder, "isMarkedForCookiePartitioning", isMarkedForCookiePartitioning);
     appendBoolean(builder, "isMarkedForCookieBlocking", isMarkedForCookieBlocking);
     builder.append('\n');
 
@@ -327,7 +329,6 @@ void ResourceLoadStatistics::merge(const ResourceLoadStatistics& other)
     dataRecordsRemoved = std::max(dataRecordsRemoved, other.dataRecordsRemoved);
     
     // In-memory only
-    isMarkedForCookiePartitioning |= other.isMarkedForCookiePartitioning;
     isMarkedForCookieBlocking |= other.isMarkedForCookieBlocking;
 }
 
@@ -336,19 +337,25 @@ String ResourceLoadStatistics::primaryDomain(const URL& url)
     return primaryDomain(url.host());
 }
 
-String ResourceLoadStatistics::primaryDomain(const String& host)
+String ResourceLoadStatistics::primaryDomain(StringView host)
 {
     if (host.isNull() || host.isEmpty())
-        return ASCIILiteral("nullOrigin");
+        return "nullOrigin"_s;
 
+    String hostString = host.toString();
 #if ENABLE(PUBLIC_SUFFIX_LIST)
-    String primaryDomain = topPrivatelyControlledDomain(host);
+    String primaryDomain = topPrivatelyControlledDomain(hostString);
     // We will have an empty string here if there is no TLD. Use the host as a fallback.
     if (!primaryDomain.isEmpty())
         return primaryDomain;
 #endif
 
-    return host;
+    return hostString;
+}
+
+WallTime ResourceLoadStatistics::reduceTimeResolution(WallTime time)
+{
+    return WallTime::fromRawSeconds(std::floor(time.secondsSinceEpoch() / timestampResolution) * timestampResolution.seconds());
 }
 
 }

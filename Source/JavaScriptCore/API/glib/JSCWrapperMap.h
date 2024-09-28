@@ -45,8 +45,10 @@ public:
     void unwrap(JSValueRef);
 
     void registerClass(JSCClass*);
+    JSCClass* registeredClass(JSClassRef) const;
 
     JSObject* createJSWrappper(JSGlobalContextRef, JSClassRef, JSValueRef prototype, gpointer, GDestroyNotify);
+    JSGlobalContextRef createContextWithJSWrappper(JSContextGroupRef, JSClassRef, JSValueRef prototype, gpointer, GDestroyNotify);
     JSObject* jsWrapper(gpointer wrappedObject) const;
     gpointer wrappedObject(JSGlobalContextRef, JSObjectRef) const;
 

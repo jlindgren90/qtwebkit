@@ -44,20 +44,20 @@ bool shouldDumpDisassemblyFor(CodeBlock* codeBlock)
     return Options::dumpDisassembly();
 }
 
-LinkBuffer::CodeRef LinkBuffer::finalizeCodeWithoutDisassembly(PtrTag tag)
+LinkBuffer::CodeRef<LinkBufferPtrTag> LinkBuffer::finalizeCodeWithoutDisassemblyImpl()
 {
     performFinalization();
     
     ASSERT(m_didAllocate);
     if (m_executableMemory)
-        return CodeRef(*m_executableMemory, tag);
+        return CodeRef<LinkBufferPtrTag>(*m_executableMemory);
     
-    return CodeRef::createSelfManagedCodeRef(MacroAssemblerCodePtr(tagCodePtr(m_code, tag)));
+    return CodeRef<LinkBufferPtrTag>::createSelfManagedCodeRef(m_code);
 }
 
-LinkBuffer::CodeRef LinkBuffer::finalizeCodeWithDisassembly(PtrTag tag, const char* format, ...)
+LinkBuffer::CodeRef<LinkBufferPtrTag> LinkBuffer::finalizeCodeWithDisassemblyImpl(const char* format, ...)
 {
-    CodeRef result = finalizeCodeWithoutDisassembly(tag);
+    CodeRef<LinkBufferPtrTag> result = finalizeCodeWithoutDisassemblyImpl();
 
     if (m_alreadyDisassembled)
         return result;
@@ -70,18 +70,19 @@ LinkBuffer::CodeRef LinkBuffer::finalizeCodeWithDisassembly(PtrTag tag, const ch
     va_end(argList);
     out.printf(":\n");
 
-    uint8_t* executableAddress = removeCodePtrTag<uint8_t*>(result.code().executableAddress());
+    uint8_t* executableAddress = result.code().untaggedExecutableAddress<uint8_t*>();
     out.printf("    Code at [%p, %p):\n", executableAddress, executableAddress + result.size());
     
     CString header = out.toCString();
     
     if (Options::asyncDisassembly()) {
-        disassembleAsynchronously(header, result, m_size, "    ");
+        CodeRef<DisassemblyPtrTag> codeRefForDisassembly = result.retagged<DisassemblyPtrTag>();
+        disassembleAsynchronously(header, WTFMove(codeRefForDisassembly), m_size, "    ");
         return result;
     }
     
     dataLog(header);
-    disassemble(result.code(), m_size, "    ", WTF::dataFile());
+    disassemble(result.retaggedCode<DisassemblyPtrTag>(), m_size, "    ", WTF::dataFile());
     
     return result;
 }
@@ -111,7 +112,7 @@ void LinkBuffer::copyCompactAndLinkCode(MacroAssembler& macroAssembler, void* ow
     AssemblerData outBuffer(m_size);
 
     uint8_t* outData = reinterpret_cast<uint8_t*>(outBuffer.buffer());
-    uint8_t* codeOutData = reinterpret_cast<uint8_t*>(m_code);
+    uint8_t* codeOutData = m_code.dataLocation<uint8_t*>();
 
     int readPtr = 0;
     int writePtr = 0;
@@ -183,13 +184,13 @@ void LinkBuffer::copyCompactAndLinkCode(MacroAssembler& macroAssembler, void* ow
         MacroAssembler::AssemblerType_T::fillNops(outData + compactSize, nopSizeInBytes, isCopyingToExecutableMemory);
     }
 
-    performJITMemcpy(m_code, outData, m_size);
+    performJITMemcpy(codeOutData, outData, m_size);
 
 #if DUMP_LINK_STATISTICS
-    dumpLinkStatistics(m_code, initialSize, m_size);
+    dumpLinkStatistics(codeOutData, initialSize, m_size);
 #endif
 #if DUMP_CODE
-    dumpCode(m_code, m_size);
+    dumpCode(codeOutData, m_size);
 #endif
 }
 #endif
@@ -209,12 +210,13 @@ void LinkBuffer::linkCode(MacroAssembler& macroAssembler, void* ownerUID, JITCom
         return;
     ASSERT(m_code);
     AssemblerBuffer& buffer = macroAssembler.m_assembler.buffer();
+    void* code = m_code.dataLocation();
 #if CPU(ARM_TRADITIONAL)
-    macroAssembler.m_assembler.prepareExecutableCopy(m_code);
+    macroAssembler.m_assembler.prepareExecutableCopy(code);
 #endif
-    performJITMemcpy(m_code, buffer.data(), buffer.codeSize());
+    performJITMemcpy(code, buffer.data(), buffer.codeSize());
 #if CPU(MIPS)
-    macroAssembler.m_assembler.relocateJumps(buffer.data(), m_code);
+    macroAssembler.m_assembler.relocateJumps(buffer.data(), code);
 #endif
 #elif CPU(ARM_THUMB2)
     copyCompactAndLinkCode<uint16_t>(macroAssembler, ownerUID, effort);
@@ -242,11 +244,11 @@ void LinkBuffer::allocate(MacroAssembler& macroAssembler, void* ownerUID, JITCom
         macroAssembler.breakpoint();
         initialSize = macroAssembler.m_assembler.codeSize();
     }
-    
+
     m_executableMemory = ExecutableAllocator::singleton().allocate(initialSize, ownerUID, effort);
     if (!m_executableMemory)
         return;
-    m_code = m_executableMemory->start();
+    m_code = MacroAssemblerCodePtr<LinkBufferPtrTag>(m_executableMemory->start().retaggedPtr<LinkBufferPtrTag>());
     m_size = initialSize;
     m_didAllocate = true;
 }

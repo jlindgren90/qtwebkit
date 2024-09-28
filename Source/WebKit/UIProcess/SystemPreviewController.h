@@ -25,10 +25,14 @@
 
 #pragma once
 
+#if USE(SYSTEM_PREVIEW)
+
+#include <WebCore/IntRect.h>
+#include <WebCore/ResourceError.h>
 #include <WebCore/URL.h>
 #include <wtf/RetainPtr.h>
 
-#if PLATFORM(IOS) && USE(QUICK_LOOK)
+#if USE(QUICK_LOOK)
 OBJC_CLASS QLPreviewController;
 OBJC_CLASS _WKPreviewControllerDataSource;
 OBJC_CLASS _WKPreviewControllerDelegate;
@@ -43,14 +47,18 @@ public:
     explicit SystemPreviewController(WebPageProxy&);
 
     bool canPreview(const String& mimeType) const;
-    void showPreview(const WebCore::URL&);
 
-    void sendPageBack();
+    void start(const String& mimeType, const WebCore::IntRect&);
+    void updateProgress(float);
+    void finish(WebCore::URL);
+    void cancel();
+    void fail(const WebCore::ResourceError&);
+
+    WebPageProxy& page() { return m_webPageProxy; }
 
 private:
     WebPageProxy& m_webPageProxy;
-
-#if PLATFORM(IOS) && USE(QUICK_LOOK)
+#if USE(QUICK_LOOK)
     RetainPtr<QLPreviewController> m_qlPreviewController;
     RetainPtr<_WKPreviewControllerDelegate> m_qlPreviewControllerDelegate;
     RetainPtr<_WKPreviewControllerDataSource> m_qlPreviewControllerDataSource;
@@ -59,3 +67,4 @@ private:
 
 }
 
+#endif

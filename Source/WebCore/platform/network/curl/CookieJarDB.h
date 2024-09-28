@@ -62,12 +62,12 @@ private:
 
     bool m_detectedDatabaseCorruption {false};
 
-    bool isOnMemory() const { return (m_databasePath == ":onmemory:"); };
+    bool isOnMemory() const { return (m_databasePath == ":memory:"); };
 
     bool openDatabase();
     void closeDatabase();
 
-    bool checkSQLiteReturnCode(int actual, int expected);
+    void checkSQLiteReturnCode(int actual);
     void flagDatabaseCorruption();
     bool checkDatabaseCorruptionAndRemoveIfNeeded();
     String getCorruptionMarkerPath() const;

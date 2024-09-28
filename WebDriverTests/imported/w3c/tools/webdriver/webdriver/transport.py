@@ -50,8 +50,9 @@ class HTTPWireProtocol(object):
     Transports messages (commands and responses) over the WebDriver
     wire protocol.
 
-    Complex objects, such as ``webdriver.Element``, are by default
-    not marshaled to enable use of `session.transport.send` in WPT tests::
+    Complex objects, such as ``webdriver.Element``, ``webdriver.Frame``,
+    and ``webdriver.Window`` are by default not marshaled to enable
+    use of `session.transport.send` in WPT tests::
 
         session = webdriver.Session("127.0.0.1", 4444)
         response = transport.send("GET", "element/active", None)
@@ -100,8 +101,9 @@ class HTTPWireProtocol(object):
 
         The request `body` must be JSON serialisable unless a
         custom `encoder` has been provided.  This means complex
-        objects such as ``webdriver.Element`` are not automatically
-        made into JSON.  This behaviour is, however, provided by
+        objects such as ``webdriver.Element``, ``webdriver.Frame``,
+        and `webdriver.Window`` are not automatically made
+        into JSON.  This behaviour is, however, provided by
         ``webdriver.protocol.Encoder``, should you want it.
 
         Similarly, the response body is returned au natural
@@ -131,16 +133,20 @@ class HTTPWireProtocol(object):
         if body is None and method == "POST":
             body = {}
 
-        try:
-            payload = json.dumps(body, cls=encoder, **codec_kwargs)
-        except ValueError:
-            raise ValueError("Failed to encode request body as JSON:\n"
-                "%s" % json.dumps(body, indent=2))
-        if isinstance(payload, text_type):
-            payload = body.encode("utf-8")
+        payload = None
+        if body is not None:
+            try:
+                payload = json.dumps(body, cls=encoder, **codec_kwargs)
+            except ValueError:
+                raise ValueError("Failed to encode request body as JSON:\n"
+                    "%s" % json.dumps(body, indent=2))
+
+            if isinstance(payload, text_type):
+                payload = body.encode("utf-8")
 
         if headers is None:
             headers = {}
+        headers.update({'Connection': 'keep-alive'})
 
         url = self.url(uri)
 

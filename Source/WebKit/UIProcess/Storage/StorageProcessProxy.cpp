@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,11 +34,10 @@
 #include "WebsiteData.h"
 #include <WebCore/NotImplemented.h>
 
+namespace WebKit {
 using namespace WebCore;
 
-namespace WebKit {
-
-static uint64_t generateCallbackID()
+static uint64_t generateStorageProcessCallbackID()
 {
     static uint64_t callbackID;
 
@@ -65,6 +64,24 @@ StorageProcessProxy::~StorageProcessProxy()
     ASSERT(m_pendingDeleteWebsiteDataForOriginsCallbacks.isEmpty());
 }
 
+void StorageProcessProxy::terminateForTesting()
+{
+    for (auto& callback : m_pendingFetchWebsiteDataCallbacks.values())
+        callback({ });
+
+    for (auto& callback : m_pendingDeleteWebsiteDataCallbacks.values())
+        callback();
+
+    for (auto& callback : m_pendingDeleteWebsiteDataForOriginsCallbacks.values())
+        callback();
+    
+    m_pendingFetchWebsiteDataCallbacks.clear();
+    m_pendingDeleteWebsiteDataCallbacks.clear();
+    m_pendingDeleteWebsiteDataForOriginsCallbacks.clear();
+    
+    terminate();
+}
+
 void StorageProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions& launchOptions)
 {
     launchOptions.processType = ProcessLauncher::ProcessType::Storage;
@@ -84,35 +101,35 @@ void StorageProcessProxy::didReceiveMessage(IPC::Connection& connection, IPC::De
     }
 }
 
-void StorageProcessProxy::fetchWebsiteData(PAL::SessionID sessionID, OptionSet<WebsiteDataType> dataTypes, WTF::Function<void (WebsiteData)>&& completionHandler)
+void StorageProcessProxy::fetchWebsiteData(PAL::SessionID sessionID, OptionSet<WebsiteDataType> dataTypes, CompletionHandler<void (WebsiteData)>&& completionHandler)
 {
     ASSERT(canSendMessage());
 
-    uint64_t callbackID = generateCallbackID();
+    uint64_t callbackID = generateStorageProcessCallbackID();
     m_pendingFetchWebsiteDataCallbacks.add(callbackID, WTFMove(completionHandler));
 
     send(Messages::StorageProcess::FetchWebsiteData(sessionID, dataTypes, callbackID), 0);
 }
 
-void StorageProcessProxy::deleteWebsiteData(PAL::SessionID sessionID, OptionSet<WebsiteDataType> dataTypes, WallTime modifiedSince, WTF::Function<void ()>&& completionHandler)
+void StorageProcessProxy::deleteWebsiteData(PAL::SessionID sessionID, OptionSet<WebsiteDataType> dataTypes, WallTime modifiedSince, CompletionHandler<void ()>&& completionHandler)
 {
-    auto callbackID = generateCallbackID();
+    auto callbackID = generateStorageProcessCallbackID();
 
     m_pendingDeleteWebsiteDataCallbacks.add(callbackID, WTFMove(completionHandler));
     send(Messages::StorageProcess::DeleteWebsiteData(sessionID, dataTypes, modifiedSince, callbackID), 0);
 }
 
-void StorageProcessProxy::deleteWebsiteDataForOrigins(PAL::SessionID sessionID, OptionSet<WebsiteDataType> dataTypes, const Vector<WebCore::SecurityOriginData>& origins, WTF::Function<void()>&& completionHandler)
+void StorageProcessProxy::deleteWebsiteDataForOrigins(PAL::SessionID sessionID, OptionSet<WebsiteDataType> dataTypes, const Vector<WebCore::SecurityOriginData>& origins, CompletionHandler<void()>&& completionHandler)
 {
     ASSERT(canSendMessage());
 
-    uint64_t callbackID = generateCallbackID();
+    uint64_t callbackID = generateStorageProcessCallbackID();
     m_pendingDeleteWebsiteDataForOriginsCallbacks.add(callbackID, WTFMove(completionHandler));
 
     send(Messages::StorageProcess::DeleteWebsiteDataForOrigins(sessionID, dataTypes, origins, callbackID), 0);
 }
 
-void StorageProcessProxy::getStorageProcessConnection(WebProcessProxy& webProcessProxy, Ref<Messages::WebProcessProxy::GetStorageProcessConnection::DelayedReply>&& reply)
+void StorageProcessProxy::getStorageProcessConnection(WebProcessProxy& webProcessProxy, Messages::WebProcessProxy::GetStorageProcessConnection::DelayedReply&& reply)
 {
     m_pendingConnectionReplies.append(WTFMove(reply));
 
@@ -135,30 +152,31 @@ void StorageProcessProxy::getStorageProcessConnection(WebProcessProxy& webProces
 
 void StorageProcessProxy::didClose(IPC::Connection&)
 {
+    auto protectedProcessPool = makeRef(m_processPool);
+
     // The storage process must have crashed or exited, so send any pending sync replies we might have.
     while (!m_pendingConnectionReplies.isEmpty()) {
         auto reply = m_pendingConnectionReplies.takeFirst();
 
 #if USE(UNIX_DOMAIN_SOCKETS)
-        reply->send(IPC::Attachment());
+        reply(IPC::Attachment());
 #elif OS(DARWIN)
-        reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND));
+        reply(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND));
+#elif OS(WINDOWS)
+        reply(IPC::Attachment());
 #else
         notImplemented();
 #endif
     }
 
-    for (const auto& callback : m_pendingFetchWebsiteDataCallbacks.values())
-        callback(WebsiteData());
-    m_pendingFetchWebsiteDataCallbacks.clear();
+    while (!m_pendingFetchWebsiteDataCallbacks.isEmpty())
+        m_pendingFetchWebsiteDataCallbacks.take(m_pendingFetchWebsiteDataCallbacks.begin()->key)(WebsiteData { });
 
-    for (const auto& callback : m_pendingDeleteWebsiteDataCallbacks.values())
-        callback();
-    m_pendingDeleteWebsiteDataCallbacks.clear();
+    while (!m_pendingDeleteWebsiteDataCallbacks.isEmpty())
+        m_pendingDeleteWebsiteDataCallbacks.take(m_pendingDeleteWebsiteDataCallbacks.begin()->key)();
 
-    for (const auto& callback : m_pendingDeleteWebsiteDataForOriginsCallbacks.values())
-        callback();
-    m_pendingDeleteWebsiteDataForOriginsCallbacks.clear();
+    while (!m_pendingDeleteWebsiteDataForOriginsCallbacks.isEmpty())
+        m_pendingDeleteWebsiteDataForOriginsCallbacks.take(m_pendingDeleteWebsiteDataForOriginsCallbacks.begin()->key)();
 
     // Tell ProcessPool to forget about this storage process. This may cause us to be deleted.
     m_processPool.storageProcessCrashed(this);
@@ -172,12 +190,14 @@ void StorageProcessProxy::didCreateStorageToWebProcessConnection(const IPC::Atta
 {
     ASSERT(!m_pendingConnectionReplies.isEmpty());
 
-    RefPtr<Messages::WebProcessProxy::GetStorageProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
+    auto reply = m_pendingConnectionReplies.takeFirst();
 
 #if USE(UNIX_DOMAIN_SOCKETS)
-    reply->send(connectionIdentifier);
+    reply(connectionIdentifier);
 #elif OS(DARWIN)
-    reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND));
+    reply(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND));
+#elif OS(WINDOWS)
+    reply(connectionIdentifier.handle());
 #else
     notImplemented();
 #endif
@@ -219,7 +239,7 @@ void StorageProcessProxy::didFinishLaunching(ProcessLauncher* launcher, IPC::Con
 {
     ChildProcessProxy::didFinishLaunching(launcher, connectionIdentifier);
 
-    if (IPC::Connection::identifierIsNull(connectionIdentifier)) {
+    if (!IPC::Connection::identifierIsValid(connectionIdentifier)) {
         // FIXME: Do better cleanup here.
         return;
     }

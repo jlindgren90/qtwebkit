@@ -30,6 +30,7 @@
 #include "BitmapInfo.h"
 #include "CachedImage.h"
 #include "ClipboardUtilitiesWin.h"
+#include "Color.h"
 #include "Document.h"
 #include "DocumentFragment.h"
 #include "Editor.h"
@@ -369,7 +370,7 @@ static bool writeURL(WCDataObject *data, const URL& url, String title, bool with
     if (title.isEmpty()) {
         title = url.lastPathComponent();
         if (title.isEmpty())
-            title = url.host();
+            title = url.host().toString();
     }
 
     STGMEDIUM medium = {0};
@@ -707,7 +708,7 @@ void Pasteboard::write(const PasteboardURL& pasteboardURL)
     if (title.isEmpty()) {
         title = pasteboardURL.url.lastPathComponent();
         if (title.isEmpty())
-            title = pasteboardURL.url.host();
+            title = pasteboardURL.url.host().toString();
     }
 
     // write to clipboard in format com.apple.safari.bookmarkdata to be able to paste into the bookmarks view with appropriate title
@@ -1082,6 +1083,10 @@ void Pasteboard::write(const PasteboardImage&)
 }
 
 void Pasteboard::writeCustomData(const PasteboardCustomData&)
+{
+}
+
+void Pasteboard::write(const Color&)
 {
 }
 

@@ -84,6 +84,7 @@ public:
     void externalPlaybackChanged(bool, PlaybackSessionModel::ExternalPlaybackTargetType, const String&);
     void wirelessVideoPlaybackDisabledChanged(bool);
     void mutedChanged(bool);
+    void volumeChanged(double);
     void pictureInPictureActiveChanged(bool);
 
 private:
@@ -111,6 +112,8 @@ private:
     void togglePictureInPicture() final;
     void toggleMuted() final;
     void setMuted(bool) final;
+    void setVolume(double) final;
+    void setPlayingOnSecondScreen(bool) final;
 
     double playbackStartedTime() const final { return m_playbackStartedTime; }
     double duration() const final { return m_duration; }
@@ -132,6 +135,7 @@ private:
     String externalPlaybackLocalizedDeviceName() const final { return m_externalPlaybackLocalizedDeviceName; }
     bool wirelessVideoPlaybackDisabled() const final { return m_wirelessVideoPlaybackDisabled; }
     bool isMuted() const final { return m_muted; }
+    double volume() const final { return m_volume; }
     bool isPictureInPictureActive() const final { return m_pictureInPictureActive; }
 
     PlaybackSessionManagerProxy* m_manager;
@@ -158,6 +162,7 @@ private:
     String m_externalPlaybackLocalizedDeviceName;
     bool m_wirelessVideoPlaybackDisabled { false };
     bool m_muted { false };
+    double m_volume { 0 };
     bool m_pictureInPictureActive { false };
 };
 
@@ -186,6 +191,8 @@ private:
     void addClientForContext(uint64_t contextId);
     void removeClientForContext(uint64_t contextId);
 
+    uint64_t controlsManagerContextId() const { return m_controlsManagerContextId; }
+
     // Messages from PlaybackSessionManager
     void setUpPlaybackControlsManagerWithID(uint64_t contextId);
     void clearPlaybackControlsManager();
@@ -205,6 +212,7 @@ private:
     void rateChanged(uint64_t contextId, bool isPlaying, double rate);
     void handleControlledElementIDResponse(uint64_t, String) const;
     void mutedChanged(uint64_t contextId, bool muted);
+    void volumeChanged(uint64_t contextId, double volume);
     void pictureInPictureActiveChanged(uint64_t contextId, bool pictureInPictureActive);
 
     // Messages to PlaybackSessionManager
@@ -223,6 +231,8 @@ private:
     void togglePictureInPicture(uint64_t contextId);
     void toggleMuted(uint64_t contextId);
     void setMuted(uint64_t contextId, bool);
+    void setVolume(uint64_t contextId, double);
+    void setPlayingOnSecondScreen(uint64_t contextId, bool);
 
     WebPageProxy* m_page;
     HashMap<uint64_t, ModelInterfaceTuple> m_contextMap;

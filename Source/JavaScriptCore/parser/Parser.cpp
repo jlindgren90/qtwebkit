@@ -86,13 +86,11 @@
 
 #define semanticFailureDueToKeyword(...) semanticFailureDueToKeywordCheckingToken(m_token, __VA_ARGS__);
 
-using namespace std;
-
 namespace JSC {
 
 ALWAYS_INLINE static SourceParseMode getAsynFunctionBodyParseMode(SourceParseMode parseMode)
 {
-    if (isAsyncGeneratorFunctionParseMode(parseMode))
+    if (isAsyncGeneratorWrapperParseMode(parseMode))
         return SourceParseMode::AsyncGeneratorBodyMode;
 
     if (parseMode == SourceParseMode::AsyncArrowFunctionMode)
@@ -239,7 +237,7 @@ String Parser<LexerType>::parseInner(const Identifier& calleeName, SourceParseMo
             sourceElements = parseModuleSourceElements(context, parseMode);
         else if (isGeneratorWrapperParseMode(parseMode))
             sourceElements = parseGeneratorFunctionSourceElements(context, calleeName, CheckForStrictMode);
-        else if (isAsyncGeneratorFunctionParseMode(parseMode))
+        else if (isAsyncGeneratorWrapperParseMode(parseMode))
             sourceElements = parseAsyncGeneratorFunctionSourceElements(context, parseMode, isArrowFunctionBodyExpression, CheckForStrictMode);
         else
             sourceElements = parseSourceElements(context, CheckForStrictMode);
@@ -250,7 +248,7 @@ String Parser<LexerType>::parseInner(const Identifier& calleeName, SourceParseMo
         if (hasError())
             parseError = m_errorMessage;
         else
-            parseError = ASCIILiteral("Parser error");
+            parseError = "Parser error"_s;
     }
 
     IdentifierSet capturedVariables;
@@ -568,7 +566,7 @@ template <class TreeBuilder> TreeSourceElements Parser<LexerType>::parseAsyncFun
 template <typename LexerType>
 template <class TreeBuilder> TreeSourceElements Parser<LexerType>::parseAsyncGeneratorFunctionSourceElements(TreeBuilder& context, SourceParseMode parseMode, bool isArrowFunctionBodyExpression, SourceElementsMode mode)
 {
-    ASSERT_UNUSED(parseMode, isAsyncGeneratorFunctionParseMode(parseMode));
+    ASSERT_UNUSED(parseMode, isAsyncGeneratorWrapperParseMode(parseMode));
     auto sourceElements = context.createSourceElements();
         
     unsigned functionKeywordStart = tokenStart();
@@ -5043,7 +5041,7 @@ template <typename LexerType> void Parser<LexerType>::printUnexpectedTokenText(W
         out.print("Invalid escape in identifier: '", getToken(), "'");
         return;
     case UNEXPECTED_ESCAPE_ERRORTOK:
-        out.print("Unexpected escaped characters in keyword tocken: '", getToken(), "'");
+        out.print("Unexpected escaped characters in keyword token: '", getToken(), "'");
         return;
     case INVALID_IDENTIFIER_UNICODE_ESCAPE_ERRORTOK:
         out.print("Invalid unicode escape in identifier: '", getToken(), "'");

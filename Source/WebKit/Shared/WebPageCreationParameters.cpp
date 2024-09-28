@@ -53,8 +53,7 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << userAgent;
     encoder << itemStates;
     encoder << sessionID;
-    encoder << highestUsedBackForwardItemID;
-    encoder << userContentControllerID;
+    encoder << userContentControllerID.toUInt64();
     encoder << visitedLinkTableID;
     encoder << websiteDataStoreID;
     encoder << canRunBeforeUnloadConfirmPanel;
@@ -65,7 +64,7 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
     encoder << mediaVolume;
     encoder << muted;
     encoder << mayStartMediaWhenInWindow;
-    encoder << minimumLayoutSize;
+    encoder << viewLayoutSize;
     encoder << autoSizingShouldExpandToViewHeight;
     encoder << viewportSizeForCSSViewportUnits;
     encoder.encodeEnum(scrollPinningBehavior);
@@ -82,14 +81,15 @@ void WebPageCreationParameters::encode(IPC::Encoder& encoder) const
 #if PLATFORM(MAC)
     encoder << colorSpace;
     encoder << useSystemAppearance;
-    encoder << defaultAppearance;
+    encoder << useDarkAppearance;
 #endif
 #if PLATFORM(IOS)
     encoder << screenSize;
     encoder << availableScreenSize;
+    encoder << overrideScreenSize;
     encoder << textAutosizingWidth;
     encoder << ignoresViewportScaleLimits;
-    encoder << viewportConfigurationMinimumLayoutSize;
+    encoder << viewportConfigurationViewLayoutSize;
     encoder << viewportConfigurationViewSize;
     encoder << maximumUnobscuredSize;
 #endif
@@ -176,10 +176,13 @@ std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::
 
     if (!decoder.decode(parameters.sessionID))
         return std::nullopt;
-    if (!decoder.decode(parameters.highestUsedBackForwardItemID))
+
+    std::optional<uint64_t> userContentControllerIdentifier;
+    decoder >> userContentControllerIdentifier;
+    if (!userContentControllerIdentifier)
         return std::nullopt;
-    if (!decoder.decode(parameters.userContentControllerID))
-        return std::nullopt;
+    parameters.userContentControllerID = makeObjectIdentifier<UserContentControllerIdentifierType>(*userContentControllerIdentifier);
+
     if (!decoder.decode(parameters.visitedLinkTableID))
         return std::nullopt;
     if (!decoder.decode(parameters.websiteDataStoreID))
@@ -200,7 +203,7 @@ std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::
         return std::nullopt;
     if (!decoder.decode(parameters.mayStartMediaWhenInWindow))
         return std::nullopt;
-    if (!decoder.decode(parameters.minimumLayoutSize))
+    if (!decoder.decode(parameters.viewLayoutSize))
         return std::nullopt;
     if (!decoder.decode(parameters.autoSizingShouldExpandToViewHeight))
         return std::nullopt;
@@ -236,7 +239,7 @@ std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::
         return std::nullopt;
     if (!decoder.decode(parameters.useSystemAppearance))
         return std::nullopt;
-    if (!decoder.decode(parameters.defaultAppearance))
+    if (!decoder.decode(parameters.useDarkAppearance))
         return std::nullopt;
 #endif
 
@@ -245,11 +248,13 @@ std::optional<WebPageCreationParameters> WebPageCreationParameters::decode(IPC::
         return std::nullopt;
     if (!decoder.decode(parameters.availableScreenSize))
         return std::nullopt;
+    if (!decoder.decode(parameters.overrideScreenSize))
+        return std::nullopt;
     if (!decoder.decode(parameters.textAutosizingWidth))
         return std::nullopt;
     if (!decoder.decode(parameters.ignoresViewportScaleLimits))
         return std::nullopt;
-    if (!decoder.decode(parameters.viewportConfigurationMinimumLayoutSize))
+    if (!decoder.decode(parameters.viewportConfigurationViewLayoutSize))
         return std::nullopt;
     if (!decoder.decode(parameters.viewportConfigurationViewSize))
         return std::nullopt;

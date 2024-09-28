@@ -29,6 +29,15 @@
 
 #include "RenderThemeCocoa.h"
 
+#if USE(SYSTEM_PREVIEW)
+#if HAVE(IOSURFACE)
+#include "IOSurface.h"
+#endif
+#include <wtf/RetainPtr.h>
+#endif
+
+OBJC_CLASS CIContext;
+
 namespace WebCore {
     
 class RenderStyle;
@@ -45,6 +54,10 @@ public:
     static CFStringRef contentSizeCategory();
 
     WEBCORE_EXPORT static void setContentSizeCategory(const String&);
+
+#if USE(SYSTEM_PREVIEW)
+    void paintSystemPreviewBadge(Image&, const PaintInfo&, const FloatRect&) override;
+#endif
 
 protected:
     LengthBox popupInternalPaddingBox(const RenderStyle&) const override;
@@ -96,8 +109,8 @@ protected:
     void adjustSearchFieldStyle(StyleResolver&, RenderStyle&, const Element*) const override;
     bool paintSearchFieldDecorations(const RenderObject&, const PaintInfo&, const IntRect&) override;
 
-    Color platformActiveSelectionBackgroundColor() const override;
-    Color platformInactiveSelectionBackgroundColor() const override;
+    Color platformActiveSelectionBackgroundColor(OptionSet<StyleColor::Options>) const override;
+    Color platformInactiveSelectionBackgroundColor(OptionSet<StyleColor::Options>) const override;
 
 #if ENABLE(TOUCH_EVENTS)
     Color platformTapHighlightColor() const override { return 0x4D1A1A1A; }
@@ -128,14 +141,16 @@ private:
 
     void purgeCaches() override;
 
-#if ENABLE(EXTRA_ZOOM_MODE)
+#if PLATFORM(WATCHOS)
     String extraDefaultStyleSheet() final;
 #endif
 
     const Color& shadowColor() const;
     FloatRect addRoundedBorderClip(const RenderObject& box, GraphicsContext&, const IntRect&);
 
-    Color systemColor(CSSValueID, bool) const override;
+    Color systemColor(CSSValueID, OptionSet<StyleColor::Options>) const override;
+
+    CGColorRef colorForMarkerLineStyle(DocumentMarkerLineStyle, bool useDarkMode) override;
 
     String m_legacyMediaControlsScript;
     String m_mediaControlsScript;
@@ -143,6 +158,14 @@ private:
     String m_mediaControlsStyleSheet;
 
     mutable HashMap<int, Color> m_systemColorCache;
+
+#if USE(SYSTEM_PREVIEW)
+    RetainPtr<CIContext> m_ciContext;
+#if HAVE(IOSURFACE)
+    std::unique_ptr<IOSurface> m_largeBadgeSurface;
+    std::unique_ptr<IOSurface> m_smallBadgeSurface;
+#endif
+#endif
 
     bool m_shouldMockBoldSystemFontForAccessibility { false };
 };

@@ -88,19 +88,15 @@ public:
 
     TextureMapperLayer& layer() { return m_layer; }
 
-    void setFixedToViewport(bool);
-    bool fixedToViewport() const { return m_fixedToViewport; }
-
     Color debugBorderColor() const { return m_debugBorderColor; }
     float debugBorderWidth() const { return m_debugBorderWidth; }
-    void setRepaintCount(int);
 
 private:
     // GraphicsLayer
     bool isGraphicsLayerTextureMapper() const override { return true; }
 
     // TextureMapperPlatformLayer::Client
-    void platformLayerWillBeDestroyed() override { setContentsToPlatformLayer(0, NoContentsLayer); }
+    void platformLayerWillBeDestroyed() override { setContentsToPlatformLayer(0, ContentsLayerPurpose::None); }
     void setPlatformLayerNeedsDisplay() override { setContentsNeedsDisplay(); }
 
     void commitLayerChanges();
@@ -148,19 +144,17 @@ private:
         DebugVisualsChange =        (1L << 24),
         RepaintCountChange =        (1L << 25),
 
-        FixedToViewporChange =      (1L << 26),
-        AnimationStarted =          (1L << 27),
+        AnimationStarted =          (1L << 26),
     };
     void notifyChange(ChangeMask);
 
     TextureMapperLayer m_layer;
     RefPtr<TextureMapperTiledBackingStore> m_compositedImage;
     NativeImagePtr m_compositedNativeImagePtr;
-    RefPtr<TextureMapperBackingStore> m_backingStore;
+    RefPtr<TextureMapperTiledBackingStore> m_backingStore;
 
     int m_changeMask;
     bool m_needsDisplay;
-    bool m_fixedToViewport;
     Color m_solidColor;
 
     Color m_debugBorderColor;

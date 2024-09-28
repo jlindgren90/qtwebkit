@@ -45,6 +45,7 @@ typedef struct _cairo_rectangle cairo_rectangle_t;
 #endif
 
 #if PLATFORM(WIN)
+typedef struct tagRECT RECT;
 struct D2D_RECT_F;
 typedef D2D_RECT_F D2D1_RECT_F;
 #endif
@@ -88,6 +89,8 @@ public:
     float maxY() const { return y() + height(); }
     float width() const { return m_size.width(); }
     float height() const { return m_size.height(); }
+
+    float area() const { return m_size.area(); }
 
     void setX(float x) { m_location.setX(x); }
     void setY(float y) { m_location.setY(y); }
@@ -193,6 +196,7 @@ public:
 #endif
 
 #if PLATFORM(WIN)
+    WEBCORE_EXPORT FloatRect(const RECT&);
     WEBCORE_EXPORT FloatRect(const D2D1_RECT_F&);
     WEBCORE_EXPORT operator D2D1_RECT_F() const;
 #endif

@@ -36,7 +36,6 @@ namespace JSC {
 
 class LLIntOffsetsExtractor;
 
-// This is Spectre-safe because it doesn't have its length inline.
 class JSLexicalEnvironment : public JSSymbolTableObject {
     friend class JIT;
     friend class LLIntOffsetsExtractor;
@@ -144,10 +143,4 @@ inline JSLexicalEnvironment::JSLexicalEnvironment(VM& vm, Structure* structure, 
 {
 }
 
-inline JSLexicalEnvironment* asActivation(JSValue value)
-{
-    ASSERT(asObject(value)->inherits<JSLexicalEnvironment>(*value.getObject()->vm()));
-    return jsCast<JSLexicalEnvironment*>(asObject(value));
-}
-    
 } // namespace JSC

@@ -33,7 +33,6 @@
 #include "InspectorPageAgent.h"
 #include "InstrumentingAgents.h"
 #include "LoaderStrategy.h"
-#include "MainFrame.h"
 #include "PlatformStrategies.h"
 #include <wtf/text/StringBuilder.h>
 
@@ -42,7 +41,7 @@ namespace WebCore {
 using namespace Inspector;
 
 InspectorApplicationCacheAgent::InspectorApplicationCacheAgent(WebAgentContext& context, InspectorPageAgent* pageAgent)
-    : InspectorAgentBase(ASCIILiteral("ApplicationCache"), context)
+    : InspectorAgentBase("ApplicationCache"_s, context)
     , m_frontendDispatcher(std::make_unique<Inspector::ApplicationCacheFrontendDispatcher>(context.frontendRouter))
     , m_backendDispatcher(Inspector::ApplicationCacheBackendDispatcher::create(context.backendDispatcher, this))
     , m_pageAgent(pageAgent)

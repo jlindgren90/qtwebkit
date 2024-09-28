@@ -22,10 +22,10 @@
 
 #include "FilterOperations.h"
 #include "FloatRect.h"
-#include "GraphicsLayerTransform.h"
 #include "TextureMapper.h"
 #include "TextureMapperAnimation.h"
 #include "TextureMapperBackingStore.h"
+#include <wtf/WeakPtr.h>
 
 namespace WebCore {
 
@@ -34,11 +34,11 @@ class Region;
 class TextureMapperPaintOptions;
 class TextureMapperPlatformLayer;
 
-class TextureMapperLayer {
+class WEBCORE_EXPORT TextureMapperLayer : public CanMakeWeakPtr<TextureMapperLayer> {
     WTF_MAKE_NONCOPYABLE(TextureMapperLayer);
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    WEBCORE_EXPORT TextureMapperLayer();
+    TextureMapperLayer();
     virtual ~TextureMapperLayer();
 
     void setID(uint32_t id) { m_id = id; }
@@ -83,22 +83,17 @@ public:
         return !m_currentFilters.isEmpty();
     }
 
-    void setDebugVisuals(bool showDebugBorders, const Color& debugBorderColor, float debugBorderWidth, bool showRepaintCounter);
-    bool isShowingRepaintCounter() const { return m_state.showRepaintCounter; }
-    void setRepaintCount(int);
+    void setDebugVisuals(bool showDebugBorders, const Color& debugBorderColor, float debugBorderWidth);
+    void setRepaintCounter(bool showRepaintCounter, int repaintCount);
     void setContentsLayer(TextureMapperPlatformLayer*);
     void setAnimations(const TextureMapperAnimations&);
-    void setFixedToViewport(bool);
-    bool fixedToViewport() const { return m_fixedToViewport; }
-    void setBackingStore(RefPtr<TextureMapperBackingStore>&&);
+    void setBackingStore(TextureMapperBackingStore*);
 
     bool applyAnimationsRecursively(MonotonicTime);
     bool syncAnimations(MonotonicTime);
     bool descendantsOrSelfHaveRunningAnimations() const;
 
     void paint();
-
-    void setScrollPositionDeltaIfNeeded(const FloatSize&);
 
     void addChild(TextureMapperLayer*);
 
@@ -115,8 +110,6 @@ private:
 
     static void sortByZOrder(Vector<TextureMapperLayer* >& array);
 
-    FloatPoint adjustedPosition() const { return m_state.pos + m_scrollPositionDelta; }
-    bool isAncestorFixedToViewport() const;
     TransformationMatrix replicaTransform();
     void removeFromParent();
     void removeAllChildren();
@@ -147,9 +140,8 @@ private:
 
     Vector<TextureMapperLayer*> m_children;
     TextureMapperLayer* m_parent { nullptr };
-    TextureMapperLayer* m_effectTarget { nullptr };
-    RefPtr<TextureMapperBackingStore> m_backingStore;
-    GraphicsLayerTransform m_currentTransform;
+    WeakPtr<TextureMapperLayer> m_effectTarget;
+    TextureMapperBackingStore* m_backingStore { nullptr };
     TextureMapperPlatformLayer* m_contentsLayer { nullptr };
     float m_currentOpacity { 1.0 };
     FilterOperations m_currentFilters;
@@ -165,8 +157,8 @@ private:
         FloatRect contentsRect;
         FloatSize contentsTileSize;
         FloatSize contentsTilePhase;
-        TextureMapperLayer* maskLayer;
-        TextureMapperLayer* replicaLayer;
+        WeakPtr<TextureMapperLayer> maskLayer;
+        WeakPtr<TextureMapperLayer> replicaLayer;
         Color solidColor;
         FilterOperations filters;
         Color debugBorderColor;
@@ -184,9 +176,8 @@ private:
         bool showRepaintCounter : 1;
 
         State()
-            : opacity(1)
-            , maskLayer(0)
-            , replicaLayer(0)
+            : anchorPoint(0.5, 0.5, 0)
+            , opacity(1)
             , debugBorderWidth(0)
             , repaintCount(0)
             , preserves3D(false)
@@ -205,9 +196,14 @@ private:
     State m_state;
     TextureMapper* m_textureMapper { nullptr };
     TextureMapperAnimations m_animations;
-    FloatSize m_scrollPositionDelta;
-    bool m_fixedToViewport { false };
     uint32_t m_id { 0 };
+
+    struct {
+        TransformationMatrix localTransform;
+
+        TransformationMatrix combined;
+        TransformationMatrix combinedForChildren;
+    } m_layerTransforms;
 };
 
 }

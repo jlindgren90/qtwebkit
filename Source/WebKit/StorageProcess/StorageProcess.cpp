@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014, 2015, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,8 @@
 #include <wtf/CallbackAggregator.h>
 #include <wtf/CrossThreadTask.h>
 #include <wtf/MainThread.h>
+#include <wtf/MemoryPressureHandler.h>
+
 
 #if ENABLE(SERVICE_WORKER)
 #include "WebSWServerToContextConnectionMessages.h"
@@ -96,19 +98,6 @@ WebSWServerToContextConnection* StorageProcess::connectionToContextProcessFromIP
     return nullptr;
 }
 #endif
-
-void StorageProcess::didClose(IPC::Connection& connection)
-{
-#if ENABLE(SERVICE_WORKER)
-    if (RefPtr<WebSWServerToContextConnection> serverToContextConnection = connectionToContextProcessFromIPCConnection(connection)) {
-        connectionToContextProcessWasClosed(serverToContextConnection.releaseNonNull());
-        return;
-    }
-#else
-    UNUSED_PARAM(connection);
-#endif
-    stopRunLoop();
-}
 
 #if ENABLE(SERVICE_WORKER)
 void StorageProcess::connectionToContextProcessWasClosed(Ref<WebSWServerToContextConnection>&& serverToContextConnection)
@@ -194,7 +183,8 @@ void StorageProcess::initializeWebsiteDataStore(const StorageProcessCreationPara
     });
     if (addResult.isNewEntry) {
         SandboxExtension::consumePermanently(parameters.indexedDatabaseDirectoryExtensionHandle);
-        postStorageTask(createCrossThreadTask(*this, &StorageProcess::ensurePathExists, parameters.indexedDatabaseDirectory));
+        if (!parameters.indexedDatabaseDirectory.isEmpty())
+            postStorageTask(createCrossThreadTask(*this, &StorageProcess::ensurePathExists, parameters.indexedDatabaseDirectory));
     }
 #endif
 #if ENABLE(SERVICE_WORKER)
@@ -206,7 +196,8 @@ void StorageProcess::initializeWebsiteDataStore(const StorageProcessCreationPara
     });
     if (addResult.isNewEntry) {
         SandboxExtension::consumePermanently(parameters.serviceWorkerRegistrationDirectoryExtensionHandle);
-        postStorageTask(createCrossThreadTask(*this, &StorageProcess::ensurePathExists, parameters.serviceWorkerRegistrationDirectory));
+        if (!parameters.serviceWorkerRegistrationDirectory.isEmpty())
+            postStorageTask(createCrossThreadTask(*this, &StorageProcess::ensurePathExists, parameters.serviceWorkerRegistrationDirectory));
     }
 
     for (auto& scheme : parameters.urlSchemesServiceWorkersCanHandle)
@@ -259,14 +250,30 @@ void StorageProcess::createStorageToWebProcessConnection(bool isServiceWorkerPro
     parentProcessConnection()->send(Messages::StorageProcessProxy::DidCreateStorageToWebProcessConnection(IPC::Attachment(socketPair.client)), 0);
 #elif OS(DARWIN)
     // Create the listening port.
-    mach_port_t listeningPort;
-    mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &listeningPort);
+    mach_port_t listeningPort = MACH_PORT_NULL;
+    auto kr = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &listeningPort);
+    if (kr != KERN_SUCCESS) {
+        LOG_ERROR("Could not allocate mach port, error %x", kr);
+        CRASH();
+    }
 
     // Create a listening connection.
     m_storageToWebProcessConnections.append(StorageToWebProcessConnection::create(IPC::Connection::Identifier(listeningPort)));
 
     IPC::Attachment clientPort(listeningPort, MACH_MSG_TYPE_MAKE_SEND);
     parentProcessConnection()->send(Messages::StorageProcessProxy::DidCreateStorageToWebProcessConnection(clientPort), 0);
+#elif OS(WINDOWS)
+    IPC::Connection::Identifier serverIdentifier, clientIdentifier;
+    if (!IPC::Connection::createServerAndClientIdentifiers(serverIdentifier, clientIdentifier)) {
+        LOG_ERROR("Failed to create server and client identifiers");
+        CRASH();
+    }
+
+    auto connection = StorageToWebProcessConnection::create(serverIdentifier);
+    m_storageToWebProcessConnections.append(WTFMove(connection));
+
+    IPC::Attachment clientSocket(clientIdentifier);
+    parentProcessConnection()->send(Messages::StorageProcessProxy::DidCreateStorageToWebProcessConnection(clientSocket), 0);
 #else
     notImplemented();
 #endif
@@ -286,6 +293,16 @@ void StorageProcess::createStorageToWebProcessConnection(bool isServiceWorkerPro
     }
 #else
     UNUSED_PARAM(isServiceWorkerProcess);
+#endif
+}
+
+void StorageProcess::destroySession(PAL::SessionID sessionID)
+{
+#if ENABLE(SERVICE_WORKER)
+    m_swServers.remove(sessionID);
+    m_swDatabasePaths.remove(sessionID);
+#else
+    UNUSED_PARAM(sessionID);
 #endif
 }
 
@@ -354,7 +371,7 @@ void StorageProcess::deleteWebsiteDataForOrigins(PAL::SessionID sessionID, Optio
 #endif
 
 #if ENABLE(INDEXED_DATABASE)
-    if (!websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases))
+    if (websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases))
         idbServer(sessionID).closeAndDeleteDatabasesForOrigins(securityOrigins, [callbackAggregator = WTFMove(callbackAggregator)] { });
 #endif
 }
@@ -389,17 +406,22 @@ void StorageProcess::accessToTemporaryFileComplete(const String& path)
         extension->revoke();
 }
 
-Vector<WebCore::SecurityOriginData> StorageProcess::indexedDatabaseOrigins(const String& path)
+HashSet<WebCore::SecurityOriginData> StorageProcess::indexedDatabaseOrigins(const String& path)
 {
     if (path.isEmpty())
         return { };
 
-    Vector<WebCore::SecurityOriginData> securityOrigins;
-    for (auto& originPath : FileSystem::listDirectory(path, "*")) {
-        String databaseIdentifier = FileSystem::pathGetFileName(originPath);
-
+    HashSet<WebCore::SecurityOriginData> securityOrigins;
+    for (auto& topOriginPath : FileSystem::listDirectory(path, "*")) {
+        auto databaseIdentifier = FileSystem::pathGetFileName(topOriginPath);
         if (auto securityOrigin = SecurityOriginData::fromDatabaseIdentifier(databaseIdentifier))
-            securityOrigins.append(WTFMove(*securityOrigin));
+            securityOrigins.add(WTFMove(*securityOrigin));
+        
+        for (auto& originPath : FileSystem::listDirectory(topOriginPath, "*")) {
+            databaseIdentifier = FileSystem::pathGetFileName(originPath);
+            if (auto securityOrigin = SecurityOriginData::fromDatabaseIdentifier(databaseIdentifier))
+                securityOrigins.add(WTFMove(*securityOrigin));
+        }
     }
 
     return securityOrigins;
@@ -429,10 +451,6 @@ SWServer& StorageProcess::swServerForSession(PAL::SessionID sessionID)
 {
     ASSERT(sessionID.isValid());
 
-    // Use the same SWServer for all ephemeral sessions.
-    if (sessionID.isEphemeral())
-        sessionID = PAL::SessionID::legacyPrivateSessionID();
-
     auto result = m_swServers.add(sessionID, nullptr);
     if (!result.isNewEntry) {
         ASSERT(result.iterator->value);
@@ -455,6 +473,14 @@ WebSWOriginStore& StorageProcess::swOriginStoreForSession(PAL::SessionID session
     return static_cast<WebSWOriginStore&>(swServerForSession(sessionID).originStore());
 }
 
+WebSWOriginStore* StorageProcess::existingSWOriginStoreForSession(PAL::SessionID sessionID) const
+{
+    auto* swServer = m_swServers.get(sessionID);
+    if (!swServer)
+        return nullptr;
+    return &static_cast<WebSWOriginStore&>(swServer->originStore());
+}
+
 WebSWServerToContextConnection* StorageProcess::serverToContextConnectionForOrigin(const SecurityOriginData& securityOrigin)
 {
     return m_serverToContextConnections.get(securityOrigin);
@@ -472,37 +498,37 @@ void StorageProcess::createServerToContextConnection(const SecurityOriginData& s
         parentProcessConnection()->send(Messages::StorageProcessProxy::EstablishWorkerContextConnectionToStorageProcess(securityOrigin), 0);
 }
 
-void StorageProcess::didFailFetch(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier)
+void StorageProcess::didFailFetch(SWServerConnectionIdentifier serverConnectionIdentifier, FetchIdentifier fetchIdentifier, const ResourceError& error)
 {
     if (auto* connection = m_swServerConnections.get(serverConnectionIdentifier))
-        connection->didFailFetch(fetchIdentifier);
+        connection->didFailFetch(fetchIdentifier, error);
 }
 
-void StorageProcess::didNotHandleFetch(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier)
+void StorageProcess::didNotHandleFetch(SWServerConnectionIdentifier serverConnectionIdentifier, FetchIdentifier fetchIdentifier)
 {
     if (auto* connection = m_swServerConnections.get(serverConnectionIdentifier))
         connection->didNotHandleFetch(fetchIdentifier);
 }
 
-void StorageProcess::didReceiveFetchResponse(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier, const WebCore::ResourceResponse& response)
+void StorageProcess::didReceiveFetchResponse(SWServerConnectionIdentifier serverConnectionIdentifier, FetchIdentifier fetchIdentifier, const WebCore::ResourceResponse& response)
 {
     if (auto* connection = m_swServerConnections.get(serverConnectionIdentifier))
         connection->didReceiveFetchResponse(fetchIdentifier, response);
 }
 
-void StorageProcess::didReceiveFetchData(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier, const IPC::DataReference& data, int64_t encodedDataLength)
+void StorageProcess::didReceiveFetchData(SWServerConnectionIdentifier serverConnectionIdentifier, FetchIdentifier fetchIdentifier, const IPC::DataReference& data, int64_t encodedDataLength)
 {
     if (auto* connection = m_swServerConnections.get(serverConnectionIdentifier))
         connection->didReceiveFetchData(fetchIdentifier, data, encodedDataLength);
 }
 
-void StorageProcess::didReceiveFetchFormData(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier, const IPC::FormDataReference& formData)
+void StorageProcess::didReceiveFetchFormData(SWServerConnectionIdentifier serverConnectionIdentifier, FetchIdentifier fetchIdentifier, const IPC::FormDataReference& formData)
 {
     if (auto* connection = m_swServerConnections.get(serverConnectionIdentifier))
         connection->didReceiveFetchFormData(fetchIdentifier, formData);
 }
 
-void StorageProcess::didFinishFetch(SWServerConnectionIdentifier serverConnectionIdentifier, uint64_t fetchIdentifier)
+void StorageProcess::didFinishFetch(SWServerConnectionIdentifier serverConnectionIdentifier, FetchIdentifier fetchIdentifier)
 {
     if (auto* connection = m_swServerConnections.get(serverConnectionIdentifier))
         connection->didFinishFetch(fetchIdentifier);
@@ -532,7 +558,8 @@ void StorageProcess::unregisterSWServerConnection(WebSWServerConnection& connect
 {
     ASSERT(m_swServerConnections.get(connection.identifier()) == &connection);
     m_swServerConnections.remove(connection.identifier());
-    swOriginStoreForSession(connection.sessionID()).unregisterSWServerConnection(connection);
+    if (auto* store = existingSWOriginStoreForSession(connection.sessionID()))
+        store->unregisterSWServerConnection(connection);
 }
 
 void StorageProcess::swContextConnectionMayNoLongerBeNeeded(WebSWServerToContextConnection& serverToContextConnection)
@@ -543,6 +570,9 @@ void StorageProcess::swContextConnectionMayNoLongerBeNeeded(WebSWServerToContext
 
     RELEASE_LOG(ServiceWorker, "Service worker process is no longer needed, terminating it");
     serverToContextConnection.terminate();
+
+    for (auto& swServer : m_swServers.values())
+        swServer->markAllWorkersForOriginAsTerminated(securityOrigin);
 
     serverToContextConnection.connectionClosed();
     m_serverToContextConnections.remove(securityOrigin);
@@ -562,6 +592,14 @@ void StorageProcess::disableServiceWorkerProcessTerminationDelay()
 #if !PLATFORM(COCOA)
 void StorageProcess::initializeProcess(const ChildProcessInitializationParameters&)
 {
+#if OS(LINUX)
+    auto& memoryPressureHandler = MemoryPressureHandler::singleton();
+    memoryPressureHandler.setLowMemoryHandler([this] (Critical, Synchronous) {
+        // FIXME: no lowMemoryHandler() implemented for StorageProcess currently.
+        // But at least define this setLowMemoryHandler() empty so platformReleaseMemory is called.
+    });
+    memoryPressureHandler.install();
+#endif
 }
 
 void StorageProcess::initializeProcessName(const ChildProcessInitializationParameters&)
@@ -571,6 +609,6 @@ void StorageProcess::initializeProcessName(const ChildProcessInitializationParam
 void StorageProcess::initializeSandbox(const ChildProcessInitializationParameters&, SandboxInitializationParameters&)
 {
 }
-#endif
+#endif // !PLATFORM(COCOA)
 
 } // namespace WebKit

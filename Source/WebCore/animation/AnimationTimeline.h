@@ -53,18 +53,21 @@ public:
     virtual std::optional<Seconds> currentTime() { return m_currentTime; }
     WEBCORE_EXPORT void setCurrentTime(Seconds);
     WEBCORE_EXPORT String description();
-    WEBCORE_EXPORT virtual void pause() { };
+    virtual void pause() { };
 
     virtual void timingModelDidChange() { };
 
+    enum class Ordering { Sorted, Unsorted };
     const ListHashSet<RefPtr<WebAnimation>>& animations() const { return m_animations; }
-    Vector<RefPtr<WebAnimation>> animationsForElement(Element&);
-    void cancelAnimationsForElement(Element&);
+    Vector<RefPtr<WebAnimation>> animationsForElement(Element&, Ordering ordering = Ordering::Unsorted) const;
+    void elementWasRemoved(Element&);
+    void removeAnimationsForElement(Element&);
+    void cancelDeclarativeAnimationsForElement(Element&);
     void animationWasAddedToElement(WebAnimation&, Element&);
     void animationWasRemovedFromElement(WebAnimation&, Element&);
 
-    void updateCSSAnimationsForElement(Element&, const RenderStyle& newStyle, const RenderStyle* oldStyle);
-    void updateCSSTransitionsForElement(Element&, const RenderStyle& newStyle, const RenderStyle* oldStyle);
+    void updateCSSAnimationsForElement(Element&, const RenderStyle* currentStyle, const RenderStyle& afterChangeStyle);
+    void updateCSSTransitionsForElement(Element&, const RenderStyle& currentStyle, const RenderStyle& afterChangeStyle);
 
     virtual ~AnimationTimeline();
 
@@ -79,24 +82,27 @@ protected:
 
     bool hasElementAnimations() const { return !m_elementToAnimationsMap.isEmpty() || !m_elementToCSSAnimationsMap.isEmpty() || !m_elementToCSSTransitionsMap.isEmpty(); }
 
-    const HashMap<Element*, Vector<RefPtr<WebAnimation>>>& elementToAnimationsMap() { return m_elementToAnimationsMap; }
-    const HashMap<Element*, Vector<RefPtr<WebAnimation>>>& elementToCSSAnimationsMap() { return m_elementToCSSAnimationsMap; }
-    const HashMap<Element*, Vector<RefPtr<WebAnimation>>>& elementToCSSTransitionsMap() { return m_elementToCSSTransitionsMap; }
-    void removeDeclarativeAnimation(RefPtr<DeclarativeAnimation>);
+    const ListHashSet<WebAnimation*>& animationsWithoutTarget() const { return m_animationsWithoutTarget; }
+    const HashMap<Element*, ListHashSet<RefPtr<WebAnimation>>>& elementToAnimationsMap() { return m_elementToAnimationsMap; }
+    const HashMap<Element*, ListHashSet<RefPtr<WebAnimation>>>& elementToCSSAnimationsMap() { return m_elementToCSSAnimationsMap; }
+    const HashMap<Element*, ListHashSet<RefPtr<WebAnimation>>>& elementToCSSTransitionsMap() { return m_elementToCSSTransitionsMap; }
 
 private:
-    HashMap<Element*, Vector<RefPtr<WebAnimation>>>& relevantMapForAnimation(WebAnimation&);
+    HashMap<Element*, ListHashSet<RefPtr<WebAnimation>>>& relevantMapForAnimation(WebAnimation&);
     void cancelOrRemoveDeclarativeAnimation(RefPtr<DeclarativeAnimation>);
+    RefPtr<WebAnimation> cssAnimationForElementAndProperty(Element&, CSSPropertyID);
 
     ClassType m_classType;
     std::optional<Seconds> m_currentTime;
-    HashMap<Element*, Vector<RefPtr<WebAnimation>>> m_elementToAnimationsMap;
-    HashMap<Element*, Vector<RefPtr<WebAnimation>>> m_elementToCSSAnimationsMap;
-    HashMap<Element*, Vector<RefPtr<WebAnimation>>> m_elementToCSSTransitionsMap;
+    HashMap<Element*, ListHashSet<RefPtr<WebAnimation>>> m_elementToAnimationsMap;
+    HashMap<Element*, ListHashSet<RefPtr<WebAnimation>>> m_elementToCSSAnimationsMap;
+    HashMap<Element*, ListHashSet<RefPtr<WebAnimation>>> m_elementToCSSTransitionsMap;
     ListHashSet<RefPtr<WebAnimation>> m_animations;
 
+    ListHashSet<WebAnimation*> m_animationsWithoutTarget;
     HashMap<Element*, HashMap<String, RefPtr<CSSAnimation>>> m_elementToCSSAnimationByName;
-    HashMap<Element*, HashMap<CSSPropertyID, RefPtr<CSSTransition>>> m_elementToCSSTransitionByCSSPropertyID;
+    HashMap<Element*, HashMap<CSSPropertyID, RefPtr<CSSTransition>>> m_elementToRunningCSSTransitionByCSSPropertyID;
+    HashMap<Element*, HashMap<CSSPropertyID, RefPtr<CSSTransition>>> m_elementToCompletedCSSTransitionByCSSPropertyID;
 };
 
 } // namespace WebCore

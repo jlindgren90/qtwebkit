@@ -27,6 +27,7 @@
 
 #include <wtf/HashTraits.h>
 #include <algorithm>
+#include <glib.h>
 
 namespace WTF {
 
@@ -233,6 +234,8 @@ template <> WTF_EXPORT_PRIVATE GBytes* refGPtr(GBytes*);
 template <> WTF_EXPORT_PRIVATE void derefGPtr(GBytes*);
 template <> WTF_EXPORT_PRIVATE GClosure* refGPtr(GClosure*);
 template <> WTF_EXPORT_PRIVATE void derefGPtr(GClosure*);
+template <> WTF_EXPORT_PRIVATE GRegex* refGPtr(GRegex*);
+template <> WTF_EXPORT_PRIVATE void derefGPtr(GRegex*);
 
 template <typename T> inline T* refGPtr(T* ptr)
 {

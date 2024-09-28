@@ -34,7 +34,14 @@
 #include "LibWebRTCMacros.h"
 #include "MediaStreamTrackPrivate.h"
 #include "Timer.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #include <webrtc/api/mediastreaminterface.h>
+
+#pragma GCC diagnostic pop
+
 #include <wtf/ThreadSafeRefCounted.h>
 
 namespace webrtc {
@@ -58,13 +65,11 @@ public:
 protected:
     explicit RealtimeOutgoingAudioSource(Ref<MediaStreamTrackPrivate>&&);
 
-    virtual void handleMutedIfNeeded();
-    virtual void sendSilence() { };
-    virtual void pullAudioData() { };
+    virtual void pullAudioData() { }
+
+    bool isSilenced() const { return m_muted || !m_enabled; }
 
     Vector<webrtc::AudioTrackSinkInterface*> m_sinks;
-    bool m_muted { false };
-    bool m_enabled { true };
 
 private:
     virtual void AddSink(webrtc::AudioTrackSinkInterface* sink) { m_sinks.append(sink); }
@@ -102,8 +107,8 @@ private:
     void initializeConverter();
 
     Ref<MediaStreamTrackPrivate> m_audioSource;
-
-    Timer m_silenceAudioTimer;
+    bool m_muted { false };
+    bool m_enabled { true };
 };
 
 } // namespace WebCore

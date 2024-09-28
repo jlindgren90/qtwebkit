@@ -35,10 +35,11 @@
 #include "ApplePaySessionPaymentRequest.h"
 #include "Document.h"
 #include "EventNames.h"
+#include "Frame.h"
 #include "JSApplePayPayment.h"
+#include "JSApplePayPaymentMethod.h"
 #include "JSApplePayRequest.h"
 #include "LinkIconCollector.h"
-#include "MainFrame.h"
 #include "MerchantValidationEvent.h"
 #include "Page.h"
 #include "Payment.h"
@@ -64,7 +65,8 @@ bool ApplePayPaymentHandler::handlesIdentifier(const PaymentRequest::MethodIdent
 
 static inline PaymentCoordinator& paymentCoordinator(Document& document)
 {
-    return document.frame()->mainFrame().paymentCoordinator();
+    ASSERT(document.page());
+    return document.page()->paymentCoordinator();
 }
 
 bool ApplePayPaymentHandler::hasActiveSession(Document& document)
@@ -436,7 +438,14 @@ void ApplePayPaymentHandler::validateMerchant(const URL& validationURL)
 
 static Ref<PaymentAddress> convert(const ApplePayPaymentContact& contact)
 {
-    return PaymentAddress::create(contact.countryCode, contact.addressLines.value_or(Vector<String>()), contact.administrativeArea, contact.locality, contact.subLocality, contact.postalCode, String(), String(), String(), contact.localizedName, contact.phoneNumber);
+    return PaymentAddress::create(contact.countryCode, contact.addressLines.value_or(Vector<String>()), contact.administrativeArea, contact.locality, contact.subLocality, contact.postalCode, String(), String(), contact.localizedName, contact.phoneNumber);
+}
+
+template<typename T>
+static JSC::Strong<JSC::JSObject> toJSDictionary(JSC::ExecState& execState, const T& value)
+{
+    JSC::JSLockHolder lock { &execState };
+    return { execState.vm(), asObject(toJS<IDLDictionary<T>>(execState, *JSC::jsCast<JSDOMGlobalObject*>(execState.lexicalGlobalObject()), value)) };
 }
 
 void ApplePayPaymentHandler::didAuthorizePayment(const Payment& payment)
@@ -444,9 +453,7 @@ void ApplePayPaymentHandler::didAuthorizePayment(const Payment& payment)
     ASSERT(!m_isUpdating);
 
     auto applePayPayment = payment.toApplePayPayment(version());
-    auto& execState = *document().execState();
-    auto lock = JSC::JSLockHolder { &execState };
-    auto details = JSC::Strong<JSC::JSObject> { execState.vm(), asObject(toJS<IDLDictionary<ApplePayPayment>>(execState, *JSC::jsCast<JSDOMGlobalObject*>(execState.lexicalGlobalObject()), applePayPayment)) };
+    auto details = toJSDictionary(*document().execState(), applePayPayment);
     const auto& shippingContact = applePayPayment.shippingContact.value_or(ApplePayPaymentContact());
     m_paymentRequest->accept(WTF::get<URL>(m_identifier).string(), WTFMove(details), convert(shippingContact), shippingContact.localizedName, shippingContact.emailAddress, shippingContact.phoneNumber);
 }
@@ -472,8 +479,11 @@ void ApplePayPaymentHandler::didSelectPaymentMethod(const PaymentMethod& payment
     ASSERT(!m_isUpdating);
     m_isUpdating = true;
 
-    m_selectedPaymentMethodType = paymentMethod.toApplePayPaymentMethod().type;
-    m_paymentRequest->paymentMethodChanged();
+    auto applePayPaymentMethod = paymentMethod.toApplePayPaymentMethod();
+    m_selectedPaymentMethodType = applePayPaymentMethod.type;
+    m_paymentRequest->paymentMethodChanged(WTF::get<URL>(m_identifier).string(), [applePayPaymentMethod = WTFMove(applePayPaymentMethod)](JSC::ExecState& execState) {
+        return toJSDictionary(execState, applePayPaymentMethod);
+    });
 }
 
 void ApplePayPaymentHandler::didCancelPaymentSession()

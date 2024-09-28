@@ -36,8 +36,9 @@ namespace WebCore {
 
 bool isPublicSuffix(const String& domain)
 {
-    NSString *host = decodeHostName(domain);
-    return host && _CFHostIsDomainTopLevel((CFStringRef)host);
+    // Explicitly cast the domain to a NSString before calling decodeHostName() so we get a NSString back instead of a String.
+    NSString *host = decodeHostName((NSString *)domain);
+    return host && _CFHostIsDomainTopLevel((__bridge CFStringRef)host);
 }
 
 String topPrivatelyControlledDomain(const String& domain)
@@ -58,6 +59,11 @@ String topPrivatelyControlledDomain(const String& domain)
             return lowercaseDomain.substring(labelStart);
     }
     return String();
+}
+
+String decodeHostName(const String& domain)
+{
+    return decodeHostName((NSString *)(domain));
 }
 
 }

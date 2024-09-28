@@ -28,14 +28,21 @@
 #if USE(LIBWEBRTC)
 
 #include "LibWebRTCMacros.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+#include <webrtc/modules/audio_device/include/audio_device.h>
 #include <webrtc/rtc_base/messagehandler.h>
 #include <webrtc/rtc_base/thread.h>
-#include <webrtc/modules/audio_device/include/audio_device.h>
+
+#pragma GCC diagnostic pop
 
 namespace WebCore {
 
 // LibWebRTCAudioModule is pulling streamed data to ensure audio data is passed to the audio track.
 class LibWebRTCAudioModule final : public webrtc::AudioDeviceModule, private rtc::MessageHandler {
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     LibWebRTCAudioModule();
 
@@ -46,7 +53,7 @@ private:
         return value;
     }
 
-    void AddRef() const final { return; }
+    void AddRef() const final { }
     rtc::RefCountReleaseStatus Release() const final { return rtc::RefCountReleaseStatus::kOtherRefsRemained; }
     void OnMessage(rtc::Message*);
 

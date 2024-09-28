@@ -34,7 +34,6 @@
 
 #include <pal/cf/CoreMediaSoftLink.h>
 #include <pal/spi/cocoa/AudioToolboxSPI.h>
-#include <wtf/Scope.h>
 
 #if ENABLE(VIDEO_TRACK) && ENABLE(MEDIA_STREAM)
 
@@ -166,14 +165,9 @@ AudioComponentInstance AudioTrackPrivateMediaStreamCocoa::createAudioUnit(CAAudi
     return remoteIOUnit;
 }
 
+// May get called on a background thread.
 void AudioTrackPrivateMediaStreamCocoa::audioSamplesAvailable(const MediaTime& sampleTime, const PlatformAudioData& audioData, const AudioStreamDescription& description, size_t sampleCount)
 {
-    // This function is called on a background thread. The following protectedThis object ensures the object is not
-    // destroyed on the main thread before this function exits.
-    auto scopeExit = WTF::makeScopeExit([protectedThis = makeRef(*this)]() mutable {
-        callOnMainThread([protectedThis = WTFMove(protectedThis)] { });
-    });
-
     ASSERT(description.platformDescription().type == PlatformDescription::CAAudioStreamBasicType);
 
     if (!m_inputDescription || *m_inputDescription != description) {
@@ -197,11 +191,16 @@ void AudioTrackPrivateMediaStreamCocoa::audioSamplesAvailable(const MediaTime& s
         m_inputDescription = std::make_unique<CAAudioStreamDescription>(inputDescription);
         m_outputDescription = std::make_unique<CAAudioStreamDescription>(outputDescription);
 
-        if (!m_dataSource)
-            m_dataSource = AudioSampleDataSource::create(description.sampleRate() * 2);
+        m_dataSource = AudioSampleDataSource::create(description.sampleRate() * 2);
 
         if (m_dataSource->setInputFormat(inputDescription) || m_dataSource->setOutputFormat(outputDescription)) {
             AudioComponentInstanceDispose(remoteIOUnit);
+            return;
+        }
+
+        if (m_isPlaying && AudioOutputUnitStart(remoteIOUnit)) {
+            AudioComponentInstanceDispose(remoteIOUnit);
+            m_inputDescription = nullptr;
             return;
         }
 
@@ -224,9 +223,7 @@ OSStatus AudioTrackPrivateMediaStreamCocoa::render(UInt32 sampleCount, AudioBuff
 {
     // This function is called on a high-priority background thread. The following protectedThis object ensures the object is not
     // destroyed on the main thread before this function exits.
-    auto scopeExit = WTF::makeScopeExit([protectedThis = makeRef(*this)]() mutable {
-        callOnMainThread([protectedThis = WTFMove(protectedThis)] { });
-    });
+    Ref<AudioTrackPrivateMediaStreamCocoa> protectedThis { *this };
 
     if (!m_isPlaying || m_muted || !m_dataSource || streamTrack().muted() || streamTrack().ended() || !streamTrack().enabled()) {
         AudioSampleBufferList::zeroABL(ioData, static_cast<size_t>(sampleCount * m_outputDescription->bytesPerFrame()));

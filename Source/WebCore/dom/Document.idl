@@ -35,6 +35,7 @@ typedef (
     Constructor,
     ConstructorCallWith=Document,
     CustomToJSObject,
+    CustomHeapSnapshot,
     DOMJIT,
     ExportMacro=WEBCORE_EXPORT,
     JSCustomHeader,
@@ -107,13 +108,13 @@ typedef (
     // that the caller document matches those semantics. It is possible we should replace it with
     // the existing 'incumbent document' concept.
     [CEReactions, CallWith=ResponsibleDocument, ImplementedAs=openForBindings, MayThrowException] Document open(optional DOMString type = "text/html", optional DOMString replace = "");
-    [CallWith=ActiveWindow&FirstWindow, ImplementedAs=openForBindings, MayThrowException] DOMWindow open(USVString url, DOMString name, DOMString features);
+    [CallWith=ActiveWindow&FirstWindow, ImplementedAs=openForBindings, MayThrowException] WindowProxy open(USVString url, DOMString name, DOMString features);
     [CEReactions, ImplementedAs=closeForBindings, MayThrowException] void close();
     [CEReactions, CallWith=ResponsibleDocument, MayThrowException] void write(DOMString... text);
     [CEReactions, CallWith=ResponsibleDocument, MayThrowException] void writeln(DOMString... text);
 
     // User interaction.
-    readonly attribute DOMWindow? defaultView;
+    [ImplementedAs=windowProxy] readonly attribute WindowProxy? defaultView;
     boolean hasFocus();
     [CEReactions] attribute DOMString designMode;
     [CEReactions] boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString? value = null); // FIXME: value should not be nullable.
@@ -131,7 +132,7 @@ typedef (
     readonly attribute StyleSheetList styleSheets; // FIXME: Should be [SameObject].
 
     // Extensions from the CSSOM-View specification (https://drafts.csswg.org/cssom-view/#extensions-to-the-document-interface).
-    readonly attribute Element? scrollingElement;
+    [ImplementedAs=scrollingElementForAPI] readonly attribute Element? scrollingElement;
 
     // Extensions from Selection API (https://www.w3.org/TR/selection-api/#extensions-to-document-interface).
     // FIXME: Should likely be moved to DocumentOrShadowRoot.
@@ -167,10 +168,6 @@ typedef (
     readonly attribute boolean hidden;
     readonly attribute VisibilityState visibilityState;
     attribute EventHandler onvisibilitychange;
-
-    // FIXME: Those were dropped from the CSSOM specification.
-    readonly attribute DOMString? preferredStylesheetSet;
-    attribute DOMString? selectedStylesheetSet;
 
     // FIXME: Those have been dropped from the DOM specification.
     readonly attribute DOMString? xmlEncoding;

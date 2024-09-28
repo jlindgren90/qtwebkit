@@ -307,7 +307,7 @@ void NetscapePluginInstanceProxy::cleanup()
     m_localObjects.clear();
     
     if (Frame* frame = core([m_pluginView webFrame]))
-        frame->script().cleanupScriptObjectsForPlugin(m_pluginView);
+        frame->script().cleanupScriptObjectsForPlugin((__bridge void*)m_pluginView);
     
     ProxyInstanceSet instances;
     instances.swap(m_instances);
@@ -551,7 +551,7 @@ void NetscapePluginInstanceProxy::status(const char* message)
         return;
 
     WebView *wv = [m_pluginView webView];
-    [[wv _UIDelegateForwarder] webView:wv setStatusText:(NSString *)status.get()];
+    [[wv _UIDelegateForwarder] webView:wv setStatusText:(__bridge NSString *)status.get()];
 }
 
 NPError NetscapePluginInstanceProxy::loadURL(const char* url, const char* target, const char* postData, uint32_t postLen, LoadURLFlags flags, uint32_t& streamID)
@@ -572,12 +572,12 @@ NPError NetscapePluginInstanceProxy::loadURL(const char* url, const char* target
             if (!bufString)
                 return NPERR_INVALID_PARAM;
             
-            NSURL *fileURL = [NSURL _web_URLWithDataAsString:(NSString *)bufString.get()];
+            NSURL *fileURL = [NSURL _web_URLWithDataAsString:(__bridge NSString *)bufString.get()];
             NSString *path;
             if ([fileURL isFileURL])
                 path = [fileURL path];
             else
-                path = (NSString *)bufString.get();
+                path = (__bridge NSString *)bufString.get();
             httpBody = [NSData dataWithContentsOfFile:path];
             if (!httpBody)
                 return NPERR_FILE_NOT_FOUND;
@@ -839,7 +839,7 @@ bool NetscapePluginInstanceProxy::getWindowNPObject(uint32_t& objectID)
     if (!frame->script().canExecuteScripts(NotAboutToExecuteScript))
         objectID = 0;
     else
-        objectID = m_localObjects.idForObject(pluginWorld().vm(), frame->script().windowProxy(pluginWorld())->window());
+        objectID = m_localObjects.idForObject(pluginWorld().vm(), frame->windowProxy().jsWindowProxy(pluginWorld())->window());
         
     return true;
 }
@@ -921,7 +921,7 @@ bool NetscapePluginInstanceProxy::invoke(uint32_t objectID, const Identifier& me
     ExecState* exec = frame->script().globalObject(pluginWorld())->globalExec();
     JSValue function = object->get(exec, methodName);
     CallData callData;
-    CallType callType = getCallData(function, callData);
+    CallType callType = getCallData(vm, function, callData);
     if (callType == CallType::None)
         return false;
 
@@ -1415,7 +1415,7 @@ bool NetscapePluginInstanceProxy::demarshalValueFromArray(ExecState* exec, NSArr
             if (!frame->script().canExecuteScripts(NotAboutToExecuteScript))
                 return false;
 
-            auto rootObject = frame->script().createRootObject(m_pluginView);
+            auto rootObject = frame->script().createRootObject((__bridge void*)m_pluginView);
             result = ProxyInstance::create(WTFMove(rootObject), this, objectID)->createRuntimeObject(exec);
             return true;
         }

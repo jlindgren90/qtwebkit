@@ -98,6 +98,7 @@
 #include <WebCore/FloatQuad.h>
 #include <WebCore/FocusController.h>
 #include <WebCore/Font.h>
+#include <WebCore/Frame.h>
 #include <WebCore/FrameLoader.h>
 #include <WebCore/FrameSelection.h>
 #include <WebCore/FrameTree.h>
@@ -123,10 +124,8 @@
 #include <WebCore/LogInitialization.h>
 #include <WebCore/Logging.h>
 #include <WebCore/MIMETypeRegistry.h>
-#include <WebCore/MainFrame.h>
 #include <WebCore/MemoryCache.h>
 #include <WebCore/MemoryRelease.h>
-#include <WebCore/NavigationPolicyCheck.h>
 #include <WebCore/NetworkStorageSession.h>
 #include <WebCore/NotImplemented.h>
 #include <WebCore/Page.h>
@@ -157,6 +156,7 @@
 #include <WebCore/SecurityOrigin.h>
 #include <WebCore/SecurityPolicy.h>
 #include <WebCore/Settings.h>
+#include <WebCore/ShouldTreatAsContinuingLoad.h>
 #include <WebCore/SocketProvider.h>
 #include <WebCore/SubframeLoader.h>
 #include <WebCore/SystemInfo.h>
@@ -3438,7 +3438,7 @@ HRESULT WebView::goToBackForwardItem(_In_opt_ IWebHistoryItem* item, _Out_ BOOL*
     if (FAILED(hr))
         return hr;
 
-    m_page->goToItem(*webHistoryItem->historyItem(), FrameLoadType::IndexedBackForward, NavigationPolicyCheck::Require);
+    m_page->goToItem(*webHistoryItem->historyItem(), FrameLoadType::IndexedBackForward, ShouldTreatAsContinuingLoad::No);
     *succeeded = TRUE;
 
     return S_OK;
@@ -3832,11 +3832,11 @@ HRESULT WebView::searchFor(_In_ BSTR str, BOOL forward, BOOL caseFlag, BOOL wrap
 
     FindOptions options;
     if (!caseFlag)
-        options |= CaseInsensitive;
+        options.add(CaseInsensitive);
     if (!forward)
-        options |= Backwards;
+        options.add(Backwards);
     if (wrapFlag)
-        options |= WrapAround;
+        options.add(WrapAround);
     *found = m_page->findString(toString(str), options);
     return S_OK;
 }
@@ -3901,7 +3901,7 @@ HRESULT WebView::markAllMatchesForText(_In_ BSTR str, BOOL caseSensitive, BOOL h
 
     WebCore::FindOptions options;
     if (!caseSensitive)
-        options |= WebCore::CaseInsensitive;
+        options.add(WebCore::CaseInsensitive);
 
     *matches = m_page->markAllMatchesForText(toString(str), options, highlight, limit);
     return S_OK;
@@ -5150,7 +5150,7 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     settings.setShouldDisplayTextDescriptions(enabled);
 #endif
 
-    COMPtr<IWebPreferencesPrivate6> prefsPrivate { Query, preferences };
+    COMPtr<IWebPreferencesPrivate7> prefsPrivate { Query, preferences };
     if (prefsPrivate) {
         hr = prefsPrivate->localStorageDatabasePath(&str);
         if (FAILED(hr))
@@ -5229,10 +5229,10 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
         return hr;
     RuntimeEnabledFeatures::sharedFeatures().setWebAnimationsEnabled(!!enabled);
 
-    hr = prefsPrivate->cssAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled(&enabled);
+    hr = prefsPrivate->webAnimationsCSSIntegrationEnabled(&enabled);
     if (FAILED(hr))
         return hr;
-    RuntimeEnabledFeatures::sharedFeatures().setCSSAnimationsAndCSSTransitionsBackedByWebAnimationsEnabled(!!enabled);
+    RuntimeEnabledFeatures::sharedFeatures().setWebAnimationsCSSIntegrationEnabled(!!enabled);
 
     hr = prefsPrivate->userTimingEnabled(&enabled);
     if (FAILED(hr))
@@ -5278,6 +5278,16 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     settings.setVisualViewportAPIEnabled(!!enabled);
+
+    hr = prefsPrivate->crossOriginWindowPolicySupportEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings.setCrossOriginWindowPolicySupportEnabled(!!enabled);
+
+    hr = prefsPrivate->CSSOMViewScrollingAPIEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    settings.setCSSOMViewScrollingAPIEnabled(!!enabled);
 
     hr = preferences->privateBrowsingEnabled(&enabled);
     if (FAILED(hr))
@@ -5572,6 +5582,11 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     settings.setJavaScriptRuntimeFlags(JSC::RuntimeFlags(javaScriptRuntimeFlags));
+
+    hr = prefsPrivate->serverTimingEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    RuntimeEnabledFeatures::sharedFeatures().setServerTimingEnabled(!!enabled);
 
     return S_OK;
 }
@@ -5965,7 +5980,7 @@ HRESULT WebView::loadBackForwardListFromOtherView(_In_opt_ IWebView* otherView)
     }
     
     ASSERT(newItemToGoTo);
-    m_page->goToItem(*newItemToGoTo, FrameLoadType::IndexedBackForward, NavigationPolicyCheck::Require);
+    m_page->goToItem(*newItemToGoTo, FrameLoadType::IndexedBackForward, ShouldTreatAsContinuingLoad::No);
     return S_OK;
 }
 
@@ -7825,17 +7840,17 @@ HRESULT WebView::findString(_In_ BSTR string, WebFindOptions options, _Deref_opt
     WebCore::FindOptions coreOptions;
 
     if (options & WebFindOptionsCaseInsensitive)
-        coreOptions |= WebCore::CaseInsensitive;
+        coreOptions.add(WebCore::CaseInsensitive);
     if (options & WebFindOptionsAtWordStarts)
-        coreOptions |= WebCore::AtWordStarts;
+        coreOptions.add(WebCore::AtWordStarts);
     if (options & WebFindOptionsTreatMedialCapitalAsWordStart)
-        coreOptions |= WebCore::TreatMedialCapitalAsWordStart;
+        coreOptions.add(WebCore::TreatMedialCapitalAsWordStart);
     if (options & WebFindOptionsBackwards)
-        coreOptions |= WebCore::Backwards;
+        coreOptions.add(WebCore::Backwards);
     if (options & WebFindOptionsWrapAround)
-        coreOptions |= WebCore::WrapAround;
+        coreOptions.add(WebCore::WrapAround);
     if (options & WebFindOptionsStartInSelection)
-        coreOptions |= WebCore::StartInSelection;
+        coreOptions.add(WebCore::StartInSelection);
 
     *found = m_page->findString(toString(string), coreOptions);
     return S_OK;

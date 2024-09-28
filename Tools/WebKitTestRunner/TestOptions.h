@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TestOptions_h
-#define TestOptions_h
+#pragma once
 
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
@@ -55,12 +54,19 @@ struct TestOptions {
     bool shouldShowTouches { false };
     bool dumpJSConsoleLogInStdErr { false };
     bool allowCrossOriginSubresourcesToAskForCredentials { false };
-    bool enableCSSAnimationsAndCSSTransitionsBackedByWebAnimations { false };
+    bool enableWebAnimationsCSSIntegration { false };
+    bool enableProcessSwapOnNavigation { true };
+    bool enableProcessSwapOnWindowOpen { false };
+    bool enableColorFilter { false };
+    bool punchOutWhiteBackgroundsInDarkMode { false };
+    bool runSingly { false };
+    bool checkForWorldLeaks { false };
 
     float deviceScaleFactor { 1 };
     Vector<String> overrideLanguages;
     std::string applicationManifest;
-    
+    std::string jscOptions;
+
     TestOptions(const std::string& pathOrURL);
 
     // Add here options that can only be set upon PlatformWebView
@@ -86,13 +92,23 @@ struct TestOptions {
             || dumpJSConsoleLogInStdErr != options.dumpJSConsoleLogInStdErr
             || applicationManifest != options.applicationManifest
             || allowCrossOriginSubresourcesToAskForCredentials != options.allowCrossOriginSubresourcesToAskForCredentials
-            || enableCSSAnimationsAndCSSTransitionsBackedByWebAnimations != options.enableCSSAnimationsAndCSSTransitionsBackedByWebAnimations)
+            || enableWebAnimationsCSSIntegration != options.enableWebAnimationsCSSIntegration
+            || enableProcessSwapOnNavigation != options.enableProcessSwapOnNavigation
+            || enableProcessSwapOnWindowOpen != options.enableProcessSwapOnWindowOpen
+            || enableColorFilter != options.enableColorFilter
+            || punchOutWhiteBackgroundsInDarkMode != options.punchOutWhiteBackgroundsInDarkMode
+            || jscOptions != options.jscOptions
+            || runSingly != options.runSingly
+            || checkForWorldLeaks != options.checkForWorldLeaks)
             return false;
 
         return true;
     }
+    
+    bool shouldEnableProcessSwapOnNavigation() const
+    {
+        return enableProcessSwapOnNavigation || enableProcessSwapOnWindowOpen;
+    }
 };
 
 }
-
-#endif // TestOptions_h

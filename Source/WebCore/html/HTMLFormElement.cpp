@@ -116,11 +116,11 @@ bool HTMLFormElement::rendererIsNeeded(const RenderStyle& style)
     if (!parentIsTableElementPart)
         return true;
 
-    EDisplay display = style.display();
-    bool formIsTablePart = display == TABLE || display == INLINE_TABLE || display == TABLE_ROW_GROUP
-        || display == TABLE_HEADER_GROUP || display == TABLE_FOOTER_GROUP || display == TABLE_ROW
-        || display == TABLE_COLUMN_GROUP || display == TABLE_COLUMN || display == TABLE_CELL
-        || display == TABLE_CAPTION;
+    DisplayType display = style.display();
+    bool formIsTablePart = display == DisplayType::Table || display == DisplayType::InlineTable || display == DisplayType::TableRowGroup
+        || display == DisplayType::TableHeaderGroup || display == DisplayType::TableFooterGroup || display == DisplayType::TableRow
+        || display == DisplayType::TableColumnGroup || display == DisplayType::TableColumn || display == DisplayType::TableCell
+        || display == DisplayType::TableCaption;
 
     return formIsTablePart;
 }
@@ -222,9 +222,9 @@ bool HTMLFormElement::validateInteractively()
     // Because the form has invalid controls, we abort the form submission and
     // show a validation message on a focusable form control.
 
-    // Needs to update layout now because we'd like to call isFocusable(), which
-    // has !renderer()->needsLayout() assertion.
-    document().updateLayoutIgnorePendingStylesheets();
+    // Make sure layout is up-to-date in case we call isFocusable() (which
+    // has !renderer()->needsLayout() assertion).
+    ASSERT(!document().view() || !document().view()->needsLayout());
 
     Ref<HTMLFormElement> protectedThis(*this);
 
@@ -283,7 +283,7 @@ void HTMLFormElement::prepareForSubmission(Event& event)
 
     auto protectedThis = makeRef(*this);
 
-    auto submitEvent = Event::create(eventNames().submitEvent, true, true);
+    auto submitEvent = Event::create(eventNames().submitEvent, Event::CanBubble::Yes, Event::IsCancelable::Yes);
     dispatchEvent(submitEvent);
 
     // Event handling could have resulted in m_shouldSubmit becoming true as a side effect, too.
@@ -380,7 +380,7 @@ void HTMLFormElement::reset()
 
     SetForScope<bool> isInResetFunctionRestorer(m_isInResetFunction, true);
 
-    auto event = Event::create(eventNames().resetEvent, true, true);
+    auto event = Event::create(eventNames().resetEvent, Event::CanBubble::Yes, Event::IsCancelable::Yes);
     dispatchEvent(event);
     if (!event->defaultPrevented())
         resetAssociatedFormControlElements();
@@ -743,6 +743,12 @@ bool HTMLFormElement::checkInvalidControlsAndCollectUnhandled(Vector<RefPtr<HTML
 
 bool HTMLFormElement::reportValidity()
 {
+    Ref<HTMLFormElement> protectedThis(*this);
+
+    // Update layout before processing form actions in case the style changes
+    // the Form or button relationships.
+    document().updateLayoutIgnorePendingStylesheets();
+
     return validateInteractively();
 }
 

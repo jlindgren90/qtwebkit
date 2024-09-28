@@ -47,7 +47,12 @@ DeclarativeAnimation::DeclarativeAnimation(Element& target, const Animation& bac
 
 DeclarativeAnimation::~DeclarativeAnimation()
 {
+}
+
+void DeclarativeAnimation::remove()
+{
     m_eventQueue.close();
+    WebAnimation::remove();
 }
 
 void DeclarativeAnimation::setBackingAnimation(const Animation& backingAnimation)
@@ -56,7 +61,7 @@ void DeclarativeAnimation::setBackingAnimation(const Animation& backingAnimation
     syncPropertiesWithBackingAnimation();
 }
 
-void DeclarativeAnimation::initialize(const Element& target)
+void DeclarativeAnimation::initialize(const Element& target, const RenderStyle* oldStyle, const RenderStyle& newStyle)
 {
     // We need to suspend invalidation of the animation's keyframe effect during its creation
     // as it would otherwise trigger invalidation of the document's style and this would be
@@ -65,8 +70,9 @@ void DeclarativeAnimation::initialize(const Element& target)
 
     setEffect(KeyframeEffectReadOnly::create(target));
     setTimeline(&target.document().timeline());
+    downcast<KeyframeEffectReadOnly>(effect())->computeDeclarativeAnimationBlendingKeyframes(oldStyle, newStyle);
     syncPropertiesWithBackingAnimation();
-    if (backingAnimation().playState() == AnimPlayStatePlaying)
+    if (backingAnimation().playState() == AnimationPlayState::Playing)
         play();
     else
         pause();
@@ -76,13 +82,6 @@ void DeclarativeAnimation::initialize(const Element& target)
 
 void DeclarativeAnimation::syncPropertiesWithBackingAnimation()
 {
-    suspendEffectInvalidation();
-
-    auto* timing = effect()->timing();
-    timing->setDelay(Seconds(m_backingAnimation->delay()));
-    timing->setIterationDuration(Seconds(m_backingAnimation->duration()));
-
-    unsuspendEffectInvalidation();
 }
 
 void DeclarativeAnimation::setTimeline(RefPtr<AnimationTimeline>&& newTimeline)
@@ -122,7 +121,10 @@ void DeclarativeAnimation::invalidateDOMEvents(Seconds elapsedTime)
     auto* animationEffect = effect();
 
     auto isPending = pending();
-    auto iteration = animationEffect ? animationEffect->currentIteration().value() : 0;
+    if (isPending && m_wasPending)
+        return;
+
+    auto iteration = animationEffect ? animationEffect->currentIteration().value_or(0) : 0;
     auto currentPhase = animationEffect ? animationEffect->phase() : phaseWithoutEffect();
 
     bool wasActive = m_previousPhase == AnimationEffectReadOnly::Phase::Active;
@@ -204,6 +206,24 @@ void DeclarativeAnimation::enqueueDOMEvent(const AtomicString& eventType, Second
         m_eventQueue.enqueueEvent(AnimationEvent::create(eventType, downcast<CSSAnimation>(this)->animationName(), time));
     else if (is<CSSTransition>(this))
         m_eventQueue.enqueueEvent(TransitionEvent::create(eventType, downcast<CSSTransition>(this)->transitionProperty(), time, PseudoElement::pseudoElementNameForEvents(m_target.pseudoId())));
+}
+
+void DeclarativeAnimation::stop()
+{
+    m_eventQueue.close();
+    WebAnimation::stop();
+}
+
+void DeclarativeAnimation::suspend(ReasonForSuspension reason)
+{
+    m_eventQueue.suspend();
+    WebAnimation::suspend(reason);
+}
+
+void DeclarativeAnimation::resume()
+{
+    m_eventQueue.resume();
+    WebAnimation::resume();
 }
 
 } // namespace WebCore

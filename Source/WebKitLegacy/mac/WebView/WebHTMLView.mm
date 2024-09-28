@@ -95,6 +95,7 @@
 #import <WebCore/FloatRect.h>
 #import <WebCore/FocusController.h>
 #import <WebCore/Font.h>
+#import <WebCore/FontAttributeChanges.h>
 #import <WebCore/FontCache.h>
 #import <WebCore/Frame.h>
 #import <WebCore/FrameLoader.h>
@@ -109,7 +110,6 @@
 #import <WebCore/LegacyWebArchive.h>
 #import <WebCore/LocalizedStrings.h>
 #import <WebCore/MIMETypeRegistry.h>
-#import <WebCore/MainFrame.h>
 #import <WebCore/Page.h>
 #import <WebCore/PrintContext.h>
 #import <WebCore/Range.h>
@@ -124,6 +124,7 @@
 #import <WebCore/TextAlternativeWithRange.h>
 #import <WebCore/TextIndicator.h>
 #import <WebCore/TextUndoInsertionMarkupMac.h>
+#import <WebCore/WebCoreNSFontManagerExtras.h>
 #import <WebCore/WebCoreObjCExtras.h>
 #import <WebCore/WebNSAttributedStringExtras.h>
 #import <WebCore/markup.h>
@@ -716,7 +717,9 @@ extern "C" NSString *NSTextInputReplacementRangeAttributeName;
 - (void)_recursiveDisplayRectIfNeededIgnoringOpacity:(NSRect)rect isVisibleRect:(BOOL)isVisibleRect rectIsVisibleRectForView:(NSView *)visibleView topView:(BOOL)topView;
 - (void)_recursiveDisplayAllDirtyWithLockFocus:(BOOL)needsLockFocus visRect:(NSRect)visRect;
 #if PLATFORM(MAC)
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+- (void)_recursive:(BOOL)recursive displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)graphicsContext shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor stopAtLayerBackedViews:(BOOL)stopAtLayerBackedViews;
+#elif __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
 - (void)_recursive:(BOOL)recurse displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)context shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor;
 - (void)_recursive:(BOOL)recurseX displayRectIgnoringOpacity:(NSRect)displayRect inGraphicsContext:(NSGraphicsContext *)graphicsContext shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor;
 #else
@@ -1334,7 +1337,7 @@ static NSControlStateValue kit(TriState state)
     if ([types containsObject:WebArchivePboardType]) {
         if (RefPtr<LegacyWebArchive> coreArchive = LegacyWebArchive::createFromSelection(core([self _frame]))) {
             if (RetainPtr<CFDataRef> data = coreArchive ? coreArchive->rawDataRepresentation() : 0)
-                [pasteboard setData:(NSData *)data.get() forType:WebArchivePboardType];
+                [pasteboard setData:(__bridge NSData *)data.get() forType:WebArchivePboardType];
         }
     }
 
@@ -1667,14 +1670,18 @@ static NSControlStateValue kit(TriState state)
 }
 
 // Don't let AppKit even draw subviews. We take care of that.
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+- (void)_recursive:(BOOL)recursive displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)graphicsContext shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor stopAtLayerBackedViews:(BOOL)stopAtLayerBackedViews
+#elif __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
 - (void)_recursive:(BOOL)recurse displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)context shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor
 #else
 - (void)_recursive:(BOOL)recurse displayRectIgnoringOpacity:(NSRect)displayRect inContext:(NSGraphicsContext *)context topView:(BOOL)topView
 #endif
 {
     [self _setAsideSubviews];
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400
+    [super _recursive:recursive displayRectIgnoringOpacity:displayRect inContext:graphicsContext shouldChangeFontReferenceColor:shouldChangeFontReferenceColor stopAtLayerBackedViews:stopAtLayerBackedViews];
+#elif __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
     [super _recursive:recurse displayRectIgnoringOpacity:displayRect inContext:context shouldChangeFontReferenceColor:shouldChangeFontReferenceColor];
 #else
     [super _recursive:recurse displayRectIgnoringOpacity:displayRect inContext:context topView:topView];
@@ -1682,6 +1689,7 @@ static NSControlStateValue kit(TriState state)
     [self _restoreSubviews];
 }
 
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < 101400
 // Don't let AppKit even draw subviews. We take care of that.
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
 - (void)_recursive:(BOOL)recurseX displayRectIgnoringOpacity:(NSRect)displayRect inGraphicsContext:(NSGraphicsContext *)graphicsContext shouldChangeFontReferenceColor:(BOOL)shouldChangeFontReferenceColor
@@ -1695,7 +1703,7 @@ static NSControlStateValue kit(TriState state)
         [self _setAsideSubviews];
         didSetAsideSubviews = YES;
     }
-    
+
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
     [super _recursive:recurseX displayRectIgnoringOpacity:displayRect inGraphicsContext:graphicsContext shouldChangeFontReferenceColor:shouldChangeFontReferenceColor];
 #else
@@ -1705,6 +1713,7 @@ static NSControlStateValue kit(TriState state)
     if (didSetAsideSubviews)
         [self _restoreSubviews];
 }
+#endif
 
 static BOOL isQuickLookEvent(NSEvent *event)
 {
@@ -2013,7 +2022,7 @@ static bool mouseEventIsPartOfClickOrDrag(NSEvent *event)
         [pasteboard _web_writePromisedRTFDFromArchive:archive.get() containsImage:[[pasteboard types] containsObject:legacyTIFFPasteboardType()]];
     } else if ([type isEqualToString:legacyTIFFPasteboardType()] && _private->promisedDragTIFFDataSource) {
         if (auto* image = _private->promisedDragTIFFDataSource->image())
-            [pasteboard setData:(NSData *)image->tiffRepresentation() forType:legacyTIFFPasteboardType()];
+            [pasteboard setData:(__bridge NSData *)image->tiffRepresentation() forType:legacyTIFFPasteboardType()];
         [self setPromisedDragTIFFDataSource:nullptr];
     }
 }
@@ -3707,7 +3716,7 @@ static RetainPtr<NSArray> customMenuFromDefaultItems(WebView *webView, const Con
 
     NSArray *delegateSuppliedItems = CallUIDelegate(webView, selector, element.get(), defaultMenuItems.get());
 
-    return fixMenusReceivedFromOldClients(delegateSuppliedItems, savedItems.get()).autorelease();
+    return fixMenusReceivedFromOldClients(delegateSuppliedItems, savedItems.get());
 }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event
@@ -4380,7 +4389,7 @@ static bool matchesExtensionOrEquivalent(NSString *filename, NSString *extension
     // FIXME: Report an error if we fail to create a file.
     NSString *path = [[dropDestination path] stringByAppendingPathComponent:[wrapper preferredFilename]];
     path = [[NSFileManager defaultManager] _webkit_pathWithUniqueFilenameForPath:path];
-    if (![wrapper writeToURL:[NSURL fileURLWithPath:path] options:NSFileWrapperWritingWithNameUpdating originalContentsURL:nil error:nullptr])
+    if (![wrapper writeToURL:[NSURL fileURLWithPath:path isDirectory:NO] options:NSFileWrapperWritingWithNameUpdating originalContentsURL:nil error:nullptr])
         LOG_ERROR("Failed to create image file via -[NSFileWrapper writeToURL:options:originalContentsURL:error:]");
     
     if (draggingElementURL)
@@ -4534,10 +4543,10 @@ static RefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
     case NSEventTypeKeyDown: {
         PlatformKeyboardEvent platformEvent = PlatformEventFactory::createPlatformKeyboardEvent(event);
         platformEvent.disambiguateKeyDownEvent(PlatformEvent::RawKeyDown);
-        return KeyboardEvent::create(platformEvent, coreFrame->document()->defaultView());
+        return KeyboardEvent::create(platformEvent, &coreFrame->windowProxy());
     }
     case NSEventTypeKeyUp:
-        return KeyboardEvent::create(PlatformEventFactory::createPlatformKeyboardEvent(event), coreFrame->document()->defaultView());
+        return KeyboardEvent::create(PlatformEventFactory::createPlatformKeyboardEvent(event), &coreFrame->windowProxy());
     default:
         return nullptr;
     }
@@ -4548,7 +4557,7 @@ static RefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
     WebEventType type = event.type;
     if (type == WebEventKeyDown || type == WebEventKeyUp) {
         Document* document = coreFrame->document();
-        return KeyboardEvent::create(PlatformEventFactory::createPlatformKeyboardEvent(event), document ? document->defaultView() : 0);
+        return KeyboardEvent::create(PlatformEventFactory::createPlatformKeyboardEvent(event), document ? document->windowProxy() : 0);
     }
     return nullptr;
 #endif
@@ -5197,17 +5206,13 @@ static RefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
 
 - (void)_applyStyleToSelection:(DOMCSSStyleDeclaration *)style withUndoAction:(EditAction)undoAction
 {
-    if (Frame* coreFrame = core([self _frame])) {
-        // FIXME: We shouldn't have to make a copy here. We want callers of this function to work directly with StyleProperties eventually.
-        Ref<MutableStyleProperties> properties(core(style)->copyProperties());
-        coreFrame->editor().applyStyleToSelection(properties.ptr(), undoAction);
-    }
+    [self _applyEditingStyleToSelection:EditingStyle::create(core(style)) withUndoAction:undoAction];
 }
 
 - (void)_applyEditingStyleToSelection:(Ref<EditingStyle>&&)editingStyle withUndoAction:(EditAction)undoAction
 {
     if (Frame* coreFrame = core([self _frame]))
-        coreFrame->editor().applyStyleToSelection(WTFMove(editingStyle), undoAction);
+        coreFrame->editor().applyStyleToSelection(WTFMove(editingStyle), undoAction, Editor::ColorFilterMode::InvertColor);
 }
 
 #if PLATFORM(MAC)
@@ -5292,7 +5297,7 @@ static RefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
 
     // Read RTF with font attributes from the pasteboard.
     // Maybe later we should add a pasteboard type that contains CSS text for "native" copy and paste font.
-    [self _applyStyleToSelection:[self _styleFromFontAttributes:[self _fontAttributesFromFontPasteboard]] withUndoAction:EditActionPasteFont];
+    [self _applyStyleToSelection:[self _styleFromFontAttributes:[self _fontAttributesFromFontPasteboard]] withUndoAction:EditAction::PasteFont];
 }
 
 - (void)pasteAsRichText:(id)sender
@@ -5304,188 +5309,18 @@ static RefPtr<KeyboardEvent> currentKeyboardEvent(Frame* coreFrame)
     [self _pasteWithPasteboard:[NSPasteboard generalPasteboard] allowPlainText:NO];
 }
 
-- (NSFont *)_originalFontA
-{
-    return [[NSFontManager sharedFontManager] fontWithFamily:@"Helvetica" traits:0 weight:STANDARD_WEIGHT size:10.0f];
-}
-
-- (NSFont *)_originalFontB
-{
-    return [[NSFontManager sharedFontManager] fontWithFamily:@"Times" traits:NSFontItalicTrait weight:STANDARD_BOLD_WEIGHT size:12.0f];
-}
-
-static RetainPtr<CFStringRef> fontNameForDescription(NSString *familyName, BOOL italic, BOOL bold)
-{
-    // Find the font the same way the rendering code would later if it encountered this CSS.
-    FontDescription fontDescription;
-    fontDescription.setIsItalic(italic);
-    fontDescription.setWeight(bold ? FontSelectionValue(900) : FontSelectionValue(500));
-    RefPtr<Font> font = FontCache::singleton().fontForFamily(fontDescription, familyName);
-    return adoptCF(CTFontCopyPostScriptName(font->getCTFont()));
-}
-
-- (void)_addToStyle:(DOMCSSStyleDeclaration *)style fontA:(NSFont *)a fontB:(NSFont *)b
-{
-    // Since there's no way to directly ask NSFontManager what style change it's going to do
-    // we instead pass two "specimen" fonts to it and let it change them. We then deduce what
-    // style change it was doing by looking at what happened to each of the two fonts.
-    // So if it was making the text bold, both fonts will be bold after the fact.
-
-    if (a == nil || b == nil)
-        return;
-
-    NSFontManager *fm = [NSFontManager sharedFontManager];
-
-    NSFont *oa = [self _originalFontA];
-
-    NSString *aFamilyName = [a familyName];
-    NSString *bFamilyName = [b familyName];
-
-    int aPointSize = (int)[a pointSize];
-    int bPointSize = (int)[b pointSize];
-
-    int aWeight = [fm weightOfFont:a];
-    int bWeight = [fm weightOfFont:b];
-
-    BOOL aIsItalic = ([fm traitsOfFont:a] & NSItalicFontMask) != 0;
-    BOOL bIsItalic = ([fm traitsOfFont:b] & NSItalicFontMask) != 0;
-
-    BOOL aIsBold = aWeight > MIN_BOLD_WEIGHT;
-
-    if ([aFamilyName isEqualToString:bFamilyName]) {
-        NSString *familyNameForCSS = aFamilyName;
-
-        // The family name may not be specific enough to get us the font specified.
-        // In some cases, the only way to get exactly what we are looking for is to use
-        // the Postscript name.
-        // If we don't find a font with the same Postscript name, then we'll have to use the
-        // Postscript name to make the CSS specific enough.
-        auto fontName = fontNameForDescription(aFamilyName, aIsItalic, aIsBold);
-        auto aName = [a fontName];
-        if (!fontName || !aName || !CFEqual(fontName.get(), static_cast<CFStringRef>(aName)))
-            familyNameForCSS = aName;
-
-        // FIXME: Need more sophisticated escaping code if we want to handle family names
-        // with characters like single quote or backslash in their names.
-        [style setFontFamily:[NSString stringWithFormat:@"'%@'", familyNameForCSS]];
-    }
-
-    int soa = (int)[oa pointSize];
-    if (aPointSize == bPointSize)
-        [style setFontSize:[NSString stringWithFormat:@"%dpx", aPointSize]];
-    else if (aPointSize < soa)
-        [style _setFontSizeDelta:@"-1px"];
-    else if (aPointSize > soa)
-        [style _setFontSizeDelta:@"1px"];
-
-    // FIXME: Map to the entire range of CSS weight values.
-    if (aWeight == bWeight)
-        [style setFontWeight:aIsBold ? @"bold" : @"normal"];
-
-    if (aIsItalic == bIsItalic)
-        [style setFontStyle:aIsItalic ? @"italic" :  @"normal"];
-}
-
-- (DOMCSSStyleDeclaration *)_styleFromFontManagerOperation
-{
-    DOMCSSStyleDeclaration *style = [self _emptyStyle];
-
-    NSFontManager *fm = [NSFontManager sharedFontManager];
-
-    NSFont *oa = [self _originalFontA];
-    NSFont *ob = [self _originalFontB];    
-    [self _addToStyle:style fontA:[fm convertFont:oa] fontB:[fm convertFont:ob]];
-
-    return style;
-}
-
 - (void)changeFont:(id)sender
 {
     COMMAND_PROLOGUE
 
-    [self _applyStyleToSelection:[self _styleFromFontManagerOperation] withUndoAction:EditActionSetFont];
-}
-
-- (Ref<EditingStyle>)_styleForAttributeChange:(id)sender
-{
-    DOMCSSStyleDeclaration *style = [self _emptyStyle];
-
-    auto shadow = adoptNS([[NSShadow alloc] init]);
-    [shadow setShadowOffset:NSMakeSize(1, 1)];
-
-    NSDictionary *oa = [NSDictionary dictionaryWithObjectsAndKeys:
-        [self _originalFontA], NSFontAttributeName,
-        nil];
-    NSDictionary *ob = [NSDictionary dictionaryWithObjectsAndKeys:
-        [NSColor blackColor], NSBackgroundColorAttributeName,
-        [self _originalFontB], NSFontAttributeName,
-        [NSColor whiteColor], NSForegroundColorAttributeName,
-        shadow.get(), NSShadowAttributeName,
-        [NSNumber numberWithInt:NSUnderlineStyleSingle], NSStrikethroughStyleAttributeName,
-        [NSNumber numberWithInt:1], NSSuperscriptAttributeName,
-        [NSNumber numberWithInt:NSUnderlineStyleSingle], NSUnderlineStyleAttributeName,
-        nil];
-
-    NSDictionary *a = [sender convertAttributes:oa];
-    NSDictionary *b = [sender convertAttributes:ob];
-
-    NSColor *ca = [a objectForKey:NSBackgroundColorAttributeName];
-    NSColor *cb = [b objectForKey:NSBackgroundColorAttributeName];
-    if (ca == cb) {
-        [style setBackgroundColor:[self _colorAsString:ca]];
-    }
-
-    [self _addToStyle:style fontA:[a objectForKey:NSFontAttributeName] fontB:[b objectForKey:NSFontAttributeName]];
-
-    ca = [a objectForKey:NSForegroundColorAttributeName];
-    cb = [b objectForKey:NSForegroundColorAttributeName];
-    if (ca == cb) {
-        if (!ca)
-            ca = [NSColor blackColor];
-        [style setColor:[self _colorAsString:ca]];
-    }
-
-    NSShadow *sha = [a objectForKey:NSShadowAttributeName];
-    if (sha)
-        [style setTextShadow:[self _shadowAsString:sha]];
-    else if ([b objectForKey:NSShadowAttributeName] == nil)
-        [style setTextShadow:@"none"];
-
-    int sa = [[a objectForKey:NSSuperscriptAttributeName] intValue];
-    int sb = [[b objectForKey:NSSuperscriptAttributeName] intValue];
-    if (sa == sb) {
-        if (sa > 0)
-            [style setVerticalAlign:@"super"];
-        else if (sa < 0)
-            [style setVerticalAlign:@"sub"];
-        else
-            [style setVerticalAlign:@"baseline"];
-    }
-    
-    auto editingStyle = EditingStyle::create(core(style));
-
-    int strikeThroughA = [[a objectForKey:NSStrikethroughStyleAttributeName] intValue];
-    int strikeThroughB = [[b objectForKey:NSStrikethroughStyleAttributeName] intValue];
-    if (strikeThroughA == strikeThroughB) {
-        bool shouldRemoveStrikeThrough = strikeThroughA == NSUnderlineStyleNone;
-        editingStyle->setStrikeThroughChange(shouldRemoveStrikeThrough ? TextDecorationChange::Remove : TextDecorationChange::Add);
-    }
-
-    int ua = [[a objectForKey:NSUnderlineStyleAttributeName] intValue];
-    int ub = [[b objectForKey:NSUnderlineStyleAttributeName] intValue];
-    if (ua == ub) {
-        bool shouldRemoveUnderline = ua == NSUnderlineStyleNone;
-        editingStyle->setUnderlineChange(shouldRemoveUnderline ? TextDecorationChange::Remove : TextDecorationChange::Add);
-    }
-
-    return editingStyle;
+    [self _applyEditingStyleToSelection:computedFontChanges(NSFontManager.sharedFontManager).createEditingStyle() withUndoAction:EditAction::SetFont];
 }
 
 - (void)changeAttributes:(id)sender
 {
     COMMAND_PROLOGUE
 
-    [self _applyEditingStyleToSelection:[self _styleForAttributeChange:sender] withUndoAction:EditActionChangeAttributes];
+    [self _applyEditingStyleToSelection:computedFontAttributeChanges(NSFontManager.sharedFontManager, sender).createEditingStyle() withUndoAction:EditAction::ChangeAttributes];
 }
 
 - (DOMCSSStyleDeclaration *)_styleFromColorPanelWithSelector:(SEL)selector
@@ -5501,8 +5336,8 @@ static RetainPtr<CFStringRef> fontNameForDescription(NSString *familyName, BOOL 
 - (EditAction)_undoActionFromColorPanelWithSelector:(SEL)selector
 {
     if (selector == @selector(setBackgroundColor:))
-        return EditActionSetBackgroundColor;    
-    return EditActionSetColor;
+        return EditAction::SetBackgroundColor;
+    return EditAction::SetColor;
 }
 
 - (void)_changeCSSColorUsingSelector:(SEL)selector inRange:(DOMRange *)range
@@ -5546,8 +5381,7 @@ static RetainPtr<CFStringRef> fontNameForDescription(NSString *familyName, BOOL 
     // AppKit will have to be revised to allow this to work with anything that isn't an 
     // NSTextView. However, this might not be required for Tiger, since the background-color 
     // changing box in the font panel doesn't work in Mail (3674481), though it does in TextEdit.
-    [self _applyStyleToSelection:[self _styleFromColorPanelWithSelector:@selector(setColor:)] 
-                  withUndoAction:EditActionSetColor];
+    [self _applyStyleToSelection:[self _styleFromColorPanelWithSelector:@selector(setColor:)] withUndoAction:EditAction::SetColor];
 }
 
 #endif // PLATFORM(MAC)
@@ -6747,8 +6581,8 @@ static void extractUnderlines(NSAttributedString *string, Vector<CompositionUnde
             Editor::Command command = [self coreCommandBySelector:selector];
             if (command.isSupported())
                 eventWasHandled = command.execute(event);
-#if PLATFORM(MAC)
             else {
+#if PLATFORM(MAC)
                 // If WebKit does not support this command, we need to pass the selector to super.
                 _private->selectorForDoCommandBySelector = selector;
 
@@ -6760,8 +6594,10 @@ static void extractUnderlines(NSAttributedString *string, Vector<CompositionUnde
                 [sink detach];
 
                 _private->selectorForDoCommandBySelector = 0;
-            }
+#else
+                eventWasHandled = false;
 #endif
+            }
         }
 
         if (parameters)
@@ -7006,8 +6842,8 @@ static CGImageRef imageFromRect(Frame* frame, CGRect rect)
     
     WebHTMLView *view = (WebHTMLView *)documentView;
     
-    PaintBehavior oldPaintBehavior = frame->view()->paintBehavior();
-    frame->view()->setPaintBehavior(oldPaintBehavior | PaintBehaviorFlattenCompositingLayers | PaintBehaviorSnapshotting);
+    OptionSet<PaintBehavior> oldPaintBehavior = frame->view()->paintBehavior();
+    frame->view()->setPaintBehavior(oldPaintBehavior | PaintBehavior::FlattenCompositingLayers | PaintBehavior::Snapshotting);
 
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
     
@@ -7062,10 +6898,10 @@ static CGImageRef imageFromRect(Frame* frame, CGRect rect)
 static CGImageRef selectionImage(Frame* frame, bool forceBlackText)
 {
     ASSERT(!WebThreadIsEnabled() || WebThreadIsLocked());
-    frame->view()->setPaintBehavior(PaintBehaviorSelectionOnly | (forceBlackText ? PaintBehaviorForceBlackText : 0));
+    frame->view()->setPaintBehavior(PaintBehavior::SelectionOnly | (forceBlackText ? OptionSet<PaintBehavior>(PaintBehavior::ForceBlackText) : OptionSet<PaintBehavior>()));
     frame->document()->updateLayout();
     CGImageRef result = imageFromRect(frame, frame->selection().selectionBounds());
-    frame->view()->setPaintBehavior(PaintBehaviorNormal);
+    frame->view()->setPaintBehavior(PaintBehavior::Normal);
     return result;
 }
 

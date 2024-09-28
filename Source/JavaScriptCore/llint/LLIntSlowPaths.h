@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,6 @@ LLINT_SLOW_PATH_HIDDEN_DECL(trace_prologue_function_for_construct);
 LLINT_SLOW_PATH_HIDDEN_DECL(trace_arityCheck_for_call);
 LLINT_SLOW_PATH_HIDDEN_DECL(trace_arityCheck_for_construct);
 LLINT_SLOW_PATH_HIDDEN_DECL(trace);
-LLINT_SLOW_PATH_HIDDEN_DECL(special_trace);
 LLINT_SLOW_PATH_HIDDEN_DECL(entry_osr);
 LLINT_SLOW_PATH_HIDDEN_DECL(entry_osr_function_for_call);
 LLINT_SLOW_PATH_HIDDEN_DECL(entry_osr_function_for_construct);
@@ -68,6 +67,7 @@ LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_new_regexp);
 LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_instanceof);
 LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_instanceof_custom);
 LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_try_get_by_id);
+LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_get_by_id_direct);
 LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_get_by_id);
 LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_get_arguments_length);
 LLINT_SLOW_PATH_HIDDEN_DECL(slow_path_put_by_id);

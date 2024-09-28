@@ -42,6 +42,7 @@
 #include "WasmContext.h"
 #include "WasmFormat.h"
 #include "WasmMemory.h"
+#include "WasmSignatureInlines.h"
 #include <wtf/FastTLS.h>
 #include <wtf/SystemTracing.h>
 
@@ -55,7 +56,7 @@ static EncodedJSValue JSC_HOST_CALL callWebAssemblyFunction(ExecState* exec)
     auto scope = DECLARE_THROW_SCOPE(vm);
     WebAssemblyFunction* wasmFunction = jsDynamicCast<WebAssemblyFunction*>(vm, exec->jsCallee());
     if (!wasmFunction)
-        return JSValue::encode(throwException(exec, scope, createTypeError(exec, "expected a WebAssembly function", defaultSourceAppender, runtimeTypeForValue(exec->jsCallee()))));
+        return JSValue::encode(throwException(exec, scope, createTypeError(exec, "expected a WebAssembly function", defaultSourceAppender, runtimeTypeForValue(vm, exec->jsCallee()))));
     Wasm::SignatureIndex signatureIndex = wasmFunction->signatureIndex();
     const Wasm::Signature& signature = Wasm::SignatureInformation::get(signatureIndex);
 
@@ -79,9 +80,11 @@ static EncodedJSValue JSC_HOST_CALL callWebAssemblyFunction(ExecState* exec)
         }
     }
 
-    TraceScope traceScope(WebAssemblyExecuteStart, WebAssemblyExecuteEnd);
+    std::optional<TraceScope> traceScope;
+    if (Options::useTracePoints())
+        traceScope.emplace(WebAssemblyExecuteStart, WebAssemblyExecuteEnd);
 
-    Vector<JSValue> boxedArgs;
+    Vector<JSValue, MarkedArgumentBuffer::inlineCapacity> boxedArgs;
     JSWebAssemblyInstance* instance = wasmFunction->instance();
     Wasm::Instance* wasmInstance = &instance->instance();
     // When we don't use fast TLS to store the context, the JS
@@ -141,7 +144,7 @@ static EncodedJSValue JSC_HOST_CALL callWebAssemblyFunction(ExecState* exec)
     vm.wasmContext.store(wasmInstance, vm.softStackLimit());
     ASSERT(wasmFunction->instance());
     ASSERT(&wasmFunction->instance()->instance() == vm.wasmContext.load());
-    EncodedJSValue rawResult = vmEntryToWasm(wasmFunction->jsEntrypoint().executableAddress(), &vm, &protoCallFrame);
+    EncodedJSValue rawResult = vmEntryToWasm(wasmFunction->jsEntrypoint(MustCheckArity).executableAddress(), &vm, &protoCallFrame);
     // We need to make sure this is in a register or on the stack since it's stored in Vector<JSValue>.
     // This probably isn't strictly necessary, since the WebAssemblyFunction* should keep the instance
     // alive. But it's good hygiene.
@@ -176,11 +179,11 @@ static EncodedJSValue JSC_HOST_CALL callWebAssemblyFunction(ExecState* exec)
     return EncodedJSValue();
 }
 
-WebAssemblyFunction* WebAssemblyFunction::create(VM& vm, JSGlobalObject* globalObject, unsigned length, const String& name, JSWebAssemblyInstance* instance, Wasm::Callee& jsEntrypoint, Wasm::WasmEntrypointLoadLocation wasmEntrypoint, Wasm::SignatureIndex signatureIndex)
+WebAssemblyFunction* WebAssemblyFunction::create(VM& vm, JSGlobalObject* globalObject, unsigned length, const String& name, JSWebAssemblyInstance* instance, Wasm::Callee& jsEntrypoint, Wasm::WasmToWasmImportableFunction::LoadLocation wasmToWasmEntrypointLoadLocation, Wasm::SignatureIndex signatureIndex)
 {
     NativeExecutable* executable = vm.getHostFunction(callWebAssemblyFunction, NoIntrinsic, callHostFunctionAsConstructor, nullptr, name);
     Structure* structure = globalObject->webAssemblyFunctionStructure();
-    WebAssemblyFunction* function = new (NotNull, allocateCell<WebAssemblyFunction>(vm.heap)) WebAssemblyFunction(vm, globalObject, structure, jsEntrypoint, wasmEntrypoint, signatureIndex);
+    WebAssemblyFunction* function = new (NotNull, allocateCell<WebAssemblyFunction>(vm.heap)) WebAssemblyFunction(vm, globalObject, structure, jsEntrypoint, wasmToWasmEntrypointLoadLocation, signatureIndex);
     function->finishCreation(vm, executable, length, name, instance);
     ASSERT_WITH_MESSAGE(!function->isLargeAllocation(), "WebAssemblyFunction should be allocated not in large allocation since it is JSCallee.");
     return function;
@@ -192,10 +195,10 @@ Structure* WebAssemblyFunction::createStructure(VM& vm, JSGlobalObject* globalOb
     return Structure::create(vm, globalObject, prototype, TypeInfo(JSFunctionType, StructureFlags), info());
 }
 
-WebAssemblyFunction::WebAssemblyFunction(VM& vm, JSGlobalObject* globalObject, Structure* structure, Wasm::Callee& jsEntrypoint, Wasm::WasmEntrypointLoadLocation wasmEntrypoint, Wasm::SignatureIndex signatureIndex)
+WebAssemblyFunction::WebAssemblyFunction(VM& vm, JSGlobalObject* globalObject, Structure* structure, Wasm::Callee& jsEntrypoint, Wasm::WasmToWasmImportableFunction::LoadLocation wasmToWasmEntrypointLoadLocation, Wasm::SignatureIndex signatureIndex)
     : Base { vm, globalObject, structure }
     , m_jsEntrypoint { jsEntrypoint.entrypoint() }
-    , m_wasmFunction { signatureIndex, wasmEntrypoint }
+    , m_importableFunction { signatureIndex, wasmToWasmEntrypointLoadLocation }
 { }
 
 } // namespace JSC

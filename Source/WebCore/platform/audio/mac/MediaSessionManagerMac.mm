@@ -55,7 +55,7 @@ PlatformMediaSessionManager* PlatformMediaSessionManager::sharedManagerIfExists(
 }
 
 MediaSessionManagerMac::MediaSessionManagerMac()
-    : PlatformMediaSessionManager()
+    : MediaSessionManagerCocoa()
 {
     resetRestrictions();
 }
@@ -102,6 +102,12 @@ void MediaSessionManagerMac::sessionWillEndPlayback(PlatformMediaSession& sessio
 void MediaSessionManagerMac::clientCharacteristicsChanged(PlatformMediaSession&)
 {
     LOG(Media, "MediaSessionManagerMac::clientCharacteristicsChanged");
+    scheduleUpdateNowPlayingInfo();
+}
+    
+void MediaSessionManagerMac::sessionCanProduceAudioChanged(PlatformMediaSession& session)
+{
+    PlatformMediaSessionManager::sessionCanProduceAudioChanged(session);
     scheduleUpdateNowPlayingInfo();
 }
 
@@ -176,7 +182,7 @@ void MediaSessionManagerMac::updateNowPlayingInfo()
     auto cfRate = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &rate));
     CFDictionarySetValue(info.get(), kMRMediaRemoteNowPlayingInfoPlaybackRate, cfRate.get());
 
-    m_lastUpdatedNowPlayingInfoUniqueIdentifier = title.impl() ? title.impl()->hash() : 0;
+    m_lastUpdatedNowPlayingInfoUniqueIdentifier = currentSession->uniqueIdentifier();
     auto cfIdentifier = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberLongLongType, &m_lastUpdatedNowPlayingInfoUniqueIdentifier));
     CFDictionarySetValue(info.get(), kMRMediaRemoteNowPlayingInfoUniqueIdentifier, cfIdentifier.get());
 

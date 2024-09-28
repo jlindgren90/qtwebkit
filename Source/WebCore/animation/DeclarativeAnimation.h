@@ -34,6 +34,7 @@ namespace WebCore {
 
 class Animation;
 class Element;
+class RenderStyle;
 
 class DeclarativeAnimation : public WebAnimation {
 public:
@@ -51,12 +52,18 @@ public:
 protected:
     DeclarativeAnimation(Element&, const Animation&);
 
-    virtual void initialize(const Element&);
+    virtual void initialize(const Element&, const RenderStyle* oldStyle, const RenderStyle& newStyle);
     virtual void syncPropertiesWithBackingAnimation();
 
 private:
     AnimationEffectReadOnly::Phase phaseWithoutEffect() const;
     void enqueueDOMEvent(const AtomicString&, Seconds);
+    void remove() final;
+
+    // ActiveDOMObject.
+    void suspend(ReasonForSuspension) final;
+    void resume() final;
+    void stop() final;
 
     Element& m_target;
     Ref<Animation> m_backingAnimation;

@@ -33,6 +33,8 @@
 #include <WebCore/CertificateInfo.h>
 #include <WebCore/FileSystem.h>
 #include <WebCore/NetworkStorageSession.h>
+#include "WebCookieManager.h"
+#include <WebCore/CurlContext.h>
 #include <WebCore/NotImplemented.h>
 #include <WebCore/ResourceHandle.h>
 #include <wtf/RAMSize.h>
@@ -47,11 +49,6 @@ void NetworkProcess::platformInitializeNetworkProcess(const NetworkProcessCreati
 {
     if (!parameters.cookiePersistentStorageFile.isEmpty())
         supplement<WebCookieManager>()->setCookiePersistentStorage(parameters.cookiePersistentStorageFile);
-}
-
-void NetworkProcess::platformSetURLCacheSize(unsigned, uint64_t)
-{
-    notImplemented();
 }
 
 void NetworkProcess::allowSpecificHTTPSCertificateForHost(const CertificateInfo& certificateInfo, const String& host)
@@ -70,6 +67,27 @@ void NetworkProcess::clearDiskCache(WallTime, Function<void()>&&)
 }
 
 void NetworkProcess::platformTerminate()
+{
+    notImplemented();
+}
+
+void NetworkProcess::platformPrepareToSuspend(CompletionHandler<void()>&& completionHandler)
+{
+    notImplemented();
+    completionHandler();
+}
+
+void NetworkProcess::platformProcessDidResume()
+{
+    notImplemented();
+}
+
+void NetworkProcess::platformProcessDidTransitionToForeground()
+{
+    notImplemented();
+}
+
+void NetworkProcess::platformProcessDidTransitionToBackground()
 {
     notImplemented();
 }

@@ -1,11 +1,10 @@
-CONSOLE MESSAGE: line 309: callback not yet supported
-CONSOLE MESSAGE: line 309: callback not yet supported
-CONSOLE MESSAGE: line 309: callback not yet supported
-CONSOLE MESSAGE: line 309: callback not yet supported
-CONSOLE MESSAGE: line 309: callback not yet supported
-CONSOLE MESSAGE: line 309: callback not yet supported
-CONSOLE MESSAGE: line 309: callback not yet supported
-CONSOLE MESSAGE: WebSocket network error: Error resolving âfooâ: No address associated with hostname
+CONSOLE MESSAGE: line 331: callback not yet supported
+CONSOLE MESSAGE: line 331: callback not yet supported
+CONSOLE MESSAGE: line 331: callback not yet supported
+CONSOLE MESSAGE: line 331: callback not yet supported
+CONSOLE MESSAGE: line 331: callback not yet supported
+CONSOLE MESSAGE: line 331: callback not yet supported
+CONSOLE MESSAGE: line 331: callback not yet supported
 HTML IDL tests
 
 

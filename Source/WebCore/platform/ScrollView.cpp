@@ -841,6 +841,9 @@ IntPoint ScrollView::contentsToContainingViewContents(const IntPoint& point) con
 
 IntRect ScrollView::contentsToContainingViewContents(IntRect rect) const
 {
+    if (delegatesScrolling())
+        return convertToContainingView(contentsToView(rect));
+    
     if (const ScrollView* parentScrollView = parent()) {
         IntRect rectInContainingView = convertToContainingView(contentsToView(rect));
         return parentScrollView->viewToContents(rectInContainingView);
@@ -1116,7 +1119,7 @@ void ScrollView::scrollbarStyleChanged(ScrollbarStyle newStyle, bool forceUpdate
 
 void ScrollView::paintScrollCorner(GraphicsContext& context, const IntRect& cornerRect)
 {
-    ScrollbarTheme::theme().paintScrollCorner(this, context, cornerRect);
+    ScrollbarTheme::theme().paintScrollCorner(context, cornerRect);
 }
 
 void ScrollView::paintScrollbar(GraphicsContext& context, Scrollbar& bar, const IntRect& rect)
@@ -1158,7 +1161,7 @@ void ScrollView::paint(GraphicsContext& context, const IntRect& rect, SecurityOr
         return;
     }
 
-    if (context.paintingDisabled() && !context.updatingControlTints())
+    if (context.paintingDisabled() && !context.performingPaintInvalidation())
         return;
 
     notifyPageThatContentAreaWillPaint();

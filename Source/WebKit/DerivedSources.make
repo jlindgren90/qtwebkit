@@ -107,6 +107,7 @@ MESSAGE_RECEIVERS = \
     LegacyCustomProtocolManagerProxy \
     NPObjectMessageReceiver \
     NetworkConnectionToWebProcess \
+    NetworkMDNSRegister\
     NetworkProcess \
     NetworkProcessConnection \
     NetworkProcessProxy \
@@ -115,6 +116,7 @@ MESSAGE_RECEIVERS = \
     NetworkRTCSocket \
     NetworkResourceLoader \
     NetworkSocketStream \
+    NetworkContentRuleListManager \
     PluginControllerProxy \
     PluginProcess \
     PluginProcessConnection \
@@ -159,6 +161,7 @@ MESSAGE_RECEIVERS = \
     WebInspectorInterruptDispatcher \
     WebInspectorProxy \
     WebInspectorUI \
+    WebMDNSRegister\
     WebNotificationManager \
     WebPage \
     WebPageProxy \
@@ -196,8 +199,8 @@ SCRIPTS = \
     $(WebKit2)/Scripts/webkit/parser.py \
 #
 
-FRAMEWORK_FLAGS = $(shell echo $(BUILT_PRODUCTS_DIR) $(FRAMEWORK_SEARCH_PATHS) | perl -e 'print "-F " . join(" -F ", split(" ", <>));')
-HEADER_FLAGS = $(shell echo $(BUILT_PRODUCTS_DIR) $(HEADER_SEARCH_PATHS) | perl -e 'print "-I" . join(" -I", split(" ", <>));')
+FRAMEWORK_FLAGS = $(shell echo $(BUILT_PRODUCTS_DIR) $(FRAMEWORK_SEARCH_PATHS) $(SYSTEM_FRAMEWORK_SEARCH_PATHS) | perl -e 'print "-F " . join(" -F ", split(" ", <>));')
+HEADER_FLAGS = $(shell echo $(BUILT_PRODUCTS_DIR) $(HEADER_SEARCH_PATHS) $(SYSTEM_HEADER_SEARCH_PATHS) | perl -e 'print "-I" . join(" -I", split(" ", <>));')
 
 -include WebKitDerivedSourcesAdditions.make
 
@@ -216,15 +219,7 @@ all : \
 	@echo Generating message receiver for $*...
 	@python $(WebKit2)/Scripts/generate-messages-header.py $< > $@
 
-
-# Some versions of clang incorrectly strip out // comments in c89 code.
-# Use -traditional as a workaround, but only when needed since that causes
-# other problems with later versions of clang.
-ifeq ($(shell echo '//x' | $(CC) -E -P -x c -std=c89 - | grep x),)
-TEXT_PREPROCESSOR_FLAGS=-E -P -x c -traditional -w
-else
-TEXT_PREPROCESSOR_FLAGS=-E -P -x c -std=c89 -w
-endif
+TEXT_PREPROCESSOR_FLAGS=-E -P -w
 
 ifneq ($(SDKROOT),)
 	SDK_FLAGS=-isysroot $(SDKROOT)
@@ -244,7 +239,7 @@ all: $(SANDBOX_PROFILES)
 
 %.sb : %.sb.in
 	@echo Pre-processing $* sandbox profile...
-	$(CC) $(SDK_FLAGS) $(TARGET_TRIPLE_FLAGS) $(TEXT_PREPROCESSOR_FLAGS) $(FRAMEWORK_FLAGS) $(HEADER_FLAGS) -include "wtf/Platform.h" $< > $@
+	grep -o '^[^;]*' $< | $(CC) $(SDK_FLAGS) $(TARGET_TRIPLE_FLAGS) $(TEXT_PREPROCESSOR_FLAGS) $(FRAMEWORK_FLAGS) $(HEADER_FLAGS) -include "wtf/Platform.h" - > $@
 
 AUTOMATION_PROTOCOL_GENERATOR_SCRIPTS = \
 	$(JavaScriptCore_SCRIPTS_DIR)/cpp_generator_templates.py \

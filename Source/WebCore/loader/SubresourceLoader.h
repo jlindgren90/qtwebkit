@@ -50,6 +50,7 @@ public:
     void cancelIfNotFinishing();
     bool isSubresourceLoader() const override;
     CachedResource* cachedResource();
+    WEBCORE_EXPORT const HTTPHeaderMap* originalHeaders() const;
 
     SecurityOrigin* origin() { return m_origin.get(); }
 #if PLATFORM(IOS)
@@ -79,6 +80,8 @@ private:
     void willCancel(const ResourceError&) override;
     void didCancel(const ResourceError&) override;
     void didRetrieveDerivedDataFromCache(const String& type, SharedBuffer&) override;
+    
+    void updateReferrerPolicy(const String&);
 
 #if PLATFORM(COCOA)
     void willCacheResponseAsync(ResourceHandle*, NSCachedURLResponse*, CompletionHandler<void(NSCachedURLResponse *)>&&) override;
@@ -92,7 +95,7 @@ private:
 
     void didReceiveDataOrBuffer(const char*, int, RefPtr<SharedBuffer>&&, long long encodedDataLength, DataPayloadType);
 
-    void notifyDone();
+    void notifyDone(LoadCompletionType);
 
     void reportResourceTiming(const NetworkLoadMetrics&);
 

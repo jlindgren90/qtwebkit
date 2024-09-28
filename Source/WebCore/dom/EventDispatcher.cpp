@@ -29,13 +29,13 @@
 #include "CompositionEvent.h"
 #include "EventContext.h"
 #include "EventPath.h"
+#include "Frame.h"
 #include "FrameLoader.h"
 #include "FrameView.h"
 #include "HTMLInputElement.h"
 #include "InputEvent.h"
 #include "KeyboardEvent.h"
 #include "Logging.h"
-#include "MainFrame.h"
 #include "MouseEvent.h"
 #include "ScopedEventQueue.h"
 #include "ScriptDisallowedScope.h"
@@ -167,7 +167,7 @@ void EventDispatcher::dispatchEvent(Node& node, Event& event)
     // Call default event handlers. While the DOM does have a concept of preventing
     // default handling, the detail of which handlers are called is an internal
     // implementation detail and not part of the DOM.
-    if (!event.defaultPrevented() && !event.defaultHandled()) {
+    if (!event.defaultPrevented() && !event.defaultHandled() && !event.isDefaultEventHandlerIgnored()) {
         // FIXME: Not clear why we need to reset the target for the default event handlers.
         // We should research this, and remove this code if possible.
         auto* finalTarget = event.target();

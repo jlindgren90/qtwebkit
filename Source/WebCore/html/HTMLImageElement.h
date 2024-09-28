@@ -31,7 +31,9 @@
 
 namespace WebCore {
 
+class HTMLAttachmentElement;
 class HTMLFormElement;
+class HTMLMapElement;
 
 struct ImageCandidate;
 
@@ -63,6 +65,7 @@ public:
     void setLoadManually(bool loadManually) { m_imageLoader.setLoadManually(loadManually); }
 
     bool matchesUsemap(const AtomicStringImpl&) const;
+    HTMLMapElement* associatedMapElement() const;
 
     WEBCORE_EXPORT const AtomicString& alt() const;
 
@@ -89,6 +92,12 @@ public:
     bool willRespondToMouseClickEvents() override;
 #endif
 
+#if ENABLE(ATTACHMENT_ELEMENT)
+    void setAttachmentElement(Ref<HTMLAttachmentElement>&&);
+    RefPtr<HTMLAttachmentElement> attachmentElement() const;
+    const String& attachmentIdentifier() const;
+#endif
+
     bool hasPendingActivity() const { return m_imageLoader.hasPendingActivity(); }
 
     bool canContainRangeEndPoint() const override { return false; }
@@ -99,6 +108,10 @@ public:
     
     HTMLPictureElement* pictureElement() const;
     void setPictureElement(HTMLPictureElement*);
+
+#if USE(SYSTEM_PREVIEW)
+    WEBCORE_EXPORT bool isSystemPreviewImage() const;
+#endif
 
 protected:
     HTMLImageElement(const QualifiedName&, Document&, HTMLFormElement* = 0);

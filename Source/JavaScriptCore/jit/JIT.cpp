@@ -30,6 +30,7 @@
 #include "JIT.h"
 
 #include "BytecodeGraph.h"
+#include "BytecodeLivenessAnalysis.h"
 #include "CodeBlock.h"
 #include "CodeBlockWithJITType.h"
 #include "DFGCapabilities.h"
@@ -54,8 +55,6 @@
 #include <wtf/GraphNodeWorklist.h>
 #include <wtf/SimpleStats.h>
 
-using namespace std;
-
 namespace JSC {
 namespace JITInternal {
 static constexpr const bool verbose = false;
@@ -67,11 +66,11 @@ Seconds totalFTLCompileTime;
 Seconds totalFTLDFGCompileTime;
 Seconds totalFTLB3CompileTime;
 
-void ctiPatchCallByReturnAddress(ReturnAddressPtr returnAddress, FunctionPtr newCalleeFunction)
+void ctiPatchCallByReturnAddress(ReturnAddressPtr returnAddress, FunctionPtr<CFunctionPtrTag> newCalleeFunction)
 {
     MacroAssembler::repatchCall(
-        CodeLocationCall(MacroAssemblerCodePtr(returnAddress)),
-        newCalleeFunction);
+        CodeLocationCall<NoPtrTag>(MacroAssemblerCodePtr<NoPtrTag>(returnAddress)),
+        newCalleeFunction.retagged<OperationPtrTag>());
 }
 
 JIT::JIT(VM* vm, CodeBlock* codeBlock, unsigned loopOSREntryBytecodeOffset)
@@ -79,11 +78,6 @@ JIT::JIT(VM* vm, CodeBlock* codeBlock, unsigned loopOSREntryBytecodeOffset)
     , m_interpreter(vm->interpreter)
     , m_labels(codeBlock ? codeBlock->numberOfInstructions() : 0)
     , m_bytecodeOffset(std::numeric_limits<unsigned>::max())
-    , m_getByIdIndex(UINT_MAX)
-    , m_getByIdWithThisIndex(UINT_MAX)
-    , m_putByIdIndex(UINT_MAX)
-    , m_byValInstructionIndex(UINT_MAX)
-    , m_callLinkInfoIndex(UINT_MAX)
     , m_pcToCodeOriginMapBuilder(*vm)
     , m_canBeOptimized(false)
     , m_shouldEmitProfiling(false)
@@ -111,8 +105,7 @@ void JIT::emitEnterOptimizationCheck()
 
     callOperation(operationOptimize, m_bytecodeOffset);
     skipOptimize.append(branchTestPtr(Zero, returnValueGPR));
-    move(returnValueGPR2, stackPointerRegister);
-    jump(returnValueGPR, NoPtrTag);
+    jump(returnValueGPR, GPRInfo::callFrameRegister);
     skipOptimize.link(this);
 }
 #endif
@@ -220,9 +213,22 @@ void JIT::privateCompileMainPass()
             GraphNodeWorklist<BytecodeBasicBlock*> worklist;
             startBytecodeOffset = UINT_MAX;
             worklist.push(block);
+
             while (BytecodeBasicBlock* block = worklist.pop()) {
                 startBytecodeOffset = std::min(startBytecodeOffset, block->leaderOffset());
                 worklist.pushAll(block->successors());
+
+                // Also add catch blocks for bytecodes that throw.
+                if (m_codeBlock->numberOfExceptionHandlers()) {
+                    for (unsigned bytecodeOffset = block->leaderOffset(); bytecodeOffset < block->leaderOffset() + block->totalLength();) {
+                        OpcodeID opcodeID = Interpreter::getOpcodeID(instructionsBegin[bytecodeOffset].u.opcode);
+                        if (auto* handler = m_codeBlock->handlerForBytecodeOffset(bytecodeOffset))
+                            worklist.push(graph.findBasicBlockWithLeaderOffset(handler->target));
+
+                        unsigned opcodeLength = opcodeLengths[opcodeID];
+                        bytecodeOffset += opcodeLength;
+                    }
+                }
             }
         }
     }
@@ -266,7 +272,7 @@ void JIT::privateCompileMainPass()
         unsigned bytecodeOffset = m_bytecodeOffset;
 
         switch (opcodeID) {
-        DEFINE_SLOW_OP(in)
+        DEFINE_SLOW_OP(in_by_val)
         DEFINE_SLOW_OP(less)
         DEFINE_SLOW_OP(lesseq)
         DEFINE_SLOW_OP(greater)
@@ -330,11 +336,13 @@ void JIT::privateCompileMainPass()
         DEFINE_OP(op_below)
         DEFINE_OP(op_beloweq)
         DEFINE_OP(op_try_get_by_id)
+        DEFINE_OP(op_in_by_id)
         case op_get_array_length:
         case op_get_by_id_proto_load:
         case op_get_by_id_unset:
         DEFINE_OP(op_get_by_id)
         DEFINE_OP(op_get_by_id_with_this)
+        DEFINE_OP(op_get_by_id_direct)
         DEFINE_OP(op_get_by_val)
         DEFINE_OP(op_overrides_has_instance)
         DEFINE_OP(op_instanceof)
@@ -466,6 +474,8 @@ void JIT::privateCompileSlowCases()
     m_getByIdIndex = 0;
     m_getByIdWithThisIndex = 0;
     m_putByIdIndex = 0;
+    m_inByIdIndex = 0;
+    m_instanceOfIndex = 0;
     m_byValInstructionIndex = 0;
     m_callLinkInfoIndex = 0;
     
@@ -508,11 +518,13 @@ void JIT::privateCompileSlowCases()
         DEFINE_SLOWCASE_OP(op_construct)
         DEFINE_SLOWCASE_OP(op_eq)
         DEFINE_SLOWCASE_OP(op_try_get_by_id)
+        DEFINE_SLOWCASE_OP(op_in_by_id)
         case op_get_array_length:
         case op_get_by_id_proto_load:
         case op_get_by_id_unset:
         DEFINE_SLOWCASE_OP(op_get_by_id)
         DEFINE_SLOWCASE_OP(op_get_by_id_with_this)
+        DEFINE_SLOWCASE_OP(op_get_by_id_direct)
         DEFINE_SLOWCASE_OP(op_get_by_val)
         DEFINE_SLOWCASE_OP(op_instanceof)
         DEFINE_SLOWCASE_OP(op_instanceof_custom)
@@ -586,6 +598,8 @@ void JIT::privateCompileSlowCases()
     RELEASE_ASSERT(m_getByIdIndex == m_getByIds.size());
     RELEASE_ASSERT(m_getByIdWithThisIndex == m_getByIdsWithThis.size());
     RELEASE_ASSERT(m_putByIdIndex == m_putByIds.size());
+    RELEASE_ASSERT(m_inByIdIndex == m_inByIds.size());
+    RELEASE_ASSERT(m_instanceOfIndex == m_instanceOfs.size());
     RELEASE_ASSERT(m_callLinkInfoIndex == m_callCompilationInfo.size());
     RELEASE_ASSERT(numberOfValueProfiles == m_codeBlock->numberOfValueProfiles());
 
@@ -649,8 +663,9 @@ void JIT::compileWithoutLinking(JITCompilationEffort effort)
     
     m_pcToCodeOriginMapBuilder.appendItem(label(), CodeOrigin(0, nullptr));
 
+    Label entryLabel(this);
     if (m_disassembler)
-        m_disassembler->setStartOfCode(label());
+        m_disassembler->setStartOfCode(entryLabel);
 
     // Just add a little bit of randomness to the codegen
     if (random() & 1)
@@ -718,7 +733,9 @@ void JIT::compileWithoutLinking(JITCompilationEffort effort)
         addPtr(TrustedImm32(-maxFrameExtentForSlowPathCall), stackPointerRegister);
     callOperationWithCallFrameRollbackOnException(operationThrowStackOverflowError, m_codeBlock);
 
-    if (m_codeBlock->codeType() == FunctionCode) {
+    // If the number of parameters is 1, we never require arity fixup.
+    bool requiresArityFixup = m_codeBlock->m_numParameters != 1;
+    if (m_codeBlock->codeType() == FunctionCode && requiresArityFixup) {
         m_arityCheck = label();
         store8(TrustedImm32(0), &m_codeBlock->m_shouldAlwaysBeInlined);
         emitFunctionPrologue();
@@ -736,14 +753,15 @@ void JIT::compileWithoutLinking(JITCompilationEffort effort)
             addPtr(TrustedImm32(maxFrameExtentForSlowPathCall), stackPointerRegister);
         branchTest32(Zero, returnValueGPR).linkTo(beginLabel, this);
         move(returnValueGPR, GPRInfo::argumentGPR0);
-        emitNakedCall(m_vm->getCTIStub(arityFixupGenerator).code());
+        emitNakedCall(m_vm->getCTIStub(arityFixupGenerator).retaggedCode<NoPtrTag>());
 
 #if !ASSERT_DISABLED
         m_bytecodeOffset = std::numeric_limits<unsigned>::max(); // Reset this, in order to guard its use with ASSERTs.
 #endif
 
         jump(beginLabel);
-    }
+    } else
+        m_arityCheck = entryLabel; // Never require arity fixup.
 
     ASSERT(m_jmpTable.isEmpty());
     
@@ -784,23 +802,26 @@ CompilationResult JIT::link()
             ASSERT(record.type == SwitchRecord::Immediate || record.type == SwitchRecord::Character); 
             ASSERT(record.jumpTable.simpleJumpTable->branchOffsets.size() == record.jumpTable.simpleJumpTable->ctiOffsets.size());
 
-            record.jumpTable.simpleJumpTable->ctiDefault = patchBuffer.locationOf(m_labels[bytecodeOffset + record.defaultOffset], NoPtrTag);
+            auto* simpleJumpTable = record.jumpTable.simpleJumpTable;
+            simpleJumpTable->ctiDefault = patchBuffer.locationOf<JSSwitchPtrTag>(m_labels[bytecodeOffset + record.defaultOffset]);
 
             for (unsigned j = 0; j < record.jumpTable.simpleJumpTable->branchOffsets.size(); ++j) {
                 unsigned offset = record.jumpTable.simpleJumpTable->branchOffsets[j];
-                record.jumpTable.simpleJumpTable->ctiOffsets[j] = offset ? patchBuffer.locationOf(m_labels[bytecodeOffset + offset], NoPtrTag) : record.jumpTable.simpleJumpTable->ctiDefault;
+                simpleJumpTable->ctiOffsets[j] = offset
+                    ? patchBuffer.locationOf<JSSwitchPtrTag>(m_labels[bytecodeOffset + offset])
+                    : simpleJumpTable->ctiDefault;
             }
         } else {
             ASSERT(record.type == SwitchRecord::String);
 
             auto* stringJumpTable = record.jumpTable.stringJumpTable;
             stringJumpTable->ctiDefault =
-                patchBuffer.locationOf(m_labels[bytecodeOffset + record.defaultOffset], NoPtrTag);
+                patchBuffer.locationOf<JSSwitchPtrTag>(m_labels[bytecodeOffset + record.defaultOffset]);
 
             for (auto& location : stringJumpTable->offsetTable.values()) {
                 unsigned offset = location.branchOffset;
                 location.ctiOffset = offset
-                    ? patchBuffer.locationOf(m_labels[bytecodeOffset + offset], NoPtrTag)
+                    ? patchBuffer.locationOf<JSSwitchPtrTag>(m_labels[bytecodeOffset + offset])
                     : stringJumpTable->ctiDefault;
             }
         }
@@ -808,34 +829,34 @@ CompilationResult JIT::link()
 
     for (size_t i = 0; i < m_codeBlock->numberOfExceptionHandlers(); ++i) {
         HandlerInfo& handler = m_codeBlock->exceptionHandler(i);
-        handler.nativeCode = patchBuffer.locationOf(m_labels[handler.target], ExceptionHandlerPtrTag);
+        // FIXME: <rdar://problem/39433318>.
+        handler.nativeCode = patchBuffer.locationOf<ExceptionHandlerPtrTag>(m_labels[handler.target]);
     }
 
     for (auto& record : m_calls) {
         if (record.callee)
             patchBuffer.link(record.from, record.callee);
     }
-
-    for (unsigned i = m_getByIds.size(); i--;)
-        m_getByIds[i].finalize(patchBuffer);
-    for (unsigned i = m_getByIdsWithThis.size(); i--;)
-        m_getByIdsWithThis[i].finalize(patchBuffer);
-    for (unsigned i = m_putByIds.size(); i--;)
-        m_putByIds[i].finalize(patchBuffer);
+    
+    finalizeInlineCaches(m_getByIds, patchBuffer);
+    finalizeInlineCaches(m_getByIdsWithThis, patchBuffer);
+    finalizeInlineCaches(m_putByIds, patchBuffer);
+    finalizeInlineCaches(m_inByIds, patchBuffer);
+    finalizeInlineCaches(m_instanceOfs, patchBuffer);
 
     if (m_byValCompilationInfo.size()) {
-        CodeLocationLabel exceptionHandler = patchBuffer.locationOf(m_exceptionHandler, ExceptionHandlerPtrTag);
+        CodeLocationLabel<ExceptionHandlerPtrTag> exceptionHandler = patchBuffer.locationOf<ExceptionHandlerPtrTag>(m_exceptionHandler);
 
         for (const auto& byValCompilationInfo : m_byValCompilationInfo) {
             PatchableJump patchableNotIndexJump = byValCompilationInfo.notIndexJump;
-            CodeLocationJump notIndexJump = CodeLocationJump();
+            auto notIndexJump = CodeLocationJump<JSInternalPtrTag>();
             if (Jump(patchableNotIndexJump).isSet())
-                notIndexJump = CodeLocationJump(patchBuffer.locationOf(patchableNotIndexJump));
-            CodeLocationJump badTypeJump = CodeLocationJump(patchBuffer.locationOf(byValCompilationInfo.badTypeJump));
-            CodeLocationLabel doneTarget = patchBuffer.locationOf(byValCompilationInfo.doneTarget, NoPtrTag);
-            CodeLocationLabel nextHotPathTarget = patchBuffer.locationOf(byValCompilationInfo.nextHotPathTarget, NoPtrTag);
-            CodeLocationLabel slowPathTarget = patchBuffer.locationOf(byValCompilationInfo.slowPathTarget, NoPtrTag);
-            CodeLocationCall returnAddress = patchBuffer.locationOf(byValCompilationInfo.returnAddress);
+                notIndexJump = CodeLocationJump<JSInternalPtrTag>(patchBuffer.locationOf<JSInternalPtrTag>(patchableNotIndexJump));
+            auto badTypeJump = CodeLocationJump<JSInternalPtrTag>(patchBuffer.locationOf<JSInternalPtrTag>(byValCompilationInfo.badTypeJump));
+            CodeLocationLabel<NoPtrTag> doneTarget = patchBuffer.locationOf<NoPtrTag>(byValCompilationInfo.doneTarget);
+            CodeLocationLabel<NoPtrTag> nextHotPathTarget = patchBuffer.locationOf<NoPtrTag>(byValCompilationInfo.nextHotPathTarget);
+            CodeLocationLabel<NoPtrTag> slowPathTarget = patchBuffer.locationOf<NoPtrTag>(byValCompilationInfo.slowPathTarget);
+            CodeLocationCall<NoPtrTag> returnAddress = patchBuffer.locationOf<NoPtrTag>(byValCompilationInfo.returnAddress);
 
             *byValCompilationInfo.byValInfo = ByValInfo(
                 byValCompilationInfo.bytecodeIndex,
@@ -853,21 +874,20 @@ CompilationResult JIT::link()
     for (auto& compilationInfo : m_callCompilationInfo) {
         CallLinkInfo& info = *compilationInfo.callLinkInfo;
         info.setCallLocations(
-            CodeLocationLabel(patchBuffer.locationOfNearCall(compilationInfo.callReturnLocation)),
-            CodeLocationLabel(patchBuffer.locationOf(compilationInfo.hotPathBegin)),
-            patchBuffer.locationOfNearCall(compilationInfo.hotPathOther));
+            CodeLocationLabel<JSInternalPtrTag>(patchBuffer.locationOfNearCall<JSInternalPtrTag>(compilationInfo.callReturnLocation)),
+            CodeLocationLabel<JSInternalPtrTag>(patchBuffer.locationOf<JSInternalPtrTag>(compilationInfo.hotPathBegin)),
+            patchBuffer.locationOfNearCall<JSInternalPtrTag>(compilationInfo.hotPathOther));
     }
 
-    CompactJITCodeMap::Encoder jitCodeMapEncoder;
+    JITCodeMap jitCodeMap;
     for (unsigned bytecodeOffset = 0; bytecodeOffset < m_labels.size(); ++bytecodeOffset) {
         if (m_labels[bytecodeOffset].isSet())
-            jitCodeMapEncoder.append(bytecodeOffset, patchBuffer.offsetOf(m_labels[bytecodeOffset]));
+            jitCodeMap.append(bytecodeOffset, patchBuffer.locationOf<JSEntryPtrTag>(m_labels[bytecodeOffset]));
     }
-    m_codeBlock->setJITCodeMap(jitCodeMapEncoder.finish());
+    jitCodeMap.finish();
+    m_codeBlock->setJITCodeMap(WTFMove(jitCodeMap));
 
-    MacroAssemblerCodePtr withArityCheck;
-    if (m_codeBlock->codeType() == FunctionCode)
-        withArityCheck = patchBuffer.locationOf(m_arityCheck, CodeEntryWithArityCheckPtrTag);
+    MacroAssemblerCodePtr<JSEntryPtrTag> withArityCheck = patchBuffer.locationOf<JSEntryPtrTag>(m_arityCheck);
 
     if (Options::dumpDisassembly()) {
         m_disassembler->dump(patchBuffer);
@@ -882,8 +902,8 @@ CompilationResult JIT::link()
     if (m_pcToCodeOriginMapBuilder.didBuildMapping())
         m_codeBlock->setPCToCodeOriginMap(std::make_unique<PCToCodeOriginMap>(WTFMove(m_pcToCodeOriginMapBuilder), patchBuffer));
     
-    CodeRef result = FINALIZE_CODE(
-        patchBuffer, CodeEntryPtrTag,
+    CodeRef<JSEntryPtrTag> result = FINALIZE_CODE(
+        patchBuffer, JSEntryPtrTag,
         "Baseline JIT code for %s", toCString(CodeBlockWithJITType(m_codeBlock, JITCode::BaselineJIT)).data());
     
     m_vm->machineCodeBytesPerBytecodeWordForBaselineJIT->add(
@@ -895,7 +915,7 @@ CompilationResult JIT::link()
         adoptRef(*new DirectJITCode(result, withArityCheck, JITCode::BaselineJIT)));
 
     if (JITInternal::verbose)
-        dataLogF("JIT generated code for %p at [%p, %p).\n", m_codeBlock, result.executableMemory()->start(), result.executableMemory()->end());
+        dataLogF("JIT generated code for %p at [%p, %p).\n", m_codeBlock, result.executableMemory()->start().untaggedPtr(), result.executableMemory()->end().untaggedPtr());
 
     return CompilationSuccessful;
 }
@@ -924,8 +944,7 @@ void JIT::privateCompileExceptionHandlers()
         poke(GPRInfo::argumentGPR0);
         poke(GPRInfo::argumentGPR1, 1);
 #endif
-        PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-        m_calls.append(CallRecord(call(tag), std::numeric_limits<unsigned>::max(), FunctionPtr(lookupExceptionHandlerFromCallerFrame, tag)));
+        m_calls.append(CallRecord(call(OperationPtrTag), std::numeric_limits<unsigned>::max(), FunctionPtr<OperationPtrTag>(lookupExceptionHandlerFromCallerFrame)));
         jumpToExceptionHandler(*vm());
     }
 
@@ -944,8 +963,7 @@ void JIT::privateCompileExceptionHandlers()
         poke(GPRInfo::argumentGPR0);
         poke(GPRInfo::argumentGPR1, 1);
 #endif
-        PtrTag tag = ptrTag(JITOperationPtrTag, nextPtrTagID());
-        m_calls.append(CallRecord(call(tag), std::numeric_limits<unsigned>::max(), FunctionPtr(lookupExceptionHandler, tag)));
+        m_calls.append(CallRecord(call(OperationPtrTag), std::numeric_limits<unsigned>::max(), FunctionPtr<OperationPtrTag>(lookupExceptionHandler)));
         jumpToExceptionHandler(*vm());
     }
 }
@@ -954,14 +972,14 @@ void JIT::doMainThreadPreparationBeforeCompile()
 {
     // This ensures that we have the most up to date type information when performing typecheck optimizations for op_profile_type.
     if (m_vm->typeProfiler())
-        m_vm->typeProfilerLog()->processLogEntries(ASCIILiteral("Preparing for JIT compilation."));
+        m_vm->typeProfilerLog()->processLogEntries("Preparing for JIT compilation."_s);
 }
 
 unsigned JIT::frameRegisterCountFor(CodeBlock* codeBlock)
 {
-    ASSERT(static_cast<unsigned>(codeBlock->m_numCalleeLocals) == WTF::roundUpToMultipleOf(stackAlignmentRegisters(), static_cast<unsigned>(codeBlock->m_numCalleeLocals)));
+    ASSERT(static_cast<unsigned>(codeBlock->numCalleeLocals()) == WTF::roundUpToMultipleOf(stackAlignmentRegisters(), static_cast<unsigned>(codeBlock->numCalleeLocals())));
 
-    return roundLocalRegisterCountForFramePointerOffset(codeBlock->m_numCalleeLocals + maxFrameExtentForSlowPathCallInRegisters);
+    return roundLocalRegisterCountForFramePointerOffset(codeBlock->numCalleeLocals() + maxFrameExtentForSlowPathCallInRegisters);
 }
 
 int JIT::stackPointerOffsetFor(CodeBlock* codeBlock)
@@ -995,6 +1013,11 @@ HashMap<CString, Seconds> JIT::compileTimeStats()
 #endif // ENABLE(DFG_JIT)
     }
     return result;
+}
+
+Seconds JIT::totalCompileTime()
+{
+    return totalBaselineCompileTime + totalDFGCompileTime + totalFTLCompileTime;
 }
 
 } // namespace JSC

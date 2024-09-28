@@ -34,7 +34,7 @@
 #include "WebPaymentCoordinatorMessages.h"
 #include "WebPaymentCoordinatorProxyMessages.h"
 #include "WebProcess.h"
-#include <WebCore/MainFrame.h>
+#include <WebCore/Frame.h>
 #include <WebCore/PaymentCoordinator.h>
 #include <WebCore/URL.h>
 
@@ -57,8 +57,10 @@ bool WebPaymentCoordinator::supportsVersion(unsigned version)
 
 #if !ENABLE(APPLE_PAY_SESSION_V3)
     static const unsigned currentVersion = 2;
-#else
+#elif !ENABLE(APPLE_PAY_SESSION_V4)
     static const unsigned currentVersion = 3;
+#else
+    static const unsigned currentVersion = 4;
 #endif
 
     return version <= currentVersion;
@@ -226,7 +228,7 @@ void WebPaymentCoordinator::openPaymentSetupReply(uint64_t requestID, bool resul
 
 WebCore::PaymentCoordinator& WebPaymentCoordinator::paymentCoordinator()
 {
-    return m_webPage.mainFrame()->paymentCoordinator();
+    return m_webPage.corePage()->paymentCoordinator();
 }
 
 }

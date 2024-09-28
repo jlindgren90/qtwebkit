@@ -61,11 +61,22 @@ void PlaybackSessionModelMediaElement::setMediaElement(HTMLMediaElement* mediaEl
     if (m_mediaElement == mediaElement)
         return;
 
+    auto& events = eventNames();
+
     if (m_mediaElement && m_isListening) {
         for (auto& eventName : observedEventNames())
             m_mediaElement->removeEventListener(eventName, *this, false);
-        m_mediaElement->audioTracks().removeEventListener(eventNames().changeEvent, *this, false);
-        m_mediaElement->textTracks().removeEventListener(eventNames().changeEvent, *this, false);
+        if (auto* audioTracks = m_mediaElement->audioTracks()) {
+            audioTracks->removeEventListener(events.addtrackEvent, *this, false);
+            audioTracks->removeEventListener(events.changeEvent, *this, false);
+            audioTracks->removeEventListener(events.removetrackEvent, *this, false);
+        }
+
+        if (auto* textTracks = m_mediaElement->audioTracks()) {
+            textTracks->removeEventListener(events.addtrackEvent, *this, false);
+            textTracks->removeEventListener(events.changeEvent, *this, false);
+            textTracks->removeEventListener(events.removetrackEvent, *this, false);
+        }
     }
     m_isListening = false;
 
@@ -77,9 +88,16 @@ void PlaybackSessionModelMediaElement::setMediaElement(HTMLMediaElement* mediaEl
     if (m_mediaElement) {
         for (auto& eventName : observedEventNames())
             m_mediaElement->addEventListener(eventName, *this, false);
-        m_mediaElement->audioTracks().addEventListener(eventNames().changeEvent, *this, false);
-        m_mediaElement->textTracks().addEventListener(eventNames().changeEvent, *this, false);
-        m_isListening = true;
+
+        auto& audioTracks = m_mediaElement->ensureAudioTracks();
+        audioTracks.addEventListener(events.addtrackEvent, *this, false);
+        audioTracks.addEventListener(events.changeEvent, *this, false);
+        audioTracks.addEventListener(events.removetrackEvent, *this, false);
+
+        auto& textTracks = m_mediaElement->ensureTextTracks();
+        textTracks.addEventListener(events.addtrackEvent, *this, false);
+        textTracks.addEventListener(events.changeEvent, *this, false);
+        textTracks.addEventListener(events.removetrackEvent, *this, false);
     }
 
     updateForEventName(eventNameAll());
@@ -181,8 +199,10 @@ void PlaybackSessionModelMediaElement::updateForEventName(const WTF::AtomicStrin
 
     if (all
         || eventName == eventNames().volumechangeEvent) {
-        for (auto client : m_clients)
+        for (auto client : m_clients) {
             client->mutedChanged(isMuted());
+            client->volumeChanged(volume());
+        }
     }
 }
 void PlaybackSessionModelMediaElement::addClient(PlaybackSessionModelClient& client)
@@ -299,6 +319,18 @@ void PlaybackSessionModelMediaElement::setMuted(bool muted)
         m_mediaElement->setMuted(muted);
 }
 
+void PlaybackSessionModelMediaElement::setVolume(double volume)
+{
+    if (m_mediaElement)
+        m_mediaElement->setVolume(volume);
+}
+
+void PlaybackSessionModelMediaElement::setPlayingOnSecondScreen(bool value)
+{
+    if (m_mediaElement)
+        m_mediaElement->setPlayingOnSecondScreen(value);
+}
+
 void PlaybackSessionModelMediaElement::updateMediaSelectionOptions()
 {
     if (!m_mediaElement)
@@ -308,15 +340,15 @@ void PlaybackSessionModelMediaElement::updateMediaSelectionOptions()
         return;
 
     auto& captionPreferences = m_mediaElement->document().page()->group().captionPreferences();
-    auto& textTracks = m_mediaElement->textTracks();
-    if (textTracks.length())
-        m_legibleTracksForMenu = captionPreferences.sortedTrackListForMenu(&textTracks);
+    auto* textTracks = m_mediaElement->textTracks();
+    if (textTracks && textTracks->length())
+        m_legibleTracksForMenu = captionPreferences.sortedTrackListForMenu(textTracks);
     else
         m_legibleTracksForMenu.clear();
 
-    auto& audioTracks = m_mediaElement->audioTracks();
-    if (audioTracks.length() > 1)
-        m_audioTracksForMenu = captionPreferences.sortedTrackListForMenu(&audioTracks);
+    auto* audioTracks = m_mediaElement->audioTracks();
+    if (audioTracks && audioTracks->length() > 1)
+        m_audioTracksForMenu = captionPreferences.sortedTrackListForMenu(audioTracks);
     else
         m_audioTracksForMenu.clear();
 
@@ -360,8 +392,6 @@ const Vector<AtomicString>& PlaybackSessionModelMediaElement::observedEventNames
         eventNames().ratechangeEvent,
         eventNames().timeupdateEvent,
         eventNames().progressEvent,
-        eventNames().addtrackEvent,
-        eventNames().removetrackEvent,
         eventNames().volumechangeEvent,
         eventNames().webkitcurrentplaybacktargetiswirelesschangedEvent,
     });
@@ -530,12 +560,17 @@ String PlaybackSessionModelMediaElement::externalPlaybackLocalizedDeviceName() c
 
 bool PlaybackSessionModelMediaElement::wirelessVideoPlaybackDisabled() const
 {
-    return m_mediaElement && m_mediaElement->mediaSession().wirelessVideoPlaybackDisabled(*m_mediaElement);
+    return m_mediaElement && m_mediaElement->mediaSession().wirelessVideoPlaybackDisabled();
 }
 
 bool PlaybackSessionModelMediaElement::isMuted() const
 {
     return m_mediaElement ? m_mediaElement->muted() : false;
+}
+
+double PlaybackSessionModelMediaElement::volume() const
+{
+    return m_mediaElement ? m_mediaElement->volume() : 0;
 }
 
 bool PlaybackSessionModelMediaElement::isPictureInPictureActive() const

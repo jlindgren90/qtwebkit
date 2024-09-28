@@ -290,6 +290,16 @@ public:
         m_assembler.andl_mr(src.offset, src.base, src.index, src.scale, dest);
     }
 
+    void and16(Address src, RegisterID dest)
+    {
+        m_assembler.andw_mr(src.offset, src.base, dest);
+    }
+
+    void and16(BaseIndex src, RegisterID dest)
+    {
+        m_assembler.andw_mr(src.offset, src.base, src.index, src.scale, dest);
+    }
+
     void and32(TrustedImm32 imm, Address address)
     {
         m_assembler.andl_im(imm.m_value, address.offset, address.base);
@@ -397,6 +407,24 @@ public:
         ASSERT(supportsCountPopulation());
         m_assembler.popcnt_rr(src, dst);
     }
+
+    void byteSwap32(RegisterID dst)
+    {
+        m_assembler.bswapl_r(dst);
+    }
+
+    void byteSwap16(RegisterID dst)
+    {
+        m_assembler.rolw_i8r(8, dst);
+        zeroExtend16To32(dst, dst);
+    }
+
+#if CPU(X86_64)
+    void byteSwap64(RegisterID dst)
+    {
+        m_assembler.bswapq_r(dst);
+    }
+#endif
 
     // Only used for testing purposes.
     void illegalInstruction()
@@ -1203,8 +1231,9 @@ public:
         m_assembler.movl_mr_disp8(address.offset, address.base, dest);
         return DataLabelCompact(this);
     }
-    
-    static void repatchCompact(CodeLocationDataLabelCompact dataLabelCompact, int32_t value)
+
+    template<PtrTag tag>
+    static void repatchCompact(CodeLocationDataLabelCompact<tag> dataLabelCompact, int32_t value)
     {
         ASSERT(isCompactPtrAlignedAddressOffset(value));
         AssemblerType_T::repatchCompact(dataLabelCompact.dataLocation(), value);
@@ -1442,6 +1471,17 @@ public:
     {
         ASSERT(isSSE2Present());
         m_assembler.movsd_mr(address.offset, address.base, address.index, address.scale, dest);
+    }
+
+    void loadFloat(TrustedImmPtr address, FPRegisterID dest)
+    {
+#if CPU(X86)
+        ASSERT(isSSE2Present());
+        m_assembler.movss_mr(address.asPtr(), dest);
+#else
+        move(address, scratchRegister());
+        loadFloat(scratchRegister(), dest);
+#endif
     }
 
     void loadFloat(ImplicitAddress address, FPRegisterID dest)
@@ -2003,6 +2043,22 @@ public:
         return jumpAfterFloatingPointCompare(cond, left, right);
     }
 
+    void compareDouble(DoubleCondition cond, FPRegisterID left, FPRegisterID right, RegisterID dest)
+    {
+        ASSERT(isSSE2Present());
+        floatingPointCompare(cond, left, right, dest, [this] (FPRegisterID arg1, FPRegisterID arg2) {
+            m_assembler.ucomisd_rr(arg1, arg2);
+        });
+    }
+
+    void compareFloat(DoubleCondition cond, FPRegisterID left, FPRegisterID right, RegisterID dest)
+    {
+        ASSERT(isSSE2Present());
+        floatingPointCompare(cond, left, right, dest, [this] (FPRegisterID arg1, FPRegisterID arg2) {
+            m_assembler.ucomiss_rr(arg1, arg2);
+        });
+    }
+
     // Truncates 'src' to an integer, and places the resulting 'dest'.
     // If the result is not representable as a 32 bit value, branch.
     // May also branch for some values that are representable in 32 bits
@@ -2133,6 +2189,17 @@ public:
         m_assembler.push_i32(imm.m_value);
     }
 
+    void popPair(RegisterID dest1, RegisterID dest2)
+    {
+        pop(dest2);
+        pop(dest1);
+    }
+
+    void pushPair(RegisterID src1, RegisterID src2)
+    {
+        push(src1);
+        push(src2);
+    }
 
     // Register move operations:
     //
@@ -3868,12 +3935,14 @@ public:
     }
 #endif
 
-    static void replaceWithVMHalt(CodeLocationLabel instructionStart)
+    template<PtrTag tag>
+    static void replaceWithVMHalt(CodeLocationLabel<tag> instructionStart)
     {
         X86Assembler::replaceWithHlt(instructionStart.executableAddress());
     }
 
-    static void replaceWithJump(CodeLocationLabel instructionStart, CodeLocationLabel destination)
+    template<PtrTag startTag, PtrTag destTag>
+    static void replaceWithJump(CodeLocationLabel<startTag> instructionStart, CodeLocationLabel<destTag> destination)
     {
         X86Assembler::replaceWithJump(instructionStart.executableAddress(), destination.executableAddress());
     }
@@ -4075,6 +4144,51 @@ private:
         skipNonZeroCase.link(this);
     }
 
+    template<typename Function>
+    void floatingPointCompare(DoubleCondition cond, FPRegisterID left, FPRegisterID right, RegisterID dest, Function compare)
+    {
+        if (cond & DoubleConditionBitSpecial) {
+            ASSERT(!(cond & DoubleConditionBitInvert));
+            if (cond == DoubleEqual) {
+                if (left == right) {
+                    compare(right, left);
+                    set32(X86Assembler::ConditionNP, dest);
+                    return;
+                }
+
+                move(TrustedImm32(0), dest);
+                compare(right, left);
+                Jump isUnordered = m_assembler.jp();
+                set32(X86Assembler::ConditionE, dest);
+                isUnordered.link(this);
+                return;
+            }
+            if (cond == DoubleNotEqualOrUnordered) {
+                if (left == right) {
+                    compare(right, left);
+                    set32(X86Assembler::ConditionP, dest);
+                    return;
+                }
+
+                move(TrustedImm32(1), dest);
+                compare(right, left);
+                Jump isUnordered = m_assembler.jp();
+                set32(X86Assembler::ConditionNE, dest);
+                isUnordered.link(this);
+                return;
+            }
+
+            RELEASE_ASSERT_NOT_REACHED();
+            return;
+        }
+
+        if (cond & DoubleConditionBitInvert)
+            compare(left, right);
+        else
+            compare(right, left);
+        set32(static_cast<X86Assembler::Condition>(cond & ~DoubleConditionBits), dest);
+    }
+
     Jump jumpAfterFloatingPointCompare(DoubleCondition cond, FPRegisterID left, FPRegisterID right)
     {
         if (cond == DoubleEqual) {
@@ -4174,11 +4288,6 @@ private:
     static CPUID getCPUIDEx(unsigned level, unsigned count);
     JS_EXPORT_PRIVATE static void collectCPUFeatures();
 
-    enum class CPUIDCheckState {
-        NotChecked,
-        Clear,
-        Set
-    };
     JS_EXPORT_PRIVATE static CPUIDCheckState s_sse2CheckState;
     JS_EXPORT_PRIVATE static CPUIDCheckState s_sse4_1CheckState;
     JS_EXPORT_PRIVATE static CPUIDCheckState s_sse4_2CheckState;

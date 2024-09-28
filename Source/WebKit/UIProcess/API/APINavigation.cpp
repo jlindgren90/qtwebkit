@@ -28,6 +28,7 @@
 
 #include "WebBackForwardListItem.h"
 #include "WebNavigationState.h"
+#include <wtf/DebugUtilities.h>
 
 using namespace WebCore;
 using namespace WebKit;
@@ -39,22 +40,33 @@ Navigation::Navigation(WebNavigationState& state)
 {
 }
 
-Navigation::Navigation(WebNavigationState& state, WebCore::ResourceRequest&& request)
+Navigation::Navigation(WebNavigationState& state, WebCore::ResourceRequest&& request, WebBackForwardListItem* fromItem)
     : m_navigationID(state.generateNavigationID())
-    , m_request(WTFMove(request))
+    , m_originalRequest(WTFMove(request))
+    , m_currentRequest(m_originalRequest)
+    , m_fromItem(fromItem)
 {
-    m_redirectChain.append(m_request.url());
+    m_redirectChain.append(m_originalRequest.url());
 }
 
-Navigation::Navigation(WebNavigationState& state, WebBackForwardListItem& item, FrameLoadType backForwardFrameLoadType)
+Navigation::Navigation(WebNavigationState& state, WebBackForwardListItem& targetItem, WebBackForwardListItem* fromItem, FrameLoadType backForwardFrameLoadType)
     : m_navigationID(state.generateNavigationID())
-    , m_backForwardListItem(&item)
+    , m_originalRequest(targetItem.url())
+    , m_currentRequest(m_originalRequest)
+    , m_targetItem(&targetItem)
+    , m_fromItem(fromItem)
     , m_backForwardFrameLoadType(backForwardFrameLoadType)
 {
 }
 
 Navigation::~Navigation()
 {
+}
+
+void Navigation::setCurrentRequest(ResourceRequest&& request, ProcessIdentifier processIdentifier)
+{
+    m_currentRequest = WTFMove(request);
+    m_currentRequestProcessIdentifier = processIdentifier;
 }
 
 void Navigation::appendRedirectionURL(const WebCore::URL& url)
@@ -64,10 +76,10 @@ void Navigation::appendRedirectionURL(const WebCore::URL& url)
 }
 
 #if !LOG_DISABLED
-WTF::String Navigation::loggingURL() const
+const char* Navigation::loggingString() const
 {
-    return m_backForwardListItem ? m_backForwardListItem->url() : m_request.url().string();
+    return debugString("Most recent URL: ", m_currentRequest.url().string(), " Back/forward list item URL: '", m_targetItem ? m_targetItem->url() : WTF::String { }, WTF::String::format("' (%p)", m_targetItem.get()));
 }
 #endif
 
-} // namespace WebKit
+} // namespace API

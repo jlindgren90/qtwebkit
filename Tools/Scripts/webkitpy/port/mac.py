@@ -45,7 +45,7 @@ _log = logging.getLogger(__name__)
 class MacPort(DarwinPort):
     port_name = "mac"
 
-    CURRENT_VERSION = Version(10, 13)
+    CURRENT_VERSION = Version(10, 14)
 
     SDK = 'macosx'
 
@@ -60,7 +60,7 @@ class MacPort(DarwinPort):
         split_port_name = port_name.split('-')
         if len(split_port_name) > 1 and split_port_name[1] != 'wk2':
             self._os_version = version_name_map.from_name(split_port_name[1])[1]
-        elif self.host.platform.is_mac():
+        elif self.host.platform.is_mac() and apple_additions():
             self._os_version = self.host.platform.os_version
         if not self._os_version:
             self._os_version = MacPort.CURRENT_VERSION
@@ -134,6 +134,13 @@ class MacPort(DarwinPort):
                     continue
                 config_map[version_name.lower().replace(' ', '') + '+'] = version_names
         return config_map
+
+    def environment_for_api_tests(self):
+        result = super(MacPort, self).environment_for_api_tests()
+        if self.get_option('guard_malloc'):
+            result['DYLD_INSERT_LIBRARIES'] = '/usr/lib/libgmalloc.dylib'
+            result['__XPC_DYLD_INSERT_LIBRARIES'] = '/usr/lib/libgmalloc.dylib'
+        return result
 
     def setup_environ_for_server(self, server_name=None):
         env = super(MacPort, self).setup_environ_for_server(server_name)

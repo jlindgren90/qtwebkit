@@ -36,16 +36,12 @@
 #if (defined(TARGET_IPHONE_SIMULATOR)  && TARGET_IPHONE_SIMULATOR)
 #define ENABLE_VCP_ENCODER 0
 #elif (defined(TARGET_OS_IPHONE)  && TARGET_OS_IPHONE)
-#define ENABLE_VCP_ENCODER (__IPHONE_OS_VERSION_MAX_ALLOWED >= 110300)
+#define ENABLE_VCP_ENCODER 0
 #elif (defined(TARGET_OS_MAC)  && TARGET_OS_MAC)
-#define ENABLE_VCP_ENCODER (__MAC_OS_X_VERSION_MAX_ALLOWED >= 101304)
+#define ENABLE_VCP_ENCODER 0 //(__MAC_OS_X_VERSION_MAX_ALLOWED >= 101304)
 #endif
 
 #endif
-
-#if ENABLE_VCP_ENCODER
-
-#include <VideoProcessing/VideoProcessing.h>
 
 #define ALWAYS_INLINE inline
 
@@ -82,6 +78,36 @@
     {\
         return functionNamespace::softLink##framework##functionName parameterNames; \
     }
+
+#define SOFT_LINK_FRAMEWORK_OPTIONAL(framework) \
+    static void* framework##Library() \
+    { \
+        static void* frameworkLibrary = dlopen("/System/Library/Frameworks/" #framework ".framework/" #framework, RTLD_NOW); \
+        return frameworkLibrary; \
+    }
+
+#define SOFT_LINK_POINTER_OPTIONAL(framework, name, type) \
+    static type init##name(); \
+    static type (*get##name)() = init##name; \
+    static type pointer##name; \
+    \
+    static type name##Function() \
+    { \
+        return pointer##name; \
+    } \
+    \
+    static type init##name() \
+    { \
+        void** pointer = static_cast<void**>(dlsym(framework##Library(), #name)); \
+        if (pointer) \
+            pointer##name = (__bridge type)(*pointer); \
+        get##name = name##Function; \
+        return pointer##name; \
+    }
+
+#if ENABLE_VCP_ENCODER
+
+#include <VideoProcessing/VideoProcessing.h>
 
 SOFT_LINK_FRAMEWORK_FOR_HEADER(webrtc, VideoProcessing)
 

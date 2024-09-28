@@ -155,7 +155,7 @@ struct _WebKitWebViewBasePrivate {
         if (!pageProxy)
             return;
         pageProxy->activityStateDidChange(activityStateFlagsToUpdate);
-        activityStateFlagsToUpdate = ActivityState::NoFlags;
+        activityStateFlagsToUpdate = { };
     }
 
     WebKitWebViewChildrenMap children;
@@ -185,8 +185,8 @@ struct _WebKitWebViewBasePrivate {
     unsigned long toplevelWindowRealizedID { 0 };
 
     // View State.
-    ActivityState::Flags activityState { 0 };
-    ActivityState::Flags activityStateFlagsToUpdate { 0 };
+    OptionSet<ActivityState::Flag> activityState;
+    OptionSet<ActivityState::Flag> activityStateFlagsToUpdate;
     RunLoop::Timer<WebKitWebViewBasePrivate> updateActivityStateTimer;
 
 #if ENABLE(FULLSCREEN_API)
@@ -207,10 +207,10 @@ struct _WebKitWebViewBasePrivate {
 
 WEBKIT_DEFINE_TYPE(WebKitWebViewBase, webkit_web_view_base, GTK_TYPE_CONTAINER)
 
-static void webkitWebViewBaseScheduleUpdateActivityState(WebKitWebViewBase* webViewBase, ActivityState::Flags flagsToUpdate)
+static void webkitWebViewBaseScheduleUpdateActivityState(WebKitWebViewBase* webViewBase, OptionSet<ActivityState::Flag> flagsToUpdate)
 {
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
-    priv->activityStateFlagsToUpdate |= flagsToUpdate;
+    priv->activityStateFlagsToUpdate.add(flagsToUpdate);
     if (priv->updateActivityStateTimer.isActive())
         return;
 
@@ -227,7 +227,7 @@ static gboolean toplevelWindowFocusInEvent(GtkWidget* widget, GdkEventFocus*, We
     if (priv->activityState & ActivityState::WindowIsActive)
         return FALSE;
 
-    priv->activityState |= ActivityState::WindowIsActive;
+    priv->activityState.add(ActivityState::WindowIsActive);
     webkitWebViewBaseScheduleUpdateActivityState(webViewBase, ActivityState::WindowIsActive);
 
     return FALSE;
@@ -239,7 +239,7 @@ static gboolean toplevelWindowFocusOutEvent(GtkWidget*, GdkEventFocus*, WebKitWe
     if (!(priv->activityState & ActivityState::WindowIsActive))
         return FALSE;
 
-    priv->activityState &= ~ActivityState::WindowIsActive;
+    priv->activityState.remove(ActivityState::WindowIsActive);
     webkitWebViewBaseScheduleUpdateActivityState(webViewBase, ActivityState::WindowIsActive);
 
     return FALSE;
@@ -256,9 +256,9 @@ static gboolean toplevelWindowStateEvent(GtkWidget*, GdkEventWindowState* event,
         return FALSE;
 
     if (visible)
-        priv->activityState |= ActivityState::IsVisible;
+        priv->activityState.add(ActivityState::IsVisible);
     else
-        priv->activityState &= ~ActivityState::IsVisible;
+        priv->activityState.remove(ActivityState::IsVisible);
     webkitWebViewBaseScheduleUpdateActivityState(webViewBase, ActivityState::IsVisible);
 
     return FALSE;
@@ -301,14 +301,14 @@ static void webkitWebViewBaseSetToplevelOnScreenWindow(WebKitWebViewBase* webVie
     priv->toplevelOnScreenWindow = window;
 
     if (!priv->toplevelOnScreenWindow) {
-        ActivityState::Flags flagsToUpdate = 0;
+        OptionSet<ActivityState::Flag> flagsToUpdate;
         if (priv->activityState & ActivityState::IsInWindow) {
-            priv->activityState &= ~ActivityState::IsInWindow;
-            flagsToUpdate |= ActivityState::IsInWindow;
+            priv->activityState.remove(ActivityState::IsInWindow);
+            flagsToUpdate.add(ActivityState::IsInWindow);
         }
         if (priv->activityState & ActivityState::WindowIsActive) {
-            priv->activityState &= ~ActivityState::WindowIsActive;
-            flagsToUpdate |= ActivityState::IsInWindow;
+            priv->activityState.remove(ActivityState::WindowIsActive);
+            flagsToUpdate.add(ActivityState::IsInWindow);
         }
         if (flagsToUpdate)
             webkitWebViewBaseScheduleUpdateActivityState(webViewBase, flagsToUpdate);
@@ -624,19 +624,19 @@ static void webkitWebViewBaseMap(GtkWidget* widget)
 
     WebKitWebViewBase* webViewBase = WEBKIT_WEB_VIEW_BASE(widget);
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
-    ActivityState::Flags flagsToUpdate = 0;
+    OptionSet<ActivityState::Flag> flagsToUpdate;
     if (!(priv->activityState & ActivityState::IsVisible))
-        flagsToUpdate |= ActivityState::IsVisible;
+        flagsToUpdate.add(ActivityState::IsVisible);
     if (priv->toplevelOnScreenWindow) {
         if (!(priv->activityState & ActivityState::IsInWindow))
-            flagsToUpdate |= ActivityState::IsInWindow;
+            flagsToUpdate.add(ActivityState::IsInWindow);
         if (gtk_window_is_active(GTK_WINDOW(priv->toplevelOnScreenWindow)) && !(priv->activityState & ActivityState::WindowIsActive))
-            flagsToUpdate |= ActivityState::WindowIsActive;
+            flagsToUpdate.add(ActivityState::WindowIsActive);
     }
     if (!flagsToUpdate)
         return;
 
-    priv->activityState |= flagsToUpdate;
+    priv->activityState.add(flagsToUpdate);
     webkitWebViewBaseScheduleUpdateActivityState(webViewBase, flagsToUpdate);
 }
 
@@ -649,7 +649,7 @@ static void webkitWebViewBaseUnmap(GtkWidget* widget)
     if (!(priv->activityState & ActivityState::IsVisible))
         return;
 
-    priv->activityState &= ~ActivityState::IsVisible;
+    priv->activityState.remove(ActivityState::IsVisible);
     webkitWebViewBaseScheduleUpdateActivityState(webViewBase, ActivityState::IsVisible);
 }
 
@@ -885,13 +885,21 @@ static gboolean webkitWebViewBaseMotionNotifyEvent(GtkWidget* widget, GdkEventMo
     return GDK_EVENT_PROPAGATE;
 }
 
-static gboolean webkitWebViewBaseCrossingNotifyEvent(GtkWidget* widget, GdkEventCrossing* crosssingEvent)
+static gboolean webkitWebViewBaseCrossingNotifyEvent(GtkWidget* widget, GdkEventCrossing* crossingEvent)
 {
     WebKitWebViewBase* webViewBase = WEBKIT_WEB_VIEW_BASE(widget);
     WebKitWebViewBasePrivate* priv = webViewBase->priv;
 
     if (priv->authenticationDialog)
         return GDK_EVENT_PROPAGATE;
+
+#if ENABLE(DEVELOPER_MODE)
+    // Do not send mouse move events to the WebProcess for crossing events during testing.
+    // WTR never generates crossing events and they can confuse tests.
+    // https://bugs.webkit.org/show_bug.cgi?id=185072.
+    if (UNLIKELY(priv->pageProxy->process().processPool().configuration().fullySynchronousModeIsAllowedForTesting()))
+        return GDK_EVENT_PROPAGATE;
+#endif
 
     // In the case of crossing events, it's very important the actual coordinates the WebProcess receives, because once the mouse leaves
     // the web view, the WebProcess won't receive more events until the mouse enters again in the web view. So, if the coordinates of the leave
@@ -902,8 +910,8 @@ static gboolean webkitWebViewBaseCrossingNotifyEvent(GtkWidget* widget, GdkEvent
     gtk_widget_get_allocation(widget, &allocation);
     double width = allocation.width;
     double height = allocation.height;
-    double x = crosssingEvent->x;
-    double y = crosssingEvent->y;
+    double x = crossingEvent->x;
+    double y = crossingEvent->y;
     if (x < 0 && x > -1)
         x = -1;
     else if (x >= width && x < width + 1)
@@ -913,9 +921,9 @@ static gboolean webkitWebViewBaseCrossingNotifyEvent(GtkWidget* widget, GdkEvent
     else if (y >= height && y < height + 1)
         y = height + 1;
 
-    GdkEvent* event = reinterpret_cast<GdkEvent*>(crosssingEvent);
+    GdkEvent* event = reinterpret_cast<GdkEvent*>(crossingEvent);
     GUniquePtr<GdkEvent> copiedEvent;
-    if (x != crosssingEvent->x || y != crosssingEvent->y) {
+    if (x != crossingEvent->x || y != crossingEvent->y) {
         copiedEvent.reset(gdk_event_copy(event));
         copiedEvent->crossing.x = x;
         copiedEvent->crossing.y = y;
@@ -1108,15 +1116,18 @@ private:
 
     void startZoom(const IntPoint& center, double& initialScale, IntPoint& initialPoint) final
     {
-        auto* page = webkitWebViewBaseGetPage(m_webView);
+        auto* page = m_webView->priv->pageProxy.get();
         ASSERT(page);
-        initialScale = page->pageZoomFactor();
+        initialScale = page->pageScaleFactor();
         page->getCenterForZoomGesture(center, initialPoint);
     }
 
-    void zoom(double scale) final
+    void zoom(double scale, const IntPoint& origin) final
     {
-        m_webView->priv->pageClient->zoom(scale);
+        auto* page = m_webView->priv->pageProxy.get();
+        ASSERT(page);
+
+        page->scalePage(scale, origin);
     }
 
     void longPress(GdkEventTouch* event) final
@@ -1485,9 +1496,9 @@ void webkitWebViewBaseSetFocus(WebKitWebViewBase* webViewBase, bool focused)
     if ((focused && priv->activityState & ActivityState::IsFocused) || (!focused && !(priv->activityState & ActivityState::IsFocused)))
         return;
 
-    ActivityState::Flags flagsToUpdate = ActivityState::IsFocused;
+    OptionSet<ActivityState::Flag> flagsToUpdate { ActivityState::IsFocused };
     if (focused) {
-        priv->activityState |= ActivityState::IsFocused;
+        priv->activityState.add(ActivityState::IsFocused);
 
         // If the view has received the focus and the window is not active
         // mark the current window as active now. This can happen if the
@@ -1495,33 +1506,33 @@ void webkitWebViewBaseSetFocus(WebKitWebViewBase* webViewBase, bool focused)
         // set programatically like WebKitTestRunner does, because POPUP
         // can't be focused.
         if (!(priv->activityState & ActivityState::WindowIsActive)) {
-            priv->activityState |= ActivityState::WindowIsActive;
-            flagsToUpdate |= ActivityState::WindowIsActive;
+            priv->activityState.add(ActivityState::WindowIsActive);
+            flagsToUpdate.add(ActivityState::WindowIsActive);
         }
     } else
-        priv->activityState &= ~ActivityState::IsFocused;
+        priv->activityState.remove(ActivityState::IsFocused);
 
     webkitWebViewBaseScheduleUpdateActivityState(webViewBase, flagsToUpdate);
 }
 
 bool webkitWebViewBaseIsInWindowActive(WebKitWebViewBase* webViewBase)
 {
-    return webViewBase->priv->activityState & ActivityState::WindowIsActive;
+    return webViewBase->priv->activityState.contains(ActivityState::WindowIsActive);
 }
 
 bool webkitWebViewBaseIsFocused(WebKitWebViewBase* webViewBase)
 {
-    return webViewBase->priv->activityState & ActivityState::IsFocused;
+    return webViewBase->priv->activityState.contains(ActivityState::IsFocused);
 }
 
 bool webkitWebViewBaseIsVisible(WebKitWebViewBase* webViewBase)
 {
-    return webViewBase->priv->activityState & ActivityState::IsVisible;
+    return webViewBase->priv->activityState.contains(ActivityState::IsVisible);
 }
 
 bool webkitWebViewBaseIsInWindow(WebKitWebViewBase* webViewBase)
 {
-    return webViewBase->priv->activityState & ActivityState::IsInWindow;
+    return webViewBase->priv->activityState.contains(ActivityState::IsInWindow);
 }
 
 void webkitWebViewBaseSetInputMethodState(WebKitWebViewBase* webkitWebViewBase, bool enabled)

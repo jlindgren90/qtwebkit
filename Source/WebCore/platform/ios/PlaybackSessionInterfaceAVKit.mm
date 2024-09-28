@@ -43,7 +43,7 @@
 
 #import <pal/cf/CoreMediaSoftLink.h>
 
-SOFT_LINK_FRAMEWORK_OPTIONAL(AVKit)
+SOFTLINK_AVKIT_FRAMEWORK()
 SOFT_LINK_CLASS_OPTIONAL(AVKit, AVValueTiming)
 
 namespace WebCore {
@@ -128,7 +128,7 @@ void PlaybackSessionInterfaceAVKit::seekableRangesChanged(const TimeRanges& time
 {
     RetainPtr<NSMutableArray> seekableRanges = adoptNS([[NSMutableArray alloc] init]);
 
-#if !ENABLE(EXTRA_ZOOM_MODE)
+#if !PLATFORM(WATCHOS)
     for (unsigned i = 0; i < timeRanges.length(); i++) {
         double start = timeRanges.start(i).releaseReturnValue();
         double end = timeRanges.end(i).releaseReturnValue();
@@ -199,6 +199,11 @@ void PlaybackSessionInterfaceAVKit::wirelessVideoPlaybackDisabledChanged(bool di
 void PlaybackSessionInterfaceAVKit::mutedChanged(bool muted)
 {
     [m_playerController setMuted:muted];
+}
+
+void PlaybackSessionInterfaceAVKit::volumeChanged(double volume)
+{
+    [m_playerController volumeChanged:volume];
 }
 
 void PlaybackSessionInterfaceAVKit::invalidate()

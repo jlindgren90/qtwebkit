@@ -51,7 +51,10 @@ public:
     void setShouldHaveLegacyDataStore(bool shouldHaveLegacyDataStore) { m_shouldHaveLegacyDataStore = shouldHaveLegacyDataStore; }
 
     unsigned maximumProcessCount() const { return m_maximumProcessCount; }
-    void setMaximumProcessCount(unsigned maximumProcessCount) { m_maximumProcessCount = maximumProcessCount; } 
+    void setMaximumProcessCount(unsigned maximumProcessCount) { m_maximumProcessCount = maximumProcessCount; }
+
+    bool isAutomaticProcessWarmingEnabled() const { return m_isAutomaticProcessWarmingEnabled; }
+    void setIsAutomaticProcessWarmingEnabled(bool value) { m_isAutomaticProcessWarmingEnabled = value; }
 
     bool diskCacheSpeculativeValidationEnabled() const { return m_diskCacheSpeculativeValidationEnabled; }
     void setDiskCacheSpeculativeValidationEnabled(bool enabled) { m_diskCacheSpeculativeValidationEnabled = enabled; }
@@ -109,6 +112,9 @@ public:
     bool ignoreSynchronousMessagingTimeoutsForTesting() const { return m_ignoreSynchronousMessagingTimeoutsForTesting; }
     void setIgnoreSynchronousMessagingTimeoutsForTesting(bool allowed) { m_ignoreSynchronousMessagingTimeoutsForTesting = allowed; }
 
+    bool attrStyleEnabled() const { return m_attrStyleEnabled; }
+    void setAttrStyleEnabled(bool enabled) { m_attrStyleEnabled = enabled; }
+
     const Vector<WTF::String>& overrideLanguages() const { return m_overrideLanguages; }
     void setOverrideLanguages(Vector<WTF::String>&& languages) { m_overrideLanguages = WTFMove(languages); }
 
@@ -138,6 +144,25 @@ public:
     bool processSwapsOnNavigation() const { return m_processSwapsOnNavigation; }
     void setProcessSwapsOnNavigation(bool swaps) { m_processSwapsOnNavigation = swaps; }
 
+    bool alwaysKeepAndReuseSwappedProcesses() const { return m_alwaysKeepAndReuseSwappedProcesses; }
+    void setAlwaysKeepAndReuseSwappedProcesses(bool keepAndReuse) { m_alwaysKeepAndReuseSwappedProcesses = keepAndReuse; }
+
+    bool processSwapsOnWindowOpenWithOpener() const { return m_processSwapsOnWindowOpenWithOpener; }
+    void setProcessSwapsOnWindowOpenWithOpener(bool swaps) { m_processSwapsOnWindowOpenWithOpener = swaps; }
+
+    const WTF::String& customWebContentServiceBundleIdentifier() const { return m_customWebContentServiceBundleIdentifier; }
+    void setCustomWebContentServiceBundleIdentifier(const WTF::String& customWebContentServiceBundleIdentifier) { m_customWebContentServiceBundleIdentifier = customWebContentServiceBundleIdentifier; }
+
+#if ENABLE(PROXIMITY_NETWORKING)
+    unsigned wirelessContextIdentifier() const { return m_wirelessContextIdentifier; }
+    void setWirelessContextIdentifier(unsigned wirelessContextIdentifier) { m_wirelessContextIdentifier = wirelessContextIdentifier; }
+#endif
+
+#if PLATFORM(COCOA)
+    bool suppressesConnectionTerminationOnSystemChange() const { return m_suppressesConnectionTerminationOnSystemChange; }
+    void setSuppressesConnectionTerminationOnSystemChange(bool suppressesConnectionTerminationOnSystemChange) { m_suppressesConnectionTerminationOnSystemChange = suppressesConnectionTerminationOnSystemChange; }
+#endif
+
 private:
     bool m_shouldHaveLegacyDataStore { false };
 
@@ -162,6 +187,7 @@ private:
     Vector<WTF::CString> m_additionalReadAccessAllowedPaths;
     bool m_fullySynchronousModeIsAllowedForTesting { false };
     bool m_ignoreSynchronousMessagingTimeoutsForTesting { false };
+    bool m_attrStyleEnabled { false };
     Vector<WTF::String> m_overrideLanguages;
     WTF::String m_sourceApplicationBundleIdentifier;
     WTF::String m_sourceApplicationSecondaryIdentifier;
@@ -170,9 +196,21 @@ private:
     bool m_shouldCaptureAudioInUIProcess { false };
     ProcessID m_presentingApplicationPID { getCurrentProcessID() };
     bool m_processSwapsOnNavigation { false };
+    bool m_alwaysKeepAndReuseSwappedProcesses { false };
+    bool m_processSwapsOnWindowOpenWithOpener { false };
+    bool m_isAutomaticProcessWarmingEnabled { false };
+    WTF::String m_customWebContentServiceBundleIdentifier;
 
 #if PLATFORM(IOS)
     WTF::String m_ctDataConnectionServiceType;
+#endif
+
+#if ENABLE(PROXIMITY_NETWORKING)
+    unsigned m_wirelessContextIdentifier { 0 };
+#endif
+
+#if PLATFORM(COCOA)
+    bool m_suppressesConnectionTerminationOnSystemChange { false };
 #endif
 };
 

@@ -164,6 +164,7 @@ end
 const SlotSize = 8
 
 const JSLexicalEnvironment_variables = (sizeof JSLexicalEnvironment + SlotSize - 1) & ~(SlotSize - 1)
+const DirectArguments_storage = (sizeof DirectArguments + SlotSize - 1) & ~(SlotSize - 1)
 
 const StackAlignment = 16
 const StackAlignmentSlots = 2
@@ -261,10 +262,8 @@ const ArithProfileIntNumber = 0x500000
 
 # Pointer Tags
 const BytecodePtrTag = constexpr BytecodePtrTag
-const CodeEntryPtrTag = constexpr CodeEntryPtrTag
-const CodeEntryWithArityCheckPtrTag = constexpr CodeEntryWithArityCheckPtrTag
+const JSEntryPtrTag = constexpr JSEntryPtrTag
 const ExceptionHandlerPtrTag = constexpr ExceptionHandlerPtrTag
-const NativeCodePtrTag = constexpr NativeCodePtrTag
 const NoPtrTag = constexpr NoPtrTag
 const SlowPathPtrTag = constexpr SlowPathPtrTag
 
@@ -377,6 +376,7 @@ const DoubleShape              = constexpr DoubleShape
 const ContiguousShape          = constexpr ContiguousShape
 const ArrayStorageShape        = constexpr ArrayStorageShape
 const SlowPutArrayStorageShape = constexpr SlowPutArrayStorageShape
+const CopyOnWrite              = constexpr CopyOnWrite
 
 # Type constants.
 const StringType = constexpr StringType
@@ -402,7 +402,6 @@ const Float64ArrayType = constexpr Float64ArrayType
 
 const FirstTypedArrayType = constexpr FirstTypedArrayType
 const NumberOfTypedArrayTypesExcludingDataView = constexpr NumberOfTypedArrayTypesExcludingDataView
-const TypedArrayPoisonIndexMask = constexpr TypedArrayPoisonIndexMask
 
 # Type flags constants.
 const MasqueradesAsUndefined = constexpr MasqueradesAsUndefined
@@ -544,22 +543,24 @@ else
 end
 
 macro checkStackPointerAlignment(tempReg, location)
-    if ARM64 or ARM64E or C_LOOP
-        # ARM64 and ARM64E will check for us!
-        # C_LOOP does not need the alignment, and can use a little perf
-        # improvement from avoiding useless work.
-    else
-        if ARM or ARMv7 or ARMv7_TRADITIONAL
-            # ARM can't do logical ops with the sp as a source
-            move sp, tempReg
-            andp StackAlignmentMask, tempReg
+    if ASSERT_ENABLED
+        if ARM64 or ARM64E or C_LOOP
+            # ARM64 and ARM64E will check for us!
+            # C_LOOP does not need the alignment, and can use a little perf
+            # improvement from avoiding useless work.
         else
-            andp sp, StackAlignmentMask, tempReg
+            if ARM or ARMv7 or ARMv7_TRADITIONAL
+                # ARM can't do logical ops with the sp as a source
+                move sp, tempReg
+                andp StackAlignmentMask, tempReg
+            else
+                andp sp, StackAlignmentMask, tempReg
+            end
+            btpz tempReg, .stackPointerOkay
+            move location, tempReg
+            break
+        .stackPointerOkay:
         end
-        btpz tempReg, .stackPointerOkay
-        move location, tempReg
-        break
-    .stackPointerOkay:
     end
 end
 
@@ -838,7 +839,7 @@ macro restoreStackPointerAfterCall()
 end
 
 macro traceExecution()
-    if EXECUTION_TRACING
+    if TRACING
         callSlowPath(_llint_trace)
     end
 end
@@ -853,12 +854,12 @@ macro callTargetFunction(callee, callPtrTag)
     dispatchAfterCall()
 end
 
-macro prepareForRegularCall(callee, temp1, temp2, temp3, prepareCallPtrTag)
+macro prepareForRegularCall(callee, temp1, temp2, temp3, callPtrTag)
     addp CallerFrameAndPCSize, sp
 end
 
 # sp points to the new frame
-macro prepareForTailCall(callee, temp1, temp2, temp3, prepareCallPtrTag)
+macro prepareForTailCall(callee, temp1, temp2, temp3, callPtrTag)
     restoreCalleeSavesUsedByLLInt()
 
     loadi PayloadOffset + ArgumentCount[cfr], temp2
@@ -907,9 +908,8 @@ macro prepareForTailCall(callee, temp1, temp2, temp3, prepareCallPtrTag)
     storep temp3, [temp1, temp2, 1]
     btinz temp2, .copyLoop
 
-    prepareCallPtrTag(temp2)
     move temp1, sp
-    jmp callee, temp2
+    jmp callee, callPtrTag
 end
 
 macro slowPathForCall(slowPath, prepareCall)
@@ -919,11 +919,7 @@ macro slowPathForCall(slowPath, prepareCall)
         macro (callee, calleeFramePtr)
             btpz calleeFramePtr, .dontUpdateSP
             move calleeFramePtr, sp
-            prepareCall(callee, t2, t3, t4, macro (callPtrTagReg)
-                if POINTER_PROFILING
-                    move SlowPathPtrTag, callPtrTagReg
-                end
-            end)
+            prepareCall(callee, t2, t3, t4, SlowPathPtrTag)
         .dontUpdateSP:
             callTargetFunction(callee, SlowPathPtrTag)
         end)
@@ -1010,7 +1006,7 @@ macro prologue(codeBlockGetter, codeBlockSetter, osrSlowPath, traceSlowPath)
     tagReturnAddress sp
     preserveCallerPCAndCFR()
 
-    if EXECUTION_TRACING
+    if TRACING
         subp maxFrameExtentForSlowPathCall, sp
         callSlowPath(traceSlowPath)
         addp maxFrameExtentForSlowPathCall, sp
@@ -1036,13 +1032,14 @@ macro prologue(codeBlockGetter, codeBlockSetter, osrSlowPath, traceSlowPath)
         # pop the callerFrame since we will jump to a function that wants to save it
         if ARM64 or ARM64E
             pop lr, cfr
+            untagReturnAddress sp
         elsif ARM or ARMv7 or ARMv7_TRADITIONAL or MIPS
             pop cfr
             pop lr
         else
             pop cfr
         end
-        jmp r0, CodeEntryPtrTag
+        jmp r0, JSEntryPtrTag
     .recover:
         codeBlockGetter(t1, t2)
     .continue:
@@ -1079,8 +1076,14 @@ macro prologue(codeBlockGetter, codeBlockSetter, osrSlowPath, traceSlowPath)
     subp maxFrameExtentForSlowPathCall, sp
     callSlowPath(_llint_stack_check)
     bpeq r1, 0, .stackHeightOKGetCodeBlock
+
+    # We're throwing before the frame is fully set up. This frame will be
+    # ignored by the unwinder. So, let's restore the callee saves before we
+    # start unwinding. We need to do this before we change the cfr.
+    restoreCalleeSavesUsedByLLInt()
+
     move r1, cfr
-    dispatch(0) # Go to exception handler in PC
+    jmp _llint_throw_from_slow_path_trampoline
 
 .stackHeightOKGetCodeBlock:
     # Stack check slow path returned that the stack was ok.
@@ -1125,6 +1128,7 @@ macro functionInitialization(profileArgSkip)
     assert(macro (ok) bpgteq t0, 0, ok end)
     btpz t0, .argumentProfileDone
     loadp CodeBlock::m_argumentValueProfiles + VectorBufferOffset[t1], t3
+    btpz t3, .argumentProfileDone # When we can't JIT, we don't allocate any argument value profiles.
     mulp sizeof ValueProfile, t0, t2 # Aaaaahhhh! Need strength reduction!
     lshiftp 3, t0
     addp t2, t3
@@ -1150,6 +1154,13 @@ macro doReturn()
     ret
 end
 
+# This break instruction is needed so that the synthesized llintPCRangeStart label
+# doesn't point to the exact same location as vmEntryToJavaScript which comes after it.
+# Otherwise, libunwind will report vmEntryToJavaScript as llintPCRangeStart in
+# stack traces.
+
+    break
+
 # stub to call into JavaScript or Native functions
 # EncodedJSValue vmEntryToJavaScript(void* code, VM* vm, ProtoCallFrame* protoFrame)
 # EncodedJSValue vmEntryToNativeFunction(void* code, VM* vm, ProtoCallFrame* protoFrame)
@@ -1160,7 +1171,7 @@ else
     global _vmEntryToJavaScript
     _vmEntryToJavaScript:
 end
-    doVMEntry(makeJavaScriptCall, CodeEntryPtrTag, CodeEntryWithArityCheckPtrTag)
+    doVMEntry(makeJavaScriptCall)
 
 
 if C_LOOP
@@ -1169,7 +1180,7 @@ else
     global _vmEntryToNative
     _vmEntryToNative:
 end
-    doVMEntry(makeHostFunctionCall, NativeCodePtrTag, NativeCodePtrTag)
+    doVMEntry(makeHostFunctionCall)
 
 
 if not C_LOOP
@@ -1510,10 +1521,16 @@ _llint_op_is_function:
     dispatch(constexpr op_is_function_length)
 
 
-_llint_op_in:
+_llint_op_in_by_id:
     traceExecution()
-    callSlowPath(_slow_path_in)
-    dispatch(constexpr op_in_length)
+    callSlowPath(_slow_path_in_by_id)
+    dispatch(constexpr op_in_by_id_length)
+
+
+_llint_op_in_by_val:
+    traceExecution()
+    callSlowPath(_slow_path_in_by_val)
+    dispatch(constexpr op_in_by_val_length)
 
 
 _llint_op_try_get_by_id:
@@ -1579,14 +1596,14 @@ _llint_op_define_accessor_property:
 _llint_op_jtrue:
     traceExecution()
     jumpTrueOrFalse(
-        macro (value, target) btinz value, target end,
+        macro (value, target) btinz value, 1, target end,
         _llint_slow_path_jtrue)
 
 
 _llint_op_jfalse:
     traceExecution()
     jumpTrueOrFalse(
-        macro (value, target) btiz value, target end,
+        macro (value, target) btiz value, 1, target end,
         _llint_slow_path_jfalse)
 
 

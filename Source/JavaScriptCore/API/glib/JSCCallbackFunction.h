@@ -40,13 +40,19 @@ class JSCCallbackFunction : public InternalFunction {
 public:
     typedef InternalFunction Base;
 
+    template<typename CellType>
+    static IsoSubspace* subspaceFor(VM& vm)
+    {
+        return subspaceForImpl(vm);
+    }
+
     enum class Type {
         Function,
         Method,
         Constructor
     };
 
-    static JSCCallbackFunction* create(VM&, JSGlobalObject*, const String& name, Type, JSCClass*, GRefPtr<GClosure>&&, GType, Vector<GType>&&);
+    static JSCCallbackFunction* create(VM&, JSGlobalObject*, const String& name, Type, JSCClass*, GRefPtr<GClosure>&&, GType, std::optional<Vector<GType>>&&);
     static void destroy(JSCell*);
 
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
@@ -61,7 +67,9 @@ public:
     JSObjectRef construct(JSContextRef, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);
 
 private:
-    JSCCallbackFunction(VM&, Structure*, Type, JSCClass*, GRefPtr<GClosure>&&, GType, Vector<GType>&&);
+    static IsoSubspace* subspaceForImpl(VM&);
+    
+    JSCCallbackFunction(VM&, Structure*, Type, JSCClass*, GRefPtr<GClosure>&&, GType, std::optional<Vector<GType>>&&);
 
     JSObjectCallAsFunctionCallback functionCallback() { return m_functionCallback; }
     JSObjectCallAsConstructorCallback constructCallback() { return m_constructCallback; }
@@ -72,7 +80,7 @@ private:
     GRefPtr<JSCClass> m_class;
     GRefPtr<GClosure> m_closure;
     GType m_returnType;
-    Vector<GType> m_parameters;
+    std::optional<Vector<GType>> m_parameters;
 };
 
 } // namespace JSC

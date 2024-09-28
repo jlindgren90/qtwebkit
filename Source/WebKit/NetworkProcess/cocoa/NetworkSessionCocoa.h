@@ -52,7 +52,6 @@ public:
     static void setSourceApplicationAuditTokenData(RetainPtr<CFDataRef>&&);
     static void setSourceApplicationBundleIdentifier(const String&);
     static void setSourceApplicationSecondaryIdentifier(const String&);
-    static void setUsesNetworkCache(bool);
 #if PLATFORM(IOS)
     static void setCTDataConnectionServiceType(const String&);
 #endif
@@ -82,6 +81,10 @@ private:
     RetainPtr<WKNetworkSessionDelegate> m_statelessSessionDelegate;
 
     String m_boundInterfaceIdentifier;
+    RetainPtr<CFDictionaryRef> m_proxyConfiguration;
+
+    String m_sourceApplicationBundleIdentifier;
+    String m_sourceApplicationSecondaryIdentifier;
 };
 
 } // namespace WebKit

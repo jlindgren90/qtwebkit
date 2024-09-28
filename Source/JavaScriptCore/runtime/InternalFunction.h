@@ -36,7 +36,14 @@ class InternalFunction : public JSDestructibleObject {
     friend class LLIntOffsetsExtractor;
 public:
     typedef JSDestructibleObject Base;
-    static const unsigned StructureFlags = Base::StructureFlags | ImplementsHasInstance | ImplementsDefaultHasInstance | TypeOfShouldCallGetCallData;
+    static const unsigned StructureFlags = Base::StructureFlags | ImplementsHasInstance | ImplementsDefaultHasInstance | OverridesGetCallData;
+
+    template<typename CellType>
+    static IsoSubspace* subspaceFor(VM& vm)
+    {
+        static_assert(sizeof(CellType) == sizeof(InternalFunction), "InternalFunction subclasses that add fields need to override subspaceFor<>()");
+        return &vm.internalFunctionSpace;
+    }
 
     DECLARE_EXPORT_INFO;
 
@@ -87,19 +94,11 @@ protected:
     WriteBarrier<JSString> m_originalName;
 };
 
-InternalFunction* asInternalFunction(JSValue);
-
-inline InternalFunction* asInternalFunction(JSValue value)
-{
-    ASSERT(asObject(value)->inherits<InternalFunction>(*value.getObject()->vm()));
-    return static_cast<InternalFunction*>(asObject(value));
-}
-
 ALWAYS_INLINE Structure* InternalFunction::createSubclassStructure(ExecState* exec, JSValue newTarget, Structure* baseClass)
 {
     // We allow newTarget == JSValue() because the API needs to be able to create classes without having a real JS frame.
     // Since we don't allow subclassing in the API we just treat newTarget == JSValue() as newTarget == exec->jsCallee()
-    ASSERT(!newTarget || newTarget.isConstructor());
+    ASSERT(!newTarget || newTarget.isConstructor(exec->vm()));
 
     if (newTarget && newTarget != exec->jsCallee())
         return createSubclassStructureSlow(exec, newTarget, baseClass);

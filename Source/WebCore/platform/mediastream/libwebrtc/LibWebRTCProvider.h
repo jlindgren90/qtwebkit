@@ -26,17 +26,24 @@
 #pragma once
 
 #include "LibWebRTCMacros.h"
-#include <wtf/Forward.h>
+#include <pal/SessionID.h>
+#include <wtf/CompletionHandler.h>
+#include <wtf/EnumTraits.h>
+#include <wtf/Expected.h>
 #include <wtf/UniqueRef.h>
+#include <wtf/text/WTFString.h>
 
 #if USE(LIBWEBRTC)
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #include <webrtc/api/peerconnectioninterface.h>
-#include <webrtc/api/video_codecs/video_decoder_factory.h>
 #include <webrtc/api/video_codecs/video_encoder_factory.h>
+#include <webrtc/api/video_codecs/video_decoder_factory.h>
 #include <webrtc/rtc_base/scoped_ref_ptr.h>
-#include <webrtc/media/engine/webrtcvideodecoderfactory.h>
-#include <webrtc/media/engine/webrtcvideoencoderfactory.h>
+
+#pragma GCC diagnostic pop
 
 namespace rtc {
 class NetworkManager;
@@ -53,6 +60,8 @@ namespace WebCore {
 
 class LibWebRTCAudioModule;
 
+enum class MDNSRegisterError { NotImplemented, BadParameter, DNSSD, Internal, Timeout };
+
 class WEBCORE_EXPORT LibWebRTCProvider {
 public:
     static UniqueRef<LibWebRTCProvider> create();
@@ -61,9 +70,30 @@ public:
 
     static bool webRTCAvailable();
 
-    virtual void setActive(bool) { };
+    virtual void setActive(bool);
 
     virtual void setH264HardwareEncoderAllowed(bool) { }
+
+    using IPAddressOrError = Expected<String, MDNSRegisterError>;
+    using MDNSNameOrError = Expected<String, MDNSRegisterError>;
+
+    virtual void unregisterMDNSNames(uint64_t documentIdentifier)
+    {
+        UNUSED_PARAM(documentIdentifier);
+    }
+
+    virtual void registerMDNSName(PAL::SessionID, uint64_t documentIdentifier, const String& ipAddress, CompletionHandler<void(MDNSNameOrError&&)>&& callback)
+    {
+        UNUSED_PARAM(documentIdentifier);
+        UNUSED_PARAM(ipAddress);
+        callback(makeUnexpected(MDNSRegisterError::NotImplemented));
+    }
+
+    virtual void resolveMDNSName(PAL::SessionID, const String& name, CompletionHandler<void(IPAddressOrError&&)>&& callback)
+    {
+        UNUSED_PARAM(name);
+        callback(makeUnexpected(MDNSRegisterError::NotImplemented));
+    }
 
 #if USE(LIBWEBRTC)
     virtual rtc::scoped_refptr<webrtc::PeerConnectionInterface> createPeerConnection(webrtc::PeerConnectionObserver&, webrtc::PeerConnectionInterface::RTCConfiguration&&);
@@ -77,8 +107,10 @@ public:
     // Used for mock testing
     void setPeerConnectionFactory(rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>&&);
 
-    void disableEnumeratingAllNetworkInterfaces() { m_enableEnumeratingAllNetworkInterfaces = false; }
-    void enableEnumeratingAllNetworkInterfaces() { m_enableEnumeratingAllNetworkInterfaces = true; }
+    void disableEnumeratingAllNetworkInterfaces();
+    void enableEnumeratingAllNetworkInterfaces();
+
+    virtual void disableNonLocalhostConnections() { m_disableNonLocalhostConnections = true; }
 
 protected:
     LibWebRTCProvider() = default;
@@ -86,15 +118,29 @@ protected:
     rtc::scoped_refptr<webrtc::PeerConnectionInterface> createPeerConnection(webrtc::PeerConnectionObserver&, rtc::NetworkManager&, rtc::PacketSocketFactory&, webrtc::PeerConnectionInterface::RTCConfiguration&&);
 
     rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> createPeerConnectionFactory(rtc::Thread* networkThread, rtc::Thread* signalingThread, LibWebRTCAudioModule*);
-    virtual std::unique_ptr<webrtc::VideoDecoderFactory> createDecoderFactory() { return nullptr; }
-    virtual std::unique_ptr<webrtc::VideoEncoderFactory> createEncoderFactory() { return nullptr; }
+    virtual std::unique_ptr<webrtc::VideoDecoderFactory> createDecoderFactory();
+    virtual std::unique_ptr<webrtc::VideoEncoderFactory> createEncoderFactory();
 
     bool m_enableEnumeratingAllNetworkInterfaces { false };
     // FIXME: Remove m_useNetworkThreadWithSocketServer member variable and make it a global.
     bool m_useNetworkThreadWithSocketServer { true };
 
     rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> m_factory;
+    bool m_disableNonLocalhostConnections { false };
 #endif
 };
 
 } // namespace WebCore
+
+namespace WTF {
+template<> struct EnumTraits<WebCore::MDNSRegisterError> {
+    using values = EnumValues<
+        WebCore::MDNSRegisterError,
+        WebCore::MDNSRegisterError::NotImplemented,
+        WebCore::MDNSRegisterError::BadParameter,
+        WebCore::MDNSRegisterError::DNSSD,
+        WebCore::MDNSRegisterError::Internal,
+        WebCore::MDNSRegisterError::Timeout
+    >;
+};
+}

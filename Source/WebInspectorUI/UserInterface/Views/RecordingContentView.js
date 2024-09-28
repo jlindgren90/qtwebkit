@@ -42,7 +42,7 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
         let isCanvas2D = this.representedObject.type === WI.Recording.Type.Canvas2D;
         let isCanvasWebGL = this.representedObject.type === WI.Recording.Type.CanvasWebGL;
         if (isCanvas2D || isCanvasWebGL) {
-            if (isCanvas2D && WI.RecordingContentView.supportsCanvasPathDebugging()) {
+            if (isCanvas2D && WI.ImageUtilities.supportsCanvasPathDebugging()) {
                 this._pathContext = null;
 
                 this._showPathButtonNavigationItem = new WI.ActivateButtonNavigationItem("show-path", WI.UIString("Show Path"), WI.UIString("Hide Path"), "Images/Path.svg", 16, 16);
@@ -64,11 +64,6 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
     }
 
     // Static
-
-    static supportsCanvasPathDebugging()
-    {
-        return "currentX" in CanvasRenderingContext2D.prototype && "currentY" in CanvasRenderingContext2D.prototype;
-    }
 
     static _actionModifiesPath(recordingAction)
     {
@@ -99,7 +94,7 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
             return [];
 
         let navigationItems = [this._exportButtonNavigationItem, new WI.DividerNavigationItem];
-        if (isCanvas2D && WI.RecordingContentView.supportsCanvasPathDebugging())
+        if (isCanvas2D && WI.ImageUtilities.supportsCanvasPathDebugging())
             navigationItems.push(this._showPathButtonNavigationItem);
 
         navigationItems.push(this._showGridButtonNavigationItem);
@@ -119,19 +114,22 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
         if (this._index === index)
             return;
 
-        this.representedObject.actions.then((actions) => {
-            console.assert(index >= 0 && index < actions.length);
-            if (index < 0 || index >= actions.length)
-                return;
+        console.assert(index >= 0 && index < this.representedObject.actions.length);
+        if (index < 0 || index >= this.representedObject.actions.length)
+            return;
 
-            this._index = index;
-            this._updateSliderValue();
+        this._index = index;
 
-            if (this.representedObject.type === WI.Recording.Type.Canvas2D)
-                this._throttler._generateContentCanvas2D(index, actions);
-            else if (this.representedObject.type === WI.Recording.Type.CanvasWebGL)
-                this._throttler._generateContentCanvasWebGL(index, actions);
-        });
+        this._updateSliderValue();
+
+        if (this.representedObject.type === WI.Recording.Type.Canvas2D)
+            this._throttler._generateContentCanvas2D(index);
+        else if (this.representedObject.type === WI.Recording.Type.CanvasWebGL)
+            this._throttler._generateContentCanvasWebGL(index);
+
+        this._action = this.representedObject.actions[this._index];
+
+        this.dispatchEventToListeners(WI.ContentView.Event.SupplementalRepresentedObjectsDidChange);
     }
 
     shown()
@@ -174,7 +172,7 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
         let previewHeader = this.element.appendChild(document.createElement("header"));
 
         let sliderContainer = previewHeader.appendChild(document.createElement("div"));
-        sliderContainer.className = "slider-container hidden";
+        sliderContainer.className = "slider-container";
 
         this._previewContainer = this.element.appendChild(document.createElement("div"));
         this._previewContainer.className = "preview-container";
@@ -188,11 +186,7 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
         this._sliderElement.min = 0;
         this._sliderElement.max = 0;
 
-        this.representedObject.actions.then(() => {
-            sliderContainer.classList.remove("hidden");
-            this._sliderElement.max = this.representedObject.visualActionIndexes.length;
-            this._updateSliderValue();
-        });
+        this.representedObject.addEventListener(WI.Recording.Event.ProcessedAction, this._handleRecordingProcessedAction, this);
     }
 
     // Private
@@ -214,14 +208,14 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
         });
     }
 
-    async _generateContentCanvas2D(index, actions)
+    _generateContentCanvas2D(index)
     {
         let imageLoad = (event) => {
             // Loading took too long and the current action index has already changed.
             if (index !== this._index)
                 return;
 
-            this._generateContentCanvas2D(index, actions);
+            this._generateContentCanvas2D(index);
         };
 
         let initialState = this.representedObject.initialState;
@@ -235,8 +229,10 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
         let snapshotIndex = Math.floor(index / WI.RecordingContentView.SnapshotInterval);
         let snapshot = this._snapshots[snapshotIndex];
 
-        let showCanvasPath = WI.RecordingContentView.supportsCanvasPathDebugging() && WI.settings.showCanvasPath.value;
+        let showCanvasPath = WI.ImageUtilities.supportsCanvasPathDebugging() && WI.settings.showCanvasPath.value;
         let indexOfLastBeginPathAction = Infinity;
+
+        let actions = this.representedObject.actions;
 
         let applyActions = (from, to, callback) => {
             let saveCount = 0;
@@ -331,43 +327,9 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
             } else if (this._pathContext)
                 this._pathContext.canvas.remove();
 
-            let state = {
-                currentX: snapshot.context.currentX,
-                currentY: snapshot.context.currentY,
-                direction: snapshot.context.direction,
-                fillStyle: snapshot.context.fillStyle,
-                font: snapshot.context.font,
-                globalAlpha: snapshot.context.globalAlpha,
-                globalCompositeOperation: snapshot.context.globalCompositeOperation,
-                imageSmoothingEnabled: snapshot.context.imageSmoothingEnabled,
-                imageSmoothingQuality: snapshot.context.imageSmoothingQuality,
-                lineCap: snapshot.context.lineCap,
-                lineDash: snapshot.context.getLineDash(),
-                lineDashOffset: snapshot.context.lineDashOffset,
-                lineJoin: snapshot.context.lineJoin,
-                lineWidth: snapshot.context.lineWidth,
-                miterLimit: snapshot.context.miterLimit,
-                shadowBlur: snapshot.context.shadowBlur,
-                shadowColor: snapshot.context.shadowColor,
-                shadowOffsetX: snapshot.context.shadowOffsetX,
-                shadowOffsetY: snapshot.context.shadowOffsetY,
-                strokeStyle: snapshot.context.strokeStyle,
-                textAlign: snapshot.context.textAlign,
-                textBaseline: snapshot.context.textBaseline,
-                transform: snapshot.context.getTransform(),
-                webkitImageSmoothingEnabled: snapshot.context.webkitImageSmoothingEnabled,
-                webkitLineDash: snapshot.context.webkitLineDash,
-                webkitLineDashOffset: snapshot.context.webkitLineDashOffset,
-            };
-
-            if (WI.RecordingContentView.supportsCanvasPathDebugging())
-                state.setPath = [snapshot.context.getPath()];
-
             snapshot.context.restore();
             while (saveCount-- > 0)
                 snapshot.context.restore();
-
-            return state;
         };
 
         if (!snapshot) {
@@ -376,12 +338,8 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
             while (snapshot.index && actions[snapshot.index].name !== "beginPath")
                 --snapshot.index;
 
-            snapshot.element = document.createElement("canvas");
-            snapshot.context = snapshot.element.getContext("2d", ...initialState.parameters);
-            if ("width" in initialState.attributes)
-                snapshot.element.width = initialState.attributes.width;
-            if ("height" in initialState.attributes)
-                snapshot.element.height = initialState.attributes.height;
+            snapshot.context = this.representedObject.createContext();
+            snapshot.element = snapshot.context.canvas;
 
             let lastSnapshotIndex = snapshotIndex;
             while (--lastSnapshotIndex >= 0) {
@@ -392,58 +350,16 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
             let startIndex = 0;
             if (lastSnapshotIndex < 0) {
                 snapshot.content = this._initialContent;
-                snapshot.state = {};
-
-                for (let key in initialState.attributes) {
-                    let value = initialState.attributes[key];
-
-                    switch (key) {
-                    case "setTransform":
-                        value = [await this.representedObject.swizzle(value, WI.Recording.Swizzle.DOMMatrix)];
-                        break;
-
-                    case "fillStyle":
-                    case "strokeStyle":
-                        if (Array.isArray(value)) {
-                            let canvasStyle = await this.representedObject.swizzle(value[0], WI.Recording.Swizzle.String);
-                            if (canvasStyle.includes("gradient"))
-                                value = await this.representedObject.swizzle(value, WI.Recording.Swizzle.CanvasGradient);
-                            else if (canvasStyle === "pattern")
-                                value = await this.representedObject.swizzle(value, WI.Recording.Swizzle.CanvasPattern);
-                        } else
-                            value = await this.representedObject.swizzle(value, WI.Recording.Swizzle.String);
-                        break;
-
-                    case "direction":
-                    case "font":
-                    case "globalCompositeOperation":
-                    case "imageSmoothingEnabled":
-                    case "imageSmoothingQuality":
-                    case "lineCap":
-                    case "lineJoin":
-                    case "shadowColor":
-                    case "textAlign":
-                    case "textBaseline":
-                        value = await this.representedObject.swizzle(value, WI.Recording.Swizzle.String);
-                        break;
-
-                    case "setPath":
-                        value = [await this.representedObject.swizzle(value[0], WI.Recording.Swizzle.Path2D)];
-                        break;
-                    }
-
-                    if (value === undefined || (Array.isArray(value) && value.includes(undefined)))
-                        continue;
-
-                    snapshot.state[key] = value;
-                }
+                snapshot.state = actions[0].state;
             } else {
                 snapshot.content = this._snapshots[lastSnapshotIndex].content;
                 snapshot.state = this._snapshots[lastSnapshotIndex].state;
                 startIndex = this._snapshots[lastSnapshotIndex].index;
             }
 
-            snapshot.state = applyActions(startIndex, snapshot.index - 1);
+            applyActions(startIndex, snapshot.index - 1);
+            if (snapshot.index > 0)
+                snapshot.state = actions[snapshot.index - 1].state;
 
             snapshot.content = new Image;
             snapshot.content.src = snapshot.element.toDataURL();
@@ -459,27 +375,20 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
                 --indexOfLastBeginPathAction;
         }
 
-        this._action = actions[this._index];
-
-        let state = applyActions(snapshot.index, this._index);
-        console.assert(!this._action.state || Object.shallowEqual(this._action.state, state));
-        if (!this._action.state)
-            this._action.state = state;
-
-        this.dispatchEventToListeners(WI.ContentView.Event.SupplementalRepresentedObjectsDidChange);
+        applyActions(snapshot.index, this._index);
 
         this._previewContainer.appendChild(snapshot.element);
         this._updateImageGrid();
     }
 
-    async _generateContentCanvasWebGL(index, actions)
+    _generateContentCanvasWebGL(index)
     {
         let imageLoad = (event) => {
             // Loading took too long and the current action index has already changed.
             if (index !== this._index)
                 return;
 
-            this._generateContentCanvasWebGL(index, actions);
+            this._generateContentCanvasWebGL(index);
         };
 
         let initialState = this.representedObject.initialState;
@@ -489,6 +398,8 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
             this._initialContent.addEventListener("load", imageLoad);
             return;
         }
+
+        let actions = this.representedObject.actions;
 
         let visualIndex = index;
         while (!actions[visualIndex].isVisual && !(actions[visualIndex] instanceof WI.RecordingInitialStateAction))
@@ -513,18 +424,14 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
 
             this._updateImageGrid();
         }
-
-        this.dispatchEventToListeners(WI.ContentView.Event.SupplementalRepresentedObjectsDidChange);
     }
 
     _updateCanvasPath()
     {
         let activated = WI.settings.showCanvasPath.value;
-        if (this._showPathButtonNavigationItem.activated !== activated) {
-            this.representedObject.actions.then((actions) => {
-                this._generateContentCanvas2D(this._index, actions);
-            });
-        }
+
+        if (this._showPathButtonNavigationItem.activated !== activated)
+            this._generateContentCanvas2D(this._index);
 
         this._showPathButtonNavigationItem.activated = activated;
     }
@@ -578,6 +485,12 @@ WI.RecordingContentView = class RecordingContentView extends WI.ContentView
             index = this.representedObject.visualActionIndexes[visualActionIndex];
 
         this.updateActionIndex(index);
+    }
+
+    _handleRecordingProcessedAction(event)
+    {
+        this._sliderElement.max = this.representedObject.visualActionIndexes.length;
+        this._updateSliderValue();
     }
 };
 

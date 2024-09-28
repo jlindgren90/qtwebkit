@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if !PLATFORM(IOS)
-
 #import "WebPDFView.h"
+
+#if PLATFORM(MAC)
 
 #import "DOMNodeInternal.h"
 #import "DOMRangeInternal.h"
@@ -128,12 +128,12 @@ static void _applicationInfoForMIMEType(NSString *type, NSString **name, NSImage
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    OSStatus error = LSCopyApplicationForMIMEType((CFStringRef)type, kLSRolesAll, &appURL);
+    OSStatus error = LSCopyApplicationForMIMEType((__bridge CFStringRef)type, kLSRolesAll, &appURL);
 #pragma clang diagnostic pop
     if (error != noErr)
         return;
     
-    NSString *appPath = [(NSURL *)appURL path];
+    NSString *appPath = [(__bridge NSURL *)appURL path];
     CFRelease(appURL);
     
     *image = [[NSWorkspace sharedWorkspace] iconForFile:appPath];  
@@ -1030,15 +1030,10 @@ static BOOL isFrameInRange(WebFrame *frame, DOMRange *range)
         break;
     }
     if (button != noButton) {
-        event = MouseEvent::create(eventNames().clickEvent, true, true, MonotonicTime::now(), 0, [nsEvent clickCount], 0, 0, 0, 0,
-#if ENABLE(POINTER_LOCK)
-            0, 0,
-#endif
-            [nsEvent modifierFlags] & NSEventModifierFlagControl,
-            [nsEvent modifierFlags] & NSEventModifierFlagOption,
-            [nsEvent modifierFlags] & NSEventModifierFlagShift,
-            [nsEvent modifierFlags] & NSEventModifierFlagCommand,
-            button, [NSEvent pressedMouseButtons], nullptr, WebCore::ForceAtClick, 0, nullptr, true);
+        // FIXME: Use createPlatformMouseEvent instead.
+        event = MouseEvent::create(eventNames().clickEvent, Event::CanBubble::Yes, Event::IsCancelable::Yes, Event::IsComposed::Yes,
+            MonotonicTime::now(), nullptr, [nsEvent clickCount], { }, { }, { }, modifiersForEvent(nsEvent),
+            button, [NSEvent pressedMouseButtons], nullptr, WebCore::ForceAtClick, 0, nullptr, MouseEvent::IsSimulated::Yes);
     }
 
     // Call to the frame loader because this is where our security checks are made.
@@ -1594,4 +1589,4 @@ static void removeUselessMenuItemSeparators(NSMutableArray *menuItems)
 
 @end
 
-#endif // !PLATFORM(IOS)
+#endif // PLATFORM(MAC)

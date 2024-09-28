@@ -99,7 +99,7 @@ static bool shouldTreatAsUniqueOrigin(const URL& url)
     return false;
 }
 
-static bool isLoopbackIPAddress(const String& host)
+static bool isLoopbackIPAddress(StringView host)
 {
     // The IPv6 loopback address is 0:0:0:0:0:0:0:1, which compresses to ::1.
     if (host == "[::1]")
@@ -123,10 +123,6 @@ static bool isLoopbackIPAddress(const String& host)
 // https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy (Editor's Draft, 17 November 2016)
 static bool shouldTreatAsPotentiallyTrustworthy(const String& protocol, const String& host)
 {
-    // FIXME: despite the following SchemeRegistry functions using locks internally, we still
-    // have a potential thread-safety issue with the strings being passed in. This is because
-    // String::hash() will be called during lookup and it potentially modifies the String for
-    // caching the hash.
     if (SchemeRegistry::shouldTreatURLSchemeAsSecure(protocol))
         return true;
 
@@ -141,11 +137,12 @@ static bool shouldTreatAsPotentiallyTrustworthy(const String& protocol, const St
 
 bool shouldTreatAsPotentiallyTrustworthy(const URL& url)
 {
-    return shouldTreatAsPotentiallyTrustworthy(url.protocol().toStringWithoutCopying(), url.host());
+    return shouldTreatAsPotentiallyTrustworthy(url.protocol().toStringWithoutCopying(), url.host().toStringWithoutCopying());
 }
 
 SecurityOrigin::SecurityOrigin(const URL& url)
     : m_data(SecurityOriginData::fromURL(url))
+    , m_isLocal(SchemeRegistry::shouldTreatURLSchemeAsLocal(m_data.protocol))
 {
     // document.domain starts as m_data.host, but can be set by the DOM.
     m_domain = m_data.host;
@@ -159,15 +156,14 @@ SecurityOrigin::SecurityOrigin(const URL& url)
     if (m_canLoadLocalResources)
         m_filePath = url.fileSystemPath(); // In case enforceFilePathSeparation() is called.
 
-    if (!url.isValid())
-        m_isPotentiallyTrustworthy = IsPotentiallyTrustworthy::No;
+    m_isPotentiallyTrustworthy = shouldTreatAsPotentiallyTrustworthy(url);
 }
 
 SecurityOrigin::SecurityOrigin()
     : m_data { emptyString(), emptyString(), std::nullopt }
     , m_domain { emptyString() }
     , m_isUnique { true }
-    , m_isPotentiallyTrustworthy { IsPotentiallyTrustworthy::Yes }
+    , m_isPotentiallyTrustworthy { true }
 {
 }
 
@@ -183,6 +179,7 @@ SecurityOrigin::SecurityOrigin(const SecurityOrigin* other)
     , m_enforcesFilePathSeparation { other->m_enforcesFilePathSeparation }
     , m_needsStorageAccessFromFileURLsQuirk { other->m_needsStorageAccessFromFileURLsQuirk }
     , m_isPotentiallyTrustworthy { other->m_isPotentiallyTrustworthy }
+    , m_isLocal { other->m_isLocal }
 {
 }
 
@@ -216,15 +213,6 @@ void SecurityOrigin::setDomainFromDOM(const String& newDomain)
 {
     m_domainWasSetInDOM = true;
     m_domain = newDomain.convertToASCIILowercase();
-}
-
-bool SecurityOrigin::isPotentiallyTrustworthy() const
-{
-    // This code is using an enum instead of an std::optional for thread-safety. Worst case scenario, several thread will read
-    // 'Unknown' value concurrently and they'll all call shouldTreatAsPotentiallyTrustworthy() and get the same result.
-    if (m_isPotentiallyTrustworthy == IsPotentiallyTrustworthy::Unknown)
-        m_isPotentiallyTrustworthy = shouldTreatAsPotentiallyTrustworthy(m_data.protocol, m_data.host) ? IsPotentiallyTrustworthy::Yes : IsPotentiallyTrustworthy::No;
-    return m_isPotentiallyTrustworthy == IsPotentiallyTrustworthy::Yes;
 }
 
 bool SecurityOrigin::isSecure(const URL& url)
@@ -468,17 +456,12 @@ void SecurityOrigin::setEnforcesFilePathSeparation()
     m_enforcesFilePathSeparation = true;
 }
 
-bool SecurityOrigin::isLocal() const
-{
-    return SchemeRegistry::shouldTreatURLSchemeAsLocal(m_data.protocol);
-}
-
 String SecurityOrigin::toString() const
 {
     if (isUnique())
-        return ASCIILiteral("null");
+        return "null"_s;
     if (m_data.protocol == "file" && m_enforcesFilePathSeparation)
-        return ASCIILiteral("null");
+        return "null"_s;
     return toRawString();
 }
 
@@ -565,14 +548,7 @@ bool SecurityOrigin::isSameSchemeHostPort(const SecurityOrigin& other) const
     return true;
 }
 
-URL SecurityOrigin::urlWithUniqueSecurityOrigin()
-{
-    ASSERT(isMainThread());
-    static NeverDestroyed<URL> uniqueSecurityOriginURL(ParsedURLString, MAKE_STATIC_STRING_IMPL("data:,"));
-    return uniqueSecurityOriginURL;
-}
-
-bool SecurityOrigin::isLocalHostOrLoopbackIPAddress(const String& host)
+bool SecurityOrigin::isLocalHostOrLoopbackIPAddress(StringView host)
 {
     if (isLoopbackIPAddress(host))
         return true;

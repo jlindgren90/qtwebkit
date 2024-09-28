@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 
 #include "MockRealtimeVideoSource.h"
 #include "OrientationNotifier.h"
+#include "PixelBufferConformerCV.h"
 
 typedef struct __CVBuffer *CVBufferRef;
 typedef CVBufferRef CVImageBufferRef;
@@ -55,7 +56,7 @@ private:
 
     PlatformLayer* platformLayer() const;
     void updateSampleBuffer() final;
-    bool applySize(const IntSize&) final;
+    void settingsDidChange(OptionSet<RealtimeMediaSourceSettings::Flag>) final;
 
     void orientationChanged(int orientation) final;
     void monitorOrientation(OrientationNotifier&) final;
@@ -64,6 +65,7 @@ private:
     mutable RetainPtr<PlatformLayer> m_previewLayer;
     mutable RetainPtr<CVPixelBufferPoolRef> m_bufferPool;
     MediaSample::VideoRotation m_deviceOrientation { MediaSample::VideoRotation::None };
+    std::unique_ptr<PixelBufferConformerCV> m_pixelBufferConformer;
 };
 
 } // namespace WebCore

@@ -32,6 +32,7 @@
 #include "JSCPoison.h"
 #include "JSClassRef.h"
 #include "JSGlobalLexicalEnvironment.h"
+#include "JSPromiseDeferred.h"
 #include "JSSegmentedVariableObject.h"
 #include "JSWeakObjectMapRefInternal.h"
 #include "LazyProperty.h"
@@ -82,6 +83,7 @@ class InputCursor;
 class JSArrayBuffer;
 class JSArrayBufferConstructor;
 class JSArrayBufferPrototype;
+class JSCallee;
 class JSGlobalObjectDebuggable;
 class JSInternalPromise;
 class JSModuleLoader;
@@ -98,7 +100,7 @@ class DirectEvalExecutable;
 class LLIntOffsetsExtractor;
 class MapPrototype;
 class Microtask;
-class ModuleLoaderPrototype;
+class ModuleLoader;
 class ModuleProgramExecutable;
 class NativeErrorConstructor;
 class NullGetterFunction;
@@ -217,6 +219,12 @@ struct GlobalObjectMethodTable {
 
     typedef String (*DefaultLanguageFunctionPtr)();
     DefaultLanguageFunctionPtr defaultLanguage;
+
+    typedef void (*CompileStreamingPtr)(JSGlobalObject*, ExecState*, JSPromiseDeferred*, JSValue);
+    CompileStreamingPtr compileStreaming;
+
+    typedef void (*InstantiateStreamingPtr)(JSGlobalObject*, ExecState*, JSPromiseDeferred*, JSValue, JSObject*);
+    InstantiateStreamingPtr instantiateStreaming;
 };
 
 class JSGlobalObject : public JSSegmentedVariableObject {
@@ -249,7 +257,8 @@ public:
 
     WriteBarrier<JSGlobalLexicalEnvironment> m_globalLexicalEnvironment;
     WriteBarrier<JSScope> m_globalScopeExtension;
-    WriteBarrier<JSObject> m_globalCallee;
+    WriteBarrier<JSCallee> m_globalCallee;
+    WriteBarrier<JSCallee> m_stackOverflowFrameCallee;
     WriteBarrier<RegExpConstructor> m_regExpConstructor;
     WriteBarrier<ErrorConstructor> m_errorConstructor;
     WriteBarrier<Structure> m_nativeErrorPrototypeStructure;
@@ -302,7 +311,6 @@ public:
     WriteBarrier<GeneratorFunctionPrototype> m_generatorFunctionPrototype;
     WriteBarrier<GeneratorPrototype> m_generatorPrototype;
     WriteBarrier<AsyncGeneratorPrototype> m_asyncGeneratorPrototype;
-    WriteBarrier<ModuleLoaderPrototype> m_moduleLoaderPrototype;
 
     LazyProperty<JSGlobalObject, Structure> m_debuggerScopeStructure;
     LazyProperty<JSGlobalObject, Structure> m_withScopeStructure;
@@ -316,10 +324,10 @@ public:
     WriteBarrier<Structure> m_objectStructureForObjectConstructor;
         
     // Lists the actual structures used for having these particular indexing shapes.
-    WriteBarrier<Structure> m_originalArrayStructureForIndexingShape[NumberOfIndexingShapes];
+    WriteBarrier<Structure> m_originalArrayStructureForIndexingShape[NumberOfArrayIndexingModes];
     // Lists the structures we should use during allocation for these particular indexing shapes.
     // These structures will differ from the originals list above when we are having a bad time.
-    WriteBarrier<Structure> m_arrayStructureForIndexingShapeDuringAllocation[NumberOfIndexingShapes];
+    WriteBarrier<Structure> m_arrayStructureForIndexingShapeDuringAllocation[NumberOfArrayIndexingModes];
 
     LazyProperty<JSGlobalObject, Structure> m_callbackConstructorStructure;
     LazyProperty<JSGlobalObject, Structure> m_callbackFunctionStructure;
@@ -333,11 +341,19 @@ public:
     LazyProperty<JSGlobalObject, Structure> m_glibCallbackFunctionStructure;
     LazyProperty<JSGlobalObject, Structure> m_glibWrapperObjectStructure;
 #endif
-    LazyProperty<JSGlobalObject, Structure> m_nullPrototypeObjectStructure;
+    WriteBarrier<Structure> m_nullPrototypeObjectStructure;
     WriteBarrier<Structure> m_calleeStructure;
-    WriteBarrier<Structure> m_strictFunctionStructure;
-    WriteBarrier<Structure> m_arrowFunctionStructure;
-    WriteBarrier<Structure> m_sloppyFunctionStructure;
+
+    WriteBarrier<Structure> m_hostFunctionStructure;
+
+    struct FunctionStructures {
+        WriteBarrier<Structure> arrowFunctionStructure;
+        WriteBarrier<Structure> sloppyFunctionStructure;
+        WriteBarrier<Structure> strictFunctionStructure;
+    };
+    FunctionStructures m_builtinFunctions;
+    FunctionStructures m_ordinaryFunctions;
+
     LazyProperty<JSGlobalObject, Structure> m_boundFunctionStructure;
     LazyProperty<JSGlobalObject, Structure> m_customGetterSetterFunctionStructure;
     WriteBarrier<Structure> m_getterSetterStructure;
@@ -349,7 +365,6 @@ public:
     WriteBarrier<Structure> m_asyncFunctionStructure;
     WriteBarrier<Structure> m_asyncGeneratorFunctionStructure;
     WriteBarrier<Structure> m_generatorFunctionStructure;
-    WriteBarrier<Structure> m_dollarVMStructure;
     WriteBarrier<Structure> m_iteratorResultObjectStructure;
     WriteBarrier<Structure> m_regExpMatchesArrayStructure;
     WriteBarrier<Structure> m_regExpMatchesArrayWithGroupsStructure;
@@ -358,7 +373,6 @@ public:
     WriteBarrier<Structure> m_proxyObjectStructure;
     WriteBarrier<Structure> m_callableProxyObjectStructure;
     WriteBarrier<Structure> m_proxyRevokeStructure;
-    WriteBarrier<Structure> m_moduleLoaderStructure;
     WriteBarrier<JSArrayBufferPrototype> m_arrayBufferPrototype;
     WriteBarrier<Structure> m_arrayBufferStructure;
 #if ENABLE(SHARED_ARRAY_BUFFER)
@@ -419,6 +433,7 @@ public:
     HashSet<String> m_intlCollatorAvailableLocales;
     HashSet<String> m_intlDateTimeFormatAvailableLocales;
     HashSet<String> m_intlNumberFormatAvailableLocales;
+    HashSet<String> m_intlPluralRulesAvailableLocales;
 #endif // ENABLE(INTL)
 
     RefPtr<WatchpointSet> m_masqueradesAsUndefinedWatchpoint;
@@ -428,6 +443,8 @@ public:
     std::unique_ptr<JSGlobalObjectRareData> m_rareData;
 
     WeakRandom m_weakRandom;
+
+    JSCallee* stackOverflowFrameCallee() const { return m_stackOverflowFrameCallee.get(); }
 
     InlineWatchpointSet& arrayIteratorProtocolWatchpoint() { return m_arrayIteratorProtocolWatchpoint; }
     InlineWatchpointSet& mapIteratorProtocolWatchpoint() { return m_mapIteratorProtocolWatchpoint; }
@@ -473,7 +490,7 @@ public:
     RuntimeFlags m_runtimeFlags;
     ConsoleClient* m_consoleClient { nullptr };
 
-    static JS_EXPORTDATA const GlobalObjectMethodTable s_globalObjectMethodTable;
+    static JS_EXPORT_PRIVATE const GlobalObjectMethodTable s_globalObjectMethodTable;
     const GlobalObjectMethodTable* m_globalObjectMethodTable;
 
     void createRareDataIfNeeded()
@@ -496,7 +513,7 @@ public:
     const RuntimeFlags& runtimeFlags() const { return m_runtimeFlags; }
 
 protected:
-    JS_EXPORT_PRIVATE explicit JSGlobalObject(VM&, Structure*, const GlobalObjectMethodTable* = nullptr, RefPtr<ThreadLocalCache> = nullptr);
+    JS_EXPORT_PRIVATE explicit JSGlobalObject(VM&, Structure*, const GlobalObjectMethodTable* = nullptr);
 
     JS_EXPORT_PRIVATE void finishCreation(VM&);
 
@@ -614,12 +631,12 @@ public:
     Structure* originalArrayStructureForIndexingType(IndexingType indexingType) const
     {
         ASSERT(indexingType & IsArray);
-        return m_originalArrayStructureForIndexingShape[(indexingType & IndexingShapeMask) >> IndexingShapeShift].get();
+        return m_originalArrayStructureForIndexingShape[arrayIndexFromIndexingType(indexingType)].get();
     }
     Structure* arrayStructureForIndexingTypeDuringAllocation(IndexingType indexingType) const
     {
         ASSERT(indexingType & IsArray);
-        return m_arrayStructureForIndexingShapeDuringAllocation[(indexingType & IndexingShapeMask) >> IndexingShapeShift].get();
+        return m_arrayStructureForIndexingShapeDuringAllocation[arrayIndexFromIndexingType(indexingType)].get();
     }
     Structure* arrayStructureForIndexingTypeDuringAllocation(ExecState* exec, IndexingType indexingType, JSValue newTarget) const
     {
@@ -632,7 +649,7 @@ public:
         
     bool isOriginalArrayStructure(Structure* structure)
     {
-        return originalArrayStructureForIndexingType(structure->indexingType() | IsArray) == structure;
+        return originalArrayStructureForIndexingType(structure->indexingMode() | IsArray) == structure;
     }
         
     Structure* booleanObjectStructure() const { return m_booleanObjectStructure.get(); }
@@ -649,12 +666,30 @@ public:
     Structure* glibWrapperObjectStructure() const { return m_glibWrapperObjectStructure.get(this); }
 #endif
     Structure* dateStructure() const { return m_dateStructure.get(this); }
-    Structure* nullPrototypeObjectStructure() const { return m_nullPrototypeObjectStructure.get(this); }
+    Structure* nullPrototypeObjectStructure() const { return m_nullPrototypeObjectStructure.get(); }
     Structure* errorStructure() const { return m_errorStructure.get(); }
     Structure* calleeStructure() const { return m_calleeStructure.get(); }
-    Structure* strictFunctionStructure() const { return m_strictFunctionStructure.get(); }
-    Structure* sloppyFunctionStructure() const { return m_sloppyFunctionStructure.get(); }
-    Structure* arrowFunctionStructure() const { return m_arrowFunctionStructure.get(); }
+    Structure* hostFunctionStructure() const { return m_hostFunctionStructure.get(); }
+
+    Structure* arrowFunctionStructure(bool isBuiltin) const
+    {
+        if (isBuiltin)
+            return m_builtinFunctions.arrowFunctionStructure.get();
+        return m_ordinaryFunctions.arrowFunctionStructure.get();
+    }
+    Structure* sloppyFunctionStructure(bool isBuiltin) const
+    {
+        if (isBuiltin)
+            return m_builtinFunctions.sloppyFunctionStructure.get();
+        return m_ordinaryFunctions.sloppyFunctionStructure.get();
+    }
+    Structure* strictFunctionStructure(bool isBuiltin) const
+    {
+        if (isBuiltin)
+            return m_builtinFunctions.strictFunctionStructure.get();
+        return m_ordinaryFunctions.strictFunctionStructure.get();
+    }
+
     Structure* boundFunctionStructure() const { return m_boundFunctionStructure.get(this); }
     Structure* customGetterSetterFunctionStructure() const { return m_customGetterSetterFunctionStructure.get(this); }
     Structure* getterSetterStructure() const { return m_getterSetterStructure.get(); }
@@ -677,8 +712,8 @@ public:
     Structure* proxyObjectStructure() const { return m_proxyObjectStructure.get(); }
     Structure* callableProxyObjectStructure() const { return m_callableProxyObjectStructure.get(); }
     Structure* proxyRevokeStructure() const { return m_proxyRevokeStructure.get(); }
-    Structure* moduleLoaderStructure() const { return m_moduleLoaderStructure.get(); }
     Structure* restParameterStructure() const { return arrayStructureForIndexingTypeDuringAllocation(ArrayWithContiguous); }
+    Structure* originalRestParameterStructure() const { return originalArrayStructureForIndexingType(ArrayWithContiguous); }
 #if ENABLE(WEBASSEMBLY)
     Structure* webAssemblyModuleRecordStructure() const { return m_webAssemblyModuleRecordStructure.get(); }
     Structure* webAssemblyFunctionStructure() const { return m_webAssemblyFunctionStructure.get(); }
@@ -698,6 +733,7 @@ public:
     const HashSet<String>& intlCollatorAvailableLocales();
     const HashSet<String>& intlDateTimeFormatAvailableLocales();
     const HashSet<String>& intlNumberFormatAvailableLocales();
+    const HashSet<String>& intlPluralRulesAvailableLocales();
 #endif // ENABLE(INTL)
 
     void setConsoleClient(ConsoleClient* consoleClient) { m_consoleClient = consoleClient; }
@@ -895,6 +931,7 @@ public:
     WeakRandom& weakRandom() { return m_weakRandom; }
 
     bool needsSiteSpecificQuirks() const { return m_needsSiteSpecificQuirks; }
+    JS_EXPORT_PRIVATE void exposeDollarVM(VM&);
 
 #if JSC_OBJC_API_ENABLED
     JSWrapperMap* wrapperMap() const { return m_wrapperMap.get(); }
@@ -904,8 +941,6 @@ public:
     WrapperMap* wrapperMap() const { return m_wrapperMap.get(); }
     void setWrapperMap(std::unique_ptr<WrapperMap>&&);
 #endif
-
-    ThreadLocalCache& threadLocalCache() const { return *m_threadLocalCache.get(); }
 
 protected:
     struct GlobalPropertyInfo {
@@ -940,7 +975,6 @@ private:
 #ifdef JSC_GLIB_API_ENABLED
     std::unique_ptr<WrapperMap> m_wrapperMap;
 #endif
-    RefPtr<ThreadLocalCache> m_threadLocalCache;
 };
 
 inline JSArray* constructEmptyArray(ExecState* exec, ArrayAllocationProfile* profile, JSGlobalObject* globalObject, unsigned initialLength = 0, JSValue newTarget = JSValue())

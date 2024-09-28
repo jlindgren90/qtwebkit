@@ -17,7 +17,6 @@ MockData = {
     jscRepositoryId() { return 222; },
     gitWebkitRepositoryId() { return 111; },
     sharedRepositoryId() { return 14; },
-    buildbotBuildersURLDeprecated() {return '/json/builders'},
     buildbotBuildersURL() {return '/api/v2/builders'},
     pendingBuildsUrl: function (builderName) {
         const builderId = this.builderIDForName(builderName);
@@ -80,7 +79,7 @@ MockData = {
             db.insert('analysis_tasks', {id: 500, platform: 65, metric: 300, name: 'some task',
                 start_run: 801, start_run_time: '2015-10-27T12:05:27.1Z',
                 end_run: 801, end_run_time: '2015-10-27T12:05:27.1Z'}),
-            db.insert('analysis_test_groups', {id: 600, task: 500, name: 'some test group'}),
+            db.insert('analysis_test_groups', {id: 600, task: 500, name: 'some test group', needs_notification: true}),
             db.insert('build_requests', {id: 700, status: statusList[0], triggerable: 1000, repository_group: 2001, platform: 65, test: 200, group: 600, order: 0, commit_set: 401}),
             db.insert('build_requests', {id: 701, status: statusList[1], triggerable: 1000, repository_group: 2001, platform: 65, test: 200, group: 600, order: 1, commit_set: 402}),
             db.insert('build_requests', {id: 702, status: statusList[2], triggerable: 1000, repository_group: 2001, platform: 65, test: 200, group: 600, order: 2, commit_set: 401}),
@@ -251,29 +250,6 @@ MockData = {
             ]
         }
     },
-    mockBuildbotBuildersDeprecated: function ()
-    {
-        return {
-            "some builder": {
-                "slaves": [ "some-slave-1" ]
-            },
-            "some-builder-1": {
-                "slaves": [ "some-slave-2" ]
-            },
-            "some builder 2": {
-                "slaves": [ "some-slave-3" ]
-            },
-            "other builder": {
-                "slaves": [ "some-slave-4" ]
-            },
-            "some tester": {
-                "slaves": [ "some-slave-5" ]
-            },
-            "another tester": {
-                "slaves": [ "some-slave-6" ]
-            }
-        }
-    },
     mockBuildbotBuilders: function ()
     {
         return {
@@ -345,28 +321,6 @@ MockData = {
             "buildrequests": [this.pendingBuildData(options)]
         };
     },
-    pendingBuildDeprecated(options)
-    {
-        options = options || {};
-        return {
-            'builderName': options.builder || 'some-builder-1',
-            'builds': [],
-            'properties': [
-                ['wk', options.webkitRevision || '191622'],
-                ['os', options.osxRevision || '10.11 15A284'],
-                ['build-request-id', (options.buildRequestId || 702).toString(), ]
-            ],
-            'source': {
-                'branch': '',
-                'changes': [],
-                'codebase': 'WebKit',
-                'hasPatch': false,
-                'project': '',
-                'repository': '',
-                'revision': ''
-            },
-        };
-    },
     sampleBuildData(options, overrides)
     {
         options = options || {};
@@ -405,31 +359,6 @@ MockData = {
             "builds": [this.runningBuildData(options)]
         };
     },
-    runningBuildDeprecated(options)
-    {
-        options = options || {};
-        return {
-            'builderName': options.builder || 'some-builder-1',
-            'builds': [],
-            'properties': [
-                ['wk', options.webkitRevision || '192736'],
-                ['os', options.osxRevision || '10.11 15A284'],
-                ['build-request-id', (options.buildRequestId || 701).toString(), ]
-            ],
-            'currentStep': {},
-            'eta': 721,
-            'number': options.buildNumber || 124,
-            'source': {
-                'branch': '',
-                'changes': [],
-                'codebase': 'WebKit',
-                'hasPatch': false,
-                'project': '',
-                'repository': '',
-                'revision': ''
-            },
-        };
-    },
     finishedBuildData(options)
     {
         options = options || {};
@@ -445,32 +374,6 @@ MockData = {
     {
         return {
             "builds": [this.finishedBuildData(options)]
-        };
-    },
-    finishedBuildDeprecated(options)
-    {
-        options = options || {};
-        return {
-            'builderName': options.builder || 'some-builder-1',
-            'builds': [],
-            'properties': [
-                ['wk', options.webkitRevision || '191622'],
-                ['os', options.osxRevision || '10.11 15A284'],
-                ['build-request-id', (options.buildRequestId || 700).toString(), ]
-            ],
-            'currentStep': null,
-            'eta': null,
-            'number': options.buildNumber || 123,
-            'source': {
-                'branch': '',
-                'changes': [],
-                'codebase': 'WebKit',
-                'hasPatch': false,
-                'project': '',
-                'repository': '',
-                'revision': ''
-            },
-            'times': [0, 1],
         };
     }
 }
