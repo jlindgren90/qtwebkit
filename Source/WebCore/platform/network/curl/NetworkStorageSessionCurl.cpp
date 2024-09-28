@@ -39,6 +39,10 @@
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
 
+#if USE(GLIB)
+#include <glib.h>
+#endif
+
 namespace WebCore {
 
 static String defaultCookieJarPath()
@@ -48,7 +52,11 @@ static String defaultCookieJarPath()
     if (cookieJarPath)
         return cookieJarPath;
 
+#if USE(GLIB)
+    return FileSystem::pathByAppendingComponent(g_get_user_data_dir(), defaultFileName);
+#else
     return FileSystem::pathByAppendingComponent(FileSystem::localUserSpecificStorageDirectory(), defaultFileName);
+#endif
 }
 
 NetworkStorageSession::NetworkStorageSession(PAL::SessionID sessionID, NetworkingContext* context)

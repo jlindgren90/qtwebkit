@@ -532,7 +532,9 @@
 #define USE_GLIB 1
 #define USE_FREETYPE 1
 #define USE_HARFBUZZ 1
+#if !PLATFORM(QT)
 #define USE_SOUP 1
+#endif
 #define USE_WEBP 1
 #define USE_FILE_LOCK 1
 #endif

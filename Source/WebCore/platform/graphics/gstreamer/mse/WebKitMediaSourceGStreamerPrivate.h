@@ -32,6 +32,7 @@
 #include <wtf/Condition.h>
 #include <wtf/RefPtr.h>
 #include <wtf/glib/GRefPtr.h>
+#include <wtf/glib/GUniquePtr.h>
 
 namespace WebCore {
 

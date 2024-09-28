@@ -35,6 +35,7 @@
 #endif
 
 #if USE(GLIB)
+#undef signals // defined by Qt
 #include <gio/gio.h>
 #include <wtf/glib/GRefPtr.h>
 #endif

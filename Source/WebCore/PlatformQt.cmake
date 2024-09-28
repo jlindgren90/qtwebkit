@@ -1,11 +1,8 @@
 include(platform/Cairo.cmake)
+include(platform/Curl.cmake)
 include(platform/FreeType.cmake)
 include(platform/GStreamer.cmake)
 include(platform/ImageDecoders.cmake)
-
-list(APPEND WebCore_UNIFIED_SOURCE_LIST_FILES
-    "platform/SourcesSoup.txt"
-)
 
 list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}"
@@ -25,7 +22,7 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/graphics/opentype"
     "${WEBCORE_DIR}/platform/graphics/x11"
     "${WEBCORE_DIR}/platform/mediacapabilities"
-    "${WEBCORE_DIR}/platform/network/soup"
+    "${WEBCORE_DIR}/platform/network/curl"
     "${WEBCORE_DIR}/platform/text/icu"
     "${WTF_DIR}"
 )
@@ -107,6 +104,7 @@ set(WebCore_USER_AGENT_SCRIPTS_DEPENDENCIES ${WEBCORE_DIR}/platform/qt/RenderThe
 
 list(APPEND WebCore_LIBRARIES
     ${CAIRO_LIBRARIES}
+    ${CURL_LIBRARY}
     ${GLIB_GIO_LIBRARIES}
     ${GLIB_GMODULE_LIBRARIES}
     ${GLIB_GOBJECT_LIBRARIES}
@@ -114,7 +112,6 @@ list(APPEND WebCore_LIBRARIES
     ${HYPHEN_LIBRARIES}
     ${ICU_LIBRARIES}
     ${LIBGCRYPT_LIBRARIES}
-    ${LIBSOUP_LIBRARIES}
     ${LIBXML2_LIBRARIES}
     ${LIBXSLT_LIBRARIES}
     ${Qt5Core_LIBRARIES}
@@ -129,7 +126,6 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     ${GLIB_INCLUDE_DIRS}
     ${ICU_INCLUDE_DIRS}
     ${LIBGCRYPT_INCLUDE_DIRS}
-    ${LIBSOUP_INCLUDE_DIRS}
     ${LIBXML2_INCLUDE_DIR}
     ${LIBXSLT_INCLUDE_DIR}
     ${Qt5Gui_INCLUDE_DIRS}
@@ -159,10 +155,9 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 
     platform/graphics
     platform/network
+    platform/network/curl
     platform/sql
     platform/text
-
-    platform/network/soup
 )
 
 WEBKIT_CREATE_FORWARDING_HEADERS(WebCore DIRECTORIES ${WebCore_FORWARDING_HEADERS_DIRECTORIES} FILES ${WebCore_FORWARDING_HEADERS_FILES})

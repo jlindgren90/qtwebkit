@@ -170,7 +170,7 @@ list(APPEND WebKitLegacy_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/graphics/gpu/qt"
     "${WEBCORE_DIR}/platform/graphics/surfaces/qt"
     "${WEBCORE_DIR}/platform/network"
-    "${WEBCORE_DIR}/platform/network/soup"
+    "${WEBCORE_DIR}/platform/network/curl"
     "${WEBCORE_DIR}/platform/text/qt"
     "${WEBCORE_DIR}/rendering"
     "${WEBCORE_DIR}/rendering/style"
@@ -245,7 +245,6 @@ list(APPEND WebKitLegacy_SYSTEM_INCLUDE_DIRECTORIES
     ${GIO_UNIX_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
-    ${LIBSOUP_INCLUDE_DIRS}
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
@@ -257,6 +256,7 @@ list(REMOVE_DUPLICATES WebKitLegacy_SYSTEM_INCLUDE_DIRECTORIES)
 list(APPEND WebKitLegacy_LIBRARIES
     PRIVATE
         ${ICU_LIBRARIES}
+        ${OPENSSL_LIBRARIES}
         ${X11_X11_LIB}
         ${X11_Xcomposite_LIB}
         ${X11_Xrender_LIB}

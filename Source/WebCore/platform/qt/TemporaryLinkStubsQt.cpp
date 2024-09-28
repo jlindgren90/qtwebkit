@@ -48,14 +48,19 @@ void getSupportedKeySizes(Vector<String>&)
     notImplemented();
 }
 
+bool isPublicSuffix(const String&)
+{
+    return false;
+}
+
 String signedPublicKeyAndChallengeString(unsigned, const String&, const URL&)
 {
     return String();
 }
 
-void setCookieStoragePrivateBrowsingEnabled(bool)
+String topPrivatelyControlledDomain(const String& domain)
 {
-    notImplemented();
+    return String();
 }
 
 }

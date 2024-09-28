@@ -66,11 +66,11 @@ private:
         ASSERT_NOT_REACHED();
         return nullptr;
     }
-
-    // define specialized member function for specific type.
-    template<> constexpr const char* sscanTemplate<signed>() { return "%d"; }
-    template<> constexpr const char* sscanTemplate<unsigned>() { return "%u"; }
 };
+
+// define specialized member function for specific type.
+template<> constexpr const char* EnvironmentVariableReader::sscanTemplate<signed>() { return "%d"; }
+template<> constexpr const char* EnvironmentVariableReader::sscanTemplate<unsigned>() { return "%u"; }
 
 // CurlContext -------------------------------------------------------------------
 
