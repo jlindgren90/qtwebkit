@@ -41,6 +41,7 @@
 #include "FileSystem.h"
 #include "HTTPParsers.h"
 #include "Logging.h"
+#include "MIMETypeRegistry.h"
 #include "NetworkStorageSession.h"
 #include "ResourceHandleInternal.h"
 #include "SharedBuffer.h"
@@ -48,6 +49,11 @@
 #include "TextEncoding.h"
 #include <wtf/CompletionHandler.h>
 #include <wtf/text/Base64.h>
+
+#if PLATFORM(QT)
+#include <QFile>
+#include <QUrl>
+#endif
 
 namespace WebCore {
 
@@ -62,6 +68,25 @@ ResourceHandle::~ResourceHandle() = default;
 bool ResourceHandle::start()
 {
     ASSERT(isMainThread());
+
+#if PLATFORM(QT)
+    URL url(firstRequest().url());
+    if (url.protocolIs("qrc")) {
+        QFile file(':' + QUrl(url).path());
+        if (file.open(QFile::ReadOnly)) {
+            QByteArray data = file.readAll();
+            String mimeType = MIMETypeRegistry::getMIMETypeForPath(url);
+            RefPtr<ResourceHandle> me(this);
+            callOnMainThread([me, url, data, mimeType] {
+                ResourceResponse response(url, mimeType, data.size(), String());
+                me->client()->didReceiveResponseAsync(me.get(), std::move(response), []() { });
+                me->client()->didReceiveData(me.get(), data.data(), data.size(), data.size());
+                me->client()->didFinishLoading(me.get());
+            });
+            return true;
+        }
+    }
+#endif
 
     CurlContext::singleton();
 
