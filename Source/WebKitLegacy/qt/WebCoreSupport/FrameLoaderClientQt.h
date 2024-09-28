@@ -33,7 +33,7 @@
 #include "FormState.h"
 #include "FrameLoaderClient.h"
 #include "ResourceResponse.h"
-#include "URL.h"
+#include <wtf/URL.h>
 #include <QUrl>
 #include <qobject.h>
 
@@ -78,8 +78,8 @@ public:
     void makeRepresentation(DocumentLoader*) override { }
 
     // FIXME: check these
-    std::optional<uint64_t> pageID() const override { return std::nullopt; }
-    std::optional<uint64_t> frameID() const override { return std::nullopt; }
+    WTF::Optional<uint64_t> pageID() const override { return WTF::nullopt; }
+    WTF::Optional<uint64_t> frameID() const override { return WTF::nullopt; }
     PAL::SessionID sessionID() const override { return PAL::SessionID::defaultSessionID(); }
 
     void forceLayoutForNonHTML() override;
@@ -103,7 +103,8 @@ public:
     void dispatchDidDispatchOnloadEvents() override;
     void dispatchDidReceiveServerRedirectForProvisionalLoad() override;
     void dispatchDidCancelClientRedirect() override;
-    void dispatchWillPerformClientRedirect(const URL&, double interval, WTF::WallTime fireDate) override;
+    void dispatchWillPerformClientRedirect(const WTF::URL&, double interval,
+        WTF::WallTime fireDate, LockBackForwardList) override;
     void dispatchDidNavigateWithinPage() override;
     void dispatchDidChangeLocationWithinPage() override;
     void dispatchDidPushStateWithinPage() override;
@@ -113,19 +114,24 @@ public:
     void dispatchDidReceiveIcon() override;
     void dispatchDidStartProvisionalLoad() override;
     void dispatchDidReceiveTitle(const StringWithDirection&) override;
-    void dispatchDidCommitLoad(std::optional<HasInsecureContent>) override;
+    void dispatchDidCommitLoad(WTF::Optional<HasInsecureContent>) override;
     void dispatchDidFailProvisionalLoad(const ResourceError&) override;
     void dispatchDidFailLoad(const WebCore::ResourceError&) override;
     void dispatchDidFinishDocumentLoad() override;
     void dispatchDidFinishLoad() override;
-    void dispatchDidReachLayoutMilestone(WebCore::LayoutMilestones) override;
+    void dispatchDidReachLayoutMilestone(WTF::OptionSet<LayoutMilestone>) override;
 
     WebCore::Frame* dispatchCreatePage(const WebCore::NavigationAction&) override;
     void dispatchShow() override;
 
-    void dispatchDecidePolicyForResponse(const ResourceResponse&, const ResourceRequest&, FramePolicyFunction&&) override;
-    void dispatchDecidePolicyForNewWindowAction(const NavigationAction&, const ResourceRequest&, FormState*, const String& frameName, FramePolicyFunction&&) override;
-    void dispatchDecidePolicyForNavigationAction(const NavigationAction&, const ResourceRequest&, const ResourceResponse& redirectResponse, FormState*, PolicyDecisionMode, ShouldSkipSafeBrowsingCheck, FramePolicyFunction&&) override;
+    void dispatchDecidePolicyForResponse(const WebCore::ResourceResponse&,
+        const WebCore::ResourceRequest&, PolicyCheckIdentifier, FramePolicyFunction&&) override;
+    void dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction&,
+        const WebCore::ResourceRequest&, FormState*, const WTF::String&,
+        PolicyCheckIdentifier, FramePolicyFunction&&) override;
+    void dispatchDecidePolicyForNavigationAction(const NavigationAction&,
+        const ResourceRequest&, const ResourceResponse&, FormState*,
+        PolicyDecisionMode, PolicyCheckIdentifier, FramePolicyFunction&&) override;
     void cancelPolicyCheck() override;
 
     void dispatchUnableToImplementPolicy(const WebCore::ResourceError&) override;
@@ -148,7 +154,7 @@ public:
 
     void updateGlobalHistory() override;
     void updateGlobalHistoryRedirectLinks() override;
-    bool shouldGoToHistoryItem(HistoryItem*) const override;
+    bool shouldGoToHistoryItem(HistoryItem&) const override;
     void didDisplayInsecureContent() override;
     void didRunInsecureContent(SecurityOrigin&, const URL&) override;
     void didDetectXSS(const URL&, bool didBlockEntirePage) override;
@@ -180,7 +186,7 @@ public:
     Ref<WebCore::DocumentLoader> createDocumentLoader(const WebCore::ResourceRequest&, const WebCore::SubstituteData&) override;
     void setTitle(const StringWithDirection&, const URL&) override;
 
-    String userAgent(const WebCore::URL&) override;
+    String userAgent(const WTF::URL&) override;
 
     void savePlatformDataToCachedFrame(WebCore::CachedFrame*) override;
     void transitionToCommittedFromCachedFrame(WebCore::CachedFrame*) override;
@@ -195,9 +201,8 @@ public:
     void convertMainResourceLoadToDownload(DocumentLoader*, PAL::SessionID,
         const ResourceRequest&, const WebCore::ResourceResponse&) override;
 
-    RefPtr<Frame> createFrame(const URL&, const String& name, HTMLFrameOwnerElement&, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight) override;
+    RefPtr<Frame> createFrame(const WTF::URL&, const String& name, HTMLFrameOwnerElement&, const String& referrer) override;
     RefPtr<Widget> createPlugin(const IntSize&, HTMLPlugInElement&, const URL&, const Vector<String>&, const Vector<String>&, const String&, bool) override;
-    void recreatePlugin(Widget*) override { }
     void redirectDataToPlugin(Widget& pluginWidget) override;
 
     RefPtr<Widget> createJavaAppletWidget(const IntSize&, HTMLAppletElement&, const URL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues) override;

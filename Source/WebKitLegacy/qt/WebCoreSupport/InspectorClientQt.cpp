@@ -216,13 +216,13 @@ void InspectorClientQt::releaseFrontendPage()
 void InspectorClientQt::attachAndReplaceRemoteFrontend(InspectorServerRequestHandlerQt* channel)
 {
     m_remoteFrontEndChannel = channel;
-    m_inspectedWebPage->page->inspectorController().connectFrontend(this);
+    m_inspectedWebPage->page->inspectorController().connectFrontend(*this);
 }
 
 void InspectorClientQt::detachRemoteFrontend()
 {
     m_remoteFrontEndChannel = nullptr;
-    m_inspectedWebPage->page->inspectorController().disconnectFrontend(this);
+    m_inspectedWebPage->page->inspectorController().disconnectFrontend(*this);
 }
 
 void InspectorClientQt::closeFrontendWindow()
@@ -355,7 +355,7 @@ void InspectorFrontendClientQt::destroyInspectorView(bool notifyInspectorControl
     }
 
     if (notifyInspectorController)
-        m_inspectedWebPage->page->inspectorController().disconnectFrontend(m_inspectorClient);
+        m_inspectedWebPage->page->inspectorController().disconnectFrontend(*m_inspectorClient);
 
     // If we delete view right here it will delete QWebPageAdapter in the middle
     // of mouseReleaseEvent()

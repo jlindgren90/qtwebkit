@@ -45,10 +45,10 @@
 
 namespace WebCore {
 
-static std::optional<QCursor> createCustomCursor(Image* image, const IntPoint& hotSpot)
+static WTF::Optional<QCursor> createCustomCursor(Image* image, const IntPoint& hotSpot)
 {
     if (!image->nativeImageForCurrentFrame())
-        return std::nullopt;
+        return WTF::nullopt;
     IntPoint effectiveHotSpot = determineHotSpot(image, hotSpot);
     return QCursor(toQPixmap(image->nativeImageForCurrentFrame()), effectiveHotSpot.x(), effectiveHotSpot.y());
 }

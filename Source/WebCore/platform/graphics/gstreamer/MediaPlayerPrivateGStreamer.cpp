@@ -2397,7 +2397,9 @@ void MediaPlayerPrivateGStreamer::createGSTPlayBin(const gchar* playbinName, con
         else if (g_str_has_prefix(elementName.get(), "imxvpudecoder"))
             player->m_videoDecoderPlatform = WebKitGstVideoDecoderPlatform::ImxVPU;
 
+#if USE(TEXTURE_MAPPER_GL)
         player->updateTextureMapperFlags();
+#endif
     }), this);
 
     g_signal_connect_swapped(m_pipeline.get(), "source-setup", G_CALLBACK(sourceSetupCallback), this);

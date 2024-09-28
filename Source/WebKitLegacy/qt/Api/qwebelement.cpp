@@ -1463,7 +1463,7 @@ void QWebElement::beginEnterFullScreen()
 {
 #if ENABLE(FULLSCREEN_API)
     if (m_element)
-        m_element->document().webkitWillEnterFullScreenForElement(m_element);
+        m_element->document().webkitWillEnterFullScreen(*m_element);
 #endif
 }
 
@@ -1471,7 +1471,7 @@ void QWebElement::endEnterFullScreen()
 {
 #if ENABLE(FULLSCREEN_API)
     if (m_element)
-        m_element->document().webkitDidEnterFullScreenForElement(m_element);
+        m_element->document().webkitDidEnterFullScreen();
 #endif
 }
 
@@ -1479,7 +1479,7 @@ void QWebElement::beginExitFullScreen()
 {
 #if ENABLE(FULLSCREEN_API)
     if (m_element)
-        m_element->document().webkitWillExitFullScreenForElement(m_element);
+        m_element->document().webkitWillExitFullScreen();
 #endif
 }
 
@@ -1487,7 +1487,7 @@ void QWebElement::endExitFullScreen()
 {
 #if ENABLE(FULLSCREEN_API)
     if (m_element)
-        m_element->document().webkitDidExitFullScreenForElement(m_element);
+        m_element->document().webkitDidExitFullScreen();
 #endif
 }
 

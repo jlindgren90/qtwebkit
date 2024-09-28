@@ -33,6 +33,7 @@
 
 #include <QKeyEvent>
 #include <ctype.h>
+#include <stdio.h>
 
 namespace WebCore {
 
@@ -343,8 +344,11 @@ String keyIdentifierForQtKeyCode(int keyCode)
     case Qt::Key_Delete:
         return ASCIILiteral::fromLiteralUnsafe("U+007F"); // return ASCIILiteral::fromLiteralUnsafe("Del");
     default:
-        if (keyCode < 128)
-            return String::format("U+%04X", toASCIIUpper(keyCode));
+        if (keyCode < 128) {
+            char buf[7];
+            snprintf(buf, sizeof(buf), "U+%04X", toASCIIUpper(keyCode));
+            return String(buf);
+        }
         return String();
     }
 }
@@ -880,7 +884,7 @@ PlatformKeyboardEvent::PlatformKeyboardEvent(QKeyEvent* event, bool useNativeVir
     if ((state & Qt::ShiftModifier) || event->key() == Qt::Key_Backtab) // Simulate Shift+Tab with Key_Backtab
         m_modifiers.add(Modifier::ShiftKey);
     if (state & Qt::ControlModifier)
-        m_modifiers.add(Modifier::CtrlKey);
+        m_modifiers.add(Modifier::ControlKey);
     if (state & Qt::AltModifier)
         m_modifiers.add(Modifier::AltKey);
     if (state & Qt::MetaModifier)

@@ -26,7 +26,6 @@
 #include "ApplicationCacheStorage.h"
 #include "CrossOriginPreflightResultCache.h"
 #include "DatabaseManager.h"
-#include "FileSystem.h"
 #include "FontCache.h"
 #include "GCController.h"
 #include "IconDatabase.h"
@@ -36,9 +35,9 @@
 #endif
 #include "InitWebCoreQt.h"
 #include "IntSize.h"
-#include "URL.h"
 #include "MemoryCache.h"
 #include "NetworkStateNotifier.h"
+#include "NetworkStorageSessionMap.h"
 #include "Page.h"
 #include "PageCache.h"
 #include "QGraphicsUtils.h"
@@ -56,9 +55,9 @@
 #include <QStandardPaths>
 #include <QUrl>
 #include <wtf/FastMalloc.h>
+#include <wtf/FileSystem.h>
+#include <wtf/URL.h>
 #include <wtf/text/WTFString.h>
-
-
 
 QWEBKIT_EXPORT void qt_networkAccessAllowed(bool isAllowed)
 {
@@ -224,7 +223,7 @@ void QWebSettingsPrivate::apply()
                                            : WebCore::FrameFlattening::Disabled);
 
         QUrl location = !userStyleSheetLocation.isEmpty() ? userStyleSheetLocation : global->userStyleSheetLocation;
-        settings->setUserStyleSheetLocation(WebCore::URL(location));
+        settings->setUserStyleSheetLocation(WTF::URL(location));
 
         QString encoding = !defaultTextEncoding.isEmpty() ? defaultTextEncoding: global->defaultTextEncoding;
         settings->setDefaultTextEncodingName(encoding);
@@ -779,7 +778,7 @@ QIcon QWebSettings::iconForUrl(const QUrl& url)
 {
     WebCore::initializeWebCoreQt();
     return WebCore::toQPixmap(WebCore::iconDatabase().synchronousIconForPageURL(
-        WebCore::URL(url).string(), WebCore::IntSize(16, 16)).first);
+        WTF::URL(url).string(), WebCore::IntSize(16, 16)).first);
 }
 
 /*!
@@ -1254,16 +1253,16 @@ void QWebSettings::enablePersistentStorage(const QString& path)
 
         storagePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
         if (storagePath.isEmpty())
-            storagePath = WebCore::FileSystem::pathByAppendingComponent(QDir::homePath(), QCoreApplication::applicationName());
+            storagePath = FileSystem::pathByAppendingComponent(QDir::homePath(), QCoreApplication::applicationName());
     } else
         storagePath = path;
 
-    WebCore::FileSystem::makeAllDirectories(storagePath);
+    FileSystem::makeAllDirectories(storagePath);
 
     QWebSettings::setIconDatabasePath(storagePath);
     QWebSettings::setOfflineWebApplicationCachePath(storagePath);
-    QWebSettings::setOfflineStoragePath(WebCore::FileSystem::pathByAppendingComponent(storagePath, "Databases"));
-    QWebSettings::globalSettings()->setLocalStoragePath(WebCore::FileSystem::pathByAppendingComponent(storagePath, "LocalStorage"));
+    QWebSettings::setOfflineStoragePath(FileSystem::pathByAppendingComponent(storagePath, "Databases"));
+    QWebSettings::globalSettings()->setLocalStoragePath(FileSystem::pathByAppendingComponent(storagePath, "LocalStorage"));
     QWebSettings::globalSettings()->setAttribute(QWebSettings::LocalStorageEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::OfflineStorageDatabaseEnabled, true);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::OfflineWebApplicationCacheEnabled, true);
@@ -1272,7 +1271,7 @@ void QWebSettings::enablePersistentStorage(const QString& path)
     // All applications can share the common QtWebkit cache file(s).
     // Path is not configurable and uses QDesktopServices::CacheLocation by default.
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-    WebCore::FileSystem::makeAllDirectories(cachePath);
+    FileSystem::makeAllDirectories(cachePath);
 
     QFileInfo info(cachePath);
     if (info.isDir() && info.isWritable()) {

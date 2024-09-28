@@ -28,10 +28,10 @@
 
 #include "ContextMenu.h"
 #include "HitTestResult.h"
-#include "URL.h"
 #include "NotImplemented.h"
 
 #include <wtf/RefCounted.h>
+#include <wtf/URL.h>
 
 namespace WebCore {
     

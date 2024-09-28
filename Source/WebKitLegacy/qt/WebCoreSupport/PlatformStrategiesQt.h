@@ -28,7 +28,6 @@
 #ifndef PlatformStrategiesQt_h
 #define PlatformStrategiesQt_h
 
-#include <CookiesStrategy.h>
 #include <LoaderStrategy.h>
 #include <PlatformStrategies.h>
 
@@ -36,7 +35,7 @@ namespace WebCore {
 class PasteboardStrategy;
 }
 
-class PlatformStrategiesQt : public WebCore::PlatformStrategies, private WebCore::CookiesStrategy {
+class PlatformStrategiesQt : public WebCore::PlatformStrategies {
     friend class WTF::NeverDestroyed<PlatformStrategiesQt>;
 public:
     static void initialize();
@@ -45,18 +44,8 @@ private:
     PlatformStrategiesQt();
 
     // WebCore::PlatformStrategies
-    WebCore::CookiesStrategy* createCookiesStrategy() override;
     WebCore::LoaderStrategy* createLoaderStrategy() override;
     WebCore::PasteboardStrategy* createPasteboardStrategy() override;
-    
-    // WebCore::CookiesStrategy
-    std::pair<String, bool> cookiesForDOM(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::SameSiteInfo&, const WebCore::URL&, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, WebCore::IncludeSecureCookies) override;
-    void setCookiesFromDOM(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::SameSiteInfo&, const WebCore::URL&, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, const String&) override;
-    bool cookiesEnabled(const WebCore::NetworkStorageSession&) override;
-    std::pair<String, bool> cookieRequestHeaderFieldValue(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::SameSiteInfo&, const WebCore::URL&, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, WebCore::IncludeSecureCookies) override;
-    std::pair<String, bool> cookieRequestHeaderFieldValue(PAL::SessionID, const WebCore::URL& firstParty, const WebCore::SameSiteInfo&, const WebCore::URL&, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, WebCore::IncludeSecureCookies) override;
-    bool getRawCookies(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::SameSiteInfo&, const WebCore::URL&, std::optional<uint64_t> frameID, std::optional<uint64_t> pageID, Vector<WebCore::Cookie>&) override;
-    void deleteCookie(const WebCore::NetworkStorageSession&, const WebCore::URL&, const String&) override;
 
     // PlatformStrategies interface
     WebCore::BlobRegistry* createBlobRegistry() override;

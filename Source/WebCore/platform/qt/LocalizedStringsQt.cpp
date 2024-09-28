@@ -63,20 +63,4 @@ String contextMenuItemTagSelectAll()
     return QCoreApplication::translate("QWebPage", "Select All", "Select All context menu item");
 }
 
-String contextMenuItemTagSearchWeb()
-{
-    return QCoreApplication::translate("QWebPage", "Search The Web", "Search The Web context menu item");
-}
-
-String unacceptableTLSCertificate()
-{
-    notImplemented();
-    return String();
-}
-
-String localizedString(const char* key)
-{
-    return String::fromUTF8(key, strlen(key));
-}
-
 }

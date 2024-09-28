@@ -31,6 +31,7 @@
 #include "ContextMenu.h"
 #include "ContextMenuClientQt.h"
 #include "ContextMenuController.h"
+#include "CookieJar.h"
 #include "DocumentLoader.h"
 #include "DragClientQt.h"
 #include "DragController.h"
@@ -61,6 +62,7 @@
 #include "NotificationPresenterClientQt.h"
 #include "PageConfiguration.h"
 #include "PageGroup.h"
+#include "PageStorageSessionProvider.h"
 #include "Pasteboard.h"
 #include "PlatformKeyboardEvent.h"
 #include "PlatformMouseEvent.h"
@@ -76,6 +78,7 @@
 #include "Scrollbar.h"
 #include "ScrollbarTheme.h"
 #include "Settings.h"
+#include "ShadowRoot.h"
 #include "SocketProvider.h"
 #include "TextIterator.h"
 #include "UndoStepQt.h"
@@ -88,6 +91,7 @@
 #include "WebKitVersion.h"
 #include "WebStorageNamespaceProvider.h"
 #include "WindowFeatures.h"
+#include "markup.h"
 #include "qwebhistory_p.h"
 #include "qwebpluginfactory.h"
 #include "qwebsettings.h"
@@ -112,7 +116,7 @@ using namespace WebCore;
 // from EmptyClients.cpp
 class EmptyPluginInfoProvider final : public PluginInfoProvider {
     void refreshPlugins() final { };
-    Vector<PluginInfo> pluginInfo(Page&, std::optional<Vector<SupportedPluginIdentifier>>&) final { return { }; }
+    Vector<PluginInfo> pluginInfo(Page&, Optional<Vector<SupportedPluginIdentifier>>&) final { return { }; }
     Vector<PluginInfo> webVisiblePluginInfo(Page&, const URL&) final { return { }; }
 };
 
@@ -211,13 +215,16 @@ QWebPageAdapter::QWebPageAdapter()
 
 void QWebPageAdapter::initializeWebCorePage()
 {
+    auto backForwardList = BackForwardList::create();
+    auto storageProvider = PageStorageSessionProvider::create();
     PageConfiguration pageConfiguration(
         WTF::makeUniqueRef<EditorClientQt>(this),
         SocketProvider::create(),
         WTF::makeUniqueRef<LibWebRTCProvider>(),
-        CacheStorageProvider::create()
+        CacheStorageProvider::create(),
+        backForwardList.copyRef(),
+        CookieJar::create(storageProvider.copyRef())
     );
-    pageConfiguration.backForwardClient = BackForwardList::create();
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
     pageConfiguration.dragClient = new DragClientQt(pageConfiguration.chromeClient);
@@ -232,6 +239,7 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.userContentProvider = &userContentProvider();
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();
     page = new Page(std::move(pageConfiguration));
+    storageProvider->setPage(*page);
 
     // By default each page is put into their own unique page group, which affects popup windows
     // and visited links. Page groups (per process only) is a feature making it possible to use
@@ -248,7 +256,7 @@ void QWebPageAdapter::initializeWebCorePage()
     WebCore::provideNotification(page, NotificationPresenterClientQt::notificationPresenter());
 #endif
 
-    history.d = new QWebHistoryPrivate(static_cast<BackForwardList*>(page->backForward().client()), page);
+    history.d = new QWebHistoryPrivate(backForwardList.ptr(), page);
 }
 
 QWebPageAdapter::~QWebPageAdapter()
@@ -344,7 +352,7 @@ QString QWebPageAdapter::selectedHtml() const
     RefPtr<Range> range = page->focusController().focusedOrMainFrame().editor().selectedRange();
     if (!range)
         return QString();
-    return range->toHTML();
+    return serializePreservingVisualAppearance(*range);
 }
 
 bool QWebPageAdapter::isContentEditable() const
@@ -579,6 +587,14 @@ bool QWebPageAdapter::performDrag(const QMimeData *data, const QPoint &pos, Qt::
 
 #endif // ENABLE(DRAG_SUPPORT)
 
+static Node* shadowAncestorNode(Node* node)
+{
+    if (ShadowRoot* root = node->containingShadowRoot())
+        return root->host();
+
+    return node;
+}
+
 void QWebPageAdapter::inputMethodEvent(QInputMethodEvent *ev)
 {
     WebCore::Frame& frame = page->focusController().focusedOrMainFrame();
@@ -591,7 +607,7 @@ void QWebPageAdapter::inputMethodEvent(QInputMethodEvent *ev)
 
     Node* node = 0;
     if (frame.selection().selection().rootEditableElement())
-        node = frame.selection().selection().rootEditableElement()->deprecatedShadowAncestorNode();
+        node = shadowAncestorNode(frame.selection().selection().rootEditableElement());
 
     Vector<CompositionUnderline> underlines;
     bool hasSelection = false;
@@ -679,7 +695,7 @@ QVariant QWebPageAdapter::inputMethodQuery(Qt::InputMethodQuery property) const
     RenderTextControl* renderTextControl = 0;
 
     if (frame->selection().selection().rootEditableElement())
-        renderer = frame->selection().selection().rootEditableElement()->deprecatedShadowAncestorNode()->renderer();
+        renderer = shadowAncestorNode(frame->selection().selection().rootEditableElement())->renderer();
 
     if (renderer && renderer->isTextControl())
         renderTextControl = downcast<RenderTextControl>(renderer);
@@ -907,8 +923,8 @@ QStringList QWebPageAdapter::supportedContentTypes() const
 {
     QStringList mimeTypes;
 
-    extractContentTypeFromHash(MIMETypeRegistry::getSupportedImageMIMETypes(), mimeTypes);
-    extractContentTypeFromHash(MIMETypeRegistry::getSupportedNonImageMIMETypes(), mimeTypes);
+    extractContentTypeFromHash(MIMETypeRegistry::supportedImageMIMETypes(), mimeTypes);
+    extractContentTypeFromHash(MIMETypeRegistry::supportedNonImageMIMETypes(), mimeTypes);
 
     return mimeTypes;
 }
@@ -1073,13 +1089,13 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
         break;
 
     case SetTextDirectionDefault:
-        editor.setBaseWritingDirection(NaturalWritingDirection);
+        editor.setBaseWritingDirection(WritingDirection::Natural);
         break;
     case SetTextDirectionLeftToRight:
-        editor.setBaseWritingDirection(LeftToRightWritingDirection);
+        editor.setBaseWritingDirection(WritingDirection::LeftToRight);
         break;
     case SetTextDirectionRightToLeft:
-        editor.setBaseWritingDirection(RightToLeftWritingDirection);
+        editor.setBaseWritingDirection(WritingDirection::RightToLeft);
         break;
 #if ENABLE(VIDEO)
     case ToggleMediaControls:

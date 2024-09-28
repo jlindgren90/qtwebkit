@@ -22,13 +22,13 @@
 
 #include "ApplicationCacheStorage.h"
 #include "DatabaseManager.h"
-#include "URL.h"
 #include "SchemeRegistry.h"
 #include "SecurityOrigin.h"
 #include "SecurityPolicy.h"
 #include "qwebdatabase.h"
 #include "qwebdatabase_p.h"
 #include "qwebsecurityorigin_p.h"
+#include <wtf/URL.h>
 #include <QStringList>
 
 using namespace WebCore;
@@ -112,7 +112,7 @@ QString QWebSecurityOrigin::host() const
 */
 int QWebSecurityOrigin::port() const
 {
-    return d->origin->port().value_or(0); // FIXME: check this
+    return d->origin->port().valueOr(0); // FIXME: check this
 }
 
 /*!

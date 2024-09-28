@@ -91,6 +91,7 @@ public:
 
     void bringToFront() override;
     void closeWindow() override;
+    void reopen() override { } // TODO
 
     void attachWindow(DockSide) override;
     void detachWindow() override;
@@ -99,6 +100,7 @@ public:
     void setAttachedWindowWidth(unsigned) override;
 
     void inspectedURLChanged(const String& newURL) override;
+    void showCertificate(const CertificateInfo&) override { } // TODO
 
     void inspectorClientDestroyed();
 

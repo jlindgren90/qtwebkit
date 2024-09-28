@@ -38,7 +38,7 @@ static void mouseEventModifiersFromQtKeyboardModifiers(Qt::KeyboardModifiers key
     if (keyboardModifiers & Qt::ShiftModifier)
         modifiers.add(PlatformEvent::Modifier::ShiftKey);
     if (keyboardModifiers & Qt::ControlModifier)
-        modifiers.add(PlatformEvent::Modifier::CtrlKey);
+        modifiers.add(PlatformEvent::Modifier::ControlKey);
     if (keyboardModifiers & Qt::AltModifier)
         modifiers.add(PlatformEvent::Modifier::AltKey);
     if (keyboardModifiers & Qt::MetaModifier)

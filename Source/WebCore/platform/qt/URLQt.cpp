@@ -18,16 +18,16 @@
  *
  */
 #include "config.h"
-#include "URL.h"
+#include <wtf/URL.h>
 
 #include "TextEncoding.h"
 #include "qurl.h"
 
-namespace WebCore {
+namespace WTF {
 
 URL::URL(const QUrl& url)
 {
-    *this = URL(URL(), url.toEncoded().constData(), UTF8Encoding());
+    *this = URL(URL(), String(url.toEncoded().constData()), &WebCore::UTF8Encoding());
 }
 
 URL::operator QUrl() const
@@ -45,7 +45,7 @@ String URL::fileSystemPath() const
 
     // A valid qrc resource path begins with a colon.
     if (protocolIs("qrc"))
-        return ":" + decodeURLEscapeSequences(path());
+        return ":" + WebCore::decodeURLEscapeSequences(path());
 
     return String();
 }

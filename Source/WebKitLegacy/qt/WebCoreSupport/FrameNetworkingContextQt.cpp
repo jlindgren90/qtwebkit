@@ -21,6 +21,7 @@
 #include "FrameNetworkingContextQt.h"
 
 #include "NetworkStorageSession.h"
+#include "NetworkStorageSessionMap.h"
 #include "NotImplemented.h"
 #include "QWebFrameAdapter.h"
 #include "QWebPageAdapter.h"
@@ -47,10 +48,10 @@ Ref<FrameNetworkingContextQt> FrameNetworkingContextQt::create(Frame* frame, QOb
     return adoptRef(*new FrameNetworkingContextQt(frame, originatingObject, mimeSniffingEnabled));
 }
 
-NetworkStorageSession& FrameNetworkingContextQt::storageSession() const
+NetworkStorageSession* FrameNetworkingContextQt::storageSession() const
 {
     // FIXME: okay to always return default?
-    return NetworkStorageSession::defaultStorageSession();
+    return &NetworkStorageSessionMap::defaultStorageSession();
 }
 
 #if 0 // FIXME

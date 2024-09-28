@@ -54,7 +54,6 @@
 #if USE(TILED_BACKING_STORE)
 #include "TiledBackingStore.h"
 #endif
-#include "URL.h"
 #include "markup.h"
 #include "qt_runtime.h"
 #include "qwebsecurityorigin.h"
@@ -62,6 +61,7 @@
 #include "qwebsettings.h"
 #include <IntRect.h>
 #include <IntSize.h>
+#include <wtf/URL.h>
 #include <QFileInfo>
 #include <QNetworkRequest>
 #include <QPainter>
@@ -212,7 +212,7 @@ QString QWebFrameAdapter::toHtml() const
 {
     if (!frame->document())
         return QString();
-    return createMarkup(*frame->document());
+    return serializeFragment(*frame->document(), SerializedNodes::SubtreeIncludingNode);
 }
 
 QString QWebFrameAdapter::toPlainText() const
@@ -756,7 +756,8 @@ WebCore::Scrollbar* QWebFrameAdapter::verticalScrollBar() const
 void QWebFrameAdapter::updateBackgroundRecursively(const QColor& backgroundColor)
 {
     ASSERT(frame->view());
-    frame->view()->updateBackgroundRecursively(fromQColor(backgroundColor), /*transparent*/ !backgroundColor.alpha());
+    frame->view()->updateBackgroundRecursively(backgroundColor.alpha() ?
+        WTF::makeOptional(fromQColor(backgroundColor)) : WTF::nullopt);
 }
 
 void QWebFrameAdapter::cancelLoad()

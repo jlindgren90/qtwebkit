@@ -30,6 +30,7 @@
 #ifndef EditorClientQt_h
 #define EditorClientQt_h
 
+#include "DOMPasteAccess.h"
 #include "EditorClient.h"
 #include "TextCheckerClientQt.h"
 #include <wtf/Forward.h>
@@ -73,7 +74,6 @@ public:
     void willWriteSelectionToPasteboard(Range*) override;
     void didWriteSelectionToPasteboard() override;
     void getClientPasteboardDataForRange(Range*, Vector<String>& pasteboardTypes, Vector<RefPtr<WebCore::SharedBuffer> >& pasteboardData) override;
-    String replacementURLForResource(Ref<SharedBuffer>&& resourceData, const String& mimeType) override;
     
     void registerUndoStep(UndoStep&) override;
     void registerRedoStep(UndoStep&) override;
@@ -117,6 +117,9 @@ public:
     bool performTwoStepDrop(DocumentFragment&, Range&, bool) override;
 
     bool isEditing() const;
+
+    DOMPasteAccessResponse requestDOMPasteAccess(const String&) override
+        { return DOMPasteAccessResponse::DeniedForGesture; }
 
     static bool dumpEditingCallbacks;
     static bool acceptsEditing;

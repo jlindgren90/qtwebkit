@@ -46,9 +46,7 @@ list(APPEND WebCore_SOURCES
 
     platform/glib/EventHandlerGLib.cpp
     platform/glib/EventLoopGlib.cpp
-    platform/glib/FileSystemGlib.cpp
     platform/glib/LowPowerModeNotifierGLib.cpp
-    platform/glib/MainThreadSharedTimerGLib.cpp
     platform/glib/SharedBufferGlib.cpp
 
     platform/graphics/ImageSource.cpp
@@ -82,7 +80,6 @@ list(APPEND WebCore_SOURCES
     platform/qt/RenderThemeQt.cpp
     platform/qt/ScrollViewQt.cpp
     platform/qt/ScrollbarThemeQStyle.cpp
-    platform/qt/TemporaryLinkStubsQt.cpp
     platform/qt/URLQt.cpp
     platform/qt/UserAgentQt.cpp
     platform/qt/WidgetQt.cpp
@@ -98,7 +95,7 @@ list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
 )
 
 set(WebCore_USER_AGENT_SCRIPTS
-    ${WEBCORE_DIR}/English.lproj/mediaControlsLocalizedStrings.js
+    ${WEBCORE_DIR}/en.lproj/mediaControlsLocalizedStrings.js
     ${WEBCORE_DIR}/Modules/mediacontrols/mediaControlsBase.js
 )
 

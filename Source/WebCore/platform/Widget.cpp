@@ -225,7 +225,7 @@ IntPoint Widget::convertFromContainingView(const IntPoint& parentPoint) const
     return parentPoint;
 }
 
-#if !PLATFORM(COCOA) && !PLATFORM(GTK) && !PLATFORM(WIN)
+#if !PLATFORM(COCOA) && !PLATFORM(GTK) && !PLATFORM(WIN) && !PLATFORM(QT)
 
 Widget::~Widget()
 {

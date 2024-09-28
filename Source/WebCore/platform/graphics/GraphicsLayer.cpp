@@ -1013,12 +1013,12 @@ public:
     void setNeedsDisplayInRect(const FloatRect&, ShouldClipToLayer) override { }
 };
 
-std::unique_ptr<GraphicsLayer> GraphicsLayer::create(GraphicsLayerFactory* factory, GraphicsLayerClient& client, Type layerType)
+Ref<GraphicsLayer> GraphicsLayer::create(GraphicsLayerFactory* factory, GraphicsLayerClient& client, Type layerType)
 {
     if (factory)
         return factory->createGraphicsLayer(layerType, client);
 
-    return std::unique_ptr<GraphicsLayer>(new StubGraphicsLayer(layerType, client));
+    return adoptRef(*new StubGraphicsLayer(layerType, client));
 }
 #endif
 

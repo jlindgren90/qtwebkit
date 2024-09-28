@@ -32,9 +32,9 @@
 #include "PageGroup.h"
 #include "QGraphicsUtils.h"
 #include "ShouldTreatAsContinuingLoad.h"
-#include "URL.h"
 #include "VisitedLinkStoreQt.h"
 #include <QWebPageAdapter.h>
+#include <wtf/URL.h>
 #include <wtf/text/WTFString.h>
 
 #include <QSharedData>
@@ -300,7 +300,7 @@ void QWebHistory::clear()
 
     if (current) {
         lst->addItem(*current); // insert old current item
-        lst->goToItem(current.get()); // and set it as current again
+        lst->goToItem(*current); // and set it as current again
     }
 
     d->page()->updateNavigationActions();
@@ -391,7 +391,7 @@ bool QWebHistory::canGoForward() const
 void QWebHistory::back()
 {
     if (canGoBack())
-        d->goToItem(d->lst->backItem());
+        d->goToItem(d->lst->backItem().get());
 }
 
 /*!
@@ -403,7 +403,7 @@ void QWebHistory::back()
 void QWebHistory::forward()
 {
     if (canGoForward())
-        d->goToItem(d->lst->forwardItem());
+        d->goToItem(d->lst->forwardItem().get());
 }
 
 /*!
@@ -421,7 +421,7 @@ void QWebHistory::goToItem(const QWebHistoryItem &item)
 */
 QWebHistoryItem QWebHistory::backItem() const
 {
-    WebCore::HistoryItem *i = d->lst->backItem();
+    WebCore::HistoryItem *i = d->lst->backItem().get();
     QWebHistoryItemPrivate *priv = new QWebHistoryItemPrivate(i);
     return QWebHistoryItem(priv);
 }
@@ -431,7 +431,7 @@ QWebHistoryItem QWebHistory::backItem() const
 */
 QWebHistoryItem QWebHistory::currentItem() const
 {
-    WebCore::HistoryItem *i = d->lst->currentItem();
+    WebCore::HistoryItem *i = d->lst->currentItem().get();
     QWebHistoryItemPrivate *priv = new QWebHistoryItemPrivate(i);
     return QWebHistoryItem(priv);
 }
@@ -441,7 +441,7 @@ QWebHistoryItem QWebHistory::currentItem() const
 */
 QWebHistoryItem QWebHistory::forwardItem() const
 {
-    WebCore::HistoryItem *i = d->lst->forwardItem();
+    WebCore::HistoryItem *i = d->lst->forwardItem().get();
     QWebHistoryItemPrivate *priv = new QWebHistoryItemPrivate(i);
     return QWebHistoryItem(priv);
 }
@@ -518,7 +518,7 @@ void QWebHistory::loadFromMap(const QVariantMap& map)
     clear();
 
     // after clear() is new clear HistoryItem (at the end we had to remove it)
-    WebCore::HistoryItem* nullItem = d->lst->currentItem();
+    WebCore::HistoryItem* nullItem = d->lst->currentItem().get();
 
     WebCore::KeyedDecoderQt decoder { QVariantMap(map) };
 

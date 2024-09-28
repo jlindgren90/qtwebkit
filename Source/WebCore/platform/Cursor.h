@@ -28,6 +28,7 @@
 #include "Image.h"
 #include "IntPoint.h"
 #include <wtf/Assertions.h>
+#include <wtf/Optional.h>
 #include <wtf/RefPtr.h>
 
 #if PLATFORM(WIN)
@@ -172,7 +173,7 @@ private:
 #endif
 
 #if PLATFORM(QT)
-    mutable std::optional<QCursor> m_platformCursor;
+    mutable WTF::Optional<QCursor> m_platformCursor;
 #elif !USE(APPKIT)
     mutable PlatformCursor m_platformCursor { nullptr };
 #else

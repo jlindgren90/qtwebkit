@@ -244,6 +244,7 @@ list(APPEND WebKitLegacy_SYSTEM_INCLUDE_DIRECTORIES
     ${FREETYPE2_INCLUDE_DIRS}
     ${GIO_UNIX_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
+    ${GSTREAMER_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
@@ -664,3 +665,7 @@ if (COMPILER_IS_GCC_OR_CLANG)
         COMPILE_FLAGS -frtti
     )
 endif ()
+
+# FIXME: many parameters are ignored currently
+set_target_properties(WebKitLegacy PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
+set_target_properties(WebKitWidgets PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)

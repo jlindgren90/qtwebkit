@@ -41,7 +41,9 @@ CurlSSLHandle::CurlSSLHandle()
     ThreadSupport::setup();
 #endif
 
+#if !PLATFORM(QT)
     platformInitialize();
+#endif
 }
 
 void CurlSSLHandle::setCACertPath(String&& caCertPath)

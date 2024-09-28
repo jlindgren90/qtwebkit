@@ -382,6 +382,8 @@ Modules/webvr/VRFrameData.cpp
 Modules/webvr/VRPose.cpp
 Modules/webvr/VRStageParameters.cpp
 
+#if HAVE_ACCESSIBILITY
+
 accessibility/AXObjectCache.cpp
 accessibility/AccessibilityARIAGrid.cpp
 accessibility/AccessibilityARIAGridCell.cpp
@@ -418,6 +420,8 @@ accessibility/AccessibilityTreeItem.cpp
 accessibility/AccessibleSetValueEvent.cpp
 accessibility/isolatedtree/AXIsolatedTree.cpp
 accessibility/isolatedtree/AXIsolatedTreeNode.cpp
+
+#endif
 
 animation/AnimationEffect.cpp
 animation/AnimationPlaybackEvent.cpp

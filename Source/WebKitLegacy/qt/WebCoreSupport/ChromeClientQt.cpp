@@ -759,7 +759,7 @@ RefPtr<SearchPopupMenu> ChromeClientQt::createSearchPopupMenu(PopupMenuClient& c
     return adoptRef(new SearchPopupMenuQt(createPopupMenu(client)));
 }
 
-void ChromeClientQt::attachViewOverlayGraphicsLayer(Frame&, GraphicsLayer*)
+void ChromeClientQt::attachViewOverlayGraphicsLayer(GraphicsLayer*)
 {
     notImplemented();
 }

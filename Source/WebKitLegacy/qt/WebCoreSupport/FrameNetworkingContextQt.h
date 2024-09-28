@@ -31,7 +31,7 @@ public:
 private:
     FrameNetworkingContextQt(Frame*, QObject* originatingObject, bool mimeSniffingEnabled);
 
-    NetworkStorageSession& storageSession() const override;
+    NetworkStorageSession* storageSession() const override;
 
 #if 0 // FIXME
     QObject* originatingObject() const override;

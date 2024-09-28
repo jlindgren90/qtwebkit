@@ -29,6 +29,7 @@
 #include "StoredCredentialsPolicy.h"
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
+#include <wtf/MonotonicTime.h>
 #include <wtf/URLHash.h>
 #include <wtf/text/StringHash.h>
 

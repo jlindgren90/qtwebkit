@@ -34,8 +34,8 @@
 #include "FloatRect.h"
 #include "MediaProducer.h"
 #include "QtPlatformPlugin.h"
-#include "URL.h"
 #include <wtf/RefCounted.h>
+#include <wtf/URL.h>
 #include <wtf/text/WTFString.h>
 
 QT_BEGIN_NAMESPACE
@@ -125,6 +125,10 @@ public:
 
     IntPoint screenToRootView(const IntPoint&) const final;
     IntRect rootViewToScreen(const IntRect&) const final;
+
+    IntPoint accessibilityScreenToRootView(const IntPoint&) const final { return IntPoint(); }
+    IntRect rootViewToAccessibilityScreen(const IntRect&) const final { return IntRect(); }
+
     PlatformPageClient platformPageClient() const final;
     void contentsSizeChanged(Frame&, const IntSize&) const final;
 
@@ -196,7 +200,7 @@ public:
 
     void wheelEventHandlersChanged(bool) final { }
 
-    void attachViewOverlayGraphicsLayer(Frame&, GraphicsLayer*) final;
+    void attachViewOverlayGraphicsLayer(GraphicsLayer*) final;
 
     QWebFullScreenVideoHandler* createFullScreenVideoHandler();
 

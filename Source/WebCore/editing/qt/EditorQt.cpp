@@ -48,16 +48,21 @@ void Editor::writeImageToPasteboard(Pasteboard& pasteboard, Element& element, co
     pasteboard.writeImage(element, url, title);
 }
 
-void Editor::pasteWithPasteboard(Pasteboard* pasteboard, bool allowPlainText, MailBlockquoteHandling mailBlockquoteHandling)
+void Editor::pasteWithPasteboard(Pasteboard* pasteboard, WTF::OptionSet<PasteOption> options)
 {
     RefPtr<Range> range = selectedRange();
     if (!range)
         return;
 
     bool chosePlainText;
-    RefPtr<DocumentFragment> fragment = pasteboard->documentFragment(m_frame, *range, allowPlainText, chosePlainText);
-    if (fragment && shouldInsertFragment(*fragment, range.get(), EditorInsertAction::Pasted))
-        pasteAsFragment(fragment.releaseNonNull(), canSmartReplaceWithPasteboard(*pasteboard), chosePlainText, mailBlockquoteHandling);
+    RefPtr<DocumentFragment> fragment = pasteboard->documentFragment(m_frame,
+        *range, options.contains(PasteOption::AllowPlainText), chosePlainText);
+    if (fragment && shouldInsertFragment(*fragment, range.get(), EditorInsertAction::Pasted)) {
+        pasteAsFragment(fragment.releaseNonNull(), canSmartReplaceWithPasteboard(*pasteboard),
+            chosePlainText, options.contains(PasteOption::IgnoreMailBlockquote) ?
+                MailBlockquoteHandling::IgnoreBlockquote :
+                MailBlockquoteHandling::RespectBlockquote);
+    }
 }
 
 RefPtr<DocumentFragment> Editor::webContentFromPasteboard(Pasteboard&, Range&, bool /*allowPlainText*/, bool& /*chosePlainText*/)

@@ -38,7 +38,8 @@ void VisitedLinkStoreQt::removeAllVisitedLinks()
     m_visitedLinkHashes.clear();
 }
 
-bool VisitedLinkStoreQt::isLinkVisited(WebCore::Page&, WebCore::SharedStringHash linkHash, const WebCore::URL& baseURL, const WTF::AtomicString& attributeURL)
+bool VisitedLinkStoreQt::isLinkVisited(WebCore::Page&, WebCore::SharedStringHash linkHash,
+    const WTF::URL& baseURL, const WTF::AtomicString& attributeURL)
 {
 #if 0 // FIXME: still needed?
     // If the Qt4.4 interface for the history is used, we will have to fallback

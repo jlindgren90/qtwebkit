@@ -300,7 +300,7 @@ static bool allCharactersInIDNScriptWhiteList(const UChar* buffer, int32_t lengt
     Optional<UChar32> previousCodePoint;
     while (i < length) {
         UChar32 c;
-        U16_NEXT(buffer, i, length, c)
+        U16_NEXT(buffer, i, length, c);
         UErrorCode error = U_ZERO_ERROR;
         UScriptCode script = uscript_getScript(c, &error);
         if (error != U_ZERO_ERROR) {
@@ -769,7 +769,7 @@ static String escapeUnsafeCharacters(const String& sourceBuffer)
             uint8_t utf8Buffer[4];
             size_t offset = 0;
             UBool failure = false;
-            U8_APPEND(utf8Buffer, offset, 4, c, failure)
+            U8_APPEND(utf8Buffer, offset, 4, c, failure);
             ASSERT(!failure);
 
             for (size_t j = 0; j < offset; ++j) {

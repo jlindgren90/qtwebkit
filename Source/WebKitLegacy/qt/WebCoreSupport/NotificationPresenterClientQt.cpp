@@ -44,9 +44,9 @@
 #include "QtPlatformPlugin.h"
 #include "ScriptExecutionContext.h"
 #include "SecurityOrigin.h"
-#include "URL.h"
 #include "UserGestureIndicator.h"
 #include "qwebkitglobal.h"
+#include <wtf/URL.h>
 
 namespace WebCore {
 
@@ -177,7 +177,7 @@ bool NotificationPresenterClientQt::show(Notification* notification)
     // FIXME: workers based notifications are not supported yet.
     if (notification->scriptExecutionContext()->isWorkerGlobalScope())
         return false;
-    notification->setPendingActivity(notification);
+    notification->setPendingActivity(*notification);
     if (!notification->tag().isEmpty())
         removeReplacedNotificationFromQueue(notification);
     if (dumpNotification)
@@ -426,7 +426,7 @@ void NotificationPresenterClientQt::detachNotification(Notification* notificatio
     delete m_notifications.take(notification);
     // FIXME: removed
     // notification->detachPresenter();
-    notification->unsetPendingActivity(notification);
+    notification->unsetPendingActivity(*notification);
 }
 
 void NotificationPresenterClientQt::dumpReplacedIdText(Notification* notification)

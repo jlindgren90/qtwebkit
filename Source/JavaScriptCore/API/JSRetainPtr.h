@@ -31,6 +31,7 @@
 #include <JavaScriptCore/JSContextRef.h>
 #include <JavaScriptCore/JSStringRef.h>
 #include <algorithm>
+#include <utility>
 
 inline void JSRetain(JSStringRef string) { JSStringRetain(string); }
 inline void JSRelease(JSStringRef string) { JSStringRelease(string); }

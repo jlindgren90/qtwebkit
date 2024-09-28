@@ -33,6 +33,7 @@
 
 namespace WebCore {
 
+#if 0 // FIXME
 static void encodeElement(KeyedEncoder& encoder, const FormDataElement& element)
 {
     encoder.encodeEnum("type", element.m_type);
@@ -157,6 +158,7 @@ RefPtr<FormData> decodeFormData(KeyedDecoder& decoder)
     data->setIdentifier(identifier);
     return data;
 }
+#endif
 
 static void encodeBackForwardTreeNode(KeyedEncoder& encoder, const HistoryItem& item)
 {
@@ -174,9 +176,11 @@ static void encodeBackForwardTreeNode(KeyedEncoder& encoder, const HistoryItem& 
 
     encoder.encodeString("formContentType", item.formContentType());
 
+#if 0 // FIXME
     encoder.encodeConditionalObject("formData", const_cast<HistoryItem&>(item).formData(), [](KeyedEncoder& encoder, const FormData& formData) {
         encodeFormData(formData, encoder);
     });
+#endif
 
     encoder.encodeInt64("itemSequenceNumber", item.itemSequenceNumber());
 
@@ -250,12 +254,14 @@ static bool decodeBackForwardTreeNode(KeyedDecoder& decoder, HistoryItem& item)
         item.setFormContentType(str);
     });
 
+#if 0 // FIXME
     RefPtr<FormData> formData;
     if (decoder.decodeObject("formData", formData, [](KeyedDecoder& decoder, RefPtr<FormData>& formData) {
         formData = decodeFormData(decoder);
         return formData != nullptr;
     }))
         item.setFormData(WTFMove(formData));
+#endif
 
     int64_t itemSequenceNumber;
     if (decoder.decodeInt64("itemSequenceNumber", itemSequenceNumber))

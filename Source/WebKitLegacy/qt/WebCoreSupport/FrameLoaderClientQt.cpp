@@ -119,7 +119,7 @@ static QString drtPrintFrameUserGestureStatus(WebCore::Frame* frame)
     return QString::fromLatin1("Frame with user gesture \"%1\"").arg(QLatin1String("false"));
 }
 
-static QString drtDescriptionSuitableForTestResult(const WebCore::URL& kurl)
+static QString drtDescriptionSuitableForTestResult(const WTF::URL& kurl)
 {
     if (kurl.isEmpty() || !kurl.isLocalFile())
         return kurl.string();
@@ -282,7 +282,7 @@ void FrameLoaderClientQt::transitionToCommittedForNewPage()
 
     m_frame->createView(
         fromQSize(qWebPage->property("viewportSize").toSize()),
-        fromQColor(backgroundColor), !backgroundColor.alpha(),
+        backgroundColor.alpha() ? WTF::makeOptional(fromQColor(backgroundColor)) : WTF::nullopt,
         preferredLayoutSize.isValid() ? fromQSize(preferredLayoutSize) : IntSize(),
         currentVisibleContentRect,
         preferredLayoutSize.isValid(),
@@ -356,7 +356,8 @@ void FrameLoaderClientQt::dispatchDidCancelClientRedirect()
 }
 
 
-void FrameLoaderClientQt::dispatchWillPerformClientRedirect(const URL& url, double interval, WTF::WallTime fireDate)
+void FrameLoaderClientQt::dispatchWillPerformClientRedirect(const WTF::URL& url, double,
+    WTF::WallTime, LockBackForwardList)
 {
     if (dumpFrameLoaderCallbacks)
         printf("%s - willPerformClientRedirectToURL: %s \n", qPrintable(drtDescriptionSuitableForTestResult(m_frame)), qPrintable(drtDescriptionSuitableForTestResult(url)));
@@ -378,7 +379,7 @@ void FrameLoaderClientQt::dispatchDidNavigateWithinPage()
     if (!loaderCompleted)
         return;
 
-    dispatchDidCommitLoad(std::nullopt);
+    dispatchDidCommitLoad(WTF::nullopt);
     dispatchDidFinishLoad();
 }
 
@@ -452,7 +453,7 @@ void FrameLoaderClientQt::dispatchDidReceiveTitle(const StringWithDirection& tit
 }
 
 
-void FrameLoaderClientQt::dispatchDidCommitLoad(std::optional<HasInsecureContent>)
+void FrameLoaderClientQt::dispatchDidCommitLoad(WTF::Optional<HasInsecureContent>)
 {
     if (dumpFrameLoaderCallbacks)
         printf("%s - didCommitLoadForFrame\n", qPrintable(drtDescriptionSuitableForTestResult(m_frame)));
@@ -506,7 +507,7 @@ void FrameLoaderClientQt::dispatchDidFinishLoad()
     emitLoadFinished(true);
 }
 
-void FrameLoaderClientQt::dispatchDidReachLayoutMilestone(LayoutMilestones milestones)
+void FrameLoaderClientQt::dispatchDidReachLayoutMilestone(WTF::OptionSet<LayoutMilestone> milestones)
 {
     if (!m_webFrame)
         return;
@@ -740,7 +741,7 @@ void FrameLoaderClientQt::updateGlobalHistoryRedirectLinks()
     }
 }
 
-bool FrameLoaderClientQt::shouldGoToHistoryItem(WebCore::HistoryItem*) const
+bool FrameLoaderClientQt::shouldGoToHistoryItem(HistoryItem&) const
 {
     return true;
 }
@@ -1103,7 +1104,8 @@ WebCore::Frame* FrameLoaderClientQt::dispatchCreatePage(const WebCore::Navigatio
     return newPage->mainFrameAdapter().frame;
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::ResourceResponse& response, const WebCore::ResourceRequest&, FramePolicyFunction&& function)
+void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const ResourceResponse& response,
+    const ResourceRequest&, PolicyCheckIdentifier id, FramePolicyFunction&& function)
 {
     // We need to call directly here.
     switch (response.httpStatusCode()) {
@@ -1111,19 +1113,21 @@ void FrameLoaderClientQt::dispatchDecidePolicyForResponse(const WebCore::Resourc
         // FIXME: a 205 response requires that the requester reset the document view.
         // Fallthrough
     case HTTPNoContent:
-        function(PolicyAction::Ignore);
+        function(PolicyAction::Ignore, id);
         return;
     }
 
     if (WebCore::contentDispositionType(response.httpHeaderField(HTTPHeaderName::ContentDisposition)) == WebCore::ContentDispositionAttachment)
-        function(PolicyAction::Download);
+        function(PolicyAction::Download, id);
     else if (canShowMIMEType(response.mimeType()))
-        function(PolicyAction::Use);
+        function(PolicyAction::Use, id);
     else
-        function(PolicyAction::Download);
+        function(PolicyAction::Download, id);
 }
 
-void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::NavigationAction& action, const WebCore::ResourceRequest& request, WebCore::FormState*, const WTF::String&, FramePolicyFunction&& function)
+void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const NavigationAction& action,
+    const ResourceRequest& request, FormState*, const String&, PolicyCheckIdentifier id,
+    FramePolicyFunction&& function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
@@ -1136,15 +1140,15 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNewWindowAction(const WebCore::
             m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(ResourceRequest());
         }
 
-        function(PolicyAction::Ignore);
+        function(PolicyAction::Ignore, id);
         return;
     }
-    function(PolicyAction::Use);
+    function(PolicyAction::Use, id);
 }
 
 void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const NavigationAction& action,
     const ResourceRequest& request, const ResourceResponse&, FormState*, PolicyDecisionMode,
-    ShouldSkipSafeBrowsingCheck, FramePolicyFunction&& function)
+    PolicyCheckIdentifier id, FramePolicyFunction&& function)
 {
     Q_ASSERT(m_webFrame);
     QNetworkRequest r(toNetworkRequest(request, m_frame->loader().networkingContext()));
@@ -1173,7 +1177,7 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const Navigati
             result = PolicyAction::Ignore;
 
         m_webFrame->pageAdapter->acceptNavigationRequest(m_webFrame, r, (int)action.type());
-        function(result);
+        function(result, id);
         return;
     }
 
@@ -1185,10 +1189,10 @@ void FrameLoaderClientQt::dispatchDecidePolicyForNavigationAction(const Navigati
             m_frame->loader().activeDocumentLoader()->setLastCheckedRequest(ResourceRequest());
         }
 
-        function(PolicyAction::Ignore);
+        function(PolicyAction::Ignore, id);
         return;
     }
-    function(PolicyAction::Use);
+    function(PolicyAction::Use, id);
 }
 
 void FrameLoaderClientQt::dispatchUnableToImplementPolicy(const WebCore::ResourceError&)
@@ -1206,7 +1210,8 @@ void FrameLoaderClientQt::startDownload(const WebCore::ResourceRequest& request,
         m_webFrame->pageAdapter->emitDownloadRequested(r);
 }
 
-RefPtr<Frame> FrameLoaderClientQt::createFrame(const URL& url, const String& name, HTMLFrameOwnerElement& ownerElement, const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight)
+RefPtr<Frame> FrameLoaderClientQt::createFrame(const WTF::URL& url, const String& name,
+    HTMLFrameOwnerElement& ownerElement, const String& referrer)
 {
     if (!m_webFrame)
         return 0;
@@ -1214,9 +1219,9 @@ RefPtr<Frame> FrameLoaderClientQt::createFrame(const URL& url, const String& nam
     QWebFrameData frameData(m_frame->page(), m_frame, &ownerElement, name);
 
     frameData.referrer = referrer;
-    frameData.allowsScrolling = allowsScrolling;
-    frameData.marginWidth = marginWidth;
-    frameData.marginHeight = marginHeight;
+    frameData.allowsScrolling = false; // FIXME
+    frameData.marginWidth = 0; // FIXME
+    frameData.marginHeight = 0; // FIXME
 
     QWebFrameAdapter* childWebFrame = m_webFrame->createChildFrame(&frameData);
     // The creation of the frame may have run arbitrary JavaScript that removed it from the page already.
@@ -1232,7 +1237,7 @@ RefPtr<Frame> FrameLoaderClientQt::createFrame(const URL& url, const String& nam
 
     URL urlToLoad = url;
     if (urlToLoad.isEmpty())
-        urlToLoad = blankURL();
+        urlToLoad = WTF::blankURL();
 
     m_frame->loader().loadURLIntoChildFrame(urlToLoad, frameData.referrer, frameData.frame.get());
 

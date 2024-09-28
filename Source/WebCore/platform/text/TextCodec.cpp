@@ -28,6 +28,7 @@
 #include "TextCodec.h"
 
 #include <array>
+#include <stdio.h>
 
 namespace WebCore {
 
