@@ -27,16 +27,17 @@
 
 #include "DOMWindowProperty.h"
 #include "EventTarget.h"
+#include <wtf/WeakPtr.h>
 
 namespace WebCore {
 
 class ApplicationCacheHost;
 class Frame;
 
-class DOMApplicationCache final : public RefCounted<DOMApplicationCache>, public EventTargetWithInlineData, public DOMWindowProperty {
+class DOMApplicationCache final : public RefCounted<DOMApplicationCache>, public EventTargetWithInlineData, public DOMWindowProperty, public CanMakeWeakPtr<DOMApplicationCache> {
 public:
-    static Ref<DOMApplicationCache> create(Frame& frame) { return adoptRef(*new DOMApplicationCache(frame)); }
-    virtual ~DOMApplicationCache() { ASSERT(!m_frame); }
+    static Ref<DOMApplicationCache> create(DOMWindow& window) { return adoptRef(*new DOMApplicationCache(window)); }
+    virtual ~DOMApplicationCache() { ASSERT(!frame()); }
 
     unsigned short status() const;
     ExceptionOr<void> update();
@@ -47,17 +48,13 @@ public:
     using RefCounted::deref;
 
 private:
-    explicit DOMApplicationCache(Frame&);
+    explicit DOMApplicationCache(DOMWindow&);
 
     void refEventTarget() final { ref(); }
     void derefEventTarget() final { deref(); }
 
     EventTargetInterface eventTargetInterface() const final { return DOMApplicationCacheEventTargetInterfaceType; }
     ScriptExecutionContext* scriptExecutionContext() const final;
-
-    void disconnectFrameForDocumentSuspension() final;
-    void reconnectFrameFromDocumentSuspension(Frame*) final;
-    void willDestroyGlobalObjectInFrame() final;
 
     ApplicationCacheHost* applicationCacheHost() const;
 };

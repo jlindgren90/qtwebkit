@@ -91,6 +91,7 @@ public:
     bool paused() const override;
     bool seeking() const override;
 
+    MediaTime platformDuration() const;
     MediaTime durationMediaTime() const override;
     MediaTime currentMediaTime() const override;
     void seek(const MediaTime&) override;
@@ -109,6 +110,7 @@ public:
     MediaTime maxTimeLoaded() const override;
 
     bool hasSingleSecurityOrigin() const override;
+    Optional<bool> wouldTaintOrigin(const SecurityOrigin&) const override;
 
     void loadStateChanged();
     void timeChanged();
@@ -138,7 +140,7 @@ public:
 private:
     static void getSupportedTypes(HashSet<String, ASCIICaseInsensitiveHash>&);
     static MediaPlayer::SupportsType supportsType(const MediaEngineSupportParameters&);
-
+    void syncOnClock(bool sync);
 
     GstElement* createAudioSink() override;
 
@@ -186,18 +188,16 @@ private:
 #endif
 
 protected:
-    void cacheDuration();
-
     bool m_buffering;
     int m_bufferingPercentage;
     mutable MediaTime m_cachedPosition;
+    mutable MediaTime m_cachedDuration;
     bool m_canFallBackToLastFinishedSeekPosition;
     bool m_changingRate;
     bool m_downloadFinished;
     bool m_errorOccured;
     mutable bool m_isEndReached;
     mutable bool m_isStreaming;
-    mutable MediaTime m_durationAtEOS;
     bool m_paused;
     float m_playbackRate;
     GstState m_currentState;
@@ -258,7 +258,7 @@ private:
     mutable unsigned long long m_totalBytes;
     URL m_url;
     bool m_preservesPitch;
-    mutable std::optional<Seconds> m_lastQueryTime;
+    mutable Optional<Seconds> m_lastQueryTime;
     bool m_isLegacyPlaybin;
 #if GST_CHECK_VERSION(1, 10, 0)
     GRefPtr<GstStreamCollection> m_streamCollection;
@@ -286,7 +286,14 @@ private:
 #endif
 #endif
     virtual bool isMediaSource() const { return false; }
+
+    uint64_t m_httpResponseTotalSize { 0 };
+    uint64_t m_networkReadPosition { 0 };
+    mutable uint64_t m_readPositionAtLastDidLoadingProgress { 0 };
+
+    HashSet<RefPtr<WebCore::SecurityOrigin>> m_origins;
 };
+
 }
 
 #endif // USE(GSTREAMER)

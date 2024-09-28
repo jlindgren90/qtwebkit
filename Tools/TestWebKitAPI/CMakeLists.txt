@@ -45,6 +45,7 @@ if (ENABLE_WEBKIT)
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/EvaluateJavaScript.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/FailedLoad.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/Find.cpp
+        ${TESTWEBKITAPI_DIR}/Tests/WebKit/FirstMeaningfulPaintMilestone.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/ForceRepaint.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/FrameMIMETypeHTML.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/FrameMIMETypePNG.cpp
@@ -85,6 +86,19 @@ if (ENABLE_WEBKIT)
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/WKURL.cpp
     )
 
+    set(TestWebKitAPIBase_LIBRARIES
+        JavaScriptCore
+        WTF
+        WebKit
+        gtest
+    )
+
+    set(TestWebKitAPIBase_SOURCES
+        ${TESTWEBKITAPI_DIR}/JavaScriptTest.cpp
+        ${TESTWEBKITAPI_DIR}/PlatformUtilities.cpp
+        ${TESTWEBKITAPI_DIR}/TestsController.cpp
+    )
+
     list(APPEND TestWebKitAPI_LIBRARIES
         WebKit
     )
@@ -115,6 +129,7 @@ set(TestWTF_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WTF/HashSet.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Hasher.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/IntegerToStringConversion.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WTF/IteratorRange.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/JSONValue.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/LEBDecoder.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/LifecycleLogger.cpp
@@ -123,6 +138,7 @@ set(TestWTF_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Lock.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Logger.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/MD5.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WTF/Markable.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/MathExtras.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/MediaTime.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/MetaAllocator.cpp
@@ -132,18 +148,13 @@ set(TestWTF_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Optional.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/OptionSet.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/ParkingLot.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WTF/Poisoned.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WTF/PoisonedRef.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WTF/PoisonedRefPtr.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WTF/PoisonedUniquePtr.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WTF/PoisonedUniquePtrForNonTriviallyDestructibleArrays.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WTF/PoisonedUniquePtrForTriviallyDestructibleArrays.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/PriorityQueue.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/RedBlackTree.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Ref.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/RefCounter.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/RefLogger.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/RefPtr.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WTF/RunLoop.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/SHA1.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/SaturatedArithmeticOperations.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Scope.cpp
@@ -161,6 +172,8 @@ set(TestWTF_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WTF/ThreadMessages.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Threading.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Time.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WTF/URL.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WTF/URLParser.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/UniqueArray.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/UniqueRef.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Variant.cpp
@@ -171,7 +184,13 @@ set(TestWTF_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WTF/WorkerPool.cpp
 )
 
-# FIXME: Tests/WTF/RunLoop.cpp is missing because it doesn't work for Windows.
+# FIXME: Make these work on Windows too.
+if (NOT WIN32)
+    list(APPEND TestWTF_SOURCES
+        ${TESTWEBKITAPI_DIR}/Tests/WTF/FileSystem.cpp
+    )
+endif ()
+
 # FIXME: Platform-specific sources in Tests/WTF are not included in TestWTF_SOURCES.
 
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
@@ -216,6 +235,7 @@ if (ENABLE_WEBKIT)
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/NewFirstVisuallyNonEmptyLayoutForImages_Bundle.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/NewFirstVisuallyNonEmptyLayoutFrames_Bundle.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/NewFirstVisuallyNonEmptyLayout_Bundle.cpp
+        ${TESTWEBKITAPI_DIR}/Tests/WebKit/FirstMeaningfulPaintMilestone_Bundle.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/ParentFrame_Bundle.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/ProvisionalURLAfterWillSendRequestCallback_Bundle.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebKit/ResponsivenessTimerDoesntFireEarly_Bundle.cpp
@@ -272,12 +292,10 @@ if (ENABLE_WEBKIT)
     add_library(TestWebKitAPIBase
         ${test_main_SOURCES}
         ${webkit_api_harness_SOURCES}
-        ${TESTWEBKITAPI_DIR}/JavaScriptTest.cpp
-        ${TESTWEBKITAPI_DIR}/PlatformUtilities.cpp
-        ${TESTWEBKITAPI_DIR}/TestsController.cpp
+        ${TestWebKitAPIBase_SOURCES}
     )
 
-    target_link_libraries(TestWebKitAPIBase JavaScriptCore WTF WebKit gtest)
+    target_link_libraries(TestWebKitAPIBase ${TestWebKitAPIBase_LIBRARIES})
 
     add_dependencies(TestWebKitAPIBase WebKit ${TestWebKitAPI_DEPENDENCIES})
 

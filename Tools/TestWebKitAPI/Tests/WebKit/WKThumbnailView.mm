@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#if PLATFORM(MAC) && WK_API_ENABLED
+#if PLATFORM(MAC)
 
 #import "JavaScriptTest.h"
 #import "PlatformUtilities.h"
@@ -96,7 +96,7 @@ static void setPageLoaderClient(WKPageRef page)
 
 TEST(WebKit, WKThumbnailViewKeepSnapshotWhenRemovedFromSuperview)
 {
-    WKRetainPtr<WKContextRef> context = adoptWK(WKContextCreate());
+    WKRetainPtr<WKContextRef> context = adoptWK(WKContextCreateWithConfiguration(nullptr));
     PlatformWebView webView(context.get());
     WKView *wkView = webView.platformView();
     setPageLoaderClient(webView.page());
@@ -142,7 +142,7 @@ TEST(WebKit, WKThumbnailViewKeepSnapshotWhenRemovedFromSuperview)
 
 TEST(WebKit, WKThumbnailViewMaximumSnapshotSize)
 {
-    WKRetainPtr<WKContextRef> context = adoptWK(WKContextCreate());
+    WKRetainPtr<WKContextRef> context = adoptWK(WKContextCreateWithConfiguration(nullptr));
     PlatformWebView webView(context.get());
     WKView *wkView = webView.platformView();
     setPageLoaderClient(webView.page());

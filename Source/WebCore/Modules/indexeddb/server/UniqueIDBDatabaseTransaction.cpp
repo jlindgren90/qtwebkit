@@ -81,7 +81,7 @@ void UniqueIDBDatabaseTransaction::abort()
     auto database = m_databaseConnection->database();
     ASSERT(database);
 
-    database->abortTransaction(*this, [this, protectedThis](const IDBError& error) {
+    database->abortTransaction(*this, UniqueIDBDatabase::WaitForPendingTasks::Yes, [this, protectedThis](const IDBError& error) {
         LOG(IndexedDB, "UniqueIDBDatabaseTransaction::abort (callback)");
         m_databaseConnection->didAbortTransaction(*this, error);
     });
@@ -111,7 +111,8 @@ void UniqueIDBDatabaseTransaction::commit()
     RefPtr<UniqueIDBDatabaseTransaction> protectedThis(this);
 
     auto database = m_databaseConnection->database();
-    ASSERT(database);
+    if (!database || database->hardClosedForUserDelete())
+        return;
 
     database->commitTransaction(*this, [this, protectedThis](const IDBError& error) {
         LOG(IndexedDB, "UniqueIDBDatabaseTransaction::commit (callback)");
@@ -420,7 +421,7 @@ const Vector<uint64_t>& UniqueIDBDatabaseTransaction::objectStoreIdentifiers()
         return m_objectStoreIdentifiers;
 
     auto& info = m_databaseConnection->database()->info();
-    for (auto objectStoreName : info.objectStoreNames()) {
+    for (const auto& objectStoreName : info.objectStoreNames()) {
         auto objectStoreInfo = info.infoForExistingObjectStore(objectStoreName);
         ASSERT(objectStoreInfo);
         if (!objectStoreInfo)

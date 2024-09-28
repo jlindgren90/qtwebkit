@@ -47,15 +47,29 @@ WI.appendContextMenuItemsForSourceCode = function(contextMenu, sourceCodeOrLocat
     if (sourceCode instanceof WI.Resource) {
         if (sourceCode.urlComponents.scheme !== "data") {
             contextMenu.appendItem(WI.UIString("Copy as cURL"), () => {
-                sourceCode.generateCURLCommand();
+                InspectorFrontendHost.copyText(sourceCode.generateCURLCommand());
             });
+
+            contextMenu.appendSeparator();
+
+            contextMenu.appendItem(WI.UIString("Copy HTTP Request"), () => {
+                InspectorFrontendHost.copyText(sourceCode.stringifyHTTPRequest());
+            });
+
+            if (sourceCode.hasResponse()) {
+                contextMenu.appendItem(WI.UIString("Copy HTTP Response"), () => {
+                    InspectorFrontendHost.copyText(sourceCode.stringifyHTTPResponse());
+                });
+            }
+
+            contextMenu.appendSeparator();
         }
     }
 
     contextMenu.appendItem(WI.UIString("Save File"), () => {
         sourceCode.requestContent().then(() => {
             const forceSaveAs = true;
-            WI.saveDataToFile({
+            WI.FileUtilities.save({
                 url: sourceCode.url || "",
                 content: sourceCode.content
             }, forceSaveAs);
@@ -80,46 +94,51 @@ WI.appendContextMenuItemsForSourceCode = function(contextMenu, sourceCodeOrLocat
     }
 };
 
-WI.appendContextMenuItemsForURL = function(contextMenu, url, options)
+WI.appendContextMenuItemsForURL = function(contextMenu, url, options = {})
 {
     if (!url)
         return;
 
-    let {sourceCode, location, frame} = options;
     function showResourceWithOptions(options) {
-        if (location)
-            WI.showSourceCodeLocation(location, options);
-        else if (sourceCode)
-            WI.showSourceCode(sourceCode, options);
+        if (options.location)
+            WI.showSourceCodeLocation(options.location, options);
+        else if (options.sourceCode)
+            WI.showSourceCode(options.sourceCode, options);
         else
-            WI.openURL(url, frame, options);
+            WI.openURL(url, options.frame, options);
     }
 
-    contextMenu.appendItem(WI.UIString("Open in New Tab"), () => {
-        const frame = null;
-        WI.openURL(url, frame, {alwaysOpenExternally: true});
-    });
+    if (!url.startsWith("javascript:") && !url.startsWith("data:")) {
+        contextMenu.appendItem(WI.UIString("Open in New Tab"), () => {
+            const frame = null;
+            WI.openURL(url, frame, {alwaysOpenExternally: true});
+        });
+    }
 
-    if (WI.frameResourceManager.resourceForURL(url)) {
+    if (WI.networkManager.resourceForURL(url)) {
         if (WI.settings.experimentalEnableSourcesTab.value) {
             if (!WI.isShowingSourcesTab()) {
                 contextMenu.appendItem(WI.UIString("Reveal in Sources Tab"), () => {
                     showResourceWithOptions({preferredTabType: WI.SourcesTabContentView.Type});
                 });
             }
-        } else if (!WI.isShowingResourcesTab()) {
-            contextMenu.appendItem(WI.UIString("Reveal in Resources Tab"), () => {
-                showResourceWithOptions({ignoreNetworkTab: true, ignoreSearchTab: true});
-            });
+        } else {
+            if (!WI.isShowingResourcesTab()) {
+                contextMenu.appendItem(WI.UIString("Reveal in Resources Tab"), () => {
+                    showResourceWithOptions({preferredTabType: WI.ResourcesTabContentView.Type});
+                });
+            }
         }
         if (!WI.isShowingNetworkTab()) {
             contextMenu.appendItem(WI.UIString("Reveal in Network Tab"), () => {
-                showResourceWithOptions({ignoreResourcesTab: true, ignoreDebuggerTab: true, ignoreSearchTab: true});
+                showResourceWithOptions({preferredTabType: WI.NetworkTabContentView.Type});
             });
         }
     }
 
-    contextMenu.appendItem(WI.UIString("Copy Link Address"), () => {
+    contextMenu.appendSeparator();
+
+    contextMenu.appendItem(WI.UIString("Copy Link"), () => {
         InspectorFrontendHost.copyText(url);
     });
 };
@@ -137,14 +156,16 @@ WI.appendContextMenuItemsForDOMNode = function(contextMenu, domNode, options = {
     let copySubMenu = options.copySubMenu || contextMenu.appendSubMenuItem(WI.UIString("Copy"));
 
     let isElement = domNode.nodeType() === Node.ELEMENT_NODE;
-    if (domNode.ownerDocument && isElement) {
+    let attached = domNode.attached;
+
+    if (isElement && attached) {
         copySubMenu.appendItem(WI.UIString("Selector Path"), () => {
             let cssPath = WI.cssPath(domNode);
             InspectorFrontendHost.copyText(cssPath);
         });
     }
 
-    if (domNode.ownerDocument && !domNode.isPseudoElement()) {
+    if (!domNode.isPseudoElement() && attached) {
         copySubMenu.appendItem(WI.UIString("XPath"), () => {
             let xpath = WI.xpath(domNode);
             InspectorFrontendHost.copyText(xpath);
@@ -171,16 +192,14 @@ WI.appendContextMenuItemsForDOMNode = function(contextMenu, domNode, options = {
                 });
             }
 
-            function didGetProperty(error, result, wasThrown) {
-                if (error || result.type !== "function")
-                    return;
-
-                DebuggerAgent.getFunctionDetails(result.objectId, didGetFunctionDetails);
-                result.release();
-            }
-
             WI.RemoteObject.resolveNode(domNode).then((remoteObject) => {
-                remoteObject.getProperty("constructor", didGetProperty);
+                remoteObject.getProperty("constructor", (error, result, wasThrown) => {
+                    if (error)
+                        return;
+                    if (result.type === "function")
+                        remoteObject.target.DebuggerAgent.getFunctionDetails(result.objectId, didGetFunctionDetails);
+                    result.release();
+                });
                 remoteObject.release();
             });
         });
@@ -188,11 +207,10 @@ WI.appendContextMenuItemsForDOMNode = function(contextMenu, domNode, options = {
         contextMenu.appendSeparator();
     }
 
-    if (WI.domDebuggerManager.supported && isElement && !domNode.isPseudoElement() && domNode.ownerDocument) {
+    if (WI.domDebuggerManager.supported && isElement && !domNode.isPseudoElement() && attached) {
         contextMenu.appendSeparator();
 
-        const allowEditing = false;
-        WI.DOMBreakpointTreeController.appendBreakpointContextMenuItems(contextMenu, domNode, allowEditing);
+        WI.appendContextMenuItemsForDOMNodeBreakpoints(contextMenu, domNode);
     }
 
     contextMenu.appendSeparator();
@@ -208,19 +226,19 @@ WI.appendContextMenuItemsForDOMNode = function(contextMenu, domNode, options = {
         });
     }
 
-    if (!options.excludeRevealElement && window.DOMAgent && domNode.ownerDocument) {
+    if (!options.excludeRevealElement && window.DOMAgent && attached) {
         contextMenu.appendItem(WI.UIString("Reveal in DOM Tree"), () => {
-            WI.domTreeManager.inspectElement(domNode.id);
+            WI.domManager.inspectElement(domNode.id);
         });
     }
 
-    if (!options.excludeRevealLayer && window.LayerTreeAgent && domNode.parentNode) {
+    if (WI.settings.experimentalEnableLayersTab.value && window.LayerTreeAgent && attached) {
         contextMenu.appendItem(WI.UIString("Reveal in Layers Tab"), () => {
             WI.showLayersTab({nodeToSelect: domNode});
         });
     }
 
-    if (window.PageAgent) {
+    if (window.PageAgent && attached) {
         contextMenu.appendItem(WI.UIString("Capture Screenshot"), () => {
             PageAgent.snapshotNode(domNode.id, (error, dataURL) => {
                 if (error) {
@@ -234,18 +252,8 @@ WI.appendContextMenuItemsForDOMNode = function(contextMenu, domNode, options = {
                     return;
                 }
 
-                let date = new Date;
-                let values = [
-                    date.getFullYear(),
-                    Number.zeroPad(date.getMonth() + 1, 2),
-                    Number.zeroPad(date.getDate(), 2),
-                    Number.zeroPad(date.getHours(), 2),
-                    Number.zeroPad(date.getMinutes(), 2),
-                    Number.zeroPad(date.getSeconds(), 2),
-                ];
-                let filename = WI.UIString("Screen Shot %s-%s-%s at %s.%s.%s").format(...values);
-                WI.saveDataToFile({
-                    url: encodeURI(`web-inspector:///${filename}.png`),
+                WI.FileUtilities.save({
+                    url: WI.FileUtilities.inspectorURLForFilename(WI.FileUtilities.screenshotString() + ".png"),
                     content: parseDataURL(dataURL).data,
                     base64Encoded: true,
                 });
@@ -253,11 +261,52 @@ WI.appendContextMenuItemsForDOMNode = function(contextMenu, domNode, options = {
         });
     }
 
-    if (isElement) {
+    if (isElement && attached) {
         contextMenu.appendItem(WI.UIString("Scroll Into View"), () => {
             domNode.scrollIntoView();
         });
     }
 
     contextMenu.appendSeparator();
+};
+
+WI.appendContextMenuItemsForDOMNodeBreakpoints = function(contextMenu, domNode, {allowEditing} = {})
+{
+    if (contextMenu.__domBreakpointItemsAdded)
+        return;
+
+    contextMenu.__domBreakpointItemsAdded = true;
+
+    let subMenu = contextMenu.appendSubMenuItem(WI.UIString("Break on\u2026"));
+
+    let breakpoints = WI.domDebuggerManager.domBreakpointsForNode(domNode);
+    let keyValuePairs = breakpoints.map((breakpoint) => [breakpoint.type, breakpoint]);
+    let breakpointsByType = new Map(keyValuePairs);
+
+    for (let type of Object.values(WI.DOMBreakpoint.Type)) {
+        let label = WI.DOMBreakpointTreeElement.displayNameForType(type);
+        let breakpoint = breakpointsByType.get(type);
+
+        subMenu.appendCheckboxItem(label, function() {
+            if (breakpoint)
+                WI.domDebuggerManager.removeDOMBreakpoint(breakpoint);
+            else
+                WI.domDebuggerManager.addDOMBreakpoint(new WI.DOMBreakpoint(domNode, type));
+        }, !!breakpoint, false);
+    }
+
+    if (allowEditing) {
+        contextMenu.appendSeparator();
+
+        let shouldEnable = breakpoints.some((breakpoint) => breakpoint.disabled);
+        let label = shouldEnable ? WI.UIString("Enable Breakpoints") : WI.UIString("Disable Breakpoints");
+        contextMenu.appendItem(label, () => {
+            breakpoints.forEach((breakpoint) => breakpoint.disabled = !shouldEnable);
+        });
+
+        contextMenu.appendItem(WI.UIString("Delete Breakpoints"), function() {
+            WI.domDebuggerManager.removeDOMBreakpointsForNode(domNode);
+            WI.domManager.removeEventListenerBreakpointsForNode(domNode);
+        });
+    }
 };

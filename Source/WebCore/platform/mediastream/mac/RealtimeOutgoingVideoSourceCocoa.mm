@@ -31,6 +31,7 @@
 #import "Logging.h"
 #import "MediaSample.h"
 #import "PixelBufferConformerCV.h"
+#import "RealtimeVideoUtilities.h"
 #import <pal/cf/CoreMediaSoftLink.h>
 #import "CoreVideoSoftLink.h"
 #import "VideoToolboxSoftLink.h"
@@ -43,7 +44,7 @@ RetainPtr<CVPixelBufferRef> RealtimeOutgoingVideoSourceCocoa::convertToYUV(CVPix
         return nullptr;
 
     if (!m_pixelBufferConformer)
-        m_pixelBufferConformer = std::make_unique<PixelBufferConformerCV>((__bridge CFDictionaryRef)@{ (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8Planar) });
+        m_pixelBufferConformer = std::make_unique<PixelBufferConformerCV>((__bridge CFDictionaryRef)@{ (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey: @(preferedPixelBufferFormat()) });
 
     return m_pixelBufferConformer->convert(pixelBuffer);
 }
@@ -74,7 +75,7 @@ RetainPtr<CVPixelBufferRef> RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer(
         VTImageRotationSessionRef rawRotationSession = nullptr;
         auto status = VTImageRotationSessionCreate(kCFAllocatorDefault, rotation, &rawRotationSession);
         if (status != noErr) {
-            RELEASE_LOG(MediaStream, "RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer failed creating a rotation session with error %d", status);
+            ALWAYS_LOG(LOGIDENTIFIER, "Failed creating a rotation session with error ", status);
             return nullptr;
         }
 
@@ -99,7 +100,7 @@ RetainPtr<CVPixelBufferRef> RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer(
         auto status = CVPixelBufferPoolCreate(kCFAllocatorDefault, nullptr, (__bridge CFDictionaryRef)pixelAttributes, &pool);
 
         if (status != kCVReturnSuccess) {
-            RELEASE_LOG(MediaStream, "RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer failed creating a pixel buffer pool with error %d", status);
+            ALWAYS_LOG(LOGIDENTIFIER, "Failed creating a pixel buffer pool with error ", status);
             return nullptr;
         }
         m_rotationPool = adoptCF(pool);
@@ -113,7 +114,7 @@ RetainPtr<CVPixelBufferRef> RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer(
     auto status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, m_rotationPool.get(), &rawRotatedBuffer);
 
     if (status != kCVReturnSuccess) {
-        RELEASE_LOG(MediaStream, "RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer failed creating a pixel buffer with error %d", status);
+        ALWAYS_LOG(LOGIDENTIFIER, "Failed creating a pixel buffer with error ", status);
         return nullptr;
     }
     RetainPtr<CVPixelBufferRef> rotatedBuffer = adoptCF(rawRotatedBuffer);
@@ -121,7 +122,7 @@ RetainPtr<CVPixelBufferRef> RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer(
     status = VTImageRotationSessionTransferImage(m_rotationSession.get(), pixelBuffer, rotatedBuffer.get());
 
     if (status != noErr) {
-        RELEASE_LOG(MediaStream, "RealtimeOutgoingVideoSourceCocoa::rotatePixelBuffer failed rotating with error %d", status);
+        ALWAYS_LOG(LOGIDENTIFIER, "Failed rotating with error ", status);
         return nullptr;
     }
     return rotatedBuffer;

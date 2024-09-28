@@ -35,16 +35,19 @@
 
 #include "JSDOMPromiseDeferred.h"
 #include "LibWebRTCProvider.h"
-#include "RTCRtpParameters.h"
+#include "RTCRtpSendParameters.h"
 #include "RTCSessionDescription.h"
 #include "RTCSignalingState.h"
 #include <wtf/LoggerHelper.h>
+#include <wtf/WeakPtr.h>
 
 namespace WebCore {
 
+class Document;
 class MediaStream;
 class MediaStreamTrack;
 class PeerConnectionBackend;
+class RTCCertificate;
 class RTCDataChannelHandler;
 class RTCIceCandidate;
 class RTCPeerConnection;
@@ -68,12 +71,16 @@ using StatsPromise = DOMPromiseDeferred<IDLInterface<RTCStatsReport>>;
 using CreatePeerConnectionBackend = std::unique_ptr<PeerConnectionBackend> (*)(RTCPeerConnection&);
 
 class PeerConnectionBackend
+    : public CanMakeWeakPtr<PeerConnectionBackend>
 #if !RELEASE_LOG_DISABLED
-    : private LoggerHelper
+    , private LoggerHelper
 #endif
 {
 public:
     WEBCORE_EXPORT static CreatePeerConnectionBackend create;
+
+    static Optional<RTCRtpCapabilities> receiverCapabilities(ScriptExecutionContext&, const String& kind);
+    static Optional<RTCRtpCapabilities> senderCapabilities(ScriptExecutionContext&, const String& kind);
 
     explicit PeerConnectionBackend(RTCPeerConnection&);
     virtual ~PeerConnectionBackend() = default;
@@ -98,7 +105,9 @@ public:
 
     virtual bool setConfiguration(MediaEndpointConfiguration&&) = 0;
 
-    virtual void getStats(MediaStreamTrack*, Ref<DeferredPromise>&&) = 0;
+    virtual void getStats(Ref<DeferredPromise>&&) = 0;
+    virtual void getStats(RTCRtpSender&, Ref<DeferredPromise>&&) = 0;
+    virtual void getStats(RTCRtpReceiver&, Ref<DeferredPromise>&&) = 0;
 
     virtual ExceptionOr<Ref<RTCRtpSender>> addTrack(MediaStreamTrack&, Vector<String>&&);
     virtual void removeTrack(RTCRtpSender&) { }
@@ -128,6 +137,37 @@ public:
     virtual bool isLocalDescriptionSet() const = 0;
 
     void finishedRegisteringMDNSName(const String& ipAddress, const String& name);
+
+    struct CertificateInformation {
+        enum class Type { RSASSAPKCS1v15, ECDSAP256 };
+        struct RSA {
+            unsigned modulusLength;
+            int publicExponent;
+        };
+
+        static CertificateInformation RSASSA_PKCS1_v1_5()
+        {
+            return CertificateInformation { Type::RSASSAPKCS1v15 };
+        }
+
+        static CertificateInformation ECDSA_P256()
+        {
+            return CertificateInformation { Type::ECDSAP256 };
+        }
+
+        explicit CertificateInformation(Type type)
+            : type(type)
+        {
+        }
+
+        Type type;
+        Optional<double> expires;
+
+        Optional<RSA> rsaParameters;
+    };
+    static void generateCertificate(Document&, const CertificateInformation&, DOMPromiseDeferred<IDLInterface<RTCCertificate>>&&);
+
+    virtual void collectTransceivers() { };
 
 protected:
     void fireICECandidateEvent(RefPtr<RTCIceCandidate>&&, String&& url);
@@ -167,10 +207,10 @@ protected:
     RTCPeerConnection& m_peerConnection;
 
 private:
-    std::optional<PeerConnection::SessionDescriptionPromise> m_offerAnswerPromise;
-    std::optional<DOMPromiseDeferred<void>> m_setDescriptionPromise;
-    std::optional<DOMPromiseDeferred<void>> m_addIceCandidatePromise;
-    std::optional<DOMPromiseDeferred<void>> m_endOfIceCandidatePromise;
+    Optional<PeerConnection::SessionDescriptionPromise> m_offerAnswerPromise;
+    Optional<DOMPromiseDeferred<void>> m_setDescriptionPromise;
+    Optional<DOMPromiseDeferred<void>> m_addIceCandidatePromise;
+    Optional<DOMPromiseDeferred<void>> m_endOfIceCandidatePromise;
 
     bool m_shouldFilterICECandidates { true };
     struct PendingICECandidate {

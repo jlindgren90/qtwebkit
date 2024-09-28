@@ -28,6 +28,7 @@
 namespace WebCore {
 
 class ControlStates;
+class KeyframeList;
 class RenderBlock;
 class RenderTreeBuilder;
 
@@ -96,8 +97,6 @@ public:
     void removeLayers(RenderLayer* parentLayer);
     void moveLayers(RenderLayer* oldParent, RenderLayer* newParent);
     RenderLayer* findNextLayer(RenderLayer* parentLayer, RenderObject* startPoint, bool checkParent = true);
-
-    virtual RenderElement* hoverAncestor() const;
 
     virtual void dirtyLinesFromChangedChild(RenderObject&) { }
 
@@ -222,6 +221,17 @@ public:
 
     RenderObject* attachRendererInternal(RenderPtr<RenderObject> child, RenderObject* beforeChild);
     RenderPtr<RenderObject> detachRendererInternal(RenderObject&);
+
+    virtual bool startTransition(double /* timeOffset */, CSSPropertyID, const RenderStyle* /* fromStyle */, const RenderStyle* /* toStyle */) { return false; }
+    virtual void transitionPaused(double /* timeOffset */, CSSPropertyID) { }
+    virtual void transitionFinished(CSSPropertyID) { }
+
+    virtual bool startAnimation(double /* timeOffset */, const Animation&, const KeyframeList&) { return false; }
+    virtual void animationPaused(double /* timeOffset */, const String& /* name */) { }
+    virtual void animationSeeked(double /* timeOffset */, const String& /* name */) { }
+    virtual void animationFinished(const String& /* name */) { }
+
+    virtual void suspendAnimations(MonotonicTime = MonotonicTime()) { }
 
 protected:
     enum BaseTypeFlag {

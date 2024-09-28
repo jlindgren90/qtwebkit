@@ -42,6 +42,7 @@
 #include "MouseEvent.h"
 #include "PlatformMouseEvent.h"
 #include "RenderSlider.h"
+#include "RuntimeEnabledFeatures.h"
 #include "ScopedEventQueue.h"
 #include "ShadowRoot.h"
 #include "SliderThumbElement.h"
@@ -134,7 +135,7 @@ bool RangeInputType::isSteppable() const
     return true;
 }
 
-#if !PLATFORM(IOS)
+#if !PLATFORM(IOS_FAMILY)
 
 void RangeInputType::handleMouseDownEvent(MouseEvent& event)
 {
@@ -159,7 +160,7 @@ void RangeInputType::handleMouseDownEvent(MouseEvent& event)
 #if ENABLE(TOUCH_EVENTS)
 void RangeInputType::handleTouchEvent(TouchEvent& event)
 {
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     typedSliderThumbElement().handleTouchEvent(event);
 #elif ENABLE(TOUCH_SLIDER)
     ASSERT(element());
@@ -194,11 +195,11 @@ void RangeInputType::disabledStateChanged()
     typedSliderThumbElement().hostDisabledStateChanged();
 }
 
-void RangeInputType::handleKeydownEvent(KeyboardEvent& event)
+auto RangeInputType::handleKeydownEvent(KeyboardEvent& event) -> ShouldCallBaseEventHandler
 {
     ASSERT(element());
     if (element()->isDisabledFormControl())
-        return;
+        return ShouldCallBaseEventHandler::Yes;
 
     const String& key = event.keyIdentifier();
 
@@ -206,7 +207,6 @@ void RangeInputType::handleKeydownEvent(KeyboardEvent& event)
     ASSERT(current.isFinite());
 
     StepRange stepRange(createStepRange(RejectAny));
-
 
     // FIXME: We can't use stepUp() for the step value "any". So, we increase
     // or decrease the value by 1/100 of the value range. Is it reasonable?
@@ -237,7 +237,7 @@ void RangeInputType::handleKeydownEvent(KeyboardEvent& event)
     else if (key == "End")
         newValue = isVertical ? stepRange.minimum() : stepRange.maximum();
     else
-        return; // Did not match any key binding.
+        return ShouldCallBaseEventHandler::Yes; // Did not match any key binding.
 
     newValue = stepRange.clampValue(newValue);
 
@@ -250,6 +250,7 @@ void RangeInputType::handleKeydownEvent(KeyboardEvent& event)
     }
 
     event.setDefaultHandled();
+    return ShouldCallBaseEventHandler::Yes;
 }
 
 void RangeInputType::createShadowSubtree()
@@ -368,7 +369,11 @@ String RangeInputType::sanitizeValue(const String& proposedValue) const
 
 bool RangeInputType::shouldRespectListAttribute()
 {
+#if ENABLE(DATALIST_ELEMENT)
+    return RuntimeEnabledFeatures::sharedFeatures().dataListElementEnabled();
+#else
     return InputType::themeSupportsDataListUI(this);
+#endif
 }
 
 #if ENABLE(DATALIST_ELEMENT)
@@ -404,11 +409,11 @@ void RangeInputType::updateTickMarkValues()
     std::sort(m_tickMarkValues.begin(), m_tickMarkValues.end());
 }
 
-std::optional<Decimal> RangeInputType::findClosestTickMarkValue(const Decimal& value)
+Optional<Decimal> RangeInputType::findClosestTickMarkValue(const Decimal& value)
 {
     updateTickMarkValues();
     if (!m_tickMarkValues.size())
-        return std::nullopt;
+        return WTF::nullopt;
 
     size_t left = 0;
     size_t right = m_tickMarkValues.size();
@@ -431,8 +436,8 @@ std::optional<Decimal> RangeInputType::findClosestTickMarkValue(const Decimal& v
             right = middle;
     }
 
-    std::optional<Decimal> closestLeft = middle ? std::make_optional(m_tickMarkValues[middle - 1]) : std::nullopt;
-    std::optional<Decimal> closestRight = middle != m_tickMarkValues.size() ? std::make_optional(m_tickMarkValues[middle]) : std::nullopt;
+    Optional<Decimal> closestLeft = middle ? makeOptional(m_tickMarkValues[middle - 1]) : WTF::nullopt;
+    Optional<Decimal> closestRight = middle != m_tickMarkValues.size() ? makeOptional(m_tickMarkValues[middle]) : WTF::nullopt;
 
     if (!closestLeft)
         return closestRight;

@@ -18,7 +18,7 @@ include_directories(
     ${DERIVED_SOURCES_DIR}/WebKit/Interfaces
 )
 
-add_definitions(-DWEBCORE_EXPORT=)
+add_definitions(-DWEBCORE_EXPORT= -DWEBCORE_TESTSUPPORT_EXPORT=)
 
 set(test_webcore_LIBRARIES
     Crypt32
@@ -58,8 +58,7 @@ set(TestWebCoreLib_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/SharedBufferTest.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/TimeRanges.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/TransformationMatrix.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WebCore/URL.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WebCore/URLParser.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WebCore/URLParserTextEncoding.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/win/DIBPixelData.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/win/LinkedFonts.cpp
 )
@@ -74,8 +73,10 @@ if (${WTF_PLATFORM_WIN_CAIRO})
         vcruntime
     )
     list(APPEND TestWebCoreLib_SOURCES
+        ${TESTWEBKITAPI_DIR}/Tests/WebCore/curl/Cookies.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebCore/win/BitmapImage.cpp
         ${TESTWEBKITAPI_DIR}/Tests/WebCore/CryptoDigest.cpp
+        ${TESTWEBKITAPI_DIR}/Tests/WebCore/PublicSuffix.cpp
     )
 else ()
     list(APPEND test_webcore_LIBRARIES
@@ -84,7 +85,6 @@ else ()
         CoreGraphics${DEBUG_SUFFIX}
         CoreText${DEBUG_SUFFIX}
         QuartzCore${DEBUG_SUFFIX}
-        WebKitSystemInterface${DEBUG_SUFFIX}
         WebKitQuartzCoreAdditions${DEBUG_SUFFIX}
         libdispatch${DEBUG_SUFFIX}
         libexslt${DEBUG_SUFFIX}
@@ -107,6 +107,7 @@ endif ()
 add_library(TestWTFLib SHARED
     ${test_main_SOURCES}
     ${TestWTF_SOURCES}
+    ${TESTWEBKITAPI_DIR}/win/UtilitiesWin.cpp
 )
 set_target_properties(TestWTFLib PROPERTIES OUTPUT_NAME "TestWTFLib")
 target_link_libraries(TestWTFLib ${test_wtf_LIBRARIES})
@@ -186,6 +187,12 @@ if (ENABLE_WEBKIT)
         ${TESTWEBKITAPI_DIR}/win/PlatformWebViewWin.cpp
         ${TESTWEBKITAPI_DIR}/win/UtilitiesWin.cpp
     )
+
+    if (${WTF_PLATFORM_WIN_CAIRO})
+        list(APPEND test_webkit_api_SOURCES
+            ${TESTWEBKITAPI_DIR}/Tests/WebKit/curl/Certificates.cpp
+        )
+    endif ()
 
     add_library(TestWebKitLib SHARED
         ${TESTWEBKITAPI_DIR}/win/main.cpp

@@ -63,12 +63,12 @@ public:
     PlatformLayerID primaryLayerID() const override;
 
     // Reimplementations from GraphicsLayer.h.
-    bool setChildren(const Vector<GraphicsLayer*>&) override;
-    void addChild(GraphicsLayer*) override;
-    void addChildAtIndex(GraphicsLayer*, int) override;
-    void addChildAbove(GraphicsLayer*, GraphicsLayer*) override;
-    void addChildBelow(GraphicsLayer*, GraphicsLayer*) override;
-    bool replaceChild(GraphicsLayer*, GraphicsLayer*) override;
+    bool setChildren(Vector<Ref<GraphicsLayer>>&&) override;
+    void addChild(Ref<GraphicsLayer>&&) override;
+    void addChildAtIndex(Ref<GraphicsLayer>&&, int) override;
+    void addChildAbove(Ref<GraphicsLayer>&&, GraphicsLayer*) override;
+    void addChildBelow(Ref<GraphicsLayer>&&, GraphicsLayer*) override;
+    bool replaceChild(GraphicsLayer*, Ref<GraphicsLayer>&&) override;
     void removeFromParent() override;
     void setPosition(const FloatPoint&) override;
     void setAnchorPoint(const FloatPoint3D&) override;
@@ -91,8 +91,8 @@ public:
     void setShowRepaintCounter(bool) override;
     bool shouldDirectlyCompositeImage(Image*) const override;
     void setContentsToPlatformLayer(PlatformLayer*, ContentsLayerPurpose) override;
-    void setMaskLayer(GraphicsLayer*) override;
-    void setReplicatedByLayer(GraphicsLayer*) override;
+    void setMaskLayer(RefPtr<GraphicsLayer>&&) override;
+    void setReplicatedByLayer(RefPtr<GraphicsLayer>&&) override;
     void setNeedsDisplay() override;
     void setNeedsDisplayInRect(const FloatRect&, ShouldClipToLayer = ClipToLayer) override;
     void setContentsNeedsDisplay() override;
@@ -124,7 +124,7 @@ public:
     const RefPtr<Nicosia::CompositionLayer>& compositionLayer() const;
 
 private:
-    bool isCoordinatedGraphicsLayer() const;
+    bool isCoordinatedGraphicsLayer() const override;
 
     void updatePlatformLayer();
 
@@ -166,7 +166,6 @@ private:
     bool m_isPurging;
 #endif
     bool m_shouldUpdateVisibleRect: 1;
-    bool m_shouldSyncLayerState: 1;
     bool m_movingVisibleRect : 1;
     bool m_pendingContentsScaleAdjustment : 1;
     bool m_pendingVisibleRectAdjustment : 1;

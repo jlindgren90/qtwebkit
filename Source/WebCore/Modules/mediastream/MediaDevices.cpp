@@ -48,7 +48,7 @@
 namespace WebCore {
 
 inline MediaDevices::MediaDevices(Document& document)
-    : ActiveDOMObject(&document)
+    : ActiveDOMObject(document)
     , m_scheduledEventTimer(*this, &MediaDevices::scheduledEventTimerFired)
     , m_eventNames(eventNames())
 {
@@ -96,11 +96,13 @@ static MediaConstraints createMediaConstraints(const Variant<bool, MediaTrackCon
     );
 }
 
-ExceptionOr<void> MediaDevices::getUserMedia(const StreamConstraints& constraints, Promise&& promise) const
+void MediaDevices::getUserMedia(const StreamConstraints& constraints, Promise&& promise) const
 {
     auto* document = this->document();
-    if (!document)
-        return Exception { InvalidStateError };
+    if (!document) {
+        promise.reject(Exception { InvalidStateError });
+        return;
+    }
 
     auto audioConstraints = createMediaConstraints(constraints.audio);
     auto videoConstraints = createMediaConstraints(constraints.video);
@@ -108,10 +110,9 @@ ExceptionOr<void> MediaDevices::getUserMedia(const StreamConstraints& constraint
         videoConstraints.setDefaultVideoConstraints();
 
     auto request = UserMediaRequest::create(*document, { MediaStreamRequest::Type::UserMedia, WTFMove(audioConstraints), WTFMove(videoConstraints) }, WTFMove(promise));
-    if (request)
-        request->start();
+    request->start();
 
-    return { };
+    return;
 }
 
 ExceptionOr<void> MediaDevices::getDisplayMedia(const StreamConstraints& constraints, Promise&& promise) const
@@ -120,9 +121,8 @@ ExceptionOr<void> MediaDevices::getDisplayMedia(const StreamConstraints& constra
     if (!document)
         return Exception { InvalidStateError };
 
-    auto request = UserMediaRequest::create(*document, { MediaStreamRequest::Type::DisplayMedia, createMediaConstraints(constraints.audio), createMediaConstraints(constraints.video) }, WTFMove(promise));
-    if (request)
-        request->start();
+    auto request = UserMediaRequest::create(*document, { MediaStreamRequest::Type::DisplayMedia, { }, createMediaConstraints(constraints.video) }, WTFMove(promise));
+    request->start();
 
     return { };
 }
@@ -186,6 +186,16 @@ bool MediaDevices::addEventListener(const AtomicString& eventType, Ref<EventList
             m_deviceChangeToken = controller->addDeviceChangeObserver([weakThis = makeWeakPtr(*this), this]() {
 
                 if (!weakThis || m_scheduledEventTimer.isActive())
+                    return;
+
+                auto* document = this->document();
+                auto* controller = document ? UserMediaController::from(document->page()) : nullptr;
+                if (!controller)
+                    return;
+
+                bool canAccessMicrophone = controller->canCallGetUserMedia(*document, { UserMediaController::CaptureType::Microphone }) == UserMediaController::GetUserMediaAccess::CanCall;
+                bool canAccessCamera = controller->canCallGetUserMedia(*document, { UserMediaController::CaptureType::Camera }) == UserMediaController::GetUserMediaAccess::CanCall;
+                if (!canAccessMicrophone && !canAccessCamera)
                     return;
 
                 m_scheduledEventTimer.startOneShot(Seconds(randomNumber() / 2));

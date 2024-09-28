@@ -48,7 +48,7 @@ static RefPtr<CSSPrimitiveValue> glyphOrientationToCSSPrimitiveValue(GlyphOrient
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-static RefPtr<CSSValue> strokeDashArrayToCSSValueList(const Vector<SVGLengthValue>& dashes)
+static Ref<CSSValue> strokeDashArrayToCSSValueList(const Vector<SVGLengthValue>& dashes)
 {
     if (dashes.isEmpty())
         return CSSPrimitiveValue::createIdentifier(CSSValueNone);
@@ -57,13 +57,13 @@ static RefPtr<CSSValue> strokeDashArrayToCSSValueList(const Vector<SVGLengthValu
     for (auto& length : dashes)
         list->append(SVGLengthValue::toCSSPrimitiveValue(length));
 
-    return WTFMove(list);
+    return list;
 }
 
-RefPtr<CSSValue> ComputedStyleExtractor::adjustSVGPaintForCurrentColor(SVGPaintType paintType, const String& url, const Color& color, const Color& currentColor) const
+Ref<CSSValue> ComputedStyleExtractor::adjustSVGPaintForCurrentColor(SVGPaintType paintType, const String& url, const Color& color, const Color& currentColor) const
 {
     if (paintType >= SVGPaintType::URINone) {
-        RefPtr<CSSValueList> values = CSSValueList::createSpaceSeparated();
+        auto values = CSSValueList::createSpaceSeparated();
         values->append(CSSPrimitiveValue::create(url, CSSPrimitiveValue::UnitType::CSS_URI));
         if (paintType == SVGPaintType::URINone)
             values->append(CSSPrimitiveValue::createIdentifier(CSSValueNone));
@@ -184,8 +184,6 @@ RefPtr<CSSValue> ComputedStyleExtractor::svgPropertyValue(CSSPropertyID property
 
         return nullptr;
     }
-    case CSSPropertyWebkitSvgShadow:
-        return valueForShadow(svgStyle.shadow(), propertyID, *style);
     case CSSPropertyVectorEffect:
         return CSSPrimitiveValue::create(svgStyle.vectorEffect());
     case CSSPropertyMaskType:

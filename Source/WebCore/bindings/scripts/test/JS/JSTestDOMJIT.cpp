@@ -41,12 +41,12 @@
 #include "JSElement.h"
 #include "JSNodeList.h"
 #include "ScriptExecutionContext.h"
-#include "URL.h"
 #include <JavaScriptCore/FrameTracers.h>
 #include <JavaScriptCore/HeapSnapshotBuilder.h>
 #include <JavaScriptCore/JSCInlines.h>
 #include <wtf/GetPtr.h>
 #include <wtf/PointerPreparations.h>
+#include <wtf/URL.h>
 
 
 namespace WebCore {
@@ -1266,7 +1266,7 @@ void JSTestDOMJIT::heapSnapshot(JSCell* cell, HeapSnapshotBuilder& builder)
     auto* thisObject = jsCast<JSTestDOMJIT*>(cell);
     builder.setWrappedObjectForCell(cell, &thisObject->wrapped());
     if (thisObject->scriptExecutionContext())
-        builder.setLabelForCell(cell, String::format("url %s", thisObject->scriptExecutionContext()->url().string().utf8().data()));
+        builder.setLabelForCell(cell, "url " + thisObject->scriptExecutionContext()->url().string());
     Base::heapSnapshot(cell, builder);
 }
 

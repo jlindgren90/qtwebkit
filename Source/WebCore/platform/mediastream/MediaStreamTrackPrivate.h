@@ -1,6 +1,7 @@
 /*
- *  Copyright (C) 2013 Nokia Corporation and/or its subsidiary(-ies).
- *  Copyright (C) 2015 Ericsson AB. All rights reserved.
+ * Copyright (C) 2013 Nokia Corporation and/or its subsidiary(-ies).
+ * Copyright (C) 2015 Ericsson AB. All rights reserved.
+ * Copyright (C) 2013-2019 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +30,7 @@
 #if ENABLE(MEDIA_STREAM)
 
 #include "RealtimeMediaSource.h"
+#include <wtf/LoggerHelper.h>
 
 namespace WebCore {
 
@@ -38,7 +40,13 @@ class MediaSample;
 class RealtimeMediaSourceCapabilities;
 class WebAudioSourceProvider;
 
-class MediaStreamTrackPrivate : public RefCounted<MediaStreamTrackPrivate>, public RealtimeMediaSource::Observer {
+class MediaStreamTrackPrivate final
+    : public RefCounted<MediaStreamTrackPrivate>
+    , public RealtimeMediaSource::Observer
+#if !RELEASE_LOG_DISABLED
+    , private LoggerHelper
+#endif
+{
 public:
     class Observer {
     public:
@@ -66,6 +74,10 @@ public:
 
     bool ended() const { return m_isEnded; }
 
+    enum class HintValue { Empty, Speech, Music, Motion, Detail, Text };
+    HintValue contentHint() const { return m_contentHint; }
+    void setContentHint(HintValue);
+    
     void startProducingData() { m_source->start(); }
     void stopProducingData() { m_source->stop(); }
     bool isProducingData() { return m_source->isProducingData(); }
@@ -93,7 +105,7 @@ public:
     const RealtimeMediaSourceSettings& settings() const;
     const RealtimeMediaSourceCapabilities& capabilities() const;
 
-    void applyConstraints(const MediaConstraints&, RealtimeMediaSource::SuccessHandler&&, RealtimeMediaSource::FailureHandler&&);
+    void applyConstraints(const MediaConstraints&, RealtimeMediaSource::ApplyConstraintsHandler&&);
 
     AudioSourceProvider* audioSourceProvider();
 
@@ -104,6 +116,12 @@ public:
 
     void setIdForTesting(String&& id) { m_id = WTFMove(id); }
 
+#if !RELEASE_LOG_DISABLED
+    void setLogger(const Logger&, const void*);
+    const Logger& logger() const final { ASSERT(m_logger); return *m_logger.get(); }
+    const void* logIdentifier() const final { return m_logIdentifier; }
+#endif
+    
 private:
     MediaStreamTrackPrivate(Ref<RealtimeMediaSource>&&, String&& id);
 
@@ -120,6 +138,14 @@ private:
 
     void forEachObserver(const WTF::Function<void(Observer&)>&) const;
 
+#if !RELEASE_LOG_DISABLED
+    const char* logClassName() const final { return "MediaStreamTrackPrivate"; }
+    WTFLogChannel& logChannel() const final;
+
+    RefPtr<const Logger> m_logger;
+    const void* m_logIdentifier;
+#endif
+
     mutable RecursiveLock m_observersLock;
     HashSet<Observer*> m_observers;
     Ref<RealtimeMediaSource> m_source;
@@ -129,6 +155,7 @@ private:
     bool m_isEnabled { true };
     bool m_isEnded { false };
     bool m_haveProducedData { false };
+    HintValue m_contentHint { HintValue::Empty };
     RefPtr<WebAudioSourceProvider> m_audioSourceProvider;
 };
 

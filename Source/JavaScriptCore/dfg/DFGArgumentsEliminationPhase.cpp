@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2019 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -529,7 +529,7 @@ private:
                     bool isClobberedByBlock = false;
                     Operands<bool>& clobberedByThisBlock = clobberedByBlock[block];
                     
-                    if (InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame) {
+                    if (InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame()) {
                         if (inlineCallFrame->isVarargs()) {
                             isClobberedByBlock |= clobberedByThisBlock.operand(
                                 inlineCallFrame->stackOffset + CallFrameSlot::argumentCount);
@@ -624,9 +624,12 @@ private:
     
     void transform()
     {
-        InsertionSet insertionSet(m_graph);
+        bool modifiedCFG = false;
         
+        InsertionSet insertionSet(m_graph);
+
         for (BasicBlock* block : m_graph.blocksInPreOrder()) {
+            Node* pseudoTerminal = nullptr;
             for (unsigned nodeIndex = 0; nodeIndex < block->size(); ++nodeIndex) {
                 Node* node = block->at(nodeIndex);
                 
@@ -657,6 +660,12 @@ private:
                 case CreateRest:
                     if (!m_candidates.contains(node))
                         break;
+
+                    ASSERT(node->origin.exitOK);
+                    ASSERT(node->child1().useKind() == Int32Use);
+                    insertionSet.insertNode(
+                        nodeIndex, SpecNone, Check, node->origin,
+                        node->child1()); 
 
                     node->setOpAndDefaultFlags(PhantomCreateRest);
                     // We don't need this parameter for OSR exit, we can find out all the information
@@ -750,7 +759,7 @@ private:
                     Node* result = nullptr;
                     if (m_graph.varArgChild(node, 1)->isInt32Constant()) {
                         unsigned index = m_graph.varArgChild(node, 1)->asUInt32();
-                        InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                        InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
                         index += numberOfArgumentsToSkip;
                         
                         bool safeToGetStack;
@@ -767,14 +776,15 @@ private:
                                 arg += inlineCallFrame->stackOffset;
                             data = m_graph.m_stackAccessData.add(arg, FlushedJSValue);
                             
+                            Node* check = nullptr;
                             if (!inlineCallFrame || inlineCallFrame->isVarargs()) {
-                                insertionSet.insertNode(
+                                check = insertionSet.insertNode(
                                     nodeIndex, SpecNone, CheckInBounds, node->origin,
                                     m_graph.varArgChild(node, 1), Edge(getArrayLength(candidate), Int32Use));
                             }
                             
                             result = insertionSet.insertNode(
-                                nodeIndex, node->prediction(), GetStack, node->origin, OpInfo(data));
+                                nodeIndex, node->prediction(), GetStack, node->origin, OpInfo(data), Edge(check, UntypedUse));
                         }
                     }
                     
@@ -851,7 +861,7 @@ private:
                                 return true;
 
                             ASSERT(candidate->op() == PhantomCreateRest);
-                            InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                            InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
                             return inlineCallFrame && !inlineCallFrame->isVarargs();
                         });
 
@@ -877,7 +887,7 @@ private:
 
                                 ASSERT(candidate->op() == PhantomCreateRest);
                                 unsigned numberOfArgumentsToSkip = candidate->numberOfArgumentsToSkip();
-                                InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                                InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
                                 unsigned frameArgumentCount = inlineCallFrame->argumentCountIncludingThis - 1;
                                 if (frameArgumentCount >= numberOfArgumentsToSkip)
                                     return frameArgumentCount - numberOfArgumentsToSkip;
@@ -925,7 +935,7 @@ private:
 
                                     ASSERT(candidate->op() == PhantomCreateRest);
                                     unsigned numberOfArgumentsToSkip = candidate->numberOfArgumentsToSkip();
-                                    InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                                    InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
                                     unsigned frameArgumentCount = inlineCallFrame->argumentCountIncludingThis - 1;
                                     for (unsigned loadIndex = numberOfArgumentsToSkip; loadIndex < frameArgumentCount; ++loadIndex) {
                                         VirtualRegister reg = virtualRegisterForArgument(loadIndex + 1) + inlineCallFrame->stackOffset;
@@ -960,7 +970,7 @@ private:
                             numberOfArgumentsToSkip = candidate->numberOfArgumentsToSkip();
                         varargsData->offset += numberOfArgumentsToSkip;
 
-                        InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                        InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
 
                         if (inlineCallFrame
                             && !inlineCallFrame->isVarargs()) {
@@ -1101,7 +1111,7 @@ private:
                                 return true;
 
                             ASSERT(candidate->op() == PhantomCreateRest);
-                            InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                            InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
                             return inlineCallFrame && !inlineCallFrame->isVarargs();
                         });
 
@@ -1140,7 +1150,7 @@ private:
                                 }
 
                                 ASSERT(candidate->op() == PhantomCreateRest);
-                                InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                                InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
                                 unsigned numberOfArgumentsToSkip = candidate->numberOfArgumentsToSkip();
                                 for (unsigned i = 1 + numberOfArgumentsToSkip; i < inlineCallFrame->argumentCountIncludingThis; ++i) {
                                     StackAccessData* data = m_graph.m_stackAccessData.add(
@@ -1165,7 +1175,7 @@ private:
                         CallVarargsData* varargsData = node->callVarargsData();
                         varargsData->firstVarArgOffset += numberOfArgumentsToSkip;
 
-                        InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame;
+                        InlineCallFrame* inlineCallFrame = candidate->origin.semantic.inlineCallFrame();
                         if (inlineCallFrame && !inlineCallFrame->isVarargs()) {
                             Vector<Node*> arguments;
                             for (unsigned i = 1 + varargsData->firstVarArgOffset; i < inlineCallFrame->argumentCountIncludingThis; ++i) {
@@ -1210,11 +1220,32 @@ private:
                 default:
                     break;
                 }
-                if (node->isPseudoTerminal())
+
+                if (node->isPseudoTerminal()) {
+                    pseudoTerminal = node;
                     break;
+                }
             }
-            
+
             insertionSet.execute(block);
+
+            if (pseudoTerminal) {
+                for (unsigned i = 0; i < block->size(); ++i) {
+                    Node* node = block->at(i);
+                    if (node != pseudoTerminal)
+                        continue;
+                    block->resize(i + 1);
+                    block->append(m_graph.addNode(SpecNone, Unreachable, node->origin));
+                    modifiedCFG = true;
+                    break;
+                }
+            }
+        }
+
+        if (modifiedCFG) {
+            m_graph.invalidateCFG();
+            m_graph.resetReachability();
+            m_graph.killUnreachableBlocks();
         }
     }
     

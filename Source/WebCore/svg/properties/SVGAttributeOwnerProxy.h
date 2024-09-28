@@ -25,36 +25,35 @@
 
 #pragma once
 
+#include "QualifiedName.h"
 #include "SVGAnimatedPropertyType.h"
+#include <wtf/WeakPtr.h>
 
 namespace WebCore {
 
-class SVGAnimatedProperty;
 class SVGAttribute;
 class SVGElement;
+class SVGLegacyAnimatedProperty;
 
 class SVGAttributeOwnerProxy {
 public:
-    SVGAttributeOwnerProxy(SVGElement& element)
-        : m_element(element)
-    {
-    }
+    SVGAttributeOwnerProxy(SVGElement&);
 
     virtual ~SVGAttributeOwnerProxy() = default;
 
-    SVGElement& element() const { return m_element; }
+    SVGElement& element() const;
 
     virtual void synchronizeAttributes() const = 0;
     virtual void synchronizeAttribute(const QualifiedName&) const = 0;
 
     virtual Vector<AnimatedPropertyType> animatedTypes(const QualifiedName&) const = 0;
 
-    virtual RefPtr<SVGAnimatedProperty> lookupOrCreateAnimatedProperty(const SVGAttribute&) const = 0;
-    virtual RefPtr<SVGAnimatedProperty> lookupAnimatedProperty(const SVGAttribute&) const = 0;
-    virtual Vector<RefPtr<SVGAnimatedProperty>> lookupOrCreateAnimatedProperties(const QualifiedName&) const = 0;
+    virtual RefPtr<SVGLegacyAnimatedProperty> lookupOrCreateAnimatedProperty(const SVGAttribute&) const = 0;
+    virtual RefPtr<SVGLegacyAnimatedProperty> lookupAnimatedProperty(const SVGAttribute&) const = 0;
+    virtual Vector<RefPtr<SVGLegacyAnimatedProperty>> lookupOrCreateAnimatedProperties(const QualifiedName&) const = 0;
 
 protected:
-    SVGElement& m_element;
+    WeakPtr<SVGElement> m_element;
 };
 
 }

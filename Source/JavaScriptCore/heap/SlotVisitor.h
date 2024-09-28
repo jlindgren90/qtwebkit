@@ -86,7 +86,7 @@ public:
     const VM& vm() const;
     Heap* heap() const;
 
-    void append(ConservativeRoots&);
+    void append(const ConservativeRoots&);
     
     template<typename T, typename Traits> void append(const WriteBarrierBase<T, Traits>&);
     template<typename T, typename Traits> void appendHidden(const WriteBarrierBase<T, Traits>&);
@@ -216,6 +216,8 @@ private:
     void noteLiveAuxiliaryCell(HeapCell*);
     
     void visitChildren(const JSCell*);
+
+    void propagateExternalMemoryVisitedIfNecessary();
     
     void donateKnownParallel();
     void donateKnownParallel(MarkStackArray& from, MarkStackArray& to);
@@ -232,12 +234,13 @@ private:
 
     MarkStackArray m_collectorStack;
     MarkStackArray m_mutatorStack;
-    bool m_ignoreNewOpaqueRoots { false }; // Useful as a debugging mode.
     
     size_t m_bytesVisited;
     size_t m_visitCount;
     size_t m_nonCellVisitCount { 0 }; // Used for incremental draining, ignored otherwise.
+    Checked<size_t, RecordOverflow> m_extraMemorySize { 0 };
     bool m_isInParallelMode;
+    bool m_ignoreNewOpaqueRoots { false }; // Useful as a debugging mode.
 
     HeapVersion m_markingVersion;
     
@@ -256,8 +259,6 @@ private:
     MarkingConstraint* m_currentConstraint { nullptr };
     MarkingConstraintSolver* m_currentSolver { nullptr };
     
-    // Put padding here to mitigate false sharing between multiple SlotVisitors.
-    char padding[64];
 public:
 #if !ASSERT_DISABLED
     bool m_isCheckingForDefaultMarkViolation;

@@ -26,7 +26,7 @@
 #include "config.h"
 #include "PageClientImpl.h"
 
-#include "AcceleratedDrawingAreaProxy.h"
+#include "DrawingAreaProxyCoordinatedGraphics.h"
 #include "NativeWebMouseEvent.h"
 #include "NativeWebWheelEvent.h"
 #include "ScrollGestureController.h"
@@ -34,6 +34,7 @@
 #include "WebContextMenuProxy.h"
 #include "WebContextMenuProxyWPE.h"
 #include <WebCore/ActivityState.h>
+#include <WebCore/DOMPasteAccess.h>
 #include <WebCore/NotImplemented.h>
 
 namespace WebKit {
@@ -51,9 +52,14 @@ struct wpe_view_backend* PageClientImpl::viewBackend()
     return m_view.backend();
 }
 
-std::unique_ptr<DrawingAreaProxy> PageClientImpl::createDrawingAreaProxy()
+IPC::Attachment PageClientImpl::hostFileDescriptor()
 {
-    return std::make_unique<AcceleratedDrawingAreaProxy>(m_view.page());
+    return wpe_view_backend_get_renderer_host_fd(m_view.backend());
+}
+
+std::unique_ptr<DrawingAreaProxy> PageClientImpl::createDrawingAreaProxy(WebProcessProxy& process)
+{
+    return std::make_unique<DrawingAreaProxyCoordinatedGraphics>(m_view.page(), process);
 }
 
 void PageClientImpl::setViewNeedsDisplay(const WebCore::Region&)
@@ -118,10 +124,9 @@ void PageClientImpl::didCommitLoadForMainFrame(const String&, bool)
 {
 }
 
-void PageClientImpl::handleDownloadRequest(DownloadProxy* download)
+void PageClientImpl::handleDownloadRequest(DownloadProxy& download)
 {
-    ASSERT(download);
-    m_view.handleDownloadRequest(*download);
+    m_view.handleDownloadRequest(download);
 }
 
 void PageClientImpl::didChangeContentSize(const WebCore::IntSize&)
@@ -177,10 +182,21 @@ WebCore::IntRect PageClientImpl::rootViewToScreen(const WebCore::IntRect& rect)
     return rect;
 }
 
+WebCore::IntPoint PageClientImpl::accessibilityScreenToRootView(const WebCore::IntPoint& point)
+{
+    return screenToRootView(point);
+}
+
+WebCore::IntRect PageClientImpl::rootViewToAccessibilityScreen(const WebCore::IntRect& rect)
+{
+    return rootViewToScreen(rect);    
+}
+
 void PageClientImpl::doneWithKeyEvent(const NativeWebKeyboardEvent&, bool)
 {
 }
 
+#if ENABLE(TOUCH_EVENTS)
 void PageClientImpl::doneWithTouchEvent(const NativeWebTouchEvent& touchEvent, bool wasEventHandled)
 {
     if (wasEventHandled)
@@ -227,6 +243,7 @@ void PageClientImpl::doneWithTouchEvent(const NativeWebTouchEvent& touchEvent, b
 
     page.handleMouseEvent(NativeWebMouseEvent(&pointerEvent, page.deviceScaleFactor()));
 }
+#endif
 
 void PageClientImpl::wheelEventWasNotHandledByWebCore(const NativeWebWheelEvent&)
 {
@@ -282,6 +299,11 @@ void PageClientImpl::willRecordNavigationSnapshot(WebBackForwardListItem&)
 
 void PageClientImpl::didRemoveNavigationGestureSnapshot()
 {
+}
+
+void PageClientImpl::didStartProvisionalLoadForMainFrame()
+{
+    m_view.willStartLoad();
 }
 
 void PageClientImpl::didFirstVisuallyNonEmptyLayoutForMainFrame()
@@ -381,5 +403,10 @@ void PageClientImpl::beganExitFullScreen(const WebCore::IntRect& /* initialFrame
 }
 
 #endif // ENABLE(FULLSCREEN_API)
+
+void PageClientImpl::requestDOMPasteAccess(const WebCore::IntRect&, const String&, CompletionHandler<void(WebCore::DOMPasteAccessResponse)>&& completionHandler)
+{
+    completionHandler(WebCore::DOMPasteAccessResponse::DeniedForGesture);
+}
 
 } // namespace WebKit

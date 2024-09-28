@@ -50,10 +50,10 @@ private:
     bool supportsRequired() const final;
     StepRange createStepRange(AnyStepHandling) const final;
     bool isSteppable() const final;
-#if !PLATFORM(IOS)
+#if !PLATFORM(IOS_FAMILY)
     void handleMouseDownEvent(MouseEvent&) final;
 #endif
-    void handleKeydownEvent(KeyboardEvent&) final;
+    ShouldCallBaseEventHandler handleKeydownEvent(KeyboardEvent&) final;
     RenderPtr<RenderElement> createInputRenderer(RenderStyle&&) final;
     void createShadowSubtree() final;
     Decimal parseToNumber(const String&, const Decimal&) const final;
@@ -72,7 +72,7 @@ private:
 #if ENABLE(DATALIST_ELEMENT)
     void listAttributeTargetChanged() final;
     void updateTickMarkValues();
-    std::optional<Decimal> findClosestTickMarkValue(const Decimal&) final;
+    Optional<Decimal> findClosestTickMarkValue(const Decimal&) final;
 
     bool m_tickMarkValuesDirty { true };
     Vector<Decimal> m_tickMarkValues;
@@ -84,7 +84,7 @@ private:
 
     void disabledStateChanged() final;
 
-#if ENABLE(TOUCH_EVENTS) && !PLATFORM(IOS) && ENABLE(TOUCH_SLIDER)
+#if ENABLE(TOUCH_EVENTS) && !PLATFORM(IOS_FAMILY) && ENABLE(TOUCH_SLIDER)
     bool hasTouchEventHandler() const final;
 #endif
 };

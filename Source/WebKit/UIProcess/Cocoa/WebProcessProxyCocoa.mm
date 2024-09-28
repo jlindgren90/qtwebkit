@@ -26,6 +26,8 @@
 #import "config.h"
 #import "WebProcessProxy.h"
 
+#import "HighPerformanceGPUManager.h"
+#import "Logging.h"
 #import "ObjCObjectGraph.h"
 #import "SandboxUtilities.h"
 #import "WKBrowsingContextControllerInternal.h"
@@ -35,6 +37,7 @@
 #import "WebProcessPool.h"
 #import <sys/sysctl.h>
 #import <wtf/NeverDestroyed.h>
+#import <wtf/spi/darwin/SandboxSPI.h>
 
 namespace WebKit {
 
@@ -58,30 +61,32 @@ RefPtr<ObjCObjectGraph> WebProcessProxy::transformHandlesToObjects(ObjCObjectGra
 
         bool shouldTransformObject(id object) const override
         {
-#if WK_API_ENABLED
             if (dynamic_objc_cast<WKBrowsingContextHandle>(object))
                 return true;
 
+            ALLOW_DEPRECATED_DECLARATIONS_BEGIN
             if (dynamic_objc_cast<WKTypeRefWrapper>(object))
                 return true;
-#endif
+            ALLOW_DEPRECATED_DECLARATIONS_END
             return false;
         }
 
         RetainPtr<id> transformObject(id object) const override
         {
-#if WK_API_ENABLED
             if (auto* handle = dynamic_objc_cast<WKBrowsingContextHandle>(object)) {
-                if (auto* webPageProxy = m_webProcessProxy.webPage(handle.pageID))
+                if (auto* webPageProxy = m_webProcessProxy.webPage(handle.pageID)) {
+                    ALLOW_DEPRECATED_DECLARATIONS_BEGIN
                     return [WKBrowsingContextController _browsingContextControllerForPageRef:toAPI(webPageProxy)];
+                    ALLOW_DEPRECATED_DECLARATIONS_END
+                }
 
                 return [NSNull null];
             }
 
+            ALLOW_DEPRECATED_DECLARATIONS_BEGIN
             if (auto* wrapper = dynamic_objc_cast<WKTypeRefWrapper>(object))
                 return adoptNS([[WKTypeRefWrapper alloc] initWithObject:toAPI(m_webProcessProxy.transformHandlesToObjects(toImpl(wrapper.object)).get())]);
-
-#endif
+            ALLOW_DEPRECATED_DECLARATIONS_END
             return object;
         }
 
@@ -96,27 +101,23 @@ RefPtr<ObjCObjectGraph> WebProcessProxy::transformObjectsToHandles(ObjCObjectGra
     struct Transformer final : ObjCObjectGraph::Transformer {
         bool shouldTransformObject(id object) const override
         {
-#if WK_API_ENABLED
+            ALLOW_DEPRECATED_DECLARATIONS_BEGIN
             if (dynamic_objc_cast<WKBrowsingContextController>(object))
                 return true;
-
             if (dynamic_objc_cast<WKTypeRefWrapper>(object))
                 return true;
-#endif
+            ALLOW_DEPRECATED_DECLARATIONS_END
             return false;
         }
 
         RetainPtr<id> transformObject(id object) const override
         {
-#if WK_API_ENABLED
+            ALLOW_DEPRECATED_DECLARATIONS_BEGIN
             if (auto* controller = dynamic_objc_cast<WKBrowsingContextController>(object))
                 return controller.handle;
-
             if (auto* wrapper = dynamic_objc_cast<WKTypeRefWrapper>(object))
                 return adoptNS([[WKTypeRefWrapper alloc] initWithObject:toAPI(transformObjectsToHandles(toImpl(wrapper.object)).get())]);
-
-#endif
-
+            ALLOW_DEPRECATED_DECLARATIONS_END
             return object;
         }
     };
@@ -126,8 +127,8 @@ RefPtr<ObjCObjectGraph> WebProcessProxy::transformObjectsToHandles(ObjCObjectGra
 
 bool WebProcessProxy::platformIsBeingDebugged() const
 {
-    // If the UI process is sandboxed, it cannot find out whether other processes are being debugged.
-    if (currentProcessIsSandboxed())
+    // If the UI process is sandboxed and lacks 'process-info-pidinfo', it cannot find out whether other processes are being debugged.
+    if (currentProcessIsSandboxed() && !!sandbox_check(getpid(), "process-info-pidinfo", SANDBOX_CHECK_NO_REPORT))
         return false;
 
     struct kinfo_proc info;
@@ -171,5 +172,19 @@ Vector<String> WebProcessProxy::mediaMIMETypes()
 {
     return mediaTypeCache();
 }
+
+#if PLATFORM(MAC)
+void WebProcessProxy::requestHighPerformanceGPU()
+{
+    LOG(WebGL, "WebProcessProxy::requestHighPerformanceGPU()");
+    HighPerformanceGPUManager::singleton().addProcessRequiringHighPerformance(this);
+}
+
+void WebProcessProxy::releaseHighPerformanceGPU()
+{
+    LOG(WebGL, "WebProcessProxy::releaseHighPerformanceGPU()");
+    HighPerformanceGPUManager::singleton().removeProcessRequiringHighPerformance(this);
+}
+#endif
 
 }

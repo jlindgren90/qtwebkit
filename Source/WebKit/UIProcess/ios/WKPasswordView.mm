@@ -26,7 +26,7 @@
 #import "config.h"
 #import "WKPasswordView.h"
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 
 #import "UIKitSPI.h"
 #import "WKContentView.h"
@@ -34,6 +34,16 @@
 #import <WebCore/LocalizedStrings.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/text/WTFString.h>
+
+#if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/WKPasswordViewAdditions.mm>)
+#include <WebKitAdditions/WKPasswordViewAdditions.mm>
+#else
+static void configureScrollView(UIScrollView *scrollView)
+{
+    [scrollView setBackgroundColor:[UIColor groupTableViewBackgroundColor]];
+}
+#endif
+
 
 const CGFloat passwordEntryFieldPadding = 10;
 
@@ -100,7 +110,8 @@ const CGFloat passwordEntryFieldPadding = 10;
     [_scrollView setMaximumZoomScale:1];
     [_scrollView setZoomScale:1];
     [_scrollView setContentSize:self.frame.size];
-    [_scrollView setBackgroundColor:[UIColor groupTableViewBackgroundColor]];
+
+    configureScrollView(_scrollView.get());
 
     [scrollView addSubview:self];
 }
@@ -187,4 +198,4 @@ const CGFloat passwordEntryFieldPadding = 10;
 
 @end
 
-#endif // PLATFORM(IOS)
+#endif // PLATFORM(IOS_FAMILY)

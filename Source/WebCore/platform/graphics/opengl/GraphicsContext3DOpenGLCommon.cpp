@@ -31,7 +31,7 @@
 #if ENABLE(GRAPHICS_CONTEXT_3D)
 
 #include "GraphicsContext3D.h"
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 #include "GraphicsContext3DIOS.h"
 #endif
 
@@ -55,6 +55,7 @@
 #include <wtf/MainThread.h>
 #include <wtf/ThreadSpecific.h>
 #include <wtf/UniqueArray.h>
+#include <wtf/Vector.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuilder.h>
 
@@ -88,7 +89,6 @@
 
 
 namespace WebCore {
-using namespace WTF;
 
 static ThreadSpecific<ShaderNameHash*>& getCurrentNameHashMapForShader()
 {
@@ -227,7 +227,7 @@ void GraphicsContext3D::prepareTexture()
 
     makeContextCurrent();
 
-#if !USE(COORDINATED_GRAPHICS_THREADED)
+#if !USE(COORDINATED_GRAPHICS)
     TemporaryOpenGLSetting scopedScissor(GL_SCISSOR_TEST, GL_FALSE);
     TemporaryOpenGLSetting scopedDither(GL_DITHER, GL_FALSE);
 #endif
@@ -235,7 +235,7 @@ void GraphicsContext3D::prepareTexture()
     if (m_attrs.antialias)
         resolveMultisamplingIfNecessary();
 
-#if USE(COORDINATED_GRAPHICS_THREADED)
+#if USE(COORDINATED_GRAPHICS)
     std::swap(m_texture, m_compositorTexture);
     std::swap(m_texture, m_intermediateTexture);
     ::glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
@@ -551,7 +551,7 @@ void GraphicsContext3D::bufferSubData(GC3Denum target, GC3Dintptr offset, GC3Dsi
     ::glBufferSubData(target, offset, size, data);
 }
 
-#if PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(WPE)
+#if PLATFORM(MAC) || PLATFORM(IOS_FAMILY) || PLATFORM(WPE)
 void* GraphicsContext3D::mapBufferRange(GC3Denum target, GC3Dintptr offset, GC3Dsizeiptr length, GC3Dbitfield access)
 {
     makeContextCurrent();
@@ -568,6 +568,26 @@ void GraphicsContext3D::copyBufferSubData(GC3Denum readTarget, GC3Denum writeTar
 {
     makeContextCurrent();
     ::glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size);
+}
+
+void GraphicsContext3D::getInternalformativ(GC3Denum target, GC3Denum internalformat, GC3Denum pname, GC3Dsizei bufSize, GC3Dint* params)
+{
+#if USE(OPENGL_ES)
+    makeContextCurrent();
+    ::glGetInternalformativ(target, internalformat, pname, bufSize, params);
+#else
+    UNUSED_PARAM(target);
+    UNUSED_PARAM(internalformat);
+    UNUSED_PARAM(pname);
+    UNUSED_PARAM(bufSize);
+    UNUSED_PARAM(params);
+#endif
+}
+
+void GraphicsContext3D::renderbufferStorageMultisample(GC3Denum target, GC3Dsizei samples, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height)
+{
+    makeContextCurrent();
+    ::glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
 }
 
 void GraphicsContext3D::texStorage2D(GC3Denum target, GC3Dsizei levels, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height)
@@ -956,20 +976,20 @@ static String generateHashedName(const String& name)
     uint64_t number = nameHashForShader(name.utf8().data(), name.length());
     StringBuilder builder;
     builder.appendLiteral("webgl_");
-    appendUnsigned64AsHex(number, builder, Lowercase);
+    appendUnsignedAsHex(number, builder, Lowercase);
     return builder.toString();
 }
 
-std::optional<String> GraphicsContext3D::mappedSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType symbolType, const String& name)
+Optional<String> GraphicsContext3D::mappedSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType symbolType, const String& name)
 {
     auto result = m_shaderSourceMap.find(shader);
     if (result == m_shaderSourceMap.end())
-        return std::nullopt;
+        return WTF::nullopt;
 
     const auto& symbolMap = result->value.symbolMap(symbolType);
     auto symbolEntry = symbolMap.find(name);
     if (symbolEntry == symbolMap.end())
-        return std::nullopt;
+        return WTF::nullopt;
 
     auto& mappedName = symbolEntry->value.mappedName;
     return String(mappedName.c_str(), mappedName.length());
@@ -1018,18 +1038,18 @@ String GraphicsContext3D::mappedSymbolName(Platform3DObject program, ANGLEShader
     return name;
 }
 
-std::optional<String> GraphicsContext3D::originalSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType symbolType, const String& name)
+Optional<String> GraphicsContext3D::originalSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType symbolType, const String& name)
 {
     auto result = m_shaderSourceMap.find(shader);
     if (result == m_shaderSourceMap.end())
-        return std::nullopt;
+        return WTF::nullopt;
 
     const auto& symbolMap = result->value.symbolMap(symbolType);
     for (const auto& symbolEntry : symbolMap) {
         if (name == symbolEntry.value.mappedName.c_str())
             return symbolEntry.key;
     }
-    return std::nullopt;
+    return WTF::nullopt;
 }
 
 String GraphicsContext3D::originalSymbolName(Platform3DObject program, ANGLEShaderSymbolType symbolType, const String& name)
@@ -1559,6 +1579,8 @@ void GraphicsContext3D::bindVertexArray(Platform3DObject array)
     makeContextCurrent();
 #if (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
     ::glBindVertexArray(array);
+#else
+    UNUSED_PARAM(array);
 #endif
 }
 
@@ -1995,6 +2017,9 @@ void GraphicsContext3D::markContextChanged()
 void GraphicsContext3D::markLayerComposited()
 {
     m_layerComposited = true;
+
+    for (auto* client : copyToVector(m_clients))
+        client->didComposite();
 }
 
 bool GraphicsContext3D::layerComposited() const
@@ -2004,26 +2029,20 @@ bool GraphicsContext3D::layerComposited() const
 
 void GraphicsContext3D::forceContextLost()
 {
-#if ENABLE(WEBGL)
-    if (m_webglContext)
-        m_webglContext->forceLostContext(WebGLRenderingContextBase::RealLostContext);
-#endif
+    for (auto* client : copyToVector(m_clients))
+        client->forceContextLost();
 }
 
 void GraphicsContext3D::recycleContext()
 {
-#if ENABLE(WEBGL)
-    if (m_webglContext)
-        m_webglContext->recycleContext();
-#endif
+    for (auto* client : copyToVector(m_clients))
+        client->recycleContext();
 }
 
 void GraphicsContext3D::dispatchContextChangedNotification()
 {
-#if ENABLE(WEBGL)
-    if (m_webglContext)
-        m_webglContext->dispatchContextChangedEvent();
-#endif
+    for (auto* client : copyToVector(m_clients))
+        client->dispatchContextChangedNotification();
 }
 
 void GraphicsContext3D::texImage2DDirect(GC3Denum target, GC3Dint level, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height, GC3Dint border, GC3Denum format, GC3Denum type, const void* pixels)
@@ -2049,6 +2068,14 @@ void GraphicsContext3D::vertexAttribDivisor(GC3Duint index, GC3Duint divisor)
 {
     getExtensions().vertexAttribDivisor(index, divisor);
 }
+
+#if USE(OPENGL) && ENABLE(WEBGL2)
+void GraphicsContext3D::primitiveRestartIndex(GC3Duint index)
+{
+    makeContextCurrent();
+    ::glPrimitiveRestartIndex(index);
+}
+#endif
 
 }
 

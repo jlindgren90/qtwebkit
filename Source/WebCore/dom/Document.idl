@@ -26,7 +26,7 @@ typedef (
     WebGL2RenderingContext or
 #endif
 #if defined(ENABLE_WEBGPU) && ENABLE_WEBGPU
-    WebGPURenderingContext or
+    GPUCanvasContext or
 #endif
     ImageBitmapRenderingContext or 
     CanvasRenderingContext2D) RenderingContext;
@@ -107,7 +107,7 @@ typedef (
     // FIXME: The HTML spec says this should consult the "responsible document". We should ensure
     // that the caller document matches those semantics. It is possible we should replace it with
     // the existing 'incumbent document' concept.
-    [CEReactions, CallWith=ResponsibleDocument, ImplementedAs=openForBindings, MayThrowException] Document open(optional DOMString type = "text/html", optional DOMString replace = "");
+    [CEReactions, CallWith=ResponsibleDocument, ImplementedAs=openForBindings, MayThrowException] Document open(optional DOMString unused1, optional DOMString unused2); // both arguments are ignored.
     [CallWith=ActiveWindow&FirstWindow, ImplementedAs=openForBindings, MayThrowException] WindowProxy open(USVString url, DOMString name, DOMString features);
     [CEReactions, ImplementedAs=closeForBindings, MayThrowException] void close();
     [CEReactions, CallWith=ResponsibleDocument, MayThrowException] void write(DOMString... text);
@@ -123,13 +123,10 @@ typedef (
     boolean queryCommandState(DOMString commandId);
     boolean queryCommandSupported(DOMString commandId);
     DOMString queryCommandValue(DOMString commandId);
+    [EnabledAtRuntime=UndoManagerAPI] readonly attribute UndoManager undoManager;
 
     // Special event handler IDL attributes that only apply to Document objects.
     [LenientThis] attribute EventHandler onreadystatechange;
-
-    // Extensions from the CSSOM specification (https://drafts.csswg.org/cssom/#extensions-to-the-document-interface).
-    // FIXME: Should likely be moved to DocumentOrShadowRoot.
-    readonly attribute StyleSheetList styleSheets; // FIXME: Should be [SameObject].
 
     // Extensions from the CSSOM-View specification (https://drafts.csswg.org/cssom-view/#extensions-to-the-document-interface).
     [ImplementedAs=scrollingElementForAPI] readonly attribute Element? scrollingElement;
@@ -175,7 +172,8 @@ typedef (
     attribute boolean xmlStandalone;
 
     // FIXME: Blink has already dropped this (https://groups.google.com/a/chromium.org/forum/#!topic/blink-dev/s3ezjTuC8ig).
-    CSSStyleDeclaration getOverrideStyle(optional Element? element = null, optional DOMString pseudoElement = "undefined");
+    // And it's just a stub that always returns null, so we can probably remove it some time soon.
+    CSSStyleDeclaration? getOverrideStyle(optional Element? element = null, optional DOMString pseudoElement = "undefined");
 
     // FIXME: Should be moved to GlobalEventHandlers (http://w3c.github.io/selection-api/#extensions-to-globaleventhandlers).
     [NotEnumerable] attribute EventHandler onselectstart; // FIXME: Should be enumerable.

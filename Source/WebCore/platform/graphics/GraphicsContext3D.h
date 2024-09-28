@@ -120,6 +120,15 @@ class GraphicsContext3DPrivate;
 
 class GraphicsContext3D : public RefCounted<GraphicsContext3D> {
 public:
+    class Client {
+    public:
+        virtual ~Client() { }
+        virtual void didComposite() = 0;
+        virtual void forceContextLost() = 0;
+        virtual void recycleContext() = 0;
+        virtual void dispatchContextChangedNotification() = 0;
+    };
+
     enum {
         // WebGL 1 constants
         DEPTH_BUFFER_BIT = 0x00000100,
@@ -718,7 +727,9 @@ public:
         TEXTURE_IMMUTABLE_FORMAT = 0x912F,
         MAX_ELEMENT_INDEX = 0x8D6B,
         NUM_SAMPLE_COUNTS = 0x9380,
-        TEXTURE_IMMUTABLE_LEVELS = 0x82DF, 
+        TEXTURE_IMMUTABLE_LEVELS = 0x82DF,
+        PRIMITIVE_RESTART_FIXED_INDEX = 0x8D69,
+        PRIMITIVE_RESTART = 0x8F9D,
 
         // OpenGL ES 3 constants
         MAP_READ_BIT = 0x0001
@@ -762,7 +773,9 @@ public:
 #endif
 
     bool makeContextCurrent();
-    void setWebGLContext(WebGLRenderingContextBase* base) { m_webglContext = base; }
+
+    void addClient(Client& client) { m_clients.add(&client); }
+    void removeClient(Client& client) { m_clients.remove(&client); }
 
     // With multisampling on, blit from multisampleFBO to regular FBO.
     void prepareTexture();
@@ -981,6 +994,9 @@ public:
     GC3Dboolean unmapBuffer(GC3Denum target);
     void copyBufferSubData(GC3Denum readTarget, GC3Denum writeTarget, GC3Dintptr readOffset, GC3Dintptr writeOffset, GC3Dsizeiptr);
 
+    void getInternalformativ(GC3Denum target, GC3Denum internalformat, GC3Denum pname, GC3Dsizei bufSize, GC3Dint* params);
+    void renderbufferStorageMultisample(GC3Denum target, GC3Dsizei samples, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height);
+
     void texStorage2D(GC3Denum target, GC3Dsizei levels, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height);
     void texStorage3D(GC3Denum target, GC3Dsizei levels, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height, GC3Dsizei depth);
 
@@ -1147,6 +1163,10 @@ public:
     void paintRenderingResultsToCanvas(ImageBuffer*);
     RefPtr<ImageData> paintRenderingResultsToImageData();
     bool paintCompositedResultsToCanvas(ImageBuffer*);
+
+#if USE(OPENGL) && ENABLE(WEBGL2)
+    void primitiveRestartIndex(GC3Duint);
+#endif
 
 #if PLATFORM(COCOA)
     bool texImageIOSurface2D(GC3Denum target, GC3Denum internalFormat, GC3Dsizei width, GC3Dsizei height, GC3Denum format, GC3Denum type, IOSurfaceRef, GC3Duint plane);
@@ -1318,7 +1338,7 @@ private:
     void readRenderingResults(unsigned char* pixels, int pixelsSize);
     void readPixelsAndConvertToBGRAIfNecessary(int x, int y, int width, int height, unsigned char* pixels);
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     void setRenderbufferStorageFromDrawable(GC3Dsizei width, GC3Dsizei height);
 #endif
 
@@ -1404,8 +1424,8 @@ private:
     String mappedSymbolName(Platform3DObject program, ANGLEShaderSymbolType, const String& name);
     String mappedSymbolName(Platform3DObject shaders[2], size_t count, const String& name);
     String originalSymbolName(Platform3DObject program, ANGLEShaderSymbolType, const String& name);
-    std::optional<String> mappedSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType, const String& name);
-    std::optional<String> originalSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType, const String& name);
+    Optional<String> mappedSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType, const String& name);
+    Optional<String> originalSymbolInShaderSourceMap(Platform3DObject shader, ANGLEShaderSymbolType, const String& name);
 
     std::unique_ptr<ShaderNameHash> nameHashMapForShaders;
 
@@ -1427,7 +1447,7 @@ private:
 
     GC3Duint m_texture { 0 };
     GC3Duint m_fbo { 0 };
-#if USE(COORDINATED_GRAPHICS_THREADED)
+#if USE(COORDINATED_GRAPHICS)
     GC3Duint m_compositorTexture { 0 };
     GC3Duint m_intermediateTexture { 0 };
 #endif
@@ -1498,8 +1518,7 @@ private:
     std::unique_ptr<GraphicsContext3DPrivate> m_private;
 #endif
 
-    // FIXME: Layering violation.
-    WebGLRenderingContextBase* m_webglContext { nullptr };
+    HashSet<Client*> m_clients;
 
     bool m_isForWebGL2 { false };
     bool m_usingCoreProfile { false };
@@ -1509,6 +1528,10 @@ private:
 
 #if USE(CAIRO)
     Platform3DObject m_vao { 0 };
+#endif
+
+#if PLATFORM(COCOA) && USE(OPENGL)
+    bool m_hasSwitchedToHighPerformanceGPU { false };
 #endif
 };
 

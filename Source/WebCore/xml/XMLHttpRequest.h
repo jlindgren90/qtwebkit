@@ -26,7 +26,7 @@
 #include "FormData.h"
 #include "ResourceResponse.h"
 #include "ThreadableLoaderClient.h"
-#include "URL.h"
+#include <wtf/URL.h>
 #include "XMLHttpRequestEventTarget.h"
 #include "XMLHttpRequestProgressEventThrottle.h"
 #include <wtf/Variant.h>
@@ -80,7 +80,7 @@ public:
     ExceptionOr<void> open(const String& method, const String& url);
     ExceptionOr<void> open(const String& method, const URL&, bool async);
     ExceptionOr<void> open(const String& method, const String&, bool async, const String& user, const String& password);
-    ExceptionOr<void> send(std::optional<SendTypes>&&);
+    ExceptionOr<void> send(Optional<SendTypes>&&);
     void abort();
     ExceptionOr<void> setRequestHeader(const String& name, const String& value);
     ExceptionOr<void> overrideMimeType(const String& override);
@@ -125,6 +125,8 @@ public:
     using RefCounted<XMLHttpRequest>::ref;
     using RefCounted<XMLHttpRequest>::deref;
 
+    size_t memoryCost() const;
+
 private:
     explicit XMLHttpRequest(ScriptExecutionContext&);
 
@@ -155,7 +157,7 @@ private:
 
     bool responseIsXML() const;
 
-    std::optional<ExceptionOr<void>> prepareToSend();
+    Optional<ExceptionOr<void>> prepareToSend();
     ExceptionOr<void> send(Document&);
     ExceptionOr<void> send(const String& = { });
     ExceptionOr<void> send(Blob&);
@@ -166,7 +168,6 @@ private:
 
     void changeState(State);
     void callReadyStateChangeListener();
-    void dropProtection();
 
     // Returns false when cancelling the loader within internalAbort() triggers an event whose callback creates a new loader. 
     // In that case, the function calling internalAbort should exit.
@@ -239,7 +240,7 @@ private:
 
     MonotonicTime m_sendingTime;
 
-    std::optional<ExceptionCode> m_exceptionCode;
+    Optional<ExceptionCode> m_exceptionCode;
 };
 
 inline auto XMLHttpRequest::responseType() const -> ResponseType

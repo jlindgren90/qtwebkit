@@ -31,19 +31,18 @@
 #import "DataReference.h"
 #import "Decoder.h"
 #import "Encoder.h"
-#import <WebCore/FileSystem.h>
 #import <sys/stat.h>
+#import <wtf/FileSystem.h>
 #import <wtf/spi/darwin/SandboxSPI.h>
 #import <wtf/text/CString.h>
 
 namespace WebKit {
-using namespace WebCore;
 
 class SandboxExtensionImpl {
 public:
-    static std::unique_ptr<SandboxExtensionImpl> create(const char* path, SandboxExtension::Type type)
+    static std::unique_ptr<SandboxExtensionImpl> create(const char* path, SandboxExtension::Type type, Optional<pid_t> pid = WTF::nullopt)
     {
-        std::unique_ptr<SandboxExtensionImpl> impl { new SandboxExtensionImpl(path, type) };
+        std::unique_ptr<SandboxExtensionImpl> impl { new SandboxExtensionImpl(path, type, pid) };
         if (!impl->m_token)
             return nullptr;
         return impl;
@@ -62,9 +61,13 @@ public:
     bool consume() WARN_UNUSED_RETURN
     {
         m_handle = sandbox_extension_consume(m_token);
-#if PLATFORM(IOS_SIMULATOR)
+#if PLATFORM(IOS_FAMILY_SIMULATOR)
         return !sandbox_check(getpid(), 0, SANDBOX_FILTER_NONE);
 #else
+        if (m_handle == -1) {
+            LOG_ERROR("Could not create a sandbox extension for '%s', errno = %d", m_token, errno);
+            return false;
+        }
         return m_handle;
 #endif
     }
@@ -81,23 +84,28 @@ public:
     }
 
 private:
-    char* sandboxExtensionForType(const char* path, SandboxExtension::Type type)
+    char* sandboxExtensionForType(const char* path, SandboxExtension::Type type, Optional<pid_t> pid = WTF::nullopt)
     {
         switch (type) {
         case SandboxExtension::Type::ReadOnly:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
             return sandbox_extension_issue_file(APP_SANDBOX_READ, path, 0);
         case SandboxExtension::Type::ReadWrite:
             return sandbox_extension_issue_file(APP_SANDBOX_READ_WRITE, path, 0);
-#pragma clang diagnostic pop
+        case SandboxExtension::Type::Mach:
+#if HAVE(SANDBOX_ISSUE_MACH_EXTENSION_TO_PROCESS_BY_PID)
+            return sandbox_extension_issue_mach_to_process_by_pid("com.apple.webkit.extension.mach"_s, path, 0, pid.value());
+#else
+            UNUSED_PARAM(pid);
+            ASSERT_NOT_REACHED();
+            return nullptr;
+#endif
         case SandboxExtension::Type::Generic:
             return sandbox_extension_issue_generic(path, 0);
         }
     }
 
-    SandboxExtensionImpl(const char* path, SandboxExtension::Type type)
-        : m_token { sandboxExtensionForType(path, type) }
+    SandboxExtensionImpl(const char* path, SandboxExtension::Type type, Optional<pid_t> pid = WTF::nullopt)
+        : m_token { sandboxExtensionForType(path, type, pid) }
     {
     }
 
@@ -135,11 +143,11 @@ void SandboxExtension::Handle::encode(IPC::Encoder& encoder) const
     m_sandboxExtension = 0;
 }
 
-auto SandboxExtension::Handle::decode(IPC::Decoder& decoder) -> std::optional<Handle>
+auto SandboxExtension::Handle::decode(IPC::Decoder& decoder) -> Optional<Handle>
 {
     IPC::DataReference dataReference;
     if (!decoder.decode(dataReference))
-        return std::nullopt;
+        return WTF::nullopt;
 
     if (dataReference.isEmpty())
         return {{ }};
@@ -191,20 +199,22 @@ void SandboxExtension::HandleArray::encode(IPC::Encoder& encoder) const
         encoder << handle;
 }
 
-bool SandboxExtension::HandleArray::decode(IPC::Decoder& decoder, SandboxExtension::HandleArray& handles)
+Optional<SandboxExtension::HandleArray> SandboxExtension::HandleArray::decode(IPC::Decoder& decoder)
 {
-    uint64_t size;
-    if (!decoder.decode(size))
-        return false;
-    handles.allocate(size);
-    for (size_t i = 0; i < size; i++) {
-        std::optional<SandboxExtension::Handle> handle;
+    Optional<uint64_t> size;
+    decoder >> size;
+    if (!size)
+        return WTF::nullopt;
+    SandboxExtension::HandleArray handles;
+    handles.allocate(*size);
+    for (size_t i = 0; i < *size; ++i) {
+        Optional<SandboxExtension::Handle> handle;
         decoder >> handle;
         if (!handle)
-            return false;
+            return WTF::nullopt;
         handles[i] = WTFMove(*handle);
     }
-    return true;
+    return WTFMove(handles);
 }
 
 RefPtr<SandboxExtension> SandboxExtension::create(Handle&& handle)
@@ -353,6 +363,19 @@ bool SandboxExtension::createHandleForGenericExtension(const String& extensionCl
     handle.m_sandboxExtension = SandboxExtensionImpl::create(extensionClass.utf8().data(), Type::Generic);
     if (!handle.m_sandboxExtension) {
         WTFLogAlways("Could not create a '%s' sandbox extension", extensionClass.utf8().data());
+        return false;
+    }
+    
+    return true;
+}
+
+bool SandboxExtension::createHandleForMachLookupByPid(const String& service, pid_t pid, Handle& handle)
+{
+    ASSERT(!handle.m_sandboxExtension);
+    
+    handle.m_sandboxExtension = SandboxExtensionImpl::create(service.utf8().data(), Type::Mach, pid);
+    if (!handle.m_sandboxExtension) {
+        WTFLogAlways("Could not create a '%s' sandbox extension", service.utf8().data());
         return false;
     }
     

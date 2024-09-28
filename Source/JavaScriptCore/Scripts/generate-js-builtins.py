@@ -41,17 +41,17 @@ from lazywriter import LazyFileWriter
 from wkbuiltins import *
 
 
-def do_open(file, mode):
-    if sys.version_info.major == 2:
-        return open(file, mode)
-    else:
-        return open(file, mode, encoding="UTF-8")
-
 def concatenated_output_filename(builtins_files, framework_name, generate_only_wrapper_files):
     if generate_only_wrapper_files:
         return framework_name + 'JSBuiltins.h-result'
     return os.path.basename(builtins_files[0]) + '-result'
 
+
+def do_open(file, mode):
+    if sys.version_info.major == 2:
+        return open(file, mode)
+    else:
+        return open(file, mode, encoding="UTF-8")
 
 def generate_bindings_for_builtins_files(builtins_files=[],
                                          output_path=None,

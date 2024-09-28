@@ -26,7 +26,7 @@
 
 #pragma once
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 #ifndef NSView
 #define NSView WAKView
 #endif
@@ -163,6 +163,8 @@ public:
     WEBCORE_EXPORT IntRect convertToRootView(const IntRect&) const;
     IntRect convertFromRootView(const IntRect&) const;
 
+    FloatRect convertFromRootView(const FloatRect&) const;
+
     IntPoint convertToRootView(const IntPoint&) const;
     IntPoint convertFromRootView(const IntPoint&) const;
 
@@ -190,7 +192,7 @@ public:
 
     void removeFromSuperview();
 #endif
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     void addToSuperview(NSView*);
 #endif
 
@@ -202,6 +204,7 @@ public:
     // Virtual methods to convert points to/from the containing ScrollView
     WEBCORE_EXPORT virtual IntRect convertToContainingView(const IntRect&) const;
     WEBCORE_EXPORT virtual IntRect convertFromContainingView(const IntRect&) const;
+    WEBCORE_EXPORT virtual FloatRect convertFromContainingView(const FloatRect&) const;
     WEBCORE_EXPORT virtual IntPoint convertToContainingView(const IntPoint&) const;
     WEBCORE_EXPORT virtual IntPoint convertFromContainingView(const IntPoint&) const;
 
@@ -220,14 +223,15 @@ private:
     static IntPoint convertFromContainingWindowToRoot(const Widget* rootWidget, const IntPoint&);
 
 private:
+    bool m_selfVisible { false };
+    bool m_parentVisible { false };
+
     WeakPtr<ScrollView> m_parent;
 #if !PLATFORM(COCOA)
     PlatformWidget m_widget;
 #else
     RetainPtr<NSView> m_widget;
 #endif
-    bool m_selfVisible;
-    bool m_parentVisible;
 
     IntRect m_frame; // Not used when a native widget exists.
 

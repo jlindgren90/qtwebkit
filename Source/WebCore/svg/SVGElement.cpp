@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2004, 2005, 2006, 2007, 2008 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005, 2006, 2008 Rob Buis <buis@kde.org>
- * Copyright (C) 2008-2018 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2019 Apple Inc. All rights reserved.
  * Copyright (C) 2008 Alp Toker <alp@atoker.com>
  * Copyright (C) 2009 Cameron McCormack <cam@mcc.id.au>
  * Copyright (C) 2013 Samsung Electronics. All rights reserved.
@@ -44,6 +44,7 @@
 #include "SVGGraphicsElement.h"
 #include "SVGImageElement.h"
 #include "SVGNames.h"
+#include "SVGPropertyAnimatorFactory.h"
 #include "SVGRenderStyle.h"
 #include "SVGRenderSupport.h"
 #include "SVGSVGElement.h"
@@ -275,8 +276,12 @@ static inline const HashMap<QualifiedName::QualifiedNameImpl*, AnimatedPropertyT
 SVGElement::SVGElement(const QualifiedName& tagName, Document& document)
     : StyledElement(tagName, document, CreateSVGElement)
     , SVGLangSpace(this)
+    , m_propertyAnimatorFactory(std::make_unique<SVGPropertyAnimatorFactory>())
 {
-    registerAttributes();
+    static std::once_flag onceFlag;
+    std::call_once(onceFlag, [] {
+        PropertyRegistry::registerProperty<HTMLNames::classAttr, &SVGElement::m_className>();
+    });
 }
 
 SVGElement::~SVGElement()
@@ -290,7 +295,7 @@ SVGElement::~SVGElement()
         m_svgRareData = nullptr;
     }
     document().accessSVGExtensions().rebuildAllElementReferencesForTarget(*this);
-    document().accessSVGExtensions().removeAllElementReferencesForTarget(this);
+    document().accessSVGExtensions().removeAllElementReferencesForTarget(*this);
 }
 
 int SVGElement::tabIndex() const
@@ -370,7 +375,7 @@ void SVGElement::removedFromAncestor(RemovalType removalType, ContainerNode& old
 
     if (removalType.disconnectedFromDocument) {
         document().accessSVGExtensions().clearTargetDependencies(*this);
-        document().accessSVGExtensions().removeAllElementReferencesForTarget(this);
+        document().accessSVGExtensions().removeAllElementReferencesForTarget(*this);
     }
     invalidateInstances();
 }
@@ -451,18 +456,10 @@ void SVGElement::setCorrespondingElement(SVGElement* correspondingElement)
         correspondingElement->ensureSVGRareData().instances().add(this);
 }
 
-void SVGElement::registerAttributes()
-{
-    auto& registry = attributeRegistry();
-    if (!registry.isEmpty())
-        return;
-    registry.registerAttribute<HTMLNames::classAttr, &SVGElement::m_className>();
-}
-
 void SVGElement::parseAttribute(const QualifiedName& name, const AtomicString& value)
 {
     if (name == HTMLNames::classAttr) {
-        m_className.setValue(value);
+        m_className->setBaseValInternal(value);
         return;
     }
 
@@ -686,8 +683,10 @@ void SVGElement::attributeChanged(const QualifiedName& name, const AtomicString&
         document().accessSVGExtensions().rebuildAllElementReferencesForTarget(*this);
 
     // Changes to the style attribute are processed lazily (see Element::getAttribute() and related methods),
-    // so we don't want changes to the style attribute to result in extra work here.
-    if (name != HTMLNames::styleAttr)
+    // so we don't want changes to the style attribute to result in extra work here except invalidateInstances().
+    if (name == HTMLNames::styleAttr)
+        invalidateInstances();
+    else
         svgAttributeChanged(name);
 }
 
@@ -698,6 +697,14 @@ void SVGElement::synchronizeAllAnimatedSVGAttribute(SVGElement* svgElement)
 
     svgElement->synchronizeAttributes();
     svgElement->elementData()->setAnimatedSVGAttributesAreDirty(false);
+    
+    // FIXME: Delete the SVG tear off properties code from this function
+    
+    // SVGPropertyRegistry::synchronizeAllAttributes() returns the new values of
+    // the properties which have changed but not committed yet.
+    auto map = svgElement->propertyRegistry().synchronizeAllAttributes();
+    for (const auto& entry : map)
+        svgElement->setSynchronizedLazyAttribute(entry.key, entry.value);
 }
 
 void SVGElement::synchronizeAnimatedSVGAttribute(const QualifiedName& name) const
@@ -705,18 +712,86 @@ void SVGElement::synchronizeAnimatedSVGAttribute(const QualifiedName& name) cons
     if (!elementData() || !elementData()->animatedSVGAttributesAreDirty())
         return;
 
+    // FIXME: Delete the SVG tear off properties code from this function
+
     SVGElement* nonConstThis = const_cast<SVGElement*>(this);
     if (name == anyQName())
         synchronizeAllAnimatedSVGAttribute(nonConstThis);
-    else
-        nonConstThis->synchronizeAttribute(name);
+    else {
+        // If the value of the property has changed, serialize the new value to the attribute.
+        if (auto value = propertyRegistry().synchronize(name))
+            nonConstThis->setSynchronizedLazyAttribute(name, *value);
+        else
+            nonConstThis->synchronizeAttribute(name);
+    }
+}
+    
+void SVGElement::commitPropertyChange(SVGProperty* property)
+{
+    // We want to dirty the top-level property when a descendant changes. For example
+    // a change in an SVGLength item in SVGLengthList should set the dirty flag on
+    // SVGLengthList and not the SVGLength.
+    property->setDirty();
+
+    invalidateSVGAttributes();
+    svgAttributeChanged(propertyRegistry().propertyAttributeName(*property));
 }
 
-std::optional<ElementStyle> SVGElement::resolveCustomStyle(const RenderStyle& parentStyle, const RenderStyle*)
+void SVGElement::commitPropertyChange(SVGAnimatedProperty& animatedProperty)
+{
+    QualifiedName attributeName = propertyRegistry().animatedPropertyAttributeName(animatedProperty);
+
+    // A change in a style property, e.g SVGRectElement::x should be serialized to
+    // the attribute immediately. Otherwise it is okay to be lazy in this regard.
+    if (!propertyRegistry().isAnimatedStylePropertyAttribute(attributeName))
+        animatedProperty.setDirty();
+    else
+        setSynchronizedLazyAttribute(attributeName, animatedProperty.baseValAsString());
+
+    invalidateSVGAttributes();
+    svgAttributeChanged(attributeName);
+}
+
+bool SVGElement::isAnimatedPropertyAttribute(const QualifiedName& attributeName) const
+{
+    return propertyRegistry().isAnimatedPropertyAttribute(attributeName);
+}
+
+bool SVGElement::isAnimatedAttribute(const QualifiedName& attributeName) const
+{
+    return SVGPropertyAnimatorFactory::isKnownAttribute(attributeName) || isAnimatedPropertyAttribute(attributeName);
+}
+
+bool SVGElement::isAnimatedStyleAttribute(const QualifiedName& attributeName) const
+{
+    return SVGPropertyAnimatorFactory::isKnownAttribute(attributeName) || propertyRegistry().isAnimatedStylePropertyAttribute(attributeName);
+}
+
+std::unique_ptr<SVGAttributeAnimator> SVGElement::createAnimator(const QualifiedName& attributeName, AnimationMode animationMode, CalcMode calcMode, bool isAccumulated, bool isAdditive)
+{
+    // Property animator, e.g. "fill" or "fill-opacity".
+    if (auto animator = propertyAnimatorFactory().createAnimator(attributeName, animationMode, calcMode, isAccumulated, isAdditive))
+        return animator;
+    
+    // Animated property animator.
+    auto animator = propertyRegistry().createAnimator(attributeName, animationMode, calcMode, isAccumulated, isAdditive);
+    if (!animator)
+        return animator;
+    for (auto* instance : instances())
+        instance->propertyRegistry().appendAnimatedInstance(attributeName, *animator);
+    return animator;
+}
+    
+void SVGElement::animatorWillBeDeleted(const QualifiedName& attributeName)
+{
+    propertyAnimatorFactory().animatorWillBeDeleted(attributeName);
+}
+
+Optional<ElementStyle> SVGElement::resolveCustomStyle(const RenderStyle& parentStyle, const RenderStyle*)
 {
     // If the element is in a <use> tree we get the style from the definition tree.
     if (auto styleElement = makeRefPtr(this->correspondingElement())) {
-        std::optional<ElementStyle> style = styleElement->resolveStyle(&parentStyle);
+        Optional<ElementStyle> style = styleElement->resolveStyle(&parentStyle);
         StyleResolver::adjustSVGElementStyle(*this, *style->renderStyle);
         return style;
     }
@@ -776,7 +851,6 @@ QualifiedName SVGElement::animatableAttributeForName(const AtomicString& localNa
             &SVGNames::elevationAttr.get(),
             &SVGNames::exponentAttr.get(),
             &SVGNames::externalResourcesRequiredAttr.get(),
-            &SVGNames::filterResAttr.get(),
             &SVGNames::filterUnitsAttr.get(),
             &SVGNames::fxAttr.get(),
             &SVGNames::fyAttr.get(),
@@ -993,7 +1067,7 @@ void SVGElement::buildPendingResourcesIfNeeded()
         ASSERT(clientElement->hasPendingResources());
         if (clientElement->hasPendingResources()) {
             clientElement->buildPendingResource();
-            extensions.clearHasPendingResourcesIfPossible(clientElement.get());
+            extensions.clearHasPendingResourcesIfPossible(*clientElement);
         }
     }
 }
@@ -1017,7 +1091,7 @@ RefPtr<DeprecatedCSSOMValue> SVGElement::getPresentationAttribute(const String& 
     if (!attribute)
         return 0;
 
-    RefPtr<MutableStyleProperties> style = MutableStyleProperties::create(SVGAttributeMode);
+    auto style = MutableStyleProperties::create(SVGAttributeMode);
     CSSPropertyID propertyID = cssPropertyIdForSVGAttributeName(attribute->name());
     style->setProperty(propertyID, attribute->value());
     auto cssValue = style->getPropertyCSSValue(propertyID);

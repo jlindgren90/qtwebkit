@@ -24,8 +24,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef EventSenderProxy_h
-#define EventSenderProxy_h
+#pragma once
 
 #include <wtf/Deque.h>
 #include <wtf/HashMap.h>
@@ -124,6 +123,11 @@ private:
     void prepareAndDispatchTouchEvent(enum wpe_input_touch_event_type);
 #endif
 
+#if PLATFORM(WIN)
+    LRESULT dispatchMessage(UINT message, WPARAM, LPARAM);
+    POINT positionInPoint() const { return { static_cast<LONG>(m_position.x), static_cast<LONG>(m_position.y) }; }
+#endif
+
     double m_time;
     WKPoint m_position;
     bool m_leftMouseButtonDown;
@@ -139,7 +143,6 @@ private:
     Vector<GUniquePtr<GdkEvent>> m_touchEvents;
     HashSet<int> m_updatedTouchEvents;
 #elif PLATFORM(WPE)
-    struct wpe_view_backend* m_viewBackend;
     uint32_t m_buttonState;
     uint32_t m_mouseButtonsCurrentlyDown { 0 };
     Vector<struct wpe_input_touch_event_raw> m_touchEvents;
@@ -148,5 +151,3 @@ private:
 };
 
 } // namespace WTR
-
-#endif // EventSenderProxy_h

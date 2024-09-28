@@ -57,7 +57,6 @@ class ResourceRequest;
 class ScriptExecutionContext;
 class SecurityOrigin;
 class TextEncoding;
-class URL;
 struct ContentSecurityPolicyClient;
 
 typedef Vector<std::unique_ptr<ContentSecurityPolicyDirectiveList>> CSPDirectiveListVector;
@@ -231,7 +230,7 @@ private:
     OptionSet<ContentSecurityPolicyHashAlgorithm> m_hashAlgorithmsForInlineScripts;
     OptionSet<ContentSecurityPolicyHashAlgorithm> m_hashAlgorithmsForInlineStylesheets;
     HashSet<SecurityOriginData> m_insecureNavigationRequestsToUpgrade;
-    mutable std::optional<ContentSecurityPolicyResponseHeaders> m_cachedResponseHeaders;
+    mutable Optional<ContentSecurityPolicyResponseHeaders> m_cachedResponseHeaders;
 };
 
 }

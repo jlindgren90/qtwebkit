@@ -54,6 +54,7 @@ class PlatformMouseEvent;
 class PlatformWheelEvent;
 class PseudoElement;
 class RenderTreePosition;
+class StylePropertyMap;
 class WebAnimation;
 struct ElementStyle;
 struct ScrollIntoViewOptions;
@@ -62,17 +63,19 @@ struct ScrollIntoViewOptions;
 struct IntersectionObserverData;
 #endif
 
+#if ENABLE(RESIZE_OBSERVER)
+struct ResizeObserverData;
+#endif
+
 enum SpellcheckAttributeState {
     SpellcheckAttributeTrue,
     SpellcheckAttributeFalse,
     SpellcheckAttributeDefault
 };
 
-enum class SelectionRevealMode {
-    Reveal,
-    RevealUpToMainFrame, // Scroll overflow and iframes, but not the main frame.
-    DoNotReveal
-};
+#if ENABLE(POINTER_EVENTS)
+enum class TouchAction : uint8_t;
+#endif
 
 class Element : public ContainerNode {
     WTF_MAKE_ISO_ALLOCATED(Element);
@@ -104,7 +107,7 @@ public:
     WEBCORE_EXPORT bool fastAttributeLookupAllowed(const QualifiedName&) const;
 #endif
 
-#ifdef DUMP_NODE_STATISTICS
+#if DUMP_NODE_STATISTICS
     bool hasNamedNodeMap() const;
 #endif
     WEBCORE_EXPORT bool hasAttributes() const;
@@ -122,7 +125,7 @@ public:
     static ExceptionOr<QualifiedName> parseAttributeName(const AtomicString& namespaceURI, const AtomicString& qualifiedName);
     WEBCORE_EXPORT ExceptionOr<void> setAttributeNS(const AtomicString& namespaceURI, const AtomicString& qualifiedName, const AtomicString& value);
 
-    ExceptionOr<bool> toggleAttribute(const AtomicString& qualifiedName, std::optional<bool> force);
+    ExceptionOr<bool> toggleAttribute(const AtomicString& qualifiedName, Optional<bool> force);
 
     const AtomicString& getIdAttribute() const;
     void setIdAttribute(const AtomicString&);
@@ -143,7 +146,7 @@ public:
     unsigned findAttributeIndexByName(const QualifiedName& name) const { return elementData()->findAttributeIndexByName(name); }
     unsigned findAttributeIndexByName(const AtomicString& name, bool shouldIgnoreAttributeCase) const { return elementData()->findAttributeIndexByName(name, shouldIgnoreAttributeCase); }
 
-    WEBCORE_EXPORT void scrollIntoView(std::optional<Variant<bool, ScrollIntoViewOptions>>&& arg);
+    WEBCORE_EXPORT void scrollIntoView(Optional<Variant<bool, ScrollIntoViewOptions>>&& arg);
     WEBCORE_EXPORT void scrollIntoView(bool alignToTop = true);
     WEBCORE_EXPORT void scrollIntoViewIfNeeded(bool centerIfNeeded = true);
     WEBCORE_EXPORT void scrollIntoViewIfNotVisible(bool centerIfNotVisible = true);
@@ -156,7 +159,9 @@ public:
     WEBCORE_EXPORT void scrollByLines(int lines);
     WEBCORE_EXPORT void scrollByPages(int pages);
 
+    WEBCORE_EXPORT double offsetLeftForBindings();
     WEBCORE_EXPORT double offsetLeft();
+    WEBCORE_EXPORT double offsetTopForBindings();
     WEBCORE_EXPORT double offsetTop();
     WEBCORE_EXPORT double offsetWidth();
     WEBCORE_EXPORT double offsetHeight();
@@ -165,7 +170,7 @@ public:
 
     // FIXME: Replace uses of offsetParent in the platform with calls
     // to the render layer and merge bindingsOffsetParent and offsetParent.
-    WEBCORE_EXPORT Element* bindingsOffsetParent();
+    WEBCORE_EXPORT Element* offsetParentForBindings();
 
     const Element* rootElement() const;
 
@@ -275,7 +280,7 @@ public:
 
     virtual void didMoveToNewDocument(Document& oldDocument, Document& newDocument);
 
-    bool hasEquivalentAttributes(const Element* other) const;
+    bool hasEquivalentAttributes(const Element& other) const;
 
     virtual void copyNonAttributePropertiesFromElement(const Element&) { }
 
@@ -302,7 +307,7 @@ public:
     // FIXME: this should not be virtual, do not override this.
     virtual const AtomicString& shadowPseudoId() const;
 
-    bool inActiveChain() const { return isUserActionElement() && isUserActionElementInActiveChain(); }
+    bool isInActiveChain() const { return isUserActionElement() && isUserActionElementInActiveChain(); }
     bool active() const { return isUserActionElement() && isUserActionElementActive(); }
     bool hovered() const { return isUserActionElement() && isUserActionElementHovered(); }
     bool focused() const { return isUserActionElement() && isUserActionElementFocused(); }
@@ -489,6 +494,12 @@ public:
     WEBCORE_EXPORT virtual void webkitRequestFullscreen();
 #endif
 
+#if ENABLE(POINTER_EVENTS)
+    ExceptionOr<void> setPointerCapture(int32_t);
+    ExceptionOr<void> releasePointerCapture(int32_t);
+    bool hasPointerCapture(int32_t);
+#endif
+
 #if ENABLE(POINTER_LOCK)
     WEBCORE_EXPORT void requestPointerLock();
 #endif
@@ -522,11 +533,12 @@ public:
     virtual void didAttachRenderers();
     virtual void willDetachRenderers();
     virtual void didDetachRenderers();
-    virtual std::optional<ElementStyle> resolveCustomStyle(const RenderStyle& parentStyle, const RenderStyle* shadowHostStyle);
+    virtual Optional<ElementStyle> resolveCustomStyle(const RenderStyle& parentStyle, const RenderStyle* shadowHostStyle);
 
     LayoutRect absoluteEventHandlerBounds(bool& includesFixedPositionElements) override;
 
     const RenderStyle* existingComputedStyle() const;
+    const RenderStyle* renderOrDisplayContentsStyle() const;
 
     void setBeforePseudoElement(Ref<PseudoElement>&&);
     void setAfterPseudoElement(Ref<PseudoElement>&&);
@@ -579,10 +591,24 @@ public:
     IntersectionObserverData* intersectionObserverData();
 #endif
 
+#if ENABLE(RESIZE_OBSERVER)
+    ResizeObserverData& ensureResizeObserverData();
+    ResizeObserverData* resizeObserverData();
+#endif
+
     Element* findAnchorElementForLink(String& outAnchorName);
 
-    ExceptionOr<Ref<WebAnimation>> animate(JSC::ExecState&, JSC::Strong<JSC::JSObject>&&, std::optional<Variant<double, KeyframeAnimationOptions>>&&);
+    ExceptionOr<Ref<WebAnimation>> animate(JSC::ExecState&, JSC::Strong<JSC::JSObject>&&, Optional<Variant<double, KeyframeAnimationOptions>>&&);
     Vector<RefPtr<WebAnimation>> getAnimations();
+
+    ElementIdentifier createElementIdentifier();
+
+#if ENABLE(POINTER_EVENTS)
+    OptionSet<TouchAction> computedTouchActions() const;
+#if ENABLE(OVERFLOW_SCROLLING_TOUCH)
+    ScrollingNodeID nearestScrollingNodeIDUsingTouchOverflowScrolling() const;
+#endif
+#endif
 
 protected:
     Element(const QualifiedName&, Document&, ConstructionType);
@@ -605,6 +631,11 @@ protected:
 
     static ExceptionOr<void> mergeWithNextTextNode(Text&);
 
+#if ENABLE(CSS_TYPED_OM)
+    StylePropertyMap* attributeStyleMap();
+    void setAttributeStyleMap(Ref<StylePropertyMap>&&);
+#endif
+
 private:
     Frame* documentFrameWithNonNullView() const;
 
@@ -616,11 +647,6 @@ private:
     bool isUserActionElementHovered() const;
 
     virtual void didAddUserAgentShadowRoot(ShadowRoot&) { }
-
-    // FIXME: Remove the need for Attr to call willModifyAttribute/didModifyAttribute.
-    friend class Attr;
-
-    enum SynchronizationOfLazyAttribute { NotInSynchronizationOfLazyAttribute = 0, InSynchronizationOfLazyAttribute };
 
     void didAddAttribute(const QualifiedName&, const AtomicString&);
     void willModifyAttribute(const QualifiedName&, const AtomicString& oldValue, const AtomicString& newValue);
@@ -649,6 +675,7 @@ private:
     NodeType nodeType() const final;
     bool childTypeAllowed(NodeType) const final;
 
+    enum SynchronizationOfLazyAttribute { NotInSynchronizationOfLazyAttribute, InSynchronizationOfLazyAttribute };
     void setAttributeInternal(unsigned index, const QualifiedName&, const AtomicString& value, SynchronizationOfLazyAttribute);
     void addAttributeInternal(const QualifiedName&, const AtomicString& value, SynchronizationOfLazyAttribute);
     void removeAttributeInternal(unsigned index, SynchronizationOfLazyAttribute);
@@ -662,6 +689,10 @@ private:
 
 #if ENABLE(INTERSECTION_OBSERVER)
     void disconnectFromIntersectionObservers();
+#endif
+
+#if ENABLE(RESIZE_OBSERVER)
+    void disconnectFromResizeObservers();
 #endif
 
     // The cloneNode function is private so that non-virtual cloneElementWith/WithoutChildren are used instead.

@@ -24,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WTF_WeakPtr_h
-#define WTF_WeakPtr_h
+#pragma once
 
 #include <wtf/Noncopyable.h>
 #include <wtf/Ref.h>
@@ -43,6 +42,8 @@ class WeakReference : public ThreadSafeRefCounted<WeakReference<T>> {
     WTF_MAKE_NONCOPYABLE(WeakReference<T>);
     WTF_MAKE_FAST_ALLOCATED;
 public:
+    ~WeakReference() { } // So that we can use a template specialization for testing purposes to detect leaks.
+
     T* get() const { return m_ptr; }
 
     void clear() { m_ptr = nullptr; }
@@ -84,6 +85,7 @@ public:
     void clear() { m_ref = nullptr; }
 
 private:
+    template<typename U> friend class WeakHashSet;
     template<typename U> friend class WeakPtr;
     template<typename U> friend WeakPtr<U> makeWeakPtr(U&);
 
@@ -128,6 +130,8 @@ public:
     }
 
 private:
+    template<typename U> friend class WeakHashSet;
+
     mutable RefPtr<WeakReference<T>> m_ref;
 };
 
@@ -223,5 +227,3 @@ using WTF::WeakPtr;
 using WTF::WeakPtrFactory;
 using WTF::WeakReference;
 using WTF::makeWeakPtr;
-
-#endif

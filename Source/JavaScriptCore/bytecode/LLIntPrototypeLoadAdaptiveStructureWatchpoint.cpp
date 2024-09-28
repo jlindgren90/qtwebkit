@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2016-2019 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,10 @@
 
 namespace JSC {
 
-LLIntPrototypeLoadAdaptiveStructureWatchpoint::LLIntPrototypeLoadAdaptiveStructureWatchpoint(const ObjectPropertyCondition& key, Instruction* getByIdInstruction)
-    : m_key(key)
-    , m_getByIdInstruction(getByIdInstruction)
+LLIntPrototypeLoadAdaptiveStructureWatchpoint::LLIntPrototypeLoadAdaptiveStructureWatchpoint(CodeBlock* owner, const ObjectPropertyCondition& key, OpGetById::Metadata& getByIdMetadata)
+    : m_owner(owner)
+    , m_key(key)
+    , m_getByIdMetadata(getByIdMetadata)
 {
     RELEASE_ASSERT(key.watchingRequiresStructureTransitionWatchpoint());
     RELEASE_ASSERT(!key.watchingRequiresReplacementWatchpoint());
@@ -49,12 +50,23 @@ void LLIntPrototypeLoadAdaptiveStructureWatchpoint::install(VM& vm)
 
 void LLIntPrototypeLoadAdaptiveStructureWatchpoint::fireInternal(VM& vm, const FireDetail&)
 {
+    if (!m_owner->isLive())
+        return;
+
     if (m_key.isWatchable(PropertyCondition::EnsureWatchability)) {
         install(vm);
         return;
     }
 
-    CodeBlock::clearLLIntGetByIdCache(m_getByIdInstruction);
+    clearLLIntGetByIdCache(m_getByIdMetadata);
 }
+
+void LLIntPrototypeLoadAdaptiveStructureWatchpoint::clearLLIntGetByIdCache(OpGetById::Metadata& metadata)
+{
+    metadata.m_mode = GetByIdMode::Default;
+    metadata.m_modeMetadata.defaultMode.cachedOffset = 0;
+    metadata.m_modeMetadata.defaultMode.structureID = 0;
+}
+
 
 } // namespace JSC

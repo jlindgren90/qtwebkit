@@ -360,7 +360,7 @@ static VisiblePosition visualWordPosition(const VisiblePosition& visiblePosition
     TextDirection blockDirection = directionOfEnclosingBlock(visiblePosition.deepEquivalent());
     InlineBox* previouslyVisitedBox = nullptr;
     VisiblePosition current = visiblePosition;
-    std::optional<VisiblePosition> previousPosition;
+    Optional<VisiblePosition> previousPosition;
     UBreakIterator* iter = nullptr;
 
     CachedLogicallyOrderedLeafBoxes leafBoxes;
@@ -1377,6 +1377,11 @@ bool isEndOfParagraph(const VisiblePosition& pos, EditingBoundaryCrossingRule bo
 {
     return pos.isNotNull() && pos == endOfParagraph(pos, boundaryCrossingRule);
 }
+    
+bool isBlankParagraph(const VisiblePosition& position)
+{
+    return isStartOfParagraph(position) && startOfParagraph(position.next()) != startOfParagraph(position);
+}
 
 VisiblePosition previousParagraphPosition(const VisiblePosition& p, int x)
 {
@@ -1893,10 +1898,10 @@ int distanceBetweenPositions(const VisiblePosition& vp, const VisiblePosition& o
     bool thisIsStart = (vp < other);
 
     // Start must come first in the Range constructor.
-    RefPtr<Range> range = Range::create(vp.deepEquivalent().deprecatedNode()->document(),
+    auto range = Range::create(vp.deepEquivalent().deprecatedNode()->document(),
                                         (thisIsStart ? vp : other),
                                         (thisIsStart ? other : vp));
-    int distance = TextIterator::rangeLength(range.get());
+    int distance = TextIterator::rangeLength(range.ptr());
 
     return (thisIsStart ? -distance : distance);
 }

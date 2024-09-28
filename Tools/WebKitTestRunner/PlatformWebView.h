@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PlatformWebView_h
-#define PlatformWebView_h
+#pragma once
 
 #include "TestOptions.h"
 
@@ -38,24 +37,27 @@ OBJC_CLASS WKWebViewConfiguration;
 OBJC_CLASS WebKitTestRunnerWindow;
 typedef struct CGImage *CGImageRef;
 
-#if WK_API_ENABLED
 typedef TestRunnerWKWebView *PlatformWKView;
-#else
-typedef NSView *PlatformWKView;
-#endif
 typedef WebKitTestRunnerWindow *PlatformWindow;
 typedef RetainPtr<CGImageRef> PlatformImage;
 #elif defined(BUILDING_GTK__)
 typedef struct _GtkWidget GtkWidget;
 typedef WKViewRef PlatformWKView;
 typedef GtkWidget* PlatformWindow;
-typedef cairo_surface_t *PlatformImage;
 #elif PLATFORM(WPE)
 namespace WPEToolingBackends {
 class HeadlessViewBackend;
 }
 typedef WKViewRef PlatformWKView;
 typedef WPEToolingBackends::HeadlessViewBackend* PlatformWindow;
+#elif PLATFORM(WIN)
+#include <cairo.h>
+class TestRunnerWindow;
+typedef HWND PlatformWindow;
+typedef WKViewRef PlatformWKView;
+#endif
+
+#if USE(CAIRO)
 typedef cairo_surface_t* PlatformImage;
 #endif
 
@@ -97,6 +99,8 @@ public:
     bool drawsBackground() const;
     void setDrawsBackground(bool);
 
+    void setEditable(bool);
+
     void removeFromWindow();
     void addToWindow();
 
@@ -125,5 +129,3 @@ private:
 };
 
 } // namespace WTR
-
-#endif // PlatformWebView_h

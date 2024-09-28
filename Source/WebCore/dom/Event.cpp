@@ -28,6 +28,7 @@
 #include "EventNames.h"
 #include "EventPath.h"
 #include "EventTarget.h"
+#include "InspectorInstrumentation.h"
 #include "Performance.h"
 #include "UserGestureIndicator.h"
 #include "WorkerGlobalScope.h"
@@ -151,7 +152,7 @@ DOMHighResTimeStamp Event::timeStampForBindings(ScriptExecutionContext& context)
     if (is<WorkerGlobalScope>(context))
         performance = &downcast<WorkerGlobalScope>(context).performance();
     else if (auto* window = downcast<Document>(context).domWindow())
-        performance = window->performance();
+        performance = &window->performance();
 
     if (!performance)
         return 0;
@@ -171,6 +172,8 @@ void Event::resetAfterDispatch()
     m_eventPhase = NONE;
     m_propagationStopped = false;
     m_immediatePropagationStopped = false;
+
+    InspectorInstrumentation::eventDidResetAfterDispatch(*this);
 }
 
 } // namespace WebCore

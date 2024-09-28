@@ -24,7 +24,7 @@
  */
 
 #include "config.h"
-#include "Threading.h"
+#include <wtf/Threading.h>
 
 #include <algorithm>
 #include <cmath>
@@ -54,17 +54,29 @@ public:
     {
     }
 
+    enum class Stage { Start, EstablishedHandle, Initialized };
+    Stage stage { Stage::Start };
     const char* name;
     Function<void()> entryPoint;
     Ref<Thread> thread;
     Mutex mutex;
-    enum class Stage { Start, EstablishedHandle, Initialized };
-    Stage stage { Stage::Start };
 
 #if !HAVE(STACK_BOUNDS_FOR_NEW_THREAD)
     ThreadCondition condition;
 #endif
 };
+
+HashSet<Thread*>& Thread::allThreads(const LockHolder&)
+{
+    static NeverDestroyed<HashSet<Thread*>> allThreads;
+    return allThreads;
+}
+
+Lock& Thread::allThreadsMutex()
+{
+    static Lock mutex;
+    return mutex;
+}
 
 const char* Thread::normalizeThreadName(const char* threadName)
 {
@@ -164,6 +176,11 @@ Ref<Thread> Thread::create(const char* name, Function<void()>&& entryPoint)
 #endif
     }
 
+    {
+        LockHolder lock(allThreadsMutex());
+        allThreads(lock).add(&thread.get());
+    }
+
     ASSERT(!thread->stack().isEmpty());
     return thread;
 }
@@ -184,29 +201,36 @@ static bool shouldRemoveThreadFromThreadGroup()
 
 void Thread::didExit()
 {
-    if (shouldRemoveThreadFromThreadGroup()) {
-        Vector<std::shared_ptr<ThreadGroup>> threadGroups;
-        {
-            auto locker = holdLock(m_mutex);
-            for (auto& threadGroup : m_threadGroups) {
-                // If ThreadGroup is just being destroyed,
-                // we do not need to perform unregistering.
-                if (auto retained = threadGroup.lock())
-                    threadGroups.append(WTFMove(retained));
-            }
-            m_isShuttingDown = true;
-        }
-        for (auto& threadGroup : threadGroups) {
-            auto threadGroupLocker = holdLock(threadGroup->getLock());
-            auto locker = holdLock(m_mutex);
-            threadGroup->m_threads.remove(*this);
-        }
+    {
+        LockHolder lock(allThreadsMutex());
+        allThreads(lock).remove(this);
     }
 
-    // We would like to say "thread is exited" after unregistering threads from thread groups.
-    // So we need to separate m_isShuttingDown from m_didExit.
-    auto locker = holdLock(m_mutex);
-    m_didExit = true;
+    if (shouldRemoveThreadFromThreadGroup()) {
+        {
+            Vector<std::shared_ptr<ThreadGroup>> threadGroups;
+            {
+                auto locker = holdLock(m_mutex);
+                for (auto& threadGroup : m_threadGroups) {
+                    // If ThreadGroup is just being destroyed,
+                    // we do not need to perform unregistering.
+                    if (auto retained = threadGroup.lock())
+                        threadGroups.append(WTFMove(retained));
+                }
+                m_isShuttingDown = true;
+            }
+            for (auto& threadGroup : threadGroups) {
+                auto threadGroupLocker = holdLock(threadGroup->getLock());
+                auto locker = holdLock(m_mutex);
+                threadGroup->m_threads.remove(*this);
+            }
+        }
+
+        // We would like to say "thread is exited" after unregistering threads from thread groups.
+        // So we need to separate m_isShuttingDown from m_didExit.
+        auto locker = holdLock(m_mutex);
+        m_didExit = true;
+    }
 }
 
 ThreadGroupAddResult Thread::addToThreadGroup(const AbstractLocker& threadGroupLocker, ThreadGroup& threadGroup)

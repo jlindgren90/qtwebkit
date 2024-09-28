@@ -26,7 +26,7 @@
 #import "config.h"
 #import "TestDraggingInfo.h"
 
-#if ENABLE(DRAG_SUPPORT) && PLATFORM(MAC) && WK_API_ENABLED
+#if ENABLE(DRAG_SUPPORT) && PLATFORM(MAC)
 
 #import "DragAndDropSimulator.h"
 #import "TestFilePromiseReceiver.h"
@@ -115,7 +115,7 @@
         [receiver setDraggingSource:_source.get().get()];
         [_filePromiseReceivers addObject:receiver.get()];
 
-        auto item = adoptNS([NSDraggingItem new]);
+        auto item = adoptNS([[NSDraggingItem alloc] initWithPasteboardWriter:(id <NSPasteboardWriting>)receiver.get()]); // FIXME: <https://webkit.org/b/194060> Pass an object of the right type.
         [item setItem:receiver.get()];
 
         block(item.get(), 0, &stop);
@@ -150,7 +150,9 @@
 {
 }
 
+IGNORE_WARNINGS_BEGIN("deprecated-implementations")
 - (NSArray<NSString *> *)namesOfPromisedFilesDroppedAtDestination:(NSURL *)dropDestination
+IGNORE_WARNINGS_END
 {
     return @[ ];
 }
@@ -161,4 +163,4 @@
 
 @end
 
-#endif // ENABLE(DRAG_SUPPORT) && PLATFORM(MAC) && WK_API_ENABLED
+#endif // ENABLE(DRAG_SUPPORT) && PLATFORM(MAC)

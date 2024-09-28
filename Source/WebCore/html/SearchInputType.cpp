@@ -52,7 +52,7 @@ SearchInputType::SearchInputType(HTMLInputElement& element)
 
 void SearchInputType::addSearchResult()
 {
-#if !PLATFORM(IOS)
+#if !PLATFORM(IOS_FAMILY)
     // Normally we've got the correct renderer by the time we get here. However when the input type changes
     // we don't update the associated renderers until after the next tree update, so we could actually end up here
     // with a mismatched renderer (e.g. through form submission).
@@ -134,13 +134,11 @@ HTMLElement* SearchInputType::cancelButtonElement() const
     return m_cancelButton.get();
 }
 
-void SearchInputType::handleKeydownEvent(KeyboardEvent& event)
+auto SearchInputType::handleKeydownEvent(KeyboardEvent& event) -> ShouldCallBaseEventHandler
 {
     ASSERT(element());
-    if (element()->isDisabledOrReadOnly()) {
-        TextFieldInputType::handleKeydownEvent(event);
-        return;
-    }
+    if (element()->isDisabledOrReadOnly())
+        return TextFieldInputType::handleKeydownEvent(event);
 
     const String& key = event.keyIdentifier();
     if (key == "U+001B") {
@@ -148,9 +146,9 @@ void SearchInputType::handleKeydownEvent(KeyboardEvent& event)
         protectedInputElement->setValueForUser(emptyString());
         protectedInputElement->onSearch();
         event.setDefaultHandled();
-        return;
+        return ShouldCallBaseEventHandler::Yes;
     }
-    TextFieldInputType::handleKeydownEvent(event);
+    return TextFieldInputType::handleKeydownEvent(event);
 }
 
 void SearchInputType::destroyShadowSubtree()

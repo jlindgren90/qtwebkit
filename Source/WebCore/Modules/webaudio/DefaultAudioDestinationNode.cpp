@@ -57,6 +57,7 @@ void DefaultAudioDestinationNode::initialize()
     ASSERT(isMainThread()); 
     if (isInitialized())
         return;
+    ALWAYS_LOG(LOGIDENTIFIER);
 
     createDestination();
     AudioNode::initialize();
@@ -68,7 +69,9 @@ void DefaultAudioDestinationNode::uninitialize()
     if (!isInitialized())
         return;
 
+    ALWAYS_LOG(LOGIDENTIFIER);
     m_destination->stop();
+    m_destination = nullptr;
     m_numberOfInputChannels = 0;
 
     AudioNode::uninitialize();
@@ -84,6 +87,8 @@ void DefaultAudioDestinationNode::createDestination()
 
 void DefaultAudioDestinationNode::enableInput(const String& inputDeviceId)
 {
+    ALWAYS_LOG(LOGIDENTIFIER);
+
     ASSERT(isMainThread());
     if (m_numberOfInputChannels != EnabledInputChannels) {
         m_numberOfInputChannels = EnabledInputChannels;
@@ -143,6 +148,7 @@ ExceptionOr<void> DefaultAudioDestinationNode::setChannelCount(unsigned channelC
     // channels supported by the hardware.
 
     ASSERT(isMainThread());
+    ALWAYS_LOG(LOGIDENTIFIER, channelCount);
 
     if (!maxChannelCount() || channelCount > maxChannelCount())
         return Exception { InvalidStateError };

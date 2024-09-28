@@ -32,9 +32,9 @@
 #include "FloatRect.h"
 #include "IntRect.h"
 #include "TransformationMatrix.h"
-#include <wtf/text/TextStream.h>
-
 #include <wtf/MathExtras.h>
+#include <wtf/Optional.h>
+#include <wtf/text/TextStream.h>
 
 namespace WebCore {
 
@@ -104,11 +104,11 @@ bool AffineTransform::isInvertible() const
     return std::isfinite(determinant) && determinant != 0;
 }
 
-std::optional<AffineTransform> AffineTransform::inverse() const
+Optional<AffineTransform> AffineTransform::inverse() const
 {
     double determinant = det(m_transform);
     if (!std::isfinite(determinant) || determinant == 0)
-        return std::nullopt;
+        return WTF::nullopt;
 
     AffineTransform result;
     if (isIdentityOrTranslation()) {

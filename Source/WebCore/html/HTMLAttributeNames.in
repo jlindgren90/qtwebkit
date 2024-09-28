@@ -66,6 +66,8 @@ aria-valuenow
 aria-valuetext
 as
 async
+adcampaignid
+addestination
 autocomplete
 autofocus
 autoplay
@@ -200,6 +202,7 @@ onaccessibleincrement
 onaccessiblescrollintoview
 onaccessiblesetvalue
 onaccessibleselect
+onafterprint
 onanimationstart
 onanimationiteration
 onanimationend
@@ -211,6 +214,7 @@ onbeforecut
 onbeforeinput
 onbeforeload
 onbeforepaste
+onbeforeprint
 onbeforeunload
 onblur
 oncanplay
@@ -340,6 +344,7 @@ progress
 prompt
 pseudo
 readonly
+referrerpolicy
 rel
 required
 results
@@ -420,3 +425,5 @@ x-apple-data-detectors-type
 x-apple-data-detectors-result
 
 x-apple-pdf-annotation
+
+x-apple-editable-image

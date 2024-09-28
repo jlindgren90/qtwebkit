@@ -176,6 +176,7 @@ fast/harness/use-page-cache.html
 
 # eventSender.dragMode is unimplemented in WKTR
 # Mac: https://bugs.webkit.org/show_bug.cgi?id=68552
+fast/events/drag-and-drop-move-not-copy.html
 fast/events/controlclick-no-onclick.html
 fast/events/moving-text-should-fire-drop-and-dragend-events.html
 fast/events/moving-text-should-fire-drop-and-dragend-events-2.html
@@ -534,6 +535,11 @@ platform/mac/fast/AppleScript/001.html
 platform/mac/fast/AppleScript/array.html
 platform/mac/fast/AppleScript/date.html
 
+# setDefersLoading is not supported in WK2.
+loader/load-defer.html [ Skip ]
+loader/load-defer-resume-crash.html [ Skip ]
+loader/navigation-while-deferring-loads.html [ Skip ]
+
 # WebKitTestRunner doesn't have objCController
 platform/mac/fast/dom/objc-wrapper-identity.html
 platform/mac/fast/dom/wrapper-classes-objc.html
@@ -696,6 +702,8 @@ http/tests/misc/will-send-request-with-client-provided-http-body.html [ Pass ]
 # bug 162281
 imported/w3c/web-platform-tests/fetch/api/request/request-cache-only-if-cached.html [ Failure ]
 
+printing/printing-events.html [ Pass ]
+
 # Resource Load Statistics are only supported in WebKit2.
 http/tests/resourceLoadStatistics/prevalent-resource-with-user-interaction.html [ Pass ]
 http/tests/resourceLoadStatistics/non-prevalent-resource-with-user-interaction.html [ Pass ]
@@ -730,15 +738,21 @@ http/tests/resourceLoadStatistics/strip-referrer-to-origin-for-prevalent-subreso
 http/tests/resourceLoadStatistics/add-blocking-to-redirect.html [ Skip ]
 http/tests/resourceLoadStatistics/remove-blocking-in-redirect.html [ Skip ]
 http/tests/resourceLoadStatistics/non-prevalent-resources-can-access-cookies-in-a-third-party-context.html [ Skip ]
+http/tests/resourceLoadStatistics/cap-cache-max-age-for-prevalent-resource.html [ Skip ]
 
-# Process swapping is only implemented on WebKit2.
-http/tests/navigation/process-swap-window-open.html [ Pass ]
+# This feature is currently disabled by default and unfinished <rdar://problem/38925077>.
+http/tests/navigation/process-swap-window-open.html [ Skip ]
 
 # Cross-Origin-Resource-Policy response header is only implemented in WebKit2.
 http/wpt/cross-origin-resource-policy/ [ Pass ]
 
 http/tests/navigation/useragent-reload.php [ Pass ]
 storage/indexeddb/modern/opendatabase-after-storage-crash.html [ Pass ]
+storage/indexeddb/IDBObject-leak.html [ Pass ]
+
+fast/forms/call-text-did-change-in-text-field-when-typing.html [ Pass ]
+
+http/tests/adClickAttribution [ Pass ]
 
 ### END OF (5) Progressions, expected successes that are expected failures in WebKit1.
 ########################################
@@ -769,3 +783,7 @@ webkit.org/b/183801 http/wpt/webrtc/third-party-frame-ice-candidate-filtering.ht
 webkit.org/b/186406 compositing/iframes/display-none-subframe.html [ Pass Failure ]
 
 webkit.org/b/187766 http/wpt/service-workers/update-service-worker.https.html [ Pass Timeout ]
+
+# Newly imported test that is flaky on WebKit2 only.
+imported/w3c/web-platform-tests/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/no_window_open_when_term_nesting_level_nonzero.window.html [ Pass Failure ]
+

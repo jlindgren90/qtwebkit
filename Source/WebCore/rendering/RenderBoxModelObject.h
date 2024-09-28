@@ -60,7 +60,6 @@ enum ContentChangeType {
 class BorderEdge;
 class ImageBuffer;
 class InlineFlowBox;
-class KeyframeList;
 class RenderTextFragment;
 class StickyPositionViewportConstraints;
 
@@ -223,17 +222,6 @@ public:
     void contentChanged(ContentChangeType);
     bool hasAcceleratedCompositing() const;
 
-    bool startTransition(double, CSSPropertyID, const RenderStyle* fromStyle, const RenderStyle* toStyle);
-    void transitionPaused(double timeOffset, CSSPropertyID);
-    void transitionFinished(CSSPropertyID);
-
-    bool startAnimation(double timeOffset, const Animation*, const KeyframeList& keyframes);
-    void animationPaused(double timeOffset, const String& name);
-    void animationSeeked(double timeOffset, const String& name);
-    void animationFinished(const String& name);
-
-    void suspendAnimations(MonotonicTime = MonotonicTime());
-
     RenderBoxModelObject* continuation() const;
     WEBCORE_EXPORT RenderInline* inlineContinuation() const;
     
@@ -241,7 +229,14 @@ public:
     void removeFromContinuationChain();
 
     virtual LayoutRect paintRectToClipOutFromBorder(const LayoutRect&) { return LayoutRect(); };
-    
+
+    bool hasRunningAcceleratedAnimations() const;
+
+    virtual Optional<LayoutUnit> overrideContainingBlockContentWidth() const { ASSERT_NOT_REACHED(); return -1_lu; }
+    virtual Optional<LayoutUnit> overrideContainingBlockContentHeight() const { ASSERT_NOT_REACHED(); return -1_lu; }
+    virtual bool hasOverrideContainingBlockContentWidth() const { return false; }
+    virtual bool hasOverrideContainingBlockContentHeight() const { return false; }
+
 protected:
     RenderBoxModelObject(Element&, RenderStyle&&, BaseTypeFlags);
     RenderBoxModelObject(Document&, RenderStyle&&, BaseTypeFlags);

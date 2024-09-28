@@ -51,6 +51,19 @@ typedef struct _GDBusConnection GDBusConnection;
 typedef struct _GDBusInterfaceVTable GDBusInterfaceVTable;
 #endif
 
+#if PLATFORM(PLAYSTATION)
+#include "RemoteConnectionToTarget.h"
+#include "RemoteInspectorConnectionClient.h"
+#include "RemoteInspectorSocketClient.h"
+#include <wtf/JSONValues.h>
+#include <wtf/RefCounted.h>
+#include <wtf/RefPtr.h>
+
+namespace Inspector {
+using TargetListing = RefPtr<JSON::Object>;
+}
+#endif
+
 namespace Inspector {
 
 class RemoteAutomationTarget;
@@ -62,6 +75,8 @@ class RemoteInspectorClient;
 class JS_EXPORT_PRIVATE RemoteInspector final
 #if PLATFORM(COCOA)
     : public RemoteInspectorXPCConnection::Client
+#elif PLATFORM(PLAYSTATION)
+    : public RemoteInspectorConnectionClient
 #endif
 {
 public:
@@ -79,8 +94,8 @@ public:
             Vector<std::pair<String, String>> certificates;
 #endif
 #if PLATFORM(COCOA)
-            std::optional<bool> allowInsecureMediaCapture;
-            std::optional<bool> suppressICECandidateFiltering;
+            Optional<bool> allowInsecureMediaCapture;
+            Optional<bool> suppressICECandidateFiltering;
 #endif
         };
 
@@ -103,7 +118,7 @@ public:
     RemoteInspector::Client* client() const { return m_client; }
     void setClient(RemoteInspector::Client*);
     void clientCapabilitiesDidChange();
-    std::optional<RemoteInspector::Client::Capabilities> clientCapabilities() const { return m_clientCapabilities; }
+    Optional<RemoteInspector::Client::Capabilities> clientCapabilities() const { return m_clientCapabilities; }
 
     void setupFailed(unsigned targetIdentifier);
     void setupCompleted(unsigned targetIdentifier);
@@ -128,8 +143,13 @@ public:
 
 #if USE(GLIB)
     void requestAutomationSession(const char* sessionID, const Client::SessionCapabilities&);
+#endif
+#if USE(GLIB) || PLATFORM(PLAYSTATION)
     void setup(unsigned targetIdentifier);
     void sendMessageToTarget(unsigned targetIdentifier, const char* message);
+#endif
+#if PLATFORM(PLAYSTATION)
+    static void setConnectionIdentifier(PlatformSocketType);
 #endif
 
 private:
@@ -184,7 +204,17 @@ private:
     void receivedAutomaticInspectionRejectMessage(NSDictionary *userInfo);
     void receivedAutomationSessionRequestMessage(NSDictionary *userInfo);
 #endif
+#if PLATFORM(PLAYSTATION)
+    HashMap<String, CallHandler>& dispatchMap() override;
+    void didClose(ClientID) override;
 
+    void sendWebInspectorEvent(const String&);
+
+    void receivedGetTargetListMessage(const struct Event&);
+    void receivedSetupMessage(const struct Event&);
+    void receivedDataMessage(const struct Event&);
+    void receivedCloseMessage(const struct Event&);
+#endif
     static bool startEnabled;
 
     // Targets can be registered from any thread at any time.
@@ -205,8 +235,14 @@ private:
     GRefPtr<GCancellable> m_cancellable;
 #endif
 
+#if PLATFORM(PLAYSTATION)
+    std::unique_ptr<RemoteInspectorSocketClient> m_socketConnection;
+    static PlatformSocketType s_connectionIdentifier;
+    Optional<ClientID> m_clientID;
+#endif
+
     RemoteInspector::Client* m_client { nullptr };
-    std::optional<RemoteInspector::Client::Capabilities> m_clientCapabilities;
+    Optional<RemoteInspector::Client::Capabilities> m_clientCapabilities;
 
 #if PLATFORM(COCOA)
     dispatch_queue_t m_xpcQueue;

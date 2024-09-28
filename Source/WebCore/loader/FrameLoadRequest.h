@@ -27,7 +27,6 @@
 
 #include "FrameLoaderTypes.h"
 #include "ResourceRequest.h"
-#include "ShouldSkipSafeBrowsingCheck.h"
 #include "SubstituteData.h"
 #include <wtf/Forward.h>
 
@@ -64,15 +63,19 @@ public:
     void setShouldTreatAsContinuingLoad(bool value) { m_shouldTreatAsContinuingLoad = value; }
     bool shouldTreatAsContinuingLoad() const { return m_shouldTreatAsContinuingLoad; }
 
-    void setShouldSkipSafeBrowsingCheck(ShouldSkipSafeBrowsingCheck skip) { m_shouldSkipSafeBrowsingCheck = skip; }
-    ShouldSkipSafeBrowsingCheck shouldSkipSafeBrowsingCheck() { return m_shouldSkipSafeBrowsingCheck; }
-    
     const SubstituteData& substituteData() const { return m_substituteData; }
     void setSubstituteData(const SubstituteData& data) { m_substituteData = data; }
     bool hasSubstituteData() { return m_substituteData.isValid(); }
 
     LockHistory lockHistory() const { return m_lockHistory; }
+    void setLockHistory(LockHistory value) { m_lockHistory = value; }
+
     LockBackForwardList lockBackForwardList() const { return m_lockBackForwardList; }
+    void setlockBackForwardList(LockBackForwardList value) { m_lockBackForwardList = value; }
+
+    const String& clientRedirectSourceForHistory() const { return m_clientRedirectSourceForHistory; }
+    void setClientRedirectSourceForHistory(const String& clientRedirectSourceForHistory) { m_clientRedirectSourceForHistory = clientRedirectSourceForHistory; }
+
     ShouldSendReferrer shouldSendReferrer() const { return m_shouldSendReferrer; }
     AllowNavigationToInvalidURL allowNavigationToInvalidURL() const { return m_allowNavigationToInvalidURL; }
     NewFrameOpenerPolicy newFrameOpenerPolicy() const { return m_newFrameOpenerPolicy; }
@@ -88,11 +91,11 @@ public:
 
     InitiatedByMainFrame initiatedByMainFrame() const { return m_initiatedByMainFrame; }
 
-    void setIsCrossOriginWindowOpenNavigation(bool value) { m_isCrossOriginWindowOpenNavigation = value; }
-    bool isCrossOriginWindowOpenNavigation() const { return m_isCrossOriginWindowOpenNavigation; }
-
     bool isSystemPreview() const { return m_systemPreviewInfo.isSystemPreview; }
     const IntRect& systemPreviewRect() const { return m_systemPreviewInfo.systemPreviewRect; }
+
+    void setIsRequestFromClientOrUserInput() { m_isRequestFromClientOrUserInput = true; }
+    bool isRequestFromClientOrUserInput() const { return m_isRequestFromClientOrUserInput; }
 
 private:
     Ref<Document> m_requester;
@@ -100,6 +103,7 @@ private:
     ResourceRequest m_resourceRequest;
     String m_frameName;
     SubstituteData m_substituteData;
+    String m_clientRedirectSourceForHistory;
 
     bool m_shouldCheckNewWindowPolicy { false };
     bool m_shouldTreatAsContinuingLoad { false };
@@ -112,9 +116,8 @@ private:
     ShouldOpenExternalURLsPolicy m_shouldOpenExternalURLsPolicy { ShouldOpenExternalURLsPolicy::ShouldNotAllow };
     AtomicString m_downloadAttribute;
     InitiatedByMainFrame m_initiatedByMainFrame { InitiatedByMainFrame::Unknown };
-    bool m_isCrossOriginWindowOpenNavigation { false };
     SystemPreviewInfo m_systemPreviewInfo;
-    ShouldSkipSafeBrowsingCheck m_shouldSkipSafeBrowsingCheck { ShouldSkipSafeBrowsingCheck::No };
+    bool m_isRequestFromClientOrUserInput { false };
 };
 
 } // namespace WebCore

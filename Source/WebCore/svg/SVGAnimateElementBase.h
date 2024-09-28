@@ -23,22 +23,28 @@
 
 #pragma once
 
-#include "SVGAnimatedType.h"
-#include "SVGAnimatedTypeAnimator.h"
 #include "SVGAnimationElement.h"
 #include "SVGNames.h"
 
 namespace WebCore {
+
+class SVGAttributeAnimationControllerBase;
 
 class SVGAnimateElementBase : public SVGAnimationElement {
     WTF_MAKE_ISO_ALLOCATED(SVGAnimateElementBase);
 public:
     virtual ~SVGAnimateElementBase();
 
+    SVGAttributeAnimationControllerBase& attributeAnimationController();
+    SVGAttributeAnimationControllerBase* attributeAnimationControllerIfExists() const { return m_attributeAnimationController.get(); }
+
     AnimatedPropertyType determineAnimatedPropertyType(SVGElement&) const;
+    bool isDiscreteAnimator() const;
 
 protected:
     SVGAnimateElementBase(const QualifiedName&, Document&);
+
+    bool hasValidAttributeType() const override;
 
     void resetAnimatedType() override;
     void clearAnimatedType(SVGElement* targetElement) override;
@@ -53,23 +59,15 @@ protected:
 
     void setTargetElement(SVGElement*) override;
     void setAttributeName(const QualifiedName&) override;
-    void resetAnimatedPropertyType() override;
+    void resetAnimation() override;
 
-    AnimatedPropertyType m_animatedPropertyType;
+    virtual String animateRangeString(const String& string) const { return string; }
 
 private:
-    SVGAnimatedTypeAnimator* ensureAnimator();
-    bool animatedPropertyTypeSupportsAddition() const;
+    bool hasInvalidCSSAttributeType() const;
 
-    bool hasValidAttributeType() override;
-
-    std::unique_ptr<SVGAnimatedType> m_fromType;
-    std::unique_ptr<SVGAnimatedType> m_toType;
-    std::unique_ptr<SVGAnimatedType> m_toAtEndOfDurationType;
-    std::unique_ptr<SVGAnimatedType> m_animatedType;
-
-    SVGElementAnimatedPropertyList m_animatedProperties;
-    std::unique_ptr<SVGAnimatedTypeAnimator> m_animator;
+    mutable Optional<bool> m_hasInvalidCSSAttributeType;
+    std::unique_ptr<SVGAttributeAnimationControllerBase> m_attributeAnimationController;
 };
 
 } // namespace WebCore

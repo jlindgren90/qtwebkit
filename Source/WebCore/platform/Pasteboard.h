@@ -27,14 +27,14 @@
 
 #include "DragImage.h"
 #include "PasteboardItemInfo.h"
-#include "URL.h"
 #include <wtf/HashMap.h>
 #include <wtf/ListHashSet.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/URL.h>
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 OBJC_CLASS NSString;
 #endif
 
@@ -93,7 +93,7 @@ struct PasteboardWebContent {
     String text;
     String markup;
 #endif
-#if PLATFORM(WPE)
+#if USE(LIBWPE)
     String text;
     String markup;
 #endif
@@ -146,6 +146,7 @@ public:
     virtual bool readRTF(SharedBuffer&) = 0;
     virtual bool readImage(Ref<SharedBuffer>&&, const String& type) = 0;
     virtual bool readURL(const URL&, const String& title) = 0;
+    virtual bool readDataBuffer(SharedBuffer&, const String& type, const String& name) = 0;
 #endif
     virtual bool readPlainText(const String&) = 0;
 };
@@ -256,7 +257,7 @@ public:
     static std::unique_ptr<Pasteboard> createForGlobalSelection();
 #endif
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     explicit Pasteboard(long changeCount);
     explicit Pasteboard(const String& pasteboardName);
 
@@ -302,7 +303,7 @@ private:
     const QMimeData* readData() const;
 #endif
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     bool respectsUTIFidelities() const;
     void readRespectingUTIFidelities(PasteboardWebContentReader&, WebContentReadingPolicy);
 
@@ -340,7 +341,7 @@ private:
 #if PLATFORM(COCOA)
     String m_pasteboardName;
     long m_changeCount;
-    std::optional<PasteboardCustomData> m_customDataCache;
+    Optional<PasteboardCustomData> m_customDataCache;
 #endif
 
 #if PLATFORM(QT)
@@ -362,7 +363,7 @@ private:
 #endif
 };
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 extern NSString *WebArchivePboardType;
 extern NSString *UIColorPboardType;
 #endif

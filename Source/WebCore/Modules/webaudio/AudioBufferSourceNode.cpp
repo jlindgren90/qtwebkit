@@ -111,8 +111,8 @@ void AudioBufferSourceNode::process(size_t framesToProcess)
         return;
     }
 
-    size_t quantumFrameOffset;
-    size_t bufferFramesToProcess;
+    size_t quantumFrameOffset = 0;
+    size_t bufferFramesToProcess = 0;
     updateSchedulingInfo(framesToProcess, outputBus, quantumFrameOffset, bufferFramesToProcess);
 
     if (!bufferFramesToProcess) {
@@ -407,7 +407,8 @@ void AudioBufferSourceNode::reset()
 void AudioBufferSourceNode::setBuffer(RefPtr<AudioBuffer>&& buffer)
 {
     ASSERT(isMainThread());
-    
+    DEBUG_LOG(LOGIDENTIFIER);
+
     // The context must be locked since changing the buffer can re-configure the number of channels that are output.
     AudioContext::AutoLocker contextLocker(context());
     
@@ -437,7 +438,7 @@ unsigned AudioBufferSourceNode::numberOfChannels()
     return output(0)->numberOfChannels();
 }
 
-ExceptionOr<void> AudioBufferSourceNode::start(double when, double grainOffset, std::optional<double> optionalGrainDuration)
+ExceptionOr<void> AudioBufferSourceNode::start(double when, double grainOffset, Optional<double> optionalGrainDuration)
 {
     double grainDuration = 0;
     if (optionalGrainDuration)
@@ -451,6 +452,7 @@ ExceptionOr<void> AudioBufferSourceNode::start(double when, double grainOffset, 
 ExceptionOr<void> AudioBufferSourceNode::startPlaying(BufferPlaybackMode playbackMode, double when, double grainOffset, double grainDuration)
 {
     ASSERT(isMainThread());
+    ALWAYS_LOG(LOGIDENTIFIER, "when = ", when, ", offset = ", grainOffset, ", duration = ", grainDuration);
 
     context().nodeWillBeginPlayback();
 

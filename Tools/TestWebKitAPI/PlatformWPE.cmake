@@ -23,6 +23,8 @@ include_directories(
 include_directories(SYSTEM
     ${CAIRO_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
+    ${GSTREAMER_INCLUDE_DIRS}
+    ${GSTREAMER_AUDIO_INCLUDE_DIRS}
     ${LIBSOUP_INCLUDE_DIRS}
     ${WPE_INCLUDE_DIRS}
     ${WPEBACKEND_FDO_INCLUDE_DIRS}
@@ -58,15 +60,16 @@ add_executable(TestWebCore
     ${test_main_SOURCES}
     ${TESTWEBKITAPI_DIR}/glib/UtilitiesGLib.cpp
     ${TESTWEBKITAPI_DIR}/TestsController.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WebCore/FileMonitor.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WebCore/gstreamer/GstMappedBuffer.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WebCore/gstreamer/GStreamerTest.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/HTMLParserIdioms.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/LayoutUnit.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/MIMETypeRegistry.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WebCore/URL.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WebCore/PublicSuffix.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/SharedBuffer.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WebCore/SharedBufferTest.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WebCore/FileMonitor.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WebCore/FileSystem.cpp
-    ${TESTWEBKITAPI_DIR}/Tests/WebCore/PublicSuffix.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WebCore/URLParserTextEncoding.cpp
 )
 
 target_link_libraries(TestWebCore ${test_webcore_LIBRARIES})
@@ -89,12 +92,21 @@ add_test(TestWebKit ${TESTWEBKITAPI_RUNTIME_OUTPUT_DIRECTORY}/WebKit/TestWebKit)
 set_tests_properties(TestWebKit PROPERTIES TIMEOUT 60)
 set_target_properties(TestWebKit PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTWEBKITAPI_RUNTIME_OUTPUT_DIRECTORY}/WebKit)
 
+# TestWebKitAPIBase
+list(APPEND TestWebKitAPIBase_LIBRARIES ${WPEBACKEND_FDO_LIBRARIES})
+list(APPEND TestWebKitAPI_LIBRARIES ${WPEBACKEND_FDO_LIBRARIES})
+list(APPEND TestWebKitAPIBase_SOURCES
+    ${TOOLS_DIR}/wpe/backends/ViewBackend.cpp
+    ${TOOLS_DIR}/wpe/backends/HeadlessViewBackend.cpp
+)
+
 # TestJSC
 
 add_definitions(-DWEBKIT_SRC_DIR="${CMAKE_SOURCE_DIR}")
 add_executable(TestJSC ${TESTWEBKITAPI_DIR}/Tests/JavaScriptCore/glib/TestJSC.cpp)
 target_link_libraries(TestJSC
     ${GLIB_LIBRARIES}
+    ${GLIB_GMODULE_LIBRARIES}
     JavaScriptCore
 )
 add_test(TestJSC ${TESTWEBKITAPI_RUNTIME_OUTPUT_DIRECTORY}/JavaScriptCore/TestJSC)

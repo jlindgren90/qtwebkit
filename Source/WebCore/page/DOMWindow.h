@@ -82,19 +82,22 @@ class VisualViewport;
 class WebKitNamespace;
 class WebKitPoint;
 
+#if ENABLE(DEVICE_ORIENTATION)
+class DeviceMotionController;
+class DeviceOrientationController;
+#endif
+
 struct ImageBitmapOptions;
 struct WindowFeatures;
 
 enum SetLocationLocking { LockHistoryBasedOnGestureState, LockHistoryAndBackForwardList };
 enum class IncludeTargetOrigin { No, Yes };
 
-// FIXME: DOMWindow shouldn't subclass FrameDestructionObserver and instead should get to Frame via its Document.
 // FIXME: Rename DOMWindow to LocalWindow and AbstractDOMWindow to DOMWindow.
 class DOMWindow final
     : public AbstractDOMWindow
     , public CanMakeWeakPtr<DOMWindow>
     , public ContextDestructionObserver
-    , public FrameDestructionObserver
     , public Base64Utilities
     , public Supplementable<DOMWindow> {
 public:
@@ -110,12 +113,25 @@ public:
     // the network load. See also SecurityContext::isSecureTransitionTo.
     void didSecureTransitionTo(Document&);
 
-    void registerProperty(DOMWindowProperty&);
-    void unregisterProperty(DOMWindowProperty&);
+    class Observer {
+    public:
+        virtual ~Observer() { }
+
+        virtual void suspendForPageCache() { }
+        virtual void resumeFromPageCache() { }
+        virtual void willDestroyGlobalObjectInCachedFrame() { }
+        virtual void willDestroyGlobalObjectInFrame() { }
+        virtual void willDetachGlobalObjectFromFrame() { }
+    };
+
+    void registerObserver(Observer&);
+    void unregisterObserver(Observer&);
 
     void resetUnlessSuspendedForDocumentSuspension();
-    void suspendForDocumentSuspension();
-    void resumeFromDocumentSuspension();
+    void suspendForPageCache();
+    void resumeFromPageCache();
+
+    WEBCORE_EXPORT Frame* frame() const final;
 
     RefPtr<MediaQueryList> matchMedia(const String&);
 
@@ -131,21 +147,21 @@ public:
     static bool canShowModalDialog(const Frame&);
     WEBCORE_EXPORT void setCanShowModalDialogOverride(bool);
 
-    Screen* screen() const;
-    History* history() const;
-    Crypto* crypto() const;
-    BarProp* locationbar() const;
-    BarProp* menubar() const;
-    BarProp* personalbar() const;
-    BarProp* scrollbars() const;
-    BarProp* statusbar() const;
-    BarProp* toolbar() const;
-    Navigator* navigator() const;
+    Screen& screen();
+    History& history();
+    Crypto& crypto() const;
+    BarProp& locationbar();
+    BarProp& menubar();
+    BarProp& personalbar();
+    BarProp& scrollbars();
+    BarProp& statusbar();
+    BarProp& toolbar();
+    Navigator& navigator();
     Navigator* optionalNavigator() const { return m_navigator.get(); }
-    Navigator* clientInformation() const { return navigator(); }
+    Navigator& clientInformation() { return navigator(); }
 
-    Location* location() const;
-    void setLocation(DOMWindow& activeWindow, DOMWindow& firstWindow, const String& location, SetLocationLocking = LockHistoryBasedOnGestureState);
+    Location& location();
+    void setLocation(DOMWindow& activeWindow, const URL& completedURL, SetLocationLocking = LockHistoryBasedOnGestureState);
 
     DOMSelection* getSelection();
 
@@ -194,14 +210,10 @@ public:
     String defaultStatus() const;
     void setDefaultStatus(const String&);
 
-    WindowProxy* self() const;
-
     WindowProxy* opener() const;
     void disownOpener();
     WindowProxy* parent() const;
     WindowProxy* top() const;
-
-    Frame* frame() const final { return FrameDestructionObserver::frame(); }
 
     String origin() const;
 
@@ -211,7 +223,7 @@ public:
 
     // CSSOM View Module
 
-    RefPtr<StyleMedia> styleMedia() const;
+    StyleMedia& styleMedia();
 
     // DOM Level 2 Style Interface
 
@@ -247,7 +259,7 @@ public:
     void resizeBy(float x, float y) const;
     void resizeTo(float width, float height) const;
 
-    VisualViewport* visualViewport() const;
+    VisualViewport& visualViewport();
 
     // Timers
     ExceptionOr<int> setTimeout(JSC::ExecState&, std::unique_ptr<ScheduledAction>, int timeout, Vector<JSC::Strong<JSC::Unknown>>&& arguments);
@@ -283,12 +295,12 @@ public:
     void finishedLoading();
 
     // HTML 5 key/value storage
-    ExceptionOr<Storage*> sessionStorage() const;
-    ExceptionOr<Storage*> localStorage() const;
+    ExceptionOr<Storage*> sessionStorage();
+    ExceptionOr<Storage*> localStorage();
     Storage* optionalSessionStorage() const { return m_sessionStorage.get(); }
     Storage* optionalLocalStorage() const { return m_localStorage.get(); }
 
-    DOMApplicationCache* applicationCache() const;
+    DOMApplicationCache& applicationCache();
     DOMApplicationCache* optionalApplicationCache() const { return m_applicationCache.get(); }
 
     CustomElementRegistry* customElementRegistry() { return m_customElementRegistry.get(); }
@@ -304,13 +316,26 @@ public:
     int orientation() const;
 #endif
 
-    Performance* performance() const;
+    Performance& performance() const;
     WEBCORE_EXPORT double nowTimestamp() const;
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     void incrementScrollEventListenersCount();
     void decrementScrollEventListenersCount();
     unsigned scrollEventListenerCount() const { return m_scrollEventListenerCount; }
+#endif
+
+#if ENABLE(DEVICE_ORIENTATION)
+    void startListeningForDeviceOrientationIfNecessary();
+    void stopListeningForDeviceOrientationIfNecessary();
+    void startListeningForDeviceMotionIfNecessary();
+    void stopListeningForDeviceMotionIfNecessary();
+
+    bool isAllowedToUseDeviceMotionOrientation(String& message) const;
+    bool isAllowedToAddDeviceMotionOrientationListener(String& message) const;
+
+    DeviceOrientationController* deviceOrientationController() const;
+    DeviceMotionController* deviceMotionController() const;
 #endif
 
     void resetAllGeolocationPermission();
@@ -321,7 +346,7 @@ public:
 
 #if ENABLE(USER_MESSAGE_HANDLERS)
     bool shouldHaveWebKitNamespaceForWorld(DOMWrapperWorld&);
-    WebKitNamespace* webkitNamespace() const;
+    WebKitNamespace* webkitNamespace();
 #endif
 
     // FIXME: When this DOMWindow is no longer the active DOMWindow (i.e.,
@@ -336,6 +361,9 @@ public:
     void enableSuddenTermination();
     void disableSuddenTermination();
 
+    void willDestroyDocumentInFrame();
+    void frameDestroyed();
+
 private:
     explicit DOMWindow(Document&);
 
@@ -347,16 +375,12 @@ private:
     Page* page();
     bool allowedToChangeWindowGeometry() const;
 
-    void frameDestroyed() final;
-    void willDetachPage() final;
-
     static ExceptionOr<RefPtr<Frame>> createWindow(const String& urlString, const AtomicString& frameName, const WindowFeatures&, DOMWindow& activeWindow, Frame& firstFrame, Frame& openerFrame, const WTF::Function<void(DOMWindow&)>& prepareDialogFunction = nullptr);
     bool isInsecureScriptAccess(DOMWindow& activeWindow, const String& urlString);
 
-    void resetDOMWindowProperties();
-    void disconnectDOMWindowProperties();
-    void reconnectDOMWindowProperties();
-    void willDestroyDocumentInFrame();
+#if ENABLE(DEVICE_ORIENTATION)
+    void failedToRegisterDeviceMotionEventListener();
+#endif
 
     bool isSameSecurityOriginAsMainFrame() const;
 
@@ -367,9 +391,10 @@ private:
 
     bool m_shouldPrintWhenFinishedLoading { false };
     bool m_suspendedForDocumentSuspension { false };
-    std::optional<bool> m_canShowModalDialogOverride;
+    bool m_isSuspendingObservers { false };
+    Optional<bool> m_canShowModalDialogOverride;
 
-    HashSet<DOMWindowProperty*> m_properties;
+    HashSet<Observer*> m_observers;
 
     mutable RefPtr<Crypto> m_crypto;
     mutable RefPtr<History> m_history;
@@ -392,7 +417,7 @@ private:
     enum class PageStatus { None, Shown, Hidden };
     PageStatus m_lastPageStatus { PageStatus::None };
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     unsigned m_scrollEventListenerCount { 0 };
 #endif
 

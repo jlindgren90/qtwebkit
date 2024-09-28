@@ -25,8 +25,6 @@
 
 #import "WKWebsiteDataRecordPrivate.h"
 
-#if WK_API_ENABLED
-
 #import "APIWebsiteDataRecord.h"
 #import "WKObject.h"
 #import <wtf/OptionSet.h>
@@ -38,7 +36,7 @@ template<> struct WrapperTraits<API::WebsiteDataRecord> {
     using WrapperClass = WKWebsiteDataRecord;
 };
 
-static inline std::optional<WebsiteDataType> toWebsiteDataType(NSString *websiteDataType)
+static inline Optional<WebsiteDataType> toWebsiteDataType(NSString *websiteDataType)
 {
     if ([websiteDataType isEqualToString:WKWebsiteDataTypeCookies])
         return WebsiteDataType::Cookies;
@@ -76,7 +74,7 @@ static inline std::optional<WebsiteDataType> toWebsiteDataType(NSString *website
         return WebsiteDataType::ResourceLoadStatistics;
     if ([websiteDataType isEqualToString:_WKWebsiteDataTypeCredentials])
         return WebsiteDataType::Credentials;
-    return std::nullopt;
+    return WTF::nullopt;
 }
 
 static inline OptionSet<WebKit::WebsiteDataType> toWebsiteDataTypes(NSSet *websiteDataTypes)
@@ -142,5 +140,3 @@ static inline RetainPtr<NSSet> toWKWebsiteDataTypes(OptionSet<WebKit::WebsiteDat
     API::ObjectStorage<API::WebsiteDataRecord> _websiteDataRecord;
 }
 @end
-
-#endif

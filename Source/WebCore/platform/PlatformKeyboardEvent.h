@@ -36,7 +36,7 @@
 OBJC_CLASS NSEvent;
 #endif
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 OBJC_CLASS WebEvent;
 #endif
 
@@ -145,11 +145,13 @@ namespace WebCore {
         bool isKeypad() const { return m_isKeypad; }
         bool isSystemKey() const { return m_isSystemKey; }
 
-        static bool currentCapsLockState();
-        static void getCurrentModifierState(bool& shiftKey, bool& ctrlKey, bool& altKey, bool& metaKey);
+        WEBCORE_EXPORT static bool currentCapsLockState();
+        WEBCORE_EXPORT static void getCurrentModifierState(bool& shiftKey, bool& ctrlKey, bool& altKey, bool& metaKey);
+        WEBCORE_EXPORT static void setCurrentModifierState(OptionSet<Modifier>);
+        WEBCORE_EXPORT static OptionSet<Modifier> currentStateOfModifierKeys();
 
 #if PLATFORM(COCOA)
-#if !PLATFORM(IOS)
+#if !PLATFORM(IOS_FAMILY)
         NSEvent* macEvent() const { return m_macEvent.get(); }
 #else
         ::WebEvent *event() const { return m_Event.get(); }
@@ -174,7 +176,7 @@ namespace WebCore {
         static bool modifiersContainCapsLock(unsigned);
 #endif
 
-#if PLATFORM(WPE)
+#if USE(LIBWPE)
         static String keyValueForWPEKeyCode(unsigned);
         static String keyCodeForHardwareKeyCode(unsigned);
         static String keyIdentifierForWPEKeyCode(unsigned);
@@ -213,7 +215,7 @@ namespace WebCore {
         bool m_isSystemKey;
 
 #if PLATFORM(COCOA)
-#if !PLATFORM(IOS)
+#if !PLATFORM(IOS_FAMILY)
         RetainPtr<NSEvent> m_macEvent;
 #else
         RetainPtr<::WebEvent> m_Event;
@@ -227,6 +229,9 @@ namespace WebCore {
         QKeyEvent* m_qtEvent;
         bool m_useNativeVirtualKeyAsDOMKey;
 #endif
+        
+        // The modifier state is optional, since it is not needed in the UI process or in legacy WebKit.
+        static Optional<OptionSet<Modifier>> s_currentModifiers;
     };
     
 #if PLATFORM(QT)

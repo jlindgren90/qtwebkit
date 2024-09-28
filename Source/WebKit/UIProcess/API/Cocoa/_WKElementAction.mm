@@ -26,9 +26,7 @@
 #import "config.h"
 #import "_WKElementActionInternal.h"
 
-#if WK_API_ENABLED
-
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 
 #import "GestureTypes.h"
 #import "WKActionSheetAssistant.h"
@@ -174,6 +172,4 @@ static void addToReadingList(NSURL *targetURL, NSString *title)
 
 @end
 
-#endif // PLATFORM(IOS)
-
-#endif // WK_API_ENABLED
+#endif // PLATFORM(IOS_FAMILY)

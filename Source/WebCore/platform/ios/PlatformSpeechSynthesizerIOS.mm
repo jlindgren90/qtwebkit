@@ -25,7 +25,7 @@
 #import "config.h"
 #import "PlatformSpeechSynthesizer.h"
 
-#if ENABLE(SPEECH_SYNTHESIS) && PLATFORM(IOS)
+#if ENABLE(SPEECH_SYNTHESIS) && PLATFORM(IOS_FAMILY)
 
 #import "PlatformSpeechSynthesisUtterance.h"
 #import "PlatformSpeechSynthesisVoice.h"
@@ -225,7 +225,7 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSpeechUtteranceMaximumSpeechRate, float)
         return;
 
     // iOS only supports word boundaries.
-    m_synthesizerObject->client()->boundaryEventOccurred(*m_utterance, WebCore::SpeechWordBoundary, characterRange.location);
+    m_synthesizerObject->client()->boundaryEventOccurred(*m_utterance, WebCore::SpeechBoundary::SpeechWordBoundary, characterRange.location);
 }
 
 @end
@@ -279,4 +279,4 @@ void PlatformSpeechSynthesizer::cancel()
 
 } // namespace WebCore
 
-#endif // ENABLE(SPEECH_SYNTHESIS) && PLATFORM(IOS)
+#endif // ENABLE(SPEECH_SYNTHESIS) && PLATFORM(IOS_FAMILY)

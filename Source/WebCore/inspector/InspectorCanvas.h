@@ -28,6 +28,7 @@
 #include "CallTracerTypes.h"
 #include <JavaScriptCore/InspectorProtocolObjects.h>
 #include <JavaScriptCore/ScriptCallFrame.h>
+#include <JavaScriptCore/ScriptCallStack.h>
 #include <wtf/Variant.h>
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
@@ -42,7 +43,8 @@ class HTMLImageElement;
 class HTMLVideoElement;
 class ImageBitmap;
 class ImageData;
-class InstrumentingAgents;
+
+typedef String ErrorString;
 
 class InspectorCanvas final : public RefCounted<InspectorCanvas> {
 public:
@@ -58,45 +60,46 @@ public:
     bool currentFrameHasData() const;
     void recordAction(const String&, Vector<RecordCanvasActionVariant>&& = { });
 
-    RefPtr<Inspector::Protocol::Recording::InitialState>&& releaseInitialState();
-    RefPtr<JSON::ArrayOf<Inspector::Protocol::Recording::Frame>>&& releaseFrames();
-    RefPtr<JSON::ArrayOf<JSON::Value>>&& releaseData();
+    Ref<JSON::ArrayOf<Inspector::Protocol::Recording::Frame>> releaseFrames() { return m_frames.releaseNonNull(); }
 
     void finalizeFrame();
     void markCurrentFrameIncomplete();
 
-    const String& recordingName() const { return m_recordingName; }
     void setRecordingName(const String& name) { m_recordingName = name; }
 
     void setBufferLimit(long);
     bool hasBufferSpace() const;
     long bufferUsed() const { return m_bufferUsed; }
 
-    bool singleFrame() const { return m_singleFrame; }
-    void setSingleFrame(bool singleFrame) { m_singleFrame = singleFrame; }
+    void setFrameCount(long);
+    bool overFrameCount() const;
 
-    Ref<Inspector::Protocol::Canvas::Canvas> buildObjectForCanvas(InstrumentingAgents&, bool captureBacktrace);
+    Ref<Inspector::Protocol::Canvas::Canvas> buildObjectForCanvas(bool captureBacktrace);
+    Ref<Inspector::Protocol::Recording::Recording> releaseObjectForRecording();
+
+    String getCanvasContentAsDataURL(ErrorString&);
 
 private:
     InspectorCanvas(CanvasRenderingContext&);
     void appendActionSnapshotIfNeeded();
-    String getCanvasContentAsDataURL();
 
     using DuplicateDataVariant = Variant<
-        CanvasGradient*,
-        CanvasPattern*,
-        HTMLCanvasElement*,
-        HTMLImageElement*,
+        RefPtr<CanvasGradient>,
+        RefPtr<CanvasPattern>,
+        RefPtr<HTMLCanvasElement>,
+        RefPtr<HTMLImageElement>,
 #if ENABLE(VIDEO)
-        HTMLVideoElement*,
+        RefPtr<HTMLVideoElement>,
 #endif
-        ImageData*,
-        ImageBitmap*,
+        RefPtr<ImageData>,
+        RefPtr<ImageBitmap>,
+        RefPtr<Inspector::ScriptCallStack>,
         Inspector::ScriptCallFrame,
         String
     >;
 
     int indexForData(DuplicateDataVariant);
+    String stringIndexForKey(const String&);
     Ref<Inspector::Protocol::Recording::InitialState> buildInitialState();
     Ref<JSON::ArrayOf<JSON::Value>> buildAction(const String&, Vector<RecordCanvasActionVariant>&& = { });
     Ref<JSON::ArrayOf<JSON::Value>> buildArrayForCanvasGradient(const CanvasGradient&);
@@ -117,7 +120,8 @@ private:
     MonotonicTime m_currentFrameStartTime { MonotonicTime::nan() };
     size_t m_bufferLimit { 100 * 1024 * 1024 };
     size_t m_bufferUsed { 0 };
-    bool m_singleFrame { true };
+    Optional<size_t> m_frameCount;
+    size_t m_framesCaptured { 0 };
 };
 
 } // namespace WebCore

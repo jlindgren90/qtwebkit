@@ -31,6 +31,7 @@
 #include "CSSParserFastPaths.h"
 
 #include "CSSFunctionValue.h"
+#include "CSSParserContext.h"
 #include "CSSParserIdioms.h"
 #include "CSSPrimitiveValue.h"
 #include "CSSPropertyParser.h"
@@ -70,6 +71,10 @@ static inline bool isSimpleLengthPropertyID(CSSPropertyID propertyId, bool& acce
     case CSSPropertyCx:
     case CSSPropertyCy:
     case CSSPropertyLeft:
+    case CSSPropertyInsetBlockEnd:
+    case CSSPropertyInsetBlockStart:
+    case CSSPropertyInsetInlineEnd:
+    case CSSPropertyInsetInlineStart:
     case CSSPropertyMarginBottom:
     case CSSPropertyMarginLeft:
     case CSSPropertyMarginRight:
@@ -198,7 +203,7 @@ static inline bool isColorPropertyID(CSSPropertyID propertyId)
     case CSSPropertyWebkitTextEmphasisColor:
     case CSSPropertyWebkitTextFillColor:
     case CSSPropertyWebkitTextStrokeColor:
-    case CSSPropertyWebkitTextDecorationColor:
+    case CSSPropertyTextDecorationColor:
         return true;
     default:
         return false;
@@ -515,9 +520,13 @@ RefPtr<CSSValue> CSSParserFastPaths::parseColor(const String& string, CSSParserM
     return CSSValuePool::singleton().createColorValue(color);
 }
 
-bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId, CSSValueID valueID, CSSParserMode parserMode)
+bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId, CSSValueID valueID, const CSSParserContext& context)
 {
-    if (valueID == CSSValueInvalid || !isValueAllowedInMode(valueID, parserMode))
+#if !ENABLE(OVERFLOW_SCROLLING_TOUCH)
+    UNUSED_PARAM(context);
+#endif
+
+    if (valueID == CSSValueInvalid || !isValueAllowedInMode(valueID, context.mode))
         return false;
 
     switch (propertyId) {
@@ -604,9 +613,9 @@ bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId
     case CSSPropertyOverflowWrap: // normal | break-word
     case CSSPropertyWordWrap:
         return valueID == CSSValueNormal || valueID == CSSValueBreakWord;
-    case CSSPropertyOverflowX: // visible | hidden | scroll | auto | overlay
+    case CSSPropertyOverflowX: // visible | hidden | scroll | auto | overlay (overlay is a synonym for auto)
         return valueID == CSSValueVisible || valueID == CSSValueHidden || valueID == CSSValueScroll || valueID == CSSValueAuto || valueID == CSSValueOverlay;
-    case CSSPropertyOverflowY: // visible | hidden | scroll | auto | overlay | -webkit-paged-x | -webkit-paged-y
+    case CSSPropertyOverflowY: // visible | hidden | scroll | auto | overlay | -webkit-paged-x | -webkit-paged-y (overlay is a synonym for auto)
         return valueID == CSSValueVisible || valueID == CSSValueHidden || valueID == CSSValueScroll || valueID == CSSValueAuto || valueID == CSSValueOverlay || valueID == CSSValueWebkitPagedX || valueID == CSSValueWebkitPagedY;
     case CSSPropertyBreakAfter:
     case CSSPropertyBreakBefore:
@@ -645,7 +654,7 @@ bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId
 // FIXME-NEWPARSER: Support
 //    case CSSPropertyTextCombineUpright:
 //        return valueID == CSSValueNone || valueID == CSSValueAll;
-    case CSSPropertyWebkitTextDecorationStyle:
+    case CSSPropertyTextDecorationStyle:
         // solid | double | dotted | dashed | wavy
         return valueID == CSSValueSolid || valueID == CSSValueDouble || valueID == CSSValueDotted || valueID == CSSValueDashed || valueID == CSSValueWavy;
 #if ENABLE(CSS3_TEXT)
@@ -758,21 +767,14 @@ bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId
         return valueID == CSSValueNormal || valueID == CSSValueBreakAll || valueID == CSSValueKeepAll || valueID == CSSValueBreakWord;
     case CSSPropertyWebkitBorderFit:
         return valueID == CSSValueBorder || valueID == CSSValueLines;
-#if ENABLE(TOUCH_EVENTS)
-    case CSSPropertyTouchAction: // auto | manipulation
-        return valueID == CSSValueAuto || valueID == CSSValueManipulation;
-#endif
-#if ENABLE(CSS_TRAILING_WORD)
-    case CSSPropertyAppleTrailingWord: // auto | -apple-partially-balanced
-        return valueID == CSSValueAuto || valueID == CSSValueWebkitPartiallyBalanced;
-#endif
 #if ENABLE(APPLE_PAY)
     case CSSPropertyApplePayButtonStyle: // white | white-outline | black
         return valueID == CSSValueWhite || valueID == CSSValueWhiteOutline || valueID == CSSValueBlack;
-    case CSSPropertyApplePayButtonType: // plain | buy | set-up | in-store | donate | check-out | book | subscribe
-        if (valueID == CSSValuePlain || valueID == CSSValueBuy || valueID == CSSValueSetUp || valueID == CSSValueInStore || valueID == CSSValueDonate)
+    case CSSPropertyApplePayButtonType: // plain | buy | set-up | donate
+        if (valueID == CSSValuePlain || valueID == CSSValueBuy || valueID == CSSValueSetUp || valueID == CSSValueDonate)
             return true;
 #if ENABLE(APPLE_PAY_SESSION_V4)
+        // check-out | book | subscribe
         return valueID == CSSValueCheckOut || valueID == CSSValueBook || valueID == CSSValueSubscribe;
 #else
         return false;
@@ -782,7 +784,7 @@ bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId
         return valueID == CSSValueNormal || valueID == CSSValueSpace;
     case CSSPropertyWebkitTextZoom:
         return valueID == CSSValueNormal || valueID == CSSValueReset;
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     // Apple specific property. These will never be standardized and is purely to
     // support custom WebKit-based Apple applications.
     case CSSPropertyWebkitTouchCallout:
@@ -799,8 +801,10 @@ bool CSSParserFastPaths::isValidKeywordPropertyAndValue(CSSPropertyID propertyId
         return valueID == CSSValueNormal || valueID == CSSValueSmallCaps || valueID == CSSValueAllSmallCaps || valueID == CSSValuePetiteCaps || valueID == CSSValueAllPetiteCaps || valueID == CSSValueUnicase || valueID == CSSValueTitlingCaps;
     case CSSPropertyFontVariantAlternates: // We only support the normal and historical-forms values.
         return valueID == CSSValueNormal || valueID == CSSValueHistoricalForms;
-#if ENABLE(ACCELERATED_OVERFLOW_SCROLLING)
+#if ENABLE(OVERFLOW_SCROLLING_TOUCH)
     case CSSPropertyWebkitOverflowScrolling:
+        if (!context.legacyOverflowScrollingTouchEnabled)
+            return nullptr;
         return valueID == CSSValueAuto || valueID == CSSValueTouch;
 #endif
 #if ENABLE(VARIATION_FONTS)
@@ -888,7 +892,7 @@ bool CSSParserFastPaths::isKeywordPropertyID(CSSPropertyID propertyId)
     case CSSPropertyWebkitRtlOrdering:
     case CSSPropertyWebkitRubyPosition:
     case CSSPropertyWebkitTextCombine:
-    case CSSPropertyWebkitTextDecorationStyle:
+    case CSSPropertyTextDecorationStyle:
     case CSSPropertyWebkitTextOrientation:
     case CSSPropertyWebkitTextSecurity:
     case CSSPropertyWebkitTextZoom:
@@ -933,15 +937,9 @@ bool CSSParserFastPaths::isKeywordPropertyID(CSSPropertyID propertyId)
     // case CSSPropertyTextJustify:
     // case CSSPropertyTextOrientation:
     // case CSSPropertyUserSelect:
-#if ENABLE(CSS_TRAILING_WORD)
-    case CSSPropertyAppleTrailingWord:
-#endif
 #if ENABLE(CSS_COMPOSITING)
     case CSSPropertyIsolation:
     case CSSPropertyMixBlendMode:
-#endif
-#if ENABLE(TOUCH_EVENTS)
-    case CSSPropertyTouchAction:
 #endif
 #if ENABLE(CSS_BOX_DECORATION_BREAK)
     case CSSPropertyWebkitBoxDecorationBreak:
@@ -949,14 +947,14 @@ bool CSSParserFastPaths::isKeywordPropertyID(CSSPropertyID propertyId)
 #if ENABLE(CURSOR_VISIBILITY)
     case CSSPropertyWebkitCursorVisibility:
 #endif
-#if ENABLE(ACCELERATED_OVERFLOW_SCROLLING)
+#if ENABLE(OVERFLOW_SCROLLING_TOUCH)
     case CSSPropertyWebkitOverflowScrolling:
 #endif
 #if ENABLE(CSS3_TEXT)
     case CSSPropertyWebkitTextAlignLast:
     case CSSPropertyWebkitTextJustify:
 #endif
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     // Apple specific property. This will never be standardized and is purely to
     // support custom WebKit-based Apple applications.
     case CSSPropertyWebkitTouchCallout:
@@ -983,7 +981,7 @@ static bool isUniversalKeyword(const String& string)
     || equalLettersIgnoringASCIICase(string, "revert");
 }
 
-static RefPtr<CSSValue> parseKeywordValue(CSSPropertyID propertyId, const String& string, CSSParserMode parserMode)
+static RefPtr<CSSValue> parseKeywordValue(CSSPropertyID propertyId, const String& string, const CSSParserContext& context)
 {
     ASSERT(!string.isEmpty());
 
@@ -1015,7 +1013,7 @@ static RefPtr<CSSValue> parseKeywordValue(CSSPropertyID propertyId, const String
     if (valueID == CSSValueRevert)
         return CSSValuePool::singleton().createRevertValue();
     
-    if (CSSParserFastPaths::isValidKeywordPropertyAndValue(propertyId, valueID, parserMode))
+    if (CSSParserFastPaths::isValidKeywordPropertyAndValue(propertyId, valueID, context))
         return CSSPrimitiveValue::createIdentifier(valueID);
     return nullptr;
 }
@@ -1294,15 +1292,15 @@ static RefPtr<CSSValue> parseCaretColor(const String& string, CSSParserMode pars
     return CSSParserFastPaths::parseColor(string, parserMode);
 }
 
-RefPtr<CSSValue> CSSParserFastPaths::maybeParseValue(CSSPropertyID propertyID, const String& string, CSSParserMode parserMode)
+RefPtr<CSSValue> CSSParserFastPaths::maybeParseValue(CSSPropertyID propertyID, const String& string, const CSSParserContext& context)
 {
-    if (auto result = parseSimpleLengthValue(propertyID, string, parserMode))
+    if (auto result = parseSimpleLengthValue(propertyID, string, context.mode))
         return result;
     if (propertyID == CSSPropertyCaretColor)
-        return parseCaretColor(string, parserMode);
+        return parseCaretColor(string, context.mode);
     if (isColorPropertyID(propertyID))
-        return parseColor(string, parserMode);
-    if (auto result = parseKeywordValue(propertyID, string, parserMode))
+        return parseColor(string, context.mode);
+    if (auto result = parseKeywordValue(propertyID, string, context))
         return result;
     return parseSimpleTransform(propertyID, string);
 }

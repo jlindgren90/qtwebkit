@@ -230,6 +230,8 @@ void CSSFontFaceSet::removeFromFacesLookupTable(const CSSFontFace& face, const C
 
 void CSSFontFaceSet::remove(const CSSFontFace& face)
 {
+    auto protect = makeRef(face);
+
     m_cache.clear();
 
     for (auto* client : m_clients)
@@ -384,7 +386,7 @@ ExceptionOr<Vector<std::reference_wrapper<CSSFontFace>>> CSSFontFaceSet::matchin
     result.reserveInitialCapacity(resultConstituents.size());
     for (auto* constituent : resultConstituents)
         result.uncheckedAppend(*constituent);
-    return WTFMove(result);
+    return result;
 }
 
 ExceptionOr<bool> CSSFontFaceSet::check(const String& font, const String& text)

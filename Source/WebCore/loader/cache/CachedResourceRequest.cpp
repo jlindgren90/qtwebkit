@@ -40,7 +40,7 @@
 
 namespace WebCore {
 
-CachedResourceRequest::CachedResourceRequest(ResourceRequest&& resourceRequest, const ResourceLoaderOptions& options, std::optional<ResourceLoadPriority> priority, String&& charset)
+CachedResourceRequest::CachedResourceRequest(ResourceRequest&& resourceRequest, const ResourceLoaderOptions& options, Optional<ResourceLoadPriority> priority, String&& charset)
     : m_resourceRequest(WTFMove(resourceRequest))
     , m_charset(WTFMove(charset))
     , m_options(options)
@@ -226,9 +226,9 @@ void CachedResourceRequest::removeFragmentIdentifierIfNeeded()
 
 #if ENABLE(CONTENT_EXTENSIONS)
 
-void CachedResourceRequest::applyBlockedStatus(const ContentExtensions::BlockedStatus& blockedStatus, Page* page)
+void CachedResourceRequest::applyResults(ContentRuleListResults&& results, Page* page)
 {
-    ContentExtensions::applyBlockedStatusToRequest(blockedStatus, page, m_resourceRequest);
+    ContentExtensions::applyResultsToRequest(WTFMove(results), page, m_resourceRequest);
 }
 
 #endif
@@ -300,7 +300,7 @@ void CachedResourceRequest::setSelectedServiceWorkerRegistrationIdentifierIfNeed
     m_options.serviceWorkerRegistrationIdentifier = identifier;
 }
 
-void CachedResourceRequest::setNavigationServiceWorkerRegistrationData(const std::optional<ServiceWorkerRegistrationData>& data)
+void CachedResourceRequest::setNavigationServiceWorkerRegistrationData(const Optional<ServiceWorkerRegistrationData>& data)
 {
     if (!data || !data->activeWorker) {
         m_options.serviceWorkersMode = ServiceWorkersMode::None;

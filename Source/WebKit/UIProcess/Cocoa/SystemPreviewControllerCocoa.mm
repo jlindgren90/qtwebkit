@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Apple Inc. All rights reserved.
+ * Copyright (C) 2018-2019 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,17 +34,14 @@
 #import <QuickLook/QuickLook.h>
 #import <UIKit/UIViewController.h>
 #import <WebCore/MIMETypeRegistry.h>
+#import <pal/ios/QuickLookSoftLink.h>
 #import <pal/spi/ios/QuickLookSPI.h>
-#import <wtf/SoftLinking.h>
 #import <wtf/WeakObjCPtr.h>
-
-SOFT_LINK_FRAMEWORK(QuickLook)
-SOFT_LINK_CLASS(QuickLook, QLPreviewController);
-SOFT_LINK_CLASS(QuickLook, QLItem);
 
 @interface _WKPreviewControllerDataSource : NSObject <QLPreviewControllerDataSource> {
     RetainPtr<NSItemProvider> _itemProvider;
     RetainPtr<QLItem> _item;
+    URL _downloadedURL;
 };
 
 @property (strong) NSItemProviderCompletionHandler completionHandler;
@@ -88,13 +85,19 @@ SOFT_LINK_CLASS(QuickLook, QLItem);
     // then we'll need a table.
     static NSString *contentType = (__bridge NSString *) UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, CFSTR("usdz"), nil);
 
-    _item = adoptNS([allocQLItemInstance() initWithPreviewItemProvider:_itemProvider.get() contentType:contentType previewTitle:@"Preview" fileSize:@(0)]);
+    _item = adoptNS([PAL::allocQLItemInstance() initWithPreviewItemProvider:_itemProvider.get() contentType:contentType previewTitle:@"Preview" fileSize:@(0)]);
     [_item setUseLoadingTimeout:NO];
 
     WeakObjCPtr<_WKPreviewControllerDataSource> weakSelf { self };
     [_itemProvider registerItemForTypeIdentifier:contentType loadHandler:[weakSelf = WTFMove(weakSelf)] (NSItemProviderCompletionHandler completionHandler, Class expectedValueClass, NSDictionary * options) {
-        if (auto strongSelf = weakSelf.get())
-            [strongSelf setCompletionHandler:completionHandler];
+        if (auto strongSelf = weakSelf.get()) {
+            // If the download happened instantly, the call to finish might have come before this
+            // loadHandler. In that case, call the completionHandler here.
+            if (!strongSelf->_downloadedURL.isEmpty())
+                completionHandler((NSURL*)strongSelf->_downloadedURL, nil);
+            else
+                [strongSelf setCompletionHandler:completionHandler];
+        }
     }];
     return _item.get();
 }
@@ -105,8 +108,10 @@ SOFT_LINK_CLASS(QuickLook, QLItem);
         [_item setPreviewItemProviderProgress:@(progress)];
 }
 
-- (void)finish:(WebCore::URL)url
+- (void)finish:(URL)url
 {
+    _downloadedURL = url;
+
     if (self.completionHandler)
         self.completionHandler((NSURL*)url, nil);
 }
@@ -204,7 +209,7 @@ void SystemPreviewController::start(const String& mimeType, const WebCore::IntRe
     if (!presentingViewController)
         return;
 
-    m_qlPreviewController = adoptNS([allocQLPreviewControllerInstance() init]);
+    m_qlPreviewController = adoptNS([PAL::allocQLPreviewControllerInstance() init]);
 
     m_qlPreviewControllerDelegate = adoptNS([[_WKPreviewControllerDelegate alloc] initWithSystemPreviewController:this fromRect:fromRect]);
     [m_qlPreviewController setDelegate:m_qlPreviewControllerDelegate.get()];
@@ -221,7 +226,7 @@ void SystemPreviewController::updateProgress(float progress)
         [m_qlPreviewControllerDataSource setProgress:progress];
 }
 
-void SystemPreviewController::finish(WebCore::URL url)
+void SystemPreviewController::finish(URL url)
 {
     if (m_qlPreviewControllerDataSource)
         [m_qlPreviewControllerDataSource finish:url];

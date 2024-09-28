@@ -26,6 +26,7 @@
 #pragma once
 
 #include <wtf/Optional.h>
+#include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
@@ -37,41 +38,93 @@ enum class PasteboardItemPresentationStyle {
 };
 
 struct PasteboardItemInfo {
-    String pathForFileUpload;
-    String contentTypeForFileUpload;
+    Vector<String> pathsForFileUpload;
+    Vector<String> contentTypesForFileUpload;
+    Vector<String> contentTypesByFidelity;
     String suggestedFileName;
     bool isNonTextType { false };
+    bool containsFileURLAndFileUploadContent { false };
     PasteboardItemPresentationStyle preferredPresentationStyle { PasteboardItemPresentationStyle::Unspecified };
 
+    String pathForContentType(const String& type) const
+    {
+        ASSERT(pathsForFileUpload.size() == contentTypesForFileUpload.size());
+        auto index = contentTypesForFileUpload.find(type);
+        if (index == notFound)
+            return { };
+
+        return pathsForFileUpload[index];
+    }
+
+    // The preferredPresentationStyle flag is platform API used by drag or copy sources to explicitly indicate
+    // that the data being written to the item provider should be treated as an attachment; unfortunately, not
+    // all clients attempt to set this flag, so we additionally take having a suggested filename as a strong
+    // indicator that the item should be treated as an attachment or file.
+    bool canBeTreatedAsAttachmentOrFile() const
+    {
+        switch (preferredPresentationStyle) {
+        case PasteboardItemPresentationStyle::Inline:
+            return false;
+        case PasteboardItemPresentationStyle::Attachment:
+            return true;
+        case PasteboardItemPresentationStyle::Unspecified:
+            return !suggestedFileName.isEmpty();
+        }
+        ASSERT_NOT_REACHED();
+        return false;
+    }
+
+    String contentTypeForHighestFidelityItem() const
+    {
+        if (contentTypesForFileUpload.isEmpty())
+            return { };
+
+        return contentTypesForFileUpload.first();
+    }
+
+    String pathForHighestFidelityItem() const
+    {
+        if (pathsForFileUpload.isEmpty())
+            return { };
+
+        return pathsForFileUpload.first();
+    }
+
     template<class Encoder> void encode(Encoder&) const;
-    template<class Decoder> static std::optional<PasteboardItemInfo> decode(Decoder&);
+    template<class Decoder> static Optional<PasteboardItemInfo> decode(Decoder&);
 };
 
 template<class Encoder>
 void PasteboardItemInfo::encode(Encoder& encoder) const
 {
-    encoder << pathForFileUpload << contentTypeForFileUpload << suggestedFileName << isNonTextType;
+    encoder << pathsForFileUpload << contentTypesForFileUpload << contentTypesByFidelity << suggestedFileName << isNonTextType << containsFileURLAndFileUploadContent;
     encoder.encodeEnum(preferredPresentationStyle);
 }
 
 template<class Decoder>
-std::optional<PasteboardItemInfo> PasteboardItemInfo::decode(Decoder& decoder)
+Optional<PasteboardItemInfo> PasteboardItemInfo::decode(Decoder& decoder)
 {
     PasteboardItemInfo result;
-    if (!decoder.decode(result.pathForFileUpload))
-        return std::nullopt;
+    if (!decoder.decode(result.pathsForFileUpload))
+        return WTF::nullopt;
 
-    if (!decoder.decode(result.contentTypeForFileUpload))
-        return std::nullopt;
+    if (!decoder.decode(result.contentTypesForFileUpload))
+        return WTF::nullopt;
+
+    if (!decoder.decode(result.contentTypesByFidelity))
+        return WTF::nullopt;
 
     if (!decoder.decode(result.suggestedFileName))
-        return std::nullopt;
+        return WTF::nullopt;
 
     if (!decoder.decode(result.isNonTextType))
-        return std::nullopt;
+        return WTF::nullopt;
+
+    if (!decoder.decode(result.containsFileURLAndFileUploadContent))
+        return WTF::nullopt;
 
     if (!decoder.decodeEnum(result.preferredPresentationStyle))
-        return std::nullopt;
+        return WTF::nullopt;
 
     return WTFMove(result);
 }
@@ -79,9 +132,6 @@ std::optional<PasteboardItemInfo> PasteboardItemInfo::decode(Decoder& decoder)
 }
 
 namespace WTF {
-
-template<typename> struct EnumTraits;
-template<typename E, E...> struct EnumValues;
 
 template<> struct EnumTraits<WebCore::PasteboardItemPresentationStyle> {
     using values = EnumValues<

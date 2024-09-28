@@ -27,6 +27,7 @@
 #include "APIPageConfiguration.h"
 
 #include "APIProcessPoolConfiguration.h"
+#include "APIWebsitePolicies.h"
 #include "WebPageGroup.h"
 #include "WebPageProxy.h"
 #include "WebPreferences.h"
@@ -38,10 +39,9 @@
 #include "APIApplicationManifest.h"
 #endif
 
+namespace API {
 using namespace WebCore;
 using namespace WebKit;
-
-namespace API {
 
 Ref<PageConfiguration> PageConfiguration::create()
 {
@@ -70,7 +70,7 @@ Ref<PageConfiguration> PageConfiguration::copy() const
     copy->m_websiteDataStore = this->m_websiteDataStore;
     copy->m_sessionID = this->m_sessionID;
     copy->m_treatsSHA1SignedCertificatesAsInsecure = this->m_treatsSHA1SignedCertificatesAsInsecure;
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     copy->m_alwaysRunsAtForegroundPriority = this->m_alwaysRunsAtForegroundPriority;
 #endif
     copy->m_initialCapitalizationEnabled = this->m_initialCapitalizationEnabled;
@@ -129,7 +129,7 @@ void PageConfiguration::setPreferences(WebPreferences* preferences)
     m_preferences = preferences;
 }
 
-WebPageProxy* PageConfiguration::relatedPage()
+WebPageProxy* PageConfiguration::relatedPage() const
 {
     return m_relatedPage.get();
 }
@@ -163,6 +163,16 @@ void PageConfiguration::setWebsiteDataStore(API::WebsiteDataStore* websiteDataSt
         m_sessionID = m_websiteDataStore->websiteDataStore().sessionID();
     else
         m_sessionID = PAL::SessionID();
+}
+
+WebsitePolicies* PageConfiguration::defaultWebsitePolicies() const
+{
+    return m_defaultWebsitePolicies.get();
+}
+
+void PageConfiguration::setDefaultWebsitePolicies(WebsitePolicies* policies)
+{
+    m_defaultWebsitePolicies = policies;
 }
 
 PAL::SessionID PageConfiguration::sessionID()

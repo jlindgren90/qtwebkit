@@ -39,6 +39,9 @@ function load() {
     createProgram("webgl");
     linkProgram("vertex-shader", "fragment-shader");
 
+    context.canvas.width = 2;
+    context.canvas.height = 2;
+
     buffer = context.createBuffer();
     framebuffer = context.createFramebuffer();
     uniformLocation = context.getUniformLocation(program, "test");
@@ -46,7 +49,7 @@ function load() {
     shader = context.createShader(context.VERTEX_SHADER);
     texture = context.createTexture();
 
-    document.body.appendChild(context.canvas);
+    cancelActions();
 
     runTest();
 }
@@ -57,11 +60,11 @@ function ignoreException(func){
     } catch (e) { }
 }
 
-let timeoutID = NaN;
+let requestAnimationFrameId = NaN;
 
 function cancelActions() {
-    clearTimeout(timeoutID);
-    timeoutID = NaN;
+    cancelAnimationFrame(requestAnimationFrameId);
+    requestAnimationFrameId = NaN;
 
     context.clearColor(0.0, 0.0, 0.0, 0.0);
     context.clear(context.COLOR_BUFFER_BIT);
@@ -484,6 +487,14 @@ function performActions() {
             context.viewport(1, 2, 3, 4);
         },
         () => {
+            context.canvas.width;
+            context.canvas.width = 2;
+        },
+        () => {
+            context.canvas.height;
+            context.canvas.height = 2;
+        },
+        () => {
             TestPage.dispatchEventToFrontend("LastFrame");
         },
     ];
@@ -491,7 +502,7 @@ function performActions() {
     function executeFrameFunction() {
         frames[index++]();
         if (index < frames.length)
-            timeoutID = setTimeout(executeFrameFunction, 0);
+            requestAnimationFrameId = requestAnimationFrame(executeFrameFunction);
     };
     executeFrameFunction();
 }
@@ -513,7 +524,7 @@ function test() {
         name: "Canvas.recordingWebGL.singleFrame",
         description: "Check that the recording is stopped after a single frame.",
         test(resolve, reject) {
-            startRecording(WI.Canvas.ContextType.WebGL, resolve, reject, {singleFrame: true});
+            startRecording(WI.Canvas.ContextType.WebGL, resolve, reject, {frameCount: 1});
         },
     });
 
@@ -521,16 +532,7 @@ function test() {
         name: "Canvas.recordingWebGL.multipleFrames",
         description: "Check that recording data is serialized correctly for multiple frames.",
         test(resolve, reject) {
-            let canvas = startRecording(WI.Canvas.ContextType.WebGL, resolve, reject, {singleFrame: false});
-
-            InspectorTest.singleFireEventListener("LastFrame", () => {
-                CanvasAgent.stopRecording(canvas.identifier, (error) => {
-                    if (error) {
-                        reject(error);
-                        return;
-                    }
-                });
-            });
+            startRecording(WI.Canvas.ContextType.WebGL, resolve, reject);
         },
     });
 
@@ -546,7 +548,7 @@ function test() {
         name: "Canvas.recordingWebGL.Console",
         description: "Check that a recording can be triggered by console.record().",
         test(resolve, reject) {
-            consoleRecord(resolve, reject);
+            consoleRecord(WI.Canvas.ContextType.WebGL, resolve, reject);
         },
     });
 

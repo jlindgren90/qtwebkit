@@ -24,7 +24,6 @@ else ()
         PRIVATE CoreGraphics${DEBUG_SUFFIX}
         PRIVATE CoreText${DEBUG_SUFFIX}
         PRIVATE QuartzCore${DEBUG_SUFFIX}
-        PRIVATE WebKitSystemInterface${DEBUG_SUFFIX}
         PRIVATE libdispatch${DEBUG_SUFFIX}
         PRIVATE libicuin${DEBUG_SUFFIX}
         PRIVATE libicuuc${DEBUG_SUFFIX}
@@ -278,6 +277,10 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     endif ()
 endif ()
 
+if (COMPILER_IS_GCC_OR_CLANG)
+    WEBKIT_ADD_TARGET_CXX_FLAGS(WebKitLegacy -Wno-overloaded-virtual)
+endif ()
+
 list(APPEND WebKitLegacy_SOURCES ${WebKitLegacy_INCLUDES} ${WebKitLegacy_SOURCES_Classes} ${WebKitLegacy_SOURCES_WebCoreSupport})
 
 source_group(Includes FILES ${WebKitLegacy_INCLUDES})
@@ -292,7 +295,7 @@ macro(GENERATE_INTERFACE _infile _defines _depends)
         MAIN_DEPENDENCY ${_infile}
         DEPENDS ${_depends}
         COMMAND midl.exe /I "${CMAKE_CURRENT_SOURCE_DIR}/win/Interfaces" /I "${CMAKE_CURRENT_SOURCE_DIR}/win/Interfaces/Accessible2" /I "${DERIVED_SOURCES_WEBKITLEGACY_DIR}/include" /I "${CMAKE_CURRENT_SOURCE_DIR}/win" /WX /char signed /env win32 /tlb "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${_filewe}.tlb" /out "${DERIVED_SOURCES_WEBKITLEGACY_DIR}/Interfaces" /h "${DERIVED_SOURCES_WEBKITLEGACY_DIR}/Interfaces/${_filewe}.h" /iid "${_filewe}_i.c" ${_defines} "${CMAKE_CURRENT_SOURCE_DIR}/${_infile}"
-        VERBATIM)
+        USES_TERMINAL VERBATIM)
     set_source_files_properties(${DERIVED_SOURCES_WEBKITLEGACY_DIR}/Interfaces/${_filewe}.h PROPERTIES GENERATED TRUE)
     set_source_files_properties(${DERIVED_SOURCES_WEBKITLEGACY_DIR}/Interfaces/${_filewe}_i.c PROPERTIES GENERATED TRUE)
 endmacro()
@@ -475,10 +478,16 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${MSVC_RUNTIME_LINKE
 file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 file(MAKE_DIRECTORY ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/Interfaces)
 
+set(WebKitLegacyGUID_PRIVATE_FRAMEWORK_HEADERS
+    ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/Interfaces/WebKit.h
+
+    win/CFDictionaryPropertyBag.h
+    win/WebKitCOMAPI.h
+)
+
 WEBKIT_MAKE_FORWARDING_HEADERS(WebKitLegacyGUID
     DESTINATION ${FORWARDING_HEADERS_DIR}/WebKitLegacy
-    FILES win/WebKitCOMAPI.h win/CFDictionaryPropertyBag.h
-    DERIVED_SOURCE_DIRECTORIES ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/Interfaces
+    FILES ${WebKitLegacyGUID_PRIVATE_FRAMEWORK_HEADERS}
     FLATTENED
 )
 

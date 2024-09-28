@@ -72,6 +72,7 @@ public:
     ExceptionOr<void> setPDFImageCachingPolicy(const String&);
     ExceptionOr<void> setShouldDisplayTrackKind(const String& kind, bool enabled);
     ExceptionOr<bool> shouldDisplayTrackKind(const String& kind);
+    ExceptionOr<void> setUseDarkAppearance(bool);
     ExceptionOr<void> setStorageBlockingPolicy(const String&);
     ExceptionOr<void> setImagesEnabled(bool);
     ExceptionOr<void> setMinimumTimerInterval(double intervalInSeconds);
@@ -127,8 +128,6 @@ public:
     static void setScreenCaptureEnabled(bool);
 
     static bool webAnimationsCSSIntegrationEnabled();
-
-    static void setStorageAccessPromptsEnabled(bool);
 
 private:
     explicit InternalSettings(Page*);
@@ -209,7 +208,6 @@ private:
         // Runtime enabled settings.
         bool m_indexedDBWorkersEnabled;
         bool m_webGL2Enabled;
-        bool m_webGPUEnabled;
         bool m_webVREnabled;
         bool m_setScreenCaptureEnabled;
         
@@ -218,7 +216,6 @@ private:
         bool m_shouldManageAudioSessionCategory;
 #endif
         bool m_customPasteboardDataEnabled;
-        bool m_promptForStorageAccessAPIEnabled { false };
     };
 
     Page* m_page;

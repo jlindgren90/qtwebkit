@@ -31,7 +31,11 @@
 #include "APIUserInitiatedAction.h"
 #include "NavigationActionData.h"
 #include <WebCore/ResourceRequest.h>
-#include <WebCore/URL.h>
+#include <wtf/URL.h>
+
+#if USE(APPLE_INTERNAL_SDK)
+#include <WebKitAdditions/APINavigationActionAdditions.h>
+#endif
 
 namespace API {
 
@@ -44,13 +48,13 @@ public:
 
     FrameInfo* sourceFrame() const { return m_sourceFrame.get(); }
     FrameInfo* targetFrame() const { return m_targetFrame.get(); }
-    std::optional<WTF::String> targetFrameName() const { return m_targetFrameName; }
+    Optional<WTF::String> targetFrameName() const { return m_targetFrameName; }
 
     const WebCore::ResourceRequest& request() const { return m_request; }
-    const WebCore::URL& originalURL() const { return !m_originalURL.isNull() ? m_originalURL : m_request.url(); }
+    const WTF::URL& originalURL() const { return !m_originalURL.isNull() ? m_originalURL : m_request.url(); }
 
     WebCore::NavigationType navigationType() const { return m_navigationActionData.navigationType; }
-    WebKit::WebEvent::Modifiers modifiers() const { return m_navigationActionData.modifiers; }
+    OptionSet<WebKit::WebEvent::Modifier> modifiers() const { return m_navigationActionData.modifiers; }
     WebKit::WebMouseEvent::Button mouseButton() const { return m_navigationActionData.mouseButton; }
     WebKit::WebMouseEvent::SyntheticClickType syntheticClickType() const { return m_navigationActionData.syntheticClickType; }
     WebCore::FloatPoint clickLocationInRootViewCoordinates() const { return m_navigationActionData.clickLocationInRootViewCoordinates; }
@@ -65,8 +69,12 @@ public:
 
     Navigation* mainFrameNavigation() const { return m_mainFrameNavigation.get(); }
 
+#if HAVE(LOAD_OPTIMIZER)
+APINAVIGATIONACTION_LOADOPTIMIZER_ADDITIONS_1
+#endif
+
 private:
-    NavigationAction(WebKit::NavigationActionData&& navigationActionData, API::FrameInfo* sourceFrame, API::FrameInfo* targetFrame, std::optional<WTF::String> targetFrameName, WebCore::ResourceRequest&& request, const WebCore::URL& originalURL, bool shouldOpenAppLinks, RefPtr<UserInitiatedAction>&& userInitiatedAction, API::Navigation* mainFrameNavigation)
+    NavigationAction(WebKit::NavigationActionData&& navigationActionData, API::FrameInfo* sourceFrame, API::FrameInfo* targetFrame, Optional<WTF::String> targetFrameName, WebCore::ResourceRequest&& request, const WTF::URL& originalURL, bool shouldOpenAppLinks, RefPtr<UserInitiatedAction>&& userInitiatedAction, API::Navigation* mainFrameNavigation)
         : m_sourceFrame(sourceFrame)
         , m_targetFrame(targetFrame)
         , m_targetFrameName(targetFrameName)
@@ -79,19 +87,22 @@ private:
     {
     }
 
-    NavigationAction(WebKit::NavigationActionData&& navigationActionData, API::FrameInfo* sourceFrame, API::FrameInfo* targetFrame, std::optional<WTF::String> targetFrameName, WebCore::ResourceRequest&& request, const WebCore::URL& originalURL, bool shouldOpenAppLinks, RefPtr<UserInitiatedAction>&& userInitiatedAction)
+    NavigationAction(WebKit::NavigationActionData&& navigationActionData, API::FrameInfo* sourceFrame, API::FrameInfo* targetFrame, Optional<WTF::String> targetFrameName, WebCore::ResourceRequest&& request, const WTF::URL& originalURL, bool shouldOpenAppLinks, RefPtr<UserInitiatedAction>&& userInitiatedAction)
         : NavigationAction(WTFMove(navigationActionData), sourceFrame, targetFrame, targetFrameName, WTFMove(request), originalURL, shouldOpenAppLinks, WTFMove(userInitiatedAction), nullptr)
     {
     }
 
     RefPtr<FrameInfo> m_sourceFrame;
     RefPtr<FrameInfo> m_targetFrame;
-    std::optional<WTF::String> m_targetFrameName;
+    Optional<WTF::String> m_targetFrameName;
 
     WebCore::ResourceRequest m_request;
-    WebCore::URL m_originalURL;
+    WTF::URL m_originalURL;
 
     bool m_shouldOpenAppLinks;
+#if HAVE(LOAD_OPTIMIZER)
+APINAVIGATIONACTION_LOADOPTIMIZER_ADDITIONS_2
+#endif
 
     RefPtr<UserInitiatedAction> m_userInitiatedAction;
 

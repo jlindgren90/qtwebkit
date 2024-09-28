@@ -28,8 +28,10 @@
 #include "JSCInlines.h"
 #include "MachineStackMarker.h"
 #include "SamplingProfiler.h"
+#include "WasmCapabilities.h"
 #include "WasmMachineThreads.h"
 #include <thread>
+#include <wtf/StackPointer.h>
 #include <wtf/Threading.h>
 #include <wtf/threads/Signals.h>
 
@@ -143,12 +145,13 @@ void JSLock::didAcquireLock()
     }
 
     RELEASE_ASSERT(!m_vm->stackPointerAtVMEntry());
-    void* p = &p; // A proxy for the current stack pointer.
+    void* p = currentStackPointer();
     m_vm->setStackPointerAtVMEntry(p);
 
     m_vm->heap.machineThreads().addCurrentThread();
 #if ENABLE(WEBASSEMBLY)
-    Wasm::startTrackingCurrentThread();
+    if (Wasm::isSupported())
+        Wasm::startTrackingCurrentThread();
 #endif
 
 #if HAVE(MACH_EXCEPTIONS)

@@ -79,6 +79,8 @@ ExceptionOr<void> OscillatorNode::setType(Type type)
 {
     PeriodicWave* periodicWave = nullptr;
 
+    ALWAYS_LOG(LOGIDENTIFIER, type);
+
     switch (type) {
     case Type::Sine:
         if (!s_periodicWaveSine)
@@ -205,8 +207,8 @@ void OscillatorNode::process(size_t framesToProcess)
         return;
     }
 
-    size_t quantumFrameOffset;
-    size_t nonSilentFramesToProcess;
+    size_t quantumFrameOffset = 0;
+    size_t nonSilentFramesToProcess = 0;
     updateSchedulingInfo(framesToProcess, outputBus, quantumFrameOffset, nonSilentFramesToProcess);
 
     if (!nonSilentFramesToProcess) {
@@ -231,7 +233,7 @@ void OscillatorNode::process(size_t framesToProcess)
     float frequency = 0;
     float* higherWaveData = nullptr;
     float* lowerWaveData = nullptr;
-    float tableInterpolationFactor;
+    float tableInterpolationFactor = 0;
 
     if (!hasSampleAccurateValues) {
         frequency = m_frequency->smoothedValue();
@@ -297,8 +299,9 @@ void OscillatorNode::reset()
 
 void OscillatorNode::setPeriodicWave(PeriodicWave* periodicWave)
 {
+    ALWAYS_LOG(LOGIDENTIFIER, "sample rate = ", periodicWave ? periodicWave->sampleRate() : 0, ", wave size = ", periodicWave ? periodicWave->periodicWaveSize() : 0, ", rate scale = ", periodicWave ? periodicWave->rateScale() : 0);
     ASSERT(isMainThread());
-
+    
     // This synchronizes with process().
     std::lock_guard<Lock> lock(m_processMutex);
     m_periodicWave = periodicWave;

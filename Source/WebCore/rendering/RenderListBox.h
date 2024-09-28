@@ -106,8 +106,8 @@ private:
     int scrollTop() const override;
     int scrollWidth() const override;
     int scrollHeight() const override;
-    void setScrollLeft(int, ScrollClamping) override;
-    void setScrollTop(int, ScrollClamping) override;
+    void setScrollLeft(int, ScrollType, ScrollClamping) override;
+    void setScrollTop(int, ScrollType, ScrollClamping) override;
 
     bool nodeAtPoint(const HitTestRequest&, HitTestResult&, const HitTestLocation& locationInContainer, const LayoutPoint& accumulatedOffset, HitTestAction) override;
 
@@ -178,8 +178,8 @@ private:
     int m_optionsWidth;
     int m_indexOffset;
 
-    std::optional<int> m_indexOfFirstVisibleItemInsidePaddingTopArea;
-    std::optional<int> m_indexOfFirstVisibleItemInsidePaddingBottomArea;
+    Optional<int> m_indexOfFirstVisibleItemInsidePaddingTopArea;
+    Optional<int> m_indexOfFirstVisibleItemInsidePaddingBottomArea;
 
     RefPtr<Scrollbar> m_vBar;
 };

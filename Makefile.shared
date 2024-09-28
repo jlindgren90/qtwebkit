@@ -34,6 +34,10 @@ ifneq (,$(ARCHS))
 	endif
 endif
 
+ifneq (,$(SDK_VARIANT))
+	XCODE_OPTIONS += SDK_VARIANT="$(SDK_VARIANT)"
+endif
+
 DEFAULT_VERBOSITY := $(shell defaults read org.webkit.BuildConfiguration BuildTranscriptVerbosity 2>/dev/null || echo "default")
 VERBOSITY ?= $(DEFAULT_VERBOSITY)
 

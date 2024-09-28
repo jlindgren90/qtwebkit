@@ -39,7 +39,7 @@
 #import "SVGDocument.h"
 #import <pal/Logging.h>
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 #import "WebCoreThreadInternal.h"
 #endif
 
@@ -47,7 +47,7 @@ namespace WebCore {
 
 void Page::platformInitialize()
 {
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     addSchedulePair(SchedulePair::create(WebThreadNSRunLoop(), kCFRunLoopCommonModes));
 #else
     addSchedulePair(SchedulePair::create([[NSRunLoop currentRunLoop] getCFRunLoop], kCFRunLoopCommonModes));
@@ -58,6 +58,7 @@ void Page::platformInitialize()
 #if ENABLE(TREE_DEBUGGING)
         PAL::registerNotifyCallback("com.apple.WebKit.showRenderTree", printRenderTreeForLiveDocuments);
         PAL::registerNotifyCallback("com.apple.WebKit.showLayerTree", printLayerTreeForLiveDocuments);
+        PAL::registerNotifyCallback("com.apple.WebKit.showGraphicsLayerTree", printGraphicsLayerTreeForLiveDocuments);
 #if ENABLE(LAYOUT_FORMATTING_CONTEXT)
         PAL::registerNotifyCallback("com.apple.WebKit.showLayoutTree", Layout::printLayoutTreeForLiveDocuments);
 #endif

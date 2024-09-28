@@ -26,25 +26,28 @@
 #include "config.h"
 #include "NetworkDataTaskCurl.h"
 
+#include "AuthenticationChallengeDisposition.h"
 #include "AuthenticationManager.h"
 #include "NetworkSessionCurl.h"
 #include <WebCore/AuthenticationChallenge.h>
-#include <WebCore/CookiesStrategy.h>
+#include <WebCore/CookieJar.h>
 #include <WebCore/CurlRequest.h>
 #include <WebCore/NetworkStorageSession.h>
 #include <WebCore/NotImplemented.h>
 #include <WebCore/ResourceError.h>
 #include <WebCore/SameSiteInfo.h>
 
-using namespace WebCore;
-
 namespace WebKit {
+
+using namespace WebCore;
 
 NetworkDataTaskCurl::NetworkDataTaskCurl(NetworkSession& session, NetworkDataTaskClient& client, const ResourceRequest& requestWithCredentials, StoredCredentialsPolicy storedCredentialsPolicy, ContentSniffingPolicy shouldContentSniff, ContentEncodingSniffingPolicy, bool shouldClearReferrerOnHTTPSToHTTPRedirect, bool dataTaskIsForMainFrameNavigation)
     : NetworkDataTask(session, client, requestWithCredentials, storedCredentialsPolicy, shouldClearReferrerOnHTTPSToHTTPRedirect, dataTaskIsForMainFrameNavigation)
 {
     if (m_scheduledFailureType != NoFailure)
         return;
+
+    m_startTime = MonotonicTime::now();
 
     auto request = requestWithCredentials;
     if (request.url().protocolIsInHTTPFamily()) {
@@ -62,8 +65,11 @@ NetworkDataTaskCurl::NetworkDataTaskCurl(NetworkSession& session, NetworkDataTas
     }
 
     m_curlRequest = createCurlRequest(WTFMove(request));
-    if (!m_initialCredential.isEmpty())
+    if (!m_initialCredential.isEmpty()) {
         m_curlRequest->setUserPass(m_initialCredential.user(), m_initialCredential.password());
+        m_curlRequest->setAuthenticationScheme(ProtectionSpaceAuthenticationSchemeHTTPBasic);
+    }
+    m_curlRequest->setStartTime(m_startTime);
     m_curlRequest->start();
 }
 
@@ -88,18 +94,6 @@ void NetworkDataTaskCurl::resume()
 
     if (m_curlRequest)
         m_curlRequest->resume();
-}
-
-void NetworkDataTaskCurl::suspend()
-{
-    ASSERT(m_state != State::Suspended);
-    if (m_state == State::Canceling || m_state == State::Completed)
-        return;
-
-    m_state = State::Suspended;
-
-    if (m_curlRequest)
-        m_curlRequest->suspend();
 }
 
 void NetworkDataTaskCurl::cancel()
@@ -133,7 +127,8 @@ Ref<CurlRequest> NetworkDataTaskCurl::createCurlRequest(ResourceRequest&& reques
 
     // Creates a CurlRequest in suspended state.
     // Then, NetworkDataTaskCurl::resume() will be called and communication resumes.
-    return CurlRequest::create(request, *this, CurlRequest::ShouldSuspend::Yes);
+    const auto captureMetrics = shouldCaptureExtraNetworkLoadMetrics() ? CurlRequest::CaptureNetworkLoadMetrics::Extended : CurlRequest::CaptureNetworkLoadMetrics::Basic;
+    return CurlRequest::create(request, *this, CurlRequest::ShouldSuspend::Yes, CurlRequest::EnableMultipart::No, captureMetrics);
 }
 
 void NetworkDataTaskCurl::curlDidSendData(CurlRequest&, unsigned long long totalBytesSent, unsigned long long totalBytesExpectedToSend)
@@ -154,7 +149,7 @@ void NetworkDataTaskCurl::curlDidReceiveResponse(CurlRequest& request, const Cur
     m_response = ResourceResponse(receivedResponse);
     m_response.setDeprecatedNetworkLoadMetrics(request.networkLoadMetrics().isolatedCopy());
 
-    handleCookieHeaders(receivedResponse);
+    handleCookieHeaders(request.resourceRequest(), receivedResponse);
 
     if (m_response.shouldRedirect()) {
         willPerformHTTPRedirection();
@@ -172,22 +167,7 @@ void NetworkDataTaskCurl::curlDidReceiveResponse(CurlRequest& request, const Cur
         return;
     }
 
-    didReceiveResponse(ResourceResponse(m_response), [this, protectedThis = makeRef(*this)](PolicyAction policyAction) {
-        if (m_state == State::Canceling || m_state == State::Completed)
-            return;
-
-        switch (policyAction) {
-        case PolicyAction::Use:
-            if (m_curlRequest)
-                m_curlRequest->completeDidReceiveResponse();
-            break;
-        case PolicyAction::Ignore:
-            break;
-        case PolicyAction::Download:
-            notImplemented();
-            break;
-        }
-    });
+    invokeDidReceiveResponse();
 }
 
 void NetworkDataTaskCurl::curlDidReceiveBuffer(CurlRequest&, Ref<SharedBuffer>&& buffer)
@@ -209,10 +189,15 @@ void NetworkDataTaskCurl::curlDidComplete(CurlRequest& request)
     m_client->didCompleteWithError({ }, m_response.deprecatedNetworkLoadMetrics());
 }
 
-void NetworkDataTaskCurl::curlDidFailWithError(CurlRequest&, const ResourceError& resourceError)
+void NetworkDataTaskCurl::curlDidFailWithError(CurlRequest& request, const ResourceError& resourceError)
 {
     if (state() == State::Canceling || state() == State::Completed || (!m_client && !isDownload()))
         return;
+
+    if (resourceError.isSSLCertVerificationError()) {
+        tryServerTrustEvaluation(AuthenticationChallenge(request.resourceRequest().url(), request.certificateInfo(), resourceError));
+        return;
+    }
 
     m_client->didCompleteWithError(resourceError);
 }
@@ -235,6 +220,26 @@ bool NetworkDataTaskCurl::shouldRedirectAsGET(const ResourceRequest& request, bo
         return true;
 
     return false;
+}
+
+void NetworkDataTaskCurl::invokeDidReceiveResponse()
+{
+    didReceiveResponse(ResourceResponse(m_response), [this, protectedThis = makeRef(*this)](PolicyAction policyAction) {
+        if (m_state == State::Canceling || m_state == State::Completed)
+            return;
+
+        switch (policyAction) {
+        case PolicyAction::Use:
+            if (m_curlRequest)
+                m_curlRequest->completeDidReceiveResponse();
+            break;
+        case PolicyAction::Ignore:
+            break;
+        default:
+            notImplemented();
+            break;
+        }
+    });
 }
 
 void NetworkDataTaskCurl::willPerformHTTPRedirection()
@@ -291,17 +296,23 @@ void NetworkDataTaskCurl::willPerformHTTPRedirection()
     }
 
     auto response = ResourceResponse(m_response);
-    m_client->willPerformHTTPRedirection(WTFMove(response), WTFMove(request), [this, protectedThis = makeRef(*this), didChangeCredential](const ResourceRequest& newRequest) {
+    m_client->willPerformHTTPRedirection(WTFMove(response), WTFMove(request), [this, protectedThis = makeRef(*this), didChangeCredential, isCrossOrigin](const ResourceRequest& newRequest) {
         if (newRequest.isNull() || m_state == State::Canceling)
             return;
 
         if (m_curlRequest)
             m_curlRequest->cancel();
 
+        if (newRequest.url().protocolIsInHTTPFamily() && isCrossOrigin)
+            m_startTime = MonotonicTime::now();
+
         auto requestCopy = newRequest;
         m_curlRequest = createCurlRequest(WTFMove(requestCopy));
-        if (didChangeCredential && !m_initialCredential.isEmpty())
+        if (didChangeCredential && !m_initialCredential.isEmpty()) {
             m_curlRequest->setUserPass(m_initialCredential.user(), m_initialCredential.password());
+            m_curlRequest->setAuthenticationScheme(ProtectionSpaceAuthenticationSchemeHTTPBasic);
+        }
+        m_curlRequest->setStartTime(m_startTime);
         m_curlRequest->start();
 
         if (m_state != State::Suspended) {
@@ -315,7 +326,7 @@ void NetworkDataTaskCurl::tryHttpAuthentication(AuthenticationChallenge&& challe
 {
     if (!m_user.isNull() && !m_password.isNull()) {
         auto persistence = m_storedCredentialsPolicy == WebCore::StoredCredentialsPolicy::Use ? WebCore::CredentialPersistenceForSession : WebCore::CredentialPersistenceNone;
-        restartWithCredential(Credential(m_user, m_password, persistence));
+        restartWithCredential(challenge.protectionSpace(), Credential(m_user, m_password, persistence));
         m_user = String();
         m_password = String();
         return;
@@ -337,7 +348,7 @@ void NetworkDataTaskCurl::tryHttpAuthentication(AuthenticationChallenge&& challe
                     // Store the credential back, possibly adding it as a default for this directory.
                     m_session->networkStorageSession().credentialStorage().set(m_partition, credential, challenge.protectionSpace(), challenge.failureResponse().url());
                 }
-                restartWithCredential(credential);
+                restartWithCredential(challenge.protectionSpace(), credential);
                 return;
             }
         }
@@ -358,9 +369,12 @@ void NetworkDataTaskCurl::tryHttpAuthentication(AuthenticationChallenge&& challe
                 if (credential.persistence() == CredentialPersistenceForSession || credential.persistence() == CredentialPersistencePermanent)
                     m_session->networkStorageSession().credentialStorage().set(m_partition, credential, challenge.protectionSpace(), challenge.failureResponse().url());
             }
+
+            restartWithCredential(challenge.protectionSpace(), credential);
+            return;
         }
 
-        restartWithCredential(credential);
+        invokeDidReceiveResponse();
     });
 }
 
@@ -376,15 +390,37 @@ void NetworkDataTaskCurl::tryProxyAuthentication(WebCore::AuthenticationChalleng
             return;
         }
 
-        CurlContext::singleton().setProxyUserPass(credential.user(), credential.password());
-        CurlContext::singleton().setDefaultProxyAuthMethod();
+        if (disposition == AuthenticationChallengeDisposition::UseCredential && !credential.isEmpty()) {
+            CurlContext::singleton().setProxyUserPass(credential.user(), credential.password());
+            CurlContext::singleton().setDefaultProxyAuthMethod();
 
-        auto requestCredential = m_curlRequest ? Credential(m_curlRequest->user(), m_curlRequest->password(), CredentialPersistenceNone) : Credential();
-        restartWithCredential(requestCredential);
+            auto requestCredential = m_curlRequest ? Credential(m_curlRequest->user(), m_curlRequest->password(), CredentialPersistenceNone) : Credential();
+            restartWithCredential(challenge.protectionSpace(), requestCredential);
+            return;
+        }
+
+        invokeDidReceiveResponse();
     });
 }
 
-void NetworkDataTaskCurl::restartWithCredential(const Credential& credential)
+void NetworkDataTaskCurl::tryServerTrustEvaluation(AuthenticationChallenge&& challenge)
+{
+    m_client->didReceiveChallenge(AuthenticationChallenge(challenge), [this, protectedThis = makeRef(*this), challenge](AuthenticationChallengeDisposition disposition, const Credential& credential) {
+        if (m_state == State::Canceling || m_state == State::Completed)
+            return;
+
+        if (disposition == AuthenticationChallengeDisposition::UseCredential && !credential.isEmpty()) {
+            auto requestCredential = m_curlRequest ? Credential(m_curlRequest->user(), m_curlRequest->password(), CredentialPersistenceNone) : Credential();
+            restartWithCredential(challenge.protectionSpace(), requestCredential);
+            return;
+        }
+
+        cancel();
+        m_client->didCompleteWithError(challenge.error());
+    });
+}
+
+void NetworkDataTaskCurl::restartWithCredential(const ProtectionSpace& protectionSpace, const Credential& credential)
 {
     ASSERT(m_curlRequest);
 
@@ -392,7 +428,11 @@ void NetworkDataTaskCurl::restartWithCredential(const Credential& credential)
     m_curlRequest->cancel();
 
     m_curlRequest = createCurlRequest(WTFMove(previousRequest), RequestStatus::ReusedRequest);
+    m_curlRequest->setAuthenticationScheme(protectionSpace.authenticationScheme());
     m_curlRequest->setUserPass(credential.user(), credential.password());
+    if (protectionSpace.authenticationScheme() == ProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested)
+        m_curlRequest->disableServerTrustEvaluation();
+    m_curlRequest->setStartTime(m_startTime);
     m_curlRequest->start();
 
     if (m_state != State::Suspended) {
@@ -406,12 +446,12 @@ void NetworkDataTaskCurl::appendCookieHeader(WebCore::ResourceRequest& request)
     const auto& storageSession = m_session->networkStorageSession();
     const auto& cookieJar = storageSession.cookieStorage();
     auto includeSecureCookies = request.url().protocolIs("https") ? IncludeSecureCookies::Yes : IncludeSecureCookies::No;
-    auto cookieHeaderField = cookieJar.cookieRequestHeaderFieldValue(storageSession, request.firstPartyForCookies(), WebCore::SameSiteInfo::create(request), request.url(), std::nullopt, std::nullopt, includeSecureCookies).first;
+    auto cookieHeaderField = cookieJar.cookieRequestHeaderFieldValue(storageSession, request.firstPartyForCookies(), WebCore::SameSiteInfo::create(request), request.url(), WTF::nullopt, WTF::nullopt, includeSecureCookies).first;
     if (!cookieHeaderField.isEmpty())
         request.addHTTPHeaderField(HTTPHeaderName::Cookie, cookieHeaderField);
 }
 
-void NetworkDataTaskCurl::handleCookieHeaders(const CurlResponse& response)
+void NetworkDataTaskCurl::handleCookieHeaders(const WebCore::ResourceRequest& request, const CurlResponse& response)
 {
     static const auto setCookieHeader = "set-cookie: ";
 
@@ -420,7 +460,7 @@ void NetworkDataTaskCurl::handleCookieHeaders(const CurlResponse& response)
     for (auto header : response.headers) {
         if (header.startsWithIgnoringASCIICase(setCookieHeader)) {
             String setCookieString = header.right(header.length() - strlen(setCookieHeader));
-            cookieJar.setCookiesFromHTTPResponse(storageSession, response.url, setCookieString);
+            cookieJar.setCookiesFromHTTPResponse(storageSession, request.firstPartyForCookies(), response.url, setCookieString);
         }
     }
 }

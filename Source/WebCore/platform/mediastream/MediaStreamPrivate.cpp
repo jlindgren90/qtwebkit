@@ -2,7 +2,7 @@
  * Copyright (C) 2011, 2015 Ericsson AB. All rights reserved.
  * Copyright (C) 2013 Google Inc. All rights reserved.
  * Copyright (C) 2013 Nokia Corporation and/or its subsidiary(-ies).
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2019 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -38,6 +38,7 @@
 
 #include "GraphicsContext.h"
 #include "IntRect.h"
+#include "Logging.h"
 #include <wtf/MainThread.h>
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
@@ -84,14 +85,21 @@ MediaStreamPrivate::~MediaStreamPrivate()
 
 void MediaStreamPrivate::addObserver(MediaStreamPrivate::Observer& observer)
 {
-    m_observers.append(&observer);
+    m_observers.add(&observer);
 }
 
 void MediaStreamPrivate::removeObserver(MediaStreamPrivate::Observer& observer)
 {
-    size_t pos = m_observers.find(&observer);
-    if (pos != notFound)
-        m_observers.remove(pos);
+    m_observers.remove(&observer);
+}
+
+void MediaStreamPrivate::forEachObserver(const WTF::Function<void(Observer&)>& apply) const
+{
+    for (auto* observer : copyToVector(m_observers)) {
+        if (!m_observers.contains(observer))
+            continue;
+        apply(*observer);
+    }
 }
 
 MediaStreamTrackPrivateVector MediaStreamPrivate::tracks() const
@@ -118,8 +126,9 @@ void MediaStreamPrivate::updateActiveState(NotifyClientOption notifyClientOption
     m_isActive = newActiveState;
 
     if (notifyClientOption == NotifyClientOption::Notify) {
-        for (auto& observer : m_observers)
-            observer->activeStatusChanged();
+        forEachObserver([](auto& observer) {
+            observer.activeStatusChanged();
+        });
     }
 }
 
@@ -128,12 +137,15 @@ void MediaStreamPrivate::addTrack(RefPtr<MediaStreamTrackPrivate>&& track, Notif
     if (m_trackSet.contains(track->id()))
         return;
 
+    ALWAYS_LOG(LOGIDENTIFIER, track->logIdentifier());
+
     track->addObserver(*this);
     m_trackSet.add(track->id(), track);
 
     if (notifyClientOption == NotifyClientOption::Notify) {
-        for (auto& observer : m_observers)
-            observer->didAddTrack(*track.get());
+        forEachObserver([&track](auto& observer) {
+            observer.didAddTrack(*track.get());
+        });
     }
 
     updateActiveState(notifyClientOption);
@@ -145,11 +157,13 @@ void MediaStreamPrivate::removeTrack(MediaStreamTrackPrivate& track, NotifyClien
     if (!m_trackSet.remove(track.id()))
         return;
 
+    ALWAYS_LOG(LOGIDENTIFIER, track.logIdentifier());
     track.removeObserver(*this);
 
     if (notifyClientOption == NotifyClientOption::Notify) {
-        for (auto& observer : m_observers)
-            observer->didRemoveTrack(track);
+        forEachObserver([&track](auto& observer) {
+            observer.didRemoveTrack(track);
+        });
     }
 
     updateActiveState(NotifyClientOption::Notify);
@@ -158,12 +172,14 @@ void MediaStreamPrivate::removeTrack(MediaStreamTrackPrivate& track, NotifyClien
 
 void MediaStreamPrivate::startProducingData()
 {
+    ALWAYS_LOG(LOGIDENTIFIER);
     for (auto& track : m_trackSet.values())
         track->startProducingData();
 }
 
 void MediaStreamPrivate::stopProducingData()
 {
+    ALWAYS_LOG(LOGIDENTIFIER);
     for (auto& track : m_trackSet.values())
         track->stopProducingData();
 }
@@ -179,6 +195,7 @@ bool MediaStreamPrivate::isProducingData() const
 
 void MediaStreamPrivate::setCaptureTracksMuted(bool muted)
 {
+    ALWAYS_LOG(LOGIDENTIFIER, muted);
     for (auto& track : m_trackSet.values()) {
         if (track->isCaptureTrack())
             track->setMuted(muted);
@@ -256,12 +273,18 @@ void MediaStreamPrivate::updateActiveVideoTrack()
 
 void MediaStreamPrivate::characteristicsChanged()
 {
-    for (auto& observer : m_observers)
-        observer->characteristicsChanged();
+    forEachObserver([](auto& observer) {
+        observer.characteristicsChanged();
+    });
 }
 
-void MediaStreamPrivate::trackMutedChanged(MediaStreamTrackPrivate&)
+void MediaStreamPrivate::trackMutedChanged(MediaStreamTrackPrivate& track)
 {
+#if RELEASE_LOG_DISABLED
+    UNUSED_PARAM(track);
+#endif
+
+    ALWAYS_LOG(LOGIDENTIFIER, track.logIdentifier(), " ", track.muted());
     scheduleDeferredTask([this] {
         characteristicsChanged();
     });
@@ -272,8 +295,13 @@ void MediaStreamPrivate::trackSettingsChanged(MediaStreamTrackPrivate&)
     characteristicsChanged();
 }
 
-void MediaStreamPrivate::trackEnabledChanged(MediaStreamTrackPrivate&)
+void MediaStreamPrivate::trackEnabledChanged(MediaStreamTrackPrivate& track)
 {
+#if RELEASE_LOG_DISABLED
+    UNUSED_PARAM(track);
+#endif
+
+    ALWAYS_LOG(LOGIDENTIFIER, track.logIdentifier(), " ", track.enabled());
     updateActiveVideoTrack();
 
     scheduleDeferredTask([this] {
@@ -281,15 +309,25 @@ void MediaStreamPrivate::trackEnabledChanged(MediaStreamTrackPrivate&)
     });
 }
 
-void MediaStreamPrivate::trackStarted(MediaStreamTrackPrivate&)
+void MediaStreamPrivate::trackStarted(MediaStreamTrackPrivate& track)
 {
+#if RELEASE_LOG_DISABLED
+    UNUSED_PARAM(track);
+#endif
+
+    ALWAYS_LOG(LOGIDENTIFIER, track.logIdentifier());
     scheduleDeferredTask([this] {
         characteristicsChanged();
     });
 }
 
-void MediaStreamPrivate::trackEnded(MediaStreamTrackPrivate&)
+void MediaStreamPrivate::trackEnded(MediaStreamTrackPrivate& track)
 {
+#if RELEASE_LOG_DISABLED
+    UNUSED_PARAM(track);
+#endif
+
+    ALWAYS_LOG(LOGIDENTIFIER, track.logIdentifier());
     scheduleDeferredTask([this] {
         updateActiveState(NotifyClientOption::Notify);
         characteristicsChanged();
@@ -314,6 +352,20 @@ void MediaStreamPrivate::monitorOrientation(OrientationNotifier& notifier)
             track->source().monitorOrientation(notifier);
     }
 }
+
+#if !RELEASE_LOG_DISABLED
+void MediaStreamPrivate::setLogger(const Logger& newLogger, const void* newLogIdentifier)
+{
+    m_logger = &newLogger;
+    m_logIdentifier = newLogIdentifier;
+    ALWAYS_LOG(LOGIDENTIFIER);
+}
+
+WTFLogChannel& MediaStreamPrivate::logChannel() const
+{
+    return LogWebRTC;
+}
+#endif
 
 } // namespace WebCore
 

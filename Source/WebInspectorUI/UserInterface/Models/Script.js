@@ -65,7 +65,7 @@ WI.Script = class Script extends WI.SourceCode
         }
 
         if (this._sourceMappingURL)
-            WI.sourceMapManager.downloadSourceMap(this._sourceMappingURL, this._url, this);
+            WI.networkManager.downloadSourceMap(this._sourceMappingURL, this._url, this);
     }
 
     // Static
@@ -241,7 +241,7 @@ WI.Script = class Script extends WI.SourceCode
         if (!this._url)
             return null;
 
-        let resolver = WI.frameResourceManager;
+        let resolver = WI.networkManager;
         if (this._target !== WI.mainTarget)
             resolver = this._target.resourceCollection;
 
@@ -275,6 +275,13 @@ WI.Script = class Script extends WI.SourceCode
                     return resource;
             }
         } catch { }
+
+        if (!this.isMainResource()) {
+            for (let frame of WI.networkManager.frames) {
+                if (frame.mainResource.type === WI.Resource.Type.Document && frame.mainResource.url.startsWith(this._url))
+                    return frame.mainResource;
+            }
+        }
 
         return null;
     }

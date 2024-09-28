@@ -42,13 +42,16 @@ namespace WebCore {
     M(Archives) \
     M(Compositing) \
     M(ContentFiltering) \
+    M(ContentObservation) \
     M(DatabaseTracker) \
     M(DisplayLists) \
     M(DOMTimers) \
     M(Editing) \
+    M(EME) \
     M(Events) \
     M(FileAPI) \
     M(Filters) \
+    M(Fonts) \
     M(Frames) \
     M(FTP) \
     M(Fullscreen) \
@@ -100,6 +103,7 @@ namespace WebCore {
     M(WebGL) \
     M(WebGPU) \
     M(WebRTC) \
+    M(WebRTCStats) \
     M(WheelEventTestTriggers) \
 
 #undef DECLARE_LOG_CHANNEL

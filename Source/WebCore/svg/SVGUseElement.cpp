@@ -5,7 +5,7 @@
  * Copyright (C) 2011 Torch Mobile (Beijing) Co. Ltd. All rights reserved.
  * Copyright (C) 2012 University of Szeged
  * Copyright (C) 2012 Renata Hodovan <reni@webkit.org>
- * Copyright (C) 2015-2018 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2019 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -54,7 +54,14 @@ inline SVGUseElement::SVGUseElement(const QualifiedName& tagName, Document& docu
 {
     ASSERT(hasCustomStyleResolveCallbacks());
     ASSERT(hasTagName(SVGNames::useTag));
-    registerAttributes();
+
+    static std::once_flag onceFlag;
+    std::call_once(onceFlag, [] {
+        PropertyRegistry::registerProperty<SVGNames::xAttr, &SVGUseElement::m_x>();
+        PropertyRegistry::registerProperty<SVGNames::yAttr, &SVGUseElement::m_y>();
+        PropertyRegistry::registerProperty<SVGNames::widthAttr, &SVGUseElement::m_width>();
+        PropertyRegistry::registerProperty<SVGNames::heightAttr, &SVGUseElement::m_height>();
+    });
 }
 
 Ref<SVGUseElement> SVGUseElement::create(const QualifiedName& tagName, Document& document)
@@ -68,29 +75,18 @@ SVGUseElement::~SVGUseElement()
         m_externalDocument->removeClient(*this);
 }
 
-void SVGUseElement::registerAttributes()
-{
-    auto& registry = attributeRegistry();
-    if (!registry.isEmpty())
-        return;
-    registry.registerAttribute<SVGNames::xAttr, &SVGUseElement::m_x>();
-    registry.registerAttribute<SVGNames::yAttr, &SVGUseElement::m_y>();
-    registry.registerAttribute<SVGNames::widthAttr, &SVGUseElement::m_width>();
-    registry.registerAttribute<SVGNames::heightAttr, &SVGUseElement::m_height>();
-}
-
 void SVGUseElement::parseAttribute(const QualifiedName& name, const AtomicString& value)
 {
     SVGParsingError parseError = NoError;
 
     if (name == SVGNames::xAttr)
-        m_x.setValue(SVGLengthValue::construct(LengthModeWidth, value, parseError));
+        m_x->setBaseValInternal(SVGLengthValue::construct(LengthModeWidth, value, parseError));
     else if (name == SVGNames::yAttr)
-        m_y.setValue(SVGLengthValue::construct(LengthModeHeight, value, parseError));
+        m_y->setBaseValInternal(SVGLengthValue::construct(LengthModeHeight, value, parseError));
     else if (name == SVGNames::widthAttr)
-        m_width.setValue(SVGLengthValue::construct(LengthModeWidth, value, parseError, ForbidNegativeLengths));
+        m_width->setBaseValInternal(SVGLengthValue::construct(LengthModeWidth, value, parseError, ForbidNegativeLengths));
     else if (name == SVGNames::heightAttr)
-        m_height.setValue(SVGLengthValue::construct(LengthModeHeight, value, parseError, ForbidNegativeLengths));
+        m_height->setBaseValInternal(SVGLengthValue::construct(LengthModeHeight, value, parseError, ForbidNegativeLengths));
 
     reportAttributeParsingError(parseError, name, value);
 
@@ -163,7 +159,7 @@ void SVGUseElement::svgAttributeChanged(const QualifiedName& attrName)
 {
     InstanceInvalidationGuard guard(*this);
 
-    if (isKnownAttribute(attrName)) {
+    if (PropertyRegistry::isKnownAttribute(attrName)) {
         updateRelativeLengthsInformation();
         if (attrName == SVGNames::widthAttr || attrName == SVGNames::heightAttr) {
             // FIXME: It's unnecessarily inefficient to update both width and height each time either is changed.
@@ -237,20 +233,14 @@ void SVGUseElement::updateShadowTree()
         return;
     document().removeSVGUseElement(*this);
 
-    // FIXME: Enable SVG use elements in shadow trees.
-    if (isInShadowTree())
-        return;
-
     String targetID;
     auto* target = findTarget(&targetID);
     if (!target) {
-        document().accessSVGExtensions().addPendingResource(targetID, this);
+        document().accessSVGExtensions().addPendingResource(targetID, *this);
         return;
     }
 
-    if (isDescendantOf(target))
-        return;
-    
+    RELEASE_ASSERT(!isDescendantOf(target));
     {
         auto& shadowRoot = ensureUserAgentShadowRoot();
         cloneTarget(shadowRoot, *target);
@@ -410,29 +400,33 @@ SVGElement* SVGUseElement::findTarget(String* targetID) const
     auto* correspondingElement = this->correspondingElement();
     auto& original = correspondingElement ? downcast<SVGUseElement>(*correspondingElement) : *this;
 
-    auto targetCandidate = makeRefPtr(targetElementFromIRIString(original.href(), original.document(), targetID, original.externalDocument()));
-    if (targetID && !targetID->isNull()) {
+    auto targetResult = targetElementFromIRIString(original.href(), original.treeScope(), original.externalDocument());
+    if (targetID) {
+        *targetID = WTFMove(targetResult.identifier);
         // If the reference is external, don't return the target ID to the caller.
         // The caller would use the target ID to wait for a pending resource on the wrong document.
         // If we ever want the change that and let the caller to wait on the external document,
         // we should change this function so it returns the appropriate document to go with the ID.
-        if (isExternalURIReference(original.href(), original.document()))
-            *targetID = String();
+        if (!targetID->isNull() && isExternalURIReference(original.href(), original.document()))
+            *targetID = String { };
     }
-    if (!is<SVGElement>(targetCandidate))
+    if (!is<SVGElement>(targetResult.element))
         return nullptr;
-    auto& target = downcast<SVGElement>(*targetCandidate);
+    auto& target = downcast<SVGElement>(*targetResult.element);
 
     if (!target.isConnected() || isDisallowedElement(target))
         return nullptr;
 
-    // Reject any target that has already been cloned to create one of the ancestors of this element,
-    // already in the shadow tree. This is sufficient to prevent cycles.
     if (correspondingElement) {
         for (auto& ancestor : lineageOfType<SVGElement>(*this)) {
             if (ancestor.correspondingElement() == &target)
                 return nullptr;
         }
+    } else {
+        if (target.contains(this))
+            return nullptr;
+        // Target should only refer to a node in the same tree or a node in another document.
+        ASSERT(!isDescendantOrShadowDescendantOf(&target));
     }
 
     return &target;

@@ -160,7 +160,7 @@ namespace WebCore {
     WEBCORE_EXPORT String contextMenuItemTagInspectElement();
 #endif // ENABLE(CONTEXT_MENUS)
 
-#if !PLATFORM(IOS)
+#if !PLATFORM(IOS_FAMILY)
     String searchMenuNoRecentSearchesText();
     String searchMenuRecentSearchesText();
     String searchMenuClearRecentSearchesText();
@@ -171,6 +171,7 @@ namespace WebCore {
     String AXListMarkerText();
     String AXImageMapText();
     String AXHeadingText();
+    String AXColorWellText();
     String AXDefinitionText();
     String AXDescriptionListText();
     String AXDescriptionListTermText();
@@ -223,6 +224,7 @@ namespace WebCore {
     String AXAutoFillCredentialsLabel();
     String AXAutoFillContactsLabel();
     String AXAutoFillStrongPasswordLabel();
+    String AXAutoFillCreditCardLabel();
     String autoFillStrongPasswordLabel();
 
     String missingPluginText();
@@ -230,6 +232,7 @@ namespace WebCore {
     String blockedPluginByContentSecurityPolicyText();
     String insecurePluginVersionText();
     String unsupportedPluginText();
+    WEBCORE_EXPORT String pluginTooSmallText();
 
     String multipleFileUploadText(unsigned numberOfFiles);
     String unknownFileSizeText();
@@ -247,7 +250,7 @@ namespace WebCore {
     WEBCORE_EXPORT String keygenKeychainItemName(const String& host);
 #endif
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     String htmlSelectMultipleItems(size_t num);
     String fileButtonChooseMediaFileLabel();
     String fileButtonChooseMultipleMediaFilesLabel();
@@ -308,7 +311,7 @@ namespace WebCore {
 
     WEBCORE_EXPORT String useBlockedPlugInContextMenuTitle();
 
-#if ENABLE(SUBTLE_CRYPTO)
+#if ENABLE(WEB_CRYPTO)
     String webCryptoMasterKeyKeychainLabel(const String& localizedApplicationName);
     String webCryptoMasterKeyKeychainComment();
 #endif

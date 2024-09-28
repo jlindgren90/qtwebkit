@@ -31,10 +31,11 @@
 #pragma once
 
 #include "CookieRequestHeaderFieldProxy.h"
-#include "URL.h"
+#include <wtf/URL.h>
 #include "ResourceResponse.h"
 #include "WebSocketExtensionDispatcher.h"
 #include "WebSocketExtensionProcessor.h"
+#include <wtf/WeakPtr.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
@@ -66,7 +67,7 @@ public:
 
     CString clientHandshakeMessage() const;
     ResourceRequest clientHandshakeRequest() const;
-    std::optional<CookieRequestHeaderFieldProxy> clientHandshakeCookieRequestHeaderFieldProxy() const;
+    Optional<CookieRequestHeaderFieldProxy> clientHandshakeCookieRequestHeaderFieldProxy() const;
 
     void reset();
     void clearDocument();
@@ -100,7 +101,7 @@ private:
     URL m_url;
     String m_clientProtocol;
     bool m_secure;
-    Document* m_document;
+    WeakPtr<Document> m_document;
 
     Mode m_mode;
     bool m_allowCookies;

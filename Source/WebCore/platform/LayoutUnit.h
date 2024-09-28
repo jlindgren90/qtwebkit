@@ -85,11 +85,6 @@ public:
         m_value = clampToInteger(value * kFixedPointDenominator);
     }
 
-    static LayoutUnit fromPixel(int value)
-    {
-        return LayoutUnit(value);
-    }
-
     static LayoutUnit fromFloatCeil(float value)
     {
         LayoutUnit v;
@@ -826,15 +821,26 @@ inline bool isIntegerValue(const LayoutUnit value)
     return value.toInt() == value;
 }
 
+inline namespace StringLiterals {
+
+inline LayoutUnit operator"" _lu(unsigned long long value)
+{
+    return LayoutUnit(value);
+}
+
+}
+
 } // namespace WebCore
 
 #ifndef NDEBUG
+
 namespace WTF {
+
 // This structure is used by PODIntervalTree for debugging.
-template <>
-struct ValueToString<WebCore::LayoutUnit> {
-    static String string(const WebCore::LayoutUnit value) { return String::number(value.toFloat()); }
+template<> struct ValueToString<WebCore::LayoutUnit> {
+    static String string(WebCore::LayoutUnit value) { return String::numberToStringFixedPrecision(value.toFloat()); }
 };
 
 } // namespace WTF
+
 #endif

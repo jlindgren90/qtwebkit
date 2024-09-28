@@ -27,7 +27,6 @@
 
 #include "CSSValueKeywords.h"
 #include "FileList.h"
-#include "FileSystem.h"
 #include "FloatRoundedRect.h"
 #include "FontDescription.h"
 #include "GRefPtrGtk.h"
@@ -55,6 +54,7 @@
 #include <gdk/gdk.h>
 #include <glib.h>
 #include <gtk/gtk.h>
+#include <wtf/FileSystem.h>
 #include <wtf/glib/GRefPtr.h>
 #include <wtf/glib/GUniquePtr.h>
 #include <wtf/text/CString.h>
@@ -295,6 +295,7 @@ static GRefPtr<GdkPixbuf> loadThemedIcon(GtkStyleContext* context, const char* i
 }
 #endif // !GTK_CHECK_VERSION(3, 20, 0)
 
+#if ENABLE(VIDEO)
 static bool nodeHasPseudo(Node& node, const char* pseudo)
 {
     return is<Element>(node) && downcast<Element>(node).pseudo() == pseudo;
@@ -312,6 +313,7 @@ static bool nodeHasClass(Node* node, const char* className)
 
     return element.classNames().contains(className);
 }
+#endif // ENABLE(VIDEO)
 
 RenderThemeGtk::~RenderThemeGtk() = default;
 

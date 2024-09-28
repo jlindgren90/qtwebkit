@@ -40,7 +40,7 @@ void WebPageProxy::platformInitialize()
 
 struct wpe_view_backend* WebPageProxy::viewBackend()
 {
-    return static_cast<PageClientImpl&>(m_pageClient).viewBackend();
+    return static_cast<PageClientImpl&>(pageClient()).viewBackend();
 }
 
 String WebPageProxy::standardUserAgent(const String& applicationNameForUserAgent)
@@ -53,9 +53,10 @@ void WebPageProxy::saveRecentSearches(const String&, const Vector<WebCore::Recen
     notImplemented();
 }
 
-void WebPageProxy::loadRecentSearches(const String&, Vector<WebCore::RecentSearch>&)
+void WebPageProxy::loadRecentSearches(const String&, CompletionHandler<void(Vector<WebCore::RecentSearch>&&)>&& completionHandler)
 {
     notImplemented();
+    completionHandler({ });
 }
 
 void WebsiteDataStore::platformRemoveRecentSearches(WallTime)

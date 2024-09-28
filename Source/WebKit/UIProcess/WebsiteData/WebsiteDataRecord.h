@@ -36,6 +36,7 @@
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
+class RegistrableDomain;
 class SecurityOrigin;
 }
 
@@ -62,7 +63,7 @@ struct WebsiteDataRecord {
         uint64_t totalSize;
         HashMap<unsigned, uint64_t> typeSizes;
     };
-    std::optional<Size> size;
+    Optional<Size> size;
 
     HashSet<WebCore::SecurityOriginData> origins;
     HashSet<String> cookieHostNames;
@@ -72,7 +73,7 @@ struct WebsiteDataRecord {
     HashSet<String> originsWithCredentials;
     HashSet<String> HSTSCacheHostNames;
 
-    bool matchesTopPrivatelyControlledDomain(const String&) const;
+    bool matches(const WebCore::RegistrableDomain&) const;
     String topPrivatelyControlledDomain();
 };
 

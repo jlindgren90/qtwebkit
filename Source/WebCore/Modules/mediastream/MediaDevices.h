@@ -46,6 +46,7 @@
 
 namespace WebCore {
 
+class Document;
 class MediaDeviceInfo;
 class MediaStream;
 
@@ -73,7 +74,7 @@ public:
         Variant<bool, MediaTrackConstraints> video;
         Variant<bool, MediaTrackConstraints> audio;
     };
-    ExceptionOr<void> getUserMedia(const StreamConstraints&, Promise&&) const;
+    void getUserMedia(const StreamConstraints&, Promise&&) const;
     ExceptionOr<void> getDisplayMedia(const StreamConstraints&, Promise&&) const;
     void enumerateDevices(EnumerateDevicesPromise&&) const;
     MediaTrackSupportedConstraints getSupportedConstraints();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2016-2019 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,15 +44,15 @@ class LegacyCustomProtocolManager;
 class NetworkSessionCocoa final : public NetworkSession {
     friend class NetworkDataTaskCocoa;
 public:
-    static Ref<NetworkSession> create(NetworkSessionCreationParameters&&);
+    static Ref<NetworkSession> create(NetworkProcess&, NetworkSessionCreationParameters&&);
     ~NetworkSessionCocoa();
 
+    const String& sourceApplicationBundleIdentifier() const;
+    const String& sourceApplicationSecondaryIdentifier() const;
     // Must be called before any NetworkSession has been created.
-    // FIXME: Move these to NetworkSessionCreationParameters.
-    static void setSourceApplicationAuditTokenData(RetainPtr<CFDataRef>&&);
-    static void setSourceApplicationBundleIdentifier(const String&);
-    static void setSourceApplicationSecondaryIdentifier(const String&);
-#if PLATFORM(IOS)
+    // FIXME: Move this to NetworkSessionCreationParameters.
+#if PLATFORM(IOS_FAMILY)
+    const String& ctDataConnectionServiceType() const;
     static void setCTDataConnectionServiceType(const String&);
 #endif
 
@@ -65,11 +65,15 @@ public:
 
     static bool allowsSpecificHTTPSCertificateForHost(const WebCore::AuthenticationChallenge&);
 
+    void continueDidReceiveChallenge(const WebCore::AuthenticationChallenge&, NetworkDataTaskCocoa::TaskIdentifier, NetworkDataTaskCocoa*, CompletionHandler<void(WebKit::AuthenticationChallengeDisposition, const WebCore::Credential&)>&&);
+
 private:
-    NetworkSessionCocoa(NetworkSessionCreationParameters&&);
+    NetworkSessionCocoa(NetworkProcess&, NetworkSessionCreationParameters&&);
 
     void invalidateAndCancel() override;
     void clearCredentials() override;
+    bool shouldLogCookieInformation() const override { return m_shouldLogCookieInformation; }
+    Seconds loadThrottleLatency() const override { return m_loadThrottleLatency; }
 
     HashMap<NetworkDataTaskCocoa::TaskIdentifier, NetworkDataTaskCocoa*> m_dataTaskMapWithCredentials;
     HashMap<NetworkDataTaskCocoa::TaskIdentifier, NetworkDataTaskCocoa*> m_dataTaskMapWithoutState;
@@ -81,10 +85,11 @@ private:
     RetainPtr<WKNetworkSessionDelegate> m_statelessSessionDelegate;
 
     String m_boundInterfaceIdentifier;
-    RetainPtr<CFDictionaryRef> m_proxyConfiguration;
-
     String m_sourceApplicationBundleIdentifier;
     String m_sourceApplicationSecondaryIdentifier;
+    RetainPtr<CFDictionaryRef> m_proxyConfiguration;
+    bool m_shouldLogCookieInformation { false };
+    Seconds m_loadThrottleLatency;
 };
 
 } // namespace WebKit

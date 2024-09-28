@@ -28,6 +28,7 @@
 #include "CryptoRandom.h"
 #include "IsoDirectory.h"
 #include "IsoPage.h"
+#include "StdLibExtras.h"
 #include "VMAllocate.h"
 
 namespace bmalloc {
@@ -188,7 +189,7 @@ FreeList IsoPage<Config>::startAllocating()
         char* cellByte = reinterpret_cast<char*>(this) + index * Config::objectSize;
         if (verbose)
             fprintf(stderr, "%p: putting %p on free list.\n", this, cellByte);
-        FreeCell* cell = reinterpret_cast<FreeCell*>(cellByte);
+        FreeCell* cell = bitwise_cast<FreeCell*>(cellByte);
         cell->setNext(head, secret);
         head = cell;
         bytes += Config::objectSize;

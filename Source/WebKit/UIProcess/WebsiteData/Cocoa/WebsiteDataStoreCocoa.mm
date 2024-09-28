@@ -30,13 +30,17 @@
 #import "StorageManager.h"
 #import "WebResourceLoadStatisticsStore.h"
 #import "WebsiteDataStoreParameters.h"
-#import <WebCore/FileSystem.h>
+#import <WebCore/RegistrableDomain.h>
+#import <WebCore/RuntimeApplicationChecks.h>
 #import <WebCore/SearchPopupMenuCocoa.h>
 #import <pal/spi/cf/CFNetworkSPI.h>
+#import <wtf/FileSystem.h>
 #import <wtf/NeverDestroyed.h>
 #import <wtf/ProcessPrivilege.h>
+#import <wtf/URL.h>
+#import <wtf/text/StringBuilder.h>
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 #import <UIKit/UIApplication.h>
 #endif
 
@@ -51,21 +55,79 @@ static Vector<WebsiteDataStore*>& dataStoresWithStorageManagers()
     return dataStoresWithStorageManagers;
 }
 
+static NSString * const WebKitNetworkLoadThrottleLatencyMillisecondsDefaultsKey = @"WebKitNetworkLoadThrottleLatencyMilliseconds";
+
 WebsiteDataStoreParameters WebsiteDataStore::parameters()
 {
     ASSERT(hasProcessPrivilege(ProcessPrivilege::CanAccessRawCookies));
 
     resolveDirectoriesIfNecessary();
 
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    bool shouldLogCookieInformation = false;
+    bool enableResourceLoadStatisticsDebugMode = false;
+    WebCore::RegistrableDomain resourceLoadStatisticsManualPrevalentResource { };
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
+    enableResourceLoadStatisticsDebugMode = [defaults boolForKey:@"ITPDebugMode"];
+    auto* manualPrevalentResource = [defaults stringForKey:@"ITPManualPrevalentResource"];
+    if (manualPrevalentResource) {
+        URL url { URL(), manualPrevalentResource };
+        if (!url.isValid()) {
+            StringBuilder builder;
+            builder.appendLiteral("http://");
+            builder.append(manualPrevalentResource);
+            url = { URL(), builder.toString() };
+        }
+        if (url.isValid())
+            resourceLoadStatisticsManualPrevalentResource = WebCore::RegistrableDomain { url };
+    }
+#if !RELEASE_LOG_DISABLED
+    static NSString * const WebKitLogCookieInformationDefaultsKey = @"WebKitLogCookieInformation";
+    shouldLogCookieInformation = [defaults boolForKey:WebKitLogCookieInformationDefaultsKey];
+#endif
+#endif // ENABLE(RESOURCE_LOAD_STATISTICS)
+
+    URL httpProxy = m_configuration->httpProxy();
+    URL httpsProxy = m_configuration->httpsProxy();
+    
+    bool isSafari = false;
+#if PLATFORM(IOS_FAMILY)
+    isSafari = WebCore::IOSApplication::isMobileSafari();
+#elif PLATFORM(MAC)
+    isSafari = WebCore::MacApplication::isSafari();
+#endif
+    // FIXME: Remove these once Safari adopts _WKWebsiteDataStoreConfiguration.httpProxy and .httpsProxy.
+    if (!httpProxy.isValid() && isSafari)
+        httpProxy = URL(URL(), [defaults stringForKey:(NSString *)WebKit2HTTPProxyDefaultsKey]);
+    if (!httpsProxy.isValid() && isSafari)
+        httpsProxy = URL(URL(), [defaults stringForKey:(NSString *)WebKit2HTTPSProxyDefaultsKey]);
+
+    auto resourceLoadStatisticsDirectory = m_configuration->resourceLoadStatisticsDirectory();
+    SandboxExtension::Handle resourceLoadStatisticsDirectoryHandle;
+    if (!resourceLoadStatisticsDirectory.isEmpty())
+        SandboxExtension::createHandleForReadWriteDirectory(resourceLoadStatisticsDirectory, resourceLoadStatisticsDirectoryHandle);
+
+    bool shouldIncludeLocalhostInResourceLoadStatistics = isSafari;
     WebsiteDataStoreParameters parameters;
     parameters.networkSessionParameters = {
         m_sessionID,
         m_boundInterfaceIdentifier,
         m_allowsCellularAccess,
         m_proxyConfiguration,
-        m_configuration.sourceApplicationBundleIdentifier,
-        m_configuration.sourceApplicationSecondaryIdentifier,
+        m_sourceApplicationBundleIdentifier,
+        m_sourceApplicationSecondaryIdentifier,
+        shouldLogCookieInformation,
+        Seconds { [defaults integerForKey:WebKitNetworkLoadThrottleLatencyMillisecondsDefaultsKey] / 1000. },
+        WTFMove(httpProxy),
+        WTFMove(httpsProxy),
+        WTFMove(resourceLoadStatisticsDirectory),
+        WTFMove(resourceLoadStatisticsDirectoryHandle),
+        false,
+        shouldIncludeLocalhostInResourceLoadStatistics,
+        enableResourceLoadStatisticsDebugMode,
+        WTFMove(resourceLoadStatisticsManualPrevalentResource)
     };
+    finalizeApplicationIdentifiers();
 
     auto cookieFile = resolvedCookieStorageFile();
 
@@ -77,13 +139,25 @@ WebsiteDataStoreParameters WebsiteDataStore::parameters()
     }
 
     parameters.uiProcessCookieStorageIdentifier = m_uiProcessCookieStorageIdentifier;
-    parameters.networkSessionParameters.sourceApplicationBundleIdentifier = m_configuration.sourceApplicationBundleIdentifier;
-    parameters.networkSessionParameters.sourceApplicationSecondaryIdentifier = m_configuration.sourceApplicationSecondaryIdentifier;
+    parameters.networkSessionParameters.sourceApplicationBundleIdentifier = m_sourceApplicationBundleIdentifier;
+    parameters.networkSessionParameters.sourceApplicationSecondaryIdentifier = m_sourceApplicationSecondaryIdentifier;
 
     parameters.pendingCookies = copyToVector(m_pendingCookies);
 
     if (!cookieFile.isEmpty())
-        SandboxExtension::createHandleForReadWriteDirectory(WebCore::FileSystem::directoryName(cookieFile), parameters.cookieStoragePathExtensionHandle);
+        SandboxExtension::createHandleForReadWriteDirectory(FileSystem::directoryName(cookieFile), parameters.cookieStoragePathExtensionHandle);
+
+#if ENABLE(INDEXED_DATABASE)
+    parameters.indexedDatabaseDirectory = resolvedIndexedDatabaseDirectory();
+    if (!parameters.indexedDatabaseDirectory.isEmpty())
+        SandboxExtension::createHandleForReadWriteDirectory(parameters.indexedDatabaseDirectory, parameters.indexedDatabaseDirectoryExtensionHandle);
+#endif
+
+#if ENABLE(SERVICE_WORKER)
+    parameters.serviceWorkerRegistrationDirectory = resolvedServiceWorkerRegistrationDirectory();
+    if (!parameters.serviceWorkerRegistrationDirectory.isEmpty())
+        SandboxExtension::createHandleForReadWriteDirectory(parameters.serviceWorkerRegistrationDirectory, parameters.serviceWorkerRegistrationDirectoryExtensionHandle);
+#endif
 
     return parameters;
 }
@@ -104,8 +178,10 @@ void WebsiteDataStore::platformInitialize()
         terminationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:notificationName object:nil queue:nil usingBlock:^(NSNotification *note) {
             for (auto& dataStore : dataStoresWithStorageManagers()) {
                 dataStore->m_storageManager->applicationWillTerminate();
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
                 if (dataStore->m_resourceLoadStatistics)
                     dataStore->m_resourceLoadStatistics->applicationWillTerminate();
+#endif
             }
         }];
     }
@@ -116,8 +192,10 @@ void WebsiteDataStore::platformInitialize()
 
 void WebsiteDataStore::platformDestroy()
 {
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
     if (m_resourceLoadStatistics)
         m_resourceLoadStatistics->applicationWillTerminate();
+#endif
 
     if (!m_storageManager)
         return;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -261,7 +261,7 @@ void dumpSpeculation(PrintStream& outStream, SpeculatedType value)
             isTop = false;
         
         if (value & SpecNonIntAsDouble)
-            strOut.print("NonIntAsdouble");
+            strOut.print("NonIntAsDouble");
         else
             isTop = false;
         
@@ -480,7 +480,7 @@ SpeculatedType speculationFromCell(JSCell* cell)
             if (impl->isAtomic())
                 return SpecStringIdent;
         }
-        return SpecStringVar;
+        return SpecString;
     }
     return speculationFromStructure(cell->structure());
 }
@@ -612,9 +612,18 @@ bool valuesCouldBeEqual(SpeculatedType a, SpeculatedType b)
     return !!(a & b);
 }
 
-SpeculatedType typeOfDoubleSum(SpeculatedType a, SpeculatedType b)
+static SpeculatedType typeOfDoubleSumOrDifferenceOrProduct(SpeculatedType a, SpeculatedType b)
 {
     SpeculatedType result = a | b;
+
+    if (result & SpecNonIntAsDouble) {
+        // NaN can be produced by:
+        // Infinity - Infinity
+        // Infinity + (-Infinity)
+        // Infinity * 0
+        result |= SpecDoublePureNaN;
+    }
+
     // Impure NaN could become pure NaN during addition because addition may clear bits.
     if (result & SpecDoubleImpureNaN)
         result |= SpecDoublePureNaN;
@@ -624,14 +633,19 @@ SpeculatedType typeOfDoubleSum(SpeculatedType a, SpeculatedType b)
     return result;
 }
 
+SpeculatedType typeOfDoubleSum(SpeculatedType a, SpeculatedType b)
+{
+    return typeOfDoubleSumOrDifferenceOrProduct(a, b);
+}
+
 SpeculatedType typeOfDoubleDifference(SpeculatedType a, SpeculatedType b)
 {
-    return typeOfDoubleSum(a, b);
+    return typeOfDoubleSumOrDifferenceOrProduct(a, b);
 }
 
 SpeculatedType typeOfDoubleProduct(SpeculatedType a, SpeculatedType b)
 {
-    return typeOfDoubleSum(a, b);
+    return typeOfDoubleSumOrDifferenceOrProduct(a, b);
 }
 
 static SpeculatedType polluteDouble(SpeculatedType value)

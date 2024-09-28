@@ -24,6 +24,7 @@
 #include "config.h"
 #include "HTMLAnchorElement.h"
 
+#include "AdClickAttribution.h"
 #include "DOMTokenList.h"
 #include "ElementIterator.h"
 #include "EventHandler.h"
@@ -41,6 +42,7 @@
 #include "MouseEvent.h"
 #include "PingLoader.h"
 #include "PlatformMouseEvent.h"
+#include "RegistrableDomain.h"
 #include "RenderImage.h"
 #include "ResourceRequest.h"
 #include "RuntimeEnabledFeatures.h"
@@ -50,8 +52,11 @@
 #include "SecurityPolicy.h"
 #include "Settings.h"
 #include "URLUtils.h"
+#include "UserGestureIndicator.h"
 #include <wtf/IsoMallocInlines.h>
+#include <wtf/Optional.h>
 #include <wtf/text/StringBuilder.h>
+#include <wtf/text/StringConcatenateNumbers.h>
 
 namespace WebCore {
 
@@ -250,12 +255,15 @@ void HTMLAnchorElement::parseAttribute(const QualifiedName& name, const AtomicSt
         // Update HTMLAnchorElement::relList() if more rel attributes values are supported.
         static NeverDestroyed<AtomicString> noReferrer("noreferrer", AtomicString::ConstructFromLiteral);
         static NeverDestroyed<AtomicString> noOpener("noopener", AtomicString::ConstructFromLiteral);
+        static NeverDestroyed<AtomicString> opener("opener", AtomicString::ConstructFromLiteral);
         const bool shouldFoldCase = true;
         SpaceSplitString relValue(value, shouldFoldCase);
         if (relValue.contains(noReferrer))
             m_linkRelations.add(Relation::NoReferrer);
         if (relValue.contains(noOpener))
             m_linkRelations.add(Relation::NoOpener);
+        if (relValue.contains(opener))
+            m_linkRelations.add(Relation::Opener);
         if (m_relList)
             m_relList->associatedAttributeValueChanged(value);
     }
@@ -391,6 +399,58 @@ bool HTMLAnchorElement::isSystemPreviewLink() const
 }
 #endif
 
+Optional<AdClickAttribution> HTMLAnchorElement::parseAdClickAttribution() const
+{
+    using Campaign = AdClickAttribution::Campaign;
+    using Source = AdClickAttribution::Source;
+    using Destination = AdClickAttribution::Destination;
+
+    if (!RuntimeEnabledFeatures::sharedFeatures().adClickAttributionEnabled() || !UserGestureIndicator::processingUserGesture())
+        return WTF::nullopt;
+
+    if (!hasAttributeWithoutSynchronization(adcampaignidAttr) && !hasAttributeWithoutSynchronization(addestinationAttr))
+        return WTF::nullopt;
+    
+    auto adCampaignIDAttr = attributeWithoutSynchronization(adcampaignidAttr);
+    auto adDestinationAttr = attributeWithoutSynchronization(addestinationAttr);
+    
+    if (adCampaignIDAttr.isEmpty() || adDestinationAttr.isEmpty()) {
+        document().addConsoleMessage(MessageSource::Other, MessageLevel::Warning, "Both adcampaignid and addestination need to be set for Ad Click Attribution to work."_s);
+        return WTF::nullopt;
+    }
+
+    RefPtr<Frame> frame = document().frame();
+    if (!frame || !frame->isMainFrame()) {
+        document().addConsoleMessage(MessageSource::Other, MessageLevel::Warning, "Ad Click Attribution is only supported in the main frame."_s);
+        return WTF::nullopt;
+    }
+    
+    auto adCampaignID = parseHTMLNonNegativeInteger(adCampaignIDAttr);
+    if (!adCampaignID) {
+        document().addConsoleMessage(MessageSource::Other, MessageLevel::Warning, "adcampaignid can not be converted to a non-negative integer which is required for Ad Click Attribution."_s);
+        return WTF::nullopt;
+    }
+    
+    if (adCampaignID.value() >= AdClickAttribution::MaxEntropy) {
+        document().addConsoleMessage(MessageSource::Other, MessageLevel::Warning, makeString("adcampaignid must have a non-negative value less than ", AdClickAttribution::MaxEntropy, " for Ad Click Attribution."));
+        return WTF::nullopt;
+    }
+
+    URL adDestinationURL { URL(), adDestinationAttr };
+    if (!adDestinationURL.isValid() || !adDestinationURL.protocolIsInHTTPFamily()) {
+        document().addConsoleMessage(MessageSource::Other, MessageLevel::Warning, "addestination could not be converted to a valid HTTP-family URL."_s);
+        return WTF::nullopt;
+    }
+
+    RegistrableDomain documentRegistrableDomain { document().url() };
+    if (documentRegistrableDomain.matches(adDestinationURL)) {
+        document().addConsoleMessage(MessageSource::Other, MessageLevel::Warning, "addestination can not be the same site as the current website."_s);
+        return WTF::nullopt;
+    }
+
+    return AdClickAttribution { Campaign(adCampaignID.value()), Source(documentRegistrableDomain), Destination(adDestinationURL) };
+}
+
 void HTMLAnchorElement::handleClick(Event& event)
 {
     event.setDefaultHandled();
@@ -427,10 +487,31 @@ void HTMLAnchorElement::handleClick(Event& event)
 #endif
 
     ShouldSendReferrer shouldSendReferrer = hasRel(Relation::NoReferrer) ? NeverSendReferrer : MaybeSendReferrer;
-    auto newFrameOpenerPolicy = hasRel(Relation::NoOpener) ? std::make_optional(NewFrameOpenerPolicy::Suppress) : std::nullopt;
-    frame->loader().urlSelected(completedURL, target(), &event, LockHistory::No, LockBackForwardList::No, shouldSendReferrer, document().shouldOpenExternalURLsPolicyToPropagate(), newFrameOpenerPolicy, downloadAttribute, systemPreviewInfo);
+
+    auto effectiveTarget = this->effectiveTarget();
+    Optional<NewFrameOpenerPolicy> newFrameOpenerPolicy;
+    if (hasRel(Relation::Opener))
+        newFrameOpenerPolicy = NewFrameOpenerPolicy::Allow;
+    else if (hasRel(Relation::NoOpener) || (RuntimeEnabledFeatures::sharedFeatures().blankAnchorTargetImpliesNoOpenerEnabled() && equalIgnoringASCIICase(effectiveTarget, "_blank")))
+        newFrameOpenerPolicy = NewFrameOpenerPolicy::Suppress;
+
+    auto adClickAttribution = parseAdClickAttribution();
+    // A matching conversion event needs to happen before the complete ad click attributionURL can be
+    // created. Thus, it should be empty for now.
+    ASSERT(!adClickAttribution || adClickAttribution->url().isNull());
+    
+    frame->loader().urlSelected(completedURL, effectiveTarget, &event, LockHistory::No, LockBackForwardList::No, shouldSendReferrer, document().shouldOpenExternalURLsPolicyToPropagate(), newFrameOpenerPolicy, downloadAttribute, systemPreviewInfo, WTFMove(adClickAttribution));
 
     sendPings(completedURL);
+}
+
+// Falls back to using <base> element's target if the anchor does not have one.
+String HTMLAnchorElement::effectiveTarget() const
+{
+    auto effectiveTarget = target();
+    if (effectiveTarget.isEmpty())
+        effectiveTarget = document().baseTarget();
+    return effectiveTarget;
 }
 
 HTMLAnchorElement::EventType HTMLAnchorElement::eventType(Event& event)

@@ -26,9 +26,8 @@
 #import "config.h"
 #import "WKWebsiteDataStoreInternal.h"
 
-#if WK_API_ENABLED
-
 #import "APIString.h"
+#import "CompletionHandlerCallChecker.h"
 #import "WKHTTPCookieStoreInternal.h"
 #import "WKNSArray.h"
 #import "WKWebViewInternal.h"
@@ -38,9 +37,45 @@
 #import "WebResourceLoadStatisticsTelemetry.h"
 #import "WebsiteDataFetchOption.h"
 #import "_WKWebsiteDataStoreConfiguration.h"
-#import <WebCore/URL.h>
+#import "_WKWebsiteDataStoreDelegate.h"
 #import <WebKit/ServiceWorkerProcessProxy.h>
 #import <wtf/BlockPtr.h>
+#import <wtf/URL.h>
+#import <wtf/WeakObjCPtr.h>
+
+class WebsiteDataStoreClient : public WebKit::WebsiteDataStoreClient {
+public:
+    explicit WebsiteDataStoreClient(id <_WKWebsiteDataStoreDelegate> delegate)
+        : m_delegate(delegate)
+        , m_hasRequestStorageSpaceSelector([m_delegate.get() respondsToSelector:@selector(requestStorageSpace: frameOrigin: quota: currentSize: spaceRequired: decisionHandler:)])
+    {
+    }
+
+private:
+    void requestStorageSpace(const WebCore::SecurityOriginData& topOrigin, const WebCore::SecurityOriginData& frameOrigin, uint64_t quota, uint64_t currentSize, uint64_t spaceRequired, CompletionHandler<void(Optional<uint64_t>)>&& completionHandler) final
+    {
+        if (!m_hasRequestStorageSpaceSelector || !m_delegate) {
+            completionHandler({ });
+            return;
+        }
+
+        auto checker = WebKit::CompletionHandlerCallChecker::create(m_delegate.getAutoreleased(), @selector(requestStorageSpace: frameOrigin: quota: currentSize: spaceRequired: decisionHandler:));
+        auto decisionHandler = makeBlockPtr([completionHandler = WTFMove(completionHandler), checker = WTFMove(checker)](unsigned long long quota) mutable {
+            if (checker->completionHandlerHasBeenCalled())
+                return;
+            checker->didCallCompletionHandler();
+            completionHandler(quota);
+        });
+
+        URL mainFrameURL { URL(), topOrigin.toString() };
+        URL frameURL { URL(), frameOrigin.toString() };
+
+        [m_delegate.getAutoreleased() requestStorageSpace:mainFrameURL frameOrigin:frameURL quota:quota currentSize:currentSize spaceRequired:spaceRequired decisionHandler:decisionHandler.get()];
+    }
+
+    WeakObjCPtr<id <_WKWebsiteDataStoreDelegate> > m_delegate;
+    bool m_hasRequestStorageSpaceSelector { false };
+};
 
 @implementation WKWebsiteDataStore
 
@@ -184,6 +219,11 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
     return API::WebsiteDataStore::defaultDataStoreExists();
 }
 
++ (void)_deleteDefaultDataStoreForTesting
+{
+    return API::WebsiteDataStore::deleteDefaultDataStoreForTesting();
+}
+
 - (instancetype)_initWithConfiguration:(_WKWebsiteDataStoreConfiguration *)configuration
 {
     if (!(self = [super init]))
@@ -192,25 +232,29 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
     auto config = API::WebsiteDataStore::defaultDataStoreConfiguration();
 
     if (configuration._webStorageDirectory)
-        config.localStorageDirectory = configuration._webStorageDirectory.path;
+        config->setLocalStorageDirectory(configuration._webStorageDirectory.path);
     if (configuration._webSQLDatabaseDirectory)
-        config.webSQLDatabaseDirectory = configuration._webSQLDatabaseDirectory.path;
+        config->setWebSQLDatabaseDirectory(configuration._webSQLDatabaseDirectory.path);
     if (configuration._indexedDBDatabaseDirectory)
-        config.indexedDBDatabaseDirectory = configuration._indexedDBDatabaseDirectory.path;
+        config->setIndexedDBDatabaseDirectory(configuration._indexedDBDatabaseDirectory.path);
     if (configuration._cookieStorageFile)
-        config.cookieStorageFile = configuration._cookieStorageFile.path;
+        config->setCookieStorageFile(configuration._cookieStorageFile.path);
     if (configuration._resourceLoadStatisticsDirectory)
-        config.resourceLoadStatisticsDirectory = configuration._resourceLoadStatisticsDirectory.path;
+        config->setResourceLoadStatisticsDirectory(configuration._resourceLoadStatisticsDirectory.path);
     if (configuration._cacheStorageDirectory)
-        config.cacheStorageDirectory = configuration._cacheStorageDirectory.path;
+        config->setCacheStorageDirectory(configuration._cacheStorageDirectory.path);
     if (configuration._serviceWorkerRegistrationDirectory)
-        config.serviceWorkerRegistrationDirectory = configuration._serviceWorkerRegistrationDirectory.path;
+        config->setServiceWorkerRegistrationDirectory(configuration._serviceWorkerRegistrationDirectory.path);
     if (configuration.sourceApplicationBundleIdentifier)
-        config.sourceApplicationBundleIdentifier = configuration.sourceApplicationBundleIdentifier;
+        config->setSourceApplicationBundleIdentifier(configuration.sourceApplicationBundleIdentifier);
     if (configuration.sourceApplicationSecondaryIdentifier)
-        config.sourceApplicationSecondaryIdentifier = configuration.sourceApplicationSecondaryIdentifier;
+        config->setSourceApplicationSecondaryIdentifier(configuration.sourceApplicationSecondaryIdentifier);
+    if (configuration.httpProxy)
+        config->setHTTPProxy(configuration.httpProxy);
+    if (configuration.httpsProxy)
+        config->setHTTPSProxy(configuration.httpsProxy);
 
-    API::Object::constructInWrapper<API::WebsiteDataStore>(self, config, PAL::SessionID::generatePersistentSessionID());
+    API::Object::constructInWrapper<API::WebsiteDataStore>(self, WTFMove(config), PAL::SessionID::generatePersistentSessionID());
 
     return self;
 }
@@ -246,12 +290,20 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
 
 - (BOOL)_resourceLoadStatisticsDebugMode
 {
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
     return _websiteDataStore->websiteDataStore().resourceLoadStatisticsDebugMode();
+#else
+    return NO;
+#endif
 }
 
 - (void)_setResourceLoadStatisticsDebugMode:(BOOL)enabled
 {
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
     _websiteDataStore->websiteDataStore().setResourceLoadStatisticsDebugMode(enabled);
+#else
+    UNUSED_PARAM(enabled);
+#endif
 }
 
 - (NSUInteger)_cacheStoragePerOriginQuota
@@ -309,22 +361,52 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
     _websiteDataStore->websiteDataStore().setProxyConfiguration((__bridge CFDictionaryRef)configuration);
 }
 
+- (NSString *)_sourceApplicationBundleIdentifier
+{
+    return _websiteDataStore->websiteDataStore().sourceApplicationBundleIdentifier();
+}
+
+- (void)_setSourceApplicationBundleIdentifier:(NSString *)identifier
+{
+    if (!_websiteDataStore->websiteDataStore().setSourceApplicationBundleIdentifier(identifier))
+        [NSException raise:NSGenericException format:@"_setSourceApplicationBundleIdentifier cannot be called after networking has begun"];
+}
+
+- (NSString *)_sourceApplicationSecondaryIdentifier
+{
+    return _websiteDataStore->websiteDataStore().sourceApplicationSecondaryIdentifier();
+}
+
+- (void)_setSourceApplicationSecondaryIdentifier:(NSString *)identifier
+{
+    if (!_websiteDataStore->websiteDataStore().setSourceApplicationSecondaryIdentifier(identifier))
+        [NSException raise:NSGenericException format:@"_setSourceApplicationSecondaryIdentifier cannot be called after networking has begun"];
+}
+
 - (NSDictionary *)_proxyConfiguration
 {
     return (__bridge NSDictionary *)_websiteDataStore->websiteDataStore().proxyConfiguration();
 }
 
+- (NSURL *)_indexedDBDatabaseDirectory
+{
+    return [NSURL fileURLWithPath:_websiteDataStore->indexedDBDatabaseDirectory() isDirectory:YES];
+}
+
 - (void)_resourceLoadStatisticsSetShouldSubmitTelemetry:(BOOL)value
 {
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
     auto* store = _websiteDataStore->websiteDataStore().resourceLoadStatistics();
     if (!store)
         return;
 
     store->setShouldSubmitTelemetry(value);
+#endif
 }
 
 - (void)_setResourceLoadStatisticsTestingCallback:(void (^)(WKWebsiteDataStore *, NSString *))callback
 {
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
     if (!_websiteDataStore->isPersistent())
         return;
 
@@ -335,11 +417,8 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
         return;
     }
 
-    auto* store = _websiteDataStore->websiteDataStore().resourceLoadStatistics();
-    if (!store)
-        return;
-
-    store->setStatisticsTestingCallback(nullptr);
+    _websiteDataStore->websiteDataStore().setStatisticsTestingCallback(nullptr);
+#endif
 }
 
 + (void)_allowWebsiteDataRecordsForAllOrigins
@@ -360,6 +439,7 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
         return;
     }
 
+#if ENABLE(RESOURCE_LOAD_STATISTICS)
     _websiteDataStore->websiteDataStore().getAllStorageAccessEntries(webPageProxy->pageID(), [completionHandler = makeBlockPtr(completionHandler)](auto domains) {
         Vector<RefPtr<API::Object>> apiDomains;
         apiDomains.reserveInitialCapacity(domains.size());
@@ -367,6 +447,9 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
             apiDomains.uncheckedAppend(API::String::create(domain));
         completionHandler(wrapper(API::Array::create(WTFMove(apiDomains))));
     });
+#else
+    completionHandler({ });
+#endif
 }
 
 - (bool)_hasRegisteredServiceWorker
@@ -374,6 +457,15 @@ static Vector<WebKit::WebsiteDataRecord> toWebsiteDataRecords(NSArray *dataRecor
     return WebKit::ServiceWorkerProcessProxy::hasRegisteredServiceWorkers(_websiteDataStore->websiteDataStore().serviceWorkerRegistrationDirectory());
 }
 
-@end
+- (id <_WKWebsiteDataStoreDelegate>)_delegate
+{
+    return _delegate.get();
+}
 
-#endif // WK_API_ENABLED
+- (void)set_delegate:(id <_WKWebsiteDataStoreDelegate>)delegate
+{
+    _delegate = delegate;
+    _websiteDataStore->websiteDataStore().setClient(makeUniqueRef<WebsiteDataStoreClient>(delegate));
+}
+
+@end

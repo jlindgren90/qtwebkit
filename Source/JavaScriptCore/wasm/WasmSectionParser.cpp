@@ -35,6 +35,7 @@
 #include "WasmOps.h"
 #include "WasmSections.h"
 #include "WasmSignatureInlines.h"
+#include <wtf/Optional.h>
 
 namespace JSC { namespace Wasm {
 
@@ -171,7 +172,7 @@ auto SectionParser::parseFunction() -> PartialResult
     return { };
 }
 
-auto SectionParser::parseResizableLimits(uint32_t& initial, std::optional<uint32_t>& maximum) -> PartialResult
+auto SectionParser::parseResizableLimits(uint32_t& initial, Optional<uint32_t>& maximum) -> PartialResult
 {
     ASSERT(!maximum);
 
@@ -198,7 +199,7 @@ auto SectionParser::parseTableHelper(bool isImport) -> PartialResult
     WASM_PARSER_FAIL_IF(type != Wasm::Anyfunc, "Table type should be anyfunc, got ", type);
 
     uint32_t initial;
-    std::optional<uint32_t> maximum;
+    Optional<uint32_t> maximum;
     PartialResult limits = parseResizableLimits(initial, maximum);
     if (UNLIKELY(!limits))
         return makeUnexpected(WTFMove(limits.error()));
@@ -236,7 +237,7 @@ auto SectionParser::parseMemoryHelper(bool isImport) -> PartialResult
     PageCount maximumPageCount;
     {
         uint32_t initial;
-        std::optional<uint32_t> maximum;
+        Optional<uint32_t> maximum;
         PartialResult limits = parseResizableLimits(initial, maximum);
         if (UNLIKELY(!limits))
             return makeUnexpected(WTFMove(limits.error()));

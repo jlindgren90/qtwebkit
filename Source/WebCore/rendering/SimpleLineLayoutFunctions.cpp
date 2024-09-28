@@ -76,6 +76,18 @@ FloatRect computeOverflow(const RenderBlockFlow& flow, const FloatRect& layoutRe
 
 void paintFlow(const RenderBlockFlow& flow, const Layout& layout, PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 {
+    if (paintInfo.phase == PaintPhase::EventRegion) {
+        if (!flow.visibleToHitTesting())
+            return;
+        auto paintRect = paintInfo.rect;
+        paintRect.moveBy(-paintOffset);
+        for (auto run : layout.runResolver().rangeForRect(paintRect)) {
+            FloatRect visualOverflowRect = computeOverflow(flow, run.rect());
+            paintInfo.eventRegion->unite(enclosingIntRect(visualOverflowRect));
+        }
+        return;
+    }
+
     if (paintInfo.phase != PaintPhase::Foreground)
         return;
 
@@ -93,13 +105,11 @@ void paintFlow(const RenderBlockFlow& flow, const Layout& layout, PaintInfo& pai
         textPainter.setShadow(debugShadow.get());
     }
 
-    std::optional<TextDecorationPainter> textDecorationPainter;
+    Optional<TextDecorationPainter> textDecorationPainter;
     if (!style.textDecorationsInEffect().isEmpty()) {
         const RenderText* textRenderer = childrenOfType<RenderText>(flow).first();
         if (textRenderer) {
-            textDecorationPainter.emplace(paintInfo.context(), style.textDecorationsInEffect(), *textRenderer, false);
-            textDecorationPainter->setFont(style.fontCascade());
-            textDecorationPainter->setBaseline(style.fontMetrics().ascent());
+            textDecorationPainter.emplace(paintInfo.context(), style.textDecorationsInEffect(), *textRenderer, false, style.fontCascade());
         }
     }
 
@@ -275,6 +285,10 @@ void simpleLineLayoutWillBeDeleted(const Layout& layout)
 
 bool canUseForLineBoxTree(RenderBlockFlow& flow, const Layout& layout)
 {
+    // Line breaking requires some context that SLL can't provide at the moment (see RootInlineBox::setLineBreakInfo).
+    if (layout.lineCount() > 1)
+        return false;
+
     if (layout.isPaginated())
         return false;
     

@@ -37,7 +37,7 @@
 #include <algorithm>
 #include <wtf/MathExtras.h>
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
 #include "ScriptController.h"
 #endif
 
@@ -53,6 +53,9 @@ AudioScheduledSourceNode::AudioScheduledSourceNode(AudioContext& context, float 
 
 void AudioScheduledSourceNode::updateSchedulingInfo(size_t quantumFrameSize, AudioBus& outputBus, size_t& quantumFrameOffset, size_t& nonSilentFramesToProcess)
 {
+    nonSilentFramesToProcess = 0;
+    quantumFrameOffset = 0;
+
     ASSERT(quantumFrameSize == AudioNode::ProcessingSizeInFrames);
     if (quantumFrameSize != AudioNode::ProcessingSizeInFrames)
         return;
@@ -75,7 +78,6 @@ void AudioScheduledSourceNode::updateSchedulingInfo(size_t quantumFrameSize, Aud
     if (m_playbackState == UNSCHEDULED_STATE || m_playbackState == FINISHED_STATE || startFrame >= quantumEndFrame) {
         // Output silence.
         outputBus.zero();
-        nonSilentFramesToProcess = 0;
         return;
     }
 
@@ -130,6 +132,7 @@ void AudioScheduledSourceNode::updateSchedulingInfo(size_t quantumFrameSize, Aud
 ExceptionOr<void> AudioScheduledSourceNode::start(double when)
 {
     ASSERT(isMainThread());
+    ALWAYS_LOG(LOGIDENTIFIER, when);
 
     context().nodeWillBeginPlayback();
 
@@ -147,6 +150,7 @@ ExceptionOr<void> AudioScheduledSourceNode::start(double when)
 ExceptionOr<void> AudioScheduledSourceNode::stop(double when)
 {
     ASSERT(isMainThread());
+    ALWAYS_LOG(LOGIDENTIFIER, when);
 
     if (m_playbackState == UNSCHEDULED_STATE || m_endTime != UnknownTime)
         return Exception { InvalidStateError };

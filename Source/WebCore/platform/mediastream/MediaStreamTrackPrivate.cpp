@@ -1,6 +1,7 @@
 /*
- *  Copyright (C) 2013 Nokia Corporation and/or its subsidiary(-ies).
- *  Copyright (C) 2015 Ericsson AB. All rights reserved.
+ * Copyright (C) 2013 Nokia Corporation and/or its subsidiary(-ies).
+ * Copyright (C) 2015 Ericsson AB. All rights reserved.
+ * Copyright (C) 2013-2019 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +36,8 @@
 
 #if PLATFORM(COCOA)
 #include "WebAudioSourceProviderAVFObjC.h"
+#elif ENABLE(WEB_AUDIO) && ENABLE(MEDIA_STREAM) && USE(LIBWEBRTC) && USE(GSTREAMER)
+#include "AudioSourceProviderGStreamer.h"
 #else
 #include "WebAudioSourceProvider.h"
 #endif
@@ -96,6 +99,11 @@ const String& MediaStreamTrackPrivate::label() const
     return m_source->name();
 }
 
+void MediaStreamTrackPrivate::setContentHint(HintValue hintValue)
+{
+    m_contentHint = hintValue;
+}
+    
 bool MediaStreamTrackPrivate::muted() const
 {
     return m_source->muted();
@@ -130,7 +138,7 @@ void MediaStreamTrackPrivate::endTrack()
     m_isEnded = true;
     updateReadyState();
 
-    m_source->requestStop(this);
+    m_source->requestToEnd(*this);
 
     forEachObserver([this](auto& observer) {
         observer.trackEnded(*this);
@@ -142,6 +150,7 @@ Ref<MediaStreamTrackPrivate> MediaStreamTrackPrivate::clone()
     auto clonedMediaStreamTrackPrivate = create(m_source.copyRef());
     clonedMediaStreamTrackPrivate->m_isEnabled = this->m_isEnabled;
     clonedMediaStreamTrackPrivate->m_isEnded = this->m_isEnded;
+    clonedMediaStreamTrackPrivate->m_contentHint = this->m_contentHint;
     clonedMediaStreamTrackPrivate->updateReadyState();
 
     return clonedMediaStreamTrackPrivate;
@@ -162,9 +171,9 @@ const RealtimeMediaSourceCapabilities& MediaStreamTrackPrivate::capabilities() c
     return m_source->capabilities();
 }
 
-void MediaStreamTrackPrivate::applyConstraints(const MediaConstraints& constraints, RealtimeMediaSource::SuccessHandler&& successHandler, RealtimeMediaSource::FailureHandler&& failureHandler)
+void MediaStreamTrackPrivate::applyConstraints(const MediaConstraints& constraints, RealtimeMediaSource::ApplyConstraintsHandler&& completionHandler)
 {
-    m_source->applyConstraints(constraints, WTFMove(successHandler), WTFMove(failureHandler));
+    m_source->applyConstraints(constraints, WTFMove(completionHandler));
 }
 
 AudioSourceProvider* MediaStreamTrackPrivate::audioSourceProvider()
@@ -172,6 +181,9 @@ AudioSourceProvider* MediaStreamTrackPrivate::audioSourceProvider()
 #if PLATFORM(COCOA)
     if (!m_audioSourceProvider)
         m_audioSourceProvider = WebAudioSourceProviderAVFObjC::create(*this);
+#elif USE(LIBWEBRTC) && USE(GSTREAMER)
+    if (!m_audioSourceProvider)
+        m_audioSourceProvider = AudioSourceProviderGStreamer::create(*this);
 #endif
     return m_audioSourceProvider.get();
 }
@@ -258,11 +270,28 @@ void MediaStreamTrackPrivate::updateReadyState()
     if (state == m_readyState)
         return;
 
+    ALWAYS_LOG(LOGIDENTIFIER);
+
     m_readyState = state;
     forEachObserver([this](auto& observer) {
         observer.readyStateChanged(*this);
     });
 }
+
+#if !RELEASE_LOG_DISABLED
+void MediaStreamTrackPrivate::setLogger(const Logger& newLogger, const void* newLogIdentifier)
+{
+    m_logger = &newLogger;
+    m_logIdentifier = newLogIdentifier;
+    ALWAYS_LOG(LOGIDENTIFIER);
+    m_source->setLogger(newLogger, newLogIdentifier);
+}
+
+WTFLogChannel& MediaStreamTrackPrivate::logChannel() const
+{
+    return LogWebRTC;
+}
+#endif
 
 } // namespace WebCore
 

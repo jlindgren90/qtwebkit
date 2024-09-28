@@ -26,8 +26,6 @@
 #import "config.h"
 #import "APIObject.h"
 
-#if WK_API_ENABLED
-
 #import "WKBackForwardListInternal.h"
 #import "WKBackForwardListItemInternal.h"
 #import "WKBrowsingContextControllerInternal.h"
@@ -65,23 +63,26 @@
 #import "WKWebProcessPlugInPageGroupInternal.h"
 #import "WKWebProcessPlugInRangeHandleInternal.h"
 #import "WKWebProcessPlugInScriptWorldInternal.h"
+#import "WKWebpagePreferencesInternal.h"
 #import "WKWebsiteDataRecordInternal.h"
 #import "WKWebsiteDataStoreInternal.h"
 #import "WKWindowFeaturesInternal.h"
 #import "_WKAttachmentInternal.h"
 #import "_WKAutomationSessionInternal.h"
+#import "_WKContentRuleListActionInternal.h"
 #import "_WKDownloadInternal.h"
 #import "_WKExperimentalFeatureInternal.h"
 #import "_WKFrameHandleInternal.h"
 #import "_WKGeolocationPositionInternal.h"
 #import "_WKHitTestResultInternal.h"
 #import "_WKInspectorInternal.h"
+#import "_WKInternalDebugFeatureInternal.h"
 #import "_WKProcessPoolConfigurationInternal.h"
 #import "_WKUserContentWorldInternal.h"
 #import "_WKUserInitiatedActionInternal.h"
 #import "_WKUserStyleSheetInternal.h"
 #import "_WKVisitedLinkStoreInternal.h"
-#import "_WKWebsitePoliciesInternal.h"
+#import "_WKWebsiteDataStoreConfigurationInternal.h"
 
 #if ENABLE(APPLICATION_MANIFEST)
 #import "_WKApplicationManifestInternal.h"
@@ -93,12 +94,12 @@ static const size_t maximumExtraSpaceForAlignment = minimumObjectAlignment - ali
 
 namespace API {
 
-void Object::ref()
+void Object::ref() const
 {
     CFRetain((__bridge CFTypeRef)wrapper());
 }
 
-void Object::deref()
+void Object::deref() const
 {
     CFRelease((__bridge CFTypeRef)wrapper());
 }
@@ -142,7 +143,9 @@ void* Object::newObject(size_t size, Type type)
 #endif
 
     case Type::AuthenticationChallenge:
+        ALLOW_DEPRECATED_DECLARATIONS_BEGIN
         wrapper = allocateWKObject([WKNSURLAuthenticationChallenge self], size);
+        ALLOW_DEPRECATED_DECLARATIONS_END
         break;
 
     case Type::AutomationSession:
@@ -175,7 +178,9 @@ void* Object::newObject(size_t size, Type type)
     case Type::Connection:
         // While not actually a WKObject instance, WKConnection uses allocateWKObject to allocate extra space
         // instead of using ObjectStorage because the wrapped C++ object is a subclass of WebConnection.
+        ALLOW_DEPRECATED_DECLARATIONS_BEGIN
         wrapper = allocateWKObject([WKConnection self], size);
+        ALLOW_DEPRECATED_DECLARATIONS_END
         break;
 
     case Type::Preferences:
@@ -192,6 +197,10 @@ void* Object::newObject(size_t size, Type type)
 
     case Type::Data:
         wrapper = [WKNSData alloc];
+        break;
+
+    case Type::InternalDebugFeature:
+        wrapper = [_WKInternalDebugFeature alloc];
         break;
 
     case Type::Dictionary:
@@ -218,7 +227,7 @@ void* Object::newObject(size_t size, Type type)
         wrapper = [WKFrameInfo alloc];
         break;
 
-#if PLATFORM(IOS)
+#if PLATFORM(IOS_FAMILY)
     case Type::GeolocationPosition:
         wrapper = [_WKGeolocationPosition alloc];
         break;
@@ -247,7 +256,9 @@ void* Object::newObject(size_t size, Type type)
         break;
 
     case Type::NavigationData:
+        ALLOW_DEPRECATED_DECLARATIONS_BEGIN
         wrapper = [WKNavigationData alloc];
+        ALLOW_DEPRECATED_DECLARATIONS_END
         break;
 
     case Type::NavigationResponse:
@@ -261,7 +272,9 @@ void* Object::newObject(size_t size, Type type)
 #endif
 
     case Type::PageGroup:
+        ALLOW_DEPRECATED_DECLARATIONS_BEGIN
         wrapper = [WKBrowsingContextGroup alloc];
+        ALLOW_DEPRECATED_DECLARATIONS_END
         break;
 
     case Type::SecurityOrigin:
@@ -290,6 +303,10 @@ void* Object::newObject(size_t size, Type type)
 
     case Type::ContentRuleList:
         wrapper = [WKContentRuleList alloc];
+        break;
+
+    case Type::ContentRuleListAction:
+        wrapper = [_WKContentRuleListAction alloc];
         break;
 
     case Type::ContentRuleListStore:
@@ -323,9 +340,13 @@ void* Object::newObject(size_t size, Type type)
     case Type::WebsiteDataStore:
         wrapper = [WKWebsiteDataStore alloc];
         break;
+        
+    case Type::WebsiteDataStoreConfiguration:
+        wrapper = [_WKWebsiteDataStoreConfiguration alloc];
+        break;
 
     case Type::WebsitePolicies:
-        wrapper = [_WKWebsitePolicies alloc];
+        wrapper = [WKWebpagePreferences alloc];
         break;
 
     case Type::WindowFeatures:
@@ -384,5 +405,3 @@ API::Object* Object::unwrap(void* object)
 }
 
 } // namespace API
-
-#endif // WK_API_ENABLED
